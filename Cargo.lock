@@ -582,8 +582,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "block 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-foundation 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-graphics 0.17.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-foundation 0.6.4 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
+ "core-graphics 0.17.3 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
  "foreign-types 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.62 (registry+https://github.com/rust-lang/crates.io-index)",
  "objc 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -692,25 +692,25 @@ dependencies = [
 
 [[package]]
 name = "core-foundation"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.6.4"
+source = "git+https://github.com/servo/core-foundation-rs/?branch=mac-font#b4e39229e2a85ac460601f334b7afbb71de9b6e1"
 dependencies = [
- "core-foundation-sys 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-foundation-sys 0.6.2 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
  "libc 0.2.62 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "core-foundation-sys"
 version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/servo/core-foundation-rs/?branch=mac-font#b4e39229e2a85ac460601f334b7afbb71de9b6e1"
 
 [[package]]
 name = "core-graphics"
 version = "0.17.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/servo/core-foundation-rs/?branch=mac-font#b4e39229e2a85ac460601f334b7afbb71de9b6e1"
 dependencies = [
  "bitflags 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-foundation 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-foundation 0.6.4 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
  "foreign-types 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.62 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -718,10 +718,10 @@ dependencies = [
 [[package]]
 name = "core-text"
 version = "13.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/servo/core-foundation-rs/?branch=mac-font#b4e39229e2a85ac460601f334b7afbb71de9b6e1"
 dependencies = [
- "core-foundation 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-graphics 0.17.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-foundation 0.6.4 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
+ "core-graphics 0.17.3 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
  "foreign-types 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.62 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1262,9 +1262,9 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "byteorder 1.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-foundation 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-graphics 0.17.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-text 13.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-foundation 0.6.4 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
+ "core-graphics 0.17.3 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
+ "core-text 13.2.0 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
  "dirs 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "dwrote 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1392,9 +1392,9 @@ dependencies = [
  "app_units 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-foundation 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-graphics 0.17.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-text 13.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-foundation 0.6.4 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
+ "core-graphics 0.17.3 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
+ "core-text 13.2.0 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
  "dwrote 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1528,8 +1528,8 @@ dependencies = [
  "android_glue 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "cgl 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "cocoa 0.18.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-foundation 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-graphics 0.17.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-foundation 0.6.4 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
+ "core-graphics 0.17.3 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
  "derivative 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin_egl_sys 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin_emscripten_sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1898,8 +1898,8 @@ version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cmake 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-graphics 0.17.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-text 13.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-graphics 0.17.3 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
+ "core-text 13.2.0 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
  "foreign-types 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "freetype 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "pkg-config 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2177,10 +2177,10 @@ dependencies = [
 [[package]]
 name = "io-surface"
 version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/servo/core-foundation-rs/?branch=mac-font#b4e39229e2a85ac460601f334b7afbb71de9b6e1"
 dependencies = [
  "cgl 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-foundation 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-foundation 0.6.4 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
  "gleam 0.6.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "leaky-cow 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.62 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3207,7 +3207,7 @@ version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cgl 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-foundation 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-foundation 0.6.4 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
  "euclid 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4383,7 +4383,7 @@ dependencies = [
  "gleam 0.6.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin 0.21.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "glx 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "io-surface 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "io-surface 0.11.1 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
  "libc 0.2.62 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-fontconfig-sys 4.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4557,7 +4557,7 @@ source = "git+https://github.com/pcwalton/signpost.git#7ed712507f343c38646b9d1fe
 name = "simpleservo"
 version = "0.0.1"
 dependencies = [
- "core-foundation 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-foundation 0.6.4 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
  "gl_generator 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.62 (registry+https://github.com/rust-lang/crates.io-index)",
  "libloading 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5555,9 +5555,9 @@ dependencies = [
  "bitflags 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "cfg-if 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-foundation 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-graphics 0.17.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-text 13.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-foundation 0.6.4 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
+ "core-graphics 0.17.3 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
+ "core-text 13.2.0 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
  "cstr 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "dwrote 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5594,8 +5594,8 @@ dependencies = [
  "app_units 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-foundation 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-graphics 0.17.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-foundation 0.6.4 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
+ "core-graphics 0.17.3 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
  "derive_more 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5746,8 +5746,8 @@ dependencies = [
  "backtrace 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cocoa 0.18.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-foundation 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-graphics 0.17.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-foundation 0.6.4 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
+ "core-graphics 0.17.3 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)",
  "lazy_static 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.62 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5941,10 +5941,10 @@ dependencies = [
 "checksum color_quant 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a475fc4af42d83d28adf72968d9bcfaf035a1a9381642d8e85d8a04957767b0d"
 "checksum combine 3.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "54cedd8056314afe0d844a37a207007edf8a45f2cc452fd77629cd63c221740e"
 "checksum cookie 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1465f8134efa296b4c19db34d909637cb2bf0f7aaf21299e23e18fa29ac557cf"
-"checksum core-foundation 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "58667b9a618a37ea8c4c4cb5298703e5dfadcd3698c79f54fc43e6a2e94733ea"
-"checksum core-foundation-sys 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e7ca8a5221364ef15ce201e8ed2f609fc312682a8f4e0e3d4aa5879764e0fa3b"
-"checksum core-graphics 0.17.3 (registry+https://github.com/rust-lang/crates.io-index)" = "56790968ab1c8a1202a102e6de05fc6e1ec87da99e4e93e9a7d13efbfc1e95a9"
-"checksum core-text 13.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d95a72b5e50e549969dd88eff3047495fe5b8c6f028635442c2b708be707e669"
+"checksum core-foundation 0.6.4 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)" = "<none>"
+"checksum core-foundation-sys 0.6.2 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)" = "<none>"
+"checksum core-graphics 0.17.3 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)" = "<none>"
+"checksum core-text 13.2.0 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)" = "<none>"
 "checksum crc 1.8.1 (registry+https://github.com/rust-lang/crates.io-index)" = "d663548de7f5cca343f1e0a48d14dcfb0e9eb4e079ec58883b7251539fa10aeb"
 "checksum crc32fast 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ba125de2af0df55319f41944744ad91c71113bf74a4646efff39afe1f6842db1"
 "checksum crossbeam-channel 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)" = "0f0ed1a4de2235cabda8558ff5840bffb97fcb64c97827f354a451307df5f72b"
@@ -6070,7 +6070,7 @@ dependencies = [
 "checksum influent 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "87fdeaaa9b5aacb83901de1bb66b32ec574a327758657404c1edf06f5a6ac0f0"
 "checksum inventory 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "21df85981fe094480bc2267723d3dc0fd1ae0d1f136affc659b7398be615d922"
 "checksum inventory-impl 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "8a877ae8bce77402d5e9ed870730939e097aad827b2a932b361958fa9d6e75aa"
-"checksum io-surface 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)" = "5f9a33981dff54baaff80f4decb487a65d148a3c00facc97820d0f09128f74dd"
+"checksum io-surface 0.11.1 (git+https://github.com/servo/core-foundation-rs/?branch=mac-font)" = "<none>"
 "checksum iovec 0.1.3 (git+https://github.com/servo/iovec.git?branch=servo)" = "<none>"
 "checksum ipc-channel 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)" = "79d98ee7dd1d2e796d254807fd86ea7189d07571aeaa74007603e29a79d15217"
 "checksum itertools 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "5b8467d9c1cebe26feb08c640139247fac215782d35371ade9a2136ed6085358"

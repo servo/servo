@@ -31,3 +31,8 @@ iovec = { git = "https://github.com/servo/iovec.git", branch = "servo" }
 rand_os = { git = "https://github.com/servo/rand", branch = "servo-rand_os-0.1.3-uwp" }
 rand_core = { git = "https://github.com/servo/rand", branch = "servo-rand_os-0.1.3-uwp" }
 
+core-text = { git = "https://github.com/servo/core-foundation-rs/", branch = "mac-font" }
+core-graphics = { git = "https://github.com/servo/core-foundation-rs/", branch = "mac-font" }
+core-foundation = { git = "https://github.com/servo/core-foundation-rs/", branch = "mac-font" }
+core-foundation-sys = { git = "https://github.com/servo/core-foundation-rs/", branch = "mac-font" }
+io-surface = { git = "https://github.com/servo/core-foundation-rs/", branch = "mac-font" }
