@@ -607,6 +607,31 @@ impl<Impl: SelectorImpl> Selector<Impl> {
     }
 
     #[inline]
+    pub fn part(&self) -> Option<&Impl::PartName> {
+        if !self.is_part() {
+            return None;
+        }
+
+        let mut iter = self.iter();
+        if self.has_pseudo_element() {
+            // Skip the pseudo-element.
+            for _ in &mut iter {}
+
+            let combinator = iter.next_sequence()?;
+            debug_assert_eq!(combinator, Combinator::PseudoElement);
+        }
+
+        for component in iter {
+            if let Component::Part(ref part) = *component {
+                return Some(part);
+            }
+        }
+
+        debug_assert!(false, "is_part() lied somehow?");
+        None
+    }
+
+    #[inline]
     pub fn pseudo_element(&self) -> Option<&Impl::PseudoElement> {
         if !self.has_pseudo_element() {
             return None;
