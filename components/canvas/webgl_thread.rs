@@ -201,7 +201,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
                     data.ctx.make_current();
                     self.bound_context_id = Some(*context_id);
                 }
-                info.io_surface_id = data.ctx.swap_draw_buffer();
+                info.io_surface_id = data.ctx.swap_draw_buffer(data.state.clear_color);
             }
             info.received_webgl_command = false;
             info.has_request_animtion = true;

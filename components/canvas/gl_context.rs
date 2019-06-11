@@ -217,10 +217,10 @@ impl GLContextWrapper {
 
     /// Swap the backing texture for the draw buffer, returning the id of the IOsurface
     /// now used for reading.
-    pub fn swap_draw_buffer(&mut self) -> Option<u32> {
+    pub fn swap_draw_buffer(&mut self, clear_color: (f32, f32, f32, f32)) -> Option<u32> {
         match *self {
-            GLContextWrapper::Native(ref mut ctx) => ctx.swap_draw_buffer(),
-            GLContextWrapper::OSMesa(ref mut ctx) => ctx.swap_draw_buffer(),
+            GLContextWrapper::Native(ref mut ctx) => ctx.swap_draw_buffer(clear_color),
+            GLContextWrapper::OSMesa(ref mut ctx) => ctx.swap_draw_buffer(clear_color),
         }
     }
 
