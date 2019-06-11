@@ -58,7 +58,7 @@ pub fn pref_map() -> &'static Preferences<'static, Prefs> {
     &PREFS
 }
 
-pub fn add_user_prefs() {
+pub(crate) fn add_user_prefs() {
     if let Some(path) = user_prefs_path() {
         init_user_prefs(path);
     }
