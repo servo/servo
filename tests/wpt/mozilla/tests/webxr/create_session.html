@@ -1,0 +1,15 @@
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <script>
+          async_test(function(t) {
+              navigator.xr.test.simulateDeviceConnection({supportsImmersive: true}).then((m) => {
+                return navigator.xr.requestSession({mode: "immersive-vr"})
+              }).then(() => t.done());
+          });
+        </script>
+    </body>
+</html>

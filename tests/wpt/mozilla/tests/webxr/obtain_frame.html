@@ -1,0 +1,62 @@
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="./resources/webxr-util.js"></script>
+    </head>
+    <body>
+          <canvas id="canvas" width="640" height="480"></canvas>
+
+        <script>
+          let session;
+          let mock;
+          let canvas = document.getElementById("canvas");
+          let gl = canvas.getContext('webgl');
+
+          promise_test(function() {
+              return navigator.xr.test.simulateDeviceConnection({supportsImmersive: true}).then((m) => {
+                mock = m;
+                mock.setViewerOrigin({position: [0.5, 0, 0, 1], orientation: [0, 0, 0, 1] });
+                mock.setViews(TEST_VIEWS);
+                return navigator.xr.requestSession({mode: "immersive-vr"});
+              })
+              .then((s) => {
+                session = s;
+                return session.updateRenderState({"baseLayer": new XRWebGLLayer(session, gl, {})})
+              })
+              .then(() => {
+                return new Promise(function(resolve, reject) {
+                  session.requestAnimationFrame(function(time, frame) {
+                      session.requestReferenceSpace("local").then((space) => {
+                      let pose = frame.getViewerPose(space);
+                      for (view of pose.views) {
+                        assert_matrix_approx_equals(view.projectionMatrix, VALID_PROJECTION_MATRIX, 0.001, "left projection matrix");
+
+                        if (view.eye == "left") {
+                          assert_matrix_approx_equals(view.transform.matrix, [1,0,0,0, 0,1,0,0, 0,0,1,0, 0.4,0,0,1], 0.001, "left transform");
+                          let position = view.transform.position;
+                          assert_approx_equals(position.x, 0.4, 0.001, "left x value");
+                          assert_approx_equals(position.y, 0, 0.001, "left y value");
+                          assert_approx_equals(position.z, 0, 0.001, "left z value");
+                          assert_approx_equals(position.w, 1, 0.001, "left w value");
+                        } else if (view.eye == "right") {
+                          assert_matrix_approx_equals(view.transform.matrix, [1,0,0,0, 0,1,0,0, 0,0,1,0, 0.6,0,0,1], 0.001, "right transform");
+                          let position = view.transform.position;
+                          assert_approx_equals(position.x, 0.6, 0.001, "left x value");
+                          assert_approx_equals(position.y, 0, 0.001, "left y value");
+                          assert_approx_equals(position.z, 0, 0.001, "left z value");
+                          assert_approx_equals(position.w, 1, 0.001, "left w value");
+                        } else {
+                          reject("got unknown view");
+                        }
+                      }
+                      resolve();
+                    }).catch((e) => reject(e));
+                  });
+                });
+
+              });
+          });
+        </script>
+    </body>
+</html>

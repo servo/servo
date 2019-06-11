@@ -62,8 +62,8 @@ impl FakeXRDeviceControllerMethods for FakeXRDeviceController {
 
         if left.projectionMatrix.len() != 16 ||
             right.projectionMatrix.len() != 16 ||
-            left.viewOffset.position.len() != 4 ||
-            right.viewOffset.position.len() != 4
+            left.viewOffset.position.len() != 3 ||
+            right.viewOffset.position.len() != 3
         {
             return Err(Error::Type("Incorrectly sized array".into()));
         }
