@@ -26,7 +26,7 @@ cssparser = "0.25"
 derive_more = "0.13"
 log = "0.4"
 fxhash = "0.2"
-phf = "0.7.18"
+phf = "0.7"
 precomputed-hash = "0.1"
 servo_arc = { version = "0.1", path = "../servo_arc" }
 smallvec = "0.6"
@@ -35,4 +35,4 @@ to_shmem = { path = "../to_shmem" }
 to_shmem_derive = { path = "../to_shmem_derive" }
 
 [build-dependencies]
-phf_codegen = "0.7.18"
+phf_codegen = "0.7"
