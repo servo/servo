@@ -11223,6 +11223,9 @@
     ]
    ],
    "mozilla/xmlhttprequest_url.html": [],
+   "webxr/obtain_frame_BASE_17524.html": [
+    []
+   ],
    "webxr/resources/webxr-util.js": [
     []
    ]
@@ -13942,7 +13945,7 @@
      "webxr/obtain_frame.html",
      {}
     ]
-   ]
+   ],
   },
   "visual": {
    "mozilla/xmlhttprequest_url.html": []
