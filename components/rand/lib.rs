@@ -29,7 +29,7 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::Mutex;
 use std::u64;
-use uuid::Uuid;
+use uuid::{Builder, Uuid, Variant, Version};
 
 // Slightly annoying having to cast between sizes.
 
@@ -162,5 +162,8 @@ pub fn random<T: Rand>() -> T {
 pub fn random_uuid() -> Uuid {
     let mut bytes = [0; 16];
     thread_rng().fill_bytes(&mut bytes);
-    Uuid::from_random_bytes(bytes)
+    Builder::from_bytes(bytes)
+        .set_variant(Variant::RFC4122)
+        .set_version(Version::Random)
+        .build()
 }
