@@ -469,7 +469,7 @@ pub fn http_fetch(
     target: Target,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
-    cache_entry: Option<HttpCacheEntry>,
+    cache_entry: &Option<HttpCacheEntry>,
 ) -> Response {
     // This is a new async fetch, reset the channel we are waiting on
     *done_chan = None;
@@ -522,7 +522,7 @@ pub fn http_fetch(
 
             // Sub-substep 1
             if method_mismatch || header_mismatch {
-                let preflight_result = cors_preflight_fetch(&request, cache, context);
+                let preflight_result = cors_preflight_fetch(&request, cache, context, cache_entry);
                 // Sub-substep 2
                 if let Some(e) = preflight_result.get_network_error() {
                     return Response::network_error(e.clone());
@@ -788,7 +788,7 @@ fn http_network_or_cache_fetch(
     cors_flag: bool,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
-    cache_entry: Option<HttpCacheEntry>,
+    cache_entry: &Option<HttpCacheEntry>,
 ) -> Response {
     // Step 2
     let mut response: Option<Response> = None;
@@ -972,8 +972,8 @@ fn http_network_or_cache_fetch(
     // TODO If there’s a proxy-authentication entry, use it as appropriate.
 
     // Step 5.19
-    if let Ok(http_cache) = context.state.http_cache.read() {
-        if let Some(response_from_cache) = cache_entry.construct_response(&http_request, done_chan) {
+    if let Some(entry) = cache_entry {
+        if let Some(response_from_cache) = entry.construct_response(&http_request, done_chan) {
             let response_headers = response_from_cache.response.headers.clone();
             // Substep 1, 2, 3, 4
             let (cached_response, needs_revalidation) =
@@ -1055,7 +1055,7 @@ fn http_network_or_cache_fetch(
     if response.is_none() {
         // Substep 2
         let forward_response =
-            http_network_fetch(http_request, credentials_flag, done_chan, context);
+            http_network_fetch(http_request, credentials_flag, done_chan, context, cache_entry);
         // Substep 3
         if let Some((200...399, _)) = forward_response.raw_status {
             if !http_request.method.is_safe() {
@@ -1071,8 +1071,8 @@ fn http_network_or_cache_fetch(
                 .as_ref()
                 .map_or(false, |s| s.0 == StatusCode::NOT_MODIFIED)
         {
-            if let Ok(mut http_cache) = context.state.http_cache.write() {
-                response = http_cache.refresh(&http_request, forward_response.clone(), done_chan);
+            if let Some(entry) = cache_entry {
+                response = entry.refresh(&http_request, forward_response.clone(), done_chan);
                 wait_for_cached_response(done_chan, &mut response);
             }
         }
@@ -1081,8 +1081,8 @@ fn http_network_or_cache_fetch(
         if response.is_none() {
             if http_request.cache_mode != CacheMode::NoStore {
                 // Subsubstep 2, doing it first to avoid a clone of forward_response.
-                if let Ok(mut http_cache) = context.state.http_cache.write() {
-                    http_cache.store(&http_request, &forward_response);
+                if let Some(entry) = cache_entry {
+                      entry.store(&http_request, &forward_response);
                 }
             }
             // Subsubstep 1
@@ -1193,7 +1193,7 @@ fn http_network_fetch(
     credentials_flag: bool,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
-    cache_entry: Option<HttpCacheEntry>,
+    cache_entry: &Option<HttpCacheEntry>,
 ) -> Response {
     let mut response_end_timer = ResponseEndTimer(Some(context.timing.clone()));
     // Step 1
@@ -1423,6 +1423,7 @@ fn cors_preflight_fetch(
     request: &Request,
     cache: &mut CorsCache,
     context: &FetchContext,
+    cache_entry: &Option<HttpCacheEntry>,
 ) -> Response {
     // Step 1
     let mut preflight = Request::new(
@@ -1465,7 +1466,7 @@ fn cors_preflight_fetch(
     }
 
     // Step 5
-    let response = http_network_or_cache_fetch(&mut preflight, false, false, &mut None, context);
+    let response = http_network_or_cache_fetch(&mut preflight, false, false, &mut None, context, cache_entry);
 
     // Step 6
     if cors_check(&request, &response).is_ok() &&

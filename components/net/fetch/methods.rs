@@ -156,7 +156,7 @@ pub fn main_fetch(
         http_cache.get_entry(&request)
     } else {
         None
-    }
+    };
 
     // Step 2.
     if request.local_urls_only {
@@ -254,7 +254,7 @@ pub fn main_fetch(
             request.response_tainting = ResponseTainting::Basic;
 
             // Substep 2.
-            scheme_fetch(request, cache, target, done_chan, context, cache_entry)
+            scheme_fetch(request, cache, target, done_chan, context, &cache_entry)
         } else if request.mode == RequestMode::SameOrigin {
             Response::network_error(NetworkError::Internal("Cross-origin response".into()))
         } else if request.mode == RequestMode::NoCors {
@@ -262,7 +262,7 @@ pub fn main_fetch(
             request.response_tainting = ResponseTainting::Opaque;
 
             // Substep 2.
-            scheme_fetch(request, cache, target, done_chan, context, cache_entry)
+            scheme_fetch(request, cache, target, done_chan, context, &cache_entry)
         } else if !matches!(current_url.scheme(), "http" | "https") {
             Response::network_error(NetworkError::Internal("Non-http scheme".into()))
         } else if request.use_cors_preflight ||
@@ -276,7 +276,7 @@ pub fn main_fetch(
             request.response_tainting = ResponseTainting::CorsTainting;
             // Substep 2.
             let response = http_fetch(
-                request, cache, true, true, false, target, done_chan, context, cache_entry
+                request, cache, true, true, false, target, done_chan, context, &cache_entry
             );
             // Substep 3.
             if response.is_network_error() {
@@ -289,7 +289,7 @@ pub fn main_fetch(
             request.response_tainting = ResponseTainting::CorsTainting;
             // Substep 2.
             http_fetch(
-                request, cache, true, false, false, target, done_chan, context, cache_entry
+                request, cache, true, false, false, target, done_chan, context, &cache_entry
             )
         }
     });
@@ -466,7 +466,7 @@ pub fn main_fetch(
 
     if !response.is_network_error() {
         if let Some(entry) = cache_entry {
-            cache_entry.update_awaiting_consumers(&request, &response);
+            entry.update_awaiting_consumers(&request, &response);
         }
     }
 
@@ -581,7 +581,7 @@ fn scheme_fetch(
     target: Target,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
-    cache_entry: Option<HttpCacheEntry>,
+    cache_entry: &Option<HttpCacheEntry>
 ) -> Response {
     let url = request.current_url();
 
