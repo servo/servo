@@ -195,8 +195,6 @@ int main() {
 
   // init_servo calls MLLifecycleSetReadyIndication()
 
-  MLLifecycleFreeInitArgList(&arg_list);
-
   // Check privileges
   if (MLResult_Ok != MLPrivilegesStartup()) {
     ML_LOG(Error, "%s: Failed to initialize privileges.", application_name);
@@ -230,6 +228,9 @@ int main() {
                          url,
                          "--pref dom.webvr.enabled --pref dom.gamepad.enabled",
                          500, 500, 1.0);
+
+  // At this point we can free the memory for the arg list, since the url isn't used after this
+  MLLifecycleFreeInitArgList(&arg_list);
 
   // Pin the main thread to the Denver core
   // https://forum.magicleap.com/hc/en-us/community/posts/360043120832-How-many-CPUs-does-an-immersive-app-have-access-to-
