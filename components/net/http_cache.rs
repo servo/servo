@@ -756,7 +756,7 @@ impl HttpCacheEntry {
         assert_eq!(entry_key, self.key);
         if let ResponseBody::Done(ref completed_body) = *response.body.lock().unwrap() {
             for cached_resource in self.entries.read().clone().iter() {
-                let cached_resource = cached_resource.write();
+                let cached_resource = cached_resource.read();
                 let mut awaiting_consumers = cached_resource.awaiting_body.lock().unwrap();
                 for done_sender in awaiting_consumers.drain(..) {
                     if cached_resource.aborted.load(Ordering::Relaxed) {
