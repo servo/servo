@@ -633,6 +633,48 @@ impl HttpCache {
     }
 }
 
+fn check_vary_headers(request: &Request, cached_resource: &CachedResource) -> bool {
+    let mut can_be_constructed = true;
+    let cached_headers = cached_resource.data.metadata.headers.lock().unwrap();
+    let original_request_headers = cached_resource.request_headers.lock().unwrap();
+    if let Some(vary_value) = cached_headers.typed_get::<Vary>() {
+        if vary_value.is_any() {
+            can_be_constructed = false
+        } else {
+            // For every header name found in the Vary header of the stored response.
+            // Calculating Secondary Keys with Vary <https://tools.ietf.org/html/rfc7234#section-4.1>
+            for vary_val in vary_value.iter_strs() {
+                match request.headers.get(vary_val) {
+                    Some(header_data) => {
+                        // If the header is present in the request.
+                        if let Some(original_header_data) =
+                            original_request_headers.get(vary_val)
+                        {
+                            // Check that the value of the nominated header field,
+                            // in the original request, matches the value in the current request.
+                            if original_header_data != header_data {
+                                can_be_constructed = false;
+                                break;
+                            }
+                        }
+                    },
+                    None => {
+                        // If a header field is absent from a request,
+                        // it can only match a stored response if those headers,
+                        // were also absent in the original request.
+                        can_be_constructed =
+                            original_request_headers.get(vary_val).is_none();
+                    },
+                }
+                if !can_be_constructed {
+                    break;
+                }
+            }
+        }
+    }
+    can_be_constructed
+}
+
 #[derive(Clone)]
 /// A cache entry.
 pub struct HttpCacheEntry {
@@ -674,52 +716,7 @@ impl HttpCacheEntry {
 
         let mut candidates = vec![];
         for cached_resource in self.entries.read().clone() {
-
-            let (cached_headers, original_request_headers) = {
-                let cached_resource = cached_resource.read();
-                let cached_headers = cached_resource.data.metadata.headers.lock().unwrap();
-                let original_request_headers = cached_resource.request_headers.lock().unwrap();
-                (cached_headers.clone(), original_request_headers.clone())
-            };
-
-            let mut can_be_constructed = true;
-
-            if let Some(vary_value) = cached_headers.typed_get::<Vary>() {
-                if vary_value.is_any() {
-                    can_be_constructed = false
-                } else {
-                    // For every header name found in the Vary header of the stored response.
-                    // Calculating Secondary Keys with Vary <https://tools.ietf.org/html/rfc7234#section-4.1>
-                    for vary_val in vary_value.iter_strs() {
-                        match request.headers.get(vary_val) {
-                            Some(header_data) => {
-                                // If the header is present in the request.
-                                if let Some(original_header_data) =
-                                    original_request_headers.get(vary_val)
-                                {
-                                    // Check that the value of the nominated header field,
-                                    // in the original request, matches the value in the current request.
-                                    if original_header_data != header_data {
-                                        can_be_constructed = false;
-                                        break;
-                                    }
-                                }
-                            },
-                            None => {
-                                // If a header field is absent from a request,
-                                // it can only match a stored response if those headers,
-                                // were also absent in the original request.
-                                can_be_constructed =
-                                    original_request_headers.get(vary_val).is_none();
-                            },
-                        }
-                        if !can_be_constructed {
-                            break;
-                        }
-                    }
-                }
-            }
-            if can_be_constructed {
+            if check_vary_headers(request, &*cached_resource.read()) {
                 candidates.push(cached_resource);
             }
         }
