@@ -11223,6 +11223,9 @@
     ]
    ],
    "mozilla/xmlhttprequest_url.html": [],
+   "webxr/obtain_frame_BASE_17524.html": [
+    []
+   ],
    "webxr/resources/webxr-util.js": [
     []
    ]
@@ -13940,6 +13943,24 @@
    "webxr/obtain_frame.html": [
     [
      "webxr/obtain_frame.html",
+     {}
+    ]
+   ],
+   "webxr/obtain_frame_BACKUP_17524.html": [
+    [
+     "webxr/obtain_frame_BACKUP_17524.html",
+     {}
+    ]
+   ],
+   "webxr/obtain_frame_LOCAL_17524.html": [
+    [
+     "webxr/obtain_frame_LOCAL_17524.html",
+     {}
+    ]
+   ],
+   "webxr/obtain_frame_REMOTE_17524.html": [
+    [
+     "webxr/obtain_frame_REMOTE_17524.html",
      {}
     ]
    ]
@@ -21133,6 +21154,22 @@
    "testharness"
   ],
   "webxr/obtain_frame.html": [
+   "1089bb25c2f6b26db4e21b6bf07c28add3fee5ec",
+   "testharness"
+  ],
+  "webxr/obtain_frame_BACKUP_17524.html": [
+   "e414f12fc19f806043c9cd39ed80e8648a37a14f",
+   "testharness"
+  ],
+  "webxr/obtain_frame_BASE_17524.html": [
+   "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+   "support"
+  ],
+  "webxr/obtain_frame_LOCAL_17524.html": [
+   "e6e142fa103575b3f371ef34d27e81d7c6d3a68d",
+   "testharness"
+  ],
+  "webxr/obtain_frame_REMOTE_17524.html": [
    "1089bb25c2f6b26db4e21b6bf07c28add3fee5ec",
    "testharness"
   ],
