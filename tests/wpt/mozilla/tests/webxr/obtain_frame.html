@@ -24,9 +24,10 @@
             
             let space = await session.requestReferenceSpace("local");
             let pose = frame.getViewerPose(space);
-            for (view of pose.views) {
-              assert_matrix_approx_equals(view.projectionMatrix, VALID_PROJECTION_MATRIX, 0.001, "left projection matrix");
+            assert_matrix_approx_equals(pose.transform.matrix, [1,0,0,0,0,0,1,0,0,-1,0,0,0.5,0.1,0.1,1], 0.001, "head pose matrix");
 
+            for (view of pose.views) {
+              assert_matrix_approx_equals(view.projectionMatrix, VALID_PROJECTION_MATRIX, 0.001, "projection matrix");
               if (view.eye == "left") {
                 assert_matrix_approx_equals(view.transform.matrix,         [1,0,0,0,0,0,1,0,0,-1,0,0,0.4,0.1,0.1,1], 0.001, "left transform");
                 assert_matrix_approx_equals(view.transform.inverse.matrix, [1,0,0,0,0,0,-1,0,0,1,0,0,-0.4,-0.1,0.1,1], 0.001, "left inverse transform");
