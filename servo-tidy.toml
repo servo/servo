@@ -32,15 +32,10 @@ rand = [
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
-  "base64",
-  "block-buffer",
-  "byte-tools",
   "crossbeam-deque",
   "crossbeam-epoch",
   "crossbeam-utils",
-  "digest",
   "dwrote",
-  "generic-array",
   "gl_generator", # https://github.com/servo/servo/pull/23288#issuecomment-494687746
   "lock_api",
   "memmap",
@@ -51,6 +46,7 @@ packages = [
   "rand_core",
   "scopeguard",
   "unicase",
+  "ws",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
