@@ -21,7 +21,7 @@
             let frame = await new Promise(resolve => {
               session.requestAnimationFrame((time, frame) => resolve(frame));
             });
-            
+
             let space = await session.requestReferenceSpace("local");
             let pose = frame.getViewerPose(space);
             assert_matrix_approx_equals(pose.transform.matrix, [1,0,0,0,0,0,1,0,0,-1,0,0,0.5,0.1,0.1,1], 0.001, "head pose matrix");
@@ -59,6 +59,12 @@
                 throw "got unknown view";
               }
             }
+            let viewer = await session.requestReferenceSpace("viewer");
+            pose = frame.getViewerPose(viewer);
+            assert_matrix_approx_equals(pose.transform.matrix, [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1], 0.001, "viewerPose of viewer is identity");
+            assert_matrix_approx_equals(frame.getViewerPose(space).transform.matrix, frame.getPose(viewer, space).transform.matrix, 0.001, "viewerPose(space) == pose(viewer, space)");
+            assert_matrix_approx_equals(frame.getViewerPose(offset).transform.matrix, frame.getPose(viewer, offset).transform.matrix, 0.001, "viewerPose(offset) == pose(viewer, offset)");
+
           });
         </script>
     </body>
