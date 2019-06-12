@@ -44,7 +44,7 @@
                 assert_approx_equals(position.z, 0.1, 0.001, "left z value");
                 assert_approx_equals(position.w, 1, 0.001, "left w value");
               } else {
-                reject("got unknown view");
+                throw "got unknown view";
               }
             }
 
