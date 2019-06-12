@@ -31,7 +31,7 @@ use std::time::SystemTime;
 use time::{Duration, Timespec, Tm};
 
 /// The key used to differentiate requests in the cache.
-#[derive(Clone, Eq, Hash, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 pub struct CacheKey {
     url: ServoUrl,
 }
@@ -295,7 +295,7 @@ fn create_cached_response(
     cached_resource: &CachedResource,
     cached_headers: &HeaderMap,
     done_chan: &mut DoneChannel,
-) -> CachedResponse {
+) -> Option<CachedResponse> {
     let resource_timing = ResourceFetchTiming::new(request.timing_type());
     let mut response = Response::new(
         cached_resource.data.metadata.data.final_url.clone(),
@@ -330,10 +330,14 @@ fn create_cached_response(
     // <https://tools.ietf.org/html/rfc7234#section-5.2.2.7>
     let has_expired =
         (adjusted_expires < time_since_validated) || (adjusted_expires == time_since_validated);
-    CachedResponse {
+    let cached_response = CachedResponse {
         response: response,
         needs_validation: has_expired,
+    };
+    if cached_resource.aborted.load(Ordering::Relaxed) {
+        return None
     }
+    Some(cached_response)
 }
 
 /// Create a new resource, based on the bytes requested, and an existing resource,
@@ -409,7 +413,9 @@ fn handle_range_request(
                     let cached_headers = new_resource.data.metadata.headers.lock().unwrap();
                     let cached_response =
                         create_cached_response(request, &new_resource, &*cached_headers, done_chan);
-                    return Some(cached_response);
+                    if let Some(cached_response) = cached_response {
+                        return Some(cached_response)
+                    }
                 }
             };
         },
@@ -443,7 +449,9 @@ fn handle_range_request(
                             create_resource_with_bytes_from_resource(&bytes, &*partial_resource);
                         let cached_response =
                             create_cached_response(request, &new_resource, &*headers, done_chan);
-                        return Some(cached_response);
+                        if let Some(cached_response) = cached_response {
+                            return Some(cached_response)
+                        }
                     }
                 }
             }
@@ -459,7 +467,9 @@ fn handle_range_request(
                     let cached_headers = new_resource.data.metadata.headers.lock().unwrap();
                     let cached_response =
                         create_cached_response(request, &new_resource, &*cached_headers, done_chan);
-                    return Some(cached_response);
+                    if let Some(cached_response) = cached_response {
+                        return Some(cached_response)
+                    }
                 }
             };
         },
@@ -494,7 +504,9 @@ fn handle_range_request(
                             create_resource_with_bytes_from_resource(&bytes, &*partial_resource);
                         let cached_response =
                             create_cached_response(request, &new_resource, &*headers, done_chan);
-                        return Some(cached_response);
+                        if let Some(cached_response) = cached_response {
+                            return Some(cached_response)
+                        }
                     }
                 }
             }
@@ -510,7 +522,9 @@ fn handle_range_request(
                     let cached_headers = new_resource.data.metadata.headers.lock().unwrap();
                     let cached_response =
                         create_cached_response(request, &new_resource, &*cached_headers, done_chan);
-                    return Some(cached_response);
+                    if let Some(cached_response) = cached_response {
+                        return Some(cached_response)
+                    }
                 }
             };
         },
@@ -549,7 +563,10 @@ fn handle_range_request(
                             create_resource_with_bytes_from_resource(&bytes, &*partial_resource);
                         let cached_response =
                             create_cached_response(request, &new_resource, &*headers, done_chan);
-                        return Some(cached_response);
+                        if let Some(cached_response) = cached_response {
+                            return Some(cached_response)
+                        }
+                        continue;
                     }
                 }
             }
@@ -578,13 +595,13 @@ impl HttpCache {
             return None;
         }
         let entry_key = CacheKey::new(request.clone());
-        let entry = self.entries.entry(entry_key).or_insert(HttpCacheEntry::new());
+        let entry = self.entries.entry(entry_key.clone()).or_insert(HttpCacheEntry::new(entry_key));
         Some(entry.clone())
     }
 
     fn invalidate_for_url(&mut self, url: &ServoUrl) {
         let entry_key = CacheKey::from_servo_url(url);
-        let entry = self.entries.entry(entry_key).or_insert(HttpCacheEntry::new());
+        let entry = self.entries.entry(entry_key.clone()).or_insert(HttpCacheEntry::new(entry_key));
         for cached_resource in entry.entries.write().iter() {
             cached_resource.write().data.expires = Duration::seconds(0i64);
         }
@@ -621,19 +638,25 @@ impl HttpCache {
 pub struct HttpCacheEntry {
     /// Resources corresponding to the entry.
     pub entries: Arc<parking_lot::RwLock<Vec<Arc<parking_lot::RwLock<CachedResource>>>>>,
+    key: CacheKey,
 }
 
 impl MallocSizeOf for HttpCacheEntry {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        0
+        let mut size = 0;
+        for entry in self.entries.read().iter() {
+            size += entry.read().size_of(ops);
+        }
+        size
     }
 }
 
 impl HttpCacheEntry {
     /// Create a new memory cache instance.
-    pub fn new() -> HttpCacheEntry {
+    pub fn new(key: CacheKey) -> HttpCacheEntry {
         HttpCacheEntry {
             entries: Arc::new(parking_lot::RwLock::new(vec![])),
+            key
         }
     }
 
@@ -645,6 +668,9 @@ impl HttpCacheEntry {
         done_chan: &mut DoneChannel,
     ) -> Option<CachedResponse> {
         // TODO: generate warning headers as appropriate <https://tools.ietf.org/html/rfc7234#section-5.5>
+
+        let entry_key = CacheKey::new(request.clone());
+        assert_eq!(entry_key, self.key);
 
         let mut candidates = vec![];
         for cached_resource in self.entries.read().clone() {
@@ -693,7 +719,7 @@ impl HttpCacheEntry {
                     }
                 }
             }
-            if can_be_constructed && !cached_resource.read().aborted.load(Ordering::Relaxed) {
+            if can_be_constructed {
                 candidates.push(cached_resource);
             }
         }
@@ -707,7 +733,7 @@ impl HttpCacheEntry {
             );
         } else {
             // Not a Range request.
-            if let Some(ref cached_resource) = candidates.first() {
+            while let Some(ref cached_resource) = candidates.pop() {
                 // Returning the first response that can be constructed
                 // TODO: select the most appropriate one, using a known mechanism from a selecting header field,
                 // or using the Date header to return the most recent one.
@@ -715,7 +741,10 @@ impl HttpCacheEntry {
                 let cached_headers = cached_resource.data.metadata.headers.lock().unwrap();
                 let cached_response =
                     create_cached_response(request, &*cached_resource, &*cached_headers, done_chan);
-                return Some(cached_response);
+                if let Some(cached_response) = cached_response {
+                    return Some(cached_response)
+                }
+                continue;
             }
         }
         None
@@ -723,6 +752,8 @@ impl HttpCacheEntry {
 
     /// Updating consumers who received a response constructed with a ResponseBody::Receiving.
     pub fn update_awaiting_consumers(&self, request: &Request, response: &Response) {
+        let entry_key = CacheKey::new(request.clone());
+        assert_eq!(entry_key, self.key);
         if let ResponseBody::Done(ref completed_body) = *response.body.lock().unwrap() {
             for cached_resource in self.entries.read().clone().iter() {
                 let cached_resource = cached_resource.write();
@@ -747,6 +778,8 @@ impl HttpCacheEntry {
         response: Response,
         done_chan: &mut DoneChannel,
     ) -> Option<Response> {
+        let entry_key = CacheKey::new(request.clone());
+        assert_eq!(entry_key, self.key);
         assert_eq!(response.status.map(|s| s.0), Some(StatusCode::NOT_MODIFIED));
         for cached_resource in self.entries.read().clone().iter_mut() {
             let constructed_response = {
@@ -802,6 +835,8 @@ impl HttpCacheEntry {
     /// Storing Responses in Caches.
     /// <https://tools.ietf.org/html/rfc7234#section-3>
     pub fn store(&self, request: &Request, response: &Response) {
+        let entry_key = CacheKey::new(request.clone());
+        assert_eq!(entry_key, self.key);
         if pref!(network.http_cache.disabled) {
             return;
         }
@@ -809,7 +844,6 @@ impl HttpCacheEntry {
             // Only Get requests are cached.
             return;
         }
-        let entry_key = CacheKey::new(request.clone());
         let metadata = match response.metadata() {
             Ok(FetchMetadata::Filtered {
                 filtered: _,
