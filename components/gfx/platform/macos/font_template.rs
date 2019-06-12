@@ -95,7 +95,10 @@ impl FontTemplateData {
                 }
             };
             if let Some(ctfont) = ctfont {
+                info!("inserting ctfont");
                 ctfonts.insert(pt_size_key, ctfont);
+            } else {
+                info!("no ctfont to insert");
             }
         }
         ctfonts.get(&pt_size_key).map(|ctfont| (*ctfont).clone())
