@@ -19687,11 +19687,11 @@
    "testharness"
   ],
   "webxr/obtain_frame.html": [
-   "902b0aecb449fe051512020f1acb746c92461428",
+   "f1edfc4d70a2125a44748b378a40b6855f79cc62",
    "testharness"
   ],
   "webxr/resources/webxr-util.js": [
-   "505173c82998a80b1e543f1a18aefaf1891f8269",
+   "08d9fa69730d2523d4a066636bef4959f3e1a725",
    "support"
   ]
  },
