@@ -12,6 +12,7 @@ promise_test(t => {
   }).then(e => {
     assert_equals(e.type, "error");
     assert_true(e.filename.indexOf('invalidScript.js') >= 0);
+    e.preventDefault();
   });
 }, 'Tests that errors from the import scripts come from the expected file.')
 </script>
