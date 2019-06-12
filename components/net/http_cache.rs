@@ -371,23 +371,20 @@ fn handle_range_request(
     range_spec: Vec<(Bound<u64>, Bound<u64>)>,
     done_chan: &mut DoneChannel,
 ) -> Option<CachedResponse> {
-    let mut complete_cached_resources =
-        candidates
-            .iter()
-            .filter(|resource| match resource.read().data.raw_status {
-                Some((ref code, _)) => *code == 200,
-                None => false,
-            });
-    let partial_cached_resources =
-        candidates
-            .iter()
-            .filter(|resource| match resource.read().data.raw_status {
-                Some((ref code, _)) => *code == 206,
-                None => false,
-            });
+    let mut complete_cached_resources = vec![];
+    let mut partial_cached_resources = vec![];
+    for resource in candidates.iter() {
+        if let Some((ref code, _)) = resource.read().data.raw_status {
+            match code {
+                200 => complete_cached_resources.push(resource),
+                206 => partial_cached_resources.push(resource),
+                _ => {},
+            }
+        }
+    }
     match (
         range_spec.first().unwrap(),
-        complete_cached_resources.next(),
+        complete_cached_resources.pop(),
     ) {
         // TODO: take the full range spec into account.
         // If we have a complete resource, take the request range from the body.
