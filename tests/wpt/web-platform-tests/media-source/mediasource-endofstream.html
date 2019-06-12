@@ -33,11 +33,6 @@
         });
     }, 'MediaSource.endOfStream(): media element notified that it now has all of the media data');
 
-    function threeDecimalPlaces(number)
-    {
-        return Number(number.toFixed(3));
-    }
-
     mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
     {
         sourceBuffer.appendBuffer(mediaData);
@@ -52,7 +47,7 @@
             // Note that segmentInfo.duration is expected to also be the
             // highest track buffer range end time. Therefore, endOfStream() should
             // not change duration with this media.
-            assert_equals(threeDecimalPlaces(segmentInfo.duration), threeDecimalPlaces(mediaSource.duration),
+            assert_approx_equals(segmentInfo.duration, mediaSource.duration, 0.001,
                 'SegmentInfo duration should initially roughly match mediaSource duration');
             assert_less_than_equal(highestEndTime, mediaSource.duration,
                 'Media duration may be slightly longer than intersected track buffered ranges');
@@ -65,7 +60,7 @@
             assert_equals(sourceBuffer.buffered.length, 1,
               'Media data properly buffered after endOfStream');
 
-            assert_equals(threeDecimalPlaces(segmentInfo.duration), threeDecimalPlaces(mediaSource.duration),
+            assert_approx_equals(segmentInfo.duration, mediaSource.duration, 0.001,
                 'SegmentInfo duration should still roughly match mediaSource duration');
             assert_less_than_equal(highestEndTime, mediaSource.duration,
                 'Media duration may be slightly longer than intersected track buffered ranges');
