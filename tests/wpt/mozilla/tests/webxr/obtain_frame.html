@@ -28,14 +28,16 @@
               assert_matrix_approx_equals(view.projectionMatrix, VALID_PROJECTION_MATRIX, 0.001, "left projection matrix");
 
               if (view.eye == "left") {
-                assert_matrix_approx_equals(view.transform.matrix, [1,0,0,0,0,0,1,0,0,-1,0,0,0.4,0.1,0.1,1], 0.001, "left transform");
+                assert_matrix_approx_equals(view.transform.matrix,         [1,0,0,0,0,0,1,0,0,-1,0,0,0.4,0.1,0.1,1], 0.001, "left transform");
+                assert_matrix_approx_equals(view.transform.inverse.matrix, [1,0,0,0,0,0,-1,0,0,1,0,0,-0.4,-0.1,0.1,1], 0.001, "left inverse transform");
                 let position = view.transform.position;
                 assert_approx_equals(position.x, 0.4, 0.001, "left x value");
                 assert_approx_equals(position.y, 0.1, 0.001, "left y value");
                 assert_approx_equals(position.z, 0.1, 0.001, "left z value");
                 assert_approx_equals(position.w, 1, 0.001, "left w value");
               } else if (view.eye == "right") {
-                assert_matrix_approx_equals(view.transform.matrix, [1,0,0,0,0,0,1,0,0,-1,0,0,0.6,0.1,0.1,1], 0.001, "right transform");
+                assert_matrix_approx_equals(view.transform.matrix,         [1,0,0,0,0,0,1,0,0,-1,0,0,0.6,0.1,0.1,1], 0.001, "right transform");
+                assert_matrix_approx_equals(view.transform.inverse.matrix, [1,0,0,0,0,0,-1,0,0,1,0,0,-0.6,-0.1,0.1,1], 0.001, "right inverse transform");
                 let position = view.transform.position;
                 assert_approx_equals(position.x, 0.6, 0.001, "left x value");
                 assert_approx_equals(position.y, 0.1, 0.001, "left y value");
