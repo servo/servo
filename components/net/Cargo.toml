@@ -58,7 +58,7 @@ time = "0.1.17"
 url = "1.2"
 uuid = {version = "0.7", features = ["v4"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
-ws = { version = "0.7", features = ["ssl"] }
+ws = { version = "0.8", features = ["ssl"] }
 
 [dev-dependencies]
 std_test_override = { path = "../std_test_override" }

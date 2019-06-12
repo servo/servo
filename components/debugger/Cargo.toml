@@ -14,4 +14,4 @@ crate_type = ["rlib"]
 [dependencies]
 crossbeam-channel = "0.3"
 log = "0.4"
-ws = "0.7.3"
+ws = "0.8"
