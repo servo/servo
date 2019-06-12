@@ -47,7 +47,17 @@
                 throw "got unknown view";
               }
             }
-
+            let offset = space.getOffsetReferenceSpace(new XRRigidTransform({x: 1, y: -1, z: 4}, {x: 0, y: 1, z: 1, w: 1}));
+            pose = frame.getViewerPose(offset);
+            for (view of pose.views) {
+              if (view.eye == "left") {
+                assert_matrix_approx_equals(view.transform.matrix, [-1/3,-2/3,2/3,0,-2/3,2/3,1/3,0,-2/3,-1/3,-2/3,0,3.4,-1.9,-0.9,1], 0.001, "left offset transform");
+              } else if (view.eye == "right") {
+                assert_matrix_approx_equals(view.transform.matrix, [-1/3,-2/3,2/3,0,-2/3,2/3,1/3,0,-2/3,-1/3,-2/3,0,3.6,-1.9,-0.9,1], 0.001, "right offset transform");
+              } else {
+                throw "got unknown view";
+              }
+            }
           });
         </script>
     </body>
