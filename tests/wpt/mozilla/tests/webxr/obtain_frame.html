@@ -12,7 +12,7 @@
           let gl = canvas.getContext('webgl');
           promise_test(async function() {
             let mock = await navigator.xr.test.simulateDeviceConnection({supportsImmersive: true});
-            mock.setViewerOrigin({position: [0.5, 0, 0, 1], orientation: [0, 0, 0, 1] });
+            mock.setViewerOrigin({position: [0.5, 0.1, 0.1, 1], orientation: [1, 0, 0, 1] });
             mock.setViews(TEST_VIEWS);
             let session = await navigator.xr.requestSession({mode: "immersive-vr"});
             await session.updateRenderState({"baseLayer": new XRWebGLLayer(session, gl, {})});
@@ -28,18 +28,18 @@
               assert_matrix_approx_equals(view.projectionMatrix, VALID_PROJECTION_MATRIX, 0.001, "left projection matrix");
 
               if (view.eye == "left") {
-                assert_matrix_approx_equals(view.transform.matrix, [1,0,0,0, 0,1,0,0, 0,0,1,0, 0.4,0,0,1], 0.001, "left transform");
+                assert_matrix_approx_equals(view.transform.matrix, [1,0,0,0,0,0,1,0,0,-1,0,0,0.4,0.1,0.1,1], 0.001, "left transform");
                 let position = view.transform.position;
                 assert_approx_equals(position.x, 0.4, 0.001, "left x value");
-                assert_approx_equals(position.y, 0, 0.001, "left y value");
-                assert_approx_equals(position.z, 0, 0.001, "left z value");
+                assert_approx_equals(position.y, 0.1, 0.001, "left y value");
+                assert_approx_equals(position.z, 0.1, 0.001, "left z value");
                 assert_approx_equals(position.w, 1, 0.001, "left w value");
               } else if (view.eye == "right") {
-                assert_matrix_approx_equals(view.transform.matrix, [1,0,0,0, 0,1,0,0, 0,0,1,0, 0.6,0,0,1], 0.001, "right transform");
+                assert_matrix_approx_equals(view.transform.matrix, [1,0,0,0,0,0,1,0,0,-1,0,0,0.6,0.1,0.1,1], 0.001, "right transform");
                 let position = view.transform.position;
                 assert_approx_equals(position.x, 0.6, 0.001, "left x value");
-                assert_approx_equals(position.y, 0, 0.001, "left y value");
-                assert_approx_equals(position.z, 0, 0.001, "left z value");
+                assert_approx_equals(position.y, 0.1, 0.001, "left y value");
+                assert_approx_equals(position.z, 0.1, 0.001, "left z value");
                 assert_approx_equals(position.w, 1, 0.001, "left w value");
               } else {
                 reject("got unknown view");
