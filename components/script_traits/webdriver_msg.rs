@@ -39,6 +39,7 @@ pub enum WebDriverScriptCommand {
     GetElementText(String, IpcSender<Result<String, ()>>),
     GetBrowsingContextId(WebDriverFrameId, IpcSender<Result<BrowsingContextId, ()>>),
     GetUrl(IpcSender<ServoUrl>),
+    GetPageSource(IpcSender<Result<String, ()>>),
     IsEnabled(String, IpcSender<Result<bool, ()>>),
     IsSelected(String, IpcSender<Result<bool, ()>>),
     GetTitle(IpcSender<String>),

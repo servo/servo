@@ -1188,6 +1188,23 @@ impl Handler {
         Ok(WebDriverResponse::Void)
     }
 
+    fn handle_get_page_source(&self) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        let cmd = WebDriverScriptCommand::GetPageSource(sender);
+        self.browsing_context_script_command(cmd)?;
+
+        match receiver.recv().unwrap() {
+            Ok(source) => Ok(WebDriverResponse::Generic(ValueResponse(
+                serde_json::to_value(source)?,
+            ))),
+            Err(_) => Err(WebDriverError::new(
+                ErrorStatus::UnknownError,
+                "Unknown error",
+            )),
+        }
+    }
+
     fn handle_execute_script(
         &self,
         parameters: &JavascriptCommandParameters,
@@ -1457,6 +1474,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::GetCSSValue(ref element, ref name) => {
                 self.handle_element_css(element, name)
             },
+            WebDriverCommand::GetPageSource => self.handle_get_page_source(),
             WebDriverCommand::ExecuteScript(ref x) => self.handle_execute_script(x),
             WebDriverCommand::ExecuteAsyncScript(ref x) => self.handle_execute_async_script(x),
             WebDriverCommand::ElementSendKeys(ref element, ref keys) => {

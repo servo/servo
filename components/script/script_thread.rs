@@ -1902,6 +1902,9 @@ impl ScriptThread {
             WebDriverScriptCommand::GetActiveElement(reply) => {
                 webdriver_handlers::handle_get_active_element(&*documents, pipeline_id, reply)
             },
+            WebDriverScriptCommand::GetPageSource(reply) => {
+                webdriver_handlers::handle_get_page_source(&*documents, pipeline_id, reply)
+            },
             WebDriverScriptCommand::GetCookies(reply) => {
                 webdriver_handlers::handle_get_cookies(&*documents, pipeline_id, reply)
             },
