@@ -9,6 +9,18 @@ pub fn Product() -> DOMString {
     DOMString::from("Gecko")
 }
 
+pub fn ProductSub() -> DOMString {
+    DOMString::from("20100101")
+}
+
+pub fn Vendor() -> DOMString {
+    DOMString::from("")
+}
+
+pub fn VendorSub() -> DOMString {
+    DOMString::from("")
+}
+
 pub fn TaintEnabled() -> bool {
     false
 }
