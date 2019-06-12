@@ -125,6 +125,8 @@ linux_build_env = {
     "CCACHE": "sccache",
     "RUSTC_WRAPPER": "sccache",
     "SCCACHE_IDLE_TIMEOUT": "1200",
+    "CC": "clang",
+    "CXX": "clang++",
 }
 macos_build_env = {}
 windows_build_env = {
