@@ -1054,8 +1054,13 @@ fn http_network_or_cache_fetch(
     // More Step 7
     if response.is_none() {
         // Substep 2
-        let forward_response =
-            http_network_fetch(http_request, credentials_flag, done_chan, context, cache_entry);
+        let forward_response = http_network_fetch(
+            http_request,
+            credentials_flag,
+            done_chan,
+            context,
+            cache_entry,
+        );
         // Substep 3
         if let Some((200...399, _)) = forward_response.raw_status {
             if !http_request.method.is_safe() {
@@ -1082,7 +1087,7 @@ fn http_network_or_cache_fetch(
             if http_request.cache_mode != CacheMode::NoStore {
                 // Subsubstep 2, doing it first to avoid a clone of forward_response.
                 if let Some(entry) = cache_entry {
-                      entry.store(&http_request, &forward_response);
+                    entry.store(&http_request, &forward_response);
                 }
             }
             // Subsubstep 1
@@ -1466,7 +1471,14 @@ fn cors_preflight_fetch(
     }
 
     // Step 5
-    let response = http_network_or_cache_fetch(&mut preflight, false, false, &mut None, context, cache_entry);
+    let response = http_network_or_cache_fetch(
+        &mut preflight,
+        false,
+        false,
+        &mut None,
+        context,
+        cache_entry,
+    );
 
     // Step 6
     if cors_check(&request, &response).is_ok() &&

@@ -276,7 +276,15 @@ pub fn main_fetch(
             request.response_tainting = ResponseTainting::CorsTainting;
             // Substep 2.
             let response = http_fetch(
-                request, cache, true, true, false, target, done_chan, context, &cache_entry
+                request,
+                cache,
+                true,
+                true,
+                false,
+                target,
+                done_chan,
+                context,
+                &cache_entry,
             );
             // Substep 3.
             if response.is_network_error() {
@@ -289,7 +297,15 @@ pub fn main_fetch(
             request.response_tainting = ResponseTainting::CorsTainting;
             // Substep 2.
             http_fetch(
-                request, cache, true, false, false, target, done_chan, context, &cache_entry
+                request,
+                cache,
+                true,
+                false,
+                false,
+                target,
+                done_chan,
+                context,
+                &cache_entry,
             )
         }
     });
@@ -581,7 +597,7 @@ fn scheme_fetch(
     target: Target,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
-    cache_entry: &Option<HttpCacheEntry>
+    cache_entry: &Option<HttpCacheEntry>,
 ) -> Response {
     let url = request.current_url();
 
@@ -598,7 +614,15 @@ fn scheme_fetch(
         },
 
         "http" | "https" => http_fetch(
-            request, cache, false, false, false, target, done_chan, context, cache_entry,
+            request,
+            cache,
+            false,
+            false,
+            false,
+            target,
+            done_chan,
+            context,
+            cache_entry,
         ),
 
         "data" => match decode(&url) {

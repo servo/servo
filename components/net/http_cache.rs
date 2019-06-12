@@ -335,7 +335,7 @@ fn create_cached_response(
         needs_validation: has_expired,
     };
     if cached_resource.aborted.load(Ordering::Relaxed) {
-        return None
+        return None;
     }
     Some(cached_response)
 }
@@ -382,10 +382,7 @@ fn handle_range_request(
             }
         }
     }
-    match (
-        range_spec.first().unwrap(),
-        complete_cached_resources.pop(),
-    ) {
+    match (range_spec.first().unwrap(), complete_cached_resources.pop()) {
         // TODO: take the full range spec into account.
         // If we have a complete resource, take the request range from the body.
         // When there isn't a complete resource available, we loop over cached partials,
@@ -411,7 +408,7 @@ fn handle_range_request(
                     let cached_response =
                         create_cached_response(request, &new_resource, &*cached_headers, done_chan);
                     if let Some(cached_response) = cached_response {
-                        return Some(cached_response)
+                        return Some(cached_response);
                     }
                 }
             };
@@ -447,7 +444,7 @@ fn handle_range_request(
                         let cached_response =
                             create_cached_response(request, &new_resource, &*headers, done_chan);
                         if let Some(cached_response) = cached_response {
-                            return Some(cached_response)
+                            return Some(cached_response);
                         }
                     }
                 }
@@ -465,7 +462,7 @@ fn handle_range_request(
                     let cached_response =
                         create_cached_response(request, &new_resource, &*cached_headers, done_chan);
                     if let Some(cached_response) = cached_response {
-                        return Some(cached_response)
+                        return Some(cached_response);
                     }
                 }
             };
@@ -502,7 +499,7 @@ fn handle_range_request(
                         let cached_response =
                             create_cached_response(request, &new_resource, &*headers, done_chan);
                         if let Some(cached_response) = cached_response {
-                            return Some(cached_response)
+                            return Some(cached_response);
                         }
                     }
                 }
@@ -520,7 +517,7 @@ fn handle_range_request(
                     let cached_response =
                         create_cached_response(request, &new_resource, &*cached_headers, done_chan);
                     if let Some(cached_response) = cached_response {
-                        return Some(cached_response)
+                        return Some(cached_response);
                     }
                 }
             };
@@ -561,7 +558,7 @@ fn handle_range_request(
                         let cached_response =
                             create_cached_response(request, &new_resource, &*headers, done_chan);
                         if let Some(cached_response) = cached_response {
-                            return Some(cached_response)
+                            return Some(cached_response);
                         }
                         continue;
                     }
@@ -592,13 +589,19 @@ impl HttpCache {
             return None;
         }
         let entry_key = CacheKey::new(request.clone());
-        let entry = self.entries.entry(entry_key.clone()).or_insert(HttpCacheEntry::new(entry_key));
+        let entry = self
+            .entries
+            .entry(entry_key.clone())
+            .or_insert(HttpCacheEntry::new(entry_key));
         Some(entry.clone())
     }
 
     fn invalidate_for_url(&mut self, url: &ServoUrl) {
         let entry_key = CacheKey::from_servo_url(url);
-        let entry = self.entries.entry(entry_key.clone()).or_insert(HttpCacheEntry::new(entry_key));
+        let entry = self
+            .entries
+            .entry(entry_key.clone())
+            .or_insert(HttpCacheEntry::new(entry_key));
         for cached_resource in entry.entries.write().iter() {
             cached_resource.write().data.expires = Duration::seconds(0i64);
         }
@@ -644,9 +647,7 @@ fn check_vary_headers(request: &Request, cached_resource: &CachedResource) -> bo
                 match request.headers.get(vary_val) {
                     Some(header_data) => {
                         // If the header is present in the request.
-                        if let Some(original_header_data) =
-                            original_request_headers.get(vary_val)
-                        {
+                        if let Some(original_header_data) = original_request_headers.get(vary_val) {
                             // Check that the value of the nominated header field,
                             // in the original request, matches the value in the current request.
                             if original_header_data != header_data {
@@ -659,8 +660,7 @@ fn check_vary_headers(request: &Request, cached_resource: &CachedResource) -> bo
                         // If a header field is absent from a request,
                         // it can only match a stored response if those headers,
                         // were also absent in the original request.
-                        can_be_constructed =
-                            original_request_headers.get(vary_val).is_none();
+                        can_be_constructed = original_request_headers.get(vary_val).is_none();
                     },
                 }
                 if !can_be_constructed {
@@ -695,7 +695,7 @@ impl HttpCacheEntry {
     pub fn new(key: CacheKey) -> HttpCacheEntry {
         HttpCacheEntry {
             entries: Arc::new(parking_lot::RwLock::new(vec![])),
-            key
+            key,
         }
     }
 
@@ -736,7 +736,7 @@ impl HttpCacheEntry {
                 let cached_response =
                     create_cached_response(request, &*cached_resource, &*cached_headers, done_chan);
                 if let Some(cached_response) = cached_response {
-                    return Some(cached_response)
+                    return Some(cached_response);
                 }
                 continue;
             }
@@ -875,6 +875,8 @@ impl HttpCacheEntry {
                 last_validated: time::now(),
             }),
         };
-        self.entries.write().push(Arc::new(parking_lot::RwLock::new(entry_resource)));
+        self.entries
+            .write()
+            .push(Arc::new(parking_lot::RwLock::new(entry_resource)));
     }
 }
