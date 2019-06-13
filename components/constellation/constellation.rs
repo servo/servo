@@ -341,9 +341,6 @@ pub struct Constellation<Message, LTF, STF> {
     /// The size of the top-level window.
     window_size: WindowSizeData,
 
-    /// Means of accessing the clipboard
-    clipboard_ctx: Option<ClipboardContext>,
-
     /// Bits of state used to interact with the webdriver implementation
     webdriver: WebDriverData,
 
@@ -692,13 +689,6 @@ where
                         ),
                     },
                     phantom: PhantomData,
-                    clipboard_ctx: match ClipboardContext::new() {
-                        Ok(c) => Some(c),
-                        Err(e) => {
-                            warn!("Error creating clipboard context ({})", e);
-                            None
-                        },
-                    },
                     webdriver: WebDriverData::new(),
                     scheduler_chan: TimerScheduler::start(),
                     document_states: HashMap::new(),
@@ -1342,30 +1332,6 @@ where
             },
             FromScriptMsg::Focus => {
                 self.handle_focus_msg(source_pipeline_id);
-            },
-            FromScriptMsg::GetClipboardContents(sender) => {
-                let contents = match self.clipboard_ctx {
-                    Some(ref mut ctx) => {
-                        match ctx.get_contents() {
-                            Ok(c) => c,
-                            Err(e) => {
-                                warn!("Error getting clipboard contents ({}), defaulting to empty string", e);
-                                "".to_owned()
-                            },
-                        }
-                    },
-                    None => "".to_owned(),
-                };
-                if let Err(e) = sender.send(contents) {
-                    warn!("Failed to send clipboard ({})", e);
-                }
-            },
-            FromScriptMsg::SetClipboardContents(s) => {
-                if let Some(ref mut ctx) = self.clipboard_ctx {
-                    if let Err(e) = ctx.set_contents(s) {
-                        warn!("Error setting clipboard contents ({})", e);
-                    }
-                }
             },
             FromScriptMsg::VisibilityChangeComplete(is_visible) => {
                 self.handle_visibility_change_complete(source_pipeline_id, is_visible);
