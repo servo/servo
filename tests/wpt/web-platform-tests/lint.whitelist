@@ -168,6 +168,7 @@ SET TIMEOUT: html/browsers/history/the-location-interface/*
 SET TIMEOUT: html/browsers/history/the-session-history-of-browsing-contexts/*
 SET TIMEOUT: html/browsers/offline/*
 SET TIMEOUT: html/browsers/the-window-object/*
+SET TIMEOUT: html/cross-origin/resources/*
 SET TIMEOUT: html/editing/dnd/*
 SET TIMEOUT: html/semantics/embedded-content/the-iframe-element/*
 SET TIMEOUT: html/semantics/embedded-content/the-img-element/*
@@ -670,6 +671,8 @@ CSS-COLLIDING-REF-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/cont
 CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/red.png
 CSS-COLLIDING-REF-NAME: css/css-contain/reference/contain-size-fieldset-001-ref.html
 CSS-COLLIDING-REF-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/contain/contain-size-fieldset-001-ref.html
+CSS-COLLIDING-REF-NAME: css/css-contain/reference/contain-size-fieldset-002-ref.html
+CSS-COLLIDING-REF-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/contain/contain-size-fieldset-002-ref.html
 CSS-COLLIDING-SUPPORT-NAME: css/compositing/mix-blend-mode/support/red.png
 CSS-COLLIDING-SUPPORT-NAME: css/compositing/background-blending/support/red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/replaced-min-max-3.png

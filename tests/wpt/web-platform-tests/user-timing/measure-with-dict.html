@@ -5,7 +5,13 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/user-timing-helper.js"></script>
 <script>
+  function cleanupPerformanceTimeline() {
+    performance.clearMarks();
+    performance.clearMeasures();
+  }
+
   async_test(function (t) {
+    this.add_cleanup(cleanupPerformanceTimeline);
     let measureEntries = [];
     const timeStamp1 = 784.4;
     const timeStamp2 = 1234.5;
@@ -40,8 +46,6 @@
           }
         })
       );
-    self.performance.clearMarks();
-    self.performance.clearMeasures();
     observer.observe({ entryTypes: ["measure"] });
     self.performance.mark("mark1", { detail: { randomInfo: 3 }, startTime: timeStamp1 });
     self.performance.mark("mark2", { startTime: timeStamp2 });
@@ -80,10 +84,16 @@
     checkEntries(returnedEntries, expectedEntries);
   }, "measure entries' detail and start/end are customizable");
 
-  async_test(function (t) {
-    assert_throws("SyntaxError", function() {
+  test(function () {
+    this.add_cleanup(cleanupPerformanceTimeline);
+    assert_throws(new TypeError(), function() {
       self.performance.measure("wrongUsage1", {}, 12);
-    });
-    t.done();
-  }, "measure should throw exception when passing option object and end at the same time");
+    }, "measure should throw a TypeError when passed an options object and an end time");
+    assert_throws(new TypeError(), function() {
+      self.performance.measure("wrongUsage2", {'startTime': 2}, 12);
+    }, "measure should throw a TypeError when passed an options object and an end time");
+    assert_throws(new TypeError(), function() {
+      self.performance.measure("wrongUsage3", {'startTime': 2}, 'mark1');
+    }, "measure should throw a TypeError when passed an options object and an end mark");
+  }, "measure should throw a TypeError when passed an invalid argument combination");
 </script>
