@@ -21,6 +21,7 @@ use malloc_size_of::{
 use net_traits::request::Request;
 use net_traits::response::{HttpsState, Response, ResponseBody};
 use net_traits::{FetchMetadata, Metadata, ResourceFetchTiming};
+use parking_lot::RwLock;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
@@ -367,7 +368,7 @@ fn create_resource_with_bytes_from_resource(
 /// Support for range requests <https://tools.ietf.org/html/rfc7233>.
 fn handle_range_request(
     request: &Request,
-    candidates: Vec<Arc<parking_lot::RwLock<CachedResource>>>,
+    candidates: Vec<Arc<RwLock<CachedResource>>>,
     range_spec: Vec<(Bound<u64>, Bound<u64>)>,
     done_chan: &mut DoneChannel,
 ) -> Option<CachedResponse> {
@@ -676,7 +677,7 @@ fn check_vary_headers(request: &Request, cached_resource: &CachedResource) -> bo
 /// A cache entry.
 pub struct HttpCacheEntry {
     /// Resources corresponding to the entry.
-    pub entries: Arc<parking_lot::RwLock<Vec<Arc<parking_lot::RwLock<CachedResource>>>>>,
+    pub entries: Arc<RwLock<Vec<Arc<RwLock<CachedResource>>>>>,
     key: CacheKey,
 }
 
@@ -694,7 +695,7 @@ impl HttpCacheEntry {
     /// Create a new memory cache instance.
     pub fn new(key: CacheKey) -> HttpCacheEntry {
         HttpCacheEntry {
-            entries: Arc::new(parking_lot::RwLock::new(vec![])),
+            entries: Arc::new(RwLock::new(vec![])),
             key,
         }
     }
@@ -877,6 +878,6 @@ impl HttpCacheEntry {
         };
         self.entries
             .write()
-            .push(Arc::new(parking_lot::RwLock::new(entry_resource)));
+            .push(Arc::new(RwLock::new(entry_resource)));
     }
 }
