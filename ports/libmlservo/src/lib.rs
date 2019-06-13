@@ -146,19 +146,19 @@ pub unsafe extern "C" fn init_servo(
     };
     info!("got args: {:?}", args);
 
-    let embedder_callbacks = Box::new(MLEmbedderMethods {
-        vr_display_name: String::from("Magic Leap VR Display"),
-        egl_context: ctxt,
-        gl: gl.clone(),
-    });
+    let name = String::from("Magic Leap VR Display");
+    let (service, heartbeat) =
+        MagicLeapVRService::new(name, ctxt, gl.clone()).expect("Failed to create VR service");
     let opts = InitOptions {
         args,
         url: Some(url.to_string()),
         density: hidpi,
         enable_subpixel_text_antialiasing: false,
+        vr_init: VRInitOptions::Service(service, heartbeat),
         embedder_callbacks,
         coordinates,
     };
+    let wakeup = Box::new(EventLoopWakerInstance);
     let shut_down_complete = Rc::new(Cell::new(false));
     let callbacks = Box::new(HostCallbacks {
         app,
@@ -172,7 +172,7 @@ pub unsafe extern "C" fn init_servo(
         keyboard,
     });
     info!("Starting servo");
-    simpleservo::init(opts, gl, callbacks).expect("error initializing Servo");
+    simpleservo::init(opts, gl, wakeup, callbacks).expect("error initializing Servo");
 
     let result = Box::new(ServoInstance {
         scroll_state: ScrollState::TriggerUp,
@@ -390,39 +390,11 @@ enum ScrollState {
     TriggerDragging(DevicePoint, DevicePoint),
 }
 
-struct MLEmbedderMethods {
-    vr_display_name: String,
-    egl_context: EGLContext,
-    gl: Rc<Gl>,
-}
+struct EventLoopWakerInstance;
 
-impl EmbedderMethods for MLEmbedderMethods {
-    fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker> {
-        Box::new(MLEventLoopWaker)
-    }
-
-    fn register_vr_services(
-        &self,
-        services: &mut VRServiceManager,
-        heartbeats: &mut Vec<Box<VRMainThreadHeartbeat>>,
-    ) {
-        if let Ok((service, heartbeat)) = MagicLeapVRService::new(
-            self.vr_display_name.clone(),
-            self.egl_context,
-            self.gl.clone(),
-        ) {
-            info!("Registering VR services");
-            services.register(Box::new(service));
-            heartbeats.push(Box::new(heartbeat));
-        }
-    }
-}
-
-struct MLEventLoopWaker;
-
-impl EventLoopWaker for MLEventLoopWaker {
+impl EventLoopWaker for EventLoopWakerInstance {
     fn clone(&self) -> Box<EventLoopWaker + Send> {
-        Box::new(MLEventLoopWaker)
+        Box::new(EventLoopWakerInstance)
     }
 
     fn wake(&self) {}

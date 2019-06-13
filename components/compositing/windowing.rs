@@ -161,10 +161,10 @@ pub trait WindowMethods {
 
 pub trait EmbedderMethods {
     /// Returns a thread-safe object to wake up the window's event loop.
-    fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker>;
+    fn create_event_loop_waker(&mut self) -> Box<dyn EventLoopWaker>;
     /// Register services with a VRServiceManager.
     fn register_vr_services(
-        &self,
+        &mut self,
         _: &mut VRServiceManager,
         _: &mut Vec<Box<WebVRMainThreadHeartbeat>>,
     ) {

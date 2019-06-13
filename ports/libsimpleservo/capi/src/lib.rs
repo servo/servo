@@ -6,9 +6,8 @@
 extern crate log;
 
 use env_logger;
-use simpleservo::{
-    self, gl_glue, Coordinates, EventLoopWaker, HostTrait, InitOptions, ServoGlue, SERVO,
-};
+use simpleservo::{self, gl_glue, ServoGlue, SERVO};
+use simpleservo::{Coordinates, EventLoopWaker, HostTrait, InitOptions, VRInitOptions};
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::os::raw::{c_char, c_void};
@@ -96,10 +95,10 @@ fn init(
         url,
         coordinates,
         density: opts.density,
-        vr_pointer: if opts.vr_pointer.is_null() {
-            None
+        vr_init: if opts.vr_pointer.is_null() {
+            VRInitOptions::None
         } else {
-            Some(opts.vr_pointer)
+            VRInitOptions::VRExternal(opts.vr_pointer)
         },
         enable_subpixel_text_antialiasing: opts.enable_subpixel_text_antialiasing,
     };
