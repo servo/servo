@@ -8,7 +8,7 @@ use crate::fetch::methods::should_be_blocked_due_to_bad_port;
 use crate::hosts::replace_host;
 use crate::http_loader::HttpState;
 use embedder_traits::resources::{self, Resource};
-use headers_ext::Host;
+use headers::Host;
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use http::uri::Authority;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};

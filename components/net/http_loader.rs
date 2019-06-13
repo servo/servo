@@ -19,15 +19,15 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
 };
 use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
-use headers_core::HeaderMapExt;
-use headers_ext::{AccessControlAllowCredentials, AccessControlAllowHeaders};
-use headers_ext::{
+use headers::authorization::Basic;
+use headers::{AccessControlAllowCredentials, AccessControlAllowHeaders, HeaderMapExt};
+use headers::{
     AccessControlAllowMethods, AccessControlRequestHeaders, AccessControlRequestMethod,
     Authorization,
 };
-use headers_ext::{AccessControlAllowOrigin, AccessControlMaxAge, Basic};
-use headers_ext::{CacheControl, ContentEncoding, ContentLength};
-use headers_ext::{
+use headers::{AccessControlAllowOrigin, AccessControlMaxAge};
+use headers::{CacheControl, ContentEncoding, ContentLength};
+use headers::{
     Host, IfModifiedSince, LastModified, Origin as HyperOrigin, Pragma, Referer, UserAgent,
 };
 use http::header::{self, HeaderName, HeaderValue};

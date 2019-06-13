@@ -12,12 +12,9 @@ use crate::{
 use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
-use headers_core::HeaderMapExt;
-use headers_ext::{
-    AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowOrigin,
-};
-use headers_ext::{AccessControlAllowMethods, AccessControlMaxAge};
-use headers_ext::{
+use headers::{AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowOrigin};
+use headers::{AccessControlAllowMethods, AccessControlMaxAge, HeaderMapExt};
+use headers::{
     CacheControl, ContentLength, ContentType, Expires, Host, LastModified, Pragma, UserAgent,
 };
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
