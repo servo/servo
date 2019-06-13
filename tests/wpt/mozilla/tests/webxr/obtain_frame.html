@@ -8,54 +8,63 @@
           <canvas id="canvas" width="640" height="480"></canvas>
 
         <script>
-          let session;
-          let mock;
           let canvas = document.getElementById("canvas");
           let gl = canvas.getContext('webgl');
+          promise_test(async function() {
+            let mock = await navigator.xr.test.simulateDeviceConnection({supportsImmersive: true});
+            mock.setViewerOrigin({position: [0.5, 0.1, 0.1, 1], orientation: [1, 0, 0, 1] });
+            mock.setViews(TEST_VIEWS);
+            let session = await navigator.xr.requestSession({mode: "immersive-vr"});
+            await session.updateRenderState({"baseLayer": new XRWebGLLayer(session, gl, {})});
+            let resolve;
 
-          promise_test(function() {
-              return navigator.xr.test.simulateDeviceConnection({supportsImmersive: true}).then((m) => {
-                mock = m;
-                mock.setViewerOrigin({position: [0.5, 0, 0, 1], orientation: [0, 0, 0, 1] });
-                mock.setViews(TEST_VIEWS);
-                return navigator.xr.requestSession({mode: "immersive-vr"});
-              })
-              .then((s) => {
-                session = s;
-                return session.updateRenderState({"baseLayer": new XRWebGLLayer(session, gl, {})})
-              })
-              .then(() => {
-                return new Promise(function(resolve, reject) {
-                  session.requestAnimationFrame(function(time, frame) {
-                      session.requestReferenceSpace("local").then((space) => {
-                      let pose = frame.getViewerPose(space);
-                      for (view of pose.views) {
-                        assert_matrix_approx_equals(view.projectionMatrix, VALID_PROJECTION_MATRIX, 0.001, "left projection matrix");
+            let frame = await new Promise(resolve => {
+              session.requestAnimationFrame((time, frame) => resolve(frame));
+            });
 
-                        if (view.eye == "left") {
-                          assert_matrix_approx_equals(view.transform.matrix, [1,0,0,0, 0,1,0,0, 0,0,1,0, 0.4,0,0,1], 0.001, "left transform");
-                          let position = view.transform.position;
-                          assert_approx_equals(position.x, 0.4, 0.001, "left x value");
-                          assert_approx_equals(position.y, 0, 0.001, "left y value");
-                          assert_approx_equals(position.z, 0, 0.001, "left z value");
-                          assert_approx_equals(position.w, 1, 0.001, "left w value");
-                        } else if (view.eye == "right") {
-                          assert_matrix_approx_equals(view.transform.matrix, [1,0,0,0, 0,1,0,0, 0,0,1,0, 0.6,0,0,1], 0.001, "right transform");
-                          let position = view.transform.position;
-                          assert_approx_equals(position.x, 0.6, 0.001, "left x value");
-                          assert_approx_equals(position.y, 0, 0.001, "left y value");
-                          assert_approx_equals(position.z, 0, 0.001, "left z value");
-                          assert_approx_equals(position.w, 1, 0.001, "left w value");
-                        } else {
-                          reject("got unknown view");
-                        }
-                      }
-                      resolve();
-                    }).catch((e) => reject(e));
-                  });
-                });
+            let space = await session.requestReferenceSpace("local");
+            let pose = frame.getViewerPose(space);
+            assert_matrix_approx_equals(pose.transform.matrix, [1,0,0,0,0,0,1,0,0,-1,0,0,0.5,0.1,0.1,1], 0.001, "head pose matrix");
 
-              });
+            for (view of pose.views) {
+              assert_matrix_approx_equals(view.projectionMatrix, VALID_PROJECTION_MATRIX, 0.001, "projection matrix");
+              if (view.eye == "left") {
+                assert_matrix_approx_equals(view.transform.matrix,         [1,0,0,0,0,0,1,0,0,-1,0,0,0.4,0.1,0.1,1], 0.001, "left transform");
+                assert_matrix_approx_equals(view.transform.inverse.matrix, [1,0,0,0,0,0,-1,0,0,1,0,0,-0.4,-0.1,0.1,1], 0.001, "left inverse transform");
+                let position = view.transform.position;
+                assert_approx_equals(position.x, 0.4, 0.001, "left x value");
+                assert_approx_equals(position.y, 0.1, 0.001, "left y value");
+                assert_approx_equals(position.z, 0.1, 0.001, "left z value");
+                assert_approx_equals(position.w, 1, 0.001, "left w value");
+              } else if (view.eye == "right") {
+                assert_matrix_approx_equals(view.transform.matrix,         [1,0,0,0,0,0,1,0,0,-1,0,0,0.6,0.1,0.1,1], 0.001, "right transform");
+                assert_matrix_approx_equals(view.transform.inverse.matrix, [1,0,0,0,0,0,-1,0,0,1,0,0,-0.6,-0.1,0.1,1], 0.001, "right inverse transform");
+                let position = view.transform.position;
+                assert_approx_equals(position.x, 0.6, 0.001, "left x value");
+                assert_approx_equals(position.y, 0.1, 0.001, "left y value");
+                assert_approx_equals(position.z, 0.1, 0.001, "left z value");
+                assert_approx_equals(position.w, 1, 0.001, "left w value");
+              } else {
+                throw "got unknown view";
+              }
+            }
+            let offset = space.getOffsetReferenceSpace(new XRRigidTransform({x: 1, y: -1, z: 4}, {x: 0, y: 1, z: 1, w: 1}));
+            pose = frame.getViewerPose(offset);
+            for (view of pose.views) {
+              if (view.eye == "left") {
+                assert_matrix_approx_equals(view.transform.matrix, [-1/3,-2/3,2/3,0,-2/3,2/3,1/3,0,-2/3,-1/3,-2/3,0,3.4,-1.9,-0.9,1], 0.001, "left offset transform");
+              } else if (view.eye == "right") {
+                assert_matrix_approx_equals(view.transform.matrix, [-1/3,-2/3,2/3,0,-2/3,2/3,1/3,0,-2/3,-1/3,-2/3,0,3.6,-1.9,-0.9,1], 0.001, "right offset transform");
+              } else {
+                throw "got unknown view";
+              }
+            }
+            let viewer = await session.requestReferenceSpace("viewer");
+            pose = frame.getViewerPose(viewer);
+            assert_matrix_approx_equals(pose.transform.matrix, [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1], 0.001, "viewerPose of viewer is identity");
+            assert_matrix_approx_equals(frame.getViewerPose(space).transform.matrix, frame.getPose(viewer, space).transform.matrix, 0.001, "viewerPose(space) == pose(viewer, space)");
+            assert_matrix_approx_equals(frame.getViewerPose(offset).transform.matrix, frame.getPose(viewer, offset).transform.matrix, 0.001, "viewerPose(offset) == pose(viewer, offset)");
+
           });
         </script>
     </body>
