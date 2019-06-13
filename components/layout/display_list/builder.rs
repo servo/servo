@@ -65,10 +65,10 @@ use style::values::specified::ui::CursorKind;
 use style::values::{Either, RGBA};
 use style_traits::ToCss;
 use webrender_api::units::{LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D};
+use webrender_api::{self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF};
 use webrender_api::{ColorU, ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LineStyle};
 use webrender_api::{NinePatchBorder, NinePatchBorderSource, NormalBorder};
 use webrender_api::{ScrollSensitivity, StickyOffsetBounds};
-use webrender_api::{self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF};
 
 static THREAD_TINT_COLORS: [ColorF; 8] = [
     ColorF {

@@ -5,8 +5,8 @@
 //! Implements sequential traversals over the DOM and flow trees.
 
 use crate::context::LayoutContext;
-use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
 use crate::display_list::items::{self, CommonDisplayItem, DisplayItem, DisplayListSection};
+use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
 use crate::floats::SpeculatedFloatPlacement;
 use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
 use crate::fragment::{CoordinateSystem, FragmentBorderBoxIterator};

@@ -13,7 +13,9 @@ use msg::constellation_msg::PipelineId;
 use webrender_api::units::LayoutPoint;
 use webrender_api::{self, ClipId, CommonItemProperties, DisplayItem as WrDisplayItem};
 use webrender_api::{DisplayListBuilder, PropertyBinding, PushStackingContextDisplayItem};
-use webrender_api::{RasterSpace, ReferenceFrameKind, SpaceAndClipInfo, SpatialId, StackingContext};
+use webrender_api::{
+    RasterSpace, ReferenceFrameKind, SpaceAndClipInfo, SpatialId, StackingContext,
+};
 
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&mut self, pipeline_id: PipelineId) -> DisplayListBuilder;
@@ -144,26 +146,30 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             },
             DisplayItem::PushTextShadow(ref mut item) => {
                 let common = build_common_item_properties(&item.base, state);
-                builder.push_shadow(&SpaceAndClipInfo {
-                                        spatial_id: common.spatial_id,
-                                        clip_id: common.clip_id,
-                                    },
-                                    item.shadow,
-                                    true);
+                builder.push_shadow(
+                    &SpaceAndClipInfo {
+                        spatial_id: common.spatial_id,
+                        clip_id: common.clip_id,
+                    },
+                    item.shadow,
+                    true,
+                );
             },
             DisplayItem::PopAllTextShadows(_) => {
                 builder.push_item(&WrDisplayItem::PopAllShadows);
             },
             DisplayItem::Iframe(ref mut item) => {
                 let common = build_common_item_properties(&item.base, state);
-                builder.push_iframe(item.base.bounds,
-                                    common.clip_rect,
-                                    &SpaceAndClipInfo {
-                                        spatial_id: common.spatial_id,
-                                        clip_id: common.clip_id,
-                                    },
-                                    item.iframe.to_webrender(),
-                                    true);
+                builder.push_iframe(
+                    item.base.bounds,
+                    common.clip_rect,
+                    &SpaceAndClipInfo {
+                        spatial_id: common.spatial_id,
+                        clip_id: common.clip_id,
+                    },
+                    item.iframe.to_webrender(),
+                    true,
+                );
             },
             DisplayItem::PushStackingContext(ref mut item) => {
                 let stacking_context = &item.stacking_context;
@@ -296,8 +302,10 @@ impl WebRenderDisplayItemConverter for DisplayItem {
     }
 }
 
-fn build_common_item_properties(base: &BaseDisplayItem, state: &ClipScrollState)
-                                -> CommonItemProperties {
+fn build_common_item_properties(
+    base: &BaseDisplayItem,
+    state: &ClipScrollState,
+) -> CommonItemProperties {
     let tag = match base.metadata.pointing {
         Some(cursor) => Some((base.metadata.node.0 as u64, cursor)),
         None => None,

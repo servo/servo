@@ -256,7 +256,10 @@ where
             // Cast from `DeviceIndependentPixel` to `DevicePixel`
             let device_pixel_ratio = coordinates.hidpi_factor.get();
             let window_size = TypedSize2D::from_untyped(
-                &(opts.initial_window_size.to_f32() / device_pixel_ratio).to_i32().to_untyped());
+                &(opts.initial_window_size.to_f32() / device_pixel_ratio)
+                    .to_i32()
+                    .to_untyped(),
+            );
 
             webrender::Renderer::new(
                 window.gl(),
