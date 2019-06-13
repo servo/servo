@@ -224,7 +224,6 @@ pub fn main_fetch(
         .unwrap()
         .switch_known_hsts_host_domain_url_to_https(request.current_url_mut());
 
-
     // Step 11.
     // Not applicable: see fetch_async.
 

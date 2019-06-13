@@ -1054,12 +1054,8 @@ fn http_network_or_cache_fetch(
     // More Step 7
     if response.is_none() {
         // Substep 2
-        let forward_response = http_network_fetch(
-            http_request,
-            credentials_flag,
-            done_chan,
-            context,
-        );
+        let forward_response =
+            http_network_fetch(http_request, credentials_flag, done_chan, context);
         // Substep 3
         if let Some((200...399, _)) = forward_response.raw_status {
             if !http_request.method.is_safe() {
