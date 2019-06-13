@@ -22,7 +22,8 @@ gleam = "0.6"
 ipc-channel = "0.11.2"
 log = "0.4"
 msg = {path = "../msg"}
-rust-webvr = {version = "0.11.3", features = ["mock", "openvr", "vrexternal"]}
+rust-webvr = {version = "0.11.4", features = ["mock", "openvr", "vrexternal"]}
+rust-webvr-api = "0.11.4"
 script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}
 webvr_traits = {path = "../webvr_traits" }

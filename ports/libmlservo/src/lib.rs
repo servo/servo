@@ -10,16 +10,15 @@ use egl::egl::SwapBuffers;
 use libc::{dup2, pipe, read};
 use log::info;
 use log::warn;
+use rust_webvr::api::MagicLeapVRService;
 use servo::euclid::TypedScale;
 use servo::keyboard_types::Key;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::DevicePixel;
 use servo::webrender_api::DevicePoint;
 use servo::webrender_api::LayoutPixel;
-use simpleservo::{
-    self, deinit, gl_glue, Coordinates, EventLoopWaker, HostTrait, InitOptions, MouseButton,
-    ServoGlue, SERVO,
-};
+use simpleservo::{self, deinit, gl_glue, MouseButton, ServoGlue, SERVO};
+use simpleservo::{Coordinates, EventLoopWaker, HostTrait, InitOptions, VRInitOptions};
 use smallvec::SmallVec;
 use std::cell::Cell;
 use std::ffi::CStr;
@@ -70,16 +69,16 @@ pub enum MLKeyType {
 
 #[repr(transparent)]
 #[derive(Clone, Copy)]
-pub struct MLLogger(extern "C" fn(MLLogLevel, *const c_char));
+pub struct MLLogger(Option<extern "C" fn(MLLogLevel, *const c_char)>);
 
 #[repr(transparent)]
-pub struct MLHistoryUpdate(extern "C" fn(MLApp, bool, bool));
+pub struct MLHistoryUpdate(Option<extern "C" fn(MLApp, bool, bool)>);
 
 #[repr(transparent)]
-pub struct MLURLUpdate(extern "C" fn(MLApp, *const c_char));
+pub struct MLURLUpdate(Option<extern "C" fn(MLApp, *const c_char)>);
 
 #[repr(transparent)]
-pub struct MLKeyboard(extern "C" fn(MLApp, bool));
+pub struct MLKeyboard(Option<extern "C" fn(MLApp, bool)>);
 
 #[repr(transparent)]
 #[derive(Clone, Copy)]
@@ -102,6 +101,7 @@ pub unsafe extern "C" fn init_servo(
     ctxt: EGLContext,
     surf: EGLSurface,
     disp: EGLDisplay,
+    landscape: bool,
     app: MLApp,
     logger: MLLogger,
     history_update: MLHistoryUpdate,
@@ -140,12 +140,17 @@ pub unsafe extern "C" fn init_servo(
     };
     info!("got args: {:?}", args);
 
+    let name = String::from("Magic Leap VR Display");
+    let (service, heartbeat) =
+        MagicLeapVRService::new(name, ctxt, gl.clone()).expect("Failed to create VR service");
+    let service = Box::new(service);
+    let heartbeat = Box::new(heartbeat);
     let opts = InitOptions {
         args,
         url: Some(url.to_string()),
         density: hidpi,
         enable_subpixel_text_antialiasing: false,
-        vr_pointer: None,
+        vr_init: VRInitOptions::VRService(service, heartbeat),
         coordinates,
     };
     let wakeup = Box::new(EventLoopWakerInstance);
@@ -155,6 +160,7 @@ pub unsafe extern "C" fn init_servo(
         ctxt,
         surf,
         disp,
+        landscape,
         shut_down_complete: shut_down_complete.clone(),
         history_update,
         url_update,
@@ -316,6 +322,7 @@ struct HostCallbacks {
     ctxt: EGLContext,
     surf: EGLSurface,
     disp: EGLDisplay,
+    landscape: bool,
     shut_down_complete: Rc<Cell<bool>>,
     history_update: MLHistoryUpdate,
     url_update: MLURLUpdate,
@@ -325,7 +332,10 @@ struct HostCallbacks {
 
 impl HostTrait for HostCallbacks {
     fn flush(&self) {
-        SwapBuffers(self.disp, self.surf);
+        // Immersive and landscape apps have different requirements for who calls SwapBuffers.
+        if self.landscape {
+            SwapBuffers(self.disp, self.surf);
+        }
     }
 
     fn make_current(&self) {
@@ -337,12 +347,16 @@ impl HostTrait for HostCallbacks {
     fn on_title_changed(&self, _title: String) {}
     fn on_url_changed(&self, url: String) {
         if let Ok(cstr) = CString::new(url.as_str()) {
-            (self.url_update.0)(self.app, cstr.as_ptr());
+            if let Some(url_update) = self.url_update.0 {
+                url_update(self.app, cstr.as_ptr());
+            }
         }
     }
 
     fn on_history_changed(&self, can_go_back: bool, can_go_forward: bool) {
-        (self.history_update.0)(self.app, can_go_back, can_go_forward);
+        if let Some(history_update) = self.history_update.0 {
+            history_update(self.app, can_go_back, can_go_forward);
+        }
     }
 
     fn on_animating_changed(&self, _animating: bool) {}
@@ -352,7 +366,9 @@ impl HostTrait for HostCallbacks {
     }
 
     fn on_ime_state_changed(&self, show: bool) {
-        (self.keyboard.0)(self.app, show)
+        if let Some(keyboard) = self.keyboard.0 {
+            keyboard(self.app, show)
+        }
     }
 }
 
@@ -385,22 +401,29 @@ impl log::Log for MLLogger {
     }
 
     fn log(&self, record: &log::Record) {
-        let lvl = match record.level() {
-            log::Level::Error => MLLogLevel::Error,
-            log::Level::Warn => MLLogLevel::Warning,
-            log::Level::Info => MLLogLevel::Info,
-            log::Level::Debug => MLLogLevel::Debug,
-            log::Level::Trace => MLLogLevel::Verbose,
-        };
-        let mut msg = SmallVec::<[u8; 128]>::new();
-        write!(msg, "{}\0", record.args()).unwrap();
-        (self.0)(lvl, &msg[0] as *const _ as *const _);
+        if let Some(log) = self.0 {
+            let lvl = match record.level() {
+                log::Level::Error => MLLogLevel::Error,
+                log::Level::Warn => MLLogLevel::Warning,
+                log::Level::Info => MLLogLevel::Info,
+                log::Level::Debug => MLLogLevel::Debug,
+                log::Level::Trace => MLLogLevel::Verbose,
+            };
+            let mut msg = SmallVec::<[u8; 128]>::new();
+            write!(msg, "{}\0", record.args()).unwrap();
+            log(lvl, &msg[0] as *const _ as *const _);
+        }
     }
 
     fn flush(&self) {}
 }
 
 fn redirect_stdout_to_log(logger: MLLogger) {
+    let log = match logger.0 {
+        None => return,
+        Some(log) => log,
+    };
+
     // The first step is to redirect stdout and stderr to the logs.
     // We redirect stdout and stderr to a custom descriptor.
     let mut pfd: [c_int; 2] = [0, 0];
@@ -439,7 +462,7 @@ fn redirect_stdout_to_log(logger: MLLogger) {
             let end = if result == 0 {
                 return;
             } else if result < 0 {
-                (logger.0)(
+                log(
                     MLLogLevel::Error,
                     b"error in log thread; closing\0".as_ptr() as *const _,
                 );
@@ -453,7 +476,7 @@ fn redirect_stdout_to_log(logger: MLLogger) {
 
             if let Some(last_newline_pos) = buf.iter().rposition(|&c| c == b'\n' as c_char) {
                 buf[last_newline_pos] = b'\0' as c_char;
-                (logger.0)(MLLogLevel::Info, buf.as_ptr());
+                log(MLLogLevel::Info, buf.as_ptr());
                 if last_newline_pos < buf.len() - 1 {
                     let pos_after_newline = last_newline_pos + 1;
                     let len_not_logged_yet = buf[pos_after_newline..].len();
@@ -467,7 +490,7 @@ fn redirect_stdout_to_log(logger: MLLogger) {
             } else if end == BUF_AVAILABLE {
                 // No newline found but the buffer is full, flush it anyway.
                 // `buf.as_ptr()` is null-terminated by BUF_LENGTH being 1 less than BUF_AVAILABLE.
-                (logger.0)(MLLogLevel::Info, buf.as_ptr());
+                log(MLLogLevel::Info, buf.as_ptr());
                 cursor = 0;
             } else {
                 cursor = end;
