@@ -67,7 +67,7 @@ function unsafe_run_tests() {
            --always-succeed || return 1
 
     # Run the bluetooth testsuite, which uses the webdriver test harness.
-    ./mach test-wpt --release --processes 1 --product=servodriver --headless \
+    ./mach test-wpt --release --product=servodriver --headless \
            --log-raw "${2}" /bluetooth --always-succeed || return 2
 }
 
