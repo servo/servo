@@ -45,6 +45,7 @@ packages = [
   "rand",
   "rand_core",
   "scopeguard",
+  "sha1",
   "unicase",
   "ws",
 ]
