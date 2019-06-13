@@ -152,12 +152,6 @@ pub fn main_fetch(
     // Step 1.
     let mut response = None;
 
-    let cache_entry = if let Ok(mut http_cache) = context.state.http_cache.write() {
-        http_cache.get_entry(&request)
-    } else {
-        None
-    };
-
     // Step 2.
     if request.local_urls_only {
         if !matches!(
@@ -230,8 +224,16 @@ pub fn main_fetch(
         .unwrap()
         .switch_known_hsts_host_domain_url_to_https(request.current_url_mut());
 
+
     // Step 11.
     // Not applicable: see fetch_async.
+
+    // Get the cache entry corresponding to the url, after potential hsts switch.
+    let cache_entry = if let Ok(mut http_cache) = context.state.http_cache.write() {
+        http_cache.get_entry(&request)
+    } else {
+        None
+    };
 
     // Step 12.
     let mut response = response.unwrap_or_else(|| {
@@ -481,6 +483,11 @@ pub fn main_fetch(
     target.process_response_eof(&response);
 
     if !response.is_network_error() {
+        let cache_entry = if let Ok(mut http_cache) = context.state.http_cache.write() {
+            http_cache.get_entry(&request)
+        } else {
+            None
+        };
         if let Some(entry) = cache_entry {
             entry.update_awaiting_consumers(&request, &response);
         }
