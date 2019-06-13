@@ -42,8 +42,8 @@ use std::rc::Rc;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
-use webrender_api::{self, HitTestFlags, HitTestResult, ScrollLocation};
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutVector2D};
+use webrender_api::{self, HitTestFlags, HitTestResult, ScrollLocation};
 use webvr_traits::WebVRMainThreadHeartbeat;
 
 #[derive(Debug, PartialEq)]
@@ -843,8 +843,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 self.pending_scroll_zoom_events.push(ScrollZoomEvent {
                     magnification: magnification,
                     scroll_location: ScrollLocation::Delta(LayoutVector2D::from_untyped(
-                            &scroll_delta.to_untyped()),
-                    ),
+                        &scroll_delta.to_untyped(),
+                    )),
                     cursor: cursor,
                     event_count: 1,
                 });
@@ -932,8 +932,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     *last_combined_event = Some(ScrollZoomEvent {
                         magnification: scroll_event.magnification,
                         scroll_location: ScrollLocation::Delta(LayoutVector2D::from_untyped(
-                                &this_delta.to_untyped()),
-                        ),
+                            &this_delta.to_untyped(),
+                        )),
                         cursor: this_cursor,
                         event_count: 1,
                     })
@@ -1165,9 +1165,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let mut pipeline_epochs = HashMap::new();
                 for (id, _) in &self.pipeline_details {
                     let webrender_pipeline_id = id.to_webrender();
-                    if let Some(webrender_api::Epoch(epoch)) =
-                        self.webrender.current_epoch(self.webrender_document,
-                                                     webrender_pipeline_id)
+                    if let Some(webrender_api::Epoch(epoch)) = self
+                        .webrender
+                        .current_epoch(self.webrender_document, webrender_pipeline_id)
                     {
                         let epoch = Epoch(epoch);
                         pipeline_epochs.insert(*id, epoch);
@@ -1267,11 +1267,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             #[cfg(feature = "gl")]
             CompositeTarget::Window => gl::RenderTargetInfo::default(),
             #[cfg(feature = "gl")]
-            CompositeTarget::WindowAndPng | CompositeTarget::PngFile => {
-                gl::initialize_png(&*self.window.gl(),
-                                   FramebufferUintLength::new(width.get()),
-                                   FramebufferUintLength::new(height.get()))
-            },
+            CompositeTarget::WindowAndPng | CompositeTarget::PngFile => gl::initialize_png(
+                &*self.window.gl(),
+                FramebufferUintLength::new(width.get()),
+                FramebufferUintLength::new(height.get()),
+            ),
             #[cfg(not(feature = "gl"))]
             _ => (),
         };
@@ -1304,8 +1304,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             // For each pending paint metrics pipeline id
             for (id, pending_epoch) in &self.pending_paint_metrics {
                 // we get the last painted frame id from webrender
-                if let Some(webrender_api::Epoch(epoch)) =
-                    self.webrender.current_epoch(self.webrender_document, id.to_webrender())
+                if let Some(webrender_api::Epoch(epoch)) = self
+                    .webrender
+                    .current_epoch(self.webrender_document, id.to_webrender())
                 {
                     // and check if it is the one the layout thread is expecting,
                     let epoch = Epoch(epoch);
@@ -1332,10 +1333,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             CompositeTarget::Window => None,
             #[cfg(feature = "gl")]
             CompositeTarget::WindowAndPng => {
-                let img = gl::draw_img(&*self.window.gl(),
-                                       rt_info,
-                                       FramebufferUintLength::new(width.get()),
-                                       FramebufferUintLength::new(height.get()));
+                let img = gl::draw_img(
+                    &*self.window.gl(),
+                    rt_info,
+                    FramebufferUintLength::new(width.get()),
+                    FramebufferUintLength::new(height.get()),
+                );
                 Some(Image {
                     width: img.width(),
                     height: img.height(),
@@ -1354,10 +1357,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     || match self.output_file.as_ref() {
                         Some(path) => match File::create(path) {
                             Ok(mut file) => {
-                                let img = gl::draw_img(gl,
-                                                       rt_info,
-                                                       FramebufferUintLength::new(width.get()),
-                                                       FramebufferUintLength::new(height.get()));
+                                let img = gl::draw_img(
+                                    gl,
+                                    rt_info,
+                                    FramebufferUintLength::new(width.get()),
+                                    FramebufferUintLength::new(height.get()),
+                                );
                                 let dynamic_image = DynamicImage::ImageRgb8(img);
                                 if let Err(e) = dynamic_image.write_to(&mut file, ImageFormat::PNG)
                                 {

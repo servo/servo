@@ -371,6 +371,10 @@ def check_lock(file_name, contents):
             source = "crates.io"
         packages_by_name.setdefault(package["name"], []).append((package["version"], source))
 
+    for name in exceptions:
+        if name not in packages_by_name:
+            yield (1, "duplicates are allowed for `{}` but it is not a dependency".format(name))
+
     for (name, packages) in packages_by_name.iteritems():
         has_duplicates = len(packages) > 1
         duplicates_allowed = name in exceptions
