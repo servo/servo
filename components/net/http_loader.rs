@@ -1059,7 +1059,6 @@ fn http_network_or_cache_fetch(
             credentials_flag,
             done_chan,
             context,
-            cache_entry,
         );
         // Substep 3
         if let Some((200...399, _)) = forward_response.raw_status {
@@ -1198,7 +1197,6 @@ fn http_network_fetch(
     credentials_flag: bool,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
-    cache_entry: &Option<HttpCacheEntry>,
 ) -> Response {
     let mut response_end_timer = ResponseEndTimer(Some(context.timing.clone()));
     // Step 1
@@ -1392,12 +1390,8 @@ fn http_network_fetch(
     // Step 13
     // TODO this step isn't possible yet (CSP)
 
-    // Step 14
-    if !response.is_network_error() && request.cache_mode != CacheMode::NoStore {
-        if let Some(entry) = cache_entry {
-            entry.store(&request, &response);
-        }
-    }
+    // Step 14, update the cached response, done via the shared response body.
+    // The initial storing in the cache is done as part of http_network_or_cache_fetch.
 
     // TODO this step isn't possible yet
     // Step 15
