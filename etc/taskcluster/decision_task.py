@@ -42,6 +42,7 @@ def main(task_for):
             linux_arm32_dev,
             linux_arm64_dev,
             linux_wpt,
+            linux_release,
             macos_wpt,
         ]
         by_branch_name = {
@@ -58,7 +59,7 @@ def main(task_for):
             # https://github.com/servo/saltfs/blob/master/homu/map.jinja
 
             "try-mac": [macos_unit],
-            "try-linux": [linux_tidy_unit_docs],
+            "try-linux": [linux_tidy_unit_docs, linux_release],
             "try-windows": [windows_unit, windows_x86, windows_arm64],
             "try-magicleap": [magicleap_dev],
             "try-arm": [linux_arm32_dev, linux_arm64_dev, windows_arm64],
@@ -124,6 +125,8 @@ linux_build_env = {
     "CCACHE": "sccache",
     "RUSTC_WRAPPER": "sccache",
     "SCCACHE_IDLE_TIMEOUT": "1200",
+    "CC": "clang",
+    "CXX": "clang++",
 }
 macos_build_env = {}
 windows_build_env = {
@@ -454,6 +457,17 @@ def linux_nightly():
         .find_or_create("build.linux_x64_nightly" + CONFIG.task_id())
     )
 
+
+def linux_release():
+    return (
+        linux_build_task("Release build")
+        .with_treeherder("Linux x64", "Release")
+        .with_script(
+            "./mach build --release",
+            "./mach package --release",
+        )
+        .find_or_create("build.linux_x64_release" + CONFIG.task_id())
+    )
 
 def linux_wpt():
     release_build_task = (
