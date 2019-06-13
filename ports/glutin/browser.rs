@@ -354,7 +354,6 @@ where
                     self.handle_key_from_servo(browser_id, key_event);
                 },
                 EmbedderMsg::GetClipboardContents(sender) => {
-                    println!("glutin/browser.rs GetClipboardContents {:?} ", browser_id);
                     let contents = match self.clipboard_ctx {
                         Some(ref mut ctx) => {
                             match ctx.get_contents() {
@@ -372,8 +371,7 @@ where
                     }
                 }
                 EmbedderMsg::SetClipboardContents(text) => {
-                    println!("browser.rs SetClipBoardContents {} {:?}", text, browser_id);
-                    if let Some( ref mut ctx ) = self.clipboard_ctx {
+                    if let Some(ref mut ctx) = self.clipboard_ctx {
                         if let Err(e) = ctx.set_contents(text) {
                             warn!("Error setting clipboard contents ({})", e);
                         }

@@ -107,7 +107,6 @@ use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::webgl_thread::WebGLThreads;
 use canvas_traits::canvas::CanvasId;
 use canvas_traits::canvas::CanvasMsg;
-use clipboard::{ClipboardContext, ClipboardProvider};
 use compositing::compositor_thread::CompositorProxy;
 use compositing::compositor_thread::Msg as ToCompositorMsg;
 use compositing::SendableFrameTree;
