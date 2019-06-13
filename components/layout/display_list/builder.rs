@@ -1460,7 +1460,8 @@ impl Fragment {
             let background_color = style.resolve_color(style.get_background().background_color);
             let base = state.create_base_display_item(
                 stacking_relative_border_box,
-                clip,
+                clip.intersection(&stacking_relative_border_box)
+                    .unwrap_or(Rect::zero()),
                 self.node,
                 get_cursor(&self.style, Cursor::Default),
                 display_list_section,
