@@ -11,6 +11,7 @@ set -o pipefail
 REMOTE_NAME=sync-fork
 LOG_FILE=test-wpt.log
 BLUETOOTH_LOG_FILE=test-wpt-bluetooth.log
+WDSPEC_LOG_FILE=test-wpt-wdspec.log
 CURRENT_DATE=$(date +"%d-%m-%Y")
 BRANCH_NAME="wpt_update"
 REMOTE_BRANCH_NAME="wpt_update_${CURRENT_DATE}"
@@ -69,12 +70,16 @@ function unsafe_run_tests() {
     # Run the bluetooth testsuite, which uses the webdriver test harness.
     ./mach test-wpt --release --product=servodriver --headless \
            --log-raw "${2}" /bluetooth --always-succeed || return 2
+
+    # Run the wdspec testsuite
+    ./mach test-wpt --release --timeout-multiplier=4 --log-raw "${3}" /webdriver \
+           --always-succeed || return 3
 }
 
 # Using an existing log file, update the expected test results and amend the
 # last commit with the new results.
 function unsafe_update_metadata() {
-    ./mach update-wpt "${1}" "${2}" || return 1
+    ./mach update-wpt "${1}" "${2}" "${3}" || return 1
     # Ensure any new directories or ini files are included in these changes.
     git add tests/wpt/metadata tests/wpt/mozilla/meta || return 2
     # Merge all changes with the existing commit.
@@ -139,11 +144,11 @@ function pull_from_upstream() {
 }
 
 function run_tests() {
-    unsafe_run_tests "${1}" "${2}" || { code="${?}"; cleanup; return "${code}"; }
+    unsafe_run_tests "${1}" "${2}" "${3}" || { code="${?}"; cleanup; return "${code}"; }
 }
 
 function update_metadata() {
-    unsafe_update_metadata "${1}" "${2}" || { code="${?}"; cleanup; return "${code}"; }
+    unsafe_update_metadata "${1}" "${2}" "${3}" || { code="${?}"; cleanup; return "${code}"; }
 }
 
 function open_pull_request() {
@@ -153,8 +158,8 @@ function open_pull_request() {
 SCRIPT_NAME="${0}"
 
 function update_test_results() {
-    run_tests "${LOG_FILE}" "${BLUETOOTH_LOG_FILE}"
-    update_metadata "${LOG_FILE}" "${BLUETOOTH_LOG_FILE}"
+    run_tests "${LOG_FILE}" "${BLUETOOTH_LOG_FILE}" "${WDSPEC_LOG_FILE}"
+    update_metadata "${LOG_FILE}" "${BLUETOOTH_LOG_FILE}" "${WDSPEC_LOG_FILE}"
 }
 
 function fetch_upstream_changes() {
