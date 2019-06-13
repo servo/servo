@@ -30,12 +30,12 @@ impl EmbedderCallbacks {
 }
 
 impl EmbedderMethods for EmbedderCallbacks {
-    fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker> {
+    fn create_event_loop_waker(&mut self) -> Box<dyn EventLoopWaker> {
         self.events_loop.borrow().create_event_loop_waker()
     }
 
     fn register_vr_services(
-        &self,
+        &mut self,
         services: &mut VRServiceManager,
         heartbeats: &mut Vec<Box<WebVRMainThreadHeartbeat>>,
     ) {
