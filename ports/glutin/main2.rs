@@ -9,6 +9,7 @@ extern crate log;
 #[cfg(all(feature = "unstable", any(target_os = "macos", target_os = "linux")))]
 #[macro_use]
 extern crate sig;
+extern crate clipboard;
 
 mod app;
 mod browser;

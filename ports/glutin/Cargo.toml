@@ -54,6 +54,7 @@ libc = "0.2"
 log = "0.4"
 rust-webvr = { version = "0.11", features = ["glwindow"] }
 tinyfiledialogs = "3.0"
+clipboard = "0.5"
 
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
 image = "0.21"
