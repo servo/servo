@@ -1460,8 +1460,7 @@ impl Fragment {
             let background_color = style.resolve_color(style.get_background().background_color);
             let base = state.create_base_display_item(
                 stacking_relative_border_box,
-                clip.intersection(&stacking_relative_border_box)
-                    .unwrap_or(Rect::zero()),
+                stacking_relative_border_box,
                 self.node,
                 get_cursor(&self.style, Cursor::Default),
                 display_list_section,
@@ -1508,7 +1507,7 @@ impl Fragment {
 
         let base = state.create_base_display_item(
             insertion_point_bounds,
-            clip,
+            insertion_point_bounds,
             self.node,
             get_cursor(&self.style, cursor),
             display_list_section,
