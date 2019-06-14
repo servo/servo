@@ -8,6 +8,7 @@ use crate::app;
 use crate::events_loop::EventsLoop;
 use gleam::gl;
 use glutin;
+use glutin::EventsLoopClosed;
 use glutin::dpi::LogicalSize;
 use rust_webvr::GlWindowVRService;
 use servo::compositing::windowing::EmbedderMethods;
@@ -46,6 +47,10 @@ impl EmbedderMethods for EmbedderCallbacks {
                 let name = String::from("Test VR Display");
                 let size = opts::get().initial_window_size.to_f64();
                 let size = LogicalSize::new(size.width, size.height);
+                let events_loop_clone = self.events_loop.clone();
+                let events_loop_factory = Box::new(move || {
+                    events_loop_clone.borrow_mut().take().ok_or(EventsLoopClosed)
+                });
                 let window_builder = glutin::WindowBuilder::new()
                     .with_title(name.clone())
                     .with_dimensions(size)
@@ -57,7 +62,7 @@ impl EmbedderMethods for EmbedderCallbacks {
                     .build_windowed(window_builder, &*self.events_loop.borrow().as_winit())
                     .expect("Failed to create window.");
                 let gl = self.gl.clone();
-                let (service, heartbeat) = GlWindowVRService::new(name, context, gl);
+                let (service, heartbeat) = GlWindowVRService::new(name, context, events_loop_factory, gl);
 
                 services.register(Box::new(service));
                 heartbeats.push(Box::new(heartbeat));
