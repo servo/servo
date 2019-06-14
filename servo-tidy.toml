@@ -33,9 +33,6 @@ rand = [
 # Ignored packages with duplicated versions
 packages = [
   "crossbeam-deque",
-  "crossbeam-epoch",
-  "crossbeam-utils",
-  "dwrote",
   "gl_generator", # https://github.com/servo/servo/pull/23288#issuecomment-494687746
   "lock_api",
   "memmap",
