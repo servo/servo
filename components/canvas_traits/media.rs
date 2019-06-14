@@ -21,6 +21,15 @@ pub use crate::media_channel::GLPlayerSendResult;
 /// Sender type used in GLPlayerMsg.
 pub use crate::media_channel::GLPlayerSender;
 
+/// These are the messages that the GLPlayer thread will forward to
+/// the video player which lives in htmlmediaelement
+#[derive(Debug, Deserialize, Serialize)]
+pub enum GLPlayerMsgForward {
+    PlayerId(u64),
+    Lock(GLPlayerSender<(u32, Size2D<i32>, usize)>),
+    Unlock(),
+}
+
 /// GLPlayer thread Message API
 ///
 /// These are the message that the thread will receive from the
@@ -29,7 +38,7 @@ pub use crate::media_channel::GLPlayerSender;
 #[derive(Debug, Deserialize, Serialize)]
 pub enum GLPlayerMsg {
     /// Registers an instantiated player in DOM
-    RegisterPlayer(GLPlayerSender<u64>),
+    RegisterPlayer(GLPlayerSender<GLPlayerMsgForward>),
     /// Unregisters a player's ID
     UnregisterPlayer(u64),
     /// Locks a specific texture from a player. Lock messages are used
