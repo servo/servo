@@ -1297,7 +1297,7 @@ impl HTMLMediaElement {
         );
 
         // GLPlayer thread setup
-        let player_id = window
+        let (player_id, image_receiver) = window
             .get_player_context()
             .glplayer_chan
             .map(|pipeline| {
@@ -1308,13 +1308,36 @@ impl HTMLMediaElement {
                     .send(GLPlayerMsg::RegisterPlayer(image_sender))
                     .unwrap();
                 match image_receiver.recv().unwrap() {
-                    GLPlayerMsgForward::PlayerId(id) => id,
+                    GLPlayerMsgForward::PlayerId(id) => (id, Some(image_receiver)),
                     _ => unreachable!(),
                 }
             })
-            .unwrap_or(0);
+            .unwrap_or((0, None));
+
         self.id.set(player_id);
         self.frame_renderer.lock().unwrap().id = player_id;
+
+        if let Some(image_receiver) = image_receiver {
+            let trusted_node = Trusted::new(self);
+            let (task_source, canceller) = window
+                .task_manager()
+                .media_element_task_source_with_canceller();
+            ROUTER.add_route(
+                image_receiver.to_opaque(),
+                Box::new(move |message| {
+                    let msg: GLPlayerMsgForward = message.to().unwrap();
+                    let _this = trusted_node.clone();
+                    if let Err(err) = task_source.queue_with_canceller(
+                        task!(handle_glplayer_message: move || {
+                            trace!("GLPlayer message {:?}", msg);
+                        }),
+                        &canceller,
+                    ) {
+                        warn!("Could not queue GL player message handler task {:?}", err);
+                    }
+                }),
+            );
+        }
 
         Ok(())
     }

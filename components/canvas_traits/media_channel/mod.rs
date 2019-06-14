@@ -70,13 +70,21 @@ where
             GLPlayerReceiver::Mpsc(ref receiver) => receiver.recv().map_err(|_| ()),
         }
     }
+
+    pub fn to_opaque(self) -> ipc_channel::ipc::OpaqueIpcReceiver {
+        match self {
+            GLPlayerReceiver::Ipc(receiver) => receiver.to_opaque(),
+            _ => unreachable!(),
+        }
+    }
 }
 
 pub fn glplayer_channel<T>() -> Result<(GLPlayerSender<T>, GLPlayerReceiver<T>), ()>
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
-    if *IS_MULTIPROCESS {
+    // Let's use Ipc until we move the Player instance into GPlayerThread
+    if true {
         ipc::glplayer_channel()
             .map(|(tx, rx)| (GLPlayerSender::Ipc(tx), GLPlayerReceiver::Ipc(rx)))
             .map_err(|_| ())
