@@ -1,0 +1,266 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>Mandatory-to-implement stats compliance (a subset of webrtc-stats)</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script src="dictionary-helper.js"></script>
+<script src="RTCStats-helper.js"></script>
+<script>
+'use strict';
+
+// From https://w3c.github.io/webrtc-pc/#mandatory-to-implement-stats
+
+const mandatory = {
+  RTCRtpStreamStats: [
+    "ssrc",
+    "kind",
+    "transportId",
+    "codecId",
+  ],
+  RTCReceivedRtpStreamStats: [
+    "packetsReceived",
+    "packetsLost",
+    "jitter",
+    "packetsDiscarded",
+  ],
+  RTCInboundRtpStreamStats: [
+    "trackId",
+    "receiverId",
+    "remoteId",
+    "framesDecoded",
+  ],
+  RTCRemoteInboundRtpStreamStats: [
+    "localId",
+    "roundTripTime",
+  ],
+  RTCSentRtpStreamStats: [
+    "packetsSent",
+    "bytesSent"
+  ],
+  RTCOutboundRtpStreamStats: [
+    "trackId",
+    "senderId",
+    "remoteId",
+    "framesEncoded",
+  ],
+  RTCRemoteOutboundRtpStreamStats: [
+    "localId",
+    "remoteTimestamp",
+  ],
+  RTCPeerConnectionStats: [
+    "dataChannelsOpened",
+    "dataChannelsClosed",
+  ],
+  RTCDataChannelStats: [
+    "protocol",
+    "dataChannelIdentifier",
+    "state",
+    "messagesSent",
+    "bytesSent",
+    "messagesReceived",
+    "bytesReceived",
+  ],
+  RTCMediaStreamStats: [
+    "streamIdentifer",
+    "trackIds",
+  ],
+  RTCMediaHandlerStats: [
+    "trackIdentifier",
+    "remoteSource",
+    "ended",
+  ],
+  RTCAudioHandlerStats: [
+    "audioLevel",
+  ],
+  RTCVideoHandlerStats: [
+    "frameWidth",
+    "frameHeight",
+    "framesPerSecond",
+  ],
+  RTCVideoSenderStats: [
+    "framesSent",
+  ],
+  RTCVideoReceiverStats: [
+    "framesReceived",
+    "framesDecoded",
+    "framesDropped",
+    "partialFramesLost",
+  ],
+  RTCCodecStats: [
+    "payloadType",
+    "codecType",
+    "clockRate",
+    "channels",
+    "sdpFmtpLine",
+  ],
+  RTCTransportStats: [
+    "bytesSent",
+    "bytesReceived",
+    "rtcpTransportStatsId",
+    "selectedCandidatePairId",
+    "localCertificateId",
+    "remoteCertificateId",
+  ],
+  RTCIceCandidatePairStats: [
+    "transportId",
+    "localCandidateId",
+    "remoteCandidateId",
+    "state",
+    "priority",
+    "nominated",
+    "bytesSent",
+    "bytesReceived",
+    "totalRoundTripTime",
+    "currentRoundTripTime",
+  ],
+  RTCIceCandidateStats: [
+    "address",
+    "port",
+    "protocol",
+    "candidateType",
+    "url",
+  ],
+  RTCCertificateStats: [
+    "fingerprint",
+    "fingerprintAlgorithm",
+    "base64Certificate",
+    "issuerCertificateId",
+  ],
+};
+
+// From https://w3c.github.io/webrtc-stats/webrtc-stats.html#rtcstatstype-str*
+
+const dictionaryNames = {
+  "codec": "RTCCodecStats",
+  "inbound-rtp": "RTCInboundRtpStreamStats",
+  "outbound-rtp": "RTCOutboundRtpStreamStats",
+  "remote-inbound-rtp": "RTCRemoteInboundRtpStreamStats",
+  "remote-outbound-rtp": "RTCRemoteOutboundRtpStreamStats",
+  "csrc": "RTCRtpContributingSourceStats",
+  "peer-connection": "RTCPeerConnectionStats",
+  "data-channel": "RTCDataChannelStats",
+  "stream": "RTCMediaStreamStats",
+  "track": {
+    video: "RTCSenderVideoTrackAttachmentStats",
+    audio: "RTCSenderAudioTrackAttachmentStats"
+  },
+  "sender": {
+    audio: "RTCAudioSenderStats",
+    video: "RTCVideoSenderStats"
+  },
+  "receiver": {
+    audio: "RTCAudioReceiverStats",
+    video: "RTCVideoReceiverStats",
+  },
+  "transport": "RTCTransportStats",
+  "candidate-pair": "RTCIceCandidatePairStats",
+  "local-candidate": "RTCIceCandidateStats",
+  "remote-candidate": "RTCIceCandidateStats",
+  "certificate": "RTCCertificateStats",
+};
+
+// From https://w3c.github.io/webrtc-stats/webrtc-stats.html (webidl)
+
+const parents = {
+  RTCVideoHandlerStats: "RTCMediaHandlerStats",
+  RTCVideoSenderStats: "RTCVideoHandlerStats",
+  RTCSenderVideoTrackAttachmentStats: "RTCVideoSenderStats",
+  RTCVideoReceiverStats: "RTCVideoHandlerStats",
+  RTCAudioHandlerStats: "RTCMediaHandlerStats",
+  RTCAudioSenderStats: "RTCAudioHandlerStats",
+  RTCSenderAudioTrackAttachmentStats: "RTCAudioSenderStats",
+  RTCAudioReceiverStats: "RTCAudioHandlerStats",
+  RTCReceivedRtpStreamStats: "RTCRtpStreamStats",
+  RTCInboundRtpStreamStats: "RTCReceivedRtpStreamStats",
+  RTCRemoteInboundRtpStreamStats: "RTCReceivedRtpStreamStats",
+  RTCSentRtpStreamStats: "RTCRtpStreamStats",
+  RTCOutboundRtpStreamStats: "RTCSentRtpStreamStats",
+  RTCRemoteOutboundRtpStreamStats : "RTCSentRtpStreamStats",
+};
+
+const remaining = JSON.parse(JSON.stringify(mandatory));
+for (const dictName in remaining) {
+  remaining[dictName] = new Set(remaining[dictName]);
+}
+
+async function getAllStats(t, pc) {
+  // Try to obtain as many stats as possible, waiting up to 20 seconds for
+  // roundTripTime which can take several RTCP messages to calculate.
+  let stats;
+  for (let i = 0; i < 20; i++) {
+    stats = await pc.getStats();
+    const values = [...stats.values()];
+    const [audio, video] = ["audio", "video"].map(kind =>
+      values.find(s => s.type == "remote-inbound-rtp" && s.kind == kind));
+    if (audio && "roundTripTime" in audio &&
+        video && "roundTripTime" in video) {
+      return stats;
+    }
+    await new Promise(r => t.step_timeout(r, 1000));
+  }
+  return stats;
+}
+
+let succeed;
+const success = new Promise(r => succeed = r);
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  pc1.createDataChannel("dummy", {negotiated: true, id: 0});
+  pc2.createDataChannel("dummy", {negotiated: true, id: 0});
+  const stream = await getNoiseStream({video: true, audio:true});
+  for (const track of stream.getTracks()) {
+    pc1.addTrack(track, stream);
+    pc2.addTrack(track, stream);
+    t.add_cleanup(() => track.stop());
+  }
+  exchangeIceCandidates(pc1, pc2);
+  await doSignalingHandshake(pc1, pc2);
+  const stats = await getAllStats(t, pc1);
+
+  // The focus of this test is not API correctness, but rather to provide an
+  // accessible metric of implementation progress by dictionary member. We count
+  // whether we've seen each dictionary's mandatory members in getStats().
+
+  for (const stat of stats.values()) {
+    let dictName = dictionaryNames[stat.type];
+    if (!dictName) continue;
+    if (typeof dictName == "object") {
+      dictName = dictName[stat.kind];
+    }
+    assert_equals(typeof dictName, "string", "Test error. String.");
+    if (dictName && mandatory[dictName]) {
+      do {
+        const memberNames = mandatory[dictName];
+        const remainingNames = remaining[dictName];
+        assert_true(memberNames.length > 0, "Test error. Parent not found.");
+        for (const memberName of memberNames) {
+          if (memberName in stat) {
+            assert_not_equals(stat[memberName], undefined, "Not undefined");
+            remainingNames.delete(memberName);
+          }
+        }
+        dictName = parents[dictName];
+      } while (dictName);
+    }
+  }
+  succeed();
+}, 'getStats succeeds');
+
+for (const dictName in mandatory) {
+  for (const memberName of mandatory[dictName]) {
+    promise_test(async t => {
+      await success;
+      assert_true(!remaining[dictName].has(memberName),
+                  `Is ${memberName} present`);
+    }, `${dictName}'s ${memberName}`);
+  }
+}
+
+</script>

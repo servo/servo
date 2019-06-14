@@ -142,6 +142,15 @@ def document_hidden(session):
     return Poll(session, timeout=3, raises=None).until(hidden)
 
 
+def document_location(session):
+    """
+    Unlike ``webdriver.Session#url``, which always returns
+    the top-level browsing context's URL, this returns
+    the current browsing context's active document's URL.
+    """
+    return session.execute_script("return document.location.href")
+
+
 def element_rect(session, element):
     return session.execute_script("""
         let element = arguments[0];

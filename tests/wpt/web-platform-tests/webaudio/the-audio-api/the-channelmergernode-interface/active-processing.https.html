@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+  <head>
+    <title>
+      Test Active Processing for ChannelMergerNode
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+  </head>
+
+  <body>
+    <script id="layout-test-code">
+      let audit = Audit.createTaskRunner();
+
+      // The sample rate MUST be a power of two to eliminate round-off when
+      // computing render boundaries but is otherwise arbitrary. And we only new
+      // a few blocks for rendering to see if things are working.
+      let sampleRate = 8192;
+      let renderLength = 10 * RENDER_QUANTUM_FRAMES;
+
+      // Number of inputs for the ChannelMergerNode.  Pretty arbitrary, but
+      // should not be 1.
+      let numberOfInputs = 7;
+
+      // How many frames the source should run.  Arbitrary but should be more
+      // than a render quantum.
+      let sourceDurationFrames = 131;
+
+      // Frame at which to connect the source to the merger
+      let connectFrame = 2 * RENDER_QUANTUM_FRAMES;
+
+      // AudioProcessor that counts the number of channels on its single input.
+      let filePath =
+          '../the-audioworklet-interface/processors/input-count-processor.js';
+
+      audit.define(
+          {
+            label: 'Test',
+            description: 'Active processing for ChannelMergerNode'
+          },
+          async (task, should) => {
+            const context = new OfflineAudioContext({
+              numberOfChannels: numberOfInputs,
+              length: renderLength,
+              sampleRate: sampleRate
+            });
+
+            // Don't mix the inputs to the destination!
+            context.destination.channelInterpretation = 'discrete';
+
+            await context.audioWorklet.addModule(filePath);
+
+            let src = new ConstantSourceNode(context);
+            let merger = new ChannelMergerNode(
+                context, {numberOfInputs: numberOfInputs});
+            let counter = new AudioWorkletNode(context, 'counter');
+
+            // Just to print a message that we created the graph with a
+            // convolver in it.
+            should(
+                () => {
+                  merger.connect(counter).connect(context.destination);
+                },
+                `Construction of graph with ChannelMergerNode with ${
+                    merger.numberOfInputs} inputs`)
+                .notThrow()
+
+            // Connect the source now and start it and let it run for
+            // |sourceDurationFrames| frames.
+            context.suspend(connectFrame / context.sampleRate)
+                .then(() => {
+                  src.connect(merger, 0, 0);
+                  src.start();
+                  src.stop(
+                      context.currentTime +
+                      sourceDurationFrames / context.sampleRate);
+                })
+                .then(() => context.resume());
+
+            const renderedBuffer = await context.startRendering();
+            // The expected output is something like:
+            //
+            //   1, 1, 1,..., 7, 7, 7.,,,, 1, 1, 1
+            //
+            // When the merger has no inputs, it's not actively processing
+            // so it must output mono silence.  After connecting a source,
+            // the number of channels of the output should be the same as
+            // the number of inputs to the merger.  Finally, when the
+            // source stops, the merger is not actively processing anymore
+            // and should output mono silence again.  For this test, we
+            // don't care too much how many different values there are.
+            // There just has to be at least one of each value, in the
+            // order given.
+            const output = renderedBuffer.getChannelData(0);
+
+            should(output, 'Number of output channels').containValues([
+              1, numberOfInputs, 1
+            ]);
+
+            task.done();
+          });
+
+      audit.run();
+    </script>
+  </body>
+</html>

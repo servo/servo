@@ -4,7 +4,7 @@
 // Source: Page Visibility Level 2 (https://w3c.github.io/page-visibility/)
 
 enum VisibilityState {
-  "hidden", "visible", "prerender"
+  "hidden", "visible"
 };
 
 partial interface Document {

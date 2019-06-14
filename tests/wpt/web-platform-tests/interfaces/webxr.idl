@@ -28,9 +28,16 @@ enum XREnvironmentBlendMode {
   "alpha-blend",
 };
 
+enum XRVisibilityState {
+  "visible",
+  "visible-blurred",
+  "hidden",
+};
+
 [SecureContext, Exposed=Window] interface XRSession : EventTarget {
   // Attributes
   readonly attribute XREnvironmentBlendMode environmentBlendMode;
+  readonly attribute XRVisibilityState visibilityState;
   [SameObject] readonly attribute XRRenderState renderState;
   [SameObject] readonly attribute XRInputSourceArray inputSources;
 
@@ -44,29 +51,26 @@ enum XREnvironmentBlendMode {
   Promise<void> end();
 
   // Events
-  attribute EventHandler onblur;
-  attribute EventHandler onfocus;
   attribute EventHandler onend;
   attribute EventHandler onselect;
   attribute EventHandler oninputsourceschange;
   attribute EventHandler onselectstart;
   attribute EventHandler onselectend;
+  attribute EventHandler onvisibilitychange;
 };
 
 dictionary XRRenderStateInit {
   double depthNear;
   double depthFar;
   double inlineVerticalFieldOfView;
-  XRLayer? baseLayer;
-  XRPresentationContext? outputContext;
+  XRWebGLLayer? baseLayer;
 };
 
 [SecureContext, Exposed=Window] interface XRRenderState {
   readonly attribute double depthNear;
   readonly attribute double depthFar;
   readonly attribute double? inlineVerticalFieldOfView;
-  readonly attribute XRLayer? baseLayer;
-  readonly attribute XRPresentationContext? outputContext;
+  readonly attribute XRWebGLLayer? baseLayer;
 };
 
 callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame);
@@ -182,8 +186,6 @@ enum GamepadMappingType {
   "xr-standard",
 };
 
-[SecureContext, Exposed=Window] interface XRLayer {};
-
 typedef (WebGLRenderingContext or
          WebGL2RenderingContext) XRWebGLRenderingContext;
 
@@ -199,7 +201,7 @@ dictionary XRWebGLLayerInit {
 [SecureContext, Exposed=Window, Constructor(XRSession session,
              XRWebGLRenderingContext context,
              optional XRWebGLLayerInit layerInit)]
-interface XRWebGLLayer : XRLayer {
+interface XRWebGLLayer {
   // Attributes
   [SameObject] readonly attribute XRWebGLRenderingContext context;
 
@@ -223,10 +225,6 @@ partial dictionary WebGLContextAttributes {
 
 partial interface mixin WebGLRenderingContextBase {
     Promise<void> makeXRCompatible();
-};
-
-[SecureContext, Exposed=Window] interface XRPresentationContext {
-  [SameObject] readonly attribute HTMLCanvasElement canvas;
 };
 
 [SecureContext, Exposed=Window, Constructor(DOMString type, XRSessionEventInit eventInitDict)]
