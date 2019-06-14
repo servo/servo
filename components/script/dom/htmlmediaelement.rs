@@ -1254,7 +1254,7 @@ impl HTMLMediaElement {
         };
 
         let window = window_from_node(self);
-        let (action_sender, action_receiver) = ipc::channel().unwrap();
+        let (action_sender, action_receiver) = ipc::channel::<PlayerEvent>().unwrap();
         let renderer: Option<Arc<Mutex<dyn FrameRenderer>>> = match self.media_type_id() {
             HTMLMediaElementTypeId::HTMLAudioElement => None,
             HTMLMediaElementTypeId::HTMLVideoElement => Some(self.frame_renderer.clone()),
@@ -1276,7 +1276,7 @@ impl HTMLMediaElement {
         ROUTER.add_route(
             action_receiver.to_opaque(),
             Box::new(move |message| {
-                let event: PlayerEvent = message.to().unwrap();
+                let event = message.to().unwrap();
                 trace!("Player event {:?}", event);
                 let this = trusted_node.clone();
                 if let Err(err) = task_source.queue_with_canceller(
