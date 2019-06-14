@@ -58,6 +58,7 @@ use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
+use canvas_traits::media::*;
 use dom_struct::dom_struct;
 use headers::{ContentLength, ContentRange, HeaderMapExt};
 use html5ever::{LocalName, Prefix};
@@ -294,6 +295,8 @@ pub struct HTMLMediaElement {
     next_timeupdate_event: Cell<Timespec>,
     /// Latest fetch request context.
     current_fetch_context: DomRefCell<Option<HTMLMediaElementFetchContext>>,
+    /// Player Id reported the player thread
+    id: Cell<u64>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -355,6 +358,7 @@ impl HTMLMediaElement {
             text_tracks_list: Default::default(),
             next_timeupdate_event: Cell::new(time::get_time() + Duration::milliseconds(250)),
             current_fetch_context: DomRefCell::new(None),
+            id: Cell::new(0),
         }
     }
 
@@ -1290,6 +1294,25 @@ impl HTMLMediaElement {
             }),
         );
 
+        // GLPlayer thread setup
+        let player_id = window
+            .get_player_context()
+            .glplayer_chan
+            .map(|pipeline| {
+                let (image_sender, image_receiver) =
+                    glplayer_channel::<GLPlayerMsgForward>().unwrap();
+                pipeline
+                    .channel()
+                    .send(GLPlayerMsg::RegisterPlayer(image_sender))
+                    .unwrap();
+                match image_receiver.recv().unwrap() {
+                    GLPlayerMsgForward::PlayerId(id) => id,
+                    _ => unreachable!(),
+                }
+            })
+            .unwrap_or(0);
+        self.id.set(player_id);
+
         Ok(())
     }
 
@@ -1617,6 +1640,16 @@ impl HTMLMediaElement {
 
 impl Drop for HTMLMediaElement {
     fn drop(&mut self) {
+        let window = window_from_node(self);
+        window.get_player_context().glplayer_chan.map(|pipeline| {
+            if let Err(err) = pipeline
+                .channel()
+                .send(GLPlayerMsg::UnregisterPlayer(self.id.get()))
+            {
+                warn!("GLPlayer disappeared!: {:?}", err);
+            }
+        });
+
         if let Some(ref player) = *self.player.borrow() {
             if let Err(err) = player.shutdown() {
                 warn!("Error shutting down player {:?}", err);
