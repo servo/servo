@@ -116,7 +116,7 @@ fn bottom_up_flow(mut unsafe_flow: UnsafeFlow, assign_bsize_traversal: &AssignBS
 fn top_down_flow<'scope>(
     unsafe_flows: &[UnsafeFlow],
     pool: &'scope rayon::ThreadPool,
-    scope: &rayon::Scope<'scope>,
+    scope: &rayon::ScopeFifo<'scope>,
     assign_isize_traversal: &'scope AssignISizes,
     assign_bsize_traversal: &'scope AssignBSizes,
 ) {
@@ -166,7 +166,7 @@ fn top_down_flow<'scope>(
         let first_chunk = chunks.next();
         for chunk in chunks {
             let nodes = chunk.iter().cloned().collect::<FlowList>();
-            scope.spawn(move |scope| {
+            scope.spawn_fifo(move |scope| {
                 top_down_flow(
                     &nodes,
                     pool,
@@ -212,7 +212,7 @@ pub fn reflow(
     let nodes = [UnsafeFlow(root)];
 
     queue.install(move || {
-        rayon::scope(move |scope| {
+        rayon::scope_fifo(move |scope| {
             profile(
                 time::ProfilerCategory::LayoutParallelWarmup,
                 profiler_metadata,
