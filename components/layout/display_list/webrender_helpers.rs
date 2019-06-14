@@ -161,7 +161,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             DisplayItem::Iframe(ref mut item) => {
                 let common = build_common_item_properties(&item.base, state);
                 builder.push_iframe(
-                    item.base.bounds,
+                    item.bounds,
                     common.clip_rect,
                     &SpaceAndClipInfo {
                         spatial_id: common.spatial_id,

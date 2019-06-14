@@ -13,7 +13,7 @@ use crate::context::LayoutContext;
 use crate::display_list::background::{self, get_cyclic};
 use crate::display_list::border;
 use crate::display_list::gradient;
-use crate::display_list::items::{self, BaseDisplayItem, ClipScrollNode, BLUR_INFLATION_FACTOR};
+use crate::display_list::items::{self, BaseDisplayItem, ClipScrollNode};
 use crate::display_list::items::{ClipScrollNodeIndex, ClipScrollNodeType, ClippingAndScrolling};
 use crate::display_list::items::{ClippingRegion, DisplayItem, DisplayItemMetadata, DisplayList};
 use crate::display_list::items::{CommonDisplayItem, DisplayListSection};
@@ -32,7 +32,7 @@ use crate::table_cell::CollapsedBordersForCell;
 use app_units::{Au, AU_PER_PX};
 use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
 use embedder_traits::Cursor;
-use euclid::{rect, Point2D, Rect, SideOffsets2D, Size2D, TypedRect, TypedSize2D, Vector2D};
+use euclid::{rect, Point2D, Rect, SideOffsets2D, Size2D, TypedRect, TypedSize2D};
 use fnv::FnvHashMap;
 use gfx::text::glyph::ByteIndex;
 use gfx::text::TextRun;
@@ -376,7 +376,6 @@ impl<'a> DisplayListBuildState<'a> {
 
     pub fn create_base_display_item(
         &self,
-        bounds: Rect<Au>,
         clip_rect: Rect<Au>,
         node: OpaqueNode,
         cursor: Option<Cursor>,
@@ -390,7 +389,6 @@ impl<'a> DisplayListBuildState<'a> {
             self.current_clipping_and_scrolling
         };
         self.create_base_display_item_with_clipping_and_scrolling(
-            bounds,
             clip_rect,
             node,
             cursor,
@@ -401,7 +399,6 @@ impl<'a> DisplayListBuildState<'a> {
 
     fn create_base_display_item_with_clipping_and_scrolling(
         &self,
-        bounds: Rect<Au>,
         clip_rect: Rect<Au>,
         node: OpaqueNode,
         cursor: Option<Cursor>,
@@ -409,7 +406,6 @@ impl<'a> DisplayListBuildState<'a> {
         clipping_and_scrolling: ClippingAndScrolling,
     ) -> BaseDisplayItem {
         BaseDisplayItem::new(
-            bounds.to_layout(),
             DisplayItemMetadata {
                 node,
                 // Store cursor id in display list.
@@ -707,7 +703,6 @@ impl Fragment {
 
             let base = state.create_base_display_item(
                 bounds,
-                bounds,
                 self.node,
                 get_cursor(&style, Cursor::Default),
                 display_list_section,
@@ -844,7 +839,6 @@ impl Fragment {
 
             // Create the image display item.
             let base = state.create_base_display_item(
-                placement.bounds,
                 placement.clip_rect,
                 self.node,
                 get_cursor(&style, Cursor::Default),
@@ -961,7 +955,6 @@ impl Fragment {
             }
 
             let base = state.create_base_display_item(
-                placement.bounds,
                 placement.clip_rect,
                 self.node,
                 get_cursor(&style, Cursor::Default),
@@ -1021,17 +1014,7 @@ impl Fragment {
     ) {
         // NB: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
         for box_shadow in style.get_effects().box_shadow.0.iter().rev() {
-            let bounds = shadow_bounds(
-                absolute_bounds.translate(&Vector2D::new(
-                    Au::from(box_shadow.base.horizontal),
-                    Au::from(box_shadow.base.vertical),
-                )),
-                Au::from(box_shadow.base.blur),
-                Au::from(box_shadow.spread),
-            );
-
             let base = state.create_base_display_item(
-                bounds,
                 clip,
                 self.node,
                 get_cursor(&style, Cursor::Default),
@@ -1116,7 +1099,6 @@ impl Fragment {
 
         // Append the border to the display list.
         let base = state.create_base_display_item(
-            bounds,
             clip,
             self.node,
             get_cursor(&style, Cursor::Default),
@@ -1165,11 +1147,10 @@ impl Fragment {
             radius: border_radius,
             do_aa: true,
         });
-        let bounds = base.bounds;
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
             webrender_api::BorderDisplayItem {
-                bounds,
+                bounds: bounds.to_layout(),
                 common: items::empty_common_item_properties(),
                 widths: border_widths.to_layout(),
                 details,
@@ -1272,11 +1253,10 @@ impl Fragment {
                 border_image_outset.left.to_f32_px(),
             ),
         });
-        let bounds = base.bounds;
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
             webrender_api::BorderDisplayItem {
-                bounds,
+                bounds: bounds.to_layout(),
                 common: items::empty_common_item_properties(),
                 widths: border_image_width,
                 details,
@@ -1321,17 +1301,15 @@ impl Fragment {
             .resolve_color(style.get_outline().outline_color)
             .to_layout();
         let base = state.create_base_display_item(
-            bounds,
             clip,
             self.node,
             get_cursor(&style, Cursor::Default),
             DisplayListSection::Outlines,
         );
-        let bounds = base.bounds;
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
             webrender_api::BorderDisplayItem {
-                bounds,
+                bounds: bounds.to_layout(),
                 common: items::empty_common_item_properties(),
                 widths: SideOffsets2D::new_all_same(width).to_layout(),
                 details: BorderDetails::Normal(border::simple(color, outline_style.to_layout())),
@@ -1355,17 +1333,15 @@ impl Fragment {
 
         // Compute the text fragment bounds and draw a border surrounding them.
         let base = state.create_base_display_item(
-            stacking_relative_border_box,
             clip,
             self.node,
             get_cursor(&style, Cursor::Default),
             DisplayListSection::Content,
         );
-        let bounds = base.bounds;
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
             webrender_api::BorderDisplayItem {
-                bounds,
+                bounds: stacking_relative_border_box.to_layout(),
                 common: items::empty_common_item_properties(),
                 widths: SideOffsets2D::new_all_same(Au::from_px(1)).to_layout(),
                 details: BorderDetails::Normal(border::simple(
@@ -1387,15 +1363,14 @@ impl Fragment {
         let baseline = baseline.to_physical(self.style.writing_mode, container_size);
 
         let base = state.create_base_display_item(
-            baseline,
             clip,
             self.node,
             get_cursor(&style, Cursor::Default),
             DisplayListSection::Content,
         );
         // TODO(gw): Use a better estimate for wavy line thickness.
-        let wavy_line_thickness = (0.33 * base.bounds.size.height).ceil();
-        let area = base.bounds;
+        let area = baseline.to_layout();
+        let wavy_line_thickness = (0.33 * area.size.height).ceil();
         state.add_display_item(DisplayItem::Line(CommonDisplayItem::new(
             base,
             webrender_api::LineDisplayItem {
@@ -1418,17 +1393,15 @@ impl Fragment {
     ) {
         // This prints a debug border around the border of this fragment.
         let base = state.create_base_display_item(
-            stacking_relative_border_box,
             clip,
             self.node,
             get_cursor(&self.style, Cursor::Default),
             DisplayListSection::Content,
         );
-        let bounds = base.bounds;
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
             webrender_api::BorderDisplayItem {
-                bounds,
+                bounds: stacking_relative_border_box.to_layout(),
                 common: items::empty_common_item_properties(),
                 widths: SideOffsets2D::new_all_same(Au::from_px(1)).to_layout(),
                 details: BorderDetails::Normal(border::simple(
@@ -1447,7 +1420,6 @@ impl Fragment {
         state: &mut DisplayListBuildState,
         stacking_relative_border_box: Rect<Au>,
         display_list_section: DisplayListSection,
-        clip: Rect<Au>,
     ) {
         let scanned_text_fragment_info = match self.specific {
             SpecificFragmentInfo::ScannedText(ref scanned_text_fragment_info) => {
@@ -1463,7 +1435,6 @@ impl Fragment {
             let style = self.selected_style();
             let background_color = style.resolve_color(style.get_background().background_color);
             let base = state.create_base_display_item(
-                stacking_relative_border_box,
                 stacking_relative_border_box,
                 self.node,
                 get_cursor(&self.style, Cursor::Default),
@@ -1510,7 +1481,6 @@ impl Fragment {
         };
 
         let base = state.create_base_display_item(
-            insertion_point_bounds,
             insertion_point_bounds,
             self.node,
             get_cursor(&self.style, cursor),
@@ -1676,7 +1646,6 @@ impl Fragment {
                 state,
                 stacking_relative_border_box,
                 display_list_section,
-                clip,
             );
         }
 
@@ -1693,7 +1662,6 @@ impl Fragment {
             // scrollable ancestor.
             let content_size = TypedRect::new(stacking_relative_border_box.origin, content_size);
             let base = state.create_base_display_item_with_clipping_and_scrolling(
-                content_size,
                 content_size,
                 self.node,
                 // FIXME(emilio): Why does this ignore pointer-events?
@@ -1747,7 +1715,6 @@ impl Fragment {
             }
 
             state.create_base_display_item(
-                stacking_relative_content_box,
                 stacking_relative_border_box,
                 self.node,
                 get_cursor(&self.style, Cursor::Default),
@@ -1834,12 +1801,16 @@ impl Fragment {
                     };
 
                     let base = create_base_display_item(state);
+                    let bounds = stacking_relative_content_box.to_layout();
                     let item = DisplayItem::Iframe(Box::new(IframeDisplayItem {
                         base,
+                        bounds,
                         iframe: pipeline_id,
                     }));
 
-                    let size = Size2D::new(item.bounds().size.width, item.bounds().size.height);
+                    // XXXjdm: This sleight-of-hand to convert LayoutRect -> Size2D<CSSPixel>
+                    //         looks bogus.
+                    let size = Size2D::new(bounds.size.width, bounds.size.height);
                     state.iframe_sizes.push(IFrameSize {
                         id: browsing_context_id,
                         size: TypedSize2D::from_untyped(&size),
@@ -1853,11 +1824,10 @@ impl Fragment {
                 if let Some(ref image) = image_fragment.image {
                     if let Some(id) = image.id {
                         let base = create_base_display_item(state);
-                        let bounds = base.bounds;
                         state.add_image_item(
                             base,
                             webrender_api::ImageDisplayItem {
-                                bounds,
+                                bounds: stacking_relative_content_box.to_layout(),
                                 common: items::empty_common_item_properties(),
                                 image_key: id,
                                 stretch_size: stacking_relative_content_box.size.to_layout(),
@@ -1877,11 +1847,10 @@ impl Fragment {
             SpecificFragmentInfo::Media(ref fragment_info) => {
                 if let Some((ref image_key, _, _)) = fragment_info.current_frame {
                     let base = create_base_display_item(state);
-                    let bounds = base.bounds;
                     state.add_image_item(
                         base,
                         webrender_api::ImageDisplayItem {
-                            bounds,
+                            bounds: stacking_relative_content_box.to_layout(),
                             common: items::empty_common_item_properties(),
                             image_key: *image_key,
                             stretch_size: stacking_relative_border_box.size.to_layout(),
@@ -1914,7 +1883,7 @@ impl Fragment {
 
                 let base = create_base_display_item(state);
                 let display_item = webrender_api::ImageDisplayItem {
-                    bounds: base.bounds,
+                    bounds: stacking_relative_border_box.to_layout(),
                     common: items::empty_common_item_properties(),
                     image_key,
                     stretch_size: stacking_relative_content_box.size.to_layout(),
@@ -2033,7 +2002,6 @@ impl Fragment {
 
         // Base item for all text/shadows
         let base = state.create_base_display_item(
-            stacking_relative_content_box,
             clip,
             self.node,
             get_cursor(&self.style, cursor),
@@ -2111,7 +2079,7 @@ impl Fragment {
             state.add_display_item(DisplayItem::Text(CommonDisplayItem::with_data(
                 base.clone(),
                 webrender_api::TextDisplayItem {
-                    bounds: base.bounds,
+                    bounds: stacking_relative_content_box.to_layout(),
                     common: items::empty_common_item_properties(),
                     font_key: text_fragment.run.font_key,
                     color: text_color.to_layout(),
@@ -2159,7 +2127,6 @@ impl Fragment {
         let stacking_relative_box =
             stacking_relative_box.to_physical(self.style.writing_mode, container_size);
         let base = state.create_base_display_item(
-            stacking_relative_box,
             clip,
             self.node,
             get_cursor(&self.style, Cursor::Default),
@@ -2167,8 +2134,8 @@ impl Fragment {
         );
 
         // TODO(gw): Use a better estimate for wavy line thickness.
-        let wavy_line_thickness = (0.33 * base.bounds.size.height).ceil();
-        let area = base.bounds;
+        let area = stacking_relative_box.to_layout();
+        let wavy_line_thickness = (0.33 * area.size.height).ceil();
         state.add_display_item(DisplayItem::Line(CommonDisplayItem::new(
             base,
             webrender_api::LineDisplayItem {
@@ -2877,18 +2844,13 @@ impl BaseFlow {
 
         let mut color = THREAD_TINT_COLORS[thread_id as usize % THREAD_TINT_COLORS.len()];
         color.a = 1.0;
-        let base = state.create_base_display_item(
-            stacking_context_relative_bounds.inflate(Au::from_px(2), Au::from_px(2)),
-            self.clip,
-            node,
-            None,
-            DisplayListSection::Content,
-        );
-        let bounds = base.bounds;
+        let base =
+            state.create_base_display_item(self.clip, node, None, DisplayListSection::Content);
+        let bounds = stacking_context_relative_bounds.inflate(Au::from_px(2), Au::from_px(2));
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
             webrender_api::BorderDisplayItem {
-                bounds,
+                bounds: bounds.to_layout(),
                 common: items::empty_common_item_properties(),
                 widths: SideOffsets2D::new_all_same(Au::from_px(2)).to_layout(),
                 details: BorderDetails::Normal(border::simple(
@@ -2949,13 +2911,6 @@ fn get_cursor(values: &ComputedValues, default_cursor: Cursor) -> Option<Cursor>
         CursorKind::ZoomIn => Cursor::ZoomIn,
         CursorKind::ZoomOut => Cursor::ZoomOut,
     })
-}
-
-/// Adjusts `content_rect` as necessary for the given spread, and blur so that the resulting
-/// bounding rect contains all of a shadow's ink.
-fn shadow_bounds(content_rect: Rect<Au>, blur: Au, spread: Au) -> Rect<Au> {
-    let inflation = spread + blur * BLUR_INFLATION_FACTOR;
-    content_rect.inflate(inflation, inflation)
 }
 
 /// Adjusts borders as appropriate to account for a fragment's status as the

@@ -12,7 +12,7 @@
 //! They are therefore not exactly analogous to constructs like Skia pictures, which consist of
 //! low-level drawing primitives.
 
-use euclid::{SideOffsets2D, TypedRect, Vector2D};
+use euclid::{SideOffsets2D, Vector2D};
 use gfx_traits::print_tree::PrintTree;
 use gfx_traits::{self, StackingContextId};
 use msg::constellation_msg::PipelineId;
@@ -409,9 +409,6 @@ pub enum DisplayItem {
 /// Information common to all display items.
 #[derive(Clone, Serialize)]
 pub struct BaseDisplayItem {
-    /// The boundaries of the display item, in layer coordinates.
-    pub bounds: LayoutRect,
-
     /// Metadata attached to this display item.
     pub metadata: DisplayItemMetadata,
 
@@ -431,7 +428,6 @@ pub struct BaseDisplayItem {
 impl BaseDisplayItem {
     #[inline(always)]
     pub fn new(
-        bounds: LayoutRect,
         metadata: DisplayItemMetadata,
         clip_rect: LayoutRect,
         section: DisplayListSection,
@@ -439,7 +435,6 @@ impl BaseDisplayItem {
         clipping_and_scrolling: ClippingAndScrolling,
     ) -> BaseDisplayItem {
         BaseDisplayItem {
-            bounds,
             metadata,
             clip_rect,
             section,
@@ -451,7 +446,6 @@ impl BaseDisplayItem {
     #[inline(always)]
     pub fn empty() -> BaseDisplayItem {
         BaseDisplayItem {
-            bounds: TypedRect::zero(),
             metadata: DisplayItemMetadata {
                 node: OpaqueNode(0),
                 pointing: None,
@@ -618,6 +612,7 @@ pub enum TextOrientation {
 pub struct IframeDisplayItem {
     pub base: BaseDisplayItem,
     pub iframe: PipelineId,
+    pub bounds: LayoutRect,
 }
 
 #[derive(Clone, Serialize)]
@@ -720,7 +715,22 @@ impl DisplayItem {
     }
 
     pub fn bounds(&self) -> LayoutRect {
-        self.base().bounds
+        match *self {
+            DisplayItem::Rectangle(ref item) => item.item.common.clip_rect,
+            DisplayItem::Text(ref item) => item.item.bounds,
+            DisplayItem::Image(ref item) => item.item.bounds,
+            DisplayItem::Border(ref item) => item.item.bounds,
+            DisplayItem::Gradient(ref item) => item.item.bounds,
+            DisplayItem::RadialGradient(ref item) => item.item.bounds,
+            DisplayItem::Line(ref item) => item.item.area,
+            DisplayItem::BoxShadow(ref item) => item.item.box_bounds,
+            DisplayItem::PushTextShadow(_) => LayoutRect::zero(),
+            DisplayItem::PopAllTextShadows(_) => LayoutRect::zero(),
+            DisplayItem::Iframe(ref item) => item.bounds,
+            DisplayItem::PushStackingContext(ref item) => item.stacking_context.bounds,
+            DisplayItem::PopStackingContext(_) => LayoutRect::zero(),
+            DisplayItem::DefineClipScrollNode(_) => LayoutRect::zero(),
+        }
     }
 }
 

@@ -85,7 +85,6 @@ pub fn build_display_list_for_subtree<'a>(
     // background color.
     let base = state.create_base_display_item(
         Rect::new(Point2D::new(Au::new(0), Au::new(0)), client_size),
-        Rect::new(Point2D::new(Au::new(0), Au::new(0)), client_size),
         flow_root.as_block().fragment.node,
         None,
         DisplayListSection::BackgroundAndBorders,
