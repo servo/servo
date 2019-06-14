@@ -308,8 +308,13 @@ where
         let gl_context = window.get_gl_context();
         let glplayer_threads = match gl_context {
             GlContext::Unknown => None,
-            _ => Some(GLPlayerThreads::new()),
+            _ => {
+                let (glplayer_threads, image_handler) = GLPlayerThreads::new();
+                webrender.set_external_image_handler(image_handler);
+                Some(glplayer_threads)
+            },
         };
+
         let player_context = WindowGLContext {
             gl_context,
             native_display: window.get_native_display(),
@@ -694,7 +699,7 @@ fn create_constellation(
 
     // Initialize WebGL Thread entry point.
     let webgl_threads = gl_factory.map(|factory| {
-        let (webgl_threads, image_handler, output_handler) = WebGLThreads::new(
+        let (webgl_threads, _image_handler, output_handler) = WebGLThreads::new(
             factory,
             window_gl,
             webrender_api_sender.clone(),
@@ -702,7 +707,7 @@ fn create_constellation(
         );
 
         // Set webrender external image handler for WebGL textures
-        webrender.set_external_image_handler(image_handler);
+        //webrender.set_external_image_handler(image_handler);
 
         // Set DOM to texture handler, if enabled.
         if let Some(output_handler) = output_handler {
