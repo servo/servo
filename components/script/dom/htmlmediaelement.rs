@@ -82,6 +82,7 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use time::{self, Duration, Timespec};
+//use webrender_api::{ExternalImageData, ExternalImageId, ExternalImageType, TextureTarget};
 use webrender_api::{ImageData, ImageDescriptor, ImageFormat, ImageKey, RenderApi};
 use webrender_api::{RenderApiSender, Transaction};
 
@@ -111,6 +112,12 @@ impl MediaFrameRenderer {
 
 impl FrameRenderer for MediaFrameRenderer {
     fn render(&mut self, frame: Frame) {
+        let mut txn = Transaction::new();
+
+        if let Some(old_image_key) = mem::replace(&mut self.very_old_frame, self.old_frame.take()) {
+            txn.delete_image(old_image_key);
+        }
+
         let descriptor = ImageDescriptor::new(
             frame.get_width(),
             frame.get_height(),
@@ -119,24 +126,18 @@ impl FrameRenderer for MediaFrameRenderer {
             false,
         );
 
-        let mut txn = Transaction::new();
-
-        let image_data = ImageData::Raw(frame.get_data());
-
-        if let Some(old_image_key) = mem::replace(&mut self.very_old_frame, self.old_frame.take()) {
-            txn.delete_image(old_image_key);
-        }
-
         match self.current_frame {
             Some((ref image_key, ref mut width, ref mut height))
                 if *width == frame.get_width() && *height == frame.get_height() =>
             {
-                txn.update_image(
-                    *image_key,
-                    descriptor,
-                    image_data,
-                    &webrender_api::DirtyRect::All,
-                );
+                if !frame.is_gl_texture() {
+                    txn.update_image(
+                        *image_key,
+                        descriptor,
+                        ImageData::Raw(frame.get_data()),
+                        &webrender_api::DirtyRect::All,
+                    );
+                }
 
                 if let Some(old_image_key) = self.old_frame.take() {
                     txn.delete_image(old_image_key);
@@ -146,14 +147,55 @@ impl FrameRenderer for MediaFrameRenderer {
                 self.old_frame = Some(*image_key);
 
                 let new_image_key = self.api.generate_image_key();
-                txn.add_image(new_image_key, descriptor, image_data, None);
+
+                if !frame.is_gl_texture() {
+                    txn.add_image(
+                        new_image_key,
+                        descriptor,
+                        ImageData::Raw(frame.get_data()),
+                        None,
+                    );
+                } else {
+                    // txn.add_image(
+                    //     new_image_key,
+                    //     descriptor,
+                    //     ImageData::External(ExternalImageData {
+                    //         id: ExternalImageId(0), // let's try to fool webgl
+                    //         channel_index: 0,
+                    //         image_type: ExternalImageType::TextureHandle(TextureTarget::Default),
+                    //     }),
+                    //     None,
+                    // );
+                }
+
+                /* update current_frame */
                 *image_key = new_image_key;
                 *width = frame.get_width();
                 *height = frame.get_height();
             },
             None => {
                 let image_key = self.api.generate_image_key();
-                txn.add_image(image_key, descriptor, image_data, None);
+
+                if !frame.is_gl_texture() {
+                    txn.add_image(
+                        image_key,
+                        descriptor,
+                        ImageData::Raw(frame.get_data()),
+                        None,
+                    );
+                } else {
+                    // txn.add_image(
+                    //     image_key,
+                    //     descriptor,
+                    //     ImageData::External(ExternalImageData {
+                    //         id: ExternalImageId(0), // let's try to fool webgl
+                    //         channel_index: 0,
+                    //         image_type: ExternalImageType::TextureHandle(TextureTarget::Default),
+                    //     }),
+                    //     None,
+                    // );
+                }
+
                 self.current_frame = Some((image_key, frame.get_width(), frame.get_height()));
             },
         }
