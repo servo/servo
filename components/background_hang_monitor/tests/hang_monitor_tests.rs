@@ -20,56 +20,6 @@ lazy_static! {
 }
 
 #[test]
-#[cfg(any(target_os = "macos", target_os = "linux"))]
-fn test_sampler() {
-    let _lock = SERIAL.lock().unwrap();
-
-    use msg::constellation_msg::SamplerControlMsg;
-    use serde_json::Value;
-
-    let (background_hang_monitor_ipc_sender, background_hang_monitor_receiver) =
-        ipc::channel().expect("ipc channel failure");
-    let (sampler_sender, sampler_receiver) = ipc::channel().expect("ipc channel failure");
-
-    let background_hang_monitor_register =
-        HangMonitorRegister::init(background_hang_monitor_ipc_sender.clone(), sampler_receiver);
-    let _background_hang_monitor = background_hang_monitor_register.register_component(
-        MonitoredComponentId(TEST_PIPELINE_ID, MonitoredComponentType::Script),
-        Duration::from_millis(10),
-        Duration::from_millis(1000),
-    );
-
-    const RATE: u64 = 10;
-    const MAX_DURATION: u64 = 10;
-    sampler_sender
-        .send(SamplerControlMsg::Enable(
-            Duration::from_millis(RATE),
-            Duration::from_secs(MAX_DURATION),
-        ))
-        .unwrap();
-
-    thread::sleep(Duration::from_millis(100));
-
-    sampler_sender.send(SamplerControlMsg::Disable).unwrap();
-
-    loop {
-        match background_hang_monitor_receiver.recv().unwrap() {
-            HangMonitorAlert::Hang(_) => continue,
-            HangMonitorAlert::Profile(ref bytes) => {
-                let json: Value = serde_json::from_slice(bytes).unwrap();
-                let rate = json["rate"].as_u64().unwrap();
-                assert_eq!(rate, RATE);
-                let data = json["data"].as_array().unwrap();
-                assert!(data.len() > 1);
-                assert_eq!(data[0]["name"].as_str().unwrap(), "test_sampler");
-                assert!(data[0]["frames"].as_array().unwrap().len() > 0);
-                break;
-            },
-        }
-    }
-}
-
-#[test]
 fn test_hang_monitoring() {
     let _lock = SERIAL.lock().unwrap();
 
