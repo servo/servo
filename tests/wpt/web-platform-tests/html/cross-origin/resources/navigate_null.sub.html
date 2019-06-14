@@ -1,0 +1,18 @@
+<!doctype html>
+<script>
+  let current = new URL(window.location.href);
+  let navigateTo = current.searchParams.get("to");
+  let channelName = current.searchParams.get("channelName");
+  current.search = "";
+  if (navigateTo) {
+    let next = new URL(navigateTo, current);
+    setTimeout(() => {
+      window.location = next.href;
+    }, 50);
+  }
+
+  if (channelName) {
+    let bc = new BroadcastChannel(channelName);
+    bc.postMessage("loaded");
+  }
+</script>

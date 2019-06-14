@@ -1,0 +1,31 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-rootmargin">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1553673">
+<style>
+  html { width: 100vw; height: 100vh }
+</style>
+<script>
+const t = async_test("IntersectionObserver root margin cannot end up with negative rect (and thus non-intersecting) due to rounding");
+
+let remainingTests = 100;
+
+// This is just a best-effort test to catch issues.
+for (let i = 0; i < 100; ++i) {
+  let offset = i / 100;
+  let observer;
+  observer = new IntersectionObserver(t.step_func(function(entries) {
+    assert_equals(entries.length, 1);
+    assert_equals(entries[0].target, document.documentElement);
+    assert_true(entries[0].isIntersecting, "should be intersecting at " + offset);
+    if (!--remainingTests)
+      t.done();
+    observer.disconnect();
+  }), { rootMargin: `${-100 * (1 - offset)}% 0px ${-100 * offset}%` });
+  observer.observe(document.documentElement);
+}
+</script>

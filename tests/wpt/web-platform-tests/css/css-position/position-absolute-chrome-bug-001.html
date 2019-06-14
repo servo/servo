@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+  <link rel="help" href="https://www.w3.org/TR/css-position-3/#def-cb">
+  <link rel="help" href="https://crbug.com/970171">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+<style>
+  #container {
+    position: relative;
+    border: 1px solid black;
+  }
+  .narrow {
+    width: 200px;
+    height: 300px;
+  }
+  .wide {
+    width: 300px;
+    height: 200px;
+  }
+  #target {
+    background: green;
+    position: absolute;
+    width: 50px;
+    height: 30px;
+    left: 50%;
+    top: 50%;
+    margin-left: -25px;
+    margin-top: -15px;
+  }
+</style>
+</head>
+<body>
+<div id="container" class="narrow">
+  <button id="target"></button>
+</div>
+<script>
+  test( t => {
+    let container = document.querySelector("#container");
+    let target = document.querySelector("#target");
+    document.body.offsetTop;
+    // start off narrow
+    let narrow_left = target.offsetLeft;
+    let narrow_top = target.offsetTop;
+    // make it wide
+    container.classList.toggle("narrow");
+    container.classList.toggle("wide");
+    document.body.offsetTop;
+    // make it narrow again
+    container.classList.toggle("narrow");
+    container.classList.toggle("wide");
+    document.body.offsetTop;
+    assert_equals(target.offsetLeft, narrow_left);
+    assert_equals(target.offsetTop, narrow_top);
+  }, "absolute positioned button with percentage top gets positioned");
+</script>
+</body>
+</html>

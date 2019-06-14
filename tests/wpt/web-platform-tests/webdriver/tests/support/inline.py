@@ -1,7 +1,10 @@
 import urllib
 
 
-def inline(doc, doctype="html", mime="text/html;charset=utf-8", protocol="http"):
+def inline(doc,
+           doctype="html",
+           mime="text/html;charset=utf-8",
+           **kwargs):
     from .fixtures import server_config, url
     build_url = url(server_config())
 
@@ -30,11 +33,11 @@ def inline(doc, doctype="html", mime="text/html;charset=utf-8", protocol="http")
 
     return build_url("/webdriver/tests/support/inline.py",
                      query=urllib.urlencode(query),
-                     protocol=protocol)
+                     **kwargs)
 
 
-def iframe(doc):
-    return "<iframe src='%s'></iframe>" % inline(doc)
+def iframe(doc, **kwargs):
+    return "<iframe src='%s'></iframe>" % inline(doc, **kwargs)
 
 
 def main(request, response):

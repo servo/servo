@@ -1,55 +1,51 @@
-<script src="/common/get-host-info.sub.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="test-helpers.sub.js?pipe=sub"></script>
 <script>
-var host_info = get_host_info();
 
-function boilerplate_test(url, msg) {
-    return new Promise(function(resolve, reject) {
-          var worker = new Worker(url);
-          worker.onmessage = function(e) { resolve(e.data) };
-          worker.onerror = function(e) { reject(e) };
-          worker.postMessage(msg);
-        })
-      .then(function(data) {
-          assert_equals(data, "This load was successfully intercepted.");
-        });
+async function boilerplate_test(url, msg) {
+  const worker = new Worker(url);
+  const data = await new Promise((resolve, reject) => {
+    worker.onmessage = e => resolve(e.data);
+    worker.onerror = e =>reject(e);
+    worker.postMessage(msg);
+  });
+  assert_equals(data, "This load was successfully intercepted.");
 }
 
 function xhr_test() {
-    return boilerplate_test("load_worker.js", "xhr");
+  return boilerplate_test("load_worker.js", "xhr");
 }
 
 function fetch_test() {
-    return boilerplate_test("load_worker.js", "fetch");
+  return boilerplate_test("load_worker.js", "fetch");
 }
 
 function importScripts_test() {
-    return boilerplate_test("load_worker.js", "importScripts");
+  return boilerplate_test("load_worker.js", "importScripts");
 }
 
 function nested_worker_xhr_test() {
-    return boilerplate_test("nested_load_worker.js", "xhr");
+  return boilerplate_test("nested_load_worker.js", "xhr");
 }
 
 function nested_worker_fetch_test() {
-    return boilerplate_test("nested_load_worker.js", "fetch");
+  return boilerplate_test("nested_load_worker.js", "fetch");
 }
 
 function nested_worker_importScripts_test() {
-    return boilerplate_test("nested_load_worker.js", "importScripts");
+  return boilerplate_test("nested_load_worker.js", "importScripts");
 }
 
-window.addEventListener('message', function(evt) {
-    var port = evt.ports[0];
-    xhr_test()
+window.addEventListener('message', evt => {
+  const port = evt.ports[0];
+  xhr_test()
       .then(fetch_test)
       .then(importScripts_test)
       .then(nested_worker_xhr_test)
       .then(nested_worker_fetch_test)
       .then(nested_worker_importScripts_test)
-      .then(function() { port.postMessage({results: 'finish'}); })
-      .catch(function(e) { port.postMessage({results: 'failure:' + e}); });
-  });
+      .then(() => port.postMessage({results: 'finish'}))
+      .catch(e => port.postMessage({results: 'failure:' + e}));
+});
 
 </script>

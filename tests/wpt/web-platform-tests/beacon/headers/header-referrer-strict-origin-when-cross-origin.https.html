@@ -12,10 +12,10 @@
     <script src="/common/get-host-info.sub.js"></script>
     <script src="/beacon/headers/header-referrer.js"></script>
     <script>
-      var testBase = get_host_info().HTTPS_ORIGIN +  RESOURCES_DIR;
+      var testBase = get_host_info().HTTPS_REMOTE_ORIGIN +  RESOURCES_DIR;
       testReferrerHeader(testBase, referrerOrigin);
-      testBase = get_host_info().HTTP_ORIGIN + RESOURCES_DIR;
-      testReferrerHeader(testBase, "");
+      testBase = get_host_info().HTTP_REMOTE_ORIGIN + RESOURCES_DIR;
+      testReferrerHeader(testBase, "", true);
     </script>
   </body>
 </html>

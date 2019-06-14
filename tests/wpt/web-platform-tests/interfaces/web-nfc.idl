@@ -4,9 +4,8 @@
 // Source: Web NFC API (https://w3c.github.io/web-nfc/)
 
 dictionary NDEFMessage {
-  DOMString? serialNumber;
-  sequence<NDEFRecord> records;
   USVString url;
+  sequence<NDEFRecord> records;
 };
 
 typedef (DOMString or unrestricted double or ArrayBuffer or Dictionary) NDEFRecordData;
@@ -43,10 +42,12 @@ interface NFCReader : EventTarget {
 
 [Constructor(DOMString type, NFCReadingEventInit readingEventInitDict), SecureContext, Exposed=Window]
 interface NFCReadingEvent : Event {
+  readonly attribute DOMString serialNumber;
   readonly attribute NDEFMessage message;
 };
 
 dictionary NFCReadingEventInit : EventInit {
+  DOMString? serialNumber = "";
   required NDEFMessage message;
 };
 
