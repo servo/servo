@@ -1443,7 +1443,7 @@ impl Fragment {
         state: &mut DisplayListBuildState,
         stacking_relative_border_box: Rect<Au>,
         display_list_section: DisplayListSection,
-        clip: Rect<Au>,
+        _clip: Rect<Au>,
     ) {
         let scanned_text_fragment_info = match self.specific {
             SpecificFragmentInfo::ScannedText(ref scanned_text_fragment_info) => {
