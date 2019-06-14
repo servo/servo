@@ -83,11 +83,12 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use time::{self, Duration, Timespec};
-//use webrender_api::{ExternalImageData, ExternalImageId, ExternalImageType, TextureTarget};
+use webrender_api::{ExternalImageData, ExternalImageId, ExternalImageType, TextureTarget};
 use webrender_api::{ImageData, ImageDescriptor, ImageFormat, ImageKey, RenderApi};
 use webrender_api::{RenderApiSender, Transaction};
 
 pub struct MediaFrameRenderer {
+    id: u64,
     api: RenderApi,
     current_frame: Option<(ImageKey, i32, i32)>,
     old_frame: Option<ImageKey>,
@@ -97,6 +98,7 @@ pub struct MediaFrameRenderer {
 impl MediaFrameRenderer {
     fn new(render_api_sender: RenderApiSender) -> Self {
         Self {
+            id: 0,
             api: render_api_sender.create_api(),
             current_frame: None,
             old_frame: None,
@@ -156,17 +158,17 @@ impl FrameRenderer for MediaFrameRenderer {
                         ImageData::Raw(frame.get_data()),
                         None,
                     );
-                } else {
-                    // txn.add_image(
-                    //     new_image_key,
-                    //     descriptor,
-                    //     ImageData::External(ExternalImageData {
-                    //         id: ExternalImageId(0), // let's try to fool webgl
-                    //         channel_index: 0,
-                    //         image_type: ExternalImageType::TextureHandle(TextureTarget::Default),
-                    //     }),
-                    //     None,
-                    // );
+                } else if self.id != 0 {
+                    txn.add_image(
+                        new_image_key,
+                        descriptor,
+                        ImageData::External(ExternalImageData {
+                            id: ExternalImageId(self.id),
+                            channel_index: 0,
+                            image_type: ExternalImageType::TextureHandle(TextureTarget::Default),
+                        }),
+                        None,
+                    );
                 }
 
                 /* update current_frame */
@@ -184,17 +186,17 @@ impl FrameRenderer for MediaFrameRenderer {
                         ImageData::Raw(frame.get_data()),
                         None,
                     );
-                } else {
-                    // txn.add_image(
-                    //     image_key,
-                    //     descriptor,
-                    //     ImageData::External(ExternalImageData {
-                    //         id: ExternalImageId(0), // let's try to fool webgl
-                    //         channel_index: 0,
-                    //         image_type: ExternalImageType::TextureHandle(TextureTarget::Default),
-                    //     }),
-                    //     None,
-                    // );
+                } else if self.id != 0 {
+                    txn.add_image(
+                        image_key,
+                        descriptor,
+                        ImageData::External(ExternalImageData {
+                            id: ExternalImageId(self.id),
+                            channel_index: 0,
+                            image_type: ExternalImageType::TextureHandle(TextureTarget::Default),
+                        }),
+                        None,
+                    );
                 }
 
                 self.current_frame = Some((image_key, frame.get_width(), frame.get_height()));
@@ -1312,6 +1314,7 @@ impl HTMLMediaElement {
             })
             .unwrap_or(0);
         self.id.set(player_id);
+        self.frame_renderer.lock().unwrap().id = player_id;
 
         Ok(())
     }
