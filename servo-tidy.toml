@@ -45,9 +45,7 @@ packages = [
   "rand",
   "rand_core",
   "scopeguard",
-  "sha1",
   "unicase",
-  "ws",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
