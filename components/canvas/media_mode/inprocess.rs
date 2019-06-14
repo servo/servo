@@ -13,9 +13,11 @@ use euclid::Size2D;
 pub struct GLPlayerThreads(GLPlayerSender<GLPlayerMsg>);
 
 impl GLPlayerThreads {
-    pub fn new() -> GLPlayerThreads {
+    pub fn new() -> (GLPlayerThreads, Box<dyn webrender::ExternalImageHandler>) {
         let channel = GLPlayerThread::start();
-        GLPlayerThreads(channel)
+        let external =
+            GLPlayerExternalImageHandler::new(GLPlayerExternalImages::new(channel.clone()));
+        (GLPlayerThreads(channel), Box::new(external))
     }
 
     /// Gets the GLPlayerThread handle for each script pipeline.
