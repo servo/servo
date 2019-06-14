@@ -101,29 +101,21 @@ impl App {
     }
 
     fn run_loop(self) {
-        let mut stop = false;
         loop {
-            let mut events_loop = self.events_loop.borrow_mut();
-            if self.window.is_animating() && !self.suspended.get() {
-                // We block on compositing (self.handle_events() ends up calling swap_buffers)
-                events_loop.poll_events(|e| {
+            if !self.window.is_animating()  || self.suspended.get() {
+                // If there's no animations running then we block on the window event loop.
+                self.events_loop.borrow_mut().run_forever(|e| {
                     self.winit_event_to_servo_event(e);
-                });
-                stop = self.handle_events();
-            } else {
-                // We block on winit's event loop (window events)
-                events_loop.run_forever(|e| {
-                    self.winit_event_to_servo_event(e);
-                    if self.has_events() && !self.suspended.get() {
-                        stop = self.handle_events();
-                    }
-                    if stop || self.window.is_animating() && !self.suspended.get() {
-                        glutin::ControlFlow::Break
-                    } else {
-                        glutin::ControlFlow::Continue
-                    }
+                    glutin::ControlFlow::Break
                 });
             }
+            // Grab any other events that may have happened
+            self.events_loop.borrow_mut().poll_events(|e| {
+                self.winit_event_to_servo_event(e);
+            });
+            // If animations are running, we block on compositing
+            // (self.handle_events() ends up calling swap_buffers)
+            let stop = self.handle_events();
             if stop {
                 break;
             }
