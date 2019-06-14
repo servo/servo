@@ -140,17 +140,22 @@ pub unsafe extern "C" fn init_servo(
     };
     info!("got args: {:?}", args);
 
-    let name = String::from("Magic Leap VR Display");
-    let (service, heartbeat) =
-        MagicLeapVRService::new(name, ctxt, gl.clone()).expect("Failed to create VR service");
-    let service = Box::new(service);
-    let heartbeat = Box::new(heartbeat);
+    let vr_init = if landscape {
+        VRInitOptions::None
+    } else {
+        let name = String::from("Magic Leap VR Display");
+        let (service, heartbeat) =
+            MagicLeapVRService::new(name, ctxt, gl.clone()).expect("Failed to create VR service");
+        let service = Box::new(service);
+        let heartbeat = Box::new(heartbeat);
+        VRInitOptions::VRService(service, heartbeat)
+    };
     let opts = InitOptions {
         args,
         url: Some(url.to_string()),
         density: hidpi,
         enable_subpixel_text_antialiasing: false,
-        vr_init: VRInitOptions::VRService(service, heartbeat),
+        vr_init,
         coordinates,
     };
     let wakeup = Box::new(EventLoopWakerInstance);
