@@ -611,7 +611,6 @@ impl HttpCache {
     /// Invalidation.
     /// <https://tools.ietf.org/html/rfc7234#section-4.4>
     pub fn invalidate(&mut self, request: &Request, response: &Response) {
-        // TODO(eijebong): Once headers support typed_get, update this to use them
         if let Some(Ok(location)) = response
             .headers
             .get(header::LOCATION)
@@ -777,50 +776,48 @@ impl HttpCacheEntry {
         assert_eq!(entry_key, self.key);
         assert_eq!(response.status.map(|s| s.0), Some(StatusCode::NOT_MODIFIED));
         for cached_resource in self.resources.read().clone().iter_mut() {
-            let constructed_response = {
-                let cached_resource = cached_resource.read();
-                // done_chan will have been set to Some(..) by http_network_fetch.
-                // If the body is not receiving data, set the done_chan back to None.
-                // Otherwise, create a new dedicated channel to update the consumer.
-                // The response constructed here will replace the 304 one from the network.
-                let in_progress_channel = match *cached_resource.body.lock().unwrap() {
-                    ResponseBody::Receiving(..) => Some(unbounded()),
-                    ResponseBody::Empty | ResponseBody::Done(..) => None,
-                };
-                match in_progress_channel {
-                    Some((done_sender, done_receiver)) => {
-                        *done_chan = Some((done_sender.clone(), done_receiver));
-                        cached_resource
-                            .awaiting_body
-                            .lock()
-                            .unwrap()
-                            .push(done_sender);
-                    },
-                    None => *done_chan = None,
-                }
-                // Received a response with 304 status code, in response to a request that matches a cached resource.
-                // 1. update the headers of the cached resource.
-                // 2. return a response, constructed from the cached resource.
-                let resource_timing = ResourceFetchTiming::new(request.timing_type());
-                let mut constructed_response = Response::new(
-                    cached_resource.data.metadata.data.final_url.clone(),
-                    resource_timing,
-                );
-                constructed_response.body = cached_resource.body.clone();
-                constructed_response.status = cached_resource.data.status.clone();
-                constructed_response.https_state = cached_resource.data.https_state.clone();
-                constructed_response.referrer = request.referrer.to_url().cloned();
-                constructed_response.referrer_policy = request.referrer_policy.clone();
-                constructed_response.raw_status = cached_resource.data.raw_status.clone();
-                constructed_response.url_list = cached_resource.data.url_list.clone();
-
-                let mut stored_headers = cached_resource.data.metadata.headers.lock().unwrap();
-                stored_headers.extend(response.headers);
-                constructed_response.headers = stored_headers.clone();
-                constructed_response
+            let mut cached_resource = cached_resource.write();
+            // done_chan will have been set to Some(..) by http_network_fetch.
+            // If the body is not receiving data, set the done_chan back to None.
+            // Otherwise, create a new dedicated channel to update the consumer.
+            // The response constructed here will replace the 304 one from the network.
+            let in_progress_channel = match *cached_resource.body.lock().unwrap() {
+                ResponseBody::Receiving(..) => Some(unbounded()),
+                ResponseBody::Empty | ResponseBody::Done(..) => None,
             };
+            match in_progress_channel {
+                Some((done_sender, done_receiver)) => {
+                    *done_chan = Some((done_sender.clone(), done_receiver));
+                    cached_resource
+                        .awaiting_body
+                        .lock()
+                        .unwrap()
+                        .push(done_sender);
+                },
+                None => *done_chan = None,
+            }
+            // Received a response with 304 status code, in response to a request that matches a cached resource.
+            // 1. update the headers of the cached resource.
+            // 2. return a response, constructed from the cached resource.
+            let resource_timing = ResourceFetchTiming::new(request.timing_type());
+            let mut constructed_response = Response::new(
+                cached_resource.data.metadata.data.final_url.clone(),
+                resource_timing,
+            );
 
-            cached_resource.write().data.expires = get_response_expiry(&constructed_response);
+            constructed_response.body = cached_resource.body.clone();
+            constructed_response.status = cached_resource.data.status.clone();
+            constructed_response.https_state = cached_resource.data.https_state.clone();
+            constructed_response.referrer = request.referrer.to_url().cloned();
+            constructed_response.referrer_policy = request.referrer_policy.clone();
+            constructed_response.raw_status = cached_resource.data.raw_status.clone();
+            constructed_response.url_list = cached_resource.data.url_list.clone();
+
+            cached_resource.data.expires = get_response_expiry(&constructed_response);
+
+            let mut stored_headers = cached_resource.data.metadata.headers.lock().unwrap();
+            stored_headers.extend(response.headers);
+            constructed_response.headers = stored_headers.clone();
 
             return Some(constructed_response);
         }
