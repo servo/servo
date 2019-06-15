@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 <%!
-    from data import Keyword, to_rust_ident, to_camel_case, SYSTEM_FONT_LONGHANDS
-    from data import LOGICAL_CORNERS, PHYSICAL_CORNERS, LOGICAL_SIDES, PHYSICAL_SIDES, LOGICAL_SIZES
+    from data import Keyword, to_rust_ident, to_phys, to_camel_case, SYSTEM_FONT_LONGHANDS
+    from data import (LOGICAL_CORNERS, PHYSICAL_CORNERS, LOGICAL_SIDES,
+                      PHYSICAL_SIDES, LOGICAL_SIZES, LOGICAL_AXES)
 %>
 
 <%def name="predefined_type(name, type, initial_value, parse_method='parse',
@@ -1038,17 +1039,21 @@
         side = None
         size = None
         corner = None
+        axis = None
         maybe_side = [s for s in LOGICAL_SIDES if s in name]
         maybe_size = [s for s in LOGICAL_SIZES if s in name]
         maybe_corner = [s for s in LOGICAL_CORNERS if s in name]
+        maybe_axis = [s for s in LOGICAL_AXES if name.endswith(s)]
         if len(maybe_side) == 1:
             side = maybe_side[0]
         elif len(maybe_size) == 1:
             size = maybe_size[0]
         elif len(maybe_corner) == 1:
             corner = maybe_corner[0]
+        elif len(maybe_axis) == 1:
+            axis = maybe_axis[0]
         def phys_ident(side, phy_side):
-            return to_rust_ident(name.replace(side, phy_side).replace("inset-", ""))
+            return to_rust_ident(to_phys(name, side, phy_side))
     %>
     % if side is not None:
         use crate::logical_geometry::PhysicalSide;
@@ -1079,6 +1084,19 @@
             ${caller.inner(physical_ident=phys_ident(size, physical_size[1]))}
         } else {
             ${caller.inner(physical_ident=phys_ident(size, physical_size[0]))}
+        }
+    % elif axis is not None:
+        <%
+            if axis == "inline":
+                me, other = "x", "y"
+            else:
+                assert(axis == "block")
+                me, other = "y", "x"
+        %>
+        if wm.is_vertical() {
+            ${caller.inner(physical_ident=phys_ident(axis, other))}
+        } else {
+            ${caller.inner(physical_ident=phys_ident(axis, me))}
         }
     % else:
         <% raise Exception("Don't know what to do with logical property %s" % name) %>
