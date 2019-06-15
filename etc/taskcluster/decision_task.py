@@ -613,6 +613,11 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                     --log-errorsummary bluetooth-errorsummary.log \
                     bluetooth \
                     | cat
+                time ./mach test-wpt --release --processes $PROCESSES --timeout-multiplier=4 \
+                    --headless --log-raw test-wdspec.log \
+                    --log-errorsummary wdspec-errorsummary.log \
+                    webdriver \
+                    | cat
             """)
         # `test-wpt` is piped into `cat` so that stdout is not a TTY
         # and wptrunner does not use "interactive mode" formatting:
