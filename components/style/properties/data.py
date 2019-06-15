@@ -10,11 +10,14 @@ PHYSICAL_SIZES = ["width", "height"]
 LOGICAL_SIZES = ["block-size", "inline-size"]
 PHYSICAL_CORNERS = ["top-left", "top-right", "bottom-right", "bottom-left"]
 LOGICAL_CORNERS = ["start-start", "start-end", "end-start", "end-end"]
+PHYSICAL_AXES = ["x", "y"]
+LOGICAL_AXES = ["inline", "block"]
 
 # bool is True when logical
 ALL_SIDES = [(side, False) for side in PHYSICAL_SIDES] + [(side, True) for side in LOGICAL_SIDES]
 ALL_SIZES = [(size, False) for size in PHYSICAL_SIZES] + [(size, True) for size in LOGICAL_SIZES]
 ALL_CORNERS = [(corner, False) for corner in PHYSICAL_CORNERS] + [(corner, True) for corner in LOGICAL_CORNERS]
+ALL_AXES = [(axis, False) for axis in PHYSICAL_AXES] + [(axis, True) for axis in LOGICAL_AXES]
 
 SYSTEM_FONT_LONGHANDS = """font_family font_size font_style
                            font_variant_caps font_stretch font_kerning
@@ -162,6 +165,8 @@ def parse_property_aliases(alias_list):
             result.append((name, pref))
     return result
 
+def to_phys(name, logical, physical):
+    return name.replace(logical, physical).replace("inset-", "")
 
 class Longhand(object):
     def __init__(self, style_struct, name, spec=None, animation_value_type=None, keyword=None,
@@ -241,16 +246,16 @@ class Longhand(object):
     # property names corresponding to it.
     def all_physical_mapped_properties(self):
         assert self.logical
-        logical_side = None
-        for s in LOGICAL_SIDES + LOGICAL_SIZES + LOGICAL_CORNERS:
-            if s in self.name:
-                assert not logical_side
-                logical_side = s
-        assert logical_side
+        candidates = [s for s in LOGICAL_SIDES + LOGICAL_SIZES + LOGICAL_CORNERS
+                if s in self.name] + [s for s in LOGICAL_AXES if self.name.endswith(s)]
+        assert(len(candidates) == 1)
+        logical_side = candidates[0]
+
         physical = PHYSICAL_SIDES if logical_side in LOGICAL_SIDES \
             else PHYSICAL_SIZES if logical_side in LOGICAL_SIZES \
+            else PHYSICAL_AXES if logical_side in LOGICAL_AXES \
             else LOGICAL_CORNERS
-        return [self.name.replace(logical_side, physical_side).replace("inset-", "")
+        return [to_phys(self.name, logical_side, physical_side)
                 for physical_side in physical]
 
     def experimental(self, product):
