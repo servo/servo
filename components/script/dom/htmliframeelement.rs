@@ -175,6 +175,7 @@ impl HTMLIFrameElement {
 
         let global_scope = window.upcast::<GlobalScope>();
         let load_info = IFrameLoadInfo {
+            load_origin: LoadOrigin::Script(document.url().origin()),
             parent_pipeline_id: global_scope.pipeline_id(),
             browsing_context_id: browsing_context_id,
             top_level_browsing_context_id: top_level_browsing_context_id,

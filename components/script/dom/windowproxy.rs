@@ -270,17 +270,18 @@ impl WindowProxy {
             let new_browsing_context_id =
                 BrowsingContextId::from(new_top_level_browsing_context_id);
             let new_pipeline_id = PipelineId::new();
+            let document = self
+                .currently_active
+                .get()
+                .and_then(|id| ScriptThread::find_document(id))
+                .expect("A WindowProxy creating an auxiliary to have an active document");
             let load_info = AuxiliaryBrowsingContextLoadInfo {
+                load_origin: LoadOrigin::Script(document.url().origin()),
                 opener_pipeline_id: self.currently_active.get().unwrap(),
                 new_browsing_context_id: new_browsing_context_id,
                 new_top_level_browsing_context_id: new_top_level_browsing_context_id,
                 new_pipeline_id: new_pipeline_id,
             };
-            let document = self
-                .currently_active
-                .get()
-                .and_then(|id| ScriptThread::find_document(id))
-                .unwrap();
             let blank_url = ServoUrl::parse("about:blank").ok().unwrap();
             let load_data = LoadData::new(
                 LoadOrigin::Script(document.url().origin()),

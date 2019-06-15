@@ -682,6 +682,8 @@ pub enum IFrameSandboxState {
 /// Specifies the information required to load an auxiliary browsing context.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AuxiliaryBrowsingContextLoadInfo {
+    /// The origin where there load started.
+    pub load_origin: LoadOrigin,
     /// The pipeline opener browsing context.
     pub opener_pipeline_id: PipelineId,
     /// The new top-level ID for the auxiliary.
@@ -695,6 +697,8 @@ pub struct AuxiliaryBrowsingContextLoadInfo {
 /// Specifies the information required to load an iframe.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct IFrameLoadInfo {
+    /// The origin where there load started.
+    pub load_origin: LoadOrigin,
     /// Pipeline ID of the parent of this iframe
     pub parent_pipeline_id: PipelineId,
     /// The ID for this iframe's nested browsing context.

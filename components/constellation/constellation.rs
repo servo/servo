@@ -2184,6 +2184,7 @@ where
     // the result of a page navigation.
     fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IFrameLoadInfoWithData) {
         let IFrameLoadInfo {
+            load_origin,
             parent_pipeline_id,
             browsing_context_id,
             top_level_browsing_context_id,
@@ -2224,13 +2225,7 @@ where
             //
             // TODO - Take the origin inside script and set it on IFrameLoadInfo?
             // Only necessary if the origin could potentially change in between(requires investigation).
-            LoadData::new(
-                LoadOrigin::Script(url.origin()),
-                url,
-                Some(parent_pipeline_id),
-                None,
-                None,
-            )
+            LoadData::new(load_origin, url, Some(parent_pipeline_id), None, None)
         });
 
         let is_parent_private = {
@@ -2376,6 +2371,7 @@ where
         layout_sender: IpcSender<LayoutControlMsg>,
     ) {
         let AuxiliaryBrowsingContextLoadInfo {
+            load_origin,
             opener_pipeline_id,
             new_top_level_browsing_context_id,
             new_browsing_context_id,
@@ -2385,13 +2381,7 @@ where
         let url = ServoUrl::parse("about:blank").expect("infallible");
 
         // TODO: Referrer?
-        let load_data = LoadData::new(
-            LoadOrigin::Script(url.origin()),
-            url.clone(),
-            None,
-            None,
-            None,
-        );
+        let load_data = LoadData::new(load_origin, url.clone(), None, None, None);
 
         let (script_sender, opener_browsing_context_id) =
             match self.pipelines.get(&opener_pipeline_id) {
