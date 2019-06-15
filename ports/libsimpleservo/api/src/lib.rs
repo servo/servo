@@ -9,6 +9,7 @@ pub mod gl_glue;
 
 pub use servo::script_traits::MouseButton;
 
+use clipboard::{ClipboardContext, ClipboardProvider};
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderMethods, MouseWindowEvent, WindowEvent,
     WindowMethods,
@@ -25,6 +26,7 @@ use servo::servo_url::ServoUrl;
 use servo::webrender_api::{DevicePixel, FramebufferPixel, ScrollLocation};
 use servo::webvr::{VRExternalShmemPtr, VRMainThreadHeartbeat, VRServiceManager};
 use servo::{self, gl, BrowserId, Servo};
+
 use std::cell::RefCell;
 use std::mem;
 use std::os::raw::c_void;
@@ -126,6 +128,7 @@ pub struct ServoGlue {
     browsers: Vec<BrowserId>,
     events: Vec<WindowEvent>,
     current_url: Option<ServoUrl>,
+    clipboard_ctx: Option<ClipboardContext>,
 }
 
 pub fn servo_version() -> String {
@@ -192,6 +195,13 @@ pub fn init(
             browsers: vec![],
             events: vec![],
             current_url: Some(url.clone()),
+            clipboard_ctx: match ClipboardContext::new() {
+                Ok(c) => Some(c),
+                Err(e) => {
+                    warn!("Error creating clipboard context ({})", e);
+                    None
+                },
+            },
         };
         let browser_id = BrowserId::new();
         let _ = servo_glue.process_event(WindowEvent::NewBrowser(url, browser_id));
@@ -515,6 +525,28 @@ impl ServoGlue {
                         self.browser_id = Some(new_browser_id);
                     }
                     self.events.push(WindowEvent::SelectBrowser(new_browser_id));
+                },
+                EmbedderMsg::GetClipboardContents(sender) => {
+                    let contents = match self.clipboard_ctx {
+                        Some(ref mut ctx) => match ctx.get_contents() {
+                            Ok(c) => c,
+                            Err(e) => {
+                                warn!("Error getting clipboard contents ({}), defaulting to empty string", e);
+                                "".to_owned()
+                            },
+                        },
+                        None => "".to_owned(),
+                    };
+                    if let Err(e) = sender.send(contents) {
+                        warn!("Failed to send clipboard ({})", e);
+                    }
+                },
+                EmbedderMsg::SetClipboardContents(text) => {
+                    if let Some(ref mut ctx) = self.clipboard_ctx {
+                        if let Err(e) = ctx.set_contents(text) {
+                            warn!("Error setting clipboard contents ({})", e);
+                        }
+                    }
                 },
                 EmbedderMsg::CloseBrowser => {
                     // TODO: close the appropriate "tab".
