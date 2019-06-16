@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/helper.sub.js"></script>
+  <meta http-equiv="Content-Security-Policy" content="trusted-types *">
+</head>
+<body>
+<div id="container"></div>
+<script>
+  var container = document.querySelector("#container");
+
+  // Regression tests for 'Bypass via insertAdjacentText', reported at
+  // https://github.com/WICG/trusted-types/issues/133
+
+  // Original report:
+  test(t => {
+    // Setup: Create a <script> element with a <p> child.
+    let s = document.createElement("script");
+    let p = document.createElement("p");
+    p.textContent = "hello('world');";
+    s.appendChild(p);
+    container.appendChild(s);
+
+    // Sanity check: The <p> content doesn't count as source text.
+    assert_equals(s.text, "");
+
+    // Try to insertAdjacentText into the <script>, starting from the <p>
+    try {
+      p.insertAdjacentText("beforebegin", "hello('before');");
+    } catch (err) { }
+    assert_equals(s.text, "");
+    try {
+      p.insertAdjacentText("afterend", "hello('after');");
+    } catch (err) { }
+    assert_equals(s.text, "");
+  }, "Regression test: Bypass via insertAdjacentText, initial comment");
+
+  // Variant: Create a <script> element and create & insert a text node. Then
+  // insert it into the document container to make it live.
+  test(t => {
+    // Setup: Create a <script> element, and insert text via a text node.
+    let s = document.createElement("script");
+    let text = document.createTextNode("alert('hello');");
+    assert_throws(new TypeError(),
+                  _ => { s.appendChild(text); },
+                  "We should not be able to modify <script>.");
+    container.appendChild(s);
+  }, "Regression test: Bypass via appendChild into off-document script element");
+
+  // Variant: Create a <script> element and insert it into the document. Then
+  // create a text node and insert it into the live <script> element.
+  test(t => {
+    // Setup: Create a <script> element, insert it into the doc, and then create
+    // and insert text via a text node.
+    let s = document.createElement("script");
+    container.appendChild(s);
+    let text = document.createTextNode("alert('hello');");
+    assert_throws(new TypeError(),
+                  _ => { s.appendChild(text); },
+                  "We should not be able to modify <script>.");
+  }, "Regression test: Bypass via appendChild into live script element");
+</script>
+</body>
+</html>
+

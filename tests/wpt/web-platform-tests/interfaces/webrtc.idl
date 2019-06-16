@@ -612,7 +612,7 @@ dictionary RTCStatsEventInit : EventInit {
 
 [
     Exposed=Window,
-    Constructor(RTCErrorInit init, optional DOMString message = "")] interface RTCError {
+    Constructor(RTCErrorInit init, optional DOMString message = "")] interface RTCError : DOMException {
     readonly attribute RTCErrorDetailType errorDetail;
     readonly attribute long? sdpLineNumber;
     readonly attribute long? httpRequestStatusCode;

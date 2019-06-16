@@ -8,4 +8,13 @@
     assert_equals(NFCErrorEvent.length, 2);
     assert_throws(new TypeError, () => new NFCErrorEvent('error'));
   }, 'NFCErrorEvent constructor without init dict');
+
+  test(() => {
+    assert_throws(new TypeError, () => new NFCErrorEvent('error', { error : null }));
+  }, 'NFCErrorEvent constructor with a null that is not of type DOMException');
+
+  test(() => {
+    const event = new NFCErrorEvent('error', { error : new DOMException() });
+    assert_true(event.error instanceof DOMException);
+  }, 'NFCErrorEvent constructor with a valid DOMException');
 </script>

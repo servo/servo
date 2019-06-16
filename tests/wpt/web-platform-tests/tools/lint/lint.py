@@ -146,6 +146,13 @@ def check_path_length(repo_root, path):
     return []
 
 
+def check_file_type(repo_root, path):
+    # type: (str, str) -> List[rules.Error]
+    if os.path.islink(path):
+        return [rules.FileType.error(path, (path, "symlink"))]
+    return []
+
+
 def check_worker_collision(repo_root, path):
     # type: (str, str) -> List[rules.Error]
     endings = [(".any.html", ".any.js"),
@@ -907,7 +914,8 @@ def lint(repo_root, paths, output_format):
                 logger.info(line)
     return sum(itervalues(error_count))
 
-path_lints = [check_path_length, check_worker_collision, check_ahem_copy, check_gitignore_file]
+path_lints = [check_file_type, check_path_length, check_worker_collision, check_ahem_copy,
+              check_gitignore_file]
 all_paths_lints = [check_css_globally_unique]
 file_lints = [check_regexp_line, check_parsed, check_python_ast, check_script_metadata]
 

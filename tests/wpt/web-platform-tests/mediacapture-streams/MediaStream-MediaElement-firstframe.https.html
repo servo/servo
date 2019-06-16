@@ -38,9 +38,12 @@ promise_test(async t => {
     promise,
     wait(time).then(() => Promise.reject(new Error(msg)))
   ]);
-  const unexpected = e => { throw new Error(`Got unexpected event ${e.name}`); };
+  const unexpected = e => assert_unreached(`Got unexpected event ${e.type}`);
   const stream = await navigator.mediaDevices.getUserMedia({video: true});
-  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  t.add_cleanup(() => {
+    vid.ondurationchange = null;
+    stream.getTracks().forEach(track => track.stop())
+  });
   vid.srcObject = stream;
 
   vid.onloadstart = unexpected;

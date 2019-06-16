@@ -21,7 +21,7 @@ jobs:
 # The affected tests jobs are unconditional for speed, as most PRs have one or
 # more affected tests: https://github.com/web-platform-tests/wpt/issues/13936.
 - job: affected_safari_preview
-  displayName: 'affected tests (Safari Technology Preview)'
+  displayName: 'affected tests: Safari Technology Preview'
   condition: eq(variables['Build.Reason'], 'PullRequest')
   pool:
     vmImage: 'macOS-10.13'
@@ -35,7 +35,7 @@ jobs:
     artifactName: safari-preview-affected-tests
 
 - job: affected_without_changes_safari_preview
-  displayName: 'affected tests without changes (Safari Technology Preview)'
+  displayName: 'affected tests without changes: Safari Technology Preview'
   condition: eq(variables['Build.Reason'], 'PullRequest')
   pool:
     vmImage: 'macOS-10.13'
@@ -68,7 +68,7 @@ jobs:
     displayName: 'Run ./wpt test-jobs'
 
 - job: infrastructure_macOS
-  displayName: 'infrastructure/ tests (macOS)'
+  displayName: 'infrastructure/ tests: macOS'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wptrunner_infrastructure']
   pool:
@@ -86,11 +86,11 @@ jobs:
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
   - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl $(Build.ArtifactStagingDirectory)/chrome.tbpl.log --log-tbpl-level info --channel dev chrome infrastructure/
-    displayName: 'Run tests (Chrome Dev)'
+    displayName: 'Run tests: Chrome Dev'
   - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl $(Build.ArtifactStagingDirectory)/firefox.tbpl.log --log-tbpl-level info --channel nightly firefox infrastructure/
-    displayName: 'Run tests (Firefox Nightly)'
+    displayName: 'Run tests: Firefox Nightly'
   - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl $(Build.ArtifactStagingDirectory)/safari.tbpl.log --log-tbpl-level info --channel preview safari infrastructure/
-    displayName: 'Run tests (Safari Technology Preview)'
+    displayName: 'Run tests: Safari Technology Preview'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
     inputs:
@@ -98,7 +98,7 @@ jobs:
     condition: always()
 
 - job: tools_unittest_macOS
-  displayName: 'tools/ unittests (macOS)'
+  displayName: 'tools/ unittests: macOS'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.tools_unittest']
   pool:
@@ -111,7 +111,7 @@ jobs:
       toxenv: py27
 
 - job: wptrunner_unittest_macOS
-  displayName: 'tools/wptrunner/ unittests (macOS)'
+  displayName: 'tools/wptrunner/ unittests: macOS'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
   pool:
@@ -123,7 +123,7 @@ jobs:
       directory: tools/wptrunner/
 
 - job: wpt_integration_macOS
-  displayName: 'tools/wpt/ tests (macOS)'
+  displayName: 'tools/wpt/ tests: macOS'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wpt_integration']
   pool:
@@ -139,7 +139,7 @@ jobs:
       directory: tools/wpt/
 
 - job: tools_unittest_win
-  displayName: 'tools/ unittests (Windows)'
+  displayName: 'tools/ unittests: Windows'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.tools_unittest']
   pool:
@@ -155,7 +155,7 @@ jobs:
       toxenv: py27
 
 - job: tools_unittest_win_py3
-  displayName: 'tools/ unittests (Windows Python 3)'
+  displayName: 'tools/ unittests: Windows Python 3'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.tools_unittest']
   pool:
@@ -171,7 +171,7 @@ jobs:
       toxenv: py36
 
 - job: wptrunner_unittest_win
-  displayName: 'tools/wptrunner/ unittests (Windows)'
+  displayName: 'tools/wptrunner/ unittests: Windows'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
   pool:
@@ -186,7 +186,7 @@ jobs:
       directory: tools/wptrunner/
 
 - job: wpt_integration_win
-  displayName: 'tools/wpt/ tests (Windows)'
+  displayName: 'tools/wpt/ tests: Windows'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wpt_integration']
   pool:
@@ -207,7 +207,7 @@ jobs:
       directory: tools/wpt/
 
 - job: infrastructure_win10
-  displayName: 'infrastructure/ tests (Windows 10)'
+  displayName: 'infrastructure/ tests: Windows 10'
   # This job is only triggered manually until it has been shown to be robust.
   condition: and(eq(variables['Build.Reason'], 'Manual'), variables['run_infrastructure_win10'])
   pool:
@@ -224,7 +224,7 @@ jobs:
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
   - script: python ./wpt run --yes --no-manifest-update --install-fonts --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl $(Build.ArtifactStagingDirectory)/edge.tbpl.log --log-tbpl-level info --channel dev edgechromium infrastructure/
-    displayName: 'Run tests (Edge Dev)'
+    displayName: 'Run tests: Edge Dev'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
     inputs:
@@ -235,7 +235,7 @@ jobs:
 # All `./wpt run` tests are run from epochs/* branches on a schedule. See
 # documentation at the top of this file for required setup.
 - job: results_edge
-  displayName: 'all tests (Edge)'
+  displayName: 'all tests: Edge'
   condition: |
     or(eq(variables['Build.Reason'], 'Schedule'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge']))
@@ -257,7 +257,7 @@ jobs:
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
   - script: python ./wpt run --yes --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --install-fonts --this-chunk $(System.JobPositionInPhase) --total-chunks $(System.TotalJobsInPhase) --chunk-type hash --log-tbpl - --log-tbpl-level info --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --channel dev edgechromium
-    displayName: 'Run tests (Edge Dev)'
+    displayName: 'Run tests: Edge Dev'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
     inputs:
@@ -269,7 +269,7 @@ jobs:
     artifactName: edge-results
 
 - job: results_safari
-  displayName: 'all tests (Safari)'
+  displayName: 'all tests: Safari'
   condition: |
     or(eq(variables['Build.Reason'], 'Schedule'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_safari']))
@@ -305,7 +305,7 @@ jobs:
     artifactName: safari-results
 
 - job: results_safari_preview
-  displayName: 'all tests (Safari Technology Preview)'
+  displayName: 'all tests: Safari Technology Preview'
   condition: |
     or(eq(variables['Build.Reason'], 'Schedule'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_safari_preview']))

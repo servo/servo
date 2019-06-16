@@ -57,6 +57,11 @@ class PathLength(Rule):
     description = "/%s longer than maximum path length (%d > 150)"
 
 
+class FileType(Rule):
+    name = "FILE TYPE"
+    description = "/%s is an unsupported file type (%s)"
+
+
 class WorkerCollision(Rule):
     name = "WORKER COLLISION"
     description = ("path ends with %s which collides with generated tests "

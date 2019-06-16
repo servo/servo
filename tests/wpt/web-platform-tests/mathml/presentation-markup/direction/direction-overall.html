@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Verify dir attribute on various containers</title>
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#attributes-common-to-html-and-mathml-elements">
+    <meta name="assert" content="Verify dir attribute on various containers.">
+    <link rel="match" href="direction-overall-ref.html">
+  </head>
+  <body>
+
+    <!-- Test dir="rtl" on <math>, <mrow> and <mstyle> elements. The rectangle
+         inside these elements should be displayed right-to-left.  -->
+
+    <p>
+      math:
+      <math dir="rtl">
+        <mspace width="25px" height="25px" mathbackground="red"/>
+        <mspace width="25px" height="25px" mathbackground="green"/>
+        <mspace width="25px" height="25px" mathbackground="blue"/>
+      </math>
+    </p>
+
+    <p>
+      mrow:
+      <math>
+        <mrow dir="rtl">
+          <mspace width="25px" height="25px" mathbackground="red"/>
+          <mspace width="25px" height="25px" mathbackground="green"/>
+          <mspace width="25px" height="25px" mathbackground="blue"/>
+        </mrow>
+      </math>
+    </p>
+
+    <p>
+      mstyle:
+      <math>
+        <mstyle dir="rtl">
+          <mspace width="25px" height="25px" mathbackground="red"/>
+          <mspace width="25px" height="25px" mathbackground="green"/>
+          <mspace width="25px" height="25px" mathbackground="blue"/>
+        </mstyle>
+      </math>
+    </p>
+
+    <!-- dir="rtl" on <msqrt> should be ignored. The rectangle
+         inside this element should be displayed left-to-right. -->
+
+    <p>
+      msqrt:
+      <math>
+        <msqrt dir="rtl">
+          <mspace width="25px" height="25px" mathbackground="red"/>
+          <mspace width="25px" height="25px" mathbackground="green"/>
+          <mspace width="25px" height="25px" mathbackground="blue"/>
+        </msqrt>
+      </math>
+    </p>
+
+  </body>
+</html>

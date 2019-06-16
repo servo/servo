@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+.spacer {
+  height: calc(100vh + 100px);
+}
+#root {
+  display: inline-block;
+  overflow-y: scroll;
+  height: 200px;
+  border: 3px solid black;
+}
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+</style>
+
+<div class="spacer"></div>
+<div id="root">
+  <div style="height: 300px;"></div>
+  <div id="target"></div>
+</div>
+<div class="spacer"></div>
+
+<script>
+var vw = document.documentElement.clientWidth;
+var vh = document.documentElement.clientHeight;
+
+var entries = [];
+var root, target;
+
+runTestCycle(function() {
+  target = document.getElementById("target");
+  assert_true(!!target, "target exists");
+  root = document.getElementById("root");
+  assert_true(!!root, "root exists");
+  var observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes)
+  }, { root: root, rootMargin: "10px 20% 40% 30px" });
+  observer.observe(target);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications.");
+  runTestCycle(step0, "First rAF");
+}, "Root margin with explicit root.");
+
+function step0() {
+  document.scrollingElement.scrollTop = vh;
+  runTestCycle(step1, "document.scrollingElement.scrollTop = window.innerHeight.");
+  checkLastEntry(entries, 0, [ 11, 111, vh + 411, vh + 511, 0, 0, 0, 0, -19, 131, vh + 101, vh + 391, false]);
+}
+
+function step1() {
+  root.scrollTop = 50;
+  runTestCycle(step2, "root.scrollTop = 50, putting target into root margin");
+  assert_equals(entries.length, 1, "No notifications after scrolling frame.");
+}
+
+function step2() {
+  document.scrollingElement.scrollTop = 0;
+  runTestCycle(step3, "document.scrollingElement.scrollTop = 0.");
+  checkLastEntry(entries, 1, [11, 111, 361, 461, 11, 111, 361, 391, -19, 131, 101, 391, true]);
+}
+
+function step3() {
+  root.scrollTop = 0;
+  runTestCycle(step4, "root.scrollTop = 0");
+  checkLastEntry(entries, 1);
+}
+
+function step4() {
+  root.scrollTop = 50;
+  runTestCycle(step5, "root.scrollTop = 50 with root scrolled out of view.");
+  checkLastEntry(entries, 2, [ 11, 111, vh + 411, vh + 511, 0, 0, 0, 0, -19, 131, vh + 101, vh + 391, false]);
+}
+
+// This tests that notifications are generated even when the root element is off screen.
+function step5() {
+  checkLastEntry(entries, 3, [11, 111, vh + 361, vh + 461, 11, 111, vh + 361, vh + 391, -19, 131, vh + 101, vh + 391, true]);
+}
+</script>
