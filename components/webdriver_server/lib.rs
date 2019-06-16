@@ -44,6 +44,7 @@ use std::thread;
 use std::time::Duration;
 use uuid::Uuid;
 use webdriver::capabilities::{Capabilities, CapabilitiesMatching};
+use webdriver::command::SwitchToWindowParameters;
 use webdriver::command::{
     AddCookieParameters, GetParameters, JavascriptCommandParameters, LocatorParameters,
 };
@@ -841,6 +842,23 @@ impl Handler {
         self.switch_to_frame(WebDriverFrameId::Parent)
     }
 
+    // https://w3c.github.io/webdriver/#switch-to-window
+    fn handle_switch_to_window(
+        &mut self,
+        parameters: &SwitchToWindowParameters,
+    ) -> WebDriverResult<WebDriverResponse> {
+        // For now we assume there is only one window which has the current
+        // session's id as window id
+        if parameters.handle == self.session.as_ref().unwrap().id.to_string() {
+            Ok(WebDriverResponse::Void)
+        } else {
+            Err(WebDriverError::new(
+                ErrorStatus::NoSuchWindow,
+                "No such window",
+            ))
+        }
+    }
+
     fn switch_to_frame(
         &mut self,
         frame_id: WebDriverFrameId,
@@ -1435,6 +1453,9 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
                 self.handle_switch_to_frame(parameters)
             },
             WebDriverCommand::SwitchToParentFrame => self.handle_switch_to_parent_frame(),
+            WebDriverCommand::SwitchToWindow(ref parameters) => {
+                self.handle_switch_to_window(parameters)
+            },
             WebDriverCommand::FindElement(ref parameters) => self.handle_find_element(parameters),
             WebDriverCommand::FindElements(ref parameters) => self.handle_find_elements(parameters),
             WebDriverCommand::FindElementElement(ref element, ref parameters) => {
