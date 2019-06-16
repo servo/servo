@@ -233,17 +233,4 @@ promise_test(t => {
   return Promise.all(promises);
 }, "Test that promise is rejected with TypeError if NDEFMessageSource contains non-string url.");
 
-promise_test(t => {
-  const writer = new NFCWriter();
-  const promises = [];
-  non_strings.forEach(invalid_serialNumber => {
-    promises.push(
-      promise_rejects(t, new TypeError(), writer.push({
-        serialNumber: invalid_serialNumber,
-        records: [{ recordType: "text", data: 'Hello World' }]
-      })));
-  });
-  return Promise.all(promises);
-}, "Test that promise is rejected with TypeError if NDEFMessageSource contains non-string serialNumber.");
-
 </script>

@@ -44,10 +44,12 @@ async function do_test(url) {
   assert_equals(response, 'messageHandlerInitialized');
 
   // Start a fetch.
-  frame.contentWindow.fetch(url);
+  const fetchPromise = frame.contentWindow.fetch(url);
 
   // Receive the test result from the service worker.
-  return wait_for_message();
+  const result = wait_for_message();
+  await fetchPromise.then(()=> {}, () => {});
+  return result;
 };
 
 promise_test(async (t) => {

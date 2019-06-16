@@ -3,9 +3,32 @@
 <link rel="help" href="https://w3c.github.io/web-nfc/#dom-nfcreadingevent">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/nfc_help.js"></script>
 <script>
+
+  const non_strings = [
+    123,
+    {},
+    true,
+    Symbol(),
+    () => {},
+    self
+  ]
+
   test(() => {
     assert_equals(NFCReadingEvent.length, 2);
     assert_throws(new TypeError, () => new NFCReadingEvent('message'));
   }, 'NFCReadingEvent constructor without init dict');
+
+  test(() => {
+    assert_equals(NFCReadingEvent.length, 2);
+    const message = createMessage([createJsonRecord(test_json_data)]);
+    non_strings.forEach(invalid_serialNumber => {
+      assert_throws(new TypeError, () => new NFCReadingEvent(
+        'message',
+        {invalid_serialNumber, message}
+      ));
+    });
+  }, 'NFCReadingEvent constructor with non-string serialNumber');
+
 </script>

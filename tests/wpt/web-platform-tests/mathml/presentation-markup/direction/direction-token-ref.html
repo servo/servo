@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html dir="rtl">
+  <head>
+    <meta charset="utf-8"/>
+    <title>Verify dir attribute on token elements</title>
+  </head>
+  <body>
+
+    <!-- Test dir="rtl" on MathML token elements. The text contains RTL and
+         LTR characters, so the attribute is needed to specify the actual
+         direction. -->
+
+   <p><math><mtext dir="rtl">חוק \left חסר או חוק \right מיותר</mtext></math></p>
+   <p><math><ms dir="rtl">חוק \left חסר או חוק \right מיותר</ms></math></p>
+   <p><math><mo dir="rtl">חוק \left חסר או חוק \right מיותר</mo></math></p>
+   <p><math><mi dir="rtl">חוק \left חסר או חוק \right מיותר</mi></math></p>
+   <p><math><mn dir="rtl">חוק \left חסר או חוק \right מיותר</mn></math></p>
+
+  </body>
+</html>

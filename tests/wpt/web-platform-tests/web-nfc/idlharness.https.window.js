@@ -14,7 +14,7 @@ const message = {
 
 idl_test(
   ['web-nfc'],
-  ['html', 'dom'],
+  ['html', 'dom', 'WebIDL'],
   idl_array => {
     idl_array.add_objects({
       NFCWriter: ['new NFCWriter();'],

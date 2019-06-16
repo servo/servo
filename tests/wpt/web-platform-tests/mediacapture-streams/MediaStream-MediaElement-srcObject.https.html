@@ -22,52 +22,247 @@ via the <code>srcObject</code> attribute.</p>
 const vid = document.getElementById("vid");
 
 promise_test(async t => {
-  const wait = ms => new Promise(r => t.step_timeout(r, ms));
-  const timeout = (promise, time, msg) =>
-    Promise.race([promise, wait(time).then(() => Promise.reject(new Error(msg)))]);
-
-  const stream = await timeout(navigator.mediaDevices.getUserMedia({video: true}), 10000, "getUserMedia timeout");
-  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
-  vid.defaultPlaybackRate = 0.4;
-  vid.playbackRate = 0.4;
-  vid.preload = "metadata";
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  t.add_cleanup(() => {
+    vid.srcObject = null;
+    stream.getTracks().forEach(track => track.stop());
+  });
   vid.srcObject = stream;
-  vid.onratechange = t.unreached_func('ratechange event must not be fired');
-  vid.play();
+}, "Tests that a MediaStream can be assigned to a video element with srcObject");
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  t.add_cleanup(() => {
+    vid.srcObject = null;
+    stream.getTracks().forEach(track => track.stop());
+  });
+  vid.srcObject = stream;
+
   assert_true(!vid.seeking, "A MediaStream is not seekable");
   assert_equals(vid.seekable.length, 0, "A MediaStream is not seekable");
+}, "Tests that a MediaStream assigned to a video element is not seekable");
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  t.add_cleanup(() => {
+    vid.srcObject = null;
+    stream.getTracks().forEach(track => track.stop());
+  });
+  vid.srcObject = stream;
+
+  assert_equals(vid.readyState, vid.HAVE_NOTHING,
+    "readyState is HAVE_NOTHING initially");
+  await new Promise(r => vid.onloadeddata = r);
+  assert_equals(vid.readyState, vid.HAVE_ENOUGH_DATA,
+    "Upon having loaded a media stream, the UA sets readyState to HAVE_ENOUGH_DATA");
+}, "Tests that a MediaStream assigned to a video element is in readyState HAVE_NOTHING initially");
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  t.add_cleanup(() => {
+    vid.srcObject = null;
+    stream.getTracks().forEach(track => track.stop());
+  });
+  vid.srcObject = stream;
+
+  assert_equals(vid.duration, NaN,
+    "A MediaStream does not have any duration initially.");
+  await new Promise(r => vid.ondurationchange = r);
+  assert_equals(vid.duration, Infinity,
+    "A loaded MediaStream does not have a pre-defined duration.");
+
+  vid.play();
+  await new Promise(r => vid.ontimeupdate = r);
+  for (const t of stream.getTracks()) {
+    t.stop();
+  }
+
+  await new Promise(r => vid.ondurationchange = r);
+  assert_equals(vid.duration, vid.currentTime,
+    "After ending playback, duration gets set to currentTime");
+}, "Tests that a MediaStream assigned to a video element has expected duration");
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  t.add_cleanup(() => {
+    vid.srcObject = null;
+    stream.getTracks().forEach(track => track.stop());
+  });
+
+  vid.preload = "metadata";
+  vid.srcObject = stream;
+
+  assert_equals(vid.buffered.length, 0,
+    "A MediaStream cannot be preloaded. Therefore, there are no buffered timeranges");
+  assert_equals(vid.preload, "none", "preload must always be none");
+  vid.preload = "auto";
+  assert_equals(vid.preload, "none", "Setting preload must be ignored");
+
+  await new Promise(r => vid.onloadeddata = r);
+  assert_equals(vid.buffered.length, 0,
+    "A MediaStream cannot be preloaded. Therefore, there are no buffered timeranges");
+
+  vid.srcObject = null;
+
+  assert_equals(vid.preload, "metadata",
+    "The preload attribute returns the value it had before using a MediaStream");
+}, "Tests that a video element with a MediaStream assigned is not preloaded");
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  t.add_cleanup(() => {
+    vid.srcObject = null;
+    stream.getTracks().forEach(track => track.stop());
+  });
+
+  vid.defaultPlaybackRate = 0.3;
+  vid.playbackRate = 0.3;
+  vid.onratechange = t.unreached_func("ratechange event must not be fired");
+  vid.srcObject = stream;
+
   assert_equals(vid.defaultPlaybackRate, 1, "playback rate is always 1");
   vid.defaultPlaybackRate = 0.5;
-  assert_equals(vid.defaultPlaybackRate, 1, "Setting defaultPlaybackRate must be ignored");
+  assert_equals(vid.defaultPlaybackRate, 1,
+    "Setting defaultPlaybackRate must be ignored");
+
   assert_equals(vid.playbackRate, 1, "playback rate is always 1");
   vid.playbackRate = 0.5;
   assert_equals(vid.playbackRate, 1, "Setting playbackRate must be ignored");
-  assert_equals(vid.buffered.length, 0, "A MediaStream cannot be preloaded.  Therefore, there is no buffered timeranges");
-  assert_equals(vid.readyState, vid.HAVE_NOTHING, "readyState is HAVE_NOTHING initially");
-  assert_equals(vid.duration, NaN, "A MediaStream does not have any duration initially.");
-  assert_equals(vid.preload, "none", "preload must always be none");
-  vid.preload = "metadata";
-  assert_equals(vid.preload, "none", "Setting preload must be ignored");
 
-  const haveLoadedData = new Promise(r => vid.addEventListener("loadeddata", r, {once: true}));
+  vid.srcObject = null;
+  assert_equals(vid.defaultPlaybackRate, 0.3,
+    "The defaultPlaybackRate attribute returns the value it had before using a MediaStream");
+  assert_equals(vid.playbackRate, 0.3,
+    "The playbackRate attribute is set to the value of the defaultPlaybackRate attribute when unsetting srcObject");
 
-  await new Promise(r => vid.addEventListener("timeupdate", r, {once: true}));
-  assert_equals(vid.played.length, 1, "A MediaStream's timeline always consists of a single range");
-  assert_equals(vid.played.start(0), 0, "A MediaStream's timeline always starts at zero");
-  assert_equals(vid.played.end(0), vid.currentTime, "A MediaStream's end MUST return the last known currentTime, says mediacapture-main");
-  assert_equals(vid.duration, Infinity, "A MediaStream does not have a pre-defined duration. ");
+  // Check that there's no ratechange event
+  await new Promise(r => t.step_timeout(r, 100));
+}, "Tests that a video element with a MediaStream assigned ignores playbackRate attributes (defaultPlaybackRate is identical)");
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  t.add_cleanup(() => {
+    vid.srcObject = null;
+    stream.getTracks().forEach(track => track.stop());
+  });
+
+  vid.defaultPlaybackRate = 0.3;
+  vid.playbackRate = 0.4;
+  vid.onratechange = t.unreached_func("ratechange event must not be fired");
+  vid.srcObject = stream;
+
+  assert_equals(vid.defaultPlaybackRate, 1, "playback rate is always 1");
+  vid.defaultPlaybackRate = 0.5;
+  assert_equals(vid.defaultPlaybackRate, 1,
+    "Setting defaultPlaybackRate must be ignored");
+
+  assert_equals(vid.playbackRate, 1, "playback rate is always 1");
+  vid.playbackRate = 0.5;
+  assert_equals(vid.playbackRate, 1, "Setting playbackRate must be ignored");
+
+  vid.srcObject = null;
+  assert_equals(vid.defaultPlaybackRate, 0.3,
+    "The defaultPlaybackRate attribute returns the value it had before using a MediaStream");
+  assert_equals(vid.playbackRate, 0.3,
+    "The playbackRate attribute is set to the value of the defaultPlaybackRate attribute when unsetting srcObject (and fires ratechange)");
+  await new Promise(r => vid.onratechange = r);
+}, "Tests that a video element with a MediaStream assigned ignores playbackRate attributes (defaultPlaybackRate is different)");
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  t.add_cleanup(() => {
+    vid.srcObject = null;
+    stream.getTracks().forEach(track => track.stop());
+  });
+  vid.srcObject = stream;
+  await new Promise(r => vid.oncanplay = r);
+  vid.play();
+  await new Promise(r => vid.ontimeupdate = r);
+  assert_greater_than(vid.currentTime, 0,
+    "currentTime is greater than 0 after first timeupdate");
+
+  assert_equals(vid.played.length, 1,
+    "A MediaStream's timeline always consists of a single range");
+  assert_equals(vid.played.start(0), 0,
+    "A MediaStream's timeline always starts at zero");
+  assert_equals(vid.played.end(0), vid.currentTime,
+    "A MediaStream's end MUST return the last known currentTime");
 
   const time = vid.currentTime;
   vid.currentTime = 0;
-  assert_equals(vid.currentTime, time, "The UA MUST ignore attempts to set the currentTime attribute");
+  assert_equals(vid.currentTime, time,
+    "The UA MUST ignore attempts to set the currentTime attribute");
+}, "Tests that a media element with an assigned MediaStream reports the played attribute as expected");
 
-  await haveLoadedData;
-  assert_equals(vid.readyState, vid.HAVE_ENOUGH_DATA, "Upon having loaded a media stream, the UA sets readyState to HAVE_ENOUGH_DATA");
-  assert_equals(vid.duration, Infinity, "A MediaStream does not have a pre-defined duration.");
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  t.add_cleanup(() => {
+    vid.srcObject = null;
+    stream.getTracks().forEach(track => track.stop());
+  });
+  vid.srcObject = stream;
 
-  // TODO add test that duration must be set to currentTime
-  // when mediastream is destroyed
-}, "Tests that a MediaStream can be assigned to a video element with srcObject");
+  assert_equals(vid.currentTime, 0, "The initial value is 0");
+  vid.currentTime = 42;
+  assert_equals(vid.currentTime, 0,
+    "The UA MUST ignore attempts to set the currentTime attribute (default playback start position)");
+
+  await new Promise(r => vid.onloadeddata = r);
+  assert_equals(vid.currentTime, 0, "The initial value is 0");
+  vid.currentTime = 42;
+  assert_equals(vid.currentTime, 0,
+    "The UA MUST ignore attempts to set the currentTime attribute (official playback position)");
+
+  vid.play();
+  await new Promise(r => vid.ontimeupdate = r);
+  assert_greater_than(vid.currentTime, 0,
+    "currentTime is greater than 0 after first timeupdate");
+
+  const lastTime = vid.currentTime;
+  vid.currentTime = 0;
+  assert_equals(vid.currentTime, lastTime,
+    "The UA MUST ignore attempts to set the currentTime attribute (restart)");
+
+  for(const t of stream.getTracks()) {
+    t.stop();
+  }
+  await new Promise(r => vid.onended = r);
+  assert_greater_than_equal(vid.currentTime, lastTime,
+    "currentTime advanced after stopping");
+}, "Tests that a media element with an assigned MediaStream reports the currentTime attribute as expected");
+
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  t.add_cleanup(() => {
+    vid.srcObject = null;
+    stream.getTracks().forEach(track => track.stop());
+  });
+  assert_equals(vid.loop, false, "loop is false by default");
+  vid.srcObject = stream;
+
+  vid.loop = true;
+  assert_equals(vid.loop, true,
+    "loop can be changed when assigned a MediaStream");
+
+  await new Promise(r => vid.onloadeddata = r);
+  vid.loop = false;
+  assert_equals(vid.loop, false,
+    "loop can be changed when having loaded a MediaStream");
+
+  vid.play();
+  await new Promise(r => vid.ontimeupdate = r);
+  vid.loop = true;
+  assert_equals(vid.loop, true,
+    "loop can be changed when playing a MediaStream");
+
+  for(const t of stream.getTracks()) {
+    t.stop();
+  }
+  // If loop is ignored, we get "ended",
+  // otherwise the media element sets currentTime to 0 without ending.
+  await new Promise(r => vid.onended = r);
+}, "Tests that the loop attribute has no effect on a media element with an assigned MediaStream");
 </script>
 </body>
 </html>

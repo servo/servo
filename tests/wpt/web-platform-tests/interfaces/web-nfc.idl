@@ -43,7 +43,7 @@ interface NFCReader : EventTarget {
 [Constructor(DOMString type, NFCReadingEventInit readingEventInitDict), SecureContext, Exposed=Window]
 interface NFCReadingEvent : Event {
   readonly attribute DOMString serialNumber;
-  readonly attribute NDEFMessage message;
+  readonly attribute object message;  // NDEFMessage
 };
 
 dictionary NFCReadingEventInit : EventInit {

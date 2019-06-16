@@ -15,8 +15,10 @@ var cue = new VTTCue(0, 3, "cue 2");
 cue.line = -2;
 track.addCue(cue);
 track.mode = "showing";
-
-video.onloadeddata = function() {
+video.play();
+video.onplaying = function() {
+  video.onplaying=null;
+  video.pause();
   takeScreenshot();
 };
 </script>

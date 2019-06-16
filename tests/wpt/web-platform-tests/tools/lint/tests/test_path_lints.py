@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import mock
 import os
 
 from ..lint import check_path
@@ -32,7 +33,7 @@ def test_forbidden_path_length():
                                                    (".any.worker.html", ".any.js"),
                                                    (".any.html", ".any.js")])
 def test_forbidden_path_endings(path_ending, generated):
-    path = "/test/test" + path_ending
+    path = "test/test" + path_ending
 
     message = ("path ends with %s which collides with generated tests from %s files" %
                (path_ending, generated))
@@ -40,6 +41,17 @@ def test_forbidden_path_endings(path_ending, generated):
     errors = check_path("/foo/", path)
     check_errors(errors)
     assert errors == [("WORKER COLLISION", message, path, None)]
+
+
+def test_file_type():
+    path = "test/test"
+
+    message = "/%s is an unsupported file type (symlink)" % (path,)
+
+    with mock.patch("os.path.islink", returnvalue=True):
+        errors = check_path("/foo/", path)
+
+    assert errors == [("FILE TYPE", message, path, None)]
 
 
 @pytest.mark.parametrize("path", ["ahem.ttf",
