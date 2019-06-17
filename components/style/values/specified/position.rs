@@ -21,7 +21,6 @@ use cssparser::Parser;
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use std::fmt::{self, Write};
-use std::ops::Range;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
 /// The specified value of a CSS `<position>`
@@ -482,10 +481,10 @@ impl From<GridAutoFlow> for u8 {
 pub struct TemplateAreas {
     /// `named area` containing for each template area
     #[css(skip)]
-    pub areas: Box<[NamedArea]>,
+    pub areas: crate::OwnedSlice<NamedArea>,
     /// The original CSS string value of each template area
     #[css(iterable)]
-    pub strings: Box<[Box<str>]>,
+    pub strings: crate::OwnedSlice<crate::OwnedStr>,
     /// The number of columns of the grid.
     #[css(skip)]
     pub width: u32,
@@ -493,7 +492,7 @@ pub struct TemplateAreas {
 
 impl TemplateAreas {
     /// Transform `vector` of str into `template area`
-    pub fn from_vec(strings: Vec<Box<str>>) -> Result<TemplateAreas, ()> {
+    pub fn from_vec(strings: Vec<crate::OwnedStr>) -> Result<Self, ()> {
         if strings.is_empty() {
             return Err(());
         }
@@ -539,9 +538,15 @@ impl TemplateAreas {
                     }
                     let index = areas.len();
                     areas.push(NamedArea {
-                        name: token.to_owned().into_boxed_str(),
-                        columns: column..(column + 1),
-                        rows: row..(row + 1),
+                        name: token.to_owned().into(),
+                        columns: UnsignedRange {
+                            start: column,
+                            end: column + 1,
+                        },
+                        rows: UnsignedRange {
+                            start: row,
+                            end: row + 1,
+                        },
                     });
                     assert!(area_indices.insert(token, index).is_none());
                     current_area_index = Some(index);
@@ -560,8 +565,8 @@ impl TemplateAreas {
             }
         }
         Ok(TemplateAreas {
-            areas: areas.into_boxed_slice(),
-            strings: strings.into_boxed_slice(),
+            areas: areas.into(),
+            strings: strings.into(),
             width: width,
         })
     }
@@ -573,7 +578,7 @@ impl Parse for TemplateAreas {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let mut strings = vec![];
-        while let Ok(string) = input.try(|i| i.expect_string().map(|s| s.as_ref().into())) {
+        while let Ok(string) = input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned().into())) {
             strings.push(string);
         }
 
@@ -602,9 +607,19 @@ impl Parse for TemplateAreasArc {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let parsed = TemplateAreas::parse(context, input)?;
-
         Ok(TemplateAreasArc(Arc::new(parsed)))
     }
+}
+
+/// A range of rows or columns. Using this instead of std::ops::Range for FFI
+/// purposes.
+#[repr(C)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToShmem)]
+pub struct UnsignedRange {
+    /// The start of the range.
+    pub start: u32,
+    /// The end of the range.
+    pub end: u32,
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToShmem)]
@@ -612,11 +627,11 @@ impl Parse for TemplateAreasArc {
 /// be referenced from the grid-placement properties.
 pub struct NamedArea {
     /// Name of the `named area`
-    pub name: Box<str>,
+    pub name: crate::OwnedStr,
     /// Rows of the `named area`
-    pub rows: Range<u32>,
+    pub rows: UnsignedRange,
     /// Columns of the `named area`
-    pub columns: Range<u32>,
+    pub columns: UnsignedRange,
 }
 
 /// Tokenize the string into a list of the tokens,

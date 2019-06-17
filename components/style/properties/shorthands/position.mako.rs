@@ -290,7 +290,7 @@
         % endfor
 
         let first_line_names = input.try(parse_line_names).unwrap_or(vec![].into_boxed_slice());
-        if let Ok(mut string) = input.try(|i| i.expect_string().map(|s| s.as_ref().into())) {
+        if let Ok(mut string) = input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned().into())) {
             let mut strings = vec![];
             let mut values = vec![];
             let mut line_names = vec![];
@@ -305,7 +305,7 @@
                     names.extend(v.into_vec());
                 }
 
-                string = match input.try(|i| i.expect_string().map(|s| s.as_ref().into())) {
+                string = match input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned().into())) {
                     Ok(s) => s,
                     _ => {      // only the named area determines whether we should bail out
                         line_names.push(names.into_boxed_slice());
@@ -323,7 +323,7 @@
                 .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))?;
             let template_rows = TrackList {
                 list_type: TrackListType::Normal,
-                values: values,
+                values,
                 line_names: line_names.into_boxed_slice(),
                 auto_repeat: None,
             };

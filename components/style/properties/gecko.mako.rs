@@ -1433,7 +1433,7 @@ fn static_assert() {
                 Gecko_NewGridTemplateAreasValue(v.0.areas.len() as u32, v.0.strings.len() as u32, v.0.width))
         };
 
-        for (servo, gecko) in v.0.areas.into_iter().zip(refptr.mNamedAreas.iter_mut()) {
+        for (servo, gecko) in v.0.areas.iter().zip(refptr.mNamedAreas.iter_mut()) {
             gecko.mName.assign_str(&*servo.name);
             gecko.mColumnStart = servo.columns.start;
             gecko.mColumnEnd = servo.columns.end;
@@ -1441,7 +1441,7 @@ fn static_assert() {
             gecko.mRowEnd = servo.rows.end;
         }
 
-        for (servo, gecko) in v.0.strings.into_iter().zip(refptr.mTemplates.iter_mut()) {
+        for (servo, gecko) in v.0.strings.iter().zip(refptr.mTemplates.iter_mut()) {
             gecko.assign_str(&*servo);
         }
 
@@ -1457,9 +1457,8 @@ fn static_assert() {
     }
 
     pub fn clone_grid_template_areas(&self) -> values::computed::position::GridTemplateAreas {
-        use std::ops::Range;
         use crate::values::None_;
-        use crate::values::specified::position::{NamedArea, TemplateAreas, TemplateAreasArc};
+        use crate::values::specified::position::{NamedArea, TemplateAreas, TemplateAreasArc, UnsignedRange};
 
         if self.gecko.mGridTemplateAreas.mRawPtr.is_null() {
             return Either::Second(None_);
@@ -1469,33 +1468,33 @@ fn static_assert() {
         let areas = unsafe {
             let vec: Vec<NamedArea> =
                 (*gecko_grid_template_areas).mNamedAreas.iter().map(|gecko_name_area| {
-                    let name = gecko_name_area.mName.to_string().into_boxed_str();
-                    let rows = Range {
+                    let name = gecko_name_area.mName.to_string().into();
+                    let rows = UnsignedRange {
                         start: gecko_name_area.mRowStart,
                         end: gecko_name_area.mRowEnd
                     };
-                    let columns = Range {
+                    let columns = UnsignedRange {
                         start: gecko_name_area.mColumnStart,
                         end: gecko_name_area.mColumnEnd
                     };
-                    NamedArea{ name, rows, columns }
+                    NamedArea { name, rows, columns }
                 }).collect();
-            vec.into_boxed_slice()
+            vec.into()
         };
 
         let strings = unsafe {
-            let vec: Vec<Box<str>> =
+            let vec: Vec<crate::OwnedStr> =
                 (*gecko_grid_template_areas).mTemplates.iter().map(|gecko_template| {
-                    gecko_template.to_string().into_boxed_str()
+                    gecko_template.to_string().into()
                 }).collect();
-            vec.into_boxed_slice()
+            vec.into()
         };
 
         let width = unsafe {
             (*gecko_grid_template_areas).mNColumns
         };
 
-        Either::First(TemplateAreasArc(Arc::new(TemplateAreas{ areas, strings, width })))
+        Either::First(TemplateAreasArc(Arc::new(TemplateAreas { areas, strings, width })))
     }
 
 </%self:impl_trait>
