@@ -284,7 +284,7 @@ pub fn handle_find_element_elements_css(
     pipeline: PipelineId,
     element_id: String,
     selector: String,
-    reply: IpcSender<Result<Option<String>, ()>>,
+    reply: IpcSender<Result<Vec<String>, ()>>,
 ) {
     let node_ids = find_node_by_unique_id(documents, pipeline, element_id)
         .ok_or(())
@@ -295,8 +295,30 @@ pub fn handle_find_element_elements_css(
         .map(|nodes| {
             nodes
                 .iter()
-                .map(|x| Some(x.upcast::<Node>().unique_id()))
+                .map(|x| x.upcast::<Node>().unique_id())
                 .collect()
+        });
+    reply.send(node_ids).unwrap();
+}
+
+pub fn handle_find_element_elements_tag_name(
+    documents: &Documents,
+    pipeline: PipelineId,
+    element_id: String,
+    selector: String,
+    reply: IpcSender<Result<Vec<String>, ()>>,
+) {
+    let node_ids = find_node_by_unique_id(documents, pipeline, element_id)
+        .ok_or(())
+        .and_then(|node| match node.downcast::<Element>() {
+            Some(elem) => Ok(elem.GetElementsByTagName(DOMString::from(selector))),
+            None => Err(()),
+        })
+        .map(|nodes| {
+            nodes
+                .elements_iter()
+                .map(|x| x.upcast::<Node>().unique_id())
+                .collect::<Vec<String>>()
         });
     reply.send(node_ids).unwrap();
 }

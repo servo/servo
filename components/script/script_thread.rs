@@ -2070,6 +2070,15 @@ impl ScriptThread {
                     reply,
                 )
             },
+            WebDriverScriptCommand::FindElementElementsTagName(selector, element_id, reply) => {
+                webdriver_handlers::handle_find_element_elements_tag_name(
+                    &*documents,
+                    pipeline_id,
+                    element_id,
+                    selector,
+                    reply,
+                )
+            },
             WebDriverScriptCommand::FocusElement(element_id, reply) => {
                 webdriver_handlers::handle_focus_element(
                     &*documents,
