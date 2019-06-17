@@ -182,6 +182,25 @@ pub fn handle_find_element_css(
     reply.send(node_id).unwrap();
 }
 
+pub fn handle_find_element_tag_name(
+    documents: &Documents,
+    pipeline: PipelineId,
+    selector: String,
+    reply: IpcSender<Result<Option<String>, ()>>,
+) {
+    let node_id = documents
+        .find_document(pipeline)
+        .ok_or(())
+        .and_then(|doc| {
+            Ok(doc
+                .GetElementsByTagName(DOMString::from(selector))
+                .elements_iter()
+                .next())
+        })
+        .map(|node| node.map(|x| x.upcast::<Node>().unique_id()));
+    reply.send(node_id).unwrap();
+}
+
 pub fn handle_find_elements_css(
     documents: &Documents,
     pipeline: PipelineId,

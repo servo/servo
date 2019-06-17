@@ -804,17 +804,25 @@ impl Handler {
         &self,
         parameters: &LocatorParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        if parameters.using != LocatorStrategy::CSSSelector {
-            return Err(WebDriverError::new(
-                ErrorStatus::UnsupportedOperation,
-                "Unsupported locator strategy",
-            ));
-        }
-
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let cmd = WebDriverScriptCommand::FindElementCSS(parameters.value.clone(), sender);
-        self.browsing_context_script_command(cmd)?;
+        match parameters.using {
+            LocatorStrategy::CSSSelector => {
+                let cmd = WebDriverScriptCommand::FindElementCSS(parameters.value.clone(), sender);
+                self.browsing_context_script_command(cmd)?;
+            },
+            LocatorStrategy::TagName => {
+                let cmd =
+                    WebDriverScriptCommand::FindElementTagName(parameters.value.clone(), sender);
+                self.browsing_context_script_command(cmd)?;
+            },
+            _ => {
+                return Err(WebDriverError::new(
+                    ErrorStatus::UnsupportedOperation,
+                    "Unsupported locator strategy",
+                ));
+            },
+        }
 
         match receiver.recv().unwrap() {
             Ok(value) => {
