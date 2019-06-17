@@ -29,6 +29,7 @@ pub enum WebDriverScriptCommand {
     FindElementsCSS(String, IpcSender<Result<Vec<String>, ()>>),
     FindElementsTagName(String, IpcSender<Result<Vec<String>, ()>>),
     FindElementElementCSS(String, String, IpcSender<Result<Option<String>, ()>>),
+    FindElementElementTagName(String, String, IpcSender<Result<Option<String>, ()>>),
     FindElementElementsCSS(String, String, IpcSender<Result<Option<String>, ()>>),
     FocusElement(String, IpcSender<Result<(), ()>>),
     GetActiveElement(IpcSender<Option<String>>),

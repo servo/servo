@@ -1988,6 +1988,15 @@ impl ScriptThread {
                     reply,
                 )
             },
+            WebDriverScriptCommand::FindElementElementTagName(selector, element_id, reply) => {
+                webdriver_handlers::handle_find_element_element_tag_name(
+                    &*documents,
+                    pipeline_id,
+                    element_id,
+                    selector,
+                    reply,
+                )
+            },
             WebDriverScriptCommand::FindElementElementsCSS(selector, element_id, reply) => {
                 webdriver_handlers::handle_find_element_elements_css(
                     &*documents,
