@@ -77,30 +77,53 @@ impl GlContext {
     pub fn raw_context(&self) -> RawContext {
         match self {
             GlContext::Current(c) => {
-                let raw_handle = unsafe { c.raw_handle() };
-
                 #[cfg(any(
                     target_os = "linux",
                     target_os = "dragonfly",
                     target_os = "freebsd",
                     target_os = "netbsd",
-                    target_os = "openbsd"
+                    target_os = "openbsd",
                 ))]
                 {
                     use glutin::os::unix::RawHandle;
 
+                    let raw_handle = unsafe { c.raw_handle() };
                     return match raw_handle {
                         RawHandle::Egl(handle) => RawContext::Egl(handle as usize),
                         RawHandle::Glx(handle) => RawContext::Glx(handle as usize),
                     };
                 }
 
+                #[cfg(target_os = "windows")]
+                {
+                    use glutin::os::windows::RawHandle;
+
+                    let raw_handle = unsafe { c.raw_handle() };
+                    return match raw_handle {
+                        RawHandle::Egl(handle) => RawContext::Egl(handle as usize),
+                        // @TODO(victor): RawContext::Wgl in servo-media
+                        RawHandle::Wgl(_) => unimplemented!(),
+                    }
+                }
+
+                #[cfg(target_os = "android")]
+                {
+                    let raw_handle = unsafe { c.raw_handle() };
+                    return RawContext::Egl(raw_handle as usize);
+                }
+
+                #[cfg(target_os = "macos")]
+                return unimplemeneted!(); // @TODO(victor): RawContext::Cocoa in servo-media
+
                 #[cfg(not(any(
                     target_os = "linux",
                     target_os = "dragonfly",
                     target_os = "freebsd",
                     target_os = "netbsd",
-                    target_os = "openbsd"
+                    target_os = "openbsd",
+                    target_os = "windows",
+                    target_os = "android",
+                    target_os = "macos",
                 )))]
                 unimplemented!()
             }
@@ -111,6 +134,7 @@ impl GlContext {
             GlContext::None => unreachable!(),
         }
     }
+
     pub fn egl_display(&self) -> Option<*const raw::c_void> {
         match self {
             GlContext::Current(c) => unsafe { c.get_egl_display() },

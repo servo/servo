@@ -544,21 +544,43 @@ impl WindowMethods for Window {
             target_os = "dragonfly",
             target_os = "freebsd",
             target_os = "netbsd",
-            target_os = "openbsd"
+            target_os = "openbsd",
+            target_os = "windows",
+            target_os = "android",
         ))]
         let native_display = {
             if let Some(display) = self.gl_context.borrow().egl_display() {
                 NativeDisplay::Egl(display as usize)
             } else {
-                use glutin::os::unix::WindowExt;
+                #[cfg(any(
+                    target_os = "linux",
+                    target_os = "dragonfly",
+                    target_os = "freebsd",
+                    target_os = "netbsd",
+                    target_os = "openbsd",
+                ))]
+                {
+                    use glutin::os::unix::WindowExt;
 
-                if let Some(display) = self.gl_context.borrow().window().get_wayland_display() {
-                    NativeDisplay::Wayland(display as usize)
-                } else if let Some(display) = self.gl_context.borrow().window().get_xlib_display() {
-                    NativeDisplay::X11(display as usize)
-                } else {
-                    NativeDisplay::Unknown
+                    if let Some(display) = self.gl_context.borrow().window().get_wayland_display() {
+                        NativeDisplay::Wayland(display as usize)
+                    } else if let Some(display) =
+                        self.gl_context.borrow().window().get_xlib_display()
+                    {
+                        NativeDisplay::X11(display as usize)
+                    } else {
+                        NativeDisplay::Unknown
+                    }
                 }
+
+                #[cfg(not(any(
+                    target_os = "linux",
+                    target_os = "dragonfly",
+                    target_os = "freebsd",
+                    target_os = "netbsd",
+                    target_os = "openbsd",
+                )))]
+                NativeDisplay::Unknown
             }
         };
 
@@ -567,7 +589,9 @@ impl WindowMethods for Window {
             target_os = "dragonfly",
             target_os = "freebsd",
             target_os = "netbsd",
-            target_os = "openbsd"
+            target_os = "openbsd",
+            target_os = "windows",
+            target_os = "android",
         )))]
         let native_display = NativeDisplay::Unknown;
 
