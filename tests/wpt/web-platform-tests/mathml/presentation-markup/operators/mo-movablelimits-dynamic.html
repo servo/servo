@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+   <head>
+     <meta charset="utf-8"/>
+     <title>Test dynamically removing movablelimits attribute</title>
+     <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#tokenmo">
+     <meta name="assert" content="Verifies dynamically removing movablelimits.">
+     <link rel="match" href="mo-movablelimits-dynamic-ref.html">
+     <script>
+        window.addEventListener("load", () => {
+         document.getElementById('a').removeAttribute('movablelimits');
+         document.documentElement.classList.remove('reftest-wait');
+       });
+     </script>
+    </head>
+    <body>
+    <math>
+      <munder>
+        <mo id="a" movablelimits="false">∑</mo>
+        <mi>x</mi>
+      </munder>
+    </math>
+    </body>
+</html>
