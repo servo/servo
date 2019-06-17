@@ -223,6 +223,25 @@ pub fn handle_find_elements_css(
     reply.send(node_ids).unwrap();
 }
 
+pub fn handle_find_elements_tag_name(
+    documents: &Documents,
+    pipeline: PipelineId,
+    selector: String,
+    reply: IpcSender<Result<Vec<String>, ()>>,
+) {
+    let node_ids = documents
+        .find_document(pipeline)
+        .ok_or(())
+        .and_then(|doc| Ok(doc.GetElementsByTagName(DOMString::from(selector))))
+        .map(|nodes| {
+            nodes
+                .elements_iter()
+                .map(|x| x.upcast::<Node>().unique_id())
+                .collect::<Vec<String>>()
+        });
+    reply.send(node_ids).unwrap();
+}
+
 pub fn handle_find_element_element_css(
     documents: &Documents,
     pipeline: PipelineId,

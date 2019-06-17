@@ -1971,6 +1971,14 @@ impl ScriptThread {
                     reply,
                 )
             },
+            WebDriverScriptCommand::FindElementsTagName(selector, reply) => {
+                webdriver_handlers::handle_find_elements_tag_name(
+                    &*documents,
+                    pipeline_id,
+                    selector,
+                    reply,
+                )
+            },
             WebDriverScriptCommand::FindElementElementCSS(selector, element_id, reply) => {
                 webdriver_handlers::handle_find_element_element_css(
                     &*documents,

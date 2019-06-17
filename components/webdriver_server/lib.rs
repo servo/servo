@@ -902,20 +902,31 @@ impl Handler {
         Ok(WebDriverResponse::Void)
     }
 
+    // https://w3c.github.io/webdriver/#find-elements
     fn handle_find_elements(
         &self,
         parameters: &LocatorParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        if parameters.using != LocatorStrategy::CSSSelector {
-            return Err(WebDriverError::new(
-                ErrorStatus::UnsupportedOperation,
-                "Unsupported locator strategy",
-            ));
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        match parameters.using {
+            LocatorStrategy::CSSSelector => {
+                let cmd = WebDriverScriptCommand::FindElementsCSS(parameters.value.clone(), sender);
+                self.browsing_context_script_command(cmd)?;
+            },
+            LocatorStrategy::TagName => {
+                let cmd =
+                    WebDriverScriptCommand::FindElementsTagName(parameters.value.clone(), sender);
+                self.browsing_context_script_command(cmd)?;
+            },
+            _ => {
+                return Err(WebDriverError::new(
+                    ErrorStatus::UnsupportedOperation,
+                    "Unsupported locator strategy",
+                ));
+            },
         }
 
-        let (sender, receiver) = ipc::channel().unwrap();
-        let cmd = WebDriverScriptCommand::FindElementsCSS(parameters.value.clone(), sender);
-        self.browsing_context_script_command(cmd)?;
         match receiver.recv().unwrap() {
             Ok(value) => {
                 let resp_value: Vec<Value> = value
