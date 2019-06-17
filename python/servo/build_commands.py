@@ -317,8 +317,11 @@ class MachCommands(CommandBase):
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
 
         if sys.platform == "win32":
-            env["CC"] = "clang-cl.exe"
-            env["CXX"] = "clang-cl.exe"
+            env["CC"] = env.get("CC", "clang-cl.exe")
+            env["CXX"] = env.get("CXX", "clang-cl.exe")
+        else:
+            env["CC"] = env.get("CC", "clang")
+            env["CXX"] = env.get("CXX", "clang++")
 
         host = host_triple()
         if 'apple-darwin' in host and (not target or target == host):
