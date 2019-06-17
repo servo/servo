@@ -3610,8 +3610,8 @@ dependencies = [
 
 [[package]]
 name = "remove_dir_all"
-version = "0.5.1"
-source = "git+https://github.com/XAMPPRocky/remove_dir_all#5e3f71bd30da66d64ed0c81278de0648c3d7d87b"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "winapi 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -4651,7 +4651,7 @@ dependencies = [
  "libc 0.2.53 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "redox_syscall 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
- "remove_dir_all 0.5.1 (git+https://github.com/XAMPPRocky/remove_dir_all)",
+ "remove_dir_all 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -5842,7 +5842,7 @@ dependencies = [
 "checksum ref_slice 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "825740057197b7d43025e7faf6477eaabc03434e153233da02d1f44602f71527"
 "checksum regex 1.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "8f0a0bcab2fd7d1d7c54fa9eae6f43eddeb9ce2e7352f8518a814a4f65d60c58"
 "checksum regex-syntax 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)" = "dcfd8681eebe297b81d98498869d4aae052137651ad7b96822f09ceb690d0a96"
-"checksum remove_dir_all 0.5.1 (git+https://github.com/XAMPPRocky/remove_dir_all)" = "<none>"
+"checksum remove_dir_all 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "4a83fa3702a688b9359eccba92d153ac33fd2e8462f9e0e3fdf155239ea7792e"
 "checksum ron 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "da06feaa07f69125ab9ddc769b11de29090122170b402547f64b86fe16ebc399"
 "checksum rust-webvr 0.11.4 (registry+https://github.com/rust-lang/crates.io-index)" = "829a995f41b762524b124f45ef2d9ec0391d63b362df6f7627ec391a6b579eaa"
 "checksum rust-webvr-api 0.11.4 (registry+https://github.com/rust-lang/crates.io-index)" = "c8eb1d528c0d05ebf44126775b38eb3ec543f35a24275bb0360e45e3e3e8da73"
