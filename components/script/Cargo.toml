@@ -64,7 +64,7 @@ indexmap = "1.0.2"
 ipc-channel = "0.11"
 itertools = "0.8"
 jstraceable_derive = {path = "../jstraceable_derive"}
-js = {package = "mozjs", git = "https://github.com/servo/rust-mozjs"}
+js = {package = "mozjs", git = "https://github.com/jdm/rust-mozjs", branch = "smup67"}
 keyboard-types = "0.4.4"
 lazy_static = "1"
 libc = "0.2"
