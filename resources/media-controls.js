@@ -28,26 +28,26 @@
   // State transitions.
   const TRANSITIONS = {
     buffer: {
-      "paused": BUFFERING,
+      paused: BUFFERING
     },
     end: {
-      "playing": ENDED,
-      "paused": ENDED,
+      playing: ENDED,
+      paused: ENDED
     },
     error: {
-      "buffering": ERRORED,
-      "playing": ERRORED,
-      "paused": ERRORED,
+      buffering: ERRORED,
+      playing: ERRORED,
+      paused: ERRORED
     },
     pause: {
-      "buffering": PAUSED,
-      "playing": PAUSED,
+      buffering: PAUSED,
+      playing: PAUSED
     },
     play: {
-      "buffering": PLAYING,
-      "ended": PLAYING,
-      "paused": PLAYING,
-    },
+      buffering: PLAYING,
+      ended: PLAYING,
+      paused: PLAYING
+    }
   };
 
   function camelCase(str) {
@@ -62,14 +62,15 @@
     time = Math.round(time / 1000);
 
     const hours = Math.floor(time / 3600);
-    const mins  = Math.floor((time % 3600) / 60);
-    const secs  = Math.floor(time % 60);
+    const mins = Math.floor((time % 3600) / 60);
+    const secs = Math.floor(time % 60);
 
-    const formattedHours = hours || showHours ?
-      `${hours.toString().padStart(2, "0")}:` :
-      "";
+    const formattedHours =
+      hours || showHours ? `${hours.toString().padStart(2, "0")}:` : "";
 
-    return `${formattedHours}${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    return `${formattedHours}${mins
+      .toString()
+      .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }
 
   class MediaControls {
@@ -119,25 +120,25 @@
 
       Object.defineProperties(this.elements.positionDurationBox, {
         durationSpan: {
-          value: durationSpan,
+          value: durationSpan
         },
         position: {
           get: () => {
             return positionTextNode.textContent;
           },
-          set: (v) => {
+          set: v => {
             positionTextNode.textContent = positionFormat.replace("#1", v);
-          },
+          }
         },
         duration: {
           get: () => {
             return durationSpan.textContent;
           },
-          set: (v) => {
+          set: v => {
             durationSpan.textContent = v ? durationFormat.replace("#2", v) : "";
-          },
+          }
         },
-        show:{
+        show: {
           value: (currentTime, duration) => {
             const self = this.elements.positionDurationBox;
             if (self.position != currentTime) {
@@ -147,24 +148,39 @@
               self.duration = duration;
             }
             self.classList.remove("hidden");
-          },
-        },
+          }
+        }
       });
 
       // Add event listeners.
       this.mediaEvents = [
-        "play", "pause", "ended", "volumechange", "loadeddata",
-        "loadstart", "timeupdate", "progress", "playing",
-        "waiting", "canplay", "canplaythrough", "seeking",
-        "seeked", "emptied", "loadedmetadata", "error", "suspend"];
+        "play",
+        "pause",
+        "ended",
+        "volumechange",
+        "loadeddata",
+        "loadstart",
+        "timeupdate",
+        "progress",
+        "playing",
+        "waiting",
+        "canplay",
+        "canplaythrough",
+        "seeking",
+        "seeked",
+        "emptied",
+        "loadedmetadata",
+        "error",
+        "suspend"
+      ];
       this.mediaEvents.forEach(event => {
         this.media.addEventListener(event, this);
       });
 
       this.controlEvents = [
-        { el: this.elements.playPauseButton, type: "click"},
+        { el: this.elements.playPauseButton, type: "click" },
         { el: this.elements.volumeSwitch, type: "click" },
-        { el: this.elements.volumeLevel, type: "input" },
+        { el: this.elements.volumeLevel, type: "input" }
       ];
       this.controlEvents.forEach(({ el, type }) => {
         el.addEventListener(type, this);
@@ -245,7 +261,8 @@
       }
 
       // Progress.
-      const positionPercent = this.media.currentTime / this.media.duration * 100;
+      const positionPercent =
+        (this.media.currentTime / this.media.duration) * 100;
       if (Number.isFinite(positionPercent)) {
         this.elements.progress.value = positionPercent;
       } else {
@@ -262,8 +279,11 @@
       this.elements.positionDurationBox.show(currentTime, duration);
 
       // Volume.
-      this.elements.volumeSwitch.className = this.media.muted || !this.media.volume ? "muted" : "volumeup";
-      const volumeLevelValue = this.media.muted ? 0 : Math.round(this.media.volume * 100);
+      this.elements.volumeSwitch.className =
+        this.media.muted || !this.media.volume ? "muted" : "volumeup";
+      const volumeLevelValue = this.media.muted
+        ? 0
+        : Math.round(this.media.volume * 100);
       if (this.elements.volumeLevel.value != volumeLevelValue) {
         this.elements.volumeLevel.value = volumeLevelValue;
       }
@@ -301,7 +321,7 @@
               break;
           }
           break;
-        break;
+          break;
           throw new Error(`Unknown event ${event.type}`);
       }
     }
@@ -330,7 +350,7 @@
     /* Media actions */
 
     playOrPause() {
-      switch(this.state) {
+      switch (this.state) {
         case PLAYING:
           this.media.pause();
           break;
@@ -358,3 +378,4 @@
 
   new MediaControls();
 })();
+
