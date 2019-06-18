@@ -64,6 +64,7 @@ use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas::gl_context::GLContextFactory;
 use canvas::webgl_thread::WebGLThreads;
+use canvas_traits::media::WindowGLContext;
 use compositing::compositor_thread::{
     CompositorProxy, CompositorReceiver, InitialCompositorState, Msg,
 };
@@ -303,6 +304,12 @@ where
             None
         };
 
+        let player_context = WindowGLContext {
+            gl_context: window.get_gl_context(),
+            native_display: window.get_native_display(),
+            gl_api: window.get_gl_api(),
+        };
+
         // Create the constellation, which maintains the engine
         // pipelines, including the script and layout threads, as well
         // as the navigation context.
@@ -321,6 +328,7 @@ where
             window.gl(),
             webvr_services,
             webxr_registry,
+            player_context,
         );
 
         // Send the constellation's swmanager sender to service worker manager thread
@@ -631,6 +639,7 @@ fn create_constellation(
     window_gl: Rc<dyn gl::Gl>,
     webvr_services: Option<VRServiceManager>,
     webxr_registry: webxr_api::Registry,
+    player_context: WindowGLContext,
 ) -> (Sender<ConstellationMsg>, SWManagerSenders) {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
@@ -712,6 +721,7 @@ fn create_constellation(
         webgl_threads,
         webvr_chan,
         webxr_registry,
+        player_context,
     };
     let (constellation_chan, from_swmanager_sender) = Constellation::<
         script_layout_interface::message::Msg,

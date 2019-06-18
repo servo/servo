@@ -21,6 +21,7 @@ pub mod webdriver_msg;
 
 use crate::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use bluetooth_traits::BluetoothRequest;
+use canvas_traits::media::WindowGLContext;
 use canvas_traits::webgl::WebGLPipeline;
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
@@ -636,6 +637,8 @@ pub struct InitialScriptState {
     pub webrender_api_sender: RenderApiSender,
     /// Flag to indicate if the layout thread is busy handling a request.
     pub layout_is_busy: Arc<AtomicBool>,
+    /// Application window's GL Context for Media player
+    pub player_context: WindowGLContext,
 }
 
 /// This trait allows creating a `ScriptThread` without depending on the `script`
