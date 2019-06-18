@@ -12,6 +12,7 @@ use keyboard_types::KeyboardEvent;
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId, TraversalDirection};
 use script_traits::{MouseButton, TouchEventType, TouchId, WheelDelta};
 use servo_geometry::DeviceIndependentPixel;
+use servo_media::player::context::{GlApi, GlContext, NativeDisplay};
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 #[cfg(feature = "gl")]
@@ -157,6 +158,12 @@ pub trait WindowMethods {
     /// will want to avoid blocking on UI events, and just
     /// run the event loop at the vsync interval.
     fn set_animation_state(&self, _state: AnimationState);
+    /// Get the GL context
+    fn get_gl_context(&self) -> GlContext;
+    /// Get the native display
+    fn get_native_display(&self) -> NativeDisplay;
+    /// Get the GL api
+    fn get_gl_api(&self) -> GlApi;
 }
 
 pub trait EmbedderMethods {

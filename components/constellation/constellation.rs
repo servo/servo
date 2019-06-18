@@ -107,6 +107,7 @@ use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::webgl_thread::WebGLThreads;
 use canvas_traits::canvas::CanvasId;
 use canvas_traits::canvas::CanvasMsg;
+use canvas_traits::media::WindowGLContext;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use compositing::compositor_thread::CompositorProxy;
 use compositing::compositor_thread::Msg as ToCompositorMsg;
@@ -410,6 +411,9 @@ pub struct Constellation<Message, LTF, STF> {
     /// Like --disable-text-aa, this is useful for reftests where pixel perfect
     /// results are required.
     enable_canvas_antialiasing: bool,
+
+    /// Application window's GL Context for Media player
+    player_context: WindowGLContext,
 }
 
 /// State needed to construct a constellation.
@@ -455,6 +459,9 @@ pub struct InitialConstellationState {
 
     /// A channel to the webgl thread.
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
+
+    /// Application window's GL Context for Media player
+    pub player_context: WindowGLContext,
 }
 
 /// Data needed for webdriver
@@ -757,6 +764,7 @@ where
                     is_running_problem_test,
                     hard_fail,
                     enable_canvas_antialiasing,
+                    player_context: state.player_context,
                 };
 
                 constellation.run();
@@ -997,6 +1005,7 @@ where
                 .as_ref()
                 .map(|threads| threads.pipeline()),
             webvr_chan: self.webvr_chan.clone(),
+            player_context: self.player_context.clone(),
         });
 
         let pipeline = match result {
