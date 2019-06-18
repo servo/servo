@@ -15,7 +15,6 @@ use crate::values::computed::{Context, Percentage, ToComputedValue};
 use crate::values::generics::position::Position as GenericPosition;
 use crate::values::generics::position::ZIndex as GenericZIndex;
 use crate::values::specified::{AllowQuirks, Integer, LengthPercentage};
-use crate::values::{Either, None_};
 use crate::Zero;
 use cssparser::Parser;
 use selectors::parser::SelectorParseErrorKind;
@@ -477,6 +476,7 @@ impl From<GridAutoFlow> for u8 {
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(C)]
 /// https://drafts.csswg.org/css-grid/#named-grid-area
 pub struct TemplateAreas {
     /// `named area` containing for each template area
@@ -599,6 +599,7 @@ impl Parse for TemplateAreas {
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(transparent)]
 pub struct TemplateAreasArc(#[ignore_malloc_size_of = "Arc"] pub Arc<TemplateAreas>);
 
 impl Parse for TemplateAreasArc {
@@ -623,8 +624,9 @@ pub struct UnsignedRange {
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToShmem)]
-/// Not associated with any particular grid item, but can
-/// be referenced from the grid-placement properties.
+#[repr(C)]
+/// Not associated with any particular grid item, but can be referenced from the
+/// grid-placement properties.
 pub struct NamedArea {
     /// Name of the `named area`
     pub name: crate::OwnedStr,
@@ -670,16 +672,37 @@ fn is_name_code_point(c: char) -> bool {
 }
 
 /// This property specifies named grid areas.
-/// The syntax of this property also provides a visualization of
-/// the structure of the grid, making the overall layout of
-/// the grid container easier to understand.
-pub type GridTemplateAreas = Either<TemplateAreasArc, None_>;
+///
+/// The syntax of this property also provides a visualization of the structure
+/// of the grid, making the overall layout of the grid container easier to
+/// understand.
+///
+/// cbindgen:derive-tagged-enum-copy-constructor=true
+#[repr(C, u8)]
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+pub enum GridTemplateAreas {
+    /// The `none` value.
+    None,
+    /// The actual value.
+    Areas(TemplateAreasArc),
+}
 
 impl GridTemplateAreas {
     #[inline]
     /// Get default value as `none`
     pub fn none() -> GridTemplateAreas {
-        Either::Second(None_)
+        GridTemplateAreas::None
     }
 }
 
