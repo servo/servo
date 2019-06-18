@@ -74,10 +74,21 @@
 
   class MediaControls {
     constructor() {
+      this.nonce = Date.now();
       // Get the instance of the shadow root where these controls live.
       this.controls = document.servoGetMediaControls("@@@id@@@");
       // Get the instance of the host of these controls.
       this.media = this.controls.host;
+
+      this.shutthingDown = false;
+      this.mutationObserver = new MutationObserver(() => {
+        // We can only get here if the `controls` attribute is removed.
+        this.shutthingDown = true;
+        this.mutationObserver.disconnect();
+      });
+      this.mutationObserver.observe(this.media, {
+        attributeFilter: ["controls"]
+      });
 
       // Create root element and load markup.
       this.root = document.createElement("div");
@@ -203,6 +214,9 @@
     }
 
     render(from = this.state) {
+      if (this.shutthingDown) {
+        return;
+      }
       const isAudioOnly = this.media.localName == "audio";
       if (!isAudioOnly) {
         // XXX This should ideally use clientHeight/clientWidth,

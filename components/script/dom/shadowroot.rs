@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootBinding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{self, ShadowRootMode};
 use crate::dom::bindings::inheritance::Castable;
@@ -78,13 +79,25 @@ impl ShadowRoot {
     }
 
     pub fn detach(&self) {
-        self.host.set(None);
+        self.document.unregister_shadow_root(&self);
         let node = self.upcast::<Node>();
         node.set_containing_shadow_root(None);
-        node.set_flag(NodeFlags::IS_CONNECTED, false);
         for child in node.traverse_preorder(ShadowIncluding::No) {
-            child.set_flag(NodeFlags::IS_CONNECTED, false);
+            if node.RemoveChild(&child).is_err() {
+                warn!("Could not remove shadow root child");
+            }
         }
+        if self
+            .host
+            .get()
+            .unwrap()
+            .upcast::<Node>()
+            .RemoveChild(&node)
+            .is_err()
+        {
+            warn!("Could not detach shadow root");
+        }
+        self.host.set(None);
     }
 
     pub fn get_focused_element(&self) -> Option<DomRoot<Element>> {

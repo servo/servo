@@ -1787,8 +1787,8 @@ impl HTMLMediaElement {
     }
 
     fn remove_controls(&self) {
-        if let Some(ref id) = *self.media_controls_id.borrow() {
-            document_from_node(self).unregister_media_controls(id);
+        if let Some(id) = self.media_controls_id.borrow_mut().take() {
+            document_from_node(self).unregister_media_controls(&id);
         }
     }
 }
