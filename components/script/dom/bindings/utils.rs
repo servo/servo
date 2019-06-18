@@ -342,7 +342,12 @@ pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
 }
 
 /// Enumerate lazy properties of a global object.
-pub unsafe extern "C" fn enumerate_global(cx: *mut JSContext, obj: RawHandleObject, _props: *mut AutoIdVector, _enumerable_only: bool) -> bool {
+pub unsafe extern "C" fn enumerate_global(
+    cx: *mut JSContext,
+    obj: RawHandleObject,
+    _props: *mut AutoIdVector,
+    _enumerable_only: bool,
+) -> bool {
     assert!(JS_IsGlobalObject(obj.get()));
     if !JS_EnumerateStandardClasses(cx, obj) {
         return false;

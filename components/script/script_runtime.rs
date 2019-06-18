@@ -36,9 +36,7 @@ use js::jsapi::{
     JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled,
 };
 use js::jsapi::{JSObject, PromiseRejectionHandlingState, SetPreserveWrapperCallback};
-use js::jsapi::{
-    SetJobQueue, SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback,
-};
+use js::jsapi::{SetJobQueue, SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback};
 use js::panic::wrap_panic;
 use js::rust::wrappers::{GetPromiseIsHandled, GetPromiseResult};
 use js::rust::Handle;
@@ -179,10 +177,13 @@ unsafe extern "C" fn enqueue_promise_job(
             let microtask_queue = &*(extra as *const MicrotaskQueue);
             let global = GlobalScope::from_object(incumbent_global.get());
             let pipeline = global.pipeline_id();
-            microtask_queue.enqueue(Microtask::Promise(EnqueuedPromiseCallback {
-                callback: PromiseJobCallback::new(cx, job.get()),
-                pipeline,
-            }), cx);
+            microtask_queue.enqueue(
+                Microtask::Promise(EnqueuedPromiseCallback {
+                    callback: PromiseJobCallback::new(cx, job.get()),
+                    pipeline,
+                }),
+                cx,
+            );
             true
         }),
         false,
@@ -342,7 +343,7 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
 pub struct Runtime {
     rt: RustRuntime,
     pub microtask_queue: Rc<MicrotaskQueue>,
-    job_queue: *mut JobQueue
+    job_queue: *mut JobQueue,
 }
 
 impl Drop for Runtime {
@@ -409,7 +410,10 @@ unsafe fn new_rt_and_cx_with_parent(parent: Option<ParentRuntime>) -> Runtime {
     DisableIncrementalGC(cx);
 
     let microtask_queue = Rc::new(MicrotaskQueue::default());
-    let job_queue = CreateJobQueue(&JOB_QUEUE_TRAPS, &*microtask_queue as *const _ as *const c_void);
+    let job_queue = CreateJobQueue(
+        &JOB_QUEUE_TRAPS,
+        &*microtask_queue as *const _ as *const c_void,
+    );
     SetJobQueue(cx, job_queue);
     SetPromiseRejectionTrackerCallback(cx, Some(promise_rejection_tracker), ptr::null_mut());
 

@@ -8,8 +8,8 @@
 
 use crate::dom::bindings::conversions::is_dom_proxy;
 use crate::dom::bindings::utils::delete_property_by_id;
-use js::glue::{GetProxyPrivate, SetProxyPrivate};
 use js::glue::GetProxyHandlerFamily;
+use js::glue::{GetProxyPrivate, SetProxyPrivate};
 use js::jsapi::GetStaticPrototype;
 use js::jsapi::Handle as RawHandle;
 use js::jsapi::HandleId as RawHandleId;

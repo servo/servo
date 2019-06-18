@@ -851,7 +851,9 @@ impl ScriptThread {
             if let Some(script_thread) = root.get() {
                 unsafe {
                     let script_thread = &*script_thread;
-                    script_thread.microtask_queue.enqueue(task, script_thread.get_cx());
+                    script_thread
+                        .microtask_queue
+                        .enqueue(task, script_thread.get_cx());
                 }
             }
         });
@@ -3546,11 +3548,11 @@ impl ScriptThread {
 
     #[allow(unsafe_code)]
     pub fn enqueue_microtask(job: Microtask) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            unsafe {
-                let script_thread = &*root.get().unwrap();
-                script_thread.microtask_queue.enqueue(job, script_thread.get_cx());
-            }
+        SCRIPT_THREAD_ROOT.with(|root| unsafe {
+            let script_thread = &*root.get().unwrap();
+            script_thread
+                .microtask_queue
+                .enqueue(job, script_thread.get_cx());
         });
     }
 
@@ -3564,8 +3566,11 @@ impl ScriptThread {
             .collect();
 
         unsafe {
-            self.microtask_queue
-                .checkpoint(self.get_cx(), |id| self.documents.borrow().find_global(id), globals)
+            self.microtask_queue.checkpoint(
+                self.get_cx(),
+                |id| self.documents.borrow().find_global(id),
+                globals,
+            )
         }
     }
 }

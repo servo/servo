@@ -6,7 +6,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::conversions::{root_from_handleobject, ToJSValConvertible};
 use crate::dom::bindings::error::{throw_dom_exception, Error};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::proxyhandler::{fill_property_descriptor};
+use crate::dom::bindings::proxyhandler::fill_property_descriptor;
 use crate::dom::bindings::reflector::{DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -730,7 +730,9 @@ unsafe fn GetSubframeWindowProxy(
                 .and_then(|maybe_bcid| maybe_bcid)
                 .and_then(ScriptThread::find_window_proxy)
                 .map(|proxy| (proxy, (JSPROP_ENUMERATE | JSPROP_READONLY) as u32));
-        } else if let Ok(win) = root_from_handleobject::<DissimilarOriginWindow>(target.handle(), cx) {
+        } else if let Ok(win) =
+            root_from_handleobject::<DissimilarOriginWindow>(target.handle(), cx)
+        {
             let browsing_context_id = win.window_proxy().browsing_context_id();
             let (result_sender, result_receiver) = ipc::channel().unwrap();
 

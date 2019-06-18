@@ -64,8 +64,12 @@ impl MicrotaskQueue {
     /// <https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint>
     /// Perform a microtask checkpoint, executing all queued microtasks until the queue is empty.
     #[allow(unsafe_code)]
-    pub unsafe fn checkpoint<F>(&self, cx: *mut JSContext, target_provider: F, globalscopes: Vec<DomRoot<GlobalScope>>)
-    where
+    pub unsafe fn checkpoint<F>(
+        &self,
+        cx: *mut JSContext,
+        target_provider: F,
+        globalscopes: Vec<DomRoot<GlobalScope>>,
+    ) where
         F: Fn(PipelineId) -> Option<DomRoot<GlobalScope>>,
     {
         if self.performing_a_microtask_checkpoint.get() {

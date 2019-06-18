@@ -246,7 +246,10 @@ impl GlobalScope {
     /// Returns the global object of the realm that the given JS object
     /// was created in, after unwrapping any wrappers.
     #[allow(unsafe_code)]
-    pub unsafe fn from_object_maybe_wrapped(mut obj: *mut JSObject, cx: *mut JSContext) -> DomRoot<Self> {
+    pub unsafe fn from_object_maybe_wrapped(
+        mut obj: *mut JSObject,
+        cx: *mut JSContext,
+    ) -> DomRoot<Self> {
         if IsWrapper(obj) {
             obj = UnwrapObjectDynamic(obj, cx, /* stopAtWindowProxy = */ 0);
             assert!(!obj.is_null());
@@ -804,7 +807,10 @@ fn timestamp_in_ms(time: Timespec) -> u64 {
 
 /// Returns the Rust global scope from a JS global object.
 #[allow(unsafe_code)]
-unsafe fn global_scope_from_global(global: *mut JSObject, cx: *mut JSContext) -> DomRoot<GlobalScope> {
+unsafe fn global_scope_from_global(
+    global: *mut JSObject,
+    cx: *mut JSContext,
+) -> DomRoot<GlobalScope> {
     assert!(!global.is_null());
     let clasp = get_object_class(global);
     assert_ne!(
