@@ -68,6 +68,7 @@ use crate::webdriver_handlers::jsval_to_webdriver;
 use app_units::Au;
 use base64;
 use bluetooth_traits::BluetoothRequest;
+use canvas_traits::media::WindowGLContext;
 use canvas_traits::webgl::WebGLChan;
 use crossbeam_channel::{unbounded, Sender, TryRecvError};
 use cssparser::{Parser, ParserInput, SourceLocation};
@@ -300,6 +301,10 @@ pub struct Window {
     /// Flag that indicates if the layout thread is busy handling a request.
     #[ignore_malloc_size_of = "Arc<T> is hard"]
     layout_is_busy: Arc<AtomicBool>,
+
+    /// Window's GL context from application
+    #[ignore_malloc_size_of = "defined in script_thread"]
+    player_context: WindowGLContext,
 }
 
 impl Window {
@@ -450,6 +455,10 @@ impl Window {
 
     pub fn get_webrender_api_sender(&self) -> RenderApiSender {
         self.webrender_api_sender.clone()
+    }
+
+    pub fn get_player_context(&self) -> WindowGLContext {
+        self.player_context.clone()
     }
 }
 
@@ -2044,6 +2053,7 @@ impl Window {
         webrender_document: DocumentId,
         webrender_api_sender: RenderApiSender,
         layout_is_busy: Arc<AtomicBool>,
+        player_context: WindowGLContext,
     ) -> DomRoot<Self> {
         let layout_rpc: Box<dyn LayoutRPC + Send> = {
             let (rpc_send, rpc_recv) = unbounded();
@@ -2117,6 +2127,7 @@ impl Window {
             webrender_api_sender,
             has_sent_idle_message: Cell::new(false),
             layout_is_busy,
+            player_context,
         });
 
         unsafe { WindowBinding::Wrap(runtime.cx(), win) }

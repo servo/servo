@@ -85,6 +85,7 @@ use crate::task_source::websocket::WebsocketTaskSource;
 use crate::task_source::TaskSourceName;
 use crate::webdriver_handlers;
 use bluetooth_traits::BluetoothRequest;
+use canvas_traits::media::WindowGLContext;
 use canvas_traits::webgl::WebGLPipeline;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::CSSError;
@@ -511,6 +512,8 @@ unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 unsafe_no_jsmanaged_fields!(BackgroundHangMonitorRegister);
 unsafe_no_jsmanaged_fields!(BackgroundHangMonitor);
 
+unsafe_no_jsmanaged_fields!(WindowGLContext);
+
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
 #[allow(unrooted_must_root)]
@@ -642,8 +645,11 @@ pub struct ScriptThread {
     /// The Webrender Document ID associated with this thread.
     webrender_document: DocumentId,
 
-    /// FIXME(victor):
+    /// Webrender API sender.
     webrender_api_sender: RenderApiSender,
+
+    /// Application window's GL Context for Media player
+    player_context: WindowGLContext,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -1154,6 +1160,8 @@ impl ScriptThread {
 
             webrender_document: state.webrender_document,
             webrender_api_sender: state.webrender_api_sender,
+
+            player_context: state.player_context,
         }
     }
 
@@ -2889,6 +2897,7 @@ impl ScriptThread {
             self.webrender_document,
             self.webrender_api_sender.clone(),
             incomplete.layout_is_busy,
+            self.player_context.clone(),
         );
 
         // Initialize the browsing context for the window.

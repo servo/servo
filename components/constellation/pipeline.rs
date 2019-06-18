@@ -5,6 +5,7 @@
 use crate::event_loop::EventLoop;
 use background_hang_monitor::HangMonitorRegister;
 use bluetooth_traits::BluetoothRequest;
+use canvas_traits::media::WindowGLContext;
 use canvas_traits::webgl::WebGLPipeline;
 use compositing::compositor_thread::Msg as CompositorMsg;
 use compositing::CompositionPipeline;
@@ -188,6 +189,9 @@ pub struct InitialPipelineState {
 
     /// A channel to the webvr thread.
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
+
+    /// Application window's GL Context for Media player
+    pub player_context: WindowGLContext,
 }
 
 pub struct NewPipeline {
@@ -305,6 +309,7 @@ impl Pipeline {
                     webrender_document: state.webrender_document,
                     webgl_chan: state.webgl_chan,
                     webvr_chan: state.webvr_chan,
+                    player_context: state.player_context,
                 };
 
                 // Spawn the child process.
@@ -510,6 +515,7 @@ pub struct UnprivilegedPipelineContent {
     webrender_document: webrender_api::DocumentId,
     webgl_chan: Option<WebGLPipeline>,
     webvr_chan: Option<IpcSender<WebVRMsg>>,
+    player_context: WindowGLContext,
 }
 
 impl UnprivilegedPipelineContent {
@@ -557,6 +563,7 @@ impl UnprivilegedPipelineContent {
                 webrender_document: self.webrender_document,
                 webrender_api_sender: self.webrender_api_sender.clone(),
                 layout_is_busy: layout_thread_busy_flag.clone(),
+                player_context: self.player_context.clone(),
             },
             self.load_data.clone(),
         );
