@@ -309,11 +309,6 @@ impl_threadsafe_refcount!(
     bindings::Gecko_ReleasensIURIArbitraryThread
 );
 impl_threadsafe_refcount!(
-    structs::mozilla::css::GridTemplateAreasValue,
-    bindings::Gecko_AddRefGridTemplateAreasValueArbitraryThread,
-    bindings::Gecko_ReleaseGridTemplateAreasValueArbitraryThread
-);
-impl_threadsafe_refcount!(
     structs::SharedFontList,
     bindings::Gecko_AddRefSharedFontListArbitraryThread,
     bindings::Gecko_ReleaseSharedFontListArbitraryThread
@@ -328,6 +323,7 @@ impl_threadsafe_refcount!(
 unsafe fn addref_atom(atom: *mut structs::nsAtom) {
     mem::forget(Atom::from_raw(atom));
 }
+
 #[inline]
 unsafe fn release_atom(atom: *mut structs::nsAtom) {
     let _ = Atom::from_addrefed(atom);
