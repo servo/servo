@@ -506,7 +506,6 @@ impl Element {
     pub fn detach_shadow(&self) {
         if let Some(ref shadow_root) = self.shadow_root() {
             shadow_root.detach();
-            self.node.owner_doc().unregister_shadow_root(shadow_root);
             self.ensure_rare_data().shadow_root = None;
         } else {
             debug_assert!(false, "Trying to detach a non-attached shadow root");

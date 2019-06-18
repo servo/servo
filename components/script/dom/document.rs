@@ -2478,9 +2478,6 @@ impl Document {
         if let Some(ref media_controls) = self.media_controls.borrow_mut().remove(id) {
             let media_controls = DomRoot::from_ref(&**media_controls);
             media_controls.Host().detach_shadow();
-            media_controls
-                .upcast::<Node>()
-                .dirty(NodeDamage::OtherNodeDamage);
         } else {
             debug_assert!(false, "Trying to unregister unknown media controls");
         }
