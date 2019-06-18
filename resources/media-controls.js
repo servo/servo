@@ -80,11 +80,9 @@
       // Get the instance of the host of these controls.
       this.media = this.controls.host;
 
-      this.shutthingDown = false;
       this.mutationObserver = new MutationObserver(() => {
         // We can only get here if the `controls` attribute is removed.
-        this.shutthingDown = true;
-        this.mutationObserver.disconnect();
+        this.cleanup();
       });
       this.mutationObserver.observe(this.media, {
         attributeFilter: ["controls"]
@@ -208,15 +206,22 @@
       this.onStateChange(null);
     }
 
+    cleanup() {
+      this.mutationObserver.disconnect();
+      this.mediaEvents.forEach(event => {
+        this.media.removeEventListener(event, this);
+      });
+      this.controlEvents.forEach(({ el, type }) => {
+        el.removeEventListener(type, this);
+      });
+    }
+
     // State change handler
     onStateChange(from) {
       this.render(from);
     }
 
     render(from = this.state) {
-      if (this.shutthingDown) {
-        return;
-      }
       const isAudioOnly = this.media.localName == "audio";
       if (!isAudioOnly) {
         // XXX This should ideally use clientHeight/clientWidth,
