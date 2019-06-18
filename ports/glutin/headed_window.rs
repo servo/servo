@@ -30,6 +30,7 @@ use servo::style_traits::DevicePixel;
 use servo::webrender_api::{
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, FramebufferIntSize, ScrollLocation,
 };
+use servo_media::player::context as MediaPlayerCtxt;
 use std::cell::{Cell, RefCell};
 use std::mem;
 use std::rc::Rc;
@@ -523,6 +524,18 @@ impl WindowMethods for Window {
 
     fn prepare_for_composite(&self) {
         self.gl_context.borrow_mut().make_current();
+    }
+
+    fn get_gl_context(&self) -> MediaPlayerCtxt::GlContext {
+        MediaPlayerCtxt::GlContext::Unknown
+    }
+
+    fn get_native_display(&self) -> MediaPlayerCtxt::NativeDisplay {
+        MediaPlayerCtxt::NativeDisplay::Unknown
+    }
+
+    fn get_gl_api(&self) -> MediaPlayerCtxt::GlApi {
+        MediaPlayerCtxt::GlApi::None
     }
 }
 
