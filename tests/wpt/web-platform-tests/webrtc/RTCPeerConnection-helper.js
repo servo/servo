@@ -254,6 +254,9 @@ async function doSignalingHandshake(localPc, remotePc, options={}) {
 // This should work for RTCSctpTransport, RTCDtlsTransport and RTCIceTransport.
 function waitForState(transport, state) {
   return new Promise((resolve, reject) => {
+    if (transport.state == state) {
+      resolve();
+    }
     const eventHandler = () => {
       if (transport.state == state) {
         transport.removeEventListener('statechange', eventHandler, false);

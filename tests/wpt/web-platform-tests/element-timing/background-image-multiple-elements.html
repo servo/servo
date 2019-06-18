@@ -61,6 +61,8 @@ body {
               observedDiv2Txt = true;
               checkTextElement(entry, 'et2', 'div2', beforeRender,
                 document.getElementById('div2'));
+              assert_greater_than_equal(entry.intersectionRect.right - entry.intersectionRect.left, 50);
+              assert_greater_than_equal(entry.intersectionRect.bottom - entry.intersectionRect.top, 10);
             }
           }
           else {

@@ -20,19 +20,22 @@ let interceptor = (async function() {
 })();
 
 class SmsProvider {
+  constructor() {
+    this.returnValues = {}
+  }
+
   getNextMessage(timeout) {
-    return this.handler.getNextMessage(timeout);
+    let call = this.returnValues.getNextMessage.shift();
+    if (!call) {
+      throw new Error("Unexpected call.");
+    }
+    return call(timeout);
   }
-  setHandler(handler) {
-    this.handler = handler;
+
+  pushReturnValues(callName, returnValues) {
+    this.returnValues[callName] = this.returnValues[callName] || [];
+    this.returnValues[callName].push(returnValues);
     return this;
-  }
-  setBinding(binding) {
-    this.binding = binding;
-    return this;
-  }
-  close() {
-    this.binding.close();
   }
 }
 
@@ -40,18 +43,11 @@ function getNextMessage(timeout, callback) {
   throw new Error("expected to be overriden by tests");
 }
 
-async function close() {
-  let provider = await interceptor;
-  provider.close();
-}
-
 function expect(call) {
   return {
     async andReturn(callback) {
-      let handler = {};
-      handler[call.name] = callback;
       let provider = await interceptor;
-      provider.setHandler(handler);
+      provider.pushReturnValues(call.name, callback);
     }
   }
 }
@@ -61,7 +57,8 @@ const Status = {};
 function intercept() {
   let provider = new SmsProvider();
 
-  let interceptor = new MojoInterfaceInterceptor(blink.mojom.SmsManager.$interfaceName);
+  let interceptor = new MojoInterfaceInterceptor(
+      blink.mojom.SmsManager.$interfaceName);
   interceptor.oninterfacerequest = (e) => {
     let impl = new blink.mojom.SmsManager(provider);
     impl.bindHandle(e.handle);

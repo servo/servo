@@ -276,5 +276,42 @@ async_test(t => {
 
       closed
         The RTCIceTransport has shut down and is no longer responding to STUN requests.
-   */
+  */
+
+for (let bundle_policy of ['balanced', 'max-bundle', 'max-compat']) {
+
+
+    promise_test(async t => {
+      const caller = new RTCPeerConnection({bundlePolicy: bundle_policy});
+      t.add_cleanup(() => caller.close());
+      const stream = await navigator.mediaDevices.getUserMedia(
+          {audio: true, video:true});
+      t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+      const [track1, track2] = stream.getTracks();
+      const sender1 = caller.addTrack(track1);
+      const sender2 = caller.addTrack(track2);
+      caller.createDataChannel('datachannel');
+      const callee = new RTCPeerConnection();
+      t.add_cleanup(() => callee.close());
+      coupleIceCandidates(caller, callee);
+      const offer = await caller.createOffer();
+      await caller.setLocalDescription(offer);
+      const [caller_transceiver1, caller_transceiver2] = caller.getTransceivers();
+      assert_equals(sender1.transport, caller_transceiver1.sender.transport);
+      await callee.setRemoteDescription(offer);
+      const [callee_transceiver1, callee_transceiver2] = callee.getTransceivers();
+      const answer = await callee.createAnswer();
+      await callee.setLocalDescription(answer);
+      await caller.setRemoteDescription(answer);
+      // At this point, we should have a single ICE transport, and it
+      // should eventually get to the "connected" state.
+      await waitForState(caller_transceiver1.receiver.transport.iceTransport,
+                         'connected');
+      // The PeerConnection's iceConnectionState should therefore be 'connected'
+      assert_equals(caller.iceConnectionState, 'connected',
+                    'PC.iceConnectionState:');
+    }, 'iceConnectionState changes at the right time, with bundle policy ' +
+                 bundle_policy);
+  }
+
 </script>

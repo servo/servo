@@ -26,9 +26,17 @@
     non_strings.forEach(invalid_serialNumber => {
       assert_throws(new TypeError, () => new NFCReadingEvent(
         'message',
-        {invalid_serialNumber, message}
+        {serialNumber: invalid_serialNumber, message: message}
       ));
     });
-  }, 'NFCReadingEvent constructor with non-string serialNumber');
+  }, 'NFCReadingEvent constructor with invalid serialNumber');
+
+  test(() => {
+    const message = createMessage([createJsonRecord(test_json_data)]);
+    const event = new NFCReadingEvent('type', {serialNumber: '', message: message});
+    assert_equals(event.type, 'type', 'type');
+    assert_equals(event.serialNumber, '', 'serialNumber');
+    assertWebNDEFMessagesEqual(event.message, message, 'message');
+  }, 'NFCReadingEvent constructor with valid parameters');
 
 </script>

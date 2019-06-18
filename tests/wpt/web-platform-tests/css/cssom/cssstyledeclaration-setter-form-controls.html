@@ -1,0 +1,103 @@
+<!doctype html>
+<title>CSSOM test: no side effects from setting "height"</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-setproperty">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=107380">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<p>
+Historically, the Apple Safari web browser has added an "intrinsic margin" to
+form controls which do not specify a `height`. It removed this margin following
+modification of the `height`. <a
+href="https://bugs.webkit.org/show_bug.cgi?id=107380">This non-standard
+behavior was identified as a source of confusion for web developers.</a>
+</p>
+
+<script>
+function makeElement(tagName) {
+  var element = document.createElement(tagName);
+  document.body.appendChild(element);
+  return element;
+}
+function makeInputElement(type) {
+  var element = makeElement('input');
+  element.setAttribute('type', type);
+  return element;
+}
+function measure(element) {
+  var computed = getComputedStyle(element);
+  return [computed.marginTop, computed.marginBottom];
+}
+
+test(function() {
+  var element = makeInputElement('text');
+  var initial = measure(element);
+
+  element.style.setProperty('height', '12px');
+
+  assert_array_equals(measure(element), initial);
+}, 'text input element');
+
+test(function() {
+  var element = makeInputElement('button');
+  var initial = measure(element);
+
+  element.style.setProperty('height', '12px');
+
+  assert_array_equals(measure(element), initial);
+}, 'button input element');
+
+test(function() {
+  var element = makeInputElement('submit');
+  var initial = measure(element);
+
+  element.style.setProperty('height', '12px');
+
+  assert_array_equals(measure(element), initial);
+}, 'submit input element');
+
+test(function() {
+  var element = makeInputElement('radio');
+  var initial = measure(element);
+
+  element.style.setProperty('height', '12px');
+
+  assert_array_equals(measure(element), initial);
+}, 'radio input element');
+
+test(function() {
+  var element = makeInputElement('checkbox');
+  var initial = measure(element);
+
+  element.style.setProperty('height', '12px');
+
+  assert_array_equals(measure(element), initial);
+}, 'checkbox input element');
+
+test(function() {
+  var element = makeElement('textarea');
+  var initial = measure(element);
+
+  element.style.setProperty('height', '12px');
+
+  assert_array_equals(measure(element), initial);
+}, 'textarea element');
+
+test(function() {
+  var element = makeElement('select');
+  var initial = measure(element);
+
+  element.style.setProperty('height', '12px');
+
+  assert_array_equals(measure(element), initial);
+}, 'select element');
+
+test(function() {
+  var element = makeElement('button')
+  var initial = measure(element);
+
+  element.style.setProperty('height', '12px');
+
+  assert_array_equals(measure(element), initial);
+}, 'button element');
+</script>

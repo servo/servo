@@ -203,8 +203,6 @@ dictionary XRWebGLLayerInit {
              optional XRWebGLLayerInit layerInit)]
 interface XRWebGLLayer {
   // Attributes
-  [SameObject] readonly attribute XRWebGLRenderingContext context;
-
   readonly attribute boolean antialias;
   readonly attribute boolean ignoreDepthValues;
 
