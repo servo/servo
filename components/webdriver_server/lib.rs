@@ -542,6 +542,17 @@ impl Handler {
         Ok(WebDriverResponse::DeleteSession)
     }
 
+    // https://w3c.github.io/webdriver/#status
+    fn handle_status(&self) -> WebDriverResult<WebDriverResponse> {
+        Ok(WebDriverResponse::Generic(ValueResponse(
+            if self.session.is_none() {
+                json!({ "ready": true, "message": "Ready for a new session" })
+            } else {
+                json!({ "ready": false, "message": "Not ready for a new session" })
+            },
+        )))
+    }
+
     fn browsing_context_script_command(
         &self,
         cmd_msg: WebDriverScriptCommand,
@@ -1409,7 +1420,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
         // Unless we are trying to create a new session, we need to ensure that a
         // session has previously been created
         match msg.command {
-            WebDriverCommand::NewSession(_) => {},
+            WebDriverCommand::NewSession(_) | WebDriverCommand::Status => {},
             _ => {
                 self.session()?;
             },
@@ -1418,6 +1429,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
         match msg.command {
             WebDriverCommand::NewSession(ref parameters) => self.handle_new_session(parameters),
             WebDriverCommand::DeleteSession => self.handle_delete_session(),
+            WebDriverCommand::Status => self.handle_status(),
             WebDriverCommand::AddCookie(ref parameters) => self.handle_add_cookie(parameters),
             WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
             WebDriverCommand::GetCurrentUrl => self.handle_current_url(),
