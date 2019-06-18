@@ -378,6 +378,48 @@ where
     }
 }
 
+impl<H, V, NonNegativeLengthPercentage> ToCss for Circle<H, V, NonNegativeLengthPercentage>
+where
+    GenericPosition<H, V>: ToCss,
+    NonNegativeLengthPercentage: ToCss + PartialEq,
+{
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        dest.write_str("circle(")?;
+        if self.radius != Default::default() {
+            self.radius.to_css(dest)?;
+            dest.write_str(" ")?;
+        }
+        dest.write_str("at ")?;
+        self.position.to_css(dest)?;
+        dest.write_str(")")
+    }
+}
+
+impl<H, V, NonNegativeLengthPercentage> ToCss for Ellipse<H, V, NonNegativeLengthPercentage>
+where
+    GenericPosition<H, V>: ToCss,
+    NonNegativeLengthPercentage: ToCss + PartialEq,
+{
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        dest.write_str("ellipse(")?;
+        if self.semiaxis_x != Default::default() || self.semiaxis_y != Default::default() {
+            self.semiaxis_x.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.semiaxis_y.to_css(dest)?;
+            dest.write_str(" ")?;
+        }
+        dest.write_str("at ")?;
+        self.position.to_css(dest)?;
+        dest.write_str(")")
+    }
+}
+
 impl<L> Default for ShapeRadius<L> {
     #[inline]
     fn default() -> Self {
