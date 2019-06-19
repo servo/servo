@@ -7,7 +7,8 @@
 //!
 //! [position]: https://drafts.csswg.org/css-backgrounds-3/#position
 
-use crate::hash::FxHashMap;
+use crate::Atom;
+use crate::selector_map::PrecomputedHashMap;
 use crate::parser::{Parse, ParserContext};
 use crate::str::HTML_SPACE_CHARACTERS;
 use crate::values::computed::LengthPercentage as ComputedLengthPercentage;
@@ -500,15 +501,15 @@ impl TemplateAreas {
         let mut width = 0;
         {
             let mut row = 0u32;
-            let mut area_indices = FxHashMap::<&str, usize>::default();
+            let mut area_indices = PrecomputedHashMap::<Atom, usize>::default();
             for string in &strings {
                 let mut current_area_index: Option<usize> = None;
                 row += 1;
                 let mut column = 0u32;
                 for token in TemplateAreasTokenizer(string) {
                     column += 1;
-                    let token = if let Some(token) = token? {
-                        token
+                    let name = if let Some(token) = token? {
+                        Atom::from(token)
                     } else {
                         if let Some(index) = current_area_index.take() {
                             if areas[index].columns.end != column {
@@ -518,7 +519,7 @@ impl TemplateAreas {
                         continue;
                     };
                     if let Some(index) = current_area_index {
-                        if &*areas[index].name == token {
+                        if areas[index].name == name {
                             if areas[index].rows.start == row {
                                 areas[index].columns.end += 1;
                             }
@@ -528,7 +529,7 @@ impl TemplateAreas {
                             return Err(());
                         }
                     }
-                    if let Some(index) = area_indices.get(token).cloned() {
+                    if let Some(index) = area_indices.get(&name).cloned() {
                         if areas[index].columns.start != column || areas[index].rows.end != row {
                             return Err(());
                         }
@@ -537,8 +538,9 @@ impl TemplateAreas {
                         continue;
                     }
                     let index = areas.len();
+                    assert!(area_indices.insert(name.clone(), index).is_none());
                     areas.push(NamedArea {
-                        name: token.to_owned().into(),
+                        name,
                         columns: UnsignedRange {
                             start: column,
                             end: column + 1,
@@ -548,7 +550,6 @@ impl TemplateAreas {
                             end: row + 1,
                         },
                     });
-                    assert!(area_indices.insert(token, index).is_none());
                     current_area_index = Some(index);
                 }
                 if let Some(index) = current_area_index {
@@ -629,7 +630,7 @@ pub struct UnsignedRange {
 /// grid-placement properties.
 pub struct NamedArea {
     /// Name of the `named area`
-    pub name: crate::OwnedStr,
+    pub name: Atom,
     /// Rows of the `named area`
     pub rows: UnsignedRange,
     /// Columns of the `named area`
