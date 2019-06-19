@@ -524,7 +524,6 @@ def check_rust(file_name, lines):
     prev_mod = {}
     prev_feature_name = ""
     indent = 0
-    prev_indent = 0
 
     check_alphabetical_order = config["check-alphabetical-order"]
     decl_message = "{} is not in alphabetical order"
@@ -534,7 +533,6 @@ def check_rust(file_name, lines):
     for idx, original_line in enumerate(lines):
         # simplify the analysis
         line = original_line.strip()
-        prev_indent = indent
         indent = len(original_line) - len(line)
 
         is_attribute = re.search(r"#\[.*\]", line)
@@ -595,50 +593,6 @@ def check_rust(file_name, lines):
         # tuple format: (pattern, format_message, filter_function(match, line))
         no_filter = lambda match, line: True
         regex_rules = [
-            (r",[^\s]", "missing space after ,",
-                lambda match, line: '$' not in line and not is_attribute),
-            (r"([A-Za-z0-9_]+) (\()", "extra space after {0}",
-                lambda match, line: not (
-                    is_attribute or
-                    re.match(r"\bmacro_rules!\s+", line[:match.start()]) or
-                    re.search(r"[^']'[A-Za-z0-9_]+ \($", line[:match.end()]) or
-                    match.group(1) in ['const', 'fn', 'for', 'if', 'in',
-                                       'let', 'match', 'mut', 'return'])),
-            (r"[A-Za-z0-9\"]=", "missing space before =",
-                lambda match, line: is_attribute),
-            (r"=[A-Za-z0-9\"]", "missing space after =",
-                lambda match, line: is_attribute),
-            (r"^=\s", "no = in the beginning of line",
-                lambda match, line: not is_comment),
-            # ignore scientific notation patterns like 1e-6
-            (r"[A-DF-Za-df-z0-9]-", "missing space before -",
-                lambda match, line: not is_attribute),
-            (r"[A-Za-z0-9]([\+/\*%=])", "missing space before {0}",
-                lambda match, line: (not is_attribute and
-                                     not is_associated_type(match, line))),
-            # * not included because of dereferencing and casting
-            # - not included because of unary negation
-            (r'([\+/\%=])[A-Za-z0-9"]', "missing space after {0}",
-                lambda match, line: (not is_attribute and
-                                     not is_associated_type(match, line))),
-            (r"\)->", "missing space before ->", no_filter),
-            (r"->[A-Za-z]", "missing space after ->", no_filter),
-            (r"[^ ]=>", "missing space before =>", lambda match, line: match.start() != 0),
-            (r"=>[^ ]", "missing space after =>", lambda match, line: match.end() != len(line)),
-            (r"=>  ", "extra space after =>", no_filter),
-            # ignore " ::crate::mod" and "trait Foo : Bar"
-            (r" :[^:]", "extra space before :",
-                lambda match, line: 'trait ' not in line[:match.start()]),
-            # ignore "crate::mod" and ignore flagging macros like "$t1:expr"
-            (r"[^:]:[A-Za-z0-9\"]", "missing space after :",
-                lambda match, line: '$' not in line[:match.end()]),
-            (r"[A-Za-z0-9\)]{", "missing space before {{", no_filter),
-            # ignore cases like "{}", "}`", "}}" and "use::std::{Foo, Bar}"
-            (r"[^\s{}]}[^`]", "missing space before }}",
-                lambda match, line: not re.match(r'^(pub )?use', line)),
-            # ignore cases like "{}", "`{", "{{" and "use::std::{Foo, Bar}"
-            (r"[^`]{[^\s{}]", "missing space after {{",
-                lambda match, line: not re.match(r'^(pub )?use', line)),
             # There should not be any extra pointer dereferencing
             (r": &Vec<", "use &[T] instead of &Vec<T>", no_filter),
             # No benefit over using &str
@@ -652,22 +606,12 @@ def check_rust(file_name, lines):
             # No benefit to using &Root<T>
             (r": &Root<", "use &T instead of &Root<T>", no_filter),
             (r"^&&", "operators should go at the end of the first line", no_filter),
-            (r"\{[A-Za-z0-9_]+\};", "use statement contains braces for single import",
-                lambda match, line: line.startswith('use ')),
-            (r"^\s*else {", "else braces should be on the same line", no_filter),
-            (r"[^$ ]\([ \t]", "extra space after (", no_filter),
             # This particular pattern is not reentrant-safe in script_thread.rs
             (r"match self.documents.borrow", "use a separate variable for the match expression",
              lambda match, line: file_name.endswith('script_thread.rs')),
             # -> () is unnecessary
             (r"-> \(\)", "encountered function signature with -> ()", no_filter),
         ]
-        keywords = ["if", "let", "mut", "extern", "as", "impl", "fn", "struct", "enum", "pub", "mod",
-                    "use", "in", "ref", "type", "where", "trait"]
-        extra_space_after = lambda key: (r"(?<![A-Za-z0-9\-_]){key}  ".format(key=key),
-                                         "extra space after {key}".format(key=key),
-                                         lambda match, line: not is_attribute)
-        regex_rules.extend(map(extra_space_after, keywords))
 
         for pattern, message, filter_func in regex_rules:
             for match in re.finditer(pattern, line):
@@ -677,13 +621,6 @@ def check_rust(file_name, lines):
         if prev_open_brace and not line:
             yield (idx + 1, "found an empty line following a {")
         prev_open_brace = line.endswith("{")
-
-        # ensure a line starting with { or } has a number of leading spaces that is a multiple of 4
-        if line.startswith(("{", "}")):
-            match = re.match(r"(?: {4})* {1,3}([{}])", original_line)
-            if match:
-                if indent != prev_indent - 4:
-                    yield (idx + 1, "space before {} is not a multiple of 4".format(match.group(1)))
 
         # check alphabetical order of extern crates
         if line.startswith("extern crate "):
