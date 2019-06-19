@@ -65,14 +65,14 @@ pub enum Cursor {
 
 /// Used to wake up the event loop, provided by the servo port/embedder.
 pub trait EventLoopWaker: 'static + Send {
-    fn clone(&self) -> Box<EventLoopWaker + Send>;
+    fn clone(&self) -> Box<dyn EventLoopWaker + Send>;
     fn wake(&self);
 }
 
 /// Sends messages to the embedder.
 pub struct EmbedderProxy {
     pub sender: Sender<(Option<TopLevelBrowsingContextId>, EmbedderMsg)>,
-    pub event_loop_waker: Box<EventLoopWaker>,
+    pub event_loop_waker: Box<dyn EventLoopWaker>,
 }
 
 impl EmbedderProxy {

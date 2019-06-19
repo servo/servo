@@ -21,9 +21,9 @@ use std::rc::Rc;
 
 pub struct App {
     events_loop: Rc<RefCell<EventsLoop>>,
-    window: Rc<WindowPortsMethods>,
-    servo: RefCell<Servo<WindowPortsMethods>>,
-    browser: RefCell<Browser<WindowPortsMethods>>,
+    window: Rc<dyn WindowPortsMethods>,
+    servo: RefCell<Servo<dyn WindowPortsMethods>>,
+    browser: RefCell<Browser<dyn WindowPortsMethods>>,
     event_queue: RefCell<Vec<WindowEvent>>,
     suspended: Cell<bool>,
 }

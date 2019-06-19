@@ -463,17 +463,17 @@ pub trait BackgroundHangMonitorRegister: BackgroundHangMonitorClone + Send {
         component: MonitoredComponentId,
         transient_hang_timeout: Duration,
         permanent_hang_timeout: Duration,
-    ) -> Box<BackgroundHangMonitor>;
+    ) -> Box<dyn BackgroundHangMonitor>;
 }
 
-impl Clone for Box<BackgroundHangMonitorRegister> {
-    fn clone(&self) -> Box<BackgroundHangMonitorRegister> {
+impl Clone for Box<dyn BackgroundHangMonitorRegister> {
+    fn clone(&self) -> Box<dyn BackgroundHangMonitorRegister> {
         self.clone_box()
     }
 }
 
 pub trait BackgroundHangMonitorClone {
-    fn clone_box(&self) -> Box<BackgroundHangMonitorRegister>;
+    fn clone_box(&self) -> Box<dyn BackgroundHangMonitorRegister>;
 }
 
 /// Proxy methods to communicate with the background hang monitor

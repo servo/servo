@@ -55,7 +55,7 @@ impl Backend for AzureBackend {
         &mut self,
         style: FillOrStrokeStyle,
         state: &mut CanvasPaintState<'a>,
-        drawtarget: &GenericDrawTarget,
+        drawtarget: &dyn GenericDrawTarget,
     ) {
         if let Some(pattern) = style.to_azure_pattern(drawtarget) {
             state.fill_style = Pattern::Azure(pattern)
@@ -66,7 +66,7 @@ impl Backend for AzureBackend {
         &mut self,
         style: FillOrStrokeStyle,
         state: &mut CanvasPaintState<'a>,
-        drawtarget: &GenericDrawTarget,
+        drawtarget: &dyn GenericDrawTarget,
     ) {
         if let Some(pattern) = style.to_azure_pattern(drawtarget) {
             state.stroke_style = Pattern::Azure(pattern)
@@ -84,7 +84,7 @@ impl Backend for AzureBackend {
             .set_composition_op(op.to_azure_style());
     }
 
-    fn create_drawtarget(&self, size: Size2D<u64>) -> Box<GenericDrawTarget> {
+    fn create_drawtarget(&self, size: Size2D<u64>) -> Box<dyn GenericDrawTarget> {
         // FIXME(nox): Why is the size made of i32 values?
         Box::new(DrawTarget::new(
             BackendType::Skia,
@@ -222,7 +222,7 @@ impl GenericDrawTarget for azure_hl::DrawTarget {
         GradientStops::Azure(self.create_gradient_stops(&gradient_stops, extend_mode.into_azure()))
     }
 
-    fn create_path_builder(&self) -> Box<GenericPathBuilder> {
+    fn create_path_builder(&self) -> Box<dyn GenericPathBuilder> {
         Box::new(self.create_path_builder())
     }
 
@@ -230,7 +230,7 @@ impl GenericDrawTarget for azure_hl::DrawTarget {
         &self,
         size: &Size2D<i32>,
         format: SurfaceFormat,
-    ) -> Box<GenericDrawTarget> {
+    ) -> Box<dyn GenericDrawTarget> {
         Box::new(self.create_similar_draw_target(size, format.into_azure()))
     }
     fn create_source_surface_from_data(
@@ -378,7 +378,7 @@ impl GenericDrawTarget for azure_hl::DrawTarget {
     }
 
     #[allow(unsafe_code)]
-    fn snapshot_data(&self, f: &Fn(&[u8]) -> Vec<u8>) -> Vec<u8> {
+    fn snapshot_data(&self, f: &dyn Fn(&[u8]) -> Vec<u8>) -> Vec<u8> {
         unsafe { f(self.snapshot().get_data_surface().data()) }
     }
 
@@ -619,11 +619,11 @@ impl ToAzureStyle for CompositionOrBlending {
 }
 
 pub trait ToAzurePattern {
-    fn to_azure_pattern(&self, drawtarget: &GenericDrawTarget) -> Option<azure_hl::Pattern>;
+    fn to_azure_pattern(&self, drawtarget: &dyn GenericDrawTarget) -> Option<azure_hl::Pattern>;
 }
 
 impl ToAzurePattern for FillOrStrokeStyle {
-    fn to_azure_pattern(&self, drawtarget: &GenericDrawTarget) -> Option<azure_hl::Pattern> {
+    fn to_azure_pattern(&self, drawtarget: &dyn GenericDrawTarget) -> Option<azure_hl::Pattern> {
         Some(match *self {
             FillOrStrokeStyle::Color(ref color) => {
                 azure_hl::Pattern::Color(ColorPattern::new(color.to_azure_style()))
@@ -747,7 +747,7 @@ impl Path {
     pub fn transformed_copy_to_builder(
         &self,
         transform: &Transform2D<f32>,
-    ) -> Box<GenericPathBuilder> {
+    ) -> Box<dyn GenericPathBuilder> {
         Box::new(self.as_azure().transformed_copy_to_builder(transform))
     }
 
@@ -755,7 +755,7 @@ impl Path {
         self.as_azure().contains_point(x, y, path_transform)
     }
 
-    pub fn copy_to_builder(&self) -> Box<GenericPathBuilder> {
+    pub fn copy_to_builder(&self) -> Box<dyn GenericPathBuilder> {
         Box::new(self.as_azure().copy_to_builder())
     }
 }

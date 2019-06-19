@@ -508,9 +508,9 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA, ()> {
 
     fn hex(ch: char) -> Result<u8, ()> {
         match ch {
-            '0'...'9' => Ok((ch as u8) - b'0'),
-            'a'...'f' => Ok((ch as u8) - b'a' + 10),
-            'A'...'F' => Ok((ch as u8) - b'A' + 10),
+            '0'..='9' => Ok((ch as u8) - b'0'),
+            'a'..='f' => Ok((ch as u8) - b'a' + 10),
+            'A'..='F' => Ok((ch as u8) - b'A' + 10),
             _ => Err(()),
         }
     }
@@ -550,7 +550,7 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
 
     // Steps 6 & 7
     match value.chars().nth(0) {
-        Some('0'...'9') => {},
+        Some('0'..='9') => {},
         _ => return LengthOrPercentageOrAuto::Auto,
     }
 
@@ -565,7 +565,7 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
     let (mut found_full_stop, mut found_percent) = (false, false);
     for (i, ch) in value.chars().enumerate() {
         match ch {
-            '0'...'9' => continue,
+            '0'..='9' => continue,
             '%' => {
                 found_percent = true;
                 end_index = i;

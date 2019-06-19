@@ -26,9 +26,9 @@ enum PathState {
     /// Path builder in user-space. If a transform has been applied
     /// but no further path operations have occurred, it is stored
     /// in the optional field.
-    UserSpacePathBuilder(Box<GenericPathBuilder>, Option<Transform2D<f32>>),
+    UserSpacePathBuilder(Box<dyn GenericPathBuilder>, Option<Transform2D<f32>>),
     /// Path builder in device-space.
-    DeviceSpacePathBuilder(Box<GenericPathBuilder>),
+    DeviceSpacePathBuilder(Box<dyn GenericPathBuilder>),
     /// Path in user-space. If a transform has been applied but
     /// but no further path operations have occurred, it is stored
     /// in the optional field.
@@ -61,20 +61,20 @@ pub trait Backend {
         &mut self,
         style: FillOrStrokeStyle,
         state: &mut CanvasPaintState<'a>,
-        drawtarget: &GenericDrawTarget,
+        drawtarget: &dyn GenericDrawTarget,
     );
     fn set_stroke_style<'a>(
         &mut self,
         style: FillOrStrokeStyle,
         state: &mut CanvasPaintState<'a>,
-        drawtarget: &GenericDrawTarget,
+        drawtarget: &dyn GenericDrawTarget,
     );
     fn set_global_composition<'a>(
         &mut self,
         op: CompositionOrBlending,
         state: &mut CanvasPaintState<'a>,
     );
-    fn create_drawtarget(&self, size: Size2D<u64>) -> Box<GenericDrawTarget>;
+    fn create_drawtarget(&self, size: Size2D<u64>) -> Box<dyn GenericDrawTarget>;
     fn recreate_paint_state<'a>(&self, state: &CanvasPaintState<'a>) -> CanvasPaintState<'a>;
     fn size_from_pattern(&self, rect: &Rect<f32>, pattern: &Pattern) -> Option<Size2D<f32>>;
 }
@@ -117,7 +117,7 @@ pub trait GenericPathBuilder {
 /// A wrapper around a stored PathBuilder and an optional transformation that should be
 /// applied to any points to ensure they are in the matching device space.
 struct PathBuilderRef<'a> {
-    builder: &'a Box<GenericPathBuilder>,
+    builder: &'a Box<dyn GenericPathBuilder>,
     transform: Transform2D<f32>,
 }
 
@@ -215,12 +215,12 @@ pub trait GenericDrawTarget {
         gradient_stops: Vec<GradientStop>,
         extend_mode: ExtendMode,
     ) -> GradientStops;
-    fn create_path_builder(&self) -> Box<GenericPathBuilder>;
+    fn create_path_builder(&self) -> Box<dyn GenericPathBuilder>;
     fn create_similar_draw_target(
         &self,
         size: &Size2D<i32>,
         format: SurfaceFormat,
-    ) -> Box<GenericDrawTarget>;
+    ) -> Box<dyn GenericDrawTarget>;
     fn create_source_surface_from_data(
         &self,
         data: &[u8],
@@ -275,7 +275,7 @@ pub trait GenericDrawTarget {
         stroke_options: &StrokeOptions,
         draw_options: &DrawOptions,
     );
-    fn snapshot_data(&self, f: &Fn(&[u8]) -> Vec<u8>) -> Vec<u8>;
+    fn snapshot_data(&self, f: &dyn Fn(&[u8]) -> Vec<u8>) -> Vec<u8>;
     fn snapshot_data_owned(&self) -> Vec<u8>;
 }
 
@@ -377,8 +377,8 @@ pub enum Filter {
 }
 
 pub struct CanvasData<'a> {
-    backend: Box<Backend>,
-    drawtarget: Box<GenericDrawTarget>,
+    backend: Box<dyn Backend>,
+    drawtarget: Box<dyn GenericDrawTarget>,
     path_state: Option<PathState>,
     state: CanvasPaintState<'a>,
     saved_states: Vec<CanvasPaintState<'a>>,
@@ -392,7 +392,7 @@ pub struct CanvasData<'a> {
 }
 
 #[cfg(feature = "azure_backend")]
-fn create_backend() -> Box<Backend> {
+fn create_backend() -> Box<dyn Backend> {
     Box::new(crate::azure_backend::AzureBackend)
 }
 
@@ -442,7 +442,7 @@ impl<'a> CanvasData<'a> {
             image_data.into()
         };
 
-        let writer = |draw_target: &GenericDrawTarget| {
+        let writer = |draw_target: &dyn GenericDrawTarget| {
             write_image(
                 draw_target,
                 image_data,
@@ -498,7 +498,7 @@ impl<'a> CanvasData<'a> {
         );
 
         if self.need_to_draw_shadow() {
-            self.draw_with_shadow(&draw_rect, |new_draw_target: &GenericDrawTarget| {
+            self.draw_with_shadow(&draw_rect, |new_draw_target: &dyn GenericDrawTarget| {
                 new_draw_target.fill_rect(
                     &draw_rect,
                     self.state.fill_style.clone(),
@@ -524,7 +524,7 @@ impl<'a> CanvasData<'a> {
         }
 
         if self.need_to_draw_shadow() {
-            self.draw_with_shadow(&rect, |new_draw_target: &GenericDrawTarget| {
+            self.draw_with_shadow(&rect, |new_draw_target: &dyn GenericDrawTarget| {
                 new_draw_target.stroke_rect(
                     rect,
                     self.state.stroke_style.clone(),
@@ -1023,7 +1023,7 @@ impl<'a> CanvasData<'a> {
                 self.state.shadow_blur != 0.0f64)
     }
 
-    fn create_draw_target_for_shadow(&self, source_rect: &Rect<f32>) -> Box<GenericDrawTarget> {
+    fn create_draw_target_for_shadow(&self, source_rect: &Rect<f32>) -> Box<dyn GenericDrawTarget> {
         let draw_target = self.drawtarget.create_similar_draw_target(
             &Size2D::new(
                 source_rect.size.width as i32,
@@ -1040,7 +1040,7 @@ impl<'a> CanvasData<'a> {
 
     fn draw_with_shadow<F>(&self, rect: &Rect<f32>, draw_shadow_source: F)
     where
-        F: FnOnce(&GenericDrawTarget),
+        F: FnOnce(&dyn GenericDrawTarget),
     {
         let shadow_src_rect = self.state.transform.transform_rect(rect);
         let new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect);
@@ -1116,7 +1116,7 @@ pub struct CanvasPaintState<'a> {
 /// dest_rect: Area of the destination target where the pixels will be copied
 /// smoothing_enabled: It determines if smoothing is applied to the image result
 fn write_image(
-    draw_target: &GenericDrawTarget,
+    draw_target: &dyn GenericDrawTarget,
     image_data: Vec<u8>,
     image_size: Size2D<f64>,
     dest_rect: Rect<f64>,

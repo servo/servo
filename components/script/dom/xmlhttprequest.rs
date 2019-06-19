@@ -1668,7 +1668,7 @@ pub fn is_field_value(slice: &[u8]) -> bool {
                     false
                 }
             },
-            0...31 | 127 => false, // CTLs
+            0..=31 | 127 => false, // CTLs
             x if x > 127 => false, // non ASCII
             _ if prev == PreviousCharacter::Other || prev == PreviousCharacter::SPHT => {
                 prev = PreviousCharacter::Other;

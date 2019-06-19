@@ -82,7 +82,7 @@ impl Area {
             while index < size {
                 let val = num[index];
                 match val {
-                    b'0'...b'9' | b'.' | b'-' | b'E' | b'e' => break,
+                    b'0'..=b'9' | b'.' | b'-' | b'E' | b'e' => break,
                     _ => {},
                 }
 

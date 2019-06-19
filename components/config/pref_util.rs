@@ -171,8 +171,8 @@ impl fmt::Display for PrefError {
 impl std::error::Error for PrefError {}
 
 pub struct Accessor<P, V> {
-    pub getter: Box<Fn(&P) -> V + Sync>,
-    pub setter: Box<Fn(&mut P, V) + Sync>,
+    pub getter: Box<dyn Fn(&P) -> V + Sync>,
+    pub setter: Box<dyn Fn(&mut P, V) + Sync>,
 }
 
 impl<P, V> Accessor<P, V> {

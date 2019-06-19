@@ -1054,7 +1054,7 @@ fn http_network_or_cache_fetch(
         let forward_response =
             http_network_fetch(http_request, credentials_flag, done_chan, context);
         // Substep 3
-        if let Some((200...399, _)) = forward_response.raw_status {
+        if let Some((200..=399, _)) = forward_response.raw_status {
             if !http_request.method.is_safe() {
                 if let Ok(mut http_cache) = context.state.http_cache.write() {
                     http_cache.invalidate(&http_request, &forward_response);

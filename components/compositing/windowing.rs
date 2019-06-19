@@ -166,7 +166,7 @@ pub trait EmbedderMethods {
     fn register_vr_services(
         &mut self,
         _: &mut VRServiceManager,
-        _: &mut Vec<Box<WebVRMainThreadHeartbeat>>,
+        _: &mut Vec<Box<dyn WebVRMainThreadHeartbeat>>,
     ) {
     }
 }

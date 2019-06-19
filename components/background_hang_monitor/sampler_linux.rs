@@ -128,7 +128,7 @@ pub struct LinuxSampler {
 
 impl LinuxSampler {
     #[allow(unsafe_code, dead_code)]
-    pub fn new() -> Box<Sampler> {
+    pub fn new() -> Box<dyn Sampler> {
         let thread_id = unsafe { libc::syscall(libc::SYS_gettid) as libc::pid_t };
         let handler = SigHandler::SigAction(sigprof_handler);
         let action = SigAction::new(

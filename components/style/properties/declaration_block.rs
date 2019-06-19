@@ -1199,7 +1199,7 @@ where
 pub fn parse_style_attribute(
     input: &str,
     url_data: &UrlExtraData,
-    error_reporter: Option<&ParseErrorReporter>,
+    error_reporter: Option<&dyn ParseErrorReporter>,
     quirks_mode: QuirksMode,
 ) -> PropertyDeclarationBlock {
     let context = ParserContext::new(
@@ -1226,7 +1226,7 @@ pub fn parse_one_declaration_into(
     id: PropertyId,
     input: &str,
     url_data: &UrlExtraData,
-    error_reporter: Option<&ParseErrorReporter>,
+    error_reporter: Option<&dyn ParseErrorReporter>,
     parsing_mode: ParsingMode,
     quirks_mode: QuirksMode
 ) -> Result<(), ()> {

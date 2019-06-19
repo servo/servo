@@ -2337,7 +2337,7 @@ impl ScriptThread {
                 // 2. If response's status is 204 or 205, then abort these steps.
                 match metadata {
                     Some(Metadata {
-                        status: Some((204...205, _)),
+                        status: Some((204..=205, _)),
                         ..
                     }) => {
                         // If we have an existing window that is being navigated:

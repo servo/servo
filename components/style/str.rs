@@ -60,7 +60,7 @@ pub fn split_commas<'a>(s: &'a str) -> Filter<Split<'a, char>, fn(&&str) -> bool
 /// Character is ascii digit
 pub fn is_ascii_digit(c: &char) -> bool {
     match *c {
-        '0'...'9' => true,
+        '0'..='9' => true,
         _ => false,
     }
 }
@@ -161,7 +161,7 @@ pub fn starts_with_ignore_ascii_case(string: &str, prefix: &str) -> bool {
 
 /// Returns an ascii lowercase version of a string, only allocating if needed.
 pub fn string_as_ascii_lowercase<'a>(input: &'a str) -> Cow<'a, str> {
-    if input.bytes().any(|c| matches!(c, b'A'...b'Z')) {
+    if input.bytes().any(|c| matches!(c, b'A'..=b'Z')) {
         input.to_ascii_lowercase().into()
     } else {
         // Already ascii lowercase.

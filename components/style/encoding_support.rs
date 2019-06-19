@@ -63,8 +63,8 @@ impl Stylesheet {
         origin: Origin,
         media: MediaList,
         shared_lock: SharedRwLock,
-        stylesheet_loader: Option<&StylesheetLoader>,
-        error_reporter: Option<&ParseErrorReporter>,
+        stylesheet_loader: Option<&dyn StylesheetLoader>,
+        error_reporter: Option<&dyn ParseErrorReporter>,
         quirks_mode: QuirksMode,
     ) -> Stylesheet {
         let string = decode_stylesheet_bytes(bytes, protocol_encoding_label, environment_encoding);
@@ -89,8 +89,8 @@ impl Stylesheet {
         protocol_encoding_label: Option<&str>,
         environment_encoding: Option<&'static encoding_rs::Encoding>,
         url_data: UrlExtraData,
-        stylesheet_loader: Option<&StylesheetLoader>,
-        error_reporter: Option<&ParseErrorReporter>,
+        stylesheet_loader: Option<&dyn StylesheetLoader>,
+        error_reporter: Option<&dyn ParseErrorReporter>,
     ) {
         let string = decode_stylesheet_bytes(bytes, protocol_encoding_label, environment_encoding);
         Self::update_from_str(

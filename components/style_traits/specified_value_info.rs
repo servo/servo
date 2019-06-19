@@ -27,7 +27,7 @@ pub mod CssType {
 }
 
 /// See SpecifiedValueInfo::collect_completion_keywords.
-pub type KeywordsCollectFn<'a> = &'a mut FnMut(&[&'static str]);
+pub type KeywordsCollectFn<'a> = &'a mut dyn FnMut(&[&'static str]);
 
 /// Information of values of a given specified value type.
 ///
