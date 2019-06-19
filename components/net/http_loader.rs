@@ -1382,12 +1382,7 @@ fn http_network_fetch(
     // Step 13
     // TODO this step isn't possible yet (CSP)
 
-    // Step 14
-    if !response.is_network_error() && request.cache_mode != CacheMode::NoStore {
-        if let Ok(mut http_cache) = context.state.http_cache.write() {
-            http_cache.store(&request, &response);
-        }
-    }
+    // Step 14, update the cached response, done via the shared response body.
 
     // TODO this step isn't possible yet
     // Step 15
