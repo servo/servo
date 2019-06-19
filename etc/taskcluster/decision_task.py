@@ -615,7 +615,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                     | cat
                 time ./mach test-wpt --release --processes $PROCESSES --timeout-multiplier=4 \
                     --headless --log-raw test-wdspec.log \
-                    --log-errorsummary wdspec-errorsummary.log \
+                    --log-errorsummary wpt-errorsummary.log \
                     webdriver \
                     | cat
             """)
