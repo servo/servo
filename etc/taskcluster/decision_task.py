@@ -819,7 +819,7 @@ def with_homebrew(task, brewfiles):
             ls
         """)
         for brewfile in brewfiles:
-            dirname = path.dirname(brewfile)
+            dirname = os.path.dirname(brewfile)
             task = task.with_script("""
                 ls {dirname}
                 time brew bundle install --no-upgrade --file={brewfile}
