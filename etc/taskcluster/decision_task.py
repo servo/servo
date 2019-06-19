@@ -816,11 +816,14 @@ def with_homebrew(task, brewfiles):
             export PATH="$HOME/homebrew/bin:$PATH"
             which brew || curl -L https://github.com/Homebrew/brew/tarball/master \
                 | tar xz --strip 1 -C "$HOME/homebrew"
+            ls
         """)
         for brewfile in brewfiles:
+            dirname = path.dirname(brewfile)
             task = task.with_script("""
+                ls {dirname}
                 time brew bundle install --no-upgrade --file={brewfile}
-            """.format(brewfile=brewfile))
+            """.format(brewfile=brewfile, dirname=dirname))
         return task
 
 
