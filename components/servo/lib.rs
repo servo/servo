@@ -305,21 +305,11 @@ where
             None
         };
 
-        let gl_context = window.get_gl_context();
-        let glplayer_threads = match gl_context {
-            GlContext::Unknown => None,
-            _ => {
-                let (glplayer_threads, image_handler) = GLPlayerThreads::new();
-                webrender.set_external_image_handler(image_handler);
-                Some(glplayer_threads)
-            },
-        };
-
         let player_context = WindowGLContext {
-            gl_context,
+            gl_context: window.get_gl_context(),
             native_display: window.get_native_display(),
             gl_api: window.get_gl_api(),
-            glplayer_chan: glplayer_threads.as_ref().map(|threads| threads.pipeline()),
+            glplayer_chan: None,
         };
 
         // Create the constellation, which maintains the engine
@@ -339,7 +329,6 @@ where
             webrender_api_sender,
             window.gl(),
             webvr_services,
-            glplayer_threads,
             player_context,
         );
 
@@ -650,7 +639,6 @@ fn create_constellation(
     webrender_api_sender: webrender_api::RenderApiSender,
     window_gl: Rc<dyn gl::Gl>,
     webvr_services: Option<VRServiceManager>,
-    glplayer_threads: Option<GLPlayerThreads>,
     player_context: WindowGLContext,
 ) -> (Sender<ConstellationMsg>, SWManagerSenders) {
     // Global configuration options, parsed from the command line.
@@ -716,6 +704,20 @@ fn create_constellation(
 
         webgl_threads
     });
+
+    let glplayer_threads = match player_context.gl_context {
+        GlContext::Unknown => None,
+        _ => {
+            let (glplayer_threads, image_handler) = GLPlayerThreads::new();
+            webrender.set_external_image_handler(image_handler);
+            Some(glplayer_threads)
+        },
+    };
+
+    let player_context = WindowGLContext {
+        glplayer_chan: glplayer_threads.as_ref().map(|threads| threads.pipeline()),
+        ..player_context
+    };
 
     let initial_state = InitialConstellationState {
         compositor_proxy,
