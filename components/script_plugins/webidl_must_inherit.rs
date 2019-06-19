@@ -192,10 +192,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for WebIdlPass {
 
         let item = match cx.tcx.hir().get_by_hir_id(id) {
             hir::Node::Item(item) => item,
-            _ => cx
-                .tcx
-                .hir()
-                .expect_item_by_hir_id(cx.tcx.hir().get_parent_item(id)),
+            _ => cx.tcx.hir().expect_item(cx.tcx.hir().get_parent_item(id)),
         };
 
         let parent_name = def.fields().iter().next().map(|field| {
