@@ -52,7 +52,7 @@ pub struct InitOptions {
 pub enum VRInitOptions {
     None,
     VRExternal(*mut c_void),
-    VRService(Box<VRService>, Box<VRMainThreadHeartbeat>),
+    VRService(Box<dyn VRService>, Box<dyn VRMainThreadHeartbeat>),
 }
 
 #[derive(Clone, Debug)]
@@ -571,7 +571,7 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
     fn register_vr_services(
         &mut self,
         services: &mut VRServiceManager,
-        heartbeats: &mut Vec<Box<VRMainThreadHeartbeat>>,
+        heartbeats: &mut Vec<Box<dyn VRMainThreadHeartbeat>>,
     ) {
         debug!("EmbedderMethods::register_vrexternal");
         match mem::replace(&mut self.vr_init, VRInitOptions::None) {

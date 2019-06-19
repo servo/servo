@@ -508,8 +508,8 @@ unsafe_no_jsmanaged_fields!(RefCell<IncompleteParserContexts>);
 
 unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 
-unsafe_no_jsmanaged_fields!(BackgroundHangMonitorRegister);
-unsafe_no_jsmanaged_fields!(BackgroundHangMonitor);
+unsafe_no_jsmanaged_fields!(dyn BackgroundHangMonitorRegister);
+unsafe_no_jsmanaged_fields!(dyn BackgroundHangMonitor);
 
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
@@ -540,9 +540,9 @@ pub struct ScriptThread {
     task_queue: TaskQueue<MainThreadScriptMsg>,
 
     /// A handle to register associated layout threads for hang-monitoring.
-    background_hang_monitor_register: Box<BackgroundHangMonitorRegister>,
+    background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
     /// The dedicated means of communication with the background-hang-monitor for this script-thread.
-    background_hang_monitor: Box<BackgroundHangMonitor>,
+    background_hang_monitor: Box<dyn BackgroundHangMonitor>,
 
     /// A channel to hand out to script thread-based entities that need to be able to enqueue
     /// events in the event queue.
@@ -2337,7 +2337,7 @@ impl ScriptThread {
                 // 2. If response's status is 204 or 205, then abort these steps.
                 match metadata {
                     Some(Metadata {
-                        status: Some((204...205, _)),
+                        status: Some((204..=205, _)),
                         ..
                     }) => {
                         // If we have an existing window that is being navigated:

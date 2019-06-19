@@ -47,7 +47,7 @@ impl Error for ParentMismatchError {
         "ParentMismatchError"
     }
 
-    fn cause(&self) -> Option<&Error> {
+    fn cause(&self) -> Option<&dyn Error> {
         None
     }
 }
@@ -111,7 +111,7 @@ fn is_webidl_ty(symbols: &crate::Symbols, cx: &LateContext, ty: &ty::TyS) -> boo
     ret
 }
 
-fn check_inherits(code: &str, name: &str, parent_name: &str) -> Result<(), Box<Error>> {
+fn check_inherits(code: &str, name: &str, parent_name: &str) -> Result<(), Box<dyn Error>> {
     let idl = weedle::parse(code).expect("Invalid webidl provided");
     let mut inherits = "";
 
@@ -156,7 +156,7 @@ fn check_inherits(code: &str, name: &str, parent_name: &str) -> Result<(), Box<E
     }))
 }
 
-fn check_webidl(name: &str, parent_name: &Option<String>) -> Result<(), Box<Error>> {
+fn check_webidl(name: &str, parent_name: &Option<String>) -> Result<(), Box<dyn Error>> {
     let path = get_webidl_path(&name)?;
     if let Some(parent) = parent_name {
         let code = fs::read_to_string(path)?;

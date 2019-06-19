@@ -220,7 +220,7 @@ impl Gzip {
 }
 
 #[allow(unsafe_code)]
-fn poll_with_read(reader: &mut Read, buf: &mut BytesMut) -> Poll<Option<Chunk>, Error> {
+fn poll_with_read(reader: &mut dyn Read, buf: &mut BytesMut) -> Poll<Option<Chunk>, Error> {
     if buf.remaining_mut() == 0 {
         buf.reserve(INIT_BUFFER_SIZE);
     }

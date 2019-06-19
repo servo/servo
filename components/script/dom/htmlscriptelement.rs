@@ -198,7 +198,7 @@ impl FetchResponseListener for ScriptContext {
             0 => Err(NetworkError::Internal(
                 "No http status code received".to_owned(),
             )),
-            200...299 => Ok(()), // HTTP ok status codes
+            200..=299 => Ok(()), // HTTP ok status codes
             _ => Err(NetworkError::Internal(format!(
                 "HTTP error code {}",
                 status_code

@@ -92,7 +92,7 @@ use void::Void;
 type VoidPtrToSizeFn = unsafe extern "C" fn(ptr: *const c_void) -> usize;
 
 /// A closure implementing a stateful predicate on pointers.
-type VoidPtrToBoolFnMut = FnMut(*const c_void) -> bool;
+type VoidPtrToBoolFnMut = dyn FnMut(*const c_void) -> bool;
 
 /// Operations used when measuring heap usage of data structures.
 pub struct MallocSizeOfOps {

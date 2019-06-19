@@ -36,7 +36,7 @@ impl Backend for RaqoteBackend {
         &mut self,
         _style: FillOrStrokeStyle,
         _state: &mut CanvasPaintState<'a>,
-        _drawtarget: &GenericDrawTarget,
+        _drawtarget: &dyn GenericDrawTarget,
     ) {
         unimplemented!()
     }
@@ -45,7 +45,7 @@ impl Backend for RaqoteBackend {
         &mut self,
         _style: FillOrStrokeStyle,
         _state: &mut CanvasPaintState<'a>,
-        _drawtarget: &GenericDrawTarget,
+        _drawtarget: &dyn GenericDrawTarget,
     ) {
         unimplemented!()
     }
@@ -58,7 +58,7 @@ impl Backend for RaqoteBackend {
         unimplemented!()
     }
 
-    fn create_drawtarget(&self, size: Size2D<u64>) -> Box<GenericDrawTarget> {
+    fn create_drawtarget(&self, size: Size2D<u64>) -> Box<dyn GenericDrawTarget> {
         Box::new(raqote::DrawTarget::new(
             size.width as i32,
             size.height as i32,
@@ -121,7 +121,7 @@ impl Path {
     pub fn transformed_copy_to_builder(
         &self,
         _transform: &Transform2D<f32>,
-    ) -> Box<GenericPathBuilder> {
+    ) -> Box<dyn GenericPathBuilder> {
         unimplemented!()
     }
 
@@ -129,7 +129,7 @@ impl Path {
         unimplemented!()
     }
 
-    pub fn copy_to_builder(&self) -> Box<GenericPathBuilder> {
+    pub fn copy_to_builder(&self) -> Box<dyn GenericPathBuilder> {
         unimplemented!()
     }
 }
@@ -156,7 +156,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         unimplemented!()
     }
 
-    fn create_path_builder(&self) -> Box<GenericPathBuilder> {
+    fn create_path_builder(&self) -> Box<dyn GenericPathBuilder> {
         unimplemented!()
     }
 
@@ -164,7 +164,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         &self,
         _size: &Size2D<i32>,
         _format: SurfaceFormat,
-    ) -> Box<GenericDrawTarget> {
+    ) -> Box<dyn GenericDrawTarget> {
         unimplemented!()
     }
     fn create_source_surface_from_data(
@@ -246,13 +246,13 @@ impl GenericDrawTarget for raqote::DrawTarget {
         &self,
         _rect: &Rect<f32>,
         _pattern: Pattern,
-        _stroke_options: &StrokeOptions,
+        _stroke_options: &StrokeOptions<'_>,
         _draw_options: &DrawOptions,
     ) {
         unimplemented!()
     }
 
-    fn snapshot_data(&self, _f: &Fn(&[u8]) -> Vec<u8>) -> Vec<u8> {
+    fn snapshot_data(&self, _f: &dyn Fn(&[u8]) -> Vec<u8>) -> Vec<u8> {
         unimplemented!()
     }
 

@@ -174,9 +174,9 @@ pub struct DedicatedWorkerGlobalScope {
     worker: DomRefCell<Option<TrustedWorkerAddress>>,
     #[ignore_malloc_size_of = "Can't measure trait objects"]
     /// Sender to the parent thread.
-    parent_sender: Box<ScriptChan + Send>,
+    parent_sender: Box<dyn ScriptChan + Send>,
     #[ignore_malloc_size_of = "Arc"]
-    image_cache: Arc<ImageCache>,
+    image_cache: Arc<dyn ImageCache>,
 }
 
 impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {

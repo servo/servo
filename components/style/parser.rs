@@ -51,7 +51,7 @@ pub struct ParserContext<'a> {
     /// The quirks mode of this stylesheet.
     pub quirks_mode: QuirksMode,
     /// The active error reporter, or none if error reporting is disabled.
-    error_reporter: Option<&'a ParseErrorReporter>,
+    error_reporter: Option<&'a dyn ParseErrorReporter>,
     /// The currently active namespaces.
     pub namespaces: Option<&'a Namespaces>,
     /// The use counters we want to record while parsing style rules, if any.
@@ -67,7 +67,7 @@ impl<'a> ParserContext<'a> {
         rule_type: Option<CssRuleType>,
         parsing_mode: ParsingMode,
         quirks_mode: QuirksMode,
-        error_reporter: Option<&'a ParseErrorReporter>,
+        error_reporter: Option<&'a dyn ParseErrorReporter>,
         use_counters: Option<&'a UseCounters>,
     ) -> Self {
         Self {
@@ -89,7 +89,7 @@ impl<'a> ParserContext<'a> {
         rule_type: Option<CssRuleType>,
         parsing_mode: ParsingMode,
         quirks_mode: QuirksMode,
-        error_reporter: Option<&'a ParseErrorReporter>,
+        error_reporter: Option<&'a dyn ParseErrorReporter>,
         use_counters: Option<&'a UseCounters>,
     ) -> Self {
         Self::new(

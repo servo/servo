@@ -174,7 +174,7 @@ pub struct Window {
     task_manager: TaskManager,
     navigator: MutNullableDom<Navigator>,
     #[ignore_malloc_size_of = "Arc"]
-    image_cache: Arc<ImageCache>,
+    image_cache: Arc<dyn ImageCache>,
     #[ignore_malloc_size_of = "channels are hard"]
     image_cache_chan: Sender<ImageCacheMsg>,
     window_proxy: MutNullableDom<WindowProxy>,
@@ -215,7 +215,7 @@ pub struct Window {
 
     /// A handle to perform RPC calls into the layout, quickly.
     #[ignore_malloc_size_of = "trait objects are hard"]
-    layout_rpc: Box<LayoutRPC + Send + 'static>,
+    layout_rpc: Box<dyn LayoutRPC + Send + 'static>,
 
     /// The current size of the window, in pixels.
     window_size: Cell<WindowSizeData>,

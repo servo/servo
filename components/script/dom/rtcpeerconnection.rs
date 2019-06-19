@@ -203,7 +203,7 @@ impl RTCPeerConnection {
         Ok(RTCPeerConnection::new(&window.global(), config))
     }
 
-    fn make_signaller(&self) -> Box<WebRtcSignaller> {
+    fn make_signaller(&self) -> Box<dyn WebRtcSignaller> {
         let trusted = Trusted::new(self);
         let (task_source, canceller) = self
             .global()

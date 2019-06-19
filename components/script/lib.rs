@@ -4,7 +4,6 @@
 
 #![cfg_attr(feature = "unstable", feature(core_intrinsics))]
 #![cfg_attr(feature = "unstable", feature(on_unimplemented))]
-#![feature(borrow_state)]
 #![feature(const_fn)]
 #![feature(drain_filter)]
 #![feature(inner_deref)]
