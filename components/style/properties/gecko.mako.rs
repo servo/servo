@@ -1137,11 +1137,12 @@ fn static_assert() {
         use crate::gecko_bindings::structs::{nsStyleGridLine_kMinLine, nsStyleGridLine_kMaxLine};
 
         let line = &mut self.gecko.${value.gecko};
-        let line_name = &mut line.mLineName;
-        match v.ident.as_ref() {
-            Some(i) => i.0.with_str(|s| line_name.assign(s)),
-            None => line_name.assign(""),
-        };
+        line.mLineName.set_move(unsafe {
+            RefPtr::from_addrefed(match v.ident {
+                Some(i) => i.0,
+                None => atom!(""),
+            }.into_addrefed())
+        });
         line.mHasSpan = v.is_span;
         if let Some(integer) = v.line_num {
             // clamping the integer between a range
@@ -1155,7 +1156,9 @@ fn static_assert() {
     pub fn copy_${value.name}_from(&mut self, other: &Self) {
         self.gecko.${value.gecko}.mHasSpan = other.gecko.${value.gecko}.mHasSpan;
         self.gecko.${value.gecko}.mInteger = other.gecko.${value.gecko}.mInteger;
-        self.gecko.${value.gecko}.mLineName.assign(&*other.gecko.${value.gecko}.mLineName);
+        unsafe {
+            self.gecko.${value.gecko}.mLineName.set(&other.gecko.${value.gecko}.mLineName);
+        }
     }
 
     pub fn reset_${value.name}(&mut self, other: &Self) {
@@ -1168,11 +1171,11 @@ fn static_assert() {
         longhands::${value.name}::computed_value::T {
             is_span: self.gecko.${value.gecko}.mHasSpan,
             ident: {
-                let name = self.gecko.${value.gecko}.mLineName.to_string();
-                if name.len() == 0 {
+                let name = unsafe { Atom::from_raw(self.gecko.${value.gecko}.mLineName.mRawPtr) };
+                if name == atom!("") {
                     None
                 } else {
-                    Some(CustomIdent(Atom::from(name)))
+                    Some(CustomIdent(name))
                 }
             },
             line_num:
@@ -1211,20 +1214,21 @@ fn static_assert() {
     pub fn set_grid_template_${kind}(&mut self, v: longhands::grid_template_${kind}::computed_value::T) {
         <% self_grid = "self.gecko.mGridTemplate%s" % kind.title() %>
         use crate::gecko_bindings::structs::{nsTArray, nsStyleGridLine_kMaxLine};
-        use nsstring::nsCString;
         use std::usize;
         use crate::values::CustomIdent;
         use crate::values::generics::grid::TrackListType::Auto;
         use crate::values::generics::grid::{GridTemplateComponent, RepeatCount};
 
         #[inline]
-        fn set_line_names(servo_names: &[CustomIdent], gecko_names: &mut nsTArray<nsCString>) {
+        fn set_line_names(servo_names: &[CustomIdent], gecko_names: &mut nsTArray<structs::RefPtr<structs::nsAtom>>) {
             unsafe {
-                bindings::Gecko_ResizeTArrayForCStrings(gecko_names, servo_names.len() as u32);
+                bindings::Gecko_ResizeAtomArray(gecko_names, servo_names.len() as u32);
             }
 
             for (servo_name, gecko_name) in servo_names.iter().zip(gecko_names.iter_mut()) {
-                servo_name.0.with_str(|s| gecko_name.assign(s))
+                gecko_name.set_move(unsafe {
+                    RefPtr::from_addrefed(servo_name.0.clone().into_addrefed())
+                });
             }
         }
 
@@ -1262,9 +1266,9 @@ fn static_assert() {
                     auto_track_size = Some(auto_repeat.track_sizes.get(0).unwrap().clone());
                 } else {
                     unsafe {
-                        bindings::Gecko_ResizeTArrayForCStrings(
+                        bindings::Gecko_ResizeAtomArray(
                             &mut value.mRepeatAutoLineNameListBefore, 0);
-                        bindings::Gecko_ResizeTArrayForCStrings(
+                        bindings::Gecko_ResizeAtomArray(
                             &mut value.mRepeatAutoLineNameListAfter, 0);
                     }
                 }
@@ -1338,7 +1342,6 @@ fn static_assert() {
     pub fn clone_grid_template_${kind}(&self) -> longhands::grid_template_${kind}::computed_value::T {
         <% self_grid = "self.gecko.mGridTemplate%s" % kind.title() %>
         use crate::gecko_bindings::structs::nsTArray;
-        use nsstring::nsCString;
         use crate::values::CustomIdent;
         use crate::values::generics::grid::{GridTemplateComponent, LineNameList, RepeatCount};
         use crate::values::generics::grid::{TrackList, TrackListType, TrackListValue, TrackRepeat, TrackSize};
@@ -1349,16 +1352,17 @@ fn static_assert() {
         };
 
         #[inline]
-        fn to_boxed_customident_slice(gecko_names: &nsTArray<nsCString>) -> Box<[CustomIdent]> {
+        fn to_boxed_customident_slice(gecko_names: &nsTArray<structs::RefPtr<structs::nsAtom>>) -> Box<[CustomIdent]> {
             let idents: Vec<CustomIdent> = gecko_names.iter().map(|gecko_name| {
-                CustomIdent(Atom::from(unsafe { gecko_name.as_str_unchecked() }))
+                CustomIdent(unsafe { Atom::from_raw(gecko_name.mRawPtr) })
             }).collect();
             idents.into_boxed_slice()
         }
 
         #[inline]
-        fn to_line_names_vec(gecko_line_names: &nsTArray<nsTArray<nsCString>>)
-            -> Vec<Box<[CustomIdent]>> {
+        fn to_line_names_vec(
+            gecko_line_names: &nsTArray<nsTArray<structs::RefPtr<structs::nsAtom>>>,
+        ) -> Vec<Box<[CustomIdent]>> {
             gecko_line_names.iter().map(|gecko_names| {
                 to_boxed_customident_slice(gecko_names)
             }).collect()
