@@ -704,7 +704,9 @@ impl UnprivilegedPipelineContent {
         }
     }
 
-    pub fn register_with_background_hang_monitor(&mut self) -> Box<dyn BackgroundHangMonitorRegister> {
+    pub fn register_with_background_hang_monitor(
+        &mut self,
+    ) -> Box<dyn BackgroundHangMonitorRegister> {
         HangMonitorRegister::init(
             self.background_hang_monitor_to_constellation_chan.clone(),
             self.sampling_profiler_port

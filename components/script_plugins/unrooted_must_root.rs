@@ -153,10 +153,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
     ) {
         let item = match cx.tcx.hir().get_by_hir_id(id) {
             hir::Node::Item(item) => item,
-            _ => cx
-                .tcx
-                .hir()
-                .expect_item(cx.tcx.hir().get_parent_item(id)),
+            _ => cx.tcx.hir().expect_item(cx.tcx.hir().get_parent_item(id)),
         };
         if item
             .attrs

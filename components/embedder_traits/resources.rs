@@ -6,7 +6,8 @@ use std::path::PathBuf;
 use std::sync::{Once, RwLock};
 
 lazy_static! {
-    static ref RES: RwLock<Option<Box<dyn ResourceReaderMethods + Sync + Send>>> = RwLock::new(None);
+    static ref RES: RwLock<Option<Box<dyn ResourceReaderMethods + Sync + Send>>> =
+        RwLock::new(None);
 }
 
 pub fn set(reader: Box<dyn ResourceReaderMethods + Sync + Send>) {
