@@ -57,7 +57,8 @@ linux-rel-wpt:
     - ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
     - ./mach test-wpt --release --product=servodriver --headless tests/wpt/mozilla/tests/mozilla/DOMParser.html tests/wpt/mozilla/tests/css/per_glyph_font_fallback_a.html tests/wpt/mozilla/tests/css/img_simple.html tests/wpt/mozilla/tests/mozilla/secure.https.html
     - ./mach test-wpt --release --product=servodriver --headless --log-raw test-bluetooth.log --log-errorsummary bluetooth-errorsummary.log bluetooth
-    - ./mach test-wpt --release --headless --timeout-multiplier=4 --log-raw test-wdspec.log --log-errorsummary wdspec-errorsummary.log webdriver
+    - ./mach test-wpt --release --headless --timeout-multiplier=4 --log-raw test-wdspec.log --log-errorsummary wdspec-errorsummary.log --always-succeed webdriver
+    - ./mach filter-intermittents wdspec-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wdspec-errorsummary.log --tracker-api default --reporter-api default
     - ./etc/ci/clean_build_artifacts.sh
 
 linux-rel-css:
