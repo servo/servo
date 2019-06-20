@@ -359,7 +359,7 @@ pub enum DrawOptions {
     #[cfg(feature = "azure_backend")]
     Azure(azure::azure_hl::DrawOptions),
     #[cfg(feature = "raqote_backend")]
-    Raqote(()),
+    Raqote(raqote::DrawOptions),
 }
 
 #[derive(Clone)]
