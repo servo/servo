@@ -366,7 +366,7 @@ pub enum StrokeOptions<'a> {
     #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::StrokeOptions<'a>),
     #[cfg(feature = "canvas2d-raqote")]
-    Raqote(PhantomData<&'a ()>),
+    Raqote(raqote::StrokeStyle, PhantomData<&'a ()>),
 }
 
 #[derive(Clone, Copy)]
