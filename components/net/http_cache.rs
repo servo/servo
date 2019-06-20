@@ -802,6 +802,15 @@ impl HttpCache {
             // Only Get requests are cached.
             return;
         }
+        if request.headers.contains_key(header::AUTHORIZATION) {
+            // https://tools.ietf.org/html/rfc7234#section-3.1
+            // A shared cache MUST NOT use a cached response
+            // to a request with an Authorization header field
+            //
+            // TODO: unless a cache directive that allows such
+            // responses to be stored is present in the response.
+            return;
+        };
         let entry_key = CacheKey::new(request.clone());
         let metadata = match response.metadata() {
             Ok(FetchMetadata::Filtered {
