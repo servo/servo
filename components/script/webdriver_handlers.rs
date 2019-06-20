@@ -24,6 +24,7 @@ use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::htmlinputelement::HTMLInputElement;
 use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::node::{window_from_node, Node, ShadowIncluding};
+use crate::dom::nodelist::NodeList;
 use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
 use crate::script_thread::Documents;
@@ -56,6 +57,50 @@ fn find_node_by_unique_id(
             .traverse_preorder(ShadowIncluding::Yes)
             .find(|candidate| candidate.unique_id() == node_id)
     })
+}
+
+fn matching_links<'a>(
+    links: &'a NodeList,
+    link_text: String,
+    partial: bool,
+) -> impl Iterator<Item = String> + 'a {
+    links
+        .iter()
+        .filter(move |node| {
+            let content = node
+                .GetTextContent()
+                .map_or("".to_owned(), String::from)
+                .trim()
+                .to_owned();
+            if partial {
+                content.contains(&link_text)
+            } else {
+                content == link_text
+            }
+        })
+        .map(|node| node.upcast::<Node>().unique_id())
+}
+
+fn all_matching_links(
+    root_node: &Node,
+    link_text: String,
+    partial: bool,
+) -> Result<Vec<String>, ()> {
+    root_node
+        .query_selector_all(DOMString::from("a"))
+        .map_err(|_| ())
+        .map(|nodes| matching_links(&nodes, link_text, partial).collect())
+}
+
+fn first_matching_link(
+    root_node: &Node,
+    link_text: String,
+    partial: bool,
+) -> Result<Option<String>, ()> {
+    root_node
+        .query_selector_all(DOMString::from("a"))
+        .map_err(|_| ())
+        .map(|nodes| matching_links(&nodes, link_text, partial).take(1).next())
 }
 
 #[allow(unsafe_code)]
@@ -182,6 +227,20 @@ pub fn handle_find_element_css(
     reply.send(node_id).unwrap();
 }
 
+pub fn handle_find_element_link_text(
+    documents: &Documents,
+    pipeline: PipelineId,
+    selector: String,
+    partial: bool,
+    reply: IpcSender<Result<Option<String>, ()>>,
+) {
+    let node_id = documents
+        .find_document(pipeline)
+        .ok_or(())
+        .and_then(|doc| first_matching_link(&doc.upcast::<Node>(), selector.clone(), partial));
+    reply.send(node_id).unwrap();
+}
+
 pub fn handle_find_element_tag_name(
     documents: &Documents,
     pipeline: PipelineId,
@@ -223,6 +282,20 @@ pub fn handle_find_elements_css(
     reply.send(node_ids).unwrap();
 }
 
+pub fn handle_find_elements_link_text(
+    documents: &Documents,
+    pipeline: PipelineId,
+    selector: String,
+    partial: bool,
+    reply: IpcSender<Result<Vec<String>, ()>>,
+) {
+    let node_ids = documents
+        .find_document(pipeline)
+        .ok_or(())
+        .and_then(|doc| all_matching_links(&doc.upcast::<Node>(), selector.clone(), partial));
+    reply.send(node_ids).unwrap();
+}
+
 pub fn handle_find_elements_tag_name(
     documents: &Documents,
     pipeline: PipelineId,
@@ -256,6 +329,20 @@ pub fn handle_find_element_element_css(
                 .map_err(|_| ())
         })
         .map(|node| node.map(|x| x.upcast::<Node>().unique_id()));
+    reply.send(node_id).unwrap();
+}
+
+pub fn handle_find_element_element_link_text(
+    documents: &Documents,
+    pipeline: PipelineId,
+    element_id: String,
+    selector: String,
+    partial: bool,
+    reply: IpcSender<Result<Option<String>, ()>>,
+) {
+    let node_id = find_node_by_unique_id(documents, pipeline, element_id)
+        .ok_or(())
+        .and_then(|node| first_matching_link(&node, selector.clone(), partial));
     reply.send(node_id).unwrap();
 }
 
@@ -298,6 +385,20 @@ pub fn handle_find_element_elements_css(
                 .map(|x| x.upcast::<Node>().unique_id())
                 .collect()
         });
+    reply.send(node_ids).unwrap();
+}
+
+pub fn handle_find_element_elements_link_text(
+    documents: &Documents,
+    pipeline: PipelineId,
+    element_id: String,
+    selector: String,
+    partial: bool,
+    reply: IpcSender<Result<Vec<String>, ()>>,
+) {
+    let node_ids = find_node_by_unique_id(documents, pipeline, element_id)
+        .ok_or(())
+        .and_then(|node| all_matching_links(&node, selector.clone(), partial));
     reply.send(node_ids).unwrap();
 }
 
