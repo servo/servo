@@ -367,7 +367,7 @@ pub enum StrokeOptions<'a> {
     #[cfg(feature = "azure_backend")]
     Azure(azure::azure_hl::StrokeOptions<'a>),
     #[cfg(feature = "raqote_backend")]
-    Raqote(PhantomData<&'a ()>),
+    Raqote(raqote::StrokeStyle, PhantomData<&'a ()>),
 }
 
 #[derive(Clone, Copy)]

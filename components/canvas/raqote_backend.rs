@@ -76,7 +76,7 @@ impl<'a> CanvasPaintState<'a> {
             draw_options: DrawOptions::Raqote(raqote::DrawOptions::new()),
             fill_style: Pattern::Raqote(()),
             stroke_style: Pattern::Raqote(()),
-            stroke_opts: StrokeOptions::Raqote(PhantomData),
+            stroke_opts: StrokeOptions::Raqote(Default::default(), PhantomData),
             transform: Transform2D::identity(),
             shadow_offset_x: 0.0,
             shadow_offset_y: 0.0,
@@ -96,16 +96,24 @@ impl Pattern {
 
 impl<'a> StrokeOptions<'a> {
     pub fn set_line_width(&mut self, _val: f32) {
-        unimplemented!()
+        match self {
+            StrokeOptions::Raqote(options, _) => options.width = _val,
+        }
     }
     pub fn set_miter_limit(&mut self, _val: f32) {
-        unimplemented!()
+        match self {
+            StrokeOptions::Raqote(options, _) => options.miter_limit = _val,
+        }
     }
     pub fn set_line_join(&mut self, _val: LineJoinStyle) {
-        unimplemented!()
+        match self {
+            StrokeOptions::Raqote(options, _) => options.join = _val.to_raqote_style(),
+        }
     }
     pub fn set_line_cap(&mut self, _val: LineCapStyle) {
-        unimplemented!()
+        match self {
+            StrokeOptions::Raqote(options, _) => options.cap = _val.to_raqote_style(),
+        }
     }
 }
 
@@ -258,5 +266,35 @@ impl GenericDrawTarget for raqote::DrawTarget {
 
     fn snapshot_data_owned(&self) -> Vec<u8> {
         unimplemented!()
+    }
+}
+
+pub trait ToRaqoteStyle {
+    type Target;
+
+    fn to_raqote_style(self) -> Self::Target;
+}
+
+impl ToRaqoteStyle for LineJoinStyle {
+    type Target = raqote::LineJoin;
+
+    fn to_raqote_style(self) -> raqote::LineJoin {
+        match self {
+            LineJoinStyle::Round => raqote::LineJoin::Round,
+            LineJoinStyle::Bevel => raqote::LineJoin::Bevel,
+            LineJoinStyle::Miter => raqote::LineJoin::Miter,
+        }
+    }
+}
+
+impl ToRaqoteStyle for LineCapStyle {
+    type Target = raqote::LineCap;
+
+    fn to_raqote_style(self) -> raqote::LineCap {
+        match self {
+            LineCapStyle::Butt => raqote::LineCap::Butt,
+            LineCapStyle::Round => raqote::LineCap::Round,
+            LineCapStyle::Square => raqote::LineCap::Square,
+        }
     }
 }
