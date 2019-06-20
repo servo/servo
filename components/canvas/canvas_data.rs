@@ -358,7 +358,7 @@ pub enum DrawOptions {
     #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::DrawOptions),
     #[cfg(feature = "canvas2d-raqote")]
-    Raqote(()),
+    Raqote(raqote::DrawOptions),
 }
 
 #[derive(Clone)]

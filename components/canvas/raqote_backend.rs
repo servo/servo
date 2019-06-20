@@ -73,7 +73,7 @@ impl Backend for RaqoteBackend {
 impl<'a> CanvasPaintState<'a> {
     pub fn new(_antialias: AntialiasMode) -> CanvasPaintState<'a> {
         CanvasPaintState {
-            draw_options: DrawOptions::Raqote(()),
+            draw_options: DrawOptions::Raqote(raqote::DrawOptions::new()),
             fill_style: Pattern::Raqote(()),
             stroke_style: Pattern::Raqote(()),
             stroke_opts: StrokeOptions::Raqote(PhantomData),
@@ -112,7 +112,7 @@ impl<'a> StrokeOptions<'a> {
 impl DrawOptions {
     pub fn set_alpha(&mut self, _val: f32) {
         match self {
-            DrawOptions::Raqote(()) => unimplemented!(),
+            DrawOptions::Raqote(draw_options) => draw_options.alpha = _val,
         }
     }
 }
