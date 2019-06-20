@@ -25,6 +25,7 @@ pub enum WebDriverScriptCommand {
     ExecuteScript(String, IpcSender<WebDriverJSResult>),
     ExecuteAsyncScript(String, IpcSender<WebDriverJSResult>),
     FindElementCSS(String, IpcSender<Result<Option<String>, ()>>),
+    FindElementLinkText(String, bool, IpcSender<Result<Option<String>, ()>>),
     FindElementTagName(String, IpcSender<Result<Option<String>, ()>>),
     FindElementsCSS(String, IpcSender<Result<Vec<String>, ()>>),
     FindElementsTagName(String, IpcSender<Result<Vec<String>, ()>>),

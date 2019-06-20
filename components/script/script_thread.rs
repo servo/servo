@@ -2019,6 +2019,15 @@ impl ScriptThread {
                     reply,
                 )
             },
+            WebDriverScriptCommand::FindElementLinkText(selector, partial, reply) => {
+                webdriver_handlers::handle_find_element_link_text(
+                    &*documents,
+                    pipeline_id,
+                    selector,
+                    partial,
+                    reply,
+                )
+            },
             WebDriverScriptCommand::FindElementTagName(selector, reply) => {
                 webdriver_handlers::handle_find_element_tag_name(
                     &*documents,

@@ -182,6 +182,37 @@ pub fn handle_find_element_css(
     reply.send(node_id).unwrap();
 }
 
+pub fn handle_find_element_link_text(
+    documents: &Documents,
+    pipeline: PipelineId,
+    selector: String,
+    partial: bool,
+    reply: IpcSender<Result<Option<String>, ()>>,
+) {
+    let node_id = documents
+        .find_document(pipeline)
+        .ok_or(())
+        .and_then(|doc| doc.QuerySelectorAll(DOMString::from("a")).map_err(|_| ()))
+        .map(|nodes| {
+            nodes
+                .iter()
+                .find(|node| {
+                    let content = node
+                        .GetTextContent()
+                        .map_or("".to_owned(), String::from)
+                        .trim()
+                        .to_owned();
+                    if partial {
+                        content.contains(&selector)
+                    } else {
+                        content == selector
+                    }
+                })
+                .map(|node| node.upcast::<Node>().unique_id())
+        });
+    reply.send(node_id).unwrap();
+}
+
 pub fn handle_find_element_tag_name(
     documents: &Documents,
     pipeline: PipelineId,
