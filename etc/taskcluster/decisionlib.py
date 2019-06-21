@@ -505,11 +505,7 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         .with_early_script(
             "%HOMEDRIVE%%HOMEPATH%\\rustup-init.exe --default-toolchain none -y"
         ) \
-        .with_file_mount(
-            "https://static.rust-lang.org/rustup/archive/" +
-                "1.17.0/x86_64-pc-windows-msvc/rustup-init.exe",
-            sha256="002127adeaaee6ef8d82711b5c2881a1db873262f63aea60cee9632f207e8f29",
-        )
+        .with_file_mount("https://win.rustup.rs/x86_64", path="rustup-init.exe")
 
     def with_repacked_msi(self, url, sha256, path):
         """
