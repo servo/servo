@@ -19,6 +19,7 @@ RUN \
         #
         # Bindgen (for SpiderMonkey bindings)
         clang \
+        llvm \
         #
         # GStreamer
         libgstreamer-plugins-bad1.0-dev \
