@@ -113,7 +113,7 @@ impl GlContext {
                 }
 
                 #[cfg(target_os = "macos")]
-                return unimplemeneted!(); // @TODO(victor): RawContext::Cocoa in servo-media
+                return unimplemented!(); // @TODO(victor): RawContext::Cocoa in servo-media
 
                 #[cfg(not(any(
                     target_os = "linux",
