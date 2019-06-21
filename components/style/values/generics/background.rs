@@ -6,13 +6,6 @@
 
 use crate::values::generics::length::{GenericLengthPercentageOrAuto, LengthPercentageOrAuto};
 
-fn width_and_height_are_auto<L>(
-    width: &LengthPercentageOrAuto<L>,
-    height: &LengthPercentageOrAuto<L>,
-) -> bool {
-    width.is_auto() && height.is_auto()
-}
-
 /// A generic value for the `background-size` property.
 #[derive(
     Animate,
@@ -37,10 +30,7 @@ pub enum GenericBackgroundSize<LengthPercent> {
         /// Explicit width.
         width: GenericLengthPercentageOrAuto<LengthPercent>,
         /// Explicit height.
-        /// NOTE(emilio): We should probably simplify all these in case `width`
-        /// and `height` are the same, but all other browsers agree on only
-        /// special-casing `auto`.
-        #[css(contextual_skip_if = "width_and_height_are_auto")]
+        #[css(skip_if = "GenericLengthPercentageOrAuto::is_auto")]
         height: GenericLengthPercentageOrAuto<LengthPercent>,
     },
     /// `cover`
