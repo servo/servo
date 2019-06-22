@@ -44,7 +44,7 @@ pub struct TopLevelRuleParser<'a> {
     /// A reference to the lock we need to use to create rules.
     pub shared_lock: &'a SharedRwLock,
     /// A reference to a stylesheet loader if applicable, for `@import` rules.
-    pub loader: Option<&'a StylesheetLoader>,
+    pub loader: Option<&'a dyn StylesheetLoader>,
     /// The top-level parser context.
     ///
     /// This won't contain any namespaces, and only nested parsers created with

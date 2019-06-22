@@ -181,7 +181,7 @@ pub struct SharedStyleContext<'a> {
 
     /// Paint worklets
     #[cfg(feature = "servo")]
-    pub registered_speculative_painters: &'a RegisteredSpeculativePainters,
+    pub registered_speculative_painters: &'a dyn RegisteredSpeculativePainters,
 
     /// Data needed to create the thread-local style context from the shared one.
     #[cfg(feature = "servo")]
@@ -826,5 +826,5 @@ pub trait RegisteredSpeculativePainter: SpeculativePainter {
 #[cfg(feature = "servo")]
 pub trait RegisteredSpeculativePainters: Sync {
     /// Look up a speculative painter
-    fn get(&self, name: &Atom) -> Option<&RegisteredSpeculativePainter>;
+    fn get(&self, name: &Atom) -> Option<&dyn RegisteredSpeculativePainter>;
 }

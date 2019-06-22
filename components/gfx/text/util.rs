@@ -114,8 +114,8 @@ pub fn fixed_to_float(before: usize, f: i32) -> f64 {
 
 pub fn is_bidi_control(c: char) -> bool {
     match c {
-        '\u{202A}'...'\u{202E}' => true,
-        '\u{2066}'...'\u{2069}' => true,
+        '\u{202A}'..='\u{202E}' => true,
+        '\u{2066}'..='\u{2069}' => true,
         '\u{200E}' | '\u{200F}' | '\u{061C}' => true,
         _ => false,
     }

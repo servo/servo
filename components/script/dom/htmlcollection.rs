@@ -57,7 +57,7 @@ pub struct HTMLCollection {
     reflector_: Reflector,
     root: Dom<Node>,
     #[ignore_malloc_size_of = "Contains a trait object; can't measure due to #6870"]
-    filter: Box<CollectionFilter + 'static>,
+    filter: Box<dyn CollectionFilter + 'static>,
     // We cache the version of the root node and all its decendents,
     // the length of the collection, and a cursor into the collection.
     // FIXME: make the cached cursor element a weak pointer

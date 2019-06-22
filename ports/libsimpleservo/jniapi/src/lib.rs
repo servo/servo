@@ -337,7 +337,7 @@ impl WakeupCallback {
 }
 
 impl EventLoopWaker for WakeupCallback {
-    fn clone(&self) -> Box<EventLoopWaker + Send> {
+    fn clone(&self) -> Box<dyn EventLoopWaker + Send> {
         Box::new(WakeupCallback {
             callback: self.callback.clone(),
             jvm: self.jvm.clone(),

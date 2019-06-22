@@ -121,7 +121,7 @@ pub struct InitialPipelineState {
 
     /// A handle to register components for hang monitoring.
     /// None when in multiprocess mode.
-    pub background_monitor_register: Option<Box<BackgroundHangMonitorRegister>>,
+    pub background_monitor_register: Option<Box<dyn BackgroundHangMonitorRegister>>,
 
     /// A channel for the background hang monitor to send messages to the constellation.
     pub background_hang_monitor_to_constellation_chan: IpcSender<HangMonitorAlert>,
@@ -516,7 +516,7 @@ impl UnprivilegedPipelineContent {
     pub fn start_all<Message, LTF, STF>(
         self,
         wait_for_completion: bool,
-        background_hang_monitor_register: Box<BackgroundHangMonitorRegister>,
+        background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
     ) where
         LTF: LayoutThreadFactory<Message = Message>,
         STF: ScriptThreadFactory<Message = Message>,
@@ -704,7 +704,9 @@ impl UnprivilegedPipelineContent {
         }
     }
 
-    pub fn register_with_background_hang_monitor(&mut self) -> Box<BackgroundHangMonitorRegister> {
+    pub fn register_with_background_hang_monitor(
+        &mut self,
+    ) -> Box<dyn BackgroundHangMonitorRegister> {
         HangMonitorRegister::init(
             self.background_hang_monitor_to_constellation_chan.clone(),
             self.sampling_profiler_port

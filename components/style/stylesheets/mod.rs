@@ -352,7 +352,7 @@ impl CssRule {
         parent_stylesheet_contents: &StylesheetContents,
         shared_lock: &SharedRwLock,
         state: State,
-        loader: Option<&StylesheetLoader>,
+        loader: Option<&dyn StylesheetLoader>,
     ) -> Result<Self, RulesMutateError> {
         let url_data = parent_stylesheet_contents.url_data.read();
         let context = ParserContext::new(

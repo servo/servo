@@ -153,10 +153,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
     ) {
         let item = match cx.tcx.hir().get_by_hir_id(id) {
             hir::Node::Item(item) => item,
-            _ => cx
-                .tcx
-                .hir()
-                .expect_item_by_hir_id(cx.tcx.hir().get_parent_item(id)),
+            _ => cx.tcx.hir().expect_item(cx.tcx.hir().get_parent_item(id)),
         };
         if item
             .attrs
@@ -177,7 +174,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
     fn check_variant(&mut self, cx: &LateContext, var: &hir::Variant, _gen: &hir::Generics) {
         let ref map = cx.tcx.hir();
         if map
-            .expect_item_by_hir_id(map.get_parent_item(var.node.id))
+            .expect_item(map.get_parent_item(var.node.id))
             .attrs
             .iter()
             .all(|a| !a.check_name(self.symbols.must_root))

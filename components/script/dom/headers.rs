@@ -499,7 +499,7 @@ fn is_field_vchar(x: u8) -> bool {
 // https://tools.ietf.org/html/rfc5234#appendix-B.1
 pub fn is_vchar(x: u8) -> bool {
     match x {
-        0x21...0x7E => true,
+        0x21..=0x7E => true,
         _ => false,
     }
 }
@@ -507,7 +507,7 @@ pub fn is_vchar(x: u8) -> bool {
 // http://tools.ietf.org/html/rfc7230#section-3.2.6
 pub fn is_obs_text(x: u8) -> bool {
     match x {
-        0x80...0xFF => true,
+        0x80..=0xFF => true,
         _ => false,
     }
 }

@@ -127,7 +127,7 @@ pub trait CssRulesHelpers {
         parent_stylesheet_contents: &StylesheetContents,
         index: usize,
         nested: bool,
-        loader: Option<&StylesheetLoader>,
+        loader: Option<&dyn StylesheetLoader>,
     ) -> Result<CssRule, RulesMutateError>;
 }
 
@@ -139,7 +139,7 @@ impl CssRulesHelpers for RawOffsetArc<Locked<CssRules>> {
         parent_stylesheet_contents: &StylesheetContents,
         index: usize,
         nested: bool,
-        loader: Option<&StylesheetLoader>,
+        loader: Option<&dyn StylesheetLoader>,
     ) -> Result<CssRule, RulesMutateError> {
         let new_rule = {
             let read_guard = lock.read();

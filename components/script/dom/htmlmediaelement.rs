@@ -227,7 +227,7 @@ pub struct HTMLMediaElement {
     #[ignore_malloc_size_of = "promises are hard"]
     in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
     #[ignore_malloc_size_of = "servo_media"]
-    player: DomRefCell<Option<Box<Player>>>,
+    player: DomRefCell<Option<Box<dyn Player>>>,
     #[ignore_malloc_size_of = "Arc"]
     frame_renderer: Arc<Mutex<MediaFrameRenderer>>,
     /// https://html.spec.whatwg.org/multipage/#show-poster-flag
@@ -1223,7 +1223,7 @@ impl HTMLMediaElement {
         };
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();
-        let renderer: Option<Arc<Mutex<FrameRenderer>>> = match self.media_type_id() {
+        let renderer: Option<Arc<Mutex<dyn FrameRenderer>>> = match self.media_type_id() {
             HTMLMediaElementTypeId::HTMLAudioElement => None,
             HTMLMediaElementTypeId::HTMLVideoElement => Some(self.frame_renderer.clone()),
         };

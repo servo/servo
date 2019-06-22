@@ -471,7 +471,7 @@ fn compute_style_for_animation_step<E>(
     step: &KeyframesStep,
     previous_style: &ComputedValues,
     style_from_cascade: &Arc<ComputedValues>,
-    font_metrics_provider: &FontMetricsProvider,
+    font_metrics_provider: &dyn FontMetricsProvider,
 ) -> Arc<ComputedValues>
 where
     E: TElement,
@@ -656,7 +656,7 @@ pub fn update_style_for_animation<E>(
     context: &SharedStyleContext,
     animation: &Animation,
     style: &mut Arc<ComputedValues>,
-    font_metrics_provider: &FontMetricsProvider,
+    font_metrics_provider: &dyn FontMetricsProvider,
 ) -> AnimationUpdate
 where
     E: TElement,

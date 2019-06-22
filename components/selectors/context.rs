@@ -134,7 +134,7 @@ where
 
     /// An optional hook function for checking whether a pseudo-element
     /// should match when matching_mode is ForStatelessPseudoElement.
-    pub pseudo_element_matching_fn: Option<&'a Fn(&Impl::PseudoElement) -> bool>,
+    pub pseudo_element_matching_fn: Option<&'a dyn Fn(&Impl::PseudoElement) -> bool>,
 
     /// Extra implementation-dependent matching data.
     pub extra_data: Impl::ExtraMatchingData,

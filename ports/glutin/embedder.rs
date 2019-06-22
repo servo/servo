@@ -24,7 +24,7 @@ pub struct EmbedderCallbacks {
 }
 
 impl EmbedderCallbacks {
-    pub fn new(events_loop: Rc<RefCell<EventsLoop>>, gl: Rc<gl::Gl>) -> EmbedderCallbacks {
+    pub fn new(events_loop: Rc<RefCell<EventsLoop>>, gl: Rc<dyn gl::Gl>) -> EmbedderCallbacks {
         EmbedderCallbacks { events_loop, gl }
     }
 }
@@ -37,7 +37,7 @@ impl EmbedderMethods for EmbedderCallbacks {
     fn register_vr_services(
         &mut self,
         services: &mut VRServiceManager,
-        heartbeats: &mut Vec<Box<WebVRMainThreadHeartbeat>>,
+        heartbeats: &mut Vec<Box<dyn WebVRMainThreadHeartbeat>>,
     ) {
         if !opts::get().headless {
             if pref!(dom.webvr.test) {
