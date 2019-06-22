@@ -143,6 +143,12 @@ impl PseudoElement {
         false
     }
 
+    /// Whether this pseudo-element is the ::selection pseudo.
+    #[inline]
+    pub fn is_selection(&self) -> bool {
+        *self == PseudoElement::Selection
+    }
+
     /// Whether this pseudo-element is the ::before pseudo.
     #[inline]
     pub fn is_before(&self) -> bool {
