@@ -10,6 +10,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputE
 use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
 use crate::dom::bindings::conversions::{
     ConversionResult, FromJSValConvertible, StringificationBehavior,
 };
@@ -24,6 +25,7 @@ use crate::dom::htmlinputelement::HTMLInputElement;
 use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::node::{window_from_node, Node, ShadowIncluding};
 use crate::dom::window::Window;
+use crate::dom::xmlserializer::XMLSerializer;
 use crate::script_thread::Documents;
 use cookie::Cookie;
 use euclid::{Point2D, Rect, Size2D};
@@ -278,6 +280,31 @@ pub fn handle_get_active_element(
                 .and_then(|doc| doc.GetActiveElement())
                 .map(|elem| elem.upcast::<Node>().unique_id()),
         )
+        .unwrap();
+}
+
+pub fn handle_get_page_source(
+    documents: &Documents,
+    pipeline: PipelineId,
+    reply: IpcSender<Result<String, ()>>,
+) {
+    reply
+        .send(documents.find_document(pipeline).ok_or(()).and_then(|doc| {
+            match doc.GetDocumentElement() {
+                Some(elem) => match elem.GetOuterHTML() {
+                    Ok(source) => Ok(source.to_string()),
+                    Err(_) => {
+                        match XMLSerializer::new(doc.window())
+                            .SerializeToString(elem.upcast::<Node>())
+                        {
+                            Ok(source) => Ok(source.to_string()),
+                            Err(_) => Err(()),
+                        }
+                    },
+                },
+                None => Err(()),
+            }
+        }))
         .unwrap();
 }
 
