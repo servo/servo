@@ -48,6 +48,16 @@ python wpt make-hosts-file | Out-File %SystemRoot%\System32\drivers\etc\hosts -E
 If you are behind a proxy, you also need to make sure the domains above are
 excluded from your proxy lookups.
 
+[The Ahem font](../writing-tests/ahem) is used to test precise rendering
+behavior. [Download the font][download-ahem] and install it using the
+appropriate steps for your platform:
+
+- On Windows, right-click the downloaded file in File Explorer/Windows Explorer
+  (depending on Windows version) and select "Install" from the menu.
+- On macOS, open the downloaded file in Font Book (the default application for
+  font files) and then click install.
+- On Linux, copy the file to `~/.local/share/fonts` and then run `fc-cache`.
+
 ### Windows Notes
 
 Generally Windows Subsystem for Linux will provide the smoothest user
@@ -115,6 +125,13 @@ customising the test run:
 [A complete listing of the command-line arguments is available
 here](command-line-arguments).
 
+```eval_rst
+.. toctree::
+   :hidden:
+
+   command-line-arguments
+```
+
 Additional browser-specific documentation:
 
 ```eval_rst
@@ -124,3 +141,5 @@ Additional browser-specific documentation:
   chrome_android
   safari
 ```
+
+[download-ahem]: https://github.com/web-platform-tests/wpt/raw/master/fonts/Ahem.ttf

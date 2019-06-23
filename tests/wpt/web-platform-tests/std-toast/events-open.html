@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Toast: Event tests</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<main></main>
+
+<script type="module">
+import { testToastElement, EventCollector } from './resources/helpers.js';
+
+testToastElement((toast) => {
+    const counter = new EventCollector();
+
+    toast.addEventListener('show', (e) => {
+        counter.getCallback()(e);
+    });
+    toast.open = true;
+
+    assert_equals(counter.getCount(), 1);
+}, 'setting open to true on a hidden toast triggers the `show` event');
+
+testToastElement((toast) => {
+    const counter = new EventCollector();
+
+    toast.open = true;
+    toast.addEventListener('show', counter.getCallback());
+    toast.open = true;
+
+    assert_equals(counter.getCount(), 0);
+}, 'setting open to true on a shown toast does not trigger the `show` event');
+
+testToastElement((toast) => {
+    const counter = new EventCollector();
+
+    toast.addEventListener('hide', counter.getCallback());
+    toast.open = false;
+
+    assert_equals(counter.getCount(), 0);
+}, 'setting open to false on a hidden toast does not trigger the `hide` event');
+
+testToastElement((toast) => {
+    const counter = new EventCollector();
+
+    toast.show();
+    toast.addEventListener('hide', counter.getCallback());
+    toast.open = false;
+
+    assert_equals(counter.getCount(), 1);
+}, 'setting open to false on a shown toast triggers the `hide` event');
+
+testToastElement((toast) => {
+    const counter = new EventCollector();
+
+    toast.addEventListener('show', counter.getCallback());
+    toast.open = true;
+    toast.open = true;
+
+    assert_equals(counter.getCount(), 1);
+}, 'setting open to true twice only triggers the `show` event once');
+
+testToastElement((toast) => {
+    const counter = new EventCollector();
+
+    toast.show();
+    toast.addEventListener('hide', counter.getCallback());
+    toast.open = false;
+    toast.open = false;
+
+    assert_equals(counter.getCount(), 1);
+}, 'setting open to false twice only triggers the `hide` event once');
+</script>

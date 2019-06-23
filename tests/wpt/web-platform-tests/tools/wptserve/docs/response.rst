@@ -34,8 +34,8 @@ continue to load indefinitely.
 
 .. _response.Interface:
 
-:mod:`Interface <response>`
----------------------------
+:mod:`Interface <wptserve.response>`
+------------------------------------
 
 .. automodule:: wptserve.response
    :members:

@@ -91,6 +91,23 @@ test(function () {
 }, 'setAttributeNode and removeAttributeNS must enqueue and invoke attributeChangedCallback for an SVG attribute');
 
 test(function () {
+    const instance = document.createElement(customElement.name);
+    assert_array_equals(customElement.takeLog().types(), ['constructed']);
+
+    instance.toggleAttribute('title', true);
+    assert_equals(instance.hasAttribute('title'), true);
+    var logEntries = customElement.takeLog();
+    assert_array_equals(logEntries.types(), ['attributeChanged']);
+    assert_attribute_log_entry(logEntries.last(), {name: 'title', oldValue: null, newValue: '', namespace: null});
+
+    instance.toggleAttribute('title');
+    assert_equals(instance.hasAttribute('title'), false);
+    var logEntries = customElement.takeLog();
+    assert_array_equals(logEntries.types(), ['attributeChanged']);
+    assert_attribute_log_entry(logEntries.last(), {name: 'title', oldValue: '', newValue: null, namespace: null});
+}, 'toggleAttribute must enqueue and invoke attributeChangedCallback');
+
+test(function () {
     const callsToOld = [];
     const callsToNew = [];
     class CustomElement extends HTMLElement { }

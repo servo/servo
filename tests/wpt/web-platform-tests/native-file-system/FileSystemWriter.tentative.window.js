@@ -7,6 +7,7 @@ promise_test(async t => {
     const writer = await handle.createWriter();
 
     await writer.write(0, new Blob([]));
+    await writer.close();
 
     assert_equals(await getFileContents(handle), '');
     assert_equals(await getFileSize(handle), 0);
@@ -17,6 +18,7 @@ promise_test(async t => {
     const writer = await handle.createWriter();
 
     await writer.write(0, new Blob(['1234567890']));
+    await writer.close();
 
     assert_equals(await getFileContents(handle), '1234567890');
     assert_equals(await getFileSize(handle), 10);
@@ -28,6 +30,7 @@ promise_test(async t => {
 
     await writer.write(0, new Blob(['1234567890']));
     await writer.write(4, new Blob(['abc']));
+    await writer.close();
 
     assert_equals(await getFileContents(handle), '1234abc890');
     assert_equals(await getFileSize(handle), 10);
@@ -38,6 +41,7 @@ promise_test(async t => {
     const writer = await handle.createWriter();
 
     await promise_rejects(t, 'InvalidStateError', writer.write(4, new Blob(['abc'])));
+    await writer.close();
 
     assert_equals(await getFileContents(handle), '');
     assert_equals(await getFileSize(handle), 0);
@@ -48,6 +52,7 @@ promise_test(async t => {
   const writer = await handle.createWriter();
 
   await writer.write(0, '');
+  await writer.close();
   assert_equals(await getFileContents(handle), '');
   assert_equals(await getFileSize(handle), 0);
 }, 'write() with an empty string to an empty file');
@@ -57,6 +62,7 @@ promise_test(async t => {
   const writer = await handle.createWriter();
 
   await writer.write(0, 'foo🤘');
+  await writer.close();
   assert_equals(await getFileContents(handle), 'foo🤘');
   assert_equals(await getFileSize(handle), 7);
 }, 'write() with a valid utf-8 string');
@@ -66,6 +72,7 @@ promise_test(async t => {
   const writer = await handle.createWriter();
 
   await writer.write(0, 'foo\n');
+  await writer.close();
   assert_equals(await getFileContents(handle), 'foo\n');
   assert_equals(await getFileSize(handle), 4);
 }, 'write() with a string with unix line ending preserved');
@@ -75,6 +82,7 @@ promise_test(async t => {
   const writer = await handle.createWriter();
 
   await writer.write(0, 'foo\r\n');
+  await writer.close();
   assert_equals(await getFileContents(handle), 'foo\r\n');
   assert_equals(await getFileSize(handle), 5);
 }, 'write() with a string with windows line ending preserved');
@@ -85,6 +93,7 @@ promise_test(async t => {
 
   let buf = new ArrayBuffer(0);
   await writer.write(0, buf);
+  await writer.close();
   assert_equals(await getFileContents(handle), '');
   assert_equals(await getFileSize(handle), 0);
 }, 'write() with an empty array buffer to an empty file');
@@ -99,6 +108,7 @@ promise_test(async t => {
   intView[1] = 0x6f;
   intView[2] = 0x6f;
   await writer.write(0, buf);
+  await writer.close();
   assert_equals(await getFileContents(handle), 'foo');
   assert_equals(await getFileSize(handle), 3);
 }, 'write() with a valid typed array buffer');
@@ -109,6 +119,7 @@ promise_test(async t => {
 
     await writer.write(0, new Blob(['1234567890']));
     await writer.truncate(5);
+    await writer.close();
 
     assert_equals(await getFileContents(handle), '12345');
     assert_equals(await getFileSize(handle), 5);
@@ -120,6 +131,7 @@ promise_test(async t => {
 
     await writer.write(0, new Blob(['abc']));
     await writer.truncate(5);
+    await writer.close();
 
     assert_equals(await getFileContents(handle), 'abc\0\0');
     assert_equals(await getFileSize(handle), 5);

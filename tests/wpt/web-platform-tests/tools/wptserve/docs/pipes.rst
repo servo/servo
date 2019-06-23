@@ -1,8 +1,8 @@
 Pipes
 ======
 
-:mod:`Interface <pipes>`
-------------------------
+:mod:`Interface <wptserve.pipes>`
+---------------------------------
 
 .. automodule:: wptserve.pipes
    :members:

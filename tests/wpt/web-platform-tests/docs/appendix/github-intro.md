@@ -42,9 +42,10 @@ If you are a first-time GitHub user, read on for more details of the workflow.
 
 ## Fork the test repository
 
-Now that you have Git set up, you will need to fork the test repository. This
-will enable you to [submit](#submit) your tests using a pull request (more on this
-[below](#submit)).
+Now that you have Git set up, you will need to "fork" the test repository. Your
+fork will be a completely independent version of the repository, hosted on
+GitHub.com. This will enable you to [submit](#submit) your tests using a pull
+request (more on this [below](#submit)).
 
 1.  In the browser, go to [web-platform-tests on GitHub][main-repo].
 
@@ -61,22 +62,26 @@ will enable you to [submit](#submit) your tests using a pull request (more on th
 
 If your [fork](#fork) was successful, the next step is to clone (download a copy of the files).
 
-### Clone the test repo
-At the command prompt, cd into the directory where you want to keep the tests.
+### Clone the test repository
 
-        $ git clone https://github.com/username/wpt.git
+Open a command prompt in the directory where you want to keep the tests. Then
+execute the following command:
 
-_This will download the tests into a directory named for the repo:_ `wpt/`.
+    $ git clone https://github.com/username/wpt.git
 
-* You should now have a full copy of the test repository on your local
-  machine. Feel free to browse the directories on your hard drive. You can also
-  browse them on [github.com][github-w3c] and see the full history of contributions
-  there.
+This will download the tests into a directory named for the repository: `wpt/`.
+
+You should now have a full copy of the test repository on your local
+machine. Feel free to browse the directories on your hard drive. You can also
+[browse them on github.com][main-repo] and see the full history of
+contributions there.
 
 ## Configure Remote / Upstream
-Synchronizing your forked repository with the W3C repository will enable you to
-keep your forked local copy up-to-date with the latest commits in the W3C
-repository.
+
+Your forked repository is completely independent of the canonical repository,
+which is commonly referred to as the "upstream" repository. Synchronizing your
+forked repository with the upstream repository will keep your forked local copy
+up-to-date with the latest commits.
 
 1.  On the command line, navigate to to the directory where your forked copy of
     the repository is located.
@@ -127,8 +132,7 @@ At the command line:
 This will create a branch named `topic` and immediately
 switch this to be your active working branch.
 
-_The branch name should describe specifically what you are testing.
-For Example:_
+The branch name should describe specifically what you are testing. For example:
 
     $ git checkout -b flexbox-flex-direction-prop
 
@@ -139,13 +143,13 @@ You're ready to start writing tests! Come back to this page you're ready to
 ## Commit
 
 Before you submit your tests for review and contribution to the main test
-repo, you'll need to first commit them locally, where you now have your own
-personal version control system with git. In fact, as you are writing your
+repository, you'll need to first commit them locally, where you now have your
+own personal version control system with git. In fact, as you are writing your
 tests, you may want to save versions of your work as you go before you submit
 them to be reviewed and merged.
 
-1.  When you're ready to save a version of your work, go to the command
-    prompt and cd to the directory where your files are.
+1.  When you're ready to save a version of your work, open a command
+    prompt and change to the directory where your files are.
 
 2.  First, ask git what new or modified files you have:
 
@@ -163,17 +167,16 @@ them to be reviewed and merged.
         $ git add [directory_of_files]
 
 4.  Run `git status` again to see what you have on the 'Changes to be
-    committed' list. These files are now 'staged'.
+    committed' list. These files are now 'staged'. Alternatively, you can run
+    `git diff --staged` to see a visual representation of the changes to be
+    committed.
 
-5.  Alternatively, you can run `git diff --staged`, which will show you the
-    diff of things to be committed.
-
-6.  Once you've added everything, you can commit and add a message to this
+5.  Once you've added everything, you can commit and add a message to this
     set of changes:
 
         $ git commit -m "Tests for indexed getters in the HTMLExampleInterface"
 
-7.  Repeat these steps as many times as you'd like before you submit.
+6.  Repeat these steps as many times as you'd like before you submit.
 
 ## Verify
 
@@ -181,10 +184,8 @@ The Web Platform Test project has an automated tool
 to verify that coding conventions have been followed,
 and to catch a number of common mistakes.
 
-You can and should run this tool locally.
-It will be run on your submissions anyway,
-and any failure will be grounds for rejection,
-so you might as well fix them first.
+We recommend running this tool locally. That will help you discover and fix
+issues that would make it hard for us to accept your contribution.
 
 1. On the command line, navigate to to the directory where your clone
 of the repository is located.
@@ -201,21 +202,21 @@ If you're here now looking for more instructions, that means you've written
 some awesome tests and are ready to submit them. Congratulations and welcome
 back!
 
-1.  The first thing you do before submitting them to the W3C repo is to push
-them back up to the server:
+1.  The first thing you do before submitting them to the web-platform-tests
+    repository is to push them back up to your fork:
 
         $ git push origin topic
 
-    _Note: Here,_ `origin` _refers to remote repo from which you cloned
+    _Note: Here,_ `origin` _refers to remote repository from which you cloned
     (downloaded) the files after you forked, referred to as
     web-platform-tests.git in the previous example;_
     `topic` _refers to the name of your local branch that
-    you want to push_.
+    you want to share_.
 
 2.  Now you can send a message that you have changes or additions you'd like
     to be reviewed and merged into the main (original) test repository. You do
-    this by using a pull request. In a browser, open the GitHub page for your
-    forked repository: **https://github.com/username/wpt**.
+    this by creating a pull request. In a browser, open the GitHub page for
+    your forked repository: **https://github.com/username/wpt**.
 
 3. Now create the pull request.  There are several ways to create a PR in the
 GitHub UI.  Below is one method and others can be found on
@@ -223,17 +224,16 @@ GitHub UI.  Below is one method and others can be found on
 
     1. Click the ![new pull request](../assets/pullrequestbtn.png) button.
 
-    2.  On the left, you should see the base repo is the
+    2.  On the left, you should see the base repository is the
         web-platform-tests/wpt. On the right, you should see your fork of that
-        repo. In the branch menu of your forked repo, switch to `topic`
+        repository. In the branch menu of your forked repository, switch to `topic`
 
-        **Note:** If you see _'There isn't anything to compare'_,
-        make sure your fork and your `topic`
-        branch is selected on the right side.
+        If you see "There isn't anything to compare", make sure your fork and
+        your `topic` branch is selected on the right side.
 
     3. Select the ![create pull request](../assets/createpr.png) button at the top.
 
-    4. Scroll down and review the diff
+    4. Scroll down and review the summary of changes.
 
     5. Scroll back up and in the Title field, enter a brief description for
        your submission.
@@ -251,12 +251,11 @@ accepted, delete your branch (see '[When Pull Request is Accepted](#cleanup)').
 
 That's it! Your pull request will go into a queue and will be reviewed soon.
 
-## Modify
+## Refine
 
 Once you submit your pull request, a reviewer will check your proposed changes
-for correctness and style. It is likely that this process will lead to some
-comments asking for modifications to your code. When you are ready to make the
-changes, follow these steps:
+for correctness and style. They may ask you to modify your code. When you are
+ready to make the changes, follow these steps:
 
 1.  Check out the branch corresponding to your changes e.g. if your branch was
     called `topic`
@@ -280,11 +279,11 @@ platform.
 
 ## Cleanup
 Once your pull request has been accepted, you will be notified in the GitHub
-UI and you may get an email. At this point, your changes have been merged
+user interface, and you may get an email. At this point, your changes have been merged
 into the main test repository. You do not need to take any further action
 on the test but you should delete your branch. This can easily be done in
-the GitHub UI by navigating to the pull requests and clicking the
-'Delete Branch' button.
+the GitHub user interface by navigating to the pull request and clicking the
+"Delete Branch" button.
 
 ![pull request accepted delete branch](/assets/praccepteddelete.png)
 
@@ -391,7 +390,6 @@ you may also discard your connection to their repo:
 [git]: https://git-scm.com/downloads
 [git-book]: https://git-scm.com/book
 [github]: https://github.com/
-[github-w3c]: https://github.com/w3c
 [github-fork-docs]: https://help.github.com/articles/fork-a-repo
 [github-createpr]: https://help.github.com/articles/creating-a-pull-request
 [help]: https://help.github.com/

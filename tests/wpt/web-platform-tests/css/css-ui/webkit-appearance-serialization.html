@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Serialization of `-webkit-appearance`</title>
+  <link rel="help" href="https://drafts.csswg.org/css-ui-4/#appearance-switching">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+test(function() {
+  var input = document.createElement('input');
+  input.style.setProperty('-webkit-appearance', 'none');
+
+  assert_equals(input.style.cssText, 'appearance: none;');
+}, 'serialization via CSSStyleDeclaration');
+
+test(function(t) {
+  var style = document.createElement('style');
+  document.body.appendChild(style);
+  t.add_cleanup(function() {
+    document.body.removeChild(style);
+  });
+  style.sheet.insertRule('#foo {}', 0);
+  style.sheet.cssRules[0].style.setProperty('-webkit-appearance', 'none');
+
+  assert_equals(
+    style.sheet.cssRules[0].cssText, '#foo { appearance: none; }'
+  );
+}, 'serialization via CSSStyleRule');
+
+test(function(t) {
+  var style = document.createElement('style');
+  document.body.appendChild(style);
+  t.add_cleanup(function() {
+    document.body.removeChild(style);
+  });
+  style.sheet.insertRule('@media print { #foo {} }', 0);
+  style.sheet.cssRules[0].cssRules[0].style.setProperty('-webkit-appearance', 'none');
+
+  assert_equals(
+    style.sheet.cssRules[0].cssText,
+    '@media print {\n  #foo { appearance: none; }\n}'
+  );
+}, 'serialization via CSSMediaRule');
+</script>
+</body>

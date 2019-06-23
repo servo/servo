@@ -18,6 +18,33 @@ const StepStatus = {
 
 var steps_map = new Map();
 
+function poll_for_result(request_token, step_name, expect_success) {
+  test.step(() => {
+    var iteration = 5;
+    var checkResult = () => {
+      fetch("resources/beacon.py?query&token=" + request_token).then(test.step_func((response) => {
+        var count = response.headers.get("Count");
+        if (count != '0') {
+          // If the server received something we can terminate polling.
+          if (expect_success) {
+            step_success(step_name);
+          } else {
+            step_fail(step_name);
+          }
+        } else if (!expect_success && count == '0' && iteration == 0) {
+          // When we are out of iterations and we aren't expecting success, declare this step complete.
+          // Should be 125 ms looking to make sure server didn't see the request.
+          step_success(step_name);
+        } else {
+          iteration--;
+          test.step_timeout(checkResult, 25);
+        }
+      }));
+    };
+    test.step_timeout(checkResult, 25);
+  });
+}
+
 function add_step(name) {
   steps_map[name] = StepStatus.ADDED;
   total_steps++;
@@ -46,4 +73,3 @@ test.step_timeout(() => {
 }, 1000);
 
 </script>
-

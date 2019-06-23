@@ -25,11 +25,112 @@
       assert_element_accepts_trusted_url_set_ns(window, '3', t, 'a', 'b', RESULTS.URL);
     }, "Element.setAttributeNS assigned via policy (successful URL transformation)");
 
+    // Unknown, namespaced attributes should not be TT checked:
     test(t => {
-      assert_throws_no_trusted_type_set_ns('a', 'b', 'A string');
-    }, "`Element.setAttributeNS = string` throws");
+      assert_element_accepts_non_trusted_type_set_ns('a', 'b', 'A string', 'A string');
+    }, "Element.setAttributeNS accepts untrusted string for non-specced accessor");
 
     test(t => {
-      assert_throws_no_trusted_type_set_ns('a', 'b', null);
-    }, "`Element.setAttributeNS = null` throws");
+      assert_element_accepts_non_trusted_type_set_ns('a', 'b', null, 'null');
+    }, "Element.setAttributeNS accepts null for non-specced accessor");
+
+    // Setup trusted values for use in subsequent tests.
+    const url = createURL_policy(window, '4').createURL(INPUTS.URL);
+    const script_url = createScriptURL_policy(window, '5').createScriptURL(INPUTS.ScriptURL);
+    const html = createHTML_policy(window, '6').createHTML(INPUTS.HTML);
+    const script = createScript_policy(window, '7').createScript(INPUTS.Script);
+
+    // SVG elements that use xlink:href (SVGURIReference) and that expect
+    // TrustedURL.
+    // There a number of affected elements, and there are several ways to set
+    // a namespaced attribute. Let's iterate over all combinations.
+    const xlink = "http://www.w3.org/1999/xlink";
+    const svg = "http://www.w3.org/2000/svg";
+    const elems = [ "a", "animate", "animateMotion", "animateTransform",
+                    "discard", "feImage", "filter", "image", "linearGradient",
+                    "mpath", "pattern", "radialGradient", "set", "textPath",
+                    "use" ];
+
+    // There are multiple ways to set a namespaced attribute. Let's encapsulate
+    // each in a function.
+    const variants = {
+      "setAttributeNS with prefix": (element_name, value) => {
+        let elem = document.createElementNS(svg, element_name);
+        elem.setAttributeNS(xlink, "xlink:href", value);
+        return elem;
+      },
+      "setAttributeNS without prefix": (element_name, value) => {
+        let elem = document.createElementNS(svg, element_name);
+        elem.setAttributeNS(xlink, "href", value);
+        return elem;
+      },
+      "setAttribute with prefix": (element_name, value) => {
+        let elem = document.createElementNS(svg, element_name);
+        // Create the namespaced attribute with setAttributeNS. Then refer
+        // to it with the prefix in setAttribute. This test will break
+        // if either setAttributeNS or setAttribtue functionality it broken.
+        elem.setAttributeNS(xlink, "xlink:href", url);
+        elem.setAttribute("xlink:href", value);
+        return elem;
+      }
+    };
+    for (const e of elems) {
+      for (const variant in variants) {
+        // Assigning a TrustedURL works.
+        test(t => {
+          let elem = variants[variant](e, url);
+          assert_equals("" + RESULTS.URL,
+                        elem.getAttributeNodeNS(xlink, "href").value);
+        }, "Assigning TrustedURL to <svg:" + e + "> works via " + variant);
+
+        // Assigning things that ought to not work.
+        const values = ["abc", null, script_url, html, script];
+        values.forEach((value, index) => {
+          test(t => {
+            assert_throws(new TypeError(), _ => { variants[variant](e, value); });
+          }, "Blocking non-TrustedURL assignment to <svg:" + e + "> via " +
+             variant + " value no " + index);
+        });
+      }
+    }
+
+    // Test 'synchronization' of 'xlink:href'.
+    test(t => {
+      // ..setAttribute("xlink:href") will behave differently, depending on
+      // whether the element already has an attribute by that name. Make sure
+      // that Trusted Type handling respects that difference.
+
+      // Case 1: "xlink:href" on an empty element: This is an unknown attribute
+      // not processed by SVG, and string assignment should work.
+      let elem1 = document.createElementNS(svg, "a");
+      elem1.setAttribute("xlink:href", "abc");
+
+      // Case 2: "xlink:href", after a namespaced attribute has been set: Now
+      // this mirrors the SVG attribute, and string assignment should fail.
+      let elem2 = document.createElementNS(svg, "a");
+      elem2.setAttributeNS(xlink, "xlink:href", url);
+      assert_throws(new TypeError(), _ => {
+        elem2.setAttribute("xlink:href", "abc");
+      });
+    }, "Test synchronized, namespaced attributes.");
+
+    // svg:script xlink:href=... expects a TrustedScriptURL.
+    // Assigning a TrustedScriptURL works.
+    test(t => {
+      let elem = document.createElementNS(svg, "script");
+      elem.setAttributeNS(xlink, "href", script_url);
+      assert_equals("" + RESULTS.ScriptURL,
+                    elem.getAttributeNodeNS(xlink, "href").value);
+    }, "Assigning TrustedScriptURL to <svg:script xlink:href=...> works");
+
+    // Assigning things that ought to not work.
+    test(t => {
+      let elem = document.createElementNS(svg, "script");
+      const values = [ "abc", null, url, html, script ];
+      for (const v of values) {
+        assert_throws(new TypeError(), _ => {
+          elem.setAttributeNS(xlink, "href", v);
+        });
+      }
+    }, "Blocking non-TrustedScriptURL assignment to <svg:script xlink:href=...> works");
 </script>

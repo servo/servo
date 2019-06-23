@@ -5,7 +5,7 @@ let interceptor = (async function() {
     '/gen/mojo/public/mojom/base/big_buffer.mojom-lite.js',
     '/gen/mojo/public/mojom/base/string16.mojom-lite.js',
     '/gen/mojo/public/mojom/base/time.mojom-lite.js',
-    '/gen/third_party/blink/public/mojom/sms/sms_manager.mojom-lite.js',
+    '/gen/third_party/blink/public/mojom/sms/sms_receiver.mojom-lite.js',
   ].forEach(path => {
     let script = document.createElement('script');
     script.src = path;
@@ -24,8 +24,8 @@ class SmsProvider {
     this.returnValues = {}
   }
 
-  getNextMessage(timeout) {
-    let call = this.returnValues.getNextMessage.shift();
+  receive(timeout) {
+    let call = this.returnValues.receive.shift();
     if (!call) {
       throw new Error("Unexpected call.");
     }
@@ -39,7 +39,7 @@ class SmsProvider {
   }
 }
 
-function getNextMessage(timeout, callback) {
+function receive(timeout, callback) {
   throw new Error("expected to be overriden by tests");
 }
 
@@ -58,9 +58,9 @@ function intercept() {
   let provider = new SmsProvider();
 
   let interceptor = new MojoInterfaceInterceptor(
-      blink.mojom.SmsManager.$interfaceName);
+      blink.mojom.SmsReceiver.$interfaceName);
   interceptor.oninterfacerequest = (e) => {
-    let impl = new blink.mojom.SmsManager(provider);
+    let impl = new blink.mojom.SmsReceiver(provider);
     impl.bindHandle(e.handle);
   }
 

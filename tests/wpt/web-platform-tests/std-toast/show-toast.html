@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Toast: showToast tests</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+</body>
+
+<script type="module">
+import { showToast, StdToastElement } from 'std:elements/toast';
+import { testShowToast, assertToastNotShown, assertToastShown } from './resources/helpers.js';
+
+testShowToast((toast) => {
+    assert_true(toast != null);
+    assert_true(toast instanceof StdToastElement);
+}, 'showToast creates and returns a toast');
+
+testShowToast((toast) => {
+    assert_true(document.querySelector('std-toast') === toast);
+}, 'showToast puts the toast in the DOM');
+
+testShowToast((toast) => {
+    assertToastShown(toast);
+}, 'showToast displays the toast by default');
+
+testShowToast((toast) => {
+    toast.hide();
+
+    assertToastNotShown(toast);
+}, 'hiding showToast immediately does not display it');
+
+testShowToast((toast) => {
+    toast.show();
+
+    assertToastShown(toast);
+}, 'calling show after showToast does nothing');
+
+testShowToast((toast) => {
+    let toast2;
+    try {
+        toast2 = showToast('message2');
+
+        assert_not_equals(toast, toast2);
+    }
+    finally {
+        toast2.remove();
+    }
+}, 'calling showToast multiple times creates multiple different toasts');
+
+test(() => {
+    const toast = showToast('test');
+    assert_equals(toast.textContent, 'test');
+}, 'showToast created toast has `test` as its text content');
+
+test(() => {
+    const toast = showToast('<p>rich text</p>');
+
+    assert_equals(toast.textContent, '<p>rich text</p>');
+    assert_equals(toast.querySelector('p'), null);
+}, 'passing markup to showToast does not pass through the markup behaviors');
+</script>

@@ -6,8 +6,14 @@ importScripts("/resources/testharness.js");
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
-    await cookieStore.subscribeToChanges([
-      { name: 'cookie-name', matchType: 'equals', url: '/scope/path' }]);
+    try {
+      await cookieStore.subscribeToChanges([
+        { name: 'cookie-name', matchType: 'equals', url: '/scope/path' }]);
+
+      // If the worker enters the "redundant" state, the UA may terminate it
+      // before all tests have been reported to the client. Stifle errors in
+      // order to avoid this and ensure all tests are consistently reported.
+    } catch (err) {}
   })());
 });
 

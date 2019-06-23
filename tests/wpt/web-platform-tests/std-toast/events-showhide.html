@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Toast: Event tests</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<main></main>
+
+<script type="module">
+import { testToastElement, EventCollector } from './resources/helpers.js';
+
+testToastElement((toast) => {
+    const counter = new EventCollector();
+
+    toast.addEventListener('show', counter.getCallback());
+    toast.show();
+
+    assert_equals(counter.getCount(), 1);
+}, 'calling `show()` on a hidden toast triggers the `show` event');
+
+testToastElement((toast) => {
+    const counter = new EventCollector();
+
+    toast.show();
+    toast.addEventListener('show', counter.getCallback());
+    toast.show();
+
+    assert_equals(counter.getCount(), 0);
+}, 'calling `show()` on a shown toast does not trigger the `show` event');
+
+testToastElement((toast) => {
+    const counter = new EventCollector();
+
+    toast.addEventListener('hide', counter.getCallback());
+    toast.hide();
+
+    assert_equals(counter.getCount(), 0);
+}, 'calling `hide()` on a hidden toast does not trigger the `hide` event');
+
+testToastElement((toast) => {
+    const counter = new EventCollector();
+
+    toast.show();
+    toast.addEventListener('hide', counter.getCallback());
+    toast.hide();
+
+    assert_equals(counter.getCount(), 1);
+}, 'calling `hide()` on a shown toast triggers the `hide` event');
+
+testToastElement((toast) => {
+    const counter = new EventCollector();
+
+    toast.addEventListener('show', counter.getCallback());
+    toast.show();
+    toast.show();
+
+    assert_equals(counter.getCount(), 1);
+}, 'calling `show()` twice only triggers the `show` event once');
+
+testToastElement((toast) => {
+    const counter = new EventCollector();
+
+    toast.show();
+    toast.addEventListener('hide', counter.getCallback());
+    toast.hide();
+    toast.hide();
+
+    assert_equals(counter.getCount(), 1);
+}, 'calling `hide()` twice only triggers the `hide` event once');
+
+testToastElement((toast) => {
+    const events = new EventCollector();
+
+    toast.addEventListener('show', events.getCallback());
+
+    toast.show();
+    toast.hide();
+    toast.show();
+
+    assert_equals(events.getCount(), 2);
+    assert_not_equals(events.getEvents()[0], events.getEvents()[1]);
+}, "separate openings trigger different `show` events");
+
+testToastElement((toast) => {
+    const events = new EventCollector();
+
+    toast.addEventListener('hide', events.getCallback());
+
+    toast.show();
+    toast.hide();
+    toast.show();
+    toast.hide();
+
+    assert_equals(events.getCount(), 2);
+    assert_not_equals(events.getEvents()[0], events.getEvents()[1]);
+}, "separate closings trigger different `hide` events");
+</script>

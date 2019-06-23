@@ -52,34 +52,13 @@ href="https://www.w3.org/TR/CSS21/colors.html#background-properties" />
   <th>Description</th>
 </tr>
 <tr>
-  <td>animated</td>
-  <td>Test is animated in final state. (Cannot be verified using
-    reftests/screenshots.)</td>
-</tr>
-<tr>
   <td>asis</td>
   <td>The test has particular markup formatting requirements and
     cannot be re-serialized.</td>
 </tr>
 <tr>
-  <td>font</td>
-  <td>Requires a specific font to be installed at the OS level. (A link to the
-      font to be installed must be provided; this is not needed if only web
-      fonts are used.)</td>
-</tr>
-<tr>
-  <td>history</td>
-  <td>User agent session history is required. Testing :visited is a
-    good example where this may be used.</td>
-</tr>
-<tr>
   <td>HTMLonly</td>
   <td>Test case is only valid for HTML</td>
-</tr>
-<tr>
-  <td>interact</td>
-  <td>Requires human interaction (such as for testing scrolling
-    behavior)</td>
 </tr>
 <tr>
   <td>invalid</td>
@@ -109,6 +88,38 @@ href="https://www.w3.org/TR/CSS21/colors.html#background-properties" />
   <td>Behavior tested is RECOMMENDED, but not REQUIRED. <a
     href="https://www.ietf.org/rfc/rfc2119.txt">[RFC2119]</a></td>
 </tr>
+</table>
+
+The following flags are **deprecated** and should not be declared by new tests.
+Tests which satisfy the described criteria should simply be designated as
+"manual" using [the `-manual` file name flag][file-name-flags].
+
+<table>
+<tr>
+  <th>Token</th>
+  <th>Description</th>
+</tr>
+<tr>
+  <td>animated</td>
+  <td>Test is animated in final state. (Cannot be verified using
+    reftests/screenshots.)</td>
+</tr>
+<tr>
+  <td>font</td>
+  <td>Requires a specific font to be installed at the OS level. (A link to the
+      font to be installed must be provided; this is not needed if only web
+      fonts are used.)</td>
+</tr>
+<tr>
+  <td>history</td>
+  <td>User agent session history is required. Testing :visited is a
+    good example where this may be used.</td>
+</tr>
+<tr>
+  <td>interact</td>
+  <td>Requires human interaction (such as for testing scrolling
+    behavior)</td>
+</tr>
 <tr>
   <td>speech</td>
   <td>Device supports audio output. Text-to-speech (TTS) engine
@@ -130,7 +141,7 @@ Example 1 (one token applies):
 Example 2 (multiple tokens apply):
 
 ``` html
-<meta name="flags" content="ahem image scroll" />
+<meta name="flags" content="asis HTMLonly may" />
 ```
 
 Example 3 (no tokens apply):
@@ -178,3 +189,5 @@ Examples of good test assertions:
 * "This test checks that 'text-indent' affects only the first line
   of a block container if that line is also the first formatted line
   of an element."
+
+[file-name-flags]: {{ site.baseurl }}{% link _writing-tests/file-names.md %}

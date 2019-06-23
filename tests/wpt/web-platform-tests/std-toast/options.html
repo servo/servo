@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Toast: showToast tests</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+</body>
+
+<script type="module">
+import { showToast, StdToastElement } from 'std:elements/toast';
+import { assertToastNotShown, assertToastShown } from './resources/helpers.js';
+
+// message
+test(() => {
+    const toast =  new StdToastElement('test');
+    document.body.appendChild(toast);
+
+    assert_equals(toast.textContent, 'test');
+}, 'passing test string as message sets the message properly');
+
+test(() => {
+    const toast = new StdToastElement('<p>rich text</p>');
+    document.body.appendChild(toast);
+
+    assert_equals(toast.textContent, '<p>rich text</p>');
+    assert_equals(toast.querySelector('p'), null);
+}, 'passing markup to the constructor does not pass through the markup behaviors');
+
+test(() => {
+    const toast =  new StdToastElement(false);
+    document.body.appendChild(toast);
+
+    assert_equals(toast.textContent, 'false');
+}), 'passing false as message converts to the string `false`';
+
+test(() => {
+    const toast =  new StdToastElement();
+    document.body.appendChild(toast);
+
+    assert_equals(toast.textContent, '');
+}, 'passing nothing as message sets the message to the empty string');
+
+test(() => {
+    const toast =  new StdToastElement(undefined);
+    document.body.appendChild(toast);
+
+    assert_equals(toast.textContent, '');
+}, 'passing `undefined` as message sets the message to the empty string');
+
+test(() => {
+    const toast =  new StdToastElement('');
+    document.body.appendChild(toast);
+
+    assert_equals(toast.textContent, '');
+}, 'passing empty string as message sets the message to the empty string');
+
+test(() => {
+    const toastString = '<std-toast id="test">test</std-toast>';
+    document.body.innerHTML = toastString;
+    const toast = document.body.querySelector('#test');
+
+    assert_equals(toast.textContent, 'test');
+}, 'HTML created toast has `test` as its text content');
+
+// duration
+async_test(t => {
+    const toast = showToast('message');
+
+    t.step_timeout(() => {
+        assertToastShown(toast);
+    }, 1999);
+
+    t.step_timeout(() => {
+        assertToastNotShown(toast);
+        t.done();
+    }, 2000);
+
+    t.add_cleanup(function() {
+        toast.remove();
+    });
+}, 'showToast closes after default duration of 2000ms');
+
+async_test(t => {
+    const toast = showToast('message', {duration: 1000});
+
+    t.step_timeout(() => {
+        assertToastShown(toast);
+    }, 999);
+
+    t.step_timeout(() => {
+        assertToastNotShown(toast);
+        t.done();
+    }, 1000);
+
+    t.add_cleanup(function() {
+        toast.remove();
+    });
+}, 'showToast closes after user specified 1000ms');
+</script>

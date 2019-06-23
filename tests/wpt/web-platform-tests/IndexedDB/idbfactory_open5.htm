@@ -6,7 +6,7 @@
 <script src=support.js></script>
 
 <script>
-    var open_rq = createdb(async_test(), 'database_name');
+    var open_rq = createdb(async_test(), document.location + '-database_name');
 
     open_rq.onupgradeneeded = function() {};
     open_rq.onsuccess = function(e) {

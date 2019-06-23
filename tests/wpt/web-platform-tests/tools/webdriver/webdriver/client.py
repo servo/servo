@@ -413,7 +413,7 @@ class Session(object):
         if self.session_id is not None:
             return
 
-        body = {}
+        body = {"capabilities": {}}
 
         if self.requested_capabilities is not None:
             body["capabilities"] = self.requested_capabilities

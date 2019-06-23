@@ -1,21 +1,45 @@
 importScripts('/common/get-host-info.sub.js');
 
-var worker_text = 'postMessage("worker loading intercepted by service worker"); ';
+const text = 'worker loading intercepted by service worker';
+const dedicated_worker_script = `postMessage('${text}');`;
+const shared_worker_script =
+    `onconnect = evt => evt.ports[0].postMessage('${text}');`;
 
-self.onfetch = function(event) {
-  if (event.request.url.indexOf('synthesized') != -1) {
-    event.respondWith(new Response(worker_text));
-  } else if (event.request.url.indexOf('same-origin') != -1) {
-    event.respondWith(fetch('dummy-worker-script.py'));
-  } else if (event.request.url.indexOf('cors') != -1) {
-    var path = (new URL('dummy-worker-script.py', self.location)).pathname;
-    var url = get_host_info()['HTTPS_REMOTE_ORIGIN'] + path;
-    var mode = "no-cors";
-    if (event.request.url.indexOf('no-cors') == -1) {
-      url += '?ACAOrigin=*';
-      mode = "cors";
+self.onfetch = event => {
+  const url = event.request.url;
+  const destination = event.request.destination;
+
+  // Request handler for a synthesized response.
+  if (url.indexOf('synthesized') != -1) {
+    if (destination === 'worker')
+      event.respondWith(new Response(dedicated_worker_script));
+    else if (destination === 'sharedworker')
+      event.respondWith(new Response(shared_worker_script));
+    else
+      event.respondWith(new Response('Unexpected request! ' + destination));
+    return;
+  }
+
+  // Request handler for a same-origin response.
+  if (url.indexOf('same-origin') != -1) {
+    event.respondWith(fetch('postmessage-on-load-worker.js'));
+    return;
+  }
+
+  // Request handler for a cross-origin response.
+  if (url.indexOf('cors') != -1) {
+    const filename = 'postmessage-on-load-worker.js';
+    const path = (new URL(filename, self.location)).pathname;
+    let new_url = get_host_info()['HTTPS_REMOTE_ORIGIN'] + path;
+    let mode;
+    if (url.indexOf('no-cors') != -1) {
+      // Test no-cors mode.
+      mode = 'no-cors';
+    } else {
+      // Test cors mode.
+      new_url += '?pipe=header(Access-Control-Allow-Origin,*)';
+      mode = 'cors';
     }
-    event.respondWith(fetch(url, { mode: mode }));
+    event.respondWith(fetch(new_url, { mode: mode }));
   }
 };
-

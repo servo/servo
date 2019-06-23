@@ -7,12 +7,19 @@
     <script src='/resources/testharnessreport.js'></script>
     <script nonce='abc'>
       var t_spv = async_test("Should fire violation events for every failed violation");
-      window.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
-          assert_equals(e.violatedDirective, "script-src");
-      }));      
+      window.addEventListener(
+        "securitypolicyviolation", t_spv.unreached_func("securitypolicyviolation should not be emitted"));
+
+      window.addEventListener("load", function() {
+        t_spv.done();
+      });
     </script>
     <script src='positiveTest.js'></script>
-    <script nonce='abc'>t_spv.done();</script>
+    <script nonce='abc'>
+      test(function() {
+        assert_true(window.cspPositiveTest);
+      }, "Allows scripts from the same host.");
+    </script>
 </head>
 <body>
     <h1>'self' keyword positive test</h1>

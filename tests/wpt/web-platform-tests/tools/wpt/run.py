@@ -357,6 +357,8 @@ class EdgeChromium(BrowserSetup):
         if kwargs["browser_channel"] == "dev":
             logger.info("Automatically turning on experimental features for Edge Dev")
             kwargs["binary_args"].append("--enable-experimental-web-platform-features")
+        # HACK(Hexcles): work around https://github.com/web-platform-tests/wpt/issues/17403
+        kwargs["webdriver_args"].append("--disable-build-check")
 
 
 class Edge(BrowserSetup):

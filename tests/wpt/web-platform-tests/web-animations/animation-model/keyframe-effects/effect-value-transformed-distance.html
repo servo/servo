@@ -35,7 +35,7 @@ for (const params of gEasingTests) {
                             : 100 + params.easingFunction(portion) * 100;
       assert_approx_equals(parseFloat(getComputedStyle(target).width),
                            expectedWidth,
-                           0.01,
+                           0.02,
                            'The width should be approximately ' +
                            `${expectedWidth} at ${sampleTime}ms`);
     }

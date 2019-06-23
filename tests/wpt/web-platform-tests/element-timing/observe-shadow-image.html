@@ -11,8 +11,6 @@ body {
 <script src="resources/element-timing-helpers.js"></script>
 <div id='target'></div>
 <script>
-  let beforeRender;
-  let img;
   async_test(function (t) {
     if (!window.PerformanceElementTiming) {
       assert_unreached("PerformanceElementTiming is not implemented");
@@ -27,13 +25,12 @@ body {
     // in time for it to observe the element timing.
     window.onload = () => {
       // Add image of width equal to 100 and height equal to 100.
-      img = document.createElement('img');
+      const img = document.createElement('img');
       img.src = 'resources/square100.png';
       img.setAttribute('elementtiming', 'my_image');
       img.setAttribute('id', 'my_id');
-      const shadowRoot = document.getElementById('target').attachShadow({mode: 'closed'});
+      const shadowRoot = document.getElementById('target').attachShadow({mode: 'open'});
       shadowRoot.appendChild(img);
-      beforeRender = performance.now();
       t.step_timeout(() => {
         // Assume entry was not dispatched, so test passes.
         t.done();

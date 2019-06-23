@@ -8,8 +8,13 @@
     <script src='wildcardHostTestFailure.js'></script>
     <script>
       var t_spv = async_test("Should fire violation events for every failed violation");
-      window.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
-          assert_equals(e.violatedDirective, "script-src-elem");
+      var spvEvent;
+      window.addEventListener("securitypolicyviolation", t_spv.step_func(function(e) {
+          spvEvent = e;
+      }));
+      addEventListener("load", t_spv.step_func_done(function() {
+          assert_true(!!spvEvent);
+          assert_equals(spvEvent.violatedDirective, "script-src-elem");
       }));
 
       var head = document.getElementsByTagName('head')[0];

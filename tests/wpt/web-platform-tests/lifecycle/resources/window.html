@@ -3,6 +3,7 @@
 <head><title>Frozen Window</title></head>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
 <body>
 <h1>This window will be frozen</h1>
 <script>
@@ -10,22 +11,23 @@
 const freezingStepName = 'testOnFreeze';
 
 function testFetch(keepalive) {
+  var request_token = token();
   var name = 'testfetch' + (keepalive ? 'with' : 'without') + 'keepalive';
   window.opener.add_step(name);
 
-  function handler(expected) {
-    if (expected == true)
-      window.opener.step_success(name);
-    else
-      window.opener.step_fail(name);
+  function handler() {
+    window.opener.step_fail(name);
   }
 
-  fetch('foo.txt', {
+  fetch('beacon.py?token=' + request_token, {
     keepalive: keepalive
-  }).then(() => handler(keepalive)).catch(() => handler(!keepalive));
+  }).then(() => handler()).catch(() => handler());
+
+  window.opener.poll_for_result(request_token, name, keepalive);
 }
 
 function testXHR(async) {
+  var request_token = token();
   var name = 'test' + (async ? 'Async' : 'Sync') + 'XHR';
   window.opener.add_step(name);
   var xhr = new XMLHttpRequest();
@@ -37,21 +39,26 @@ function testXHR(async) {
         window.opener.step_fail(name);
     }
   }
-  xhr.open('GET', 'foo.txt', async);
+  xhr.open('GET', 'beacon.py?token=' + request_token, async);
   try {
     xhr.send(null);
+    if (async) {
+      window.opener.poll_for_result(request_token, name, false);
+    }
   } catch {
     window.opener.step_success(name);
   };
 }
 
 function testSendBeacon() {
+  var request_token = token();
   var name = 'testSendBeacon';
   window.opener.add_step(name);
-  if (navigator.sendBeacon("foo.txt", "data=1"))
-    window.opener.step_success(name);
-  else
+  if (navigator.sendBeacon("beacon.py?token=" + request_token, "")) {
+    window.opener.poll_for_result(request_token, name, true);
+  } else {
     window.opener.step_fail(name);
+  }
 }
 
 window.document.addEventListener("freeze", () => {

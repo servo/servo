@@ -12,7 +12,7 @@
 
  1) Include <script src="./sms_provider.js"></script> in your test.
  2) Set expectations
-  await expect(getNextMessage).andReturn((timeout) => {
+  await expect(receive).andReturn((timeout) => {
     // mock behavior
   })
  3) Call navigator.sms.receive()
@@ -24,8 +24,8 @@
  Here are the symbols that are exposed to tests that need to be implemented
  per engine:
 
- - function getNextMessage(): the main/only function that can be mocked.
- - function expect(): the main/only function that enables us to mock it
+ - function receive(): the main/only function that can be mocked.
+ - function expect(): the main/only function that enables us to mock it.
  - enum State {kSuccess, kTimeout}: allows you to mock success/failures.
 
   -->
@@ -34,12 +34,10 @@
 'use strict';
 
 promise_test(async t => {
-  await expect(getNextMessage).andReturn((timeout) => {
+  await expect(receive).andReturn((timeout) => {
       return Promise.resolve({
-        sms: {
-          content: "hello",
-          status: Status.kSuccess,
-        }
+        status: Status.kSuccess,
+        message: "hello",
       });
   });
 
@@ -49,20 +47,16 @@ promise_test(async t => {
 }, 'Basic usage');
 
 promise_test(async t => {
-  await expect(getNextMessage).andReturn((timeout) => {
+  await expect(receive).andReturn((timeout) => {
       return Promise.resolve({
-        sms: {
-          content: "hello1",
-          status: Status.kSuccess,
-        }
+        status: Status.kSuccess,
+        message: "hello1",
       });
   });
-  await expect(getNextMessage).andReturn((timeout) => {
+  await expect(receive).andReturn((timeout) => {
       return Promise.resolve({
-        sms: {
-          content: "hello2",
-          status: Status.kSuccess,
-        }
+        status: Status.kSuccess,
+        message: "hello2",
       });
   });
 
@@ -77,19 +71,15 @@ promise_test(async t => {
 }, 'Handle multiple requests in different order.');
 
 promise_test(async t => {
-  await expect(getNextMessage).andReturn((timeout) => {
+  await expect(receive).andReturn((timeout) => {
       return Promise.resolve({
-        sms: {
-          status: Status.kTimeout
-        }
+        status: Status.kTimeout,
       });
   });
-  await expect(getNextMessage).andReturn((timeout) => {
+  await expect(receive).andReturn((timeout) => {
       return Promise.resolve({
-        sms: {
-          content: "success",
-          status: Status.kSuccess
-        }
+        status: Status.kSuccess,
+        message: "success",
       });
   });
 
@@ -109,11 +99,9 @@ promise_test(async t => {
 }, 'Handle multiple requests with success and error.');
 
 promise_test(async t => {
-  await expect(getNextMessage).andReturn((timeout) => {
+  await expect(receive).andReturn((timeout) => {
       return Promise.resolve({
-        sms: {
-          status: Status.kTimeout,
-        }
+        status: Status.kTimeout,
       });
   });
 
@@ -167,12 +155,10 @@ promise_test(async t => {
 }, 'Should throw error with invalid timeout (NaN)');
 
 promise_test(async t => {
-  await expect(getNextMessage).andReturn((timeout) => {
+  await expect(receive).andReturn((timeout) => {
       return Promise.resolve({
-        sms: {
-          content: "hello",
-          status: Status.kSuccess,
-        }
+        status: Status.kSuccess,
+        message: "hello",
       });
   });
 

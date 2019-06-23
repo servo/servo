@@ -48,6 +48,31 @@ test(function () {
 }, 'setAttribute and removeAttribute must enqueue and invoke attributeChangedCallback');
 
 test(function () {
+    var instance = document.createElement('my-custom-element');
+    var anotherInstance = document.createElement('my-custom-element');
+
+    var callbackOrder = [];
+    instance.handler = function () {
+        callbackOrder.push([this, 'begin']);
+        anotherInstance.toggleAttribute('data-title');
+        callbackOrder.push([this, 'end']);
+    }
+    anotherInstance.handler = function () {
+        callbackOrder.push([this, 'begin']);
+        callbackOrder.push([this, 'end']);
+    }
+
+    instance.toggleAttribute('title');
+    assert_equals(callbackOrder.length, 4);
+
+    assert_array_equals(callbackOrder[0], [instance, 'begin']);
+    assert_array_equals(callbackOrder[1], [anotherInstance, 'begin']);
+    assert_array_equals(callbackOrder[2], [anotherInstance, 'end']);
+    assert_array_equals(callbackOrder[3], [instance, 'end']);
+
+}, 'toggleAttribute must enqueue and invoke attributeChangedCallback');
+
+test(function () {
     var shouldCloneAnotherInstance = false;
     var anotherInstanceClone;
     var log = [];

@@ -179,11 +179,13 @@ class Response(object):
         If any part of the content is a function, this will be called
         and the resulting value (if any) returned.
 
-        :param read_file: - boolean controlling the behaviour when content
-        is a file handle. When set to False the handle will be returned directly
-        allowing the file to be passed to the output in small chunks. When set to
-        True, the entire content of the file will be returned as a string facilitating
-        non-streaming operations like template substitution.
+        :param read_file: boolean controlling the behaviour when content is a
+                          file handle. When set to False the handle will be
+                          returned directly allowing the file to be passed to
+                          the output in small chunks. When set to True, the
+                          entire content of the file will be returned as a
+                          string facilitating non-streaming operations like
+                          template substitution.
         """
         if isinstance(self.content, binary_type):
             yield self.content

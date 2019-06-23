@@ -35,6 +35,15 @@ testAttributeRemover(function (element, name) {
     element.removeAttributeNS(null, name);
 }, 'removeAttributeNS on Element');
 
+testAttributeRemover(function (element, name, value) {
+  if (element.hasAttribute(name))
+    element.toggleAttribute(name);
+}, 'toggleAttribute (only removes) on Element');
+
+testAttributeRemover(function (element, name, value) {
+    element.toggleAttribute(name, false);
+}, 'toggleAttribute (force false) on Element');
+
 testAttributeAdder(function (element, name, value) {
     var attr = document.createAttribute(name);
     attr.value = value;

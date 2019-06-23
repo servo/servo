@@ -23,6 +23,8 @@
       var frameWin = document.getElementById("srcdoc-iframe").contentWindow;
       assert_equals(frameWin.location.href, "about:srcdoc");
       assert_equals(frameWin.scrollY, 0, "Should not have scrolled yet");
+      frameWin.location.hash = "";
+      assert_equals(frameWin.location.href, "about:srcdoc#", "Setting an empty hash should result in an empty fragment, not no fragment.");
       frameWin.location.hash = "test";
       assert_equals(frameWin.location.href, "about:srcdoc#test");
       assert_true(frameWin.scrollY > frameWin.innerHeight,

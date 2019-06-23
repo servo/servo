@@ -21,4 +21,15 @@
     test(t => {
       assert_element_accepts_trusted_url_set_ns(window, '3', t, 'a', 'b', RESULTS.URL);
     }, "Element.setAttributeNS assigned via policy (successful URL transformation)");
+
+    test(t => {
+      let p = createURL_policy(window, '5');
+      let url = p.createURL(INPUTS.URL);
+
+      let elem = document.createElementNS("http://www.w3.org/2000/svg", "image");
+      elem.setAttributeNS("http://www.w3.org/1999/xlink", "href", url);
+      let attr_node = elem.getAttributeNodeNS("http://www.w3.org/1999/xlink", "href");
+      assert_equals(attr_node.value + "", RESULTS.URL);
+    }, "Element.setAttributeNS accepts a URL on <svg:image xlink:href/>");
+
 </script>

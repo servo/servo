@@ -13,8 +13,8 @@ run on port 8080 until it is killed::
                               routes=[("GET", "*", handlers.file_handler)])
   httpd.start(block=True)
 
-:mod:`Interface <wptserve>`
----------------------------
+:mod:`Interface <wptserve.server>`
+----------------------------------
 
 .. automodule:: wptserve.server
    :members:

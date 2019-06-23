@@ -58,8 +58,8 @@ promise_test(async t => {
     iframe,
     "/payment-request/resources/page1.html"
   );
-  const showPromise = await test_driver.bless("show payment request", () => {
-    return request.show();
+  const [showPromise] = await test_driver.bless("show payment request", () => {
+    return [request.show()];
   });
   // Navigate the iframe to a new location. Wait for the load event to fire.
   await new Promise(resolve => {
