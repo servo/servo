@@ -227,6 +227,28 @@ impl<T: Zero> Zero for NonNegative<T> {
 )]
 pub struct GreaterThanOrEqualToOne<T>(pub T);
 
+/// A wrapper of values between zero and one.
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    PartialOrd,
+    SpecifiedValueInfo,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(transparent)]
+pub struct ZeroToOne<T>(pub T);
+
 /// A clip rect for clip and image-region
 #[allow(missing_docs)]
 #[derive(
