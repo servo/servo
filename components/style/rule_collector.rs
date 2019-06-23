@@ -332,17 +332,14 @@ where
         let host = shadow.host();
         let containing_shadow = host.containing_shadow();
         let part_rules = match containing_shadow {
-            Some(shadow) => {
-                shadow
-                    .style_data()
-                    .and_then(|data| data.part_rules(self.pseudo_element))
-            },
-            None => {
-                self.stylist
-                    .cascade_data()
-                    .borrow_for_origin(Origin::Author)
-                    .part_rules(self.pseudo_element)
-            }
+            Some(shadow) => shadow
+                .style_data()
+                .and_then(|data| data.part_rules(self.pseudo_element)),
+            None => self
+                .stylist
+                .cascade_data()
+                .borrow_for_origin(Origin::Author)
+                .part_rules(self.pseudo_element),
         };
 
         // TODO(emilio): SameTreeAuthorNormal is a bit of a lie here, we may

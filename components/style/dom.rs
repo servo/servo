@@ -349,7 +349,7 @@ pub trait TShadowRoot: Sized + Copy + Clone + PartialEq {
     /// Get the list of shadow parts for this shadow root.
     fn parts<'a>(&self) -> &[<Self::ConcreteNode as TNode>::ConcreteElement]
     where
-        Self: 'a
+        Self: 'a,
     {
         &[]
     }
@@ -534,7 +534,7 @@ pub trait TElement:
     /// Internal iterator for the part names of this element.
     fn each_part<F>(&self, _callback: F)
     where
-        F: FnMut(&Atom)
+        F: FnMut(&Atom),
     {
     }
 

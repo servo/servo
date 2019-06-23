@@ -298,8 +298,7 @@ impl MediaFeatureExpression {
 
                 #[cfg(feature = "gecko")]
                 {
-                    if starts_with_ignore_ascii_case(feature_name, "-webkit-")
-                    {
+                    if starts_with_ignore_ascii_case(feature_name, "-webkit-") {
                         feature_name = &feature_name[8..];
                         requirements.insert(ParsingRequirements::WEBKIT_PREFIX);
                         if unsafe {

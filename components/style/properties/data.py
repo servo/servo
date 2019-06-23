@@ -165,8 +165,10 @@ def parse_property_aliases(alias_list):
             result.append((name, pref))
     return result
 
+
 def to_phys(name, logical, physical):
     return name.replace(logical, physical).replace("inset-", "")
+
 
 class Longhand(object):
     def __init__(self, style_struct, name, spec=None, animation_value_type=None, keyword=None,
@@ -247,7 +249,7 @@ class Longhand(object):
     def all_physical_mapped_properties(self):
         assert self.logical
         candidates = [s for s in LOGICAL_SIDES + LOGICAL_SIZES + LOGICAL_CORNERS
-                if s in self.name] + [s for s in LOGICAL_AXES if self.name.endswith(s)]
+                      if s in self.name] + [s for s in LOGICAL_AXES if self.name.endswith(s)]
         assert(len(candidates) == 1)
         logical_side = candidates[0]
 

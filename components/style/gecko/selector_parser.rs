@@ -354,9 +354,8 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
 
     #[inline]
     fn parse_part(&self) -> bool {
-        self.chrome_rules_enabled() || unsafe {
-            structs::StaticPrefs_sVarCache_layout_css_shadow_parts_enabled
-        }
+        self.chrome_rules_enabled() ||
+            unsafe { structs::StaticPrefs_sVarCache_layout_css_shadow_parts_enabled }
     }
 
     fn parse_non_ts_pseudo_class(

@@ -189,7 +189,7 @@ impl<'lr> TShadowRoot for GeckoShadowRoot<'lr> {
     #[inline]
     fn parts<'a>(&self) -> &[<Self::ConcreteNode as TNode>::ConcreteElement]
     where
-        Self: 'a
+        Self: 'a,
     {
         let slice: &[*const RawGeckoElement] = &*self.0.mParts;
 
@@ -1350,7 +1350,8 @@ impl<'le> TElement for GeckoElement<'le> {
 
     #[inline]
     fn has_part_attr(&self) -> bool {
-        self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementHasPart)
+        self.as_node()
+            .get_bool_flag(nsINode_BooleanFlag::ElementHasPart)
     }
 
     // FIXME(emilio): we should probably just return a reference to the Atom.

@@ -9,7 +9,9 @@ use crate::values::computed::{Context, LengthPercentage as ComputedLengthPercent
 use crate::values::computed::{Percentage as ComputedPercentage, ToComputedValue};
 use crate::values::generics::transform as generic;
 use crate::values::generics::transform::{Matrix, Matrix3D};
-use crate::values::specified::position::{Side, HorizontalPositionKeyword, VerticalPositionKeyword};
+use crate::values::specified::position::{
+    HorizontalPositionKeyword, Side, VerticalPositionKeyword,
+};
 use crate::values::specified::{self, Angle, Integer, Length, LengthPercentage, Number};
 use crate::Zero;
 use cssparser::Parser;

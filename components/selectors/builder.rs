@@ -110,10 +110,7 @@ impl<Impl: SelectorImpl> SelectorBuilder<Impl> {
         if parsed_part {
             flags |= SelectorFlags::HAS_PART;
         }
-        self.build_with_specificity_and_flags(SpecificityAndFlags {
-            specificity,
-            flags,
-        })
+        self.build_with_specificity_and_flags(SpecificityAndFlags { specificity, flags })
     }
 
     /// Builds with an explicit SpecificityAndFlags. This is separated from build() so
@@ -208,9 +205,9 @@ bitflags! {
 pub struct SpecificityAndFlags {
     /// There are two free bits here, since we use ten bits for each specificity
     /// kind (id, class, element).
-    pub (crate) specificity: u32,
+    pub(crate) specificity: u32,
     /// There's padding after this field due to the size of the flags.
-    pub (crate) flags: SelectorFlags,
+    pub(crate) flags: SelectorFlags,
 }
 
 impl SpecificityAndFlags {
