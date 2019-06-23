@@ -613,6 +613,14 @@ fn scheme_fetch(
             }
             if let Ok(file_path) = url.to_file_path() {
                 if let Ok(file) = File::open(file_path.clone()) {
+                    if let Ok(metadata) = file.metadata() {
+                        if metadata.is_dir() {
+                            return Response::network_error(NetworkError::Internal(
+                                "Opening a directory is not supported".into(),
+                            ));
+                        }
+                    }
+
                     // Get range bounds (if any) and try to seek to the requested offset.
                     // If seeking fails, bail out with a NetworkError.
                     let file_size = match file.metadata() {
