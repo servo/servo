@@ -1,7 +1,7 @@
 <script>
 'use strict';
 
-new SMSReceiver().start().catch(error => {
+navigator.sms.receive().catch(error => {
   window.parent.postMessage({errorType: error.name}, '*');
 });
 

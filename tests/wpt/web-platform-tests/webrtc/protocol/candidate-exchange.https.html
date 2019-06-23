@@ -26,15 +26,36 @@ function iceGatheringCompleteWaiter(pc) {
   return waiter;
 }
 
+class StateLogger {
+  constructor(source, eventname, field) {
+    source.addEventListener(eventname, event => {
+      this.events.push(source[field]);
+    });
+    this.events = [source[field]];
+  }
+}
+
+class IceStateLogger extends StateLogger {
+  constructor(source) {
+    super(source, 'iceconnectionstatechange', 'iceConnectionState');
+  }
+}
+
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
   t.add_cleanup(() => pc2.close());
   pc1.createDataChannel('datachannel');
+  pc1IceStates = new IceStateLogger(pc1);
+  pc2IceStates = new IceStateLogger(pc1);
   coupleIceCandidates(pc1, pc2);
   await doSignalingHandshake(pc1, pc2);
-  await waitForIceStateChange(pc1, ['connected', 'completed']);
+  // Note - it's been claimed that this state sometimes jumps straight
+  // to "completed". If so, this test should be flaky.
+  await waitForIceStateChange(pc1, ['connected']);
+  assert_array_equals(pc1IceStates.events, ['new', 'checking', 'connected']);
+  assert_array_equals(pc2IceStates.events, ['new', 'checking', 'connected']);
 }, 'Two way ICE exchange works');
 
 promise_test(async t => {
@@ -42,6 +63,8 @@ promise_test(async t => {
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
   t.add_cleanup(() => pc2.close());
+  pc1IceStates = new IceStateLogger(pc1);
+  pc2IceStates = new IceStateLogger(pc1);
   let candidates = [];
   pc1.createDataChannel('datachannel');
   pc1.onicecandidate = e => {
@@ -62,6 +85,8 @@ promise_test(async t => {
   const candidate_pair = pc1.sctp.transport.iceTransport.getSelectedCandidatePair();
   assert_equals(candidate_pair.local.type, 'host');
   assert_equals(candidate_pair.remote.type, 'prflx');
+  assert_array_equals(pc1IceStates.events, ['new', 'checking', 'connected']);
+  assert_array_equals(pc2IceStates.events, ['new', 'checking', 'connected']);
 }, 'Adding only caller -> callee candidates gives a connection');
 
 promise_test(async t => {
@@ -69,6 +94,8 @@ promise_test(async t => {
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
   t.add_cleanup(() => pc2.close());
+  pc1IceStates = new IceStateLogger(pc1);
+  pc2IceStates = new IceStateLogger(pc1);
   let candidates = [];
   pc1.createDataChannel('datachannel');
   pc2.onicecandidate = e => {
@@ -89,7 +116,91 @@ promise_test(async t => {
   const candidate_pair = pc2.sctp.transport.iceTransport.getSelectedCandidatePair();
   assert_equals(candidate_pair.local.type, 'host');
   assert_equals(candidate_pair.remote.type, 'prflx');
+  assert_array_equals(pc1IceStates.events, ['new', 'checking', 'connected']);
+  assert_array_equals(pc2IceStates.events, ['new', 'checking', 'connected']);
 }, 'Adding only callee -> caller candidates gives a connection');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  pc1IceStates = new IceStateLogger(pc1);
+  pc2IceStates = new IceStateLogger(pc1);
+  let pc2ToPc1Candidates = [];
+  pc1.createDataChannel('datachannel');
+  pc2.onicecandidate = e => {
+    pc2ToPc1Candidates.push(e.candidate);
+    // This particular test verifies that candidates work
+    // properly if added from the pc2 onicecandidate event.
+    if (!e.candidate) {
+      for (const candidate of pc2ToPc1Candidates) {
+        if (candidate) {
+          pc1.addIceCandidate(candidate);
+        }
+      }
+    }
+  }
+  // Candidates from |pc1| are not delivered to |pc2|. |pc2| will use
+  // peer-reflexive candidates.
+  await doSignalingHandshake(pc1, pc2);
+  await Promise.all([waitForIceStateChange(pc1, ['connected', 'completed']),
+                     waitForIceStateChange(pc2, ['connected', 'completed'])]);
+  const candidate_pair = pc2.sctp.transport.iceTransport.getSelectedCandidatePair();
+  assert_equals(candidate_pair.local.type, 'host');
+  assert_equals(candidate_pair.remote.type, 'prflx');
+  assert_array_equals(pc1IceStates.events, ['new', 'checking', 'connected']);
+  assert_array_equals(pc2IceStates.events, ['new', 'checking', 'connected']);
+}, 'Adding callee -> caller candidates from end-of-candidates gives a connection');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  pc1IceStates = new IceStateLogger(pc1);
+  pc2IceStates = new IceStateLogger(pc1);
+  let pc1ToPc2Candidates = [];
+  let pc2ToPc1Candidates = [];
+  pc1.createDataChannel('datachannel');
+  pc1.onicecandidate = e => {
+    pc1ToPc2Candidates.push(e.candidate);
+  }
+  pc2.onicecandidate = e => {
+    pc2ToPc1Candidates.push(e.candidate);
+  }
+  const offer = await pc1.createOffer();
+  await Promise.all([pc1.setLocalDescription(offer),
+                     pc2.setRemoteDescription(offer)]);
+  const answer = await pc2.createAnswer();
+  await iceGatheringCompleteWaiter(pc1);
+  await pc2.setLocalDescription(answer).then(() => {
+    for (const candidate of pc1ToPc2Candidates) {
+      if (candidate) {
+        pc2.addIceCandidate(candidate);
+      }
+    }
+  });
+  await iceGatheringCompleteWaiter(pc2);
+  pc1.setRemoteDescription(answer).then(async () => {
+    for (const candidate of pc2ToPc1Candidates) {
+      if (candidate) {
+        await pc1.addIceCandidate(candidate);
+      }
+    }
+  });
+  await Promise.all([waitForIceStateChange(pc1, ['connected', 'completed']),
+                     waitForIceStateChange(pc2, ['connected', 'completed'])]);
+  const candidate_pair =
+        pc1.sctp.transport.iceTransport.getSelectedCandidatePair();
+  assert_equals(candidate_pair.local.type, 'host');
+  // When we supply remote candidates, we expect a jump to the 'host' candidate,
+  // but it might also remain as 'prflx'.
+  assert_true(candidate_pair.remote.type == 'host' ||
+              candidate_pair.remote.type == 'prflx');
+  assert_array_equals(pc1IceStates.events, ['new', 'checking', 'connected']);
+  assert_array_equals(pc2IceStates.events, ['new', 'checking', 'connected']);
+}, 'Explicit offer/answer exchange gives a connection');
 
 </script>
 </body>

@@ -19,11 +19,11 @@ promise_test(async (t) => {
   idl_array.add_dependency_idls(dom);
   idl_array.add_dependency_idls(html);
 
-  self.receiver = new SMSReceiver({timeout: 60});
-
   idl_array.add_objects({
-    SmsReceiver: ['receiver'],
+    SmsReceiver: ['navigator.sms'],
   });
+
+  idl_array.add_objects({ Navigator: ['navigator'] })
 
   idl_array.test();
 }, 'Test IDL implementation of the SMS Receiver API');

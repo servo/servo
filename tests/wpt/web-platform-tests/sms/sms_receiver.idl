@@ -1,3 +1,10 @@
+[SecureContext]
+interface mixin NavigatorSMS {
+  readonly attribute SMSReceiver sms;
+};
+
+Navigator includes NavigatorSMS;
+
 [
   SecureContext,
   Exposed=(Window,DedicatedWorker)]
@@ -11,10 +18,7 @@ dictionary SMSReceiverOptions {
 
 [
   SecureContext,
-  Exposed=(Window,DedicatedWorker),
-  Constructor(optional SMSReceiverOptions options)
-] interface SMSReceiver : EventTarget {
-  readonly attribute SMS sms;
-  attribute EventHandler onchange;
-  Promise<void> start();
+  Exposed=Window
+] interface SMSReceiver {
+  Promise<SMS> receive(optional SMSReceiverOptions options);
 };

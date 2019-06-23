@@ -22,6 +22,8 @@ There's also a load of [general guidelines](general-guidelines) that apply to al
    rendering
    server-features
    submission-process
+   testdriver
+   testdriver-tutorial
    testharness
    visual
    wdspec
