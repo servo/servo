@@ -175,8 +175,8 @@ ${helpers.predefined_type(
 
 <%helpers:single_keyword
     name="white-space"
-    values="normal pre nowrap pre-wrap pre-line break-spaces"
-    extra_gecko_values="-moz-pre-space"
+    values="normal pre nowrap pre-wrap pre-line"
+    extra_gecko_values="break-spaces -moz-pre-space"
     gecko_enum_prefix="StyleWhiteSpace"
     needs_conversion="True"
     animation_value_type="discrete"
@@ -193,8 +193,7 @@ ${helpers.predefined_type(
                 SpecifiedValue::Pre => false,
                 SpecifiedValue::Normal |
                 SpecifiedValue::PreWrap |
-                SpecifiedValue::PreLine |
-                SpecifiedValue::BreakSpaces => true,
+                SpecifiedValue::PreLine => true,
             }
         }
 
@@ -204,8 +203,7 @@ ${helpers.predefined_type(
                 SpecifiedValue::Nowrap => false,
                 SpecifiedValue::Pre |
                 SpecifiedValue::PreWrap |
-                SpecifiedValue::PreLine |
-                SpecifiedValue::BreakSpaces => true,
+                SpecifiedValue::PreLine => true,
             }
         }
 
@@ -215,8 +213,7 @@ ${helpers.predefined_type(
                 SpecifiedValue::Nowrap |
                 SpecifiedValue::PreLine => false,
                 SpecifiedValue::Pre |
-                SpecifiedValue::PreWrap |
-                SpecifiedValue::BreakSpaces => true,
+                SpecifiedValue::PreWrap => true,
             }
         }
     }
