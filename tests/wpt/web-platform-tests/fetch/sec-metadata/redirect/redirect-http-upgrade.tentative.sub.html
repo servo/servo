@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/fetch/sec-metadata/resources/helper.js></script>
+<script src=/fetch/sec-metadata/resources/redirectTestHelper.sub.js></script>
+<script src=/common/security-features/resources/common.js></script>
+<script src=/common/utils.js></script>
+<style>
+  @font-face {
+    font-family: myUpgradedFont;
+    src: url(http://{{host}}:{{ports[http][0]}}/fetch/api/resources/redirect.py?location=https%3A%2F%2F{{host}}%3A{{ports[https][0]}}%2Ffetch%2Fsec-metadata%2Fresources%2Frecord-header.py%3Ffile%3Dfont-https-upgrade);
+  }
+  #fontTest {
+    font-family: myUpgradedFont;
+  }
+</style>
+<body>
+    <div id="fontTest">Upgraded font</div>
+    <script>
+  let nonce = token();
+  let expected = { "dest": "", "site": "same-site", "user": "", "mode": "" };
+
+  // Validate various scenarios handle a request that redirects from http => https correctly and add the proper Sec- headers.
+  RunCommonRedirectTests("Http upgrade", upgradeRedirectTo, expected);
+
+  document.fonts.ready.then(function () {
+    promise_test(t => {
+      return new Promise((resolve, reject) => {
+        let key = "font-https-upgrade";
+        fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
+          .then(response => response.text())
+          .then(text => assert_header_equals(text, expected))
+          .then(_ => resolve())
+          .catch(e => reject(e));
+      });
+    }, "Http upgrade font => No headers");
+  });
+
+  promise_test(() =>
+    requestViaImage(insecureRedirectURL + encodeURIComponent("https://{{host}}:{{ports[https][0]}}/common/security-features/subresource/image.py"))
+      .then(result => {
+         headers = result.headers;
+         got = {
+           "dest": headers["sec-fetch-dest"],
+           "mode": headers["sec-fetch-mode"],
+           "site": headers["sec-fetch-site"],
+           "user": headers["sec-fetch-user"]
+         };
+         assert_header_equals(got, {
+           // Note that we're using `undefined` here, as opposed to "" elsewhere because of the way
+           // that `image.py` encodes data.
+           "dest": undefined,
+           "site": "same-site",
+           "user": undefined,
+           "mode": undefined,
+         });
+  }), "Http upgrade image => No headers");
+</script>
+<script src="http://{{host}}:{{ports[http][0]}}/fetch/api/resources/redirect.py?location=https%3A%2F%2F{{host}}%3A{{ports[https][0]}}%2Ffetch%2Fsec-metadata%2Fresources%2Fecho-as-script.py"></script>
+<script>
+  test(t => {
+    t.add_cleanup(_ => { header = null; });
+    assert_header_equals(header, expected);
+  }, "Http upgrade script => No headers");
+</script>
+</body>

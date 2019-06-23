@@ -5,7 +5,7 @@
 <div id="log"></div>
 <script>
 async_test(function(t) {
-  var w = window.open("unload-1.html");
+  var w = window.open("resources/unload.html");
   window.onmessage = t.step_func(function(event) {
     if (event.data === "close") {
       w.close();

@@ -466,6 +466,7 @@ enum RTCIceTransportState {
 };
 
 enum RTCIceRole {
+    "unknown",
     "controlling",
     "controlled"
 };

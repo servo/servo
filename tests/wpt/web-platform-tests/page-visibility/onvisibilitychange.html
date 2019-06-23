@@ -5,7 +5,6 @@
 <div id="log"></div>
 <script>
 var ast = new async_test("onvisibilitychange attribute is a proper event handler");
-document.getElementById("frame1");
 function startTest() {
   var iframe1 = document.getElementById("frame1");
   iframe1.contentWindow.document.onvisibilitychange = ast.step_func(function() {

@@ -3,8 +3,8 @@ Request
 
 Request object.
 
-:mod:`Interface <request>`
---------------------------
+:mod:`Interface <wptserve.request>`
+-----------------------------------
 
 .. automodule:: wptserve.request
    :members:

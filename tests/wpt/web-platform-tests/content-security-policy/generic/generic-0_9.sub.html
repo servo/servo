@@ -9,6 +9,9 @@
     <script>
       var t = async_test("Test that script does not fire violation event");
       window.addEventListener("securitypolicyviolation", t.unreached_func("Should not have fired a violation event"));
+      window.addEventListener("load", function() {
+        t.done();
+      });
       
       var head = document.getElementsByTagName('head')[0];
       var script = document.createElement('script');
@@ -16,10 +19,6 @@
       script.src = "http://" + location.hostname + ":{{ports[http][1]}}/content-security-policy/generic/wildcardPortTestSuceeds.js";
       head.appendChild(script);
     </script>
-
-    <script>
-        t.done();
-    </script>  
 </head>
 <body>
     <h1>test wildcard port number matching</h1>

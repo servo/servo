@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/fetch/sec-metadata/resources/helper.js></script>
+<script src=/fetch/sec-metadata/resources/redirectTestHelper.sub.js></script>
+<script src=/common/security-features/resources/common.js></script>
+<script src=/common/utils.js></script>
+<style>
+  @font-face {
+    font-family: myDowngradedFont;
+    src: url(https://{{host}}:{{ports[https][0]}}/fetch/api/resources/redirect.py?location=http%3A%2F%2F{{host}}%3A{{ports[http][0]}}%2Ffetch%2Fsec-metadata%2Fresources%2Frecord-header.py%3Ffile%3Dfont-https-downgrade);
+  }
+  #fontTest {
+    font-family: myDowngradedFont;
+  }
+</style>
+<body>
+  <div id="fontTest">Downgraded font</div>
+  <script>
+  let nonce = token();
+  let expected = { "dest": "", "site": "", "user": "", "mode": "" };
+
+  // Validate various scenarios handle a request that redirects from https => http correctly and avoids disclosure of any Sec- headers.
+  RunCommonRedirectTests("Https downgrade", downgradeRedirectTo, expected);
+
+  document.fonts.ready.then(function () {
+    promise_test(t => {
+      return new Promise((resolve, reject) => {
+        let key = "font-https-downgrade";
+        fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
+          .then(response => response.text())
+          .then(text => assert_header_equals(text, expected))
+          .then(_ => resolve())
+          .catch(e => reject(e));
+      });
+    }, "Https downgrade font => No headers");
+  });
+
+  promise_test(() =>
+    requestViaImage(secureRedirectURL + encodeURIComponent("http://{{host}}:{{ports[http][0]}}/common/security-features/subresource/image.py"))
+      .then(result => {
+         headers = result.headers;
+         got = {
+           "dest": headers["sec-fetch-dest"],
+           "mode": headers["sec-fetch-mode"],
+           "site": headers["sec-fetch-site"],
+           "user": headers["sec-fetch-user"]
+         };
+         assert_header_equals(got, {
+           // Note that we're using `undefined` here, as opposed to "" elsewhere because of the way
+           // that `image.py` encodes data.
+           "dest": undefined,
+           "site": undefined,
+           "user": undefined,
+           "mode": undefined,
+         });
+  }), "Https downgrade image => No headers");
+</script>
+
+<script src="https://{{host}}:{{ports[https][0]}}/fetch/api/resources/redirect.py?location=http%3A%2F%2F{{host}}%3A{{ports[http][0]}}%2Ffetch%2Fsec-metadata%2Fresources%2Fecho-as-script.py"></script>
+<script>
+  test(t => {
+    t.add_cleanup(_ => { header = null; });
+    assert_header_equals(header, expected);
+  }, "Https downgrade script => No headers");
+</script>
+</body>

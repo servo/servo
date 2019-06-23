@@ -12,7 +12,6 @@ function nextMessage(target) {
 }
 
 async function openPortalAndActivate(logic, activateOptions) {
-  const bc = new BroadcastChannel('portal-activate-data');
   const w = window.open();
   try {
     const portal = w.document.createElement('portal');
@@ -23,7 +22,6 @@ async function openPortalAndActivate(logic, activateOptions) {
     return (await nextMessage(w.portalHost)).data;
   } finally {
     w.close();
-    bc.close();
   }
 }
 

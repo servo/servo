@@ -16,7 +16,7 @@ The wptserver implements a number of Python APIs for controlling traffic.
 .. toctree::
    :maxdepth: 1
 
-   request
-   response
-   stash
+   /tools/wptserve/docs/request
+   /tools/wptserve/docs/response
+   /tools/wptserve/docs/stash
 ```

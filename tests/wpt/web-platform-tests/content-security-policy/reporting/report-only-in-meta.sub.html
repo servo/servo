@@ -34,6 +34,12 @@
       script.defer = true;
       script.src = '../support/checkReport.sub.js?reportExists=false'
       document.body.appendChild(script);
+
+      // Immediately declare a test so that the harness does not infer
+      // completion if the image loads before the script.
+      var checkReportTest = async_test("checkReport tests loaded");
+      script.onload = checkReportTest.step_func_done();
+      script.onerror = checkReportTest.unreached_func();
     });
   </script>
 </body>

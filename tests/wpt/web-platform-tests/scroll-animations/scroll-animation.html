@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Test basic functionality of scroll linked animation.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  .scroller {
+    overflow: auto;
+    height: 100px;
+    width: 100px;
+  }
+  .contents {
+    height: 1000px;
+    width: 100%;
+  }
+</style>
+<div id="log"></div>
+<script>
+  'use strict';
+
+  function createScroller(test) {
+    var scroller = createDiv(test);
+    scroller.innerHTML = "<div class='contents'></div>";
+    scroller.classList.add('scroller');
+    return scroller;
+  }
+
+  function createScrollTimeline(test) {
+    return new ScrollTimeline({
+      scrollSource: createScroller(test),
+      timeRange: 1000
+    });
+  }
+
+  function createScrollLinkedAnimation(test, timeline) {
+    if(timeline === undefined)
+      timeline = createScrollTimeline(test);
+    const DURATION = 1000; // ms
+    const KEYFRAMES = { opacity: [1, 0] };
+    return new Animation(
+      new KeyframeEffect(createDiv(test), KEYFRAMES, DURATION), timeline);
+  }
+
+  promise_test(async t => {
+    const animation = createScrollLinkedAnimation(t);
+    const scroller = animation.timeline.scrollSource;
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+    const timeRange = animation.timeline.timeRange;
+
+    // Verify initial start and current times in Idle state.
+    assert_equals(animation.currentTime, null,
+      "The current time is null in Idle state.");
+    assert_equals(animation.startTime, null,
+      "The start time is null in Idle state.");
+    animation.play();
+    // Verify initial start and current times in Pending state.
+    assert_equals(animation.currentTime, 0,
+      "The current time is a hold time in Pending state.");
+    assert_equals(animation.startTime, null,
+      "The start time is null in Pending state.");
+
+    await animation.ready;
+    // Verify initial start and current times in Playing state.
+    assert_equals(animation.currentTime, 0,
+      "The current time is zero in Playing state.");
+    assert_equals(animation.startTime, 0,
+      "The start time is zero in Playing state.");
+
+    // Now do some scrolling and make sure that the Animation current time is
+    // correct.
+    scroller.scrollTop = 0.2 * maxScroll;
+    assert_equals(animation.currentTime, animation.timeline.currentTime,
+      "The current time corresponds to the scroll position of the scroller.");
+}, 'Animation start and current times are correct for each animation state.');
+
+promise_test(async t => {
+    const animation = createScrollLinkedAnimation(t);
+    const scroller = animation.timeline.scrollSource;
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+    const timeRange = animation.timeline.timeRange;
+    // Advance the scroller.
+    scroller.scrollTop = 0.2 * maxScroll;
+
+    // Verify initial start and current times in Idle state.
+    assert_equals(animation.currentTime, null,
+      "The current time is null in Idle state.");
+    assert_equals(animation.startTime, null,
+      "The start time is null in Idle state.");
+    animation.play();
+    // Verify initial start and current times in Pending state.
+    assert_equals(animation.currentTime, 0,
+      "The current time is a hold time in Pending state.");
+    assert_equals(animation.startTime, null,
+      "The start time is null in Pending state.");
+
+    await animation.ready;
+    // Verify initial start and current times in Playing state.
+    assert_equals(animation.currentTime, animation.timeline.currentTime,
+      "The current corresponds to the scroll position of the scroller.");
+    assert_equals(animation.startTime, 0,
+      "The start time is zero in Playing state.");
+}, 'Animation start and current times are correct for each animation state' +
+    ' when the animation starts playing with advanced scroller.');
+
+promise_test(async t => {
+    const timeline = createScrollTimeline(t);
+    const animation1 = createScrollLinkedAnimation(t, timeline);
+    const animation2 = createScrollLinkedAnimation(t, timeline);
+    const scroller = timeline.scrollSource;
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+    const timeRange = timeline.timeRange;
+    // Advance the scroller.
+    scroller.scrollTop = 0.2 * maxScroll;
+
+    // Verify initial start and current times in Idle state.
+    assert_equals(animation1.currentTime, null,
+      "The current time is null in Idle state.");
+    assert_equals(animation1.startTime, null,
+      "The start time is null in Idle state.");
+    assert_equals(animation2.currentTime, null,
+      "The current time is null in Idle state.");
+    assert_equals(animation2.startTime, null,
+      "The start time is null in Idle state.");
+    animation1.play();
+    animation2.play();
+    // Verify initial start and current times in Pending state.
+    assert_equals(animation1.currentTime, 0,
+      "The current time is a hold time in Pending state.");
+    assert_equals(animation1.startTime, null,
+      "The start time is null in Pending state.");
+    assert_equals(animation2.currentTime, 0,
+      "The current time is a hold time in Pending state.");
+    assert_equals(animation2.startTime, null,
+      "The start time is null in Pending state.");
+
+    await animation1.ready;
+    await animation2.ready;
+    // Verify initial start and current times in Playing state.
+    assert_equals(animation1.currentTime, timeline.currentTime,
+      "The current corresponds to the scroll position of the scroller.");
+    assert_equals(animation1.startTime, 0,
+      "The start time is zero in Playing state.");
+    assert_equals(animation2.currentTime, timeline.currentTime,
+      "The current corresponds to the scroll position of the scroller.");
+    assert_equals(animation2.startTime, 0,
+      "The start time is zero in Playing state.");
+}, 'Animation start and current times are correct when multiple animations' +
+    ' are attached to the same timeline.');
+</script>

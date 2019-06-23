@@ -1,5 +1,8 @@
+from webdriver.error import NoSuchAlertException
+
 from tests.support.asserts import assert_error, assert_success
 from tests.support.inline import inline
+from tests.support.sync import Poll
 
 
 def accept_alert(session):
@@ -43,3 +46,16 @@ def test_accept_prompt(session):
     response = accept_alert(session)
     assert_success(response)
     assert session.execute_script("return window.result") == "Federer"
+
+
+def test_unexpected_alert(session):
+    session.execute_script("window.setTimeout(function() { window.alert('Hello'); }, 100);")
+    wait = Poll(
+        session,
+        timeout=5,
+        ignored_exceptions=NoSuchAlertException,
+        message="No user prompt with text 'Hello' detected")
+    wait.until(lambda s: s.alert.text == "Hello")
+
+    response = accept_alert(session)
+    assert_success(response)

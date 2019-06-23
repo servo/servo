@@ -25,6 +25,10 @@ if errorlevel 9009 (
 	exit /b 1
 )
 
+if not exist tools\ ( mkdir tools )
+
+if not exist tools\wptserve\ ( mklink /d tools\wptserve ..\..\tools\wptserve )
+
 %SPHINXBUILD% -M %1 %SOURCEDIR% %BUILDDIR% %SPHINXOPTS%
 goto end
 

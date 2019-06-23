@@ -25,11 +25,11 @@ p {
         assert_equals(entryList.getEntries().length, 1);
         const entry = entryList.getEntries()[0];
         checkTextElement(entry, 'my_text', 'text_id', beforeRender, paragraph);
-        assert_equals(entry.intersectionRect.left, 20);
+        assert_equals(entry.intersectionRect.left, 20, 'left should be 20.');
         // Text box size will vary from device to device, so try lower bounding height by 12, width by 100.
         assert_greater_than_equal(entry.intersectionRect.right, 120);
 
-        assert_equals(entry.intersectionRect.top, 20);
+        assert_equals(entry.intersectionRect.top, 20, 'top should be 20.');
         assert_greater_than_equal(entry.intersectionRect.bottom, 32);
       })
     );

@@ -76,7 +76,7 @@ expectations:
   expected. They get their name from the JavaScript harness that's used to
   execute them.
 
-* [wdspec]() tests are written in Python and test [the WebDriver browser
+* [wdspec][] tests are written in Python and test [the WebDriver browser
   automation protocol](https://w3c.github.io/webdriver/)
 
 * [Manual tests][manual] rely on a human to run them and determine their

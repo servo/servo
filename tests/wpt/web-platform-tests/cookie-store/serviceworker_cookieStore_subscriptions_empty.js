@@ -6,7 +6,13 @@ importScripts("/resources/testharness.js");
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
-    await cookieStore.subscribeToChanges([]);
+    try {
+      await cookieStore.subscribeToChanges([]);
+
+      // If the worker enters the "redundant" state, the UA may terminate it
+      // before all tests have been reported to the client. Stifle errors in
+      // order to avoid this and ensure all tests are consistently reported.
+    } catch (err) {}
   })());
 });
 

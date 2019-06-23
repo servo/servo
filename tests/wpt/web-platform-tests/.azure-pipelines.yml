@@ -85,11 +85,11 @@ jobs:
   - template: tools/ci/azure/install_safari.yml
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
-  - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl $(Build.ArtifactStagingDirectory)/chrome.tbpl.log --log-tbpl-level info --channel dev chrome infrastructure/
+  - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl - --log-tbpl-level info --channel dev chrome infrastructure/
     displayName: 'Run tests: Chrome Dev'
-  - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl $(Build.ArtifactStagingDirectory)/firefox.tbpl.log --log-tbpl-level info --channel nightly firefox infrastructure/
+  - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl - --log-tbpl-level info --channel nightly firefox infrastructure/
     displayName: 'Run tests: Firefox Nightly'
-  - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl $(Build.ArtifactStagingDirectory)/safari.tbpl.log --log-tbpl-level info --channel preview safari infrastructure/
+  - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl - --log-tbpl-level info --channel preview safari infrastructure/
     displayName: 'Run tests: Safari Technology Preview'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
@@ -223,7 +223,7 @@ jobs:
   - template: tools/ci/azure/install_edge.yml
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
-  - script: python ./wpt run --yes --no-manifest-update --install-fonts --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl $(Build.ArtifactStagingDirectory)/edge.tbpl.log --log-tbpl-level info --channel dev edgechromium infrastructure/
+  - script: python ./wpt run --yes --no-manifest-update --install-fonts --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl - --log-tbpl-level info --channel dev edgechromium infrastructure/
     displayName: 'Run tests: Edge Dev'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
@@ -256,7 +256,7 @@ jobs:
   - template: tools/ci/azure/install_edge.yml
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
-  - script: python ./wpt run --yes --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --install-fonts --this-chunk $(System.JobPositionInPhase) --total-chunks $(System.TotalJobsInPhase) --chunk-type hash --log-tbpl - --log-tbpl-level info --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --channel dev edgechromium
+  - script: python ./wpt run --yes --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --install-fonts --this-chunk $(System.JobPositionInPhase) --total-chunks $(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-tbpl - --log-tbpl-level info --channel dev edgechromium
     displayName: 'Run tests: Edge Dev'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
@@ -293,7 +293,7 @@ jobs:
   - script: |
       # TODO: drop this when `safaridriver --version` is supported.
       SAFARI_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' /Applications/Safari.app/Contents/Info.plist) ($(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' /Applications/Safari.app/Contents/Info.plist))"
-      no_proxy='*' ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --this-chunk=$(System.JobPositionInPhase) --total-chunks=$(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --browser-version "$SAFARI_VERSION" safari
+      no_proxy='*' ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --this-chunk=$(System.JobPositionInPhase) --total-chunks=$(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-tbpl - --log-tbpl-level info --browser-version "$SAFARI_VERSION" safari
     displayName: 'Run tests'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
@@ -324,7 +324,7 @@ jobs:
   - template: tools/ci/azure/install_safari.yml
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
-  - script: no_proxy='*' ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --this-chunk=$(System.JobPositionInPhase) --total-chunks=$(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --channel preview safari
+  - script: no_proxy='*' ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --this-chunk=$(System.JobPositionInPhase) --total-chunks=$(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-tbpl - --log-tbpl-level info --channel preview safari
     displayName: 'Run tests'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'

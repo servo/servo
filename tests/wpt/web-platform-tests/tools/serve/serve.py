@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import platform
+import signal
 import socket
 import sys
 import threading
@@ -841,11 +842,17 @@ def get_parser():
 
 
 def run(**kwargs):
+    received_signal = threading.Event()
+
     with build_config(os.path.join(repo_root, "config.json"),
                       **kwargs) as config:
         global logger
         logger = config.logger
         set_logger(logger)
+
+        def handle_signal(signum, frame):
+            logger.debug("Received signal %s. Shutting down.", signum)
+            received_signal.set()
 
         bind_address = config["bind_address"]
 
@@ -868,20 +875,19 @@ def run(**kwargs):
 
         with stash.StashServer(stash_address, authkey=str(uuid.uuid4())):
             servers = start(config, build_routes(config["aliases"]), **kwargs)
+            signal.signal(signal.SIGTERM, handle_signal)
+            signal.signal(signal.SIGINT, handle_signal)
 
-            try:
-                while all(item.is_alive() for item in iter_procs(servers)):
-                    for item in iter_procs(servers):
-                        item.join(1)
-                exited = [item for item in iter_procs(servers) if not item.is_alive()]
-                subject = "subprocess" if len(exited) == 1 else "subprocesses"
-
-                logger.info("%s %s exited:" % (len(exited), subject))
-
+            while all(item.is_alive() for item in iter_procs(servers)) and not received_signal.is_set():
                 for item in iter_procs(servers):
-                    logger.info("Status of %s:\t%s" % (item.name, "running" if item.is_alive() else "not running"))
-            except KeyboardInterrupt:
-                logger.info("Shutting down")
+                    item.join(1)
+            exited = [item for item in iter_procs(servers) if not item.is_alive()]
+            subject = "subprocess" if len(exited) == 1 else "subprocesses"
+
+            logger.info("%s %s exited:" % (len(exited), subject))
+
+            for item in iter_procs(servers):
+                logger.info("Status of %s:\t%s" % (item.name, "running" if item.is_alive() else "not running"))
 
 
 def main():

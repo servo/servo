@@ -23,9 +23,10 @@ enum MediaSessionAction {
   "nexttrack",
   "skipad",
   "stop",
+  "seekto"
 };
 
-callback MediaSessionActionHandler = void();
+callback MediaSessionActionHandler = void(MediaSessionActionDetails details);
 
 [Exposed=Window]
 interface MediaSession {
@@ -63,4 +64,17 @@ dictionary MediaPositionState {
   required double duration;
   double playbackRate = 1.0;
   double position = 0.0;
+};
+
+dictionary MediaSessionActionDetails {
+  required MediaSessionAction action;
+};
+
+dictionary MediaSessionSeekActionDetails : MediaSessionActionDetails {
+  double? seekOffset;
+};
+
+dictionary MediaSessionSeekToActionDetails : MediaSessionActionDetails {
+  required double seekTime;
+  bool? fastSeek;
 };

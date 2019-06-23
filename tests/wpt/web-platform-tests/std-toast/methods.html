@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Toast: method tests</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<main></main>
+<div></div>
+
+<script type="module">
+import { testToastElement, assertToastShown, assertToastNotShown, testToastElementAsync } from './resources/helpers.js';
+
+testToastElement((toast) => {
+    toast.show();
+
+    assertToastShown(toast);
+}, 'calling `show()` on a hidden toast opens and displays it');
+
+testToastElement((toast) => {
+    toast.toggleAttribute('open');
+    toast.show();
+
+    assertToastShown(toast);
+}, 'calling `show()` on a shown toast does nothing');
+
+testToastElement((toast) => {
+    toast.toggleAttribute('open');
+    toast.hide();
+
+    assertToastNotShown(toast);
+}, 'calling `hide()` on a shown toast hides the toast');
+
+testToastElement((toast) => {
+    toast.hide();
+
+    assertToastNotShown(toast);
+}, 'calling `hide()` on a hidden toast does nothing');
+
+testToastElement((toast) => {
+    toast.toggle();
+
+    assertToastShown(toast);
+}, 'calling `toggle()` on a hidden toast shows the toast');
+
+testToastElement((toast) => {
+    toast.show();
+    toast.toggle();
+
+    assertToastNotShown(toast);
+}, 'calling `toggle()` on a shown toast hides the toast');
+
+testToastElement((toast) => {
+    toast.toggle(true);
+
+    assertToastShown(toast);
+}, 'calling `toggle()` with `force` parameter set to true on a hidden opens the toast');
+
+testToastElement((toast) => {
+    toast.show();
+    toast.toggle(true);
+
+    assertToastShown(toast);
+}, 'calling `toggle()` with `force` parameter set to true on a shown toast does not close the toast');
+
+testToastElement((toast) => {
+    toast.toggle(false);
+
+    assertToastNotShown(toast);
+}, 'calling `toggle()` with `force` parameter set to false on a hidden toast does not open the toast');
+
+testToastElement((toast) => {
+    toast.show();
+    toast.toggle(false);
+
+    assertToastNotShown(toast);
+}, 'calling `toggle()` with `force` parameter set to false on a shown toast closes the toast');
+
+testToastElementAsync((t, toast) => {
+    toast.show();
+
+    // time = 999
+    t.step_timeout(() => {
+        assertToastShown(toast);
+        toast.show();
+
+        // time = 2000
+        t.step_timeout(() => {
+            assertToastShown(toast);
+
+            // time = 3000
+            t.step_timeout(() => {
+                assertToastNotShown(toast);
+                t.done();
+            }, 1000);
+        }, 1001);
+    }, 999);
+}, 'calling `show()` twice resets the timeout');
+
+testToastElementAsync((t, toast) => {
+    toast.show();
+
+    // time = 999
+    t.step_timeout(() => {
+        assertToastShown(toast);
+        toast.hide();
+
+        // time = 1000
+        t.step_timeout(() => {
+            assertToastNotShown(toast);
+
+            // time = 1500
+            t.step_timeout(() => {
+                toast.show();
+
+                // time = 2500
+                t.step_timeout(() => {
+                    assertToastShown(toast);
+                    t.done();
+                }, 1000);
+            }, 500);
+        }, 1);
+    }, 999);
+}, 'calling `hide()` clears the timeout');
+</script>

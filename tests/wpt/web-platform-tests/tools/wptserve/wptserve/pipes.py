@@ -342,7 +342,7 @@ def sub(request, response, escape_type="html"):
       A dictionary of parts of the request URL. Valid keys are
       'server, 'scheme', 'host', 'hostname', 'port', 'path' and 'query'.
       'server' is scheme://host:port, 'host' is hostname:port, and query
-       includes the leading '?', but other delimiters are omitted.
+      includes the leading '?', but other delimiters are omitted.
     headers
       A dictionary of HTTP headers in the request.
     header_or_default(header, default)

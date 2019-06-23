@@ -1,0 +1,22 @@
+<!doctype html>
+<title>API availability following history traversal</title>
+<meta charset=utf-8>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<p>Test requires popup blocker disabled</p>
+<div id=log></div>
+<script>
+var t = async_test();
+var hasNavigated = false;
+var child;
+t.step(function() {
+  child = window.open("resources/api-availability-1.html");
+  t.add_cleanup(function() {
+    child.close();
+  });
+});
+navigate = t.step_func(function() {
+  hasNavigated = true;
+  child.location = child.location.href.replace("api-availability-1.html", "api-availability-2.html");
+});
+</script>

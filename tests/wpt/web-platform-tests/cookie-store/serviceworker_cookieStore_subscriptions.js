@@ -9,12 +9,18 @@ self.addEventListener('install', (event) => {
     // The subscribeToChanges calls are not done in parallel on purpose. Having
     // multiple in-flight requests introduces failure modes aside from the
     // cookie change logic that this test aims to cover.
-    await cookieStore.subscribeToChanges([
-      { name: 'cookie-name1', matchType: 'equals', url: '/scope/path1' }]);
-    await cookieStore.subscribeToChanges([
-      { },  // Test the default values for subscription properties.
-      { name: 'cookie-prefix', matchType: 'starts-with' },
-    ]);
+    try {
+      await cookieStore.subscribeToChanges([
+        { name: 'cookie-name1', matchType: 'equals', url: '/scope/path1' }]);
+      await cookieStore.subscribeToChanges([
+        { },  // Test the default values for subscription properties.
+        { name: 'cookie-prefix', matchType: 'starts-with' },
+      ]);
+
+      // If the worker enters the "redundant" state, the UA may terminate it
+      // before all tests have been reported to the client. Stifle errors in
+      // order to avoid this and ensure all tests are consistently reported.
+    } catch (err) {}
   })());
 });
 

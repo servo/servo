@@ -24,8 +24,8 @@ A typical example of using a stash to store state might be::
           assert request.server.stash.take(key) is None
           return key
 
-:mod:`Interface <stash>`
-------------------------
+:mod:`Interface <wptserve.stash>`
+---------------------------------
 
 .. automodule:: wptserve.stash
    :members:

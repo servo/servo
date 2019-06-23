@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: do not observe text in shadow tree</title>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<div id='target'></div>
+<script>
+  async_test(function (t) {
+    if (!window.PerformanceElementTiming) {
+      assert_unreached("PerformanceElementTiming is not implemented");
+    }
+    const observer = new PerformanceObserver(
+      t.step_func_done(function(entryList) {
+        assert_unreached('Should not observe text elements in shadow trees!');
+      })
+    );
+    observer.observe({entryTypes: ['element']});
+    // We add the text during onload to be sure that the observer is registered
+    // in time for it to observe the element timing.
+    window.onload = () => {
+      // Add text of width equal to 100 and height equal to 100.
+      const text = document.createElement('p');
+      text.innerHTML = 'Text';
+      text.setAttribute('elementtiming', 'my_text');
+      const shadowRoot = document.getElementById('target').attachShadow({mode: 'open'});
+      shadowRoot.appendChild(text);
+      t.step_timeout(() => {
+        // Assume entry was not dispatched, so test passes.
+        t.done();
+      }, 500);
+    };
+  }, 'Text in shadow tree with elementtiming attribute is not observable.');
+</script>

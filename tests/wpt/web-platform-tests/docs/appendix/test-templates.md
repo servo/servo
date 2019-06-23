@@ -11,7 +11,12 @@ delimit text to be replaced and `#` represents a digit.
 
 ### Test
 
-``` html
+<!--
+  Syntax highlighting cannot be enabled for the following template because it
+  contains invalid CSS.
+-->
+
+```
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>${1:Test title}</title>
@@ -28,7 +33,12 @@ Filename: `{test-topic}-###.html`
 
 ### Reference:
 
-``` html
+<!--
+  Syntax highlighting cannot be enabled for the following template because it
+  contains invalid CSS.
+-->
+
+```
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>${1:Reference title}</title>
