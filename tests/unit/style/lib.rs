@@ -10,7 +10,6 @@ extern crate cssparser;
 extern crate euclid;
 #[macro_use]
 extern crate html5ever;
-extern crate parking_lot;
 extern crate rayon;
 extern crate selectors;
 extern crate serde_json;
