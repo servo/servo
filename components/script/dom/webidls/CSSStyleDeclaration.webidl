@@ -237,10 +237,17 @@ partial interface CSSStyleDeclaration {
   [CEReactions, SetterThrows] attribute [TreatNullAs=EmptyString] DOMString counter-reset;
 
   [CEReactions, SetterThrows] attribute [TreatNullAs=EmptyString] DOMString overflow;
+
+  [CEReactions, SetterThrows] attribute [TreatNullAs=EmptyString] DOMString overflowBlock;
+  [CEReactions, SetterThrows] attribute [TreatNullAs=EmptyString] DOMString overflow-block;
+  [CEReactions, SetterThrows] attribute [TreatNullAs=EmptyString] DOMString overflowInline;
+  [CEReactions, SetterThrows] attribute [TreatNullAs=EmptyString] DOMString overflow-inline;
+
   [CEReactions, SetterThrows] attribute [TreatNullAs=EmptyString] DOMString overflowX;
   [CEReactions, SetterThrows] attribute [TreatNullAs=EmptyString] DOMString overflow-x;
   [CEReactions, SetterThrows] attribute [TreatNullAs=EmptyString] DOMString overflowY;
   [CEReactions, SetterThrows] attribute [TreatNullAs=EmptyString] DOMString overflow-y;
+
   [CEReactions, SetterThrows] attribute [TreatNullAs=EmptyString] DOMString overflowWrap;
   [CEReactions, SetterThrows] attribute [TreatNullAs=EmptyString] DOMString overflow-wrap;
 

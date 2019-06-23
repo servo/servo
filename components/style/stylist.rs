@@ -35,10 +35,9 @@ use crate::thread_state::{self, ThreadState};
 use crate::{Atom, LocalName, Namespace, WeakAtom};
 use fallible::FallibleVec;
 use hashglobe::FailedAllocationError;
+use malloc_size_of::MallocSizeOf;
 #[cfg(feature = "gecko")]
-use malloc_size_of::MallocUnconditionalShallowSizeOf;
-#[cfg(feature = "gecko")]
-use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
+use malloc_size_of::{MallocShallowSizeOf, MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::BloomFilter;
 use selectors::matching::VisitedHandlingMode;
