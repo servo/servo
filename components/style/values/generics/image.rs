@@ -15,7 +15,16 @@ use style_traits::{CssWriter, ToCss};
 
 /// An <image> | <none> (for background-image, for example).
 #[derive(
-    Clone, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
+    Clone,
+    Debug,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 pub enum GenericImageLayer<Image> {
     /// The `none` value.

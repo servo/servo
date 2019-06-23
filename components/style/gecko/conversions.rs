@@ -99,7 +99,7 @@ impl nsStyleImage {
 
     fn set_gradient(&mut self, gradient: Box<Gradient>) {
         unsafe {
-             bindings::Gecko_SetGradientImageValue(self, Box::into_raw(gradient));
+            bindings::Gecko_SetGradientImageValue(self, Box::into_raw(gradient));
         }
     }
 
@@ -142,8 +142,7 @@ impl nsStyleImage {
                 }
             },
             nsStyleImageType::eStyleImageType_Gradient => {
-                let gradient: &Gradient =
-                    &**self.__bindgen_anon_1.mGradient.as_ref();
+                let gradient: &Gradient = &**self.__bindgen_anon_1.mGradient.as_ref();
                 Some(GenericImage::Gradient(Box::new(gradient.clone())))
             },
             nsStyleImageType::eStyleImageType_Element => {

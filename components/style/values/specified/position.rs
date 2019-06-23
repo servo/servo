@@ -7,15 +7,15 @@
 //!
 //! [position]: https://drafts.csswg.org/css-backgrounds-3/#position
 
-use crate::Atom;
-use crate::selector_map::PrecomputedHashMap;
 use crate::parser::{Parse, ParserContext};
+use crate::selector_map::PrecomputedHashMap;
 use crate::str::HTML_SPACE_CHARACTERS;
 use crate::values::computed::LengthPercentage as ComputedLengthPercentage;
 use crate::values::computed::{Context, Percentage, ToComputedValue};
 use crate::values::generics::position::Position as GenericPosition;
 use crate::values::generics::position::ZIndex as GenericZIndex;
 use crate::values::specified::{AllowQuirks, Integer, LengthPercentage};
+use crate::Atom;
 use crate::Zero;
 use cssparser::Parser;
 use selectors::parser::SelectorParseErrorKind;
@@ -579,7 +579,9 @@ impl Parse for TemplateAreas {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let mut strings = vec![];
-        while let Ok(string) = input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned().into())) {
+        while let Ok(string) =
+            input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned().into()))
+        {
             strings.push(string);
         }
 

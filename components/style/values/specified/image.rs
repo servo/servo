@@ -11,10 +11,12 @@ use crate::custom_properties::SpecifiedValue;
 use crate::parser::{Parse, ParserContext};
 use crate::stylesheets::CorsMode;
 use crate::values::generics::image::PaintWorklet;
-use crate::values::generics::image::{self as generic, Circle, GradientCompatMode, Ellipse, ShapeExtent};
+use crate::values::generics::image::{
+    self as generic, Circle, Ellipse, GradientCompatMode, ShapeExtent,
+};
 use crate::values::generics::position::Position as GenericPosition;
-use crate::values::specified::position::{Position, PositionComponent, Side};
 use crate::values::specified::position::{HorizontalPositionKeyword, VerticalPositionKeyword};
+use crate::values::specified::position::{Position, PositionComponent, Side};
 use crate::values::specified::url::SpecifiedImageUrl;
 use crate::values::specified::{Angle, Color, Length, LengthPercentage};
 use crate::values::specified::{Number, NumberOrPercentage, Percentage};
@@ -250,7 +252,12 @@ impl Parse for Gradient {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
-        Ok(Gradient { items, repeating, kind, compat_mode })
+        Ok(Gradient {
+            items,
+            repeating,
+            kind,
+            compat_mode,
+        })
     }
 }
 
@@ -259,7 +266,9 @@ impl Gradient {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        use crate::values::specified::position::{HorizontalPositionKeyword as X, VerticalPositionKeyword as Y};
+        use crate::values::specified::position::{
+            HorizontalPositionKeyword as X, VerticalPositionKeyword as Y,
+        };
         type Point = GenericPosition<Component<X>, Component<Y>>;
 
         #[derive(Clone, Copy, Parse)]
@@ -512,7 +521,9 @@ impl GradientKind {
             d
         } else {
             match *compat_mode {
-                GradientCompatMode::Modern => LineDirection::Vertical(VerticalPositionKeyword::Bottom),
+                GradientCompatMode::Modern => {
+                    LineDirection::Vertical(VerticalPositionKeyword::Bottom)
+                },
                 _ => LineDirection::Vertical(VerticalPositionKeyword::Top),
             }
         };
@@ -563,10 +574,10 @@ impl generic::LineDirection for LineDirection {
             LineDirection::Angle(ref angle) => angle.degrees() == 180.0,
             LineDirection::Vertical(VerticalPositionKeyword::Bottom) => {
                 compat_mode == GradientCompatMode::Modern
-            }
+            },
             LineDirection::Vertical(VerticalPositionKeyword::Top) => {
                 compat_mode != GradientCompatMode::Modern
-            }
+            },
             _ => false,
         }
     }
@@ -621,7 +632,9 @@ impl LineDirection {
                 // Fall back to Modern compatibility mode in case there is a `to` keyword.
                 // According to Gecko, `-moz-linear-gradient(to ...)` should serialize like
                 // `linear-gradient(to ...)`.
-                GradientCompatMode::Moz if to_ident.is_ok() => *compat_mode = GradientCompatMode::Modern,
+                GradientCompatMode::Moz if to_ident.is_ok() => {
+                    *compat_mode = GradientCompatMode::Modern
+                },
                 // There is no `to` keyword in webkit prefixed syntax. If it's consumed,
                 // parsing should throw an error.
                 GradientCompatMode::WebKit if to_ident.is_ok() => {
@@ -741,7 +754,9 @@ impl ShapeExtent {
         compat_mode: GradientCompatMode,
     ) -> Result<Self, ParseError<'i>> {
         match Self::parse(input)? {
-            ShapeExtent::Contain | ShapeExtent::Cover if compat_mode == GradientCompatMode::Modern => {
+            ShapeExtent::Contain | ShapeExtent::Cover
+                if compat_mode == GradientCompatMode::Modern =>
+            {
                 Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
             },
             ShapeExtent::Contain => Ok(ShapeExtent::ClosestSide),

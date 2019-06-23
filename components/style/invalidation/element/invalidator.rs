@@ -78,7 +78,8 @@ pub struct DescendantInvalidationLists<'a> {
 
 impl<'a> DescendantInvalidationLists<'a> {
     fn is_empty(&self) -> bool {
-        self.dom_descendants.is_empty() && self.slotted_descendants.is_empty() &&
+        self.dom_descendants.is_empty() &&
+            self.slotted_descendants.is_empty() &&
             self.parts.is_empty()
     }
 }
@@ -179,9 +180,7 @@ impl<'a> Invalidation<'a> {
             Combinator::Child | Combinator::Descendant | Combinator::PseudoElement => {
                 InvalidationKind::Descendant(DescendantInvalidationKind::Dom)
             },
-            Combinator::Part => {
-                InvalidationKind::Descendant(DescendantInvalidationKind::Part)
-            },
+            Combinator::Part => InvalidationKind::Descendant(DescendantInvalidationKind::Part),
             Combinator::SlotAssignment => {
                 InvalidationKind::Descendant(DescendantInvalidationKind::Slotted)
             },
@@ -505,7 +504,6 @@ where
         }
         any
     }
-
 
     fn invalidate_slotted_elements(&mut self, invalidations: &[Invalidation<'b>]) -> bool {
         if invalidations.is_empty() {

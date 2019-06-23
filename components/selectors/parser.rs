@@ -751,7 +751,11 @@ impl<Impl: SelectorImpl> Selector<Impl> {
 
     /// Creates a Selector from a vec of Components, specified in parse order. Used in tests.
     #[allow(unused)]
-    pub (crate) fn from_vec(vec: Vec<Component<Impl>>, specificity: u32, flags: SelectorFlags) -> Self {
+    pub(crate) fn from_vec(
+        vec: Vec<Component<Impl>>,
+        specificity: u32,
+        flags: SelectorFlags,
+    ) -> Self {
         let mut builder = SelectorBuilder::default();
         for component in vec.into_iter() {
             if let Some(combinator) = component.as_combinator() {
@@ -760,10 +764,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
                 builder.push_simple_selector(component);
             }
         }
-        let spec = SpecificityAndFlags {
-            specificity,
-            flags,
-        };
+        let spec = SpecificityAndFlags { specificity, flags };
         Selector(builder.build_with_specificity_and_flags(spec))
     }
 

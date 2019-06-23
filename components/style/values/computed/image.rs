@@ -66,10 +66,10 @@ impl generic::LineDirection for LineDirection {
             LineDirection::Angle(angle) => angle.radians() == PI,
             LineDirection::Vertical(VerticalPositionKeyword::Bottom) => {
                 compat_mode == GradientCompatMode::Modern
-            }
+            },
             LineDirection::Vertical(VerticalPositionKeyword::Top) => {
                 compat_mode != GradientCompatMode::Modern
-            }
+            },
             _ => false,
         }
     }
