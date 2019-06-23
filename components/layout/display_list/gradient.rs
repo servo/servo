@@ -9,7 +9,6 @@ use style::properties::ComputedValues;
 use style::values::computed::image::{EndingShape, LineDirection};
 use style::values::computed::{Angle, GradientItem, LengthPercentage, Percentage, Position};
 use style::values::generics::image::{Circle, ColorStop, Ellipse, ShapeExtent};
-use style::values::specified::position::{X, Y};
 use webrender_api::{ExtendMode, Gradient, GradientBuilder, GradientStop, RadialGradient};
 
 /// A helper data structure for gradients.
@@ -227,15 +226,17 @@ pub fn linear(
     direction: LineDirection,
     repeating: bool,
 ) -> (Gradient, Vec<GradientStop>) {
+    use style::values::specified::position::HorizontalPositionKeyword::*;
+    use style::values::specified::position::VerticalPositionKeyword::*;
     let angle = match direction {
         LineDirection::Angle(angle) => angle.radians(),
         LineDirection::Horizontal(x) => match x {
-            X::Left => Angle::from_degrees(270.).radians(),
-            X::Right => Angle::from_degrees(90.).radians(),
+            Left => Angle::from_degrees(270.).radians(),
+            Right => Angle::from_degrees(90.).radians(),
         },
         LineDirection::Vertical(y) => match y {
-            Y::Top => Angle::from_degrees(0.).radians(),
-            Y::Bottom => Angle::from_degrees(180.).radians(),
+            Top => Angle::from_degrees(0.).radians(),
+            Bottom => Angle::from_degrees(180.).radians(),
         },
         LineDirection::Corner(horizontal, vertical) => {
             // This the angle for one of the diagonals of the box. Our angle
@@ -243,10 +244,10 @@ pub fn linear(
             // two perpendicular angles.
             let atan = (size.height.to_f32_px() / size.width.to_f32_px()).atan();
             match (horizontal, vertical) {
-                (X::Right, Y::Bottom) => ::std::f32::consts::PI - atan,
-                (X::Left, Y::Bottom) => ::std::f32::consts::PI + atan,
-                (X::Right, Y::Top) => atan,
-                (X::Left, Y::Top) => -atan,
+                (Right, Bottom) => ::std::f32::consts::PI - atan,
+                (Left, Bottom) => ::std::f32::consts::PI + atan,
+                (Right, Top) => atan,
+                (Left, Top) => -atan,
             }
         },
     };

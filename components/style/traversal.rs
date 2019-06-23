@@ -693,8 +693,7 @@ fn notify_paint_worklet<E>(context: &StyleContext<E>, data: &ElementData)
 where
     E: TElement,
 {
-    use crate::values::generics::image::Image;
-    use crate::values::Either;
+    use crate::values::generics::image::{GenericImageLayer, Image};
     use style_traits::ToCss;
 
     // We speculatively evaluate any paint worklets during styling.
@@ -704,7 +703,7 @@ where
     if let Some(ref values) = data.styles.primary {
         for image in &values.get_background().background_image.0 {
             let (name, arguments) = match *image {
-                Either::Second(Image::PaintWorklet(ref worklet)) => {
+                GenericImageLayer::Image(Image::PaintWorklet(ref worklet)) => {
                     (&worklet.name, &worklet.arguments)
                 },
                 _ => continue,

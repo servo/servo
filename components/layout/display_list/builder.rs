@@ -57,10 +57,10 @@ use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect};
 use style::properties::{style_structs, ComputedValues};
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::effects::SimpleShadow;
-use style::values::computed::image::Image as ComputedImage;
+use style::values::computed::image::{Image, ImageLayer};
 use style::values::computed::{Gradient, LengthOrAuto};
 use style::values::generics::background::BackgroundSize;
-use style::values::generics::image::{GradientKind, Image, PaintWorklet};
+use style::values::generics::image::{GradientKind, PaintWorklet};
 use style::values::specified::ui::CursorKind;
 use style::values::{Either, RGBA};
 use style_traits::ToCss;
@@ -726,9 +726,13 @@ impl Fragment {
         // http://www.w3.org/TR/CSS21/colors.html#background
         let background = style.get_background();
         for (i, background_image) in background.background_image.0.iter().enumerate().rev() {
+            let background_image = match *background_image {
+                ImageLayer::None => continue,
+                ImageLayer::Image(ref image) => image,
+            };
+
             match *background_image {
-                Either::First(_) => {},
-                Either::Second(Image::Gradient(ref gradient)) => {
+                Image::Gradient(ref gradient) => {
                     self.build_display_list_for_background_gradient(
                         state,
                         display_list_section,
@@ -738,7 +742,7 @@ impl Fragment {
                         i,
                     );
                 },
-                Either::Second(Image::Url(ref image_url)) => {
+                Image::Url(ref image_url) => {
                     if let Some(url) = image_url.url() {
                         let webrender_image = state.layout_context.get_webrender_image_for_url(
                             self.node,
@@ -757,7 +761,7 @@ impl Fragment {
                         }
                     }
                 },
-                Either::Second(Image::PaintWorklet(ref paint_worklet)) => {
+                Image::PaintWorklet(ref paint_worklet) => {
                     let bounding_box = self.border_box - style.logical_border_width();
                     let bounding_box_size = bounding_box.size.to_physical(style.writing_mode);
                     let background_size =
@@ -790,10 +794,10 @@ impl Fragment {
                         );
                     }
                 },
-                Either::Second(Image::Rect(_)) => {
+                Image::Rect(_) => {
                     // TODO: Implement `-moz-image-rect`
                 },
-                Either::Second(Image::Element(_)) => {
+                Image::Element(_) => {
                     // TODO: Implement `-moz-element`
                 },
             }
@@ -978,7 +982,7 @@ impl Fragment {
                     };
                     DisplayItem::Gradient(CommonDisplayItem::with_data(base, item, stops))
                 },
-                GradientKind::Radial(shape, center, _angle) => {
+                GradientKind::Radial(shape, center) => {
                     let (gradient, stops) = gradient::radial(
                         style,
                         placement.tile_size,
@@ -1115,7 +1119,7 @@ impl Fragment {
         let border_radius = border::radii(bounds, border_style_struct);
         let border_widths = border.to_physical(style.writing_mode);
 
-        if let Either::Second(ref image) = border_style_struct.border_image_source {
+        if let ImageLayer::Image(ref image) = border_style_struct.border_image_source {
             if self
                 .build_display_list_for_border_image(
                     state,
@@ -1173,7 +1177,7 @@ impl Fragment {
         style: &ComputedValues,
         base: BaseDisplayItem,
         bounds: Rect<Au>,
-        image: &ComputedImage,
+        image: &Image,
         border_width: SideOffsets2D<Au>,
     ) -> Option<()> {
         let border_style_struct = style.get_border();
@@ -1227,7 +1231,7 @@ impl Fragment {
                     stops = linear_stops;
                     NinePatchBorderSource::Gradient(wr_gradient)
                 },
-                GradientKind::Radial(shape, center, _angle) => {
+                GradientKind::Radial(shape, center) => {
                     let (wr_gradient, radial_stops) = gradient::radial(
                         style,
                         border_image_area,
