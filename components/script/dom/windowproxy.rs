@@ -275,13 +275,7 @@ impl WindowProxy {
                 .get()
                 .and_then(|id| ScriptThread::find_document(id))
                 .expect("A WindowProxy creating an auxiliary to have an active document");
-            let load_info = AuxiliaryBrowsingContextLoadInfo {
-                load_origin: LoadOrigin::Script(document.origin().immutable().clone()),
-                opener_pipeline_id: self.currently_active.get().unwrap(),
-                new_browsing_context_id: new_browsing_context_id,
-                new_top_level_browsing_context_id: new_top_level_browsing_context_id,
-                new_pipeline_id: new_pipeline_id,
-            };
+
             let blank_url = ServoUrl::parse("about:blank").ok().unwrap();
             let load_data = LoadData::new(
                 LoadOrigin::Script(document.origin().immutable().clone()),
@@ -290,6 +284,14 @@ impl WindowProxy {
                 Some(Referrer::ReferrerUrl(document.url().clone())),
                 document.get_referrer_policy(),
             );
+            let load_info = AuxiliaryBrowsingContextLoadInfo {
+                load_data: load_data.clone(),
+                opener_pipeline_id: self.currently_active.get().unwrap(),
+                new_browsing_context_id: new_browsing_context_id,
+                new_top_level_browsing_context_id: new_top_level_browsing_context_id,
+                new_pipeline_id: new_pipeline_id,
+            };
+
             let (pipeline_sender, pipeline_receiver) = ipc::channel().unwrap();
             let new_layout_info = NewLayoutInfo {
                 parent_info: None,

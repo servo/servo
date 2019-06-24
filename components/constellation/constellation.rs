@@ -2346,17 +2346,12 @@ where
         layout_sender: IpcSender<LayoutControlMsg>,
     ) {
         let AuxiliaryBrowsingContextLoadInfo {
-            load_origin,
+            load_data,
             opener_pipeline_id,
             new_top_level_browsing_context_id,
             new_browsing_context_id,
             new_pipeline_id,
         } = load_info;
-
-        let url = ServoUrl::parse("about:blank").expect("infallible");
-
-        // TODO: Referrer?
-        let load_data = LoadData::new(load_origin, url.clone(), None, None, None);
 
         let (script_sender, opener_browsing_context_id) =
             match self.pipelines.get(&opener_pipeline_id) {
@@ -2386,7 +2381,7 @@ where
             script_sender,
             layout_sender,
             self.compositor_proxy.clone(),
-            url,
+            load_data.url.clone(),
             is_opener_visible,
             load_data,
         );
