@@ -211,7 +211,7 @@ def append_to_path_env(string, env, name):
     if name in env:
         variable = env[name]
         if len(variable) > 0:
-            variable += ":"
+            variable += os.pathsep
     variable += string
     env[name] = variable
 
@@ -641,7 +641,7 @@ install them, let us know by filing a bug!")
                 env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
         if extra_path:
-            env["PATH"] = "%s%s%s" % (os.pathsep.join(extra_path), os.pathsep, env["PATH"])
+            append_to_path_env(os.pathsep.join(extra_path), env, "PATH")
 
         if self.config["build"]["incremental"]:
             env["CARGO_INCREMENTAL"] = "1"
@@ -649,16 +649,8 @@ install them, let us know by filing a bug!")
             env["CARGO_INCREMENTAL"] = "0"
 
         if extra_lib:
-            if sys.platform == "darwin":
-                env["DYLD_LIBRARY_PATH"] = "%s%s%s" % \
-                                           (os.pathsep.join(extra_lib),
-                                            os.pathsep,
-                                            env.get("DYLD_LIBRARY_PATH", ""))
-            else:
-                env["LD_LIBRARY_PATH"] = "%s%s%s" % \
-                                         (os.pathsep.join(extra_lib),
-                                          os.pathsep,
-                                          env.get("LD_LIBRARY_PATH", ""))
+            path_var = "DYLD_LIBRARY_PATH" if sys.platform == "darwin" else "LD_LIBRARY_PATH"
+            append_to_path_env(os.pathsep.join(extra_lib), env, path_var)
 
         # Paths to Android build tools:
         if self.config["android"]["sdk"]:
