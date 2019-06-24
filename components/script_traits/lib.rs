@@ -681,8 +681,8 @@ pub enum IFrameSandboxState {
 /// Specifies the information required to load an auxiliary browsing context.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AuxiliaryBrowsingContextLoadInfo {
-    /// The origin where the load started.
-    pub load_origin: LoadOrigin,
+    /// Load data containing the url to load
+    pub load_data: LoadData,
     /// The pipeline opener browsing context.
     pub opener_pipeline_id: PipelineId,
     /// The new top-level ID for the auxiliary.
