@@ -109,7 +109,7 @@ impl HTMLIFrameElement {
 
     pub fn navigate_or_reload_child_browsing_context(
         &self,
-        mut load_data: Option<LoadData>,
+        mut load_data: LoadData,
         nav_type: NavigationType,
         replace: HistoryEntryReplacement,
     ) {
@@ -136,37 +136,27 @@ impl HTMLIFrameElement {
         // document; the new navigation will continue blocking it.
         LoadBlocker::terminate(&mut load_blocker);
 
-        if let Some(ref mut load_data) = load_data {
-            let is_javascript = load_data.url.scheme() == "javascript";
-            if is_javascript {
-                let window_proxy = self.GetContentWindow();
-                if let Some(window_proxy) = window_proxy {
-                    // Important re security. See https://github.com/servo/servo/issues/23373
-                    // TODO: check according to https://w3c.github.io/webappsec-csp/#should-block-navigation-request
-                    if ScriptThread::check_load_origin(
-                        &load_data.load_origin,
-                        &document.url().origin(),
-                    ) {
-                        ScriptThread::eval_js_url(&window_proxy.global(), load_data);
-                    }
+        if load_data.url.scheme() == "javascript" {
+            let window_proxy = self.GetContentWindow();
+            if let Some(window_proxy) = window_proxy {
+                // Important re security. See https://github.com/servo/servo/issues/23373
+                // TODO: check according to https://w3c.github.io/webappsec-csp/#should-block-navigation-request
+                if ScriptThread::check_load_origin(&load_data.load_origin, &document.url().origin())
+                {
+                    ScriptThread::eval_js_url(&window_proxy.global(), &mut load_data);
                 }
             }
         }
 
-        //TODO(#9592): Deal with the case where an iframe is being reloaded so url is None.
-        //      The iframe should always have access to the nested context's active
-        //      document URL through the browsing context.
-        if let Some(ref load_data) = load_data {
-            match load_data.js_eval_result {
-                Some(JsEvalResult::NoContent) => (),
-                _ => {
-                    *load_blocker = Some(LoadBlocker::new(
-                        &*document,
-                        LoadType::Subframe(load_data.url.clone()),
-                    ));
-                },
-            };
-        }
+        match load_data.js_eval_result {
+            Some(JsEvalResult::NoContent) => (),
+            _ => {
+                *load_blocker = Some(LoadBlocker::new(
+                    &*document,
+                    LoadType::Subframe(load_data.url.clone()),
+                ));
+            },
+        };
 
         let window = window_from_node(self);
         let old_pipeline_id = self.pipeline_id();
@@ -175,7 +165,6 @@ impl HTMLIFrameElement {
 
         let global_scope = window.upcast::<GlobalScope>();
         let load_info = IFrameLoadInfo {
-            load_origin: LoadOrigin::Script(document.origin().immutable().clone()),
             parent_pipeline_id: global_scope.pipeline_id(),
             browsing_context_id: browsing_context_id,
             top_level_browsing_context_id: top_level_browsing_context_id,
@@ -190,6 +179,12 @@ impl HTMLIFrameElement {
 
                 self.about_blank_pipeline_id.set(Some(new_pipeline_id));
 
+                let load_info = IFrameLoadInfoWithData {
+                    info: load_info,
+                    load_data: load_data.clone(),
+                    old_pipeline_id: old_pipeline_id,
+                    sandbox: sandboxed,
+                };
                 global_scope
                     .script_to_constellation_chan()
                     .send(ScriptMsg::ScriptNewIFrame(load_info, pipeline_sender))
@@ -201,7 +196,7 @@ impl HTMLIFrameElement {
                     browsing_context_id: browsing_context_id,
                     top_level_browsing_context_id: top_level_browsing_context_id,
                     opener: None,
-                    load_data: load_data.unwrap(),
+                    load_data: load_data,
                     pipeline_port: pipeline_receiver,
                     content_process_shutdown_chan: None,
                     window_size: WindowSizeData {
@@ -295,11 +290,7 @@ impl HTMLIFrameElement {
         } else {
             HistoryEntryReplacement::Disabled
         };
-        self.navigate_or_reload_child_browsing_context(
-            Some(load_data),
-            NavigationType::Regular,
-            replace,
-        );
+        self.navigate_or_reload_child_browsing_context(load_data, NavigationType::Regular, replace);
     }
 
     fn create_nested_browsing_context(&self) {
@@ -323,7 +314,7 @@ impl HTMLIFrameElement {
             .set(Some(top_level_browsing_context_id));
         self.browsing_context_id.set(Some(browsing_context_id));
         self.navigate_or_reload_child_browsing_context(
-            Some(load_data),
+            load_data,
             NavigationType::InitialAboutBlank,
             HistoryEntryReplacement::Disabled,
         );

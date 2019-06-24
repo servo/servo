@@ -3324,7 +3324,7 @@ impl ScriptThread {
             .find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(iframe) = iframe {
             iframe.navigate_or_reload_child_browsing_context(
-                Some(load_data),
+                load_data,
                 NavigationType::Regular,
                 replace,
             );

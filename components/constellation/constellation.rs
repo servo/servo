@@ -2184,7 +2184,6 @@ where
     // the result of a page navigation.
     fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IFrameLoadInfoWithData) {
         let IFrameLoadInfo {
-            load_origin,
             parent_pipeline_id,
             browsing_context_id,
             top_level_browsing_context_id,
@@ -2214,16 +2213,6 @@ where
                 }
             );
         }
-
-        let load_data = load_info.load_data.unwrap_or_else(|| {
-            let url = match old_pipeline {
-                Some(old_pipeline) => old_pipeline.url.clone(),
-                None => ServoUrl::parse("about:blank").expect("infallible"),
-            };
-
-            // TODO - loaddata here should have referrer info (not None, None)
-            LoadData::new(load_origin, url, Some(parent_pipeline_id), None, None)
-        });
 
         let is_parent_private = {
             let parent_browsing_context_id = match self.pipelines.get(&parent_pipeline_id) {
@@ -2277,7 +2266,7 @@ where
             Some(parent_pipeline_id),
             None,
             browsing_context_size,
-            load_data,
+            load_info.load_data,
             load_info.sandbox,
             is_private,
             browsing_context_is_visible,
@@ -2294,29 +2283,17 @@ where
 
     fn handle_script_new_iframe(
         &mut self,
-        load_info: IFrameLoadInfo,
+        load_info: IFrameLoadInfoWithData,
         layout_sender: IpcSender<LayoutControlMsg>,
     ) {
         let IFrameLoadInfo {
-            load_origin,
             parent_pipeline_id,
             new_pipeline_id,
             browsing_context_id,
             top_level_browsing_context_id,
             is_private,
             ..
-        } = load_info;
-
-        let url = ServoUrl::parse("about:blank").expect("infallible");
-
-        // TODO: Referrer?
-        let load_data = LoadData::new(
-            load_origin,
-            url.clone(),
-            Some(parent_pipeline_id),
-            None,
-            None,
-        );
+        } = load_info.info;
 
         let (script_sender, parent_browsing_context_id) =
             match self.pipelines.get(&parent_pipeline_id) {
@@ -2342,9 +2319,9 @@ where
             script_sender,
             layout_sender,
             self.compositor_proxy.clone(),
-            url,
+            load_info.load_data.url.clone(),
             is_parent_visible,
-            load_data,
+            load_info.load_data,
         );
 
         assert!(!self.pipelines.contains_key(&new_pipeline_id));

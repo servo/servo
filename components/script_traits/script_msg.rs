@@ -5,7 +5,6 @@
 use crate::AnimationState;
 use crate::AuxiliaryBrowsingContextLoadInfo;
 use crate::DocumentState;
-use crate::IFrameLoadInfo;
 use crate::IFrameLoadInfoWithData;
 use crate::LayoutControlMsg;
 use crate::LoadData;
@@ -186,7 +185,7 @@ pub enum ScriptMsg {
     /// A load has been requested in an IFrame.
     ScriptLoadedURLInIFrame(IFrameLoadInfoWithData),
     /// A load of the initial `about:blank` has been completed in an IFrame.
-    ScriptNewIFrame(IFrameLoadInfo, IpcSender<LayoutControlMsg>),
+    ScriptNewIFrame(IFrameLoadInfoWithData, IpcSender<LayoutControlMsg>),
     /// Script has opened a new auxiliary browsing context.
     ScriptNewAuxiliary(
         AuxiliaryBrowsingContextLoadInfo,
