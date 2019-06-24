@@ -8,7 +8,6 @@
 #![feature(inner_deref)]
 #![feature(on_unimplemented)]
 #![feature(plugin)]
-#![feature(type_alias_enum_variants)]
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
 #![doc = "The script crate contains all matters DOM."]
