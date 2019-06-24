@@ -11,8 +11,8 @@ use style::context::QuirksMode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::media_queries::MediaList;
 use style::shared_lock::SharedRwLock;
-use style::stylesheets::Stylesheet;
 use style::stylesheets::Origin;
+use style::stylesheets::Stylesheet;
 
 #[derive(Debug)]
 struct CSSError {

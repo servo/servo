@@ -683,7 +683,10 @@ impl LayoutElementHelpers for LayoutDom<Element> {
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::BackgroundImage(background_image::SpecifiedValue(
-                    vec![specified::ImageLayer::Image(specified::Image::for_cascade(url.into()))].into(),
+                    vec![specified::ImageLayer::Image(specified::Image::for_cascade(
+                        url.into(),
+                    ))]
+                    .into(),
                 )),
             ));
         }
