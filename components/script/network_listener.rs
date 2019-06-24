@@ -62,7 +62,7 @@ pub fn submit_timing_data(
         PerformanceResourceTiming::new(global, url, initiator_type, None, resource_timing);
     global
         .performance()
-        .queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
+        .queue_entry(performance_entry.upcast::<PerformanceEntry>(), true);
 }
 
 impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
