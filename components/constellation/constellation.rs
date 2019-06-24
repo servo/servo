@@ -2319,7 +2319,6 @@ where
             script_sender,
             layout_sender,
             self.compositor_proxy.clone(),
-            load_info.load_data.url.clone(),
             is_parent_visible,
             load_info.load_data,
         );
@@ -2381,7 +2380,6 @@ where
             script_sender,
             layout_sender,
             self.compositor_proxy.clone(),
-            load_data.url.clone(),
             is_opener_visible,
             load_data,
         );
