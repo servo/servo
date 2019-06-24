@@ -269,6 +269,57 @@ impl GenericDrawTarget for raqote::DrawTarget {
     }
 }
 
+impl GenericPathBuilder for raqote::PathBuilder {
+    fn arc(
+        &mut self,
+        origin: Point2D<f32>,
+        radius: f32,
+        start_angle: f32,
+        end_angle: f32,
+        anticlockwise: bool,
+    ) {
+        unimplemented!();
+    }
+    fn bezier_curve_to(
+        &mut self,
+        control_point1: &Point2D<f32>,
+        control_point2: &Point2D<f32>,
+        control_point3: &Point2D<f32>,
+    ) {
+        unimplemented!();
+    }
+    fn close(&mut self) {
+        unimplemented!();
+    }
+    fn ellipse(
+        &mut self,
+        origin: Point2D<f32>,
+        radius_x: f32,
+        radius_y: f32,
+        rotation_angle: f32,
+        start_angle: f32,
+        end_angle: f32,
+        anticlockwise: bool,
+    ) {
+        unimplemented!();
+    }
+    fn get_current_point(&mut self) -> Point2D<f32> {
+        unimplemented!();
+    }
+    fn line_to(&mut self, point: Point2D<f32>) {
+        unimplemented!();
+    }
+    fn move_to(&mut self, point: Point2D<f32>) {
+        unimplemented!();
+    }
+    fn quadratic_curve_to(&mut self, control_point: &Point2D<f32>, end_point: &Point2D<f32>) {
+        unimplemented!();
+    }
+    fn finish(&mut self) -> Path {
+        unimplemented!();
+    }
+}
+
 pub trait ToRaqoteStyle {
     type Target;
 
