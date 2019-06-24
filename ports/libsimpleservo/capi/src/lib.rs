@@ -43,6 +43,8 @@ pub struct CHostCallbacks {
     pub on_animating_changed: extern "C" fn(animating: bool),
     pub on_shutdown_complete: extern "C" fn(),
     pub on_ime_state_changed: extern "C" fn(show: bool),
+    pub get_clipboard_contents: extern "C" fn() -> *const c_char,
+    pub set_clipboard_contents: extern "C" fn(contents: *const c_char),
 }
 
 /// Servo options
@@ -346,5 +348,13 @@ impl HostTrait for HostCallbacks {
     fn on_ime_state_changed(&self, show: bool) {
         debug!("on_ime_state_changed");
         (self.0.on_ime_state_changed)(show);
+    }
+
+    fn get_clipboard_contents(&self) -> Option<String> {
+        unimplemented!()
+    }
+
+    fn set_clipboard_contents(&self, contents: String) {
+        unimplemented!()
     }
 }
