@@ -25,7 +25,6 @@ pixels = {path = "../pixels"}
 serde = "1.0"
 serde_bytes = "0.10"
 servo_config = {path = "../config"}
-servo-media = {git = "https://github.com/servo/media"}
 typetag = "0.1"
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr_traits = {path = "../webvr_traits"}

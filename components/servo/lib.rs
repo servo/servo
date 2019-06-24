@@ -35,6 +35,7 @@ pub use euclid;
 pub use gfx;
 pub use ipc_channel;
 pub use layout_thread;
+pub use media;
 pub use msg;
 pub use net;
 pub use net_traits;
@@ -63,9 +64,7 @@ fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) {}
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas::gl_context::GLContextFactory;
-use canvas::media_thread::GLPlayerThreads;
 use canvas::webgl_thread::WebGLThreads;
-use canvas_traits::media::WindowGLContext;
 use compositing::compositor_thread::{
     CompositorProxy, CompositorReceiver, InitialCompositorState, Msg,
 };
@@ -95,6 +94,7 @@ use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
 use log::{Log, Metadata, Record};
+use media::{GLPlayerThreads, WindowGLContext};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId};
 use net::resource_thread::new_resource_threads;
 use net_traits::IpcSend;

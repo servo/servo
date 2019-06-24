@@ -2,16 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::media::*;
+use crate::media_channel::{glplayer_channel, GLPlayerSender};
+/// GL player threading API entry point that lives in the
+/// constellation.
+use crate::{GLPlayerMsg, GLPlayerMsgForward};
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use std::thread;
-
-/// GL player threading API entry point that lives in the
-/// constellation.
-///
-/// It allows to get a GLPlayerThead handle for each script pipeline.
-pub use crate::media_mode::GLPlayerThreads;
 
 /// A GLPlayerThrx1ead manages the life cycle and message multiplexign of
 /// a set of video players with GL render.

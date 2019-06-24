@@ -7,7 +7,7 @@
 mod ipc;
 mod mpsc;
 
-use crate::media::GLPlayerMsg;
+use crate::GLPlayerMsg;
 use serde::{Deserialize, Serialize};
 use servo_config::opts;
 use std::fmt;
