@@ -14,8 +14,6 @@ extern crate malloc_size_of_derive;
 extern crate serde;
 
 pub mod canvas;
-pub mod media;
-mod media_channel;
 #[macro_use]
 pub mod webgl;
 mod webgl_channel;

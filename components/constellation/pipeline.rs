@@ -5,7 +5,6 @@
 use crate::event_loop::EventLoop;
 use background_hang_monitor::HangMonitorRegister;
 use bluetooth_traits::BluetoothRequest;
-use canvas_traits::media::WindowGLContext;
 use canvas_traits::webgl::WebGLPipeline;
 use compositing::compositor_thread::Msg as CompositorMsg;
 use compositing::CompositionPipeline;
@@ -18,6 +17,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error;
 use layout_traits::LayoutThreadFactory;
+use media::WindowGLContext;
 use metrics::PaintTimeMetrics;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use msg::constellation_msg::{BackgroundHangMonitorRegister, HangMonitorAlert, SamplerControlMsg};
