@@ -200,7 +200,7 @@ impl Parse for SVGPaintOrder {
 
         // fill in rest
         for i in pos..PAINT_ORDER_COUNT {
-            for paint in 0..PAINT_ORDER_COUNT {
+            for paint in 1..(PAINT_ORDER_COUNT + 1) {
                 // if not seen, set bit at position, mark as seen
                 if (seen & (1 << paint)) == 0 {
                     seen |= 1 << paint;
