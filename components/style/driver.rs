@@ -133,7 +133,12 @@ pub fn traverse_dom<E, D>(
                 let root_opaque = root.as_node().opaque();
                 let drain = discovered.drain(..);
                 pool.install(|| {
-                    rayon::scope(|scope| {
+                    // Enable a breadth-first rayon traversal. This causes the work
+                    // queue to be always FIFO, rather than FIFO for stealers and
+                    // FILO for the owner (which is what rayon does by default). This
+                    // ensures that we process all the elements at a given depth before
+                    // proceeding to the next depth, which is important for style sharing.
+                    rayon::scope_fifo(|scope| {
                         profiler_label!(Style);
                         parallel::traverse_nodes(
                             drain,
