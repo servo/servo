@@ -120,14 +120,14 @@ impl WebGLExternalImageApi for WebGLExternalImages {
         // or if it's already bound use that texture.
         // In the case of IOsurfaces we send these textures to WR.
         let texture_id = match io_surface_id {
-            Some(io_surface_id) => {
+            Some(_io_surface_id) => {
                 #[cfg(target_os = "macos")]
                 let gl = &self.webrender_gl;
                 #[cfg(target_os = "macos")]
-                let texture_id = *self.textures.entry(io_surface_id).or_insert_with(|| {
+                let texture_id = *self.textures.entry(_io_surface_id).or_insert_with(|| {
                     let texture_id = gl.gen_textures(1)[0];
-                    gl.bind_texture(gl::TEXTURE_RECTANGLE, texture_id);
-                    let io_surface = io_surface::lookup(io_surface_id);
+                    gl.bind_texture(gl::TEXTURE_RECTANGLE_ARB, texture_id);
+                    let io_surface = io_surface::lookup(_io_surface_id);
                     io_surface.bind_to_gl_texture(size.width, size.height);
                     texture_id
                 });

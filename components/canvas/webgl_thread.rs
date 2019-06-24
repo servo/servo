@@ -9,7 +9,7 @@ use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
 use half::f16;
-use offscreen_gl_context::{ColorAttachmentType, DrawBuffer, GLContext, NativeGLContextMethods};
+use offscreen_gl_context::{DrawBuffer, GLContext, NativeGLContextMethods};
 use pixels::{self, PixelFormat};
 use std::borrow::Cow;
 use std::thread;
@@ -311,25 +311,11 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             .new_shared_context(version, size, attributes)
             .map(|r| (r, WebGLContextShareMode::SharedTexture))
             .or_else(|err| {
-                #[cfg(target_os = "macos")]
-                {
-                    warn!(
-                        "Couldn't create shared GL context ({}), trying to use native texture sharing instead.",
-                        err
-                    );
-                    self.gl_factory
-                        .new_context(version, size, attributes, ColorAttachmentType::IOSurface)
-                        .map(|r| (r, WebGLContextShareMode::SharedTexture))
-                }
-                #[cfg(not(target_os = "macos"))]
-                Err(err)
-            })
-            .or_else(|err| {
                 warn!(
                     "Couldn't create shared GL context ({}), using slow readback context instead.",
                     err
                 );
-                let ctx = self.gl_factory.new_context(version, size, attributes, ColorAttachmentType::Texture)?;
+                let ctx = self.gl_factory.new_context(version, size, attributes)?;
                 Ok((ctx, WebGLContextShareMode::Readback))
             })
             .map_err(|msg: &str| msg.to_owned())?;
