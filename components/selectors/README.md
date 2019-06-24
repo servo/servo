@@ -1,8 +1,8 @@
 rust-selectors
 ==============
 
-* [![Build Status](https://travis-ci.org/servo/rust-selectors.svg?branch=master)](
-  https://travis-ci.org/servo/rust-selectors)
+* [![Build Status](https://travis-ci.com/servo/rust-selectors.svg?branch=master)](
+  https://travis-ci.com/servo/rust-selectors)
 * [Documentation](https://docs.rs/selectors/)
 * [crates.io](https://crates.io/crates/selectors)
 
