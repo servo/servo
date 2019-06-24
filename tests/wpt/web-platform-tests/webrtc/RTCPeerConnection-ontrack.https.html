@@ -95,7 +95,7 @@
 
   // tests that ontrack is called and parses the msid information from the SDP and creates
   // the streams with matching identifiers.
-  async_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
 
     t.add_cleanup(() => pc.close());
@@ -123,34 +123,28 @@ a=msid:stream1 track1
 a=ssrc:1001 cname:some
 `;
 
-    pc.ontrack = t.step_func(trackEvent => {
-      const { streams, track, transceiver } = trackEvent;
+    const trackEventPromise = addEventListenerPromise(t, pc, 'track');
+    await pc.setRemoteDescription({ type: 'offer', sdp });
+    const trackEvent = await trackEventPromise;
+    const { streams, track, transceiver } = trackEvent;
 
-      assert_equals(streams.length, 1,
-        'the track belongs to one MediaStream');
+    assert_equals(streams.length, 1,
+      'the track belongs to one MediaStream');
 
-      const [stream] = streams;
-      assert_equals(stream.id, 'stream1',
-        'Expect stream.id to be the same as specified in the a=msid line');
+    const [stream] = streams;
+    assert_equals(stream.id, 'stream1',
+      'Expect stream.id to be the same as specified in the a=msid line');
 
-      assert_equals(track.kind, 'audio',
-        'Expect track.kind to be audio');
+    assert_equals(track.kind, 'audio',
+      'Expect track.kind to be audio');
 
-      validateTrackEvent(trackEvent);
+    validateTrackEvent(trackEvent);
 
-      assert_equals(transceiver.direction, 'recvonly',
-        'Expect transceiver.direction to be reverse of sendonly (recvonly)');
-
-      t.done();
-    });
-
-    pc.setRemoteDescription({ type: 'offer', sdp })
-    .catch(t.step_func(err => {
-      assert_unreached('Error ' + err.name + ': ' + err.message);
-    }));
+    assert_equals(transceiver.direction, 'recvonly',
+      'Expect transceiver.direction to be reverse of sendonly (recvonly)');
   }, 'setRemoteDescription should trigger ontrack event when the MSID of the stream is is parsed.');
 
-  async_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
 
     t.add_cleanup(() => pc.close());
@@ -179,101 +173,61 @@ a=ssrc:1001 cname:some
 
     pc.ontrack = t.unreached_func('ontrack event should not fire for track with recvonly direction');
 
-    pc.setRemoteDescription({ type: 'offer', sdp })
-    .catch(t.step_func(err => {
-      assert_unreached('Error ' + err.name + ': ' + err.message);
-    }))
-    .then(t.step_func(() => {
-      t.step_timeout(t.step_func_done(), 100);
-    }));
+    await pc.setRemoteDescription({ type: 'offer', sdp });
+    await new Promise(resolve => t.step_timeout(resolve, 100));
   }, 'setRemoteDescription() with m= line of recvonly direction should not trigger track event');
 
-  async_test(t => {
+  promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection();
 
     t.add_cleanup(() => pc2.close());
 
-    pc2.ontrack = t.step_func(trackEvent => {
-      const { track } = trackEvent;
+    const [track, mediaStream] = await getTrackFromUserMedia('audio');
+    pc1.addTrack(track, mediaStream);
+    const trackEventPromise = addEventListenerPromise(t, pc2, 'track');
+    await pc2.setRemoteDescription(await pc1.createOffer());
+    const trackEvent = await trackEventPromise;
 
-      assert_equals(track.kind, 'audio',
-        'Expect track.kind to be audio');
+    assert_equals(trackEvent.track.kind, 'audio',
+      'Expect track.kind to be audio');
 
-      validateTrackEvent(trackEvent);
-
-      t.done();
-    });
-
-    return getTrackFromUserMedia('audio')
-    .then(([track, mediaStream]) => {
-      pc1.addTrack(track, mediaStream);
-
-      return pc1.createOffer()
-      .then(offer => pc2.setRemoteDescription(offer));
-    })
-    .catch(t.step_func(err => {
-      assert_unreached('Error ' + err.name + ': ' + err.message);
-    }));
+    validateTrackEvent(trackEvent);
   }, 'addTrack() should cause remote connection to fire ontrack when setRemoteDescription()');
 
-  async_test(t => {
+  promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection();
 
     t.add_cleanup(() => pc2.close());
-
-    pc2.ontrack = t.step_func(trackEvent => {
-      const { track } = trackEvent;
-
-      assert_equals(track.kind, 'video',
-        'Expect track.kind to be video');
-
-      validateTrackEvent(trackEvent);
-
-      t.done();
-    });
 
     pc1.addTransceiver('video');
 
-    return pc1.createOffer()
-    .then(offer => pc2.setRemoteDescription(offer))
-    .catch(t.step_func(err => {
-      assert_unreached('Error ' + err.name + ': ' + err.message);
-    }));
+    const trackEventPromise = addEventListenerPromise(t, pc2, 'track');
+    await pc2.setRemoteDescription(await pc1.createOffer());
+    const trackEvent = await trackEventPromise;
+    const { track } = trackEvent;
+
+    assert_equals(track.kind, 'video',
+      'Expect track.kind to be video');
+
+    validateTrackEvent(trackEvent);
   }, `addTransceiver('video') should cause remote connection to fire ontrack when setRemoteDescription()`);
 
-  async_test(t => {
+  promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection();
 
     t.add_cleanup(() => pc2.close());
-
-    pc2.ontrack = t.step_func(trackEvent => {
-      const { track } = trackEvent;
-
-      assert_equals(track.kind, 'video',
-        'Expect track.kind to be video');
-
-      validateTrackEvent(trackEvent);
-
-      t.done();
-    });
 
     pc1.addTransceiver('audio', { direction: 'inactive' });
     pc2.ontrack = t.unreached_func('ontrack event should not fire for track with inactive direction');
 
-    return pc1.createOffer()
-    .then(offer => pc2.setRemoteDescription(offer))
-    .catch(t.step_func(err => {
-      assert_unreached('Error ' + err.name + ': ' + err.message);
-    }))
-    .then(t.step_func(() => {
-      t.step_timeout(t.step_func_done(), 100);
-    }));
+    await pc2.setRemoteDescription(await pc1.createOffer());
+    await new Promise(resolve => t.step_timeout(resolve, 100));
   }, `addTransceiver() with inactive direction should not cause remote connection to fire ontrack when setRemoteDescription()`);
 
 </script>
