@@ -151,7 +151,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
         _gen: &'tcx hir::Generics,
         id: HirId,
     ) {
-        let item = match cx.tcx.hir().get_by_hir_id(id) {
+        let item = match cx.tcx.hir().get(id) {
             hir::Node::Item(item) => item,
             _ => cx.tcx.hir().expect_item(cx.tcx.hir().get_parent_item(id)),
         };
