@@ -44,6 +44,7 @@ use std::thread;
 use std::time::Duration;
 use uuid::Uuid;
 use webdriver::capabilities::{Capabilities, CapabilitiesMatching};
+use webdriver::command::SwitchToWindowParameters;
 use webdriver::command::{
     AddCookieParameters, GetParameters, JavascriptCommandParameters, LocatorParameters,
 };
@@ -852,6 +853,23 @@ impl Handler {
         self.switch_to_frame(WebDriverFrameId::Parent)
     }
 
+    // https://w3c.github.io/webdriver/#switch-to-window
+    fn handle_switch_to_window(
+        &mut self,
+        parameters: &SwitchToWindowParameters,
+    ) -> WebDriverResult<WebDriverResponse> {
+        // For now we assume there is only one window which has the current
+        // session's id as window id
+        if parameters.handle == self.session.as_ref().unwrap().id.to_string() {
+            Ok(WebDriverResponse::Void)
+        } else {
+            Err(WebDriverError::new(
+                ErrorStatus::NoSuchWindow,
+                "No such window",
+            ))
+        }
+    }
+
     fn switch_to_frame(
         &mut self,
         frame_id: WebDriverFrameId,
@@ -1162,6 +1180,12 @@ impl Handler {
         }
     }
 
+    // https://w3c.github.io/webdriver/#dismiss-alert
+    fn handle_dismiss_alert(&mut self) -> WebDriverResult<WebDriverResponse> {
+        // Since user prompts are not yet implement this will always succeed
+        Ok(WebDriverResponse::Void)
+    }
+
     fn handle_get_timeouts(&mut self) -> WebDriverResult<WebDriverResponse> {
         let session = self
             .session
@@ -1464,6 +1488,9 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
                 self.handle_switch_to_frame(parameters)
             },
             WebDriverCommand::SwitchToParentFrame => self.handle_switch_to_parent_frame(),
+            WebDriverCommand::SwitchToWindow(ref parameters) => {
+                self.handle_switch_to_window(parameters)
+            },
             WebDriverCommand::FindElement(ref parameters) => self.handle_find_element(parameters),
             WebDriverCommand::FindElements(ref parameters) => self.handle_find_elements(parameters),
             WebDriverCommand::FindElementElement(ref element, ref parameters) => {
@@ -1492,6 +1519,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::ElementSendKeys(ref element, ref keys) => {
                 self.handle_element_send_keys(element, keys)
             },
+            WebDriverCommand::DismissAlert => self.handle_dismiss_alert(),
             WebDriverCommand::DeleteCookies => self.handle_delete_cookies(),
             WebDriverCommand::GetTimeouts => self.handle_get_timeouts(),
             WebDriverCommand::SetTimeouts(ref x) => self.handle_set_timeouts(x),
