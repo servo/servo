@@ -50,6 +50,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::{HTMLIFrameElement, NavigationType};
+use crate::dom::messageport::MessagePort;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::{
     from_untrusted_node_address, window_from_node, Node, NodeDamage, ShadowIncluding,
@@ -83,6 +84,7 @@ use crate::task_source::port_message::PortMessageQueue;
 use crate::task_source::remote_event::RemoteEventTaskSource;
 use crate::task_source::user_interaction::UserInteractionTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
+use crate::task_source::TaskSource;
 use crate::task_source::TaskSourceName;
 use crate::webdriver_handlers;
 use bluetooth_traits::BluetoothRequest;
@@ -108,7 +110,7 @@ use mime::{self, Mime};
 use msg::constellation_msg::{
     BackgroundHangMonitor, BackgroundHangMonitorRegister, ScriptHangAnnotation,
 };
-use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
+use msg::constellation_msg::{BrowsingContextId, HistoryStateId, MessagePortId, PipelineId};
 use msg::constellation_msg::{HangAnnotation, MonitoredComponentId, MonitoredComponentType};
 use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
@@ -512,6 +514,8 @@ unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 unsafe_no_jsmanaged_fields!(dyn BackgroundHangMonitorRegister);
 unsafe_no_jsmanaged_fields!(dyn BackgroundHangMonitor);
 
+unsafe_no_jsmanaged_fields!(MessagePortId);
+
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
 #[allow(unrooted_must_root)]
@@ -521,6 +525,8 @@ pub struct ScriptThread {
     /// The window proxies known by this thread
     /// TODO: this map grows, but never shrinks. Issue #15258.
     window_proxies: DomRefCell<HashMap<BrowsingContextId, Dom<WindowProxy>>>,
+    /// The message-ports know to this thread.
+    message_ports: DomRefCell<HashMap<MessagePortId, DomRoot<MessagePort>>>,
     /// A list of data pertaining to loads that have not yet received a network response
     incomplete_loads: DomRefCell<Vec<InProgressLoad>>,
     /// A vector containing parser contexts which have not yet been fully processed
@@ -757,9 +763,9 @@ impl ScriptThread {
         })
     }
 
-    pub unsafe fn note_newly_transitioning_nodes(nodes: Vec<UntrustedNodeAddress>) {
+    pub fn note_newly_transitioning_nodes(nodes: Vec<UntrustedNodeAddress>) {
         SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = &*root.get().unwrap();
+            let script_thread = unsafe { &*root.get().unwrap() };
             let js_runtime = script_thread.js_runtime.rt();
             let new_nodes = nodes
                 .into_iter()
@@ -768,6 +774,29 @@ impl ScriptThread {
                 .transitioning_nodes
                 .borrow_mut()
                 .extend(new_nodes);
+        })
+    }
+
+    pub fn with_message_port(
+        message_port_id: &MessagePortId,
+        mutator: Box<FnOnce(&mut DomRoot<MessagePort>)>,
+    ) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            if let Some(port) = script_thread
+                .message_ports
+                .borrow_mut()
+                .get_mut(message_port_id)
+            {
+                mutator(port);
+            }
+        })
+    }
+
+    pub fn message_port_transfered(port_id: &MessagePortId) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            script_thread.message_ports.borrow_mut().remove(port_id);
         })
     }
 
@@ -1088,6 +1117,8 @@ impl ScriptThread {
         ScriptThread {
             documents: DomRefCell::new(Documents::new()),
             window_proxies: DomRefCell::new(HashMap::new()),
+            message_ports: DomRefCell::new(HashMap::new()),
+            received_message_ports: DomRefCell::new(vec![]),
             incomplete_loads: DomRefCell::new(vec![]),
             incomplete_parser_contexts: RefCell::new(vec![]),
             registration_map: DomRefCell::new(HashMap::new()),
@@ -1463,6 +1494,7 @@ impl ScriptThread {
         match *msg {
             MixedMessage::FromConstellation(ref inner_msg) => {
                 match *inner_msg {
+                    PortMessage(..) => None,
                     StopDelayingLoadEventsMode(id) => Some(id),
                     NavigationResponse(id, _) => Some(id),
                     AttachLayout(ref new_layout_info) => Some(new_layout_info.new_pipeline_id),
@@ -1604,6 +1636,23 @@ impl ScriptThread {
 
     fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
         match msg {
+            ConstellationControlMsg::PortMessage(target_port_id, data) => {
+                ScriptThread::with_message_port(
+                    &target_port_id,
+                    Box::new(move |target_port: &mut DomRoot<MessagePort>| {
+                        let _ = target_port.global().port_message_queue().queue(
+                            task!(process_pending_port_messages: move || {
+                            ScriptThread::with_message_port(
+                                &target_port_id,
+                                Box::new(move |target_port: &mut DomRoot<MessagePort>|
+                                    target_port.handle_incoming(data))
+                                );
+                            }),
+                            &target_port.global(),
+                        );
+                    }),
+                );
+            },
             ConstellationControlMsg::StopDelayingLoadEventsMode(pipeline_id) => {
                 self.handle_stop_delaying_load_events_mode(pipeline_id)
             },

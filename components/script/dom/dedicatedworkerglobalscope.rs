@@ -464,15 +464,17 @@ impl DedicatedWorkerGlobalScope {
                 let target = self.upcast();
                 let _ac = JSAutoRealm::new(scope.get_cx(), scope.reflector().get_jsobject().get());
                 rooted!(in(scope.get_cx()) let mut message = UndefinedValue());
-                assert!(data.read(scope.upcast(), message.handle_mut()));
-                MessageEvent::dispatch_jsval(
-                    target,
-                    scope.upcast(),
-                    message.handle(),
-                    Some(&origin),
-                    None,
-                    vec![],
-                );
+                if let Ok(mut results) = data.read(scope.upcast(), message.handle_mut()) {
+                    let new_ports = results.message_ports.drain(0..).collect();
+                    MessageEvent::dispatch_jsval(
+                        target,
+                        scope.upcast(),
+                        message.handle(),
+                        Some(&origin),
+                        None,
+                        new_ports,
+                    );
+                }
             },
             WorkerScriptMsg::Common(msg) => {
                 self.upcast::<WorkerGlobalScope>().process_event(msg);

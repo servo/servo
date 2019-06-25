@@ -110,7 +110,7 @@ impl ServiceWorkerMethods for ServiceWorker {
             .script_to_constellation_chan()
             .send(ScriptMsg::ForwardDOMMessage(
                 msg_vec,
-                self.scope_url.clone()
+                self.scope_url.clone(),
             ));
         Ok(())
     }

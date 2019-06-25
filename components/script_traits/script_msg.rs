@@ -18,8 +18,10 @@ use embedder_traits::EmbedderMsg;
 use euclid::{Size2D, TypedSize2D};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
-use msg::constellation_msg::{HistoryStateId, TraversalDirection};
+use msg::constellation_msg::{
+    BrowsingContextId, MessagePortId, PipelineId, TopLevelBrowsingContextId,
+};
+use msg::constellation_msg::{HistoryStateId, PortMessageTask, TraversalDirection};
 use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::StorageType;
 use net_traits::CoreResourceMsg;
@@ -100,6 +102,12 @@ pub enum LogEntry {
 /// Messages from the script to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum ScriptMsg {
+    /// Entangle two message-ports.
+    EntanglePorts(MessagePortId, MessagePortId),
+    /// A message-port was transfered.
+    MessagePortTransfered(MessagePortId),
+    /// A message is sent to a shipped port.
+    PortMessage(MessagePortId, PortMessageTask),
     /// Forward a message to the embedder.
     ForwardToEmbedder(EmbedderMsg),
     /// Requests are sent to constellation and fetches are checked manually
@@ -218,6 +226,9 @@ impl fmt::Debug for ScriptMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         use self::ScriptMsg::*;
         let variant = match *self {
+            EntanglePorts(..) => "EntanglePorts",
+            MessagePortTransfered(..) => "MessagePortTransfered",
+            PortMessage(..) => "PortMessage",
             ForwardToEmbedder(..) => "ForwardToEmbedder",
             InitiateNavigateRequest(..) => "InitiateNavigateRequest",
             BroadcastStorageEvent(..) => "BroadcastStorageEvent",

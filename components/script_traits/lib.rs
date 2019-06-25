@@ -35,7 +35,9 @@ use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
 use libc::c_void;
 use msg::constellation_msg::BackgroundHangMonitorRegister;
-use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
+use msg::constellation_msg::{
+    BrowsingContextId, HistoryStateId, MessagePortId, PipelineId, PortMessageTask,
+};
 use msg::constellation_msg::{PipelineNamespaceId, TopLevelBrowsingContextId, TraversalDirection};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageCache;
@@ -251,6 +253,8 @@ pub enum UpdatePipelineIdReason {
 /// Messages sent from the constellation or layout to the script thread.
 #[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
+    /// Forward a port message.
+    PortMessage(MessagePortId, PortMessageTask),
     /// Takes the associated window proxy out of "delaying-load-events-mode",
     /// used if a scheduled navigated was refused by the embedder.
     /// https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
@@ -361,6 +365,7 @@ impl fmt::Debug for ConstellationControlMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         use self::ConstellationControlMsg::*;
         let variant = match *self {
+            PortMessage(..) => "PortMessage",
             StopDelayingLoadEventsMode(..) => "StopDelayingLoadsEventMode",
             NavigationResponse(..) => "NavigationResponse",
             AttachLayout(..) => "AttachLayout",

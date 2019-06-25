@@ -117,7 +117,7 @@ impl History {
             Some(serialized_data) => {
                 let global_scope = self.window.upcast::<GlobalScope>();
                 rooted!(in(global_scope.get_cx()) let mut state = UndefinedValue());
-                StructuredCloneData::Vector(serialized_data)
+                let _ = StructuredCloneData::Vector(serialized_data)
                     .read(&global_scope, state.handle_mut());
                 self.state.set(state.get());
             },
@@ -185,7 +185,8 @@ impl History {
 
         // Step 5
         rooted!(in(cx) let transfer = UndefinedValue());
-        let serialized_data = StructuredCloneData::write(cx, data, transfer.handle())?.move_to_arraybuffer();
+        let serialized_data =
+            StructuredCloneData::write(cx, data, transfer.handle())?.move_to_arraybuffer();
 
         let new_url: ServoUrl = match url {
             // Step 6
@@ -266,7 +267,8 @@ impl History {
         // Step 11
         let global_scope = self.window.upcast::<GlobalScope>();
         rooted!(in(cx) let mut state = UndefinedValue());
-        StructuredCloneData::Vector(serialized_data).read(&global_scope, state.handle_mut());
+        let _ =
+            StructuredCloneData::Vector(serialized_data).read(&global_scope, state.handle_mut());
 
         // Step 12
         self.state.set(state.get());

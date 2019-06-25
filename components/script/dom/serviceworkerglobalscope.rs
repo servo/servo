@@ -412,7 +412,8 @@ impl ServiceWorkerGlobalScope {
                 let target = self.upcast();
                 let _ac = JSAutoRealm::new(scope.get_cx(), scope.reflector().get_jsobject().get());
                 rooted!(in(scope.get_cx()) let mut message = UndefinedValue());
-                assert!(data.read(scope.upcast(), message.handle_mut()));
+                let result = data.read(scope.upcast(), message.handle_mut());
+                assert!(result.is_ok());
                 ExtendableMessageEvent::dispatch_jsval(target, scope.upcast(), message.handle());
             },
             CommonWorker(WorkerScriptMsg::Common(msg)) => {

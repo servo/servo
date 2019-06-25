@@ -19,7 +19,7 @@ no_wgl = ["canvas/no_wgl"]
 background_hang_monitor = { path = "../background_hang_monitor"}
 backtrace = "0.3"
 bluetooth_traits = { path = "../bluetooth_traits" }
-canvas = {path = "../canvas", default-features = false}
+canvas = {path = "../canvas", default-features = true}
 clipboard = "0.5"
 canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing"}

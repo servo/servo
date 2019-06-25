@@ -129,7 +129,9 @@ use msg::constellation_msg::{
     BrowsingContextGroupId, BrowsingContextId, HistoryStateId, PipelineId,
     TopLevelBrowsingContextId,
 };
-use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
+use msg::constellation_msg::{
+    MessagePortId, PipelineNamespace, PipelineNamespaceId, TraversalDirection,
+};
 use net_traits::pub_domains::reg_host;
 use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
@@ -172,6 +174,11 @@ use style_traits::CSSPixel;
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, bool)>;
+
+struct MessagePortInfo {
+    pipeline: PipelineId,
+    entangled_with: MessagePortId,
+}
 
 /// Servo supports tabs (referred to as browsers), so `Constellation` needs to
 /// store browser specific data for bookkeeping.
@@ -331,6 +338,9 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel for the constellation to send messages to the
     /// WebRender thread.
     webrender_api_sender: webrender_api::RenderApiSender,
+
+    /// A map of message-port Id to info.
+    message_ports: HashMap<MessagePortId, MessagePortInfo>,
 
     /// The set of all the pipelines in the browser.  (See the `pipeline` module
     /// for more details.)
@@ -715,6 +725,7 @@ where
                     swmanager_sender: sw_mgr_clone,
                     browsing_context_group_set: Default::default(),
                     browsing_context_group_next_id: Default::default(),
+                    message_ports: HashMap::new(),
                     pipelines: HashMap::new(),
                     browsing_contexts: HashMap::new(),
                     pending_changes: vec![],
@@ -1433,6 +1444,39 @@ where
         };
 
         match content {
+            FromScriptMsg::EntanglePorts(port1, port2) => {
+                let info1 = MessagePortInfo {
+                    pipeline: source_pipeline_id,
+                    entangled_with: port2.clone(),
+                };
+                let info2 = MessagePortInfo {
+                    pipeline: source_pipeline_id,
+                    entangled_with: port1.clone(),
+                };
+                self.message_ports.insert(port1, info1);
+                self.message_ports.insert(port2, info2);
+            },
+            FromScriptMsg::MessagePortTransfered(port1) => {
+                if let Some(info) = self.message_ports.get_mut(&port1) {
+                    info.pipeline = source_pipeline_id;
+                }
+            },
+            FromScriptMsg::PortMessage(port_id, data) => {
+                if let Some(info) = self.message_ports.get_mut(&port_id) {
+                    match self.pipelines.get(&info.pipeline) {
+                        Some(pipeline) => {
+                            let msg = ConstellationControlMsg::PortMessage(port_id, data);
+                            let _ = pipeline.event_loop.send(msg);
+                        },
+                        None => {
+                            return warn!(
+                                "Pipeline {:?} got port message after closure!",
+                                info.pipeline
+                            );
+                        },
+                    }
+                }
+            },
             FromScriptMsg::ForwardToEmbedder(embedder_msg) => {
                 self.embedder_proxy
                     .send((Some(source_top_ctx_id), embedder_msg));

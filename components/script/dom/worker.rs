@@ -150,8 +150,17 @@ impl Worker {
         let target = worker.upcast();
         let _ac = JSAutoRealm::new(global.get_cx(), target.reflector().get_jsobject().get());
         rooted!(in(global.get_cx()) let mut message = UndefinedValue());
-        assert!(data.read(&global, message.handle_mut()));
-        MessageEvent::dispatch_jsval(target, &global, message.handle(), Some(&origin), None, vec![]);
+        if let Ok(mut results) = data.read(&global, message.handle_mut()) {
+            let new_ports = results.message_ports.drain(0..).collect();
+            MessageEvent::dispatch_jsval(
+                target,
+                &global,
+                message.handle(),
+                Some(&origin),
+                None,
+                new_ports,
+            );
+        }
     }
 
     pub fn dispatch_simple_error(address: TrustedWorkerAddress) {

@@ -222,6 +222,12 @@ impl PartialEq<BrowsingContextId> for TopLevelBrowsingContextId {
     }
 }
 
+#[derive(Clone, Deserialize, Serialize)]
+pub struct PortMessageTask {
+    pub origin: String,
+    pub data: Vec<u8>,
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct MessagePortIndex(pub NonZeroU32);
 malloc_size_of_is_0!(MessagePortIndex);
