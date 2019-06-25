@@ -12,6 +12,7 @@ use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, RootCollection, ThreadLocalStackRoots};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::structuredclone;
 use crate::dom::dedicatedworkerglobalscope::AutoWorkerReset;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -414,8 +415,22 @@ impl ServiceWorkerGlobalScope {
                 let target = self.upcast();
                 let _ac = enter_realm(&*scope);
                 rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
-                assert!(data.read(scope.upcast(), message.handle_mut()));
-                ExtendableMessageEvent::dispatch_jsval(target, scope.upcast(), message.handle());
+                if let Ok(ports) = structuredclone::read(scope.upcast(), data, message.handle_mut())
+                {
+                    ExtendableMessageEvent::dispatch_jsval(
+                        target,
+                        scope.upcast(),
+                        message.handle(),
+                        ports,
+                    );
+                } else {
+                    rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
+                    ExtendableMessageEvent::dispatch_error(
+                        target,
+                        scope.upcast(),
+                        message.handle(),
+                    );
+                }
             },
             CommonWorker(WorkerScriptMsg::Common(msg)) => {
                 self.upcast::<WorkerGlobalScope>().process_event(msg);

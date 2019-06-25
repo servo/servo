@@ -38,7 +38,6 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::ThreadLocalStackRoots;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootCollection};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone::StructuredCloneData;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::bindings::utils::WRAP_CALLBACKS;
 use crate::dom::customelementregistry::{
@@ -133,6 +132,7 @@ use script_traits::CompositorEvent::{
     CompositionEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent, TouchEvent,
     WheelEvent,
 };
+use script_traits::StructuredSerializedData;
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{
     DiscardBrowsingContext, DocumentActivity, EventResult, HistoryEntryReplacement,
@@ -1589,6 +1589,11 @@ impl ScriptThread {
                 continue;
             }
             let window = document.window();
+
+            window
+                .upcast::<GlobalScope>()
+                .perform_a_message_port_garbage_collection_checkpoint();
+
             let pending_reflows = window.get_pending_reflow_count();
             if pending_reflows > 0 {
                 window.reflow(ReflowGoal::Full, ReflowReason::ImageLoaded);
@@ -1867,12 +1872,14 @@ impl ScriptThread {
                 source: source_pipeline_id,
                 source_browsing_context,
                 target_origin: origin,
+                source_origin,
                 data,
             } => self.handle_post_message_msg(
                 target_pipeline_id,
                 source_pipeline_id,
                 source_browsing_context,
                 origin,
+                source_origin,
                 data,
             ),
             ConstellationControlMsg::UpdatePipelineId(
@@ -2525,7 +2532,8 @@ impl ScriptThread {
         source_pipeline_id: PipelineId,
         source_browsing_context: TopLevelBrowsingContextId,
         origin: Option<ImmutableOrigin>,
-        data: Vec<u8>,
+        source_origin: ImmutableOrigin,
+        data: StructuredSerializedData,
     ) {
         match { self.documents.borrow().find_window(pipeline_id) } {
             None => return warn!("postMessage after target pipeline {} closed.", pipeline_id),
@@ -2547,7 +2555,7 @@ impl ScriptThread {
                     Some(source) => source,
                 };
                 // FIXME(#22512): enqueues a task; unnecessary delay.
-                window.post_message(origin, &*source, StructuredCloneData::Vector(data))
+                window.post_message(origin, source_origin, &*source, data)
             },
         }
     }

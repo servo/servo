@@ -10,13 +10,15 @@ use crate::dom::abstractworkerglobalscope::{SendableWorkerScriptChan, WorkerThre
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
+use crate::dom::bindings::codegen::Bindings::MessagePortBinding::PostMessageOptions;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
 use crate::dom::bindings::error::{ErrorInfo, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, RootCollection, ThreadLocalStackRoots};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::bindings::structuredclone;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
@@ -36,10 +38,10 @@ use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::jsapi::JSContext;
 use js::jsapi::JS_AddInterruptCallback;
+use js::jsapi::{Heap, JSContext, JSObject};
 use js::jsval::UndefinedValue;
-use js::rust::HandleValue;
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
 use net_traits::image_cache::ImageCache;
 use net_traits::request::{CredentialsMode, Destination, ParserMetadata};
@@ -467,15 +469,27 @@ impl DedicatedWorkerGlobalScope {
                 let target = self.upcast();
                 let _ac = enter_realm(self);
                 rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
-                assert!(data.read(scope.upcast(), message.handle_mut()));
-                MessageEvent::dispatch_jsval(
-                    target,
-                    scope.upcast(),
-                    message.handle(),
-                    Some(&origin),
-                    None,
-                    vec![],
-                );
+                if let Ok(ports) = structuredclone::read(scope.upcast(), data, message.handle_mut())
+                {
+                    MessageEvent::dispatch_jsval(
+                        target,
+                        scope.upcast(),
+                        message.handle(),
+                        Some(&origin.ascii_serialization()),
+                        None,
+                        ports,
+                    );
+                } else {
+                    rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
+                    MessageEvent::dispatch_error(
+                        target,
+                        scope.upcast(),
+                        message.handle(),
+                        Some(&origin.ascii_serialization()),
+                        None,
+                        Vec::with_capacity(0),
+                    );
+                }
             },
             WorkerScriptMsg::Common(msg) => {
                 self.upcast::<WorkerGlobalScope>().process_event(msg);
@@ -554,6 +568,32 @@ impl DedicatedWorkerGlobalScope {
             ))
             .unwrap();
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
+    fn post_message_impl(
+        &self,
+        cx: SafeJSContext,
+        message: HandleValue,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
+    ) -> ErrorResult {
+        let data = structuredclone::write(*cx, message, Some(transfer))?;
+        let worker = self.worker.borrow().as_ref().unwrap().clone();
+        let global_scope = self.upcast::<GlobalScope>();
+        let pipeline_id = global_scope.pipeline_id();
+        let origin = global_scope.origin().immutable().ascii_serialization();
+        let task = Box::new(task!(post_worker_message: move || {
+            Worker::handle_message(worker, origin, data);
+        }));
+        self.parent_sender
+            .send(CommonScriptMsg::Task(
+                WorkerEvent,
+                task,
+                Some(pipeline_id),
+                TaskSourceName::DOMManipulation,
+            ))
+            .unwrap();
+        Ok(())
+    }
 }
 
 #[allow(unsafe_code)]
@@ -567,26 +607,34 @@ unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
 }
 
 impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
-    // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
-    fn PostMessage(&self, cx: SafeJSContext, message: HandleValue) -> ErrorResult {
-        rooted!(in(*cx) let transfer = UndefinedValue());
-        let data = StructuredCloneData::write(*cx, message, transfer.handle())?;
-        let worker = self.worker.borrow().as_ref().unwrap().clone();
-        let pipeline_id = self.global().pipeline_id();
-        let origin = self.global().origin().immutable().ascii_serialization();
-        let task = Box::new(task!(post_worker_message: move || {
-            Worker::handle_message(worker, origin, data);
-        }));
-        // TODO: Change this task source to a new `unshipped-port-message-queue` task source
-        self.parent_sender
-            .send(CommonScriptMsg::Task(
-                WorkerEvent,
-                task,
-                Some(pipeline_id),
-                TaskSourceName::DOMManipulation,
-            ))
-            .unwrap();
-        Ok(())
+    /// https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
+    fn PostMessage(
+        &self,
+        cx: SafeJSContext,
+        message: HandleValue,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
+    ) -> ErrorResult {
+        self.post_message_impl(cx, message, transfer)
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
+    fn PostMessage_(
+        &self,
+        cx: SafeJSContext,
+        message: HandleValue,
+        options: RootedTraceableBox<PostMessageOptions>,
+    ) -> ErrorResult {
+        let mut rooted = CustomAutoRooter::new(
+            options
+                .transfer
+                .as_ref()
+                .unwrap_or(&Vec::with_capacity(0))
+                .iter()
+                .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+                .collect(),
+        );
+        let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
+        self.post_message_impl(cx, message, guard)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-close

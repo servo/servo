@@ -9,17 +9,21 @@ use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlo
 use crate::dom::bindings::conversions::{root_from_object, root_from_object_static};
 use crate::dom::bindings::error::{report_pending_exception, ErrorInfo};
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::{entry_global, incumbent_global, AutoEntryScript};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::weakref::DOMTracker;
+use crate::dom::bindings::structuredclone;
+use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
 use crate::dom::crypto::Crypto;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::messageevent::MessageEvent;
+use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::Performance;
 use crate::dom::window::Window;
@@ -36,33 +40,39 @@ use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
 use crate::task_source::port_message::PortMessageQueue;
 use crate::task_source::remote_event::RemoteEventTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
+use crate::task_source::TaskSource;
 use crate::task_source::TaskSourceName;
 use crate::timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
 use crate::timers::{OneshotTimers, TimerCallback};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::JSObject;
 use js::jsapi::{CurrentGlobalOrNull, GetNonCCWObjectGlobal};
 use js::jsapi::{HandleObject, Heap};
 use js::jsapi::{JSAutoRealm, JSContext};
+use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers::EvaluateUtf8;
 use js::rust::{get_object_class, CompileOptionsWrapper, ParentRuntime, Runtime};
 use js::rust::{HandleValue, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{MessagePortId, MessagePortRouterId, PipelineId};
 use net_traits::image_cache::ImageCache;
 use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
 use profile_traits::{mem as profile_mem, time as profile_time};
-use script_traits::{MsDuration, ScriptToConstellationChan, TimerEvent};
+use script_traits::transferable::MessagePortImpl;
+use script_traits::{
+    MessagePortMsg, MsDuration, PortMessageTask, ScriptMsg, ScriptToConstellationChan, TimerEvent,
+};
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
 use servo_url::{MutableOrigin, ServoUrl};
 use std::borrow::Cow;
 use std::cell::Cell;
 use std::collections::hash_map::Entry;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -83,6 +93,18 @@ pub struct GlobalScope {
     eventtarget: EventTarget,
     crypto: MutNullableDom<Crypto>,
     next_worker_id: Cell<WorkerId>,
+
+    /// The message-port router id for this global, if it is managing ports.
+    message_ports_router_id: DomRefCell<Option<MessagePortRouterId>>,
+
+    /// The message-ports known to this global.
+    message_ports: DomRefCell<HashMap<MessagePortId, MessagePortImpl>>,
+
+    /// Message-ports we know about, but whose transfer is pending.
+    pending_message_ports: DomRefCell<HashSet<MessagePortId>>,
+
+    /// The DOM messageport objects.
+    message_port_tracker: DomRefCell<HashMap<MessagePortId, WeakRef<MessagePort>>>,
 
     /// Pipeline id associated with this global.
     pipeline_id: PipelineId,
@@ -167,6 +189,62 @@ pub struct GlobalScope {
     user_agent: Cow<'static, str>,
 }
 
+/// A wrapper for glue-code between the ipc router and the event-loop.
+struct MessageListener {
+    canceller: TaskCanceller,
+    task_source: PortMessageQueue,
+    context: Trusted<GlobalScope>,
+}
+
+impl MessageListener {
+    /// A new message came in, handle it via a task enqueued on the event-loop.
+    /// A task is required, since we are using a trusted globalscope,
+    /// and we can only access the root from the event-loop.
+    fn notify(&self, msg: MessagePortMsg) {
+        match msg {
+            MessagePortMsg::CompleteTransfer(port_id, tasks) => {
+                let context = self.context.clone();
+                let _ = self.task_source.queue_with_canceller(
+                    task!(process_complete_transfer: move || {
+                        let global = context.root();
+                        let should_start = if let Some(port) = global.message_ports.borrow_mut().get_mut(&port_id) {
+                            port.complete_transfer(tasks);
+                            port.enabled()
+                        } else {
+                             warn!("CompleteTransfer msg received in a global not managing the port.");
+                             false
+                        };
+                        if should_start {
+                            global.start_message_port(&port_id);
+                        }
+                    }),
+                    &self.canceller,
+                );
+            },
+            MessagePortMsg::NewTask(port_id, task) => {
+                let context = self.context.clone();
+                let _ = self.task_source.queue_with_canceller(
+                    task!(process_new_task: move || {
+                        let global = context.root();
+                        global.route_task_to_port(port_id, task);
+                    }),
+                    &self.canceller,
+                );
+            },
+            MessagePortMsg::RemoveMessagePort(port_id) => {
+                let context = self.context.clone();
+                let _ = self.task_source.queue_with_canceller(
+                    task!(process_remove_message_port: move || {
+                        let global = context.root();
+                        global.remove_message_port(&port_id);
+                    }),
+                    &self.canceller,
+                );
+            },
+        }
+    }
+}
+
 impl GlobalScope {
     pub fn new_inherited(
         pipeline_id: PipelineId,
@@ -183,6 +261,10 @@ impl GlobalScope {
         user_agent: Cow<'static, str>,
     ) -> Self {
         Self {
+            message_ports_router_id: DomRefCell::new(None),
+            message_ports: DomRefCell::new(HashMap::new()),
+            pending_message_ports: DomRefCell::new(HashSet::new()),
+            message_port_tracker: DomRefCell::new(HashMap::new()),
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
             next_worker_id: Cell::new(WorkerId(0)),
@@ -206,6 +288,312 @@ impl GlobalScope {
             is_headless,
             user_agent,
         }
+    }
+
+    /// Tell the constellation to drop the sender to our message-port router.
+    pub fn remove_message_ports_router(&self) {
+        if let Some(router_id) = self.message_ports_router_id.borrow_mut().take() {
+            let _ = self
+                .script_to_constellation_chan()
+                .send(ScriptMsg::RemoveMessagePortRouter(router_id));
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#entangle>
+    pub fn entangle_ports(&self, port1: MessagePortId, port2: MessagePortId) {
+        let dom_port1 = self.get_dom_message_port(&port1);
+        dom_port1.entangle(port2.clone());
+
+        let dom_port2 = self.get_dom_message_port(&port2);
+        dom_port2.entangle(port1.clone());
+
+        match self.message_ports.borrow_mut().get(&port1) {
+            Some(port1) => {
+                port1.entangle(port2.clone());
+            },
+            _ => panic!("Ports to entangle should exist"),
+        }
+
+        match self.message_ports.borrow_mut().get(&port2) {
+            Some(port2) => {
+                port2.entangle(port1.clone());
+            },
+            _ => panic!("Ports to entangle should exist"),
+        }
+
+        let _ = self
+            .script_to_constellation_chan()
+            .send(ScriptMsg::EntanglePorts(port1, port2));
+    }
+
+    /// Remove all referrences to a port.
+    pub fn remove_message_port(&self, port_id: &MessagePortId) {
+        let mut ports = self.message_ports.borrow_mut();
+        ports
+            .remove(port_id)
+            .expect("Port to be removed to be known");
+        self.message_port_tracker.borrow_mut().remove(port_id);
+        if ports.is_empty() {
+            // Remove our port router,
+            // it will be setup again if we start managing ports again.
+            self.remove_message_ports_router();
+        }
+    }
+
+    /// Handle the transfer of a port in the current task.
+    pub fn mark_port_as_transferred(&self, port_id: &MessagePortId) -> MessagePortImpl {
+        let port = self
+            .message_ports
+            .borrow_mut()
+            .remove(port_id)
+            .expect("Transferred port to be known");
+        port.set_has_been_shipped();
+        let _ = self
+            .script_to_constellation_chan()
+            .send(ScriptMsg::MessagePortShipped(port_id.clone()));
+        port
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-messageport-start>
+    pub fn start_message_port(&self, port_id: &MessagePortId) {
+        let message_ports = self.message_ports.borrow();
+        let port = message_ports
+            .get(port_id)
+            .expect("Port whose start was called to exist");
+        if let Some(message_buffer) = port.start() {
+            for task in message_buffer {
+                let port_id = port_id.clone();
+                let this = Trusted::new(&*self);
+                let _ = self.port_message_queue().queue(
+                    task!(process_pending_port_messages: move || {
+                        let target_global = this.root();
+                        target_global.upcast::<GlobalScope>().route_task_to_port(port_id, task);
+                    }),
+                    &self,
+                );
+            }
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-messageport-close>
+    pub fn close_message_port(&self, port_id: &MessagePortId) {
+        let message_ports = self.message_ports.borrow();
+        let port = message_ports
+            .get(port_id)
+            .expect("Port whose close was called to exist");
+        port.close();
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#message-port-post-message-steps>
+    // Steps 6 and 7
+    pub fn post_messageport_msg(&self, port_id: MessagePortId, task: PortMessageTask) {
+        let message_ports = self.message_ports.borrow();
+        let port = message_ports
+            .get(&port_id)
+            .expect("Port whose postMessage was called to exist");
+        if let Some(entangled_id) = port.entangled_port_id() {
+            // Step 7
+            let this = Trusted::new(&*self);
+            let _ = self.port_message_queue().queue(
+                task!(post_message: move || {
+                    let global = this.root();
+                    // Note: we do this in a task, as this will ensure the global and constellation
+                    // are aware of any transfer that might still take place in the current task.
+                    global.upcast::<GlobalScope>().route_task_to_port(entangled_id, task);
+                }),
+                self,
+            );
+        }
+    }
+
+    /// Route the task to be handled by the relevant port.
+    pub fn route_task_to_port(&self, port_id: MessagePortId, task: PortMessageTask) {
+        if !self.message_ports.borrow().contains_key(&port_id) {
+            // If we don't know about the port,
+            // send the message to the constellation for routing.
+            let _ = self
+                .script_to_constellation_chan()
+                .send(ScriptMsg::RerouteMessagePort(port_id.clone(), task));
+            return;
+        }
+
+        // If the port is not enabled yet, or if it is awaiting the completion of it's transfer,
+        // the task will be buffered and dispatched upon enablement or completion of the transfer.
+        let task_to_dispatch = self
+            .message_ports
+            .borrow_mut()
+            .get_mut(&port_id)
+            .map_or(None, |port| port.handle_incoming(task));
+
+        if let Some(task_to_dispatch) = task_to_dispatch {
+            // Get a corresponding DOM message-port object.
+            let dom_port = self.get_dom_message_port(&port_id);
+
+            let PortMessageTask { origin, data } = task_to_dispatch;
+
+            // Substep 3-4
+            rooted!(in(*self.get_cx()) let mut message_clone = UndefinedValue());
+            if let Ok(ports) = structuredclone::read(self, data, message_clone.handle_mut()) {
+                // Substep 6
+                // Dispatch the event, using the dom message-port.
+                MessageEvent::dispatch_jsval(
+                    &dom_port.upcast(),
+                    self,
+                    message_clone.handle(),
+                    Some(&origin.ascii_serialization()),
+                    None,
+                    ports,
+                );
+            } else {
+                // Step 4, fire messageerror event.
+                rooted!(in(*self.get_cx()) let mut message_clone = UndefinedValue());
+                MessageEvent::dispatch_error(
+                    &dom_port.upcast(),
+                    self,
+                    message_clone.handle(),
+                    Some(&origin.ascii_serialization()),
+                    None,
+                    Vec::with_capacity(0),
+                );
+            }
+        }
+    }
+
+    /// Check all ports that have been transfer-received in the previous task,
+    /// and complete their transfer if they haven't been re-transferred.
+    pub fn maybe_add_pending_ports(&self) {
+        for port_id in self.pending_message_ports.borrow_mut().drain() {
+            if self.message_ports.borrow().contains_key(&port_id) {
+                let _ = self
+                    .script_to_constellation_chan()
+                    .send(ScriptMsg::NewMessagePort(
+                        self.message_ports_router_id(),
+                        port_id.clone(),
+                    ));
+            }
+        }
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#ports-and-garbage-collection
+    pub fn perform_a_message_port_garbage_collection_checkpoint(&self) {
+        let mut to_be_removed = vec![];
+        for (id, _port) in self.message_ports.borrow().iter() {
+            let alive_js = match self.message_port_tracker.borrow().get(&id) {
+                Some(weak) => weak.root().is_some(),
+                None => false,
+            };
+            if !alive_js {
+                to_be_removed.push(id.clone());
+                // Let the constellation know to drop this port and the one it is entangled with,
+                // and to forward this message to the script-process where the entangled is found.
+                let _ = self
+                    .script_to_constellation_chan()
+                    .send(ScriptMsg::RemoveMessagePort(id.clone()));
+            }
+        }
+        for id in to_be_removed {
+            self.remove_message_port(&id);
+        }
+    }
+
+    /// Get a DOM object corresponding to this MessagePortId.
+    fn get_dom_message_port(&self, port_id: &MessagePortId) -> DomRoot<MessagePort> {
+        let dom_ports = self.message_port_tracker.borrow_mut();
+        let weak = dom_ports.get(port_id).expect("MessagePort to be tracked");
+        match weak.root() {
+            Some(dom_port) => dom_port,
+            None => panic!("Messageport Gc'ed too early"),
+        }
+    }
+
+    fn message_ports_router_id(&self) -> MessagePortRouterId {
+        self.message_ports_router_id
+            .borrow()
+            .clone()
+            .expect("MessagePort router id to be setup")
+    }
+
+    /// Start tracking a message-port
+    pub fn track_message_port(
+        &self,
+        dom_port: &DomRoot<MessagePort>,
+        port_impl: Option<MessagePortImpl>,
+    ) {
+        let message_port_id = dom_port.message_port_id().clone();
+
+        // Store the DOM object.
+        self.message_port_tracker
+            .borrow_mut()
+            .insert(message_port_id.clone(), WeakRef::new(dom_port));
+
+        if self.message_ports_router_id.borrow().is_none() {
+            // Setup a route for IPC, for messages from the constellation to our ports.
+            let (port_control_sender, port_control_receiver) =
+                ipc::channel().expect("ipc channel failure");
+            let context = Trusted::new(self);
+            let (task_source, canceller) = (
+                self.port_message_queue(),
+                self.task_canceller(TaskSourceName::PortMessage),
+            );
+            let listener = MessageListener {
+                canceller,
+                task_source,
+                context,
+            };
+            ROUTER.add_route(
+                port_control_receiver.to_opaque(),
+                Box::new(move |message| {
+                    let msg = message.to();
+                    match msg {
+                        Ok(msg) => listener.notify(msg),
+                        Err(err) => warn!("Error receiving a MessagePortMsg: {:?}", err),
+                    }
+                }),
+            );
+            let router_id = MessagePortRouterId::new();
+            *self.message_ports_router_id.borrow_mut() = Some(router_id);
+            let _ = self
+                .script_to_constellation_chan()
+                .send(ScriptMsg::NewMessagePortRouter(
+                    self.message_ports_router_id(),
+                    port_control_sender,
+                ));
+        }
+
+        let port_impl = if let Some(port_impl) = port_impl {
+            // We keep transfer-received ports as "pending",
+            // and only ask the constellation to complete the tranfer
+            // if they're not re-shipped in the current task.
+            self.pending_message_ports
+                .borrow_mut()
+                .insert(message_port_id.clone());
+
+            // Queue a task to complete the transfer,
+            // unless the port is re-transferred in the current task.
+            let this = Trusted::new(&*self);
+            let _ = self.port_message_queue().queue(
+                task!(process_pending_port_messages: move || {
+                    let target_global = this.root();
+                    target_global.maybe_add_pending_ports();
+                }),
+                &self,
+            );
+            port_impl
+        } else {
+            // If this is a newly-created port, let the constellation immediately know.
+            let _ = self
+                .script_to_constellation_chan()
+                .send(ScriptMsg::NewMessagePort(
+                    self.message_ports_router_id(),
+                    message_port_id.clone(),
+                ));
+            MessagePortImpl::new(message_port_id.clone())
+        };
+
+        // Store the MessagePortImpl.
+        self.message_ports
+            .borrow_mut()
+            .insert(message_port_id.clone(), port_impl);
     }
 
     pub fn track_worker(&self, closing_worker: Arc<AtomicBool>) {
@@ -549,7 +937,7 @@ impl GlobalScope {
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.websocket_task_source();
         }
-        unreachable!()
+        unreachable!();
     }
 
     /// Evaluate JS code on this global scope.
