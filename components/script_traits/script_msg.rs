@@ -18,13 +18,16 @@ use embedder_traits::EmbedderMsg;
 use euclid::{Size2D, TypedSize2D};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
-use msg::constellation_msg::{HistoryStateId, TraversalDirection};
+use msg::constellation_msg::{
+    BrowsingContextId, MessagePortId, PipelineId, PortMessageTask, TopLevelBrowsingContextId,
+};
+use msg::constellation_msg::{HistoryStateId, MessagePortMsg, TraversalDirection};
 use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::StorageType;
 use net_traits::CoreResourceMsg;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
+use std::collections::VecDeque;
 use std::fmt;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
@@ -100,6 +103,18 @@ pub enum LogEntry {
 /// Messages from the script to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum ScriptMsg {
+    /// A new message-port was created or transferred, with corresponding control-sender.
+    NewMessagePort(MessagePortId, IpcSender<MessagePortMsg>),
+    /// A message-port was shipped, let the entangled port know.
+    MessagePortShipped(
+        MessagePortId,
+        Option<MessagePortId>,
+        VecDeque<PortMessageTask>,
+    ),
+    /// A message-port has been discarded by script.
+    RemoveMessagePort(MessagePortId),
+    /// Entangle two message-ports.
+    EntanglePorts(MessagePortId, MessagePortId),
     /// Forward a message to the embedder.
     ForwardToEmbedder(EmbedderMsg),
     /// Requests are sent to constellation and fetches are checked manually
@@ -214,6 +229,10 @@ impl fmt::Debug for ScriptMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         use self::ScriptMsg::*;
         let variant = match *self {
+            NewMessagePort(..) => "NewMessagePort",
+            RemoveMessagePort(..) => "RemoveMessagePort",
+            MessagePortShipped(..) => "MessagePortShipped",
+            EntanglePorts(..) => "EntanglePorts",
             ForwardToEmbedder(..) => "ForwardToEmbedder",
             InitiateNavigateRequest(..) => "InitiateNavigateRequest",
             BroadcastStorageEvent(..) => "BroadcastStorageEvent",

@@ -6,7 +6,7 @@
 [Global=(Worker,DedicatedWorker), Exposed=DedicatedWorker]
 /*sealed*/ interface DedicatedWorkerGlobalScope : WorkerGlobalScope {
   [Throws]
-  void postMessage(any message/*, optional sequence<Transferable> transfer*/);
+  void postMessage(any message, optional sequence<object> transfer);
            attribute EventHandler onmessage;
 
   void close();

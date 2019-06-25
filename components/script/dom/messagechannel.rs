@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::MessageChannelBinding::{MessageChannelMethods, Wrap};
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
@@ -28,18 +28,21 @@ impl MessageChannel {
         // Step 2
         let port2 = MessagePort::new(&incumbent);
 
+        incumbent.track_message_port(&port1);
+        incumbent.track_message_port(&port2);
+
         // Step 3
         port1.entangle(&port2);
 
         // Steps 4-6
-        let channel = reflect_dom_object(Box::new(
-            MessageChannel {
+        let channel = reflect_dom_object(
+            Box::new(MessageChannel {
                 reflector_: Reflector::new(),
                 port1: Dom::from_ref(&port1),
                 port2: Dom::from_ref(&port2),
             }),
             global,
-            Wrap
+            Wrap,
         );
 
         // Step 7

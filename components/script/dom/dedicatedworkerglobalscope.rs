@@ -11,6 +11,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
+use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{ErrorInfo, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
@@ -34,11 +35,11 @@ use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::jsapi::JSContext;
 use js::jsapi::JS_AddInterruptCallback;
+use js::jsapi::{JSContext, JSObject};
 use js::jsval::UndefinedValue;
-use js::rust::HandleValue;
-use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
+use js::rust::{CustomAutoRooterGuard, HandleValue};
+use msg::constellation_msg::{PipelineId, PipelineNamespace, TopLevelBrowsingContextId};
 use net_traits::image_cache::ImageCache;
 use net_traits::request::{CredentialsMode, Destination, ParserMetadata};
 use net_traits::request::{Referrer, RequestBuilder, RequestMode};
@@ -465,15 +466,17 @@ impl DedicatedWorkerGlobalScope {
                 let target = self.upcast();
                 let _ac = enter_realm(self);
                 rooted!(in(scope.get_cx()) let mut message = UndefinedValue());
-                assert!(data.read(scope.upcast(), message.handle_mut()));
-                MessageEvent::dispatch_jsval(
-                    target,
-                    scope.upcast(),
-                    message.handle(),
-                    Some(&origin),
-                    None,
-                    vec![],
-                );
+                if let Ok(mut results) = data.read(scope.upcast(), message.handle_mut()) {
+                    let new_ports = results.message_ports.drain(0..).collect();
+                    MessageEvent::dispatch_jsval(
+                        target,
+                        scope.upcast(),
+                        message.handle(),
+                        Some(&origin),
+                        None,
+                        new_ports,
+                    );
+                }
             },
             WorkerScriptMsg::Common(msg) => {
                 self.upcast::<WorkerGlobalScope>().process_event(msg);
@@ -567,9 +570,18 @@ unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
 impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
-    unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
-        rooted!(in(cx) let transfer = UndefinedValue());
-        let data = StructuredCloneData::write(cx, message, transfer.handle())?;
+    unsafe fn PostMessage(
+        &self,
+        cx: *mut JSContext,
+        message: HandleValue,
+        transfer: CustomAutoRooterGuard<Option<Vec<*mut JSObject>>>,
+    ) -> ErrorResult {
+        rooted!(in(cx) let mut val = UndefinedValue());
+        (*transfer)
+            .as_ref()
+            .unwrap_or(&Vec::new())
+            .to_jsval(cx, val.handle_mut());
+        let data = StructuredCloneData::write(cx, message, val.handle())?;
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         let pipeline_id = self.global().pipeline_id();
         let origin = self.global().origin().immutable().ascii_serialization();

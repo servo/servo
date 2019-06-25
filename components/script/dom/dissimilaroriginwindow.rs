@@ -4,6 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowMethods;
+use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
@@ -13,9 +14,9 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy::WindowProxy;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
-use js::jsapi::JSContext;
+use js::jsapi::{JSContext, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::HandleValue;
+use js::rust::{CustomAutoRooterGuard, HandleValue};
 use msg::constellation_msg::PipelineId;
 use script_traits::ScriptMsg;
 use servo_url::ImmutableOrigin;
@@ -140,6 +141,7 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
         cx: *mut JSContext,
         message: HandleValue,
         origin: DOMString,
+        transfer: CustomAutoRooterGuard<Option<Vec<*mut JSObject>>>,
     ) -> ErrorResult {
         // Step 3-5.
         let origin = match &origin[..] {
@@ -156,8 +158,12 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 
         // Step 1-2, 6-8.
         // TODO(#12717): Should implement the `transfer` argument.
-        rooted!(in(cx) let transfer = UndefinedValue());
-        let data = StructuredCloneData::write(cx, message, transfer.handle())?;
+        rooted!(in(cx) let mut val = UndefinedValue());
+        (*transfer)
+            .as_ref()
+            .unwrap_or(&Vec::new())
+            .to_jsval(cx, val.handle_mut());
+        let data = StructuredCloneData::write(cx, message, val.handle())?;
 
         // Step 9.
         self.post_message(origin, data);

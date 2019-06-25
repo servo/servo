@@ -5,7 +5,9 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
+use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
+use std::collections::VecDeque;
 use std::fmt;
 use std::mem;
 use std::num::NonZeroU32;
@@ -72,6 +74,13 @@ impl PipelineNamespace {
         HistoryStateId {
             namespace_id: self.id,
             index: HistoryStateIndex(self.next_index()),
+        }
+    }
+
+    fn next_message_port_id(&mut self) -> MessagePortId {
+        MessagePortId {
+            namespace_id: self.id,
+            index: MessagePortIndex(self.next_index()),
         }
     }
 }
@@ -212,6 +221,57 @@ impl PartialEq<TopLevelBrowsingContextId> for BrowsingContextId {
 impl PartialEq<BrowsingContextId> for TopLevelBrowsingContextId {
     fn eq(&self, rhs: &BrowsingContextId) -> bool {
         self.0.eq(rhs)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PortMessageTask {
+    pub origin: String,
+    pub data: Vec<u8>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum MessagePortMsg {
+    NewEntangledSender(MessagePortId, IpcSender<MessagePortMsg>),
+    CompleteTransfer(
+        MessagePortId,
+        Option<VecDeque<PortMessageTask>>,
+        Option<MessagePortId>,
+        Option<IpcSender<MessagePortMsg>>,
+    ),
+    EntangledPortShipped(MessagePortId),
+    RemoveMessagePort(MessagePortId),
+    NewTask(MessagePortId, PortMessageTask),
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct MessagePortIndex(pub NonZeroU32);
+malloc_size_of_is_0!(MessagePortIndex);
+
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
+pub struct MessagePortId {
+    pub namespace_id: PipelineNamespaceId,
+    pub index: MessagePortIndex,
+}
+
+impl MessagePortId {
+    pub fn new() -> MessagePortId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let next_message_port_id = namespace.next_message_port_id();
+            tls.set(Some(namespace));
+            next_message_port_id
+        })
+    }
+}
+
+impl fmt::Display for MessagePortId {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let PipelineNamespaceId(namespace_id) = self.namespace_id;
+        let MessagePortIndex(index) = self.index;
+        write!(fmt, "({},{})", namespace_id, index.get())
     }
 }
 
