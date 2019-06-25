@@ -260,12 +260,12 @@ impl DocumentCondition {
             return true;
         }
 
-        if unsafe { structs::StaticPrefs_sVarCache_layout_css_moz_document_content_enabled } {
+        if unsafe { structs::StaticPrefs::sVarCache_layout_css_moz_document_content_enabled } {
             return true;
         }
 
         if !unsafe {
-            structs::StaticPrefs_sVarCache_layout_css_moz_document_url_prefix_hack_enabled
+            structs::StaticPrefs::sVarCache_layout_css_moz_document_url_prefix_hack_enabled
         } {
             return false;
         }

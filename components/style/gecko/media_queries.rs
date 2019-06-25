@@ -271,7 +271,7 @@ impl Device {
             return true;
         }
         let document_color_use =
-            unsafe { structs::StaticPrefs_sVarCache_browser_display_document_color_use };
+            unsafe { structs::StaticPrefs::sVarCache_browser_display_document_color_use };
         let prefs = self.pref_sheet_prefs();
         match document_color_use {
             1 => true,

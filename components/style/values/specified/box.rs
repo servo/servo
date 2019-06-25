@@ -25,7 +25,7 @@ use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 fn moz_display_values_enabled(context: &ParserContext) -> bool {
     use crate::gecko_bindings::structs;
     context.in_ua_or_chrome_sheet() ||
-        unsafe { structs::StaticPrefs_sVarCache_layout_css_xul_display_values_content_enabled }
+        unsafe { structs::StaticPrefs::sVarCache_layout_css_xul_display_values_content_enabled }
 }
 
 #[cfg(feature = "gecko")]
@@ -33,7 +33,7 @@ fn moz_box_display_values_enabled(context: &ParserContext) -> bool {
     use crate::gecko_bindings::structs;
     context.in_ua_or_chrome_sheet() ||
         unsafe {
-            structs::StaticPrefs_sVarCache_layout_css_xul_box_display_values_content_enabled
+            structs::StaticPrefs::sVarCache_layout_css_xul_box_display_values_content_enabled
         }
 }
 

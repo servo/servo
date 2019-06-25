@@ -416,13 +416,13 @@ macro_rules! is_descriptor_enabled {
     ("font-display") => {
         unsafe {
             use crate::gecko_bindings::structs::mozilla;
-            mozilla::StaticPrefs_sVarCache_layout_css_font_display_enabled
+            mozilla::StaticPrefs::sVarCache_layout_css_font_display_enabled
         }
     };
     ("font-variation-settings") => {
         unsafe {
             use crate::gecko_bindings::structs::mozilla;
-            mozilla::StaticPrefs_sVarCache_layout_css_font_variations_enabled != 0
+            mozilla::StaticPrefs::sVarCache_layout_css_font_variations_enabled != 0
         }
     };
     ($name:tt) => {

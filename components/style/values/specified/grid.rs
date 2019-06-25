@@ -381,7 +381,7 @@ impl ToComputedValue for TrackList<LengthPercentage, Integer> {
 #[inline]
 fn allow_grid_template_subgrids() -> bool {
     use crate::gecko_bindings::structs::mozilla;
-    unsafe { mozilla::StaticPrefs_sVarCache_layout_css_grid_template_subgrid_value_enabled }
+    unsafe { mozilla::StaticPrefs::sVarCache_layout_css_grid_template_subgrid_value_enabled }
 }
 
 #[cfg(feature = "servo")]

@@ -75,7 +75,7 @@ fn line_height_moz_block_height_enabled(context: &ParserContext) -> bool {
     use crate::gecko_bindings::structs;
     context.in_ua_sheet() ||
         unsafe {
-            structs::StaticPrefs_sVarCache_layout_css_line_height_moz_block_height_content_enabled
+            structs::StaticPrefs::sVarCache_layout_css_line_height_moz_block_height_content_enabled
         }
 }
 

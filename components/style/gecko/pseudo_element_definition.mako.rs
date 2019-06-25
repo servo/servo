@@ -112,7 +112,7 @@ impl PseudoElement {
             % for pseudo in PSEUDOS:
                 ${pseudo_element_variant(pseudo)} =>
                 % if pseudo.is_tree_pseudo_element():
-                    if unsafe { structs::StaticPrefs_sVarCache_layout_css_xul_tree_pseudos_content_enabled } {
+                    if unsafe { structs::StaticPrefs::sVarCache_layout_css_xul_tree_pseudos_content_enabled } {
                         0
                     } else {
                         structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS_AND_CHROME
@@ -210,7 +210,7 @@ impl PseudoElement {
                     return PseudoElement::tree_pseudo_element(name, Box::new([]))
                 }
                 if unsafe {
-                    structs::StaticPrefs_sVarCache_layout_css_unknown_webkit_pseudo_element
+                    structs::StaticPrefs::sVarCache_layout_css_unknown_webkit_pseudo_element
                 } {
                     const WEBKIT_PREFIX: &str = "-webkit-";
                     if starts_with_ignore_ascii_case(name, WEBKIT_PREFIX) {
