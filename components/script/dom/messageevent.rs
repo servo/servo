@@ -11,6 +11,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::bindings::utils::message_ports_to_frozen_array;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -18,10 +19,8 @@ use crate::dom::messageport::MessagePort;
 use crate::dom::windowproxy::WindowProxy;
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::conversions::ToJSValConvertible;
-use js::jsapi::{Heap, JS_FreezeObject, JSContext, JSObject};
-use js::jsapi::HandleObject as RawHandleObject;
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsapi::{Heap, JSObject};
+use js::jsval::JSVal;
 use js::rust::HandleValue;
 use servo_atoms::Atom;
 use std::ptr::NonNull;
@@ -108,7 +107,7 @@ impl MessageEvent {
             init.origin.clone(),
             source.as_ref().map(|source| &**source),
             init.lastEventId.clone(),
-            init.ports.clone().unwrap_or(vec![])
+            init.ports.clone().unwrap_or(vec![]),
         );
         Ok(ev)
     }
@@ -133,6 +132,26 @@ impl MessageEvent {
             source,
             DOMString::new(),
             ports,
+        );
+        messageevent.upcast::<Event>().fire(target);
+    }
+
+    pub fn dispatch_error(target: &EventTarget, scope: &GlobalScope) {
+        let init = MessageEventBinding::MessageEventInit::empty();
+        let source = init
+            .source
+            .as_ref()
+            .and_then(|inner| inner.as_ref().map(|source| source.window_proxy()));
+        let messageevent = MessageEvent::new(
+            scope,
+            atom!("messageerror"),
+            init.parent.bubbles,
+            init.parent.cancelable,
+            init.data.handle(),
+            init.origin.clone(),
+            source.as_ref().map(|source| &**source),
+            init.lastEventId.clone(),
+            init.ports.clone().unwrap_or(vec![]),
         );
         messageevent.upcast::<Event>().fire(target);
     }
@@ -166,14 +185,8 @@ impl MessageEventMethods for MessageEvent {
         self.event.IsTrusted()
     }
 
-    #[allow(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-ports>
-    unsafe fn Ports(&self, cx: *mut JSContext) -> JSVal {
-        rooted!(in(cx) let mut ports = UndefinedValue());
-        self.ports.to_jsval(cx, ports.handle_mut());
-
-        rooted!(in(cx) let obj = ports.to_object());
-        JS_FreezeObject(cx, RawHandleObject::from(obj.handle()));
-        *ports
+    fn Ports(&self, cx: JSContext) -> JSVal {
+        message_ports_to_frozen_array(self.ports.as_slice(), cx)
     }
 }

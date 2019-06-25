@@ -14,8 +14,8 @@ interface Worker : EventTarget {
   [Throws] constructor(USVString scriptURL, optional WorkerOptions options = {});
   void terminate();
 
-  [Throws] void postMessage(any message/*, sequence<object> transfer*/);
-  // void postMessage(any message, optional PostMessageOptions options);
+  [Throws] void postMessage(any message, sequence<object> transfer);
+  [Throws] void postMessage(any message, optional PostMessageOptions options = {});
   attribute EventHandler onmessage;
   attribute EventHandler onmessageerror;
 };

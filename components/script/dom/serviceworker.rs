@@ -4,6 +4,7 @@
 
 use crate::dom::abstractworker::SimpleWorkerErrorHandler;
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::MessagePortBinding::PostMessageOptions;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerBinding::{
     ServiceWorkerMethods, ServiceWorkerState, Wrap,
 };
@@ -13,15 +14,15 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
-use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::bindings::structuredclone;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 use crate::task::TaskOnce;
 use dom_struct::dom_struct;
-use js::jsapi::JSContext;
-use js::jsval::UndefinedValue;
-use js::rust::HandleValue;
+use js::jsapi::{Heap, JSObject};
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use script_traits::{DOMMessage, ScriptMsg};
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -79,6 +80,34 @@ impl ServiceWorker {
     pub fn get_script_url(&self) -> ServoUrl {
         ServoUrl::parse(&self.script_url.borrow().clone()).unwrap()
     }
+
+    /// https://w3c.github.io/ServiceWorker/#service-worker-postmessage
+    fn post_message_impl(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
+    ) -> ErrorResult {
+        // Step 1
+        if let ServiceWorkerState::Redundant = self.state.get() {
+            return Err(Error::InvalidState);
+        }
+        // Step 7
+        let data = structuredclone::write(cx, message, Some(transfer))?;
+        let incumbent = GlobalScope::incumbent().expect("no incumbent global?");
+        let msg_vec = DOMMessage {
+            origin: incumbent.origin().immutable().clone(),
+            data,
+        };
+        let _ = self
+            .global()
+            .script_to_constellation_chan()
+            .send(ScriptMsg::ForwardDOMMessage(
+                msg_vec,
+                self.scope_url.clone(),
+            ));
+        Ok(())
+    }
 }
 
 impl ServiceWorkerMethods for ServiceWorker {
@@ -92,27 +121,34 @@ impl ServiceWorkerMethods for ServiceWorker {
         USVString(self.script_url.borrow().clone())
     }
 
-    // https://w3c.github.io/ServiceWorker/#service-worker-postmessage
-    fn PostMessage(&self, cx: JSContext, message: HandleValue) -> ErrorResult {
-        // Step 1
-        if let ServiceWorkerState::Redundant = self.state.get() {
-            return Err(Error::InvalidState);
-        }
-        // Step 7
-        rooted!(in(*cx) let transfer = UndefinedValue());
-        let data = StructuredCloneData::write(*cx, message, transfer.handle())?;
-        let msg_vec = DOMMessage {
-            origin: self.global().origin().immutable().ascii_serialization(),
-            data: data.move_to_arraybuffer(),
-        };
-        let _ = self
-            .global()
-            .script_to_constellation_chan()
-            .send(ScriptMsg::ForwardDOMMessage(
-                msg_vec,
-                self.scope_url.clone()
-            ));
-        Ok(())
+    /// https://w3c.github.io/ServiceWorker/#service-worker-postmessage
+    fn PostMessage(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
+    ) -> ErrorResult {
+        self.post_message_impl(cx, message, transfer)
+    }
+
+    /// https://w3c.github.io/ServiceWorker/#service-worker-postmessage
+    fn PostMessage_(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        options: RootedTraceableBox<PostMessageOptions>,
+    ) -> ErrorResult {
+        let mut rooted = CustomAutoRooter::new(
+            options
+                .transfer
+                .as_ref()
+                .unwrap_or(&Vec::with_capacity(0))
+                .iter()
+                .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+                .collect(),
+        );
+        let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
+        self.post_message_impl(cx, message, guard)
     }
 
     // https://w3c.github.io/ServiceWorker/#service-worker-container-onerror-attribute

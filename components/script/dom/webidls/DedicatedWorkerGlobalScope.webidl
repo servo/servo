@@ -5,9 +5,9 @@
 // https://html.spec.whatwg.org/multipage/#dedicatedworkerglobalscope
 [Global=(Worker,DedicatedWorker), Exposed=DedicatedWorker]
 /*sealed*/ interface DedicatedWorkerGlobalScope : WorkerGlobalScope {
-  [Throws]
-  void postMessage(any message/*, optional sequence<Transferable> transfer*/);
-           attribute EventHandler onmessage;
+  [Throws] void postMessage(any message, sequence<object> transfer);
+  [Throws] void postMessage(any message, optional PostMessageOptions options = {});
+  attribute EventHandler onmessage;
 
   void close();
 };

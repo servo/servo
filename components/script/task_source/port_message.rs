@@ -9,7 +9,7 @@ use msg::constellation_msg::PipelineId;
 use std::fmt;
 
 #[derive(JSTraceable)]
-pub struct PortMessageQueue(pub Box<ScriptChan + Send + 'static>, pub PipelineId);
+pub struct PortMessageQueue(pub Box<dyn ScriptChan + Send + 'static>, pub PipelineId);
 
 impl Clone for PortMessageQueue {
     fn clone(&self) -> PortMessageQueue {
@@ -26,11 +26,7 @@ impl fmt::Debug for PortMessageQueue {
 impl TaskSource for PortMessageQueue {
     const NAME: TaskSourceName = TaskSourceName::PortMessage;
 
-    fn queue_with_canceller<T>(
-        &self,
-        task: T,
-        canceller: &TaskCanceller,
-    ) -> Result<(), ()>
+    fn queue_with_canceller<T>(&self, task: T, canceller: &TaskCanceller) -> Result<(), ()>
     where
         T: TaskOnce + 'static,
     {

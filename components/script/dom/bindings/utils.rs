@@ -10,10 +10,13 @@ use crate::dom::bindings::codegen::PrototypeList::{MAX_PROTO_CHAIN_LENGTH, PROTO
 use crate::dom::bindings::conversions::{jsstring_to_str, private_from_proto_check};
 use crate::dom::bindings::error::throw_invalid_this;
 use crate::dom::bindings::inheritance::TopTypeId;
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::trace_object;
+use crate::dom::messageport::MessagePort;
 use crate::dom::windowproxy;
 use crate::script_runtime::JSContext as SafeJSContext;
+use js::conversions::ToJSValConvertible;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
 use js::glue::{GetCrossCompartmentWrapper, JS_GetReservedSlot, WrapperNew};
 use js::glue::{UnwrapObjectDynamic, RUST_JSID_TO_INT, RUST_JSID_TO_STRING};
@@ -22,7 +25,7 @@ use js::jsapi::HandleId as RawHandleId;
 use js::jsapi::HandleObject as RawHandleObject;
 use js::jsapi::MutableHandleObject as RawMutableHandleObject;
 use js::jsapi::{AutoIdVector, CallArgs, DOMCallbacks, GetNonCCWObjectGlobal};
-use js::jsapi::{Heap, JSAutoRealm, JSContext};
+use js::jsapi::{Heap, JSAutoRealm, JSContext, JS_FreezeObject};
 use js::jsapi::{JSJitInfo, JSObject, JSTracer, JSWrapObjectCallbacks};
 use js::jsapi::{JS_EnumerateStandardClasses, JS_GetLatin1StringCharsAndLength};
 use js::jsapi::{JS_IsExceptionPending, JS_IsGlobalObject};
@@ -116,6 +119,19 @@ impl Clone for DOMJSClass {
     }
 }
 unsafe impl Sync for DOMJSClass {}
+
+/// Returns a JSVal representing a frozen array of ports
+pub fn message_ports_to_frozen_array(
+    message_ports: &[DomRoot<MessagePort>],
+    cx: SafeJSContext,
+) -> JSVal {
+    rooted!(in(*cx) let mut ports = UndefinedValue());
+    unsafe { message_ports.to_jsval(*cx, ports.handle_mut()) };
+
+    rooted!(in(*cx) let obj = ports.to_object());
+    unsafe { JS_FreezeObject(*cx, RawHandleObject::from(obj.handle())) };
+    *ports
+}
 
 /// Returns the ProtoOrIfaceArray for the given global object.
 /// Fails if `global` is not a DOM global object.
