@@ -10,13 +10,16 @@ use crate::dom::abstractworkerglobalscope::{SendableWorkerScriptChan, WorkerThre
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
+use crate::dom::bindings::codegen::Bindings::MessagePortBinding::PostMessageOptions;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
+use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{ErrorInfo, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, RootCollection, ThreadLocalStackRoots};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
@@ -36,16 +39,18 @@ use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::jsapi::JSContext;
 use js::jsapi::JS_AddInterruptCallback;
+use js::jsapi::{Heap, JSContext, JSObject};
 use js::jsval::UndefinedValue;
-use js::rust::HandleValue;
-use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
+use js::rust::{CustomAutoRooterGuard, HandleValue};
+use msg::constellation_msg::{PipelineId, PipelineNamespace, TopLevelBrowsingContextId};
 use net_traits::image_cache::ImageCache;
 use net_traits::request::{CredentialsMode, Destination, ParserMetadata};
 use net_traits::request::{Referrer, RequestBuilder, RequestMode};
 use net_traits::IpcSend;
-use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
+use script_traits::{
+    ScriptMsg, TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
+};
 use servo_rand::random;
 use servo_url::ServoUrl;
 use std::mem::replace;
@@ -381,6 +386,17 @@ impl DedicatedWorkerGlobalScope {
                 let scope = global.upcast::<WorkerGlobalScope>();
                 let global_scope = global.upcast::<GlobalScope>();
 
+                // Get a pipeline namespace.
+                let (namespace_sender, namespace_receiver) =
+                    ipc::channel().expect("ipc channel failure");
+                let _ = global_scope
+                    .script_to_constellation_chan()
+                    .send(ScriptMsg::GePipelineNameSpaceId(namespace_sender));
+                let pipeline_namespace_id = namespace_receiver
+                    .recv()
+                    .expect("The constellation to make a pipeline namespace id available");
+                PipelineNamespace::install(pipeline_namespace_id);
+
                 let (metadata, bytes) = match load_whole_resource(
                     request,
                     &global_scope.resource_threads().sender(),
@@ -467,15 +483,17 @@ impl DedicatedWorkerGlobalScope {
                 let target = self.upcast();
                 let _ac = enter_realm(self);
                 rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
-                assert!(data.read(scope.upcast(), message.handle_mut()));
-                MessageEvent::dispatch_jsval(
-                    target,
-                    scope.upcast(),
-                    message.handle(),
-                    Some(&origin),
-                    None,
-                    vec![],
-                );
+                if let Ok(mut results) = data.read(scope.upcast(), message.handle_mut()) {
+                    let new_ports = results.message_ports.drain(0..).collect();
+                    MessageEvent::dispatch_jsval(
+                        target,
+                        scope.upcast(),
+                        message.handle(),
+                        Some(&origin),
+                        None,
+                        new_ports,
+                    );
+                }
             },
             WorkerScriptMsg::Common(msg) => {
                 self.upcast::<WorkerGlobalScope>().process_event(msg);
@@ -554,6 +572,34 @@ impl DedicatedWorkerGlobalScope {
             ))
             .unwrap();
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
+    #[allow(unsafe_code)]
+    fn post_message_impl(
+        &self,
+        cx: SafeJSContext,
+        message: HandleValue,
+        transfer: Vec<*mut JSObject>,
+    ) -> ErrorResult {
+        rooted!(in(*cx) let mut val = UndefinedValue());
+        unsafe { (*transfer).to_jsval(*cx, val.handle_mut()) };
+        let data = StructuredCloneData::write(*cx, message, val.handle())?;
+        let worker = self.worker.borrow().as_ref().unwrap().clone();
+        let pipeline_id = self.global().pipeline_id();
+        let origin = self.global().origin().immutable().ascii_serialization();
+        let task = Box::new(task!(post_worker_message: move || {
+            Worker::handle_message(worker, origin, data);
+        }));
+        self.parent_sender
+            .send(CommonScriptMsg::Task(
+                WorkerEvent,
+                task,
+                Some(pipeline_id),
+                TaskSourceName::DOMManipulation,
+            ))
+            .unwrap();
+        Ok(())
+    }
 }
 
 #[allow(unsafe_code)]
@@ -567,26 +613,29 @@ unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
 }
 
 impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
-    // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
-    fn PostMessage(&self, cx: SafeJSContext, message: HandleValue) -> ErrorResult {
-        rooted!(in(*cx) let transfer = UndefinedValue());
-        let data = StructuredCloneData::write(*cx, message, transfer.handle())?;
-        let worker = self.worker.borrow().as_ref().unwrap().clone();
-        let pipeline_id = self.global().pipeline_id();
-        let origin = self.global().origin().immutable().ascii_serialization();
-        let task = Box::new(task!(post_worker_message: move || {
-            Worker::handle_message(worker, origin, data);
-        }));
-        // TODO: Change this task source to a new `unshipped-port-message-queue` task source
-        self.parent_sender
-            .send(CommonScriptMsg::Task(
-                WorkerEvent,
-                task,
-                Some(pipeline_id),
-                TaskSourceName::DOMManipulation,
-            ))
-            .unwrap();
-        Ok(())
+    /// https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
+    fn PostMessage(
+        &self,
+        cx: SafeJSContext,
+        message: HandleValue,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
+    ) -> ErrorResult {
+        self.post_message_impl(cx, message, transfer.to_vec())
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
+    fn PostMessage_(
+        &self,
+        cx: SafeJSContext,
+        message: HandleValue,
+        options: RootedTraceableBox<PostMessageOptions>,
+    ) -> ErrorResult {
+        let transfer: Vec<*mut JSObject> = options
+            .transfer
+            .iter()
+            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+            .collect();
+        self.post_message_impl(cx, message, transfer)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-close

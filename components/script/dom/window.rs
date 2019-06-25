@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::MediaQueryListBinding::MediaQueryLi
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
-    self, FrameRequestCallback, WindowMethods,
+    self, FrameRequestCallback, WindowMethods, WindowPostMessageOptions,
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use crate::dom::bindings::codegen::UnionTypes::RequestOrUSVString;
@@ -44,7 +44,6 @@ use crate::dom::location::Location;
 use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
 use crate::dom::mediaquerylistevent::MediaQueryListEvent;
 use crate::dom::messageevent::MessageEvent;
-use crate::dom::messageport::TRANSFERRED_MESSAGE_PORTS;
 use crate::dom::navigator::Navigator;
 use crate::dom::node::{document_from_node, from_untrusted_node_address, Node, NodeDamage};
 use crate::dom::performance::Performance;
@@ -80,11 +79,10 @@ use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use ipc_channel::ipc::{channel, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::jsapi::{GCReason, JSAutoRealm, JSContext, JSObject, JSPROP_ENUMERATE, JS_GC};
+use js::jsapi::{GCReason, Heap, JSAutoRealm, JSObject, JSPROP_ENUMERATE, JS_GC};
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::{CustomAutoRooterGuard, HandleValue};
 use js::rust::wrappers::JS_DefineProperty;
-use js::rust::HandleValue;
+use js::rust::{CustomAutoRooterGuard, HandleValue};
 use media::WindowGLContext;
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
@@ -901,6 +899,7 @@ impl WindowMethods for Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
+    #[allow(unsafe_code)]
     fn PostMessage(
         &self,
         cx: JSContext,
@@ -923,12 +922,61 @@ impl WindowMethods for Window {
 
         // Step 1-2, 6-8.
         rooted!(in(*cx) let mut val = UndefinedValue());
-        (*transfer).as_ref().unwrap_or(&Vec::new()).to_jsval(*cx, val.handle_mut());
+        unsafe {
+            (*transfer)
+                .as_ref()
+                .unwrap_or(&Vec::new())
+                .to_jsval(*cx, val.handle_mut());
+        }
 
         let data = StructuredCloneData::write(*cx, message, val.handle())?;
 
+        let source_origin = source.Document().origin().immutable().clone();
+
         // Step 9.
-        self.post_message(origin, &*source.window_proxy(), data);
+        self.post_message(origin, source_origin, &*source.window_proxy(), data);
+        Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
+    #[allow(unsafe_code)]
+    fn PostMessage_(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        options: RootedTraceableBox<WindowPostMessageOptions>,
+    ) -> ErrorResult {
+        let source_global = GlobalScope::incumbent().expect("no incumbent global??");
+        let source = source_global.as_window();
+
+        let transfer: Vec<*mut JSObject> = options
+            .transfer
+            .iter()
+            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+            .collect();
+        // Step 3-5.
+        let origin = match &options.targetOrigin {
+            Some(origin) => match origin.0[..].as_ref() {
+                "*" => None,
+                "/" => Some(source.Document().origin().immutable().clone()),
+                url => match ServoUrl::parse(&url) {
+                    Ok(url) => Some(url.origin().clone()),
+                    Err(_) => return Err(Error::Syntax),
+                },
+            },
+            None => Some(source.Document().origin().immutable().clone()),
+        };
+
+        // Step 1-2, 6-8.
+        rooted!(in(*cx) let mut val = UndefinedValue());
+        unsafe { transfer.to_jsval(*cx, val.handle_mut()) };
+
+        let data = StructuredCloneData::write(*cx, message, val.handle())?;
+
+        let source_origin = source.Document().origin().immutable().clone();
+
+        // Step 9.
+        self.post_message(origin, source_origin, &*source.window_proxy(), data);
         Ok(())
     }
 
@@ -2262,6 +2310,7 @@ impl Window {
     pub fn post_message(
         &self,
         target_origin: Option<ImmutableOrigin>,
+        source_origin: ImmutableOrigin,
         source: &WindowProxy,
         serialize_with_transfer_result: StructuredCloneData,
     ) {
@@ -2284,26 +2333,21 @@ impl Window {
             let obj = this.reflector().get_jsobject();
             let _ac = JSAutoRealm::new(*cx, obj.get());
             rooted!(in(*cx) let mut message_clone = UndefinedValue());
-            assert!(serialize_with_transfer_result.read(
-                this.upcast(),
-                message_clone.handle_mut(),
-            ));
+            if let Ok(mut results) = serialize_with_transfer_result.read(this.upcast(), message_clone.handle_mut()) {
+                // Step 7.6.
+                let new_ports = results.message_ports.drain(0..).collect();
 
-            // Step 7.6.
-            let new_ports = TRANSFERRED_MESSAGE_PORTS.with(|list| {
-                mem::replace(&mut *list.borrow_mut(), vec![])
-            });
-
-            // Step 7.7.
-            // TODO(#12719): Set the other attributes.
-            MessageEvent::dispatch_jsval(
-                this.upcast(),
-                this.upcast(),
-                message_clone.handle(),
-                Some(&document.origin().immutable().ascii_serialization()),
-                Some(&*source),
-                new_ports,
-            );
+                // Step 7.7.
+                // TODO(#12719): Set the other attributes.
+                MessageEvent::dispatch_jsval(
+                    this.upcast(),
+                    this.upcast(),
+                    message_clone.handle(),
+                    Some(&source_origin.ascii_serialization()),
+                    Some(&*source),
+                    new_ports,
+                );
+            }
         });
         // FIXME(nox): Why are errors silenced here?
         // TODO(#12718): Use the "posted message task source".

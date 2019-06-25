@@ -7,6 +7,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerBinding::{
     ServiceWorkerMethods, ServiceWorkerState, Wrap,
 };
+use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -19,9 +20,9 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 use crate::task::TaskOnce;
 use dom_struct::dom_struct;
-use js::jsapi::JSContext;
+use js::jsapi::JSObject;
 use js::jsval::UndefinedValue;
-use js::rust::HandleValue;
+use js::rust::{CustomAutoRooterGuard, HandleValue};
 use script_traits::{DOMMessage, ScriptMsg};
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -93,14 +94,26 @@ impl ServiceWorkerMethods for ServiceWorker {
     }
 
     // https://w3c.github.io/ServiceWorker/#service-worker-postmessage
-    fn PostMessage(&self, cx: JSContext, message: HandleValue) -> ErrorResult {
+    #[allow(unsafe_code)]
+    fn PostMessage(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        transfer: CustomAutoRooterGuard<Option<Vec<*mut JSObject>>>,
+    ) -> ErrorResult {
         // Step 1
         if let ServiceWorkerState::Redundant = self.state.get() {
             return Err(Error::InvalidState);
         }
         // Step 7
-        rooted!(in(*cx) let transfer = UndefinedValue());
-        let data = StructuredCloneData::write(*cx, message, transfer.handle())?;
+        rooted!(in(*cx) let mut val = UndefinedValue());
+        unsafe {
+            (*transfer)
+                .as_ref()
+                .unwrap_or(&Vec::new())
+                .to_jsval(*cx, val.handle_mut());
+        }
+        let data = StructuredCloneData::write(*cx, message, val.handle())?;
         let msg_vec = DOMMessage {
             origin: self.global().origin().immutable().ascii_serialization(),
             data: data.move_to_arraybuffer(),
@@ -110,7 +123,7 @@ impl ServiceWorkerMethods for ServiceWorker {
             .script_to_constellation_chan()
             .send(ScriptMsg::ForwardDOMMessage(
                 msg_vec,
-                self.scope_url.clone()
+                self.scope_url.clone(),
             ));
         Ok(())
     }

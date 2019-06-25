@@ -34,6 +34,7 @@ test_interfaces([
   "History",
   "ImageData",
   "MessageEvent",
+  "MessagePort",
   "Performance",
   "PerformanceEntry",
   "PerformanceMark",

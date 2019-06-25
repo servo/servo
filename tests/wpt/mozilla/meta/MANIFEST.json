@@ -18902,7 +18902,7 @@
    "testharness"
   ],
   "mozilla/interfaces.html": [
-   "cb0317a6de33cc5283f3754bece13a3b04940423",
+   "4a16a8e155441dcf0ef8d09d7156759daf910371",
    "testharness"
   ],
   "mozilla/interfaces.js": [
@@ -18910,7 +18910,7 @@
    "support"
   ],
   "mozilla/interfaces.worker.js": [
-   "d14b58eb87568f05c398ae6953d4a0c17943219b",
+   "6600e6650219e665a28289d0cd7aebeb61fcbacb",
    "testharness"
   ],
   "mozilla/invalid-this.html": [

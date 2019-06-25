@@ -4,18 +4,23 @@
 
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowPostMessageOptions;
+
+use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::dissimilaroriginlocation::DissimilarOriginLocation;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy::WindowProxy;
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
+use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::HandleValue;
+use js::rust::{CustomAutoRooterGuard, HandleValue};
 use msg::constellation_msg::PipelineId;
 use script_traits::ScriptMsg;
 use servo_url::ImmutableOrigin;
@@ -134,7 +139,14 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
-    fn PostMessage(&self, cx: JSContext, message: HandleValue, origin: DOMString) -> ErrorResult {
+    #[allow(unsafe_code)]
+    fn PostMessage(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        origin: DOMString,
+        transfer: CustomAutoRooterGuard<Option<Vec<*mut JSObject>>>,
+    ) -> ErrorResult {
         // Step 3-5.
         let origin = match &origin[..] {
             "*" => None,
@@ -150,8 +162,56 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 
         // Step 1-2, 6-8.
         // TODO(#12717): Should implement the `transfer` argument.
-        rooted!(in(*cx) let transfer = UndefinedValue());
-        let data = StructuredCloneData::write(*cx, message, transfer.handle())?;
+        rooted!(in(*cx) let mut val = UndefinedValue());
+        unsafe {
+            (*transfer)
+                .as_ref()
+                .unwrap_or(&Vec::new())
+                .to_jsval(*cx, val.handle_mut());
+        }
+        let data = StructuredCloneData::write(*cx, message, val.handle())?;
+
+        // Step 9.
+        self.post_message(origin, data);
+        Ok(())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
+    #[allow(unsafe_code)]
+    fn PostMessage_(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        options: RootedTraceableBox<WindowPostMessageOptions>,
+    ) -> ErrorResult {
+        let transfer: Vec<*mut JSObject> = options
+            .transfer
+            .iter()
+            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+            .collect();
+        // Step 3-5.
+        let origin = match &options.targetOrigin {
+            Some(origin) => {
+                match origin.0[..].as_ref() {
+                    "*" => None,
+                    "/" => {
+                        // TODO: Should be the origin of the incumbent settings object.
+                        None
+                    },
+                    url => match ServoUrl::parse(&url) {
+                        Ok(url) => Some(url.origin().clone()),
+                        Err(_) => return Err(Error::Syntax),
+                    },
+                }
+            },
+            // TODO: Should be the origin of the incumbent settings object.
+            None => None,
+        };
+
+        // Step 1-2, 6-8.
+        rooted!(in(*cx) let mut val = UndefinedValue());
+        unsafe { transfer.to_jsval(*cx, val.handle_mut()) };
+        let data = StructuredCloneData::write(*cx, message, val.handle())?;
 
         // Step 9.
         self.post_message(origin, data);
@@ -195,6 +255,7 @@ impl DissimilarOriginWindow {
         let msg = ScriptMsg::PostMessage {
             target: self.window_proxy.browsing_context_id(),
             source: incumbent.pipeline_id(),
+            source_origin: incumbent.origin().immutable().clone(),
             target_origin: origin,
             data: data.move_to_arraybuffer(),
         };

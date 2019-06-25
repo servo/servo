@@ -20,7 +20,7 @@ use crate::dom::popstateevent::PopStateEvent;
 use crate::dom::window::Window;
 use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext};
+use js::jsapi::Heap;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::HandleValue;
 use msg::constellation_msg::{HistoryStateId, TraversalDirection};
@@ -118,7 +118,7 @@ impl History {
             Some(serialized_data) => {
                 let global_scope = self.window.upcast::<GlobalScope>();
                 rooted!(in(*global_scope.get_cx()) let mut state = UndefinedValue());
-                StructuredCloneData::Vector(serialized_data)
+                let _ = StructuredCloneData::Vector(serialized_data)
                     .read(&global_scope, state.handle_mut());
                 self.state.set(state.get());
             },
@@ -165,7 +165,7 @@ impl History {
     // https://html.spec.whatwg.org/multipage/#dom-history-replacestate
     fn push_or_replace_state(
         &self,
-        cx: *mut JSContext,
+        cx: SafeJSContext,
         data: HandleValue,
         _title: DOMString,
         url: Option<USVString>,
@@ -185,8 +185,9 @@ impl History {
         // TODO: Step 4
 
         // Step 5
-        rooted!(in(cx) let transfer = UndefinedValue());
-        let serialized_data = StructuredCloneData::write(cx, data, transfer.handle())?.move_to_arraybuffer();
+        rooted!(in(*cx) let transfer = UndefinedValue());
+        let serialized_data =
+            StructuredCloneData::write(*cx, data, transfer.handle())?.move_to_arraybuffer();
 
         let new_url: ServoUrl = match url {
             // Step 6
@@ -266,8 +267,9 @@ impl History {
 
         // Step 11
         let global_scope = self.window.upcast::<GlobalScope>();
-        rooted!(in(cx) let mut state = UndefinedValue());
-        StructuredCloneData::Vector(serialized_data).read(&global_scope, state.handle_mut());
+        rooted!(in(*cx) let mut state = UndefinedValue());
+        let _ =
+            StructuredCloneData::Vector(serialized_data).read(&global_scope, state.handle_mut());
 
         // Step 12
         self.state.set(state.get());
@@ -335,7 +337,7 @@ impl HistoryMethods for History {
         title: DOMString,
         url: Option<USVString>,
     ) -> ErrorResult {
-        self.push_or_replace_state(*cx, data, title, url, PushOrReplace::Push)
+        self.push_or_replace_state(cx, data, title, url, PushOrReplace::Push)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-replacestate
@@ -346,6 +348,6 @@ impl HistoryMethods for History {
         title: DOMString,
         url: Option<USVString>,
     ) -> ErrorResult {
-        self.push_or_replace_state(*cx, data, title, url, PushOrReplace::Replace)
+        self.push_or_replace_state(cx, data, title, url, PushOrReplace::Replace)
     }
 }

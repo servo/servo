@@ -155,4 +155,7 @@ pub fn run_worker_event_loop<T, TimerMsg, WorkerMsg, Event>(
             .upcast::<GlobalScope>()
             .perform_a_microtask_checkpoint();
     }
+    worker_scope
+        .upcast::<GlobalScope>()
+        .perform_a_message_port_garbage_collection_checkpoint();
 }
