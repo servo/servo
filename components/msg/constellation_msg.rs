@@ -74,6 +74,13 @@ impl PipelineNamespace {
             index: HistoryStateIndex(self.next_index()),
         }
     }
+
+    fn next_message_port_id(&mut self) -> MessagePortId {
+        MessagePortId {
+            namespace_id: self.id,
+            index: MessagePortIndex(self.next_index()),
+        }
+    }
 }
 
 thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = Cell::new(None));
@@ -212,6 +219,29 @@ impl PartialEq<TopLevelBrowsingContextId> for BrowsingContextId {
 impl PartialEq<BrowsingContextId> for TopLevelBrowsingContextId {
     fn eq(&self, rhs: &BrowsingContextId) -> bool {
         self.0.eq(rhs)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct MessagePortIndex(pub NonZeroU32);
+malloc_size_of_is_0!(MessagePortIndex);
+
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
+pub struct MessagePortId {
+    pub namespace_id: PipelineNamespaceId,
+    pub index: MessagePortIndex,
+}
+
+impl MessagePortId {
+    pub fn new() -> MessagePortId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let next_message_port_id = namespace.next_message_port_id();
+            tls.set(Some(namespace));
+            next_message_port_id
+        })
     }
 }
 
