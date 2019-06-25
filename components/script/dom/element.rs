@@ -132,8 +132,7 @@ use style::selector_parser::{
 use style::shared_lock::{Locked, SharedRwLock};
 use style::thread_state;
 use style::values::generics::NonNegative;
-use style::values::{computed, specified};
-use style::values::{CSSFloat, Either};
+use style::values::{computed, specified, CSSFloat};
 use style::CaseSensitivityExt;
 use xml5ever::serialize as xmlSerialize;
 use xml5ever::serialize::SerializeOpts as XmlSerializeOpts;
@@ -684,7 +683,10 @@ impl LayoutElementHelpers for LayoutDom<Element> {
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::BackgroundImage(background_image::SpecifiedValue(
-                    vec![Either::Second(specified::Image::for_cascade(url.into()))].into(),
+                    vec![specified::ImageLayer::Image(specified::Image::for_cascade(
+                        url.into(),
+                    ))]
+                    .into(),
                 )),
             ));
         }

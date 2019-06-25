@@ -4569,7 +4569,6 @@ dependencies = [
  "cssparser 0.25.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.19.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "html5ever 0.23.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "parking_lot 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.21.0",
  "serde_json 1.0.13 (registry+https://github.com/rust-lang/crates.io-index)",

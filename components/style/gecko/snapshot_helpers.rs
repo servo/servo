@@ -107,9 +107,9 @@ pub fn has_class_or_part(
 }
 
 /// Given an item, a callback, and a getter, execute `callback` for each class
-/// this `item` has.
+/// or part name this `item` has.
 #[inline(always)]
-pub fn each_class<F>(attr: &structs::nsAttrValue, mut callback: F)
+pub fn each_class_or_part<F>(attr: &structs::nsAttrValue, mut callback: F)
 where
     F: FnMut(&Atom),
 {

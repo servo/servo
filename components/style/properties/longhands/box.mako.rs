@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
-<% from data import Keyword, Method, to_rust_ident, to_camel_case%>
+<% from data import ALL_AXES, Keyword, Method, to_rust_ident, to_camel_case%>
 
 <% data.new_style_struct("Box",
                          inherited=False,
@@ -114,27 +114,22 @@ ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
 //
 // We allow it to apply to placeholders for UA sheets, which set it !important.
-${helpers.predefined_type(
-    "overflow-x",
-    "Overflow",
-    "computed::Overflow::Visible",
-    animation_value_type="discrete",
-    flags="APPLIES_TO_PLACEHOLDER",
-    spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-x",
-    needs_context=False,
-    servo_restyle_damage = "reflow",
-)}
-
-${helpers.predefined_type(
-    "overflow-y",
-    "Overflow",
-    "computed::Overflow::Visible",
-    animation_value_type="discrete",
-    flags="APPLIES_TO_PLACEHOLDER",
-    spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-y",
-    needs_context=False,
-    servo_restyle_damage = "reflow",
-)}
+% for (axis, logical) in ALL_AXES:
+    <% full_name = "overflow-{}".format(axis) %>
+    ${helpers.predefined_type(
+        full_name,
+        "Overflow",
+        "computed::Overflow::Visible",
+        logical_group="overflow",
+        logical=logical,
+        animation_value_type="discrete",
+        flags="APPLIES_TO_PLACEHOLDER",
+        spec="https://drafts.csswg.org/css-overflow-3/#propdef-{}".format(full_name),
+        needs_context=False,
+        servo_restyle_damage = "reflow",
+        gecko_pref="layout.css.overflow-logical.enabled" if logical else None,
+    )}
+% endfor
 
 ${helpers.predefined_type(
     "overflow-anchor",

@@ -107,8 +107,8 @@ ${helpers.single_keyword(
 ${helpers.predefined_type(
     "border-image-source",
     "ImageLayer",
-    initial_value="Either::First(None_)",
-    initial_specified_value="Either::First(None_)",
+    initial_value="computed::ImageLayer::none()",
+    initial_specified_value="specified::ImageLayer::none()",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
     vector=False,
     animation_value_type="discrete",

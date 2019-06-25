@@ -185,6 +185,21 @@ impl<'lr> TShadowRoot for GeckoShadowRoot<'lr> {
             bindings::Gecko_ShadowRoot_GetElementsWithId(self.0, id.as_ptr())
         }))
     }
+
+    #[inline]
+    fn parts<'a>(&self) -> &[<Self::ConcreteNode as TNode>::ConcreteElement]
+    where
+        Self: 'a,
+    {
+        let slice: &[*const RawGeckoElement] = &*self.0.mParts;
+
+        #[allow(dead_code)]
+        unsafe fn static_assert() {
+            mem::transmute::<*const RawGeckoElement, GeckoElement<'static>>(0xbadc0de as *const _);
+        }
+
+        unsafe { mem::transmute(slice) }
+    }
 }
 
 /// A simple wrapper over a non-null Gecko node (`nsINode`) pointer.
@@ -575,6 +590,9 @@ impl<'le> GeckoElement<'le> {
 
     #[inline(always)]
     fn get_part_attr(&self) -> Option<&structs::nsAttrValue> {
+        if !self.has_part_attr() {
+            return None;
+        }
         snapshot_helpers::find_attr(self.attrs(), &atom!("part"))
     }
 
@@ -1330,6 +1348,12 @@ impl<'le> TElement for GeckoElement<'le> {
         unsafe { bindings::Gecko_HasAttr(self.0, namespace.0.as_ptr(), attr.as_ptr()) }
     }
 
+    #[inline]
+    fn has_part_attr(&self) -> bool {
+        self.as_node()
+            .get_bool_flag(nsINode_BooleanFlag::ElementHasPart)
+    }
+
     // FIXME(emilio): we should probably just return a reference to the Atom.
     #[inline]
     fn id(&self) -> Option<&WeakAtom> {
@@ -1349,7 +1373,19 @@ impl<'le> TElement for GeckoElement<'le> {
             None => return,
         };
 
-        snapshot_helpers::each_class(attr, callback)
+        snapshot_helpers::each_class_or_part(attr, callback)
+    }
+
+    fn each_part<F>(&self, callback: F)
+    where
+        F: FnMut(&Atom),
+    {
+        let attr = match self.get_part_attr() {
+            Some(c) => c,
+            None => return,
+        };
+
+        snapshot_helpers::each_class_or_part(attr, callback)
     }
 
     #[inline]

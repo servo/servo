@@ -116,6 +116,12 @@ impl PseudoElement {
         *self == PseudoElement::Marker
     }
 
+    /// Whether this pseudo-element is the ::selection pseudo.
+    #[inline]
+    pub fn is_selection(&self) -> bool {
+        *self == PseudoElement::Selection
+    }
+
     /// Whether this pseudo-element is ::first-letter.
     #[inline]
     pub fn is_first_letter(&self) -> bool {

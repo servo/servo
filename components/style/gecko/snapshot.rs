@@ -211,7 +211,7 @@ impl ElementSnapshot for GeckoElementSnapshot {
             return;
         }
 
-        snapshot_helpers::each_class(&self.mClass, callback)
+        snapshot_helpers::each_class_or_part(&self.mClass, callback)
     }
 
     #[inline]

@@ -510,6 +510,10 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         *self.element.namespace() == ns!(svg)
     }
 
+    fn has_part_attr(&self) -> bool {
+        false
+    }
+
     fn style_attribute(&self) -> Option<ArcBorrow<StyleLocked<PropertyDeclarationBlock>>> {
         unsafe {
             (*self.element.style_attribute())
