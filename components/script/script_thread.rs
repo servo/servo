@@ -857,6 +857,8 @@ impl ScriptThread {
 
     /// Check that two origins are "similar enough",
     /// for now only used to prevent cross-origin JS url evaluation.
+    ///
+    /// https://github.com/whatwg/html/issues/2591
     pub fn check_load_origin(source: &LoadOrigin, target: &ImmutableOrigin) -> bool {
         match (source, target) {
             (LoadOrigin::TopLevel, _) | (LoadOrigin::WebDriver, _) => {
