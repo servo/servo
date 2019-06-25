@@ -12,7 +12,7 @@ ${helpers.predefined_type(
     "Opacity",
     "1.0",
     animation_value_type="ComputedValue",
-    flags="CREATES_STACKING_CONTEXT APPLIES_TO_PLACEHOLDER \
+    flags="APPLIES_TO_CUE CREATES_STACKING_CONTEXT APPLIES_TO_PLACEHOLDER \
            CAN_ANIMATE_ON_COMPOSITOR",
     spec="https://drafts.csswg.org/css-color/#opacity",
     servo_restyle_damage = "reflow_out_of_flow",
