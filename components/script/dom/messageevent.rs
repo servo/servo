@@ -19,8 +19,8 @@ use crate::dom::windowproxy::WindowProxy;
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{Heap, JS_FreezeObject, JSContext, JSObject};
 use js::jsapi::HandleObject as RawHandleObject;
+use js::jsapi::{Heap, JSObject, JS_FreezeObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue;
 use servo_atoms::Atom;
@@ -108,7 +108,7 @@ impl MessageEvent {
             init.origin.clone(),
             source.as_ref().map(|source| &**source),
             init.lastEventId.clone(),
-            init.ports.clone().unwrap_or(vec![])
+            init.ports.clone().unwrap_or(vec![]),
         );
         Ok(ev)
     }
@@ -126,6 +126,28 @@ impl MessageEvent {
         let messageevent = MessageEvent::new(
             scope,
             atom!("message"),
+            false,
+            false,
+            message,
+            DOMString::from(origin.unwrap_or("")),
+            source,
+            DOMString::new(),
+            ports,
+        );
+        messageevent.upcast::<Event>().fire(target);
+    }
+
+    pub fn dispatch_error(
+        target: &EventTarget,
+        scope: &GlobalScope,
+        message: HandleValue,
+        origin: Option<&str>,
+        source: Option<&WindowProxy>,
+        ports: Vec<DomRoot<MessagePort>>,
+    ) {
+        let messageevent = MessageEvent::new(
+            scope,
+            atom!("messageerror"),
             false,
             false,
             message,
@@ -166,14 +188,14 @@ impl MessageEventMethods for MessageEvent {
         self.event.IsTrusted()
     }
 
-    #[allow(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-ports>
-    unsafe fn Ports(&self, cx: *mut JSContext) -> JSVal {
-        rooted!(in(cx) let mut ports = UndefinedValue());
-        self.ports.to_jsval(cx, ports.handle_mut());
+    #[allow(unsafe_code)]
+    fn Ports(&self, cx: JSContext) -> JSVal {
+        rooted!(in(*cx) let mut ports = UndefinedValue());
+        unsafe { self.ports.to_jsval(*cx, ports.handle_mut()) };
 
-        rooted!(in(cx) let obj = ports.to_object());
-        JS_FreezeObject(cx, RawHandleObject::from(obj.handle()));
+        rooted!(in(*cx) let obj = ports.to_object());
+        unsafe { JS_FreezeObject(*cx, RawHandleObject::from(obj.handle())) };
         *ports
     }
 }

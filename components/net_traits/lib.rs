@@ -29,7 +29,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
 use mime::Mime;
-use msg::constellation_msg::HistoryStateId;
+use msg::constellation_msg::{HistoryStateId, StructuredSerializedData};
 use servo_url::ServoUrl;
 use std::error::Error;
 use time::precise_time_ns;
@@ -394,9 +394,9 @@ pub enum CoreResourceMsg {
     ),
     DeleteCookies(ServoUrl),
     /// Get a history state by a given history state id
-    GetHistoryState(HistoryStateId, IpcSender<Option<Vec<u8>>>),
+    GetHistoryState(HistoryStateId, IpcSender<Option<StructuredSerializedData>>),
     /// Set a history state for a given history state id
-    SetHistoryState(HistoryStateId, Vec<u8>),
+    SetHistoryState(HistoryStateId, StructuredSerializedData),
     /// Removes history states for the given ids
     RemoveHistoryStates(Vec<HistoryStateId>),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop

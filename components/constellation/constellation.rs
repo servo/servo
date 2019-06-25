@@ -127,10 +127,11 @@ use media::{GLPlayerThreads, WindowGLContext};
 use msg::constellation_msg::{BackgroundHangMonitorRegister, HangMonitorAlert, SamplerControlMsg};
 use msg::constellation_msg::{
     BrowsingContextGroupId, BrowsingContextId, HistoryStateId, PipelineId,
-    TopLevelBrowsingContextId,
+    StructuredSerializedData, TopLevelBrowsingContextId,
 };
 use msg::constellation_msg::{
-    PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest, TraversalDirection,
+    MessagePortId, MessagePortMsg, MessagePortRouterId, PipelineNamespace, PipelineNamespaceId,
+    PortMessageTask,  PipelineNamespaceRequest, TraversalDirection,
 };
 use net_traits::pub_domains::reg_host;
 use net_traits::request::RequestBuilder;
@@ -174,6 +175,18 @@ use style_traits::CSSPixel;
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, HistoryEntryReplacement)>;
+
+#[derive(Debug)]
+struct MessagePortInfo {
+    /// Whether the port is currently being transferred.
+    is_being_transferred: bool,
+    /// The router currently managing the port.
+    router: MessagePortRouterId,
+    /// The id of the entangled port.
+    entangled_with: Option<MessagePortId>,
+    /// A buffer for messages sent to a port while is_being_transferred is true.
+    message_queue: Option<VecDeque<PortMessageTask>>,
+}
 
 /// Servo supports tabs (referred to as browsers), so `Constellation` needs to
 /// store browser specific data for bookkeeping.
@@ -339,6 +352,12 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel for the constellation to send messages to the
     /// WebRender thread.
     webrender_api_sender: webrender_api::RenderApiSender,
+
+    /// A map of message-port Id to info.
+    message_ports: HashMap<MessagePortId, MessagePortInfo>,
+
+    /// A map of router-id to ipc-sender, to route messages to ports.
+    message_port_routers: HashMap<MessagePortRouterId, IpcSender<MessagePortMsg>>,
 
     /// The set of all the pipelines in the browser.  (See the `pipeline` module
     /// for more details.)
@@ -751,6 +770,8 @@ where
                     swmanager_sender: sw_mgr_clone,
                     browsing_context_group_set: Default::default(),
                     browsing_context_group_next_id: Default::default(),
+                    message_ports: HashMap::new(),
+                    message_port_routers: HashMap::new(),
                     pipelines: HashMap::new(),
                     browsing_contexts: HashMap::new(),
                     pending_changes: vec![],
@@ -1487,6 +1508,27 @@ where
         };
 
         match content {
+            FromScriptMsg::RerouteMessagePort(port_id, task) => {
+                self.handle_reroute_messageport(port_id, task);
+            },
+            FromScriptMsg::MessagePortShipped(port_id) => {
+                self.handle_messageport_shipped(port_id);
+            },
+            FromScriptMsg::NewMessagePortRouter(router_id, ipc_sender) => {
+                self.handle_new_messageport_router(router_id, ipc_sender);
+            },
+            FromScriptMsg::RemoveMessagePortRouter(router_id) => {
+                self.handle_remove_messageport_router(router_id);
+            },
+            FromScriptMsg::NewMessagePort(router_id, port_id) => {
+                self.handle_new_messageport(router_id, port_id);
+            },
+            FromScriptMsg::RemoveMessagePort(port_id) => {
+                self.handle_remove_messageport(port_id);
+            },
+            FromScriptMsg::EntanglePorts(port1, port2) => {
+                self.handle_entangle_messageports(port1, port2);
+            },
             FromScriptMsg::ForwardToEmbedder(embedder_msg) => {
                 self.embedder_proxy
                     .send((Some(source_top_ctx_id), embedder_msg));
@@ -1563,9 +1605,16 @@ where
                 target: browsing_context_id,
                 source: source_pipeline_id,
                 target_origin: origin,
+                source_origin,
                 data,
             } => {
-                self.handle_post_message_msg(browsing_context_id, source_pipeline_id, origin, data);
+                self.handle_post_message_msg(
+                    browsing_context_id,
+                    source_pipeline_id,
+                    origin,
+                    source_origin,
+                    data,
+                );
             },
             FromScriptMsg::Focus => {
                 self.handle_focus_msg(source_pipeline_id);
@@ -1682,6 +1731,105 @@ where
             FromLayoutMsg::ViewportConstrained(pipeline_id, constraints) => {
                 self.handle_viewport_constrained_msg(pipeline_id, constraints);
             },
+        }
+    }
+
+    fn handle_reroute_messageport(&mut self, port_id: MessagePortId, task: PortMessageTask) {
+        if let Some(info) = self.message_ports.get_mut(&port_id) {
+            if info.is_being_transferred {
+                match &mut info.message_queue {
+                    Some(queue) => {
+                        queue.push_back(task);
+                    },
+                    None => {
+                        let mut queue = VecDeque::new();
+                        queue.push_back(task);
+                        info.message_queue = Some(queue);
+                    },
+                }
+            } else {
+                if let Some(sender) = self.message_port_routers.get(&info.router) {
+                    let _ = sender.send(MessagePortMsg::NewTask(port_id, task));
+                } else {
+                    warn!("No message-port sender for {:?}", info.router);
+                }
+            }
+        }
+    }
+
+    fn handle_messageport_shipped(&mut self, port_id: MessagePortId) {
+        if let Some(info) = self.message_ports.get_mut(&port_id) {
+            info.is_being_transferred = true;
+        }
+    }
+
+    fn handle_new_messageport_router(
+        &mut self,
+        router_id: MessagePortRouterId,
+        control_sender: IpcSender<MessagePortMsg>,
+    ) {
+        self.message_port_routers.insert(router_id, control_sender);
+    }
+
+    fn handle_remove_messageport_router(&mut self, router_id: MessagePortRouterId) {
+        self.message_port_routers.remove(&router_id);
+    }
+
+    fn handle_new_messageport(&mut self, router_id: MessagePortRouterId, port_id: MessagePortId) {
+        let info = match self.message_ports.get_mut(&port_id) {
+            // If we know about this port, it means it was transferred.
+            Some(info) => {
+                info.router = router_id;
+                info.is_being_transferred = false;
+                // Forward the buffered message-queue.
+                if let Some(sender) = self.message_port_routers.get(&info.router) {
+                    let _ = sender.send(MessagePortMsg::CompleteTransfer(
+                        port_id.clone(),
+                        info.message_queue.take(),
+                    ));
+                } else {
+                    warn!("No message-port sender for {:?}", info.router);
+                }
+                None
+            },
+            // A newly created port, create a new info and store it.
+            None => {
+                let info = MessagePortInfo {
+                    is_being_transferred: false,
+                    router: router_id,
+                    entangled_with: None,
+                    message_queue: None,
+                };
+                Some(info)
+            },
+        };
+        if let Some(info) = info {
+            self.message_ports.insert(port_id, info);
+        }
+    }
+
+    fn handle_remove_messageport(&mut self, port_id: MessagePortId) {
+        let entangled = match self.message_ports.remove(&port_id) {
+            Some(info) => info.entangled_with,
+            None => return,
+        };
+        if let Some(id) = entangled {
+            if let Some(info) = self.message_ports.get_mut(&id) {
+                if let Some(sender) = self.message_port_routers.get(&info.router) {
+                    let _ = sender.send(MessagePortMsg::RemoveMessagePort(id));
+                } else {
+                    warn!("No message-port sender for {:?}", info.router);
+                }
+            }
+        }
+    }
+
+    fn handle_entangle_messageports(&mut self, port1: MessagePortId, port2: MessagePortId) {
+        if let Some(info) = self.message_ports.get_mut(&port1) {
+            info.entangled_with = Some(port2);
+        }
+        if let Some(info) = self.message_ports.get_mut(&port2) {
+            info.entangled_with = Some(port1);
         }
     }
 
@@ -3203,7 +3351,8 @@ where
         browsing_context_id: BrowsingContextId,
         source_pipeline: PipelineId,
         origin: Option<ImmutableOrigin>,
-        data: Vec<u8>,
+        source_origin: ImmutableOrigin,
+        data: StructuredSerializedData,
     ) {
         let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
             None => {
@@ -3223,6 +3372,7 @@ where
             source: source_pipeline,
             source_browsing_context: source_browsing_context,
             target_origin: origin,
+            source_origin,
             data,
         };
         let result = match self.pipelines.get(&pipeline_id) {

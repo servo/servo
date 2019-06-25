@@ -39,6 +39,7 @@ use crate::dom::bindings::utils::WindowProxyHandler;
 use crate::dom::document::PendingRestyle;
 use crate::dom::htmlimageelement::SourceSet;
 use crate::dom::htmlmediaelement::{HTMLMediaElementFetchContext, MediaFrameRenderer};
+use crate::dom::messageport::MessagePortImpl;
 use crate::task::TaskBox;
 use app_units::Au;
 use canvas_traits::canvas::{
@@ -75,7 +76,8 @@ use media::WindowGLContext;
 use metrics::{InteractiveMetrics, InteractiveWindow};
 use mime::Mime;
 use msg::constellation_msg::{
-    BrowsingContextId, HistoryStateId, PipelineId, TopLevelBrowsingContextId,
+    BrowsingContextId, HistoryStateId, MessagePortId, MessagePortRouterId, PipelineId,
+    TopLevelBrowsingContextId,
 };
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::image::base::{Image, ImageMetadata};
@@ -148,6 +150,10 @@ pub unsafe trait JSTraceable {
 }
 
 unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>, Box<dyn EventLoopWaker>);
+
+unsafe_no_jsmanaged_fields!(MessagePortImpl);
+unsafe_no_jsmanaged_fields!(MessagePortId);
+unsafe_no_jsmanaged_fields!(MessagePortRouterId);
 
 unsafe_no_jsmanaged_fields!(CSSError);
 

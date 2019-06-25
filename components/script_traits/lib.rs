@@ -37,7 +37,9 @@ use libc::c_void;
 use media::WindowGLContext;
 use msg::constellation_msg::BackgroundHangMonitorRegister;
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
-use msg::constellation_msg::{PipelineNamespaceId, TopLevelBrowsingContextId, TraversalDirection};
+use msg::constellation_msg::{
+    PipelineNamespaceId, StructuredSerializedData, TopLevelBrowsingContextId, TraversalDirection,
+};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageCache;
 use net_traits::request::Referrer;
@@ -324,8 +326,11 @@ pub enum ConstellationControlMsg {
         source_browsing_context: TopLevelBrowsingContextId,
         /// The expected origin of the target.
         target_origin: Option<ImmutableOrigin>,
+        /// The source origin of the message.
+        /// https://html.spec.whatwg.org/multipage/#dom-messageevent-origin
+        source_origin: ImmutableOrigin,
         /// The data to be posted.
-        data: Vec<u8>,
+        data: StructuredSerializedData,
     },
     /// Updates the current pipeline ID of a given iframe.
     /// First PipelineId is for the parent, second is the new PipelineId for the frame.

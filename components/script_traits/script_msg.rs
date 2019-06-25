@@ -18,8 +18,14 @@ use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
-use msg::constellation_msg::{HistoryStateId, TraversalDirection};
+use msg::constellation_msg::{
+    BrowsingContextId, MessagePortId, MessagePortRouterId, PipelineId, PortMessageTask,
+    TopLevelBrowsingContextId,
+};
+use msg::constellation_msg::{
+    HistoryStateId, MessagePortMsg, PipelineNamespaceId, StructuredSerializedData,
+    TraversalDirection,
+};
 use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::StorageType;
 use net_traits::CoreResourceMsg;
@@ -109,6 +115,20 @@ pub enum HistoryEntryReplacement {
 /// Messages from the script to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum ScriptMsg {
+    /// A new message-port was created or transferred, with corresponding control-sender.
+    NewMessagePort(MessagePortRouterId, MessagePortId),
+    /// A global has started managing message-ports
+    NewMessagePortRouter(MessagePortRouterId, IpcSender<MessagePortMsg>),
+    /// A global has stopped managing message-ports
+    RemoveMessagePortRouter(MessagePortRouterId),
+    /// A task requires re-routing to an already shipped message-port.
+    RerouteMessagePort(MessagePortId, PortMessageTask),
+    /// A message-port was shipped, let the entangled port know.
+    MessagePortShipped(MessagePortId),
+    /// A message-port has been discarded by script.
+    RemoveMessagePort(MessagePortId),
+    /// Entangle two message-ports.
+    EntanglePorts(MessagePortId, MessagePortId),
     /// Forward a message to the embedder.
     ForwardToEmbedder(EmbedderMsg),
     /// Requests are sent to constellation and fetches are checked manually
@@ -166,8 +186,11 @@ pub enum ScriptMsg {
         source: PipelineId,
         /// The expected origin of the target.
         target_origin: Option<ImmutableOrigin>,
+        /// The source origin of the message.
+        /// https://html.spec.whatwg.org/multipage/#dom-messageevent-origin
+        source_origin: ImmutableOrigin,
         /// The data to be posted.
-        data: Vec<u8>,
+        data: StructuredSerializedData,
     },
     /// Inform the constellation that a fragment was navigated to and whether or not it was a replacement navigation.
     NavigatedToFragment(ServoUrl, HistoryEntryReplacement),
@@ -226,6 +249,13 @@ impl fmt::Debug for ScriptMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         use self::ScriptMsg::*;
         let variant = match *self {
+            NewMessagePortRouter(..) => "NewMessagePortRouter",
+            RemoveMessagePortRouter(..) => "RemoveMessagePortRouter",
+            NewMessagePort(..) => "NewMessagePort",
+            RerouteMessagePort(..) => "RerouteMessagePort",
+            RemoveMessagePort(..) => "RemoveMessagePort",
+            MessagePortShipped(..) => "MessagePortShipped",
+            EntanglePorts(..) => "EntanglePorts",
             ForwardToEmbedder(..) => "ForwardToEmbedder",
             InitiateNavigateRequest(..) => "InitiateNavigateRequest",
             BroadcastStorageEvent(..) => "BroadcastStorageEvent",
@@ -286,9 +316,9 @@ pub struct ScopeThings {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct DOMMessage {
     /// The origin of the message
-    pub origin: String,
+    pub origin: ImmutableOrigin,
     /// The payload of the message
-    pub data: Vec<u8>,
+    pub data: StructuredSerializedData,
 }
 
 /// Channels to allow service worker manager to communicate with constellation and resource thread
