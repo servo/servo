@@ -44,7 +44,6 @@ use crate::dom::location::Location;
 use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
 use crate::dom::mediaquerylistevent::MediaQueryListEvent;
 use crate::dom::messageevent::MessageEvent;
-use crate::dom::messageport::TRANSFERRED_MESSAGE_PORTS;
 use crate::dom::navigator::Navigator;
 use crate::dom::node::{document_from_node, from_untrusted_node_address, Node, NodeDamage};
 use crate::dom::performance::Performance;
@@ -81,9 +80,8 @@ use ipc_channel::ipc::{channel, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{GCReason, JSAutoRealm, JSContext, JSObject, JSPROP_ENUMERATE, JS_GC};
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::{CustomAutoRooterGuard, HandleValue};
 use js::rust::wrappers::JS_DefineProperty;
-use js::rust::HandleValue;
+use js::rust::{CustomAutoRooterGuard, HandleValue};
 use media::WindowGLContext;
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
@@ -925,7 +923,10 @@ impl WindowMethods for Window {
 
         // Step 1-2, 6-8.
         rooted!(in(cx) let mut val = UndefinedValue());
-        (*transfer).as_ref().unwrap_or(&Vec::new()).to_jsval(cx, val.handle_mut());
+        (*transfer)
+            .as_ref()
+            .unwrap_or(&Vec::new())
+            .to_jsval(cx, val.handle_mut());
 
         let data = StructuredCloneData::write(cx, message, val.handle())?;
 
@@ -2284,26 +2285,21 @@ impl Window {
             let obj = this.reflector().get_jsobject();
             let _ac = JSAutoRealm::new(cx, obj.get());
             rooted!(in(cx) let mut message_clone = UndefinedValue());
-            assert!(serialize_with_transfer_result.read(
-                this.upcast(),
-                message_clone.handle_mut(),
-            ));
+            if let Ok(mut results) = serialize_with_transfer_result.read(this.upcast(), message_clone.handle_mut()) {
+                // Step 7.6.
+                let new_ports = results.message_ports.drain(0..).collect();
 
-            // Step 7.6.
-            let new_ports = TRANSFERRED_MESSAGE_PORTS.with(|list| {
-                mem::replace(&mut *list.borrow_mut(), vec![])
-            });
-
-            // Step 7.7.
-            // TODO(#12719): Set the other attributes.
-            MessageEvent::dispatch_jsval(
-                this.upcast(),
-                this.upcast(),
-                message_clone.handle(),
-                Some(&document.origin().immutable().ascii_serialization()),
-                Some(&*source),
-                new_ports,
-            );
+                // Step 7.7.
+                // TODO(#12719): Set the other attributes.
+                MessageEvent::dispatch_jsval(
+                    this.upcast(),
+                    this.upcast(),
+                    message_clone.handle(),
+                    Some(&document.origin().immutable().ascii_serialization()),
+                    Some(&*source),
+                    new_ports,
+                );
+            }
         });
         // FIXME(nox): Why are errors silenced here?
         // TODO(#12718): Use the "posted message task source".

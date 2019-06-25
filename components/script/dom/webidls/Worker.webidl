@@ -13,7 +13,7 @@ interface AbstractWorker {
 interface Worker : EventTarget {
   void terminate();
 
-  [Throws] void postMessage(any message/*, sequence<object> transfer*/);
+  [Throws] void postMessage(any message, optional sequence<object> transfer);
   // void postMessage(any message, optional PostMessageOptions options);
   attribute EventHandler onmessage;
   attribute EventHandler onmessageerror;

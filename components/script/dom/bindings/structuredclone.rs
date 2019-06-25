@@ -33,6 +33,7 @@ use js::jsapi::{JS_ReadUint32Pair, JS_WriteUint32Pair};
 use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::rust::{Handle, HandleValue, MutableHandleValue};
 use libc::size_t;
+use std::collections::VecDeque;
 use std::os::raw;
 use std::ptr;
 use std::slice;
@@ -201,7 +202,14 @@ unsafe extern "C" fn read_transfer_callback(
     return_object: RawMutableHandleObject,
 ) -> bool {
     if tag == StructuredCloneTags::MessagePort as u32 {
-        <MessagePort as Transferable>::transfer_receive(cx, r, closure, content, extra_data, return_object)
+        <MessagePort as Transferable>::transfer_receive(
+            cx,
+            r,
+            closure,
+            content,
+            extra_data,
+            return_object,
+        )
     } else {
         false
     }
@@ -209,15 +217,15 @@ unsafe extern "C" fn read_transfer_callback(
 
 /// <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
 unsafe extern "C" fn write_transfer_callback(
-    _cx: *mut JSContext,
+    cx: *mut JSContext,
     obj: RawHandleObject,
     closure: *mut raw::c_void,
     tag: *mut u32,
     ownership: *mut TransferableOwnership,
-    content:  *mut *mut raw::c_void,
+    content: *mut *mut raw::c_void,
     extra_data: *mut u64,
 ) -> bool {
-    if let Ok(port) = root_from_handleobject::<MessagePort>(Handle::from_raw(obj)) {
+    if let Ok(port) = root_from_handleobject::<MessagePort>(Handle::from_raw(obj), cx) {
         if let Some(true) = port.detached() {
             return false;
         }
@@ -242,10 +250,13 @@ unsafe extern "C" fn free_transfer_callback(
 }
 
 unsafe extern "C" fn can_transfer_callback(
-    _cx: *mut JSContext,
-    _obj: RawHandleObject,
+    cx: *mut JSContext,
+    obj: RawHandleObject,
     _closure: *mut raw::c_void,
 ) -> bool {
+    if let Ok(_port) = root_from_handleobject::<MessagePort>(Handle::from_raw(obj), cx) {
+        return true;
+    }
     false
 }
 
@@ -261,8 +272,9 @@ static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredClon
     canTransfer: Some(can_transfer_callback),
 };
 
-struct StructuredCloneHolder {
-    blob: Option<DomRoot<Blob>>,
+pub struct StructuredCloneHolder {
+    pub blob: Option<DomRoot<Blob>>,
+    pub message_ports: VecDeque<DomRoot<MessagePort>>,
 }
 
 /// A buffer for a structured clone.
@@ -331,14 +343,17 @@ impl StructuredCloneData {
     ///
     /// Panics if `JS_ReadStructuredClone` fails.
     fn read_clone(
-      global: &GlobalScope,
-      data: *mut u64,
-      nbytes: size_t,
-      rval: MutableHandleValue,
-    ) -> bool {
+        global: &GlobalScope,
+        data: *mut u64,
+        nbytes: size_t,
+        rval: MutableHandleValue,
+    ) -> Result<StructuredCloneHolder, ()> {
         let cx = global.get_cx();
         let _ac = enter_realm(&*global);
-        let mut sc_holder = StructuredCloneHolder { blob: None };
+        let mut sc_holder = StructuredCloneHolder {
+            blob: None,
+            message_ports: VecDeque::new(),
+        };
         let sc_holder_ptr = &mut sc_holder as *mut _;
         unsafe {
             let scbuf = NewJSAutoStructuredCloneBuffer(
@@ -350,32 +365,39 @@ impl StructuredCloneData {
             WriteBytesToJSStructuredCloneData(data as *const u8, nbytes, scdata);
 
             let result = JS_ReadStructuredClone(
-              cx,
-              scdata,
-              JS_STRUCTURED_CLONE_VERSION,
-              StructuredCloneScope::DifferentProcess,
-              rval,
-              &STRUCTURED_CLONE_CALLBACKS,
-              sc_holder_ptr as *mut raw::c_void
+                cx,
+                scdata,
+                JS_STRUCTURED_CLONE_VERSION,
+                StructuredCloneScope::DifferentProcess,
+                rval,
+                &STRUCTURED_CLONE_CALLBACKS,
+                sc_holder_ptr as *mut raw::c_void,
             );
 
             DeleteJSAutoStructuredCloneBuffer(scbuf);
 
-            result
+            if result {
+                return Ok(sc_holder);
+            }
+            Err(())
         }
     }
 
     /// Thunk for the actual `read_clone` method. Resolves proper variant for read_clone.
-    pub fn read(self, global: &GlobalScope, rval: MutableHandleValue) -> bool {
+    pub fn read(
+        self,
+        global: &GlobalScope,
+        rval: MutableHandleValue,
+    ) -> Result<StructuredCloneHolder, ()> {
         match self {
             StructuredCloneData::Vector(mut vec_msg) => {
                 let nbytes = vec_msg.len();
                 let data = vec_msg.as_mut_ptr() as *mut u64;
                 StructuredCloneData::read_clone(global, data, nbytes, rval)
-            }
+            },
             StructuredCloneData::Struct(data, nbytes) => {
                 StructuredCloneData::read_clone(global, data, nbytes, rval)
-            }
+            },
         }
     }
 }

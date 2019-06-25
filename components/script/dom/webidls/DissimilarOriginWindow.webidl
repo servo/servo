@@ -25,7 +25,7 @@ interface DissimilarOriginWindow : GlobalScope {
 
   void close();
   readonly attribute boolean closed;
-  [Throws] void postMessage(any message, DOMString targetOrigin);
+  [Throws] void postMessage(any message, DOMString targetOrigin, optional sequence<object> transfer);
   attribute any opener;
   void blur();
   void focus();

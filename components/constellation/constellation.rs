@@ -129,7 +129,10 @@ use msg::constellation_msg::{
     BrowsingContextGroupId, BrowsingContextId, HistoryStateId, PipelineId,
     TopLevelBrowsingContextId,
 };
-use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
+use msg::constellation_msg::{
+    MessagePortId, MessagePortMsg, PipelineNamespace, PipelineNamespaceId, PortMessageTask,
+    TraversalDirection,
+};
 use net_traits::pub_domains::reg_host;
 use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
@@ -172,6 +175,15 @@ use style_traits::CSSPixel;
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, bool)>;
+
+#[derive(Debug)]
+struct MessagePortInfo {
+    is_being_transferred: bool,
+    pipeline: PipelineId,
+    entangled_with: Option<MessagePortId>,
+    control_sender: IpcSender<MessagePortMsg>,
+    message_queue: Option<VecDeque<PortMessageTask>>,
+}
 
 /// Servo supports tabs (referred to as browsers), so `Constellation` needs to
 /// store browser specific data for bookkeeping.
@@ -331,6 +343,9 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel for the constellation to send messages to the
     /// WebRender thread.
     webrender_api_sender: webrender_api::RenderApiSender,
+
+    /// A map of message-port Id to info.
+    message_ports: HashMap<MessagePortId, MessagePortInfo>,
 
     /// The set of all the pipelines in the browser.  (See the `pipeline` module
     /// for more details.)
@@ -729,6 +744,7 @@ where
                     swmanager_sender: sw_mgr_clone,
                     browsing_context_group_set: Default::default(),
                     browsing_context_group_next_id: Default::default(),
+                    message_ports: HashMap::new(),
                     pipelines: HashMap::new(),
                     browsing_contexts: HashMap::new(),
                     pending_changes: vec![],
@@ -1445,6 +1461,23 @@ where
         };
 
         match content {
+            FromScriptMsg::MessagePortShipped(port_id, entangled, message_queue) => {
+                self.handle_messageport_shipped(
+                    source_pipeline_id,
+                    port_id,
+                    entangled,
+                    message_queue,
+                );
+            },
+            FromScriptMsg::NewMessagePort(port_id, control_sender) => {
+                self.handle_new_messageport(source_pipeline_id, port_id, control_sender);
+            },
+            FromScriptMsg::RemoveMessagePort(port_id) => {
+                self.handle_remove_messageport(source_pipeline_id, port_id);
+            },
+            FromScriptMsg::EntanglePorts(port1, port2) => {
+                self.handle_entangle_messageports(source_pipeline_id, port1, port2);
+            },
             FromScriptMsg::ForwardToEmbedder(embedder_msg) => {
                 self.embedder_proxy
                     .send((Some(source_top_ctx_id), embedder_msg));
@@ -1523,7 +1556,12 @@ where
                 target_origin: origin,
                 data,
             } => {
-                self.handle_post_message_msg(browsing_context_id, source_pipeline_id, origin, data);
+                self.handle_post_message_msg(
+                    browsing_context_id,
+                    source_pipeline_id,
+                    origin,
+                    data,
+                );
             },
             FromScriptMsg::Focus => {
                 self.handle_focus_msg(source_pipeline_id);
@@ -1640,6 +1678,177 @@ where
             FromLayoutMsg::ViewportConstrained(pipeline_id, constraints) => {
                 self.handle_viewport_constrained_msg(pipeline_id, constraints);
             },
+        }
+    }
+
+    fn handle_messageport_shipped(
+        &mut self,
+        source_pipeline_id: PipelineId,
+        port_id: MessagePortId,
+        entangled: Option<MessagePortId>,
+        message_queue: VecDeque<PortMessageTask>,
+    ) {
+        match entangled {
+            Some(id) => {
+                if let Some(info) = self.message_ports.get(&id) {
+                    let _ = info
+                        .control_sender
+                        .send(MessagePortMsg::EntangledPortShipped(id));
+                }
+            },
+            None => {},
+        }
+
+        if let Some(info) = self.message_ports.get_mut(&port_id) {
+            if source_pipeline_id != info.pipeline {
+                warn!(
+                    "Got messageport_shipped message from {:?} while port is in {:?}",
+                    source_pipeline_id, info.pipeline
+                );
+            }
+            info.message_queue = Some(message_queue);
+            info.is_being_transferred = true;
+        }
+    }
+
+    fn handle_new_messageport(
+        &mut self,
+        source_pipeline_id: PipelineId,
+        port_id: MessagePortId,
+        control_sender: IpcSender<MessagePortMsg>,
+    ) {
+        // A new message-port was either created in, or transferred to, a script process.
+        // We handle this differently based on whether the port is entangled or not.
+        let (info, entangled) = match self.message_ports.get_mut(&port_id) {
+            // If we know about this port, it means it was transferred.
+            Some(info) => {
+                info.pipeline = source_pipeline_id;
+                info.control_sender = control_sender.clone();
+                info.is_being_transferred = false;
+                if let Some(entangled) = info.entangled_with {
+                    // The transferred port is entangled, assign data for use below.
+                    (
+                        None,
+                        Some((
+                            entangled.clone(),
+                            info.message_queue.clone(),
+                            control_sender.clone(),
+                        )),
+                    )
+                } else {
+                    // The transferred port is not entangled, forward the message-queue.
+                    let _ = control_sender.send(MessagePortMsg::CompleteTransfer(
+                        port_id.clone(),
+                        info.message_queue.clone(),
+                        None,
+                        None,
+                    ));
+                    (None, None)
+                }
+            },
+            // A newly created port, create a new info and store it.
+            None => {
+                let info = MessagePortInfo {
+                    is_being_transferred: false,
+                    pipeline: source_pipeline_id,
+                    entangled_with: None,
+                    control_sender: control_sender.clone(),
+                    message_queue: None,
+                };
+                (Some(info), None)
+            },
+        };
+        if let Some(info) = info {
+            self.message_ports.insert(port_id, info);
+        }
+        if let Some((entangled, other_message_queue, other_sender)) = entangled {
+            // If this was an existing, entangled, and now transferred, port,
+            // we need to do two things:
+            let info = match self.message_ports.get(&entangled) {
+                Some(info) => info,
+                None => return,
+            };
+
+            // If the entangled port is itself being transferred, we don't send the outdated sender.
+            // instead we'll update the sender when the transfer of the entangled port completes.
+            let sender = if info.is_being_transferred {
+                None
+            } else {
+                Some(info.control_sender.clone())
+            };
+
+            // 1: Complete the transfer, by sending the transferred port the "rest of the data".
+            // including the port it is entangled with,
+            // and the ipc-sender to that port(unless it is being transferred as well).
+            let _ = other_sender.send(MessagePortMsg::CompleteTransfer(
+                port_id.clone(),
+                other_message_queue,
+                Some(entangled),
+                sender,
+            ));
+            // 2: let the entangled port know about the new ipc-sender.
+            // This also deals with the case were the sender was set to None above,
+            // and our entangled port has been recently transferred, and is still waiting on a sender.
+            if !info.is_being_transferred {
+                // Note: we don't send the updated sender
+                // if the entangled itself is in the process of being transferred.
+                // In that case it will receive the update upon completion of the transfer.
+                let _ = info
+                    .control_sender
+                    .send(MessagePortMsg::NewEntangledSender(entangled, other_sender));
+            }
+        }
+    }
+
+    fn handle_remove_messageport(
+        &mut self,
+        source_pipeline_id: PipelineId,
+        port_id: MessagePortId,
+    ) {
+        let entangled = match self.message_ports.remove(&port_id) {
+            Some(info) => {
+                if source_pipeline_id != info.pipeline {
+                    warn!(
+                        "Got messageport_shipped message from {:?} while port is in {:?}",
+                        source_pipeline_id, info.pipeline
+                    );
+                }
+                info.entangled_with
+            },
+            None => return,
+        };
+        if let Some(id) = entangled {
+            if let Some(info) = self.message_ports.get_mut(&id) {
+                let _ = info
+                    .control_sender
+                    .send(MessagePortMsg::RemoveMessagePort(id));
+            }
+        }
+    }
+
+    fn handle_entangle_messageports(
+        &mut self,
+        source_pipeline_id: PipelineId,
+        port1: MessagePortId,
+        port2: MessagePortId,
+    ) {
+        if let Some(info) = self.message_ports.get_mut(&port1) {
+            if source_pipeline_id != info.pipeline {
+                warn!(
+                    "Got messageport_shipped message from {:?} while port is in {:?}",
+                    source_pipeline_id, info.pipeline
+                );
+            }
+            info.entangled_with = Some(port2);
+        }
+        if let Some(info) = self.message_ports.get_mut(&port2) {
+            if source_pipeline_id != info.pipeline {
+                warn!(
+                    "Got messageport_shipped message from {:?} while port is in {:?}",
+                    source_pipeline_id, info.pipeline
+                );
+            }
+            info.entangled_with = Some(port1);
         }
     }
 

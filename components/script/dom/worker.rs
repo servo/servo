@@ -7,6 +7,7 @@ use crate::dom::abstractworker::SimpleWorkerErrorHandler;
 use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::{WorkerMethods, WorkerOptions};
+use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -26,9 +27,9 @@ use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
-use js::jsapi::{JSContext, JS_RequestInterruptCallback};
+use js::jsapi::{JSContext, JSObject, JS_RequestInterruptCallback};
 use js::jsval::UndefinedValue;
-use js::rust::HandleValue;
+use js::rust::{CustomAutoRooterGuard, HandleValue};
 use script_traits::WorkerScriptLoadOrigin;
 use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -151,8 +152,17 @@ impl Worker {
         let target = worker.upcast();
         let _ac = enter_realm(target);
         rooted!(in(global.get_cx()) let mut message = UndefinedValue());
-        assert!(data.read(&global, message.handle_mut()));
-        MessageEvent::dispatch_jsval(target, &global, message.handle(), Some(&origin), None, vec![]);
+        if let Ok(mut results) = data.read(&global, message.handle_mut()) {
+            let new_ports = results.message_ports.drain(0..).collect();
+            MessageEvent::dispatch_jsval(
+                target,
+                &global,
+                message.handle(),
+                Some(&origin),
+                None,
+                new_ports,
+            );
+        }
     }
 
     pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
@@ -164,9 +174,18 @@ impl Worker {
 impl WorkerMethods for Worker {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-worker-postmessage
-    unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
-        rooted!(in(cx) let transfer = UndefinedValue());
-        let data = StructuredCloneData::write(cx, message, transfer.handle())?;
+    unsafe fn PostMessage(
+        &self,
+        cx: *mut JSContext,
+        message: HandleValue,
+        transfer: CustomAutoRooterGuard<Option<Vec<*mut JSObject>>>,
+    ) -> ErrorResult {
+        rooted!(in(cx) let mut val = UndefinedValue());
+        (*transfer)
+            .as_ref()
+            .unwrap_or(&Vec::new())
+            .to_jsval(cx, val.handle_mut());
+        let data = StructuredCloneData::write(cx, message, val.handle())?;
         let address = Trusted::new(self);
 
         // NOTE: step 9 of https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage
