@@ -78,15 +78,6 @@
       `Expect validated identity from mock-idp.js to be same as specified in usernameHint`);
   }, 'setRemoteDescription() on offer with a=identity should establish peerIdentity');
 
-  /*
-    If the peerIdentity configuration is applied to the RTCPeerConnection, this
-    establishes a target peer identity of the provided value. Alternatively, if the
-    RTCPeerConnection has previously authenticated the identity of the peer (that
-    is, the peerIdentity promise is resolved), then this also establishes a
-    target peer identity.
-
-    The target peer identity cannot be changed once set.
-  */
   promise_test(async t => {
     const port = window.location.port;
     const [idpDomain] = getIdpDomains();
@@ -112,16 +103,11 @@
 
     const offer = await pc1.createOffer();
 
-    try {
-      await pc2.setRemoteDescription(offer);
-      assert_true(false, "Previous line (sRD) should have thrown!");
-    } catch (e) {
-      assert_equals(e.name, 'InvalidModificationError');
-    }
-
-    assert_true(pc2.signalingState, 'closed',
-      'Expect peer connection to be closed after mismatch peer identity');
-  }, 'setRemoteDescription() on offer with a=identity that resolve to value different from target peer identity should reject with InvalidModificationError');
+    await promise_rejects(t, 'OperationError',
+      pc2.setRemoteDescription(offer));
+    await promise_rejects(t, 'OperationError',
+      pc2.peerIdentity);
+  }, 'setRemoteDescription() on offer with a=identity that resolve to value different from target peer identity should reject with OperationError');
 
   /*
     9.4.  Verifying Identity Assertions

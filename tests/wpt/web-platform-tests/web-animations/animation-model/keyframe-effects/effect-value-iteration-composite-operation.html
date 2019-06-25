@@ -430,11 +430,11 @@ test(t => {
     'Animated filter list at 50s of the first iteration');
   anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).filter,
-    'sepia(2) contrast(3)',
+    'sepia(1) contrast(3)',
     'Animated filter list at 0s of the third iteration');
   anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).filter,
-    'sepia(2.5) contrast(3.5)',
+    'sepia(1) contrast(3.5)',
     'Animated filter list at 50s of the third iteration');
 }, 'iteration composition of different length filter list animation');
 

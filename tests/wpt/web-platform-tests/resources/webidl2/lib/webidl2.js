@@ -1,970 +1,2036 @@
+(function webpackUniversalModuleDefinition(root, factory) {
+	if(typeof exports === 'object' && typeof module === 'object')
+		module.exports = factory();
+	else if(typeof define === 'function' && define.amd)
+		define([], factory);
+	else if(typeof exports === 'object')
+		exports["WebIDL2"] = factory();
+	else
+		root["WebIDL2"] = factory();
+})(this, function() {
+return /******/ (function(modules) { // webpackBootstrap
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
+/******/
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId]) {
+/******/ 			return installedModules[moduleId].exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			i: moduleId,
+/******/ 			l: false,
+/******/ 			exports: {}
+/******/ 		};
+/******/
+/******/ 		// Execute the module function
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/
+/******/ 		// Flag the module as loaded
+/******/ 		module.l = true;
+/******/
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/
+/******/
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = modules;
+/******/
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = installedModules;
+/******/
+/******/ 	// define getter function for harmony exports
+/******/ 	__webpack_require__.d = function(exports, name, getter) {
+/******/ 		if(!__webpack_require__.o(exports, name)) {
+/******/ 			Object.defineProperty(exports, name, { enumerable: true, get: getter });
+/******/ 		}
+/******/ 	};
+/******/
+/******/ 	// define __esModule on exports
+/******/ 	__webpack_require__.r = function(exports) {
+/******/ 		if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 			Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 		}
+/******/ 		Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 	};
+/******/
+/******/ 	// create a fake namespace object
+/******/ 	// mode & 1: value is a module id, require it
+/******/ 	// mode & 2: merge all properties of value into the ns
+/******/ 	// mode & 4: return value when already ns object
+/******/ 	// mode & 8|1: behave like require
+/******/ 	__webpack_require__.t = function(value, mode) {
+/******/ 		if(mode & 1) value = __webpack_require__(value);
+/******/ 		if(mode & 8) return value;
+/******/ 		if((mode & 4) && typeof value === 'object' && value && value.__esModule) return value;
+/******/ 		var ns = Object.create(null);
+/******/ 		__webpack_require__.r(ns);
+/******/ 		Object.defineProperty(ns, 'default', { enumerable: true, value: value });
+/******/ 		if(mode & 2 && typeof value != 'string') for(var key in value) __webpack_require__.d(ns, key, function(key) { return value[key]; }.bind(null, key));
+/******/ 		return ns;
+/******/ 	};
+/******/
+/******/ 	// getDefaultExport function for compatibility with non-harmony modules
+/******/ 	__webpack_require__.n = function(module) {
+/******/ 		var getter = module && module.__esModule ?
+/******/ 			function getDefault() { return module['default']; } :
+/******/ 			function getModuleExports() { return module; };
+/******/ 		__webpack_require__.d(getter, 'a', getter);
+/******/ 		return getter;
+/******/ 	};
+/******/
+/******/ 	// Object.prototype.hasOwnProperty.call
+/******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
+/******/
+/******/ 	// __webpack_public_path__
+/******/ 	__webpack_require__.p = "";
+/******/
+/******/
+/******/ 	// Load entry module and return exports
+/******/ 	return __webpack_require__(__webpack_require__.s = 0);
+/******/ })
+/************************************************************************/
+/******/ ([
+/* 0 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
 "use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _lib_webidl2_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "parse", function() { return _lib_webidl2_js__WEBPACK_IMPORTED_MODULE_0__["parse"]; });
 
-(() => {
-  // These regular expressions use the sticky flag so they will only match at
-  // the current location (ie. the offset of lastIndex).
-  const tokenRe = {
-    // This expression uses a lookahead assertion to catch false matches
-    // against integers early.
-    "float": /-?(?=[0-9]*\.|[0-9]+[eE])(([0-9]+\.[0-9]*|[0-9]*\.[0-9]+)([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+)/y,
-    "integer": /-?(0([Xx][0-9A-Fa-f]+|[0-7]*)|[1-9][0-9]*)/y,
-    "identifier": /_?[A-Za-z][0-9A-Z_a-z-]*/y,
-    "string": /"[^"]*"/y,
-    "whitespace": /[\t\n\r ]+/y,
-    "comment": /((\/(\/.*|\*([^*]|\*[^\/])*\*\/)[\t\n\r ]*)+)/y,
-    "other": /[^\t\n\r 0-9A-Za-z]/y
-  };
+/* harmony import */ var _lib_writer_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(11);
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "write", function() { return _lib_writer_js__WEBPACK_IMPORTED_MODULE_1__["write"]; });
 
-  const stringTypes = [
-    "ByteString",
-    "DOMString",
-    "USVString"
-  ];
+/* harmony import */ var _lib_validator_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(12);
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "validate", function() { return _lib_validator_js__WEBPACK_IMPORTED_MODULE_2__["validate"]; });
 
-  const argumentNameKeywords = [
-    "attribute",
-    "callback",
-    "const",
-    "deleter",
-    "dictionary",
-    "enum",
-    "getter",
-    "includes",
-    "inherit",
-    "interface",
-    "iterable",
-    "maplike",
-    "namespace",
-    "partial",
-    "required",
-    "setlike",
-    "setter",
-    "static",
-    "stringifier",
-    "typedef",
-    "unrestricted"
-  ];
 
-  const nonRegexTerminals = [
-    "FrozenArray",
-    "Infinity",
-    "NaN",
-    "Promise",
-    "boolean",
-    "byte",
-    "double",
-    "false",
-    "float",
-    "implements",
-    "legacyiterable",
-    "long",
-    "mixin",
-    "null",
-    "octet",
-    "optional",
-    "or",
-    "readonly",
-    "record",
-    "sequence",
-    "short",
-    "true",
-    "unsigned",
-    "void"
-  ].concat(argumentNameKeywords, stringTypes);
 
-  const punctuations = [
-    "(",
-    ")",
-    ",",
-    "-Infinity",
-    "...",
-    ":",
-    ";",
-    "<",
-    "=",
-    ">",
-    "?",
-    "[",
-    "]",
-    "{",
-    "}"
-  ];
 
-  function tokenise(str) {
-    const tokens = [];
-    let lastIndex = 0;
-    let trivia = "";
-    while (lastIndex < str.length) {
-      const nextChar = str.charAt(lastIndex);
-      let result = -1;
 
-      if (/[\t\n\r ]/.test(nextChar)) {
-        result = attemptTokenMatch("whitespace", { noFlushTrivia: true });
-      } else if (nextChar === '/') {
-        result = attemptTokenMatch("comment", { noFlushTrivia: true });
+
+/***/ }),
+/* 1 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "parse", function() { return parse; });
+/* harmony import */ var _productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2);
+/* harmony import */ var _tokeniser_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(3);
+/* harmony import */ var _productions_array_base_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(5);
+/* harmony import */ var _productions_base_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(6);
+/* harmony import */ var _productions_token_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(7);
+/* harmony import */ var _productions_default_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(8);
+/* harmony import */ var _productions_enum_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(9);
+/* harmony import */ var _productions_includes_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(10);
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @param {Tokeniser} tokeniser
+ * @param {object} options
+ * @param {boolean} [options.concrete]
+ */
+function parseByTokens(tokeniser, options) {
+  const source = tokeniser.source;
+
+  const DECIMAL = "decimal";
+  const INT = "integer";
+  const ID = "identifier";
+  const STR = "string";
+
+  function error(str) {
+    tokeniser.error(str);
+  }
+
+  function probe(type) {
+    return tokeniser.probe(type);
+  }
+
+  function consume(...candidates) {
+    return tokeniser.consume(...candidates);
+  }
+
+  function unconsume(position) {
+    return tokeniser.unconsume(position);
+  }
+
+  function integer_type() {
+    const prefix = consume("unsigned");
+    const base = consume("short", "long");
+    if (base) {
+      const postfix = consume("long");
+      return new Type({ source, tokens: { prefix, base, postfix } });
+    }
+    if (prefix) error("Failed to parse integer type");
+  }
+
+  function float_type() {
+    const prefix = consume("unrestricted");
+    const base = consume("float", "double");
+    if (base) {
+      return new Type({ source, tokens: { prefix, base } });
+    }
+    if (prefix) error("Failed to parse float type");
+  }
+
+  function primitive_type() {
+    const num_type = integer_type() || float_type();
+    if (num_type) return num_type;
+    const base = consume("boolean", "byte", "octet");
+    if (base) {
+      return new Type({ source, tokens: { base } });
+    }
+  }
+
+  function type_suffix(obj) {
+    const nullable = consume("?");
+    if (nullable) {
+      obj.tokens.nullable = nullable;
+    }
+    if (probe("?")) error("Can't nullable more than once");
+  }
+
+  class Type extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
+    constructor({ source, tokens }) {
+      super({ source, tokens });
+      Object.defineProperty(this, "subtype", { value: [] });
+      this.extAttrs = [];
+    }
+
+    get generic() {
+      return "";
+    }
+    get nullable() {
+      return !!this.tokens.nullable;
+    }
+    get union() {
+      return false;
+    }
+    get idlType() {
+      if (this.subtype.length) {
+        return this.subtype;
+      }
+      // Adding prefixes/postfixes for "unrestricted float", etc.
+      const name = [
+        this.tokens.prefix,
+        this.tokens.base,
+        this.tokens.postfix
+      ].filter(t => t).map(t => t.value).join(" ");
+      return Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["unescape"])(name);
+    }
+  }
+
+  class GenericType extends Type {
+    static parse(typeName) {
+      const base = consume("FrozenArray", "Promise", "sequence", "record");
+      if (!base) {
+        return;
+      }
+      const ret = new GenericType({ source, tokens: { base } });
+      ret.tokens.open = consume("<") || error(`No opening bracket after ${base.type}`);
+      switch (base.type) {
+        case "Promise": {
+          if (probe("[")) error("Promise type cannot have extended attribute");
+          const subtype = return_type(typeName) || error("Missing Promise subtype");
+          ret.subtype.push(subtype);
+          break;
+        }
+        case "sequence":
+        case "FrozenArray": {
+          const subtype = type_with_extended_attributes(typeName) || error(`Missing ${base.type} subtype`);
+          ret.subtype.push(subtype);
+          break;
+        }
+        case "record": {
+          if (probe("[")) error("Record key cannot have extended attribute");
+          const keyType = consume(..._tokeniser_js__WEBPACK_IMPORTED_MODULE_1__["stringTypes"]) || error(`Record key must be one of: ${_tokeniser_js__WEBPACK_IMPORTED_MODULE_1__["stringTypes"].join(", ")}`);
+          const keyIdlType = new Type({ source, tokens: { base: keyType }});
+          keyIdlType.tokens.separator = consume(",") || error("Missing comma after record key type");
+          keyIdlType.type = typeName;
+          const valueType = type_with_extended_attributes(typeName) || error("Error parsing generic type record");
+          ret.subtype.push(keyIdlType, valueType);
+          break;
+        }
+      }
+      if (!ret.idlType) error(`Error parsing generic type ${base.type}`);
+      ret.tokens.close = consume(">") || error(`Missing closing bracket after ${base.type}`);
+      return ret;
+    }
+
+    get generic() {
+      return this.tokens.base.value;
+    }
+  }
+
+  function single_type(typeName) {
+    let ret = GenericType.parse(typeName) || primitive_type();
+    if (!ret) {
+      const base = consume(ID, ..._tokeniser_js__WEBPACK_IMPORTED_MODULE_1__["stringTypes"]);
+      if (!base) {
+        return;
+      }
+      ret = new Type({ source, tokens: { base } });
+      if (probe("<")) error(`Unsupported generic type ${base.value}`);
+    }
+    if (ret.generic === "Promise" && probe("?")) {
+      error("Promise type cannot be nullable");
+    }
+    ret.type = typeName || null;
+    type_suffix(ret);
+    if (ret.nullable && ret.idlType === "any") error("Type `any` cannot be made nullable");
+    return ret;
+  }
+
+  class UnionType extends Type {
+    static parse(type) {
+      const tokens = {};
+      tokens.open = consume("(");
+      if (!tokens.open) return;
+      const ret = new UnionType({ source, tokens });
+      ret.type = type || null;
+      while (true) {
+        const typ = type_with_extended_attributes() || error("No type after open parenthesis or 'or' in union type");
+        if (typ.idlType === "any") error("Type `any` cannot be included in a union type");
+        ret.subtype.push(typ);
+        const or = consume("or");
+        if (or) {
+          typ.tokens.separator = or;
+        }
+        else break;
+      }
+      if (ret.idlType.length < 2) {
+        error("At least two types are expected in a union type but found less");
+      }
+      tokens.close = consume(")") || error("Unterminated union type");
+      type_suffix(ret);
+      return ret;
+    }
+
+    get union() {
+      return true;
+    }
+  }
+
+  function type(typeName) {
+    return single_type(typeName) || UnionType.parse(typeName);
+  }
+
+  function type_with_extended_attributes(typeName) {
+    const extAttrs = ExtendedAttributes.parse();
+    const ret = type(typeName);
+    if (ret) ret.extAttrs = extAttrs;
+    return ret;
+  }
+
+  class Argument extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
+    static parse() {
+      const start_position = tokeniser.position;
+      const tokens = {};
+      const ret = new Argument({ source, tokens });
+      ret.extAttrs = ExtendedAttributes.parse();
+      tokens.optional = consume("optional");
+      ret.idlType = type_with_extended_attributes("argument-type");
+      if (!ret.idlType) {
+        return unconsume(start_position);
+      }
+      if (!tokens.optional) {
+        tokens.variadic = consume("...");
+      }
+      tokens.name = consume(ID, ..._tokeniser_js__WEBPACK_IMPORTED_MODULE_1__["argumentNameKeywords"]);
+      if (!tokens.name) {
+        return unconsume(start_position);
+      }
+      ret.default = tokens.optional ? _productions_default_js__WEBPACK_IMPORTED_MODULE_5__["Default"].parse(tokeniser) : null;
+      return ret;
+    }
+
+    get optional() {
+      return !!this.tokens.optional;
+    }
+    get variadic() {
+      return !!this.tokens.variadic;
+    }
+    get name() {
+      return Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["unescape"])(this.tokens.name.value);
+    }
+  }
+
+  function argument_list() {
+    return Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["list"])(tokeniser, { parser: Argument.parse, listName: "arguments list" });
+  }
+
+  function identifiers() {
+    const ids = Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["list"])(tokeniser, { parser: _productions_token_js__WEBPACK_IMPORTED_MODULE_4__["Token"].parser(tokeniser, ID), listName: "identifier list" });
+    if (!ids.length) {
+      error("Expected identifiers but none found");
+    }
+    return ids;
+  }
+
+  class ExtendedAttributeParameters extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
+    static parse() {
+      const tokens = { assign: consume("=") };
+      const ret = new ExtendedAttributeParameters({ source, tokens });
+      if (tokens.assign) {
+        tokens.secondaryName = consume(ID, DECIMAL, INT, STR);
+      }
+      tokens.open = consume("(");
+      if (tokens.open) {
+        ret.list = ret.rhsType === "identifier-list" ?
+          // [Exposed=(Window,Worker)]
+          identifiers() :
+          // [NamedConstructor=Audio(DOMString src)] or [Constructor(DOMString str)]
+          argument_list();
+        tokens.close = consume(")") || error("Unexpected token in extended attribute argument list");
+      } else if (ret.hasRhs && !tokens.secondaryName) {
+        error("No right hand side to extended attribute assignment");
+      }
+      return ret;
+    }
+
+    get rhsType() {
+      return !this.tokens.assign ? null :
+        !this.tokens.secondaryName ? "identifier-list" :
+        this.tokens.secondaryName.type;
+    }
+  }
+
+  class SimpleExtendedAttribute extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
+    static parse() {
+      const name = consume(ID);
+      if (name) {
+        return new SimpleExtendedAttribute({
+          tokens: { name },
+          params: ExtendedAttributeParameters.parse()
+        });
+      }
+    }
+
+    constructor({ source, tokens, params }) {
+      super({ source, tokens });
+      Object.defineProperty(this, "params", { value: params });
+    }
+
+    get type() {
+      return "extended-attribute";
+    }
+    get name() {
+      return this.tokens.name.value;
+    }
+    get rhs() {
+      const { rhsType: type, tokens, list } = this.params;
+      if (!type) {
+        return null;
+      }
+      const value = type === "identifier-list" ? list : tokens.secondaryName.value;
+      return { type, value };
+    }
+    get arguments() {
+      const { rhsType, list } = this.params;
+      if (!list || rhsType === "identifier-list") {
+        return [];
+      }
+      return list;
+    }
+  }
+
+  // Note: we parse something simpler than the official syntax. It's all that ever
+  // seems to be used
+  class ExtendedAttributes extends _productions_array_base_js__WEBPACK_IMPORTED_MODULE_2__["ArrayBase"] {
+    static parse() {
+      const tokens = {};
+      tokens.open = consume("[");
+      if (!tokens.open) return [];
+      const ret = new ExtendedAttributes({ source, tokens });
+      ret.push(...Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["list"])(tokeniser, {
+        parser: SimpleExtendedAttribute.parse,
+        listName: "extended attribute"
+      }));
+      tokens.close = consume("]") || error("Unexpected form of extended attribute");
+      if (!ret.length) {
+        error("Found an empty extended attribute");
+      }
+      if (probe("[")) {
+        error("Illegal double extended attribute lists, consider merging them");
+      }
+      return ret;
+    }
+  }
+
+  class Constant extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
+    static parse() {
+      const tokens = {};
+      tokens.base = consume("const");
+      if (!tokens.base) {
+        return;
+      }
+      let idlType = primitive_type();
+      if (!idlType) {
+        const base = consume(ID) || error("No type for const");
+        idlType = new Type({ source, tokens: { base } });
+      }
+      if (probe("?")) {
+        error("Unexpected nullable constant type");
+      }
+      idlType.type = "const-type";
+      tokens.name = consume(ID) || error("No name for const");
+      tokens.assign = consume("=") || error("No value assignment for const");
+      tokens.value = Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["const_value"])(tokeniser) || error("No value for const");
+      tokens.termination = consume(";") || error("Unterminated const");
+      const ret = new Constant({ source, tokens });
+      ret.idlType = idlType;
+      return ret;
+    }
+
+    get type() {
+      return "const";
+    }
+    get name() {
+      return Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["unescape"])(this.tokens.name.value);
+    }
+    get value() {
+      return Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["const_data"])(this.tokens.value);
+    }
+  }
+
+  class CallbackFunction extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
+    static parse(base) {
+      const tokens = { base };
+      const ret = new CallbackFunction({ source, tokens });
+      tokens.name = consume(ID) || error("No name for callback");
+      tokeniser.current = ret;
+      tokens.assign = consume("=") || error("No assignment in callback");
+      ret.idlType = return_type() || error("Missing return type");
+      tokens.open = consume("(") || error("No arguments in callback");
+      ret.arguments = argument_list();
+      tokens.close = consume(")") || error("Unterminated callback");
+      tokens.termination = consume(";") || error("Unterminated callback");
+      return ret;
+    }
+
+    get type() {
+      return "callback";
+    }
+    get name() {
+      return Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["unescape"])(this.tokens.name.value);
+    }
+  }
+
+  function callback() {
+    const callback = consume("callback");
+    if (!callback) return;
+    const tok = consume("interface");
+    if (tok) {
+      return Interface.parse(tok, { callback });
+    }
+    return CallbackFunction.parse(callback);
+  }
+
+  class Attribute extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
+    static parse({ special, noInherit = false, readonly = false } = {}) {
+      const start_position = tokeniser.position;
+      const tokens = { special };
+      const ret = new Attribute({ source, tokens });
+      if (!special && !noInherit) {
+        tokens.special = consume("inherit");
+      }
+      if (ret.special === "inherit" && probe("readonly")) {
+        error("Inherited attributes cannot be read-only");
+      }
+      tokens.readonly = consume("readonly");
+      if (readonly && !tokens.readonly && probe("attribute")) {
+        error("Attributes must be readonly in this context");
+      }
+      tokens.base = consume("attribute");
+      if (!tokens.base) {
+        unconsume(start_position);
+        return;
+      }
+      ret.idlType = type_with_extended_attributes("attribute-type") || error("No type in attribute");
+      switch (ret.idlType.generic) {
+        case "sequence":
+        case "record": error(`Attributes cannot accept ${ret.idlType.generic} types`);
+      }
+      tokens.name = consume(ID, "required") || error("No name in attribute");
+      tokens.termination = consume(";") || error("Unterminated attribute");
+      return ret;
+    }
+
+    get type() {
+      return "attribute";
+    }
+    get special() {
+      if (!this.tokens.special) {
+        return "";
+      }
+      return this.tokens.special.value;
+    }
+    get readonly() {
+      return !!this.tokens.readonly;
+    }
+    get name() {
+      return Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["unescape"])(this.tokens.name.value);
+    }
+  }
+
+  function return_type(typeName) {
+    const typ = type(typeName || "return-type");
+    if (typ) {
+      return typ;
+    }
+    const voidToken = consume("void");
+    if (voidToken) {
+      const ret = new Type({ source, tokens: { base: voidToken } });
+      ret.type = "return-type";
+      return ret;
+    }
+  }
+
+  class Operation extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
+    static parse({ special, regular } = {}) {
+      const tokens = { special };
+      const ret = new Operation({ source, tokens });
+      if (special && special.value === "stringifier") {
+        tokens.termination = consume(";");
+        if (tokens.termination) {
+          ret.arguments = [];
+          return ret;
+        }
+      }
+      if (!special && !regular) {
+        tokens.special = consume("getter", "setter", "deleter");
+      }
+      ret.idlType = return_type() || error("Missing return type");
+      tokens.name = consume(ID);
+      tokens.open = consume("(") || error("Invalid operation");
+      ret.arguments = argument_list();
+      tokens.close = consume(")") || error("Unterminated operation");
+      tokens.termination = consume(";") || error("Unterminated attribute");
+      return ret;
+    }
+
+    get type() {
+      return "operation";
+    }
+    get name() {
+      const { name } = this.tokens;
+      if (!name) {
+        return "";
+      }
+      return Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["unescape"])(name.value);
+    }
+    get special() {
+      if (!this.tokens.special) {
+        return "";
+      }
+      return this.tokens.special.value;
+    }
+  }
+
+  function static_member() {
+    const special = consume("static");
+    if (!special) return;
+    const member = Attribute.parse({ special }) ||
+      Operation.parse({ special }) ||
+      error("No body in static member");
+    return member;
+  }
+
+  function stringifier() {
+    const special = consume("stringifier");
+    if (!special) return;
+    const member = Attribute.parse({ special }) ||
+      Operation.parse({ special }) ||
+      error("Unterminated stringifier");
+    return member;
+  }
+
+  class IterableLike extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
+    static parse() {
+      const start_position = tokeniser.position;
+      const tokens = {};
+      const ret = new IterableLike({ source, tokens });
+      tokens.readonly = consume("readonly");
+      tokens.base = tokens.readonly ?
+        consume("maplike", "setlike") :
+        consume("iterable", "maplike", "setlike");
+      if (!tokens.base) {
+        unconsume(start_position);
+        return;
       }
 
-      if (result !== -1) {
-        trivia += tokens.pop().value;
-      } else if (/[-0-9.]/.test(nextChar)) {
-        result = attemptTokenMatch("float");
-        if (result === -1) {
-          result = attemptTokenMatch("integer");
+      const { type } = ret;
+      const secondTypeRequired = type === "maplike";
+      const secondTypeAllowed = secondTypeRequired || type === "iterable";
+
+      tokens.open = consume("<") || error(`Error parsing ${type} declaration`);
+      const first = type_with_extended_attributes() || error(`Error parsing ${type} declaration`);
+      ret.idlType = [first];
+      if (secondTypeAllowed) {
+        first.tokens.separator = consume(",");
+        if (first.tokens.separator) {
+          ret.idlType.push(type_with_extended_attributes());
         }
-      } else if (/[A-Z_a-z]/.test(nextChar)) {
+        else if (secondTypeRequired)
+          error(`Missing second type argument in ${type} declaration`);
+      }
+      tokens.close = consume(">") || error(`Unterminated ${type} declaration`);
+      tokens.termination = consume(";") || error(`Missing semicolon after ${type} declaration`);
+
+      return ret;
+    }
+
+    get type() {
+      return this.tokens.base.value;
+    }
+    get readonly() {
+      return !!this.tokens.readonly;
+    }
+  }
+
+  function inheritance() {
+    const colon = consume(":");
+    if (!colon) {
+      return {};
+    }
+    const inheritance = consume(ID) || error("No type in inheritance");
+    return { colon, inheritance };
+  }
+
+  class Container extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
+    static parse(instance, { type, inheritable, allowedMembers }) {
+      const { tokens } = instance;
+      tokens.name = consume(ID) || error("No name for interface");
+      tokeniser.current = instance;
+      if (inheritable) {
+        Object.assign(tokens, inheritance());
+      }
+      tokens.open = consume("{") || error(`Bodyless ${type}`);
+      instance.members = [];
+      while (true) {
+        tokens.close = consume("}");
+        if (tokens.close) {
+          tokens.termination = consume(";") || error(`Missing semicolon after ${type}`);
+          return instance;
+        }
+        const ea = ExtendedAttributes.parse();
+        let mem;
+        for (const [parser, ...args] of allowedMembers) {
+          mem = parser(...args);
+          if (mem) {
+            break;
+          }
+        }
+        if (!mem) {
+          error("Unknown member");
+        }
+        mem.extAttrs = ea;
+        instance.members.push(mem);
+      }
+    }
+
+    get partial() {
+      return !!this.tokens.partial;
+    }
+    get name() {
+      return Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["unescape"])(this.tokens.name.value);
+    }
+    get inheritance() {
+      if (!this.tokens.inheritance) {
+        return null;
+      }
+      return Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["unescape"])(this.tokens.inheritance.value);
+    }
+  }
+
+  class Interface extends Container {
+    static parse(base, { callback = null, partial = null } = {}) {
+      const tokens = { callback, partial, base };
+      return Container.parse(new Interface({ source, tokens }), {
+        type: "interface",
+        inheritable: !partial,
+        allowedMembers: [
+          [Constant.parse],
+          [static_member],
+          [stringifier],
+          [IterableLike.parse],
+          [Attribute.parse],
+          [Operation.parse]
+        ]
+      });
+    }
+
+    get type() {
+      if (this.tokens.callback) {
+        return "callback interface";
+      }
+      return "interface";
+    }
+  }
+
+  class Mixin extends Container {
+    static parse(base, { partial } = {}) {
+      const tokens = { partial, base };
+      tokens.mixin = consume("mixin");
+      if (!tokens.mixin) {
+        return;
+      }
+      return Container.parse(new Mixin({ source, tokens }), {
+        type: "interface mixin",
+        allowedMembers: [
+          [Constant.parse],
+          [stringifier],
+          [Attribute.parse, { noInherit: true }],
+          [Operation.parse, { regular: true }]
+        ]
+      });
+    }
+
+    get type() {
+      return "interface mixin";
+    }
+  }
+
+  function interface_(opts) {
+    const base = consume("interface");
+    if (!base) return;
+    const ret = Mixin.parse(base, opts) ||
+      Interface.parse(base, opts) ||
+      error("Interface has no proper body");
+    return ret;
+  }
+
+  class Namespace extends Container {
+    static parse({ partial } = {}) {
+      const tokens = { partial };
+      tokens.base = consume("namespace");
+      if (!tokens.base) {
+        return;
+      }
+      return Container.parse(new Namespace({ source, tokens }), {
+        type: "namespace",
+        allowedMembers: [
+          [Attribute.parse, { noInherit: true, readonly: true }],
+          [Operation.parse, { regular: true }]
+        ]
+      });
+    }
+
+    get type() {
+      return "namespace";
+    }
+  }
+
+  function partial() {
+    const partial = consume("partial");
+    if (!partial) return;
+    return Dictionary.parse({ partial }) ||
+      interface_({ partial }) ||
+      Namespace.parse({ partial }) ||
+      error("Partial doesn't apply to anything");
+  }
+
+  class Dictionary extends Container {
+    static parse({ partial } = {}) {
+      const tokens = { partial };
+      tokens.base = consume("dictionary");
+      if (!tokens.base) {
+        return;
+      }
+      return Container.parse(new Dictionary({ source, tokens }), {
+        type: "dictionary",
+        inheritable: !partial,
+        allowedMembers: [
+          [Field.parse],
+        ]
+      });
+    }
+
+    get type() {
+      return "dictionary";
+    }
+  }
+
+  class Field extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
+    static parse() {
+      const tokens = {};
+      const ret = new Field({ source, tokens });
+      ret.extAttrs = ExtendedAttributes.parse();
+      tokens.required = consume("required");
+      ret.idlType = type_with_extended_attributes("dictionary-type") || error("No type for dictionary member");
+      tokens.name = consume(ID) || error("No name for dictionary member");
+      ret.default = _productions_default_js__WEBPACK_IMPORTED_MODULE_5__["Default"].parse(tokeniser);
+      if (tokens.required && ret.default) error("Required member must not have a default");
+      tokens.termination = consume(";") || error("Unterminated dictionary member");
+      return ret;
+    }
+
+    get type() {
+      return "field";
+    }
+    get name() {
+      return Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["unescape"])(this.tokens.name.value);
+    }
+    get required() {
+      return !!this.tokens.required;
+    }
+  }
+
+  class Typedef extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
+    static parse() {
+      const tokens = {};
+      const ret = new Typedef({ source, tokens });
+      tokens.base = consume("typedef");
+      if (!tokens.base) {
+        return;
+      }
+      ret.idlType = type_with_extended_attributes("typedef-type") || error("No type in typedef");
+      tokens.name = consume(ID) || error("No name in typedef");
+      tokeniser.current = ret;
+      tokens.termination = consume(";") || error("Unterminated typedef");
+      return ret;
+    }
+
+    get type() {
+      return "typedef";
+    }
+    get name() {
+      return Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["unescape"])(this.tokens.name.value);
+    }
+  }
+
+  function definition() {
+    return callback() ||
+      interface_() ||
+      partial() ||
+      Dictionary.parse() ||
+      _productions_enum_js__WEBPACK_IMPORTED_MODULE_6__["Enum"].parse(tokeniser) ||
+      Typedef.parse() ||
+      _productions_includes_js__WEBPACK_IMPORTED_MODULE_7__["Includes"].parse(tokeniser) ||
+      Namespace.parse();
+  }
+
+  function definitions() {
+    if (!source.length) return [];
+    const defs = [];
+    while (true) {
+      const ea = ExtendedAttributes.parse();
+      const def = definition();
+      if (!def) {
+        if (ea.length) error("Stray extended attributes");
+        break;
+      }
+      def.extAttrs = ea;
+      defs.push(def);
+    }
+    const eof = consume("eof");
+    if (options.concrete) {
+      defs.push(eof);
+    }
+    return defs;
+  }
+  const res = definitions();
+  if (tokeniser.position < source.length) error("Unrecognised tokens");
+  return res;
+}
+
+function parse(str, options = {}) {
+  const tokeniser = new _tokeniser_js__WEBPACK_IMPORTED_MODULE_1__["Tokeniser"](str);
+  return parseByTokens(tokeniser, options);
+}
+
+
+/***/ }),
+/* 2 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "unescape", function() { return unescape; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "list", function() { return list; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "const_value", function() { return const_value; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "const_data", function() { return const_data; });
+/**
+ * @param {string} identifier
+ */
+function unescape(identifier) {
+  return identifier.startsWith('_') ? identifier.slice(1) : identifier;
+}
+
+/**
+ * Parses comma-separated list
+ * @param {import("../tokeniser").Tokeniser} tokeniser
+ * @param {object} args
+ * @param {Function} args.parser parser function for each item
+ * @param {boolean} [args.allowDangler] whether to allow dangling comma
+ * @param {string} [args.listName] the name to be shown on error messages
+ */
+function list(tokeniser, { parser, allowDangler, listName = "list" }) {
+  const first = parser(tokeniser);
+  if (!first) {
+    return [];
+  }
+  first.tokens.separator = tokeniser.consume(",");
+  const items = [first];
+  while (first.tokens.separator) {
+    const item = parser(tokeniser);
+    if (!item) {
+      if (!allowDangler) {
+        tokeniser.error(`Trailing comma in ${listName}`);
+      }
+      break;
+    }
+    item.tokens.separator = tokeniser.consume(",");
+    items.push(item);
+    if (!item.tokens.separator) break;
+  }
+  return items;
+}
+
+/**
+ * @param {import("../tokeniser").Tokeniser} tokeniser
+ */
+function const_value(tokeniser) {
+  return tokeniser.consume("true", "false", "Infinity", "-Infinity", "NaN", "decimal", "integer");
+}
+
+/**
+ * @param {object} token
+ * @param {string} token.type
+ * @param {string} token.value
+ */
+function const_data({ type, value }) {
+  switch (type) {
+    case "true":
+    case "false":
+      return { type: "boolean", value: type === "true" };
+    case "Infinity":
+    case "-Infinity":
+      return { type: "Infinity", negative: type.startsWith("-") };
+    case "[":
+      return { type: "sequence", value: [] };
+    case "decimal":
+    case "integer":
+        return { type: "number", value };
+    case "string":
+      return { type: "string", value: value.slice(1, -1) };
+    default:
+      return { type };
+  }
+}
+
+
+/***/ }),
+/* 3 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "stringTypes", function() { return stringTypes; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "argumentNameKeywords", function() { return argumentNameKeywords; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Tokeniser", function() { return Tokeniser; });
+/* harmony import */ var _error_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4);
+
+
+// These regular expressions use the sticky flag so they will only match at
+// the current location (ie. the offset of lastIndex).
+const tokenRe = {
+  // This expression uses a lookahead assertion to catch false matches
+  // against integers early.
+  "decimal": /-?(?=[0-9]*\.|[0-9]+[eE])(([0-9]+\.[0-9]*|[0-9]*\.[0-9]+)([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+)/y,
+  "integer": /-?(0([Xx][0-9A-Fa-f]+|[0-7]*)|[1-9][0-9]*)/y,
+  "identifier": /[_-]?[A-Za-z][0-9A-Z_a-z-]*/y,
+  "string": /"[^"]*"/y,
+  "whitespace": /[\t\n\r ]+/y,
+  "comment": /((\/(\/.*|\*([^*]|\*[^/])*\*\/)[\t\n\r ]*)+)/y,
+  "other": /[^\t\n\r 0-9A-Za-z]/y
+};
+
+const stringTypes = [
+  "ByteString",
+  "DOMString",
+  "USVString"
+];
+
+const argumentNameKeywords = [
+  "attribute",
+  "callback",
+  "const",
+  "deleter",
+  "dictionary",
+  "enum",
+  "getter",
+  "includes",
+  "inherit",
+  "interface",
+  "iterable",
+  "maplike",
+  "namespace",
+  "partial",
+  "required",
+  "setlike",
+  "setter",
+  "static",
+  "stringifier",
+  "typedef",
+  "unrestricted"
+];
+
+const nonRegexTerminals = [
+  "-Infinity",
+  "FrozenArray",
+  "Infinity",
+  "NaN",
+  "Promise",
+  "boolean",
+  "byte",
+  "double",
+  "false",
+  "float",
+  "implements",
+  "legacyiterable",
+  "long",
+  "mixin",
+  "null",
+  "octet",
+  "optional",
+  "or",
+  "readonly",
+  "record",
+  "sequence",
+  "short",
+  "true",
+  "unsigned",
+  "void"
+].concat(argumentNameKeywords, stringTypes);
+
+const punctuations = [
+  "(",
+  ")",
+  ",",
+  "...",
+  ":",
+  ";",
+  "<",
+  "=",
+  ">",
+  "?",
+  "[",
+  "]",
+  "{",
+  "}"
+];
+
+/**
+ * @param {string} str
+ */
+function tokenise(str) {
+  const tokens = [];
+  let lastCharIndex = 0;
+  let trivia = "";
+  let line = 1;
+  let index = 0;
+  while (lastCharIndex < str.length) {
+    const nextChar = str.charAt(lastCharIndex);
+    let result = -1;
+
+    if (/[\t\n\r ]/.test(nextChar)) {
+      result = attemptTokenMatch("whitespace", { noFlushTrivia: true });
+    } else if (nextChar === '/') {
+      result = attemptTokenMatch("comment", { noFlushTrivia: true });
+    }
+
+    if (result !== -1) {
+      const currentTrivia = tokens.pop().value;
+      line += (currentTrivia.match(/\n/g) || []).length;
+      trivia += currentTrivia;
+      index -= 1;
+    } else if (/[-0-9.A-Z_a-z]/.test(nextChar)) {
+      result = attemptTokenMatch("decimal");
+      if (result === -1) {
+        result = attemptTokenMatch("integer");
+      }
+      if (result === -1) {
         result = attemptTokenMatch("identifier");
         const token = tokens[tokens.length - 1];
         if (result !== -1 && nonRegexTerminals.includes(token.value)) {
           token.type = token.value;
         }
-      } else if (nextChar === '"') {
-        result = attemptTokenMatch("string");
       }
-
-      for (const punctuation of punctuations) {
-        if (str.startsWith(punctuation, lastIndex)) {
-          tokens.push({ type: punctuation, value: punctuation, trivia });
-          trivia = "";
-          lastIndex += punctuation.length;
-          result = lastIndex;
-          break;
-        }
-      }
-
-      // other as the last try
-      if (result === -1) {
-        result = attemptTokenMatch("other");
-      }
-      if (result === -1) {
-        throw new Error("Token stream not progressing");
-      }
-      lastIndex = result;
+    } else if (nextChar === '"') {
+      result = attemptTokenMatch("string");
     }
-    return tokens;
 
-    function attemptTokenMatch(type, { noFlushTrivia } = {}) {
-      const re = tokenRe[type];
-      re.lastIndex = lastIndex;
-      const result = re.exec(str);
-      if (result) {
-        tokens.push({ type, value: result[0], trivia });
-        if (!noFlushTrivia) {
-          trivia = "";
-        }
-        return re.lastIndex;
+    for (const punctuation of punctuations) {
+      if (str.startsWith(punctuation, lastCharIndex)) {
+        tokens.push({ type: punctuation, value: punctuation, trivia, line, index });
+        trivia = "";
+        lastCharIndex += punctuation.length;
+        result = lastCharIndex;
+        break;
       }
-      return -1;
+    }
+
+    // other as the last try
+    if (result === -1) {
+      result = attemptTokenMatch("other");
+    }
+    if (result === -1) {
+      throw new Error("Token stream not progressing");
+    }
+    lastCharIndex = result;
+    index += 1;
+  }
+
+  // remaining trivia as eof
+  tokens.push({
+    type: "eof",
+    value: "",
+    trivia
+  });
+
+  return tokens;
+
+  /**
+   * @param {keyof tokenRe} type
+   * @param {object} [options]
+   * @param {boolean} [options.noFlushTrivia]
+   */
+  function attemptTokenMatch(type, { noFlushTrivia } = {}) {
+    const re = tokenRe[type];
+    re.lastIndex = lastCharIndex;
+    const result = re.exec(str);
+    if (result) {
+      tokens.push({ type, value: result[0], trivia, line, index });
+      if (!noFlushTrivia) {
+        trivia = "";
+      }
+      return re.lastIndex;
+    }
+    return -1;
+  }
+}
+
+class Tokeniser {
+  /**
+   * @param {string} idl
+   */
+  constructor(idl) {
+    this.source = tokenise(idl);
+    this.position = 0;
+  }
+
+  /**
+   * @param {string} message
+   */
+  error(message) {
+    throw new WebIDLParseError(Object(_error_js__WEBPACK_IMPORTED_MODULE_0__["syntaxError"])(this.source, this.position, this.current, message));
+  }
+
+  /**
+   * @param {string} type
+   */
+  probe(type) {
+    return this.source.length > this.position && this.source[this.position].type === type;
+  }
+
+  /**
+   * @param  {...string} candidates
+   */
+  consume(...candidates) {
+    for (const type of candidates) {
+      if (!this.probe(type)) continue;
+      const token = this.source[this.position];
+      this.position++;
+      return token;
     }
   }
 
-  class WebIDLParseError {
-    constructor(str, line, input, tokens) {
-      this.message = str;
-      this.line = line;
-      this.input = input;
-      this.tokens = tokens;
-    }
+  /**
+   * @param {number} position
+   */
+  unconsume(position) {
+    this.position = position;
+  }
+}
 
-    toString() {
-      const escapedInput = JSON.stringify(this.input);
-      const tokens = JSON.stringify(this.tokens, null, 4);
-      return `${this.message}, line ${this.line} (tokens: ${escapedInput})\n${tokens}`;
-    }
+class WebIDLParseError extends Error {
+  constructor({ message, line, input, tokens }) {
+    super(message);
+    this.name = "WebIDLParseError"; // not to be mangled
+    this.line = line;
+    this.input = input;
+    this.tokens = tokens;
+  }
+}
+
+
+/***/ }),
+/* 4 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "syntaxError", function() { return syntaxError; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "validationError", function() { return validationError; });
+/**
+ * @param {string} text
+ */
+function lastLine(text) {
+  const splitted = text.split("\n");
+  return splitted[splitted.length - 1];
+}
+
+/**
+ * @param {string} message error message
+ * @param {"Syntax" | "Validation"} type error type
+ */
+function error(source, position, current, message, type) {
+  /**
+   * @param {number} count
+   */
+  function sliceTokens(count) {
+    return count > 0 ?
+      source.slice(position, position + count) :
+      source.slice(Math.max(position + count, 0), position);
   }
 
-  function parse(tokens) {
-    let line = 1;
-    tokens = tokens.slice();
-    const names = new Map();
-    let current = null;
-
-    const FLOAT = "float";
-    const INT = "integer";
-    const ID = "identifier";
-    const STR = "string";
-    const OTHER = "other";
-
-    const EMPTY_OPERATION = Object.freeze({
-      type: "operation",
-      getter: false,
-      setter: false,
-      deleter: false,
-      static: false,
-      stringifier: false
-    });
-
-    const EMPTY_IDLTYPE = Object.freeze({
-      generic: null,
-      nullable: false,
-      union: false,
-      idlType: null,
-      extAttrs: []
-    });
-
-    function error(str) {
-      const maxTokens = 5;
-      const tok = tokens
-        .slice(consume_position, consume_position + maxTokens)
-        .map(t => t.trivia + t.value).join("");
-      // Count newlines preceding the actual erroneous token
-      if (tokens.length) {
-        line += count(tokens[consume_position].trivia, "\n");
-      }
-
-      let message;
-      if (current) {
-        message = `Got an error during or right after parsing \`${current.partial ? "partial " : ""}${current.type} ${current.name}\`: ${str}`
-      }
-      else {
-        // throwing before any valid definition
-        message = `Got an error before parsing any named definition: ${str}`;
-      }
-
-      throw new WebIDLParseError(message, line, tok, tokens.slice(0, maxTokens));
+  function tokensToText(inputs, { precedes } = {}) {
+    const text = inputs.map(t => t.trivia + t.value).join("");
+    const nextToken = source[position];
+    if (nextToken.type === "eof") {
+      return text;
     }
-
-    function sanitize_name(name, type) {
-      if (names.has(name)) {
-        error(`The name "${name}" of type "${names.get(name)}" is already seen`);
-      }
-      names.set(name, type);
-      return name;
+    if (precedes) {
+      return text + nextToken.trivia;
     }
-
-    let consume_position = 0;
-
-    function probe(type) {
-      return tokens.length > consume_position && tokens[consume_position].type === type;
-    }
-
-    function consume(...candidates) {
-      // TODO: use const when Servo updates its JS engine
-      for (let type of candidates) {
-        if (!probe(type)) continue;
-        const token = tokens[consume_position];
-        consume_position++;
-        line += count(token.trivia, "\n");
-        return token;
-      }
-    }
-
-    function unescape(identifier) {
-      return identifier.startsWith('_') ? identifier.slice(1) : identifier;
-    }
-
-    function unconsume(position) {
-      while (consume_position > position) {
-        consume_position--;
-        line -= count(tokens[consume_position].trivia, "\n");
-      }
-    }
-
-    function count(str, char) {
-      let total = 0;
-      for (let i = str.indexOf(char); i !== -1; i = str.indexOf(char, i + 1)) {
-        ++total;
-      }
-      return total;
-    }
-
-    function integer_type() {
-      let ret = "";
-      if (consume("unsigned")) ret = "unsigned ";
-      if (consume("short")) return ret + "short";
-      if (consume("long")) {
-        ret += "long";
-        if (consume("long")) return ret + " long";
-        return ret;
-      }
-      if (ret) error("Failed to parse integer type");
-    }
-
-    function float_type() {
-      let ret = "";
-      if (consume("unrestricted")) ret = "unrestricted ";
-      if (consume("float")) return ret + "float";
-      if (consume("double")) return ret + "double";
-      if (ret) error("Failed to parse float type");
-    }
-
-    function primitive_type() {
-      const num_type = integer_type() || float_type();
-      if (num_type) return num_type;
-      if (consume("boolean")) return "boolean";
-      if (consume("byte")) return "byte";
-      if (consume("octet")) return "octet";
-    }
-
-    function const_value() {
-      if (consume("true")) return { type: "boolean", value: true };
-      if (consume("false")) return { type: "boolean", value: false };
-      if (consume("null")) return { type: "null" };
-      if (consume("Infinity")) return { type: "Infinity", negative: false };
-      if (consume("-Infinity")) return { type: "Infinity", negative: true };
-      if (consume("NaN")) return { type: "NaN" };
-      const ret = consume(FLOAT, INT);
-      if (ret) return { type: "number", value: ret.value };
-    }
-
-    function type_suffix(obj) {
-      obj.nullable = !!consume("?");
-      if (probe("?")) error("Can't nullable more than once");
-    }
-
-    function generic_type(typeName) {
-      const name = consume("FrozenArray", "Promise", "sequence", "record");
-      if (!name) {
-        return;
-      }
-      const ret = { generic: name.type };
-      consume("<") || error(`No opening bracket after ${name.type}`);
-      switch (name.type) {
-        case "Promise":
-          if (probe("[")) error("Promise type cannot have extended attribute");
-          ret.idlType = return_type(typeName);
-          break;
-        case "sequence":
-        case "FrozenArray":
-          ret.idlType = type_with_extended_attributes(typeName);
-          break;
-        case "record":
-          if (probe("[")) error("Record key cannot have extended attribute");
-          ret.idlType = [];
-          const keyType = consume(...stringTypes);
-          if (!keyType) error(`Record key must be a string type`);
-          ret.idlType.push(Object.assign({ type: typeName }, EMPTY_IDLTYPE, { idlType: keyType.value }));
-          consume(",") || error("Missing comma after record key type");
-          const valueType = type_with_extended_attributes(typeName) || error("Error parsing generic type record");
-          ret.idlType.push(valueType);
-          break;
-      }
-      if (!ret.idlType) error(`Error parsing generic type ${name.type}`);
-      consume(">") || error(`Missing closing bracket after ${name.type}`);
-      if (name.type === "Promise" && probe("?")) {
-        error("Promise type cannot be nullable");
-      }
-      type_suffix(ret);
-      return ret;
-    }
-
-    function single_type(typeName) {
-      const ret = Object.assign({ type: typeName || null }, EMPTY_IDLTYPE);
-      const generic = generic_type(typeName);
-      if (generic) {
-        return Object.assign(ret, generic);
-      }
-      const prim = primitive_type();
-      let name;
-      if (prim) {
-        ret.idlType = prim;
-      } else if (name = consume(ID, ...stringTypes)) {
-        ret.idlType = name.value;
-        if (probe("<")) error(`Unsupported generic type ${name.value}`);
-      } else {
-        return;
-      }
-      type_suffix(ret);
-      if (ret.nullable && ret.idlType === "any") error("Type any cannot be made nullable");
-      return ret;
-    }
-
-    function union_type(typeName) {
-      if (!consume("(")) return;
-      const ret = Object.assign({ type: typeName || null }, EMPTY_IDLTYPE, { union: true, idlType: [] });
-      do {
-        const typ = type_with_extended_attributes() || error("No type after open parenthesis or 'or' in union type");
-        ret.idlType.push(typ);
-      } while (consume("or"));
-      if (ret.idlType.length < 2) {
-        error("At least two types are expected in a union type but found less");
-      }
-      if (!consume(")")) error("Unterminated union type");
-      type_suffix(ret);
-      return ret;
-    }
-
-    function type(typeName) {
-      return single_type(typeName) || union_type(typeName);
-    }
-
-    function type_with_extended_attributes(typeName) {
-      const extAttrs = extended_attrs();
-      const ret = single_type(typeName) || union_type(typeName);
-      if (extAttrs.length && ret) ret.extAttrs = extAttrs;
-      return ret;
-    }
-
-    function argument() {
-      const start_position = consume_position;
-      const ret = { optional: false, variadic: false, default: null };
-      ret.extAttrs = extended_attrs();
-      const opt_token = consume("optional");
-      if (opt_token) {
-        ret.optional = true;
-      }
-      ret.idlType = type_with_extended_attributes("argument-type");
-      if (!ret.idlType) {
-        unconsume(start_position);
-        return;
-      }
-      if (!ret.optional && consume("...")) {
-        ret.variadic = true;
-      }
-      const name = consume(ID, ...argumentNameKeywords);
-      if (!name) {
-        unconsume(start_position);
-        return;
-      }
-      ret.name = unescape(name.value);
-      ret.escapedName = name.value;
-      if (ret.optional) {
-        ret.default = default_() || null;
-      }
-      return ret;
-    }
-
-    function argument_list() {
-      const ret = [];
-      const arg = argument();
-      if (!arg) return ret;
-      ret.push(arg);
-      while (true) {
-        if (!consume(",")) return ret;
-        const nxt = argument() || error("Trailing comma in arguments list");
-        ret.push(nxt);
-      }
-    }
-
-    function simple_extended_attr() {
-      const name = consume(ID);
-      if (!name) return;
-      const ret = {
-        name: name.value,
-        arguments: null,
-        type: "extended-attribute",
-        rhs: null
-      };
-      const eq = consume("=");
-      if (eq) {
-        ret.rhs = consume(ID, FLOAT, INT, STR);
-        if (ret.rhs) {
-          // No trivia exposure yet
-          ret.rhs.trivia = undefined;
-        }
-      }
-      if (consume("(")) {
-        if (eq && !ret.rhs) {
-          // [Exposed=(Window,Worker)]
-          ret.rhs = {
-            type: "identifier-list",
-            value: identifiers()
-          };
-        }
-        else {
-          // [NamedConstructor=Audio(DOMString src)] or [Constructor(DOMString str)]
-          ret.arguments = argument_list();
-        }
-        consume(")") || error("Unexpected token in extended attribute argument list");
-      }
-      if (eq && !ret.rhs) error("No right hand side to extended attribute assignment");
-      return ret;
-    }
-
-    // Note: we parse something simpler than the official syntax. It's all that ever
-    // seems to be used
-    function extended_attrs() {
-      const eas = [];
-      if (!consume("[")) return eas;
-      eas[0] = simple_extended_attr() || error("Extended attribute with not content");
-      while (consume(",")) {
-        eas.push(simple_extended_attr() || error("Trailing comma in extended attribute"));
-      }
-      consume("]") || error("No end of extended attribute");
-      return eas;
-    }
-
-    function default_() {
-      if (consume("=")) {
-        const def = const_value();
-        if (def) {
-          return def;
-        } else if (consume("[")) {
-          if (!consume("]")) error("Default sequence value must be empty");
-          return { type: "sequence", value: [] };
-        } else {
-          const str = consume(STR) || error("No value for default");
-          str.value = str.value.slice(1, -1);
-          // No trivia exposure yet
-          str.trivia = undefined;
-          return str;
-        }
-      }
-    }
-
-    function const_() {
-      if (!consume("const")) return;
-      const ret = { type: "const", nullable: false };
-      let typ = primitive_type();
-      if (!typ) {
-        typ = consume(ID) || error("No type for const");
-        typ = typ.value;
-      }
-      ret.idlType = Object.assign({ type: "const-type" }, EMPTY_IDLTYPE, { idlType: typ });
-      type_suffix(ret);
-      const name = consume(ID) || error("No name for const");
-      ret.name = name.value;
-      consume("=") || error("No value assignment for const");
-      const cnt = const_value();
-      if (cnt) ret.value = cnt;
-      else error("No value for const");
-      consume(";") || error("Unterminated const");
-      return ret;
-    }
-
-    function inheritance() {
-      if (consume(":")) {
-        const inh = consume(ID) || error("No type in inheritance");
-        return inh.value;
-      }
-    }
-
-    function operation_rest(ret) {
-      if (!ret) ret = {};
-      const name = consume(ID);
-      ret.name = name ? unescape(name.value) : null;
-      ret.escapedName = name ? name.value : null;
-      consume("(") || error("Invalid operation");
-      ret.arguments = argument_list();
-      consume(")") || error("Unterminated operation");
-      consume(";") || error("Unterminated operation");
-      return ret;
-    }
-
-    function callback() {
-      let ret;
-      if (!consume("callback")) return;
-      const tok = consume("interface");
-      if (tok) {
-        ret = interface_rest(false, "callback interface");
-        return ret;
-      }
-      const name = consume(ID) || error("No name for callback");
-      ret = current = { type: "callback", name: sanitize_name(name.value, "callback") };
-      consume("=") || error("No assignment in callback");
-      ret.idlType = return_type() || error("Missing return type");
-      consume("(") || error("No arguments in callback");
-      ret.arguments = argument_list();
-      consume(")") || error("Unterminated callback");
-      consume(";") || error("Unterminated callback");
-      return ret;
-    }
-
-    function attribute({ noInherit = false, readonly = false } = {}) {
-      const start_position = consume_position;
-      const ret = {
-        type: "attribute",
-        static: false,
-        stringifier: false,
-        inherit: false,
-        readonly: false
-      };
-      if (!noInherit && consume("inherit")) {
-        ret.inherit = true;
-      }
-      if (consume("readonly")) {
-        ret.readonly = true;
-      } else if (readonly && probe("attribute")) {
-        error("Attributes must be readonly in this context");
-      }
-      const rest = attribute_rest(ret);
-      if (!rest) {
-        unconsume(start_position);
-      }
-      return rest;
-    }
-
-    function attribute_rest(ret) {
-      if (!consume("attribute")) {
-        return;
-      }
-      ret.idlType = type_with_extended_attributes("attribute-type") || error("No type in attribute");
-      if (ret.idlType.generic === "sequence") error("Attributes cannot accept sequence types");
-      if (ret.idlType.generic === "record") error("Attributes cannot accept record types");
-      const name = consume(ID, "required") || error("No name in attribute");
-      ret.name = unescape(name.value);
-      ret.escapedName = name.value;
-      consume(";") || error("Unterminated attribute");
-      return ret;
-    }
-
-    function return_type(typeName) {
-      const typ = type(typeName || "return-type");
-      if (typ) {
-        return typ;
-      }
-      if (consume("void")) {
-        return Object.assign({ type: "return-type" }, EMPTY_IDLTYPE, { idlType: "void" });
-      }
-    }
-
-    function operation({ regular = false } = {}) {
-      const ret = Object.assign({}, EMPTY_OPERATION);
-      while (!regular) {
-        if (consume("getter")) ret.getter = true;
-        else if (consume("setter")) ret.setter = true;
-        else if (consume("deleter")) ret.deleter = true;
-        else break;
-      }
-      ret.idlType = return_type() || error("Missing return type");
-      operation_rest(ret);
-      return ret;
-    }
-
-    function static_member() {
-      if (!consume("static")) return;
-      const member = attribute({ noInherit: true }) ||
-        operation({ regular: true }) ||
-        error("No body in static member");
-      member.static = true;
-      return member;
-    }
-
-    function stringifier() {
-      if (!consume("stringifier")) return;
-      if (consume(";")) {
-        return Object.assign({}, EMPTY_OPERATION, { stringifier: true });
-      }
-      const member = attribute({ noInherit: true }) ||
-        operation({ regular: true }) ||
-        error("Unterminated stringifier");
-      member.stringifier = true;
-      return member;
-    }
-
-    function identifiers() {
-      const arr = [];
-      const id = consume(ID);
-      if (id) {
-        arr.push(id.value);
-      }
-      else error("Expected identifiers but not found");
-      while (true) {
-        if (consume(",")) {
-          const name = consume(ID) || error("Trailing comma in identifiers list");
-          arr.push(name.value);
-        } else break;
-      }
-      return arr;
-    }
-
-    function iterable_type() {
-      if (consume("iterable")) return "iterable";
-      else if (consume("legacyiterable")) return "legacyiterable";
-      else if (consume("maplike")) return "maplike";
-      else if (consume("setlike")) return "setlike";
-      else return;
-    }
-
-    function readonly_iterable_type() {
-      if (consume("maplike")) return "maplike";
-      else if (consume("setlike")) return "setlike";
-      else return;
-    }
-
-    function iterable() {
-      const start_position = consume_position;
-      const ret = { type: null, idlType: null, readonly: false };
-      if (consume("readonly")) {
-        ret.readonly = true;
-      }
-      const consumeItType = ret.readonly ? readonly_iterable_type : iterable_type;
-
-      const ittype = consumeItType();
-      if (!ittype) {
-        unconsume(start_position);
-        return;
-      }
-
-      const secondTypeRequired = ittype === "maplike";
-      const secondTypeAllowed = secondTypeRequired || ittype === "iterable";
-      ret.type = ittype;
-      if (ret.type !== 'maplike' && ret.type !== 'setlike')
-        delete ret.readonly;
-      if (consume("<")) {
-        ret.idlType = [type_with_extended_attributes()] || error(`Error parsing ${ittype} declaration`);
-        if (secondTypeAllowed) {
-          if (consume(",")) {
-            ret.idlType.push(type_with_extended_attributes());
-          }
-          else if (secondTypeRequired)
-            error(`Missing second type argument in ${ittype} declaration`);
-        }
-        if (!consume(">")) error(`Unterminated ${ittype} declaration`);
-        if (!consume(";")) error(`Missing semicolon after ${ittype} declaration`);
-      } else
-        error(`Error parsing ${ittype} declaration`);
-
-      return ret;
-    }
-
-    function interface_rest(isPartial, typeName = "interface") {
-      const name = consume(ID) || error("No name for interface");
-      const mems = [];
-      const ret = current = {
-        type: typeName,
-        name: isPartial ? name.value : sanitize_name(name.value, "interface"),
-        partial: isPartial,
-        members: mems
-      };
-      if (!isPartial) ret.inheritance = inheritance() || null;
-      consume("{") || error("Bodyless interface");
-      while (true) {
-        if (consume("}")) {
-          consume(";") || error("Missing semicolon after interface");
-          return ret;
-        }
-        const ea = extended_attrs();
-        const mem = const_() ||
-          static_member() ||
-          stringifier() ||
-          iterable() ||
-          attribute() ||
-          operation() ||
-          error("Unknown member");
-        mem.extAttrs = ea;
-        ret.members.push(mem);
-      }
-    }
-
-    function mixin_rest(isPartial) {
-      if (!consume("mixin")) return;
-      const name = consume(ID) || error("No name for interface mixin");
-      const mems = [];
-      const ret = current = {
-        type: "interface mixin",
-        name: isPartial ? name.value : sanitize_name(name.value, "interface mixin"),
-        partial: isPartial,
-        members: mems
-      };
-      consume("{") || error("Bodyless interface mixin");
-      while (true) {
-        if (consume("}")) {
-          consume(";") || error("Missing semicolon after interface mixin");
-          return ret;
-        }
-        const ea = extended_attrs();
-        const mem = const_() ||
-          stringifier() ||
-          attribute({ noInherit: true }) ||
-          operation({ regular: true }) ||
-          error("Unknown member");
-        mem.extAttrs = ea;
-        ret.members.push(mem);
-      }
-    }
-
-    function interface_(isPartial) {
-      if (!consume("interface")) return;
-      return mixin_rest(isPartial) ||
-        interface_rest(isPartial) ||
-        error("Interface has no proper body");
-    }
-
-    function namespace(isPartial) {
-      if (!consume("namespace")) return;
-      const name = consume(ID) || error("No name for namespace");
-      const mems = [];
-      const ret = current = {
-        type: "namespace",
-        name: isPartial ? name.value : sanitize_name(name.value, "namespace"),
-        partial: isPartial,
-        members: mems
-      };
-      consume("{") || error("Bodyless namespace");
-      while (true) {
-        if (consume("}")) {
-          consume(";") || error("Missing semicolon after namespace");
-          return ret;
-        }
-        const ea = extended_attrs();
-        const mem = attribute({ noInherit: true, readonly: true }) ||
-          operation({ regular: true }) ||
-          error("Unknown member");
-        mem.extAttrs = ea;
-        ret.members.push(mem);
-      }
-    }
-
-    function partial() {
-      if (!consume("partial")) return;
-      const thing = dictionary(true) ||
-        interface_(true) ||
-        namespace(true) ||
-        error("Partial doesn't apply to anything");
-      return thing;
-    }
-
-    function dictionary(isPartial) {
-      if (!consume("dictionary")) return;
-      const name = consume(ID) || error("No name for dictionary");
-      const mems = [];
-      const ret = current = {
-        type: "dictionary",
-        name: isPartial ? name.value : sanitize_name(name.value, "dictionary"),
-        partial: isPartial,
-        members: mems
-      };
-      if (!isPartial) ret.inheritance = inheritance() || null;
-      consume("{") || error("Bodyless dictionary");
-      while (true) {
-        if (consume("}")) {
-          consume(";") || error("Missing semicolon after dictionary");
-          return ret;
-        }
-        const ea = extended_attrs();
-        const required = consume("required");
-        const typ = type_with_extended_attributes("dictionary-type") || error("No type for dictionary member");
-        const name = consume(ID) || error("No name for dictionary member");
-        const dflt = default_() || null;
-        if (required && dflt) error("Required member must not have a default");
-        const member = {
-          type: "field",
-          name: unescape(name.value),
-          escapedName: name.value,
-          required: !!required,
-          idlType: typ,
-          extAttrs: ea,
-          default: dflt
-        };
-        ret.members.push(member);
-        consume(";") || error("Unterminated dictionary member");
-      }
-    }
-
-    function enum_() {
-      if (!consume("enum")) return;
-      const name = consume(ID) || error("No name for enum");
-      const vals = [];
-      const ret = current = {
-        type: "enum",
-        name: sanitize_name(name.value, "enum"),
-        values: vals
-      };
-      consume("{") || error("No curly for enum");
-      let value_expected = true;
-      while (true) {
-        if (consume("}")) {
-          if (!ret.values.length) error("No value in enum");
-          consume(";") || error("No semicolon after enum");
-          return ret;
-        }
-        else if (!value_expected) {
-          error("No comma between enum values");
-        }
-        const val = consume(STR) || error("Unexpected value in enum");
-        val.value = val.value.slice(1, -1);
-        // No trivia exposure yet
-        val.trivia = undefined;
-        ret.values.push(val);
-        value_expected = !!consume(",");
-      }
-    }
-
-    function typedef() {
-      if (!consume("typedef")) return;
-      const ret = {
-        type: "typedef"
-      };
-      ret.idlType = type_with_extended_attributes("typedef-type") || error("No type in typedef");
-      const name = consume(ID) || error("No name in typedef");
-      ret.name = sanitize_name(name.value, "typedef");
-      current = ret;
-      consume(";") || error("Unterminated typedef");
-      return ret;
-    }
-
-    function implements_() {
-      const start_position = consume_position;
-      const target = consume(ID);
-      if (!target) return;
-      if (consume("implements")) {
-        const ret = {
-          type: "implements",
-          target: target.value
-        };
-        const imp = consume(ID) || error("Incomplete implements statement");
-        ret.implements = imp.value;
-        consume(";") || error("No terminating ; for implements statement");
-        return ret;
-      } else {
-        // rollback
-        unconsume(start_position);
-      }
-    }
-
-    function includes() {
-      const start_position = consume_position;
-      const target = consume(ID);
-      if (!target) return;
-      if (consume("includes")) {
-        const ret = {
-          type: "includes",
-          target: target.value
-        };
-        const imp = consume(ID) || error("Incomplete includes statement");
-        ret.includes = imp.value;
-        consume(";") || error("No terminating ; for includes statement");
-        return ret;
-      } else {
-        // rollback
-        unconsume(start_position);
-      }
-    }
-
-    function definition() {
-      return callback() ||
-        interface_(false) ||
-        partial() ||
-        dictionary(false) ||
-        enum_() ||
-        typedef() ||
-        implements_() ||
-        includes() ||
-        namespace(false);
-    }
-
-    function definitions() {
-      if (!tokens.length) return [];
-      const defs = [];
-      while (true) {
-        const ea = extended_attrs();
-        const def = definition();
-        if (!def) {
-          if (ea.length) error("Stray extended attributes");
-          break;
-        }
-        def.extAttrs = ea;
-        defs.push(def);
-      }
-      return defs;
-    }
-    const res = definitions();
-    if (consume_position < tokens.length) error("Unrecognised tokens");
-    return res;
+    return text.slice(nextToken.trivia.length);
   }
 
-  const obj = {
-    parse(str) {
-      const tokens = tokenise(str);
-      return parse(tokens);
-    }
+  const maxTokens = 5; // arbitrary but works well enough
+  const line =
+    source[position].type !== "eof" ? source[position].line :
+    source.length > 1 ? source[position - 1].line :
+    1;
+
+  const precedingLine = lastLine(
+    tokensToText(sliceTokens(-maxTokens), { precedes: true })
+  );
+
+  const subsequentTokens = sliceTokens(maxTokens);
+  const subsequentText = tokensToText(subsequentTokens);
+  const sobsequentLine = subsequentText.split("\n")[0];
+
+  const spaced = " ".repeat(precedingLine.length) + "^ " + message;
+  const contextualMessage = precedingLine + sobsequentLine + "\n" + spaced;
+
+  const contextType = type === "Syntax" ? "since" : "inside";
+  const grammaticalContext = current ? `, ${contextType} \`${current.partial ? "partial " : ""}${current.type} ${current.name}\`` : "";
+  return {
+    message: `${type} error at line ${line}${grammaticalContext}:\n${contextualMessage}`,
+    line,
+    input: subsequentText,
+    tokens: subsequentTokens
   };
+}
 
-  if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-    module.exports = obj;
-  } else if (typeof define === 'function' && define.amd) {
-    define([], () => obj);
-  } else {
-    (self || window).WebIDL2 = obj;
+/**
+ * @param {string} message error message
+ */
+function syntaxError(source, position, current, message) {
+  return error(source, position, current, message, "Syntax");
+}
+
+/**
+ * @param {string} message error message
+ */
+function validationError(source, token, current, message) {
+  return error(source, token.index, current, message, "Validation").message;
+}
+
+
+/***/ }),
+/* 5 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ArrayBase", function() { return ArrayBase; });
+class ArrayBase extends Array {
+  constructor({ source, tokens }) {
+    super();
+    Object.defineProperties(this, {
+      source: { value: source },
+      tokens: { value: tokens }
+    });
   }
-})();
+}
+
+
+/***/ }),
+/* 6 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Base", function() { return Base; });
+class Base {
+  constructor({ source, tokens }) {
+    Object.defineProperties(this, {
+      source: { value: source },
+      tokens: { value: tokens }
+    });
+  }
+
+  toJSON() {
+    const json = { type: undefined, name: undefined, inheritance: undefined };
+    let proto = this;
+    while (proto !== Object.prototype) {
+      const descMap = Object.getOwnPropertyDescriptors(proto);
+      for (const [key, value] of Object.entries(descMap)) {
+        if (value.enumerable || value.get) {
+          json[key] = this[key];
+        }
+      }
+      proto = Object.getPrototypeOf(proto);
+    }
+    return json;
+  }
+}
+
+
+/***/ }),
+/* 7 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Token", function() { return Token; });
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6);
+
+
+class Token extends _base_js__WEBPACK_IMPORTED_MODULE_0__["Base"] {
+  /**
+   * @param {import("../tokeniser").Tokeniser} tokeniser
+   * @param {string} type
+   */
+  static parser(tokeniser, type) {
+    return () => {
+      const value = tokeniser.consume(type);
+      if (value) {
+        return new Token({ source: tokeniser.source, tokens: { value } });
+      }
+    };
+  }
+
+  get value() {
+    return this.tokens.value.value;
+  }
+}
+
+
+/***/ }),
+/* 8 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Default", function() { return Default; });
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6);
+/* harmony import */ var _helpers_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(2);
+
+
+
+class Default extends _base_js__WEBPACK_IMPORTED_MODULE_0__["Base"] {
+  /**
+   * @param {import("../tokeniser").Tokeniser} tokeniser
+   */
+  static parse(tokeniser) {
+    const assign = tokeniser.consume("=");
+    if (!assign) {
+      return null;
+    }
+    const def = Object(_helpers_js__WEBPACK_IMPORTED_MODULE_1__["const_value"])(tokeniser) || tokeniser.consume("string", "null", "[") || tokeniser.error("No value for default");
+    const expression = [def];
+    if (def.type === "[") {
+      const close = tokeniser.consume("]") || tokeniser.error("Default sequence value must be empty");
+      expression.push(close);
+    }
+    return new Default({ source: tokeniser.source, tokens: { assign }, expression });
+  }
+
+  constructor({ source, tokens, expression }) {
+    super({ source, tokens });
+    Object.defineProperty(this, "expression", { value: expression });
+  }
+
+  get type() {
+    return Object(_helpers_js__WEBPACK_IMPORTED_MODULE_1__["const_data"])(this.expression[0]).type;
+  }
+  get value() {
+    return Object(_helpers_js__WEBPACK_IMPORTED_MODULE_1__["const_data"])(this.expression[0]).value;
+  }
+  get negative() {
+    return Object(_helpers_js__WEBPACK_IMPORTED_MODULE_1__["const_data"])(this.expression[0]).negative;
+  }
+}
+
+
+/***/ }),
+/* 9 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Enum", function() { return Enum; });
+/* harmony import */ var _helpers_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2);
+/* harmony import */ var _token_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7);
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(6);
+
+
+
+
+class EnumValue extends _token_js__WEBPACK_IMPORTED_MODULE_1__["Token"] {
+  /**
+   * @param {import("../tokeniser").Tokeniser} tokeniser
+   */
+  static parse(tokeniser) {
+    const value = tokeniser.consume("string");
+    if (value) {
+      return new EnumValue({ source: tokeniser.source, tokens: { value } });
+    }
+  }
+
+  get type() {
+    return "enum-value";
+  }
+  get value() {
+    return super.value.slice(1, -1);
+  }
+}
+
+class Enum extends _base_js__WEBPACK_IMPORTED_MODULE_2__["Base"] {
+  /**
+   * @param {import("../tokeniser").Tokeniser} tokeniser
+   */
+  static parse(tokeniser) {
+    const tokens = {};
+    tokens.base = tokeniser.consume("enum");
+    if (!tokens.base) {
+      return;
+    }
+    tokens.name = tokeniser.consume("identifier") || tokeniser.error("No name for enum");
+    const ret = tokeniser.current = new Enum({ source: tokeniser.source, tokens });
+    tokens.open = tokeniser.consume("{") || tokeniser.error("Bodyless enum");
+    ret.values = Object(_helpers_js__WEBPACK_IMPORTED_MODULE_0__["list"])(tokeniser, {
+      parser: EnumValue.parse,
+      allowDangler: true,
+      listName: "enumeration"
+    });
+    if (tokeniser.probe("string")) {
+      tokeniser.error("No comma between enum values");
+    }
+    tokens.close = tokeniser.consume("}") || tokeniser.error("Unexpected value in enum");
+    if (!ret.values.length) {
+      tokeniser.error("No value in enum");
+    }
+    tokens.termination = tokeniser.consume(";") || tokeniser.error("No semicolon after enum");
+    return ret;
+  }
+
+  get type() {
+    return "enum";
+  }
+  get name() {
+    return Object(_helpers_js__WEBPACK_IMPORTED_MODULE_0__["unescape"])(this.tokens.name.value);
+  }
+}
+
+
+/***/ }),
+/* 10 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Includes", function() { return Includes; });
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6);
+/* harmony import */ var _helpers_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(2);
+
+
+
+class Includes extends _base_js__WEBPACK_IMPORTED_MODULE_0__["Base"] {
+  /**
+   * @param {import("../tokeniser").Tokeniser} tokeniser
+   */
+  static parse(tokeniser) {
+    const target = tokeniser.consume("identifier");
+    if (!target) {
+      return;
+    }
+    const tokens = { target };
+    tokens.includes = tokeniser.consume("includes");
+    if (!tokens.includes) {
+      tokeniser.unconsume(target.index);
+      return;
+    }
+    tokens.mixin = tokeniser.consume("identifier") || tokeniser.error("Incomplete includes statement");
+    tokens.termination = tokeniser.consume(";") || tokeniser.error("No terminating ; for includes statement");
+    return new Includes({ source: tokeniser.source, tokens });
+  }
+
+  get type() {
+    return "includes";
+  }
+  get target() {
+    return Object(_helpers_js__WEBPACK_IMPORTED_MODULE_1__["unescape"])(this.tokens.target.value);
+  }
+  get includes() {
+    return Object(_helpers_js__WEBPACK_IMPORTED_MODULE_1__["unescape"])(this.tokens.mixin.value);
+  }
+}
+
+
+/***/ }),
+/* 11 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "write", function() { return write; });
+
+
+function noop(arg) {
+  return arg;
+}
+
+const templates = {
+  wrap: items => items.join(""),
+  trivia: noop,
+  name: noop,
+  reference: noop,
+  type: noop,
+  generic: noop,
+  inheritance: noop,
+  definition: noop,
+  extendedAttribute: noop,
+  extendedAttributeReference: noop
+};
+
+function write(ast, { templates: ts = templates } = {}) {
+  ts = Object.assign({}, templates, ts);
+
+  function reference(raw, { unescaped, context }) {
+    if (!unescaped) {
+      unescaped = raw.startsWith("_") ? raw.slice(1) : raw;
+    }
+    return ts.reference(raw, unescaped, context);
+  }
+
+  function token(t, wrapper = noop, ...args) {
+    if (!t) {
+      return "";
+    }
+    const value = wrapper(t.value, ...args);
+    return ts.wrap([ts.trivia(t.trivia), value]);
+  }
+
+  function reference_token(t, context) {
+    return token(t, reference, { context });
+  }
+
+  function name_token(t, arg) {
+    return token(t, ts.name, arg);
+  }
+
+  function type_body(it) {
+    if (it.union || it.generic) {
+      return ts.wrap([
+        token(it.tokens.base, ts.generic),
+        token(it.tokens.open),
+        ...it.subtype.map(type),
+        token(it.tokens.close)
+      ]);
+    }
+    const firstToken = it.tokens.prefix || it.tokens.base;
+    const prefix = it.tokens.prefix ? [
+      it.tokens.prefix.value,
+      ts.trivia(it.tokens.base.trivia)
+    ] : [];
+    const ref = reference(ts.wrap([
+      ...prefix,
+      it.tokens.base.value,
+      token(it.tokens.postfix)
+    ]), { unescaped: it.idlType, context: it });
+    return ts.wrap([ts.trivia(firstToken.trivia), ref]);
+  }
+  function type(it) {
+    return ts.wrap([
+      extended_attributes(it.extAttrs),
+      type_body(it),
+      token(it.tokens.nullable),
+      token(it.tokens.separator)
+    ]);
+  }
+  function default_(def) {
+    if (!def) {
+      return "";
+    }
+    return ts.wrap([
+      token(def.tokens.assign),
+      ...def.expression.map(t => token(t))
+    ]);
+  }
+  function argument(arg) {
+    return ts.wrap([
+      extended_attributes(arg.extAttrs),
+      token(arg.tokens.optional),
+      ts.type(type(arg.idlType)),
+      token(arg.tokens.variadic),
+      name_token(arg.tokens.name, { data: arg }),
+      default_(arg.default),
+      token(arg.tokens.separator)
+    ]);
+  }
+  function identifier(id, context) {
+    return ts.wrap([
+      reference_token(id.tokens.value, context),
+      token(id.tokens.separator)
+    ]);
+  }
+  function make_ext_at(it) {
+    const { rhsType } = it.params;
+    return ts.wrap([
+      ts.trivia(it.tokens.name.trivia),
+      ts.extendedAttribute(ts.wrap([
+        ts.extendedAttributeReference(it.name),
+        token(it.params.tokens.assign),
+        reference_token(it.params.tokens.secondaryName, it),
+        token(it.params.tokens.open),
+        ...!it.params.list ? [] :
+          it.params.list.map(
+            rhsType === "identifier-list" ? id => identifier(id, it) : argument
+          ),
+        token(it.params.tokens.close)
+      ])),
+      token(it.tokens.separator)
+    ]);
+  }
+  function extended_attributes(eats) {
+    if (!eats.length) return "";
+    return ts.wrap([
+      token(eats.tokens.open),
+      ...eats.map(make_ext_at),
+      token(eats.tokens.close)
+    ]);
+  }
+
+  function operation(it, parent) {
+    const body = it.idlType ? [
+      ts.type(type(it.idlType)),
+      name_token(it.tokens.name, { data: it, parent }),
+      token(it.tokens.open),
+      ts.wrap(it.arguments.map(argument)),
+      token(it.tokens.close),
+    ] : [];
+    return ts.definition(ts.wrap([
+      extended_attributes(it.extAttrs),
+      token(it.tokens.special),
+      ...body,
+      token(it.tokens.termination)
+    ]), { data: it, parent });
+  }
+
+  function attribute(it, parent) {
+    return ts.definition(ts.wrap([
+      extended_attributes(it.extAttrs),
+      token(it.tokens.special),
+      token(it.tokens.readonly),
+      token(it.tokens.base),
+      ts.type(type(it.idlType)),
+      name_token(it.tokens.name, { data: it, parent }),
+      token(it.tokens.termination)
+    ]), { data: it, parent });
+  }
+
+  function inheritance(inh) {
+    if (!inh.tokens.inheritance) {
+      return "";
+    }
+    return ts.wrap([
+      token(inh.tokens.colon),
+      ts.trivia(inh.tokens.inheritance.trivia),
+      ts.inheritance(reference(inh.tokens.inheritance.value, { context: inh }))
+    ]);
+  }
+
+  function container(it) {
+    return ts.definition(ts.wrap([
+      extended_attributes(it.extAttrs),
+      token(it.tokens.callback),
+      token(it.tokens.partial),
+      token(it.tokens.base),
+      token(it.tokens.mixin),
+      name_token(it.tokens.name, { data: it }),
+      inheritance(it),
+      token(it.tokens.open),
+      iterate(it.members, it),
+      token(it.tokens.close),
+      token(it.tokens.termination)
+    ]), { data: it });
+  }
+
+  function field(it, parent) {
+    return ts.definition(ts.wrap([
+      extended_attributes(it.extAttrs),
+      token(it.tokens.required),
+      ts.type(type(it.idlType)),
+      name_token(it.tokens.name, { data: it, parent }),
+      default_(it.default),
+      token(it.tokens.termination)
+    ]), { data: it, parent });
+  }
+  function const_(it, parent) {
+    return ts.definition(ts.wrap([
+      extended_attributes(it.extAttrs),
+      token(it.tokens.base),
+      ts.type(type(it.idlType)),
+      name_token(it.tokens.name, { data: it, parent }),
+      token(it.tokens.assign),
+      token(it.tokens.value),
+      token(it.tokens.termination)
+    ]), { data: it, parent });
+  }
+  function typedef(it) {
+    return ts.definition(ts.wrap([
+      extended_attributes(it.extAttrs),
+      token(it.tokens.base),
+      ts.type(type(it.idlType)),
+      name_token(it.tokens.name, { data: it }),
+      token(it.tokens.termination)
+    ]), { data: it });
+  }
+  function includes(it) {
+    return ts.definition(ts.wrap([
+      extended_attributes(it.extAttrs),
+      reference_token(it.tokens.target, it),
+      token(it.tokens.includes),
+      reference_token(it.tokens.mixin, it),
+      token(it.tokens.termination)
+    ]), { data: it });
+  }
+  function callback(it) {
+    return ts.definition(ts.wrap([
+      extended_attributes(it.extAttrs),
+      token(it.tokens.base),
+      name_token(it.tokens.name, { data: it }),
+      token(it.tokens.assign),
+      ts.type(type(it.idlType)),
+      token(it.tokens.open),
+      ...it.arguments.map(argument),
+      token(it.tokens.close),
+      token(it.tokens.termination),
+    ]), { data: it });
+  }
+  function enum_(it) {
+    return ts.definition(ts.wrap([
+      extended_attributes(it.extAttrs),
+      token(it.tokens.base),
+      name_token(it.tokens.name, { data: it }),
+      token(it.tokens.open),
+      iterate(it.values, it),
+      token(it.tokens.close),
+      token(it.tokens.termination)
+    ]), { data: it });
+  }
+  function enum_value(v, parent) {
+    return ts.wrap([
+      ts.trivia(v.tokens.value.trivia),
+      ts.definition(
+        ts.wrap(['"', ts.name(v.value, { data: v, parent }), '"']),
+        { data: v, parent }
+      ),
+      token(v.tokens.separator)
+    ]);
+  }
+  function iterable_like(it, parent) {
+    return ts.definition(ts.wrap([
+      extended_attributes(it.extAttrs),
+      token(it.tokens.readonly),
+      token(it.tokens.base, ts.generic),
+      token(it.tokens.open),
+      ts.wrap(it.idlType.map(type)),
+      token(it.tokens.close),
+      token(it.tokens.termination)
+    ]), { data: it, parent });
+  }
+  function eof(it) {
+    return ts.trivia(it.trivia);
+  }
+
+  const table = {
+    interface: container,
+    "interface mixin": container,
+    namespace: container,
+    operation,
+    attribute,
+    dictionary: container,
+    field,
+    const: const_,
+    typedef,
+    includes,
+    callback,
+    enum: enum_,
+    "enum-value": enum_value,
+    iterable: iterable_like,
+    legacyiterable: iterable_like,
+    maplike: iterable_like,
+    setlike: iterable_like,
+    "callback interface": container,
+    eof
+  };
+  function dispatch(it, parent) {
+    const dispatcher = table[it.type];
+    if (!dispatcher) {
+      throw new Error(`Type "${it.type}" is unsupported`);
+    }
+    return table[it.type](it, parent);
+  }
+  function iterate(things, parent) {
+    if (!things) return;
+    const results = things.map(thing => dispatch(thing, parent));
+    return ts.wrap(results);
+  }
+  return iterate(ast);
+}
+
+
+/***/ }),
+/* 12 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "validate", function() { return validate; });
+/* harmony import */ var _error_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4);
+
+
+
+
+function groupDefinitions(all) {
+  const unique = new Map();
+  const duplicates = new Set();
+  const partials = new Map();
+  for (const def of all) {
+    if (def.partial) {
+      const array = partials.get(def.name);
+      if (array) {
+        array.push(def);
+      } else {
+        partials.set(def.name, [def]);
+      }
+      continue;
+    }
+    if (!def.name) {
+      continue;
+    }
+    if (!unique.has(def.name)) {
+      unique.set(def.name, def);
+    } else {
+      duplicates.add(def);
+    }
+  }
+  return { all, unique, partials, duplicates };
+}
+
+function* checkDuplicatedNames({ unique, duplicates }) {
+  for (const dup of duplicates) {
+    const { name } = dup;
+    const message = `The name "${name}" of type "${unique.get(name).type}" was already seen`;
+    yield Object(_error_js__WEBPACK_IMPORTED_MODULE_0__["validationError"])(dup.source, dup.tokens.name, dup, message);
+  }
+}
+
+function* checkInterfaceMemberDuplication(defs) {
+  const interfaces = [...defs.unique.values()].filter(def => def.type === "interface");
+  const includesMap = getIncludesMap();
+
+  for (const i of interfaces) {
+    yield* forEachInterface(i);
+  }
+
+  function* forEachInterface(i) {
+    const opNames = new Set(getOperations(i).map(op => op.name));
+    const partials = defs.partials.get(i.name) || [];
+    const mixins = includesMap.get(i.name) || [];
+    for (const ext of [...partials, ...mixins]) {
+      const additions = getOperations(ext);
+      yield* forEachExtension(additions, opNames, ext, i);
+      for (const addition of additions) {
+        opNames.add(addition.name);
+      }
+    }
+  }
+
+  function* forEachExtension(additions, existings, ext, base) {
+    for (const addition of additions) {
+      const { name } = addition;
+      if (name && existings.has(name)) {
+        const message = `The operation "${name}" has already been defined for the base interface "${base.name}" either in itself or in a mixin`;
+        yield Object(_error_js__WEBPACK_IMPORTED_MODULE_0__["validationError"])(ext.source, addition.tokens.name, ext, message);
+      }
+    }
+  }
+
+  function getOperations(i) {
+    return i.members
+      .filter(({type}) => type === "operation");
+  }
+
+  function getIncludesMap() {
+    const map = new Map();
+    const includes = defs.all.filter(def => def.type === "includes");
+    for (const include of includes) {
+      const array = map.get(include.target);
+      const mixin = defs.unique.get(include.includes);
+      if (!mixin) {
+        continue;
+      }
+      if (array) {
+        array.push(mixin);
+      } else {
+        map.set(include.target, [mixin]);
+      }
+    }
+    return map;
+  }
+}
+
+function validate(ast) {
+  const defs = groupDefinitions(ast);
+  return [
+    ...checkDuplicatedNames(defs),
+    ...checkInterfaceMemberDuplication(defs)
+  ];
+}
+
+
+/***/ })
+/******/ ]);
+});
+//# sourceMappingURL=webidl2.js.map

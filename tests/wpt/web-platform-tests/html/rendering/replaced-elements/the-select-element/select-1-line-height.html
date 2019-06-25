@@ -26,9 +26,10 @@ select { line-height:100px; }
 <script>
 document.body.offsetHeight;
 var cv = window.getComputedStyle(document.querySelector('select')).lineHeight;
-if (cv == "normal" || parseInt(cv) > 50) {
+if (cv != "normal" && parseInt(cv) > 50) {
   document.body.appendChild(document.createTextNode(
-    "FAIL: got computed line-height '" + cv + "', expected a length <= 50px"));
+    "FAIL: got computed line-height '" + cv + "', " +
+    "expected 'normal' or a length <= 50px"));
 }</script>
 
 </body>

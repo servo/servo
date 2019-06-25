@@ -207,8 +207,9 @@ class TestEnvironment(object):
     def ensure_started(self):
         # Pause for a while to ensure that the server has a chance to start
         total_sleep_secs = 30
-        each_sleep_secs = 0.01
-        for _ in xrange(int(total_sleep_secs / each_sleep_secs)):
+        each_sleep_secs = 0.5
+        end_time = time.time() + total_sleep_secs
+        while time.time() < end_time:
             failed = self.test_servers()
             if not failed:
                 return
@@ -223,6 +224,7 @@ class TestEnvironment(object):
             for port, server in servers:
                 if self.test_server_port:
                     s = socket.socket()
+                    s.settimeout(0.1)
                     try:
                         s.connect((host, port))
                     except socket.error:

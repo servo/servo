@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Structured cloning of SharedArrayBuffers into windows using MessageChannel</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#structuredserialize">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-incrementer.js"></script>
+
+<div id="log"></div>
+
+<script>
+promise_test(t => {
+  return new Promise(resolve => {
+    const iframe = document.createElement("iframe");
+    window.onmessage = t.step_func((message) => {
+      // data will be a MessagePort
+      resolve(testSharingViaIncrementerScript(t, message.data, "window", message.data, "iframe"));
+    });
+    iframe.src = "resources/incrementer-iframe-messagechannel.html";
+    document.body.appendChild(iframe);
+  });
+}, "postMessaging to a same-origin iframe via MessageChannel allows them to see each others' modifications");
+</script>

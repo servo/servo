@@ -46,7 +46,7 @@ For example, on most UNIX-like systems, you can setup the hosts file with:
 
 And on Windows (this must be run in a PowerShell session with Administrator privileges):
 
-```bash
+```powershell
 python wpt make-hosts-file | Out-File $env:systemroot\System32\drivers\etc\hosts -Encoding ascii -Append
 ```
 

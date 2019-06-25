@@ -71,32 +71,34 @@ async_test(t => {
 
     t.step_timeout(() => {
         assertToastShown(toast);
-    }, 1999);
+    }, 2999);
 
     t.step_timeout(() => {
         assertToastNotShown(toast);
         t.done();
-    }, 2000);
+    }, 3000);
 
     t.add_cleanup(function() {
         toast.remove();
     });
-}, 'showToast closes after default duration of 2000ms');
+}, 'showToast closes after default duration of 3000ms');
+// FIXME: find a way to virtualize time instead of waiting 3000ms
+// BUG: https://github.com/web-platform-tests/wpt/issues/17489
 
 async_test(t => {
-    const toast = showToast('message', {duration: 1000});
+    const toast = showToast('message', {duration: 50});
 
     t.step_timeout(() => {
         assertToastShown(toast);
-    }, 999);
+    }, 49);
 
     t.step_timeout(() => {
         assertToastNotShown(toast);
         t.done();
-    }, 1000);
+    }, 50);
 
     t.add_cleanup(function() {
         toast.remove();
     });
-}, 'showToast closes after user specified 1000ms');
+}, 'showToast closes after user specified 50ms');
 </script>

@@ -99,7 +99,7 @@
         document.getElementById("test").style.backgroundSize = "15px auto";
         test(function() {
             assert_equals(getComputedStyle(document.getElementById("test"), null).getPropertyValue("background-size"),
-                "15px auto", "background-size supporting value");
+                "15px", "background-size supporting value");
         }, "background-size_length_auto");
 
         document.getElementById("test").style.backgroundSize = "15px 15px";
@@ -117,7 +117,7 @@
         document.getElementById("test").style.backgroundSize = "50% auto";
         test(function() {
             assert_equals(getComputedStyle(document.getElementById("test"), null).getPropertyValue("background-size"),
-                "50% auto", "background-size supporting value");
+                "50%", "background-size supporting value");
         }, "background-size_percentage_auto");
 
         document.getElementById("test").style.backgroundSize = "50% 15px";
