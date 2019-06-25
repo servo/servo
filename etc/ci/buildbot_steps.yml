@@ -5,18 +5,6 @@ env:
   SCCACHE_IDLE_TIMEOUT: "1200"
   GST_DEBUG: '3'
 
-linux-rel-intermittent:
- env:
-   CC: clang-4.0
-   CXX: clang++-4.0
- commands:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - ./etc/ci/clean_build_artifacts.sh
-  - ./mach build --release -p servo
-  - ./etc/ci/check_intermittents.sh --log-raw intermittents.log
-  - ./etc/ci/clean_build_artifacts.sh
-
 linux-rel-nogate:
  env:
    CC: clang-4.0
@@ -29,16 +17,6 @@ linux-rel-nogate:
   - python ./etc/ci/chaos_monkey_test.py
   - env RUSTFLAGS= bash ./etc/ci/mutation_test.sh
   - ./etc/ci/clean_build_artifacts.sh
-
-mac-rel-intermittent:
- env:
-   CC: /usr/local/opt/llvm/bin/clang
-   CXX: /usr/local/opt/llvm/bin/clang++
- commands:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
-  - ./etc/ci/check_intermittents.sh --log-raw intermittents.log
 
 linux-rel-wpt:
   env:
@@ -77,51 +55,6 @@ linux-rel-css:
     - bash ./etc/ci/lockfile_changed.sh
     - ./etc/ci/clean_build_artifacts.sh
 
-linux-nightly:
- env:
-  CC: clang-4.0
-  CXX: clang++-4.0
- commands:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - ./etc/ci/clean_build_artifacts.sh
-  - ./mach build --release -p servo
-  - ./mach test-perf
-  - python3 ./etc/ci/performance/download_buildbot_timings.py --verbose
-  - aws s3 sync --size-only --acl public-read ./etc/ci/performance/output s3://servo-perf
-  - rm -rf ./python/_virtualenv
-  - ./etc/ci/clean_build_artifacts.sh
-
-arm64:
- env:
-  AR: /usr/bin/aarch64-linux-gnu-ar
-  AS: /usr/bin/aarch64-linux-gnu-gcc
-  CC: /usr/bin/clang-4.0
-  CFLAGS: --target=aarch64-unknown-linux-gnu -I/usr/aarch64-linux-gnu/include/ -fuse-ld=/home/servo/buildbot/slave/arm64/build/support/arm64/fake-ld.sh -Wno-error=unused-command-line-argument
-  CPP: /usr/bin/clang-4.0 -E
-  CPPFLAGS: -I/usr/aarch64-linux-gnu/include
-  CXX: /usr/bin/clang++-4.0
-  CXXFLAGS: --target=aarch64-unknown-linux-gnu -I/usr/aarch64-linux-gnu/include/ -I/usr/aarch64-linux-gnu/include/c++/4.8.4/aarch64-linux-gnu -fuse-ld=/home/servo/buildbot/slave/arm64/build/support/arm64/fake-ld.sh -Wno-error=unused-command-line-argument
-  EXPAT_LIB_DIR: /usr/lib/aarch64-linux-gnu
-  HOST_CC: clang-4.0
-  # test-tidy doesn't like empty strings
-  HOST_CFLAGS: --target=x86_64-unknown-linux-gnu
-  HOST_CXX: clang++-4.0
-  # test-tidy doesn't like empty strings
-  HOST_CXXFLAGS: --target=x86_64-unknown-linux-gnu
-  LD: /usr/bin/aarch64-linux-gnu-ld
-  OBJCOPY: /usr/bin/aarch64-linux-gnu-objcopy
-  OBJDUMP: /usr/bin/aarch64-linux-gnu-objdump
-  RANLIB: /usr/bin/aarch64-linux-gnu-ranlib
-  STRIP: /usr/bin/aarch64-linux-gnu-strip
- commands:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - ./etc/ci/clean_build_artifacts.sh
-  - env --unset CC_aarch64-unknown-linux-gnu --unset CXX_aarch64-unknown-linux-gnu ./mach build --rel --target=aarch64-unknown-linux-gnu
-  - bash ./etc/ci/lockfile_changed.sh
-  - ./etc/ci/clean_build_artifacts.sh
-
 # Moved to Taskcluster
 linux-dev: []
 mac-dev-unit: []
@@ -140,6 +73,10 @@ windows-msvc-nightly: []
 mac-nightly: []
 magicleap-nightly: []
 magicleap: []
+linux-nightly: []
 
 # No longer maintained
 arm32: []
+arm64: []
+mac-rel-intermittent: []
+linux-rel-intermittent: []
