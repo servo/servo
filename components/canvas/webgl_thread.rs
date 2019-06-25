@@ -730,53 +730,6 @@ struct WebGLContextInfo {
     render_state: ContextRenderState,
 }
 
-/// This trait is used as a bridge between the `WebGLThreads` implementation and
-/// the WR ExternalImageHandler API implemented in the `WebGLExternalImageHandler` struct.
-/// `WebGLExternalImageHandler<T>` takes care of type conversions between WR and WebGL info (e.g keys, uvs).
-/// It uses this trait to notify lock/unlock messages and get the required info that WR needs.
-/// `WebGLThreads` receives lock/unlock message notifications and takes care of sending
-/// the unlock/lock messages to the appropiate `WebGLThread`.
-pub trait WebGLExternalImageApi {
-    fn lock(&mut self, ctx_id: WebGLContextId) -> (u32, Size2D<i32>);
-    fn unlock(&mut self, ctx_id: WebGLContextId);
-}
-
-/// WebRender External Image Handler implementation
-pub struct WebGLExternalImageHandler<T: WebGLExternalImageApi> {
-    handler: T,
-}
-
-impl<T: WebGLExternalImageApi> WebGLExternalImageHandler<T> {
-    pub fn new(handler: T) -> Self {
-        Self { handler: handler }
-    }
-}
-
-impl<T: WebGLExternalImageApi> webrender::ExternalImageHandler for WebGLExternalImageHandler<T> {
-    /// Lock the external image. Then, WR could start to read the image content.
-    /// The WR client should not change the image content until the unlock() call.
-    fn lock(
-        &mut self,
-        key: webrender_api::ExternalImageId,
-        _channel_index: u8,
-        _rendering: webrender_api::ImageRendering,
-    ) -> webrender::ExternalImage {
-        let ctx_id = WebGLContextId(key.0 as _);
-        let (texture_id, size) = self.handler.lock(ctx_id);
-
-        webrender::ExternalImage {
-            uv: webrender_api::TexelRect::new(0.0, size.height as f32, size.width as f32, 0.0),
-            source: webrender::ExternalImageSource::NativeTexture(texture_id),
-        }
-    }
-    /// Unlock the external image. The WR should not read the image content
-    /// after this call.
-    fn unlock(&mut self, key: webrender_api::ExternalImageId, _channel_index: u8) {
-        let ctx_id = WebGLContextId(key.0 as _);
-        self.handler.unlock(ctx_id);
-    }
-}
-
 /// Data about the linked DOM<->WebGLTexture elements.
 struct DOMToTextureData {
     context_id: WebGLContextId,

@@ -37,3 +37,4 @@ serde_bytes = "0.10"
 servo_config = {path = "../config"}
 webrender = {git = "https://github.com/servo/webrender"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_traits = {path = "../webrender_traits"}
