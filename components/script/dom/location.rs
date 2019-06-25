@@ -245,6 +245,7 @@ impl LocationMethods for Location {
         let url = self.window.get_url().into_url();
         // TODO: avoid double parse,
         // restructure set_url_component to accomodate various checks.
+        // https://github.com/servo/servo/issues/23522
         let mut try_parse = ServoUrl::from_url(url);
         UrlHelper::SetProtocol(&mut try_parse, value.clone());
         match try_parse.scheme().split(":").nth(0) {
