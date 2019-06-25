@@ -278,7 +278,7 @@ impl GenericPathBuilder for raqote::PathBuilder {
         end_angle: f32,
         anticlockwise: bool,
     ) {
-        unimplemented!();
+        self.arc(origin.x, origin.y, radius, start_angle, end_angle);
     }
     fn bezier_curve_to(
         &mut self,
@@ -286,10 +286,17 @@ impl GenericPathBuilder for raqote::PathBuilder {
         control_point2: &Point2D<f32>,
         control_point3: &Point2D<f32>,
     ) {
-        unimplemented!();
+        self.cubic_to(
+            control_point1.x,
+            control_point1.y,
+            control_point2.x,
+            control_point2.y,
+            control_point3.x,
+            control_point3.y,
+        );
     }
     fn close(&mut self) {
-        unimplemented!();
+        self.close();
     }
     fn ellipse(
         &mut self,
@@ -307,16 +314,16 @@ impl GenericPathBuilder for raqote::PathBuilder {
         unimplemented!();
     }
     fn line_to(&mut self, point: Point2D<f32>) {
-        unimplemented!();
+        self.line_to(point.x, point.y);
     }
     fn move_to(&mut self, point: Point2D<f32>) {
-        unimplemented!();
+        self.move_to(point.x, point.y);
     }
     fn quadratic_curve_to(&mut self, control_point: &Point2D<f32>, end_point: &Point2D<f32>) {
-        unimplemented!();
+        self.quad_to(control_point.x, control_point.y, end_point.x, end_point.y);
     }
     fn finish(&mut self) -> Path {
-        unimplemented!();
+        self.finish()
     }
 }
 
