@@ -535,7 +535,7 @@ def update_wpt():
             ./etc/ci/update-wpt-checkout open-pr
             ./etc/ci/update-wpt-checkout cleanup
         """)
-        .find_or_create("wpt_update." + CONFIG.task_id())
+        .create()
     )
 
 
