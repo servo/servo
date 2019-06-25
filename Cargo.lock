@@ -410,6 +410,7 @@ dependencies = [
  "servo_config 0.0.1",
  "webrender 0.60.0 (git+https://github.com/servo/webrender)",
  "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
+ "webrender_traits 0.0.1",
 ]
 
 [[package]]
@@ -2488,6 +2489,7 @@ dependencies = [
  "webdriver_server 0.0.1",
  "webrender 0.60.0 (git+https://github.com/servo/webrender)",
  "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
+ "webrender_traits 0.0.1",
  "webvr 0.0.1",
  "webvr_traits 0.0.1",
 ]
@@ -2673,6 +2675,7 @@ dependencies = [
  "servo_config 0.0.1",
  "webrender 0.60.0 (git+https://github.com/servo/webrender)",
  "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
+ "webrender_traits 0.0.1",
 ]
 
 [[package]]
@@ -5319,6 +5322,15 @@ version = "0.0.1"
 source = "git+https://github.com/servo/webrender#e53aae02728e155e555b8baa9d180d90dac3b86f"
 dependencies = [
  "sha2 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "webrender_traits"
+version = "0.0.1"
+dependencies = [
+ "euclid 0.19.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webrender 0.60.0 (git+https://github.com/servo/webrender)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]

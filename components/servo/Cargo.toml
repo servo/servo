@@ -76,6 +76,7 @@ style = {path = "../style", features = ["servo"]}
 style_traits = {path = "../style_traits", features = ["servo"]}
 webrender = {git = "https://github.com/servo/webrender"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_traits = {path = "../webrender_traits"}
 webdriver_server = {path = "../webdriver_server", optional = true}
 webvr = {path = "../webvr"}
 webvr_traits = {path = "../webvr_traits"}

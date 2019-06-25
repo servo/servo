@@ -50,6 +50,7 @@ pub use servo_url;
 pub use style;
 pub use style_traits;
 pub use webrender_api;
+pub use webrender_traits;
 pub use webvr;
 pub use webvr_traits;
 
@@ -112,6 +113,7 @@ use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::Rc;
 use webrender::{RendererKind, ShaderPrecacheFlags};
+use webrender_traits::{WebrenderExternalImageHandler, WebrenderImageHandlerType};
 use webvr::{VRServiceManager, WebVRCompositorHandler, WebVRThread};
 
 pub use gleam::gl;
@@ -678,9 +680,11 @@ fn create_constellation(
         GLContextFactory::current_native_handle(&compositor_proxy)
     };
 
+    let mut webrender_external_image_handler = Box::new(WebrenderExternalImageHandler::new());
+
     // Initialize WebGL Thread entry point.
     let webgl_threads = gl_factory.map(|factory| {
-        let (webgl_threads, _image_handler, output_handler) = WebGLThreads::new(
+        let (webgl_threads, image_handler, output_handler) = WebGLThreads::new(
             factory,
             window_gl,
             webrender_api_sender.clone(),
@@ -688,7 +692,8 @@ fn create_constellation(
         );
 
         // Set webrender external image handler for WebGL textures
-        //webrender.set_external_image_handler(image_handler);
+        webrender_external_image_handler
+            .set_handler(image_handler, WebrenderImageHandlerType::WebGL);
 
         // Set DOM to texture handler, if enabled.
         if let Some(output_handler) = output_handler {
@@ -702,10 +707,13 @@ fn create_constellation(
         GlContext::Unknown => None,
         _ => {
             let (glplayer_threads, image_handler) = GLPlayerThreads::new();
-            webrender.set_external_image_handler(image_handler);
+            webrender_external_image_handler
+                .set_handler(image_handler, WebrenderImageHandlerType::Media);
             Some(glplayer_threads)
         },
     };
+
+    webrender.set_external_image_handler(webrender_external_image_handler);
 
     let player_context = WindowGLContext {
         glplayer_chan: glplayer_threads.as_ref().map(|threads| threads.pipeline()),

@@ -13,16 +13,15 @@ extern crate log;
 #[macro_use]
 extern crate serde;
 
-use euclid::Size2D;
-use servo_media::player::context::{GlApi, GlContext, NativeDisplay, PlayerGLContext};
-
 mod media_channel;
 mod media_thread;
 
 pub use crate::media_channel::glplayer_channel;
-
 use crate::media_channel::{GLPlayerChan, GLPlayerPipeline, GLPlayerReceiver, GLPlayerSender};
-use crate::media_thread::{GLPlayerExternalImageApi, GLPlayerExternalImageHandler, GLPlayerThread};
+use crate::media_thread::GLPlayerThread;
+use euclid::Size2D;
+use servo_media::player::context::{GlApi, GlContext, NativeDisplay, PlayerGLContext};
+use webrender_traits::WebrenderExternalImageApi;
 
 /// These are the messages that the GLPlayer thread will forward to
 /// the video player which lives in htmlmediaelement
@@ -100,10 +99,9 @@ impl PlayerGLContext for WindowGLContext {
 pub struct GLPlayerThreads(GLPlayerSender<GLPlayerMsg>);
 
 impl GLPlayerThreads {
-    pub fn new() -> (GLPlayerThreads, Box<dyn webrender::ExternalImageHandler>) {
+    pub fn new() -> (GLPlayerThreads, Box<dyn WebrenderExternalImageApi>) {
         let channel = GLPlayerThread::start();
-        let external =
-            GLPlayerExternalImageHandler::new(GLPlayerExternalImages::new(channel.clone()));
+        let external = GLPlayerExternalImages::new(channel.clone());
         (GLPlayerThreads(channel), Box::new(external))
     }
 
@@ -146,7 +144,7 @@ impl GLPlayerExternalImages {
     }
 }
 
-impl GLPlayerExternalImageApi for GLPlayerExternalImages {
+impl WebrenderExternalImageApi for GLPlayerExternalImages {
     fn lock(&mut self, id: u64) -> (u32, Size2D<i32>) {
         // The GLPlayerMsgForward::Lock message inserts a fence in the
         // GLPlayer command queue.
