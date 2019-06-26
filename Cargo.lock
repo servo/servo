@@ -2434,7 +2434,7 @@ dependencies = [
  "libc 0.2.53 (registry+https://github.com/rust-lang/crates.io-index)",
  "libservo 0.0.1",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "rust-webvr 0.11.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rust-webvr 0.11.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "simpleservo 0.0.1",
  "smallvec 0.6.7 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3626,7 +3626,7 @@ dependencies = [
 
 [[package]]
 name = "rust-webvr"
-version = "0.11.4"
+version = "0.11.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bindgen 0.49.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3977,7 +3977,7 @@ dependencies = [
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "osmesa-src 0.1.0 (git+https://github.com/servo/osmesa-src)",
  "osmesa-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "rust-webvr 0.11.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rust-webvr 0.11.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "sig 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tinyfiledialogs 3.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5309,7 +5309,7 @@ dependencies = [
  "ipc-channel 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
- "rust-webvr 0.11.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rust-webvr 0.11.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "rust-webvr-api 0.11.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "script_traits 0.0.1",
  "servo_config 0.0.1",
@@ -5843,7 +5843,7 @@ dependencies = [
 "checksum regex-syntax 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)" = "dcfd8681eebe297b81d98498869d4aae052137651ad7b96822f09ceb690d0a96"
 "checksum remove_dir_all 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "4a83fa3702a688b9359eccba92d153ac33fd2e8462f9e0e3fdf155239ea7792e"
 "checksum ron 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "da06feaa07f69125ab9ddc769b11de29090122170b402547f64b86fe16ebc399"
-"checksum rust-webvr 0.11.4 (registry+https://github.com/rust-lang/crates.io-index)" = "829a995f41b762524b124f45ef2d9ec0391d63b362df6f7627ec391a6b579eaa"
+"checksum rust-webvr 0.11.5 (registry+https://github.com/rust-lang/crates.io-index)" = "08ab7221a7ed14bfb24d8cbbec61926b9a54881a66e32f24f3a0b2efbe56fa02"
 "checksum rust-webvr-api 0.11.4 (registry+https://github.com/rust-lang/crates.io-index)" = "c8eb1d528c0d05ebf44126775b38eb3ec543f35a24275bb0360e45e3e3e8da73"
 "checksum rustc-demangle 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "3058a43ada2c2d0b92b3ae38007a2d0fa5e9db971be260e0171408a4ff471c95"
 "checksum rustc_version 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
