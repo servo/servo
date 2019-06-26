@@ -207,8 +207,8 @@ impl ErrorInfo {
         })
     }
 
-    fn from_dom_exception(object: HandleObject) -> Option<ErrorInfo> {
-        let exception = match root_from_object::<DOMException>(object.get()) {
+    fn from_dom_exception(object: HandleObject, cx: *mut JSContext) -> Option<ErrorInfo> {
+        let exception = match root_from_object::<DOMException>(object.get(), cx) {
             Ok(exception) => exception,
             Err(_) => return None,
         };
@@ -242,7 +242,7 @@ pub unsafe fn report_pending_exception(cx: *mut JSContext, dispatch_event: bool)
     let error_info = if value.is_object() {
         rooted!(in(cx) let object = value.to_object());
         ErrorInfo::from_native_error(cx, object.handle())
-            .or_else(|| ErrorInfo::from_dom_exception(object.handle()))
+            .or_else(|| ErrorInfo::from_dom_exception(object.handle(), cx))
             .unwrap_or_else(|| ErrorInfo {
                 message: format!("uncaught exception: unknown (can't convert to string)"),
                 filename: String::new(),

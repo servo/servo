@@ -466,7 +466,7 @@ class CGMethodCall(CGThing):
 
             # Check for vanilla JS objects
             # XXXbz Do we need to worry about security wrappers?
-            pickFirstSignature("%s.get().is_object() && !is_platform_object(%s.get().to_object())" %
+            pickFirstSignature("%s.get().is_object() && !is_platform_object(%s.get().to_object(), cx)" %
                                (distinguishingArg, distinguishingArg),
                                lambda s: (s[1][distinguishingIndex].type.isCallback() or
                                           s[1][distinguishingIndex].type.isCallbackInterface() or
@@ -798,7 +798,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             { // Scope for our JSAutoRealm.
 
                 rooted!(in(cx) let globalObj = CurrentGlobalOrNull(cx));
-                let promiseGlobal = GlobalScope::from_object_maybe_wrapped(globalObj.handle().get());
+                let promiseGlobal = GlobalScope::from_object_maybe_wrapped(globalObj.handle().get(), cx);
 
                 rooted!(in(cx) let mut valueToResolve = $${val}.get());
                 if !JS_WrapValue(cx, valueToResolve.handle_mut()) {
@@ -866,7 +866,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         templateBody = fill(
             """
-            match ${function}($${val}) {
+            match ${function}($${val}, cx) {
                 Ok(val) => val,
                 Err(()) => {
                     $*{failureCode}
@@ -2158,8 +2158,8 @@ class CGDOMJSClass(CGThing):
 static CLASS_OPS: js::jsapi::JSClassOps = js::jsapi::JSClassOps {
     addProperty: None,
     delProperty: None,
-    enumerate: %(enumerateHook)s,
-    newEnumerate: None,
+    enumerate: None,
+    newEnumerate: %(enumerateHook)s,
     resolve: %(resolveHook)s,
     mayResolve: None,
     finalize: Some(%(finalizeHook)s),
@@ -3223,7 +3223,6 @@ let traps = ProxyTraps {
     set: None,
     call: None,
     construct: None,
-    getPropertyDescriptor: Some(get_property_descriptor),
     hasOwn: Some(hasOwn),
     getOwnEnumerablePropertyKeys: Some(%(getOwnEnumerablePropertyKeys)s),
     nativeCall: None,
@@ -4980,10 +4979,6 @@ class CGProxyUnwrap(CGAbstractMethod):
 
     def definition_body(self):
         return CGGeneric("""\
-/*if (xpc::WrapperFactory::IsXrayWrapper(obj)) {
-    obj = js::UnwrapObject(obj);
-}*/
-//MOZ_ASSERT(IsProxy(obj));
         let mut slot = UndefinedValue();
         GetProxyReservedSlot(obj.get(), 0, &mut slot);
         let box_ = slot.to_private() as *const %s;
@@ -5430,7 +5425,7 @@ class CGAbstractClassHook(CGAbstractExternMethod):
 
     def definition_body_prologue(self):
         return CGGeneric("""
-let this = native_from_object::<%s>(obj).unwrap();
+let this = native_from_object_static::<%s>(obj).unwrap();
 """ % self.descriptor.concreteType)
 
     def definition_body(self):
@@ -5530,7 +5525,7 @@ let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
 
 // The new_target might be a cross-compartment wrapper. Get the underlying object
 // so we can do the spec's object-identity checks.
-rooted!(in(cx) let new_target = UnwrapObject(args.new_target().to_object(), 1));
+rooted!(in(cx) let new_target = UnwrapObjectDynamic(args.new_target().to_object(), cx, 1));
 if new_target.is_null() {
     throw_dom_exception(cx, global.upcast::<GlobalScope>(), Error::Type("new.target is null".to_owned()));
     return false;
@@ -5877,7 +5872,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::glue::RUST_JSID_IS_STRING',
         'js::glue::RUST_SYMBOL_TO_JSID',
         'js::glue::int_to_jsid',
-        'js::glue::UnwrapObject',
+        'js::glue::UnwrapObjectDynamic',
         'js::panic::maybe_resume_unwind',
         'js::panic::wrap_panic',
         'js::rust::GCMethods',
@@ -5959,6 +5954,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::bindings::conversions::is_array_like',
         'crate::dom::bindings::conversions::native_from_handlevalue',
         'crate::dom::bindings::conversions::native_from_object',
+        'crate::dom::bindings::conversions::native_from_object_static',
         'crate::dom::bindings::conversions::private_from_object',
         'crate::dom::bindings::conversions::root_from_handleobject',
         'crate::dom::bindings::conversions::root_from_handlevalue',
@@ -5979,7 +5975,6 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::bindings::proxyhandler::ensure_expando_object',
         'crate::dom::bindings::proxyhandler::fill_property_descriptor',
         'crate::dom::bindings::proxyhandler::get_expando_object',
-        'crate::dom::bindings::proxyhandler::get_property_descriptor',
         'crate::dom::bindings::mozmap::MozMap',
         'std::ptr::NonNull',
         'crate::dom::bindings::num::Finite',

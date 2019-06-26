@@ -6,7 +6,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::conversions::{root_from_handleobject, ToJSValConvertible};
 use crate::dom::bindings::error::{throw_dom_exception, Error};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
+use crate::dom::bindings::proxyhandler::fill_property_descriptor;
 use crate::dom::bindings::reflector::{DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -712,7 +712,7 @@ unsafe fn GetSubframeWindowProxy(
         let mut slot = UndefinedValue();
         GetProxyPrivate(*proxy, &mut slot);
         rooted!(in(cx) let target = slot.to_object());
-        if let Ok(win) = root_from_handleobject::<Window>(target.handle()) {
+        if let Ok(win) = root_from_handleobject::<Window>(target.handle(), cx) {
             let browsing_context_id = win.window_proxy().browsing_context_id();
             let (result_sender, result_receiver) = ipc::channel().unwrap();
 
@@ -730,7 +730,9 @@ unsafe fn GetSubframeWindowProxy(
                 .and_then(|maybe_bcid| maybe_bcid)
                 .and_then(ScriptThread::find_window_proxy)
                 .map(|proxy| (proxy, (JSPROP_ENUMERATE | JSPROP_READONLY) as u32));
-        } else if let Ok(win) = root_from_handleobject::<DissimilarOriginWindow>(target.handle()) {
+        } else if let Ok(win) =
+            root_from_handleobject::<DissimilarOriginWindow>(target.handle(), cx)
+        {
             let browsing_context_id = win.window_proxy().browsing_context_id();
             let (result_sender, result_receiver) = ipc::channel().unwrap();
 
@@ -912,7 +914,6 @@ static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     set: Some(set),
     call: None,
     construct: None,
-    getPropertyDescriptor: Some(get_property_descriptor),
     hasOwn: None,
     getOwnEnumerablePropertyKeys: None,
     nativeCall: None,
@@ -1049,7 +1050,6 @@ static XORIGIN_PROXY_HANDLER: ProxyTraps = ProxyTraps {
     set: Some(set_xorigin),
     call: None,
     construct: None,
-    getPropertyDescriptor: Some(getOwnPropertyDescriptor_xorigin),
     hasOwn: Some(has_xorigin),
     getOwnEnumerablePropertyKeys: None,
     nativeCall: None,

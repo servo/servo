@@ -35,7 +35,7 @@ use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix};
 use js::conversions::ToJSValConvertible;
-use js::glue::UnwrapObject;
+use js::glue::UnwrapObjectStatic;
 use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor};
 use js::jsapi::{JSAutoRealm, JSContext, JSObject};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
@@ -259,7 +259,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
         // Step 1
         // We must unwrap the constructor as all wrappers are constructable if they are callable.
-        rooted!(in(cx) let unwrapped_constructor = unsafe { UnwrapObject(constructor.get(), 1) });
+        rooted!(in(cx) let unwrapped_constructor = unsafe { UnwrapObjectStatic(constructor.get()) });
 
         if unwrapped_constructor.is_null() {
             // We do not have permission to access the unwrapped constructor.

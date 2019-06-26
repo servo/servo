@@ -8,17 +8,13 @@
 
 use crate::dom::bindings::conversions::is_dom_proxy;
 use crate::dom::bindings::utils::delete_property_by_id;
-use js::glue::InvokeGetOwnPropertyDescriptor;
-use js::glue::{GetProxyHandler, GetProxyHandlerFamily};
+use js::glue::GetProxyHandlerFamily;
 use js::glue::{GetProxyPrivate, SetProxyPrivate};
-use js::jsapi::GetObjectProto;
 use js::jsapi::GetStaticPrototype;
 use js::jsapi::Handle as RawHandle;
 use js::jsapi::HandleId as RawHandleId;
 use js::jsapi::HandleObject as RawHandleObject;
 use js::jsapi::JS_DefinePropertyById;
-use js::jsapi::JS_GetPropertyDescriptorById;
-use js::jsapi::MutableHandle as RawMutableHandle;
 use js::jsapi::MutableHandleObject as RawMutableHandleObject;
 use js::jsapi::ObjectOpResult;
 use js::jsapi::{DOMProxyShadowsResult, JSContext, JSObject, PropertyDescriptor};
@@ -60,34 +56,6 @@ pub unsafe extern "C" fn shadow_check_callback(
 /// Initialize the infrastructure for DOM proxy objects.
 pub unsafe fn init() {
     SetDOMProxyInformation(GetProxyHandlerFamily(), Some(shadow_check_callback));
-}
-
-/// Invoke the [[GetOwnProperty]] trap (`getOwnPropertyDescriptor`) on `proxy`,
-/// with argument `id` and return the result, if it is not `undefined`.
-/// Otherwise, walk along the prototype chain to find a property with that
-/// name.
-pub unsafe extern "C" fn get_property_descriptor(
-    cx: *mut JSContext,
-    proxy: RawHandleObject,
-    id: RawHandleId,
-    desc: RawMutableHandle<PropertyDescriptor>,
-) -> bool {
-    let handler = GetProxyHandler(proxy.get());
-    if !InvokeGetOwnPropertyDescriptor(handler, cx, proxy, id, desc) {
-        return false;
-    }
-    if !desc.obj.is_null() {
-        return true;
-    }
-
-    rooted!(in(cx) let mut proto = ptr::null_mut::<JSObject>());
-    if !GetObjectProto(cx, proxy, proto.handle_mut().into()) {
-        // FIXME(#11868) Should assign to desc.obj, desc.get() is a copy.
-        desc.get().obj = ptr::null_mut();
-        return true;
-    }
-
-    JS_GetPropertyDescriptorById(cx, proto.handle().into(), id, desc)
 }
 
 /// Defines an expando on the given `proxy`.

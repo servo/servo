@@ -6,7 +6,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSourceBinding::EventSourceMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
-use crate::dom::bindings::conversions::root_from_object;
+use crate::dom::bindings::conversions::{root_from_object, root_from_object_static};
 use crate::dom::bindings::error::{report_pending_exception, ErrorInfo};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
@@ -41,7 +41,7 @@ use crate::timers::{OneshotTimers, TimerCallback};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use js::glue::{IsWrapper, UnwrapObject};
+use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::JSObject;
 use js::jsapi::{CurrentGlobalOrNull, GetNonCCWObjectGlobal};
 use js::jsapi::{HandleObject, Heap};
@@ -233,22 +233,25 @@ impl GlobalScope {
     pub unsafe fn from_object(obj: *mut JSObject) -> DomRoot<Self> {
         assert!(!obj.is_null());
         let global = GetNonCCWObjectGlobal(obj);
-        global_scope_from_global(global)
+        global_scope_from_global_static(global)
     }
 
     /// Returns the global scope for the given JSContext
     #[allow(unsafe_code)]
     pub unsafe fn from_context(cx: *mut JSContext) -> DomRoot<Self> {
         let global = CurrentGlobalOrNull(cx);
-        global_scope_from_global(global)
+        global_scope_from_global(global, cx)
     }
 
     /// Returns the global object of the realm that the given JS object
     /// was created in, after unwrapping any wrappers.
     #[allow(unsafe_code)]
-    pub unsafe fn from_object_maybe_wrapped(mut obj: *mut JSObject) -> DomRoot<Self> {
+    pub unsafe fn from_object_maybe_wrapped(
+        mut obj: *mut JSObject,
+        cx: *mut JSContext,
+    ) -> DomRoot<Self> {
         if IsWrapper(obj) {
-            obj = UnwrapObject(obj, /* stopAtWindowProxy = */ 0);
+            obj = UnwrapObjectDynamic(obj, cx, /* stopAtWindowProxy = */ 0);
             assert!(!obj.is_null());
         }
         GlobalScope::from_object(obj)
@@ -663,16 +666,23 @@ impl GlobalScope {
     }
 
     /// Perform a microtask checkpoint.
+    #[allow(unsafe_code)]
     pub fn perform_a_microtask_checkpoint(&self) {
-        self.microtask_queue.checkpoint(
-            |_| Some(DomRoot::from_ref(self)),
-            vec![DomRoot::from_ref(self)],
-        );
+        unsafe {
+            self.microtask_queue.checkpoint(
+                self.get_cx(),
+                |_| Some(DomRoot::from_ref(self)),
+                vec![DomRoot::from_ref(self)],
+            );
+        }
     }
 
     /// Enqueue a microtask for subsequent execution.
+    #[allow(unsafe_code)]
     pub fn enqueue_microtask(&self, job: Microtask) {
-        self.microtask_queue.enqueue(job);
+        unsafe {
+            self.microtask_queue.enqueue(job, self.get_cx());
+        }
     }
 
     /// Create a new sender/receiver pair that can be used to implement an on-demand
@@ -749,7 +759,7 @@ impl GlobalScope {
             if global.is_null() {
                 None
             } else {
-                Some(global_scope_from_global(global))
+                Some(global_scope_from_global(global, cx))
             }
         }
     }
@@ -797,12 +807,27 @@ fn timestamp_in_ms(time: Timespec) -> u64 {
 
 /// Returns the Rust global scope from a JS global object.
 #[allow(unsafe_code)]
-unsafe fn global_scope_from_global(global: *mut JSObject) -> DomRoot<GlobalScope> {
+unsafe fn global_scope_from_global(
+    global: *mut JSObject,
+    cx: *mut JSContext,
+) -> DomRoot<GlobalScope> {
     assert!(!global.is_null());
     let clasp = get_object_class(global);
     assert_ne!(
         ((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)),
         0
     );
-    root_from_object(global).unwrap()
+    root_from_object(global, cx).unwrap()
+}
+
+/// Returns the Rust global scope from a JS global object.
+#[allow(unsafe_code)]
+unsafe fn global_scope_from_global_static(global: *mut JSObject) -> DomRoot<GlobalScope> {
+    assert!(!global.is_null());
+    let clasp = get_object_class(global);
+    assert_ne!(
+        ((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)),
+        0
+    );
+    root_from_object_static(global).unwrap()
 }

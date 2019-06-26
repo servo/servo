@@ -15,7 +15,7 @@ use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use js::jsapi::JS_GetArrayBufferViewBuffer;
 use js::jsapi::{Heap, JSAutoRealm, JSContext, JSObject};
-use js::rust::wrappers::JS_DetachArrayBuffer;
+use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{CreateWith, Float32Array};
 use servo_media::audio::buffer_source_node::AudioBuffer as ServoMediaAudioBuffer;
@@ -180,7 +180,7 @@ impl AudioBuffer {
                         JS_GetArrayBufferViewBuffer(cx, channel.handle(), &mut is_shared));
                     // This buffer is always created unshared
                     debug_assert!(!is_shared);
-                    let _ = JS_DetachArrayBuffer(cx, view_buffer.handle());
+                    let _ = DetachArrayBuffer(cx, view_buffer.handle());
                     data
                 } else {
                     return None;

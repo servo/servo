@@ -21,15 +21,14 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promiserejectionevent::PromiseRejectionEvent;
-use crate::microtask::{EnqueuedPromiseCallback, Microtask};
+use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
 use crate::script_thread::trace_thread;
 use crate::task::TaskBox;
 use crate::task_source::{TaskSource, TaskSourceName};
-use js::glue::CollectServoSizes;
-use js::glue::SetBuildId;
+use js::glue::{CollectServoSizes, CreateJobQueue, DeleteJobQueue, JobQueueTraps, SetBuildId};
 use js::jsapi::ContextOptionsRef;
 use js::jsapi::{BuildIdCharVector, DisableIncrementalGC, GCDescription, GCProgress};
-use js::jsapi::{HandleObject, Heap};
+use js::jsapi::{HandleObject, Heap, JobQueue};
 use js::jsapi::{JSContext, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
 use js::jsapi::{JSGCInvocationKind, JSGCStatus, JS_AddExtraGCRootsTracer, JS_SetGCCallback};
 use js::jsapi::{JSGCMode, JSGCParamKey, JS_SetGCParameter, JS_SetGlobalJitCompilerOption};
@@ -37,9 +36,7 @@ use js::jsapi::{
     JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled,
 };
 use js::jsapi::{JSObject, PromiseRejectionHandlingState, SetPreserveWrapperCallback};
-use js::jsapi::{
-    SetEnqueuePromiseJobCallback, SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback,
-};
+use js::jsapi::{SetJobQueue, SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback};
 use js::panic::wrap_panic;
 use js::rust::wrappers::{GetPromiseIsHandled, GetPromiseResult};
 use js::rust::Handle;
@@ -60,9 +57,16 @@ use std::os;
 use std::os::raw::c_void;
 use std::panic::AssertUnwindSafe;
 use std::ptr;
+use std::rc::Rc;
 use std::sync::Arc;
 use style::thread_state::{self, ThreadState};
 use time::{now, Tm};
+
+static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
+    getIncumbentGlobal: Some(get_incumbent_global),
+    enqueuePromiseJob: Some(enqueue_promise_job),
+    empty: Some(empty),
+};
 
 /// Common messages used to control the event loops in both the script and the worker
 pub enum CommonScriptMsg {
@@ -134,25 +138,52 @@ pub trait ScriptPort {
     fn recv(&self) -> Result<CommonScriptMsg, ()>;
 }
 
+#[allow(unsafe_code)]
+unsafe extern "C" fn get_incumbent_global(_: *const c_void, _: *mut JSContext) -> *mut JSObject {
+    wrap_panic(
+        AssertUnwindSafe(|| {
+            GlobalScope::incumbent()
+                .map(|g| g.reflector().get_jsobject().get())
+                .unwrap_or(ptr::null_mut())
+        }),
+        ptr::null_mut(),
+    )
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn empty(extra: *const c_void) -> bool {
+    wrap_panic(
+        AssertUnwindSafe(|| {
+            let microtask_queue = &*(extra as *const MicrotaskQueue);
+            microtask_queue.empty()
+        }),
+        false,
+    )
+}
+
 /// SM callback for promise job resolution. Adds a promise callback to the current
 /// global's microtask queue.
 #[allow(unsafe_code)]
-unsafe extern "C" fn enqueue_job(
+unsafe extern "C" fn enqueue_promise_job(
+    extra: *const c_void,
     cx: *mut JSContext,
     _promise: HandleObject,
     job: HandleObject,
     _allocation_site: HandleObject,
     incumbent_global: HandleObject,
-    _data: *mut c_void,
 ) -> bool {
     wrap_panic(
         AssertUnwindSafe(|| {
+            let microtask_queue = &*(extra as *const MicrotaskQueue);
             let global = GlobalScope::from_object(incumbent_global.get());
             let pipeline = global.pipeline_id();
-            global.enqueue_microtask(Microtask::Promise(EnqueuedPromiseCallback {
-                callback: PromiseJobCallback::new(cx, job.get()),
-                pipeline: pipeline,
-            }));
+            microtask_queue.enqueue(
+                Microtask::Promise(EnqueuedPromiseCallback {
+                    callback: PromiseJobCallback::new(cx, job.get()),
+                    pipeline,
+                }),
+                cx,
+            );
             true
         }),
         false,
@@ -309,10 +340,18 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
 }
 
 #[derive(JSTraceable)]
-pub struct Runtime(RustRuntime);
+pub struct Runtime {
+    rt: RustRuntime,
+    pub microtask_queue: Rc<MicrotaskQueue>,
+    job_queue: *mut JobQueue,
+}
 
 impl Drop for Runtime {
+    #[allow(unsafe_code)]
     fn drop(&mut self) {
+        unsafe {
+            DeleteJobQueue(self.job_queue);
+        }
         THREAD_ACTIVE.with(|t| {
             LiveDOMReferences::destruct();
             t.set(false);
@@ -323,7 +362,7 @@ impl Drop for Runtime {
 impl Deref for Runtime {
     type Target = RustRuntime;
     fn deref(&self) -> &RustRuntime {
-        &self.0
+        &self.rt
     }
 }
 
@@ -370,7 +409,12 @@ unsafe fn new_rt_and_cx_with_parent(parent: Option<ParentRuntime>) -> Runtime {
     // Pre barriers aren't working correctly at the moment
     DisableIncrementalGC(cx);
 
-    SetEnqueuePromiseJobCallback(cx, Some(enqueue_job), ptr::null_mut());
+    let microtask_queue = Rc::new(MicrotaskQueue::default());
+    let job_queue = CreateJobQueue(
+        &JOB_QUEUE_TRAPS,
+        &*microtask_queue as *const _ as *const c_void,
+    );
+    SetJobQueue(cx, job_queue);
     SetPromiseRejectionTrackerCallback(cx, Some(promise_rejection_tracker), ptr::null_mut());
 
     set_gc_zeal_options(cx);
@@ -407,7 +451,7 @@ unsafe fn new_rt_and_cx_with_parent(parent: Option<ParentRuntime>) -> Runtime {
     );
     JS_SetGlobalJitCompilerOption(
         cx,
-        JSJitCompilerOption::JSJITCOMPILER_ION_WARMUP_TRIGGER,
+        JSJitCompilerOption::JSJITCOMPILER_ION_NORMAL_WARMUP_TRIGGER,
         if pref!(js.ion.unsafe_eager_compilation.enabled) {
             0
         } else {
@@ -511,7 +555,11 @@ unsafe fn new_rt_and_cx_with_parent(parent: Option<ParentRuntime>) -> Runtime {
         JS_SetGCParameter(cx, JSGCParamKey::JSGC_MAX_EMPTY_CHUNK_COUNT, val as u32);
     }
 
-    Runtime(runtime)
+    Runtime {
+        rt: runtime,
+        microtask_queue,
+        job_queue,
+    }
 }
 
 fn in_range<T: PartialOrd + Copy>(val: T, min: T, max: T) -> Option<T> {

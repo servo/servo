@@ -131,7 +131,7 @@ impl WorkerGlobalScope {
                 init.resource_threads,
                 timer_event_chan,
                 MutableOrigin::new(init.origin),
-                Default::default(),
+                runtime.microtask_queue.clone(),
             ),
             worker_id: init.worker_id,
             worker_name,
