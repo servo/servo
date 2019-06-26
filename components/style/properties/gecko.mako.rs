@@ -880,15 +880,8 @@ class Side(object):
         self.ident = name.lower()
         self.index = index
 
-class GridLine(object):
-    def __init__(self, name):
-        self.ident = "grid-" + name.lower()
-        self.name = self.ident.replace('-', '_')
-        self.gecko = "m" + to_camel_case(self.ident)
-
 SIDES = [Side("Top", 0), Side("Right", 1), Side("Bottom", 2), Side("Left", 3)]
 CORNERS = ["top_left", "top_right", "bottom_right", "bottom_left"]
-GRID_LINES = map(GridLine, ["row-start", "row-end", "column-start", "column-end"])
 %>
 
 #[allow(dead_code)]
@@ -1077,7 +1070,7 @@ fn static_assert() {
     % endfor
 </%self:impl_trait>
 
-<% skip_position_longhands = " ".join(x.ident for x in SIDES + GRID_LINES) %>
+<% skip_position_longhands = " ".join(x.ident for x in SIDES) %>
 <%self:impl_trait style_struct_name="Position"
                   skip_longhands="${skip_position_longhands} order
                                   align-content justify-content align-self
@@ -1132,45 +1125,6 @@ fn static_assert() {
 
     ${impl_simple_copy('order', 'mOrder')}
 
-    % for value in GRID_LINES:
-    pub fn set_${value.name}(&mut self, v: longhands::${value.name}::computed_value::T) {
-        use crate::gecko_bindings::structs::{nsStyleGridLine_kMinLine, nsStyleGridLine_kMaxLine};
-
-        let line = &mut self.gecko.${value.gecko};
-        line.mLineName.set_move(unsafe {
-            RefPtr::from_addrefed(v.ident.into_addrefed())
-        });
-        line.mHasSpan = v.is_span;
-        // clamping the integer between a range
-        line.mInteger = cmp::max(
-            nsStyleGridLine_kMinLine,
-            cmp::min(v.line_num, nsStyleGridLine_kMaxLine),
-        );
-    }
-
-    pub fn copy_${value.name}_from(&mut self, other: &Self) {
-        self.gecko.${value.gecko}.mHasSpan = other.gecko.${value.gecko}.mHasSpan;
-        self.gecko.${value.gecko}.mInteger = other.gecko.${value.gecko}.mInteger;
-        unsafe {
-            self.gecko.${value.gecko}.mLineName.set(&other.gecko.${value.gecko}.mLineName);
-        }
-    }
-
-    pub fn reset_${value.name}(&mut self, other: &Self) {
-        self.copy_${value.name}_from(other)
-    }
-
-    pub fn clone_${value.name}(&self) -> longhands::${value.name}::computed_value::T {
-        longhands::${value.name}::computed_value::T {
-            is_span: self.gecko.${value.gecko}.mHasSpan,
-            ident: unsafe {
-                Atom::from_raw(self.gecko.${value.gecko}.mLineName.mRawPtr)
-            },
-            line_num: self.gecko.${value.gecko}.mInteger,
-        }
-    }
-    % endfor
-
     % for kind in ["rows", "columns"]:
     pub fn set_grid_auto_${kind}(&mut self, v: longhands::grid_auto_${kind}::computed_value::T) {
         let gecko = &mut *self.gecko;
@@ -1194,11 +1148,11 @@ fn static_assert() {
 
     pub fn set_grid_template_${kind}(&mut self, v: longhands::grid_template_${kind}::computed_value::T) {
         <% self_grid = "self.gecko.mGridTemplate%s" % kind.title() %>
-        use crate::gecko_bindings::structs::{nsTArray, nsStyleGridLine_kMaxLine};
+        use crate::gecko_bindings::structs::nsTArray;
         use std::usize;
         use crate::values::CustomIdent;
         use crate::values::generics::grid::TrackListType::Auto;
-        use crate::values::generics::grid::{GridTemplateComponent, RepeatCount};
+        use crate::values::generics::grid::{GridTemplateComponent, RepeatCount, MAX_GRID_LINE};
 
         #[inline]
         fn set_line_names(servo_names: &[CustomIdent], gecko_names: &mut nsTArray<structs::RefPtr<structs::nsAtom>>) {
@@ -1213,7 +1167,7 @@ fn static_assert() {
             }
         }
 
-        let max_lines = nsStyleGridLine_kMaxLine as usize - 1;      // for accounting the final <line-names>
+        let max_lines = MAX_GRID_LINE as usize - 1; // for accounting the final <line-names>
 
         let result = match v {
             GridTemplateComponent::None => ptr::null_mut(),

@@ -13,8 +13,16 @@ use crate::values::specified::grid::parse_line_names;
 use crate::values::{CSSFloat, CustomIdent};
 use cssparser::Parser;
 use std::fmt::{self, Write};
-use std::{mem, usize};
+use std::{cmp, mem, usize};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+
+
+/// These are the limits that we choose to clamp grid line numbers to.
+/// http://drafts.csswg.org/css-grid/#overlarge-grids
+/// line_num is clamped to this range at parse time.
+pub const MIN_GRID_LINE: i32 = -10000;
+/// See above.
+pub const MAX_GRID_LINE: i32 = 10000;
 
 /// A `<grid-line>` type.
 ///
@@ -32,14 +40,20 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 )]
 #[repr(C)]
 pub struct GenericGridLine<Integer> {
-    /// Flag to check whether it's a `span` keyword.
-    pub is_span: bool,
     /// A custom identifier for named lines, or the empty atom otherwise.
     ///
     /// <https://drafts.csswg.org/css-grid/#grid-placement-slot>
     pub ident: Atom,
     /// Denotes the nth grid line from grid item's placement.
+    ///
+    /// This is clamped by MIN_GRID_LINE and MAX_GRID_LINE.
+    ///
+    /// NOTE(emilio): If we ever allow animating these we need to either do
+    /// something more complicated for the clamping, or do this clamping at
+    /// used-value time.
     pub line_num: Integer,
+    /// Flag to check whether it's a `span` keyword.
+    pub is_span: bool,
 }
 
 pub use self::GenericGridLine as GridLine;
@@ -128,11 +142,12 @@ impl Parse for GridLine<specified::Integer> {
                 grid_line.is_span = true;
             } else if let Ok(i) = input.try(|i| specified::Integer::parse(context, i)) {
                 // FIXME(emilio): Probably shouldn't reject if it's calc()...
-                if i.value() == 0 || val_before_span || grid_line.line_num.value() != 0 {
+                let value = i.value();
+                if value == 0 || val_before_span || !grid_line.line_num.is_zero() {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
 
-                grid_line.line_num = i;
+                grid_line.line_num = specified::Integer::new(cmp::max(MIN_GRID_LINE, cmp::min(value, MAX_GRID_LINE)));
             } else if let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
                 if val_before_span || grid_line.ident != atom!("") {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
