@@ -18,15 +18,14 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissionstatus::PermissionStatus;
 use crate::dom::promise::Promise;
 use dom_struct::dom_struct;
+use embedder_traits::{EmbedderMsg, PermissionRequest};
+use ipc_channel::ipc;
 use js::conversions::ConversionResult;
 use js::jsapi::{JSContext, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
 use servo_config::pref;
 use std::rc::Rc;
-#[cfg(target_os = "linux")]
-use tinyfiledialogs::{self, MessageBoxIcon, YesNo};
 
-#[cfg(target_os = "linux")]
 const DIALOG_TITLE: &'static str = "Permission request dialog";
 const NONSECURE_DIALOG_MESSAGE: &'static str = "feature is only safe to use in secure context,\
  but servo can't guarantee\n that the current context is secure. Do you want to proceed and grant permission?";
@@ -268,14 +267,10 @@ impl PermissionAlgorithm for Permissions {
             PermissionState::Prompt => {
                 let perm_name = status.get_query();
 
-                let globalscope = GlobalScope::current().expect("No current global object");
-
                 // https://w3c.github.io/permissions/#request-permission-to-use (Step 3 - 4)
-                let state = prompt_user(
-                    &format!("{} {} ?", REQUEST_DIALOG_MESSAGE, perm_name.clone()),
-                    globalscope.is_headless(),
-                );
-
+                let globalscope = GlobalScope::current().expect("No current global object");
+                let prompt = format!("{} {} ?", REQUEST_DIALOG_MESSAGE, perm_name.clone());
+                let state = prompt_user_from_embedder(prompt, &globalscope);
                 globalscope
                     .as_window()
                     .permission_state_invocation_results()
@@ -300,7 +295,7 @@ pub fn get_descriptor_permission_state(
     env_settings_obj: Option<&GlobalScope>,
 ) -> PermissionState {
     // Step 1.
-    let settings = match env_settings_obj {
+    let globalscope = match env_settings_obj {
         Some(env_settings_obj) => DomRoot::from_ref(env_settings_obj),
         None => GlobalScope::current().expect("No current global object"),
     };
@@ -316,21 +311,19 @@ pub fn get_descriptor_permission_state(
         if pref!(dom.permissions.testing.allowed_in_nonsecure_contexts) {
             PermissionState::Granted
         } else {
-            settings
+            globalscope
                 .as_window()
                 .permission_state_invocation_results()
                 .borrow_mut()
                 .remove(&permission_name.to_string());
 
-            prompt_user(
-                &format!("The {} {}", permission_name, NONSECURE_DIALOG_MESSAGE),
-                settings.is_headless(),
-            )
+            let prompt = format!("The {} {}", permission_name, NONSECURE_DIALOG_MESSAGE);
+            prompt_user_from_embedder(prompt, &globalscope)
         }
     };
 
     // Step 3.
-    if let Some(prev_result) = settings
+    if let Some(prev_result) = globalscope
         .as_window()
         .permission_state_invocation_results()
         .borrow()
@@ -340,7 +333,7 @@ pub fn get_descriptor_permission_state(
     }
 
     // Store the invocation result
-    settings
+    globalscope
         .as_window()
         .permission_state_invocation_results()
         .borrow_mut()
@@ -348,28 +341,6 @@ pub fn get_descriptor_permission_state(
 
     // Step 4.
     state
-}
-
-#[cfg(target_os = "linux")]
-fn prompt_user(message: &str, headless: bool) -> PermissionState {
-    if headless {
-        return PermissionState::Denied;
-    }
-    match tinyfiledialogs::message_box_yes_no(
-        DIALOG_TITLE,
-        message,
-        MessageBoxIcon::Question,
-        YesNo::No,
-    ) {
-        YesNo::Yes => PermissionState::Granted,
-        YesNo::No => PermissionState::Denied,
-    }
-}
-
-#[cfg(not(target_os = "linux"))]
-fn prompt_user(_message: &str, _headless: bool) -> PermissionState {
-    // TODO popup only supported on linux
-    PermissionState::Denied
 }
 
 // https://w3c.github.io/permissions/#allowed-in-non-secure-contexts
@@ -397,5 +368,23 @@ fn allowed_in_nonsecure_contexts(permission_name: &PermissionName) -> bool {
         PermissionName::Bluetooth => false,
         // https://storage.spec.whatwg.org/#dom-permissionname-persistent-storage
         PermissionName::Persistent_storage => false,
+    }
+}
+
+fn prompt_user_from_embedder(prompt: String, gs: &GlobalScope) -> PermissionState {
+    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
+    gs.send_to_embedder(EmbedderMsg::PromptPermission(
+        prompt,
+        DIALOG_TITLE.to_string(),
+        sender,
+    ));
+
+    match receiver.recv() {
+        Ok(PermissionRequest::Granted) => PermissionState::Granted,
+        Ok(PermissionRequest::Denied) => PermissionState::Denied,
+        Err(e) => {
+            warn!("Failed to receive permission state from embedder ({}).", e);
+            PermissionState::Denied
+        },
     }
 }

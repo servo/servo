@@ -7,7 +7,7 @@ use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 use euclid::{TypedPoint2D, TypedVector2D};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
-use servo::embedder_traits::{EmbedderMsg, FilterPattern};
+use servo::embedder_traits::{EmbedderMsg, FilterPattern, PermissionRequest};
 use servo::msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::net_traits::pub_domains::is_reg_domain;
@@ -23,7 +23,7 @@ use std::mem;
 use std::rc::Rc;
 use std::thread;
 use std::time::Duration;
-use tinyfiledialogs::{self, MessageBoxIcon};
+use tinyfiledialogs::{self, MessageBoxIcon, YesNo};
 
 pub struct Browser<Window: WindowPortsMethods + ?Sized> {
     current_url: Option<ServoUrl>,
@@ -401,6 +401,10 @@ where
                         self.event_queue.push(WindowEvent::SendError(None, reason));
                     };
                 },
+                EmbedderMsg::PromptPermission(message, dialog_title, sender) => {
+                    let permission_state = prompt_user(&message, &dialog_title);
+                    let _ = sender.send(permission_state);
+                }
                 EmbedderMsg::ShowIME(_kind) => {
                     debug!("ShowIME received");
                 },
@@ -417,6 +421,28 @@ where
             }
         }
     }
+}
+
+#[cfg(target_os = "linux")]
+fn prompt_user(prompt: &str, dialog_title: &str) -> PermissionRequest {
+    if opts::get().headless {
+        return PermissionRequest::Denied;
+    }
+    match tinyfiledialogs::message_box_yes_no(
+        dialog_title,
+        prompt,
+        MessageBoxIcon::Question,
+        YesNo::No,
+    ) {
+        YesNo::Yes => PermissionRequest::Granted,
+        YesNo::No => PermissionRequest::Denied,
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+fn prompt_user(_prompt: &str, _dialog_title: &str) -> PermissionRequest {
+    // TODO popup only supported on linux
+    PermissionRequest::Denied
 }
 
 #[cfg(target_os = "linux")]
