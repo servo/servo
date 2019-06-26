@@ -1138,19 +1138,14 @@ fn static_assert() {
 
         let line = &mut self.gecko.${value.gecko};
         line.mLineName.set_move(unsafe {
-            RefPtr::from_addrefed(match v.ident {
-                Some(i) => i.0,
-                None => atom!(""),
-            }.into_addrefed())
+            RefPtr::from_addrefed(v.ident.into_addrefed())
         });
         line.mHasSpan = v.is_span;
-        if let Some(integer) = v.line_num {
-            // clamping the integer between a range
-            line.mInteger = cmp::max(
-                nsStyleGridLine_kMinLine,
-                cmp::min(integer, nsStyleGridLine_kMaxLine),
-            );
-        }
+        // clamping the integer between a range
+        line.mInteger = cmp::max(
+            nsStyleGridLine_kMinLine,
+            cmp::min(v.line_num, nsStyleGridLine_kMaxLine),
+        );
     }
 
     pub fn copy_${value.name}_from(&mut self, other: &Self) {
@@ -1166,26 +1161,12 @@ fn static_assert() {
     }
 
     pub fn clone_${value.name}(&self) -> longhands::${value.name}::computed_value::T {
-        use crate::gecko_bindings::structs::{nsStyleGridLine_kMinLine, nsStyleGridLine_kMaxLine};
-
         longhands::${value.name}::computed_value::T {
             is_span: self.gecko.${value.gecko}.mHasSpan,
-            ident: {
-                let name = unsafe { Atom::from_raw(self.gecko.${value.gecko}.mLineName.mRawPtr) };
-                if name == atom!("") {
-                    None
-                } else {
-                    Some(CustomIdent(name))
-                }
+            ident: unsafe {
+                Atom::from_raw(self.gecko.${value.gecko}.mLineName.mRawPtr)
             },
-            line_num:
-                if self.gecko.${value.gecko}.mInteger == 0 {
-                    None
-                } else {
-                    debug_assert!(nsStyleGridLine_kMinLine <= self.gecko.${value.gecko}.mInteger);
-                    debug_assert!(self.gecko.${value.gecko}.mInteger <= nsStyleGridLine_kMaxLine);
-                    Some(self.gecko.${value.gecko}.mInteger)
-                },
+            line_num: self.gecko.${value.gecko}.mInteger,
         }
     }
     % endfor

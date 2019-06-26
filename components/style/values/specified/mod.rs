@@ -17,9 +17,9 @@ use crate::context::QuirksMode;
 use crate::parser::{Parse, ParserContext};
 use crate::values::serialize_atom_identifier;
 use crate::values::specified::calc::CalcNode;
-use crate::{Atom, Namespace, Prefix};
+use crate::{Atom, Namespace, Prefix, Zero};
 use cssparser::{Parser, Token};
-use num_traits::{One, Zero};
+use num_traits::One;
 use std::f32;
 use std::fmt::{self, Write};
 use std::ops::Add;
@@ -447,6 +447,18 @@ impl ToComputedValue for Opacity {
 pub struct Integer {
     value: CSSInteger,
     was_calc: bool,
+}
+
+impl Zero for Integer {
+    #[inline]
+    fn zero() -> Self {
+        Self::new(0)
+    }
+
+    #[inline]
+    fn is_zero(&self) -> bool {
+        self.value() == 0
+    }
 }
 
 impl One for Integer {

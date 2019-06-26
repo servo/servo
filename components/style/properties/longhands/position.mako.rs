@@ -322,7 +322,6 @@ ${helpers.predefined_type(
             animation_value_type="discrete",
             spec="https://drafts.csswg.org/css-grid/#propdef-grid-%s-%s" % (kind, range),
             products="gecko",
-            boxed=True,
         )}
     % endfor
 
