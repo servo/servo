@@ -950,8 +950,8 @@ mod gecko_leak_checking {
     use std::os::raw::{c_char, c_void};
 
     extern "C" {
-        pub fn NS_LogCtor(aPtr: *const c_void, aTypeName: *const c_char, aSize: u32);
-        pub fn NS_LogDtor(aPtr: *const c_void, aTypeName: *const c_char, aSize: u32);
+        fn NS_LogCtor(aPtr: *mut c_void, aTypeName: *const c_char, aSize: u32);
+        fn NS_LogDtor(aPtr: *mut c_void, aTypeName: *const c_char, aSize: u32);
     }
 
     static NAME: &'static [u8] = b"RuleNode\0";
@@ -960,7 +960,7 @@ mod gecko_leak_checking {
     pub fn log_ctor(ptr: *const RuleNode) {
         let s = NAME as *const [u8] as *const u8 as *const c_char;
         unsafe {
-            NS_LogCtor(ptr as *const c_void, s, size_of::<RuleNode>() as u32);
+            NS_LogCtor(ptr as *mut c_void, s, size_of::<RuleNode>() as u32);
         }
     }
 
@@ -968,7 +968,7 @@ mod gecko_leak_checking {
     pub fn log_dtor(ptr: *const RuleNode) {
         let s = NAME as *const [u8] as *const u8 as *const c_char;
         unsafe {
-            NS_LogDtor(ptr as *const c_void, s, size_of::<RuleNode>() as u32);
+            NS_LogDtor(ptr as *mut c_void, s, size_of::<RuleNode>() as u32);
         }
     }
 
