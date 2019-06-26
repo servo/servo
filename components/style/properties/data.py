@@ -337,6 +337,7 @@ class Longhand(object):
                 "MozScriptMinSize",
                 "MozScriptSizeMultiplier",
                 "NonNegativeNumber",
+                "Number",
                 "OffsetRotate",
                 "Opacity",
                 "OutlineStyle",

@@ -391,3 +391,17 @@ ${helpers.predefined_type(
     animation_value_type="NonNegativeLengthPercentageOrNormal",
     servo_restyle_damage="reflow",
 )}
+
+// NOTE(emilio): Before exposing this property to content, we probably need to
+// change syntax and such, and make it apply to more elements.
+//
+// For now, it's used only for mapped attributes.
+${helpers.predefined_type(
+    "aspect-ratio",
+    "Number",
+    "computed::Number::zero()",
+    animation_value_type="ComputedValue",
+    spec="Internal, for now",
+    enabled_in="",
+    servo_restyle_damage="reflow",
+)}
