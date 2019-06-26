@@ -90,22 +90,25 @@ let constructor_tests = function() {
   }
 
   {
-    // Check that we don't crash on direction too close to 0,0,0:
+    // Check that we throw exception on direction too close to 0,0,0:
     let originDict = {x : 10.0, y : 10.0, z : 10.0, w : 1.0};
     let directionDict = {x : 0.0, y : 0.0, z : 0.0, w : 0.0};
 
-    let xrRay = new XRRay(
-      DOMPoint.fromPoint(originDict),
-      DOMPoint.fromPoint(directionDict));
+    try {
+      let xrRay = new XRRay(
+        DOMPoint.fromPoint(originDict),
+        DOMPoint.fromPoint(directionDict));
 
-    assert_point_approx_equals(
-      xrRay.origin, originDict,
-      FLOAT_EPSILON, "origin-custom-direction-zero:");
-
-    // cannot validate direction's & matrix's values w/o making it depend on current
-    // implementation, just check that they're not null
-    assert_not_equals(xrRay.direction, null, "origin-custom-direction-zero:direction should not be null");
-    assert_not_equals(xrRay.matrix, null, "origin-custom-direction-zero:matrix should not be null");
+      assert(false, "origin-custom-direction-zero:exception not thrown");
+    }
+    catch(e)
+    {
+      if(e instanceof DOMException) {
+        assert_equals(e.name, "InvalidStateError", "origin-custom-direction-zero:incorrect DOM exception thrown");
+      } else {
+        assert(false, "origin-custom-direction-zero:other exception thrown: " + e);
+      }
+    }
   }
 
   //

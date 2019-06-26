@@ -168,7 +168,10 @@ class CacheFile(with_metaclass(abc.ABCMeta)):
         try:
             if not rebuild:
                 with open(self.path, 'r') as f:
-                    data = json.load(f)
+                    try:
+                        data = json.load(f)
+                    except ValueError:
+                        pass
                 data = self.check_valid(data)
         except IOError:
             pass

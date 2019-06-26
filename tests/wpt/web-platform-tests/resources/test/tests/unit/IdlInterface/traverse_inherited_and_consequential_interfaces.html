@@ -14,19 +14,13 @@
     interface A : B { };
     interface B : C { };
     interface C { };
-    interface D : E { };
-    interface E : F { };
-    interface F { };
-    interface G { };
-    interface H { };
-    interface I { };
-    interface J { };
+    interface mixin D { };
+    interface mixin G { };
+    interface mixin H { };
 
-    A implements G;
-    A implements H;
-    B implements D;
-    E implements I;
-    H implements J;
+    A includes G;
+    A includes H;
+    B includes D;
 </pre>
 <script>
     "use strict";
@@ -40,7 +34,7 @@
 
     test(function() {
         var context = new IdlArray();
-        context.add_idls("interface A { }; A implements B;");
+        context.add_idls("interface A { }; A includes B;");
         assert_throws(new Error(), _ => context.members["A"].traverse_inherited_and_consequential_interfaces(function() {}));
     }, "should throw for interfaces which are extended by another interface which wasn't added to the IdlArray.");
 
@@ -57,7 +51,7 @@
         context.members["A"].traverse_inherited_and_consequential_interfaces(function(i) {
             interfaces.push(i.name);
         });
-        assert_array_equals(interfaces, ["C", "B", "F", "E", "I", "D", "A", "G", "H", "J"]);
+        assert_array_equals(interfaces, ["C", "B", "D", "A", "G", "H"]);
     }, 'should return an array that includes the identifier of the interfaces in the correct order.');
 </script>
 </body>

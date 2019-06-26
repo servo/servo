@@ -130,7 +130,7 @@
 
     test(function() {
         var idl = new IdlArray();
-        idl.add_untested_idls('interface Foo { }; interface Bar { DOMString toJSON(); }; Foo implements Bar;');
+        idl.add_untested_idls('interface Foo { }; interface mixin Bar { DOMString toJSON(); }; Foo includes Bar;');
         assert_true(idl.is_json_type(typeFrom("Foo")));
     }, 'should return true for interfaces which mixin an interface which declare a toJSON operation');
 

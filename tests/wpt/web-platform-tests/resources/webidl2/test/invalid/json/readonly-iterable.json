@@ -1,4 +1,0 @@
-{
-    "message": "Got an error during or right after parsing `interface ReadonlyIterable`: Missing return type",
-    "line": 2
-}

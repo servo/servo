@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1559627">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/#suppression-triggers">
+<style>
+  body, h1 {
+    margin: 0
+  }
+  .sticky {
+    width: 100%;
+    top: 0;
+    left: 0;
+  }
+  .sticky > div {
+    width: 100%;
+    height: 50px;
+    background: darkblue;
+  }
+  header {
+    background: lightblue;
+  }
+  main {
+    background: lightgrey;
+    height: 200vh;
+  }
+</style>
+<header>
+  <h1>Some title</h1>
+  <span class="sticky"><div>Sticky header</div></span>
+</header>
+<main>
+  Some actual content.
+</main>
+<script>
+const sticky = document.querySelector(".sticky");
+const nonStickyOffset = sticky.firstElementChild.offsetTop;
+const t = async_test("Scroll offset adjustments are correctly suppressed when changing the position of an inline");
+let firstEvent = true;
+window.onscroll = t.step_func(function() {
+  sticky.style.position =
+    document.documentElement.scrollTop > nonStickyOffset ?  "fixed" : "static";
+  if (firstEvent) {
+    firstEvent = false;
+    requestAnimationFrame(t.step_func(function() {
+      requestAnimationFrame(t.step_func_done(function() {
+        assert_equals(sticky.style.position, "fixed", "Element should become and remain fixed")
+      }));
+    }));
+  }
+});
+window.onload = t.step_func(function() {
+  window.scrollTo(0, nonStickyOffset + 1);
+});
+</script>

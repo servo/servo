@@ -647,7 +647,7 @@ test(t => {
     { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
       backgroundSize: "auto" },
     { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
-      backgroundSize: "50% auto, 6px auto, contain" },
+      backgroundSize: "50%, 6px, contain" },
   ];
 
   for (let i = 0; i < frames.length; i++) {
@@ -657,7 +657,7 @@ test(t => {
   // Test inheriting a background-size value
 
   expected[0].backgroundSize = div.style.backgroundSize =
-    "30px auto, 40% auto, auto";
+    "30px, 40%, auto";
   frames = getKeyframes(div);
 
   for (let i = 0; i < frames.length; i++) {

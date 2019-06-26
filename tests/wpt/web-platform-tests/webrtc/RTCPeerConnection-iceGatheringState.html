@@ -60,16 +60,21 @@
 
     t.add_cleanup(() => pc.close());
 
+    let reachedGathering = false;
     const onIceGatheringStateChange = t.step_func(() => {
       const { iceGatheringState } = pc;
 
-      if(iceGatheringState === 'complete') {
+      if(iceGatheringState === 'gathering') {
+        reachedGathering = true;
+      } else if(iceGatheringState === 'complete') {
+        assert_true(reachedGathering, 'iceGatheringState should reach gathering before complete');
         t.done();
       }
     });
 
     assert_equals(pc.onicegatheringstatechange, null,
       'Expect connection to have icegatheringstatechange event');
+    assert_equals(pc.iceGatheringState, 'new');
 
     pc.addEventListener('icegatheringstatechange', onIceGatheringStateChange);
 

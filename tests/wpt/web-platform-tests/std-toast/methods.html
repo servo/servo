@@ -77,49 +77,50 @@ testToastElement((toast) => {
 }, 'calling `toggle()` with `force` parameter set to false on a shown toast closes the toast');
 
 testToastElementAsync((t, toast) => {
-    toast.show();
+    toast.show({duration: 50});
 
-    // time = 999
+    // time = 49
     t.step_timeout(() => {
         assertToastShown(toast);
-        toast.show();
+        toast.show({duration: 50});
 
-        // time = 2000
+        // time = 98
         t.step_timeout(() => {
             assertToastShown(toast);
 
-            // time = 3000
+            // time = 99
             t.step_timeout(() => {
                 assertToastNotShown(toast);
                 t.done();
             }, 1000);
-        }, 1001);
-    }, 999);
+        }, 49);
+    }, 49);
 }, 'calling `show()` twice resets the timeout');
 
 testToastElementAsync((t, toast) => {
-    toast.show();
+    toast.show({duration: 50});
 
-    // time = 999
+    // time = 48
     t.step_timeout(() => {
         assertToastShown(toast);
         toast.hide();
 
-        // time = 1000
+        // time = 49
         t.step_timeout(() => {
             assertToastNotShown(toast);
 
-            // time = 1500
+            // time = 50
             t.step_timeout(() => {
-                toast.show();
+                toast.show({duration: 2});
 
-                // time = 2500
+                // time = 51
                 t.step_timeout(() => {
                     assertToastShown(toast);
+                    toast.hide();
                     t.done();
-                }, 1000);
-            }, 500);
+                }, 1);
+            }, 1);
         }, 1);
-    }, 999);
+    }, 48);
 }, 'calling `hide()` clears the timeout');
 </script>

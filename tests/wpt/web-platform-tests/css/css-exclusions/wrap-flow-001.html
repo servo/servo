@@ -9,6 +9,7 @@
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
         <script src="resources/helper.js"></script>
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
         <style>
             * {
                 margin: 0px;
@@ -40,7 +41,12 @@
         <div id="log"></div>
 
         <script type="text/javascript">
-            test(function() {assert_equals(checkLinePos("linesBelow",150,"top"), true)}, "Verify top of the 'linesBelow' span is positioned correctly");
+            setup({ explicit_done: true });
+
+            document.fonts.ready.then(() => {
+                test(function() {assert_equals(checkLinePos("linesBelow",150,"top"), true)}, "Verify top of the 'linesBelow' span is positioned correctly");
+                done();
+            });
         </script>
     </body>
 </html>

@@ -7,6 +7,9 @@
 <div id="host"></div>
 <script>
   let svgScript = document.createElementNS("http://www.w3.org/2000/svg", "script");
-  svgScript.innerHTML = `test(function() {}, "svg:script runs correctly in a shadow tree");`;
+  svgScript.innerHTML = "window.scriptRan = true";
   document.getElementById("host").attachShadow({ mode: "open" }).appendChild(svgScript);
+  test(function() {
+    assert_true(window.scriptRan);
+  }, "svg:script runs correctly in a shadow tree");
 </script>

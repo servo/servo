@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+  <head>
+    <title>
+      Test Active Processing for ConvolverNode
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+  </head>
+
+  <body>
+    <script id="layout-test-code">
+      let audit = Audit.createTaskRunner();
+
+      // Arbitrary sample rate. And we only need a few blocks for rendering to
+      // see if things are working.
+      let sampleRate = 8000;
+      let renderLength = 10 * RENDER_QUANTUM_FRAMES;
+
+      // Number of frames where the source is active.  Fairly arbitrary, but
+      // should be more than one render quantum and significantly less than
+      // |renderLength|.
+      let srcDurationFrames = 131;
+
+      // Frame at which the source should be connected to the convolver.
+      let connectFrame = 2 * RENDER_QUANTUM_FRAMES;
+
+      // AudioProcessor that counts the number of channels on its single input.
+      let filePath =
+          '../the-audioworklet-interface/processors/input-count-processor.js';
+
+      audit.define(
+          {label: 'Test', description: 'Active processing for ConvolverNode'},
+          async (task, should) => {
+            const context = new OfflineAudioContext({
+              numberOfChannels: 2,
+              length: renderLength,
+              sampleRate: sampleRate
+            });
+
+            // Don't mix the inputs to the destination!
+            context.destination.channelInterpretation = 'discrete';
+
+            await context.audioWorklet.addModule(filePath);
+
+            // Impulse response for the convolver.  Make it stereo so that
+            // the output is stereo.  The length isn't too important.
+            let response = new AudioBuffer({
+              numberOfChannels: 2,
+              length: 150,
+              sampleRate: context.sampleRate
+            });
+
+            let src = new OscillatorNode(context);
+            let node = new ConvolverNode(context, {buffer: response});
+            let counter = new AudioWorkletNode(context, 'counter');
+
+            // Just to print a message that we created the graph with a
+            // convolver in it.
+            should(() => {
+              node.connect(counter).connect(context.destination);
+            }, 'Construction of graph with convolver').notThrow();
+
+            // Let the convolver run for a bit and then connect the source
+            // to it and start the source.
+            context.suspend(connectFrame / context.sampleRate)
+                .then(() => {
+                  src.connect(node);
+                  src.start();
+                  // Stop the source after some small number of frames.
+                  src.stop(
+                      context.currentTime +
+                      srcDurationFrames / context.sampleRate);
+                })
+                .then(() => context.resume());
+
+            const renderedBuffer = await context.startRendering();
+            const output = renderedBuffer.getChannelData(0);
+            // The convolver has a stereo response so it will produce
+            // stereo output for a mono or stereo input.  Initially,
+            // nothing is connected to the convolver so it is not actively
+            // processing and therefore produces a single channel of
+            // silence.  After a source is connected and started, the
+            // number of channels must be come 2.  When the source stops,
+            // the convolver node is no longer actively processing and
+            // must then produce a single channel of silence.
+            //
+            // We're not concerned here about when the changes happens. We
+            // only care that the number of channels changed
+            // appropriately.
+            should(output, 'Number of output channels of convolver')
+                .containValues([1, 2, 1]);
+            task.done();
+          });
+
+      audit.run();
+    </script>
+  </body>
+</html>

@@ -140,7 +140,7 @@
     previous = property;
 
     test(function() {
-      assert_true(target.style.hasOwnProperty(property));
+      assert_true(property in target.style);
     }, 'Property "' + property + '" is supported');
   }
   ]]></script>

@@ -8,6 +8,7 @@
 		<meta name="flags" content="ahem">
 		<meta name="assert" content="Test checks that document.elementFromPoint() returns the correct
 		region when multiple regions are absolutely positioned, overlap and have non-auto z-index.">
+		<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 		<style>
 		html, body {
 			margin: 0;
@@ -126,7 +127,11 @@
 			}, "document.elementFromPoint() for point inside region (effectively, content node), with regions partially overlapping with non-auto z-index");
 		}
 
-		runTests();
+		setup({ explicit_done: true });
+		document.fonts.ready.then(() => {
+			runTests();
+			done();
+		});
 		</script>
 	</body>
 </html>

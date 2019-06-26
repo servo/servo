@@ -9,6 +9,7 @@
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
         <script src="resources/helper.js"></script>
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
         <style>
             * {
                 margin: 0px;
@@ -43,18 +44,23 @@
         <div id="log"></div>
 
         <script type="text/javascript">
-            /*Line 1*/
-            test(function() {assert_equals(checkLinePos("line1",0,"top"), true)}, "Verify top of the 'line1' span is positioned correctly");
-            test(function() {assert_equals(checkLinePos("line1",0,"left"), true)}, "Verify left of the 'line1' span is positioned correctly");
-            /*Line 2*/
-            test(function() {assert_equals(checkLinePos("line2",36,"top"), true)}, "Verify top of the 'line2' span is positioned correctly");
-            test(function() {assert_equals(checkLinePos("line2",100,"left"), true)}, "Verify left of the 'line2' span is positioned correctly");
-            /*Line 3*/
-            test(function() {assert_equals(checkLinePos("line3",48,"top"), true)}, "Verify top of the 'line3' span is positioned correctly");
-            test(function() {assert_equals(checkLinePos("line3",100,"left"), true)}, "Verify left of the 'line3' span is positioned correctly");
-            /*Line 4*/
-            test(function() {assert_equals(checkLinePos("line4",65,"top"), true)}, "Verify top of the 'line4' span is positioned correctly");
-            test(function() {assert_equals(checkLinePos("line4",0,"left"), true)}, "Verify left of the 'line4' span is positioned correctly");
+            setup({ explicit_done: true });
+
+            document.fonts.ready.then(() => {
+                /*Line 1*/
+                test(function() {assert_equals(checkLinePos("line1",0,"top"), true)}, "Verify top of the 'line1' span is positioned correctly");
+                test(function() {assert_equals(checkLinePos("line1",0,"left"), true)}, "Verify left of the 'line1' span is positioned correctly");
+                /*Line 2*/
+                test(function() {assert_equals(checkLinePos("line2",36,"top"), true)}, "Verify top of the 'line2' span is positioned correctly");
+                test(function() {assert_equals(checkLinePos("line2",100,"left"), true)}, "Verify left of the 'line2' span is positioned correctly");
+                /*Line 3*/
+                test(function() {assert_equals(checkLinePos("line3",48,"top"), true)}, "Verify top of the 'line3' span is positioned correctly");
+                test(function() {assert_equals(checkLinePos("line3",100,"left"), true)}, "Verify left of the 'line3' span is positioned correctly");
+                /*Line 4*/
+                test(function() {assert_equals(checkLinePos("line4",65,"top"), true)}, "Verify top of the 'line4' span is positioned correctly");
+                test(function() {assert_equals(checkLinePos("line4",0,"left"), true)}, "Verify left of the 'line4' span is positioned correctly");
+                done();
+            });
         </script>
     </body>
 </html>
