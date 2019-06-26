@@ -185,6 +185,9 @@ pub enum EmbedderMsg {
     GetSelectedBluetoothDevice(Vec<String>, IpcSender<Option<String>>),
     /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
     SelectFiles(Vec<FilterPattern>, bool, IpcSender<Option<Vec<String>>>),
+    /// Open yes/no message for user to allow permission specified by first String.
+    /// With dialog title specified by second String.
+    PromptPermission(String, String, IpcSender<PermissionRequest>),
     /// Request to present an IME to the user when an editable element is focused.
     ShowIME(InputMethodType),
     /// Request to hide the IME when the editable element is blurred.
@@ -222,6 +225,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::Panic(..) => write!(f, "Panic"),
             EmbedderMsg::GetSelectedBluetoothDevice(..) => write!(f, "GetSelectedBluetoothDevice"),
             EmbedderMsg::SelectFiles(..) => write!(f, "SelectFiles"),
+            EmbedderMsg::PromptPermission(..) => write!(f, "PromptPermission"),
             EmbedderMsg::ShowIME(..) => write!(f, "ShowIME"),
             EmbedderMsg::HideIME => write!(f, "HideIME"),
             EmbedderMsg::Shutdown => write!(f, "Shutdown"),
@@ -298,4 +302,11 @@ pub enum MediaSessionEvent {
     PlaybackStateChange(MediaSessionPlaybackState),
     /// Indicates that the position state is set.
     SetPositionState(MediaPositionState),
+}
+
+// Status for prompting user for permission.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum PermissionRequest {
+    Granted,
+    Denied,
 }

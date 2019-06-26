@@ -4762,7 +4762,6 @@ dependencies = [
  "swapper",
  "tendril",
  "time",
- "tinyfiledialogs",
  "unicode-bidi",
  "unicode-segmentation",
  "url",

@@ -61,6 +61,7 @@ use crate::timers::{OneshotTimers, TimerCallback};
 use content_security_policy::CspList;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
+use embedder_traits::EmbedderMsg;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
@@ -1915,6 +1916,14 @@ impl GlobalScope {
     /// Get a sender to the constellation thread.
     pub fn script_to_constellation_chan(&self) -> &ScriptToConstellationChan {
         &self.script_to_constellation_chan
+    }
+
+    pub fn send_to_embedder(&self, msg: EmbedderMsg) {
+        self.send_to_constellation(ScriptMsg::ForwardToEmbedder(msg));
+    }
+
+    pub fn send_to_constellation(&self, msg: ScriptMsg) {
+        self.script_to_constellation_chan().send(msg).unwrap();
     }
 
     pub fn scheduler_chan(&self) -> &IpcSender<TimerSchedulerMsg> {
