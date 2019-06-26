@@ -1,3 +1,0 @@
-interface MapLikeOneType {
-  maplike<long>;
-}

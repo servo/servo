@@ -291,22 +291,12 @@ Alternatively, you can delete the branch on the command line.
 
     $ git push origin --delete <branchName>
 
-## Tips & Tricks
+## Further Reading
 
-The following workflow is recommended:
-
-1. Start branch based on latest w3c/master
-2. Write tests
-3. Rebase onto latest w3c/master
-4. Submit tests
-5. Stop fiddling with the branch base until review is done
-6. After the PR has been accepted, delete the branch. (Every new PR should
-come from a new branch.)
-7. Synchronize your fork with the W3C repository by fetching your upstream and
- merging it. (See '[Configure Remote / Upstream](#configure-remote-upstream)')
-
-You need to be able to set up remote upstream, etc. Please refer to [Pro Git
-Book][git-book] and enjoy reading.
+Git is a very powerful tool, and there are many ways to achieve subtly
+different results. Recognizing when (and understanding how) to use other
+approaches is beyond the scope of this tutorial. [The Pro Git Book][git-book]
+is a free digital resource that can help you learn more.
 
 ## Working with Pull Requests as a reviewer
 

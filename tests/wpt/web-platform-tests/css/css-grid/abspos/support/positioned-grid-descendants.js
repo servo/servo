@@ -66,5 +66,8 @@ export function runTests({left, top, right, bottom, orthogonal = false}) {
     }
     document.body.appendChild(grid);
   }
-  checkLayout(".grid");
+
+  document.fonts.ready.then(() => {
+    checkLayout(".grid");
+  });
 }

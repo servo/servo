@@ -22,22 +22,22 @@ Python Handlers
 
 Python handlers are functions which provide a higher-level API over
 manually updating the response object, by causing the return value of
-the function to provide (part of) the response. There are three
+the function to provide (part of) the response. There are four
 possible sets of values that may be returned::
 
 
-  (status, headers, content)
+  ((status_code, reason), headers, content)
+  (status_code, headers, content)
   (headers, content)
   content
 
-Here `status` is either a tuple (status code, message) or simply a
-integer status code, `headers` is a list of (field name, value) pairs,
-and `content` is a string or an iterable returning strings. Such a
-function may also update the response manually. For example one may
-use `response.headers.set` to set a response header, and only return
-the content. One may even use this kind of handler, but manipulate
-the output socket directly, in which case the return value of the
-function, and the properties of the response object, will be ignored.
+Here `status_code` is an integer status code, `headers` is a list of (field
+name, value) pairs, and `content` is a string or an iterable returning strings.
+Such a function may also update the response manually. For example one may use
+`response.headers.set` to set a response header, and only return the content.
+One may even use this kind of handler, but manipulate the output socket
+directly, in which case the return value of the function, and the properties of
+the response object, will be ignored.
 
 The most common way to make a user function into a python handler is
 to use the provided `wptserve.handlers.handler` decorator::

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="assert" href="1px-tall-text should be visible when scaled up via the SVG viewBox attribute">
+  <title>Testcase for text scaled via SVG viewBox</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="https://www.w3.org/TR/SVG/coords.html#ViewBoxAttribute">
+  <link rel="match" href="support/viewBox-scaling-text-001-ref.html">
+  <style>
+    svg {
+      width: 100px;
+      height: 100px;
+      background: lightgray;
+      overflow: visible;
+    }
+    text {
+      font: 1px/1 monospace;
+    }
+  </style>
+</head>
+<body>
+  <svg viewBox="0 0 1 1">
+    <text x="0" y="1">X̂̂̂̂̂̂</text>
+  </svg>
+</body>

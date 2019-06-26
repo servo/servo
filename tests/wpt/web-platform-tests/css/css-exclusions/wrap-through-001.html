@@ -9,6 +9,7 @@
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
         <script src="resources/helper.js"></script>
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
         <style>
             * {
                 margin: 0px;
@@ -50,18 +51,23 @@
         <div id="log"></div>
 
         <script type="text/javascript">
-            /* Line 1 */
-            test(function() {assert_equals(checkLinePos("line1",0,"top"), true)}, "Verify top of the first line above the exclusion");
-            test(function() {assert_equals(checkLinePos("line1",0,"left"), true)}, "Verify left of the first line above the exclusion");
-            /* Line 2 */
-            test(function() {assert_equals(checkLinePos("line2Left",12,"top"), true)}, "Verify top of the second line on the left of the exclusion");
-            test(function() {assert_equals(checkLinePos("line2Right",130,"left"), true)}, "Verify left of the second line on the right of the exclusion");
-            /* Line 3 */
-            test(function() {assert_equals(checkLinePos("line3Left",24,"top"), true)}, "Verify top of the third line on the left of the exclusion");
-            test(function() {assert_equals(checkLinePos("line3Right",130,"left"), true)}, "Verify left of the third line on the right of the exclusion");
-            /* Line 4 */
-            test(function() {assert_equals(checkLinePos("line4Left",36,"top"), true)}, "Verify top of the fourth line with no wrapping-through = none");
-            test(function() {assert_equals(checkLinePos("line4Right",72,"left"), true)}, "Verify left of the fourth line with wrapping-through = none");
+            setup({ explicit_done: true });
+
+            document.fonts.ready.then(() => {
+                /* Line 1 */
+                test(function() {assert_equals(checkLinePos("line1",0,"top"), true)}, "Verify top of the first line above the exclusion");
+                test(function() {assert_equals(checkLinePos("line1",0,"left"), true)}, "Verify left of the first line above the exclusion");
+                /* Line 2 */
+                test(function() {assert_equals(checkLinePos("line2Left",12,"top"), true)}, "Verify top of the second line on the left of the exclusion");
+                test(function() {assert_equals(checkLinePos("line2Right",130,"left"), true)}, "Verify left of the second line on the right of the exclusion");
+                /* Line 3 */
+                test(function() {assert_equals(checkLinePos("line3Left",24,"top"), true)}, "Verify top of the third line on the left of the exclusion");
+                test(function() {assert_equals(checkLinePos("line3Right",130,"left"), true)}, "Verify left of the third line on the right of the exclusion");
+                /* Line 4 */
+                test(function() {assert_equals(checkLinePos("line4Left",36,"top"), true)}, "Verify top of the fourth line with no wrapping-through = none");
+                test(function() {assert_equals(checkLinePos("line4Right",72,"left"), true)}, "Verify left of the fourth line with wrapping-through = none");
+                done();
+            });
         </script>
     </body>
 </html>

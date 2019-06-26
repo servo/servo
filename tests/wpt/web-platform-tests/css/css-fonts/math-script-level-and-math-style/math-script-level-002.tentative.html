@@ -7,6 +7,7 @@
     <meta name="assert" content="Verify effect of math-script-level auto | add(<integer>) | <integer>, starting from different values of math-script-level.">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
     <style>
       .container {
           /* Ahem font does not have a MATH table so the font-size scale factor
@@ -20,51 +21,53 @@
       }
       setup({ explicit_done: true });
       window.addEventListener("load", function() {
-          test(function() {
-              assert_equals(fontSize("autoDisplay"), 200);
-              assert_equals(fontSize("autoInline"), 355);
-          }, "auto");
-          test(function() {
-              assert_equals(fontSize("autoDisplayFrom7"), 200);
-              assert_equals(fontSize("autoInlineFrom7"), 355);
-          }, "auto ; starting from level 7");
-          test(function() {
-              assert_equals(fontSize("add0"), 200);
-              assert_equals(fontSize("add-1"), 100);
-              assert_equals(fontSize("add1"), 355);
-              assert_approx_equals(fontSize("add-2"), 397, 1);
-              assert_approx_equals(fontSize("add2"), 504, 1);
-              assert_approx_equals(fontSize("add-9"), 654, 1);
-              assert_approx_equals(fontSize("add9"), 92, 1);
-          }, "add(<integer>)");
-          test(function() {
-              assert_equals(fontSize("add0from3"), 200);
-              assert_equals(fontSize("add-1from3"), 100);
-              assert_equals(fontSize("add1from3"), 355);
-              assert_approx_equals(fontSize("add-2from3"), 397, 1);
-              assert_approx_equals(fontSize("add2from3"), 504, 1);
-              assert_approx_equals(fontSize("add-9from3"), 654, 1);
-              assert_approx_equals(fontSize("add9from3"), 92, 1);
-          }, "add(<integer>) ; starting from level 3");
-          test(function() {
-              assert_equals(fontSize("set0"), 200);
-              assert_equals(fontSize("set-1"), 100);
-              assert_equals(fontSize("set1"), 355);
-              assert_approx_equals(fontSize("set-2"), 397, 1);
-              assert_approx_equals(fontSize("set2"), 504, 1);
-              assert_approx_equals(fontSize("set-9"), 654, 1);
-              assert_approx_equals(fontSize("set9"), 92, 1);
-          }, "<integer>");
-          test(function() {
-              assert_equals(fontSize("set50"), 200);
-              assert_equals(fontSize("set49"), 100);
-              assert_equals(fontSize("set51"), 355);
-              assert_approx_equals(fontSize("set48"), 397, 1);
-              assert_approx_equals(fontSize("set52"), 504, 1);
-              assert_approx_equals(fontSize("set41"), 654, 1);
-              assert_approx_equals(fontSize("set59"), 92, 1);
-          }, "<integer> ; starting from level 50");
-          done();
+          document.fonts.ready.then(function() {
+              test(function() {
+                  assert_equals(fontSize("autoDisplay"), 200);
+                  assert_equals(fontSize("autoInline"), 355);
+              }, "auto");
+              test(function() {
+                  assert_equals(fontSize("autoDisplayFrom7"), 200);
+                  assert_equals(fontSize("autoInlineFrom7"), 355);
+              }, "auto ; starting from level 7");
+              test(function() {
+                  assert_equals(fontSize("add0"), 200);
+                  assert_equals(fontSize("add-1"), 100);
+                  assert_equals(fontSize("add1"), 355);
+                  assert_approx_equals(fontSize("add-2"), 397, 1);
+                  assert_approx_equals(fontSize("add2"), 504, 1);
+                  assert_approx_equals(fontSize("add-9"), 654, 1);
+                  assert_approx_equals(fontSize("add9"), 92, 1);
+              }, "add(<integer>)");
+              test(function() {
+                  assert_equals(fontSize("add0from3"), 200);
+                  assert_equals(fontSize("add-1from3"), 100);
+                  assert_equals(fontSize("add1from3"), 355);
+                  assert_approx_equals(fontSize("add-2from3"), 397, 1);
+                  assert_approx_equals(fontSize("add2from3"), 504, 1);
+                  assert_approx_equals(fontSize("add-9from3"), 654, 1);
+                  assert_approx_equals(fontSize("add9from3"), 92, 1);
+              }, "add(<integer>) ; starting from level 3");
+              test(function() {
+                  assert_equals(fontSize("set0"), 200);
+                  assert_equals(fontSize("set-1"), 100);
+                  assert_equals(fontSize("set1"), 355);
+                  assert_approx_equals(fontSize("set-2"), 397, 1);
+                  assert_approx_equals(fontSize("set2"), 504, 1);
+                  assert_approx_equals(fontSize("set-9"), 654, 1);
+                  assert_approx_equals(fontSize("set9"), 92, 1);
+              }, "<integer>");
+              test(function() {
+                  assert_equals(fontSize("set50"), 200);
+                  assert_equals(fontSize("set49"), 100);
+                  assert_equals(fontSize("set51"), 355);
+                  assert_approx_equals(fontSize("set48"), 397, 1);
+                  assert_approx_equals(fontSize("set52"), 504, 1);
+                  assert_approx_equals(fontSize("set41"), 654, 1);
+                  assert_approx_equals(fontSize("set59"), 92, 1);
+              }, "<integer> ; starting from level 50");
+              done();
+          });
       });
     </script>
   </head>

@@ -9,6 +9,7 @@
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
         <script src="resources/helper.js"></script>
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
         <style>
             * {
                 margin: 0px;
@@ -43,10 +44,15 @@
         <div id="log"></div>
 
         <script type="text/javascript">
-            test(function() {assert_equals(checkLinePos("lineLeft1",36,"top"), true)}, "Verify top of the 'lineLeft1' span is positioned correctly");
-            test(function() {assert_equals(checkLinePos("lineLeft2",48,"top"), true)}, "Verify top of the 'lineLeft2' span is positioned correctly");
-            test(function() {assert_equals(checkLinePos("lineLeft2",36,"right"), true)}, "Verify right of the 'lineLeft2' span is positioned correctly");
-            test(function() {assert_equals(checkLinePos("linesBelow",65,"top"), true)}, "Verify top of the 'linesBelow' span is positioned correctly");
+            setup({ explicit_done: true });
+
+            document.fonts.ready.then(() => {
+                test(function() {assert_equals(checkLinePos("lineLeft1",36,"top"), true)}, "Verify top of the 'lineLeft1' span is positioned correctly");
+                test(function() {assert_equals(checkLinePos("lineLeft2",48,"top"), true)}, "Verify top of the 'lineLeft2' span is positioned correctly");
+                test(function() {assert_equals(checkLinePos("lineLeft2",36,"right"), true)}, "Verify right of the 'lineLeft2' span is positioned correctly");
+                test(function() {assert_equals(checkLinePos("linesBelow",65,"top"), true)}, "Verify top of the 'linesBelow' span is positioned correctly");
+                done();
+            });
         </script>
     </body>
 </html>

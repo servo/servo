@@ -24,45 +24,29 @@
       attribute DOMString c;
     };
 
-    interface D : E {
+    interface mixin D {
       [Default] object toJSON();
       attribute float d;
     };
 
-    interface E : F {
-      attribute DOMString e;
-    };
-
-    interface F {
-      [Default] object toJSON();
-      attribute unrestricted double f;
-    };
-
-    interface G {
+    interface mixin G {
       [Default] object toJSON();
       attribute octet g;
     };
 
-    interface H {
+    interface mixin H {
       [Default] object toJSON();
       attribute DOMString h;
     };
 
-    interface I {
+    interface mixin I {
       [Default] object toJSON();
       attribute boolean i;
     };
 
-    interface J {
-      [Default] object toJSON();
-      attribute D j;
-    };
-
-    A implements G;
-    A implements H;
-    B implements D;
-    E implements I;
-    H implements J;
+    A includes G;
+    A includes H;
+    B includes D;
 </pre>
 <script>
     "use strict";
@@ -156,8 +140,8 @@
     test(function() {
         var context = new IdlArray();
         context.add_idls("interface A { [Default] object toJSON(); attribute DOMString a; };");
-        context.add_idls("interface N { [Default] object toJSON(); attribute long n; };");
-        context.add_idls("A implements N;");
+        context.add_idls("interface mixin N { [Default] object toJSON(); attribute long n; };");
+        context.add_idls("A includes N;");
         var map = context.members.A.default_to_json_operation();
         assert_array_equals([...map.keys()], ["a", "n"]);
         assert_array_equals([...map.values()].map(v => v.idlType), ["DOMString", "long"]);
@@ -166,8 +150,8 @@
     test(function() {
         var context = new IdlArray();
         context.add_idls("interface A { [Default] object toJSON(); attribute DOMString a; };");
-        context.add_idls("interface N { attribute long n; };");
-        context.add_idls("A implements N;");
+        context.add_idls("interface mixin N { attribute long n; };");
+        context.add_idls("A includes N;");
         var map = context.members.A.default_to_json_operation();
         assert_equals(map.size, 1);
         assert_true(map.has("a"));
@@ -180,8 +164,8 @@
         var context = new IdlArray();
         context.add_idls(document.getElementById('fragments').textContent);
         var map = context.members.A.default_to_json_operation();
-        assert_array_equals([...map.keys()], ["b", "f", "i", "d", "g", "h", "j"]);
-        assert_array_equals([...map.values()].map(v => v.idlType), ["long", "unrestricted double", "boolean", "float", "octet", "DOMString", "D"]);
+        assert_array_equals([...map.keys()], ["b", "d", "g", "h"]);
+        assert_array_equals([...map.values()].map(v => v.idlType), ["long", "float", "octet", "DOMString"]);
     }, 'should return a properly ordered map of name/type pairs handling inherited and consequential interfaces as specified.');
 </script>
 </body>

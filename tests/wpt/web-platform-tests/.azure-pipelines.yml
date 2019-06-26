@@ -86,11 +86,11 @@ jobs:
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
   - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl - --log-tbpl-level info --channel dev chrome infrastructure/
-    displayName: 'Run tests: Chrome Dev'
+    displayName: 'Run tests (Chrome Dev)'
   - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl - --log-tbpl-level info --channel nightly firefox infrastructure/
-    displayName: 'Run tests: Firefox Nightly'
+    displayName: 'Run tests (Firefox Nightly)'
   - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl - --log-tbpl-level info --channel preview safari infrastructure/
-    displayName: 'Run tests: Safari Technology Preview'
+    displayName: 'Run tests (Safari Technology Preview)'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
     inputs:
@@ -224,7 +224,7 @@ jobs:
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
   - script: python ./wpt run --yes --no-manifest-update --install-fonts --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl - --log-tbpl-level info --channel dev edgechromium infrastructure/
-    displayName: 'Run tests: Edge Dev'
+    displayName: 'Run tests (Edge Dev)'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
     inputs:
@@ -257,7 +257,7 @@ jobs:
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
   - script: python ./wpt run --yes --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --install-fonts --this-chunk $(System.JobPositionInPhase) --total-chunks $(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-tbpl - --log-tbpl-level info --channel dev edgechromium
-    displayName: 'Run tests: Edge Dev'
+    displayName: 'Run tests (Edge Dev)'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
     inputs:

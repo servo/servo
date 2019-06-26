@@ -72,7 +72,7 @@ test(function() {
   var referenceValue = 48 * 2.54 / cssPixelsPerInch;
   assert_equals(length.valueAsString, referenceValue.toFixed(2) + "cm");
   assert_approx_equals(length.valueInSpecifiedUnits, referenceValue, 0.01);
-  assert_equals(length.value, 48);
+  assert_approx_equals(length.value, 48, 0.001);
   assert_equals(length.unitType, SVGLength.SVG_LENGTHTYPE_CM);
 }, document.title + ", cm");
 

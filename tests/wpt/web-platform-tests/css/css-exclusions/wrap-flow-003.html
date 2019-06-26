@@ -9,6 +9,7 @@
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
         <script src="resources/helper.js"></script>
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
         <style>
             * {
                 margin: 0px;
@@ -43,11 +44,16 @@
         <div id="log"></div>
 
         <script type="text/javascript">
-            test(function() {assert_equals(checkLinePos("line1",216,"right"), true)}, "Verify right of the 'line1' span is positioned correctly");
-            test(function() {assert_equals(checkLinePos("line2",192,"right"), true)}, "Verify right of the 'line2' span is positioned correctly");
-            test(function() {assert_equals(checkLinePos("line3",228,"right"), true)}, "Verify right of the 'line3' span is positioned correctly");
-            test(function() {assert_equals(checkLinePos("line4",36,"top"), true)}, "Verify top of the 'line4' span is positioned correctly");
-            test(function() {assert_equals(checkLinePos("line4",264,"right"), true)}, "Verify right of the 'line4' span is positioned correctly");
+            setup({ explicit_done: true });
+
+            document.fonts.ready.then(() => {
+                test(function() {assert_equals(checkLinePos("line1",216,"right"), true)}, "Verify right of the 'line1' span is positioned correctly");
+                test(function() {assert_equals(checkLinePos("line2",192,"right"), true)}, "Verify right of the 'line2' span is positioned correctly");
+                test(function() {assert_equals(checkLinePos("line3",228,"right"), true)}, "Verify right of the 'line3' span is positioned correctly");
+                test(function() {assert_equals(checkLinePos("line4",36,"top"), true)}, "Verify top of the 'line4' span is positioned correctly");
+                test(function() {assert_equals(checkLinePos("line4",264,"right"), true)}, "Verify right of the 'line4' span is positioned correctly");
+                done();
+            });
         </script>
     </body>
 </html>
