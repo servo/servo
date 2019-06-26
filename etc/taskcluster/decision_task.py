@@ -59,7 +59,7 @@ def main(task_for):
             # https://github.com/servo/saltfs/blob/master/homu/map.jinja
 
             "try-mac": [macos_unit],
-            "try-linux": [linux_tidy_unit_docs, linux_release],
+            "try-linux": [linux_tidy_unit_docs],
             "try-windows": [windows_unit, windows_x86, windows_arm64],
             "try-magicleap": [magicleap_dev],
             "try-arm": [linux_arm32_dev, linux_arm64_dev, windows_arm64],
@@ -179,6 +179,8 @@ def linux_tidy_unit_docs():
         linux_build_task("Tidy + dev build + unit tests + docs")
         .with_treeherder("Linux x64", "Tidy+Unit+Doc")
         .with_script("""
+            echo LLVM: `/usr/bin/llvm-config --version`
+            echo LLVM: `/usr/bin/llvm-config --version | egrep -o '^[0-9.]+'`
             ./mach test-tidy --no-progress --all
             ./mach build --dev
             ./mach test-unit
