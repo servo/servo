@@ -11,13 +11,13 @@ use crate::dom::bindings::codegen::Bindings::XRTestBinding::{
 };
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::fakexrdevicecontroller::FakeXRDeviceController;
+use crate::dom::fakexrdevice::{get_origin, get_views, FakeXRDevice};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use dom_struct::dom_struct;
 use std::cell::Cell;
 use std::rc::Rc;
-use webvr_traits::WebVRMsg;
+use webvr_traits::{MockVRInit, WebVRMsg};
 
 #[dom_struct]
 pub struct XRTest {
@@ -52,14 +52,36 @@ impl XRTestMethods for XRTest {
             return p;
         }
 
+        let origin = match get_origin(&init.viewerOrigin) {
+            Ok(origin) => origin,
+            Err(e) => {
+                p.reject_error(e);
+                return p;
+            },
+        };
+
+        let views = match get_views(&init.views) {
+            Ok(views) => views,
+            Err(e) => {
+                p.reject_error(e);
+                return p;
+            },
+        };
+
+        let init = MockVRInit {
+            viewer_origin: Some(origin),
+            views: Some(views),
+            eye_level: None,
+        };
+
         self.session_started.set(true);
         self.global()
             .as_window()
             .webvr_thread()
             .unwrap()
-            .send(WebVRMsg::CreateMockDisplay)
+            .send(WebVRMsg::CreateMockDisplay(init))
             .unwrap();
-        p.resolve_native(&FakeXRDeviceController::new(&self.global()));
+        p.resolve_native(&FakeXRDevice::new(&self.global()));
 
         p
     }
