@@ -650,6 +650,7 @@ pub trait ScriptThreadFactory {
         prepare_for_screenshot: bool,
         unminify_js: bool,
         userscripts_path: Option<String>,
+        headless: bool,
     ) -> (Sender<Self::Message>, Receiver<Self::Message>);
 }
 

@@ -567,6 +567,7 @@ impl UnprivilegedPipelineContent {
                 self.opts.webdriver_port.is_some(),
             self.opts.unminify_js,
             self.opts.userscripts,
+            self.opts.headless,
         );
 
         LTF::create(

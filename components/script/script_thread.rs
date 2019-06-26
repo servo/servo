@@ -663,6 +663,9 @@ pub struct ScriptThread {
     /// the resources/user-agent-js directory, and if the option isn't passed userscripts
     /// won't be loaded
     userscripts_path: Option<String>,
+
+    /// True if headless mode.
+    headless: bool,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -706,6 +709,7 @@ impl ScriptThreadFactory for ScriptThread {
         prepare_for_screenshot: bool,
         unminify_js: bool,
         userscripts_path: Option<String>,
+        headless: bool,
     ) -> (Sender<message::Msg>, Receiver<message::Msg>) {
         let (script_chan, script_port) = unbounded();
 
@@ -738,6 +742,7 @@ impl ScriptThreadFactory for ScriptThread {
                     prepare_for_screenshot,
                     unminify_js,
                     userscripts_path,
+                    headless,
                 );
 
                 SCRIPT_THREAD_ROOT.with(|root| {
@@ -1092,6 +1097,7 @@ impl ScriptThread {
         prepare_for_screenshot: bool,
         unminify_js: bool,
         userscripts_path: Option<String>,
+        headless: bool,
     ) -> ScriptThread {
         let runtime = new_rt_and_cx();
         let cx = runtime.cx();
@@ -1204,6 +1210,7 @@ impl ScriptThread {
             unminify_js,
 
             userscripts_path,
+            headless,
         }
     }
 
@@ -2943,6 +2950,7 @@ impl ScriptThread {
             self.prepare_for_screenshot,
             self.unminify_js,
             self.userscripts_path.clone(),
+            self.headless,
         );
 
         // Initialize the browsing context for the window.

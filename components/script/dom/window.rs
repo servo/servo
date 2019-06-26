@@ -312,6 +312,9 @@ pub struct Window {
     /// the resources/user-agent-js directory, and if the option isn't passed userscripts
     /// won't be loaded.
     userscripts_path: Option<String>,
+
+    /// True if headless mode.
+    headless: bool,
 }
 
 impl Window {
@@ -466,6 +469,10 @@ impl Window {
 
     pub fn get_userscripts_path(&self) -> Option<String> {
         self.userscripts_path.clone()
+    }
+
+    pub fn is_headless(&self) -> bool {
+        self.headless
     }
 }
 
@@ -2060,6 +2067,7 @@ impl Window {
         prepare_for_screenshot: bool,
         unminify_js: bool,
         userscripts_path: Option<String>,
+        headless: bool,
     ) -> DomRoot<Self> {
         let layout_rpc: Box<dyn LayoutRPC + Send> = {
             let (rpc_send, rpc_recv) = unbounded();
@@ -2137,6 +2145,7 @@ impl Window {
             prepare_for_screenshot,
             unminify_js,
             userscripts_path,
+            headless,
         });
 
         unsafe { WindowBinding::Wrap(runtime.cx(), win) }
