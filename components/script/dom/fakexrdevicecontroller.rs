@@ -15,7 +15,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use webvr_traits::{MockVRControlMsg, WebVREyeParameters, WebVRMsg};
+use webvr_traits::{MockVRControlMsg, MockVRView, WebVRMsg};
 
 #[dom_struct]
 pub struct FakeXRDeviceController {
@@ -75,15 +75,15 @@ impl FakeXRDeviceControllerMethods for FakeXRDeviceController {
         let v: Vec<_> = right.projectionMatrix.iter().map(|x| **x).collect();
         proj_r.copy_from_slice(&v);
 
-        let mut params_l = WebVREyeParameters::default();
-        let mut params_r = WebVREyeParameters::default();
+        let mut offset_l = [0.; 3];
+        let mut offset_r = [0.; 3];
         let v: Vec<_> = left.viewOffset.position.iter().map(|x| **x).collect();
-        params_l.offset.copy_from_slice(&v);
+        offset_l.copy_from_slice(&v);
         let v: Vec<_> = right.viewOffset.position.iter().map(|x| **x).collect();
-        params_r.offset.copy_from_slice(&v);
-
-        self.send_msg(MockVRControlMsg::SetProjectionMatrices(proj_l, proj_r));
-        self.send_msg(MockVRControlMsg::SetEyeParameters(params_l, params_r));
+        offset_r.copy_from_slice(&v);
+        let left = MockVRView {projection: proj_l, offset: offset_l};
+        let right = MockVRView {projection: proj_r, offset: offset_r};
+        self.send_msg(MockVRControlMsg::SetViews(left, right));
         Ok(())
     }
 

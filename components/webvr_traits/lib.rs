@@ -11,7 +11,7 @@ mod webvr_traits;
 
 pub use crate::webvr_traits::{WebVRMsg, WebVRResult};
 pub use rust_webvr_api as webvr;
-pub use rust_webvr_api::MockVRControlMsg;
+pub use rust_webvr_api::{MockVRControlMsg, MockVRView, MockVRInit};
 pub use rust_webvr_api::VRDisplayCapabilities as WebVRDisplayCapabilities;
 pub use rust_webvr_api::VRDisplayData as WebVRDisplayData;
 pub use rust_webvr_api::VRDisplayEvent as WebVRDisplayEvent;

@@ -317,7 +317,7 @@ impl WebVRThread {
             warn!("Mock display already created");
             return;
         }
-        self.mock = Some(self.service.register_mock_with_remote());
+        self.mock = Some(self.service.register_mock_with_remote(Default::default()));
     }
 
     fn handle_message_mock_display(&mut self, msg: MockVRControlMsg) {
