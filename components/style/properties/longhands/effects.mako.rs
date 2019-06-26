@@ -57,6 +57,21 @@ ${helpers.predefined_type(
     spec="https://drafts.fxtf.org/filters/#propdef-filter",
 )}
 
+${helpers.predefined_type(
+    "backdrop-filter",
+    "Filter",
+    None,
+    vector=True,
+    simple_vector_bindings=True,
+    gecko_ffi_name="mBackdropFilters",
+    separator="Space",
+    animation_value_type="AnimatedFilterList",
+    vector_animation_type="with_zero",
+    flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
+    gecko_pref="layout.css.backdrop-filter.enabled",
+    spec="https://drafts.fxtf.org/filter-effects-2/#propdef-backdrop-filter",
+)}
+
 ${helpers.single_keyword(
     "mix-blend-mode",
     """normal multiply screen overlay darken lighten color-dodge
