@@ -8,7 +8,6 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::HistoryBinding::HistoryBinding::HistoryMethods;
 use crate::dom::bindings::codegen::Bindings::MediaQueryListBinding::MediaQueryListBinding::MediaQueryListMethods;
-use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
@@ -275,9 +274,6 @@ pub struct Window {
     #[ignore_malloc_size_of = "defined in webxr"]
     webxr_registry: webxr_api::Registry,
 
-    /// A map for storing the previous permission state read results.
-    permission_state_invocation_results: DomRefCell<HashMap<String, PermissionState>>,
-
     /// All of the elements that have an outstanding image request that was
     /// initiated by layout during a reflow. They are stored in the script thread
     /// to ensure that the element can be marked dirty when the image data becomes
@@ -474,12 +470,6 @@ impl Window {
     fn new_paint_worklet(&self) -> DomRoot<Worklet> {
         debug!("Creating new paint worklet.");
         Worklet::new(self, WorkletGlobalScopeType::Paint)
-    }
-
-    pub fn permission_state_invocation_results(
-        &self,
-    ) -> &DomRefCell<HashMap<String, PermissionState>> {
-        &self.permission_state_invocation_results
     }
 
     pub fn pending_image_notification(&self, response: PendingImageResponse) {
@@ -2333,7 +2323,6 @@ impl Window {
             webgl_chan,
             webvr_chan,
             webxr_registry,
-            permission_state_invocation_results: Default::default(),
             pending_layout_images: Default::default(),
             unminified_js_dir: Default::default(),
             test_worklet: Default::default(),
