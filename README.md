@@ -198,15 +198,14 @@ sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip me
 sudo emerge net-misc/curl \
     media-libs/freetype media-libs/mesa dev-util/gperf \
     dev-python/virtualenv dev-python/pip dev-libs/openssl \
-    media-libs/harfbuzz dev-util/ccache \
+    media-libs/harfbuzz dev-util/ccache sys-libs/libunwind \
     x11-libs/libXmu media-libs/glu x11-base/xorg-server sys-devel/clang \
     media-libs/gstreamer media-libs/gst-plugins-bad media-libs/gst-plugins-base
 ```
 
-with the following environment variable set:
-
+With the following environment variable set:
 ```sh
-export LIBCLANG_PATH="/usr/lib64/llvm/*/lib64"
+export LIBCLANG_PATH=$(llvm-config --prefix)/lib64
 ```
 #### On Windows (MSVC)
 
