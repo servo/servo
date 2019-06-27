@@ -17,9 +17,6 @@ def main(task_for):
         )
 
     if task_for == "github-push":
-        # FIXME https://github.com/servo/servo/issues/22325 implement these:
-        linux_arm32_dev = linux_arm64_dev = lambda: None
-
         # FIXME https://github.com/servo/servo/issues/22187
         # In-emulator testing is disabled for now. (Instead we only compile.)
         # This local variable shadows the module-level function of the same name.
@@ -39,8 +36,6 @@ def main(task_for):
             android_arm32_dev_from_macos,
             android_arm32_release,
             android_x86_wpt,
-            linux_arm32_dev,
-            linux_arm64_dev,
             linux_wpt,
             linux_release,
             macos_wpt,
@@ -62,7 +57,7 @@ def main(task_for):
             "try-linux": [linux_tidy_unit_docs, linux_release],
             "try-windows": [windows_unit, windows_x86, windows_arm64],
             "try-magicleap": [magicleap_dev],
-            "try-arm": [linux_arm32_dev, linux_arm64_dev, windows_arm64],
+            "try-arm": [windows_arm64],
             "try-wpt": [linux_wpt],
             "try-wpt-mac": [macos_wpt],
             "try-wpt-android": [android_x86_wpt],
