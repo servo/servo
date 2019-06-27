@@ -4,6 +4,7 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSourceBinding::EventSourceMethods;
+use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::conversions::{root_from_object, root_from_object_static};
@@ -125,6 +126,9 @@ pub struct GlobalScope {
     /// The origin of the globalscope
     origin: MutableOrigin,
 
+    /// A map for storing the previous permission state read results.
+    permission_state_invocation_results: DomRefCell<HashMap<String, PermissionState>>,
+
     /// The microtask queue associated with this global.
     ///
     /// It is refcounted because windows in the same script thread share the
@@ -198,6 +202,7 @@ impl GlobalScope {
             resource_threads,
             timers: OneshotTimers::new(timer_event_chan, scheduler_chan),
             origin,
+            permission_state_invocation_results: Default::default(),
             microtask_queue,
             list_auto_close_worker: Default::default(),
             event_source_tracker: DOMTracker::new(),
@@ -206,6 +211,12 @@ impl GlobalScope {
             is_headless,
             user_agent,
         }
+    }
+
+    pub fn permission_state_invocation_results(
+        &self,
+    ) -> &DomRefCell<HashMap<String, PermissionState>> {
+        &self.permission_state_invocation_results
     }
 
     pub fn track_worker(&self, closing_worker: Arc<AtomicBool>) {
