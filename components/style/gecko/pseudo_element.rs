@@ -182,13 +182,18 @@ impl PseudoElement {
     /// Property flag that properties must have to apply to this pseudo-element.
     #[inline]
     pub fn property_restriction(&self) -> Option<PropertyFlags> {
-        match *self {
-            PseudoElement::FirstLetter => Some(PropertyFlags::APPLIES_TO_FIRST_LETTER),
-            PseudoElement::FirstLine => Some(PropertyFlags::APPLIES_TO_FIRST_LINE),
-            PseudoElement::Placeholder => Some(PropertyFlags::APPLIES_TO_PLACEHOLDER),
-            PseudoElement::Cue => Some(PropertyFlags::APPLIES_TO_CUE),
-            _ => None,
-        }
+        Some(match *self {
+            PseudoElement::FirstLetter => PropertyFlags::APPLIES_TO_FIRST_LETTER,
+            PseudoElement::FirstLine => PropertyFlags::APPLIES_TO_FIRST_LINE,
+            PseudoElement::Placeholder => PropertyFlags::APPLIES_TO_PLACEHOLDER,
+            PseudoElement::Cue => PropertyFlags::APPLIES_TO_CUE,
+            PseudoElement::Marker
+                if unsafe { structs::StaticPrefs::sVarCache_layout_css_marker_restricted } =>
+            {
+                PropertyFlags::APPLIES_TO_MARKER
+            },
+            _ => return None,
+        })
     }
 
     /// Whether this pseudo-element should actually exist if it has

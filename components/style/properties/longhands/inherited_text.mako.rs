@@ -11,7 +11,7 @@ ${helpers.predefined_type(
     "ColorPropertyValue",
     "::cssparser::RGBA::new(0, 0, 0, 255)",
     animation_value_type="AnimatedRGBA",
-    flags="APPLIES_TO_CUE APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+    flags="APPLIES_TO_CUE APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER APPLIES_TO_MARKER",
     ignored_when_colors_disabled="True",
     spec="https://drafts.csswg.org/css-color/#color",
 )}
@@ -349,7 +349,7 @@ ${helpers.single_keyword(
     products="gecko",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-writing-modes-3/#text-combine-upright",
-    flags="APPLIES_TO_CUE",
+    flags="APPLIES_TO_CUE APPLIES_TO_MARKER",
 )}
 
 // SVG 1.1: Section 11 - Painting: Filling, Stroking and Marker Symbols

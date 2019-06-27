@@ -23,6 +23,7 @@ ${helpers.single_keyword(
     "normal embed isolate bidi-override isolate-override plaintext",
     animation_value_type="none",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-unicode-bidi",
+    flags="APPLIES_TO_MARKER",
     servo_restyle_damage="rebuild_and_reflow",
 )}
 
