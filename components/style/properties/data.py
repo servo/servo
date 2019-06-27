@@ -336,6 +336,7 @@ class Longhand(object):
                 "MozScriptLevel",
                 "MozScriptMinSize",
                 "MozScriptSizeMultiplier",
+                "TextDecorationSkipInk",
                 "NonNegativeNumber",
                 "Number",
                 "OffsetRotate",

@@ -384,3 +384,15 @@ ${helpers.predefined_type(
     gecko_pref="layout.css.text-underline-offset.enabled",
     spec="https://drafts.csswg.org/css-text-decor-4/#underline-offset",
 )}
+
+// text decoration skip ink
+${helpers.predefined_type(
+    "text-decoration-skip-ink",
+    "TextDecorationSkipInk",
+    "computed::TextDecorationSkipInk::Auto",
+    products="gecko",
+    needs_context=False,
+    animation_value_type="discrete",
+    gecko_pref="layout.css.text-decoration-skip-ink.enabled",
+    spec="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-ink-property",
+)}
