@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>KV Storage: IDL interface tests</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+
+<script type="module">
+import { storage, StorageArea } from "std:kv-storage";
+
+// Web IDL/idlharness.js do not yet have support for the spec's IDL, which uses module {},
+// async_iterator, and some new extended attributes. This IDL is a mutated version to work with the
+// current idlharness.js to get some coverage.
+//
+// When the relevant Web IDL PRs land and idlharness.js gets updated, we can replace this file with
+// a normal-style idlharness test, with the IDL scraped from the spec.
+//
+// Other tests in this file are similarly ones that should be generatable from the IDL, in theory.
+
+const idl = `
+[Constructor(DOMString name)]
+interface StorageArea {
+  Promise<void> set(any key, any value);
+  Promise<any> get(any key);
+  Promise<void> delete(any key);
+  Promise<void> clear();
+
+//  async_iterable<any, any>;
+
+  [SameObject] readonly attribute object backingStore;
+};
+`;
+
+// Define a global property because idlharness.js only understands
+// global properties, not modules.
+Object.defineProperty(window, "StorageArea", {
+  configurable: true,
+  enumerable: false,
+  writable: true,
+  value: StorageArea
+});
+
+test(t => {
+  window.testStorageArea = storage;
+  t.add_cleanup(() => {
+    delete window.testStorageArea;
+  });
+
+  const idlArray = new IdlArray();
+  idlArray.add_idls(idl);
+  idlArray.add_objects({ StorageArea: ["window.testStorageArea"] });
+  idlArray.test();
+}, "idlharness basic interface tests");
+
+test(() => {
+  assert_equals(storage instanceof StorageArea, true, "instanceof");
+  assert_equals(storage.constructor, StorageArea, ".constructor property");
+  assert_equals(Object.getPrototypeOf(storage), StorageArea.prototype, "[[Prototype]]");
+}, "Built-in storage export is a StorageArea");
+
+// These should be auto-tested by idlharness eventually, similar to
+// https://github.com/web-platform-tests/wpt/blob/3725067ef0328c998be2ba93dbaeb0579586fccd/resources/idlharness.js#L2452
+// for sync iterators (although this tests more than that does).
+test(() => {
+  for (const methodName of ["keys", "values", "entries"]) {
+    const descriptor = Object.getOwnPropertyDescriptor(StorageArea.prototype, methodName);
+
+    assert_true(descriptor.writable, `${methodName} property should be writable`);
+    assert_true(descriptor.configurable, `${methodName} property should be configurable`);
+
+    // May need updating if https://github.com/heycam/webidl/issues/738 changes the spec
+    assert_true(descriptor.enumerable, `${methodName} property should be enumerable`);
+
+    assert_equals(typeof descriptor.value, "function",
+      `${methodName} property should be a function`);
+    assert_equals(descriptor.value.length, 0, `${methodName} function object length should be 0`);
+    assert_equals(descriptor.value.name, methodName,
+      `${methodName} function object should have the right name`);
+
+    assert_throws(new TypeError(), () => descriptor.value.call(StorageArea.prototype),
+      `${methodName} should throw when called on the prototype directly`);
+      assert_throws(new TypeError(), () => descriptor.value.call({}),
+      `${methodName} should throw when called on an empty object`);
+  }
+
+  const AsyncIteratorPrototype =
+    Object.getPrototypeOf(Object.getPrototypeOf(async function*() {}).prototype);
+  const asyncIteratorProto = Object.getPrototypeOf(storage.keys());
+  assert_equals(Object.getPrototypeOf(storage.values()), asyncIteratorProto,
+    "keys() and values() return values must have the same prototype");
+  assert_equals(Object.getPrototypeOf(storage.entries()), asyncIteratorProto,
+    "keys() and entries() return values must have the same prototype");
+
+  assert_equals(Object.getPrototypeOf(asyncIteratorProto), AsyncIteratorPrototype,
+    "[[Prototype]] must be the async iterator prototype");
+
+  assert_array_equals(Object.getOwnPropertyNames(asyncIteratorProto), ["next"],
+      `async iterator prototype object must have a next method`);
+
+  const nextMethodDescriptor = Object.getOwnPropertyDescriptor(asyncIteratorProto, "next");
+  assert_true(nextMethodDescriptor.writable, `async iterator next property should be writable`);
+  assert_true(nextMethodDescriptor.configurable,
+    `async iterator next property should be configurable`);
+
+  // May need updating if https://github.com/heycam/webidl/issues/739 changes the spec
+  assert_true(nextMethodDescriptor.enumerable,
+    `async iterator next property should be enumerable`);
+
+  assert_equals(typeof nextMethodDescriptor.value, "function",
+    `async iterator next property should be a function`);
+  assert_equals(nextMethodDescriptor.value.length, 0,
+    `async iterator next function object length should be 0`);
+  assert_equals(nextMethodDescriptor.value.name, "next",
+    `async iterator next function object should have the right name`);
+
+  assert_array_equals(Object.getOwnPropertySymbols(asyncIteratorProto), [Symbol.toStringTag]);
+  const toStringTagDescriptor = Object.getOwnPropertyDescriptor(
+    asyncIteratorProto,
+    Symbol.toStringTag
+  );
+  assert_false(toStringTagDescriptor.writable,
+    `async iterator @@toStringTag property should be non-writable`);
+  assert_true(toStringTagDescriptor.configurable,
+    `async iterator @@toStringTag property should be configurable`);
+  assert_false(toStringTagDescriptor.enumerable,
+    `async iterator @@toStringTag property should be non-enumerable`);
+  assert_equals(toStringTagDescriptor.value, "StorageArea AsyncIterator",
+    `async iterator @@toStringTag property should have the right value`);
+
+  assert_equals(StorageArea.prototype[Symbol.asyncIterator], StorageArea.prototype.entries,
+    "@@asyncIterator method should be the same as entries");
+}, "@@asyncIterator tests");
+
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  iframe.src = "helpers/expose-as-global.html";
+  document.body.append(iframe);
+
+  await frameLoadPromise(iframe);
+  const OtherStorageArea = iframe.contentWindow.StorageArea;
+
+  await promise_rejects(t, new TypeError(),
+    OtherStorageArea.prototype.set.call(storage, "testkey", "testvalue"),
+    `set() must reject cross-realm`);
+  await promise_rejects(t, new TypeError(),
+    OtherStorageArea.prototype.get.call(storage, "testkey"),
+    `get() must reject cross-realm`);
+  await promise_rejects(t, new TypeError(),
+    OtherStorageArea.prototype.delete.call(storage, "testkey"),
+    `delete() must reject cross-realm`);
+  await promise_rejects(t, new TypeError(), OtherStorageArea.prototype.clear.call(storage),
+    `clear() must reject cross-realm`);
+
+  assert_throws(new TypeError(), () => OtherStorageArea.prototype.keys.call(storage),
+    `keys() must throw cross-realm`);
+  assert_throws(new TypeError(), () => OtherStorageArea.prototype.values.call(storage),
+    `values() must throw cross-realm`);
+  assert_throws(new TypeError(), () => OtherStorageArea.prototype.entries.call(storage),
+    `entries() must throw cross-realm`);
+
+  const otherBackingStoreGetter =
+    Object.getOwnPropertyDescriptor(OtherStorageArea.prototype, "backingStore").get;
+  assert_throws(new TypeError(), () => otherBackingStoreGetter.call(storage),
+    `backingStore must throw cross-realm`);
+}, "Same-realm brand checks");
+
+function frameLoadPromise(frame) {
+  return new Promise((resolve, reject) => {
+    frame.onload = resolve;
+    frame.onerror = () => reject(new Error(`${frame.src} failed to load`));
+  });
+}
+</script>

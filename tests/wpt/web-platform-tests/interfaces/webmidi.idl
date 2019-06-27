@@ -12,11 +12,11 @@ dictionary MIDIOptions {
   boolean software;
 };
 
-interface MIDIInputMap {
+[SecureContext] interface MIDIInputMap {
   readonly maplike<DOMString, MIDIInput>;
 };
 
-interface MIDIOutputMap {
+[SecureContext] interface MIDIOutputMap {
   readonly maplike<DOMString, MIDIOutput>;
 };
 

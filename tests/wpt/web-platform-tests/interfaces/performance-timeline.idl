@@ -32,7 +32,6 @@ interface PerformanceObserver {
 dictionary PerformanceObserverInit {
   sequence<DOMString> entryTypes;
   DOMString type;
-  boolean buffered;
 };
 
 [Exposed=(Window,Worker)]

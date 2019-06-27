@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>KV Storage: keys()/values()/entries()</title>
+<meta name="timeout" content="long">
+
 <!--
   This file contains tests that are easy to generalize over all three methods.
   See sibling files for more complicated tests which are not worth generalizing.
@@ -12,30 +14,11 @@
 
 <script type="module">
 import { testWithArea } from "./helpers/kvs-tests.js";
-import * as classAssert from "./helpers/class-assert.js";
+import * as iterAssert from "./helpers/iter-assert.js";
 import { assertAsyncIteratorEquals } from "./helpers/equality-asserters.js";
 // Also uses some global functions included via support-promises.js.
 
-const AsyncIteratorPrototype = Object.getPrototypeOf(Object.getPrototypeOf(async function*() {}).prototype);
-
-testWithArea(async area => {
-  const keysProto = Object.getPrototypeOf(area.keys());
-  const valuesProto = Object.getPrototypeOf(area.values());
-  const entriesProto = Object.getPrototypeOf(area.entries());
-
-  assert_equals(keysProto, valuesProto, "keys() and values() return values' must have the same [[Prototype]]");
-  assert_equals(valuesProto, entriesProto, "values() and entries () return values' must have the same [[Prototype]]");
-}, "keys()/values()/entries() all use the same prototype object");
-
 for (const method of ["keys", "values", "entries"]) {
-  testWithArea(async area => {
-    const iter = area[method]();
-    const proto = Object.getPrototypeOf(iter);
-    assert_equals(Object.getPrototypeOf(proto), AsyncIteratorPrototype,
-      "[[Prototype]] must be the async iterator prototype");
-    classAssert.propertyKeys(proto, ["next"], [], "must only have a next() method");
-  }, `${method}() return value is an async iterator of the expected shape`);
-
   testWithArea(async area => {
     const iter = area[method]();
     const promise = iter.next();
@@ -47,7 +30,7 @@ for (const method of ["keys", "values", "entries"]) {
       await iter.next()
     ];
 
-    classAssert.iterResults(iterResults, [
+    iterAssert.iterResults(iterResults, [
       [undefined, true],
       [undefined, true]
     ]);
