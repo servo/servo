@@ -97,6 +97,8 @@ pub trait HostTrait {
     fn on_load_ended(&self);
     /// Page title has changed.
     fn on_title_changed(&self, title: String);
+    /// Allow Navigation.
+    fn on_allow_navigation(&self, url: String) -> bool;
     /// Page URL has changed.
     fn on_url_changed(&self, url: String);
     /// Back/forward state has changed.
@@ -474,9 +476,13 @@ impl ServoGlue {
                     let title = format!("{} - Servo", title);
                     self.callbacks.host_callbacks.on_title_changed(title);
                 },
-                EmbedderMsg::AllowNavigationRequest(pipeline_id, _url) => {
+                EmbedderMsg::AllowNavigationRequest(pipeline_id, url) => {
                     if let Some(_browser_id) = browser_id {
-                        let window_event = WindowEvent::AllowNavigationResponse(pipeline_id, true);
+                        let data: bool = self
+                            .callbacks
+                            .host_callbacks
+                            .on_allow_navigation(url.to_string());
+                        let window_event = WindowEvent::AllowNavigationResponse(pipeline_id, data);
                         let _ = self.process_event(window_event);
                     }
                 },
