@@ -2836,6 +2836,19 @@ impl ComputedValues {
     pub fn resolve_color(&self, color: computed::Color) -> RGBA {
         color.to_rgba(self.get_inherited_text().clone_color())
     }
+
+    /// Returns which longhand properties have different values in the two
+    /// ComputedValues.
+    #[cfg(feature = "gecko_debug")]
+    pub fn differing_properties(&self, other: &ComputedValues) -> LonghandIdSet {
+        let mut set = LonghandIdSet::new();
+        % for prop in data.longhands:
+        if self.clone_${prop.ident}() != other.clone_${prop.ident}() {
+            set.insert(LonghandId::${prop.camel_case});
+        }
+        % endfor
+        set
+    }
 }
 
 #[cfg(feature = "servo")]
