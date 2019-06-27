@@ -788,6 +788,7 @@ install them, let us know by filing a bug!")
                 action='store_true',
                 help='Build for HoloLens (x64)'),
             CommandArgument('--with-raqote', default=None, action='store_true'),
+            CommandArgument('--with-layout-2020', default=None, action='store_true'),
             CommandArgument('--without-wgl', default=None, action='store_true'),
         ]
 
@@ -813,7 +814,7 @@ install them, let us know by filing a bug!")
         env=None, verbose=False,
         target=None, android=False, magicleap=False, libsimpleservo=False,
         features=None, debug_mozjs=False, with_debug_assertions=False,
-        with_frame_pointer=False, with_raqote=False, without_wgl=False,
+        with_frame_pointer=False, with_raqote=False, with_layout_2020=False, without_wgl=False,
         uwp=False,
     ):
         env = env or self.build_env()
@@ -852,6 +853,10 @@ install them, let us know by filing a bug!")
             features.append("canvas2d-raqote")
         elif "canvas2d-raqote" not in features:
             features.append("canvas2d-azure")
+        if with_layout_2020 and "layout-2013" not in features:
+            features.append("layout-2020")
+        elif "layout-2020" not in features:
+            features.append("layout-2013")
         if with_frame_pointer:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C force-frame-pointers=yes"
             features.append("profilemozjs")

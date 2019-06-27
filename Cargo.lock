@@ -2312,7 +2312,7 @@ version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "layout"
+name = "layout_2013"
 version = "0.0.1"
 dependencies = [
  "app_units 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2360,7 +2360,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "layout_thread"
+name = "layout_2020"
+version = "0.0.1"
+dependencies = [
+ "style 0.0.1",
+]
+
+[[package]]
+name = "layout_thread_2013"
 version = "0.0.1"
 dependencies = [
  "app_units 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2375,7 +2382,7 @@ dependencies = [
  "histogram 0.6.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "html5ever 0.23.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "layout 0.0.1",
+ "layout_2013 0.0.1",
  "layout_traits 0.0.1",
  "lazy_static 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.53 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2402,6 +2409,27 @@ dependencies = [
  "style 0.0.1",
  "style_traits 0.0.1",
  "time 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+]
+
+[[package]]
+name = "layout_thread_2020"
+version = "0.0.1"
+dependencies = [
+ "crossbeam-channel 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.19.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gfx 0.0.1",
+ "ipc-channel 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "layout_2020 0.0.1",
+ "layout_traits 0.0.1",
+ "metrics 0.0.1",
+ "msg 0.0.1",
+ "net_traits 0.0.1",
+ "profile_traits 0.0.1",
+ "script_layout_interface 0.0.1",
+ "script_traits 0.0.1",
+ "servo_geometry 0.0.1",
+ "servo_url 0.0.1",
  "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
 ]
 
@@ -2514,7 +2542,8 @@ dependencies = [
  "gleam 0.6.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "keyboard-types 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "layout_thread 0.0.1",
+ "layout_thread_2013 0.0.1",
+ "layout_thread_2020 0.0.1",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "mozangle 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
@@ -2759,7 +2788,7 @@ version = "0.0.1"
 dependencies = [
  "gfx_traits 0.0.1",
  "ipc-channel 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "layout 0.0.1",
+ "layout_2013 0.0.1",
  "metrics 0.0.1",
  "msg 0.0.1",
  "profile_traits 0.0.1",

@@ -186,6 +186,7 @@ def linux_tidy_unit_docs():
             ./mach test-unit
             ./mach package --dev
             ./mach build --dev --features canvas2d-raqote
+            ./mach build --dev --features layout-2020
             ./mach build --dev --libsimpleservo
             ./mach test-tidy --no-progress --self-test
 

@@ -248,7 +248,7 @@ class MachCommands(CommandBase):
         self_contained_tests = [
             "background_hang_monitor",
             "gfx",
-            "layout",
+            "layout_2013",
             "msg",
             "net",
             "net_traits",

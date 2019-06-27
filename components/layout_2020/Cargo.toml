@@ -1,0 +1,15 @@
+[package]
+name = "layout_2020"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+path = "lib.rs"
+test = false
+doctest = false
+
+[dependencies]
+style = {path = "../style", features = ["servo", "servo-layout-2020"]}
