@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::str::DOMString;
-use servo_config::opts;
+use std::borrow::Cow;
 
 pub fn Product() -> DOMString {
     DOMString::from("Gecko")
@@ -53,8 +53,8 @@ pub fn Platform() -> DOMString {
     DOMString::from("iOS")
 }
 
-pub fn UserAgent() -> DOMString {
-    DOMString::from(&*opts::get().user_agent)
+pub fn UserAgent(user_agent: Cow<'static, str>) -> DOMString {
+    DOMString::from(&*user_agent)
 }
 
 pub fn AppVersion() -> DOMString {

@@ -109,6 +109,7 @@ use servo_media::streams::MediaStreamType;
 use servo_media::webrtc::WebRtcController;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use smallvec::SmallVec;
+use std::borrow::Cow;
 use std::cell::{Cell, RefCell, UnsafeCell};
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::hash::{BuildHasher, Hash};
@@ -163,6 +164,8 @@ unsafe_no_jsmanaged_fields!(Duration);
 unsafe_no_jsmanaged_fields!(TexDataType, TexFormat);
 
 unsafe_no_jsmanaged_fields!(*mut JobQueue);
+
+unsafe_no_jsmanaged_fields!(Cow<'static, str>);
 
 /// Trace a `JSVal`.
 pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) {

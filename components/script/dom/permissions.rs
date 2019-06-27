@@ -21,8 +21,6 @@ use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
 use js::jsapi::{JSContext, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
-#[cfg(target_os = "linux")]
-use servo_config::opts;
 use servo_config::pref;
 use std::rc::Rc;
 #[cfg(target_os = "linux")]
@@ -269,14 +267,15 @@ impl PermissionAlgorithm for Permissions {
             // Step 3.
             PermissionState::Prompt => {
                 let perm_name = status.get_query();
-                // https://w3c.github.io/permissions/#request-permission-to-use (Step 3 - 4)
-                let state = prompt_user(&format!(
-                    "{} {} ?",
-                    REQUEST_DIALOG_MESSAGE,
-                    perm_name.clone()
-                ));
 
                 let globalscope = GlobalScope::current().expect("No current global object");
+
+                // https://w3c.github.io/permissions/#request-permission-to-use (Step 3 - 4)
+                let state = prompt_user(
+                    &format!("{} {} ?", REQUEST_DIALOG_MESSAGE, perm_name.clone()),
+                    globalscope.is_headless(),
+                );
+
                 globalscope
                     .as_window()
                     .permission_state_invocation_results()
@@ -322,10 +321,11 @@ pub fn get_descriptor_permission_state(
                 .permission_state_invocation_results()
                 .borrow_mut()
                 .remove(&permission_name.to_string());
-            prompt_user(&format!(
-                "The {} {}",
-                permission_name, NONSECURE_DIALOG_MESSAGE
-            ))
+
+            prompt_user(
+                &format!("The {} {}", permission_name, NONSECURE_DIALOG_MESSAGE),
+                settings.is_headless(),
+            )
         }
     };
 
@@ -351,8 +351,8 @@ pub fn get_descriptor_permission_state(
 }
 
 #[cfg(target_os = "linux")]
-fn prompt_user(message: &str) -> PermissionState {
-    if opts::get().headless {
+fn prompt_user(message: &str, headless: bool) -> PermissionState {
+    if headless {
         return PermissionState::Denied;
     }
     match tinyfiledialogs::message_box_yes_no(
@@ -367,7 +367,7 @@ fn prompt_user(message: &str) -> PermissionState {
 }
 
 #[cfg(not(target_os = "linux"))]
-fn prompt_user(_message: &str) -> PermissionState {
+fn prompt_user(_message: &str, _headless: bool) -> PermissionState {
     // TODO popup only supported on linux
     PermissionState::Denied
 }

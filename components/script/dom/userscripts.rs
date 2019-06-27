@@ -8,17 +8,16 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlheadelement::HTMLHeadElement;
 use crate::dom::node::document_from_node;
 use js::jsval::UndefinedValue;
-use servo_config::opts;
 use std::fs::{read_dir, File};
 use std::io::Read;
 use std::path::PathBuf;
 
 pub fn load_script(head: &HTMLHeadElement) {
-    let path_str = match opts::get().userscripts.clone() {
+    let doc = document_from_node(head);
+    let path_str = match doc.window().get_userscripts_path() {
         Some(p) => p,
         None => return,
     };
-    let doc = document_from_node(head);
     let win = Trusted::new(doc.window());
     doc.add_delayed_task(task!(UserScriptExecute: move || {
         let win = win.root();
