@@ -316,10 +316,6 @@ class MachCommands(CommandBase):
         if with_debug_assertions:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
 
-        if sys.platform == "win32":
-            env["CC"] = "clang-cl.exe"
-            env["CXX"] = "clang-cl.exe"
-
         host = host_triple()
         if 'apple-darwin' in host and (not target or target == host):
             if 'CXXFLAGS' not in env:
@@ -608,6 +604,13 @@ class MachCommands(CommandBase):
             print (["Calling", "cargo", "build"] + opts)
             for key in env:
                 print((key, env[key]))
+
+        if sys.platform == "win32":
+            env.setdefault("CC", "clang-cl.exe")
+            env.setdefault("CXX", "clang-cl.exe")
+        else:
+            env.setdefault("CC", "clang")
+            env.setdefault("CXX", "clang++")
 
         status = self.call_rustup_run(["cargo", "build"] + opts, env=env, verbose=verbose)
         elapsed = time() - build_start
