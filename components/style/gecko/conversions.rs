@@ -69,18 +69,7 @@ impl nsStyleImage {
 
                     // Set CropRect
                     let ref mut rect = *self.mCropRect.mPtr;
-                    image_rect
-                        .top
-                        .to_gecko_style_coord(&mut rect.data_at_mut(0));
-                    image_rect
-                        .right
-                        .to_gecko_style_coord(&mut rect.data_at_mut(1));
-                    image_rect
-                        .bottom
-                        .to_gecko_style_coord(&mut rect.data_at_mut(2));
-                    image_rect
-                        .left
-                        .to_gecko_style_coord(&mut rect.data_at_mut(3));
+                    *rect = Rect(image_rect.top, image_rect.right, image_rect.bottom, image_rect.left);
                 }
             },
             GenericImage::Element(ref element) => unsafe {
@@ -98,7 +87,7 @@ impl nsStyleImage {
     /// Converts into Image.
     pub unsafe fn into_image(self: &nsStyleImage) -> Option<Image> {
         use crate::gecko_bindings::structs::nsStyleImageType;
-        use crate::values::computed::{MozImageRect, NumberOrPercentage};
+        use crate::values::computed::MozImageRect;
 
         match self.mType {
             nsStyleImageType::eStyleImageType_Null => None,
@@ -107,30 +96,14 @@ impl nsStyleImage {
                 if self.mCropRect.mPtr.is_null() {
                     Some(GenericImage::Url(url))
                 } else {
-                    let ref rect = *self.mCropRect.mPtr;
-                    match (
-                        NumberOrPercentage::from_gecko_style_coord(&rect.data_at(0)),
-                        NumberOrPercentage::from_gecko_style_coord(&rect.data_at(1)),
-                        NumberOrPercentage::from_gecko_style_coord(&rect.data_at(2)),
-                        NumberOrPercentage::from_gecko_style_coord(&rect.data_at(3)),
-                    ) {
-                        (Some(top), Some(right), Some(bottom), Some(left)) => {
-                            Some(GenericImage::Rect(Box::new(MozImageRect {
-                                url,
-                                top,
-                                right,
-                                bottom,
-                                left,
-                            })))
-                        },
-                        _ => {
-                            debug_assert!(
-                                false,
-                                "mCropRect could not convert to NumberOrPercentage"
-                            );
-                            None
-                        },
-                    }
+                    let rect = &*self.mCropRect.mPtr;
+                    Some(GenericImage::Rect(Box::new(MozImageRect {
+                        url,
+                        top: rect.0,
+                        right: rect.1,
+                        bottom: rect.2,
+                        left: rect.3,
+                    })))
                 }
             },
             nsStyleImageType::eStyleImageType_Gradient => {
