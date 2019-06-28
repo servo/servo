@@ -350,6 +350,9 @@ impl HostTrait for HostCallbacks {
     fn on_load_started(&self) {}
     fn on_load_ended(&self) {}
     fn on_title_changed(&self, _title: String) {}
+    fn on_allow_navigation(&self, _url: String) -> bool {
+        true
+    }
     fn on_url_changed(&self, url: String) {
         if let Ok(cstr) = CString::new(url.as_str()) {
             if let Some(url_update) = self.url_update.0 {
