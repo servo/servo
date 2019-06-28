@@ -15,6 +15,7 @@ bench = false
 [features]
 canvas2d-azure = ["simpleservo/canvas2d-azure"]
 canvas2d-raqote = ["simpleservo/canvas2d-raqote"]
+egl = ["simpleservo/egl"]
 
 [dependencies]
 libservo = { path = "../../components/servo", features = ["no_static_freetype"] }

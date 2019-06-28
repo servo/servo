@@ -782,6 +782,11 @@ install them, let us know by filing a bug!")
                 action='store_true',
                 help='Build with frame pointer enabled, used by the background hang monitor.',
             ),
+            CommandArgument(
+                '--uwp',
+                default=None,
+                action='store_true',
+                help='Build for HoloLens (x64)'),
             CommandArgument('--with-raqote', default=None, action='store_true'),
             CommandArgument('--without-wgl', default=None, action='store_true'),
         ]
@@ -809,6 +814,7 @@ install them, let us know by filing a bug!")
         target=None, android=False, magicleap=False, libsimpleservo=False,
         features=None, debug_mozjs=False, with_debug_assertions=False,
         with_frame_pointer=False, with_raqote=False, without_wgl=False,
+        uwp=False,
     ):
         env = env or self.build_env()
         target, android = self.pick_target_triple(target, android, magicleap)
@@ -836,6 +842,12 @@ install them, let us know by filing a bug!")
             features.append("debugmozjs")
         if not magicleap:
             features.append("native-bluetooth")
+        if uwp:
+            features.append("canvas2d-raqote")
+            features.append("no_wgl")
+        else:
+            # Non-UWP builds provide their own libEGL via mozangle.
+            features.append("egl")
         if with_raqote and "canvas2d-azure" not in features:
             features.append("canvas2d-raqote")
         elif "canvas2d-raqote" not in features:
