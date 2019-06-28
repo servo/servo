@@ -51,6 +51,10 @@ impl PipelineNamespace {
         });
     }
 
+    pub fn installed() -> bool {
+        PIPELINE_NAMESPACE.with(|tls| tls.get().is_some())
+    }
+
     fn next_index(&mut self) -> NonZeroU32 {
         self.index += 1;
         NonZeroU32::new(self.index).expect("pipeline id index wrapped!")

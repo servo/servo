@@ -31,11 +31,12 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JSContext, JS_AddInterruptCallback};
 use js::jsval::UndefinedValue;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{PipelineId, PipelineNamespace};
 use net_traits::request::{CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder};
 use net_traits::{CustomResponseMediator, IpcSend};
 use script_traits::{
-    ScopeThings, ServiceWorkerMsg, TimerEvent, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
+    ScopeThings, ScriptMsg, ServiceWorkerMsg, TimerEvent, WorkerGlobalScopeInit,
+    WorkerScriptLoadOrigin,
 };
 use servo_config::pref;
 use servo_rand::random;
@@ -332,6 +333,19 @@ impl ServiceWorkerGlobalScope {
                     scope_url,
                 );
                 let scope = global.upcast::<WorkerGlobalScope>();
+
+                // Get a pipeline namespace.
+                let (namespace_sender, namespace_receiver) =
+                    ipc::channel().expect("ipc channel failure");
+                let _ = global
+                    .upcast::<GlobalScope>()
+                    .script_to_constellation_chan()
+                    .send(ScriptMsg::GePipelineNameSpaceId(namespace_sender));
+
+                let pipeline_namespace_id = namespace_receiver
+                    .recv()
+                    .expect("The constellation to make a pipeline namespace id available");
+                PipelineNamespace::install(pipeline_namespace_id);
 
                 unsafe {
                     // Handle interrupt requests

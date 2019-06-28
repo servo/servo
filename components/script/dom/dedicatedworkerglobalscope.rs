@@ -44,7 +44,9 @@ use net_traits::image_cache::ImageCache;
 use net_traits::request::{CredentialsMode, Destination, ParserMetadata};
 use net_traits::request::{Referrer, RequestBuilder, RequestMode};
 use net_traits::IpcSend;
-use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
+use script_traits::{
+    ScriptMsg, TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
+};
 use servo_rand::random;
 use servo_url::ServoUrl;
 use std::mem::replace;
@@ -379,6 +381,17 @@ impl DedicatedWorkerGlobalScope {
                 // registration (#6631), so we instead use a random number and cross our fingers.
                 let scope = global.upcast::<WorkerGlobalScope>();
                 let global_scope = global.upcast::<GlobalScope>();
+
+                // Get a pipeline namespace.
+                let (namespace_sender, namespace_receiver) =
+                    ipc::channel().expect("ipc channel failure");
+                let _ = global_scope
+                    .script_to_constellation_chan()
+                    .send(ScriptMsg::GePipelineNameSpaceId(namespace_sender));
+                let pipeline_namespace_id = namespace_receiver
+                    .recv()
+                    .expect("The constellation to make a pipeline namespace id available");
+                PipelineNamespace::install(pipeline_namespace_id);
 
                 let (metadata, bytes) = match load_whole_resource(
                     request,
