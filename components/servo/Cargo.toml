@@ -14,6 +14,7 @@ crate-type = ["rlib"]
 [features]
 azure_backend = ["canvas/azure_backend"]
 debugmozjs = ["script/debugmozjs"]
+egl = ["mozangle/egl"]
 energy-profiling = ["profile_traits/energy-profiling"]
 profilemozjs = ["script/profilemozjs"]
 googlevr = ["webvr/googlevr"]
@@ -89,4 +90,4 @@ git = "https://github.com/servo/media"
 git = "https://github.com/servo/media"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-mozangle = { version = "0.2", features = ["egl"] }
+mozangle = {version = "0.2"}
