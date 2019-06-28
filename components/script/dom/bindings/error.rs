@@ -305,7 +305,7 @@ impl Error {
     ) {
         match self {
             Error::JSFailed => (),
-            _ => assert!(!JS_IsExceptionPending(cx))
+            _ => assert!(!JS_IsExceptionPending(cx)),
         }
         throw_dom_exception(cx, global, self);
         assert!(JS_IsExceptionPending(cx));
