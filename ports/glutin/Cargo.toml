@@ -30,6 +30,7 @@ ProductName = "Servo"
 azure_backend = ["libservo/azure_backend"]
 default = ["unstable", "default-except-unstable"]
 default-except-unstable = ["webdriver", "max_log_level"]
+egl = ["libservo/egl"]
 energy-profiling = ["libservo/energy-profiling"]
 debugmozjs = ["libservo/debugmozjs"]
 js_backtrace = ["libservo/js_backtrace"]

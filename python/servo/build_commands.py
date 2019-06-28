@@ -30,7 +30,7 @@ from mach.decorators import (
 from mach.registrar import Registrar
 
 from mach_bootstrap import _get_exec_path
-from servo.command_base import CommandBase, cd, call, check_call, BIN_SUFFIX
+from servo.command_base import CommandBase, cd, call, check_call, BIN_SUFFIX, append_to_path_env
 from servo.util import host_triple
 
 
@@ -193,6 +193,7 @@ class MachCommands(CommandBase):
                      default=None,
                      action='store_true',
                      help='Build the libsimpleservo library instead of the servo executable')
+    @CommandArgument('--uwp', default=None, action='store_true')
     @CommandArgument('--with-frame-pointer',
                      default=None,
                      action='store_true',
@@ -202,7 +203,7 @@ class MachCommands(CommandBase):
     def build(self, target=None, release=False, dev=False, jobs=None,
               features=None, android=None, magicleap=None, no_package=False, verbose=False, very_verbose=False,
               debug_mozjs=False, params=None, with_debug_assertions=False,
-              libsimpleservo=False, with_frame_pointer=False, with_raqote=False, without_wgl=False):
+              libsimpleservo=False, uwp=False, with_frame_pointer=False, with_raqote=False, without_wgl=False):
 
         opts = params or []
 
@@ -283,6 +284,27 @@ class MachCommands(CommandBase):
         env = self.build_env(target=target, is_build=True)
         self.ensure_bootstrapped(target=target)
         self.ensure_clobbered()
+
+        if uwp:
+            # Ensure that azure/skia is disabled.
+            with_raqote = True
+            # The WGL libraries aren't available to UWP apps.
+            without_wgl = True
+            # Don't try and build a desktop port.
+            libsimpleservo = True
+            # Ensure that the NuGet ANGLE package containing libEGL is accessible
+            # to the Rust linker.
+            append_to_path_env(
+                path.join(
+                    os.getcwd(), "support", "hololens", "packages",
+                    "ANGLE.WindowsStore.2.1.13", "bin", "UAP", "x64"
+                ),
+                env,
+                "LIB"
+            )
+        else:
+            # Non-UWP builds provide their own libEGL via mozangle.
+            features += ["egl"]
 
         self.add_manifest_path(opts, android, libsimpleservo)
 
@@ -661,7 +683,8 @@ class MachCommands(CommandBase):
                     for lib in libs:
                         print("WARNING: could not find " + lib)
 
-                package_generated_shared_libraries(["libEGL.dll"], build_path, servo_exe_dir)
+                if not uwp:
+                    package_generated_shared_libraries(["libEGL.dll"], build_path, servo_exe_dir)
 
                 # copy needed gstreamer DLLs in to servo.exe dir
                 target_triple = target or host_triple()
