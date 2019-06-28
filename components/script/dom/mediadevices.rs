@@ -78,11 +78,11 @@ fn convert_constraints(js: &BooleanOrMediaTrackConstraints) -> Option<MediaTrack
         BooleanOrMediaTrackConstraints::Boolean(true) => Some(Default::default()),
         BooleanOrMediaTrackConstraints::MediaTrackConstraints(ref c) => {
             Some(MediaTrackConstraintSet {
-                height: convert_culong(&c.parent.height),
-                width: convert_culong(&c.parent.width),
-                aspect: convert_cdouble(&c.parent.aspectRatio),
-                frame_rate: convert_cdouble(&c.parent.frameRate),
-                sample_rate: convert_culong(&c.parent.sampleRate),
+                height: c.parent.height.as_ref().and_then(convert_culong),
+                width: c.parent.width.as_ref().and_then(convert_culong),
+                aspect: c.parent.aspectRatio.as_ref().and_then(convert_cdouble),
+                frame_rate: c.parent.frameRate.as_ref().and_then(convert_cdouble),
+                sample_rate: c.parent.sampleRate.as_ref().and_then(convert_culong),
             })
         },
     }
