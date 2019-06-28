@@ -8,6 +8,7 @@
 
 use euclid::Size2D;
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 /// This trait is used as a bridge between the different GL clients
 /// in Servo that handles WebRender ExternalImages and the WebRender
@@ -26,21 +27,64 @@ pub enum WebrenderImageHandlerType {
     Media,
 }
 
-/// WebRender External Image Handler implementation.
-pub struct WebrenderExternalImageHandler {
-    webgl_handler: Option<Box<dyn WebrenderExternalImageApi>>,
-    media_handler: Option<Box<dyn WebrenderExternalImageApi>>,
-    //XXX(ferjm) register external images.
+/// List of Webrender external images to be shared among all external image
+/// consumers (WebGL, Media).
+/// It ensures that external image identifiers are unique.
+pub struct WebrenderExternalImageRegistry {
+    /// Map of all generated external images.
     external_images: HashMap<webrender_api::ExternalImageId, WebrenderImageHandlerType>,
+    /// Id generator for the next external image identifier.
+    next_image_id: u64,
 }
 
-impl WebrenderExternalImageHandler {
+impl WebrenderExternalImageRegistry {
     pub fn new() -> Self {
         Self {
-            webgl_handler: None,
-            media_handler: None,
             external_images: HashMap::new(),
+            next_image_id: 0,
         }
+    }
+
+    pub fn next_id(
+        &mut self,
+        handler_type: WebrenderImageHandlerType,
+    ) -> webrender_api::ExternalImageId {
+        self.next_image_id += 1;
+        let key = webrender_api::ExternalImageId(self.next_image_id);
+        self.external_images.insert(key, handler_type);
+        key
+    }
+
+    pub fn remove(&mut self, key: &webrender_api::ExternalImageId) {
+        self.external_images.remove(key);
+    }
+
+    pub fn get(&self, key: &webrender_api::ExternalImageId) -> Option<&WebrenderImageHandlerType> {
+        self.external_images.get(key)
+    }
+}
+
+/// WebRender External Image Handler implementation.
+pub struct WebrenderExternalImageHandlers {
+    /// WebGL handler.
+    webgl_handler: Option<Box<dyn WebrenderExternalImageApi>>,
+    /// Media player handler.
+    media_handler: Option<Box<dyn WebrenderExternalImageApi>>,
+    /// Webrender external images.
+    external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+}
+
+impl WebrenderExternalImageHandlers {
+    pub fn new() -> (Self, Arc<Mutex<WebrenderExternalImageRegistry>>) {
+        let external_images = Arc::new(Mutex::new(WebrenderExternalImageRegistry::new()));
+        (
+            Self {
+                webgl_handler: None,
+                media_handler: None,
+                external_images: external_images.clone(),
+            },
+            external_images,
+        )
     }
 
     pub fn set_handler(
@@ -55,7 +99,7 @@ impl WebrenderExternalImageHandler {
     }
 }
 
-impl webrender::ExternalImageHandler for WebrenderExternalImageHandler {
+impl webrender::ExternalImageHandler for WebrenderExternalImageHandlers {
     /// Lock the external image. Then, WR could start to read the
     /// image content.
     /// The WR client should not change the image content until the
@@ -66,10 +110,7 @@ impl webrender::ExternalImageHandler for WebrenderExternalImageHandler {
         _channel_index: u8,
         _rendering: webrender_api::ImageRendering,
     ) -> webrender::ExternalImage {
-        if let Some(handler_type) = self.external_images.get(&key) {
-            // It is safe to unwrap the handlers here because we forbid registration
-            // for specific types that has no handler set.
-            // XXX(ferjm) make this ^ true.
+        if let Some(handler_type) = self.external_images.lock().unwrap().get(&key) {
             let (texture_id, size) = match handler_type {
                 WebrenderImageHandlerType::WebGL => {
                     self.webgl_handler.as_mut().unwrap().lock(key.0)
@@ -90,9 +131,7 @@ impl webrender::ExternalImageHandler for WebrenderExternalImageHandler {
     /// Unlock the external image. The WR should not read the image
     /// content after this call.
     fn unlock(&mut self, key: webrender_api::ExternalImageId, _channel_index: u8) {
-        if let Some(handler_type) = self.external_images.get(&key) {
-            // It is safe to unwrap the handlers here because we forbid registration
-            // for specific types that has no handler set.
+        if let Some(handler_type) = self.external_images.lock().unwrap().get(&key) {
             match handler_type {
                 WebrenderImageHandlerType::WebGL => {
                     self.webgl_handler.as_mut().unwrap().unlock(key.0)

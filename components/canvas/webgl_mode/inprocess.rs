@@ -13,7 +13,8 @@ use fnv::FnvHashMap;
 use gleam::gl;
 use servo_config::pref;
 use std::rc::Rc;
-use webrender_traits::WebrenderExternalImageApi;
+use std::sync::{Arc, Mutex};
+use webrender_traits::{WebrenderExternalImageApi, WebrenderExternalImageRegistry};
 
 /// WebGL Threading API entry point that lives in the constellation.
 pub struct WebGLThreads(WebGLSender<WebGLMsg>);
@@ -25,6 +26,7 @@ impl WebGLThreads {
         webrender_gl: Rc<dyn gl::Gl>,
         webrender_api_sender: webrender_api::RenderApiSender,
         webvr_compositor: Option<Box<dyn WebVRRenderHandler>>,
+        external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     ) -> (
         WebGLThreads,
         Box<dyn WebrenderExternalImageApi>,
@@ -35,6 +37,7 @@ impl WebGLThreads {
             gl_factory,
             webrender_api_sender,
             webvr_compositor.map(|c| WebVRRenderWrapper(c)),
+            external_images,
         );
         let output_handler = if pref!(dom.webgl.dom_to_texture.enabled) {
             Some(Box::new(OutputHandler::new(

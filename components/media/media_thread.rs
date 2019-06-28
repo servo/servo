@@ -7,31 +7,36 @@ use crate::media_channel::{glplayer_channel, GLPlayerSender};
 /// constellation.
 use crate::{GLPlayerMsg, GLPlayerMsgForward};
 use fnv::FnvHashMap;
+use std::sync::{Arc, Mutex};
 use std::thread;
+use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 
 /// A GLPlayerThrx1ead manages the life cycle and message multiplexign of
 /// a set of video players with GL render.
 pub struct GLPlayerThread {
     // Map of live players.
     players: FnvHashMap<u64, GLPlayerSender<GLPlayerMsgForward>>,
-    /// Id generator for new WebGLContexts.
-    next_player_id: u64,
+    /// List of registered webrender external images.
+    /// We use it to get an unique ID for new players.
+    external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
 }
 
 impl GLPlayerThread {
-    pub fn new() -> Self {
+    pub fn new(external_images: Arc<Mutex<WebrenderExternalImageRegistry>>) -> Self {
         GLPlayerThread {
             players: Default::default(),
-            next_player_id: 1,
+            external_images,
         }
     }
 
-    pub fn start() -> GLPlayerSender<GLPlayerMsg> {
+    pub fn start(
+        external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+    ) -> GLPlayerSender<GLPlayerMsg> {
         let (sender, receiver) = glplayer_channel::<GLPlayerMsg>().unwrap();
         thread::Builder::new()
             .name("GLPlayerThread".to_owned())
             .spawn(move || {
-                let mut renderer = GLPlayerThread::new();
+                let mut renderer = GLPlayerThread::new(external_images);
                 loop {
                     let msg = receiver.recv().unwrap();
                     let exit = renderer.handle_msg(msg);
@@ -51,12 +56,20 @@ impl GLPlayerThread {
         trace!("processing {:?}", msg);
         match msg {
             GLPlayerMsg::RegisterPlayer(sender) => {
-                let id = self.next_player_id;
+                let id = self
+                    .external_images
+                    .lock()
+                    .unwrap()
+                    .next_id(WebrenderImageHandlerType::Media)
+                    .0;
                 self.players.insert(id, sender.clone());
                 sender.send(GLPlayerMsgForward::PlayerId(id)).unwrap();
-                self.next_player_id += 1;
             },
             GLPlayerMsg::UnregisterPlayer(id) => {
+                self.external_images
+                    .lock()
+                    .unwrap()
+                    .remove(&webrender_api::ExternalImageId(id));
                 if self.players.remove(&id).is_none() {
                     warn!("Tried to remove an unknown player");
                 }

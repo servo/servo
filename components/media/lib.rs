@@ -21,7 +21,8 @@ use crate::media_channel::{GLPlayerChan, GLPlayerPipeline, GLPlayerReceiver, GLP
 use crate::media_thread::GLPlayerThread;
 use euclid::Size2D;
 use servo_media::player::context::{GlApi, GlContext, NativeDisplay, PlayerGLContext};
-use webrender_traits::WebrenderExternalImageApi;
+use std::sync::{Arc, Mutex};
+use webrender_traits::{WebrenderExternalImageApi, WebrenderExternalImageRegistry};
 
 /// These are the messages that the GLPlayer thread will forward to
 /// the video player which lives in htmlmediaelement
@@ -99,8 +100,10 @@ impl PlayerGLContext for WindowGLContext {
 pub struct GLPlayerThreads(GLPlayerSender<GLPlayerMsg>);
 
 impl GLPlayerThreads {
-    pub fn new() -> (GLPlayerThreads, Box<dyn WebrenderExternalImageApi>) {
-        let channel = GLPlayerThread::start();
+    pub fn new(
+        external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+    ) -> (GLPlayerThreads, Box<dyn WebrenderExternalImageApi>) {
+        let channel = GLPlayerThread::start(external_images);
         let external = GLPlayerExternalImages::new(channel.clone());
         (GLPlayerThreads(channel), Box::new(external))
     }

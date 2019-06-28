@@ -113,7 +113,7 @@ use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::Rc;
 use webrender::{RendererKind, ShaderPrecacheFlags};
-use webrender_traits::{WebrenderExternalImageHandler, WebrenderImageHandlerType};
+use webrender_traits::{WebrenderExternalImageHandlers, WebrenderImageHandlerType};
 use webvr::{VRServiceManager, WebVRCompositorHandler, WebVRThread};
 
 pub use gleam::gl;
@@ -690,7 +690,8 @@ fn create_constellation(
         GLContextFactory::current_native_handle(&compositor_proxy)
     };
 
-    let mut webrender_external_image_handler = Box::new(WebrenderExternalImageHandler::new());
+    let (external_image_handlers, external_images) = WebrenderExternalImageHandlers::new();
+    let mut external_image_handlers = Box::new(external_image_handlers);
 
     // Initialize WebGL Thread entry point.
     let webgl_threads = gl_factory.map(|factory| {
@@ -699,11 +700,11 @@ fn create_constellation(
             window_gl,
             webrender_api_sender.clone(),
             webvr_compositor.map(|c| c as Box<_>),
+            external_images.clone(),
         );
 
         // Set webrender external image handler for WebGL textures
-        webrender_external_image_handler
-            .set_handler(image_handler, WebrenderImageHandlerType::WebGL);
+        external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::WebGL);
 
         // Set DOM to texture handler, if enabled.
         if let Some(output_handler) = output_handler {
@@ -716,14 +717,13 @@ fn create_constellation(
     let glplayer_threads = match player_context.gl_context {
         GlContext::Unknown => None,
         _ => {
-            let (glplayer_threads, image_handler) = GLPlayerThreads::new();
-            webrender_external_image_handler
-                .set_handler(image_handler, WebrenderImageHandlerType::Media);
+            let (glplayer_threads, image_handler) = GLPlayerThreads::new(external_images);
+            external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::Media);
             Some(glplayer_threads)
         },
     };
 
-    webrender.set_external_image_handler(webrender_external_image_handler);
+    webrender.set_external_image_handler(external_image_handlers);
 
     let player_context = WindowGLContext {
         glplayer_chan: glplayer_threads.as_ref().map(|threads| threads.pipeline()),
