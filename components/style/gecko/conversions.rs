@@ -14,14 +14,11 @@ use crate::gecko::values::GeckoStyleCoordConvertible;
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs::{self, nsStyleCoord_CalcValue, Matrix4x4Components};
 use crate::gecko_bindings::structs::{nsStyleImage, nsresult};
-use crate::gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use crate::stylesheets::RulesMutateError;
 use crate::values::computed::transform::Matrix3D;
 use crate::values::computed::url::ComputedImageUrl;
-use crate::values::computed::{Angle, Gradient, Image};
-use crate::values::computed::{Integer, LengthPercentage};
+use crate::values::computed::{Gradient, Image, LengthPercentage};
 use crate::values::computed::{Length, Percentage, TextAlign};
-use crate::values::generics::grid::{TrackListValue, TrackSize};
 use crate::values::generics::image::GenericImage;
 use crate::values::generics::rect::Rect;
 use crate::Zero;
@@ -54,11 +51,6 @@ impl From<nsStyleCoord_CalcValue> for LengthPercentage {
             AllowedNumericType::All,
             /* was_calc = */ true,
         )
-    }
-}
-impl From<Angle> for CoordDataValue {
-    fn from(reference: Angle) -> Self {
-        CoordDataValue::Degree(reference.degrees())
     }
 }
 
@@ -327,73 +319,6 @@ impl From<RulesMutateError> for nsresult {
             RulesMutateError::IndexSize => nsresult::NS_ERROR_DOM_INDEX_SIZE_ERR,
             RulesMutateError::HierarchyRequest => nsresult::NS_ERROR_DOM_HIERARCHY_REQUEST_ERR,
             RulesMutateError::InvalidState => nsresult::NS_ERROR_DOM_INVALID_STATE_ERR,
-        }
-    }
-}
-
-impl TrackSize<LengthPercentage> {
-    /// Return TrackSize from given two nsStyleCoord
-    pub fn from_gecko_style_coords<T: CoordData>(gecko_min: &T, gecko_max: &T) -> Self {
-        use crate::gecko_bindings::structs::root::nsStyleUnit;
-        use crate::values::generics::grid::TrackBreadth;
-
-        if gecko_min.unit() == nsStyleUnit::eStyleUnit_None {
-            debug_assert!(
-                gecko_max.unit() == nsStyleUnit::eStyleUnit_Coord ||
-                    gecko_max.unit() == nsStyleUnit::eStyleUnit_Percent ||
-                    gecko_max.unit() == nsStyleUnit::eStyleUnit_Calc
-            );
-            return TrackSize::FitContent(
-                LengthPercentage::from_gecko_style_coord(gecko_max)
-                    .expect("gecko_max could not convert to LengthPercentage"),
-            );
-        }
-
-        let min = TrackBreadth::from_gecko_style_coord(gecko_min)
-            .expect("gecko_min could not convert to TrackBreadth");
-        let max = TrackBreadth::from_gecko_style_coord(gecko_max)
-            .expect("gecko_max could not convert to TrackBreadth");
-        if min == max {
-            TrackSize::Breadth(max)
-        } else {
-            TrackSize::Minmax(min, max)
-        }
-    }
-
-    /// Save TrackSize to given gecko fields.
-    pub fn to_gecko_style_coords<T: CoordDataMut>(&self, gecko_min: &mut T, gecko_max: &mut T) {
-        match *self {
-            TrackSize::FitContent(ref lop) => {
-                // Gecko sets min value to None and max value to the actual value in fit-content
-                // https://searchfox.org/mozilla-central/rev/c05d9d61188d32b8/layout/style/nsRuleNode.cpp#7910
-                gecko_min.set_value(CoordDataValue::None);
-                lop.to_gecko_style_coord(gecko_max);
-            },
-            TrackSize::Breadth(ref breadth) => {
-                // Set the value to both fields if there's one breadth value
-                // https://searchfox.org/mozilla-central/rev/c05d9d61188d32b8/layout/style/nsRuleNode.cpp#7919
-                breadth.to_gecko_style_coord(gecko_min);
-                breadth.to_gecko_style_coord(gecko_max);
-            },
-            TrackSize::Minmax(ref min, ref max) => {
-                min.to_gecko_style_coord(gecko_min);
-                max.to_gecko_style_coord(gecko_max);
-            },
-        }
-    }
-}
-
-impl TrackListValue<LengthPercentage, Integer> {
-    /// Return TrackSize from given two nsStyleCoord
-    pub fn from_gecko_style_coords<T: CoordData>(gecko_min: &T, gecko_max: &T) -> Self {
-        TrackListValue::TrackSize(TrackSize::from_gecko_style_coords(gecko_min, gecko_max))
-    }
-
-    /// Save TrackSize to given gecko fields.
-    pub fn to_gecko_style_coords<T: CoordDataMut>(&self, gecko_min: &mut T, gecko_max: &mut T) {
-        match *self {
-            TrackListValue::TrackSize(ref size) => size.to_gecko_style_coords(gecko_min, gecko_max),
-            _ => unreachable!("Should only transform from track-size computed values"),
         }
     }
 }

@@ -36,7 +36,6 @@ use crate::gecko_bindings::bindings::Gecko_SetNullImageValue;
 use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::nsCSSPropertyID;
 use crate::gecko_bindings::structs::mozilla::PseudoStyleType;
-use crate::gecko_bindings::sugar::ns_style_coord::CoordDataMut;
 use crate::gecko_bindings::sugar::refptr::RefPtr;
 use crate::gecko::values::round_border_to_device_pixels;
 use crate::logical_geometry::WritingMode;
@@ -1075,7 +1074,6 @@ fn static_assert() {
                   skip_longhands="${skip_position_longhands} order
                                   align-content justify-content align-self
                                   justify-self align-items justify-items
-                                  grid-auto-rows grid-auto-columns
                                   grid-auto-flow grid-template-rows
                                   grid-template-columns">
     % for side in SIDES:
@@ -1126,33 +1124,13 @@ fn static_assert() {
     ${impl_simple_copy('order', 'mOrder')}
 
     % for kind in ["rows", "columns"]:
-    pub fn set_grid_auto_${kind}(&mut self, v: longhands::grid_auto_${kind}::computed_value::T) {
-        let gecko = &mut *self.gecko;
-        v.to_gecko_style_coords(&mut gecko.mGridAuto${kind.title()}Min,
-                                &mut gecko.mGridAuto${kind.title()}Max)
-    }
-
-    pub fn copy_grid_auto_${kind}_from(&mut self, other: &Self) {
-        self.gecko.mGridAuto${kind.title()}Min.copy_from(&other.gecko.mGridAuto${kind.title()}Min);
-        self.gecko.mGridAuto${kind.title()}Max.copy_from(&other.gecko.mGridAuto${kind.title()}Max);
-    }
-
-    pub fn reset_grid_auto_${kind}(&mut self, other: &Self) {
-        self.copy_grid_auto_${kind}_from(other)
-    }
-
-    pub fn clone_grid_auto_${kind}(&self) -> longhands::grid_auto_${kind}::computed_value::T {
-        crate::values::generics::grid::TrackSize::from_gecko_style_coords(&self.gecko.mGridAuto${kind.title()}Min,
-                                                                     &self.gecko.mGridAuto${kind.title()}Max)
-    }
-
     pub fn set_grid_template_${kind}(&mut self, v: longhands::grid_template_${kind}::computed_value::T) {
         <% self_grid = "self.gecko.mGridTemplate%s" % kind.title() %>
         use crate::gecko_bindings::structs::nsTArray;
         use std::usize;
         use crate::values::CustomIdent;
         use crate::values::generics::grid::TrackListType::Auto;
-        use crate::values::generics::grid::{GridTemplateComponent, RepeatCount, MAX_GRID_LINE};
+        use crate::values::generics::grid::{GridTemplateComponent, RepeatCount, TrackListValue, MAX_GRID_LINE};
 
         #[inline]
         fn set_line_names(servo_names: &[CustomIdent], gecko_names: &mut nsTArray<structs::RefPtr<structs::nsAtom>>) {
@@ -1211,20 +1189,19 @@ fn static_assert() {
                 let mut line_names = track.line_names.into_iter();
                 let mut values_iter = track.values.into_iter();
                 {
-                    let min_max_iter = value.mMinTrackSizingFunctions.iter_mut()
-                                            .zip(value.mMaxTrackSizingFunctions.iter_mut());
-                    for (i, (gecko_min, gecko_max)) in min_max_iter.enumerate().take(max_lines) {
+                    for (i, track_size) in value.mTrackSizingFunctions.iter_mut().enumerate().take(max_lines) {
                         let name_list = line_names.next().expect("expected line-names");
                         set_line_names(&name_list, &mut value.mLineNameLists[i]);
-                        if i == auto_idx {
-                            let track_size = auto_track_size.take()
-                                .expect("expected <track-size> for <auto-track-repeat>");
-                            track_size.to_gecko_style_coords(gecko_min, gecko_max);
-                            continue
-                        }
-
-                        let track_size = values_iter.next().expect("expected <track-size> value");
-                        track_size.to_gecko_style_coords(gecko_min, gecko_max);
+                        *track_size = if i == auto_idx {
+                            auto_track_size.take().expect("expected <track-size> for <auto-track-repeat>")
+                        } else {
+                            match values_iter.next().expect("expected <track-size> value") {
+                                TrackListValue::TrackSize(size) => size,
+                                // FIXME(emilio): This shouldn't be
+                                // representable in the first place.
+                                TrackListValue::TrackRepeat(..) => unreachable!("Shouldn't have track-repeats in computed track lists"),
+                            }
+                        };
                     }
                 }
 
@@ -1279,7 +1256,7 @@ fn static_assert() {
         use crate::gecko_bindings::structs::nsTArray;
         use crate::values::CustomIdent;
         use crate::values::generics::grid::{GridTemplateComponent, LineNameList, RepeatCount};
-        use crate::values::generics::grid::{TrackList, TrackListType, TrackListValue, TrackRepeat, TrackSize};
+        use crate::values::generics::grid::{TrackList, TrackListType, TrackListValue, TrackRepeat};
 
         let value = match unsafe { ${self_grid}.mPtr.as_ref() } {
             None => return GridTemplateComponent::None,
@@ -1321,13 +1298,8 @@ fn static_assert() {
             let mut auto_repeat = None;
             let mut list_type = TrackListType::Normal;
             let line_names = to_line_names_vec(&value.mLineNameLists).into_boxed_slice();
-            let mut values = Vec::with_capacity(value.mMinTrackSizingFunctions.len());
-
-            let min_max_iter = value.mMinTrackSizingFunctions.iter()
-                .zip(value.mMaxTrackSizingFunctions.iter());
-            for (i, (gecko_min, gecko_max)) in min_max_iter.enumerate() {
-                let track_size = TrackSize::from_gecko_style_coords(gecko_min, gecko_max);
-
+            let mut values = Vec::with_capacity(value.mTrackSizingFunctions.len());
+            for (i, track_size) in value.mTrackSizingFunctions.iter().enumerate() {
                 if i == repeat_auto_index {
                     list_type = TrackListType::Auto(repeat_auto_index as u16);
 
@@ -1346,11 +1318,11 @@ fn static_assert() {
                         vec.into_boxed_slice()
                     };
 
-                    let track_sizes = vec!(track_size);
+                    let track_sizes = vec!(track_size.clone());
 
                     auto_repeat = Some(TrackRepeat{count, line_names, track_sizes});
                 } else {
-                    values.push(TrackListValue::TrackSize(track_size));
+                    values.push(TrackListValue::TrackSize(track_size.clone()));
                 }
             }
 

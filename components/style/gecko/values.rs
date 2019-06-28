@@ -7,12 +7,10 @@
 //! Different kind of helpers to interact with Gecko values.
 
 use crate::counter_style::{Symbol, Symbols};
-use crate::gecko_bindings::structs::StyleGridTrackBreadth;
 use crate::gecko_bindings::structs::{nsStyleCoord, CounterStylePtr};
 use crate::gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
-use crate::values::computed::{Angle, Length, LengthPercentage};
+use crate::values::computed::{Length, LengthPercentage};
 use crate::values::computed::{Number, NumberOrPercentage, Percentage};
-use crate::values::generics::grid::{TrackBreadth, TrackKeyword};
 use crate::values::generics::length::LengthPercentageOrAuto;
 use crate::values::generics::{CounterStyleOrNone, NonNegative};
 use crate::values::Either;
@@ -154,41 +152,6 @@ where
     }
 }
 
-impl<L: GeckoStyleCoordConvertible> GeckoStyleCoordConvertible for TrackBreadth<L> {
-    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
-        match *self {
-            TrackBreadth::Breadth(ref lp) => lp.to_gecko_style_coord(coord),
-            TrackBreadth::Fr(fr) => coord.set_value(CoordDataValue::FlexFraction(fr)),
-            TrackBreadth::Keyword(TrackKeyword::Auto) => coord.set_value(CoordDataValue::Auto),
-            TrackBreadth::Keyword(TrackKeyword::MinContent) => coord.set_value(
-                CoordDataValue::Enumerated(StyleGridTrackBreadth::MinContent as u32),
-            ),
-            TrackBreadth::Keyword(TrackKeyword::MaxContent) => coord.set_value(
-                CoordDataValue::Enumerated(StyleGridTrackBreadth::MaxContent as u32),
-            ),
-        }
-    }
-
-    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        L::from_gecko_style_coord(coord)
-            .map(TrackBreadth::Breadth)
-            .or_else(|| match coord.as_value() {
-                CoordDataValue::Enumerated(v) => {
-                    if v == StyleGridTrackBreadth::MinContent as u32 {
-                        Some(TrackBreadth::Keyword(TrackKeyword::MinContent))
-                    } else if v == StyleGridTrackBreadth::MaxContent as u32 {
-                        Some(TrackBreadth::Keyword(TrackKeyword::MaxContent))
-                    } else {
-                        None
-                    }
-                },
-                CoordDataValue::FlexFraction(fr) => Some(TrackBreadth::Fr(fr)),
-                CoordDataValue::Auto => Some(TrackBreadth::Keyword(TrackKeyword::Auto)),
-                _ => L::from_gecko_style_coord(coord).map(TrackBreadth::Breadth),
-            })
-    }
-}
-
 impl<T: GeckoStyleCoordConvertible> GeckoStyleCoordConvertible for Option<T> {
     fn to_gecko_style_coord<U: CoordDataMut>(&self, coord: &mut U) {
         if let Some(ref me) = *self {
@@ -200,19 +163,6 @@ impl<T: GeckoStyleCoordConvertible> GeckoStyleCoordConvertible for Option<T> {
 
     fn from_gecko_style_coord<U: CoordData>(coord: &U) -> Option<Self> {
         Some(T::from_gecko_style_coord(coord))
-    }
-}
-
-impl GeckoStyleCoordConvertible for Angle {
-    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
-        coord.set_value(CoordDataValue::from(*self));
-    }
-
-    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        match coord.as_value() {
-            CoordDataValue::Degree(val) => Some(Angle::from_degrees(val)),
-            _ => None,
-        }
     }
 }
 
