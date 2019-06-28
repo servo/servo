@@ -12,7 +12,7 @@ use crate::values::{CSSFloat, CustomIdent};
 use crate::{Atom, Zero};
 use cssparser::Parser;
 use std::fmt::{self, Write};
-use std::{cmp, mem, usize};
+use std::{cmp, usize};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
 /// These are the limits that we choose to clamp grid line numbers to.
@@ -366,6 +366,7 @@ where
 #[derive(
     Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
 )]
+#[repr(C, u8)]
 pub enum RepeatCount<Integer> {
     /// A positive integer. This is allowed only for `<track-repeat>` and `<fixed-repeat>`
     Number(Integer),
@@ -380,18 +381,15 @@ impl Parse for RepeatCount<specified::Integer> {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        // Maximum number of repeat is 10000. The greater numbers should be clamped.
-        const MAX_LINE: i32 = 10000;
         if let Ok(mut i) = input.try(|i| specified::Integer::parse_positive(context, i)) {
-            if i.value() > MAX_LINE {
-                i = specified::Integer::new(MAX_LINE);
+            if i.value() > MAX_GRID_LINE {
+                i = specified::Integer::new(MAX_GRID_LINE);
             }
-            Ok(RepeatCount::Number(i))
-        } else {
-            try_match_ident_ignore_ascii_case! { input,
-                "auto-fill" => Ok(RepeatCount::AutoFill),
-                "auto-fit" => Ok(RepeatCount::AutoFit),
-            }
+            return Ok(RepeatCount::Number(i))
+        }
+        try_match_ident_ignore_ascii_case! { input,
+            "auto-fill" => Ok(RepeatCount::AutoFill),
+            "auto-fit" => Ok(RepeatCount::AutoFit),
         }
     }
 }
@@ -411,7 +409,8 @@ impl Parse for RepeatCount<specified::Integer> {
     ToShmem,
 )]
 #[css(function = "repeat")]
-pub struct TrackRepeat<L, I> {
+#[repr(C)]
+pub struct GenericTrackRepeat<L, I> {
     /// The number of times for the value to be repeated (could also be `auto-fit` or `auto-fill`)
     pub count: RepeatCount<I>,
     /// `<line-names>` accompanying `<track_size>` values.
@@ -419,10 +418,12 @@ pub struct TrackRepeat<L, I> {
     /// If there's no `<line-names>`, then it's represented by an empty vector.
     /// For N `<track-size>` values, there will be N+1 `<line-names>`, and so this vector's
     /// length is always one value more than that of the `<track-size>`.
-    pub line_names: Box<[Box<[CustomIdent]>]>,
+    pub line_names: crate::OwnedSlice<crate::OwnedSlice<CustomIdent>>,
     /// `<track-size>` values.
-    pub track_sizes: Vec<TrackSize<L>>,
+    pub track_sizes: crate::OwnedSlice<GenericTrackSize<L>>,
 }
+
+pub use self::GenericTrackRepeat as TrackRepeat;
 
 impl<L: ToCss, I: ToCss> ToCss for TrackRepeat<L, I> {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
@@ -457,46 +458,10 @@ impl<L: ToCss, I: ToCss> ToCss for TrackRepeat<L, I> {
         Ok(())
     }
 }
-impl<L: Clone> TrackRepeat<L, specified::Integer> {
-    /// If the repeat count is numeric, then expand the values and merge accordingly.
-    pub fn expand(&self) -> Self {
-        if let RepeatCount::Number(num) = self.count {
-            let mut line_names = vec![];
-            let mut track_sizes = vec![];
-            let mut prev_names = vec![];
-
-            for _ in 0..num.value() {
-                let mut names_iter = self.line_names.iter();
-                for (size, names) in self.track_sizes.iter().zip(&mut names_iter) {
-                    prev_names.extend_from_slice(&names);
-                    let vec = mem::replace(&mut prev_names, vec![]);
-                    line_names.push(vec.into_boxed_slice());
-                    track_sizes.push(size.clone());
-                }
-
-                if let Some(names) = names_iter.next() {
-                    prev_names.extend_from_slice(&names);
-                }
-            }
-
-            line_names.push(prev_names.into_boxed_slice());
-            TrackRepeat {
-                count: self.count,
-                track_sizes: track_sizes,
-                line_names: line_names.into_boxed_slice(),
-            }
-        } else {
-            // if it's auto-fit/auto-fill, then it's left to the layout.
-            TrackRepeat {
-                count: self.count,
-                track_sizes: self.track_sizes.clone(),
-                line_names: self.line_names.clone(),
-            }
-        }
-    }
-}
 
 /// Track list values. Can be <track-size> or <track-repeat>
+///
+/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[derive(
     Animate,
     Clone,
@@ -509,56 +474,54 @@ impl<L: Clone> TrackRepeat<L, specified::Integer> {
     ToResolvedValue,
     ToShmem,
 )]
-pub enum TrackListValue<LengthPercentage, Integer> {
+#[repr(C, u8)]
+pub enum GenericTrackListValue<LengthPercentage, Integer> {
     /// A <track-size> value.
-    TrackSize(#[animation(field_bound)] TrackSize<LengthPercentage>),
+    TrackSize(#[animation(field_bound)] GenericTrackSize<LengthPercentage>),
     /// A <track-repeat> value.
-    TrackRepeat(#[animation(field_bound)] TrackRepeat<LengthPercentage, Integer>),
+    TrackRepeat(#[animation(field_bound)] GenericTrackRepeat<LengthPercentage, Integer>),
 }
 
-/// The type of a `<track-list>` as determined during parsing.
-///
-/// <https://drafts.csswg.org/css-grid/#typedef-track-list>
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
-pub enum TrackListType {
-    /// [`<auto-track-list>`](https://drafts.csswg.org/css-grid/#typedef-auto-track-list)
-    ///
-    /// If this type exists, then the value at the index in `line_names` field in `TrackList`
-    /// has the `<line-names>?` list that comes before `<auto-repeat>`. If it's a specified value,
-    /// then the `repeat()` function (that follows the line names list) is also at the given index
-    /// in `values` field. On the contrary, if it's a computed value, then the `repeat()` function
-    /// is in the `auto_repeat` field.
-    Auto(u16),
-    /// [`<track-list>`](https://drafts.csswg.org/css-grid/#typedef-track-list)
-    Normal,
-    /// [`<explicit-track-list>`](https://drafts.csswg.org/css-grid/#typedef-explicit-track-list)
-    ///
-    /// Note that this is a subset of the normal `<track-list>`, and so it could be used in place
-    /// of the latter.
-    Explicit,
+pub use self::GenericTrackListValue as TrackListValue;
+
+impl<L, I> TrackListValue<L, I> {
+    fn is_repeat(&self) -> bool {
+        matches!(*self, TrackListValue::TrackRepeat(..))
+    }
 }
 
 /// A grid `<track-list>` type.
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-list>
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToResolvedValue, ToShmem)]
-pub struct TrackList<LengthPercentage, Integer> {
-    /// The type of this `<track-list>` (auto, explicit or general).
-    ///
-    /// In order to avoid parsing the same value multiple times, this does a single traversal
-    /// and arrives at the type of value it has parsed (or bails out gracefully with an error).
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
+#[repr(C)]
+pub struct GenericTrackList<LengthPercentage, Integer> {
+    /// The index in `values` where our `<auto-repeat>` value is, if in bounds.
     #[css(skip)]
-    pub list_type: TrackListType,
+    pub auto_repeat_index: usize,
     /// A vector of `<track-size> | <track-repeat>` values.
-    pub values: Vec<TrackListValue<LengthPercentage, Integer>>,
+    pub values: crate::OwnedSlice<GenericTrackListValue<LengthPercentage, Integer>>,
     /// `<line-names>` accompanying `<track-size> | <track-repeat>` values.
     ///
     /// If there's no `<line-names>`, then it's represented by an empty vector.
     /// For N values, there will be N+1 `<line-names>`, and so this vector's
     /// length is always one value more than that of the `<track-size>`.
-    pub line_names: Box<[Box<[CustomIdent]>]>,
-    /// `<auto-repeat>` value. There can only be one `<auto-repeat>` in a TrackList.
-    pub auto_repeat: Option<TrackRepeat<LengthPercentage, Integer>>,
+    pub line_names: crate::OwnedSlice<crate::OwnedSlice<CustomIdent>>,
+}
+
+pub use self::GenericTrackList as TrackList;
+
+impl<L, I> TrackList<L, I> {
+    /// Whether this track list is an explicit track list (that is, doesn't have
+    /// any repeat values).
+    pub fn is_explicit(&self) -> bool {
+        !self.values.iter().any(|v| v.is_repeat())
+    }
+
+    /// Whether this track list has an `<auto-repeat>` value.
+    pub fn has_auto_repeat(&self) -> bool {
+        self.auto_repeat_index < self.values.len()
+    }
 }
 
 impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
@@ -566,11 +529,6 @@ impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
     where
         W: Write,
     {
-        let auto_idx = match self.list_type {
-            TrackListType::Auto(i) => i as usize,
-            _ => usize::MAX,
-        };
-
         let mut values_iter = self.values.iter().peekable();
         let mut line_names_iter = self.line_names.iter().peekable();
 
@@ -578,29 +536,20 @@ impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
             let names = line_names_iter.next().unwrap(); // This should exist!
             concat_serialize_idents("[", "]", names, " ", dest)?;
 
-            match self.auto_repeat {
-                Some(ref repeat) if idx == auto_idx => {
+            match values_iter.next() {
+                Some(value) => {
                     if !names.is_empty() {
                         dest.write_str(" ")?;
                     }
 
-                    repeat.to_css(dest)?;
+                    value.to_css(dest)?;
                 },
-                _ => match values_iter.next() {
-                    Some(value) => {
-                        if !names.is_empty() {
-                            dest.write_str(" ")?;
-                        }
-
-                        value.to_css(dest)?;
-                    },
-                    None => break,
-                },
+                None => break,
             }
 
             if values_iter.peek().is_some() ||
                 line_names_iter.peek().map_or(false, |v| !v.is_empty()) ||
-                (idx + 1 == auto_idx)
+                (idx + 1 == self.auto_repeat_index)
             {
                 dest.write_str(" ")?;
             }
@@ -613,7 +562,8 @@ impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
 /// The `<line-name-list>` for subgrids.
 ///
 /// `subgrid [ <line-names> | repeat(<positive-integer> | auto-fill, <line-names>+) ]+`
-/// Old spec: https://www.w3.org/TR/2015/WD-css-grid-1-20150917/#typedef-line-name-list
+///
+/// https://drafts.csswg.org/css-grid-2/#typedef-line-name-list
 #[derive(
     Clone,
     Debug,
@@ -625,11 +575,12 @@ impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(C)]
 pub struct LineNameList {
     /// The optional `<line-name-list>`
-    pub names: Box<[Box<[CustomIdent]>]>,
-    /// Indicates the line name that requires `auto-fill`
-    pub fill_idx: Option<u32>,
+    pub names: crate::OwnedSlice<crate::OwnedSlice<CustomIdent>>,
+    /// Indicates the line name that requires `auto-fill`, if in bounds.
+    pub fill_idx: usize,
 }
 
 impl Parse for LineNameList {
@@ -652,13 +603,17 @@ impl Parse for LineNameList {
                     while let Ok(names) = input.try(parse_line_names) {
                         names_list.push(names);
                     }
-
                     Ok((names_list, count))
                 })
             });
 
             if let Ok((mut names_list, count)) = repeat_parse_result {
                 match count {
+                    // FIXME(emilio): we probably shouldn't expand repeat() at
+                    // parse time for subgrid.
+                    //
+                    // Also this doesn't have the merging semantics that
+                    // non-subgrid has... But maybe that's ok?
                     RepeatCount::Number(num) => line_names.extend(
                         names_list
                             .iter()
@@ -676,7 +631,7 @@ impl Parse for LineNameList {
                         let names = names_list.pop().unwrap();
 
                         line_names.push(names);
-                        fill_idx = Some(line_names.len() as u32 - 1);
+                        fill_idx = Some(line_names.len() - 1);
                     },
                     _ => return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
                 }
@@ -687,9 +642,13 @@ impl Parse for LineNameList {
             }
         }
 
+        if line_names.len() > MAX_GRID_LINE as usize {
+            line_names.truncate(MAX_GRID_LINE as usize);
+        }
+
         Ok(LineNameList {
-            names: line_names.into_boxed_slice(),
-            fill_idx: fill_idx,
+            names: line_names.into(),
+            fill_idx: fill_idx.unwrap_or(usize::MAX),
         })
     }
 }
@@ -700,7 +659,7 @@ impl ToCss for LineNameList {
         W: Write,
     {
         dest.write_str("subgrid")?;
-        let fill_idx = self.fill_idx.map(|v| v as usize).unwrap_or(usize::MAX);
+        let fill_idx = self.fill_idx;
         for (i, names) in self.names.iter().enumerate() {
             if i == fill_idx {
                 dest.write_str(" repeat(auto-fill,")?;
@@ -727,8 +686,8 @@ impl ToCss for LineNameList {
 }
 
 /// Variants for `<grid-template-rows> | <grid-template-columns>`
-/// Subgrid deferred to Level 2 spec due to lack of implementation.
-/// But it's implemented in gecko, so we have to as well.
+///
+/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[derive(
     Animate,
     Clone,
@@ -741,7 +700,8 @@ impl ToCss for LineNameList {
     ToResolvedValue,
     ToShmem,
 )]
-pub enum GridTemplateComponent<L, I> {
+#[repr(C, u8)]
+pub enum GenericGridTemplateComponent<L, I> {
     /// `none` value.
     None,
     /// The grid `<track-list>`
@@ -750,13 +710,15 @@ pub enum GridTemplateComponent<L, I> {
         #[compute(field_bound)]
         #[resolve(field_bound)]
         #[shmem(field_bound)]
-        TrackList<L, I>,
+        GenericTrackList<L, I>,
     ),
     /// A `subgrid <line-name-list>?`
     /// TODO: Support animations for this after subgrid is addressed in [grid-2] spec.
     #[animation(error)]
     Subgrid(LineNameList),
 }
+
+pub use self::GenericGridTemplateComponent as GridTemplateComponent;
 
 impl<L, I> GridTemplateComponent<L, I> {
     /// Returns length of the <track-list>s <track-size>

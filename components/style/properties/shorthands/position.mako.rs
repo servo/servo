@@ -268,7 +268,7 @@
 >
     use crate::parser::Parse;
     use servo_arc::Arc;
-    use crate::values::generics::grid::{TrackSize, TrackList, TrackListType};
+    use crate::values::generics::grid::{TrackSize, TrackList};
     use crate::values::generics::grid::{TrackListValue, concat_serialize_idents};
     use crate::values::specified::{GridTemplateComponent, GenericGridTemplateComponent};
     use crate::values::specified::grid::parse_line_names;
@@ -300,26 +300,28 @@
             }
         % endfor
 
-        let first_line_names = input.try(parse_line_names).unwrap_or(vec![].into_boxed_slice());
+        let first_line_names = input.try(parse_line_names).unwrap_or_default();
         if let Ok(mut string) = input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned().into())) {
             let mut strings = vec![];
             let mut values = vec![];
             let mut line_names = vec![];
-            let mut names = first_line_names.into_vec();
+            let mut names = first_line_names;
             loop {
-                line_names.push(names.into_boxed_slice());
+                line_names.push(names);
                 strings.push(string);
                 let size = input.try(|i| TrackSize::parse(context, i)).unwrap_or_default();
                 values.push(TrackListValue::TrackSize(size));
-                names = input.try(parse_line_names).unwrap_or(vec![].into_boxed_slice()).into_vec();
+                names = input.try(parse_line_names).unwrap_or_default();
                 if let Ok(v) = input.try(parse_line_names) {
-                    names.extend(v.into_vec());
+                    let mut names_vec = names.into_vec();
+                    names_vec.extend(v.into_iter());
+                    names = names_vec.into();
                 }
 
                 string = match input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned().into())) {
                     Ok(s) => s,
                     _ => {      // only the named area determines whether we should bail out
-                        line_names.push(names.into_boxed_slice());
+                        line_names.push(names.into());
                         break
                     },
                 };
@@ -327,22 +329,21 @@
 
             if line_names.len() == values.len() {
                 // should be one longer than track sizes
-                line_names.push(vec![].into_boxed_slice());
+                line_names.push(Default::default());
             }
 
             let template_areas = TemplateAreas::from_vec(strings)
                 .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))?;
             let template_rows = TrackList {
-                list_type: TrackListType::Normal,
-                values,
-                line_names: line_names.into_boxed_slice(),
-                auto_repeat: None,
+                values: values.into(),
+                line_names: line_names.into(),
+                auto_repeat_index: std::usize::MAX,
             };
 
             let template_cols = if input.try(|i| i.expect_delim('/')).is_ok() {
                 let value = GridTemplateComponent::parse_without_none(context, input)?;
                 if let GenericGridTemplateComponent::TrackList(ref list) = value {
-                    if list.list_type != TrackListType::Explicit {
+                    if !list.is_explicit() {
                         return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                     }
                 }
@@ -407,13 +408,10 @@
 
                 let track_list = match *template_rows {
                     GenericGridTemplateComponent::TrackList(ref list) => {
-                        // We should fail if there is a `repeat` function. `grid` and
-                        // `grid-template` shorthands doesn't accept that. Only longhand accepts.
-                        if list.auto_repeat.is_some() ||
-                           list.values.iter().any(|v| match *v {
-                               TrackListValue::TrackRepeat(_) => true,
-                               _ => false,
-                           }) {
+                        // We should fail if there is a `repeat` function.
+                        // `grid` and `grid-template` shorthands doesn't accept
+                        // that. Only longhand accepts.
+                        if !list.is_explicit() {
                             return Ok(());
                         }
                         list
@@ -429,11 +427,7 @@
                     // We should fail if there is a `repeat` function. `grid` and
                     // `grid-template` shorthands doesn't accept that. Only longhand accepts that.
                     GenericGridTemplateComponent::TrackList(ref list) => {
-                        if list.auto_repeat.is_some() ||
-                           list.values.iter().any(|v| match *v {
-                               TrackListValue::TrackRepeat(_) => true,
-                               _ => false,
-                           }) {
+                        if !list.is_explicit() {
                             return Ok(());
                         }
                     },
@@ -498,7 +492,7 @@
 >
     use crate::parser::Parse;
     use crate::properties::longhands::{grid_auto_columns, grid_auto_rows, grid_auto_flow};
-    use crate::values::generics::grid::{GridTemplateComponent, TrackListType};
+    use crate::values::generics::grid::GridTemplateComponent;
     use crate::values::specified::{GenericGridTemplateComponent, TrackSize};
     use crate::values::specified::position::{AutoFlow, GridAutoFlow, GridTemplateAreas};
 
@@ -597,7 +591,7 @@
 
                 // It should fail to serialize if template-rows value is not Explicit.
                 if let GenericGridTemplateComponent::TrackList(ref list) = *self.grid_template_rows {
-                    if list.list_type != TrackListType::Explicit {
+                    if !list.is_explicit() {
                         return Ok(());
                     }
                 }
@@ -621,7 +615,7 @@
 
                 // It should fail to serialize if template-column value is not Explicit.
                 if let GenericGridTemplateComponent::TrackList(ref list) = *self.grid_template_columns {
-                    if list.list_type != TrackListType::Explicit {
+                    if !list.is_explicit() {
                         return Ok(());
                     }
                 }
