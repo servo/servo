@@ -403,7 +403,7 @@ dependencies = [
  "ipc-channel 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "offscreen_gl_context 0.22.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "offscreen_gl_context 0.22.3 (git+https://github.com/servo/rust-offscreen-rendering-context?branch=win-hl)",
  "pixels 0.0.1",
  "raqote 0.4.1-alpha.0 (git+https://github.com/jrmuizel/raqote)",
  "serde_bytes 0.10.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3092,8 +3092,8 @@ dependencies = [
 
 [[package]]
 name = "offscreen_gl_context"
-version = "0.22.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.22.3"
+source = "git+https://github.com/servo/rust-offscreen-rendering-context?branch=win-hl#38fe5a572910fc87a8c99abfea4e91dfc96ba216"
 dependencies = [
  "cgl 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5789,7 +5789,7 @@ dependencies = [
 "checksum objc 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)" = "31d20fd2b37e07cf5125be68357b588672e8cefe9a96f8c17a9d46053b3e590d"
 "checksum objc-foundation 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1add1b659e36c9607c7aab864a76c7a4c2760cd0cd2e120f3fb8b952c7e22bf9"
 "checksum objc_id 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e4730aa1c64d722db45f7ccc4113a3e2c465d018de6db4d3e7dfe031e8c8a297"
-"checksum offscreen_gl_context 0.22.2 (registry+https://github.com/rust-lang/crates.io-index)" = "ac6904d3015b214944273ac55f9619a3c2884ce21108007fc6595db2b537886f"
+"checksum offscreen_gl_context 0.22.3 (git+https://github.com/servo/rust-offscreen-rendering-context?branch=win-hl)" = "<none>"
 "checksum opaque-debug 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "51ecbcb821e1bd256d456fe858aaa7f380b63863eab2eb86eee1bd9f33dd6682"
 "checksum openssl 0.10.11 (registry+https://github.com/rust-lang/crates.io-index)" = "6c24d3508b4fb6da175c10baac54c578b33f09c89ae90c6fe9788b3b4768efdc"
 "checksum openssl-sys 0.9.35 (registry+https://github.com/rust-lang/crates.io-index)" = "912f301a749394e1025d9dcddef6106ddee9252620e6d0a0e5f8d0681de9b129"
