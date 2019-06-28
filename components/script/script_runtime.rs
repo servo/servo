@@ -29,7 +29,7 @@ use js::glue::{CollectServoSizes, CreateJobQueue, DeleteJobQueue, JobQueueTraps,
 use js::jsapi::ContextOptionsRef;
 use js::jsapi::{BuildIdCharVector, DisableIncrementalGC, GCDescription, GCProgress};
 use js::jsapi::{HandleObject, Heap, JobQueue};
-use js::jsapi::{JSContext, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
+use js::jsapi::{JSContext as RawJSContext, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
 use js::jsapi::{JSGCInvocationKind, JSGCStatus, JS_AddExtraGCRootsTracer, JS_SetGCCallback};
 use js::jsapi::{JSGCMode, JSGCParamKey, JS_SetGCParameter, JS_SetGlobalJitCompilerOption};
 use js::jsapi::{
@@ -139,7 +139,7 @@ pub trait ScriptPort {
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn get_incumbent_global(_: *const c_void, _: *mut JSContext) -> *mut JSObject {
+unsafe extern "C" fn get_incumbent_global(_: *const c_void, _: *mut RawJSContext) -> *mut JSObject {
     wrap_panic(
         AssertUnwindSafe(|| {
             GlobalScope::incumbent()
@@ -166,7 +166,7 @@ unsafe extern "C" fn empty(extra: *const c_void) -> bool {
 #[allow(unsafe_code)]
 unsafe extern "C" fn enqueue_promise_job(
     extra: *const c_void,
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     _promise: HandleObject,
     job: HandleObject,
     _allocation_site: HandleObject,
@@ -193,7 +193,7 @@ unsafe extern "C" fn enqueue_promise_job(
 #[allow(unsafe_code, unrooted_must_root)]
 /// https://html.spec.whatwg.org/multipage/#the-hostpromiserejectiontracker-implementation
 unsafe extern "C" fn promise_rejection_tracker(
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     promise: HandleObject,
     state: PromiseRejectionHandlingState,
     _data: *mut c_void,
@@ -401,7 +401,7 @@ unsafe fn new_rt_and_cx_with_parent(parent: Option<ParentRuntime>) -> Runtime {
         SetGCSliceCallback(cx, Some(gc_slice_callback));
     }
 
-    unsafe extern "C" fn empty_wrapper_callback(_: *mut JSContext, _: HandleObject) -> bool {
+    unsafe extern "C" fn empty_wrapper_callback(_: *mut RawJSContext, _: HandleObject) -> bool {
         true
     }
     SetDOMCallbacks(cx, &DOM_CALLBACKS);
@@ -589,7 +589,7 @@ unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
 }
 
 #[allow(unsafe_code)]
-pub fn get_reports(cx: *mut JSContext, path_seg: String) -> Vec<Report> {
+pub fn get_reports(cx: *mut RawJSContext, path_seg: String) -> Vec<Report> {
     let mut reports = vec![];
 
     unsafe {
@@ -655,7 +655,7 @@ thread_local!(static GC_SLICE_START: Cell<Option<Tm>> = Cell::new(None));
 
 #[allow(unsafe_code)]
 unsafe extern "C" fn gc_slice_callback(
-    _cx: *mut JSContext,
+    _cx: *mut RawJSContext,
     progress: GCProgress,
     desc: *const GCDescription,
 ) {
@@ -695,7 +695,7 @@ unsafe extern "C" fn gc_slice_callback(
 
 #[allow(unsafe_code)]
 unsafe extern "C" fn debug_gc_callback(
-    _cx: *mut JSContext,
+    _cx: *mut RawJSContext,
     status: JSGCStatus,
     _data: *mut os::raw::c_void,
 ) {
@@ -731,7 +731,7 @@ unsafe extern "C" fn servo_build_id(build_id: *mut BuildIdCharVector) -> bool {
 
 #[allow(unsafe_code)]
 #[cfg(feature = "debugmozjs")]
-unsafe fn set_gc_zeal_options(cx: *mut JSContext) {
+unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
     use js::jsapi::{JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ};
 
     let level = match pref!(js.mem.gc.zeal.level) {
@@ -747,4 +747,22 @@ unsafe fn set_gc_zeal_options(cx: *mut JSContext) {
 
 #[allow(unsafe_code)]
 #[cfg(not(feature = "debugmozjs"))]
-unsafe fn set_gc_zeal_options(_: *mut JSContext) {}
+unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
+
+struct JSContext(*mut RawJSContext);
+
+#[allow(unsafe_code)]
+impl JSContext {
+    unsafe fn from_ptr(raw_js_context: *mut RawJSContext) -> Self {
+        JSContext(raw_js_context)
+    }
+}
+
+#[allow(unsafe_code)]
+impl Deref for JSContext {
+    type Target = RawJSContext;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*self.0 }
+    }
+}
