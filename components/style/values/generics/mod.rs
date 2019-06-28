@@ -103,7 +103,12 @@ pub enum CounterStyleOrNone {
     Name(CustomIdent),
     /// `symbols()`
     #[css(function)]
-    Symbols(SymbolsType, Symbols),
+    Symbols(#[css(skip_if = "is_symbolic")] SymbolsType, Symbols),
+}
+
+#[inline]
+fn is_symbolic(symbols_type: &SymbolsType) -> bool {
+    *symbols_type == SymbolsType::Symbolic
 }
 
 impl CounterStyleOrNone {
