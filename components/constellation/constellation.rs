@@ -1461,6 +1461,9 @@ where
         };
 
         match content {
+            FromScriptMsg::GePipelineNameSpaceId(sender) => {
+                let _ = sender.send(self.next_pipeline_namespace_id());
+            },
             FromScriptMsg::MessagePortShipped(port_id, entangled, message_queue) => {
                 self.handle_messageport_shipped(
                     source_pipeline_id,

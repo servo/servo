@@ -21,7 +21,9 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::{
     BrowsingContextId, MessagePortId, PipelineId, PortMessageTask, TopLevelBrowsingContextId,
 };
-use msg::constellation_msg::{HistoryStateId, MessagePortMsg, TraversalDirection};
+use msg::constellation_msg::{
+    HistoryStateId, MessagePortMsg, PipelineNamespaceId, TraversalDirection,
+};
 use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::StorageType;
 use net_traits::CoreResourceMsg;
@@ -103,6 +105,8 @@ pub enum LogEntry {
 /// Messages from the script to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum ScriptMsg {
+    /// Request a Pipeline namespace id.
+    GePipelineNameSpaceId(IpcSender<PipelineNamespaceId>),
     /// A new message-port was created or transferred, with corresponding control-sender.
     NewMessagePort(MessagePortId, IpcSender<MessagePortMsg>),
     /// A message-port was shipped, let the entangled port know.
@@ -229,6 +233,7 @@ impl fmt::Debug for ScriptMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         use self::ScriptMsg::*;
         let variant = match *self {
+            GePipelineNameSpaceId(..) => "GePipelineNameSpaceId",
             NewMessagePort(..) => "NewMessagePort",
             RemoveMessagePort(..) => "RemoveMessagePort",
             MessagePortShipped(..) => "MessagePortShipped",
