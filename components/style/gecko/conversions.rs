@@ -10,49 +10,15 @@
 
 #![allow(unsafe_code)]
 
-use crate::gecko::values::GeckoStyleCoordConvertible;
 use crate::gecko_bindings::bindings;
-use crate::gecko_bindings::structs::{self, nsStyleCoord_CalcValue, Matrix4x4Components};
+use crate::gecko_bindings::structs::{self, Matrix4x4Components};
 use crate::gecko_bindings::structs::{nsStyleImage, nsresult};
 use crate::stylesheets::RulesMutateError;
 use crate::values::computed::transform::Matrix3D;
 use crate::values::computed::url::ComputedImageUrl;
-use crate::values::computed::{Gradient, Image, LengthPercentage};
-use crate::values::computed::{Length, Percentage, TextAlign};
+use crate::values::computed::{Gradient, Image, TextAlign};
 use crate::values::generics::image::GenericImage;
 use crate::values::generics::rect::Rect;
-use crate::Zero;
-use app_units::Au;
-use style_traits::values::specified::AllowedNumericType;
-
-impl From<LengthPercentage> for nsStyleCoord_CalcValue {
-    fn from(other: LengthPercentage) -> nsStyleCoord_CalcValue {
-        debug_assert!(
-            other.was_calc || !other.has_percentage || other.unclamped_length() == Length::zero()
-        );
-        nsStyleCoord_CalcValue {
-            mLength: other.unclamped_length().to_i32_au(),
-            mPercent: other.percentage(),
-            mHasPercent: other.has_percentage,
-        }
-    }
-}
-
-impl From<nsStyleCoord_CalcValue> for LengthPercentage {
-    fn from(other: nsStyleCoord_CalcValue) -> LengthPercentage {
-        let percentage = if other.mHasPercent {
-            Some(Percentage(other.mPercent))
-        } else {
-            None
-        };
-        Self::with_clamping_mode(
-            Au(other.mLength).into(),
-            percentage,
-            AllowedNumericType::All,
-            /* was_calc = */ true,
-        )
-    }
-}
 
 impl nsStyleImage {
     /// Set a given Servo `Image` value into this `nsStyleImage`.
@@ -293,31 +259,6 @@ impl From<RulesMutateError> for nsresult {
             RulesMutateError::HierarchyRequest => nsresult::NS_ERROR_DOM_HIERARCHY_REQUEST_ERR,
             RulesMutateError::InvalidState => nsresult::NS_ERROR_DOM_INVALID_STATE_ERR,
         }
-    }
-}
-
-impl<T> Rect<T>
-where
-    T: GeckoStyleCoordConvertible,
-{
-    /// Convert this generic Rect to given Gecko fields.
-    pub fn to_gecko_rect(&self, sides: &mut crate::gecko_bindings::structs::nsStyleSides) {
-        self.0.to_gecko_style_coord(&mut sides.data_at_mut(0));
-        self.1.to_gecko_style_coord(&mut sides.data_at_mut(1));
-        self.2.to_gecko_style_coord(&mut sides.data_at_mut(2));
-        self.3.to_gecko_style_coord(&mut sides.data_at_mut(3));
-    }
-
-    /// Convert from given Gecko data to generic Rect.
-    pub fn from_gecko_rect(
-        sides: &crate::gecko_bindings::structs::nsStyleSides,
-    ) -> Option<crate::values::generics::rect::Rect<T>> {
-        Some(Rect::new(
-            T::from_gecko_style_coord(&sides.data_at(0)).expect("coord[0] cound not convert"),
-            T::from_gecko_style_coord(&sides.data_at(1)).expect("coord[1] cound not convert"),
-            T::from_gecko_style_coord(&sides.data_at(2)).expect("coord[2] cound not convert"),
-            T::from_gecko_style_coord(&sides.data_at(3)).expect("coord[3] cound not convert"),
-        ))
     }
 }
 

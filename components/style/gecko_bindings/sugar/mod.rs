@@ -7,7 +7,6 @@
 mod ns_com_ptr;
 mod ns_compatibility;
 mod ns_style_auto_array;
-pub mod ns_style_coord;
 mod ns_t_array;
 pub mod origin_flags;
 pub mod ownership;
