@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>KV Storage: values() trickier tests</title>
+<meta name="timeout" content="long">
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
 <script type="module">
 import { testWithArea } from "./helpers/kvs-tests.js";
-import * as classAssert from "./helpers/class-assert.js";
+import * as iterAssert from "./helpers/iter-assert.js";
 import { assertAsyncIteratorEquals } from "./helpers/equality-asserters.js";
 
 testWithArea(async area => {
@@ -57,7 +58,7 @@ testWithArea(async area => {
     await iter.next()
   ];
 
-  classAssert.iterResults(iterResults, [
+  iterAssert.iterResults(iterResults, [
     ["value 1", false],
     ["value 2", false],
     ["value 3", false],
@@ -83,7 +84,7 @@ testWithArea(async area => {
   ];
   const iterResults = await Promise.all(promises);
 
-  classAssert.iterResults(iterResults, [
+  iterAssert.iterResults(iterResults, [
     ["value 1", false],
     ["value 2", false],
     ["value 3", false],

@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Helper file to be loaded in an iframe that exposes a copy of StorageArea as a global</title>
+
+<script type="module">
+import { StorageArea } from "std:kv-storage";
+window.StorageArea = StorageArea;
+</script>

@@ -75,6 +75,7 @@
 == object-fit-fill-svg-006i.html object-fit-fill-svg-006-ref.html
 == object-fit-fill-svg-006o.html object-fit-fill-svg-006-ref.html
 == object-fit-fill-svg-006p.html object-fit-fill-svg-006-ref.html
+# All the random-if(geckoview) failures in this file are tracked by bug 1558515
 == object-fit-contain-svg-001e.html object-fit-contain-svg-001-ref.html
 == object-fit-contain-svg-001i.html object-fit-contain-svg-001-ref.html
 == object-fit-contain-svg-001o.html object-fit-contain-svg-001-ref.html

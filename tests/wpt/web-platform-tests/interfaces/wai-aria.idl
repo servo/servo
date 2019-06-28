@@ -16,6 +16,7 @@ interface mixin AriaAttributes {
   attribute DOMString? ariaChecked;
   attribute DOMString? ariaColCount;
   attribute DOMString? ariaColIndex;
+  attribute DOMString? ariaColIndexText;
   attribute DOMString? ariaColSpan;
   attribute FrozenArray<Element>? ariaControlsElements;
   attribute DOMString? ariaCurrent;
@@ -47,6 +48,7 @@ interface mixin AriaAttributes {
   attribute DOMString? ariaRoleDescription;
   attribute DOMString? ariaRowCount;
   attribute DOMString? ariaRowIndex;
+  attribute DOMString? ariaRowIndexText;
   attribute DOMString? ariaRowSpan;
   attribute DOMString? ariaSelected;
   attribute DOMString? ariaSetSize;

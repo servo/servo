@@ -16,6 +16,7 @@ interface ServiceWorker : EventTarget {
 ServiceWorker includes AbstractWorker;
 
 enum ServiceWorkerState {
+  "parsed",
   "installing",
   "installed",
   "activating",
@@ -95,6 +96,7 @@ dictionary NavigationPreloadState {
 interface ServiceWorkerGlobalScope : WorkerGlobalScope {
   [SameObject] readonly attribute Clients clients;
   [SameObject] readonly attribute ServiceWorkerRegistration registration;
+  [SameObject] readonly attribute ServiceWorker serviceWorker;
 
   [NewObject] Promise<void> skipWaiting();
 

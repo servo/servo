@@ -12,44 +12,25 @@
 <script src=/common/utils.js></script>
 <body>
   <script>
-      let nonce = token();
-      let key = "serviceworker-same-origin" + nonce;
+    promise_test(async t => {
+      const nonce = token();
+      const key = "serviceworker-same-origin" + nonce;
 
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-          navigator.serviceWorker.register('https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=' + key).then(function(registration) {
-            test_same_origin();
+      // Register a service worker and check the request header.
+      const registration = await navigator.serviceWorker.register('https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=' + key);
+      t.add_cleanup(() => registration.unregister());
+      await retrieve_and_assert_headers(key, 'Register service worker');
 
-            // uninstall the serviceworker after the test
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-              for(let registration of registrations) {
-                registration.unregister()
-              }
-            })
-          }, function(err) {
-            // registration failed
-          });
-        });
-      }
-      else {
-        test(function () {
-              done();
-            }, "Browser does not support serviceworker");
-      }
+      // Trigger an update check and check the request header again.
+      await registration.update();
+      await retrieve_and_assert_headers(key, 'Update service worker');
+    }, 'sec-metadata for service worker scripts');
+
+    async function retrieve_and_assert_headers(key, tag) {
+      let expected = { "dest": "serviceworker", "site": "same-origin", "user": "", "mode": "same-origin" };
+      const response = await fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
+      const text = await response.text();
+      assert_header_equals(text, expected, tag);
+    }
   </script>
 </body>
-
-<script>
-  function test_same_origin(){
-    promise_test(t => {
-    return new Promise((resolve, reject) => {
-      let expected = {"dest":"serviceworker", "site":"same-origin", "user":"", "mode": "same-origin"};
-      fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
-        .then(response => response.text())
-        .then(text => assert_header_equals(text, expected))
-        .then(_ => resolve())
-        .catch(e => reject(e));
-      })
-    })
-  }
-</script>
