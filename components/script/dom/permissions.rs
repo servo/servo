@@ -31,8 +31,8 @@ const DIALOG_TITLE: &'static str = "Permission request dialog";
 const NONSECURE_DIALOG_MESSAGE: &'static str = "feature is only safe to use in secure context,\
  but servo can't guarantee\n that the current context is secure. Do you want to proceed and grant permission?";
 const REQUEST_DIALOG_MESSAGE: &'static str = "Do you want to grant permission for";
-const ROOT_DESC_CONVERSION_ERROR: &'static str =
-    "Can't convert to an IDL value of type PermissionDescriptor";
+//const ROOT_DESC_CONVERSION_ERROR: &'static str =
+//    "Can't convert to an IDL value of type PermissionDescriptor";
 
 pub trait PermissionAlgorithm {
     type Descriptor;
