@@ -217,7 +217,11 @@ impl LocationMethods for Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-protocol
     fn SetProtocol(&self, value: USVString) -> ErrorResult {
         self.check_same_origin_domain()?;
-        self.set_url_component(value, UrlHelper::SetProtocol);
+        // If copyURL's scheme is not an HTTP(S) scheme, then terminate these steps.
+        let scheme = value.split(':').next().unwrap();
+        if scheme.eq_ignore_ascii_case("http") || scheme.eq_ignore_ascii_case("https") {
+            self.set_url_component(value, UrlHelper::SetProtocol);
+        }
         Ok(())
     }
 
