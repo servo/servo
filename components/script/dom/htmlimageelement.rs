@@ -41,7 +41,7 @@ use crate::dom::progressevent::ProgressEvent;
 use crate::dom::values::UNSIGNED_LONG_MAX;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
-use crate::image_listener::{add_cache_listener_for_element, ImageCacheListener};
+use crate::image_listener::{generate_cache_listener_for_element, ImageCacheListener};
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::script_thread::ScriptThread;
@@ -52,12 +52,15 @@ use dom_struct::dom_struct;
 use euclid::Point2D;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
+use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
 use net_traits::image::base::{Image, ImageMetadata};
-use net_traits::image_cache::UsePlaceholder;
-use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
-use net_traits::image_cache::{ImageResponder, ImageResponse, ImageState, PendingImageId};
+use net_traits::image_cache::{
+    CanRequestImages, ImageCache, ImageOrMetadataAvailable, PendingImageResponse,
+};
+use net_traits::image_cache::{ImageCacheResult, UsePlaceholder};
+use net_traits::image_cache::{ImageResponder, ImageResponse, PendingImageId};
 use net_traits::request::RequestBuilder;
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
@@ -267,33 +270,25 @@ impl HTMLImageElement {
     fn fetch_image(&self, img_url: &ServoUrl) {
         let window = window_from_node(self);
         let image_cache = window.image_cache();
-        let response = image_cache.find_image_or_metadata(
-            img_url.clone().into(),
+        let sender = generate_cache_listener_for_element(self);
+        let cache_result = image_cache.track_image(
+            img_url.clone(),
+            sender,
             UsePlaceholder::Yes,
             CanRequestImages::Yes,
         );
-        match response {
-            Ok(ImageOrMetadataAvailable::ImageAvailable(image, url)) => {
-                self.process_image_response(ImageResponse::Loaded(image, url));
-            },
 
-            Ok(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
-                self.process_image_response(ImageResponse::MetadataLoaded(m));
+        match cache_result {
+            ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable(image, url)) => {
+                self.process_image_response(ImageResponse::Loaded(image, url))
             },
-
-            Err(ImageState::Pending(id)) => {
-                add_cache_listener_for_element(image_cache, id, self);
+            ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
+                self.process_image_response(ImageResponse::MetadataLoaded(m))
             },
-
-            Err(ImageState::LoadError) => {
-                self.process_image_response(ImageResponse::None);
-            },
-
-            Err(ImageState::NotRequested(id)) => {
-                add_cache_listener_for_element(image_cache, id, self);
-                self.fetch_request(img_url, id);
-            },
-        }
+            ImageCacheResult::Pending(_) => (),
+            ImageCacheResult::ReadyForRequest(id) => self.fetch_request(img_url, id),
+            ImageCacheResult::LoadError => self.process_image_response(ImageResponse::None),
+        };
     }
 
     fn fetch_request(&self, img_url: &ServoUrl, id: PendingImageId) {
@@ -911,12 +906,9 @@ impl HTMLImageElement {
         {
             if let Ok(img_url) = base_url.join(&src) {
                 let image_cache = window.image_cache();
-                let response = image_cache.find_image_or_metadata(
-                    img_url.clone().into(),
-                    UsePlaceholder::No,
-                    CanRequestImages::No,
-                );
-                if let Ok(ImageOrMetadataAvailable::ImageAvailable(image, url)) = response {
+                let response = image_cache.get_image(&img_url);
+
+                if let Some(image) = response {
                     // Cancel any outstanding tasks that were queued before the src was
                     // set on this element.
                     self.generation.set(self.generation.get() + 1);
@@ -929,7 +921,7 @@ impl HTMLImageElement {
                     self.abort_request(State::CompletelyAvailable, ImageRequestPhase::Current);
                     self.abort_request(State::Unavailable, ImageRequestPhase::Pending);
                     let mut current_request = self.current_request.borrow_mut();
-                    current_request.final_url = Some(url);
+                    current_request.final_url = Some(img_url.clone());
                     current_request.image = Some(image.clone());
                     current_request.metadata = Some(metadata);
                     // Step 6.3.6
@@ -976,13 +968,12 @@ impl HTMLImageElement {
     /// Step 2-12 of https://html.spec.whatwg.org/multipage/#img-environment-changes
     fn react_to_environment_changes_sync_steps(&self, generation: u32) {
         // TODO reduce duplicacy of this code
-        fn add_cache_listener_for_element(
-            image_cache: Arc<dyn ImageCache>,
-            id: PendingImageId,
+
+        fn generate_cache_listener_for_element(
             elem: &HTMLImageElement,
             selected_source: String,
             selected_pixel_density: f64,
-        ) {
+        ) -> IpcSender<PendingImageResponse> {
             let trusted_node = Trusted::new(elem);
             let (responder_sender, responder_receiver) = ipc::channel().unwrap();
 
@@ -990,28 +981,31 @@ impl HTMLImageElement {
             let (task_source, canceller) = window
                 .task_manager()
                 .networking_task_source_with_canceller();
-            let generation = elem.generation.get();
-            ROUTER.add_route(responder_receiver.to_opaque(), Box::new(move |message| {
-                debug!("Got image {:?}", message);
-                // Return the image via a message to the script thread, which marks
-                // the element as dirty and triggers a reflow.
-                let element = trusted_node.clone();
-                let image = message.to().unwrap();
-                let selected_source_clone = selected_source.clone();
-                let _ = task_source.queue_with_canceller(
-                    task!(process_image_response_for_environment_change: move || {
-                        let element = element.root();
-                        // Ignore any image response for a previous request that has been discarded.
-                        if generation == element.generation.get() {
-                            element.process_image_response_for_environment_change(image,
-                                USVString::from(selected_source_clone), generation, selected_pixel_density);
-                        }
-                    }),
-                    &canceller,
-                );
-            }));
+            let generation = elem.generation_id();
+            ROUTER.add_route(
+                responder_receiver.to_opaque(),
+                Box::new(move |message| {
+                    debug!("Got image {:?}", message);
+                    // Return the image via a message to the script thread, which marks
+                    // the element as dirty and triggers a reflow.
+                    let element = trusted_node.clone();
+                    let image = message.to().unwrap();
+                    let selected_source_clone = selected_source.clone();
+                    let _ = task_source.queue_with_canceller(
+                        task!(process_image_response_for_environment_change: move || {
+                            let element = element.root();
+                            // Ignore any image response for a previous request that has been discarded.
+                            if generation == element.generation.get() {
+                                element.process_image_response_for_environment_change(image,
+                                    USVString::from(selected_source_clone), generation, selected_pixel_density);
+                            }
+                        }),
+                        &canceller,
+                    );
+                }),
+            );
 
-            image_cache.add_listener(id, ImageResponder::new(responder_sender, id));
+            responder_sender
         }
 
         let elem = self.upcast::<Element>();
@@ -1066,22 +1060,28 @@ impl HTMLImageElement {
         let window = window_from_node(self);
         let image_cache = window.image_cache();
         // Step 14
-        let response = image_cache.find_image_or_metadata(
-            img_url.clone().into(),
+        let sender = generate_cache_listener_for_element(
+            self,
+            selected_source.0.clone(),
+            selected_pixel_density,
+        );
+        let cache_result = image_cache.track_image(
+            img_url.clone(),
+            sender,
             UsePlaceholder::No,
             CanRequestImages::Yes,
         );
-        match response {
-            Ok(ImageOrMetadataAvailable::ImageAvailable(_image, _url)) => {
+
+        match cache_result {
+            ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable(_image, _url)) => {
                 // Step 15
                 self.finish_reacting_to_environment_change(
                     selected_source,
                     generation,
                     selected_pixel_density,
-                );
+                )
             },
-
-            Ok(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
+            ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
                 self.process_image_response_for_environment_change(
                     ImageResponse::MetadataLoaded(m),
                     selected_source,
@@ -1089,18 +1089,8 @@ impl HTMLImageElement {
                     selected_pixel_density,
                 );
             },
-
-            Err(ImageState::Pending(id)) => {
-                add_cache_listener_for_element(
-                    image_cache.clone(),
-                    id,
-                    self,
-                    selected_source.0,
-                    selected_pixel_density,
-                );
-            },
-
-            Err(ImageState::LoadError) => {
+            ImageCacheResult::Pending(id) => (),
+            ImageCacheResult::LoadError => {
                 self.process_image_response_for_environment_change(
                     ImageResponse::None,
                     selected_source,
@@ -1108,17 +1098,7 @@ impl HTMLImageElement {
                     selected_pixel_density,
                 );
             },
-
-            Err(ImageState::NotRequested(id)) => {
-                add_cache_listener_for_element(
-                    image_cache,
-                    id,
-                    self,
-                    selected_source.0,
-                    selected_pixel_density,
-                );
-                self.fetch_request(&img_url, id);
-            },
+            ImageCacheResult::ReadyForRequest(id) => self.fetch_request(&img_url, id),
         }
     }
 
