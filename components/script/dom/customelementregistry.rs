@@ -324,7 +324,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         // Steps 10.1 - 10.2
         rooted!(in(cx) let mut prototype = UndefinedValue());
         {
-            let _ac = enter_realm(&*self);
+            let _ac = JSAutoRealm::new(cx, constructor.get()); 
             if let Err(error) = self.check_prototype(constructor.handle(), prototype.handle_mut()) {
                 self.element_definition_is_running.set(false);
                 return Err(error);

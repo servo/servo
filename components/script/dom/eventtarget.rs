@@ -507,7 +507,7 @@ impl EventTarget {
 
         let scopechain = AutoObjectVectorWrapper::new(cx);
 
-        let _ac = enter_realm(&*document);
+        let _ac = enter_realm(&*window);
         rooted!(in(cx) let mut handler = ptr::null_mut::<JSFunction>());
         let rv = unsafe {
             CompileFunction(
