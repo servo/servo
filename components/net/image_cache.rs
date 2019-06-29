@@ -5,7 +5,7 @@
 use embedder_traits::resources::{self, Resource};
 use immeta::load_from_buf;
 use net_traits::image::base::{load_from_memory, Image, ImageMetadata};
-use net_traits::image_cache::{CanRequestImages, ImageCache, ImageResponder};
+use net_traits::image_cache::{CanRequestImages, ImageCache, ImageCacheResult, ImageResponder};
 use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse, ImageState};
 use net_traits::image_cache::{PendingImageId, UsePlaceholder};
 use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError};
@@ -388,6 +388,26 @@ impl ImageCache for ImageCacheImpl {
                 webrender_api: webrender_api,
             })),
         }
+    }
+
+    fn get_image(&self, url: ServoUrl, use_placeholder: UsePlaceholder) -> Option<Image> {
+        let store = self.store.lock().unwrap();
+        match store.get_completed_image_if_available(&url, use_placeholder) {
+            Some(Ok(ImageOrMetadataAvailable::ImageAvailable(x, _))) => match Arc::try_unwrap(x) {
+                Ok(img) => Some(img),
+                Err(mut arc) => Some(Image::clone(&mut arc)),
+            },
+            _ => None,
+        }
+    }
+
+    fn track_image(
+        &self,
+        id: PendingImageId,
+        listener: ImageResponder,
+        can_request: CanRequestImages,
+    ) -> ImageCacheResult {
+        unimplemented!()
     }
 
     /// Return any available metadata or image for the given URL,

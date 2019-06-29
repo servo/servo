@@ -103,7 +103,7 @@ pub enum ImageCacheResult {
     Available(ImageOrMetadataAvailable),
     LoadError,
     Pending,
-    ReadyForRequest(PendingImageId)
+    ReadyForRequest(PendingImageId),
 }
 
 pub trait ImageCache: Sync + Send {
@@ -112,19 +112,26 @@ pub trait ImageCache: Sync + Send {
         Self: Sized;
 
     /// Definitively check whether there is a cached, fully loaded image available.
-    fn get_image(
-        &self,
-        url: ServoUrl,
-        use_placeholder: UsePlaceholder,
-        can_request: CanRequestImages,
-    ) -> Option<Image>;
+    fn get_image(&self, url: ServoUrl, use_placeholder: UsePlaceholder) -> Option<Image>;
 
     /// Add a listener for the provided pending image id.
     /// If only metadata is available, Available(ImageOrMetadataAvailable) will
     /// be returned.
     /// If Available(ImageOrMetadataAvailable::Image) or LoadError is the final value,
     /// the provided listener will be dropped (consumed & not added to PendingLoad).
-    fn track_image(&self, id: PendingImageId, listener: ImageResponder) -> ImageCacheResult;
+    fn track_image(
+        &self,
+        id: PendingImageId,
+        listener: ImageResponder,
+        can_request: CanRequestImages,
+    ) -> ImageCacheResult;
+
+    fn find_image_or_metadata(
+        &self,
+        url: ServoUrl,
+        use_placeholder: UsePlaceholder,
+        can_request: CanRequestImages,
+    ) -> Result<ImageOrMetadataAvailable, ImageState>;
 
     /// Add a new listener for the given pending image id. If the image is already present,
     /// the responder will still receive the expected response.
