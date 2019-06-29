@@ -149,7 +149,7 @@ impl WindowProxy {
                 ((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL),
                 0
             );
-            let _ac = JSAutoRealm::new(cx, window_jsobject.get()); 
+            let _ac = JSAutoRealm::new(cx, window_jsobject.get());
 
             // Create a new window proxy.
             rooted!(in(cx) let js_proxy = NewWindowProxy(cx, window_jsobject, handler));
