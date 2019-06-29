@@ -99,20 +99,32 @@ pub enum UsePlaceholder {
 // ImageCache public API.
 // ======================================================================
 
+pub enum ImageCacheResult {
+    Available(ImageOrMetadataAvailable),
+    LoadError,
+    Pending,
+    ReadyForRequest(PendingImageId)
+}
+
 pub trait ImageCache: Sync + Send {
     fn new(webrender_api: webrender_api::RenderApi) -> Self
     where
         Self: Sized;
 
-    /// Return any available metadata or image for the given URL,
-    /// or an indication that the image is not yet available if it is in progress,
-    /// or else reserve a slot in the cache for the URL if the consumer can request images.
-    fn find_image_or_metadata(
+    /// Definitively check whether there is a cached, fully loaded image available.
+    fn get_image(
         &self,
         url: ServoUrl,
         use_placeholder: UsePlaceholder,
         can_request: CanRequestImages,
-    ) -> Result<ImageOrMetadataAvailable, ImageState>;
+    ) -> Option<Image>;
+
+    /// Add a listener for the provided pending image id.
+    /// If only metadata is available, Available(ImageOrMetadataAvailable) will
+    /// be returned.
+    /// If Available(ImageOrMetadataAvailable::Image) or LoadError is the final value,
+    /// the provided listener will be dropped (consumed & not added to PendingLoad).
+    fn track_image(&self, id: PendingImageId, listener: ImageResponder) -> ImageCacheResult;
 
     /// Add a new listener for the given pending image id. If the image is already present,
     /// the responder will still receive the expected response.
