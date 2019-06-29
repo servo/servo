@@ -390,9 +390,9 @@ impl ImageCache for ImageCacheImpl {
         }
     }
 
-    fn get_image(&self, url: ServoUrl, use_placeholder: UsePlaceholder) -> Option<Image> {
+    fn get_image(&self, url: &ServoUrl, use_placeholder: UsePlaceholder) -> Option<Image> {
         let store = self.store.lock().unwrap();
-        match store.get_completed_image_if_available(&url, use_placeholder) {
+        match store.get_completed_image_if_available(url, use_placeholder) {
             Some(Ok(ImageOrMetadataAvailable::ImageAvailable(x, _))) => match Arc::try_unwrap(x) {
                 Ok(img) => Some(img),
                 Err(mut arc) => Some(Image::clone(&mut arc)),
@@ -403,11 +403,53 @@ impl ImageCache for ImageCacheImpl {
 
     fn track_image(
         &self,
-        id: PendingImageId,
-        listener: ImageResponder,
+        url: ServoUrl,
+        use_placeholder: UsePlaceholder,
         can_request: CanRequestImages,
+        listener: ImageResponder,
     ) -> ImageCacheResult {
-        unimplemented!()
+        let mut store = self.store.lock().unwrap();
+
+        let decoded = {
+            let result = store.pending_loads.get_cached(url.clone(), can_request);
+            match result {
+                CacheResult::Hit(key, pl) => match (&pl.result, &pl.metadata) {
+                    (&Some(Ok(_)), _) => {
+                        debug!("Sync decoding {} ({:?})", url, key);
+                        decode_bytes_sync(key, &pl.bytes.as_slice())
+                    },
+                    (&None, &Some(ref meta)) => {
+                        debug!("Metadata available for {} ({:?})", url, key);
+                        self.add_listener(key, listener);
+                        return ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(meta.clone()))
+                    },
+                    (&Some(Err(_)), _) | (&None, &None) => {
+                        debug!("{} ({:?}) is still pending", url, key);
+                        self.add_listener(key, listener);
+                        return ImageCacheResult::Pending
+                    },
+                },
+                CacheResult::Miss(Some((key, _pl))) => {
+                    debug!("Should be requesting {} ({:?})", url, key);
+                    self.add_listener(key, listener);
+                    return ImageCacheResult::ReadyForRequest(key);
+                },
+                CacheResult::Miss(None) => {
+                    debug!("Couldn't find an entry for {}", url);
+                    return ImageCacheResult::LoadError
+                },
+            }
+        };
+
+        // In the case where a decode is ongoing (or waiting in a queue) but we
+        // have the full response available, we decode the bytes synchronously
+        // and ignore the async decode when it finishes later.
+        // TODO: make this behaviour configurable according to the caller's needs.
+        store.handle_decoder(decoded);
+        match store.get_completed_image_if_available(&url, use_placeholder) {
+            Some(x) => ImageCacheResult::Available(x.unwrap()),
+            None => ImageCacheResult::LoadError,
+        }
     }
 
     /// Return any available metadata or image for the given URL,

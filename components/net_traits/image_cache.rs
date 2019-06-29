@@ -112,18 +112,20 @@ pub trait ImageCache: Sync + Send {
         Self: Sized;
 
     /// Definitively check whether there is a cached, fully loaded image available.
-    fn get_image(&self, url: ServoUrl, use_placeholder: UsePlaceholder) -> Option<Image>;
+    fn get_image(&self, url: &ServoUrl, use_placeholder: UsePlaceholder) -> Option<Image>;
 
-    /// Add a listener for the provided pending image id.
+    /// Add a listener for the provided pending image id, eventually called by
+    /// ImageCacheStore::complete_load.
     /// If only metadata is available, Available(ImageOrMetadataAvailable) will
     /// be returned.
     /// If Available(ImageOrMetadataAvailable::Image) or LoadError is the final value,
     /// the provided listener will be dropped (consumed & not added to PendingLoad).
     fn track_image(
         &self,
-        id: PendingImageId,
-        listener: ImageResponder,
+        url: ServoUrl,
+        use_placeholder: UsePlaceholder,
         can_request: CanRequestImages,
+        listener: ImageResponder,
     ) -> ImageCacheResult;
 
     fn find_image_or_metadata(
