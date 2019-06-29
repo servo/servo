@@ -113,4 +113,9 @@ testToastElementAsync((t, toast) => {
         t.done();
     }, 2000);
 }, 'toggling open attribute does not start timeout');
+
+testToastElement((toast) => {
+    const permitted_properties = ['constructor', 'show', 'hide', 'toggle', 'open'];
+    assert_array_equals(permitted_properties.sort(), Object.getOwnPropertyNames(toast.__proto__).sort());
+}, 'toast only exposes certain properties');
 </script>

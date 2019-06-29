@@ -200,21 +200,21 @@ class MockRuntime {
   }
 
   poseFromMatrix(m) {
-    let orientation = [];
-
     let m00 = m[0];
     let m11 = m[5];
     let m22 = m[10];
-    // The max( 0, ... ) is just a safeguard against rounding error.
-    orientation[3] = Math.sqrt(Math.max(0, 1 + m00 + m11 + m22)) / 2;
-    orientation[0] = Math.sqrt(Math.max(0, 1 + m00 - m11 - m22)) / 2;
-    orientation[1] = Math.sqrt(Math.max(0, 1 - m00 + m11 - m22)) / 2;
-    orientation[2] = Math.sqrt(Math.max(0, 1 - m00 - m11 + m22)) / 2;
 
-    let position = [];
-    position[0] = m[12];
-    position[1] = m[13];
-    position[2] = m[14];
+    // The max( 0, ... ) is just a safeguard against rounding error.
+    let orientation = new gfx.mojom.Quaternion();
+    orientation.w = Math.sqrt(Math.max(0, 1 + m00 + m11 + m22)) / 2;
+    orientation.x = Math.sqrt(Math.max(0, 1 + m00 - m11 - m22)) / 2;
+    orientation.y = Math.sqrt(Math.max(0, 1 - m00 + m11 - m22)) / 2;
+    orientation.z = Math.sqrt(Math.max(0, 1 - m00 - m11 + m22)) / 2;
+
+    let position = new gfx.mojom.Point3F();
+    position.x = m[12];
+    position.y = m[13];
+    position.z = m[14];
 
     return {
       orientation, position
@@ -249,7 +249,7 @@ class MockRuntime {
           leftDegrees: 50.899,
           rightDegrees: 35.197
         },
-        offset: [-0.032, 0, 0],
+        offset: new gfx.mojom.Vector3dF(-0.032, 0, 0),
         renderWidth: 20,
         renderHeight: 20
       },
@@ -260,7 +260,7 @@ class MockRuntime {
           leftDegrees: 50.899,
           rightDegrees: 35.197
         },
-        offset: [0.032, 0, 0],
+        offset: new gfx.mojom.Vector3dF(0.032, 0, 0),
         renderWidth: 20,
         renderHeight: 20
       },
@@ -293,7 +293,7 @@ class MockRuntime {
         leftDegrees: toDegrees(leftTan),
         rightDegrees: toDegrees(rightTan)
       },
-      offset: [0, 0, 0],
+      offset: new gfx.mojom.Vector3dF(0, 0, 0),
       renderWidth: 20,
       renderHeight: 20
     };
@@ -320,7 +320,6 @@ class MockRuntime {
           microseconds: now,
         },
         frameId: this.next_frame_id_++,
-        projectionMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
         bufferHolder: null,
         bufferSize: {}
       }

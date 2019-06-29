@@ -817,3 +817,6 @@ LAYOUTTESTS APIS: resources/chromium/webxr-test.js
 WEB-PLATFORM.TEST:signed-exchange/resources/*.sxg
 WEB-PLATFORM.TEST:signed-exchange/appcache/resources/*.sxg
 WEB-PLATFORM.TEST:signed-exchange/resources/generate-test-sxgs.sh
+
+SET TIMEOUT: inert/inert-retargeting.tentative.html
+SET TIMEOUT: inert/inert-retargeting-iframe.tentative.html

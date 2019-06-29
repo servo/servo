@@ -9338,7 +9338,12 @@
   code: |
     @assert ctx.font === '10px sans-serif';
 
-
+- name: 2d.text.font.relative_size
+  testing:
+    - 2d.text.font.relative_size
+  code: |
+    ctx.font = '1em sans-serif';
+    @assert ctx.font === '10px sans-serif';
 
 - name: 2d.text.align.valid
   testing:

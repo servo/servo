@@ -5,21 +5,20 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-  let beforeRender;
-  function computeTimestamp() {
-    beforeRender = performance.now();
-  }
   async_test(function (t) {
     if (!window.LargestContentfulPaint) {
       assert_unreached("LargestContentfulPaint is not implemented");
     }
+    let beforeRender = performance.now();
     const observer = new PerformanceObserver(
       t.step_func_done(function(entryList) {
         assert_equals(entryList.getEntries().length, 1);
         const entry = entryList.getEntries()[0];
         assert_equals(entry.entryType, 'largestContentfulPaint');
-        assert_greater_than_equal(entry.startTime, beforeRender);
-        assert_greater_than_equal(performance.now(), entry.startTime);
+        assert_greater_than_equal(entry.startTime, beforeRender,
+          'The rendering timestamp should occur after script starts running.');
+        assert_greater_than_equal(performance.now(), entry.startTime,
+          'The rendering timestamp should occur before the entry is dispatched to the observer.');
         assert_equals(entry.duration, 0);
         // blue.png is 133 x 106.
         assert_equals(entry.size, 14098);
@@ -29,5 +28,5 @@
   }, 'Element with elementtiming attribute is observable.');
 </script>
 
-<img src='/images/blue.png' onload='computeTimestamp()'/>
+<img src='/images/blue.png'/>
 </body>

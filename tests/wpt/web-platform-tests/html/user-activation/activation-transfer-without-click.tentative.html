@@ -22,7 +22,7 @@
 
       function tryPostMessaging() {
         if (is_page_loaded && is_child_four_loaded)
-          child.contentWindow.postMessage("transfer_user_activation", {transferUserActivation: true});
+          child.contentWindow.postMessage("report", {transferUserActivation: true});
       }
 
       window.addEventListener("message", t.step_func(event => {

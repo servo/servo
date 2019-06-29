@@ -1,7 +1,15 @@
 <!DOCTYPE html>
-<body style="background: red;">
+<body style="background: lightgrey;">
 <script>
-  window.parent.postMessage(JSON.stringify({"type": "child-two-loaded", "isActive": navigator.userActivation.isActive,
-                                            "hasBeenActive": navigator.userActivation.hasBeenActive}), "*");
+    window.parent.postMessage(JSON.stringify({"type": "child-two-loaded", "isActive": navigator.userActivation.isActive,
+                                              "hasBeenActive": navigator.userActivation.hasBeenActive}), "*");
+
+    window.addEventListener("message", event => {
+        if (event.source === window.parent && event.data == "report") {
+            window.parent.postMessage(JSON.stringify({"type": "child-two-report", "isActive": navigator.userActivation.isActive,
+                                                      "hasBeenActive": navigator.userActivation.hasBeenActive}), "*");
+        }
+    });
+
 </script>
 </body>

@@ -262,21 +262,51 @@ usb_test(() => {
   });
 }, 'methods requiring it reject when the device is unconfigured');
 
-usb_test(() => {
-  return getFakeDevice().then(({ device }) => {
-    return device.open()
-      .then(() => device.selectConfiguration(1))
-      .then(() => device.claimInterface(0))
-      .then(() => {
-        assert_true(device.configuration.interfaces[0].claimed);
-        return device.releaseInterface(0);
-      })
-      .then(() => {
-        assert_false(device.configuration.interfaces[0].claimed);
-        return device.close();
-      });
-  });
-}, 'an interface can be claimed and released');
+usb_test(async () => {
+  let { device } = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(1);
+  assert_false(device.configuration.interfaces[0].claimed);
+  assert_false(device.configuration.interfaces[1].claimed);
+
+  await device.claimInterface(0);
+  assert_true(device.configuration.interfaces[0].claimed);
+  assert_false(device.configuration.interfaces[1].claimed);
+
+  await device.claimInterface(1);
+  assert_true(device.configuration.interfaces[0].claimed);
+  assert_true(device.configuration.interfaces[1].claimed);
+
+  await device.releaseInterface(0);
+  assert_false(device.configuration.interfaces[0].claimed);
+  assert_true(device.configuration.interfaces[1].claimed);
+
+  await device.releaseInterface(1);
+  assert_false(device.configuration.interfaces[0].claimed);
+  assert_false(device.configuration.interfaces[1].claimed);
+
+  await device.close();
+}, 'interfaces can be claimed and released');
+
+usb_test(async () => {
+  let { device } = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(1);
+  assert_false(device.configuration.interfaces[0].claimed);
+  assert_false(device.configuration.interfaces[1].claimed);
+
+  await Promise.all([device.claimInterface(0),
+                     device.claimInterface(1)]);
+  assert_true(device.configuration.interfaces[0].claimed);
+  assert_true(device.configuration.interfaces[1].claimed);
+
+  await Promise.all([device.releaseInterface(0),
+                     device.releaseInterface(1)]);
+  assert_false(device.configuration.interfaces[0].claimed);
+  assert_false(device.configuration.interfaces[1].claimed);
+
+  await device.close();
+}, 'interfaces can be claimed and released in parallel');
 
 usb_test(async () => {
   let { device } = await getFakeDevice()

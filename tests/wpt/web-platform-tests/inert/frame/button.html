@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body {
+  overflow: hidden;
+}
+
+button#background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 150px;
+  height: 40px;
+  line-height: 53px;
+}
+
+button.clicked {
+  background-color: red;
+}
+
+button.clicked::after {
+  content: " (clicked)";
+}
+
+</style>
+</head>
+<body>
+  <button id="background">background</button>
+<script>
+document.body.addEventListener('click', (e) => {
+  e.target.classList.add('clicked');
+});
+</script>
+</body>
+</html>

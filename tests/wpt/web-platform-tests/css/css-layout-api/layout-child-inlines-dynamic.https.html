@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Layout API: Dynamic blockification of inline children</title>
+<link rel="author" href="mailto:obrufau@igalia.com" title="Oriol Brufau">
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#layout-children" title="4.1. Layout Children">
+<meta name="assert" content="This test checks that inline children are correctly blockified or unblockified when the display of the parent changes dynamically." />
+
+<style>
+#wrapper {
+  display: layout(foo);
+}
+#test {
+  display: inline;
+}
+</style>
+
+<div id="wrapper">
+  <div id="test">Lorem ipsum</div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<script>
+promise_test(async function() {
+  await importWorklet(CSS.layoutWorklet, {url: 'support/layout-child-worklet.js'});
+
+  const wrapper = document.getElementById("wrapper");
+  const test = document.getElementById("test");
+
+  assert_equals(getComputedStyle(test).display, "block", "The child should have been blockified by the custom layout");
+
+  wrapper.style.display = "block";
+  assert_equals(getComputedStyle(test).display, "inline", "The child should no longer be blockified in block layout");
+
+  wrapper.style.display = "";
+  assert_equals(getComputedStyle(test).display, "block", "The child should have been blockified again");
+});
+</script>
