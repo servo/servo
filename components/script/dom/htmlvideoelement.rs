@@ -20,15 +20,15 @@ use crate::dom::node::{document_from_node, window_from_node, Node};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::FetchCanceller;
-use crate::image_listener::{add_cache_listener_for_element, ImageCacheListener};
+use crate::image_listener::{generate_cache_listener_for_element, ImageCacheListener};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use net_traits::image_cache::UsePlaceholder;
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
-use net_traits::image_cache::{ImageResponse, ImageState, PendingImageId};
+use net_traits::image_cache::{ImageCacheResult, UsePlaceholder};
+use net_traits::image_cache::{ImageResponse, PendingImageId};
 use net_traits::request::{CredentialsMode, Destination, RequestBuilder};
 use net_traits::{
     CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, FetchResponseMsg,
@@ -130,26 +130,25 @@ impl HTMLVideoElement {
         // network activity as possible.
         let window = window_from_node(self);
         let image_cache = window.image_cache();
-        let response = image_cache.find_image_or_metadata(
-            poster_url.clone().into(),
+
+        let sender = generate_cache_listener_for_element(self);
+        let cache_result = image_cache.track_image(
+            poster_url.clone(),
+            sender,
             UsePlaceholder::No,
             CanRequestImages::Yes,
         );
-        match response {
-            Ok(ImageOrMetadataAvailable::ImageAvailable(image, url)) => {
-                self.process_image_response(ImageResponse::Loaded(image, url));
-            },
 
-            Err(ImageState::Pending(id)) => {
-                add_cache_listener_for_element(image_cache, id, self);
+        match cache_result {
+            ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable(img, url)) => {
+                self.process_image_response(ImageResponse::Loaded(img, url));
             },
-
-            Err(ImageState::NotRequested(id)) => {
-                add_cache_listener_for_element(image_cache, id, self);
-                self.do_fetch_poster_frame(poster_url, id, cancel_receiver);
+            ImageCacheResult::ReadyForRequest(id) => {
+                self.do_fetch_poster_frame(poster_url, id, cancel_receiver)
             },
-
-            _ => (),
+            ImageCacheResult::Pending(_id) |
+            ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(_m)) |
+            ImageCacheResult::LoadError => (),
         }
     }
 

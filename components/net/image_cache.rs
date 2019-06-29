@@ -4,8 +4,12 @@
 
 use embedder_traits::resources::{self, Resource};
 use immeta::load_from_buf;
+use ipc_channel::ipc;
+use ipc_channel::ipc::IpcSender;
 use net_traits::image::base::{load_from_memory, Image, ImageMetadata};
-use net_traits::image_cache::{CanRequestImages, ImageCache, ImageResponder};
+use net_traits::image_cache::{
+    CanRequestImages, ImageCache, ImageCacheResult, ImageResponder, PendingImageResponse,
+};
 use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse, ImageState};
 use net_traits::image_cache::{PendingImageId, UsePlaceholder};
 use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError};
@@ -13,7 +17,6 @@ use pixels::PixelFormat;
 use servo_url::ServoUrl;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
-use std::io;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -41,13 +44,10 @@ fn decode_bytes_sync(key: LoadKey, bytes: &[u8]) -> DecoderMsg {
     }
 }
 
-fn get_placeholder_image(
-    webrender_api: &webrender_api::RenderApi,
-    data: &[u8],
-) -> io::Result<Arc<Image>> {
+fn get_placeholder_image(webrender_api: &webrender_api::RenderApi, data: &[u8]) -> Arc<Image> {
     let mut image = load_from_memory(&data).unwrap();
     set_webrender_image_key(webrender_api, &mut image);
-    Ok(Arc::new(image))
+    Arc::new(image)
 }
 
 fn set_webrender_image_key(webrender_api: &webrender_api::RenderApi, image: &mut Image) {
@@ -297,7 +297,7 @@ struct ImageCacheStore {
     completed_loads: HashMap<ServoUrl, CompletedLoad>,
 
     // The placeholder image used when an image fails to load
-    placeholder_image: Option<Arc<Image>>,
+    placeholder_image: Arc<Image>,
 
     // The URL used for the placeholder image
     placeholder_url: ServoUrl,
@@ -384,27 +384,33 @@ impl ImageCache for ImageCacheImpl {
             store: Arc::new(Mutex::new(ImageCacheStore {
                 pending_loads: AllPendingLoads::new(),
                 completed_loads: HashMap::new(),
-                placeholder_image: get_placeholder_image(&webrender_api, &rippy_data).ok(),
+                placeholder_image: get_placeholder_image(&webrender_api, &rippy_data),
                 placeholder_url: ServoUrl::parse("chrome://resources/rippy.png").unwrap(),
                 webrender_api: webrender_api,
             })),
         }
     }
 
-    /// Return any available metadata or image for the given URL,
-    /// or an indication that the image is not yet available if it is in progress,
-    /// or else reserve a slot in the cache for the URL if the consumer can request images.
-    fn find_image_or_metadata(
+    fn get_image(&self, url: &ServoUrl) -> Option<Arc<Image>> {
+        let store = self.store.lock().unwrap();
+        match store.get_completed_image_if_available(url, UsePlaceholder::No) {
+            Some(Ok(ImageOrMetadataAvailable::ImageAvailable(x, _))) => Some(x),
+            _ => None,
+        }
+    }
+
+    fn track_image(
         &self,
         url: ServoUrl,
+        sender: IpcSender<PendingImageResponse>,
         use_placeholder: UsePlaceholder,
         can_request: CanRequestImages,
-    ) -> Result<ImageOrMetadataAvailable, ImageState> {
-        debug!("Find image or metadata for {}", url);
+    ) -> ImageCacheResult {
         let mut store = self.store.lock().unwrap();
+
         if let Some(result) = store.get_completed_image_if_available(&url, use_placeholder) {
             debug!("{} is available", url);
-            return result;
+            return ImageCacheResult::Available(result.unwrap());
         }
 
         let decoded = {
@@ -417,20 +423,25 @@ impl ImageCache for ImageCacheImpl {
                     },
                     (&None, &Some(ref meta)) => {
                         debug!("Metadata available for {} ({:?})", url, key);
-                        return Ok(ImageOrMetadataAvailable::MetadataAvailable(meta.clone()));
+                        self.add_listener(key, ImageResponder::new(sender, key));
+                        return ImageCacheResult::Available(
+                            ImageOrMetadataAvailable::MetadataAvailable(meta.clone()),
+                        );
                     },
                     (&Some(Err(_)), _) | (&None, &None) => {
                         debug!("{} ({:?}) is still pending", url, key);
-                        return Err(ImageState::Pending(key));
+                        self.add_listener(key, ImageResponder::new(sender, key));
+                        return ImageCacheResult::Pending(key);
                     },
                 },
                 CacheResult::Miss(Some((key, _pl))) => {
                     debug!("Should be requesting {} ({:?})", url, key);
-                    return Err(ImageState::NotRequested(key));
+                    self.add_listener(key, ImageResponder::new(sender, key));
+                    return ImageCacheResult::ReadyForRequest(key);
                 },
                 CacheResult::Miss(None) => {
                     debug!("Couldn't find an entry for {}", url);
-                    return Err(ImageState::LoadError);
+                    return ImageCacheResult::LoadError;
                 },
             }
         };
@@ -441,8 +452,8 @@ impl ImageCache for ImageCacheImpl {
         // TODO: make this behaviour configurable according to the caller's needs.
         store.handle_decoder(decoded);
         match store.get_completed_image_if_available(&url, use_placeholder) {
-            Some(result) => result,
-            None => Err(ImageState::LoadError),
+            Some(x) => ImageCacheResult::Available(x.unwrap()),
+            None => ImageCacheResult::LoadError,
         }
     }
 
@@ -524,13 +535,8 @@ impl ImageCache for ImageCacheImpl {
                     Err(_) => {
                         debug!("Processing error for {:?}", key);
                         let mut store = self.store.lock().unwrap();
-                        match store.placeholder_image.clone() {
-                            Some(placeholder_image) => store.complete_load(
-                                id,
-                                LoadResult::PlaceholderLoaded(placeholder_image),
-                            ),
-                            None => store.complete_load(id, LoadResult::None),
-                        }
+                        let placeholder_image = store.placeholder_image.clone();
+                        store.complete_load(id, LoadResult::PlaceholderLoaded(placeholder_image))
                     },
                 }
             },
