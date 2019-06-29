@@ -55,9 +55,9 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
 use net_traits::image::base::{Image, ImageMetadata};
-use net_traits::image_cache::UsePlaceholder;
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
-use net_traits::image_cache::{ImageResponder, ImageResponse, ImageState, PendingImageId};
+use net_traits::image_cache::{ImageCacheResult, UsePlaceholder};
+use net_traits::image_cache::{ImageResponder, ImageResponse, PendingImageId};
 use net_traits::request::RequestBuilder;
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
@@ -267,33 +267,23 @@ impl HTMLImageElement {
     fn fetch_image(&self, img_url: &ServoUrl) {
         let window = window_from_node(self);
         let image_cache = window.image_cache();
-        let response = image_cache.find_image_or_metadata(
-            img_url.clone().into(),
-            UsePlaceholder::Yes,
-            CanRequestImages::Yes,
-        );
-        match response {
-            Ok(ImageOrMetadataAvailable::ImageAvailable(image, url)) => {
-                self.process_image_response(ImageResponse::Loaded(image, url));
-            },
+        let cache_result =
+            image_cache.track_image(img_url.clone(), UsePlaceholder::Yes, CanRequestImages::Yes);
 
-            Ok(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
-                self.process_image_response(ImageResponse::MetadataLoaded(m));
+        match cache_result {
+            ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable(image, url)) => {
+                self.process_image_response(ImageResponse::Loaded(image, url))
             },
-
-            Err(ImageState::Pending(id)) => {
-                add_cache_listener_for_element(image_cache, id, self);
+            ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
+                self.process_image_response(ImageResponse::MetadataLoaded(m))
             },
-
-            Err(ImageState::LoadError) => {
-                self.process_image_response(ImageResponse::None);
-            },
-
-            Err(ImageState::NotRequested(id)) => {
+            ImageCacheResult::Pending(id) => add_cache_listener_for_element(image_cache, id, self),
+            ImageCacheResult::ReadyForRequest(id) => {
                 add_cache_listener_for_element(image_cache, id, self);
                 self.fetch_request(img_url, id);
             },
-        }
+            ImageCacheResult::LoadError => self.process_image_response(ImageResponse::None),
+        };
     }
 
     fn fetch_request(&self, img_url: &ServoUrl, id: PendingImageId) {
@@ -911,12 +901,9 @@ impl HTMLImageElement {
         {
             if let Ok(img_url) = base_url.join(&src) {
                 let image_cache = window.image_cache();
-                let response = image_cache.find_image_or_metadata(
-                    img_url.clone().into(),
-                    UsePlaceholder::No,
-                    CanRequestImages::No,
-                );
-                if let Ok(ImageOrMetadataAvailable::ImageAvailable(image, url)) = response {
+                let response = image_cache.get_image(&img_url);
+
+                if let Some(image) = response {
                     // Cancel any outstanding tasks that were queued before the src was
                     // set on this element.
                     self.generation.set(self.generation.get() + 1);
@@ -929,7 +916,7 @@ impl HTMLImageElement {
                     self.abort_request(State::CompletelyAvailable, ImageRequestPhase::Current);
                     self.abort_request(State::Unavailable, ImageRequestPhase::Pending);
                     let mut current_request = self.current_request.borrow_mut();
-                    current_request.final_url = Some(url);
+                    current_request.final_url = Some(img_url.clone());
                     current_request.image = Some(image.clone());
                     current_request.metadata = Some(metadata);
                     // Step 6.3.6
@@ -1066,22 +1053,19 @@ impl HTMLImageElement {
         let window = window_from_node(self);
         let image_cache = window.image_cache();
         // Step 14
-        let response = image_cache.find_image_or_metadata(
-            img_url.clone().into(),
-            UsePlaceholder::No,
-            CanRequestImages::Yes,
-        );
-        match response {
-            Ok(ImageOrMetadataAvailable::ImageAvailable(_image, _url)) => {
+        let cache_result =
+            image_cache.track_image(img_url.clone(), UsePlaceholder::No, CanRequestImages::Yes);
+
+        match cache_result {
+            ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable(_image, _url)) => {
                 // Step 15
                 self.finish_reacting_to_environment_change(
                     selected_source,
                     generation,
                     selected_pixel_density,
-                );
+                )
             },
-
-            Ok(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
+            ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
                 self.process_image_response_for_environment_change(
                     ImageResponse::MetadataLoaded(m),
                     selected_source,
@@ -1089,8 +1073,7 @@ impl HTMLImageElement {
                     selected_pixel_density,
                 );
             },
-
-            Err(ImageState::Pending(id)) => {
+            ImageCacheResult::Pending(id) => {
                 add_cache_listener_for_element(
                     image_cache.clone(),
                     id,
@@ -1099,8 +1082,7 @@ impl HTMLImageElement {
                     selected_pixel_density,
                 );
             },
-
-            Err(ImageState::LoadError) => {
+            ImageCacheResult::LoadError => {
                 self.process_image_response_for_environment_change(
                     ImageResponse::None,
                     selected_source,
@@ -1108,8 +1090,7 @@ impl HTMLImageElement {
                     selected_pixel_density,
                 );
             },
-
-            Err(ImageState::NotRequested(id)) => {
+            ImageCacheResult::ReadyForRequest(id) => {
                 add_cache_listener_for_element(
                     image_cache,
                     id,
