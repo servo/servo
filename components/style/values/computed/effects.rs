@@ -8,7 +8,7 @@ use crate::values::computed::color::Color;
 use crate::values::computed::length::{Length, NonNegativeLength};
 #[cfg(feature = "gecko")]
 use crate::values::computed::url::ComputedUrl;
-use crate::values::computed::{Angle, ZeroToOneNumber, NonNegativeNumber};
+use crate::values::computed::{Angle, NonNegativeNumber, ZeroToOneNumber};
 use crate::values::generics::effects::BoxShadow as GenericBoxShadow;
 use crate::values::generics::effects::Filter as GenericFilter;
 use crate::values::generics::effects::SimpleShadow as GenericSimpleShadow;
@@ -20,13 +20,25 @@ pub type BoxShadow = GenericBoxShadow<Color, Length, NonNegativeLength, Length>;
 
 /// A computed value for a single `filter`.
 #[cfg(feature = "gecko")]
-pub type Filter =
-    GenericFilter<Angle, NonNegativeNumber, ZeroToOneNumber, NonNegativeLength, SimpleShadow, ComputedUrl>;
+pub type Filter = GenericFilter<
+    Angle,
+    NonNegativeNumber,
+    ZeroToOneNumber,
+    NonNegativeLength,
+    SimpleShadow,
+    ComputedUrl,
+>;
 
 /// A computed value for a single `filter`.
 #[cfg(feature = "servo")]
-pub type Filter =
-    GenericFilter<Angle, NonNegativeNumber, ZeroToOneNumber, NonNegativeLength, Impossible, Impossible>;
+pub type Filter = GenericFilter<
+    Angle,
+    NonNegativeNumber,
+    ZeroToOneNumber,
+    NonNegativeLength,
+    Impossible,
+    Impossible,
+>;
 
 /// A computed value for the `drop-shadow()` filter.
 pub type SimpleShadow = GenericSimpleShadow<Color, Length, NonNegativeLength>;

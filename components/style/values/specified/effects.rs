@@ -7,8 +7,8 @@
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::effects::BoxShadow as ComputedBoxShadow;
 use crate::values::computed::effects::SimpleShadow as ComputedSimpleShadow;
-use crate::values::computed::ZeroToOneNumber as ComputedZeroToOneNumber;
 use crate::values::computed::NonNegativeNumber as ComputedNonNegativeNumber;
+use crate::values::computed::ZeroToOneNumber as ComputedZeroToOneNumber;
 use crate::values::computed::{Context, ToComputedValue};
 use crate::values::generics::effects::BoxShadow as GenericBoxShadow;
 use crate::values::generics::effects::Filter as GenericFilter;
@@ -31,13 +31,25 @@ pub type BoxShadow =
 
 /// A specified value for a single `filter`.
 #[cfg(feature = "gecko")]
-pub type SpecifiedFilter =
-    GenericFilter<Angle, NonNegativeFactor, ZeroToOneFactor, NonNegativeLength, SimpleShadow, SpecifiedUrl>;
+pub type SpecifiedFilter = GenericFilter<
+    Angle,
+    NonNegativeFactor,
+    ZeroToOneFactor,
+    NonNegativeLength,
+    SimpleShadow,
+    SpecifiedUrl,
+>;
 
 /// A specified value for a single `filter`.
 #[cfg(feature = "servo")]
-pub type SpecifiedFilter =
-    GenericFilter<Angle, NonNegativeFactor, ZeroToOneFactor, NonNegativeLength, Impossible, Impossible>;
+pub type SpecifiedFilter = GenericFilter<
+    Angle,
+    NonNegativeFactor,
+    ZeroToOneFactor,
+    NonNegativeLength,
+    Impossible,
+    Impossible,
+>;
 
 pub use self::SpecifiedFilter as Filter;
 

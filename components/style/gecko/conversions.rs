@@ -35,7 +35,12 @@ impl nsStyleImage {
 
                     // Set CropRect
                     let ref mut rect = *self.mCropRect.mPtr;
-                    *rect = Rect(image_rect.top, image_rect.right, image_rect.bottom, image_rect.left);
+                    *rect = Rect(
+                        image_rect.top,
+                        image_rect.right,
+                        image_rect.bottom,
+                        image_rect.left,
+                    );
                 }
             },
             GenericImage::Element(ref element) => unsafe {

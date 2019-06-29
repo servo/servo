@@ -28,9 +28,7 @@ pub fn parse_flex<'i, 't>(input: &mut Parser<'i, 't>) -> Result<CSSFloat, ParseE
 }
 
 impl<L> TrackBreadth<L> {
-    fn parse_keyword<'i, 't>(
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
+    fn parse_keyword<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         #[derive(Parse)]
         enum TrackKeyword {
             Auto,

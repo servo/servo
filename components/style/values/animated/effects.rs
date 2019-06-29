@@ -19,7 +19,8 @@ pub type AnimatedSimpleShadow = GenericSimpleShadow<Color, Length, Length>;
 
 /// An animated value for a single `filter`.
 #[cfg(feature = "gecko")]
-pub type AnimatedFilter = GenericFilter<Angle, Number, Number, Length, AnimatedSimpleShadow, ComputedUrl>;
+pub type AnimatedFilter =
+    GenericFilter<Angle, Number, Number, Length, AnimatedSimpleShadow, ComputedUrl>;
 
 /// An animated value for a single `filter`.
 #[cfg(not(feature = "gecko"))]

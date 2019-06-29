@@ -5,16 +5,15 @@
 //! Generic types for the handling of
 //! [grids](https://drafts.csswg.org/css-grid/).
 
-use crate::{Atom, Zero};
 use crate::parser::{Parse, ParserContext};
 use crate::values::specified;
 use crate::values::specified::grid::parse_line_names;
 use crate::values::{CSSFloat, CustomIdent};
+use crate::{Atom, Zero};
 use cssparser::Parser;
 use std::fmt::{self, Write};
 use std::{cmp, mem, usize};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-
 
 /// These are the limits that we choose to clamp grid line numbers to.
 /// http://drafts.csswg.org/css-grid/#overlarge-grids
@@ -146,7 +145,10 @@ impl Parse for GridLine<specified::Integer> {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
 
-                grid_line.line_num = specified::Integer::new(cmp::max(MIN_GRID_LINE, cmp::min(value, MAX_GRID_LINE)));
+                grid_line.line_num = specified::Integer::new(cmp::max(
+                    MIN_GRID_LINE,
+                    cmp::min(value, MAX_GRID_LINE),
+                ));
             } else if let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
                 if val_before_span || grid_line.ident != atom!("") {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
@@ -230,7 +232,16 @@ impl<L> TrackBreadth<L> {
 /// <https://drafts.csswg.org/css-grid/#typedef-track-size>
 ///
 /// cbindgen:derive-tagged-enum-copy-constructor=true
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
 #[repr(C, u8)]
 pub enum GenericTrackSize<L> {
     /// A flexible `<track-breadth>`
