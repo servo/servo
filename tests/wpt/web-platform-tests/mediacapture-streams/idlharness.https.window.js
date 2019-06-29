@@ -16,7 +16,7 @@ promise_test(async () => {
   idl_array.add_dependency_idls(html);
   idl_array.add_dependency_idls(dom);
 
-  let input, media;
+  const devices = [];
   // Errors will be surfaced in idlharness.js's test_object below.
   try {
     const list = await navigator.mediaDevices.enumerateDevices();
@@ -24,9 +24,9 @@ promise_test(async () => {
       switch (item.kind) {
       case 'audioinput':
       case 'videoinput':
-        input = item;
       case 'audiooutput':
-        media = item;
+        self[item.kind] = item;
+        devices.push(item.kind);
       default:
         assert_unreached(
           'media.kind should be one of "audioinput", "videoinput", or "audiooutput".');
@@ -34,26 +34,21 @@ promise_test(async () => {
     }
   } catch (e) {}
 
-  let stream, track, trackEvent;
   try {
-    stream = await navigator.mediaDevices.getUserMedia({audio: true});
-    track = stream.getTracks()[0];
-    trackEvent = new MediaStreamTrackEvent("type", {
+    self.stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    self.track = stream.getTracks()[0];
+    self.trackEvent = new MediaStreamTrackEvent("type", {
       track: track,
     });
   } catch (e) { throw e}
 
-  if (input) {
-    idl_array.add_objects({ InputDeviceInfo: [input] });
-  } else {
-    idl_array.add_objects({ MediaDeviceInfo: [media] });
-  }
   idl_array.add_objects({
-    MediaStream: [stream, 'new MediaStream()'],
+    InputDeviceInfo: devices,
+    MediaStream: ['stream', 'new MediaStream()'],
     Navigator: ['navigator'],
     MediaDevices: ['navigator.mediaDevices'],
-    MediaStreamTrack: [track],
-    MediaStreamTrackEvent: [trackEvent],
+    MediaStreamTrack: ['track'],
+    MediaStreamTrackEvent: ['trackEvent'],
   });
   idl_array.test();
 }, 'mediacapture-streams interfaces.');

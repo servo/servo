@@ -125,14 +125,52 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
       policyDeliveries: [delivery]
     };
 
+    let currentURL = location.toString();
     const expectedReferrer =
-      referrerUrlResolver[scenario.referrer_url](location.toString());
+      referrerUrlResolver[scenario.referrer_url](currentURL);
 
     // Request in the top-level document.
     promise_test(_ => {
+      return invokeRequest(subresource, [])
+        .then(result => checkResult(expectedReferrer, result));
+    }, testDescription);
+
+    // `Referer` headers with length over 4k are culled down to an origin, so, let's test around
+    // that boundary for tests that would otherwise return the complete URL.
+    if (scenario.referrer_url == "stripped-referrer") {
+      promise_test(_ => {
+        history.pushState(null, null, "/");
+        history.replaceState(null, null, "A".repeat(4096 - location.href.length - 1));
+        const expectedReferrer = location.href;
+        // Ensure that we don't load the same URL as the previous test.
+        subresource.url += "&-1";
         return invokeRequest(subresource, [])
-          .then(result => checkResult(expectedReferrer, result));
-      }, testDescription);
+          .then(result => checkResult(location.href, result))
+          .finally(_ => history.back());
+      }, "`Referer` header with length < 4k is not stripped to an origin.");
+
+      promise_test(_ => {
+        history.pushState(null, null, "/");
+        history.replaceState(null, null, "A".repeat(4096 - location.href.length));
+        const expectedReferrer = location.href;
+        // Ensure that we don't load the same URL as the previous test.
+        subresource.url += "&0";
+        return invokeRequest(subresource, [])
+          .then(result => checkResult(expectedReferrer, result))
+          .finally(_ => history.back());
+      }, "`Referer` header with length == 4k is not stripped to an origin.");
+
+      promise_test(_ => {
+        const originString = referrerUrlResolver["origin"](currentURL);
+        history.pushState(null, null, "/");
+        history.replaceState(null, null, "A".repeat(4096 - location.href.length + 1));
+        // Ensure that we don't load the same URL as the previous test.
+        subresource.url += "&+1";
+        return invokeRequest(subresource, [])
+          .then(result => checkResult(originString, result))
+          .finally(_ => history.back());
+      }, "`Referer` header with length > 4k is stripped to an origin.");
+    }
 
     // We test requests from inside iframes only for <img> tags.
     // This is just to preserve the previous test coverage.

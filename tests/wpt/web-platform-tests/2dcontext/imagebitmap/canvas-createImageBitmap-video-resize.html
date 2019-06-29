@@ -51,6 +51,7 @@ var t = async_test('createImageBitmap(HTMLVideoElement) with resize option');
 
 // HTMLVideoElement
 var video = document.createElement("video");
+video.preload = "auto";
 video.oncanplaythrough = t.step_func(function() {
     return generateTest();
 });

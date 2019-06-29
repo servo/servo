@@ -48,7 +48,7 @@
           assert_true(navigator.userActivation.hasBeenActive);
 
           // transfer user activation to the child frame
-          child.contentWindow.postMessage("transfer_user_activation",
+          child.contentWindow.postMessage("report",
               {targetOrigin: "*", transferUserActivation: true});
 
           // sender's activation state is updated synchronously

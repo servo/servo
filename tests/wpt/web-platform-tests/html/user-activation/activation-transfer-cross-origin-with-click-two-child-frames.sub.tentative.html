@@ -24,12 +24,12 @@
       var child1 = document.getElementById("child1");
       var child2 = document.getElementById("child2");
       var is_child_four_loaded = false;
-      var is_child_five_loaded = false;
+      var is_child_two_loaded = false;
       assert_false(navigator.userActivation.isActive);
       assert_false(navigator.userActivation.hasBeenActive);
 
       function tryClickInstructions() {
-        if (is_child_four_loaded && is_child_five_loaded)
+        if (is_child_four_loaded && is_child_two_loaded)
           test_driver.click(document.getElementById('instructions'));
       }
 
@@ -52,15 +52,15 @@
           assert_false(navigator.userActivation.hasBeenActive);
 
           child2.contentWindow.postMessage('report', '*');
-        } else if (msg.type == 'child-five-loaded') {
+        } else if (msg.type == 'child-two-loaded') {
           // state should be false after load
           assert_false(msg.isActive);
           assert_false(msg.hasBeenActive);
 
           // click in parent document after both child frames load
-          is_child_five_loaded = true;
+          is_child_two_loaded = true;
           tryClickInstructions();
-        } else if (msg.type == 'child-five-report') {
+        } else if (msg.type == 'child-two-report') {
           assert_false(msg.isActive);
           assert_false(msg.hasBeenActive);
 
@@ -75,7 +75,7 @@
           assert_true(navigator.userActivation.hasBeenActive);
 
           // transfer user activation to the child frame
-          child1.contentWindow.postMessage("transfer_user_activation",
+          child1.contentWindow.postMessage("report",
               {targetOrigin: "*", transferUserActivation: true});
 
           // sender's activation state is updated synchronously
@@ -83,7 +83,7 @@
           assert_false(navigator.userActivation.hasBeenActive);
       }));
       child1.src = "http://{{domains[www]}}:{{ports[http][0]}}/html/user-activation/resources/child-four.html";
-      child2.src = "http://{{domains[www1]}}:{{ports[http][0]}}/html/user-activation/resources/child-five.html";
+      child2.src = "http://{{domains[www1]}}:{{ports[http][0]}}/html/user-activation/resources/child-two.html";
     }, "Cross-origin user activation transfer through postMessages");
   </script>
 </body>

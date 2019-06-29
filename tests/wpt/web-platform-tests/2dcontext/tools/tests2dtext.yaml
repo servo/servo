@@ -112,7 +112,14 @@
   code: |
     @assert ctx.font === '10px sans-serif';
 
-
+- name: 2d.text.font.relative_size
+  testing:
+    - 2d.text.font.relative_size
+  code: |
+    var canvas2 = document.createElement('canvas');
+    var ctx2 = canvas2.getContext('2d');
+    ctx2.font = '1em sans-serif';
+    @assert ctx2.font === '10px sans-serif';
 
 - name: 2d.text.align.valid
   testing:
