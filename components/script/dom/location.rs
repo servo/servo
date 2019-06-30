@@ -210,7 +210,11 @@ impl LocationMethods for Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-port
     fn SetPort(&self, value: USVString) -> ErrorResult {
         self.check_same_origin_domain()?;
-        self.set_url_component(value, UrlHelper::SetPort);
+        let url = self.get_url();
+        // If copyURL cannot have a username/password/port, then return.
+        if url.has_host() && !url.cannot_be_a_base() && url.scheme() != "file" {
+            self.set_url_component(value, UrlHelper::SetPort);
+        }
         Ok(())
     }
 
