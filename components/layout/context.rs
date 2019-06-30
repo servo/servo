@@ -9,10 +9,9 @@ use crate::opaque_node::OpaqueNodeMethods;
 use fnv::FnvHasher;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
-use ipc_channel::ipc;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::PipelineId;
-use net_traits::image_cache::{CanRequestImages, ImageCache, ImageCacheResult, ImageState};
+use net_traits::image_cache::{CanRequestImages, ImageCache, ImageCacheResult};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use parking_lot::RwLock;
 use script_layout_interface::{PendingImage, PendingImageState};
@@ -127,10 +126,9 @@ impl<'a> LayoutContext<'a> {
         }
 
         // If not immediately available, create a listener and track cache status.
-        let (listener, sender) = ipc::channel().unwrap();
-        let cache_result =
-            self.image_cache
-                .track_image(url.clone(), use_placeholder, can_request, listener);
+        let cache_result = self
+            .image_cache
+            .track_image(url.clone(), use_placeholder, can_request);
 
         match cache_result {
             ImageCacheResult::Available(img_or_meta) => Some(img_or_meta),

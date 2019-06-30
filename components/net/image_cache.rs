@@ -4,6 +4,7 @@
 
 use embedder_traits::resources::{self, Resource};
 use immeta::load_from_buf;
+use ipc_channel::ipc;
 use net_traits::image::base::{load_from_memory, Image, ImageMetadata};
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageCacheResult, ImageResponder};
 use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse, ImageState};
@@ -403,9 +404,9 @@ impl ImageCache for ImageCacheImpl {
         url: ServoUrl,
         use_placeholder: UsePlaceholder,
         can_request: CanRequestImages,
-        listener: ImageResponder,
     ) -> ImageCacheResult {
         let mut store = self.store.lock().unwrap();
+        let (sender, _receiver) = ipc::channel().unwrap();
 
         let decoded = {
             let result = store.pending_loads.get_cached(url.clone(), can_request);
@@ -417,20 +418,20 @@ impl ImageCache for ImageCacheImpl {
                     },
                     (&None, &Some(ref meta)) => {
                         debug!("Metadata available for {} ({:?})", url, key);
-                        self.add_listener(key, listener);
+                        self.add_listener(key, ImageResponder::new(sender, key));
                         return ImageCacheResult::Available(
                             ImageOrMetadataAvailable::MetadataAvailable(meta.clone()),
                         );
                     },
                     (&Some(Err(_)), _) | (&None, &None) => {
                         debug!("{} ({:?}) is still pending", url, key);
-                        self.add_listener(key, listener);
+                        self.add_listener(key, ImageResponder::new(sender, key));
                         return ImageCacheResult::Pending(key);
                     },
                 },
                 CacheResult::Miss(Some((key, _pl))) => {
                     debug!("Should be requesting {} ({:?})", url, key);
-                    self.add_listener(key, listener);
+                    self.add_listener(key, ImageResponder::new(sender, key));
                     return ImageCacheResult::ReadyForRequest(key);
                 },
                 CacheResult::Miss(None) => {
@@ -448,61 +449,6 @@ impl ImageCache for ImageCacheImpl {
         match store.get_completed_image_if_available(&url, use_placeholder) {
             Some(x) => ImageCacheResult::Available(x.unwrap()),
             None => ImageCacheResult::LoadError,
-        }
-    }
-
-    /// Return any available metadata or image for the given URL,
-    /// or an indication that the image is not yet available if it is in progress,
-    /// or else reserve a slot in the cache for the URL if the consumer can request images.
-    fn find_image_or_metadata(
-        &self,
-        url: ServoUrl,
-        use_placeholder: UsePlaceholder,
-        can_request: CanRequestImages,
-    ) -> Result<ImageOrMetadataAvailable, ImageState> {
-        debug!("Find image or metadata for {}", url);
-        let mut store = self.store.lock().unwrap();
-        if let Some(result) = store.get_completed_image_if_available(&url, use_placeholder) {
-            debug!("{} is available", url);
-            return result;
-        }
-
-        let decoded = {
-            let result = store.pending_loads.get_cached(url.clone(), can_request);
-            match result {
-                CacheResult::Hit(key, pl) => match (&pl.result, &pl.metadata) {
-                    (&Some(Ok(_)), _) => {
-                        debug!("Sync decoding {} ({:?})", url, key);
-                        decode_bytes_sync(key, &pl.bytes.as_slice())
-                    },
-                    (&None, &Some(ref meta)) => {
-                        debug!("Metadata available for {} ({:?})", url, key);
-                        return Ok(ImageOrMetadataAvailable::MetadataAvailable(meta.clone()));
-                    },
-                    (&Some(Err(_)), _) | (&None, &None) => {
-                        debug!("{} ({:?}) is still pending", url, key);
-                        return Err(ImageState::Pending(key));
-                    },
-                },
-                CacheResult::Miss(Some((key, _pl))) => {
-                    debug!("Should be requesting {} ({:?})", url, key);
-                    return Err(ImageState::NotRequested(key));
-                },
-                CacheResult::Miss(None) => {
-                    debug!("Couldn't find an entry for {}", url);
-                    return Err(ImageState::LoadError);
-                },
-            }
-        };
-
-        // In the case where a decode is ongoing (or waiting in a queue) but we
-        // have the full response available, we decode the bytes synchronously
-        // and ignore the async decode when it finishes later.
-        // TODO: make this behaviour configurable according to the caller's needs.
-        store.handle_decoder(decoded);
-        match store.get_completed_image_if_available(&url, use_placeholder) {
-            Some(result) => result,
-            None => Err(ImageState::LoadError),
         }
     }
 

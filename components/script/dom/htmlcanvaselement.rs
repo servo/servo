@@ -445,8 +445,7 @@ impl<'a> From<&'a WebGLContextAttributes> for GLContextAttributes {
 
 pub mod utils {
     use crate::dom::window::Window;
-    use net_traits::image_cache::CanRequestImages;
-    use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
+    use net_traits::image_cache::{ImageResponse, UsePlaceholder};
     use servo_url::ServoUrl;
 
     pub fn request_image_from_cache(window: &Window, url: ServoUrl) -> ImageResponse {

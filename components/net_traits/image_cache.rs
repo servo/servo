@@ -125,15 +125,7 @@ pub trait ImageCache: Sync + Send {
         url: ServoUrl,
         use_placeholder: UsePlaceholder,
         can_request: CanRequestImages,
-        listener: ImageResponder,
     ) -> ImageCacheResult;
-
-    fn find_image_or_metadata(
-        &self,
-        url: ServoUrl,
-        use_placeholder: UsePlaceholder,
-        can_request: CanRequestImages,
-    ) -> Result<ImageOrMetadataAvailable, ImageState>;
 
     /// Add a new listener for the given pending image id. If the image is already present,
     /// the responder will still receive the expected response.

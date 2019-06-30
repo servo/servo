@@ -28,7 +28,7 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
 use net_traits::image_cache::{ImageCacheResult, UsePlaceholder};
-use net_traits::image_cache::{ImageResponse, ImageState, PendingImageId};
+use net_traits::image_cache::{ImageResponse, PendingImageId};
 use net_traits::request::{CredentialsMode, Destination, RequestBuilder};
 use net_traits::{
     CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, FetchResponseMsg,
@@ -136,7 +136,6 @@ impl HTMLVideoElement {
             return self.process_image_response(ImageResponse::Loaded(image, poster_url.clone()));
         }
 
-        let (sender, receiver) = ipc::channel();
         let cache_result = image_cache.track_image(
             poster_url.clone(),
             UsePlaceholder::No,
@@ -147,12 +146,12 @@ impl HTMLVideoElement {
             ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable(img, url)) => {
                 self.process_image_response(ImageResponse::Loaded(img, url));
             },
-            // todo pending id
             ImageCacheResult::Pending(id) => add_cache_listener_for_element(image_cache, id, self),
             ImageCacheResult::ReadyForRequest(id) => {
                 add_cache_listener_for_element(image_cache, id, self);
                 self.do_fetch_poster_frame(poster_url, id, cancel_receiver);
             },
+            ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(_m)) => (),
             ImageCacheResult::LoadError => (),
         }
     }

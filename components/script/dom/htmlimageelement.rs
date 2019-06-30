@@ -57,7 +57,7 @@ use mime::{self, Mime};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
 use net_traits::image_cache::{ImageCacheResult, UsePlaceholder};
-use net_traits::image_cache::{ImageResponder, ImageResponse, ImageState, PendingImageId};
+use net_traits::image_cache::{ImageResponder, ImageResponse, PendingImageId};
 use net_traits::request::RequestBuilder;
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
@@ -275,9 +275,8 @@ impl HTMLImageElement {
             None => (),
         }
 
-        let (sender, receiver) = ipc::channel().unwrap();
-
-        let cache_result = image_cache.track_image(img_url.clone(), sender);
+        let cache_result =
+            image_cache.track_image(img_url.clone(), UsePlaceholder::Yes, CanRequestImages::Yes);
 
         match cache_result {
             ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable(image, url)) => {
@@ -925,7 +924,7 @@ impl HTMLImageElement {
                     self.abort_request(State::CompletelyAvailable, ImageRequestPhase::Current);
                     self.abort_request(State::Unavailable, ImageRequestPhase::Pending);
                     let mut current_request = self.current_request.borrow_mut();
-                    current_request.final_url = Some(url);
+                    current_request.final_url = Some(img_url.clone());
                     current_request.image = Some(image.clone());
                     current_request.metadata = Some(metadata);
                     // Step 6.3.6
@@ -1073,13 +1072,8 @@ impl HTMLImageElement {
             );
         }
 
-        let (sender, receiver) = ipc::channel().unwrap();
-        let cache_result = image_cache.track_image(
-            img_url.clone(),
-            UsePlaceholder::No,
-            CanRequestImages::Yes,
-            sender,
-        );
+        let cache_result =
+            image_cache.track_image(img_url.clone(), UsePlaceholder::No, CanRequestImages::Yes);
         match cache_result {
             ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable(_image, _url)) => {
                 self.finish_reacting_to_environment_change(
