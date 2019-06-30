@@ -112,7 +112,7 @@ pub trait ImageCache: Sync + Send {
         Self: Sized;
 
     /// Definitively check whether there is a cached, fully loaded image available.
-    fn get_image(&self, url: &ServoUrl, use_placeholder: UsePlaceholder) -> Option<Image>;
+    fn get_image(&self, url: &ServoUrl, use_placeholder: UsePlaceholder) -> Option<Arc<Image>>;
 
     /// Add a listener for the provided pending image id, eventually called by
     /// ImageCacheStore::complete_load.

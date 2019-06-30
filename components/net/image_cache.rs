@@ -390,13 +390,10 @@ impl ImageCache for ImageCacheImpl {
         }
     }
 
-    fn get_image(&self, url: &ServoUrl, use_placeholder: UsePlaceholder) -> Option<Image> {
+    fn get_image(&self, url: &ServoUrl, use_placeholder: UsePlaceholder) -> Option<Arc<Image>> {
         let store = self.store.lock().unwrap();
         match store.get_completed_image_if_available(url, use_placeholder) {
-            Some(Ok(ImageOrMetadataAvailable::ImageAvailable(x, _))) => match Arc::try_unwrap(x) {
-                Ok(img) => Some(img),
-                Err(mut arc) => Some(Image::clone(&mut arc)),
-            },
+            Some(Ok(ImageOrMetadataAvailable::ImageAvailable(x, _))) => Some(x),
             _ => None,
         }
     }
