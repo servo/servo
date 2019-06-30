@@ -40,6 +40,11 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
 use crate::dom::bindings::utils::DOMClass;
+use crate::dom::filelist::FileList;
+use crate::dom::htmlcollection::HTMLCollection;
+use crate::dom::htmlformcontrolscollection::HTMLFormControlsCollection;
+use crate::dom::htmloptionscollection::HTMLOptionsCollection;
+use crate::dom::nodelist::NodeList;
 use js::conversions::latin1_to_string;
 pub use js::conversions::ConversionBehavior;
 pub use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
@@ -548,13 +553,38 @@ impl<T: DomObject> ToJSValConvertible for DomRoot<T> {
     }
 }
 
-/// Returns whether `value` is an array-like object.
-/// Note: Currently only Arrays are supported.
-/// TODO: Expand this to support sequences and other array-like objects
+/// Returns whether `value` is an array-like object (Array, FileList,
+/// HTMLCollection, HTMLFormControlsCollection, HTMLOptionsCollection,
+/// NodeList).
 pub unsafe fn is_array_like(cx: *mut JSContext, value: HandleValue) -> bool {
-    let mut result = false;
-    assert!(JS_IsArrayObject(cx, value, &mut result));
-    result
+    let mut is_array = false;
+    assert!(JS_IsArrayObject(cx, value, &mut is_array));
+    if is_array {
+        return true;
+    }
+
+    let object: *mut JSObject = match FromJSValConvertible::from_jsval(cx, value, ()).unwrap() {
+        ConversionResult::Success(object) => object,
+        _ => return false,
+    };
+
+    if root_from_object::<FileList>(object, cx).is_ok() {
+        return true;
+    }
+    if root_from_object::<HTMLCollection>(object, cx).is_ok() {
+        return true;
+    }
+    if root_from_object::<HTMLFormControlsCollection>(object, cx).is_ok() {
+        return true;
+    }
+    if root_from_object::<HTMLOptionsCollection>(object, cx).is_ok() {
+        return true;
+    }
+    if root_from_object::<NodeList>(object, cx).is_ok() {
+        return true;
+    }
+
+    false
 }
 
 /// Get a property from a JS object.
