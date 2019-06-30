@@ -102,7 +102,7 @@ pub enum UsePlaceholder {
 pub enum ImageCacheResult {
     Available(ImageOrMetadataAvailable),
     LoadError,
-    Pending,
+    Pending(PendingImageId),
     ReadyForRequest(PendingImageId),
 }
 

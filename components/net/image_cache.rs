@@ -423,7 +423,7 @@ impl ImageCache for ImageCacheImpl {
                     (&Some(Err(_)), _) | (&None, &None) => {
                         debug!("{} ({:?}) is still pending", url, key);
                         self.add_listener(key, listener);
-                        return ImageCacheResult::Pending
+                        return ImageCacheResult::Pending(key)
                     },
                 },
                 CacheResult::Miss(Some((key, _pl))) => {
