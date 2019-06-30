@@ -26,7 +26,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use net_traits::image_cache::UsePlaceholder;
+use net_traits::image_cache::{UsePlaceholder, ImageCacheResult};
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
 use net_traits::image_cache::{ImageResponse, ImageState, PendingImageId};
 use net_traits::request::{CredentialsMode, Destination, RequestBuilder};
@@ -130,26 +130,26 @@ impl HTMLVideoElement {
         // network activity as possible.
         let window = window_from_node(self);
         let image_cache = window.image_cache();
-        let response = image_cache.find_image_or_metadata(
-            poster_url.clone().into(),
-            UsePlaceholder::No,
-            CanRequestImages::Yes,
-        );
-        match response {
-            Ok(ImageOrMetadataAvailable::ImageAvailable(image, url)) => {
-                self.process_image_response(ImageResponse::Loaded(image, url));
-            },
 
-            Err(ImageState::Pending(id)) => {
-                add_cache_listener_for_element(image_cache, id, self);
-            },
+        let maybe_img = image_cache.get_image(&poster_url, UsePlaceholder::No);
+        if let Some(image) = maybe_img {
+            return self.process_image_response(ImageResponse::Loaded(image, poster_url.clone()));
+        }
 
-            Err(ImageState::NotRequested(id)) => {
+        let (sender, receiver) = ipc::channel();
+        let cache_result = image_cache.track_image(poster_url.clone(),UsePlaceholder::No,CanRequestImages::Yes,);
+
+        match cache_result {
+            ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable(img, url)) => {
+                self.process_image_response(ImageResponse::Loaded(img, url));
+            },
+            // todo pending id
+            ImageCacheResult::Pending(id) => add_cache_listener_for_element(image_cache, id, self),
+            ImageCacheResult::ReadyForRequest(id) => {
                 add_cache_listener_for_element(image_cache, id, self);
                 self.do_fetch_poster_frame(poster_url, id, cancel_receiver);
             },
-
-            _ => (),
+            ImageCacheResult::LoadError => ()
         }
     }
 
