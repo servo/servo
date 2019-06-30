@@ -11,7 +11,7 @@ use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::PipelineId;
-use net_traits::image_cache::{CanRequestImages, ImageCache, ImageState};
+use net_traits::image_cache::{CanRequestImages, ImageCache, ImageState, ImageCacheResult};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use parking_lot::RwLock;
 use script_layout_interface::{PendingImage, PendingImageState};
@@ -26,6 +26,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use style::context::RegisteredSpeculativePainter;
 use style::context::SharedStyleContext;
+use ipc_channel::ipc;
 
 pub type LayoutFontContext = FontContext<FontCacheThread>;
 
@@ -120,31 +121,20 @@ impl<'a> LayoutContext<'a> {
         };
 
         // See if the image is already available
-        let result =
-            self.image_cache
-                .find_image_or_metadata(url.clone(), use_placeholder, can_request);
-        match result {
-            Ok(image_or_metadata) => Some(image_or_metadata),
-            // Image failed to load, so just return nothing
-            Err(ImageState::LoadError) => None,
-            // Not yet requested - request image or metadata from the cache
-            Err(ImageState::NotRequested(id)) => {
-                let image = PendingImage {
-                    state: PendingImageState::Unrequested(url),
-                    node: node.to_untrusted_node_address(),
-                    id: id,
-                };
-                self.pending_images
-                    .as_ref()
-                    .unwrap()
-                    .lock()
-                    .unwrap()
-                    .push(image);
-                None
-            },
+        match self.image_cache.get_image(&url, use_placeholder) {
+            Some(x) => return Some(ImageOrMetadataAvailable::ImageAvailable(x, url)),
+            _ => ()
+        }
+
+        // If not immediately available, create a listener and track cache status.
+        let (listener, sender) = ipc::channel().unwrap();
+        let cache_result = self.image_cache.track_image(url.clone(), use_placeholder, can_request, listener);
+
+        match cache_result {
+            ImageCacheResult::Available(img_or_meta) => Some(img_or_meta),
             // Image has been requested, is still pending. Return no image for this paint loop.
             // When the image loads it will trigger a reflow and/or repaint.
-            Err(ImageState::Pending(id)) => {
+            ImageCacheResult::Pending(id) => {
                 //XXXjdm if self.pending_images is not available, we should make sure that
                 //       this node gets marked dirty again so it gets a script-initiated
                 //       reflow that deals with this properly.
@@ -158,6 +148,23 @@ impl<'a> LayoutContext<'a> {
                 }
                 None
             },
+            // Not yet requested - request image or metadata from the cache
+            ImageCacheResult::ReadyForRequest(id) => {
+                let image = PendingImage {
+                    state: PendingImageState::Unrequested(url),
+                    node: node.to_untrusted_node_address(),
+                    id,
+                };
+                self.pending_images
+                    .as_ref()
+                    .unwrap()
+                    .lock()
+                    .unwrap()
+                    .push(image);
+                None
+            },
+            // Image failed to load, so just return nothing
+            ImageCacheResult::LoadError => None,
         }
     }
 
