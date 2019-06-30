@@ -24,11 +24,13 @@ mod window_trait;
 
 use app::App;
 use backtrace::Backtrace;
-use servo::config::opts::{self, ArgumentParsingResult};
+use getopts::Options;
+use servo::config::opts::{self, ArgumentParsingResult, args_fail, set_multiprocess};
 use servo::config::servo_version;
 use std::env;
 use std::panic;
 use std::process;
+use std::sync::atomic::Ordering;
 use std::thread;
 
 pub mod platform {
@@ -72,6 +74,14 @@ fn install_crash_handler() {
     signal!(Sig::BUS, handler); // handle invalid memory access
 }
 
+fn create_gluten_opts() -> Options {
+    let mut opts = Options::new();
+    opts.optflag("M", "multiprocess", "Run in multiprocess mode");
+//    opts.optflag("z", "headless", "Headless mode");
+
+    opts
+}
+
 pub fn main() {
     install_crash_handler();
 
@@ -79,17 +89,29 @@ pub fn main() {
 
     // Parse the command line options and store them globally
     let args: Vec<String> = env::args().collect();
-    let opts_result = opts::from_cmdline_args(&args);
+    // Get Glutin only config options to pass to global.
+    let opts = create_gluten_opts();
+    // Get our Opts result to config remaining, Glutin specific, cli opts passed.
+    let opt_result = opts::from_cmdline_args(opts ,&args);
 
-    let content_process_token = if let ArgumentParsingResult::ContentProcess(token) = opts_result {
-        Some(token)
+    let opt_match = match opt_result {
+        Ok(o) => o,
+        Err(f) => args_fail(&f.to_string()),
+    };
+
+    if let Some(token) = opt_match.opt_str("content-process") {
+        return servo::run_content_process(token);
     } else {
         if opts::get().is_running_problem_test && env::var("RUST_LOG").is_err() {
             env::set_var("RUST_LOG", "compositing::constellation");
         }
 
-        None
+        ()
     };
+
+    if opt_match.opt_present("M") {
+        set_multiprocess(true, Ordering::SeqCst);
+    }
 
     // TODO: once log-panics is released, can this be replaced by
     // log_panics::init()?
@@ -122,9 +144,9 @@ pub fn main() {
         error!("{}", msg);
     }));
 
-    if let Some(token) = content_process_token {
-        return servo::run_content_process(token);
-    }
+//    if let Some(token) = content_process_token {
+//        return servo::run_content_process(token);
+//    }
 
     if opts::get().is_printing_version {
         println!("{}", servo_version());

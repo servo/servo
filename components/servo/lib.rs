@@ -203,7 +203,7 @@ where
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
-        if !opts.multiprocess {
+        if !opts::multiprocess() {
             ServoMedia::init::<MediaBackend>();
         }
 
