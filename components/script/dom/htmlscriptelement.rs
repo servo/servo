@@ -12,8 +12,10 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::Document;
+use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::element::{
     cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
 };
@@ -26,7 +28,8 @@ use crate::dom::node::{BindContext, ChildrenMutation, CloneChildrenFlag, Node};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
-use crate::script_module::{fetch_module_script_graph, ModuleOwner};
+use crate::script_module::{execute_module, instantiate_module_tree};
+use crate::script_module::{fetch_module_script_graph, ModuleObject, ModuleOwner};
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix};
@@ -565,16 +568,27 @@ impl HTMLScriptElement {
                     }
                 },
                 ScriptType::Module => {
+                    {
+                        let global = self.global();
+                        let module_maps = global.get_module_map().borrow();
+
+                        if module_maps.get(&url).is_some() {
+                            return;
+                        }
+                    }
+
                     fetch_module_script_graph(
                         ModuleOwner::Window(Trusted::new(self)),
-                        url,
+                        url.clone(),
                         Destination::Script,
                     );
 
-                    if r#async {
-                        // doc.add_asap_script(self);
+                    if !r#async && was_parser_inserted {
+                        doc.add_deferred_script(self);
+                    } else if !r#async && !self.non_blocking.get() {
+                        doc.push_asap_in_order_script(self);
                     } else {
-                        // doc.add_deferred_script(self);
+                        doc.add_asap_script(self);
                     };
                 },
             }
@@ -666,7 +680,7 @@ impl HTMLScriptElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#execute-the-script-block>
-    pub fn execute(&self, result: Result<ScriptOrigin, NetworkError>) {
+    pub fn execute(&self, result: ScriptResult) {
         // Step 1.
         let doc = document_from_node(self);
         if self.parser_inserted.get() && &*doc != &*self.parser_document {
@@ -684,7 +698,9 @@ impl HTMLScriptElement {
             Ok(script) => script,
         };
 
-        self.unminify_js(&mut script);
+        if script.type_ == ScriptType::Classic {
+            self.unminify_js(&mut script);
+        }
 
         // Step 3.
         let neutralized_doc = if script.external {
@@ -700,21 +716,24 @@ impl HTMLScriptElement {
         let document = document_from_node(self);
         let old_script = document.GetCurrentScript();
 
-        // Step 5.a.1.
-        document.set_current_script(Some(self));
+        match script.type_ {
+            ScriptType::Classic => {
+                document.set_current_script(Some(self));
+                self.run_a_classic_script(&script);
+                document.set_current_script(old_script.as_deref());
+            },
+            ScriptType::Module => {
+                assert!(old_script.is_none());
+                self.run_a_module_script(&script, false);
+            },
+        }
 
-        // Step 5.a.2.
-        self.run_a_classic_script(&script);
-
-        // Step 6.
-        document.set_current_script(old_script.as_deref());
-
-        // Step 7.
+        // Step 5.
         if let Some(doc) = neutralized_doc {
             doc.decr_ignore_destructive_writes_counter();
         }
 
-        // Step 8.
+        // Step 6.
         if script.external {
             self.dispatch_load_event();
         }
@@ -744,6 +763,48 @@ impl HTMLScriptElement {
             rval.handle_mut(),
             line_number,
         );
+    }
+
+    #[allow(unsafe_code)]
+    /// https://html.spec.whatwg.org/multipage/#run-a-module-script
+    pub fn run_a_module_script(&self, script: &ScriptOrigin, _rethrow_errors: bool) {
+        // TODO use a settings object rather than this element's document/window
+        // Step 2
+        let document = document_from_node(self);
+        if !document.is_fully_active() || !document.is_scripting_enabled() {
+            return;
+        }
+
+        // Step 4
+        let window = window_from_node(self);
+        let global = window.upcast::<GlobalScope>();
+        let _aes = AutoEntryScript::new(&global);
+
+        // TODO: Step 6. Check script's error to throw
+
+        let module_map = global.get_module_map().borrow();
+
+        if let Some(module_record) = module_map.get(&script.url) {
+            // Step 7-1.
+            if let ModuleObject::Fetched(Some(record)) = module_record {
+                unsafe {
+                    // Step 7-2.
+                    let instantiated = instantiate_module_tree(global, record.handle());
+
+                    if instantiated.is_err() {
+                        self.queue_error_event();
+                    }
+
+                    let evaluated = execute_module(global, record.handle());
+
+                    if evaluated.is_err() {
+                        let _exception =
+                            DOMException::new(&global, DOMErrorName::QuotaExceededError);
+                        self.queue_error_event();
+                    }
+                }
+            }
+        }
     }
 
     pub fn queue_error_event(&self) {
@@ -828,8 +889,16 @@ impl HTMLScriptElement {
         self.parser_inserted.set(parser_inserted);
     }
 
+    pub fn get_parser_inserted(&self) -> bool {
+        self.parser_inserted.get()
+    }
+
     pub fn set_already_started(&self, already_started: bool) {
         self.already_started.set(already_started);
+    }
+
+    pub fn get_non_blocking(&self) -> bool {
+        self.non_blocking.get()
     }
 
     fn dispatch_event(
