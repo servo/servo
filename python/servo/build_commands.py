@@ -803,12 +803,12 @@ def package_msvc_dlls(servo_exe_dir, target):
     is_vs14 = True if os.path.isfile(vs14_vcvars) or vs_version == "14.0" else False
     if is_vs14:
         msvc_redist_dir = path.join(vc_dir, "redist", vs_platform, "Microsoft.VC140.CRT")
-    elif vs_version == "15.0":
+    elif vs_version in ("15.0", "16.0"):
         redist_dir = path.join(vc_dir, "Redist", "MSVC")
         if os.path.isdir(redist_dir):
             for p in os.listdir(redist_dir)[::-1]:
                 redist_path = path.join(redist_dir, p)
-                for v in ["VC141", "VC150"]:
+                for v in ["VC141", "VC150", "VC160"]:
                     # there are two possible paths
                     # `x64\Microsoft.VC*.CRT` or `onecore\x64\Microsoft.VC*.CRT`
                     redist1 = path.join(redist_path, vs_platform, "Microsoft.{}.CRT".format(v))
