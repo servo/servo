@@ -86,8 +86,8 @@ impl PerformanceResourceTiming {
             redirect_start: 0.,
             redirect_end: 0.,
             fetch_start: fetch_start,
-            domain_lookup_start: 0.,
             domain_lookup_end: 0.,
+            domain_lookup_start: 0.,
             connect_start: 0.,
             connect_end: 0.,
             secure_connection_start: 0.,
@@ -118,7 +118,7 @@ impl PerformanceResourceTiming {
             redirect_start: resource_timing.redirect_start as f64,
             redirect_end: 0.,
             fetch_start: resource_timing.fetch_start as f64,
-            domain_lookup_start: 0.,
+            domain_lookup_start: resource_timing.domain_lookup_start as f64,
             domain_lookup_end: 0.,
             connect_start: resource_timing.connect_start as f64,
             connect_end: resource_timing.connect_end as f64,
@@ -170,6 +170,11 @@ impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
             Some(ref protocol) => DOMString::from(protocol.clone()),
             None => DOMString::from(""),
         }
+    }
+
+    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-domainlookupstart
+    fn DomainLookupStart(&self) -> DOMHighResTimeStamp {
+        Finite::wrap(self.domain_lookup_start)
     }
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-requeststart
