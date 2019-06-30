@@ -104,8 +104,6 @@ use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
 use crate::script_runtime::JSContext;
-use crate::script_module::ModuleObject;
-use crate::script_module::{execute_module, instantiate_module_tree};
 use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
 use crate::stylesheet_set::StylesheetSetRef;
@@ -2161,25 +2159,6 @@ impl Document {
     pub fn deferred_script_loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
         self.deferred_scripts.loaded(element, result);
         self.process_deferred_scripts();
-    }
-
-    #[allow(unsafe_code)]
-    pub fn deferred_module_script_loaded(&self, element: &HTMLScriptElement, url: ServoUrl) {
-        if self.ready_state.get() != DocumentReadyState::Interactive {
-            return;
-        }
-
-        let window = self.window();
-        let global = window.upcast::<GlobalScope>();
-
-        if let Some(module_record) = global.get_module_map().borrow().get(&url) {
-            if let ModuleObject::Fetched(Some(record)) = module_record {
-                unsafe {
-                    instantiate_module_tree(global, record.handle());
-                    execute_module(global, record.handle());
-                }
-            }
-        }
     }
 
     /// https://html.spec.whatwg.org/multipage/#the-end step 3.
