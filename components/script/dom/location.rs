@@ -140,7 +140,10 @@ impl LocationMethods for Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-host
     fn SetHost(&self, value: USVString) -> ErrorResult {
         self.check_same_origin_domain()?;
-        self.set_url_component(value, UrlHelper::SetHost);
+        // If copyURL's cannot-be-a-base-URL flag is set, terminate these steps.
+        if !self.get_url().cannot_be_a_base() {
+            self.set_url_component(value, UrlHelper::SetHost);
+        }
         Ok(())
     }
 
@@ -159,7 +162,10 @@ impl LocationMethods for Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-hostname
     fn SetHostname(&self, value: USVString) -> ErrorResult {
         self.check_same_origin_domain()?;
-        self.set_url_component(value, UrlHelper::SetHostname);
+        // If copyURL's cannot-be-a-base-URL flag is set, terminate these steps.
+        if !self.get_url().cannot_be_a_base() {
+            self.set_url_component(value, UrlHelper::SetHostname);
+        }
         Ok(())
     }
 
