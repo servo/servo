@@ -102,11 +102,6 @@ impl FetchResponseListener for ModuleContext {
     fn process_request_eof(&mut self) {} // TODO(cybai): Perhaps add custom steps to perform fetch here?
 
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
-        // https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script
-        // Step 4.
-        let global = self.owner.global();
-        global.set_module_map(self.url.clone(), ModuleObject::Fetching);
-
         self.metadata = metadata.ok().map(|meta| match meta {
             FetchMetadata::Unfiltered(m) => m,
             FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
@@ -125,7 +120,7 @@ impl FetchResponseListener for ModuleContext {
             0 => Err(NetworkError::Internal(
                 "No http status code received".to_owned(),
             )),
-            200...299 => Ok(()), // HTTP ok status codes
+            200..=299 => Ok(()), // HTTP ok status codes
             _ => Err(NetworkError::Internal(format!(
                 "HTTP error code {}",
                 status_code
@@ -161,43 +156,42 @@ impl FetchResponseListener for ModuleContext {
             )
         });
 
+        if load.is_err() {
+            // https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script
+            // Step 9.
+            global.set_module_map(self.url.clone(), ModuleObject::Fetched(None));
+            return;
+        }
+
         // TODO: HANDLE MIME TYPE CHECKING
 
-        match load {
-            Err(_) => {
-                // https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script
-                // Step 9.
-                global.set_module_map(self.url.clone(), ModuleObject::Fetched(None));
-            },
-            Ok(resp_mod_script) => {
-                let compiled_module =
-                    compile_module_script(resp_mod_script.text(), self.url.clone(), &global);
+        if let Ok(ref resp_mod_script) = load {
+            let compiled_module =
+                compile_module_script(resp_mod_script.text(), self.url.clone(), &global);
 
-                let compiled = compiled_module.ok().map(|compiled| Heap::boxed(compiled));
+            let compiled = compiled_module.ok().map(|compiled| Heap::boxed(compiled));
 
-                global.set_module_map(self.url.clone(), ModuleObject::Fetched(compiled));
+            global.set_module_map(self.url.clone(), ModuleObject::Fetched(compiled));
 
-                match &self.owner {
-                    ModuleOwner::Worker(_) => unimplemented!(),
-                    ModuleOwner::Window(script) => {
-                        let document = document_from_node(&*script.root());
+            match &self.owner {
+                ModuleOwner::Worker(_) => unimplemented!(),
+                ModuleOwner::Window(script) => {
+                    let document = document_from_node(&*script.root());
 
-                        let r#async = script
-                            .root()
-                            .upcast::<Element>()
-                            .has_attribute(&local_name!("async"));
+                    let r#async = script
+                        .root()
+                        .upcast::<Element>()
+                        .has_attribute(&local_name!("async"));
 
-                        if r#async {
-                            // document.asap_module_script_loaded(script.root(), load);
-                        } else {
-                            document
-                                .deferred_module_script_loaded(&*script.root(), self.url.clone());
-                        }
+                    if r#async {
+                        document.asap_script_loaded(&*script.root(), load);
+                    } else {
+                        document.deferred_script_loaded(&*script.root(), load);
+                    }
 
-                        document.finish_load(LoadType::Script(self.url.clone()));
-                    },
-                }
-            },
+                    document.finish_load(LoadType::Script(self.url.clone()));
+                },
+            }
         }
     }
 
@@ -324,19 +318,25 @@ pub fn fetch_single_module_script(
     parser_metadata: ParserMetadata,
     top_level_module_fetch: bool,
 ) {
-    // Step 1.
-    let module_map = global_scope.get_module_map().borrow();
-    let module_object = module_map.get(&url.clone());
+    {
+        // Step 1.
+        let module_map = global_scope.get_module_map().borrow();
+        let module_object = module_map.get(&url.clone());
 
-    // Step 2.
-    if let Some(ModuleObject::Fetching) = module_object {
-        return;
+        // Step 2.
+        if let Some(ModuleObject::Fetching) = module_object {
+            return;
+        }
+
+        // Step 3.
+        if let Some(ModuleObject::Fetched(Some(_))) = module_object {
+            return;
+        }
     }
 
-    // Step 3.
-    if let Some(ModuleObject::Fetched(Some(_))) = module_object {
-        return;
-    }
+    // Step 4.
+    let global = owner.global();
+    global.set_module_map(url.clone(), ModuleObject::Fetching);
 
     // Step 5-6.
     let mode = match destination.clone() {
