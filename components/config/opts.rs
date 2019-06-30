@@ -311,9 +311,6 @@ pub struct DebugOptions {
     /// Load web fonts synchronously to avoid non-deterministic network-driven reflows.
     pub load_webfonts_synchronously: bool,
 
-    /// Disable vsync in the compositor
-    pub disable_vsync: bool,
-
     /// Show webrender profiling stats on screen.
     pub webrender_stats: bool,
 
@@ -365,7 +362,6 @@ impl DebugOptions {
                 "replace-surrogates" => self.replace_surrogates = true,
                 "gc-profile" => self.gc_profile = true,
                 "load-webfonts-synchronously" => self.load_webfonts_synchronously = true,
-                "disable-vsync" => self.disable_vsync = true,
                 "wr-stats" => self.webrender_stats = true,
                 "wr-record" => self.webrender_record = true,
                 "wr-no-batch" => self.webrender_disable_batch = true,
@@ -459,10 +455,6 @@ fn print_debug_usage(app: &str) -> ! {
         "load-webfonts-synchronously",
         "Load web fonts synchronously to avoid non-deterministic network-driven reflows",
     );
-    print_option(
-        "disable-vsync",
-        "Disable vsync mode in the compositor to allow profiling at more than monitor refresh rate",
-    );
     print_option("wr-stats", "Show WebRender profiler on screen.");
     print_option("msaa", "Use multisample antialiasing in WebRender.");
     print_option("full-backtraces", "Print full backtraces for all errors");
@@ -494,12 +486,22 @@ pub fn args_fail(msg: &str) -> ! {
 
 static MULTIPROCESS: AtomicBool = AtomicBool::new(false);
 
+static VSYNC: AtomicBool = AtomicBool::new(true);
+
 #[inline]
 pub fn set_multiprocess(b: bool, ord: Ordering) { MULTIPROCESS.store(b, ord) }
 
 #[inline]
+pub fn set_vsync(b: bool, ord: Ordering) { VSYNC.store(b, ord) }
+
+#[inline]
 pub fn multiprocess() -> bool {
     MULTIPROCESS.load(Ordering::Relaxed)
+}
+
+#[inline]
+fn disable_vsync() -> bool {
+    VSYNC.load(Ordering::Relaxed)
 }
 
 enum UserAgent {
@@ -620,7 +622,8 @@ fn create_global_opts(mut opts: getopts::Options) -> Options {
     opts.optopt("o", "output", "Output file", "output.png");
     opts.optopt("s", "size", "Size of tiles", "512");
     opts.optopt("", "device-pixel-ratio", "Device pixels per px", "");
-    // one thing at a time
+
+    // TODO: Remove -z, e.g. --headlessone from global.
     opts.optflag("z", "headless", "Headless mode");
     opts.optmulti(
         "Z",
@@ -679,6 +682,8 @@ fn create_global_opts(mut opts: getopts::Options) -> Options {
         "Shaders will be loaded from the specified directory instead of using the builtin ones.",
         "",
     );
+
+    // TODO: Remove --angle from global.
     opts.optflag(
         "",
         "angle",
@@ -1030,7 +1035,7 @@ pub fn from_cmdline_args(opts: getopts::Options, args: &[String]) -> getopts::Re
         convert_mouse_to_touch: debug_options.convert_mouse_to_touch,
         exit_after_load: opt_match.opt_present("x"),
         no_native_titlebar: do_not_use_native_titlebar,
-        enable_vsync: !debug_options.disable_vsync,
+        enable_vsync: !disable_vsync(),
         webrender_stats: debug_options.webrender_stats,
         use_msaa: debug_options.use_msaa,
         config_dir: opt_match.opt_str("config-dir").map(Into::into),

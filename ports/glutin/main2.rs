@@ -25,7 +25,7 @@ mod window_trait;
 use app::App;
 use backtrace::Backtrace;
 use getopts::Options;
-use servo::config::opts::{self, ArgumentParsingResult, args_fail, set_multiprocess};
+use servo::config::opts::{self, ArgumentParsingResult, args_fail, set_multiprocess, set_vsync};
 use servo::config::servo_version;
 use std::env;
 use std::panic;
@@ -77,7 +77,10 @@ fn install_crash_handler() {
 fn create_gluten_opts() -> Options {
     let mut opts = Options::new();
     opts.optflag("M", "multiprocess", "Run in multiprocess mode");
-//    opts.optflag("z", "headless", "Headless mode");
+    opts.optflag("",
+                 "disable-vsync",
+                 "Disable vsync mode in the compositor to allow profiling at more than monitor refresh rate");
+    //    opts.optflag("z", "headless", "Headless mode");
 
     opts
 }
@@ -111,6 +114,10 @@ pub fn main() {
 
     if opt_match.opt_present("M") {
         set_multiprocess(true, Ordering::SeqCst);
+    }
+
+    if opt_match.opt_present("disable-vsync") {
+        set_vsync(false, Ordering::SeqCst);
     }
 
     // TODO: once log-panics is released, can this be replaced by
