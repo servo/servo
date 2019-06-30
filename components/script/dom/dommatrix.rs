@@ -6,14 +6,17 @@ use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{
     DOMMatrixInit, DOMMatrixMethods, Wrap,
 };
 use crate::dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::DOMMatrixReadOnlyMethods;
+use crate::dom::bindings::codegen::UnionTypes::StringOrUnrestrictedDoubleSequence;
+use crate::dom::bindings::error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::dommatrixreadonly::{
-    dommatrixinit_to_matrix, entries_to_matrix, DOMMatrixReadOnly,
+    dommatrixinit_to_matrix, entries_to_matrix, transform_to_matrix, DOMMatrixReadOnly,
 };
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::Transform3D;
 use js::rust::CustomAutoRooterGuard;
@@ -37,14 +40,32 @@ impl DOMMatrix {
         }
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-dommatrix
-    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<Self>> {
-        Self::Constructor_(global, vec![1.0, 0.0, 0.0, 1.0, 0.0, 0.0])
-    }
-
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-dommatrix-numbersequence
-    pub fn Constructor_(global: &GlobalScope, entries: Vec<f64>) -> Fallible<DomRoot<Self>> {
-        entries_to_matrix(&entries[..]).map(|(is2D, matrix)| Self::new(global, is2D, matrix))
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly
+    pub fn Constructor(
+        global: &GlobalScope,
+        init: Option<StringOrUnrestrictedDoubleSequence>,
+    ) -> Fallible<DomRoot<Self>> {
+        if init.is_none() {
+            return Ok(Self::new(global, true, Transform3D::identity()));
+        }
+        match init.unwrap() {
+            StringOrUnrestrictedDoubleSequence::String(ref s) => {
+                if global.downcast::<Window>().is_none() {
+                    return Err(error::Error::Type(
+                        "String constructor is only supported in the main thread.".to_owned(),
+                    ));
+                }
+                if s.is_empty() {
+                    return Ok(Self::new(global, true, Transform3D::identity()));
+                }
+                transform_to_matrix(s.to_string())
+                    .map(|(is2D, matrix)| Self::new(global, is2D, matrix))
+            },
+            StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(ref entries) => {
+                entries_to_matrix(&entries[..])
+                    .map(|(is2D, matrix)| Self::new(global, is2D, matrix))
+            },
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-frommatrix
@@ -62,7 +83,10 @@ impl DOMMatrix {
         array: CustomAutoRooterGuard<Float32Array>,
     ) -> Fallible<DomRoot<DOMMatrix>> {
         let vec: Vec<f64> = array.to_vec().iter().map(|&x| x as f64).collect();
-        DOMMatrix::Constructor_(global, vec)
+        DOMMatrix::Constructor(
+            global,
+            Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
+        )
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-fromfloat64array
@@ -71,7 +95,10 @@ impl DOMMatrix {
         array: CustomAutoRooterGuard<Float64Array>,
     ) -> Fallible<DomRoot<DOMMatrix>> {
         let vec: Vec<f64> = array.to_vec();
-        DOMMatrix::Constructor_(global, vec)
+        DOMMatrix::Constructor(
+            global,
+            Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
+        )
     }
 }
 

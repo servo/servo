@@ -10,9 +10,7 @@
  * related or neighboring rights to this work.
  */
 
-[Constructor,
- // Constructor(DOMString transformList),
- Constructor(sequence<unrestricted double> numberSequence),
+[Constructor(optional (DOMString or sequence<unrestricted double>) init),
  Exposed=(Window,Worker)]
 interface DOMMatrix : DOMMatrixReadOnly {
 

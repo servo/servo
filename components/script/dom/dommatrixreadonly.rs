@@ -8,13 +8,17 @@ use crate::dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::{
     DOMMatrixReadOnlyMethods, Wrap,
 };
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
+use crate::dom::bindings::codegen::UnionTypes::StringOrUnrestrictedDoubleSequence;
 use crate::dom::bindings::error;
 use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
+use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::{Angle, Transform3D};
 use js::jsapi::{JSContext, JSObject};
@@ -25,6 +29,7 @@ use std::cell::{Cell, Ref};
 use std::f64;
 use std::ptr;
 use std::ptr::NonNull;
+use style::parser::ParserContext;
 
 #[dom_struct]
 pub struct DOMMatrixReadOnly {
@@ -49,13 +54,31 @@ impl DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly
-    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<Self>> {
-        Ok(Self::new(global, true, Transform3D::identity()))
-    }
-
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly-numbersequence
-    pub fn Constructor_(global: &GlobalScope, entries: Vec<f64>) -> Fallible<DomRoot<Self>> {
-        entries_to_matrix(&entries[..]).map(|(is2D, matrix)| Self::new(global, is2D, matrix))
+    pub fn Constructor(
+        global: &GlobalScope,
+        init: Option<StringOrUnrestrictedDoubleSequence>,
+    ) -> Fallible<DomRoot<Self>> {
+        if init.is_none() {
+            return Ok(Self::new(global, true, Transform3D::identity()));
+        }
+        match init.unwrap() {
+            StringOrUnrestrictedDoubleSequence::String(ref s) => {
+                if global.downcast::<Window>().is_none() {
+                    return Err(error::Error::Type(
+                        "String constructor is only supported in the main thread.".to_owned(),
+                    ));
+                }
+                if s.is_empty() {
+                    return Ok(Self::new(global, true, Transform3D::identity()));
+                }
+                transform_to_matrix(s.to_string())
+                    .map(|(is2D, matrix)| Self::new(global, is2D, matrix))
+            },
+            StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(ref entries) => {
+                entries_to_matrix(&entries[..])
+                    .map(|(is2D, matrix)| Self::new(global, is2D, matrix))
+            },
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-frommatrix
@@ -372,7 +395,10 @@ impl DOMMatrixReadOnly {
         array: CustomAutoRooterGuard<Float32Array>,
     ) -> Fallible<DomRoot<DOMMatrixReadOnly>> {
         let vec: Vec<f64> = array.to_vec().iter().map(|&x| x as f64).collect();
-        DOMMatrixReadOnly::Constructor_(global, vec)
+        DOMMatrixReadOnly::Constructor(
+            global,
+            Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
+        )
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-fromfloat64array
@@ -382,7 +408,10 @@ impl DOMMatrixReadOnly {
         array: CustomAutoRooterGuard<Float64Array>,
     ) -> Fallible<DomRoot<DOMMatrixReadOnly>> {
         let vec: Vec<f64> = array.to_vec();
-        DOMMatrixReadOnly::Constructor_(global, vec)
+        DOMMatrixReadOnly::Constructor(
+            global,
+            Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
+        )
     }
 }
 
@@ -758,4 +787,33 @@ fn normalize_point(x: f64, y: f64, z: f64) -> (f64, f64, f64) {
     } else {
         (x / len, y / len, z / len)
     }
+}
+
+pub fn transform_to_matrix(value: String) -> Fallible<(bool, Transform3D<f64>)> {
+    use style::properties::longhands::transform;
+
+    let mut input = ParserInput::new(&value);
+    let mut parser = Parser::new(&mut input);
+    let url = ::servo_url::ServoUrl::parse("about:blank").unwrap();
+    let context = ParserContext::new(
+        ::style::stylesheets::Origin::Author,
+        &url,
+        Some(::style::stylesheets::CssRuleType::Style),
+        ::style_traits::ParsingMode::DEFAULT,
+        ::style::context::QuirksMode::NoQuirks,
+        None,
+        None,
+    );
+
+    let transform = match parser.parse_entirely(|t| transform::parse(&context, t)) {
+        Ok(result) => result,
+        Err(..) => return Err(error::Error::Syntax),
+    };
+
+    let (m, is_3d) = match transform.to_transform_3d_matrix_f64(None) {
+        Ok(result) => result,
+        Err(..) => return Err(error::Error::Syntax),
+    };
+
+    Ok((!is_3d, m))
 }
