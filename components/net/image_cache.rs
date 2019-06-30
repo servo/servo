@@ -418,12 +418,14 @@ impl ImageCache for ImageCacheImpl {
                     (&None, &Some(ref meta)) => {
                         debug!("Metadata available for {} ({:?})", url, key);
                         self.add_listener(key, listener);
-                        return ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(meta.clone()))
+                        return ImageCacheResult::Available(
+                            ImageOrMetadataAvailable::MetadataAvailable(meta.clone()),
+                        );
                     },
                     (&Some(Err(_)), _) | (&None, &None) => {
                         debug!("{} ({:?}) is still pending", url, key);
                         self.add_listener(key, listener);
-                        return ImageCacheResult::Pending(key)
+                        return ImageCacheResult::Pending(key);
                     },
                 },
                 CacheResult::Miss(Some((key, _pl))) => {
@@ -433,7 +435,7 @@ impl ImageCache for ImageCacheImpl {
                 },
                 CacheResult::Miss(None) => {
                     debug!("Couldn't find an entry for {}", url);
-                    return ImageCacheResult::LoadError
+                    return ImageCacheResult::LoadError;
                 },
             }
         };

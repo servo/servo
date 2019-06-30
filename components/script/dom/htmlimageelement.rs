@@ -55,8 +55,8 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
 use net_traits::image::base::{Image, ImageMetadata};
-use net_traits::image_cache::{UsePlaceholder, ImageCacheResult};
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
+use net_traits::image_cache::{ImageCacheResult, UsePlaceholder};
 use net_traits::image_cache::{ImageResponder, ImageResponse, ImageState, PendingImageId};
 use net_traits::request::RequestBuilder;
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
@@ -269,8 +269,10 @@ impl HTMLImageElement {
         let image_cache = window.image_cache();
 
         match image_cache.get_image(&img_url, UsePlaceholder::Yes) {
-            Some(img) => return self.process_image_response(ImageResponse::Loaded(img, img_url.clone())),
-            None => ()
+            Some(img) => {
+                return self.process_image_response(ImageResponse::Loaded(img, img_url.clone()))
+            },
+            None => (),
         }
 
         let (sender, receiver) = ipc::channel().unwrap();
@@ -278,14 +280,18 @@ impl HTMLImageElement {
         let cache_result = image_cache.track_image(img_url.clone(), sender);
 
         match cache_result {
-            ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable(image, url)) =>  self.process_image_response(ImageResponse::Loaded(image, url)),
-            ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(m)) => self.process_image_response(ImageResponse::MetadataLoaded(m)),
+            ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable(image, url)) => {
+                self.process_image_response(ImageResponse::Loaded(image, url))
+            },
+            ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
+                self.process_image_response(ImageResponse::MetadataLoaded(m))
+            },
             ImageCacheResult::Pending(id) => add_cache_listener_for_element(image_cache, id, self),
-            ImageCacheResult::ReadyForRequest(id) =>  {
+            ImageCacheResult::ReadyForRequest(id) => {
                 add_cache_listener_for_element(image_cache, id, self);
                 self.fetch_request(img_url, id);
             },
-            ImageCacheResult::LoadError => self.process_image_response(ImageResponse::None)
+            ImageCacheResult::LoadError => self.process_image_response(ImageResponse::None),
         };
     }
 
@@ -1064,11 +1070,16 @@ impl HTMLImageElement {
                 selected_source,
                 generation,
                 selected_pixel_density,
-            )
+            );
         }
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let cache_result = image_cache.track_image(img_url.clone(),UsePlaceholder::No, CanRequestImages::Yes, sender)
+        let cache_result = image_cache.track_image(
+            img_url.clone(),
+            UsePlaceholder::No,
+            CanRequestImages::Yes,
+            sender,
+        );
         match cache_result {
             ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable(_image, _url)) => {
                 self.finish_reacting_to_environment_change(
@@ -1111,7 +1122,7 @@ impl HTMLImageElement {
                     selected_pixel_density,
                 );
                 self.fetch_request(&img_url, id);
-            }
+            },
         }
     }
 

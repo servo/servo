@@ -26,8 +26,8 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use net_traits::image_cache::{UsePlaceholder, ImageCacheResult};
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
+use net_traits::image_cache::{ImageCacheResult, UsePlaceholder};
 use net_traits::image_cache::{ImageResponse, ImageState, PendingImageId};
 use net_traits::request::{CredentialsMode, Destination, RequestBuilder};
 use net_traits::{
@@ -137,7 +137,11 @@ impl HTMLVideoElement {
         }
 
         let (sender, receiver) = ipc::channel();
-        let cache_result = image_cache.track_image(poster_url.clone(),UsePlaceholder::No,CanRequestImages::Yes,);
+        let cache_result = image_cache.track_image(
+            poster_url.clone(),
+            UsePlaceholder::No,
+            CanRequestImages::Yes,
+        );
 
         match cache_result {
             ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable(img, url)) => {
@@ -149,7 +153,7 @@ impl HTMLVideoElement {
                 add_cache_listener_for_element(image_cache, id, self);
                 self.do_fetch_poster_frame(poster_url, id, cancel_receiver);
             },
-            ImageCacheResult::LoadError => ()
+            ImageCacheResult::LoadError => (),
         }
     }
 

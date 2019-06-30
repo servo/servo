@@ -217,13 +217,13 @@ impl CanvasState {
     #[inline]
     fn request_image_from_cache(&self, url: ServoUrl) -> ImageResponse {
         match self.image_cache.get_image(&url, UsePlaceholder::No) {
-            Some(image) => ImageResponse::Loaded(image,  url.clone()),
+            Some(image) => ImageResponse::Loaded(image, url.clone()),
             None => {
                 // Rather annoyingly, we get the same response back from
                 // A load which really failed and from a load which hasn't started yet.
                 self.missing_image_urls.borrow_mut().push(url);
                 ImageResponse::None
-            }
+            },
         }
     }
 

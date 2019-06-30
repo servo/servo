@@ -454,7 +454,7 @@ pub mod utils {
 
         match image_cache.get_image(&url, UsePlaceholder::No) {
             Some(image) => ImageResponse::Loaded(image, url),
-            None => ImageResponse::None
+            None => ImageResponse::None,
         }
     }
 }
