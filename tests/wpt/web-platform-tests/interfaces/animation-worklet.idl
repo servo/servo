@@ -18,7 +18,7 @@ interface StatefulAnimator {
   any state();
 };
 
-[ Exposed=(AnimationWorklet, Worklet), Global=AnimationWorklet ]
+[ Global=(Worklet,AnimationWorklet), Exposed=AnimationWorklet ]
 interface AnimationWorkletGlobalScope : WorkletGlobalScope {
     void registerAnimator(DOMString name, AnimatorInstanceConstructor animatorCtor);
 };
