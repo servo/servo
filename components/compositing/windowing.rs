@@ -169,6 +169,9 @@ pub trait EmbedderMethods {
         _: &mut Vec<Box<dyn WebVRMainThreadHeartbeat>>,
     ) {
     }
+
+    /// Register services with a WebXR Registry.
+    fn register_webxr(&mut self, _: &mut webxr_api::Registry) {}
 }
 
 #[derive(Clone, Copy, Debug)]
