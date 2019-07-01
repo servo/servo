@@ -542,6 +542,19 @@ impl<T: ToMatrix> Transform<T> {
             )
         };
 
+        let (m, is_3d) = match self.to_transform_3d_matrix_f64(reference_box) {
+            Ok(result) => result,
+            Err(err) => return Err(err),
+        };
+
+        Ok((cast_3d_transform(m), is_3d))
+    }
+
+    /// Same as Transform::to_transform_3d_matrix but a f64 version.
+    pub fn to_transform_3d_matrix_f64(
+        &self,
+        reference_box: Option<&Rect<Au>>,
+    ) -> Result<(Transform3D<f64>, bool), ()> {
         // We intentionally use Transform3D<f64> during computation to avoid error propagation
         // because using f32 to compute triangle functions (e.g. in create_rotation()) is not
         // accurate enough. In Gecko, we also use "double" to compute the triangle functions.
@@ -556,7 +569,7 @@ impl<T: ToMatrix> Transform<T> {
             transform = transform.pre_mul(&matrix);
         }
 
-        Ok((cast_3d_transform(transform), contain_3d))
+        Ok((transform, contain_3d))
     }
 }
 
