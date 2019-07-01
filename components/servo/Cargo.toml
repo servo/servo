@@ -78,6 +78,7 @@ webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webdriver_server = {path = "../webdriver_server", optional = true}
 webvr = {path = "../webvr"}
 webvr_traits = {path = "../webvr_traits"}
+webxr-api = "0.0.1"
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_arch="arm"), not(target_arch="aarch64")))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}

@@ -429,6 +429,7 @@ dependencies = [
  "servo_config 0.0.1",
  "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "webvr_traits 0.0.1",
+ "webxr-api 0.0.1 (git+https://github.com/servo/webxr.git)",
 ]
 
 [[package]]
@@ -617,6 +618,7 @@ dependencies = [
  "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "webvr 0.0.1",
  "webvr_traits 0.0.1",
+ "webxr-api 0.0.1 (git+https://github.com/servo/webxr.git)",
 ]
 
 [[package]]
@@ -2487,6 +2489,7 @@ dependencies = [
  "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "webvr 0.0.1",
  "webvr_traits 0.0.1",
+ "webxr-api 0.0.1 (git+https://github.com/servo/webxr.git)",
 ]
 
 [[package]]
@@ -3980,6 +3983,7 @@ dependencies = [
  "rust-webvr 0.12.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "sig 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tinyfiledialogs 3.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webxr 0.0.1 (git+https://github.com/servo/webxr.git)",
  "winapi 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "winres 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.17.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5327,6 +5331,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "webxr"
+version = "0.0.1"
+source = "git+https://github.com/servo/webxr.git#49b9312354e322ab3cd94695af7d30f09cea8d3a"
+dependencies = [
+ "euclid 0.19.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.6.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glutin 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webxr-api 0.0.1 (git+https://github.com/servo/webxr.git)",
+]
+
+[[package]]
+name = "webxr-api"
+version = "0.0.1"
+source = "git+https://github.com/servo/webxr.git#49b9312354e322ab3cd94695af7d30f09cea8d3a"
+dependencies = [
+ "euclid 0.19.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.6.16 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "weedle"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5961,6 +5985,8 @@ dependencies = [
 "checksum webrender 0.60.0 (git+https://github.com/servo/webrender)" = "<none>"
 "checksum webrender_api 0.60.0 (git+https://github.com/servo/webrender)" = "<none>"
 "checksum webrender_build 0.0.1 (git+https://github.com/servo/webrender)" = "<none>"
+"checksum webxr 0.0.1 (git+https://github.com/servo/webxr.git)" = "<none>"
+"checksum webxr-api 0.0.1 (git+https://github.com/servo/webxr.git)" = "<none>"
 "checksum weedle 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bcc44aa200daee8b1f3a004beaf16554369746f1b4486f0cf93b0caf8a3c2d1e"
 "checksum which 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "b57acb10231b9493c8472b20cb57317d0679a49e0bdbee44b3b803a6473af164"
 "checksum winapi 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)" = "f10e386af2b13e47c89e7236a7a14a086791a2b88ebad6df9bf42040195cf770"
