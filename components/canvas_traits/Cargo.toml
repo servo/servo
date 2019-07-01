@@ -27,4 +27,4 @@ serde_bytes = "0.10"
 servo_config = {path = "../config"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr_traits = {path = "../webvr_traits"}
-webxr-api = "0.0.1"
+webxr-api = {git = "https://github.com/servo/webxr"}
