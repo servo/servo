@@ -69,11 +69,8 @@ impl App {
         mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new())
     }
 
-    fn has_events(&self) -> bool {
-        !self.event_queue.borrow().is_empty() || self.window.has_events()
-    }
-
-    fn winit_event_to_servo_event(&self, event: glutin::Event) {
+    // This function decides whether the event should be handled during `run_forever`.
+    fn winit_event_to_servo_event(&self, event: glutin::Event) -> glutin::ControlFlow {
         match event {
             // App level events
             glutin::Event::Suspended(suspended) => {
@@ -94,36 +91,43 @@ impl App {
                 if Some(window_id) != self.window.id() {
                     warn!("Got an event from unknown window");
                 } else {
+                    // Resize events need to be handled during run_forever
+                    let cont = if let glutin::WindowEvent::Resized(_) = event {
+                        glutin::ControlFlow::Continue
+                    } else {
+                        glutin::ControlFlow::Break
+                    };
                     self.window.winit_event_to_servo_event(event);
+                    return cont;
                 }
             },
         }
+        glutin::ControlFlow::Break
     }
 
     fn run_loop(self) {
-        let mut stop = false;
         loop {
-            let mut events_loop = self.events_loop.borrow_mut();
-            if self.window.is_animating() && !self.suspended.get() {
-                // We block on compositing (self.handle_events() ends up calling swap_buffers)
-                events_loop.poll_events(|e| {
-                    self.winit_event_to_servo_event(e);
-                });
-                stop = self.handle_events();
-            } else {
-                // We block on winit's event loop (window events)
-                events_loop.run_forever(|e| {
-                    self.winit_event_to_servo_event(e);
-                    if self.has_events() && !self.suspended.get() {
-                        stop = self.handle_events();
+            if !self.window.is_animating()  || self.suspended.get() {
+                // If there's no animations running then we block on the window event loop.
+                self.events_loop.borrow_mut().run_forever(|e| {
+                    let cont = self.winit_event_to_servo_event(e);
+                    if cont == glutin::ControlFlow::Continue {
+                        // Note we need to be careful to make sure that any events
+                        // that are handled during run_forever aren't re-entrant,
+                        // since we are handling them while holding onto a mutable borrow
+                        // of the events loop
+                        self.handle_events();
                     }
-                    if stop || self.window.is_animating() && !self.suspended.get() {
-                        glutin::ControlFlow::Break
-                    } else {
-                        glutin::ControlFlow::Continue
-                    }
+                    cont
                 });
             }
+            // Grab any other events that may have happened
+            self.events_loop.borrow_mut().poll_events(|e| {
+                self.winit_event_to_servo_event(e);
+            });
+            // If animations are running, we block on compositing
+            // (self.handle_events() ends up calling swap_buffers)
+            let stop = self.handle_events();
             if stop {
                 break;
             }
