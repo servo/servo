@@ -353,8 +353,11 @@
                 GenericGridTemplateComponent::None
             };
 
-            Ok((GenericGridTemplateComponent::TrackList(template_rows),
-                template_cols, GridTemplateAreas::Areas(TemplateAreasArc(Arc::new(template_areas)))))
+            Ok((
+                GenericGridTemplateComponent::TrackList(Box::new(template_rows)),
+                template_cols,
+                GridTemplateAreas::Areas(TemplateAreasArc(Arc::new(template_areas)))
+            ))
         } else {
             let mut template_rows = GridTemplateComponent::parse(context, input)?;
             if let GenericGridTemplateComponent::TrackList(ref mut list) = template_rows {

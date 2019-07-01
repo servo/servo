@@ -710,12 +710,12 @@ pub enum GenericGridTemplateComponent<L, I> {
         #[compute(field_bound)]
         #[resolve(field_bound)]
         #[shmem(field_bound)]
-        GenericTrackList<L, I>,
+        Box<GenericTrackList<L, I>>,
     ),
     /// A `subgrid <line-name-list>?`
     /// TODO: Support animations for this after subgrid is addressed in [grid-2] spec.
     #[animation(error)]
-    Subgrid(LineNameList),
+    Subgrid(Box<LineNameList>),
 }
 
 pub use self::GenericGridTemplateComponent as GridTemplateComponent;

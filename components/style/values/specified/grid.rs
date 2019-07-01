@@ -321,10 +321,11 @@ impl GridTemplateComponent<LengthPercentage, Integer> {
     ) -> Result<Self, ParseError<'i>> {
         if allow_grid_template_subgrids() {
             if let Ok(t) = input.try(|i| LineNameList::parse(context, i)) {
-                return Ok(GridTemplateComponent::Subgrid(t));
+                return Ok(GridTemplateComponent::Subgrid(Box::new(t)));
             }
         }
 
-        TrackList::parse(context, input).map(GridTemplateComponent::TrackList)
+        let track_list = TrackList::parse(context, input)?;
+        Ok(GridTemplateComponent::TrackList(Box::new(track_list)))
     }
 }
