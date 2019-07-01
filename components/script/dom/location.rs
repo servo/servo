@@ -215,6 +215,7 @@ impl LocationMethods for Location {
         self.check_same_origin_domain()?;
         let url = self.get_url();
         // If copyURL cannot have a username/password/port, then return.
+        // https://url.spec.whatwg.org/#cannot-have-a-username-password-port
         if url.has_host() && !url.cannot_be_a_base() && url.scheme() != "file" {
             self.set_url_component(value, UrlHelper::SetPort);
         }
