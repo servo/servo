@@ -40,6 +40,7 @@ webrender = {git = "https://github.com/servo/webrender", features = ["capture"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr_traits = {path = "../webvr_traits"}
 webvr = {path = "../webvr"}
+webxr-api = "0.0.1"
 
 [build-dependencies]
 toml = "0.4.5"
