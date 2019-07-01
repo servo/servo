@@ -354,6 +354,12 @@ impl HostTrait for HostCallbacks {
     fn on_ime_state_changed(&self, show: bool) {
         (self.keyboard.0)(self.app, show)
     }
+
+    fn get_clipboard_contents(&self) -> Option<String> {
+        unimplemented!()
+    }
+
+    fn set_clipboard_contents(&self, contents: String) {}
 }
 
 pub struct ServoInstance {
