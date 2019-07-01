@@ -28,7 +28,6 @@ no_static_freetype = ["webrender/no_static_freetype"]
 oculusvr = ["webvr/oculusvr"]
 unstable = [
     "euclid/unstable",
-    "profile/unstable",
     "script/unstable",
 ]
 webdriver = ["webdriver_server"]

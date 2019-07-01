@@ -389,14 +389,14 @@ mod system_reporter {
     use super::{JEMALLOC_HEAP_ALLOCATED_STR, SYSTEM_HEAP_ALLOCATED_STR};
     #[cfg(target_os = "linux")]
     use libc::c_int;
-    #[cfg(all(feature = "unstable", not(target_os = "windows")))]
+    #[cfg(not(target_os = "windows"))]
     use libc::{c_void, size_t};
     use profile_traits::mem::{Report, ReportKind, ReporterRequest};
-    #[cfg(all(feature = "unstable", not(target_os = "windows")))]
+    #[cfg(not(target_os = "windows"))]
     use std::ffi::CString;
-    #[cfg(all(feature = "unstable", not(target_os = "windows")))]
+    #[cfg(not(target_os = "windows"))]
     use std::mem::size_of;
-    #[cfg(all(feature = "unstable", not(target_os = "windows")))]
+    #[cfg(not(target_os = "windows"))]
     use std::ptr::null_mut;
     #[cfg(target_os = "macos")]
     use task_info::task_basic_info::{resident_size, virtual_size};
@@ -495,10 +495,10 @@ mod system_reporter {
         None
     }
 
-    #[cfg(all(feature = "unstable", not(target_os = "windows")))]
+    #[cfg(not(target_os = "windows"))]
     use servo_allocator::jemalloc_sys::mallctl;
 
-    #[cfg(all(feature = "unstable", not(target_os = "windows")))]
+    #[cfg(not(target_os = "windows"))]
     fn jemalloc_stat(value_name: &str) -> Option<usize> {
         // Before we request the measurement of interest, we first send an "epoch"
         // request. Without that jemalloc gives cached statistics(!) which can be
@@ -545,7 +545,7 @@ mod system_reporter {
         Some(value as usize)
     }
 
-    #[cfg(any(target_os = "windows", not(feature = "unstable")))]
+    #[cfg(target_os = "windows")]
     fn jemalloc_stat(_value_name: &str) -> Option<usize> {
         None
     }
