@@ -13,8 +13,8 @@ test = false
 bench = false
 
 [features]
-azure_backend = ["simpleservo/azure_backend"]
-raqote_backend = ["simpleservo/raqote_backend"]
+canvas2d-azure = ["simpleservo/canvas2d-azure"]
+canvas2d-raqote = ["simpleservo/canvas2d-raqote"]
 
 [dependencies]
 libservo = { path = "../../components/servo", features = ["no_static_freetype"] }

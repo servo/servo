@@ -21,7 +21,8 @@ env_logger = "0.6"
 cbindgen = "0.8"
 
 [features]
-azure_backend = ["simpleservo/azure_backend"]
+canvas2d-azure = ["simpleservo/canvas2d-azure"]
+canvas2d-raqote = ["simpleservo/canvas2d-raqote"]
 debugmozjs = ["simpleservo/debugmozjs"]
 default = ["webdriver", "max_log_level"]
 energy-profiling = ["simpleservo/energy-profiling"]
@@ -31,7 +32,6 @@ max_log_level = ["simpleservo/max_log_level"]
 native-bluetooth = ["simpleservo/native-bluetooth"]
 no_wgl = ["simpleservo/no_wgl"]
 oculusvr = ["simpleservo/oculusvr"]
-raqote_backend = ["simpleservo/raqote_backend"]
 uwp = ["simpleservo/uwp"]
 webdriver = ["simpleservo/webdriver"]
 webgl_backtrace = ["simpleservo/webgl_backtrace"]

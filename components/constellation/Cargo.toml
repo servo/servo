@@ -11,8 +11,8 @@ name = "constellation"
 path = "lib.rs"
 
 [features]
-azure_backend = ["canvas/azure_backend"]
-raqote_backend = ["canvas/raqote_backend"]
+canvas2d-azure = ["canvas/canvas2d-azure"]
+canvas2d-raqote = ["canvas/canvas2d-raqote"]
 no_wgl = ["canvas/no_wgl"]
 
 [dependencies]

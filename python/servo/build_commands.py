@@ -294,7 +294,7 @@ class MachCommands(CommandBase):
             features += ["profilemozjs"]
 
         if with_raqote:
-            features += ["raqote_backend"]
+            features += ["canvas2d-raqote"]
 
         if without_wgl:
             features += ["no_wgl"]
@@ -304,8 +304,8 @@ class MachCommands(CommandBase):
         if self.config["build"]["dom-backtrace"]:
             features += ["dom-backtrace"]
 
-        if "raqote_backend" not in features:
-            features += ["azure_backend"]
+        if "canvas2d-raqote" not in features:
+            features += ["canvas2d-azure"]
 
         if features:
             opts += ["--features", "%s" % ' '.join(features)]

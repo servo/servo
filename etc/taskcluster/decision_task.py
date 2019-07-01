@@ -183,7 +183,7 @@ def linux_tidy_unit_docs():
             ./mach build --dev
             ./mach test-unit
             ./mach package --dev
-            ./mach build --dev --features raqote_backend
+            ./mach build --dev --features canvas2d-raqote
             ./mach build --dev --libsimpleservo
             ./mach test-tidy --no-progress --self-test
 
