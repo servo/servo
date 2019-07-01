@@ -37,7 +37,8 @@ class MachCommands(CommandBase):
     @CommandArgument(
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to cargo check")
-    def check(self, params):
+    @CommandBase.build_like_command_arguments
+    def check(self, params, **kwargs):
         if not params:
             params = []
 
@@ -45,12 +46,8 @@ class MachCommands(CommandBase):
         self.ensure_clobbered()
         env = self.build_env()
 
-        params = ['check'] + params
-
-        self.add_manifest_path(params)
-
         build_start = time()
-        status = self.call_rustup_run(["cargo"] + params, env=env)
+        status = self.run_cargo_build_like_command("check", params, env=env, **kwargs)
         elapsed = time() - build_start
 
         notify_build_done(self.config, elapsed, status == 0)
