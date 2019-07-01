@@ -644,7 +644,7 @@ impl<'a> GlyphStore {
 
         for i in 0..num_simd_iterations {
             let offset = begin + i * 4;
-            let v = u32x4::load_unaligned(&buf[offset..]);
+            let v = u32x4::from_slice_unaligned(&buf[offset..]);
             let advance = (v & advance_mask) >> GLYPH_ADVANCE_SHIFT;
             let spaces = (v & space_flag_mask) >> FLAG_CHAR_IS_SPACE_SHIFT;
             simd_advance = simd_advance + advance;
