@@ -351,10 +351,21 @@ impl HostTrait for HostCallbacks {
     }
 
     fn get_clipboard_contents(&self) -> Option<String> {
-        unimplemented!()
+        debug!("get_clipboard_contents");
+        let raw_contents = (self.0.get_clipboard_contents)();
+        if raw_contents.is_null() {
+            return None;
+        }
+        let c_str = unsafe { CStr::from_ptr(raw_contents) };
+        let contents_str = c_str.to_str().expect("Can't create str");
+        Some(contents_str.to_owned())
     }
 
     fn set_clipboard_contents(&self, contents: String) {
-        unimplemented!()
+        debug!("set_clipboard_contents");
+        let contents = CString::new(contents).expect("Can't create string");
+        let contents_ptr = contents.as_ptr();
+        mem::forget(contents);
+        (self.0.set_clipboard_contents)(contents_ptr);
     }
 }
