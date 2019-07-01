@@ -69,10 +69,6 @@ impl App {
         mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new())
     }
 
-    fn has_events(&self) -> bool {
-        !self.event_queue.borrow().is_empty() || self.window.has_events()
-    }
-
     // This function decides whether the event should be handled during `run_forever`.
     fn winit_event_to_servo_event(&self, event: glutin::Event) -> glutin::ControlFlow {
         match event {
