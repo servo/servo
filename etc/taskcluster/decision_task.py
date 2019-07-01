@@ -185,7 +185,6 @@ def linux_tidy_unit_docs():
             ./mach package --dev
             ./mach build --dev --features raqote_backend
             ./mach build --dev --libsimpleservo
-            ./mach build --dev --no-default-features --features default-except-unstable
             ./mach test-tidy --no-progress --self-test
 
             ./etc/memory_reports_over_time.py --test
