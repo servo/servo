@@ -731,9 +731,6 @@ install them, let us know by filing a bug!")
 
         return env
 
-    def ports_glutin_crate(self):
-        return path.join(self.context.topdir, "ports", "glutin")
-
     def add_manifest_path(self, args, android=False, libsimpleservo=False):
         if "--manifest-path" not in args:
             if libsimpleservo or android:

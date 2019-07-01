@@ -712,14 +712,11 @@ class MachCommands(CommandBase):
             print('Removing virtualenv directory: %s' % virtualenv_path)
             shutil.rmtree(virtualenv_path)
 
-        opts = []
-        if manifest_path:
-            opts += ["--manifest-path", manifest_path]
+        opts = ["--manifest-path", manifest_path or self.ports_glutin_manifest()]
         if verbose:
             opts += ["-v"]
         opts += params
-        return check_call(["cargo", "clean"] + opts,
-                          env=self.build_env(), cwd=self.ports_glutin_crate(), verbose=verbose)
+        return check_call(["cargo", "clean"] + opts, env=self.build_env(), verbose=verbose)
 
 
 def package_gstreamer_dlls(servo_exe_dir, target):
