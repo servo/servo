@@ -11,10 +11,10 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 
-/// A GLPlayerThrx1ead manages the life cycle and message multiplexign of
+/// A GLPlayerThread manages the life cycle and message demultiplexing of
 /// a set of video players with GL render.
 pub struct GLPlayerThread {
-    // Map of live players.
+    /// Map of live players.
     players: FnvHashMap<u64, GLPlayerSender<GLPlayerMsgForward>>,
     /// List of registered webrender external images.
     /// We use it to get an unique ID for new players.
@@ -50,7 +50,7 @@ impl GLPlayerThread {
         sender
     }
 
-    /// Handles a generic WebGLMsg message
+    /// Handles a generic GLPlayerMsg message
     #[inline]
     fn handle_msg(&mut self, msg: GLPlayerMsg) -> bool {
         trace!("processing {:?}", msg);

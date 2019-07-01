@@ -74,6 +74,7 @@ impl GlContext {
             GlContext::None => unreachable!(),
         };
     }
+    #[allow(unreachable_code, unused_variables)]
     pub fn raw_context(&self) -> RawContext {
         match self {
             GlContext::Current(c) => {
@@ -135,6 +136,7 @@ impl GlContext {
         }
     }
 
+    #[allow(dead_code)]
     pub fn egl_display(&self) -> Option<*const raw::c_void> {
         match self {
             GlContext::Current(c) => unsafe { c.get_egl_display() },

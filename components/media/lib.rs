@@ -35,8 +35,8 @@ pub enum GLPlayerMsgForward {
 
 /// GLPlayer thread Message API
 ///
-/// These are the message that the thread will receive from the
-/// constellation, the webrender::ExternalImageHandle multiplexor
+/// These are the messages that the thread will receive from the
+/// constellation, the webrender::ExternalImageHandle demultiplexor
 /// implementation, or a htmlmediaelement
 #[derive(Debug, Deserialize, Serialize)]
 pub enum GLPlayerMsg {

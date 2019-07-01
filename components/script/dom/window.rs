@@ -319,7 +319,7 @@ pub struct Window {
     /// Replace unpaired surrogates in DOM strings with U+FFFD.
     /// See <https://github.com/servo/servo/issues/6564>
     replace_surrogates: bool,
-    
+
     /// Window's GL context from application
     #[ignore_malloc_size_of = "defined in script_thread"]
     player_context: WindowGLContext,

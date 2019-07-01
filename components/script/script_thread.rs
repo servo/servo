@@ -513,8 +513,6 @@ unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 unsafe_no_jsmanaged_fields!(dyn BackgroundHangMonitorRegister);
 unsafe_no_jsmanaged_fields!(dyn BackgroundHangMonitor);
 
-unsafe_no_jsmanaged_fields!(WindowGLContext);
-
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
 #[allow(unrooted_must_root)]
@@ -681,7 +679,7 @@ pub struct ScriptThread {
 
     /// An optional string allowing the user agent to be set for testing.
     user_agent: Cow<'static, str>,
-    
+
     /// Application window's GL Context for Media player
     player_context: WindowGLContext,
 }

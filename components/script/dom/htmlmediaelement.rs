@@ -133,7 +133,7 @@ impl FrameHolder {
 }
 
 pub struct MediaFrameRenderer {
-    id: u64,
+    player_id: Option<u64>,
     api: RenderApi,
     current_frame: Option<(ImageKey, i32, i32)>,
     old_frame: Option<ImageKey>,
@@ -144,7 +144,7 @@ pub struct MediaFrameRenderer {
 impl MediaFrameRenderer {
     fn new(render_api_sender: RenderApiSender) -> Self {
         Self {
-            id: 0,
+            player_id: None,
             api: render_api_sender.create_api(),
             current_frame: None,
             old_frame: None,
@@ -187,7 +187,7 @@ impl FrameRenderer for MediaFrameRenderer {
                         ImageData::Raw(frame.get_data()),
                         &webrender_api::DirtyRect::All,
                     );
-                } else if self.id != 0 {
+                } else if self.player_id.is_some() {
                     self.current_frame_holder
                         .get_or_insert_with(|| FrameHolder::new(frame.clone()))
                         .set(frame);
@@ -207,55 +207,35 @@ impl FrameRenderer for MediaFrameRenderer {
                 *width = frame.get_width();
                 *height = frame.get_height();
 
-                if !frame.is_gl_texture() {
-                    txn.add_image(
-                        new_image_key,
-                        descriptor,
-                        ImageData::Raw(frame.get_data()),
-                        None,
-                    );
-                } else if self.id != 0 {
-                    txn.add_image(
-                        new_image_key,
-                        descriptor,
-                        ImageData::External(ExternalImageData {
-                            id: ExternalImageId(self.id),
-                            channel_index: 0,
-                            image_type: ExternalImageType::TextureHandle(TextureTarget::Default),
-                        }),
-                        None,
-                    );
-
+                let image_data = if let Some(player_id) = self.player_id {
                     self.current_frame_holder
                         .get_or_insert_with(|| FrameHolder::new(frame.clone()))
                         .set(frame);
-                }
+                    ImageData::External(ExternalImageData {
+                        id: ExternalImageId(player_id),
+                        channel_index: 0,
+                        image_type: ExternalImageType::TextureHandle(TextureTarget::Default),
+                    })
+                } else {
+                    ImageData::Raw(frame.get_data())
+                };
+                txn.add_image(new_image_key, descriptor, image_data, None);
             },
             None => {
                 let image_key = self.api.generate_image_key();
                 self.current_frame = Some((image_key, frame.get_width(), frame.get_height()));
 
-                if !frame.is_gl_texture() {
-                    txn.add_image(
-                        image_key,
-                        descriptor,
-                        ImageData::Raw(frame.get_data()),
-                        None,
-                    );
-                } else if self.id != 0 {
-                    txn.add_image(
-                        image_key,
-                        descriptor,
-                        ImageData::External(ExternalImageData {
-                            id: ExternalImageId(self.id),
-                            channel_index: 0,
-                            image_type: ExternalImageType::TextureHandle(TextureTarget::Default),
-                        }),
-                        None,
-                    );
-
+                let image_data = if let Some(player_id) = self.player_id {
                     self.current_frame_holder = Some(FrameHolder::new(frame));
-                }
+                    ImageData::External(ExternalImageData {
+                        id: ExternalImageId(player_id),
+                        channel_index: 0,
+                        image_type: ExternalImageType::TextureHandle(TextureTarget::Default),
+                    })
+                } else {
+                    ImageData::Raw(frame.get_data())
+                };
+                txn.add_image(image_key, descriptor, image_data, None);
             },
         }
         self.api.update_resources(txn.resource_updates);
@@ -1371,7 +1351,7 @@ impl HTMLMediaElement {
             .unwrap_or((0, None));
 
         self.id.set(player_id);
-        self.frame_renderer.lock().unwrap().id = player_id;
+        self.frame_renderer.lock().unwrap().player_id = Some(player_id);
 
         if let Some(image_receiver) = image_receiver {
             let trusted_node = Trusted::new(self);

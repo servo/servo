@@ -73,6 +73,7 @@ use js::jsval::JSVal;
 use js::rust::{GCMethods, Handle, Runtime};
 use js::typedarray::TypedArray;
 use js::typedarray::TypedArrayElement;
+use media::WindowGLContext;
 use metrics::{InteractiveMetrics, InteractiveWindow};
 use mime::Mime;
 use msg::constellation_msg::{
@@ -507,6 +508,7 @@ unsafe_no_jsmanaged_fields!(Rotation3D<f64>, Transform2D<f32>, Transform3D<f64>)
 unsafe_no_jsmanaged_fields!(Point2D<f32>, Vector2D<f32>, Rect<Au>);
 unsafe_no_jsmanaged_fields!(Rect<f32>, RigidTransform3D<f64>);
 unsafe_no_jsmanaged_fields!(CascadeData);
+unsafe_no_jsmanaged_fields!(WindowGLContext);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
