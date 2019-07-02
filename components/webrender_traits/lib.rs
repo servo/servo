@@ -111,16 +111,34 @@ impl webrender::ExternalImageHandler for WebrenderExternalImageHandlers {
         _rendering: webrender_api::ImageRendering,
     ) -> webrender::ExternalImage {
         if let Some(handler_type) = self.external_images.lock().unwrap().get(&key) {
-            let (texture_id, size) = match handler_type {
+            let (texture_id, uv) = match handler_type {
                 WebrenderImageHandlerType::WebGL => {
-                    self.webgl_handler.as_mut().unwrap().lock(key.0)
+                    let (texture_id, size) = self.webgl_handler.as_mut().unwrap().lock(key.0);
+                    (
+                        texture_id,
+                        webrender_api::TexelRect::new(
+                            0.0,
+                            size.height as f32,
+                            size.width as f32,
+                            0.0,
+                        ),
+                    )
                 },
                 WebrenderImageHandlerType::Media => {
-                    self.media_handler.as_mut().unwrap().lock(key.0)
+                    let (texture_id, size) = self.media_handler.as_mut().unwrap().lock(key.0);
+                    (
+                        texture_id,
+                        webrender_api::TexelRect::new(
+                            0.0,
+                            0.0,
+                            size.width as f32,
+                            size.height as f32,
+                        ),
+                    )
                 },
             };
             webrender::ExternalImage {
-                uv: webrender_api::TexelRect::new(0.0, 0.0, size.width as f32, size.height as f32),
+                uv,
                 source: webrender::ExternalImageSource::NativeTexture(texture_id),
             }
         } else {
