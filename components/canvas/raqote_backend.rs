@@ -143,129 +143,128 @@ impl Path {
 }
 
 impl GenericDrawTarget for raqote::DrawTarget {
-    fn clear_rect(&self, _rect: &Rect<f32>) {
-        unimplemented!()
+    fn clear_rect(&self, rect: &Rect<f32>) {
+        unimplemented!();
     }
-
     fn copy_surface(
-        &self,
-        _surface: SourceSurface,
-        _source: Rect<i32>,
-        _destination: Point2D<i32>,
+        &mut self,
+        surface: SourceSurface,
+        source: Rect<i32>,
+        destination: Point2D<i32>,
     ) {
-        unimplemented!()
+        unimplemented!();
     }
-
     fn create_gradient_stops(
         &self,
-        _gradient_stops: Vec<GradientStop>,
-        _extend_mode: ExtendMode,
+        gradient_stops: Vec<GradientStop>,
+        extend_mode: ExtendMode,
     ) -> GradientStops {
-        unimplemented!()
+        unimplemented!();
     }
-
     fn create_path_builder(&self) -> Box<GenericPathBuilder> {
-        unimplemented!()
+        unimplemented!();
     }
-
     fn create_similar_draw_target(
         &self,
-        _size: &Size2D<i32>,
-        _format: SurfaceFormat,
+        size: &Size2D<i32>,
+        format: SurfaceFormat,
     ) -> Box<GenericDrawTarget> {
-        unimplemented!()
+        unimplemented!();
     }
     fn create_source_surface_from_data(
         &self,
-        _data: &[u8],
-        _size: Size2D<i32>,
-        _stride: i32,
+        data: &[u8],
+        size: Size2D<i32>,
+        stride: i32,
     ) -> Option<SourceSurface> {
-        unimplemented!()
+        unimplemented!();
     }
     fn draw_surface(
         &self,
-        _surface: SourceSurface,
-        _dest: Rect<f64>,
-        _source: Rect<f64>,
-        _filter: Filter,
-        _draw_options: &DrawOptions,
+        surface: SourceSurface,
+        dest: Rect<f64>,
+        source: Rect<f64>,
+        filter: Filter,
+        draw_options: &DrawOptions,
     ) {
-        unimplemented!()
+        unimplemented!();
     }
     fn draw_surface_with_shadow(
         &self,
-        _surface: SourceSurface,
-        _dest: &Point2D<f32>,
-        _color: &Color,
-        _offset: &Vector2D<f32>,
-        _sigma: f32,
-        _operator: CompositionOp,
+        surface: SourceSurface,
+        dest: &Point2D<f32>,
+        color: &Color,
+        offset: &Vector2D<f32>,
+        sigma: f32,
+        operator: CompositionOp,
     ) {
-        unimplemented!()
+        unimplemented!();
     }
-    fn fill(&self, _path: &Path, _pattern: Pattern, _draw_options: &DrawOptions) {
-        unimplemented!()
+    fn fill(&mut self, path: &Path, pattern: Pattern, draw_options: &DrawOptions) {
+        unimplemented!();
     }
-    fn fill_rect(&self, _rect: &Rect<f32>, _pattern: Pattern, _draw_options: Option<&DrawOptions>) {
-        unimplemented!()
+    fn fill_rect(
+        &mut self,
+        rect: &Rect<f32>,
+        pattern: Pattern,
+        draw_options: Option<&DrawOptions>,
+    ) {
+        unimplemented!();
     }
     fn get_format(&self) -> SurfaceFormat {
-        unimplemented!()
+        unimplemented!();
     }
     fn get_size(&self) -> Size2D<i32> {
-        unimplemented!()
+        unimplemented!();
     }
     fn get_transform(&self) -> Transform2D<f32> {
-        unimplemented!()
+        unimplemented!();
     }
-    fn pop_clip(&self) {
-        unimplemented!()
+    fn pop_clip(&mut self) {
+        unimplemented!();
     }
-    fn push_clip(&self, _path: &Path) {
-        unimplemented!()
+    fn push_clip(&mut self, path: &Path) {
+        unimplemented!();
     }
-    fn set_transform(&self, _matrix: &Transform2D<f32>) {
-        unimplemented!()
+    fn set_transform(&mut self, matrix: &Transform2D<f32>) {
+        unimplemented!();
     }
     fn snapshot(&self) -> SourceSurface {
-        unimplemented!()
+        unimplemented!();
     }
     fn stroke(
-        &self,
-        _path: &Path,
-        _pattern: Pattern,
-        _stroke_options: &StrokeOptions,
-        _draw_options: &DrawOptions,
+        &mut self,
+        path: &Path,
+        pattern: Pattern,
+        stroke_options: &StrokeOptions,
+        draw_options: &DrawOptions,
     ) {
-        unimplemented!()
+        unimplemented!();
     }
     fn stroke_line(
-        &self,
-        _start: Point2D<f32>,
-        _end: Point2D<f32>,
-        _pattern: Pattern,
-        _stroke_options: &StrokeOptions,
-        _draw_options: &DrawOptions,
+        &mut self,
+        start: Point2D<f32>,
+        end: Point2D<f32>,
+        pattern: Pattern,
+        stroke_options: &StrokeOptions,
+        draw_options: &DrawOptions,
     ) {
-        unimplemented!()
+        unimplemented!();
     }
     fn stroke_rect(
-        &self,
-        _rect: &Rect<f32>,
-        _pattern: Pattern,
-        _stroke_options: &StrokeOptions,
-        _draw_options: &DrawOptions,
+        &mut self,
+        rect: &Rect<f32>,
+        pattern: Pattern,
+        stroke_options: &StrokeOptions,
+        draw_options: &DrawOptions,
     ) {
-        unimplemented!()
+        unimplemented!();
     }
-
-    fn snapshot_data(&self, _f: &Fn(&[u8]) -> Vec<u8>) -> Vec<u8> {
-        unimplemented!()
+    fn snapshot_data(&self, f: &Fn(&[u8]) -> Vec<u8>) -> Vec<u8> {
+        unimplemented!();
     }
-
     fn snapshot_data_owned(&self) -> Vec<u8> {
-        unimplemented!()
+        unimplemented!();
     }
 }
 

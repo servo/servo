@@ -216,7 +216,12 @@ impl<'a> PathBuilderRef<'a> {
 // The prototypes are derived from azure's methods.
 pub trait GenericDrawTarget {
     fn clear_rect(&self, rect: &Rect<f32>);
-    fn copy_surface(&self, surface: SourceSurface, source: Rect<i32>, destination: Point2D<i32>);
+    fn copy_surface(
+        &mut self,
+        surface: SourceSurface,
+        source: Rect<i32>,
+        destination: Point2D<i32>,
+    );
     fn create_gradient_stops(
         &self,
         gradient_stops: Vec<GradientStop>,
@@ -251,24 +256,24 @@ pub trait GenericDrawTarget {
         sigma: f32,
         operator: CompositionOp,
     );
-    fn fill(&self, path: &Path, pattern: Pattern, draw_options: &DrawOptions);
-    fn fill_rect(&self, rect: &Rect<f32>, pattern: Pattern, draw_options: Option<&DrawOptions>);
+    fn fill(&mut self, path: &Path, pattern: Pattern, draw_options: &DrawOptions);
+    fn fill_rect(&mut self, rect: &Rect<f32>, pattern: Pattern, draw_options: Option<&DrawOptions>);
     fn get_format(&self) -> SurfaceFormat;
     fn get_size(&self) -> Size2D<i32>;
     fn get_transform(&self) -> Transform2D<f32>;
-    fn pop_clip(&self);
-    fn push_clip(&self, path: &Path);
-    fn set_transform(&self, matrix: &Transform2D<f32>);
+    fn pop_clip(&mut self);
+    fn push_clip(&mut self, path: &Path);
+    fn set_transform(&mut self, matrix: &Transform2D<f32>);
     fn snapshot(&self) -> SourceSurface;
     fn stroke(
-        &self,
+        &mut self,
         path: &Path,
         pattern: Pattern,
         stroke_options: &StrokeOptions,
         draw_options: &DrawOptions,
     );
     fn stroke_line(
-        &self,
+        &mut self,
         start: Point2D<f32>,
         end: Point2D<f32>,
         pattern: Pattern,
@@ -276,7 +281,7 @@ pub trait GenericDrawTarget {
         draw_options: &DrawOptions,
     );
     fn stroke_rect(
-        &self,
+        &mut self,
         rect: &Rect<f32>,
         pattern: Pattern,
         stroke_options: &StrokeOptions,
@@ -660,7 +665,8 @@ impl<'a> CanvasData<'a> {
 
     pub fn clip(&mut self) {
         self.ensure_path();
-        self.drawtarget.push_clip(&self.path());
+        let path = self.path();
+        self.drawtarget.push_clip(&path);
     }
 
     pub fn is_point_in_path(
