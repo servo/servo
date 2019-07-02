@@ -40,6 +40,6 @@ capture_webrender/
 
 # VSCode
 .vscode
-!.vscode/extensions.json
+!/.vscode/extensions.json
 
 /unminified-js
