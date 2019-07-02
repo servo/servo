@@ -54,16 +54,10 @@ pub fn get_views(views: &[FakeXRViewInit]) -> Fallible<(MockVRView, MockVRView)>
         _ => return Err(Error::NotSupported),
     };
 
-    // can be removed once https://github.com/servo/servo/issues/23640 is fixed
-    let (position_l, position_r) = match (&left.viewOffset.position, &right.viewOffset.position) {
-        (&Some(ref l), &Some(ref r)) => (l, r),
-        _ => return Err(Error::Type("Must specify position".into())),
-    };
-
     if left.projectionMatrix.len() != 16 ||
         right.projectionMatrix.len() != 16 ||
-        position_l.len() != 3 ||
-        position_r.len() != 3
+        left.viewOffset.position.len() != 3 ||
+        right.viewOffset.position.len() != 3
     {
         return Err(Error::Type("Incorrectly sized array".into()));
     }
@@ -77,9 +71,9 @@ pub fn get_views(views: &[FakeXRViewInit]) -> Fallible<(MockVRView, MockVRView)>
 
     let mut offset_l = [0.; 3];
     let mut offset_r = [0.; 3];
-    let v: Vec<_> = position_l.iter().map(|x| **x).collect();
+    let v: Vec<_> = left.viewOffset.position.iter().map(|x| **x).collect();
     offset_l.copy_from_slice(&v);
-    let v: Vec<_> = position_r.iter().map(|x| **x).collect();
+    let v: Vec<_> = right.viewOffset.position.iter().map(|x| **x).collect();
     offset_r.copy_from_slice(&v);
     let left = MockVRView {
         projection: proj_l,
@@ -93,25 +87,14 @@ pub fn get_views(views: &[FakeXRViewInit]) -> Fallible<(MockVRView, MockVRView)>
 }
 
 pub fn get_origin(origin: &FakeXRRigidTransformInit) -> Fallible<([f32; 3], [f32; 4])> {
-    // can be removed once https://github.com/servo/servo/issues/23640 is fixed
-    let position = if let Some(ref position) = origin.position {
-        position
-    } else {
-        return Err(Error::Type("Missing position field".into()));
-    };
-    let orientation = if let Some(ref orientation) = origin.orientation {
-        orientation
-    } else {
-        return Err(Error::Type("Missing orientation field".into()));
-    };
-    if position.len() != 4 || orientation.len() != 4 {
+    if origin.position.len() != 3 || origin.orientation.len() != 4 {
         return Err(Error::Type("Incorrectly sized array".into()));
     }
     let mut p = [0.; 3];
     let mut o = [0.; 4];
-    let v: Vec<_> = position.iter().map(|x| **x).collect();
+    let v: Vec<_> = origin.position.iter().map(|x| **x).collect();
     p.copy_from_slice(&v[0..3]);
-    let v: Vec<_> = orientation.iter().map(|x| **x).collect();
+    let v: Vec<_> = origin.orientation.iter().map(|x| **x).collect();
     o.copy_from_slice(&v);
 
     Ok((p, o))

@@ -52,12 +52,16 @@ impl XRTestMethods for XRTest {
             return p;
         }
 
-        let origin = match get_origin(&init.viewerOrigin) {
-            Ok(origin) => origin,
-            Err(e) => {
-                p.reject_error(e);
-                return p;
-            },
+        let origin = if let Some(ref o) = init.viewerOrigin {
+            match get_origin(&o) {
+                Ok(origin) => origin,
+                Err(e) => {
+                    p.reject_error(e);
+                    return p;
+                },
+            }
+        } else {
+            Default::default()
         };
 
         let views = match get_views(&init.views) {

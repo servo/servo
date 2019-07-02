@@ -14,7 +14,7 @@
             let mock = await navigator.xr.test.simulateDeviceConnection({
               supportsImmersive: true,
               views: TEST_VIEWS,
-              viewerOrigin: {position: [0.5, 0.1, 0.1, 1], orientation: [1, 0, 0, 1] }
+              viewerOrigin: {position: [0.5, 0.1, 0.1], orientation: [1, 0, 0, 1] }
             });
             let session = await navigator.xr.requestSession({mode: "immersive-vr"});
             await session.updateRenderState({"baseLayer": new XRWebGLLayer(session, gl, {})});

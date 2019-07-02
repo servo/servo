@@ -14,8 +14,7 @@ interface FakeXRDevice {
   // Promise<void> disconnect();
 
   // Sets the origin of the viewer
-  // dict must be optional because of https://github.com/servo/servo/issues/23640
-  [Throws] void setViewerOrigin(optional FakeXRRigidTransformInit origin, optional boolean emulatedPosition = false);
+  [Throws] void setViewerOrigin(FakeXRRigidTransformInit origin, optional boolean emulatedPosition = false);
 
   // // Simulates devices focusing and blurring sessions.
   // void simulateVisibilityChange(XRVisibilityState);
@@ -53,7 +52,6 @@ dictionary FakeXRBoundsPoint {
 };
 
 dictionary FakeXRRigidTransformInit {
-    // should be required, see https://github.com/servo/servo/issues/23640
-    sequence<float> position;
-    sequence<float> orientation;
+    required sequence<float> position;
+    required sequence<float> orientation;
 };
