@@ -39,8 +39,7 @@ capture_webrender/
 .gradle
 
 # VSCode
-.vscode
-!/.vscode
+.vscode/launch.json
+.vscode/ipch/
 
 /unminified-js
-
