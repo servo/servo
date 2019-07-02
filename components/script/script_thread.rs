@@ -626,6 +626,9 @@ pub struct ScriptThread {
     /// A handle to the webvr thread, if available
     webvr_chan: Option<IpcSender<WebVRMsg>>,
 
+    /// The WebXR device registry
+    webxr_registry: webxr_api::Registry,
+
     /// The worklet thread pool
     worklet_thread_pool: DomRefCell<Option<Rc<WorkletThreadPool>>>,
 
@@ -1212,6 +1215,7 @@ impl ScriptThread {
 
             webgl_chan: state.webgl_chan,
             webvr_chan: state.webvr_chan,
+            webxr_registry: state.webxr_registry,
 
             worklet_thread_pool: Default::default(),
 

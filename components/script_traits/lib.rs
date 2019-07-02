@@ -628,6 +628,8 @@ pub struct InitialScriptState {
     pub webgl_chan: Option<WebGLPipeline>,
     /// A channel to the webvr thread, if available.
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
+    /// The XR device registry
+    pub webxr_registry: webxr_api::Registry,
     /// The Webrender document ID associated with this thread.
     pub webrender_document: DocumentId,
     /// FIXME(victor): The Webrender API sender in this constellation's pipeline
