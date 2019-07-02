@@ -207,12 +207,12 @@ impl FrameRenderer for MediaFrameRenderer {
                 *width = frame.get_width();
                 *height = frame.get_height();
 
-                let image_data = if let Some(player_id) = self.player_id {
+                let image_data = if frame.is_gl_texture() && self.player_id.is_some() {
                     self.current_frame_holder
                         .get_or_insert_with(|| FrameHolder::new(frame.clone()))
                         .set(frame);
                     ImageData::External(ExternalImageData {
-                        id: ExternalImageId(player_id),
+                        id: ExternalImageId(self.player_id.unwrap()),
                         channel_index: 0,
                         image_type: ExternalImageType::TextureHandle(TextureTarget::Default),
                     })
@@ -225,10 +225,10 @@ impl FrameRenderer for MediaFrameRenderer {
                 let image_key = self.api.generate_image_key();
                 self.current_frame = Some((image_key, frame.get_width(), frame.get_height()));
 
-                let image_data = if let Some(player_id) = self.player_id {
+                let image_data = if frame.is_gl_texture() && self.player_id.is_some() {
                     self.current_frame_holder = Some(FrameHolder::new(frame));
                     ImageData::External(ExternalImageData {
-                        id: ExternalImageId(player_id),
+                        id: ExternalImageId(self.player_id.unwrap()),
                         channel_index: 0,
                         image_type: ExternalImageType::TextureHandle(TextureTarget::Default),
                     })
