@@ -177,6 +177,7 @@ impl WebGLMsgSender {
     }
 }
 
+#[typetag::serde]
 impl webxr_api::WebGLExternalImageApi for WebGLMsgSender {
     fn lock(&self) -> Result<(GLuint, Size2D<i32>, GLsync), webxr_api::Error> {
         let (sender, receiver) = webgl_channel().or(Err(webxr_api::Error::CommunicationError))?;

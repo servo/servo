@@ -188,6 +188,9 @@ pub struct InitialPipelineState {
 
     /// A channel to the webvr thread.
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
+
+    /// The XR device registry
+    pub webxr_registry: webxr_api::Registry,
 }
 
 pub struct NewPipeline {
@@ -305,6 +308,7 @@ impl Pipeline {
                     webrender_document: state.webrender_document,
                     webgl_chan: state.webgl_chan,
                     webvr_chan: state.webvr_chan,
+                    webxr_registry: state.webxr_registry,
                 };
 
                 // Spawn the child process.
@@ -510,6 +514,7 @@ pub struct UnprivilegedPipelineContent {
     webrender_document: webrender_api::DocumentId,
     webgl_chan: Option<WebGLPipeline>,
     webvr_chan: Option<IpcSender<WebVRMsg>>,
+    webxr_registry: webxr_api::Registry,
 }
 
 impl UnprivilegedPipelineContent {
@@ -554,6 +559,7 @@ impl UnprivilegedPipelineContent {
                 content_process_shutdown_chan: self.script_content_process_shutdown_chan,
                 webgl_chan: self.webgl_chan,
                 webvr_chan: self.webvr_chan,
+                webxr_registry: self.webxr_registry,
                 webrender_document: self.webrender_document,
                 webrender_api_sender: self.webrender_api_sender.clone(),
                 layout_is_busy: layout_thread_busy_flag.clone(),
