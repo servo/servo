@@ -216,8 +216,12 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         command: WebGLCommand,
         backtrace: WebGLCommandBacktrace,
     ) {
-        let info = self.cached_context_info.get_mut(&context_id).unwrap();
-        info.received_webgl_command = true;
+        match self.cached_context_info.get_mut(&context_id) {
+            Some(info) => {
+                info.received_webgl_command = true;
+            }
+            None => return,
+        };
         let data = Self::make_current_if_needed_mut(
             context_id,
             &mut self.contexts,
