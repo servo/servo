@@ -390,6 +390,9 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel through which messages can be sent to the webvr thread.
     webvr_chan: Option<IpcSender<WebVRMsg>>,
 
+    /// The XR device registry
+    webxr_registry: webxr_api::Registry,
+
     /// A channel through which messages can be sent to the canvas paint thread.
     canvas_chan: IpcSender<CanvasMsg>,
 
@@ -455,6 +458,9 @@ pub struct InitialConstellationState {
 
     /// A channel to the webgl thread.
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
+
+    /// The XR device registry
+    pub webxr_registry: webxr_api::Registry,
 }
 
 /// Data needed for webdriver
@@ -751,6 +757,7 @@ where
                     }),
                     webgl_threads: state.webgl_threads,
                     webvr_chan: state.webvr_chan,
+                    webxr_registry: state.webxr_registry,
                     canvas_chan: CanvasPaintThread::start(),
                     pending_approval_navigations: HashMap::new(),
                     pressed_mouse_buttons: 0,
@@ -997,6 +1004,7 @@ where
                 .as_ref()
                 .map(|threads| threads.pipeline()),
             webvr_chan: self.webvr_chan.clone(),
+            webxr_registry: self.webxr_registry.clone(),
         });
 
         let pipeline = match result {
