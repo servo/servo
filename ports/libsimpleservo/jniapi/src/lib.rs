@@ -459,7 +459,7 @@ impl HostTrait for HostCallbacks {
     fn on_ime_state_changed(&self, _show: bool) {}
 
     fn get_clipboard_contents(&self) -> Option<String> {
-        unimplemented!()
+        None
     }
 
     fn set_clipboard_contents(&self, contents: String) {}

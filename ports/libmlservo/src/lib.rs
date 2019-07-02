@@ -356,7 +356,7 @@ impl HostTrait for HostCallbacks {
     }
 
     fn get_clipboard_contents(&self) -> Option<String> {
-        unimplemented!()
+        None
     }
 
     fn set_clipboard_contents(&self, contents: String) {}
