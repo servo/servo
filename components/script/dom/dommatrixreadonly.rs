@@ -571,6 +571,7 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
             .ScaleSelf(scaleX, scaleY, scaleZ, originX, originY, originZ)
     }
 
+    // https://drafts.fxtf.org/geometry/#dom-dommatrixreadonly-scalenonuniform
     fn ScaleNonUniform(&self, scaleX: f64, scaleY: f64) -> DomRoot<DOMMatrix> {
         DOMMatrix::from_readonly(&self.global(), self).ScaleSelf(
             scaleX,
