@@ -120,9 +120,8 @@ impl<'a> LayoutContext<'a> {
         };
 
         // See if the image is already available
-        match self.image_cache.get_image(&url, use_placeholder) {
-            Some(x) => return Some(ImageOrMetadataAvailable::ImageAvailable(x, url)),
-            _ => (),
+        if let Some(x) = self.image_cache.get_image(&url, use_placeholder) {
+            return Some(ImageOrMetadataAvailable::ImageAvailable(x, url));
         }
 
         // If not immediately available, create a listener and track cache status.
