@@ -123,7 +123,7 @@ pub enum LayoutControlMsg {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum LoadOrigin {
     /// A load originating in the constellation.
-    TopLevel,
+    Constellation,
     /// A load originating in webdriver.
     WebDriver,
     /// A load originating in script.

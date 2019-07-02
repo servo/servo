@@ -861,7 +861,7 @@ impl ScriptThread {
     /// https://github.com/whatwg/html/issues/2591
     pub fn check_load_origin(source: &LoadOrigin, target: &ImmutableOrigin) -> bool {
         match (source, target) {
-            (LoadOrigin::TopLevel, _) | (LoadOrigin::WebDriver, _) => {
+            (LoadOrigin::Constellation, _) | (LoadOrigin::WebDriver, _) => {
                 // Always allow loads initiated by the constellation or webdriver.
                 true
             },
