@@ -299,6 +299,36 @@ impl Node {
         }
     }
 
+    /// Clean up flags and unbind from tree.
+    pub fn complete_remove_child(&self, child: &Node, context: UnbindContext) {
+        for node in child.traverse_preorder(ShadowIncluding::Yes) {
+            // Out-of-document elements never have the descendants flag set.
+            node.set_flag(
+                NodeFlags::IS_IN_DOC |
+                    NodeFlags::IS_CONNECTED |
+                    NodeFlags::HAS_DIRTY_DESCENDANTS |
+                    NodeFlags::HAS_SNAPSHOT |
+                    NodeFlags::HANDLED_SNAPSHOT,
+                false,
+            );
+        }
+        for node in child.traverse_preorder(ShadowIncluding::Yes) {
+            // This needs to be in its own loop, because unbind_from_tree may
+            // rely on the state of IS_IN_DOC of the context node's descendants,
+            // e.g. when removing a <form>.
+            vtable_for(&&*node).unbind_from_tree(&context);
+            node.style_and_layout_data.get().map(|d| node.dispose(d));
+            // https://dom.spec.whatwg.org/#concept-node-remove step 14
+            if let Some(element) = node.as_custom_element() {
+                ScriptThread::enqueue_callback_reaction(
+                    &*element,
+                    CallbackReaction::Disconnected,
+                    None,
+                );
+            }
+        }
+    }
+
     /// Removes the given child from this node's list of children.
     ///
     /// Fails unless `child` is a child of this node.
@@ -339,32 +369,7 @@ impl Node {
         child.parent_node.set(None);
         self.children_count.set(self.children_count.get() - 1);
 
-        for node in child.traverse_preorder(ShadowIncluding::Yes) {
-            // Out-of-document elements never have the descendants flag set.
-            node.set_flag(
-                NodeFlags::IS_IN_DOC |
-                    NodeFlags::IS_CONNECTED |
-                    NodeFlags::HAS_DIRTY_DESCENDANTS |
-                    NodeFlags::HAS_SNAPSHOT |
-                    NodeFlags::HANDLED_SNAPSHOT,
-                false,
-            );
-        }
-        for node in child.traverse_preorder(ShadowIncluding::Yes) {
-            // This needs to be in its own loop, because unbind_from_tree may
-            // rely on the state of IS_IN_DOC of the context node's descendants,
-            // e.g. when removing a <form>.
-            vtable_for(&&*node).unbind_from_tree(&context);
-            node.style_and_layout_data.get().map(|d| node.dispose(d));
-            // https://dom.spec.whatwg.org/#concept-node-remove step 14
-            if let Some(element) = node.as_custom_element() {
-                ScriptThread::enqueue_callback_reaction(
-                    &*element,
-                    CallbackReaction::Disconnected,
-                    None,
-                );
-            }
-        }
+        self.complete_remove_child(child, context);
     }
 
     pub fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
@@ -3082,7 +3087,7 @@ pub struct UnbindContext<'a> {
 
 impl<'a> UnbindContext<'a> {
     /// Create a new `UnbindContext` value.
-    fn new(
+    pub fn new(
         parent: &'a Node,
         prev_sibling: Option<&'a Node>,
         next_sibling: Option<&'a Node>,

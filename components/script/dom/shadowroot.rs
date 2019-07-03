@@ -15,7 +15,7 @@ use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, StyleSheetInDocument};
 use crate::dom::element::Element;
-use crate::dom::node::{Node, NodeDamage, NodeFlags, ShadowIncluding};
+use crate::dom::node::{Node, NodeDamage, NodeFlags, ShadowIncluding, UnbindContext};
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::window::Window;
 use crate::stylesheet_set::StylesheetSetRef;
@@ -82,21 +82,23 @@ impl ShadowRoot {
         self.document.unregister_shadow_root(&self);
         let node = self.upcast::<Node>();
         node.set_containing_shadow_root(None);
-        for child in node.traverse_preorder(ShadowIncluding::No) {
-            if node.RemoveChild(&child).is_err() {
+        if let Some(first_child) = node.GetFirstChild() {
+            while let Some(sibling) = first_child.GetNextSibling() {
+                if node.RemoveChild(&sibling).is_err() {
+                    warn!("Could not remove shadow root child");
+                }
+            }
+            if node.RemoveChild(&first_child).is_err() {
                 warn!("Could not remove shadow root child");
             }
         }
-        if self
-            .host
+
+        let context = UnbindContext::new(node, None, None, None);
+        self.host
             .get()
             .unwrap()
             .upcast::<Node>()
-            .RemoveChild(&node)
-            .is_err()
-        {
-            warn!("Could not detach shadow root");
-        }
+            .complete_remove_child(&node, context);
         self.host.set(None);
     }
 
