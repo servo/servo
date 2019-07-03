@@ -359,7 +359,7 @@ impl HostTrait for HostCallbacks {
         None
     }
 
-    fn set_clipboard_contents(&self, contents: String) {}
+    fn set_clipboard_contents(&self, _contents: String) {}
 }
 
 pub struct ServoInstance {

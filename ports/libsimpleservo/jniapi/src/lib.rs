@@ -462,7 +462,7 @@ impl HostTrait for HostCallbacks {
         None
     }
 
-    fn set_clipboard_contents(&self, contents: String) {}
+    fn set_clipboard_contents(&self, _contents: String) {}
 }
 
 fn initialize_android_glue(env: &JNIEnv, activity: JObject) {
