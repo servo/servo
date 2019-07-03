@@ -54,90 +54,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="ServoApp_TemporaryKey.pfx" />
-    <None Include="..\..\target\release\api-ms-win-crt-runtime-l1-1-0.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\ffi-7.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\gio-2.0-0.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\glib-2.0-0.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\gmodule-2.0-0.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\gobject-2.0-0.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\gstapp-1.0-0.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\gstaudio-1.0-0.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\gstbase-1.0-0.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\gstgl-1.0-0.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\gstpbutils-1.0-0.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\gstplayer-1.0-0.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\gstreamer-1.0-0.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\gstrtp-1.0-0.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\gstsdp-1.0-0.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\gsttag-1.0-0.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\gstvideo-1.0-0.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\gstwebrtc-1.0-0.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\intl-8.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\libcryptoMD.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\libsslMD.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\libwinpthread-1.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\msvcp140.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\nspr4.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\orc-0.4-0.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\simpleservo.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\vcruntime140.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
-    <None Include="..\..\target\release\z-1.dll">
-      <Filter>ServoDLLsRelease</Filter>
-    </None>
+    <None Include="packages.config" />
     <None Include="..\..\target\debug\api-ms-win-crt-runtime-l1-1-0.dll">
       <Filter>ServoDLLsDebug</Filter>
     </None>
@@ -204,9 +121,6 @@
     <None Include="..\..\target\debug\msvcp140.dll">
       <Filter>ServoDLLsDebug</Filter>
     </None>
-    <None Include="..\..\target\debug\nspr4.dll">
-      <Filter>ServoDLLsDebug</Filter>
-    </None>
     <None Include="..\..\target\debug\orc-0.4-0.dll">
       <Filter>ServoDLLsDebug</Filter>
     </None>
@@ -222,7 +136,87 @@
     <None Include="..\..\target\debug\z-1.dll">
       <Filter>ServoDLLsDebug</Filter>
     </None>
-    <None Include="packages.config" />
+    <None Include="..\..\target\release\z-1.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\vcruntime140.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\ssleay32.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\simpleservo.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\orc-0.4-0.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\msvcp140.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\libwinpthread-1.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\libeay32.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\intl-8.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\gstwebrtc-1.0-0.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\gstvideo-1.0-0.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\gsttag-1.0-0.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\gstsdp-1.0-0.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\gstrtp-1.0-0.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\gstreamer-1.0-0.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\gstplayer-1.0-0.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\gstpbutils-1.0-0.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\gstgl-1.0-0.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\gstbase-1.0-0.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\gstaudio-1.0-0.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\gstapp-1.0-0.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\gobject-2.0-0.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\gmodule-2.0-0.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\glib-2.0-0.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\gio-2.0-0.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\ffi-7.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\release\api-ms-win-crt-runtime-l1-1-0.dll">
+      <Filter>ServoDLLsRelease</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Assets">
