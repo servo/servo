@@ -225,6 +225,11 @@ impl Serialize for SendableWebDriverJSValue {
             WebDriverJSValue::Boolean(x) => serializer.serialize_bool(x),
             WebDriverJSValue::Number(x) => serializer.serialize_f64(x),
             WebDriverJSValue::String(ref x) => serializer.serialize_str(&x),
+            WebDriverJSValue::ArrayLike(ref x) => x
+                .iter()
+                .map(|element| SendableWebDriverJSValue(element.clone()))
+                .collect::<Vec<SendableWebDriverJSValue>>()
+                .serialize(serializer),
         }
     }
 }

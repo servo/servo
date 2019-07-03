@@ -66,7 +66,8 @@ pub enum WebDriverJSValue {
     Null,
     Boolean(bool),
     Number(f64),
-    String(String), // TODO: Object and WebElement
+    String(String),
+    ArrayLike(Vec<WebDriverJSValue>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
