@@ -523,7 +523,7 @@ impl ServoGlue {
                 },
                 EmbedderMsg::GetClipboardContents(sender) => {
                     let contents = self.callbacks.host_callbacks.get_clipboard_contents();
-                    sender.send(contents.unwrap_or("".to_owned()));
+                    let _ = sender.send(contents.unwrap_or("".to_owned()));
                 },
                 EmbedderMsg::SetClipboardContents(text) => {
                     self.callbacks.host_callbacks.set_clipboard_contents(text);
