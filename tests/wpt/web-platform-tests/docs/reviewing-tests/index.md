@@ -9,6 +9,7 @@ suites, test contributions must be reviewed by a peer.
 
    checklist
    email
+   git
 ```
 
 ## Test Review Policy
