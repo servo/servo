@@ -4,10 +4,7 @@
 
 use app_units::Au;
 use euclid::Point2D;
-#[cfg(all(
-    feature = "unstable",
-    any(target_feature = "sse2", target_feature = "neon")
-))]
+#[cfg(any(target_feature = "sse2", target_feature = "neon"))]
 use packed_simd::u32x4;
 use range::{self, EachIndex, Range, RangeIndex};
 use std::cmp::{Ordering, PartialOrd};
@@ -75,7 +72,6 @@ pub type GlyphId = u32;
 // TODO: make this more type-safe.
 
 const FLAG_CHAR_IS_SPACE: u32 = 0x40000000;
-#[cfg(feature = "unstable")]
 #[cfg(any(target_feature = "sse2", target_feature = "neon"))]
 const FLAG_CHAR_IS_SPACE_SHIFT: u32 = 30;
 const FLAG_IS_SIMPLE_GLYPH: u32 = 0x80000000;
@@ -625,7 +621,6 @@ impl<'a> GlyphStore {
     }
 
     #[inline]
-    #[cfg(feature = "unstable")]
     #[cfg(any(target_feature = "sse2", target_feature = "neon"))]
     fn advance_for_byte_range_simple_glyphs(
         &self,
@@ -644,7 +639,7 @@ impl<'a> GlyphStore {
 
         for i in 0..num_simd_iterations {
             let offset = begin + i * 4;
-            let v = u32x4::load_unaligned(&buf[offset..]);
+            let v = u32x4::from_slice_unaligned(&buf[offset..]);
             let advance = (v & advance_mask) >> GLYPH_ADVANCE_SHIFT;
             let spaces = (v & space_flag_mask) >> FLAG_CHAR_IS_SPACE_SHIFT;
             simd_advance = simd_advance + advance;
@@ -672,10 +667,7 @@ impl<'a> GlyphStore {
 
     /// When SIMD isn't available, fallback to the slow path.
     #[inline]
-    #[cfg(not(all(
-        feature = "unstable",
-        any(target_feature = "sse2", target_feature = "neon")
-    )))]
+    #[cfg(not(any(target_feature = "sse2", target_feature = "neon")))]
     fn advance_for_byte_range_simple_glyphs(
         &self,
         range: &Range<ByteIndex>,
@@ -686,7 +678,6 @@ impl<'a> GlyphStore {
 
     /// Used for SIMD.
     #[inline]
-    #[cfg(feature = "unstable")]
     #[cfg(any(target_feature = "sse2", target_feature = "neon"))]
     #[allow(unsafe_code)]
     fn transmute_entry_buffer_to_u32_buffer(&self) -> &[u32] {

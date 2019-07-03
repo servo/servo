@@ -10,9 +10,6 @@ publish = false
 name = "layout_thread"
 path = "lib.rs"
 
-[features]
-unstable = ["parking_lot/nightly"]
-
 [dependencies]
 app_units = "0.7"
 atomic_refcell = "0.1"
@@ -36,7 +33,7 @@ malloc_size_of = { path = "../malloc_size_of" }
 metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
-parking_lot = "0.8"
+parking_lot = {version = "0.8", features = ["nightly"]}
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
 rayon = "1"

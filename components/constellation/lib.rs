@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
-#![cfg_attr(feature = "unstable", feature(conservative_impl_trait))]
 
 #[macro_use]
 extern crate crossbeam_channel;

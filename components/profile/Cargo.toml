@@ -10,9 +10,6 @@ publish = false
 name = "profile"
 path = "lib.rs"
 
-[features]
-unstable = ["servo_allocator"]
-
 [dependencies]
 profile_traits = {path = "../profile_traits"}
 influent = "0.5"
@@ -33,4 +30,4 @@ regex = "1.1"
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 libc = "0.2"
-servo_allocator = {path = "../allocator", optional = true}
+servo_allocator = {path = "../allocator"}

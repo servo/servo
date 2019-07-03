@@ -7,10 +7,10 @@
 #[macro_use]
 extern crate log;
 
-#[cfg(feature = "azure_backend")]
+#[cfg(feature = "canvas2d-azure")]
 mod azure_backend;
 
-#[cfg(feature = "raqote_backend")]
+#[cfg(feature = "canvas2d-raqote")]
 mod raqote_backend;
 
 pub mod canvas_data;

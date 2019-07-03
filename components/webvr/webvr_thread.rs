@@ -135,8 +135,8 @@ impl WebVRThread {
                     self.handle_get_gamepads_for_display(display_id, sender);
                 },
 
-                WebVRMsg::CreateMockDisplay => {
-                    self.handle_create_mock();
+                WebVRMsg::CreateMockDisplay(init) => {
+                    self.handle_create_mock(init);
                 },
                 WebVRMsg::MessageMockDisplay(msg) => {
                     self.handle_message_mock_display(msg);
@@ -312,12 +312,12 @@ impl WebVRThread {
         sender.send(Ok(data)).unwrap();
     }
 
-    fn handle_create_mock(&mut self) {
+    fn handle_create_mock(&mut self, init: MockVRInit) {
         if self.mock.is_some() {
             warn!("Mock display already created");
             return;
         }
-        self.mock = Some(self.service.register_mock_with_remote());
+        self.mock = Some(self.service.register_mock_with_remote(init));
     }
 
     fn handle_message_mock_display(&mut self, msg: MockVRControlMsg) {

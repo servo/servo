@@ -214,7 +214,8 @@ class MachCommands(CommandBase):
                      help="Run in bench mode")
     @CommandArgument('--nocapture', default=False, action="store_true",
                      help="Run tests with nocapture ( show test stdout )")
-    def test_unit(self, test_name=None, package=None, bench=False, nocapture=False):
+    @CommandBase.build_like_command_arguments
+    def test_unit(self, test_name=None, package=None, bench=False, nocapture=False, **kwargs):
         if test_name is None:
             test_name = []
 
@@ -277,22 +278,18 @@ class MachCommands(CommandBase):
             # in to the servo.exe build dir, so just point PATH to that.
             env["PATH"] = "%s%s%s" % (path.dirname(self.get_binary_path(False, False)), os.pathsep, env["PATH"])
 
-        features = self.servo_features()
         if len(packages) > 0 or len(in_crate_packages) > 0:
-            args = ["cargo", "bench" if bench else "test", "--manifest-path", self.ports_glutin_manifest()]
+            args = []
             for crate in packages:
                 args += ["-p", "%s_tests" % crate]
             for crate in in_crate_packages:
                 args += ["-p", crate]
             args += test_patterns
 
-            if features:
-                args += ["--features", "%s" % ' '.join(features)]
-
             if nocapture:
                 args += ["--", "--nocapture"]
 
-            err = self.call_rustup_run(args, env=env)
+            err = self.run_cargo_build_like_command("bench" if bench else "test", args, env=env, **kwargs)
             if err is not 0:
                 return err
 

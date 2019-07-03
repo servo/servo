@@ -12,7 +12,8 @@ path = "lib.rs"
 crate-type = ["rlib"]
 
 [features]
-azure_backend = ["canvas/azure_backend"]
+canvas2d-azure = ["canvas/canvas2d-azure"]
+canvas2d-raqote = ["canvas/canvas2d-raqote"]
 debugmozjs = ["script/debugmozjs"]
 energy-profiling = ["profile_traits/energy-profiling"]
 profilemozjs = ["script/profilemozjs"]
@@ -21,16 +22,10 @@ js_backtrace = ["script/js_backtrace"]
 max_log_level = ["log/release_max_level_info"]
 native-bluetooth = ["bluetooth/native-bluetooth"]
 no_wgl = ["canvas/no_wgl"]
-raqote_backend = ["canvas/raqote_backend"]
 uwp = ["servo_config/uwp"]
 webrender_debugger = ["webrender/debugger"]
 no_static_freetype = ["webrender/no_static_freetype"]
 oculusvr = ["webvr/oculusvr"]
-unstable = [
-    "euclid/unstable",
-    "profile/unstable",
-    "script/unstable",
-]
 webdriver = ["webdriver_server"]
 webgl_backtrace = [
     "script/webgl_backtrace",
@@ -78,6 +73,7 @@ webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webdriver_server = {path = "../webdriver_server", optional = true}
 webvr = {path = "../webvr"}
 webvr_traits = {path = "../webvr_traits"}
+webxr-api = {git = "https://github.com/servo/webxr"}
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_arch="arm"), not(target_arch="aarch64")))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}

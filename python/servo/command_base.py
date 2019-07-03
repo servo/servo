@@ -28,6 +28,7 @@ from servo.util import download_file
 import urllib2
 from bootstrap import check_gstreamer_lib
 
+from mach.decorators import CommandArgument
 from mach.registrar import Registrar
 import toml
 
@@ -731,34 +732,130 @@ install them, let us know by filing a bug!")
 
         return env
 
-    def ports_glutin_crate(self):
-        return path.join(self.context.topdir, "ports", "glutin")
+    @staticmethod
+    def build_like_command_arguments(decorated_function):
+        decorators = [
+            CommandArgument(
+                '--target', '-t',
+                default=None,
+                help='Cross compile for given target platform',
+            ),
+            CommandArgument(
+                '--android',
+                default=None,
+                action='store_true',
+                help='Build for Android',
+            ),
+            CommandArgument(
+                '--magicleap',
+                default=None,
+                action='store_true',
+                help='Build for Magic Leap',
+            ),
+            CommandArgument(
+                '--libsimpleservo',
+                default=None,
+                action='store_true',
+                help='Build the libsimpleservo library instead of the servo executable',
+            ),
+            CommandArgument(
+                '--features',
+                default=None,
+                help='Space-separated list of features to also build',
+                nargs='+',
+            ),
+            CommandArgument(
+                '--debug-mozjs',
+                default=None,
+                action='store_true',
+                help='Enable debug assertions in mozjs',
+            ),
+            CommandArgument(
+                '--with-debug-assertions',
+                default=None,
+                action='store_true',
+                help='Enable debug assertions in release',
+            ),
+            CommandArgument(
+                '--with-frame-pointer',
+                default=None,
+                action='store_true',
+                help='Build with frame pointer enabled, used by the background hang monitor.',
+            ),
+            CommandArgument('--with-raqote', default=None, action='store_true'),
+            CommandArgument('--without-wgl', default=None, action='store_true'),
+        ]
 
-    def add_manifest_path(self, args, android=False, libsimpleservo=False):
+        for decorator in decorators:
+            decorated_function = decorator(decorated_function)
+        return decorated_function
+
+    def pick_target_triple(self, target, android, magicleap):
+        if android is None:
+            android = self.config["build"]["android"]
+        if target and android:
+            assert self.handle_android_target(target)
+        if android and not target:
+            target = self.config["android"]["target"]
+        if magicleap and not target:
+            target = "aarch64-linux-android"
+        if target and not android and not magicleap:
+            android = self.handle_android_target(target)
+        return target, android
+
+    def run_cargo_build_like_command(
+        self, command, cargo_args,
+        env=None, verbose=False,
+        target=None, android=False, magicleap=False, libsimpleservo=False,
+        features=None, debug_mozjs=False, with_debug_assertions=False,
+        with_frame_pointer=False, with_raqote=False, without_wgl=False,
+    ):
+        env = env or self.build_env()
+        target, android = self.pick_target_triple(target, android, magicleap)
+
+        args = []
         if "--manifest-path" not in args:
             if libsimpleservo or android:
-                manifest = self.ports_libsimpleservo_manifest(android)
+                if android:
+                    api = "jniapi"
+                else:
+                    api = "capi"
+                port = path.join("libsimpleservo", api)
             else:
-                manifest = self.ports_glutin_manifest()
-            args.append("--manifest-path")
-            args.append(manifest)
+                port = "glutin"
+            args += [
+                "--manifest-path",
+                path.join(self.context.topdir, "ports", port, "Cargo.toml"),
+            ]
+        if target:
+            args += ["--target", target]
 
-    def ports_glutin_manifest(self):
-        return path.join(self.context.topdir, "ports", "glutin", "Cargo.toml")
+        if features is None:  # If we're passed a list, mutate it even if it's empty
+            features = []
+        if self.config["build"]["debug-mozjs"] or debug_mozjs:
+            features.append("debugmozjs")
+        if not magicleap:
+            features.append("native-bluetooth")
+        if with_raqote and "canvas2d-azure" not in features:
+            features.append("canvas2d-raqote")
+        elif "canvas2d-raqote" not in features:
+            features.append("canvas2d-azure")
+        if with_frame_pointer:
+            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C force-frame-pointers=yes"
+            features.append("profilemozjs")
+        if without_wgl:
+            features.append("no_wgl")
+        if self.config["build"]["webgl-backtrace"]:
+            features.append("webgl-backtrace")
+        if self.config["build"]["dom-backtrace"]:
+            features.append("dom-backtrace")
+        if with_debug_assertions:
+            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
 
-    def ports_libsimpleservo_manifest(self, android=False):
-        if android:
-            api = "jniapi"
-        else:
-            api = "capi"
-        return path.join(self.context.topdir, "ports", "libsimpleservo", api, "Cargo.toml")
+        assert "--features" not in cargo_args
+        args += ["--features", " ".join(features)]
 
-    def servo_features(self):
-        """Return a list of optional features to enable for the Servo crate"""
-        features = []
-        if self.config["build"]["debug-mozjs"]:
-            features += ["debugmozjs"]
-        return features
+        return self.call_rustup_run(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
 
     def android_support_dir(self):
         return path.join(self.context.topdir, "support", "android")

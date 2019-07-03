@@ -34,18 +34,6 @@ from servo.util import delete, download_bytes, download_file, extract, check_has
 
 @CommandProvider
 class MachCommands(CommandBase):
-    @Command('env',
-             description='Print environment setup commands',
-             category='bootstrap')
-    def env(self):
-        env = self.build_env()
-        print("export RUSTFLAGS=%s" % env.get("RUSTFLAGS", ""))
-        print("export PATH=%s" % env.get("PATH", ""))
-        if sys.platform == "darwin":
-            print("export DYLD_LIBRARY_PATH=%s" % env.get("DYLD_LIBRARY_PATH", ""))
-        else:
-            print("export LD_LIBRARY_PATH=%s" % env.get("LD_LIBRARY_PATH", ""))
-
     @Command('bootstrap',
              description='Install required packages for building.',
              category='bootstrap')
