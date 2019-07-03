@@ -209,6 +209,7 @@ impl DissimilarOriginWindow {
         let msg = ScriptMsg::PostMessage {
             target: self.window_proxy.browsing_context_id(),
             source: incumbent.pipeline_id(),
+            source_origin: incumbent.origin().immutable().clone(),
             target_origin: origin,
             data: data.move_to_arraybuffer(),
         };

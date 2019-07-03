@@ -1557,12 +1557,14 @@ where
                 target: browsing_context_id,
                 source: source_pipeline_id,
                 target_origin: origin,
+                source_origin,
                 data,
             } => {
                 self.handle_post_message_msg(
                     browsing_context_id,
                     source_pipeline_id,
                     origin,
+                    source_origin,
                     data,
                 );
             },
@@ -3387,6 +3389,7 @@ where
         browsing_context_id: BrowsingContextId,
         source_pipeline: PipelineId,
         origin: Option<ImmutableOrigin>,
+        source_origin: ImmutableOrigin,
         data: Vec<u8>,
     ) {
         let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
@@ -3407,6 +3410,7 @@ where
             source: source_pipeline,
             source_browsing_context: source_browsing_context,
             target_origin: origin,
+            source_origin,
             data,
         };
         let result = match self.pipelines.get(&pipeline_id) {

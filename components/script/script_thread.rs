@@ -1757,12 +1757,14 @@ impl ScriptThread {
                 source: source_pipeline_id,
                 source_browsing_context,
                 target_origin: origin,
+                source_origin,
                 data,
             } => self.handle_post_message_msg(
                 target_pipeline_id,
                 source_pipeline_id,
                 source_browsing_context,
                 origin,
+                source_origin,
                 data,
             ),
             ConstellationControlMsg::UpdatePipelineId(
@@ -2301,6 +2303,7 @@ impl ScriptThread {
         source_pipeline_id: PipelineId,
         source_browsing_context: TopLevelBrowsingContextId,
         origin: Option<ImmutableOrigin>,
+        source_origin: ImmutableOrigin,
         data: Vec<u8>,
     ) {
         match { self.documents.borrow().find_window(pipeline_id) } {
@@ -2323,7 +2326,12 @@ impl ScriptThread {
                     Some(source) => source,
                 };
                 // FIXME(#22512): enqueues a task; unnecessary delay.
-                window.post_message(origin, &*source, StructuredCloneData::Vector(data))
+                window.post_message(
+                    origin,
+                    source_origin,
+                    &*source,
+                    StructuredCloneData::Vector(data),
+                )
             },
         }
     }
