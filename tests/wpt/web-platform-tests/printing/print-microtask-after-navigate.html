@@ -1,0 +1,22 @@
+<!doctype HTML>
+<meta charset=utf-8>
+<title>Printing in microtask after navigation</title>
+<link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#printing">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+Passes if it does not crash.
+<script>
+  let print_promise = new Promise(function(resolve, reject) {
+    resolve();
+  });
+
+  // Call print in a microtask. This will execute after the navigation click
+  // has happened, which will cause the document to become neutered and
+  // ineligible for the print command.
+  print_promise.then(() => print());
+</script>
+ <a href="resources/destination.html">
+<script>
+  document.getElementsByTagName("a")[0].click();
+</script>

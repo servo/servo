@@ -97,12 +97,22 @@ class MockVRService {
       // Find and return the first successful result.
       for (let i = 0; i < results.length; i++) {
         if (results[i].session) {
-          return results[i];
+          return {
+            result: {
+              session : results[i].session,
+              $tag :  0
+            }
+          };
         }
       }
 
       // If there were no successful results, returns a null session.
-      return {session: null};
+      return {
+        result: {
+          failureReason : device.mojom.RequestSessionResult.NO_RUNTIME_FOUND,
+          $tag :  1
+        }
+      };
     });
   }
 
@@ -249,7 +259,7 @@ class MockRuntime {
           leftDegrees: 50.899,
           rightDegrees: 35.197
         },
-        offset: new gfx.mojom.Vector3dF(-0.032, 0, 0),
+        offset: { x: -0.032, y: 0, z: 0 },
         renderWidth: 20,
         renderHeight: 20
       },
@@ -260,7 +270,7 @@ class MockRuntime {
           leftDegrees: 50.899,
           rightDegrees: 35.197
         },
-        offset: new gfx.mojom.Vector3dF(0.032, 0, 0),
+        offset: { x: 0.032, y: 0, z: 0 },
         renderWidth: 20,
         renderHeight: 20
       },
@@ -293,7 +303,7 @@ class MockRuntime {
         leftDegrees: toDegrees(leftTan),
         rightDegrees: toDegrees(rightTan)
       },
-      offset: new gfx.mojom.Vector3dF(0, 0, 0),
+      offset: { x: 0, y: 0, z: 0 },
       renderWidth: 20,
       renderHeight: 20
     };

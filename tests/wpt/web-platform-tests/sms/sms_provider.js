@@ -61,7 +61,7 @@ function intercept() {
       blink.mojom.SmsReceiver.$interfaceName);
   interceptor.oninterfacerequest = (e) => {
     let impl = new blink.mojom.SmsReceiver(provider);
-    impl.bindHandle(e.handle);
+    impl.$.bindHandle(e.handle);
   }
 
   interceptor.start();
