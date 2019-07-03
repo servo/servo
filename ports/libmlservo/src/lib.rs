@@ -378,6 +378,12 @@ impl HostTrait for HostCallbacks {
             keyboard(self.app, show)
         }
     }
+
+    fn get_clipboard_contents(&self) -> Option<String> {
+        None
+    }
+
+    fn set_clipboard_contents(&self, _contents: String) {}
 }
 
 pub struct ServoInstance {

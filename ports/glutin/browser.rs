@@ -16,6 +16,7 @@ use servo::servo_config::opts;
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::ScrollLocation;
+use clipboard::{ClipboardContext, ClipboardProvider};
 use std::env;
 use std::fs::File;
 use std::io::Write;
@@ -43,6 +44,7 @@ pub struct Browser<Window: WindowPortsMethods + ?Sized> {
     loading_state: Option<LoadingState>,
     window: Rc<Window>,
     event_queue: Vec<WindowEvent>,
+    clipboard_ctx: Option<ClipboardContext>,
     shutdown_requested: bool,
 }
 
@@ -66,6 +68,13 @@ where
             favicon: None,
             loading_state: None,
             window: window,
+            clipboard_ctx: match ClipboardContext::new() {
+                Ok(c) => Some(c),
+                Err(e) => {
+                    warn!("Error creating clipboard context ({})", e);
+                    None
+                },
+            },
             event_queue: Vec::new(),
             shutdown_requested: false,
         }
@@ -344,6 +353,30 @@ where
                 EmbedderMsg::Keyboard(key_event) => {
                     self.handle_key_from_servo(browser_id, key_event);
                 },
+                EmbedderMsg::GetClipboardContents(sender) => {
+                    let contents = match self.clipboard_ctx {
+                        Some(ref mut ctx) => {
+                            match ctx.get_contents() {
+                                Ok(c) => c,
+                                Err(e) => {
+                                    warn!("Error getting clipboard contents ({}), defaulting to empty string", e);
+                                    "".to_owned()
+                                },
+                            }
+                        },
+                        None => "".to_owned(),
+                    };
+                    if let Err(e) = sender.send(contents) {
+                        warn!("Failed to send clipboard ({})", e);
+                    }
+                }
+                EmbedderMsg::SetClipboardContents(text) => {
+                    if let Some(ref mut ctx) = self.clipboard_ctx {
+                        if let Err(e) = ctx.set_contents(text) {
+                            warn!("Error setting clipboard contents ({})", e);
+                        }
+                    }
+                }
                 EmbedderMsg::SetCursor(cursor) => {
                     self.window.set_cursor(cursor);
                 },

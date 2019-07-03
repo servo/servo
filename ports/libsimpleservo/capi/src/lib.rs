@@ -43,6 +43,8 @@ pub struct CHostCallbacks {
     pub on_animating_changed: extern "C" fn(animating: bool),
     pub on_shutdown_complete: extern "C" fn(),
     pub on_ime_state_changed: extern "C" fn(show: bool),
+    pub get_clipboard_contents: extern "C" fn() -> *const c_char,
+    pub set_clipboard_contents: extern "C" fn(contents: *const c_char),
 }
 
 /// Servo options
@@ -357,5 +359,24 @@ impl HostTrait for HostCallbacks {
     fn on_ime_state_changed(&self, show: bool) {
         debug!("on_ime_state_changed");
         (self.0.on_ime_state_changed)(show);
+    }
+
+    fn get_clipboard_contents(&self) -> Option<String> {
+        debug!("get_clipboard_contents");
+        let raw_contents = (self.0.get_clipboard_contents)();
+        if raw_contents.is_null() {
+            return None;
+        }
+        let c_str = unsafe { CStr::from_ptr(raw_contents) };
+        let contents_str = c_str.to_str().expect("Can't create str");
+        Some(contents_str.to_owned())
+    }
+
+    fn set_clipboard_contents(&self, contents: String) {
+        debug!("set_clipboard_contents");
+        let contents = CString::new(contents).expect("Can't create string");
+        let contents_ptr = contents.as_ptr();
+        mem::forget(contents);
+        (self.0.set_clipboard_contents)(contents_ptr);
     }
 }
