@@ -12,8 +12,10 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
 use crate::dom::bindings::conversions::{
-    ConversionResult, FromJSValConvertible, StringificationBehavior,
+    get_property, get_property_jsval, is_array_like, ConversionBehavior, ConversionResult,
 };
+use crate::dom::bindings::conversions::{FromJSValConvertible, StringificationBehavior};
+use crate::dom::bindings::error::throw_dom_exception;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -31,7 +33,7 @@ use cookie::Cookie;
 use euclid::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::JSContext;
+use js::jsapi::{JSAutoRealm, JSContext};
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use msg::constellation_msg::BrowsingContextId;
@@ -59,9 +61,15 @@ fn find_node_by_unique_id(
 }
 
 #[allow(unsafe_code)]
-pub unsafe fn jsval_to_webdriver(cx: *mut JSContext, val: HandleValue) -> WebDriverJSResult {
+pub unsafe fn jsval_to_webdriver(
+    cx: *mut JSContext,
+    global_scope: &GlobalScope,
+    val: HandleValue,
+) -> WebDriverJSResult {
     if val.get().is_undefined() {
         Ok(WebDriverJSValue::Undefined)
+    } else if val.get().is_null() {
+        Ok(WebDriverJSValue::Null)
     } else if val.get().is_boolean() {
         Ok(WebDriverJSValue::Boolean(val.get().to_boolean()))
     } else if val.get().is_double() || val.get().is_int32() {
@@ -81,8 +89,46 @@ pub unsafe fn jsval_to_webdriver(cx: *mut JSContext, val: HandleValue) -> WebDri
                 _ => unreachable!(),
             };
         Ok(WebDriverJSValue::String(String::from(string)))
-    } else if val.get().is_null() {
-        Ok(WebDriverJSValue::Null)
+    } else if val.get().is_object() {
+        rooted!(in(cx) let object = match FromJSValConvertible::from_jsval(cx, val, ()).unwrap() {
+            ConversionResult::Success(object) => object,
+            _ => unreachable!(),
+        });
+        let _ac = JSAutoRealm::new(cx, *object);
+
+        if !is_array_like(cx, val) {
+            return Err(WebDriverJSError::UnknownType);
+        }
+
+        let mut result: Vec<WebDriverJSValue> = Vec::new();
+
+        let length =
+            match get_property::<u32>(cx, object.handle(), "length", ConversionBehavior::Default) {
+                Ok(length) => match length {
+                    Some(length) => length,
+                    Err(error) => {
+                        throw_dom_exception(cx, global_scope, error);
+                        return Err(WebDriverJSError::UnknownType);
+                    },
+                },
+                _ => return Err(WebDriverJSError::UnknownType),
+            };
+
+        for i in 0..length {
+            rooted!(in(cx) let mut item = UndefinedValue());
+            match get_property_jsval(cx, object.handle(), &i.to_string(), item.handle_mut()) {
+                Ok(_) => match jsval_to_webdriver(cx, global_scope, item.handle()) {
+                    Ok(converted_item) => result.push(converted_item),
+                    Err(error) => {
+                        throw_dom_exception(cx, global_scope, error);
+                        return Err(WebDriverJSError::UnknownType);
+                    },
+                },
+                _ => return Err(WebDriverJSError::UnknownType),
+            }
+        }
+
+        Ok(WebDriverJSValue::ArrayLike(result))
     } else {
         Err(WebDriverJSError::UnknownType)
     }
@@ -102,7 +148,7 @@ pub fn handle_execute_script(
                 window
                     .upcast::<GlobalScope>()
                     .evaluate_js_on_global_with_result(&eval, rval.handle_mut());
-                jsval_to_webdriver(cx, rval.handle())
+                jsval_to_webdriver(cx, &window.upcast::<GlobalScope>(), rval.handle())
             };
 
             reply.send(result).unwrap();

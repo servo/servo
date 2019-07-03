@@ -960,7 +960,7 @@ impl WindowMethods for Window {
 
     #[allow(unsafe_code)]
     unsafe fn WebdriverCallback(&self, cx: *mut JSContext, val: HandleValue) {
-        let rv = jsval_to_webdriver(cx, val);
+        let rv = jsval_to_webdriver(cx, &self.globalscope, val);
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {
             chan.send(rv).unwrap();
