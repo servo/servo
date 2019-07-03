@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootBinding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{self, ShadowRootMode};
 use crate::dom::bindings::inheritance::Castable;
@@ -15,7 +14,7 @@ use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, StyleSheetInDocument};
 use crate::dom::element::Element;
-use crate::dom::node::{Node, NodeDamage, NodeFlags, ShadowIncluding};
+use crate::dom::node::{Node, NodeDamage, NodeFlags, ShadowIncluding, UnbindContext};
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::window::Window;
 use crate::stylesheet_set::StylesheetSetRef;
@@ -82,21 +81,7 @@ impl ShadowRoot {
         self.document.unregister_shadow_root(&self);
         let node = self.upcast::<Node>();
         node.set_containing_shadow_root(None);
-        for child in node.traverse_preorder(ShadowIncluding::No) {
-            if node.RemoveChild(&child).is_err() {
-                warn!("Could not remove shadow root child");
-            }
-        }
-        if self
-            .host
-            .get()
-            .unwrap()
-            .upcast::<Node>()
-            .RemoveChild(&node)
-            .is_err()
-        {
-            warn!("Could not detach shadow root");
-        }
+        Node::complete_remove_subtree(&node, &UnbindContext::new(node, None, None, None));
         self.host.set(None);
     }
 
@@ -240,8 +225,7 @@ impl ShadowRootMethods for ShadowRoot {
     /// https://dom.spec.whatwg.org/#dom-shadowroot-host
     fn Host(&self) -> DomRoot<Element> {
         let host = self.host.get();
-        debug_assert!(host.is_some());
-        host.unwrap()
+        host.expect("Trying to get host from a detached shadow root")
     }
 
     // https://drafts.csswg.org/cssom/#dom-document-stylesheets
@@ -257,7 +241,7 @@ impl ShadowRootMethods for ShadowRoot {
 
 #[allow(unsafe_code)]
 pub trait LayoutShadowRootHelpers {
-    unsafe fn get_host_for_layout(&self) -> Option<LayoutDom<Element>>;
+    unsafe fn get_host_for_layout(&self) -> LayoutDom<Element>;
     unsafe fn get_style_data_for_layout<'a, E: TElement>(
         &self,
     ) -> &'a AuthorStyles<StyleSheetInDocument>;
@@ -272,8 +256,11 @@ pub trait LayoutShadowRootHelpers {
 impl LayoutShadowRootHelpers for LayoutDom<ShadowRoot> {
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn get_host_for_layout(&self) -> Option<LayoutDom<Element>> {
-        (*self.unsafe_get()).host.get_inner_as_layout()
+    unsafe fn get_host_for_layout(&self) -> LayoutDom<Element> {
+        (*self.unsafe_get())
+            .host
+            .get_inner_as_layout()
+            .expect("We should never do layout on a detached shadow root")
     }
 
     #[inline]
