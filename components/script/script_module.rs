@@ -102,11 +102,6 @@ impl FetchResponseListener for ModuleContext {
     fn process_request_eof(&mut self) {} // TODO(cybai): Perhaps add custom steps to perform fetch here?
 
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
-        // https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script
-        // Step 4.
-        let global = self.owner.global();
-        global.set_module_map(self.url.clone(), ModuleObject::Fetching);
-
         self.metadata = metadata.ok().map(|meta| match meta {
             FetchMetadata::Unfiltered(m) => m,
             FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
@@ -125,7 +120,7 @@ impl FetchResponseListener for ModuleContext {
             0 => Err(NetworkError::Internal(
                 "No http status code received".to_owned(),
             )),
-            200...299 => Ok(()), // HTTP ok status codes
+            200..=299 => Ok(()), // HTTP ok status codes
             _ => Err(NetworkError::Internal(format!(
                 "HTTP error code {}",
                 status_code
@@ -335,6 +330,12 @@ pub fn fetch_single_module_script(
     // Step 3.
     if let Some(ModuleObject::Fetched(Some(_))) = module_object {
         return;
+    }
+
+    // Step 4.
+    {
+        let global = owner.global();
+        global.set_module_map(url.clone(), ModuleObject::Fetching);
     }
 
     // Step 5-6.
