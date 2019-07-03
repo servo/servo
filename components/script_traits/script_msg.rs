@@ -173,6 +173,9 @@ pub enum ScriptMsg {
         source: PipelineId,
         /// The expected origin of the target.
         target_origin: Option<ImmutableOrigin>,
+        /// The source origin of the message.
+        /// https://html.spec.whatwg.org/multipage/#dom-messageevent-origin
+        source_origin: ImmutableOrigin,
         /// The data to be posted.
         data: Vec<u8>,
     },

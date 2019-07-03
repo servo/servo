@@ -922,8 +922,10 @@ impl WindowMethods for Window {
 
         let data = StructuredCloneData::write(cx, message, val.handle())?;
 
+        let source_origin = source.Document().origin().immutable().clone();
+
         // Step 9.
-        self.post_message(origin, &*source.window_proxy(), data);
+        self.post_message(origin, source_origin, &*source.window_proxy(), data);
         Ok(())
     }
 
@@ -2253,6 +2255,7 @@ impl Window {
     pub fn post_message(
         &self,
         target_origin: Option<ImmutableOrigin>,
+        source_origin: ImmutableOrigin,
         source: &WindowProxy,
         serialize_with_transfer_result: StructuredCloneData,
     ) {
@@ -2285,7 +2288,7 @@ impl Window {
                     this.upcast(),
                     this.upcast(),
                     message_clone.handle(),
-                    Some(&document.origin().immutable().ascii_serialization()),
+                    Some(&source_origin.ascii_serialization()),
                     Some(&*source),
                     new_ports,
                 );
