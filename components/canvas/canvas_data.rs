@@ -281,92 +281,92 @@ pub trait GenericDrawTarget {
 
 #[derive(Clone)]
 pub enum ExtendMode {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::ExtendMode),
-    #[cfg(feature = "raqote_backend")]
+    #[cfg(feature = "canvas2d-raqote")]
     Raqote(()),
 }
 
 pub enum GradientStop {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::AzGradientStop),
-    #[cfg(feature = "raqote_backend")]
+    #[cfg(feature = "canvas2d-raqote")]
     Raqote(()),
 }
 
 pub enum GradientStops {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::GradientStops),
-    #[cfg(feature = "raqote_backend")]
+    #[cfg(feature = "canvas2d-raqote")]
     Raqote(()),
 }
 
 #[derive(Clone)]
 pub enum Color {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::Color),
-    #[cfg(feature = "raqote_backend")]
+    #[cfg(feature = "canvas2d-raqote")]
     Raqote(()),
 }
 
 #[derive(Clone)]
 pub enum CompositionOp {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::CompositionOp),
-    #[cfg(feature = "raqote_backend")]
+    #[cfg(feature = "canvas2d-raqote")]
     Raqote(()),
 }
 
 pub enum SurfaceFormat {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::SurfaceFormat),
-    #[cfg(feature = "raqote_backend")]
+    #[cfg(feature = "canvas2d-raqote")]
     Raqote(()),
 }
 
 #[derive(Clone)]
 pub enum SourceSurface {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::SourceSurface),
-    #[cfg(feature = "raqote_backend")]
+    #[cfg(feature = "canvas2d-raqote")]
     Raqote(()),
 }
 
 pub enum Path {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::Path),
-    #[cfg(feature = "raqote_backend")]
+    #[cfg(feature = "canvas2d-raqote")]
     Raqote(()),
 }
 
 #[derive(Clone)]
 pub enum Pattern {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::Pattern),
-    #[cfg(feature = "raqote_backend")]
+    #[cfg(feature = "canvas2d-raqote")]
     Raqote(()),
 }
 
 pub enum DrawSurfaceOptions {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::DrawSurfaceOptions),
-    #[cfg(feature = "raqote_backend")]
+    #[cfg(feature = "canvas2d-raqote")]
     Raqote(()),
 }
 
 #[derive(Clone)]
 pub enum DrawOptions {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::DrawOptions),
-    #[cfg(feature = "raqote_backend")]
+    #[cfg(feature = "canvas2d-raqote")]
     Raqote(()),
 }
 
 #[derive(Clone)]
 pub enum StrokeOptions<'a> {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::StrokeOptions<'a>),
-    #[cfg(feature = "raqote_backend")]
+    #[cfg(feature = "canvas2d-raqote")]
     Raqote(PhantomData<&'a ()>),
 }
 
@@ -391,12 +391,12 @@ pub struct CanvasData<'a> {
     pub canvas_id: CanvasId,
 }
 
-#[cfg(feature = "azure_backend")]
+#[cfg(feature = "canvas2d-azure")]
 fn create_backend() -> Box<dyn Backend> {
     Box::new(crate::azure_backend::AzureBackend)
 }
 
-#[cfg(feature = "raqote_backend")]
+#[cfg(feature = "canvas2d-raqote")]
 fn create_backend() -> Box<dyn Backend> {
     Box::new(crate::raqote_backend::RaqoteBackend)
 }

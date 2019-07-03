@@ -6,7 +6,7 @@
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
-#[cfg(all(feature = "unstable", any(target_os = "macos", target_os = "linux")))]
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 #[macro_use]
 extern crate sig;
 
@@ -42,13 +42,10 @@ pub mod platform {
     pub fn deinit() {}
 }
 
-#[cfg(any(
-    not(feature = "unstable"),
-    not(any(target_os = "macos", target_os = "linux"))
-))]
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
 fn install_crash_handler() {}
 
-#[cfg(all(feature = "unstable", any(target_os = "macos", target_os = "linux")))]
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 fn install_crash_handler() {
     use backtrace::Backtrace;
     use libc::_exit;

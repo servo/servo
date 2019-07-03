@@ -236,7 +236,8 @@ class PostBuildCommands(CommandBase):
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to cargo doc")
-    def doc(self, params):
+    @CommandBase.build_like_command_arguments
+    def doc(self, params, **kwargs):
         env = os.environ.copy()
         env["RUSTUP_TOOLCHAIN"] = self.toolchain()
         rustc_path = check_output(["rustup" + BIN_SUFFIX, "which", "rustc"], env=env)
@@ -264,11 +265,7 @@ class PostBuildCommands(CommandBase):
                     else:
                         copy2(full_name, destination)
 
-        params += ["--features", "azure_backend"]
-
-        returncode = self.call_rustup_run(
-            ["cargo", "doc", "--manifest-path", self.ports_glutin_manifest()] + params,
-            env=self.build_env())
+        returncode = self.run_cargo_build_like_command("doc", params, **kwargs)
         if returncode:
             return returncode
 

@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![cfg_attr(feature = "unstable", feature(core_intrinsics))]
-#![cfg_attr(feature = "unstable", feature(on_unimplemented))]
 #![feature(const_fn)]
+#![feature(core_intrinsics)]
 #![feature(drain_filter)]
 #![feature(inner_deref)]
+#![feature(on_unimplemented)]
 #![feature(plugin)]
 #![feature(type_alias_enum_variants)]
 #![deny(unsafe_code)]

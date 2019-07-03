@@ -146,9 +146,6 @@ class MachCommands(CommandBase):
     @Command('build',
              description='Build Servo',
              category='build')
-    @CommandArgument('--target', '-t',
-                     default=None,
-                     help='Cross compile for given target platform')
     @CommandArgument('--release', '-r',
                      action='store_true',
                      help='Build in release mode')
@@ -158,25 +155,9 @@ class MachCommands(CommandBase):
     @CommandArgument('--jobs', '-j',
                      default=None,
                      help='Number of jobs to run in parallel')
-    @CommandArgument('--features',
-                     default=None,
-                     help='Space-separated list of features to also build',
-                     nargs='+')
-    @CommandArgument('--android',
-                     default=None,
-                     action='store_true',
-                     help='Build for Android')
-    @CommandArgument('--magicleap',
-                     default=None,
-                     action='store_true',
-                     help='Build for Magic Leap')
     @CommandArgument('--no-package',
                      action='store_true',
                      help='For Android, disable packaging into a .apk after building')
-    @CommandArgument('--debug-mozjs',
-                     default=None,
-                     action='store_true',
-                     help='Enable debug assertions in mozjs')
     @CommandArgument('--verbose', '-v',
                      action='store_true',
                      help='Print verbose output')
@@ -185,46 +166,14 @@ class MachCommands(CommandBase):
                      help='Print very verbose output')
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
-    @CommandArgument('--with-debug-assertions',
-                     default=None,
-                     action='store_true',
-                     help='Enable debug assertions in release')
-    @CommandArgument('--libsimpleservo',
-                     default=None,
-                     action='store_true',
-                     help='Build the libsimpleservo library instead of the servo executable')
-    @CommandArgument('--with-frame-pointer',
-                     default=None,
-                     action='store_true',
-                     help='Build with frame pointer enabled, used by the background hang monitor.')
-    @CommandArgument('--with-raqote', default=None, action='store_true')
-    @CommandArgument('--without-wgl', default=None, action='store_true')
-    def build(self, target=None, release=False, dev=False, jobs=None,
-              features=None, android=None, magicleap=None, no_package=False, verbose=False, very_verbose=False,
-              debug_mozjs=False, params=None, with_debug_assertions=False,
-              libsimpleservo=False, with_frame_pointer=False, with_raqote=False, without_wgl=False):
-
+    @CommandBase.build_like_command_arguments
+    def build(self, release=False, dev=False, jobs=None, params=None,
+              no_package=False, verbose=False, very_verbose=False,
+              target=None, android=False, magicleap=False, libsimpleservo=False,
+              features=None, **kwargs):
         opts = params or []
-
-        if android is None:
-            android = self.config["build"]["android"]
-        features = features or self.servo_features()
-
-        if target and android:
-            print("Please specify either --target or --android.")
-            sys.exit(1)
-
-        if android:
-            target = self.config["android"]["target"]
-
-        if not magicleap:
-            features += ["native-bluetooth"]
-
-        if magicleap and not target:
-            target = "aarch64-linux-android"
-
-        if target and not android and not magicleap:
-            android = self.handle_android_target(target)
+        features = features or []
+        target, android = self.pick_target_triple(target, android, magicleap)
 
         target_path = base_path = self.get_target_dir()
         if android:
@@ -278,43 +227,12 @@ class MachCommands(CommandBase):
                 check_call(["rustup" + BIN_SUFFIX, "target", "add",
                             "--toolchain", self.toolchain(), target])
 
-            opts += ["--target", target]
-
         env = self.build_env(target=target, is_build=True)
         self.ensure_bootstrapped(target=target)
         self.ensure_clobbered()
 
-        self.add_manifest_path(opts, android, libsimpleservo)
-
-        if debug_mozjs:
-            features += ["debugmozjs"]
-
-        if with_frame_pointer:
-            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C force-frame-pointers=yes"
-            features += ["profilemozjs"]
-
-        if with_raqote:
-            features += ["raqote_backend"]
-
-        if without_wgl:
-            features += ["no_wgl"]
-
-        if self.config["build"]["webgl-backtrace"]:
-            features += ["webgl-backtrace"]
-        if self.config["build"]["dom-backtrace"]:
-            features += ["dom-backtrace"]
-
-        if "raqote_backend" not in features:
-            features += ["azure_backend"]
-
-        if features:
-            opts += ["--features", "%s" % ' '.join(features)]
-
         build_start = time()
         env["CARGO_TARGET_DIR"] = target_path
-
-        if with_debug_assertions:
-            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
 
         host = host_triple()
         if 'apple-darwin' in host and (not target or target == host):
@@ -612,7 +530,13 @@ class MachCommands(CommandBase):
             env.setdefault("CC", "clang")
             env.setdefault("CXX", "clang++")
 
-        status = self.call_rustup_run(["cargo", "build"] + opts, env=env, verbose=verbose)
+        status = self.run_cargo_build_like_command(
+            "build", opts, env=env, verbose=verbose,
+            target=target, android=android, magicleap=magicleap, libsimpleservo=libsimpleservo,
+            features=features, **kwargs
+        )
+        status = 0
+
         elapsed = time() - build_start
 
         # Do some additional things if the build succeeded
@@ -712,14 +636,11 @@ class MachCommands(CommandBase):
             print('Removing virtualenv directory: %s' % virtualenv_path)
             shutil.rmtree(virtualenv_path)
 
-        opts = []
-        if manifest_path:
-            opts += ["--manifest-path", manifest_path]
+        opts = ["--manifest-path", manifest_path or path.join(self.context.topdir, "Cargo.toml")]
         if verbose:
             opts += ["-v"]
         opts += params
-        return check_call(["cargo", "clean"] + opts,
-                          env=self.build_env(), cwd=self.ports_glutin_crate(), verbose=verbose)
+        return check_call(["cargo", "clean"] + opts, env=self.build_env(), verbose=verbose)
 
 
 def package_gstreamer_dlls(servo_exe_dir, target):

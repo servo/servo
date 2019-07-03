@@ -183,9 +183,8 @@ def linux_tidy_unit_docs():
             ./mach build --dev
             ./mach test-unit
             ./mach package --dev
-            ./mach build --dev --features raqote_backend
+            ./mach build --dev --features canvas2d-raqote
             ./mach build --dev --libsimpleservo
-            ./mach build --dev --no-default-features --features default-except-unstable
             ./mach test-tidy --no-progress --self-test
 
             ./etc/memory_reports_over_time.py --test
@@ -194,12 +193,24 @@ def linux_tidy_unit_docs():
             ./etc/ci/check_no_panic.sh
 
             RUSTDOCFLAGS="--disable-minification" ./mach doc
-            cd target/doc
-            git init
-            time git add .
-            git -c user.name="Taskcluster" -c user.email="" \
-                commit -q -m "Rebuild Servo documentation"
-            git bundle create docs.bundle HEAD
+            (
+                cd target/doc
+                git init
+                git add .
+                git -c user.name="Taskcluster" -c user.email="" \
+                    commit -q -m "Rebuild Servo documentation"
+                git bundle create docs.bundle HEAD
+            )
+
+        """
+        # Because `rustdoc` needs metadata of dependency crates,
+        # `cargo doc` does almost all of the work that `cargo check` does.
+        # Therefore, when running them in this order the second command does very little
+        # and should finish quickly.
+        # The reverse order would not increase the total amount of work to do,
+        # but would reduce the amount of parallelism available.
+        """
+            ./mach check
         """)
         .with_artifacts("/repo/target/doc/docs.bundle")
         .find_or_create("docs." + CONFIG.task_id())

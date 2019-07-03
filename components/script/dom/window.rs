@@ -938,10 +938,7 @@ impl WindowMethods for Window {
 
     #[allow(unsafe_code)]
     fn Trap(&self) {
-        #[cfg(feature = "unstable")]
-        unsafe {
-            ::std::intrinsics::breakpoint()
-        }
+        unsafe { ::std::intrinsics::breakpoint() }
     }
 
     #[allow(unsafe_code)]
