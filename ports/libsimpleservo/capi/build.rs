@@ -12,6 +12,7 @@ fn main() {
     cbindgen::Builder::new()
         .with_crate(crate_dir)
         .with_language(cbindgen::Language::C)
+        .exclude_item("OutputDebugStringA")
         .generate()
         .expect("Unable to generate bindings")
         .write_to_file(dest);
