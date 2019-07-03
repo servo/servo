@@ -12,7 +12,10 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
 use crate::dom::bindings::conversions::{
-    get_property_jsval, ConversionResult, FromJSValConvertible, StringificationBehavior,
+    get_property, get_property_jsval, is_array_like, root_from_object,
+};
+use crate::dom::bindings::conversions::{
+    ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
 };
 use crate::dom::bindings::error::throw_dom_exception;
 use crate::dom::bindings::inheritance::Castable;
@@ -29,12 +32,13 @@ use crate::dom::node::{window_from_node, Node, ShadowIncluding};
 use crate::dom::nodelist::NodeList;
 use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::script_thread::Documents;
 use cookie::Cookie;
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::JSContext;
+use js::jsapi::{JSAutoRealm, JSContext};
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use msg::constellation_msg::BrowsingContextId;
@@ -47,6 +51,7 @@ use script_traits::webdriver_msg::{
     WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue,
 };
 use servo_url::ServoUrl;
+use webdriver::common::WebElement;
 
 fn find_node_by_unique_id(
     documents: &Documents,
@@ -106,9 +111,15 @@ fn first_matching_link(
 }
 
 #[allow(unsafe_code)]
-pub unsafe fn jsval_to_webdriver(cx: *mut JSContext, val: HandleValue) -> WebDriverJSResult {
+pub unsafe fn jsval_to_webdriver(
+    cx: *mut JSContext,
+    global_scope: &GlobalScope,
+    val: HandleValue,
+) -> WebDriverJSResult {
     if val.get().is_undefined() {
         Ok(WebDriverJSValue::Undefined)
+    } else if val.get().is_null() {
+        Ok(WebDriverJSValue::Null)
     } else if val.get().is_boolean() {
         Ok(WebDriverJSValue::Boolean(val.get().to_boolean()))
     } else if val.get().is_double() || val.get().is_int32() {
@@ -128,8 +139,52 @@ pub unsafe fn jsval_to_webdriver(cx: *mut JSContext, val: HandleValue) -> WebDri
                 _ => unreachable!(),
             };
         Ok(WebDriverJSValue::String(String::from(string)))
-    } else if val.get().is_null() {
-        Ok(WebDriverJSValue::Null)
+    } else if val.get().is_object() {
+        rooted!(in(cx) let object = match FromJSValConvertible::from_jsval(cx, val, ()).unwrap() {
+            ConversionResult::Success(object) => object,
+            _ => unreachable!(),
+        });
+        let _ac = JSAutoRealm::new(cx, *object);
+
+        if let Ok(element) = root_from_object::<HTMLElement>(*object, cx) {
+            return Ok(WebDriverJSValue::Element(WebElement(
+                element.upcast::<Node>().unique_id(),
+            )));
+        }
+
+        if !is_array_like(cx, val) {
+            return Err(WebDriverJSError::UnknownType);
+        }
+
+        let mut result: Vec<WebDriverJSValue> = Vec::new();
+
+        let length =
+            match get_property::<u32>(cx, object.handle(), "length", ConversionBehavior::Default) {
+                Ok(length) => match length {
+                    Some(length) => length,
+                    _ => return Err(WebDriverJSError::UnknownType),
+                },
+                Err(error) => {
+                    throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, error);
+                    return Err(WebDriverJSError::JSError);
+                },
+            };
+
+        for i in 0..length {
+            rooted!(in(cx) let mut item = UndefinedValue());
+            match get_property_jsval(cx, object.handle(), &i.to_string(), item.handle_mut()) {
+                Ok(_) => match jsval_to_webdriver(cx, global_scope, item.handle()) {
+                    Ok(converted_item) => result.push(converted_item),
+                    err @ Err(_) => return err,
+                },
+                Err(error) => {
+                    throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, error);
+                    return Err(WebDriverJSError::JSError);
+                },
+            }
+        }
+
+        Ok(WebDriverJSValue::ArrayLike(result))
     } else {
         Err(WebDriverJSError::UnknownType)
     }
@@ -149,7 +204,7 @@ pub fn handle_execute_script(
                 window
                     .upcast::<GlobalScope>()
                     .evaluate_js_on_global_with_result(&eval, rval.handle_mut());
-                jsval_to_webdriver(*cx, rval.handle())
+                jsval_to_webdriver(*cx, &window.upcast::<GlobalScope>(), rval.handle())
             };
 
             reply.send(result).unwrap();
@@ -734,7 +789,9 @@ pub fn handle_get_property(
                         property.handle_mut(),
                     )
                 } {
-                    Ok(_) => match unsafe { jsval_to_webdriver(*cx, property.handle()) } {
+                    Ok(_) => match unsafe {
+                        jsval_to_webdriver(*cx, &node.reflector().global(), property.handle())
+                    } {
                         Ok(property) => Ok(property),
                         Err(_) => Ok(WebDriverJSValue::Undefined),
                     },

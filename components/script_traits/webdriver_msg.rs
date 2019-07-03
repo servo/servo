@@ -10,6 +10,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::BrowsingContextId;
 use servo_url::ServoUrl;
+use webdriver::common::WebElement;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverScriptCommand {
@@ -66,13 +67,16 @@ pub enum WebDriverJSValue {
     Null,
     Boolean(bool),
     Number(f64),
-    String(String), // TODO: Object and WebElement
+    String(String),
+    Element(WebElement),
+    ArrayLike(Vec<WebDriverJSValue>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverJSError {
     Timeout,
     UnknownType,
+    JSError,
     /// Occurs when handler received an event message for a layout channel that is not
     /// associated with the current script thread
     BrowsingContextNotFound,

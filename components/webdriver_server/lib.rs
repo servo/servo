@@ -224,6 +224,12 @@ impl Serialize for SendableWebDriverJSValue {
             WebDriverJSValue::Boolean(x) => serializer.serialize_bool(x),
             WebDriverJSValue::Number(x) => serializer.serialize_f64(x),
             WebDriverJSValue::String(ref x) => serializer.serialize_str(&x),
+            WebDriverJSValue::Element(ref x) => x.serialize(serializer),
+            WebDriverJSValue::ArrayLike(ref x) => x
+                .iter()
+                .map(|element| SendableWebDriverJSValue(element.clone()))
+                .collect::<Vec<SendableWebDriverJSValue>>()
+                .serialize(serializer),
         }
     }
 }
@@ -1396,6 +1402,10 @@ impl Handler {
             Err(WebDriverJSError::UnknownType) => Err(WebDriverError::new(
                 ErrorStatus::UnsupportedOperation,
                 "Unsupported return type",
+            )),
+            Err(WebDriverJSError::JSError) => Err(WebDriverError::new(
+                ErrorStatus::JavascriptError,
+                "JS evaluation raised an exception",
             )),
             Err(WebDriverJSError::BrowsingContextNotFound) => Err(WebDriverError::new(
                 ErrorStatus::JavascriptError,

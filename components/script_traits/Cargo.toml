@@ -38,6 +38,7 @@ servo_url = {path = "../url"}
 style_traits = {path = "../style_traits", features = ["servo"]}
 time = "0.1.12"
 url = "1.2"
+webdriver = "0.40"
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr_traits = {path = "../webvr_traits"}
 webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
