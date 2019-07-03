@@ -535,7 +535,6 @@ class MachCommands(CommandBase):
             target=target, android=android, magicleap=magicleap, libsimpleservo=libsimpleservo,
             features=features, **kwargs
         )
-        status = 0
 
         elapsed = time() - build_start
 
