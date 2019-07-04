@@ -30,7 +30,7 @@ from mach.decorators import (
 from mach.registrar import Registrar
 
 from mach_bootstrap import _get_exec_path
-from servo.command_base import CommandBase, cd, call, check_call, BIN_SUFFIX
+from servo.command_base import CommandBase, cd, call, check_call, BIN_SUFFIX, append_to_path_env
 from servo.util import host_triple
 
 
@@ -169,7 +169,7 @@ class MachCommands(CommandBase):
     @CommandBase.build_like_command_arguments
     def build(self, release=False, dev=False, jobs=None, params=None,
               no_package=False, verbose=False, very_verbose=False,
-              target=None, android=False, magicleap=False, libsimpleservo=False,
+              target=None, android=False, magicleap=False, libsimpleservo=False, uwp=False,
               features=None, **kwargs):
         opts = params or []
         features = features or []
@@ -239,6 +239,21 @@ class MachCommands(CommandBase):
             if 'CXXFLAGS' not in env:
                 env['CXXFLAGS'] = ''
             env["CXXFLAGS"] += "-mmacosx-version-min=10.10"
+
+        if uwp:
+            # Don't try and build a desktop port.
+            libsimpleservo = True
+
+            # Ensure that the NuGet ANGLE package containing libEGL is accessible
+            # to the Rust linker.
+            append_to_path_env(
+                path.join(
+                    os.getcwd(), "support", "hololens", "packages",
+                    "ANGLE.WindowsStore.2.1.13", "bin", "UAP", "x64"
+                ),
+                env,
+                "LIB"
+            )
 
         if android:
             if "ANDROID_NDK" not in env:
@@ -532,7 +547,7 @@ class MachCommands(CommandBase):
 
         status = self.run_cargo_build_like_command(
             "build", opts, env=env, verbose=verbose,
-            target=target, android=android, magicleap=magicleap, libsimpleservo=libsimpleservo,
+            target=target, android=android, magicleap=magicleap, libsimpleservo=libsimpleservo, uwp=uwp,
             features=features, **kwargs
         )
 
@@ -584,7 +599,8 @@ class MachCommands(CommandBase):
                     for lib in libs:
                         print("WARNING: could not find " + lib)
 
-                package_generated_shared_libraries(["libEGL.dll"], build_path, servo_exe_dir)
+                if not uwp:
+                    package_generated_shared_libraries(["libEGL.dll"], build_path, servo_exe_dir)
 
                 # copy needed gstreamer DLLs in to servo.exe dir
                 target_triple = target or host_triple()
