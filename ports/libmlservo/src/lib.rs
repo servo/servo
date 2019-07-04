@@ -144,8 +144,8 @@ pub unsafe extern "C" fn init_servo(
         VRInitOptions::None
     } else {
         let name = String::from("Magic Leap VR Display");
-        let (service, heartbeat) =
-            MagicLeapVRService::new(name, ctxt, gl.clone()).expect("Failed to create VR service");
+        let (service, heartbeat) = MagicLeapVRService::new(name, ctxt, gl.gl_wrapper.clone())
+            .expect("Failed to create VR service");
         let service = Box::new(service);
         let heartbeat = Box::new(heartbeat);
         VRInitOptions::VRService(service, heartbeat)
@@ -157,6 +157,8 @@ pub unsafe extern "C" fn init_servo(
         enable_subpixel_text_antialiasing: false,
         vr_init,
         coordinates,
+        gl_context_pointer: Some(gl.gl_context),
+        native_display_pointer: Some(gl.display),
     };
     let wakeup = Box::new(EventLoopWakerInstance);
     let shut_down_complete = Rc::new(Cell::new(false));
@@ -172,7 +174,7 @@ pub unsafe extern "C" fn init_servo(
         keyboard,
     });
     info!("Starting servo");
-    simpleservo::init(opts, gl, wakeup, callbacks).expect("error initializing Servo");
+    simpleservo::init(opts, gl.gl_wrapper, wakeup, callbacks).expect("error initializing Servo");
 
     let result = Box::new(ServoInstance {
         scroll_state: ScrollState::TriggerUp,
