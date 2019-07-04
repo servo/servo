@@ -25,6 +25,7 @@ use servo::servo_url::ServoUrl;
 use servo::webrender_api::{DevicePixel, FramebufferPixel, ScrollLocation};
 use servo::webvr::{VRExternalShmemPtr, VRMainThreadHeartbeat, VRService, VRServiceManager};
 use servo::{self, gl, BrowserId, Servo};
+
 use std::cell::RefCell;
 use std::mem;
 use std::os::raw::c_void;
@@ -118,6 +119,10 @@ pub trait HostTrait {
     fn on_shutdown_complete(&self);
     /// A text input is focused.
     fn on_ime_state_changed(&self, show: bool);
+    /// Gets sytem clipboard contents
+    fn get_clipboard_contents(&self) -> Option<String>;
+    /// Sets system clipboard contents
+    fn set_clipboard_contents(&self, contents: String);
 }
 
 pub struct ServoGlue {
@@ -527,6 +532,13 @@ impl ServoGlue {
                         self.browser_id = Some(new_browser_id);
                     }
                     self.events.push(WindowEvent::SelectBrowser(new_browser_id));
+                },
+                EmbedderMsg::GetClipboardContents(sender) => {
+                    let contents = self.callbacks.host_callbacks.get_clipboard_contents();
+                    let _ = sender.send(contents.unwrap_or("".to_owned()));
+                },
+                EmbedderMsg::SetClipboardContents(text) => {
+                    self.callbacks.host_callbacks.set_clipboard_contents(text);
                 },
                 EmbedderMsg::CloseBrowser => {
                     // TODO: close the appropriate "tab".

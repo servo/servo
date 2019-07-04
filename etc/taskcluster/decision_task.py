@@ -85,7 +85,7 @@ def main(task_for):
         # https://github.com/servo/servo/pull/22597#issuecomment-451518810
         CONFIG.git_sha_is_current_head()
 
-        tidy_untrusted()
+        linux_tidy_unit_untrusted()
 
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":
@@ -158,17 +158,24 @@ windows_sparse_checkout = [
 ]
 
 
-def tidy_untrusted():
+def linux_tidy_unit_untrusted():
     return (
-        decisionlib.DockerWorkerTask("Tidy")
+        decisionlib.DockerWorkerTask("Tidy + dev build + unit tests")
         .with_worker_type("servo-docker-untrusted")
-        .with_treeherder("Linux x64", "Tidy")
+        .with_treeherder("Linux x64", "Tidy+Unit")
         .with_max_run_time_minutes(60)
         .with_dockerfile(dockerfile_path("build"))
         .with_env(**build_env, **unix_build_env, **linux_build_env)
         .with_repo()
         .with_script("""
             ./mach test-tidy --no-progress --all
+            ./mach test-tidy --no-progress --self-test
+            ./mach build --dev
+            ./mach test-unit
+
+            ./etc/ci/lockfile_changed.sh
+            ./etc/memory_reports_over_time.py --test
+            ./etc/ci/check_no_panic.sh
         """)
         .create()
     )
@@ -183,9 +190,8 @@ def linux_tidy_unit_docs():
             ./mach build --dev
             ./mach test-unit
             ./mach package --dev
-            ./mach build --dev --features raqote_backend
+            ./mach build --dev --features canvas2d-raqote
             ./mach build --dev --libsimpleservo
-            ./mach build --dev --no-default-features --features default-except-unstable
             ./mach test-tidy --no-progress --self-test
 
             ./etc/memory_reports_over_time.py --test
@@ -194,12 +200,24 @@ def linux_tidy_unit_docs():
             ./etc/ci/check_no_panic.sh
 
             RUSTDOCFLAGS="--disable-minification" ./mach doc
-            cd target/doc
-            git init
-            time git add .
-            git -c user.name="Taskcluster" -c user.email="" \
-                commit -q -m "Rebuild Servo documentation"
-            git bundle create docs.bundle HEAD
+            (
+                cd target/doc
+                git init
+                git add .
+                git -c user.name="Taskcluster" -c user.email="" \
+                    commit -q -m "Rebuild Servo documentation"
+                git bundle create docs.bundle HEAD
+            )
+
+        """
+        # Because `rustdoc` needs metadata of dependency crates,
+        # `cargo doc` does almost all of the work that `cargo check` does.
+        # Therefore, when running them in this order the second command does very little
+        # and should finish quickly.
+        # The reverse order would not increase the total amount of work to do,
+        # but would reduce the amount of parallelism available.
+        """
+            ./mach check
         """)
         .with_artifacts("/repo/target/doc/docs.bundle")
         .find_or_create("docs." + CONFIG.task_id())

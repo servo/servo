@@ -285,6 +285,14 @@ where
         // can't defer it after `create_constellation` has started.
         script::init();
 
+        // For the moment, we enable use both the webxr crate and the rust-webvr crate,
+        // but we are migrating over to just using webxr.
+        let mut webxr_registry =
+            webxr_api::Registry::new().expect("Failed to create WebXR device registry");
+        if pref!(dom.webvr.enabled) || pref!(dom.webxr.enabled) {
+            embedder.register_webxr(&mut webxr_registry);
+        }
+
         let mut webvr_heartbeats = Vec::new();
         let webvr_services = if pref!(dom.webvr.enabled) || pref!(dom.webxr.enabled) {
             let mut services = VRServiceManager::new();
@@ -312,6 +320,7 @@ where
             webrender_api_sender,
             window.gl(),
             webvr_services,
+            webxr_registry,
         );
 
         // Send the constellation's swmanager sender to service worker manager thread
@@ -621,6 +630,7 @@ fn create_constellation(
     webrender_api_sender: webrender_api::RenderApiSender,
     window_gl: Rc<dyn gl::Gl>,
     webvr_services: Option<VRServiceManager>,
+    webxr_registry: webxr_api::Registry,
 ) -> (Sender<ConstellationMsg>, SWManagerSenders) {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
@@ -701,6 +711,7 @@ fn create_constellation(
         webrender_api_sender,
         webgl_threads,
         webvr_chan,
+        webxr_registry,
     };
     let (constellation_chan, from_swmanager_sender) = Constellation::<
         script_layout_interface::message::Msg,

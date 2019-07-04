@@ -31,7 +31,14 @@ from servo.util import get_static_rust_lang_org_dist, get_urlopen_kwargs
 
 @CommandProvider
 class MachCommands(CommandBase):
-    def run_cargo(self, params, check=False):
+    @Command('check',
+             description='Run "cargo check"',
+             category='devenv')
+    @CommandArgument(
+        'params', default=None, nargs='...',
+        help="Command-line arguments to be passed through to cargo check")
+    @CommandBase.build_like_command_arguments
+    def check(self, params, **kwargs):
         if not params:
             params = []
 
@@ -39,39 +46,16 @@ class MachCommands(CommandBase):
         self.ensure_clobbered()
         env = self.build_env()
 
-        if check:
-            params = ['check'] + params
-
-        self.add_manifest_path(params)
-
         build_start = time()
-        status = self.call_rustup_run(["cargo"] + params, env=env)
+        status = self.run_cargo_build_like_command("check", params, env=env, **kwargs)
         elapsed = time() - build_start
 
         notify_build_done(self.config, elapsed, status == 0)
 
-        if check and status == 0:
+        if status == 0:
             print('Finished checking, binary NOT updated. Consider ./mach build before ./mach run')
 
         return status
-
-    @Command('cargo',
-             description='Run Cargo',
-             category='devenv')
-    @CommandArgument(
-        'params', default=None, nargs='...',
-        help="Command-line arguments to be passed through to Cargo")
-    def cargo(self, params):
-        return self.run_cargo(params)
-
-    @Command('check',
-             description='Run "cargo check"',
-             category='devenv')
-    @CommandArgument(
-        'params', default=None, nargs='...',
-        help="Command-line arguments to be passed through to cargo check")
-    def check(self, params):
-        return self.run_cargo(params, check=True)
 
     @Command('cargo-update',
              description='Same as update-cargo',

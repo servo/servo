@@ -11,8 +11,8 @@ name = "constellation"
 path = "lib.rs"
 
 [features]
-azure_backend = ["canvas/azure_backend"]
-raqote_backend = ["canvas/raqote_backend"]
+canvas2d-azure = ["canvas/canvas2d-azure"]
+canvas2d-raqote = ["canvas/canvas2d-raqote"]
 no_wgl = ["canvas/no_wgl"]
 
 [dependencies]
@@ -50,6 +50,7 @@ servo_remutex = {path = "../remutex"}
 servo_url = {path = "../url"}
 webvr_traits = {path = "../webvr_traits"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_arch="arm"), not(target_arch="aarch64")))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}

@@ -3,7 +3,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
-<script>
+<script type="module">
   import { getOppositeOrientation } from "/screen-orientation/resources/orientation-utils.js";
   promise_test(async t => {
     await test_driver.bless("request full screen", () => {
@@ -15,10 +15,10 @@
     // This one resolves, because we are re-locking.
     const pMustResolve = new Promise(r => {
       screen.orientation.onchange = () => {
-        r(orientation.lock("any"));
+        r(screen.orientation.lock("any"));
       };
     });
-    await promise_rejects(t, new TypeError(), pMustReject);
+    await promise_rejects(t, "AbortError", pMustReject);
     await pMustResolve;
     screen.orientation.unlock();
     return document.exitFullscreen();

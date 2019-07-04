@@ -143,6 +143,9 @@ dictionary RTCMediaSourceStats : RTCStats {
 };
 
 dictionary RTCAudioSourceStats : RTCMediaSourceStats {
+              double audioLevel;
+              double totalAudioEnergy;
+              double totalSamplesDuration;
 };
 
 dictionary RTCVideoSourceStats : RTCMediaSourceStats {
@@ -207,10 +210,7 @@ dictionary RTCVideoReceiverStats : RTCVideoHandlerStats {
 };
 
 dictionary RTCAudioHandlerStats : RTCMediaHandlerStats {
-             double audioLevel;
-             double totalAudioEnergy;
              boolean voiceActivityFlag;
-             double totalSamplesDuration;
 };
 
 dictionary RTCAudioSenderStats : RTCAudioHandlerStats {
@@ -233,6 +233,9 @@ dictionary RTCAudioReceiverStats : RTCAudioHandlerStats {
              unsigned long long concealmentEvents;
              unsigned long long insertedSamplesForDeceleration;
              unsigned long long removedSamplesForAcceleration;
+             double audioLevel;
+             double totalAudioEnergy;
+             double totalSamplesDuration;
 };
 
 dictionary RTCDataChannelStats : RTCStats {
@@ -359,6 +362,12 @@ partial dictionary RTCRtpStreamStats {
 
 partial dictionary RTCInboundRtpStreamStats {
           double fractionLost;
+};
+
+partial dictionary RTCAudioHandlerStats {
+            double audioLevel;
+            double totalAudioEnergy;
+            double totalSamplesDuration;
 };
 
 partial dictionary RTCVideoSenderStats {

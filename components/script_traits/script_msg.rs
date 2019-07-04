@@ -121,8 +121,6 @@ pub enum ScriptMsg {
     CreateCanvasPaintThread(Size2D<u64>, IpcSender<(IpcSender<CanvasMsg>, CanvasId)>),
     /// Notifies the constellation that this frame has received focus.
     Focus,
-    /// Requests that the constellation retrieve the current contents of the clipboard
-    GetClipboardContents(IpcSender<String>),
     /// Get the top-level browsing context info for a given browsing context.
     GetTopForBrowsingContext(
         BrowsingContextId,
@@ -183,8 +181,6 @@ pub enum ScriptMsg {
         AuxiliaryBrowsingContextLoadInfo,
         IpcSender<LayoutControlMsg>,
     ),
-    /// Requests that the constellation set the contents of the clipboard
-    SetClipboardContents(String),
     /// Mark a new document as active
     ActivateDocument,
     /// Set the document state for a pipeline (used by screenshot / reftests)
@@ -224,7 +220,6 @@ impl fmt::Debug for ScriptMsg {
             ChangeRunningAnimationsState(..) => "ChangeRunningAnimationsState",
             CreateCanvasPaintThread(..) => "CreateCanvasPaintThread",
             Focus => "Focus",
-            GetClipboardContents(..) => "GetClipboardContents",
             GetBrowsingContextInfo(..) => "GetBrowsingContextInfo",
             GetTopForBrowsingContext(..) => "GetParentBrowsingContext",
             GetChildBrowsingContextId(..) => "GetChildBrowsingContextId",
@@ -242,7 +237,6 @@ impl fmt::Debug for ScriptMsg {
             ScriptLoadedURLInIFrame(..) => "ScriptLoadedURLInIFrame",
             ScriptNewIFrame(..) => "ScriptNewIFrame",
             ScriptNewAuxiliary(..) => "ScriptNewAuxiliary",
-            SetClipboardContents(..) => "SetClipboardContents",
             ActivateDocument => "ActivateDocument",
             SetDocumentState(..) => "SetDocumentState",
             SetFinalUrl(..) => "SetFinalUrl",

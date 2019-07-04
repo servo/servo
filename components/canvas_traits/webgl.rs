@@ -4,6 +4,8 @@
 
 use euclid::{Rect, Size2D};
 use gleam::gl;
+use gleam::gl::GLsync;
+use gleam::gl::GLuint;
 use gleam::gl::Gl;
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory};
 use pixels::PixelFormat;
@@ -172,6 +174,24 @@ impl WebGLMsgSender {
 
     pub fn send_dom_to_texture(&self, command: DOMToTextureCommand) -> WebGLSendResult {
         self.sender.send(WebGLMsg::DOMToTextureCommand(command))
+    }
+}
+
+#[typetag::serde]
+impl webxr_api::WebGLExternalImageApi for WebGLMsgSender {
+    fn lock(&self) -> Result<(GLuint, Size2D<i32>, GLsync), webxr_api::Error> {
+        let (sender, receiver) = webgl_channel().or(Err(webxr_api::Error::CommunicationError))?;
+        self.sender
+            .send(WebGLMsg::Lock(self.ctx_id, sender))
+            .or(Err(webxr_api::Error::CommunicationError))?;
+        let (texture, size, sync) = receiver
+            .recv()
+            .or(Err(webxr_api::Error::CommunicationError))?;
+        Ok((texture, size, sync as GLsync))
+    }
+
+    fn unlock(&self) {
+        let _ = self.sender.send(WebGLMsg::Unlock(self.ctx_id));
     }
 }
 

@@ -13,13 +13,14 @@ test = false
 bench = false
 
 [features]
-azure_backend = ["simpleservo/azure_backend"]
-raqote_backend = ["simpleservo/raqote_backend"]
+canvas2d-azure = ["simpleservo/canvas2d-azure"]
+canvas2d-raqote = ["simpleservo/canvas2d-raqote"]
+egl = ["simpleservo/egl"]
 
 [dependencies]
 libservo = { path = "../../components/servo", features = ["no_static_freetype"] }
 simpleservo = { path = "../libsimpleservo/api", features = ["no_static_freetype"] }
-rust-webvr = { version = "0.12", features = ["magicleap"] }
+rust-webvr = { version = "0.13", features = ["magicleap"] }
 libc = "0.2"
 log = "0.4"
 servo-egl = "0.2"

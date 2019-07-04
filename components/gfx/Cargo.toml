@@ -13,9 +13,6 @@ path = "lib.rs"
 test = false
 doctest = false
 
-[features]
-unstable = ["packed_simd"]
-
 [dependencies]
 app_units = "0.7"
 bitflags = "1.0"
@@ -31,7 +28,7 @@ log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
 net_traits = {path = "../net_traits"}
 ordered-float = "1.0"
-packed_simd = {version = "0.3", optional = true}
+packed_simd = "0.3"
 range = {path = "../range"}
 serde = "1.0"
 servo_arc = {path = "../servo_arc"}

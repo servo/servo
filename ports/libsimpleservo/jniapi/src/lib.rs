@@ -476,6 +476,12 @@ impl HostTrait for HostCallbacks {
     }
 
     fn on_ime_state_changed(&self, _show: bool) {}
+
+    fn get_clipboard_contents(&self) -> Option<String> {
+        None
+    }
+
+    fn set_clipboard_contents(&self, _contents: String) {}
 }
 
 fn initialize_android_glue(env: &JNIEnv, activity: JObject) {

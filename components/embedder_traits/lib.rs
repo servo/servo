@@ -132,6 +132,10 @@ pub enum EmbedderMsg {
     AllowUnload(IpcSender<bool>),
     /// Sends an unconsumed key event back to the embedder.
     Keyboard(KeyboardEvent),
+    /// Gets system clipboard contents
+    GetClipboardContents(IpcSender<String>),
+    /// Sets system clipboard contents
+    SetClipboardContents(String),
     /// Changes the cursor.
     SetCursor(Cursor),
     /// A favicon was detected
@@ -175,6 +179,8 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::AllowUnload(..) => write!(f, "AllowUnload"),
             EmbedderMsg::AllowNavigationRequest(..) => write!(f, "AllowNavigationRequest"),
             EmbedderMsg::Keyboard(..) => write!(f, "Keyboard"),
+            EmbedderMsg::GetClipboardContents(..) => write!(f, "GetClipboardContents"),
+            EmbedderMsg::SetClipboardContents(..) => write!(f, "SetClipboardContents"),
             EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
             EmbedderMsg::NewFavicon(..) => write!(f, "NewFavicon"),
             EmbedderMsg::HeadParsed => write!(f, "HeadParsed"),

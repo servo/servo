@@ -11,7 +11,6 @@ mod webvr_traits;
 
 pub use crate::webvr_traits::{WebVRMsg, WebVRResult};
 pub use rust_webvr_api as webvr;
-pub use rust_webvr_api::MockVRControlMsg;
 pub use rust_webvr_api::VRDisplayCapabilities as WebVRDisplayCapabilities;
 pub use rust_webvr_api::VRDisplayData as WebVRDisplayData;
 pub use rust_webvr_api::VRDisplayEvent as WebVRDisplayEvent;
@@ -31,6 +30,7 @@ pub use rust_webvr_api::VRLayer as WebVRLayer;
 pub use rust_webvr_api::VRMainThreadHeartbeat as WebVRMainThreadHeartbeat;
 pub use rust_webvr_api::VRPose as WebVRPose;
 pub use rust_webvr_api::VRStageParameters as WebVRStageParameters;
+pub use rust_webvr_api::{MockVRControlMsg, MockVRInit, MockVRView};
 
 #[derive(Deserialize, Serialize)]
 pub struct WebVRPoseInformation {

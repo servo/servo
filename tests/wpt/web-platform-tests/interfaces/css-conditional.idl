@@ -8,13 +8,6 @@ partial interface CSSRule {
 };
 
 [Exposed=Window]
-interface CSSGroupingRule : CSSRule {
-    readonly attribute CSSRuleList cssRules;
-    unsigned long insertRule (CSSOMString rule, unsigned long index);
-    void deleteRule (unsigned long index);
-};
-
-[Exposed=Window]
 interface CSSConditionRule : CSSGroupingRule {
     attribute CSSOMString conditionText;
 };
