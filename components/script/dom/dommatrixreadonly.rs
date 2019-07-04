@@ -287,22 +287,25 @@ impl DOMMatrixReadOnly {
         }
         if rotZ != 0.0 {
             // Step 5.
+            // Beware: pass negated value until https://github.com/servo/euclid/issues/354
             let rotation =
-                Transform3D::create_rotation(0.0, 0.0, 1.0, Angle::radians(rotZ.to_radians()));
+                Transform3D::create_rotation(0.0, 0.0, -1.0, Angle::radians(rotZ.to_radians()));
             let mut matrix = self.matrix.borrow_mut();
             *matrix = rotation.post_mul(&matrix);
         }
         if rotY != 0.0 {
             // Step 6.
+            // Beware: pass negated value until https://github.com/servo/euclid/issues/354
             let rotation =
-                Transform3D::create_rotation(0.0, 1.0, 0.0, Angle::radians(rotY.to_radians()));
+                Transform3D::create_rotation(0.0, -1.0, 0.0, Angle::radians(rotY.to_radians()));
             let mut matrix = self.matrix.borrow_mut();
             *matrix = rotation.post_mul(&matrix);
         }
         if rotX != 0.0 {
             // Step 7.
+            // Beware: pass negated value until https://github.com/servo/euclid/issues/354
             let rotation =
-                Transform3D::create_rotation(1.0, 0.0, 0.0, Angle::radians(rotX.to_radians()));
+                Transform3D::create_rotation(-1.0, 0.0, 0.0, Angle::radians(rotX.to_radians()));
             let mut matrix = self.matrix.borrow_mut();
             *matrix = rotation.post_mul(&matrix);
         }
@@ -315,7 +318,8 @@ impl DOMMatrixReadOnly {
         if y != 0.0 || x < 0.0 {
             // Step 1.
             let rotZ = Angle::radians(f64::atan2(y, x));
-            let rotation = Transform3D::create_rotation(0.0, 0.0, 1.0, rotZ);
+            // Beware: pass negated value until https://github.com/servo/euclid/issues/354
+            let rotation = Transform3D::create_rotation(0.0, 0.0, -1.0, rotZ);
             let mut matrix = self.matrix.borrow_mut();
             *matrix = rotation.post_mul(&matrix);
         }
@@ -326,10 +330,11 @@ impl DOMMatrixReadOnly {
     pub fn rotate_axis_angle_self(&self, x: f64, y: f64, z: f64, angle: f64) {
         // Step 1.
         let (norm_x, norm_y, norm_z) = normalize_point(x, y, z);
+        // Beware: pass negated value until https://github.com/servo/euclid/issues/354
         let rotation = Transform3D::create_rotation(
-            norm_x,
-            norm_y,
-            norm_z,
+            -norm_x,
+            -norm_y,
+            -norm_z,
             Angle::radians(angle.to_radians()),
         );
         let mut matrix = self.matrix.borrow_mut();
