@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::MediaQueryListBinding::MediaQueryLi
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
-    self, FrameRequestCallback, WindowMethods,
+    self, FrameRequestCallback, WindowMethods, WindowPostMessageOptions,
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use crate::dom::bindings::codegen::UnionTypes::RequestOrUSVString;
@@ -78,7 +78,7 @@ use embedder_traits::EmbedderMsg;
 use euclid::{Point2D, Rect, Size2D, TypedPoint2D, TypedScale, TypedSize2D, Vector2D};
 use ipc_channel::ipc::{channel, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::jsapi::{GCReason, JSAutoRealm, JSContext, JSObject, JSPROP_ENUMERATE, JS_GC};
+use js::jsapi::{GCReason, Heap, JSAutoRealm, JSContext, JSObject, JSPROP_ENUMERATE, JS_GC};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::JS_DefineProperty;
 use js::rust::{CustomAutoRooterGuard, HandleValue};
@@ -919,6 +919,48 @@ impl WindowMethods for Window {
             .as_ref()
             .unwrap_or(&Vec::new())
             .to_jsval(cx, val.handle_mut());
+
+        let data = StructuredCloneData::write(cx, message, val.handle())?;
+
+        let source_origin = source.Document().origin().immutable().clone();
+
+        // Step 9.
+        self.post_message(origin, source_origin, &*source.window_proxy(), data);
+        Ok(())
+    }
+
+    #[allow(unsafe_code)]
+    /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
+    unsafe fn PostMessage_(
+        &self,
+        cx: *mut JSContext,
+        message: HandleValue,
+        options: RootedTraceableBox<WindowPostMessageOptions>,
+    ) -> ErrorResult {
+        let source_global = GlobalScope::incumbent().expect("no incumbent global??");
+        let source = source_global.as_window();
+
+        let transfer: Vec<*mut JSObject> = options
+            .transfer
+            .iter()
+            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+            .collect();
+        // Step 3-5.
+        let origin = match &options.targetOrigin {
+            Some(origin) => match origin.0[..].as_ref() {
+                "*" => None,
+                "/" => Some(source.Document().origin().immutable().clone()),
+                url => match ServoUrl::parse(&url) {
+                    Ok(url) => Some(url.origin().clone()),
+                    Err(_) => return Err(Error::Syntax),
+                },
+            },
+            None => Some(source.Document().origin().immutable().clone()),
+        };
+
+        // Step 1-2, 6-8.
+        rooted!(in(cx) let mut val = UndefinedValue());
+        transfer.to_jsval(cx, val.handle_mut());
 
         let data = StructuredCloneData::write(cx, message, val.handle())?;
 
