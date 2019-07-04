@@ -8,10 +8,15 @@
 
 [Exposed=(Window,Worker)]
 interface MessagePort : EventTarget {
-  [Throws] void postMessage(any message, optional sequence<object> transfer /*= []*/);
+  [Throws] void postMessage(any message, sequence<object> transfer /*= []*/);
+  [Throws] void postMessage(any message, optional PostMessageOptions options);
   void start();
   void close();
 
   // event handlers
   attribute EventHandler onmessage;
+};
+
+dictionary PostMessageOptions {
+  sequence<object> transfer = [];
 };

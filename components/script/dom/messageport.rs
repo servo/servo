@@ -3,7 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
-use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{MessagePortMethods, Wrap};
+use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{
+    MessagePortMethods, PostMessageOptions, Wrap,
+};
 use crate::dom::bindings::conversions::{root_from_object, ToJSValConvertible};
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::{Castable, HasParent};
@@ -11,13 +13,14 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone::{StructuredCloneData, StructuredCloneHolder};
-use crate::dom::bindings::trace::JSTraceable;
+use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::task_source::TaskSource;
 use ipc_channel::ipc::IpcSender;
+use js::jsapi::Heap;
 use js::jsapi::{JSContext, JSObject, JSStructuredCloneReader, JSTracer, MutableHandleObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooterGuard, HandleValue};
@@ -262,6 +265,66 @@ impl MessagePort {
             );
         }
     }
+
+    #[allow(unsafe_code)]
+    fn post_message_impl(
+        &self,
+        cx: *mut JSContext,
+        message: HandleValue,
+        transfer: Vec<*mut JSObject>,
+    ) -> ErrorResult {
+        if self.detached.get() {
+            return Ok(());
+        }
+        // Step 1
+        let target_port = self.entangled_port.borrow();
+
+        // Step 3
+        let mut doomed = false;
+
+        rooted!(in(cx) let mut val = UndefinedValue());
+        let ports = transfer
+            .iter()
+            .filter_map(|&obj| root_from_object::<MessagePort>(obj, cx).ok());
+        for port in ports {
+            // Step 2
+            if port.message_port_id() == self.message_port_id() {
+                return Err(Error::DataClone);
+            }
+
+            // Step 4
+            if let Some(target_id) = target_port.as_ref() {
+                if port.message_port_id() == target_id {
+                    doomed = true;
+                }
+            }
+        }
+
+        unsafe { transfer.to_jsval(cx, val.handle_mut()) };
+
+        // Step 5
+        let data = StructuredCloneData::write(cx, message, val.handle())?.move_to_arraybuffer();
+
+        if doomed {
+            return Ok(());
+        }
+
+        // Step 6
+        if target_port.is_none() {
+            // TODO: find a way to deal with target_port being none
+            // because we haven't complete the transfer.
+            // One way would be to transfer the entangled port ID along with our own ID.
+        }
+
+        // Step 7
+        let task = PortMessageTask {
+            origin: self.global().origin().immutable().ascii_serialization(),
+            data,
+        };
+
+        self.post_message(task);
+        Ok(())
+    }
 }
 
 impl Transferable for MessagePort {
@@ -385,71 +448,26 @@ impl MessagePortMethods for MessagePort {
         &self,
         cx: *mut JSContext,
         message: HandleValue,
-        transfer: CustomAutoRooterGuard<Option<Vec<*mut JSObject>>>,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
-        if self.detached.get() {
-            return Ok(());
-        }
-        // Step 1
-        let target_port = self.entangled_port.borrow();
+        self.post_message_impl(cx, message, transfer.to_vec())
+    }
 
-        // Step 3
-        let mut doomed = false;
-
-        rooted!(in(cx) let mut val = UndefinedValue());
-        let transfer = match *transfer {
-            Some(ref vec) => {
-                let ports = vec
-                    .iter()
-                    .filter_map(|&obj| root_from_object::<MessagePort>(obj, cx).ok());
-
-                for port in ports {
-                    // Step 2
-                    if port.message_port_id() == self.message_port_id() {
-                        return Err(Error::DataClone);
-                    }
-
-                    // Step 4
-                    if let Some(target_id) = target_port.as_ref() {
-                        if port.message_port_id() == target_id {
-                            doomed = true;
-                        }
-                    }
-                }
-
-                vec.to_jsval(cx, val.handle_mut());
-                val
-            },
-            None => {
-                Vec::<*mut JSObject>::new().to_jsval(cx, val.handle_mut());
-                val
-            },
-        };
-
-        // Step 5
-        let data =
-            StructuredCloneData::write(cx, message, transfer.handle())?.move_to_arraybuffer();
-
-        if doomed {
-            return Ok(());
-        }
-
-        // Step 6
-        if target_port.is_none() {
-            // TODO: find a way to deal with target_port being none
-            // because we haven't complete the transfer.
-            // One way would be to transfer the entangled port ID along with our own ID.
-        }
-
-        // Step 7
-        let task = PortMessageTask {
-            origin: self.global().origin().immutable().ascii_serialization(),
-            data,
-        };
-
-        self.post_message(task);
-
-        Ok(())
+    #[allow(unsafe_code)]
+    /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
+    unsafe fn PostMessage_(
+        &self,
+        cx: *mut JSContext,
+        message: HandleValue,
+        options: RootedTraceableBox<PostMessageOptions>,
+    ) -> ErrorResult {
+        //let transfer:
+        let transfer: Vec<*mut JSObject> = options
+            .transfer
+            .iter()
+            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+            .collect();
+        self.post_message_impl(cx, message, transfer)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-start>
