@@ -143,71 +143,71 @@ impl Path {
 }
 
 impl GenericDrawTarget for raqote::DrawTarget {
-    fn clear_rect(&self, rect: &Rect<f32>) {
+    fn clear_rect(&self, _rect: &Rect<f32>) {
         unimplemented!();
     }
     fn copy_surface(
         &mut self,
-        surface: SourceSurface,
-        source: Rect<i32>,
-        destination: Point2D<i32>,
+        _surface: SourceSurface,
+        _source: Rect<i32>,
+        _destination: Point2D<i32>,
     ) {
         unimplemented!();
     }
     fn create_gradient_stops(
         &self,
-        gradient_stops: Vec<GradientStop>,
-        extend_mode: ExtendMode,
+        _gradient_stops: Vec<GradientStop>,
+        _extend_mode: ExtendMode,
     ) -> GradientStops {
         unimplemented!();
     }
     fn create_path_builder(&self) -> Box<GenericPathBuilder> {
-        unimplemented!();
+        Box::new(PathBuilder::new())
     }
     fn create_similar_draw_target(
         &self,
-        size: &Size2D<i32>,
-        format: SurfaceFormat,
+        _size: &Size2D<i32>,
+        _format: SurfaceFormat,
     ) -> Box<GenericDrawTarget> {
         unimplemented!();
     }
     fn create_source_surface_from_data(
         &self,
-        data: &[u8],
-        size: Size2D<i32>,
-        stride: i32,
+        _data: &[u8],
+        _size: Size2D<i32>,
+        _stride: i32,
     ) -> Option<SourceSurface> {
         unimplemented!();
     }
     fn draw_surface(
         &self,
-        surface: SourceSurface,
-        dest: Rect<f64>,
-        source: Rect<f64>,
-        filter: Filter,
-        draw_options: &DrawOptions,
+        _surface: SourceSurface,
+        _dest: Rect<f64>,
+        _source: Rect<f64>,
+        _filter: Filter,
+        _draw_options: &DrawOptions,
     ) {
         unimplemented!();
     }
     fn draw_surface_with_shadow(
         &self,
-        surface: SourceSurface,
-        dest: &Point2D<f32>,
-        color: &Color,
-        offset: &Vector2D<f32>,
-        sigma: f32,
-        operator: CompositionOp,
+        _surface: SourceSurface,
+        _dest: &Point2D<f32>,
+        _color: &Color,
+        _offset: &Vector2D<f32>,
+        _sigma: f32,
+        _operator: CompositionOp,
     ) {
         unimplemented!();
     }
-    fn fill(&mut self, path: &Path, pattern: Pattern, draw_options: &DrawOptions) {
+    fn fill(&mut self, _path: &Path, _pattern: Pattern, _draw_options: &DrawOptions) {
         unimplemented!();
     }
     fn fill_rect(
         &mut self,
-        rect: &Rect<f32>,
-        pattern: Pattern,
-        draw_options: Option<&DrawOptions>,
+        _rect: &Rect<f32>,
+        _pattern: Pattern,
+        _draw_options: Option<&DrawOptions>,
     ) {
         unimplemented!();
     }
@@ -223,10 +223,10 @@ impl GenericDrawTarget for raqote::DrawTarget {
     fn pop_clip(&mut self) {
         unimplemented!();
     }
-    fn push_clip(&mut self, path: &Path) {
+    fn push_clip(&mut self, _path: &Path) {
         unimplemented!();
     }
-    fn set_transform(&mut self, matrix: &Transform2D<f32>) {
+    fn set_transform(&mut self, _matrix: &Transform2D<f32>) {
         unimplemented!();
     }
     fn snapshot(&self) -> SourceSurface {
@@ -234,33 +234,33 @@ impl GenericDrawTarget for raqote::DrawTarget {
     }
     fn stroke(
         &mut self,
-        path: &Path,
-        pattern: Pattern,
-        stroke_options: &StrokeOptions,
-        draw_options: &DrawOptions,
+        _path: &Path,
+        _pattern: Pattern,
+        _stroke_options: &StrokeOptions,
+        _draw_options: &DrawOptions,
     ) {
         unimplemented!();
     }
     fn stroke_line(
         &mut self,
-        start: Point2D<f32>,
-        end: Point2D<f32>,
-        pattern: Pattern,
-        stroke_options: &StrokeOptions,
-        draw_options: &DrawOptions,
+        _start: Point2D<f32>,
+        _end: Point2D<f32>,
+        _pattern: Pattern,
+        _stroke_options: &StrokeOptions,
+        _draw_options: &DrawOptions,
     ) {
         unimplemented!();
     }
     fn stroke_rect(
         &mut self,
-        rect: &Rect<f32>,
-        pattern: Pattern,
-        stroke_options: &StrokeOptions,
-        draw_options: &DrawOptions,
+        _rect: &Rect<f32>,
+        _pattern: Pattern,
+        _stroke_options: &StrokeOptions,
+        _draw_options: &DrawOptions,
     ) {
         unimplemented!();
     }
-    fn snapshot_data(&self, f: &Fn(&[u8]) -> Vec<u8>) -> Vec<u8> {
+    fn snapshot_data(&self, _f: &Fn(&[u8]) -> Vec<u8>) -> Vec<u8> {
         unimplemented!();
     }
     fn snapshot_data_owned(&self) -> Vec<u8> {
@@ -268,16 +268,24 @@ impl GenericDrawTarget for raqote::DrawTarget {
     }
 }
 
-impl GenericPathBuilder for raqote::PathBuilder {
+struct PathBuilder(Option<raqote::PathBuilder>);
+
+impl PathBuilder {
+    fn new() -> PathBuilder {
+        PathBuilder(Some(raqote::PathBuilder::new()))
+    }
+}
+
+impl GenericPathBuilder for PathBuilder {
     fn arc(
         &mut self,
         origin: Point2D<f32>,
         radius: f32,
         start_angle: f32,
         end_angle: f32,
-        anticlockwise: bool,
+        _anticlockwise: bool,
     ) {
-        self.arc(origin.x, origin.y, radius, start_angle, end_angle);
+        self.0.as_mut().unwrap().arc(origin.x, origin.y, radius, start_angle, end_angle);
     }
     fn bezier_curve_to(
         &mut self,
@@ -285,7 +293,7 @@ impl GenericPathBuilder for raqote::PathBuilder {
         control_point2: &Point2D<f32>,
         control_point3: &Point2D<f32>,
     ) {
-        self.cubic_to(
+        self.0.as_mut().unwrap().cubic_to(
             control_point1.x,
             control_point1.y,
             control_point2.x,
@@ -295,17 +303,17 @@ impl GenericPathBuilder for raqote::PathBuilder {
         );
     }
     fn close(&mut self) {
-        self.close();
+        self.0.as_mut().unwrap().close();
     }
     fn ellipse(
         &mut self,
-        origin: Point2D<f32>,
-        radius_x: f32,
-        radius_y: f32,
-        rotation_angle: f32,
-        start_angle: f32,
-        end_angle: f32,
-        anticlockwise: bool,
+        _origin: Point2D<f32>,
+        _radius_x: f32,
+        _radius_y: f32,
+        _rotation_angle: f32,
+        _start_angle: f32,
+        _end_angle: f32,
+        _anticlockwise: bool,
     ) {
         unimplemented!();
     }
@@ -313,16 +321,16 @@ impl GenericPathBuilder for raqote::PathBuilder {
         unimplemented!();
     }
     fn line_to(&mut self, point: Point2D<f32>) {
-        self.line_to(point.x, point.y);
+        self.0.as_mut().unwrap().line_to(point.x, point.y);
     }
     fn move_to(&mut self, point: Point2D<f32>) {
-        self.move_to(point.x, point.y);
+        self.0.as_mut().unwrap().move_to(point.x, point.y);
     }
     fn quadratic_curve_to(&mut self, control_point: &Point2D<f32>, end_point: &Point2D<f32>) {
-        self.quad_to(control_point.x, control_point.y, end_point.x, end_point.y);
+        self.0.as_mut().unwrap().quad_to(control_point.x, control_point.y, end_point.x, end_point.y);
     }
     fn finish(&mut self) -> Path {
-        self.finish()
+        Path::Raqote(self.0.take().unwrap().finish())
     }
 }
 
