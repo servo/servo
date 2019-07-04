@@ -34,6 +34,10 @@ def set_defaults(kwargs):
     kwargs["store_state"] = False
     updatecommandline.check_args(kwargs)
 
+    if kwargs.pop("layout_2020"):
+        kwargs["test_paths"]["/"]["metadata_path"] = wpt_path("metadata-layout-2020")
+        kwargs["include_manifest"] = wpt_path("include-layout-2020.ini")
+
 
 def main():
     parser = wptcommandline.create_parser()

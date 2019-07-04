@@ -13,7 +13,7 @@ doctest = false
 [dependencies]
 gfx_traits = {path = "../../../components/gfx_traits"}
 ipc-channel = "0.11"
-layout = {path = "../../../components/layout"}
+layout = {path = "../../../components/layout", package = "layout_2013"}
 metrics = {path = "../../../components/metrics"}
 msg = {path = "../../../components/msg"}
 profile_traits = {path = "../../../components/profile_traits"}

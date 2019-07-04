@@ -72,6 +72,8 @@ def create_parser_wpt():
                         help="Run under chaos mode in rr until a failure is captured")
     parser.add_argument('--pref', default=[], action="append", dest="prefs",
                         help="Pass preferences to servo")
+    parser.add_argument('--layout-2020', default=False, action="store_true",
+                        help="Use expected results for the 2020 layout engine")
     parser.add_argument('--always-succeed', default=False, action="store_true",
                         help="Always yield exit code of zero")
     return parser
@@ -248,7 +250,7 @@ class MachCommands(CommandBase):
         self_contained_tests = [
             "background_hang_monitor",
             "gfx",
-            "layout",
+            "layout_2013",
             "msg",
             "net",
             "net_traits",
