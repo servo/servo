@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![crate_name = "media"]
-#![crate_type = "rlib"]
 #![deny(unsafe_code)]
 
 #[macro_use]

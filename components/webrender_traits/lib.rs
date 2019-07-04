@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![crate_name = "webrender_traits"]
-#![crate_type = "rlib"]
 #![deny(unsafe_code)]
 
 use euclid::Size2D;
@@ -110,56 +108,42 @@ impl webrender::ExternalImageHandler for WebrenderExternalImageHandlers {
         _channel_index: u8,
         _rendering: webrender_api::ImageRendering,
     ) -> webrender::ExternalImage {
-        if let Some(handler_type) = self.external_images.lock().unwrap().get(&key) {
-            let (texture_id, uv) = match handler_type {
-                WebrenderImageHandlerType::WebGL => {
-                    let (texture_id, size) = self.webgl_handler.as_mut().unwrap().lock(key.0);
-                    (
-                        texture_id,
-                        webrender_api::TexelRect::new(
-                            0.0,
-                            size.height as f32,
-                            size.width as f32,
-                            0.0,
-                        ),
-                    )
-                },
-                WebrenderImageHandlerType::Media => {
-                    let (texture_id, size) = self.media_handler.as_mut().unwrap().lock(key.0);
-                    (
-                        texture_id,
-                        webrender_api::TexelRect::new(
-                            0.0,
-                            0.0,
-                            size.width as f32,
-                            size.height as f32,
-                        ),
-                    )
-                },
-            };
-            webrender::ExternalImage {
-                uv,
-                source: webrender::ExternalImageSource::NativeTexture(texture_id),
-            }
-        } else {
-            unreachable!()
+        let external_images = self.external_images.lock().unwrap();
+        let handler_type = external_images
+            .get(&key)
+            .expect("Tried to get unknown external image");
+        let (texture_id, uv) = match handler_type {
+            WebrenderImageHandlerType::WebGL => {
+                let (texture_id, size) = self.webgl_handler.as_mut().unwrap().lock(key.0);
+                (
+                    texture_id,
+                    webrender_api::TexelRect::new(0.0, size.height as f32, size.width as f32, 0.0),
+                )
+            },
+            WebrenderImageHandlerType::Media => {
+                let (texture_id, size) = self.media_handler.as_mut().unwrap().lock(key.0);
+                (
+                    texture_id,
+                    webrender_api::TexelRect::new(0.0, 0.0, size.width as f32, size.height as f32),
+                )
+            },
+        };
+        webrender::ExternalImage {
+            uv,
+            source: webrender::ExternalImageSource::NativeTexture(texture_id),
         }
     }
 
     /// Unlock the external image. The WR should not read the image
     /// content after this call.
     fn unlock(&mut self, key: webrender_api::ExternalImageId, _channel_index: u8) {
-        if let Some(handler_type) = self.external_images.lock().unwrap().get(&key) {
-            match handler_type {
-                WebrenderImageHandlerType::WebGL => {
-                    self.webgl_handler.as_mut().unwrap().unlock(key.0)
-                },
-                WebrenderImageHandlerType::Media => {
-                    self.media_handler.as_mut().unwrap().unlock(key.0)
-                },
-            };
-        } else {
-            unreachable!();
-        }
+        let external_images = self.external_images.lock().unwrap();
+        let handler_type = external_images
+            .get(&key)
+            .expect("Tried to get unknown external image");
+        match handler_type {
+            WebrenderImageHandlerType::WebGL => self.webgl_handler.as_mut().unwrap().unlock(key.0),
+            WebrenderImageHandlerType::Media => self.media_handler.as_mut().unwrap().unlock(key.0),
+        };
     }
 }

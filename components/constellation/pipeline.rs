@@ -192,7 +192,7 @@ pub struct InitialPipelineState {
 
     /// The XR device registry
     pub webxr_registry: webxr_api::Registry,
-    
+
     /// Application window's GL Context for Media player
     pub player_context: WindowGLContext,
 }

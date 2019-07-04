@@ -464,7 +464,7 @@ pub struct InitialConstellationState {
 
     /// The XR device registry
     pub webxr_registry: webxr_api::Registry,
-    
+
     pub glplayer_threads: Option<GLPlayerThreads>,
 
     /// Application window's GL Context for Media player

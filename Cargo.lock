@@ -2725,8 +2725,8 @@ dependencies = [
  "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-media 0.1.0 (git+https://github.com/servo/media)",
  "servo_config 0.0.1",
- "webrender 0.60.0 (git+https://github.com/servo/webrender)",
- "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
+ "webrender 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
  "webrender_traits 0.0.1",
 ]
 
@@ -5407,8 +5407,8 @@ name = "webrender_traits"
 version = "0.0.1"
 dependencies = [
  "euclid 0.19.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender 0.60.0 (git+https://github.com/servo/webrender)",
- "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
+ "webrender 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
 ]
 
 [[package]]
