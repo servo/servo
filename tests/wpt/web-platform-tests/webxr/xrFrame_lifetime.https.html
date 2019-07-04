@@ -3,6 +3,7 @@
   <script src=/resources/testharness.js></script>
   <script src=/resources/testharnessreport.js></script>
   <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
   <canvas></canvas>
 
   <script>
@@ -11,7 +12,7 @@
     let nonImmersiveTestName = "XRFrame methods throw exceptions outside of the " +
       "requestAnimationFrame callback for non-immersive sessions";
 
-    let fakeDeviceInitParams = { supportsImmersive:true };
+    let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
 
     let testFunction = (testSession, testController, t) => new Promise((resolve) => {
       let staleFrame = null;

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>CSS Test: Check inline negative margin should not cause the line to wrap</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<link rel="help" href="https://crbug.com/979894">
+<link rel="help" href="https://drafts.csswg.org/css2/visudet.html#inline-width">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<style>
+html, body { margin: 0; }
+div {
+  font-family: Ahem;
+  font-size: 10px;
+  line-height: 1;
+}
+#container {
+  display: inline-block;
+}
+span {
+  color: orange;
+}
+</style>
+<body>
+  <div id="container" data-expected-height=10>123 <span style="margin-left: -8ch">1234 </span></div>
+<script>checkLayout('#container');</script>
+</body>

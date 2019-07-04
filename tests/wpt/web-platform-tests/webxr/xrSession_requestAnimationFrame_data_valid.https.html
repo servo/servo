@@ -3,31 +3,13 @@
   <script src=/resources/testharness.js></script>
   <script src=/resources/testharnessreport.js></script>
   <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
   <canvas></canvas>
 
   <script>
     const testName = "RequestAnimationFrame resolves with good data";
 
-    const identityMatrix = new Float32Array([
-      1, 0, 0, 0,
-      0, 1, 0, 0,
-      0, 0, 1, 0,
-      0, 0, 0, 1
-    ]);
-
-    const rightFakeXRViewInit = {
-      eye:"right",
-      projectionMatrix: identityMatrix,
-      viewMatrix: identityMatrix
-    };
-
-    const leftFakeXRViewInit = {
-      eye:"left",
-      projectionMatrix: identityMatrix,
-      viewMatrix: identityMatrix
-    };
-
-    const fakeDeviceInitOptions = { supportsImmersive:true };
+    const fakeDeviceInitOptions = TRACKED_IMMERSIVE_DEVICE;
 
     let testSession;
 
@@ -52,8 +34,8 @@
             let viewerPose = xrFrame.getViewerPose(referenceSpace);
 
             assert_not_equals(viewerPose, null);
-            for(let i = 0; i < identityMatrix.length; i++) {
-              assert_equals(viewerPose.transform.matrix[i], identityMatrix[i]);
+            for(let i = 0; i < IDENTITY_MATRIX.length; i++) {
+              assert_equals(viewerPose.transform.matrix[i], IDENTITY_MATRIX[i]);
             }
 
             assert_not_equals(viewerPose.views, null);
@@ -64,11 +46,6 @@
             // Test does not complete until the returned promise resolves.
             resolve();
           }
-
-          testDeviceController.setXRPresentationFrameData(
-            identityMatrix,
-            [rightFakeXRViewInit, leftFakeXRViewInit]
-          );
 
           testSession.requestAnimationFrame(onFrame);
         })

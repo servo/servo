@@ -3,6 +3,7 @@
   <script src=/resources/testharness.js></script>
   <script src=/resources/testharnessreport.js></script>
   <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
   <canvas></canvas>
   <script>
 
@@ -11,7 +12,7 @@
     let nonImmersiveTestName =
       "Non-immersive XRSession requestReferenceSpace returns expected objects";
 
-    let fakeDeviceInitParams = { supportsImmersive: true };
+    let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
 
     let testFunction = function(session, fakeDeviceController, t) {
       return promise_rejects(t, new TypeError(), session.requestReferenceSpace('foo'))
