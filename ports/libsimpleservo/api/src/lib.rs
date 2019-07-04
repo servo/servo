@@ -587,8 +587,8 @@ struct ServoWindowCallbacks {
     host_callbacks: Box<dyn HostTrait>,
     coordinates: RefCell<Coordinates>,
     density: f32,
-    gl_context_pointer: Option<*const libc::c_void>,
-    native_display_pointer: Option<*const libc::c_void>,
+    gl_context_pointer: Option<*const c_void>,
+    native_display_pointer: Option<*const c_void>,
 }
 
 impl EmbedderMethods for ServoEmbedderCallbacks {
