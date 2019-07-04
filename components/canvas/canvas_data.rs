@@ -343,11 +343,12 @@ pub enum SourceSurface {
     Raqote(()),
 }
 
+#[derive(Clone)]
 pub enum Path {
     #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::Path),
     #[cfg(feature = "canvas2d-raqote")]
-    Raqote(()),
+    Raqote(raqote::Path),
 }
 
 #[derive(Clone)]
@@ -437,7 +438,7 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn draw_image(
-        &self,
+        &mut self,
         image_data: Vec<u8>,
         image_size: Size2D<f64>,
         dest_rect: Rect<f64>,
@@ -453,14 +454,15 @@ impl<'a> CanvasData<'a> {
             image_data.into()
         };
 
-        let writer = |draw_target: &dyn GenericDrawTarget| {
+        let draw_options = self.state.draw_options.clone();
+        let writer = |draw_target: &mut dyn GenericDrawTarget| {
             write_image(
                 draw_target,
                 image_data,
                 source_rect.size,
                 dest_rect,
                 smoothing_enabled,
-                &self.state.draw_options,
+                &draw_options,
             );
         };
 
@@ -473,7 +475,7 @@ impl<'a> CanvasData<'a> {
             // TODO(pylbrecht) pass another closure for raqote
             self.draw_with_shadow(&rect, writer);
         } else {
-            writer(&*self.drawtarget);
+            writer(&mut *self.drawtarget);
         }
     }
 
@@ -496,7 +498,7 @@ impl<'a> CanvasData<'a> {
         );
     }
 
-    pub fn fill_rect(&self, rect: &Rect<f32>) {
+    pub fn fill_rect(&mut self, rect: &Rect<f32>) {
         if self.state.fill_style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
         }
@@ -509,7 +511,7 @@ impl<'a> CanvasData<'a> {
         );
 
         if self.need_to_draw_shadow() {
-            self.draw_with_shadow(&draw_rect, |new_draw_target: &dyn GenericDrawTarget| {
+            self.draw_with_shadow(&draw_rect, |new_draw_target: &mut dyn GenericDrawTarget| {
                 new_draw_target.fill_rect(
                     &draw_rect,
                     self.state.fill_style.clone(),
@@ -529,13 +531,13 @@ impl<'a> CanvasData<'a> {
         self.drawtarget.clear_rect(rect);
     }
 
-    pub fn stroke_rect(&self, rect: &Rect<f32>) {
+    pub fn stroke_rect(&mut self, rect: &Rect<f32>) {
         if self.state.stroke_style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
         }
 
         if self.need_to_draw_shadow() {
-            self.draw_with_shadow(&rect, |new_draw_target: &dyn GenericDrawTarget| {
+            self.draw_with_shadow(&rect, |new_draw_target: &mut dyn GenericDrawTarget| {
                 new_draw_target.stroke_rect(
                     rect,
                     self.state.stroke_style.clone(),
@@ -642,7 +644,7 @@ impl<'a> CanvasData<'a> {
 
         self.ensure_path();
         self.drawtarget.fill(
-            &self.path(),
+            &self.path().clone(),
             self.state.fill_style.clone(),
             &self.state.draw_options,
         );
@@ -655,7 +657,7 @@ impl<'a> CanvasData<'a> {
 
         self.ensure_path();
         self.drawtarget.stroke(
-            &self.path(),
+            &self.path().clone(),
             self.state.stroke_style.clone(),
             &self.state.stroke_opts,
             &self.state.draw_options,
@@ -664,7 +666,7 @@ impl<'a> CanvasData<'a> {
 
     pub fn clip(&mut self) {
         self.ensure_path();
-        let path = self.path();
+        let path = self.path().clone();
         self.drawtarget.push_clip(&path);
     }
 
@@ -1037,7 +1039,7 @@ impl<'a> CanvasData<'a> {
     }
 
     fn create_draw_target_for_shadow(&self, source_rect: &Rect<f32>) -> Box<dyn GenericDrawTarget> {
-        let draw_target = self.drawtarget.create_similar_draw_target(
+        let mut draw_target = self.drawtarget.create_similar_draw_target(
             &Size2D::new(
                 source_rect.size.width as i32,
                 source_rect.size.height as i32,
@@ -1053,11 +1055,11 @@ impl<'a> CanvasData<'a> {
 
     fn draw_with_shadow<F>(&self, rect: &Rect<f32>, draw_shadow_source: F)
     where
-        F: FnOnce(&dyn GenericDrawTarget),
+        F: FnOnce(&mut dyn GenericDrawTarget),
     {
         let shadow_src_rect = self.state.transform.transform_rect(rect);
-        let new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect);
-        draw_shadow_source(&*new_draw_target);
+        let mut new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect);
+        draw_shadow_source(&mut *new_draw_target);
         self.drawtarget.draw_surface_with_shadow(
             new_draw_target.snapshot(),
             &Point2D::new(
