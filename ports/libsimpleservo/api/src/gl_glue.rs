@@ -33,7 +33,6 @@ pub mod egl {
         pub display: EGLNativeDisplayType,
     }
 
-    #[cfg(target_os = "android")]
     pub fn init() -> Result<EGLInitResult, &'static str> {
         info!("Loading EGL...");
         unsafe {
