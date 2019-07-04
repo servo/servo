@@ -53,6 +53,9 @@
 </div>
 
 <script>
+// In vertical-rl mode, X corresponds to the block axis and is oriented
+// leftward. Y corresponds to the inline axis and is oriented downward.
+// This assumes that the horizontal scrollbar is on the bottom side.
 var target = document.getElementById("target");
 var scroller = document.getElementById("scroller");
 var scrollbar_width = scroller.offsetWidth - scroller.clientWidth;
@@ -62,14 +65,42 @@ var scroller_height = scroller.offsetHeight;
 var box_width = target.offsetWidth;
 var box_height = target.offsetHeight;
 
-var expectedX = [ ((2*box_width)-scroller_width)+scrollbar_width, ((3*box_width - scroller_width)/2)+ (scrollbar_width/2), box_width ];
-var expectedY = [ box_height, ((3*box_height - scroller_height)/2) + (scrollbar_width/2), ((2*box_height)-scroller_height) + scrollbar_width ];
+var expectedX;
+// If scroll bar is on the left side, scroller.scrollLeft won't get bigger than 0,
+scroller.scrollLeft = scrollbar_width;
+if (scroller.scrollLeft == 0) {
+  expectedX = {
+    blockStart: -box_width,
+    blockCenter: -(((3*box_width - scroller_width)/2) + (scrollbar_width/2)),
+    blockEnd: -(((2*box_width) - scroller_width) + scrollbar_width),
+  };
+} else {
+  expectedX = {
+    blockStart: -(box_width - scrollbar_width),
+    blockCenter: -(((3*box_width - scroller_width)/2) + (scrollbar_width/2) - scrollbar_width),
+    blockEnd: -((2*box_width) - scroller_width),
+  };
+}
+
+var expectedY = {
+  inlineStart: box_height,
+  inlineCenter: ((3*box_height - scroller_height)/2) + (scrollbar_width/2),
+  inlineEnd: ((2*box_height) - scroller_height) + scrollbar_width,
+};
 
 // As browsers differ in the meaning of scrollLeft when
 // in a right-to-left mode, we adjust the expectation
 // to match the semantics of scrollLeft.
-if(scroller.scrollLeft === 0)
-  expectedX = [ -box_width, -(((3*box_width - scroller_width)/2)+ (scrollbar_width/2)), -(((2*box_width)-scroller_width)+scrollbar_width)];
+// In vertical-rl mode, the scroll x coordinate should be nonpositive per the the spec.
+// But some browsers is nonnegative, so we adjust the expectation.
+scroller.scrollLeft = -1000;
+if(scroller.scrollLeft === 0) {
+  expectedX = {
+    blockStart: ((2*box_width) - scroller_width) + scrollbar_width,
+    blockCenter: ((3*box_width - scroller_width)/2) + (scrollbar_width/2),
+    blockEnd: box_width,
+  };
+}
 
 // This formats dict as a string suitable as test name.
 // format_value() is provided by testharness.js,
@@ -83,15 +114,15 @@ function format_dict(dict) {
 }
 
 [
-  [{block: "start", inline: "start"}, expectedX[0], expectedY[0]],
-  [{block: "start", inline: "center"}, expectedX[0], expectedY[1]],
-  [{block: "start", inline: "end"}, expectedX[0], expectedY[2]],
-  [{block: "center", inline: "start"}, expectedX[1], expectedY[0]],
-  [{block: "center", inline: "center"}, expectedX[1], expectedY[1]],
-  [{block: "center", inline: "end"}, expectedX[1], expectedY[2]],
-  [{block: "end", inline: "start"}, expectedX[2], expectedY[0]],
-  [{block: "end", inline: "center"}, expectedX[2], expectedY[1]],
-  [{block: "end", inline: "end"}, expectedX[2], expectedY[2]],
+  [{block: "start", inline: "start"}, expectedX.blockStart, expectedY.inlineStart],
+  [{block: "start", inline: "center"}, expectedX.blockStart, expectedY.inlineCenter],
+  [{block: "start", inline: "end"}, expectedX.blockStart, expectedY.inlineEnd],
+  [{block: "center", inline: "start"}, expectedX.blockCenter, expectedY.inlineStart],
+  [{block: "center", inline: "center"}, expectedX.blockCenter, expectedY.inlineCenter],
+  [{block: "center", inline: "end"}, expectedX.blockCenter, expectedY.inlineEnd],
+  [{block: "end", inline: "start"}, expectedX.blockEnd, expectedY.inlineStart],
+  [{block: "end", inline: "center"}, expectedX.blockEnd, expectedY.inlineCenter],
+  [{block: "end", inline: "end"}, expectedX.blockEnd, expectedY.inlineEnd],
 ].forEach(([input, expectedX, expectedY]) => {
   test(() => {
     scroller.scrollTo(0, 0);

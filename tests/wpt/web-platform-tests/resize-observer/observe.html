@@ -125,12 +125,12 @@ function test4() {
 }
 
 function test5() {
-  let img = createAndAppendElement("img");
+  const img = new Image();
   img.style.width = "15px";
   img.style.height = "15px";
   img.src = "resources/image.png";
 
-  var helper = new ResizeTestHelper("test5: observe img",[
+  let helper = new ResizeTestHelper("test5: observe img",[
     {
       setup: observer => {
         observer.observe(img);
@@ -148,8 +148,15 @@ function test5() {
       }
     }
   ]);
-  return new Promise((resolve, reject) => {
-    img.onload = () => resolve();
+  return img.decode().then(() => {
+    return new Promise(resolve => {
+      requestAnimationFrame(() => {
+        document.body.appendChild(img);
+        resolve();
+      });
+    });
+  }).catch(error => {
+    assert_unreached("decode image failed");
   }).then(() => {
     return helper.start(() => img.remove());
   });

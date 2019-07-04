@@ -1436,11 +1436,28 @@ policies and contribution forms [3].
                 NotAllowedError: 0
             };
 
-            if (!(name in name_code_map)) {
-                throw new AssertionError('Test bug: unrecognized DOMException code "' + code + '" passed to assert_throws()');
+            var code_name_map = {};
+            for (var key in name_code_map) {
+                if (name_code_map[key] > 0) {
+                    code_name_map[name_code_map[key]] = key;
+                }
             }
 
-            var required_props = { code: name_code_map[name] };
+            var required_props = { code: code };
+
+            if (typeof code === "number") {
+                if (code === 0) {
+                    throw new AssertionError('Test bug: ambiguous DOMException code 0 passed to assert_throws()');
+                } else if (!(code in code_name_map)) {
+                    throw new AssertionError('Test bug: unrecognized DOMException code "' + code + '" passed to assert_throws()');
+                }
+                name = code_name_map[code];
+            } else if (typeof code === "string") {
+                if (!(name in name_code_map)) {
+                    throw new AssertionError('Test bug: unrecognized DOMException code "' + code + '" passed to assert_throws()');
+                }
+                required_props.code = name_code_map[name];
+            }
 
             if (required_props.code === 0 ||
                ("name" in e &&

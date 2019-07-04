@@ -184,7 +184,7 @@ promise_test(() => {
                         if (message.data === "Ready") {
                           const onSuccess = () => { parent.postMessage("Failure", "*"); };
                           const onError = error => {
-                            if (error.name == "SecurityError") {
+                            if (error.name == "NotAllowedError") {
                               parent.postMessage("Success", "*");
                             } else {
                               parent.postMessage("Failure", "*");

@@ -22,11 +22,19 @@
         assert_equals(entry.duration, 0);
         // blue.png is 133 x 106.
         assert_equals(entry.size, 14098);
+        assert_equals(entry.id, 'image_id');
+        // 25 is the length of "largest-contentful-paint/".
+        const index = window.location.href.lastIndexOf('/') - 25;
+        const pathname = window.location.href.substring(0, index) + '/images/blue.png';
+        assert_equals(entry.url, pathname);
+        assert_equals(entry.responseEnd,
+            performance.getEntriesByName(pathname, 'resource')[0].responseEnd);
+        assert_equals(entry.element, document.getElementById('image_id'));
       })
     );
     observer.observe({type: 'largestContentfulPaint', buffered: true});
-  }, 'Element with elementtiming attribute is observable.');
+  }, 'Same-origin image is observable.');
 </script>
 
-<img src='/images/blue.png'/>
+<img src='/images/blue.png' id='image_id'/>
 </body>

@@ -83,7 +83,7 @@ href=c.html>`,
 
 Or, graphically:
 
-<img src="{{ site.baseurl }}{% link assets/reftest_graph_example.svg %}"
+<img src="../_static/reftest_graph_example.svg"
      alt="diagram of the above reftest graph as a directed graph">
 
 In this case, to pass we must either have `a.html`, `b.html` and

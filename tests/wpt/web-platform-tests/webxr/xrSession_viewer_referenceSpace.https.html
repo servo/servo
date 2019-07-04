@@ -3,6 +3,7 @@
   <script src=/resources/testharness.js></script>
   <script src=/resources/testharnessreport.js></script>
   <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
   <canvas></canvas>
 
   <script>
@@ -12,14 +13,7 @@
     let inlineTestName =
       "Identity reference space provides correct poses for inline sessions";
 
-    let fakeDeviceInitParams = { supportsImmersive: true };
-
-    const identityMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
-
-    // Valid matrices for  when we don't care about specific values
-    const validPoseMatrix = [0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1];
-    const validProjectionMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 3, 2, -1, -1, 0, 0, -0.2, 0];
-    const validViewMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 4, 3, 2, 1];
+    let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
 
     let testFunction = function(session, fakeDeviceController, t) {
       return session.requestReferenceSpace('viewer')
@@ -37,19 +31,10 @@
                 assert_not_equals(poseMatrix, null);
 
                 for(let i = 0; i < poseMatrix.length; i++) {
-                  assert_equals(poseMatrix[i], identityMatrix[i]);
+                  assert_equals(poseMatrix[i], IDENTITY_MATRIX[i]);
                 }
 
-                fakeDeviceController.setXRPresentationFrameData(
-                  validPoseMatrix, [{
-                    eye:"left",
-                    projectionMatrix: validProjectionMatrix,
-                    viewMatrix: validViewMatrix
-                  }, {
-                    eye:"right",
-                    projectionMatrix: validProjectionMatrix,
-                    viewMatrix: validViewMatrix
-                  }]);
+                fakeDeviceController.setViewerOrigin(VALID_POSE_TRANSFORM);
               });
             } else {
               t.step( () => {
@@ -62,7 +47,7 @@
                 assert_not_equals(poseMatrix, null);
 
                 for(let i = 0; i < poseMatrix.length; i++) {
-                  assert_equals(poseMatrix[i], identityMatrix[i]);
+                  assert_equals(poseMatrix[i], IDENTITY_MATRIX[i]);
                 }
               });
 

@@ -3,12 +3,13 @@
   <script src=/resources/testharness.js></script>
   <script src=/resources/testharnessreport.js></script>
   <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
   <canvas></canvas>
   <script>
     xr_session_promise_test(
       "Tests requestSession resolves when supported",
       (session) => {
         assert_not_equals(session, null);
-      }, { supportsImmersive:true }, 'immersive-vr');
+      }, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr');
   </script>
 </body>

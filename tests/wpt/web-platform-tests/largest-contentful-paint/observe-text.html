@@ -27,6 +27,10 @@ p {
         // Width of at least 100 px.
         // TODO: find a good way to bound text width.
         assert_greater_than_equal(entry.size, 1200);
+        assert_equals(entry.responseEnd, 0);
+        assert_equals(entry.id, 'my_text');
+        assert_equals(entry.url, '');
+        assert_equals(entry.element, document.getElementById('my_text'));
       })
     );
     observer.observe({type: 'largestContentfulPaint', buffered: true});
@@ -34,5 +38,5 @@ p {
   }, 'Element with elementtiming attribute is observable.');
 </script>
 
-<p>This is important text! :)</p>
+<p id='my_text'>This is important text! :)</p>
 </body>

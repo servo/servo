@@ -12,8 +12,9 @@ class ChromeXRTest {
     return Promise.resolve(this.mockVRService_.addRuntime(init_params));
   }
 
-  simulateDeviceDisconnection(device) {
-    this.mockVRService_.removeRuntime(device);
+  disconnectAllDevices() {
+    this.mockVRService_.removeAllRuntimes(device);
+    return Promise.resolve();
   }
 
   simulateUserActivation(callback) {
@@ -60,11 +61,11 @@ class MockVRService {
     return runtime;
   }
 
-  removeRuntime(runtime) {
-    // We have no way of distinguishing between devices, so just clear the
-    // entire list for now.
-    // TODO(http://crbug.com/873409) We also have no way right now to disconnect
-    // devices.
+  removeAllRuntimes() {
+    if (this.client_) {
+      this.client_.onDeviceChanged();
+    }
+
     this.runtimes_ = [];
   }
 
@@ -97,12 +98,22 @@ class MockVRService {
       // Find and return the first successful result.
       for (let i = 0; i < results.length; i++) {
         if (results[i].session) {
-          return results[i];
+          return {
+            result: {
+              session : results[i].session,
+              $tag :  0
+            }
+          };
         }
       }
 
       // If there were no successful results, returns a null session.
-      return {session: null};
+      return {
+        result: {
+          failureReason : device.mojom.RequestSessionResult.NO_RUNTIME_FOUND,
+          $tag :  1
+        }
+      };
     });
   }
 
@@ -141,6 +152,8 @@ class MockRuntime {
 
     this.framesOfReference = {};
 
+    // Initialize DisplayInfo first to set the defaults, then override with
+    // anything from the deviceInit
     if (fakeDeviceInit.supportsImmersive) {
       this.displayInfo_ = this.getImmersiveDisplayInfo();
     } else {
@@ -150,16 +163,16 @@ class MockRuntime {
     if (fakeDeviceInit.supportsEnvironmentIntegration) {
       this.displayInfo_.capabilities.canProvideEnvironmentIntegration = true;
     }
-  }
 
-  // Test methods.
-  setXRPresentationFrameData(poseMatrix, views) {
-    if (poseMatrix == null) {
-      this.pose_ = null;
-    } else {
-      this.setPoseFromMatrix(poseMatrix);
+    if (fakeDeviceInit.viewerOrigin != null) {
+      this.setViewerOrigin(fakeDeviceInit.viewerOrigin);
     }
 
+    this.setViews(fakeDeviceInit.views);
+  }
+
+  // Test API methods.
+  setViews(views) {
     if (views) {
       let changed = false;
       for (let i = 0; i < views.length; i++) {
@@ -172,17 +185,18 @@ class MockRuntime {
         }
       }
 
-      if (changed) {
+      if (changed && this.sessionClient_.ptr.isBound()) {
         this.sessionClient_.onChanged(this.displayInfo_);
       }
     }
   }
 
-
-  setPoseFromMatrix(poseMatrix) {
+  setViewerOrigin(origin, emulatedPosition = false) {
+    let p = origin.position;
+    let q = origin.orientation;
     this.pose_ = {
-      orientation: null,
-      position: null,
+      orientation: { x: q[0], y: q[1], z: q[2], w: q[3] },
+      position: { x: p[0], y: p[1], z: p[2] },
       angularVelocity: null,
       linearVelocity: null,
       angularAcceleration: null,
@@ -190,37 +204,13 @@ class MockRuntime {
       inputState: null,
       poseIndex: 0
     };
-
-    let pose = this.poseFromMatrix(poseMatrix);
-    for (let field in pose) {
-      if (this.pose_.hasOwnProperty(field)) {
-        this.pose_[field] = pose[field];
-      }
-    }
   }
 
-  poseFromMatrix(m) {
-    let m00 = m[0];
-    let m11 = m[5];
-    let m22 = m[10];
-
-    // The max( 0, ... ) is just a safeguard against rounding error.
-    let orientation = new gfx.mojom.Quaternion();
-    orientation.w = Math.sqrt(Math.max(0, 1 + m00 + m11 + m22)) / 2;
-    orientation.x = Math.sqrt(Math.max(0, 1 + m00 - m11 - m22)) / 2;
-    orientation.y = Math.sqrt(Math.max(0, 1 - m00 + m11 - m22)) / 2;
-    orientation.z = Math.sqrt(Math.max(0, 1 - m00 - m11 + m22)) / 2;
-
-    let position = new gfx.mojom.Point3F();
-    position.x = m[12];
-    position.y = m[13];
-    position.z = m[14];
-
-    return {
-      orientation, position
-    }
+  clearViewerOrigin() {
+    this.pose_ = null;
   }
 
+  // Helper methods
   getNonImmersiveDisplayInfo() {
     let displayInfo = this.getImmersiveDisplayInfo();
 
@@ -249,7 +239,7 @@ class MockRuntime {
           leftDegrees: 50.899,
           rightDegrees: 35.197
         },
-        offset: new gfx.mojom.Vector3dF(-0.032, 0, 0),
+        offset: { x: -0.032, y: 0, z: 0 },
         renderWidth: 20,
         renderHeight: 20
       },
@@ -260,7 +250,7 @@ class MockRuntime {
           leftDegrees: 50.899,
           rightDegrees: 35.197
         },
-        offset: new gfx.mojom.Vector3dF(0.032, 0, 0),
+        offset: { x: 0.032, y: 0, z: 0 },
         renderWidth: 20,
         renderHeight: 20
       },
@@ -286,6 +276,8 @@ class MockRuntime {
     let upTan = (1 + m[9]) / m[5];
     let downTan = (1 - m[9]) / m[5];
 
+    let offset = fakeXRViewInit.viewOffset.position;
+
     return {
       fieldOfView: {
         upDegrees: toDegrees(upTan),
@@ -293,9 +285,9 @@ class MockRuntime {
         leftDegrees: toDegrees(leftTan),
         rightDegrees: toDegrees(rightTan)
       },
-      offset: new gfx.mojom.Vector3dF(0, 0, 0),
-      renderWidth: 20,
-      renderHeight: 20
+      offset: { x: offset[0], y: offset[1], z: offset[2] },
+      renderWidth: fakeXRViewInit.resolution.width,
+      renderHeight: fakeXRViewInit.resolution.height
     };
   }
 
@@ -395,6 +387,7 @@ class MockRuntime {
   };
 }
 
+// Mojo helper classes
 class MockXRPresentationProvider {
   constructor() {
     this.binding_ = new mojo.Binding(device.mojom.XRPresentationProvider, this);
@@ -438,4 +431,21 @@ class MockXRPresentationProvider {
   }
 }
 
+// This is a temporary workaround for the fact that spinning up webxr before
+// the mojo interceptors are created will cause the interceptors to not get
+// registered, so we have to create this before we query xr;
 let XRTest = new ChromeXRTest();
+
+// This test API is also used to run Chrome's internal legacy VR tests; however,
+// those fail if navigator.xr has been used. Those tests will set a bool telling
+// us not to try to check navigator.xr
+if ((typeof legacy_vr_test === 'undefined') || !legacy_vr_test) {
+  // Some tests may run in the http context where navigator.xr isn't exposed
+  // This should just be to test that it isn't exposed, but don't try to set up
+  // the test framework in this case.
+  if (navigator.xr) {
+    navigator.xr.test = XRTest;
+  }
+} else {
+  navigator.vr = { test: XRTest };
+}

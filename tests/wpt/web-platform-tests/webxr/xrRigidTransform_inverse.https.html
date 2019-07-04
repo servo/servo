@@ -4,11 +4,10 @@
 <script src="resources/webxr_util.js"></script>
 <script src="resources/webxr_test_constants.js"></script>
 <canvas id="webgl-canvas"></canvas>
-
 <script>
 
 let testName = "XRRigidTransform inverse works";
-let fakeDeviceInitParams = { supportsImmersive: true };
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
 
 let testFunction =
   (session, fakeDeviceController, t) => new Promise((resolve, reject) => {

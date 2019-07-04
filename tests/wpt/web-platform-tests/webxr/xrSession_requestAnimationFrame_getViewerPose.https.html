@@ -3,6 +3,8 @@
   <script src=/resources/testharness.js></script>
   <script src=/resources/testharnessreport.js></script>
   <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+  <script src="resources/xr-test-asserts.js"></script>
   <canvas></canvas>
 
   <script>
@@ -12,12 +14,22 @@
     let nonImmersiveTestName =
       "XRFrame getViewerPose updates on the next frame for non-immersive sessions";
 
-    let fakeDeviceInitParams = { supportsImmersive: true };
+    let fakeDeviceInitParams = {
+      supportsImmersive: true,
+      views: VALID_VIEWS
+    };
 
-    // Valid matrices for  when we don't care about specific values
-    const validPoseMatrix = [0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1];
-    const validProjectionMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 3, 2, -1, -1, 0, 0, -0.2, 0];
-    const validViewMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 4, 3, 2, 1];
+    // A valid pose matrix/transform for  when we don't care about specific values
+    // Note that these two should be identical, just different representations
+    const expectedPoseMatrix = [0, 1, 0, 0,
+                                0, 0, 1, 0,
+                                1, 0, 0, 0,
+                                1, 1, 1, 1];
+
+    const poseTransform = {
+        position: [1, 1, 1],
+        orientation: [0.5, 0.5, 0.5, 0.5]
+    };
 
     let testFunction = function(session, fakeDeviceController, t) {
       return session.requestReferenceSpace('local')
@@ -30,16 +42,7 @@
                 // Expecting to not get a pose since none has been supplied
                 assert_equals(vrFrame.getViewerPose(referenceSpace), null);
 
-                fakeDeviceController.setXRPresentationFrameData(
-                  validPoseMatrix, [{
-                    eye:"left",
-                    projectionMatrix: validProjectionMatrix,
-                    viewMatrix: validViewMatrix
-                  }, {
-                    eye:"right",
-                    projectionMatrix: validProjectionMatrix,
-                    viewMatrix: validViewMatrix
-                  }]);
+                fakeDeviceController.setViewerOrigin(poseTransform);
 
                 // Check that pose does not update pose within the same frame.
                 assert_equals(vrFrame.getViewerPose(referenceSpace), null);
@@ -51,10 +54,7 @@
 
                 let poseMatrix = pose.transform.matrix;
                 assert_not_equals(poseMatrix, null);
-
-                for(let i = 0; i < poseMatrix.length; i++) {
-                  assert_equals(poseMatrix[i], validPoseMatrix[i]);
-                }
+                assert_matrix_approx_equals(poseMatrix, expectedPoseMatrix, FLOAT_EPSILON);
               });
 
               // Finished.
