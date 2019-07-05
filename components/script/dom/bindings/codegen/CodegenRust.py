@@ -5624,7 +5624,7 @@ class CGInterfaceTrait(CGThing):
 
         def attribute_arguments(needCx, argument=None, inCompartment=False):
             if needCx:
-                yield "cx", "*mut JSContext"
+                yield "cx", "JSContext"
 
             if argument:
                 yield "value", argument_type(descriptor, argument)
@@ -6692,7 +6692,7 @@ def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, var
 
 def method_arguments(descriptorProvider, returnType, arguments, passJSBits=True, trailing=None, inCompartment=False):
     if needCx(returnType, arguments, passJSBits):
-        yield "cx", "*mut JSContext"
+        yield "cx", "JSContext"
 
     for argument in arguments:
         ty = argument_type(descriptorProvider, argument.type, argument.optional,
