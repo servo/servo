@@ -260,14 +260,22 @@ impl MessageListener {
     /// and we can only access the root from the event-loop.
     fn notify(&self, msg: MessagePortMsg) {
         match msg {
-            MessagePortMsg::CompleteTransfer(port_id, tasks, entangled_with, entangled_sender) => {
+            MessagePortMsg::CompleteTransfer(
+                port_id,
+                tasks,
+                outgoing_msgs,
+                entangled_with,
+                entangled_sender,
+            ) => {
                 let context = self.context.clone();
                 let _ = self.task_source.lock().queue_with_canceller(
                     task!(process_new_entangled_sender: move || {
                         let global = context.lock().root();
                         global.maybe_add_message_port(&port_id);
                         if let Some(port) = global.upcast::<GlobalScope>().message_ports.borrow().find_port(&port_id) {
-                            port.complete_transfer(tasks, entangled_with, entangled_sender);
+                            if !global.message_ports_shipped.borrow_mut().remove(&port_id).is_some() {
+                                port.complete_transfer(tasks, outgoing_msgs, entangled_with, entangled_sender);
+                            }
                         };
                     }),
                     &self.canceller,

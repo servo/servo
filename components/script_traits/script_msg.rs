@@ -114,6 +114,7 @@ pub enum ScriptMsg {
         MessagePortId,
         Option<MessagePortId>,
         VecDeque<PortMessageTask>,
+        VecDeque<PortMessageTask>,
     ),
     /// A message-port has been discarded by script.
     RemoveMessagePort(MessagePortId),
