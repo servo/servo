@@ -664,50 +664,122 @@ def package_gstreamer_dlls(servo_exe_dir, target):
     gst_root = ""
     gst_default_path = path.join("C:\\gstreamer\\1.0", gst_x64)
     gst_env = "GSTREAMER_1_0_ROOT_" + gst_x64
-    if os.path.exists(path.join(gst_default_path, "bin", "libffi-7.dll")) or \
-       os.path.exists(path.join(gst_default_path, "bin", "ffi-7.dll")):
-        gst_root = gst_default_path
-    elif os.environ.get(gst_env) is not None:
+    if os.environ.get(gst_env) is not None:
         gst_root = os.environ.get(gst_env)
+    elif os.path.exists(path.join(gst_default_path, "bin", "ffi-7.dll")):
+        gst_root = gst_default_path
     else:
-        print("Could not found GStreamer installation directory.")
+        print("Could not find GStreamer installation directory.")
         return False
 
+    # All the shared libraries required for starting up and loading plugins.
     gst_dlls = [
-        ["libffi-7.dll", "ffi-7.dll"],
-        ["libgio-2.0-0.dll", "gio-2.0-0.dll"],
-        ["libglib-2.0-0.dll", "glib-2.0-0.dll"],
-        ["libgmodule-2.0-0.dll", "gmodule-2.0-0.dll"],
-        ["libgobject-2.0-0.dll", "gobject-2.0-0.dll"],
-        ["libgstapp-1.0-0.dll", "gstapp-1.0-0.dll"],
-        ["libgstaudio-1.0-0.dll", "gstaudio-1.0-0.dll"],
-        ["libgstbase-1.0-0.dll", "gstbase-1.0-0.dll"],
-        ["libgstgl-1.0-0.dll", "gstgl-1.0-0.dll"],
-        ["libgstpbutils-1.0-0.dll", "gstpbutils-1.0-0.dll"],
-        ["libgstplayer-1.0-0.dll", "gstplayer-1.0-0.dll"],
-        ["libgstreamer-1.0-0.dll", "gstreamer-1.0-0.dll"],
-        ["libgstrtp-1.0-0.dll", "gstrtp-1.0-0.dll"],
-        ["libgstsdp-1.0-0.dll", "gstsdp-1.0-0.dll"],
-        ["libgsttag-1.0-0.dll", "gsttag-1.0-0.dll"],
-        ["libgstvideo-1.0-0.dll", "gstvideo-1.0-0.dll"],
-        ["libgstwebrtc-1.0-0.dll", "gstwebrtc-1.0-0.dll"],
-        ["libintl-8.dll", "intl-8.dll"],
-        ["liborc-0.4-0.dll", "orc-0.4-0.dll"],
-        ["libwinpthread-1.dll", "winpthread-1.dll"],
-        ["libz.dll", "libz-1.dll", "z-1.dll"]
+        "avfilter-7.dll",
+        "avformat-58.dll",
+        "avcodec-58.dll",
+        "avutil-56.dll",
+        "bz2.dll",
+        "ffi-7.dll",
+        "gio-2.0-0.dll",
+        "glib-2.0-0.dll",
+        "gmodule-2.0-0.dll",
+        "gobject-2.0-0.dll",
+        "graphene-1.0-0.dll",
+        "gstapp-1.0-0.dll",
+        "gstaudio-1.0-0.dll",
+        "gstbase-1.0-0.dll",
+        "gstcodecparsers-1.0-0.dll",
+        "gstcontroller-1.0-0.dll",
+        "gstfft-1.0-0.dll",
+        "gstgl-1.0-0.dll",
+        "gstpbutils-1.0-0.dll",
+        "gstplayer-1.0-0.dll",
+        "gstreamer-1.0-0.dll",
+        "gstriff-1.0-0.dll",
+        "gstrtp-1.0-0.dll",
+        "gstsctp-1.0-0.dll",
+        "gstsdp-1.0-0.dll",
+        "gsttag-1.0-0.dll",
+        "gstvideo-1.0-0.dll",
+        "gstwebrtc-1.0-0.dll",
+        "intl-8.dll",
+        "libgmp-10.dll",
+        "libgnutls-30.dll",
+        "libhogweed-4.dll",
+        "libjpeg-8.dll",
+        "libnettle-6.dll.",
+        "libpng16-16.dll",
+        "libogg-0.dll",
+        "libopus-0.dll",
+        "libtasn1-6.dll",
+        "libtheora-0.dll",
+        "libtheoradec-1.dll",
+        "libtheoraenc-1.dll",
+        "libvorbis-0.dll",
+        "libvorbisenc-2.dll",
+        "libwinpthread-1.dll",
+        "nice-10.dll",
+        "orc-0.4-0.dll",
+        "swresample-3.dll",
+        "z-1.dll",
     ]
 
     missing = []
     for gst_lib in gst_dlls:
-        if isinstance(gst_lib, str):
-            gst_lib = [gst_lib]
-        for lib in gst_lib:
-            try:
-                shutil.copy(path.join(gst_root, "bin", lib), servo_exe_dir)
-                break
-            except:
-                pass
-        else:
+        try:
+            shutil.copy(path.join(gst_root, "bin", gst_lib), servo_exe_dir)
+        except:
+            missing += [str(gst_lib)]
+
+    for gst_lib in missing:
+        print("ERROR: could not find required GStreamer DLL: " + gst_lib)
+    if missing:
+        return False
+
+    # Only copy a subset of the available plugins.
+    gst_dlls = [
+        "gstapp.dll",
+        "gstaudioconvert.dll",
+        "gstaudiofx.dll",
+        "gstaudioparsers.dll",
+        "gstaudioresample.dll",
+        "gstautodetect.dll",
+        "gstcoreelements.dll",
+        "gstdeinterlace.dll",
+        "gstplayback.dll",
+        "gstinterleave.dll",
+        "gstisomp4.dll",
+        "gstnice.dll",
+        "gstogg.dll",
+        "gstopengl.dll",
+        "gstopus.dll",
+        "gstproxy.dll",
+        "gstrtp.dll",
+        "gsttheora.dll",
+        "gsttypefindfunctions.dll",
+        "gstvideoconvert.dll",
+        "gstvideofilter.dll",
+        "gstvideoparsersbad.dll",
+        "gstvideoscale.dll",
+        "gstvolume.dll",
+        "gstvorbis.dll",
+        "gstvpx.dll",
+        "gstwebrtc.dll",
+        "gstwasapi.dll",
+        "gstlibav.dll",
+    ]
+
+    gst_plugin_path_root = os.environ.get("GSTREAMER_PACKAGE_PLUGIN_PATH") or gst_root
+    gst_plugin_path = path.join(gst_plugin_path_root, "lib", "gstreamer-1.0")
+    if not os.path.exists(gst_plugin_path):
+        print("ERROR: couldn't find gstreamer plugins at " + gst_plugin_path)
+        return False
+
+    missing = []
+    for gst_lib in gst_dlls:
+        try:
+            shutil.copy(path.join(gst_plugin_path, gst_lib), servo_exe_dir)
+        except:
             missing += [str(gst_lib)]
 
     for gst_lib in missing:
