@@ -353,6 +353,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn deinit(self) {
+        self.window.prepare_for_composite();
         self.webrender.deinit();
     }
 
