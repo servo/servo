@@ -439,8 +439,8 @@ impl Window {
         self.webvr_chan.clone()
     }
 
-    pub fn webxr_registry(&self) -> &webxr_api::Registry {
-        &self.webxr_registry
+    pub fn webxr_registry(&self) -> webxr_api::Registry {
+        self.webxr_registry.clone()
     }
 
     fn new_paint_worklet(&self) -> DomRoot<Worklet> {
