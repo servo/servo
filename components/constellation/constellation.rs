@@ -183,6 +183,7 @@ struct MessagePortInfo {
     entangled_with: Option<MessagePortId>,
     control_sender: IpcSender<MessagePortMsg>,
     message_queue: Option<VecDeque<PortMessageTask>>,
+    outgoing_message_queue: Option<VecDeque<PortMessageTask>>,
 }
 
 /// Servo supports tabs (referred to as browsers), so `Constellation` needs to
@@ -1464,12 +1465,18 @@ where
             FromScriptMsg::GePipelineNameSpaceId(sender) => {
                 let _ = sender.send(self.next_pipeline_namespace_id());
             },
-            FromScriptMsg::MessagePortShipped(port_id, entangled, message_queue) => {
+            FromScriptMsg::MessagePortShipped(
+                port_id,
+                entangled,
+                message_queue,
+                outgoing_message_queue,
+            ) => {
                 self.handle_messageport_shipped(
                     source_pipeline_id,
                     port_id,
                     entangled,
                     message_queue,
+                    outgoing_message_queue,
                 );
             },
             FromScriptMsg::NewMessagePort(port_id, control_sender) => {
@@ -1692,6 +1699,7 @@ where
         port_id: MessagePortId,
         entangled: Option<MessagePortId>,
         message_queue: VecDeque<PortMessageTask>,
+        outgoing_message_queue: VecDeque<PortMessageTask>,
     ) {
         match entangled {
             Some(id) => {
@@ -1712,6 +1720,7 @@ where
                 );
             }
             info.message_queue = Some(message_queue);
+            info.outgoing_message_queue = Some(outgoing_message_queue);
             info.is_being_transferred = true;
         }
     }
@@ -1737,6 +1746,7 @@ where
                         Some((
                             entangled.clone(),
                             info.message_queue.clone(),
+                            info.outgoing_message_queue.clone(),
                             control_sender.clone(),
                         )),
                     )
@@ -1745,6 +1755,7 @@ where
                     let _ = control_sender.send(MessagePortMsg::CompleteTransfer(
                         port_id.clone(),
                         info.message_queue.clone(),
+                        info.outgoing_message_queue.clone(),
                         None,
                         None,
                     ));
@@ -1759,6 +1770,7 @@ where
                     entangled_with: None,
                     control_sender: control_sender.clone(),
                     message_queue: None,
+                    outgoing_message_queue: None,
                 };
                 (Some(info), None)
             },
@@ -1766,7 +1778,9 @@ where
         if let Some(info) = info {
             self.message_ports.insert(port_id, info);
         }
-        if let Some((entangled, other_message_queue, other_sender)) = entangled {
+        if let Some((entangled, other_message_queue, other_outgoing_message_queue, other_sender)) =
+            entangled
+        {
             // If this was an existing, entangled, and now transferred, port,
             // we need to do two things:
             let info = match self.message_ports.get(&entangled) {
@@ -1788,6 +1802,7 @@ where
             let _ = other_sender.send(MessagePortMsg::CompleteTransfer(
                 port_id.clone(),
                 other_message_queue,
+                other_outgoing_message_queue,
                 Some(entangled),
                 sender,
             ));

@@ -240,6 +240,7 @@ pub enum MessagePortMsg {
     CompleteTransfer(
         MessagePortId,
         Option<VecDeque<PortMessageTask>>,
+        Option<VecDeque<PortMessageTask>>,
         Option<MessagePortId>,
         Option<IpcSender<MessagePortMsg>>,
     ),

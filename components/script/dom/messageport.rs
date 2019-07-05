@@ -161,6 +161,7 @@ impl MessagePort {
     pub fn complete_transfer(
         &self,
         tasks: Option<VecDeque<PortMessageTask>>,
+        outgoing_msgs: Option<VecDeque<PortMessageTask>>,
         entangled_with: Option<MessagePortId>,
         entangled_sender: Option<IpcSender<MessagePortMsg>>,
     ) {
@@ -171,19 +172,23 @@ impl MessagePort {
 
         *self.entangled_port.borrow_mut() = entangled_with;
 
+        if let Some(mut tasks) = outgoing_msgs {
+            let mut outgoing_buffer = self.outgoing_message_buffer.borrow_mut();
+            while let Some(task) = tasks.pop_back() {
+                outgoing_buffer.push_front(task);
+            }
+        }
+
         if let Some(sender) = entangled_sender {
             self.set_entangled_sender(sender);
         }
 
-        if let Some(tasks) = tasks {
+        if let Some(mut tasks) = tasks {
             // Note: these are the tasks that were buffered prior to transfer,
             // hence they need to execute first.
-            for task in tasks {
-                if self.enabled.get() {
-                    self.handle_incoming(task);
-                } else {
-                    self.message_buffer.borrow_mut().push_front(task);
-                }
+            let mut incoming_buffer = self.message_buffer.borrow_mut();
+            while let Some(task) = tasks.pop_back() {
+                incoming_buffer.push_front(task);
             }
         }
 
@@ -352,6 +357,7 @@ impl Transferable for MessagePort {
                 self.message_port_id().clone(),
                 self.entangled_port.borrow().clone(),
                 self.message_buffer.borrow().clone(),
+                self.outgoing_message_buffer.borrow().clone(),
             ));
 
         unsafe {
