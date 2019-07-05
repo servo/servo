@@ -80,14 +80,14 @@ impl Parse for SVGStrokeDashArray {
                 NonNegativeLengthPercentage::parse_quirky(context, i, AllowQuirks::Always)
             })
         }) {
-            return Ok(generic::SVGStrokeDashArray::Values(values));
+            return Ok(generic::SVGStrokeDashArray::Values(values.into()));
         }
 
         try_match_ident_ignore_ascii_case! { input,
             "context-value" if is_context_value_enabled() => {
                 Ok(generic::SVGStrokeDashArray::ContextValue)
             },
-            "none" => Ok(generic::SVGStrokeDashArray::Values(vec![])),
+            "none" => Ok(generic::SVGStrokeDashArray::Values(Default::default())),
         }
     }
 }

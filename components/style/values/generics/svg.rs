@@ -171,13 +171,16 @@ pub enum SVGLength<L> {
     ToResolvedValue,
     ToShmem,
 )]
-pub enum SVGStrokeDashArray<L> {
+#[repr(C, u8)]
+pub enum GenericSVGStrokeDashArray<L> {
     /// `[ <length> | <percentage> | <number> ]#`
     #[css(comma)]
-    Values(#[css(if_empty = "none", iterable)] Vec<L>),
+    Values(#[css(if_empty = "none", iterable)] crate::OwnedSlice<L>),
     /// `context-value`
     ContextValue,
 }
+
+pub use self::GenericSVGStrokeDashArray as SVGStrokeDashArray;
 
 /// An SVG opacity value accepts `context-{fill,stroke}-opacity` in
 /// addition to opacity value.
@@ -197,7 +200,8 @@ pub enum SVGStrokeDashArray<L> {
     ToResolvedValue,
     ToShmem,
 )]
-pub enum SVGOpacity<OpacityType> {
+#[repr(C, u8)]
+pub enum GenericSVGOpacity<OpacityType> {
     /// `<opacity-value>`
     Opacity(OpacityType),
     /// `context-fill-opacity`
@@ -207,3 +211,5 @@ pub enum SVGOpacity<OpacityType> {
     #[animation(error)]
     ContextStrokeOpacity,
 }
+
+pub use self::GenericSVGOpacity as SVGOpacity;
