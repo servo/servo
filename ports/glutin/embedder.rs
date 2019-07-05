@@ -71,4 +71,20 @@ impl EmbedderMethods for EmbedderCallbacks {
             // FIXME: support headless mode
         }
     }
+
+    fn register_webxr(&mut self, xr: &mut webxr_api::MainThreadRegistry) {
+        if !opts::get().headless {
+            if pref!(dom.webxr.test) {
+                warn!("Creating test XR device");
+                let gl = self.gl.clone();
+                let events_loop_clone = self.events_loop.clone();
+                let events_loop_factory = Box::new(move || {
+                    events_loop_clone.borrow_mut().take().ok_or(EventsLoopClosed)
+                });
+                let gl_version = app::gl_version();
+                let discovery = webxr::glwindow::GlWindowDiscovery::new(gl, events_loop_factory, gl_version);
+                xr.register(discovery);
+            }
+        }
+    }
 }
