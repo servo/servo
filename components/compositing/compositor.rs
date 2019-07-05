@@ -182,6 +182,9 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// Some VR displays want to be sent a heartbeat from the main thread.
     webvr_heartbeats: Vec<Box<dyn WebVRMainThreadHeartbeat>>,
 
+    /// Some XR devices want to run on the main thread.
+    pub webxr_main_thread: webxr_api::MainThreadRegistry,
+
     /// Map of the pending paint metrics per layout thread.
     /// The layout thread for each specific pipeline expects the compositor to
     /// paint frames with specific given IDs (epoch). Once the compositor paints
@@ -314,6 +317,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             webrender_document: state.webrender_document,
             webrender_api: state.webrender_api,
             webvr_heartbeats: state.webvr_heartbeats,
+            webxr_main_thread: state.webxr_main_thread,
             pending_paint_metrics: HashMap::new(),
             cursor: Cursor::None,
             output_file,
@@ -999,7 +1003,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 pipeline_ids.push(*pipeline_id);
             }
         }
-        let animation_state = if pipeline_ids.is_empty() && !self.webvr_heartbeats_racing() {
+        let animation_state = if pipeline_ids.is_empty() &&
+            !self.webvr_heartbeats_racing() &&
+            !self.webxr_main_thread.running()
+        {
             windowing::AnimationState::Idle
         } else {
             windowing::AnimationState::Animating
@@ -1455,6 +1462,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         for webvr_heartbeat in &mut self.webvr_heartbeats {
             webvr_heartbeat.heartbeat();
         }
+
+        // Run the WebXR main thread
+        self.webxr_main_thread.run_one_frame();
 
         if !self.pending_scroll_zoom_events.is_empty() && !self.waiting_for_results_of_scroll {
             self.process_pending_scroll_events()

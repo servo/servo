@@ -292,10 +292,10 @@ where
 
         // For the moment, we enable use both the webxr crate and the rust-webvr crate,
         // but we are migrating over to just using webxr.
-        let mut webxr_registry =
-            webxr_api::Registry::new().expect("Failed to create WebXR device registry");
+        let mut webxr_main_thread =
+            webxr_api::MainThreadRegistry::new().expect("Failed to create WebXR device registry");
         if pref!(dom.webvr.enabled) || pref!(dom.webxr.enabled) {
-            embedder.register_webxr(&mut webxr_registry);
+            embedder.register_webxr(&mut webxr_main_thread);
         }
 
         let mut webvr_heartbeats = Vec::new();
@@ -332,7 +332,7 @@ where
             webrender_api_sender,
             window.gl(),
             webvr_services,
-            webxr_registry,
+            webxr_main_thread.registry(),
             player_context,
         );
 
@@ -359,6 +359,7 @@ where
                 webrender_document,
                 webrender_api,
                 webvr_heartbeats,
+                webxr_main_thread,
             },
             opts.output_file.clone(),
             opts.is_running_problem_test,
