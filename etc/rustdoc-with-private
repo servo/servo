@@ -1,7 +1,14 @@
 #!/bin/sh
+
+# Work around https://github.com/rust-lang/rust/issues/62132
+if [ "$2" = "synstructure" -o "$2" = "derivative" ]
+then
+    exit
+fi
+
 # Emit documentation for private items so it is easier to look
 # up internal definitions.
-# 
+#
 # Deny "deny warnings" to ensure documenting the crates
 # succeeds even if new warnings are introduced to the compiler.
 rustdoc -Z "unstable-options" --cap-lints warn --document-private-items "$@"
