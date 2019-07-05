@@ -10,7 +10,7 @@ partial interface Navigator {
 [SecureContext, Exposed=Window] interface XR : EventTarget {
   // Methods
   Promise<void> supportsSession(XRSessionMode mode);
-  Promise<XRSession> requestSession(XRSessionMode mode);
+  Promise<XRSession> requestSession(XRSessionMode mode, optional XRSessionInit options);
 
   // Events
   attribute EventHandler ondevicechange;
@@ -20,6 +20,11 @@ enum XRSessionMode {
   "inline",
   "immersive-vr",
   "immersive-ar"
+};
+
+dictionary XRSessionInit {
+  sequence<DOMString> requiredFeatures;
+  sequence<DOMString> optionalFeatures;
 };
 
 enum XREnvironmentBlendMode {
@@ -239,13 +244,11 @@ dictionary XRSessionEventInit : EventInit {
 interface XRInputSourceEvent : Event {
   [SameObject] readonly attribute XRFrame frame;
   [SameObject] readonly attribute XRInputSource inputSource;
-  [SameObject] readonly attribute long? buttonIndex;
 };
 
 dictionary XRInputSourceEventInit : EventInit {
   required XRFrame frame;
   required XRInputSource inputSource;
-  long? buttonIndex = null;
 };
 
 [SecureContext, Exposed=Window, Constructor(DOMString type, XRInputSourcesChangeEventInit eventInitDict)]

@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS Text test: hanging trailing spaces with white-space:pre-wrap</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/white-space-pre-wrap-trailing-spaces-004-ref.html">
+<meta name="assert" content="Preserved white space at the end of the line is hanged when white-space is pre-wrap.">
+<style>
+div {
+  font: 25px/1 Ahem;
+  color: green;
+  background: red;
+
+  width: 2ch;
+  white-space: pre-wrap;
+}
+</style>
+
+<p>This test passes if there is a green square and no red.
+<div>XX<span> </span>XX</div>
+

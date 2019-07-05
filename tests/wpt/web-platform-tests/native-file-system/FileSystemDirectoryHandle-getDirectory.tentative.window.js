@@ -10,7 +10,7 @@ promise_test(async t => {
 promise_test(async t => {
     const root = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
     const handle = await root.getDirectory('non-existing-dir', { create: true });
-    t.add_cleanup(() => handle.removeRecursively());
+    t.add_cleanup(() => root.removeEntry('non-existing-dir', { recursive: true }));
 
     assert_false(handle.isFile);
     assert_true(handle.isDirectory);
@@ -22,7 +22,7 @@ promise_test(async t => {
 promise_test(async t => {
     const root = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
     const existing_handle = await root.getDirectory('dir-with-contents', { create: true });
-    t.add_cleanup(() => existing_handle.removeRecursively());
+    t.add_cleanup(() => root.removeEntry('dir-with-contents', { recursive: true }));
     const file_handle = await createEmptyFile(t, 'test-file', existing_handle);
 
     const handle = await root.getDirectory('dir-with-contents', { create: false });
@@ -36,7 +36,7 @@ promise_test(async t => {
 promise_test(async t => {
     const root = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
     const existing_handle = await root.getDirectory('dir-with-contents', { create: true });
-    t.add_cleanup(() => existing_handle.removeRecursively());
+    t.add_cleanup(() => root.removeEntry('dir-with-contents', { recursive: true }));
     const file_handle = await existing_handle.getFile('test-file', { create: true });
 
     const handle = await root.getDirectory('dir-with-contents', { create: true });

@@ -132,7 +132,7 @@ promise_test(t => {
   const promises = [];
   invalid_signals.forEach(invalid_signal => {
     promises.push(
-      promise_rejects(t, 'TypeError', writer.push(test_text_data, { signal: invalid_signal })));
+      promise_rejects(t, new TypeError(), writer.push(test_text_data, { signal: invalid_signal })));
   });
   return Promise.all(promises);
 }, "NFCWriter.push should fail if signal is not an AbortSignal.");
