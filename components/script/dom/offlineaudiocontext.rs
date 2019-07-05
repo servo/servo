@@ -23,6 +23,7 @@ use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
+use msg::constellation_msg::BrowsingContextId;
 use servo_media::audio::context::OfflineAudioContextOptions as ServoMediaOfflineAudioContextOptions;
 use std::cell::Cell;
 use std::rc::Rc;
@@ -42,14 +43,21 @@ pub struct OfflineAudioContext {
 
 impl OfflineAudioContext {
     #[allow(unrooted_must_root)]
-    fn new_inherited(channel_count: u32, length: u32, sample_rate: f32) -> OfflineAudioContext {
+    fn new_inherited(
+        channel_count: u32,
+        length: u32,
+        sample_rate: f32,
+        browsing_context_id: BrowsingContextId,
+    ) -> OfflineAudioContext {
         let options = ServoMediaOfflineAudioContextOptions {
             channels: channel_count as u8,
             length: length as usize,
             sample_rate,
         };
-        let context =
-            BaseAudioContext::new_inherited(BaseAudioContextOptions::OfflineAudioContext(options));
+        let context = BaseAudioContext::new_inherited(
+            BaseAudioContextOptions::OfflineAudioContext(options),
+            browsing_context_id,
+        );
         OfflineAudioContext {
             context,
             channel_count,
@@ -74,7 +82,13 @@ impl OfflineAudioContext {
         {
             return Err(Error::NotSupported);
         }
-        let context = OfflineAudioContext::new_inherited(channel_count, length, sample_rate);
+        let browsing_context_id = window.window_proxy().top_level_browsing_context_id().0;
+        let context = OfflineAudioContext::new_inherited(
+            channel_count,
+            length,
+            sample_rate,
+            browsing_context_id,
+        );
         Ok(reflect_dom_object(
             Box::new(context),
             window,
@@ -130,6 +144,8 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
         let sender = Mutex::new(sender);
         self.context
             .audio_context_impl()
+            .lock()
+            .unwrap()
             .set_eos_callback(Box::new(move |buffer| {
                 processed_audio_
                     .lock()
@@ -181,7 +197,14 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
             })
             .unwrap();
 
-        if self.context.audio_context_impl().resume().is_err() {
+        if self
+            .context
+            .audio_context_impl()
+            .lock()
+            .unwrap()
+            .resume()
+            .is_err()
+        {
             promise.reject_error(Error::Type("Could not start offline rendering".to_owned()));
         }
 
