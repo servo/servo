@@ -75,7 +75,7 @@ use script_layout_interface::HTMLMediaData;
 use servo_config::pref;
 use servo_media::player::frame::{Frame, FrameRenderer};
 use servo_media::player::{PlaybackState, Player, PlayerError, PlayerEvent, StreamType};
-use servo_media::{ServoMedia, SupportsMediaType};
+use servo_media::{ClientContextId, ServoMedia, SupportsMediaType};
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::VecDeque;
@@ -297,7 +297,7 @@ pub struct HTMLMediaElement {
     #[ignore_malloc_size_of = "promises are hard"]
     in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
     #[ignore_malloc_size_of = "servo_media"]
-    player: DomRefCell<Option<Box<dyn Player>>>,
+    player: DomRefCell<Option<Arc<Mutex<dyn Player>>>>,
     #[ignore_malloc_size_of = "Arc"]
     frame_renderer: Arc<Mutex<MediaFrameRenderer>>,
     /// https://html.spec.whatwg.org/multipage/#show-poster-flag
@@ -415,10 +415,10 @@ impl HTMLMediaElement {
 
     fn play_media(&self) {
         if let Some(ref player) = *self.player.borrow() {
-            if let Err(e) = player.set_rate(self.playbackRate.get()) {
+            if let Err(e) = player.lock().unwrap().set_rate(self.playbackRate.get()) {
                 warn!("Could not set the playback rate {:?}", e);
             }
-            if let Err(e) = player.play() {
+            if let Err(e) = player.lock().unwrap().play() {
                 warn!("Could not play media {:?}", e);
             }
         }
@@ -485,7 +485,7 @@ impl HTMLMediaElement {
                         this.upcast::<EventTarget>().fire_event(atom!("pause"));
 
                         if let Some(ref player) = *this.player.borrow() {
-                            if let Err(e) = player.pause() {
+                            if let Err(e) = player.lock().unwrap().pause() {
                                 eprintln!("Could not pause player {:?}", e);
                             }
                         }
@@ -925,6 +925,8 @@ impl HTMLMediaElement {
                                     .borrow()
                                     .as_ref()
                                     .unwrap()
+                                    .lock()
+                                    .unwrap()
                                     .set_stream(&track.id(), pos == tracks.len() - 1)
                                 {
                                     self.queue_dedicated_media_source_failure_steps();
@@ -974,7 +976,7 @@ impl HTMLMediaElement {
                     this.upcast::<EventTarget>().fire_event(atom!("error"));
 
                     if let Some(ref player) = *this.player.borrow() {
-                        if let Err(e) = player.stop() {
+                        if let Err(e) = player.lock().unwrap().stop() {
                             eprintln!("Could not stop player {:?}", e);
                         }
                     }
@@ -1230,7 +1232,7 @@ impl HTMLMediaElement {
 
         // Step 11.
         if let Some(ref player) = *self.player.borrow() {
-            if let Err(e) = player.seek(time) {
+            if let Err(e) = player.lock().unwrap().seek(time) {
                 eprintln!("Seek error {:?}", e);
             }
         }
@@ -1302,7 +1304,13 @@ impl HTMLMediaElement {
             HTMLMediaElementTypeId::HTMLVideoElement => Some(self.frame_renderer.clone()),
         };
 
+        let browsing_context_id = window.window_proxy().top_level_browsing_context_id().0;
+        let client_context_id = ClientContextId::build(
+            browsing_context_id.namespace_id.0,
+            browsing_context_id.index.0.get(),
+        );
         let player = ServoMedia::get().unwrap().create_player(
+            &client_context_id,
             stream_type,
             action_sender,
             renderer,
@@ -1737,9 +1745,14 @@ impl Drop for HTMLMediaElement {
         });
 
         if let Some(ref player) = *self.player.borrow() {
-            if let Err(err) = player.shutdown() {
-                warn!("Error shutting down player {:?}", err);
-            }
+            let browsing_context_id = window.window_proxy().top_level_browsing_context_id().0;
+            let client_context_id = ClientContextId::build(
+                browsing_context_id.namespace_id.0,
+                browsing_context_id.index.0.get(),
+            );
+            ServoMedia::get()
+                .unwrap()
+                .shutdown_player(&client_context_id, player.clone());
         }
     }
 }
@@ -1797,7 +1810,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         }
 
         if let Some(ref player) = *self.player.borrow() {
-            let _ = player.set_mute(value);
+            let _ = player.lock().unwrap().set_mute(value);
         }
 
         self.muted.set(value);
@@ -2005,7 +2018,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
             self.queue_ratechange_event();
             if self.is_potentially_playing() {
                 if let Some(ref player) = *self.player.borrow() {
-                    if let Err(e) = player.set_rate(*value) {
+                    if let Err(e) = player.lock().unwrap().set_rate(*value) {
                         warn!("Could not set the playback rate {:?}", e);
                     }
                 }
@@ -2072,7 +2085,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     fn Buffered(&self) -> DomRoot<TimeRanges> {
         let mut buffered = TimeRangesContainer::new();
         if let Some(ref player) = *self.player.borrow() {
-            if let Ok(ranges) = player.buffered() {
+            if let Ok(ranges) = player.lock().unwrap().buffered() {
                 for range in ranges {
                     let _ = buffered.add(range.start as f64, range.end as f64);
                 }
@@ -2378,6 +2391,8 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
                             .borrow()
                             .as_ref()
                             .unwrap()
+                            .lock()
+                            .unwrap()
                             .set_input_size(content_length)
                         {
                             warn!("Could not set player input size {:?}", e);
@@ -2431,7 +2446,15 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         let payload_len = payload.len() as u64;
 
         // Push input data into the player.
-        if let Err(e) = elem.player.borrow().as_ref().unwrap().push_data(payload) {
+        if let Err(e) = elem
+            .player
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .lock()
+            .unwrap()
+            .push_data(payload)
+        {
             // If we are pushing too much data and we know that we can
             // restart the download later from where we left, we cancel
             // the current request. Otherwise, we continue the request
@@ -2478,7 +2501,15 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         if elem.generation_id.get() == self.generation_id {
             if let Some(ref current_fetch_context) = *elem.current_fetch_context.borrow() {
                 if let Some(CancelReason::Error) = current_fetch_context.cancel_reason() {
-                    if let Err(e) = elem.player.borrow().as_ref().unwrap().end_of_stream() {
+                    if let Err(e) = elem
+                        .player
+                        .borrow()
+                        .as_ref()
+                        .unwrap()
+                        .lock()
+                        .unwrap()
+                        .end_of_stream()
+                    {
                         warn!("Could not signal EOS to player {:?}", e);
                     }
                     return;

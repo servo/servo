@@ -23,6 +23,7 @@ use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
+use msg::constellation_msg::BrowsingContextId;
 use servo_media::audio::context::{LatencyCategory, ProcessingState, RealTimeAudioContextOptions};
 use std::rc::Rc;
 
@@ -39,10 +40,15 @@ pub struct AudioContext {
 impl AudioContext {
     #[allow(unrooted_must_root)]
     // https://webaudio.github.io/web-audio-api/#AudioContext-constructors
-    fn new_inherited(options: &AudioContextOptions) -> AudioContext {
+    fn new_inherited(
+        options: &AudioContextOptions,
+        browsing_context_id: BrowsingContextId,
+    ) -> AudioContext {
         // Steps 1-3.
-        let context =
-            BaseAudioContext::new_inherited(BaseAudioContextOptions::AudioContext(options.into()));
+        let context = BaseAudioContext::new_inherited(
+            BaseAudioContextOptions::AudioContext(options.into()),
+            browsing_context_id,
+        );
 
         // Step 4.1.
         let latency_hint = options.latencyHint;
@@ -64,7 +70,8 @@ impl AudioContext {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, options: &AudioContextOptions) -> DomRoot<AudioContext> {
-        let context = AudioContext::new_inherited(options);
+        let browsing_context_id = window.window_proxy().top_level_browsing_context_id().0;
+        let context = AudioContext::new_inherited(options, browsing_context_id);
         let context = reflect_dom_object(Box::new(context), window, AudioContextBinding::Wrap);
         context.resume();
         context
@@ -128,7 +135,7 @@ impl AudioContextMethods for AudioContext {
         let window = DomRoot::downcast::<Window>(self.global()).unwrap();
         let task_source = window.task_manager().dom_manipulation_task_source();
         let trusted_promise = TrustedPromise::new(promise.clone());
-        match self.context.audio_context_impl().suspend() {
+        match self.context.audio_context_impl().lock().unwrap().suspend() {
             Ok(_) => {
                 let base_context = Trusted::new(&self.context);
                 let context = Trusted::new(self);
@@ -189,7 +196,7 @@ impl AudioContextMethods for AudioContext {
         let window = DomRoot::downcast::<Window>(self.global()).unwrap();
         let task_source = window.task_manager().dom_manipulation_task_source();
         let trusted_promise = TrustedPromise::new(promise.clone());
-        match self.context.audio_context_impl().close() {
+        match self.context.audio_context_impl().lock().unwrap().close() {
             Ok(_) => {
                 let base_context = Trusted::new(&self.context);
                 let context = Trusted::new(self);

@@ -49,11 +49,12 @@ use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBuffer;
+use msg::constellation_msg::BrowsingContextId;
 use servo_media::audio::context::{AudioContext, AudioContextOptions, ProcessingState};
 use servo_media::audio::context::{OfflineAudioContextOptions, RealTimeAudioContextOptions};
 use servo_media::audio::decoder::AudioDecoderCallbacks;
 use servo_media::audio::graph::NodeId;
-use servo_media::ServoMedia;
+use servo_media::{ClientContextId, ServoMedia};
 use std::cell::Cell;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
@@ -79,7 +80,7 @@ struct DecodeResolver {
 pub struct BaseAudioContext {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "servo_media"]
-    audio_context_impl: AudioContext,
+    audio_context_impl: Arc<Mutex<AudioContext>>,
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
     destination: MutNullableDom<AudioDestinationNode>,
     listener: MutNullableDom<AudioListener>,
@@ -104,7 +105,10 @@ pub struct BaseAudioContext {
 
 impl BaseAudioContext {
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(options: BaseAudioContextOptions) -> BaseAudioContext {
+    pub fn new_inherited(
+        options: BaseAudioContextOptions,
+        browsing_context_id: BrowsingContextId,
+    ) -> BaseAudioContext {
         let (sample_rate, channel_count) = match options {
             BaseAudioContextOptions::AudioContext(ref opt) => (opt.sample_rate, 2),
             BaseAudioContextOptions::OfflineAudioContext(ref opt) => {
@@ -112,11 +116,15 @@ impl BaseAudioContext {
             },
         };
 
+        let client_context_id = ClientContextId::build(
+            browsing_context_id.namespace_id.0,
+            browsing_context_id.index.0.get(),
+        );
         let context = BaseAudioContext {
             eventtarget: EventTarget::new_inherited(),
             audio_context_impl: ServoMedia::get()
                 .unwrap()
-                .create_audio_context(options.into()),
+                .create_audio_context(&client_context_id, options.into()),
             destination: Default::default(),
             listener: Default::default(),
             in_flight_resume_promises_queue: Default::default(),
@@ -135,16 +143,16 @@ impl BaseAudioContext {
         false
     }
 
-    pub fn audio_context_impl(&self) -> &AudioContext {
-        &self.audio_context_impl
+    pub fn audio_context_impl(&self) -> Arc<Mutex<AudioContext>> {
+        self.audio_context_impl.clone()
     }
 
     pub fn destination_node(&self) -> NodeId {
-        self.audio_context_impl.dest_node()
+        self.audio_context_impl.lock().unwrap().dest_node()
     }
 
     pub fn listener(&self) -> NodeId {
-        self.audio_context_impl.listener()
+        self.audio_context_impl.lock().unwrap().listener()
     }
 
     // https://webaudio.github.io/web-audio-api/#allowed-to-start
@@ -205,7 +213,7 @@ impl BaseAudioContext {
 
     /// Control thread processing state
     pub fn control_thread_state(&self) -> ProcessingState {
-        self.audio_context_impl.state()
+        self.audio_context_impl.lock().unwrap().state()
     }
 
     /// Set audio context state
@@ -220,7 +228,7 @@ impl BaseAudioContext {
         let this = Trusted::new(self);
         // Set the rendering thread state to 'running' and start
         // rendering the audio graph.
-        match self.audio_context_impl.resume() {
+        match self.audio_context_impl.lock().unwrap().resume() {
             Ok(()) => {
                 self.take_pending_resume_promises(Ok(()));
                 let _ = task_source.queue(
@@ -264,7 +272,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-currenttime
     fn CurrentTime(&self) -> Finite<f64> {
-        let current_time = self.audio_context_impl.current_time();
+        let current_time = self.audio_context_impl.lock().unwrap().current_time();
         Finite::wrap(current_time)
     }
 
@@ -279,7 +287,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
         let promise = Promise::new_in_current_compartment(&self.global(), comp);
 
         // Step 2.
-        if self.audio_context_impl.state() == ProcessingState::Closed {
+        if self.audio_context_impl.lock().unwrap().state() == ProcessingState::Closed {
             promise.reject_error(Error::InvalidState);
             return promise;
         }
@@ -520,6 +528,8 @@ impl BaseAudioContextMethods for BaseAudioContext {
                 })
                 .build();
             self.audio_context_impl
+                .lock()
+                .unwrap()
                 .decode_audio_data(audio_data, callbacks);
         } else {
             // Step 3.

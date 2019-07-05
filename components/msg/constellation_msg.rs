@@ -174,7 +174,7 @@ thread_local!(pub static TOP_LEVEL_BROWSING_CONTEXT_ID: Cell<Option<TopLevelBrow
 #[derive(
     Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
 )]
-pub struct TopLevelBrowsingContextId(BrowsingContextId);
+pub struct TopLevelBrowsingContextId(pub BrowsingContextId);
 
 impl TopLevelBrowsingContextId {
     pub fn new() -> TopLevelBrowsingContextId {
