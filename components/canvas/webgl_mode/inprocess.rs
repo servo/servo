@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::gl_context::GLContextFactory;
-use crate::webgl_thread::{WebGLExternalImageApi, WebGLExternalImageHandler, WebGLThread};
+use crate::webgl_thread::WebGLThread;
 use canvas_traits::webgl::webgl_channel;
 use canvas_traits::webgl::DOMToTextureCommand;
 use canvas_traits::webgl::{WebGLChan, WebGLContextId, WebGLMsg, WebGLPipeline, WebGLReceiver};
@@ -13,6 +13,8 @@ use fnv::FnvHashMap;
 use gleam::gl;
 use servo_config::pref;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
+use webrender_traits::{WebrenderExternalImageApi, WebrenderExternalImageRegistry};
 
 /// WebGL Threading API entry point that lives in the constellation.
 pub struct WebGLThreads(WebGLSender<WebGLMsg>);
@@ -24,9 +26,10 @@ impl WebGLThreads {
         webrender_gl: Rc<dyn gl::Gl>,
         webrender_api_sender: webrender_api::RenderApiSender,
         webvr_compositor: Option<Box<dyn WebVRRenderHandler>>,
+        external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     ) -> (
         WebGLThreads,
-        Box<dyn webrender::ExternalImageHandler>,
+        Box<dyn WebrenderExternalImageApi>,
         Option<Box<dyn webrender::OutputImageHandler>>,
     ) {
         // This implementation creates a single `WebGLThread` for all the pipelines.
@@ -34,6 +37,7 @@ impl WebGLThreads {
             gl_factory,
             webrender_api_sender,
             webvr_compositor.map(|c| WebVRRenderWrapper(c)),
+            external_images,
         );
         let output_handler = if pref!(dom.webgl.dom_to_texture.enabled) {
             Some(Box::new(OutputHandler::new(
@@ -43,8 +47,7 @@ impl WebGLThreads {
         } else {
             None
         };
-        let external =
-            WebGLExternalImageHandler::new(WebGLExternalImages::new(webrender_gl, channel.clone()));
+        let external = WebGLExternalImages::new(webrender_gl, channel.clone());
         (
             WebGLThreads(channel),
             Box::new(external),
@@ -87,12 +90,15 @@ impl WebGLExternalImages {
     }
 }
 
-impl WebGLExternalImageApi for WebGLExternalImages {
-    fn lock(&mut self, ctx_id: WebGLContextId) -> (u32, Size2D<i32>) {
+impl WebrenderExternalImageApi for WebGLExternalImages {
+    fn lock(&mut self, id: u64) -> (u32, Size2D<i32>) {
         // WebGL Thread has it's own GL command queue that we need to synchronize with the WR GL command queue.
         // The WebGLMsg::Lock message inserts a fence in the WebGL command queue.
         self.webgl_channel
-            .send(WebGLMsg::Lock(ctx_id, self.lock_channel.0.clone()))
+            .send(WebGLMsg::Lock(
+                WebGLContextId(id as usize),
+                self.lock_channel.0.clone(),
+            ))
             .unwrap();
         let (image_id, size, gl_sync) = self.lock_channel.1.recv().unwrap();
         // The next glWaitSync call is run on the WR thread and it's used to synchronize the two
@@ -103,8 +109,10 @@ impl WebGLExternalImageApi for WebGLExternalImages {
         (image_id, size)
     }
 
-    fn unlock(&mut self, ctx_id: WebGLContextId) {
-        self.webgl_channel.send(WebGLMsg::Unlock(ctx_id)).unwrap();
+    fn unlock(&mut self, id: u64) {
+        self.webgl_channel
+            .send(WebGLMsg::Unlock(WebGLContextId(id as usize)))
+            .unwrap();
     }
 }
 

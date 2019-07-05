@@ -17,6 +17,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error;
 use layout_traits::LayoutThreadFactory;
+use media::WindowGLContext;
 use metrics::PaintTimeMetrics;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use msg::constellation_msg::{BackgroundHangMonitorRegister, HangMonitorAlert, SamplerControlMsg};
@@ -191,6 +192,9 @@ pub struct InitialPipelineState {
 
     /// The XR device registry
     pub webxr_registry: webxr_api::Registry,
+
+    /// Application window's GL Context for Media player
+    pub player_context: WindowGLContext,
 }
 
 pub struct NewPipeline {
@@ -309,6 +313,7 @@ impl Pipeline {
                     webgl_chan: state.webgl_chan,
                     webvr_chan: state.webvr_chan,
                     webxr_registry: state.webxr_registry,
+                    player_context: state.player_context,
                 };
 
                 // Spawn the child process.
@@ -515,6 +520,7 @@ pub struct UnprivilegedPipelineContent {
     webgl_chan: Option<WebGLPipeline>,
     webvr_chan: Option<IpcSender<WebVRMsg>>,
     webxr_registry: webxr_api::Registry,
+    player_context: WindowGLContext,
 }
 
 impl UnprivilegedPipelineContent {
@@ -563,6 +569,7 @@ impl UnprivilegedPipelineContent {
                 webrender_document: self.webrender_document,
                 webrender_api_sender: self.webrender_api_sender.clone(),
                 layout_is_busy: layout_thread_busy_flag.clone(),
+                player_context: self.player_context.clone(),
             },
             self.load_data.clone(),
             self.opts.profile_script_events,

@@ -34,6 +34,7 @@ use ipc_channel::Error as IpcError;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
 use libc::c_void;
+use media::WindowGLContext;
 use msg::constellation_msg::BackgroundHangMonitorRegister;
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
 use msg::constellation_msg::{PipelineNamespaceId, TopLevelBrowsingContextId, TraversalDirection};
@@ -636,6 +637,8 @@ pub struct InitialScriptState {
     pub webrender_api_sender: RenderApiSender,
     /// Flag to indicate if the layout thread is busy handling a request.
     pub layout_is_busy: Arc<AtomicBool>,
+    /// Application window's GL Context for Media player
+    pub player_context: WindowGLContext,
 }
 
 /// This trait allows creating a `ScriptThread` without depending on the `script`

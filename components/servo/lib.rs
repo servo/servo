@@ -35,6 +35,7 @@ pub use euclid;
 pub use gfx;
 pub use ipc_channel;
 pub use layout_thread;
+pub use media;
 pub use msg;
 pub use net;
 pub use net_traits;
@@ -49,6 +50,7 @@ pub use servo_url;
 pub use style;
 pub use style_traits;
 pub use webrender_api;
+pub use webrender_traits;
 pub use webvr;
 pub use webvr_traits;
 
@@ -93,6 +95,7 @@ use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
 use log::{Log, Metadata, Record};
+use media::{GLPlayerThreads, WindowGLContext};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId};
 use net::resource_thread::new_resource_threads;
 use net_traits::IpcSend;
@@ -103,12 +106,14 @@ use profile_traits::time;
 use script_traits::{ConstellationMsg, SWManagerSenders, ScriptToConstellationChan};
 use servo_config::opts;
 use servo_config::{pref, prefs};
+use servo_media::player::context::GlContext;
 use servo_media::ServoMedia;
 use std::borrow::Cow;
 use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::Rc;
 use webrender::{RendererKind, ShaderPrecacheFlags};
+use webrender_traits::{WebrenderExternalImageHandlers, WebrenderImageHandlerType};
 use webvr::{VRServiceManager, WebVRCompositorHandler, WebVRThread};
 
 pub use gleam::gl;
@@ -303,6 +308,13 @@ where
             None
         };
 
+        let player_context = WindowGLContext {
+            gl_context: window.get_gl_context(),
+            native_display: window.get_native_display(),
+            gl_api: window.get_gl_api(),
+            glplayer_chan: None,
+        };
+
         // Create the constellation, which maintains the engine
         // pipelines, including the script and layout threads, as well
         // as the navigation context.
@@ -321,6 +333,7 @@ where
             window.gl(),
             webvr_services,
             webxr_registry,
+            player_context,
         );
 
         // Send the constellation's swmanager sender to service worker manager thread
@@ -631,6 +644,7 @@ fn create_constellation(
     window_gl: Rc<dyn gl::Gl>,
     webvr_services: Option<VRServiceManager>,
     webxr_registry: webxr_api::Registry,
+    player_context: WindowGLContext,
 ) -> (Sender<ConstellationMsg>, SWManagerSenders) {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
@@ -676,6 +690,9 @@ fn create_constellation(
         GLContextFactory::current_native_handle(&compositor_proxy)
     };
 
+    let (external_image_handlers, external_images) = WebrenderExternalImageHandlers::new();
+    let mut external_image_handlers = Box::new(external_image_handlers);
+
     // Initialize WebGL Thread entry point.
     let webgl_threads = gl_factory.map(|factory| {
         let (webgl_threads, image_handler, output_handler) = WebGLThreads::new(
@@ -683,10 +700,11 @@ fn create_constellation(
             window_gl,
             webrender_api_sender.clone(),
             webvr_compositor.map(|c| c as Box<_>),
+            external_images.clone(),
         );
 
         // Set webrender external image handler for WebGL textures
-        webrender.set_external_image_handler(image_handler);
+        external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::WebGL);
 
         // Set DOM to texture handler, if enabled.
         if let Some(output_handler) = output_handler {
@@ -695,6 +713,22 @@ fn create_constellation(
 
         webgl_threads
     });
+
+    let glplayer_threads = match player_context.gl_context {
+        GlContext::Unknown => None,
+        _ => {
+            let (glplayer_threads, image_handler) = GLPlayerThreads::new(external_images);
+            external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::Media);
+            Some(glplayer_threads)
+        },
+    };
+
+    webrender.set_external_image_handler(external_image_handlers);
+
+    let player_context = WindowGLContext {
+        glplayer_chan: glplayer_threads.as_ref().map(|threads| threads.pipeline()),
+        ..player_context
+    };
 
     let initial_state = InitialConstellationState {
         compositor_proxy,
@@ -712,6 +746,8 @@ fn create_constellation(
         webgl_threads,
         webvr_chan,
         webxr_registry,
+        glplayer_threads,
+        player_context,
     };
     let (constellation_chan, from_swmanager_sender) = Constellation::<
         script_layout_interface::message::Msg,

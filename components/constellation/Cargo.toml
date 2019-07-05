@@ -35,6 +35,7 @@ ipc-channel = "0.11"
 layout_traits = {path = "../layout_traits"}
 keyboard-types = "0.4.3"
 log = "0.4"
+media = {path = "../media"}
 metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net = {path = "../net"}

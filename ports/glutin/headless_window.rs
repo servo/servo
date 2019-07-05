@@ -14,6 +14,7 @@ use servo::servo_config::opts;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
 use servo::webrender_api::{DeviceIntRect, FramebufferIntSize};
+use servo_media::player::context as MediaPlayerCtxt;
 use std::cell::Cell;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::ffi::CString;
@@ -195,4 +196,16 @@ impl WindowMethods for Window {
     }
 
     fn prepare_for_composite(&self) { }
+
+    fn get_gl_context(&self) -> MediaPlayerCtxt::GlContext {
+        MediaPlayerCtxt::GlContext::Unknown
+    }
+
+    fn get_native_display(&self) -> MediaPlayerCtxt::NativeDisplay {
+        MediaPlayerCtxt::NativeDisplay::Unknown
+    }
+
+    fn get_gl_api(&self) -> MediaPlayerCtxt::GlApi {
+        MediaPlayerCtxt::GlApi::None
+    }
 }

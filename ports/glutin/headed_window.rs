@@ -13,9 +13,9 @@ use gleam::gl;
 use glutin::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
 use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
+use glutin::Api;
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use glutin::Icon;
-use glutin::Api;
 use glutin::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use image;
@@ -24,12 +24,13 @@ use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEven
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::embedder_traits::Cursor;
 use servo::script_traits::{TouchEventType, WheelMode, WheelDelta};
-use servo::servo_config::opts;
+use servo::servo_config::{opts, pref};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
 use servo::webrender_api::{
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, FramebufferIntSize, ScrollLocation,
 };
+use servo_media::player::context::{GlApi, GlContext as PlayerGLContext, NativeDisplay};
 use std::cell::{Cell, RefCell};
 use std::mem;
 use std::rc::Rc;
@@ -523,6 +524,102 @@ impl WindowMethods for Window {
 
     fn prepare_for_composite(&self) {
         self.gl_context.borrow_mut().make_current();
+    }
+
+    fn get_gl_context(&self) -> PlayerGLContext {
+        if pref!(media.glvideo.enabled) {
+            self.gl_context.borrow().raw_context()
+        } else {
+            PlayerGLContext::Unknown
+        }
+    }
+
+    fn get_native_display(&self) -> NativeDisplay {
+        if !pref!(media.glvideo.enabled) {
+            return NativeDisplay::Unknown;
+        }
+
+        #[cfg(any(
+            target_os = "linux",
+            target_os = "dragonfly",
+            target_os = "freebsd",
+            target_os = "netbsd",
+            target_os = "openbsd",
+            target_os = "windows",
+            target_os = "android",
+        ))]
+        let native_display = {
+            if let Some(display) = self.gl_context.borrow().egl_display() {
+                NativeDisplay::Egl(display as usize)
+            } else {
+                #[cfg(any(
+                    target_os = "linux",
+                    target_os = "dragonfly",
+                    target_os = "freebsd",
+                    target_os = "netbsd",
+                    target_os = "openbsd",
+                ))]
+                {
+                    use glutin::os::unix::WindowExt;
+
+                    if let Some(display) = self.gl_context.borrow().window().get_wayland_display() {
+                        NativeDisplay::Wayland(display as usize)
+                    } else if let Some(display) =
+                        self.gl_context.borrow().window().get_xlib_display()
+                    {
+                        NativeDisplay::X11(display as usize)
+                    } else {
+                        NativeDisplay::Unknown
+                    }
+                }
+
+                #[cfg(not(any(
+                    target_os = "linux",
+                    target_os = "dragonfly",
+                    target_os = "freebsd",
+                    target_os = "netbsd",
+                    target_os = "openbsd",
+                )))]
+                NativeDisplay::Unknown
+            }
+        };
+
+        #[cfg(not(any(
+            target_os = "linux",
+            target_os = "dragonfly",
+            target_os = "freebsd",
+            target_os = "netbsd",
+            target_os = "openbsd",
+            target_os = "windows",
+            target_os = "android",
+        )))]
+        let native_display = NativeDisplay::Unknown;
+
+        native_display
+    }
+
+    fn get_gl_api(&self) -> GlApi {
+        let api = self.gl_context.borrow().get_api();
+
+        let version = self.gl.get_string(gl::VERSION);
+        let version = version.trim_start_matches("OpenGL ES ");
+        let mut values = version.split(&['.', ' '][..]);
+        let major = values
+            .next()
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(1);
+        let minor = values
+            .next()
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(20);
+
+        match api {
+            glutin::Api::OpenGl if major >= 3 && minor >= 2 => GlApi::OpenGL3,
+            glutin::Api::OpenGl => GlApi::OpenGL,
+            glutin::Api::OpenGlEs if major > 1 => GlApi::Gles2,
+            glutin::Api::OpenGlEs => GlApi::Gles1,
+            _ => GlApi::None,
+        }
     }
 }
 

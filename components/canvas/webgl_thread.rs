@@ -12,7 +12,9 @@ use half::f16;
 use offscreen_gl_context::{DrawBuffer, GLContext, NativeGLContextMethods};
 use pixels::{self, PixelFormat};
 use std::borrow::Cow;
+use std::sync::{Arc, Mutex};
 use std::thread;
+use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 
 /// WebGL Threading API entry point that lives in the constellation.
 /// It allows to get a WebGLThread handle for each script pipeline.
@@ -58,12 +60,13 @@ pub struct WebGLThread<VR: WebVRRenderHandler + 'static> {
     cached_context_info: FnvHashMap<WebGLContextId, WebGLContextInfo>,
     /// Current bound context.
     bound_context_id: Option<WebGLContextId>,
-    /// Id generator for new WebGLContexts.
-    next_webgl_id: usize,
     /// Handler user to send WebVR commands.
     webvr_compositor: Option<VR>,
     /// Texture ids and sizes used in DOM to texture outputs.
     dom_outputs: FnvHashMap<webrender_api::PipelineId, DOMToTextureData>,
+    /// List of registered webrender external images.
+    /// We use it to get an unique ID for new WebGLContexts.
+    external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
 }
 
 impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
@@ -71,6 +74,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         gl_factory: GLContextFactory,
         webrender_api_sender: webrender_api::RenderApiSender,
         webvr_compositor: Option<VR>,
+        external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     ) -> Self {
         WebGLThread {
             gl_factory,
@@ -78,9 +82,9 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             contexts: Default::default(),
             cached_context_info: Default::default(),
             bound_context_id: None,
-            next_webgl_id: 0,
             webvr_compositor,
             dom_outputs: Default::default(),
+            external_images,
         }
     }
 
@@ -90,14 +94,19 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         gl_factory: GLContextFactory,
         webrender_api_sender: webrender_api::RenderApiSender,
         webvr_compositor: Option<VR>,
+        external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     ) -> WebGLSender<WebGLMsg> {
         let (sender, receiver) = webgl_channel::<WebGLMsg>().unwrap();
         let result = sender.clone();
         thread::Builder::new()
             .name("WebGLThread".to_owned())
             .spawn(move || {
-                let mut renderer =
-                    WebGLThread::new(gl_factory, webrender_api_sender, webvr_compositor);
+                let mut renderer = WebGLThread::new(
+                    gl_factory,
+                    webrender_api_sender,
+                    webvr_compositor,
+                    external_images,
+                );
                 let webgl_chan = WebGLChan(sender);
                 loop {
                     let msg = receiver.recv().unwrap();
@@ -287,9 +296,14 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             })
             .map_err(|msg: &str| msg.to_owned())?;
 
-        let id = WebGLContextId(self.next_webgl_id);
+        let id = WebGLContextId(
+            self.external_images
+                .lock()
+                .unwrap()
+                .next_id(WebrenderImageHandlerType::WebGL)
+                .0 as usize,
+        );
         let (size, texture_id, limits) = ctx.get_info();
-        self.next_webgl_id += 1;
         self.contexts.insert(
             id,
             GLContextData {
@@ -728,53 +742,6 @@ struct WebGLContextInfo {
     gl_sync: Option<gl::GLsync>,
     /// The status of this context with respect to external consumers.
     render_state: ContextRenderState,
-}
-
-/// This trait is used as a bridge between the `WebGLThreads` implementation and
-/// the WR ExternalImageHandler API implemented in the `WebGLExternalImageHandler` struct.
-/// `WebGLExternalImageHandler<T>` takes care of type conversions between WR and WebGL info (e.g keys, uvs).
-/// It uses this trait to notify lock/unlock messages and get the required info that WR needs.
-/// `WebGLThreads` receives lock/unlock message notifications and takes care of sending
-/// the unlock/lock messages to the appropiate `WebGLThread`.
-pub trait WebGLExternalImageApi {
-    fn lock(&mut self, ctx_id: WebGLContextId) -> (u32, Size2D<i32>);
-    fn unlock(&mut self, ctx_id: WebGLContextId);
-}
-
-/// WebRender External Image Handler implementation
-pub struct WebGLExternalImageHandler<T: WebGLExternalImageApi> {
-    handler: T,
-}
-
-impl<T: WebGLExternalImageApi> WebGLExternalImageHandler<T> {
-    pub fn new(handler: T) -> Self {
-        Self { handler: handler }
-    }
-}
-
-impl<T: WebGLExternalImageApi> webrender::ExternalImageHandler for WebGLExternalImageHandler<T> {
-    /// Lock the external image. Then, WR could start to read the image content.
-    /// The WR client should not change the image content until the unlock() call.
-    fn lock(
-        &mut self,
-        key: webrender_api::ExternalImageId,
-        _channel_index: u8,
-        _rendering: webrender_api::ImageRendering,
-    ) -> webrender::ExternalImage {
-        let ctx_id = WebGLContextId(key.0 as _);
-        let (texture_id, size) = self.handler.lock(ctx_id);
-
-        webrender::ExternalImage {
-            uv: webrender_api::TexelRect::new(0.0, size.height as f32, size.width as f32, 0.0),
-            source: webrender::ExternalImageSource::NativeTexture(texture_id),
-        }
-    }
-    /// Unlock the external image. The WR should not read the image content
-    /// after this call.
-    fn unlock(&mut self, key: webrender_api::ExternalImageId, _channel_index: u8) {
-        let ctx_id = WebGLContextId(key.0 as _);
-        self.handler.unlock(ctx_id);
-    }
 }
 
 /// Data about the linked DOM<->WebGLTexture elements.

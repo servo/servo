@@ -25,7 +25,7 @@ use servo::servo_url::ServoUrl;
 use servo::webrender_api::{DevicePixel, FramebufferPixel, ScrollLocation};
 use servo::webvr::{VRExternalShmemPtr, VRMainThreadHeartbeat, VRService, VRServiceManager};
 use servo::{self, gl, BrowserId, Servo};
-
+use servo_media::player::context as MediaPlayerContext;
 use std::cell::RefCell;
 use std::mem;
 use std::os::raw::c_void;
@@ -48,6 +48,8 @@ pub struct InitOptions {
     pub density: f32,
     pub vr_init: VRInitOptions,
     pub enable_subpixel_text_antialiasing: bool,
+    pub gl_context_pointer: Option<*const c_void>,
+    pub native_display_pointer: Option<*const c_void>,
 }
 
 pub enum VRInitOptions {
@@ -187,6 +189,8 @@ pub fn init(
         host_callbacks: callbacks,
         coordinates: RefCell::new(init_opts.coordinates),
         density: init_opts.density,
+        gl_context_pointer: init_opts.gl_context_pointer,
+        native_display_pointer: init_opts.native_display_pointer,
     });
 
     let embedder_callbacks = Box::new(ServoEmbedderCallbacks {
@@ -583,6 +587,8 @@ struct ServoWindowCallbacks {
     host_callbacks: Box<dyn HostTrait>,
     coordinates: RefCell<Coordinates>,
     density: f32,
+    gl_context_pointer: Option<*const c_void>,
+    native_display_pointer: Option<*const c_void>,
 }
 
 impl EmbedderMethods for ServoEmbedderCallbacks {
@@ -642,6 +648,24 @@ impl WindowMethods for ServoWindowCallbacks {
             screen_avail: coords.viewport.size,
             hidpi_factor: TypedScale::new(self.density),
         }
+    }
+
+    fn get_gl_context(&self) -> MediaPlayerContext::GlContext {
+        match self.gl_context_pointer {
+            Some(context) => MediaPlayerContext::GlContext::Egl(context as usize),
+            None => MediaPlayerContext::GlContext::Unknown,
+        }
+    }
+
+    fn get_native_display(&self) -> MediaPlayerContext::NativeDisplay {
+        match self.native_display_pointer {
+            Some(display) => MediaPlayerContext::NativeDisplay::Egl(display as usize),
+            None => MediaPlayerContext::NativeDisplay::Unknown,
+        }
+    }
+
+    fn get_gl_api(&self) -> MediaPlayerContext::GlApi {
+        MediaPlayerContext::GlApi::Gles2
     }
 }
 

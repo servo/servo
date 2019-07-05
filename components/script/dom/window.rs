@@ -85,6 +85,7 @@ use js::jsval::JSVal;
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::JS_DefineProperty;
 use js::rust::HandleValue;
+use media::WindowGLContext;
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
@@ -288,6 +289,7 @@ pub struct Window {
 
     /// Flag to identify whether mutation observers are present(true)/absent(false)
     exists_mut_observer: Cell<bool>,
+
     /// Webrender API Sender
     #[ignore_malloc_size_of = "defined in webrender_api"]
     webrender_api_sender: RenderApiSender,
@@ -317,6 +319,10 @@ pub struct Window {
     /// Replace unpaired surrogates in DOM strings with U+FFFD.
     /// See <https://github.com/servo/servo/issues/6564>
     replace_surrogates: bool,
+
+    /// Window's GL context from application
+    #[ignore_malloc_size_of = "defined in script_thread"]
+    player_context: WindowGLContext,
 }
 
 impl Window {
@@ -479,6 +485,10 @@ impl Window {
 
     pub fn unminify_js(&self) -> bool {
         self.unminify_js
+    }
+
+    pub fn get_player_context(&self) -> WindowGLContext {
+        self.player_context.clone()
     }
 }
 
@@ -2073,6 +2083,7 @@ impl Window {
         is_headless: bool,
         replace_surrogates: bool,
         user_agent: Cow<'static, str>,
+        player_context: WindowGLContext,
     ) -> DomRoot<Self> {
         let layout_rpc: Box<dyn LayoutRPC + Send> = {
             let (rpc_send, rpc_recv) = unbounded();
@@ -2153,6 +2164,7 @@ impl Window {
             unminify_js,
             userscripts_path,
             replace_surrogates,
+            player_context,
         });
 
         unsafe { WindowBinding::Wrap(runtime.cx(), win) }

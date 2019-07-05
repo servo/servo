@@ -123,6 +123,7 @@ use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::KeyboardEvent;
 use layout_traits::LayoutThreadFactory;
 use log::{Level, LevelFilter, Log, Metadata, Record};
+use media::{GLPlayerThreads, WindowGLContext};
 use msg::constellation_msg::{BackgroundHangMonitorRegister, HangMonitorAlert, SamplerControlMsg};
 use msg::constellation_msg::{
     BrowsingContextGroupId, BrowsingContextId, HistoryStateId, PipelineId,
@@ -409,6 +410,12 @@ pub struct Constellation<Message, LTF, STF> {
     /// Like --disable-text-aa, this is useful for reftests where pixel perfect
     /// results are required.
     enable_canvas_antialiasing: bool,
+
+    /// Entry point to create and get channels to a GLPlayerThread.
+    glplayer_threads: Option<GLPlayerThreads>,
+
+    /// Application window's GL Context for Media player
+    player_context: WindowGLContext,
 }
 
 /// State needed to construct a constellation.
@@ -457,6 +464,11 @@ pub struct InitialConstellationState {
 
     /// The XR device registry
     pub webxr_registry: webxr_api::Registry,
+
+    pub glplayer_threads: Option<GLPlayerThreads>,
+
+    /// Application window's GL Context for Media player
+    pub player_context: WindowGLContext,
 }
 
 /// Data needed for webdriver
@@ -753,6 +765,8 @@ where
                     is_running_problem_test,
                     hard_fail,
                     enable_canvas_antialiasing,
+                    glplayer_threads: state.glplayer_threads,
+                    player_context: state.player_context,
                 };
 
                 constellation.run();
@@ -994,6 +1008,7 @@ where
                 .map(|threads| threads.pipeline()),
             webvr_chan: self.webvr_chan.clone(),
             webxr_registry: self.webxr_registry.clone(),
+            player_context: self.player_context.clone(),
         });
 
         let pipeline = match result {
@@ -1792,6 +1807,13 @@ where
             debug!("Exiting WebVR thread.");
             if let Err(e) = chan.send(WebVRMsg::Exit) {
                 warn!("Exit WebVR thread failed ({})", e);
+            }
+        }
+
+        debug!("Exiting GLPlayer thread.");
+        if let Some(glplayer_threads) = self.glplayer_threads.as_ref() {
+            if let Err(e) = glplayer_threads.exit() {
+                warn!("Exit GLPlayer Thread failed ({})", e);
             }
         }
 

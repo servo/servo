@@ -46,6 +46,7 @@ webrender_debugger = ["libservo/webrender_debugger"]
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = "0.3"
 bitflags = "1.0"
+clipboard = "0.5"
 crossbeam-channel = "0.3"
 euclid = "0.19"
 gleam = "0.6"
@@ -56,9 +57,9 @@ libservo = {path = "../../components/servo"}
 libc = "0.2"
 log = "0.4"
 rust-webvr = { version = "0.13", features = ["glwindow"] }
-webxr =  { git = "https://github.com/servo/webxr", features = ["glwindow"] }
+servo-media = {git = "https://github.com/servo/media"}
 tinyfiledialogs = "3.0"
-clipboard = "0.5"
+webxr =  { git = "https://github.com/servo/webxr", features = ["glwindow"] }
 
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
 image = "0.21"

@@ -103,6 +103,7 @@ use js::jsapi::{JSContext, JS_SetWrapObjectCallbacks};
 use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
+use media::WindowGLContext;
 use metrics::{PaintTimeMetrics, MAX_TASK_NS};
 use mime::{self, Mime};
 use msg::constellation_msg::{
@@ -646,7 +647,7 @@ pub struct ScriptThread {
     /// The Webrender Document ID associated with this thread.
     webrender_document: DocumentId,
 
-    /// FIXME(victor):
+    /// Webrender API sender.
     webrender_api_sender: RenderApiSender,
 
     /// Periodically print out on which events script threads spend their processing time.
@@ -678,6 +679,9 @@ pub struct ScriptThread {
 
     /// An optional string allowing the user agent to be set for testing.
     user_agent: Cow<'static, str>,
+
+    /// Application window's GL Context for Media player
+    player_context: WindowGLContext,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -1239,6 +1243,7 @@ impl ScriptThread {
             headless,
             replace_surrogates,
             user_agent,
+            player_context: state.player_context,
         }
     }
 
@@ -2981,6 +2986,7 @@ impl ScriptThread {
             self.headless,
             self.replace_surrogates,
             self.user_agent.clone(),
+            self.player_context.clone(),
         );
 
         // Initialize the browsing context for the window.

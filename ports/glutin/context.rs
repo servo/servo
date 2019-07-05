@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use glutin::{WindowedContext, NotCurrent, PossiblyCurrent};
+use glutin::os::ContextTraitExt;
+use glutin::{NotCurrent, PossiblyCurrent, WindowedContext};
+use servo_media::player::context::GlContext as RawContext;
+use std::os::raw;
 
 pub enum GlContext {
     Current(WindowedContext<PossiblyCurrent>),
@@ -70,5 +73,86 @@ impl GlContext {
             },
             GlContext::None => unreachable!(),
         };
+    }
+    #[allow(unreachable_code, unused_variables)]
+    pub fn raw_context(&self) -> RawContext {
+        match self {
+            GlContext::Current(c) => {
+                #[cfg(any(
+                    target_os = "linux",
+                    target_os = "dragonfly",
+                    target_os = "freebsd",
+                    target_os = "netbsd",
+                    target_os = "openbsd",
+                ))]
+                {
+                    use glutin::os::unix::RawHandle;
+
+                    let raw_handle = unsafe { c.raw_handle() };
+                    return match raw_handle {
+                        RawHandle::Egl(handle) => RawContext::Egl(handle as usize),
+                        RawHandle::Glx(handle) => RawContext::Glx(handle as usize),
+                    };
+                }
+
+                #[cfg(target_os = "windows")]
+                {
+                    use glutin::os::windows::RawHandle;
+
+                    let raw_handle = unsafe { c.raw_handle() };
+                    return match raw_handle {
+                        RawHandle::Egl(handle) => RawContext::Egl(handle as usize),
+                        // @TODO(victor): RawContext::Wgl in servo-media
+                        RawHandle::Wgl(_) => unimplemented!(),
+                    }
+                }
+
+                #[cfg(target_os = "android")]
+                {
+                    let raw_handle = unsafe { c.raw_handle() };
+                    return RawContext::Egl(raw_handle as usize);
+                }
+
+                #[cfg(target_os = "macos")]
+                return unimplemented!(); // @TODO(victor): RawContext::Cocoa in servo-media
+
+                #[cfg(not(any(
+                    target_os = "linux",
+                    target_os = "dragonfly",
+                    target_os = "freebsd",
+                    target_os = "netbsd",
+                    target_os = "openbsd",
+                    target_os = "windows",
+                    target_os = "android",
+                    target_os = "macos",
+                )))]
+                unimplemented!()
+            }
+            GlContext::NotCurrent(_) => {
+                error!("Context is not current.");
+                RawContext::Unknown
+            }
+            GlContext::None => unreachable!(),
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn egl_display(&self) -> Option<*const raw::c_void> {
+        match self {
+            GlContext::Current(c) => unsafe { c.get_egl_display() },
+            GlContext::NotCurrent(_) => {
+                error!("Context is not current.");
+                None
+            },
+            GlContext::None => unreachable!(),
+        }
+    }
+
+    pub fn get_api(&self) -> glutin::Api {
+        match self {
+            GlContext::Current(c) => c.get_api(),
+            GlContext::NotCurrent(c) => c.get_api(),
+            GlContext::None => unreachable!(),
+        }
     }
 }

@@ -59,11 +59,13 @@ use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingLi
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
+use euclid::Size2D;
 use headers::{ContentLength, ContentRange, HeaderMapExt};
 use html5ever::{LocalName, Prefix};
 use http::header::{self, HeaderMap, HeaderValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
+use media::{glplayer_channel, GLPlayerMsg, GLPlayerMsgForward};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageResponse;
 use net_traits::request::{CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode};
@@ -71,7 +73,6 @@ use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseLis
 use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
 use script_layout_interface::HTMLMediaData;
 use servo_config::pref;
-use servo_media::player::context::{GlContext, NativeDisplay, PlayerGLContext};
 use servo_media::player::frame::{Frame, FrameRenderer};
 use servo_media::player::{PlaybackState, Player, PlayerError, PlayerEvent, StreamType};
 use servo_media::{ServoMedia, SupportsMediaType};
@@ -83,23 +84,72 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use time::{self, Duration, Timespec};
+use webrender_api::{ExternalImageData, ExternalImageId, ExternalImageType, TextureTarget};
 use webrender_api::{ImageData, ImageDescriptor, ImageFormat, ImageKey, RenderApi};
 use webrender_api::{RenderApiSender, Transaction};
 
+#[derive(PartialEq)]
+enum FrameStatus {
+    Locked,
+    Unlocked,
+}
+
+struct FrameHolder(FrameStatus, Frame);
+
+impl FrameHolder {
+    fn new(frame: Frame) -> FrameHolder {
+        FrameHolder(FrameStatus::Unlocked, frame)
+    }
+
+    fn lock(&mut self) {
+        if self.0 == FrameStatus::Unlocked {
+            self.0 = FrameStatus::Locked;
+        };
+    }
+
+    fn unlock(&mut self) {
+        if self.0 == FrameStatus::Locked {
+            self.0 = FrameStatus::Unlocked;
+        };
+    }
+
+    fn set(&mut self, new_frame: Frame) {
+        if self.0 == FrameStatus::Unlocked {
+            self.1 = new_frame
+        };
+    }
+
+    fn get(&self) -> (u32, Size2D<i32>, usize) {
+        if self.0 == FrameStatus::Locked {
+            (
+                self.1.get_texture_id(),
+                Size2D::new(self.1.get_width(), self.1.get_height()),
+                0,
+            )
+        } else {
+            unreachable!();
+        }
+    }
+}
+
 pub struct MediaFrameRenderer {
+    player_id: Option<u64>,
     api: RenderApi,
     current_frame: Option<(ImageKey, i32, i32)>,
     old_frame: Option<ImageKey>,
     very_old_frame: Option<ImageKey>,
+    current_frame_holder: Option<FrameHolder>,
 }
 
 impl MediaFrameRenderer {
     fn new(render_api_sender: RenderApiSender) -> Self {
         Self {
+            player_id: None,
             api: render_api_sender.create_api(),
             current_frame: None,
             old_frame: None,
             very_old_frame: None,
+            current_frame_holder: None,
         }
     }
 
@@ -112,6 +162,12 @@ impl MediaFrameRenderer {
 
 impl FrameRenderer for MediaFrameRenderer {
     fn render(&mut self, frame: Frame) {
+        let mut txn = Transaction::new();
+
+        if let Some(old_image_key) = mem::replace(&mut self.very_old_frame, self.old_frame.take()) {
+            txn.delete_image(old_image_key);
+        }
+
         let descriptor = ImageDescriptor::new(
             frame.get_width(),
             frame.get_height(),
@@ -120,24 +176,22 @@ impl FrameRenderer for MediaFrameRenderer {
             false,
         );
 
-        let mut txn = Transaction::new();
-
-        let image_data = ImageData::Raw(frame.get_data());
-
-        if let Some(old_image_key) = mem::replace(&mut self.very_old_frame, self.old_frame.take()) {
-            txn.delete_image(old_image_key);
-        }
-
         match self.current_frame {
             Some((ref image_key, ref mut width, ref mut height))
                 if *width == frame.get_width() && *height == frame.get_height() =>
             {
-                txn.update_image(
-                    *image_key,
-                    descriptor,
-                    image_data,
-                    &webrender_api::DirtyRect::All,
-                );
+                if !frame.is_gl_texture() {
+                    txn.update_image(
+                        *image_key,
+                        descriptor,
+                        ImageData::Raw(frame.get_data()),
+                        &webrender_api::DirtyRect::All,
+                    );
+                } else if self.player_id.is_some() {
+                    self.current_frame_holder
+                        .get_or_insert_with(|| FrameHolder::new(frame.clone()))
+                        .set(frame);
+                }
 
                 if let Some(old_image_key) = self.old_frame.take() {
                     txn.delete_image(old_image_key);
@@ -147,28 +201,44 @@ impl FrameRenderer for MediaFrameRenderer {
                 self.old_frame = Some(*image_key);
 
                 let new_image_key = self.api.generate_image_key();
-                txn.add_image(new_image_key, descriptor, image_data, None);
+
+                /* update current_frame */
                 *image_key = new_image_key;
                 *width = frame.get_width();
                 *height = frame.get_height();
+
+                let image_data = if frame.is_gl_texture() && self.player_id.is_some() {
+                    self.current_frame_holder
+                        .get_or_insert_with(|| FrameHolder::new(frame.clone()))
+                        .set(frame);
+                    ImageData::External(ExternalImageData {
+                        id: ExternalImageId(self.player_id.unwrap()),
+                        channel_index: 0,
+                        image_type: ExternalImageType::TextureHandle(TextureTarget::Default),
+                    })
+                } else {
+                    ImageData::Raw(frame.get_data())
+                };
+                txn.add_image(new_image_key, descriptor, image_data, None);
             },
             None => {
                 let image_key = self.api.generate_image_key();
-                txn.add_image(image_key, descriptor, image_data, None);
                 self.current_frame = Some((image_key, frame.get_width(), frame.get_height()));
+
+                let image_data = if frame.is_gl_texture() && self.player_id.is_some() {
+                    self.current_frame_holder = Some(FrameHolder::new(frame));
+                    ImageData::External(ExternalImageData {
+                        id: ExternalImageId(self.player_id.unwrap()),
+                        channel_index: 0,
+                        image_type: ExternalImageType::TextureHandle(TextureTarget::Default),
+                    })
+                } else {
+                    ImageData::Raw(frame.get_data())
+                };
+                txn.add_image(image_key, descriptor, image_data, None);
             },
         }
         self.api.update_resources(txn.resource_updates);
-    }
-}
-
-struct PlayerContextDummy();
-impl PlayerGLContext for PlayerContextDummy {
-    fn get_gl_context(&self) -> GlContext {
-        return GlContext::Unknown;
-    }
-    fn get_native_display(&self) -> NativeDisplay {
-        return NativeDisplay::Unknown;
     }
 }
 
@@ -263,6 +333,8 @@ pub struct HTMLMediaElement {
     next_timeupdate_event: Cell<Timespec>,
     /// Latest fetch request context.
     current_fetch_context: DomRefCell<Option<HTMLMediaElementFetchContext>>,
+    /// Player Id reported the player thread
+    id: Cell<u64>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -324,6 +396,7 @@ impl HTMLMediaElement {
             text_tracks_list: Default::default(),
             next_timeupdate_event: Cell::new(time::get_time() + Duration::milliseconds(250)),
             current_fetch_context: DomRefCell::new(None),
+            id: Cell::new(0),
         }
     }
 
@@ -1222,29 +1295,30 @@ impl HTMLMediaElement {
             _ => StreamType::Seekable,
         };
 
-        let (action_sender, action_receiver) = ipc::channel().unwrap();
+        let window = window_from_node(self);
+        let (action_sender, action_receiver) = ipc::channel::<PlayerEvent>().unwrap();
         let renderer: Option<Arc<Mutex<dyn FrameRenderer>>> = match self.media_type_id() {
             HTMLMediaElementTypeId::HTMLAudioElement => None,
             HTMLMediaElementTypeId::HTMLVideoElement => Some(self.frame_renderer.clone()),
         };
+
         let player = ServoMedia::get().unwrap().create_player(
             stream_type,
             action_sender,
             renderer,
-            Box::new(PlayerContextDummy()),
+            Box::new(window.get_player_context()),
         );
 
         *self.player.borrow_mut() = Some(player);
 
         let trusted_node = Trusted::new(self);
-        let window = window_from_node(self);
         let (task_source, canceller) = window
             .task_manager()
             .media_element_task_source_with_canceller();
         ROUTER.add_route(
             action_receiver.to_opaque(),
             Box::new(move |message| {
-                let event: PlayerEvent = message.to().unwrap();
+                let event = message.to().unwrap();
                 trace!("Player event {:?}", event);
                 let this = trusted_node.clone();
                 if let Err(err) = task_source.queue_with_canceller(
@@ -1257,6 +1331,73 @@ impl HTMLMediaElement {
                 }
             }),
         );
+
+        // GLPlayer thread setup
+        let (player_id, image_receiver) = window
+            .get_player_context()
+            .glplayer_chan
+            .map(|pipeline| {
+                let (image_sender, image_receiver) =
+                    glplayer_channel::<GLPlayerMsgForward>().unwrap();
+                pipeline
+                    .channel()
+                    .send(GLPlayerMsg::RegisterPlayer(image_sender))
+                    .unwrap();
+                match image_receiver.recv().unwrap() {
+                    GLPlayerMsgForward::PlayerId(id) => (id, Some(image_receiver)),
+                    _ => unreachable!(),
+                }
+            })
+            .unwrap_or((0, None));
+
+        self.id.set(player_id);
+        self.frame_renderer.lock().unwrap().player_id = Some(player_id);
+
+        if let Some(image_receiver) = image_receiver {
+            let trusted_node = Trusted::new(self);
+            let (task_source, canceller) = window
+                .task_manager()
+                .media_element_task_source_with_canceller();
+            ROUTER.add_route(
+                image_receiver.to_opaque(),
+                Box::new(move |message| {
+                    let msg = message.to().unwrap();
+                    let this = trusted_node.clone();
+                    if let Err(err) = task_source.queue_with_canceller(
+                        task!(handle_glplayer_message: move || {
+                            trace!("GLPlayer message {:?}", msg);
+                            let frame_renderer = this.root().frame_renderer.clone();
+
+                            match msg {
+                                GLPlayerMsgForward::Lock(sender) => {
+                                    frame_renderer
+                                        .lock()
+                                        .unwrap()
+                                        .current_frame_holder
+                                        .as_mut()
+                                        .map(|holder| {
+                                            holder.lock();
+                                            sender.send(holder.get()).unwrap();
+                                        });
+                                },
+                                GLPlayerMsgForward::Unlock() => {
+                                    frame_renderer
+                                        .lock()
+                                        .unwrap()
+                                        .current_frame_holder
+                                        .as_mut()
+                                        .map(|holder| holder.unlock());
+                                },
+                                _ => (),
+                            }
+                        }),
+                        &canceller,
+                    ) {
+                        warn!("Could not queue GL player message handler task {:?}", err);
+                    }
+                }),
+            );
+        }
 
         Ok(())
     }
@@ -1585,6 +1726,16 @@ impl HTMLMediaElement {
 
 impl Drop for HTMLMediaElement {
     fn drop(&mut self) {
+        let window = window_from_node(self);
+        window.get_player_context().glplayer_chan.map(|pipeline| {
+            if let Err(err) = pipeline
+                .channel()
+                .send(GLPlayerMsg::UnregisterPlayer(self.id.get()))
+            {
+                warn!("GLPlayer disappeared!: {:?}", err);
+            }
+        });
+
         if let Some(ref player) = *self.player.borrow() {
             if let Err(err) = player.shutdown() {
                 warn!("Error shutting down player {:?}", err);

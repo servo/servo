@@ -446,6 +446,9 @@ mod gen {
                 }
             },
             media: {
+                glvideo: {
+                    enabled: bool,
+                },
                 testing: {
                     enabled: bool,
                 }

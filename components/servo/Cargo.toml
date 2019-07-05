@@ -58,6 +58,7 @@ keyboard-types = "0.4"
 layout_thread_2013 = {path = "../layout_thread", optional = true}
 layout_thread_2020 = {path = "../layout_thread_2020", optional = true}
 log = "0.4"
+media = {path = "../media"}
 msg = {path = "../msg"}
 net = {path = "../net"}
 net_traits = {path = "../net_traits"}
@@ -74,6 +75,7 @@ style = {path = "../style", features = ["servo"]}
 style_traits = {path = "../style_traits", features = ["servo"]}
 webrender = {git = "https://github.com/servo/webrender"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_traits = {path = "../webrender_traits"}
 webdriver_server = {path = "../webdriver_server", optional = true}
 webvr = {path = "../webvr"}
 webvr_traits = {path = "../webvr_traits"}
