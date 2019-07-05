@@ -2,15 +2,13 @@
 
 How to compile and run:
 
-With Visual Studio **2019**:
-- Open `support/hololens/ServoApp.sln`
-- click on *restore nugets packages* under the context menu of "Solution" (in the right panel). This will automatically download Angle which comes with libEGL.dll, necessary to build servo.
-
-In your Visual Studio **2017** cmd prompt:
-- make sure libEGL.dll is in your `%LIB%` path: `set LIB=%LIB%;c:\XXX\servo\support\hololens\packages\ANGLE.WindowsStore.2.1.13\bin\UAP\x64\`
+In your Visual Studio 2017 cmd prompt:
 - compile servo: `mach build -d --uwp`
 
-With Visual Studio **2019**:
+Install [HoloLens 2 Emulator](https://docs.microsoft.com/en-us/windows/mixed-reality/using-the-hololens-emulator).
+
+With Visual Studio 2017:
+- Open `support\hololens\ServoApp.sln`
 - Select emulator or local machine, select configuration (Debug or Release) and press run
 - VS will look for the DLLs and .h in `../../target/debug|release/` (depending on the configuration you selected in VS) and copy them in the final package.
 
