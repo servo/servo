@@ -4,17 +4,20 @@
 
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowMethods;
+use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowOptions;
+
 use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::dissimilaroriginlocation::DissimilarOriginLocation;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy::WindowProxy;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::{Heap, JSContext, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{CustomAutoRooterGuard, HandleValue};
 use msg::constellation_msg::PipelineId;
@@ -163,6 +166,48 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
             .as_ref()
             .unwrap_or(&Vec::new())
             .to_jsval(cx, val.handle_mut());
+        let data = StructuredCloneData::write(cx, message, val.handle())?;
+
+        // Step 9.
+        self.post_message(origin, data);
+        Ok(())
+    }
+
+    #[allow(unsafe_code)]
+    // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
+    unsafe fn PostMessage_(
+        &self,
+        cx: *mut JSContext,
+        message: HandleValue,
+        options: RootedTraceableBox<DissimilarOriginWindowOptions>,
+    ) -> ErrorResult {
+        let transfer: Vec<*mut JSObject> = options
+            .transfer
+            .iter()
+            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+            .collect();
+        // Step 3-5.
+        let origin = match &options.targetOrigin {
+            Some(origin) => {
+                match origin.0[..].as_ref() {
+                    "*" => None,
+                    "/" => {
+                        // TODO: Should be the origin of the incumbent settings object.
+                        None
+                    },
+                    url => match ServoUrl::parse(&url) {
+                        Ok(url) => Some(url.origin().clone()),
+                        Err(_) => return Err(Error::Syntax),
+                    },
+                }
+            },
+            // TODO: Should be the origin of the incumbent settings object.
+            None => None,
+        };
+
+        // Step 1-2, 6-8.
+        rooted!(in(cx) let mut val = UndefinedValue());
+        transfer.to_jsval(cx, val.handle_mut());
         let data = StructuredCloneData::write(cx, message, val.handle())?;
 
         // Step 9.
