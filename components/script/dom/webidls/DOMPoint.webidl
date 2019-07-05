@@ -14,6 +14,8 @@
              optional unrestricted double z = 0, optional unrestricted double w = 1),
  Exposed=(Window,Worker)]
 interface DOMPoint : DOMPointReadOnly {
+    [NewObject] static DOMPoint fromPoint(optional DOMPointInit other = null);
+
     inherit attribute unrestricted double x;
     inherit attribute unrestricted double y;
     inherit attribute unrestricted double z;
