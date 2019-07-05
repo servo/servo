@@ -40,6 +40,11 @@ impl DOMPoint {
         Ok(DOMPoint::new(global, x, y, z, w))
     }
 
+    // https://drafts.fxtf.org/geometry/#dom-dompoint-frompoint
+    pub fn FromPoint(global: &GlobalScope, init: &DOMPointInit) -> DomRoot<Self> {
+        Self::new_from_init(global, init)
+    }
+
     pub fn new_from_init(global: &GlobalScope, p: &DOMPointInit) -> DomRoot<DOMPoint> {
         DOMPoint::new(global, p.x, p.y, p.z, p.w)
     }

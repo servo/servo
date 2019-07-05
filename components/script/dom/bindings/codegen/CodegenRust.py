@@ -6414,7 +6414,8 @@ class CGDictionary(CGThing):
         conversion = (
             "{\n"
             "    rooted!(in(cx) let mut rval = UndefinedValue());\n"
-            "    if r#try!(get_dictionary_property(cx, object.handle(), \"%s\", rval.handle_mut())) {\n"
+            "    if r#try!(get_dictionary_property(cx, object.handle(), \"%s\", rval.handle_mut()))"
+            " && !rval.is_undefined() {\n"
             "%s\n"
             "    } else {\n"
             "%s\n"
