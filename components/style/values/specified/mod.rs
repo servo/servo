@@ -342,8 +342,6 @@ impl Parse for GreaterThanOrEqualToOneNumber {
 /// <number> | <percentage>
 ///
 /// Accepts only non-negative numbers.
-///
-/// FIXME(emilio): Should probably use Either.
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 pub enum NumberOrPercentage {

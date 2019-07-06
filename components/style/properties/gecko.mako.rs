@@ -525,8 +525,8 @@ def set_gecko_property(ffi_name, expr):
 
 <%def name="impl_svg_paint(ident, gecko_ffi_name)">
     #[allow(non_snake_case)]
-    pub fn set_${ident}(&mut self, mut v: longhands::${ident}::computed_value::T) {
-        use crate::values::generics::svg::SVGPaintKind;
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        use crate::values::generics::svg::{SVGPaintKind, SVGPaintFallback};
         use self::structs::nsStyleSVGPaintType;
         use self::structs::nsStyleSVGFallbackType;
 
@@ -534,7 +534,6 @@ def set_gecko_property(ffi_name, expr):
         unsafe {
             bindings::Gecko_nsStyleSVGPaint_Reset(paint);
         }
-        let fallback = v.fallback.take();
         match v.kind {
             SVGPaintKind::None => return,
             SVGPaintKind::ContextFill => {
@@ -559,15 +558,17 @@ def set_gecko_property(ffi_name, expr):
             }
         }
 
-        paint.mFallbackType = match fallback {
-            Some(Either::First(color)) => {
-                paint.mFallbackColor = color.into();
+        paint.mFallbackType = match v.fallback {
+            SVGPaintFallback::Color(c) => {
+                paint.mFallbackColor = c.into();
                 nsStyleSVGFallbackType::eStyleSVGFallbackType_Color
             },
-            Some(Either::Second(_)) => {
+            SVGPaintFallback::None => {
                 nsStyleSVGFallbackType::eStyleSVGFallbackType_None
             },
-            None => nsStyleSVGFallbackType::eStyleSVGFallbackType_NotSet
+            SVGPaintFallback::Unset => {
+                nsStyleSVGFallbackType::eStyleSVGFallbackType_NotSet
+            }
         };
     }
 
@@ -588,19 +589,21 @@ def set_gecko_property(ffi_name, expr):
 
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use crate::values::generics::svg::{SVGPaint, SVGPaintKind};
+        use crate::values::generics::svg::{SVGPaint, SVGPaintKind, SVGPaintFallback};
         use self::structs::nsStyleSVGPaintType;
         use self::structs::nsStyleSVGFallbackType;
         let ref paint = ${get_gecko_property(gecko_ffi_name)};
 
         let fallback = match paint.mFallbackType {
             nsStyleSVGFallbackType::eStyleSVGFallbackType_Color => {
-                Some(Either::First(paint.mFallbackColor.into()))
+                SVGPaintFallback::Color(paint.mFallbackColor.into())
             },
             nsStyleSVGFallbackType::eStyleSVGFallbackType_None => {
-                Some(Either::Second(None_))
+                SVGPaintFallback::None
             },
-            nsStyleSVGFallbackType::eStyleSVGFallbackType_NotSet => None,
+            nsStyleSVGFallbackType::eStyleSVGFallbackType_NotSet => {
+                SVGPaintFallback::Unset
+            }
         };
 
         let kind = match paint.mType {
