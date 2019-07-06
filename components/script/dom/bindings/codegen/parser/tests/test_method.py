@@ -120,7 +120,7 @@ def WebIDLTest(parser, harness):
           };
         """)
         results = parser.finish()
-    except Exception, x:
+    except Exception as x:
         threw = True
     harness.ok(not threw, "Should allow integer to float type corecion")
 
@@ -133,7 +133,7 @@ def WebIDLTest(parser, harness):
           };
         """)
         results = parser.finish()
-    except Exception, x:
+    except Exception as x:
         threw = True
     harness.ok(threw, "Should not allow [GetterThrows] on methods")
 
@@ -146,7 +146,7 @@ def WebIDLTest(parser, harness):
           };
         """)
         results = parser.finish()
-    except Exception, x:
+    except Exception as x:
         threw = True
     harness.ok(threw, "Should not allow [SetterThrows] on methods")
 
@@ -159,7 +159,7 @@ def WebIDLTest(parser, harness):
           };
         """)
         results = parser.finish()
-    except Exception, x:
+    except Exception as x:
         threw = True
     harness.ok(threw, "Should spell [Throws] correctly on methods")
 
@@ -172,6 +172,6 @@ def WebIDLTest(parser, harness):
           };
         """)
         results = parser.finish()
-    except Exception, x:
+    except Exception as x:
         threw = True
     harness.ok(threw, "Should not allow __noSuchMethod__ methods")

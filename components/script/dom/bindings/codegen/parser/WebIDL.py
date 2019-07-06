@@ -10,7 +10,7 @@ import os
 import traceback
 import math
 import string
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 # Machinery
 
@@ -40,32 +40,22 @@ def parseInt(literal):
     return value * sign
 
 
-# Magic for creating enums
-def M_add_class_attribs(attribs, start):
-    def foo(name, bases, dict_):
-        for v, k in enumerate(attribs):
-            dict_[k] = start + v
-        assert 'length' not in dict_
-        dict_['length'] = start + len(attribs)
-        return type(name, bases, dict_)
-    return foo
-
-
 def enum(*names, **kw):
-    if len(kw) == 1:
-        base = kw['base'].__class__
-        start = base.length
-    else:
-        assert len(kw) == 0
-        base = object
-        start = 0
-
-    class Foo(base):
-        __metaclass__ = M_add_class_attribs(names, start)
-
+    class Foo(object):
+        attrs = OrderedDict()
+        def __init__(self, names):
+            for v, k in enumerate(names):
+                self.attrs[k] = v
+        def __getattr__(self, attr):
+            if attr in self.attrs:
+                return self.attrs[attr]
+            return getattr(self, attr)
         def __setattr__(self, name, value):  # this makes it read-only
             raise NotImplementedError
-    return Foo()
+
+    if "base" not in kw:
+        return Foo(names)
+    return Foo(list(kw["base"].attrs.keys()) + list(names))
 
 
 class WebIDLError(Exception):
@@ -962,7 +952,6 @@ class IDLInterfaceOrNamespace(IDLObjectWithScope, IDLExposureMixins):
         # self.members.  Sort our consequential interfaces by name
         # just so we have a consistent order.
         for iface in sorted(self.getConsequentialInterfaces(),
-                            cmp=cmp,
                             key=lambda x: x.identifier.name):
             # Flag the interface as being someone's consequential interface
             iface.setIsConsequentialInterfaceOf(self)
@@ -1877,7 +1866,7 @@ class IDLDictionary(IDLObjectWithScope):
                 assert member.type.isComplete()
 
         # Members of a dictionary are sorted in lexicographic order
-        self.members.sort(cmp=cmp, key=lambda x: x.identifier.name)
+        self.members.sort(key=lambda x: x.identifier.name)
 
         inheritedMembers = []
         ancestor = self.parent
@@ -2232,7 +2221,7 @@ class IDLUnresolvedType(IDLType):
 
         assert obj
         if obj.isType():
-            print obj
+            print(obj)
         assert not obj.isType()
         if obj.isTypedef():
             assert self.name.name == obj.identifier.name
@@ -3689,7 +3678,7 @@ class IDLInterfaceMember(IDLObjectWithIdentifier, IDLExposureMixins):
     def finish(self, scope):
         # We better be exposed _somewhere_.
         if (len(self._exposureGlobalNames) == 0):
-            print self.identifier.name
+            print(self.identifier.name)
         assert len(self._exposureGlobalNames) != 0
         IDLExposureMixins.finish(self, scope)
 
@@ -5637,7 +5626,7 @@ class Parser(Tokenizer):
                                       [location, existingObj.location])
                 existingObj.setNonPartial(*nonPartialArgs)
                 return existingObj
-        except Exception, ex:
+        except Exception as ex:
             if isinstance(ex, WebIDLError):
                 raise ex
             pass
@@ -5675,7 +5664,7 @@ class Parser(Tokenizer):
                                       "%s and %s" % (identifier.name, p[0]),
                                       [location, p[0].location])
                 return
-        except Exception, ex:
+        except Exception as ex:
             if isinstance(ex, WebIDLError):
                 raise ex
             pass
@@ -5739,7 +5728,7 @@ class Parser(Tokenizer):
                                       "non-%s object" %
                                       (prettyname, prettyname),
                                       [location, nonPartialObject.location])
-        except Exception, ex:
+        except Exception as ex:
             if isinstance(ex, WebIDLError):
                 raise ex
             pass
@@ -7040,8 +7029,8 @@ class Parser(Tokenizer):
     def _installBuiltins(self, scope):
         assert isinstance(scope, IDLScope)
 
-        # xrange omits the last value.
-        for x in xrange(IDLBuiltinType.Types.ArrayBuffer, IDLBuiltinType.Types.Float64Array + 1):
+        # range omits the last value.
+        for x in range(IDLBuiltinType.Types.ArrayBuffer, IDLBuiltinType.Types.Float64Array + 1):
             builtin = BuiltinTypes[x]
             name = builtin.name
             typedef = IDLTypedef(BuiltinLocation("<builtin type>"), scope, builtin, name)
@@ -7185,14 +7174,14 @@ def main():
             f = open(fullPath, 'rb')
             lines = f.readlines()
             f.close()
-            print fullPath
+            print(fullPath)
             parser.parse(''.join(lines), fullPath)
         parser.finish()
-    except WebIDLError, e:
+    except WebIDLError as e:
         if options.verbose_errors:
             traceback.print_exc()
         else:
-            print e
+            print(e)
 
 if __name__ == '__main__':
     main()

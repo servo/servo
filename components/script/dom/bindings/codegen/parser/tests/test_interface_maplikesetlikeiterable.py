@@ -37,10 +37,10 @@ def WebIDLTest(parser, harness):
             p.finish()
             harness.ok(False,
                        prefix + " - Interface passed when should've failed")
-        except WebIDL.WebIDLError, e:
+        except WebIDL.WebIDLError as e:
             harness.ok(True,
                        prefix + " - Interface failed as expected")
-        except Exception, e:
+        except Exception as e:
             harness.ok(False,
                        prefix + " - Interface failed but not as a WebIDLError exception: %s" % e)
 
