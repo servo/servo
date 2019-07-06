@@ -21,7 +21,7 @@ use dom_struct::dom_struct;
 use mozangle::shaders::{BuiltInResources, Output, ShaderValidator};
 use std::cell::Cell;
 use std::os::raw::c_int;
-use std::sync::{Once, ONCE_INIT};
+use std::sync::Once;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum ShaderCompilationStatus {
@@ -42,7 +42,7 @@ pub struct WebGLShader {
     compilation_status: Cell<ShaderCompilationStatus>,
 }
 
-static GLSLANG_INITIALIZATION: Once = ONCE_INIT;
+static GLSLANG_INITIALIZATION: Once = Once::new();
 
 impl WebGLShader {
     fn new_inherited(context: &WebGLRenderingContext, id: WebGLShaderId, shader_type: u32) -> Self {

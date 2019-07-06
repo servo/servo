@@ -64,15 +64,15 @@ struct PosixSemaphore {
 
 impl PosixSemaphore {
     pub fn new(value: u32) -> io::Result<Self> {
-        let mut sem: libc::sem_t = unsafe { mem::uninitialized() };
+        let mut sem = mem::MaybeUninit::uninit();
         let r = unsafe {
-            libc::sem_init(&mut sem, 0 /* not shared */, value)
+            libc::sem_init(sem.as_mut_ptr(), 0 /* not shared */, value)
         };
         if r == -1 {
             return Err(io::Error::last_os_error());
         }
         Ok(PosixSemaphore {
-            sem: UnsafeCell::new(sem),
+            sem: UnsafeCell::new(unsafe { sem.assume_init() }),
         })
     }
 
@@ -150,7 +150,7 @@ enum RegNum {
     Sp = UNW_REG_SP as isize,
 }
 
-fn get_register(cursor: &mut unw_cursor_t, num: RegNum) -> Result<u64, i32> {
+fn get_register(cursor: *mut unw_cursor_t, num: RegNum) -> Result<u64, i32> {
     unsafe {
         let mut val = 0;
         let ret = unw_get_reg(cursor, num as i32, &mut val);
@@ -162,7 +162,7 @@ fn get_register(cursor: &mut unw_cursor_t, num: RegNum) -> Result<u64, i32> {
     }
 }
 
-fn step(cursor: &mut unw_cursor_t) -> Result<bool, i32> {
+fn step(cursor: *mut unw_cursor_t) -> Result<bool, i32> {
     unsafe {
         // libunwind 1.1 seems to get confused and walks off the end of the stack. The last IP
         // it reports is 0, so we'll stop if we're there.
@@ -204,23 +204,23 @@ impl Sampler for LinuxSampler {
         }
 
         let context = unsafe { SHARED_STATE.context.load(Ordering::SeqCst) };
-        let mut cursor = unsafe { mem::uninitialized() };
-        let ret = unsafe { unw_init_local(&mut cursor, context) };
+        let mut cursor = mem::MaybeUninit::uninit();
+        let ret = unsafe { unw_init_local(cursor.as_mut_ptr(), context) };
         let result = if ret == UNW_ESUCCESS {
             let mut native_stack = NativeStack::new();
             loop {
-                let ip = match get_register(&mut cursor, RegNum::Ip) {
+                let ip = match get_register(cursor.as_mut_ptr(), RegNum::Ip) {
                     Ok(ip) => ip,
                     Err(_) => break,
                 };
-                let sp = match get_register(&mut cursor, RegNum::Sp) {
+                let sp = match get_register(cursor.as_mut_ptr(), RegNum::Sp) {
                     Ok(sp) => sp,
                     Err(_) => break,
                 };
                 if native_stack
                     .process_register(ip as *mut _, sp as *mut _)
                     .is_err() ||
-                    !step(&mut cursor).unwrap_or(false)
+                    !step(cursor.as_mut_ptr()).unwrap_or(false)
                 {
                     break;
                 }

@@ -106,14 +106,16 @@ use script_traits::SWManagerSenders;
 #[cfg(target_os = "linux")]
 #[allow(unsafe_code)]
 fn perform_platform_specific_initialization() {
-    use std::mem;
     // 4096 is default max on many linux systems
     const MAX_FILE_LIMIT: libc::rlim_t = 4096;
 
     // Bump up our number of file descriptors to save us from impending doom caused by an onslaught
     // of iframes.
     unsafe {
-        let mut rlim: libc::rlimit = mem::uninitialized();
+        let mut rlim = libc::rlimit {
+            rlim_cur: 0,
+            rlim_max: 0,
+        };
         match libc::getrlimit(libc::RLIMIT_NOFILE, &mut rlim) {
             0 => {
                 if rlim.rlim_cur >= MAX_FILE_LIMIT {
