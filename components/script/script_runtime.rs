@@ -749,6 +749,8 @@ unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
 #[cfg(not(feature = "debugmozjs"))]
 unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
 
+
+#[repr(transparent)]
 struct JSContext(*mut RawJSContext);
 
 #[allow(unsafe_code)]
