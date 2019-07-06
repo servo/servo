@@ -750,6 +750,12 @@ fn create_global_opts(mut opts: getopts::Options) -> Options {
         "Path to find SSL certificates",
         "/home/servo/resources/certs",
     );
+    opts.optopt(
+        "",
+        "content-process",
+        "Run as a content process and connect to the given pipe",
+        "servo-ipc-channel.abcdefg",
+    );
     opts.optmulti(
         "",
         "pref",
