@@ -109,7 +109,7 @@ impl Window {
 
         let mut context_builder = glutin::ContextBuilder::new()
             .with_gl(app::gl_version())
-            .with_vsync(opts.enable_vsync);
+            .with_vsync(opts::enable_vsync());
 
         if opts.use_msaa {
             context_builder = context_builder.with_multisampling(MULTISAMPLES)

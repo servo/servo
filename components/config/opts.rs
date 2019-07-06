@@ -185,7 +185,7 @@ pub struct Opts {
     pub no_native_titlebar: bool,
 
     /// Enable vsync in the compositor
-    pub enable_vsync: bool,
+    // pub enable_vsync: bool,
 
     /// True to show webrender profiling stats on screen.
     pub webrender_stats: bool,
@@ -500,9 +500,7 @@ pub fn multiprocess() -> bool {
 }
 
 #[inline]
-fn disable_vsync() -> bool {
-    VSYNC.load(Ordering::Relaxed)
-}
+pub fn enable_vsync() -> bool { VSYNC.load(Ordering::Relaxed) }
 
 enum UserAgent {
     Desktop,
@@ -596,7 +594,6 @@ pub fn default_opts() -> Opts {
         convert_mouse_to_touch: false,
         exit_after_load: false,
         no_native_titlebar: false,
-        enable_vsync: true,
         webrender_stats: false,
         use_msaa: false,
         config_dir: None,
@@ -1041,7 +1038,6 @@ pub fn from_cmdline_args(opts: getopts::Options, args: &[String]) -> getopts::Re
         convert_mouse_to_touch: debug_options.convert_mouse_to_touch,
         exit_after_load: opt_match.opt_present("x"),
         no_native_titlebar: do_not_use_native_titlebar,
-        enable_vsync: !disable_vsync(),
         webrender_stats: debug_options.webrender_stats,
         use_msaa: debug_options.use_msaa,
         config_dir: opt_match.opt_str("config-dir").map(Into::into),
