@@ -34,7 +34,7 @@ use nodrop::NoDrop;
 #[cfg(feature = "servo")]
 use serde::{Deserialize, Serialize};
 use stable_deref_trait::{CloneStableDeref, StableDeref};
-use std::alloc::Layout;
+use std::alloc::{self, Layout};
 use std::borrow;
 use std::cmp::Ordering;
 use std::convert::From;
@@ -134,10 +134,38 @@ impl<T> UniqueArc<T> {
         UniqueArc(Arc::new(data))
     }
 
+    /// Construct an uninitialized arc
+    #[inline]
+    pub fn new_uninit() -> UniqueArc<mem::MaybeUninit<T>> {
+        unsafe {
+            let layout = Layout::new::<ArcInner<mem::MaybeUninit<T>>>();
+            let ptr = alloc::alloc(layout);
+            let mut p = ptr::NonNull::new(ptr)
+                .unwrap_or_else(|| alloc::handle_alloc_error(layout))
+                .cast::<ArcInner<mem::MaybeUninit<T>>>();
+            ptr::write(&mut p.as_mut().count, atomic::AtomicUsize::new(1));
+            UniqueArc(Arc {
+                p,
+                phantom: PhantomData,
+            })
+        }
+    }
+
     #[inline]
     /// Convert to a shareable Arc<T> once we're done mutating it
     pub fn shareable(self) -> Arc<T> {
         self.0
+    }
+}
+
+impl<T> UniqueArc<mem::MaybeUninit<T>> {
+    /// Convert to an initialized Arc.
+    #[inline]
+    pub unsafe fn assume_init(this: Self) -> UniqueArc<T> {
+        UniqueArc(Arc {
+            p: this.0.p.cast(),
+            phantom: PhantomData,
+        })
     }
 }
 
