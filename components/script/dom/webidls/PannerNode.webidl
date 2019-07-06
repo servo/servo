@@ -35,7 +35,7 @@ enum PanningModelType {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional PannerOptions options)]
+ Constructor (BaseAudioContext context, optional PannerOptions options = {})]
 interface PannerNode : AudioNode {
   attribute PanningModelType panningModel;
   readonly attribute AudioParam positionX;

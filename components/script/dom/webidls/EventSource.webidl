@@ -6,7 +6,7 @@
  * https://html.spec.whatwg.org/multipage/#eventsource
  */
 
-[Constructor(DOMString url, optional EventSourceInit eventSourceInitDict),
+[Constructor(DOMString url, optional EventSourceInit eventSourceInitDict = {}),
  Exposed=(Window,Worker)]
 interface EventSource : EventTarget {
   readonly attribute DOMString url;

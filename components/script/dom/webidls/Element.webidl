@@ -91,12 +91,12 @@ partial interface Element {
   [NewObject]
   DOMRect getBoundingClientRect();
 
-  void scroll(optional ScrollToOptions options);
+  void scroll(optional ScrollToOptions options = {});
   void scroll(unrestricted double x, unrestricted double y);
 
-  void scrollTo(optional ScrollToOptions options);
+  void scrollTo(optional ScrollToOptions options = {});
   void scrollTo(unrestricted double x, unrestricted double y);
-  void scrollBy(optional ScrollToOptions options);
+  void scrollBy(optional ScrollToOptions options = {});
   void scrollBy(unrestricted double x, unrestricted double y);
   attribute unrestricted double scrollTop;
   attribute unrestricted double scrollLeft;

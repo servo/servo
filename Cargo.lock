@@ -3969,7 +3969,7 @@ dependencies = [
 name = "script_plugins"
 version = "0.0.1"
 dependencies = [
- "weedle 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "weedle 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -5534,7 +5534,7 @@ dependencies = [
 
 [[package]]
 name = "weedle"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "nom 4.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -6180,7 +6180,7 @@ dependencies = [
 "checksum webrender_build 0.0.1 (git+https://github.com/jdm/webrender?branch=servo-hl)" = "<none>"
 "checksum webxr 0.0.1 (git+https://github.com/servo/webxr)" = "<none>"
 "checksum webxr-api 0.0.1 (git+https://github.com/servo/webxr)" = "<none>"
-"checksum weedle 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bcc44aa200daee8b1f3a004beaf16554369746f1b4486f0cf93b0caf8a3c2d1e"
+"checksum weedle 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3bb43f70885151e629e2a19ce9e50bd730fd436cfd4b666894c9ce4de9141164"
 "checksum which 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "b57acb10231b9493c8472b20cb57317d0679a49e0bdbee44b3b803a6473af164"
 "checksum winapi 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)" = "f10e386af2b13e47c89e7236a7a14a086791a2b88ebad6df9bf42040195cf770"
 "checksum winapi-i686-pc-windows-gnu 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6"

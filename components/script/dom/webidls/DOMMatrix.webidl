@@ -14,7 +14,7 @@
  Exposed=(Window,Worker)]
 interface DOMMatrix : DOMMatrixReadOnly {
 
-    [NewObject, Throws] static DOMMatrix fromMatrix(optional DOMMatrixInit other);
+    [NewObject, Throws] static DOMMatrix fromMatrix(optional DOMMatrixInit other = {});
     [NewObject, Throws] static DOMMatrix fromFloat32Array(Float32Array array32);
     [NewObject, Throws] static DOMMatrix fromFloat64Array(Float64Array array64);
 
@@ -44,8 +44,8 @@ interface DOMMatrix : DOMMatrixReadOnly {
     inherit attribute unrestricted double m44;
 
     // Mutable transform methods
-    [Throws] DOMMatrix multiplySelf(optional DOMMatrixInit other);
-    [Throws] DOMMatrix preMultiplySelf(optional DOMMatrixInit other);
+    [Throws] DOMMatrix multiplySelf(optional DOMMatrixInit other = {});
+    [Throws] DOMMatrix preMultiplySelf(optional DOMMatrixInit other = {});
     DOMMatrix translateSelf(optional unrestricted double tx = 0,
                             optional unrestricted double ty = 0,
                             optional unrestricted double tz = 0);

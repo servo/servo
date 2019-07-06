@@ -10,7 +10,7 @@
 [Pref="dom.mutation_observer.enabled", Constructor(MutationCallback callback)]
 interface MutationObserver {
     [Throws]
-    void observe(Node target, optional MutationObserverInit options);
+    void observe(Node target, optional MutationObserverInit options = {});
     void disconnect();
     sequence<MutationRecord> takeRecords();
 };

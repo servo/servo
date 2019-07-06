@@ -16,7 +16,7 @@ dictionary AudioBufferSourceOptions {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional AudioBufferSourceOptions options)]
+ Constructor (BaseAudioContext context, optional AudioBufferSourceOptions options = {})]
 interface AudioBufferSourceNode : AudioScheduledSourceNode {
   [Throws] attribute AudioBuffer? buffer;
   readonly attribute AudioParam playbackRate;

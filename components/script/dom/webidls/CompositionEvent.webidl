@@ -8,7 +8,7 @@
  */
 
 // https://w3c.github.io/uievents/#idl-compositionevent
-[Pref="dom.compositionevent.enabled", Constructor(DOMString type, optional CompositionEventInit eventInitDict)]
+[Pref="dom.compositionevent.enabled", Constructor(DOMString type, optional CompositionEventInit eventInitDict = {})]
 interface CompositionEvent : UIEvent {
   readonly attribute DOMString data;
 };

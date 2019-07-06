@@ -4,7 +4,7 @@
 
 // https://html.spec.whatwg.org/multipage/#the-formdataevent-interface
 [Exposed=Window,
- Constructor(DOMString type, optional FormDataEventInit eventInitDict)]
+ Constructor(DOMString type, optional FormDataEventInit eventInitDict = {})]
 interface FormDataEvent : Event {
   readonly attribute FormData formData;
 };

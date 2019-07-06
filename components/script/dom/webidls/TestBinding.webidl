@@ -32,7 +32,7 @@ dictionary TestDictionary {
   Blob interfaceValue;
   any anyValue;
   object objectValue;
-  TestDictionaryDefaults dict = null;
+  TestDictionaryDefaults dict = {};
   sequence<TestDictionaryDefaults> seqDict;
   // Testing codegen to import Element correctly, ensure no other code references Element directly
   sequence<Element> elementSequence;

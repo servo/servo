@@ -11,6 +11,6 @@ dictionary ChannelMergerOptions : AudioNodeOptions {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional ChannelMergerOptions options)]
+ Constructor (BaseAudioContext context, optional ChannelMergerOptions options = {})]
 interface ChannelMergerNode : AudioNode {
 };

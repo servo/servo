@@ -4,7 +4,7 @@
 
 // https://html.spec.whatwg.org/multipage/#the-promiserejectionevent-interface
 
-[Constructor(DOMString type, optional PromiseRejectionEventInit eventInitDict), Exposed=(Window,Worker)]
+[Constructor(DOMString type, optional PromiseRejectionEventInit eventInitDict = {}), Exposed=(Window,Worker)]
 interface PromiseRejectionEvent : Event {
   readonly attribute Promise<any> promise;
   readonly attribute any reason;

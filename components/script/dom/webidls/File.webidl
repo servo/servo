@@ -6,7 +6,7 @@
 
 [Constructor(sequence<BlobPart> fileBits,
             DOMString fileName,
-            optional FilePropertyBag options),
+            optional FilePropertyBag options = {}),
  Exposed=(Window,Worker)]
 interface File : Blob {
   readonly attribute DOMString name;

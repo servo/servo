@@ -5,7 +5,7 @@
 // https://w3c.github.io/webrtc-pc/#rtcicecandidate-interface
 
 
-[Constructor(optional RTCIceCandidateInit candidateInitDict),
+[Constructor(optional RTCIceCandidateInit candidateInitDict = {}),
  Exposed=Window, Pref="dom.webrtc.enabled"]
 interface RTCIceCandidate {
     readonly attribute DOMString               candidate;
