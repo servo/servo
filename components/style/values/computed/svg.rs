@@ -11,14 +11,13 @@ use crate::values::generics::svg as generic;
 use crate::values::RGBA;
 use crate::Zero;
 
-pub use crate::values::specified::SVGPaintOrder;
-
-pub use crate::values::specified::MozContextProperties;
+pub use crate::values::specified::{SVGPaintOrder, MozContextProperties};
 
 /// Computed SVG Paint value
-pub type SVGPaint = generic::SVGPaint<Color, ComputedUrl>;
+pub type SVGPaint = generic::GenericSVGPaint<Color, ComputedUrl>;
+
 /// Computed SVG Paint Kind value
-pub type SVGPaintKind = generic::SVGPaintKind<Color, ComputedUrl>;
+pub type SVGPaintKind = generic::GenericSVGPaintKind<Color, ComputedUrl>;
 
 impl SVGPaint {
     /// Opaque black color

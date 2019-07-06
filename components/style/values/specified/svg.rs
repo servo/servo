@@ -18,10 +18,7 @@ use style_traits::{CommaWithSpace, CssWriter, ParseError, Separator};
 use style_traits::{StyleParseErrorKind, ToCss};
 
 /// Specified SVG Paint value
-pub type SVGPaint = generic::SVGPaint<Color, SpecifiedUrl>;
-
-/// Specified SVG Paint Kind value
-pub type SVGPaintKind = generic::SVGPaintKind<Color, SpecifiedUrl>;
+pub type SVGPaint = generic::GenericSVGPaint<Color, SpecifiedUrl>;
 
 /// <length> | <percentage> | <number> | context-value
 pub type SVGLength = generic::SVGLength<LengthPercentage>;
