@@ -2,7 +2,6 @@
 <html>
 <script src=event-timing-test-utils.js></script>
 <button id='button_child_frame'>Generate a 'click' event</button>
-<img src=slow-image.py>
 <script>
   const clickTimeMin = performance.now();
   clickAndBlockMain('button_child_frame');
@@ -10,7 +9,7 @@
   const observerPromise = new Promise((resolve, reject) => {
     new PerformanceObserver((entryList) => {
       resolve(entryList.getEntries().filter(entry => entry.name === 'mousedown'));
-    }).observe({ entryTypes: ['event'] });
+    }).observe({ type:'event', buffered: true });
   });
   window.addEventListener('load', e => {
     observerPromise.then((observedEntries) => {

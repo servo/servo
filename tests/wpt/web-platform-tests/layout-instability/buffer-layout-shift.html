@@ -30,8 +30,11 @@
       assert_greater_than_equal(entry.startTime, startTime)
       assert_less_than_equal(entry.startTime, endTime)
       assert_equals(entry.duration, 0.0);
-      // The layout shift value should be: 300 * (100 + 60) / viewport size.
-      assert_equals(entry.value, 300 * (100 + 60) /
+      const maxDimension = Math.max(document.documentElement.clientWidth,
+                                    document.documentElement.clientHeight);
+      // The layout shift value should be:
+      // 300 * (100 + 60) * (60 / maxDimension) / viewport size.
+      assert_equals(entry.value, 300 * (100 + 60) * (60 / maxDimension) /
         (document.documentElement.clientWidth * document.documentElement.clientHeight));
       t.done();
     }

@@ -55,7 +55,11 @@
 <script>
 // In vertical-rl mode, X corresponds to the block axis and is oriented
 // leftward. Y corresponds to the inline axis and is oriented downward.
+// So the beginning edges are the top and right edges and the ending
+// edges are the bottom and left edges.
+
 // This assumes that the horizontal scrollbar is on the bottom side.
+
 var target = document.getElementById("target");
 var scroller = document.getElementById("scroller");
 var scrollbar_width = scroller.offsetWidth - scroller.clientWidth;
@@ -102,17 +106,6 @@ if(scroller.scrollLeft === 0) {
   };
 }
 
-// This formats dict as a string suitable as test name.
-// format_value() is provided by testharness.js,
-// which also preserves sign for -0.
-function format_dict(dict) {
-  const props = [];
-  for (let prop in dict) {
-    props.push(`${prop}: ${format_value(dict[prop])}`);
-  }
-  return `{${props.join(", ")}}`;
-}
-
 [
   [{block: "start", inline: "start"}, expectedX.blockStart, expectedY.inlineStart],
   [{block: "start", inline: "center"}, expectedX.blockStart, expectedY.inlineCenter],
@@ -129,7 +122,7 @@ function format_dict(dict) {
     target.scrollIntoView(input);
     assert_approx_equals(scroller.scrollLeft, expectedX, 0.5, "scrollX");
     assert_approx_equals(scroller.scrollTop, expectedY, 0.5, "scrollY");
-  }, `scrollIntoView(${format_dict(input)})`);
+  }, `scrollIntoView(${JSON.stringify(input)})`);
 })
 
 </script>

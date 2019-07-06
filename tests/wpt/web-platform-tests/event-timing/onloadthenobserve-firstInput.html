@@ -23,29 +23,37 @@
   async_test(function(t) {
     let numFirstInputObserved = 0;
     let numEventsObserved = 0;
-    new PerformanceObserver(t.step_func((entryList, obs) => {
-        const observedEntries = entryList.getEntries().filter(
-            entry => entry.name === 'mousedown');
-        numEventsObserved += observedEntries.filter(entry =>
-            entry.entryType == 'event').length;
-        numFirstInputObserved += observedEntries.filter(entry =>
-            entry.entryType == 'firstInput').length;
+    let observedEventEntries = [];
+
+    const event_observer_promise = new Promise((resolve, reject) => {
+      new PerformanceObserver(function(entryList) {
+        observedEventEntries = entryList.getEntries().filter(
+          entry => entry.name === 'mousedown');
+        numEventsObserved += observedEventEntries.length;
         if (numEventsObserved >= 2) {
-          assert_equals(performance.getEntriesByType('event').length, 0,
-            "There should be no buffered event entries.");
-          assert_equals(performance.getEntriesByType('firstInput').length, 1,
-            "There should be a buffered firstInput entry.");
-          // There should be 2 event entries and one firstInput entry.
+          // There should be 2 event entries.
           assert_equals(numEventsObserved, 2,
             "There should be 2 observed event entries.");
-          assert_equals(numFirstInputObserved, 1,
-            "There should be only 1 observed firstInput entry.");
-          t.done();
+          resolve();
         }
-    })).observe({ entryTypes: ['event', 'firstInput'] });
-    on_event(window, 'load', () => {
-      clickAndBlockMain('button').then(() => {
+      }).observe({ type: 'event' , buffered: true});
+    });
+
+    const first_input_observer_promise = new Promise((resolve, reject) => {
+      new PerformanceObserver(function(entryList) {
+        assert_equals(entryList.getEntries().length, 1);
+        resolve();
+      }).observe({ type: 'firstInput' , buffered: true});
+    });
+
+    on_event(window, 'load', function(e) {
+      const click_promise = clickAndBlockMain('button').then(() => {
         clickAndBlockMain('button');
+      });
+      Promise.all(
+          [event_observer_promise, first_input_observer_promise, click_promise]
+              ).then(() => {
+        t.done();
       });
     });
   },
