@@ -17,16 +17,9 @@ registration are lost
   let observerStart;
   let processingStartMin;
 
-  function verifyBufferAndObserverEntries(observedEntries) {
-    // Verify buffer entries
-    const bufferedEntries = performance.getEntriesByName('mousedown', 'event');
-    const bufferedEntriesBeforeObserver = bufferedEntries.filter(e => e.startTime <
-      observerStart);
-    assert_equals(bufferedEntries.length, 0,
-      "Long latency events after onload should not be buffered."
-    );
-
-    // Verify observer entries
+  function verifyObserverEntries(observedEntries) {
+    // Verify observer entries.  Should not include first click since we didn't
+    // buffered to true.
     assert_equals(observedEntries.length, 1, "Long latency task after observer start should be observed.");
     const entry = observedEntries[0];
     verifyClickEvent(entry);
@@ -45,8 +38,8 @@ registration are lost
         callbackTime = performance.now();
         const observedEntries = entryList.getEntries().filter(
             entry => entry.name === 'mousedown');
-        verifyBufferAndObserverEntries(observedEntries);
-      })).observe({ entryTypes: ['event'] });
+        verifyObserverEntries(observedEntries);
+      })).observe({ type: 'event'});
     observerStart = performance.now();
   }
 

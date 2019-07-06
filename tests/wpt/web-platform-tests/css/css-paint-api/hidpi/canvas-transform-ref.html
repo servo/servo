@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id ="canvas" width="540" height="550"></canvas>
+<script>
+var canvas = document.getElementById('canvas');
+canvas.style.width = (canvas.width / devicePixelRatio) + 'px';
+canvas.style.height = (canvas.height / devicePixelRatio) + 'px';
+var ctx = canvas.getContext("2d");
+ctx.scale(devicePixelRatio, devicePixelRatio);
+var fillW = 250;
+var fillH = 50;
+ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 100);
+ctx.beginPath();
+ctx.rect(0, 0, fillW, fillH);
+ctx.closePath();
+ctx.clip();
+ctx.fillStyle = 'green';
+ctx.fillRect(0, 0, fillW, fillH);
+</script>
+</body>
+</html>
