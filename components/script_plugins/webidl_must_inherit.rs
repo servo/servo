@@ -185,7 +185,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for WebIdlPass {
         _gen: &'tcx hir::Generics,
         id: HirId,
     ) {
-        let def_id = cx.tcx.hir().local_def_id_from_hir_id(id);
+        let def_id = cx.tcx.hir().local_def_id(id);
         if !is_webidl_ty(&self.symbols, cx, cx.tcx.type_of(def_id)) {
             return;
         }
@@ -196,7 +196,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for WebIdlPass {
         };
 
         let parent_name = def.fields().iter().next().map(|field| {
-            let def_id = cx.tcx.hir().local_def_id_from_hir_id(field.hir_id);
+            let def_id = cx.tcx.hir().local_def_id(field.hir_id);
             let ty = cx.tcx.type_of(def_id).to_string();
             get_ty_name(&ty).to_string()
         });

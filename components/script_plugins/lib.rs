@@ -22,6 +22,10 @@
 #[macro_use]
 extern crate rustc;
 
+// Work around TLS failure: https://github.com/rust-lang/rust/issues/62717#issuecomment-511876555
+#[allow(unused)]
+extern crate rustc_driver;
+
 extern crate rustc_plugin;
 extern crate syntax;
 

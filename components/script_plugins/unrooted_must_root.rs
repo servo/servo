@@ -161,7 +161,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
             .all(|a| !a.check_name(self.symbols.must_root))
         {
             for ref field in def.fields() {
-                let def_id = cx.tcx.hir().local_def_id_from_hir_id(field.hir_id);
+                let def_id = cx.tcx.hir().local_def_id(field.hir_id);
                 if is_unrooted_ty(&self.symbols, cx, cx.tcx.type_of(def_id), false) {
                     cx.span_lint(UNROOTED_MUST_ROOT, field.span,
                                  "Type must be rooted, use #[must_root] on the struct definition to propagate")
@@ -182,7 +182,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
             match var.node.data {
                 hir::VariantData::Tuple(ref fields, ..) => {
                     for ref field in fields {
-                        let def_id = cx.tcx.hir().local_def_id_from_hir_id(field.hir_id);
+                        let def_id = cx.tcx.hir().local_def_id(field.hir_id);
                         if is_unrooted_ty(&self.symbols, cx, cx.tcx.type_of(def_id), false) {
                             cx.span_lint(
                                 UNROOTED_MUST_ROOT,
@@ -215,7 +215,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
         };
 
         if !in_derive_expn(span) {
-            let def_id = cx.tcx.hir().local_def_id_from_hir_id(id);
+            let def_id = cx.tcx.hir().local_def_id(id);
             let sig = cx.tcx.type_of(def_id).fn_sig(cx.tcx);
 
             for (arg, ty) in decl.inputs.iter().zip(sig.inputs().skip_binder().iter()) {
