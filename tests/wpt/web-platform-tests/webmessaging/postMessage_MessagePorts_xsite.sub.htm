@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> postMessage to cross-site iframe with MessagePort array [100 ports] </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<div style="display:none">
+    <iframe width="70%"></iframe>
+</div>
+
+<script>
+
+    var t = async_test(description);
+    var description = "Test Description: postMessage to cross-site iframe with MessagePort array containing 100 ports.";
+
+    var host = get_host_info();
+    var noteSameSiteURL = host.HTTP_NOTSAMESITE_ORIGIN + "/webmessaging/support/ChildWindowPostMessage.htm";
+    var TOTALPORTS = 100;
+    var LocalPorts = [];
+    var RemotePorts = [];
+    var PassedResult = 0;
+    var sum = 0;
+    var TARGET = document.querySelector("iframe").contentWindow;
+    document.querySelector("iframe").src = noteSameSiteURL;
+    document.querySelector("iframe").onload = t.step_func(function() {
+        assert_own_property(window, "MessageChannel", "window");
+
+        var channels = [];
+
+        for (var i=0; i<TOTALPORTS; i++)
+        {
+            channels[i] = new MessageChannel();
+            LocalPorts[i] = channels[i].port1;
+            LocalPorts[i].foo = i;
+            RemotePorts[i] = channels[i].port2;
+
+            LocalPorts[i].onmessage = t.step_func(function(e)
+            {
+                assert_equals(e.target.foo, e.data);
+
+                PassedResult++;
+                sum += e.data;
+
+                if (PassedResult == TOTALPORTS)
+                {
+                    assert_equals(sum, 4950);
+                    t.done();
+                }
+            });
+        }
+        // Sending in two batches, to test the two postMessage variants.
+        var firstBatch = RemotePorts.slice(0, 50);
+        var secondBatch = RemotePorts.slice(50, 100);
+        TARGET.postMessage("ports", "*", firstBatch);
+        TARGET.postMessage("ports", {targetOrigin: '*', transfer: secondBatch});
+    });
+    window.onmessage = function(e)
+    {
+        if (e.data === "ports")
+        {
+            for (var i=0; i<TOTALPORTS; i++)
+            {
+                LocalPorts[i].postMessage(LocalPorts[i].foo);
+            }
+        }
+    }
+</script>
+</body>
+</html>
