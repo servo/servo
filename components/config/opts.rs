@@ -78,8 +78,7 @@ pub struct Opts {
 
     pub headless: bool,
 
-    /// Use ANGLE to create the GL context (Windows-only).
-    pub angle: bool,
+    // pub angle: bool,
 
     /// True to exit on thread failure instead of displaying about:failure.
     pub hard_fail: bool,
@@ -488,11 +487,16 @@ static MULTIPROCESS: AtomicBool = AtomicBool::new(false);
 
 static VSYNC: AtomicBool = AtomicBool::new(true);
 
+static ANGLE: AtomicBool = AtomicBool::new(false);
+
 #[inline]
 pub fn set_multiprocess(b: bool, ord: Ordering) { MULTIPROCESS.store(b, ord) }
 
 #[inline]
 pub fn set_vsync(b: bool, ord: Ordering) { VSYNC.store(b, ord) }
+
+#[inline]
+pub fn set_angle(b: bool, ord: Ordering) { ANGLE.store(b, ord) }
 
 #[inline]
 pub fn multiprocess() -> bool {
@@ -501,6 +505,9 @@ pub fn multiprocess() -> bool {
 
 #[inline]
 pub fn enable_vsync() -> bool { VSYNC.load(Ordering::Relaxed) }
+
+#[inline]
+pub fn angle() -> bool { ANGLE.load(Ordering::Relaxed) }
 
 enum UserAgent {
     Desktop,
@@ -564,7 +571,7 @@ pub fn default_opts() -> Opts {
         gc_profile: false,
         load_webfonts_synchronously: false,
         headless: false,
-        angle: false,
+        // angle: false,
         hard_fail: true,
         bubble_inline_sizes_separately: false,
         show_debug_fragment_borders: false,
@@ -678,13 +685,6 @@ fn create_global_opts(mut opts: getopts::Options) -> Options {
         "shaders",
         "Shaders will be loaded from the specified directory instead of using the builtin ones.",
         "",
-    );
-
-    // TODO: Remove --angle from global.
-    opts.optflag(
-        "",
-        "angle",
-        "Use ANGLE to create a GL context (Windows-only)",
     );
     opts.optflag(
         "f",
@@ -1008,7 +1008,6 @@ pub fn from_cmdline_args(opts: getopts::Options, args: &[String]) -> getopts::Re
         gc_profile: debug_options.gc_profile,
         load_webfonts_synchronously: debug_options.load_webfonts_synchronously,
         headless: opt_match.opt_present("z"),
-        angle: opt_match.opt_present("angle"),
         hard_fail: opt_match.opt_present("f") && !opt_match.opt_present("F"),
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
         profile_script_events: debug_options.profile_script_events,
@@ -1070,7 +1069,6 @@ pub fn from_cmdline_args(opts: getopts::Options, args: &[String]) -> getopts::Re
         set_pref!(layout.threads, layout_threads as i64);
     }
 
-    // ArgumentParsingResult::ChromeProcess
     Ok(opt_match)
 }
 

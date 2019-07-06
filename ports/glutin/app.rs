@@ -185,7 +185,7 @@ fn get_default_url() -> ServoUrl {
 }
 
 pub fn gl_version() -> glutin::GlRequest {
-    if opts::get().angle {
+    if opts::angle() {
         glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (3, 0))
     } else {
         glutin::GlRequest::GlThenGles {

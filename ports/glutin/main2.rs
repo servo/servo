@@ -25,7 +25,8 @@ mod window_trait;
 use app::App;
 use backtrace::Backtrace;
 use getopts::Options;
-use servo::config::opts::{self, ArgumentParsingResult, args_fail, set_multiprocess, set_vsync};
+use servo::config::opts::{self, ArgumentParsingResult, args_fail, set_multiprocess, set_vsync,
+                          set_angle};
 use servo::config::servo_version;
 use std::env;
 use std::panic;
@@ -80,8 +81,14 @@ fn create_gluten_opts() -> Options {
     opts.optflag("",
                  "disable-vsync",
                  "Disable vsync mode in the compositor to allow profiling at more than monitor refresh rate");
-    //    opts.optflag("z", "headless", "Headless mode");
 
+    //    opts.optflag("z", "headless", "Headless mode");
+    /// Use ANGLE to create the GL context (Windows-only).
+    opts.optflag(
+        "",
+        "angle",
+        "Use ANGLE to create a GL context (Windows-only)",
+    );
     opts
 }
 
@@ -118,6 +125,10 @@ pub fn main() {
 
     if opt_match.opt_present("disable-vsync") {
         set_vsync(false, Ordering::SeqCst);
+    }
+
+    if opt_match.opt_present("angle") {
+        set_angle(true, Ordering::SeqCst);
     }
 
     // TODO: once log-panics is released, can this be replaced by
