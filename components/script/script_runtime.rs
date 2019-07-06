@@ -751,7 +751,7 @@ unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
 
 
 #[repr(transparent)]
-struct JSContext(*mut RawJSContext);
+pub struct JSContext(*mut RawJSContext);
 
 #[allow(unsafe_code)]
 impl JSContext {

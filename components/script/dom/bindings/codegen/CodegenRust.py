@@ -2397,7 +2397,8 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'js::error::throw_type_error',
         'js::rust::HandleValue',
         'js::jsapi::Heap',
-        'js::jsapi::JSContext',
+        #'js::jsapi::JSContext',
+        'crate::script_runtime::JSContext',
         'js::jsapi::JSObject',
         'js::rust::MutableHandleValue',
         'js::jsval::JSVal',
@@ -2570,7 +2571,7 @@ class CGConstructorEnabled(CGAbstractMethod):
     def __init__(self, descriptor):
         CGAbstractMethod.__init__(self, descriptor,
                                   'ConstructorEnabled', 'bool',
-                                  [Argument("*mut JSContext", "aCx"),
+                                  [Argument("JSContext", "aCx"),
                                    Argument("HandleObject", "aObj")],
                                   unsafe=True)
 
@@ -5781,7 +5782,8 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JSCLASS_FOREGROUND_FINALIZE',
         'js::jsapi::JSCLASS_RESERVED_SLOTS_SHIFT',
         'js::jsapi::JSClass',
-        'js::jsapi::JSContext',
+        #'js::jsapi::JSContext',
+        'crate::script_runtime::JSContext',
         'js::jsapi::JSFreeOp',
         'js::jsapi::JSFunctionSpec',
         'js::jsapi::JSITER_HIDDEN',
@@ -6775,7 +6777,7 @@ class CGCallback(CGClass):
 
     def getConstructors(self):
         return [ClassConstructor(
-            [Argument("*mut JSContext", "aCx"), Argument("*mut JSObject", "aCallback")],
+            [Argument("JSContext", "aCx"), Argument("*mut JSObject", "aCallback")],
             bodyInHeader=True,
             visibility="pub",
             explicit=False,
@@ -6788,7 +6790,7 @@ class CGCallback(CGClass):
         args = list(method.args)
         # Strip out the JSContext*/JSObject* args
         # that got added.
-        assert args[0].name == "cx" and args[0].argType == "*mut JSContext"
+        assert args[0].name == "cx" and args[0].argType == "JSContext"
         assert args[1].name == "aThisObj" and args[1].argType == "HandleObject"
         args = args[2:]
         # Record the names of all the arguments, so we can use them when we call
@@ -7075,7 +7077,7 @@ class CallbackMember(CGNativeMember):
             return args
         # We want to allow the caller to pass in a "this" object, as
         # well as a JSContext.
-        return [Argument("*mut JSContext", "cx"),
+        return [Argument("JSContext", "cx"),
                 Argument("HandleObject", "aThisObj")] + args
 
     def getCallSetup(self):
