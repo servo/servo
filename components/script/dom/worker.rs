@@ -5,6 +5,7 @@
 use crate::compartments::enter_realm;
 use crate::dom::abstractworker::SimpleWorkerErrorHandler;
 use crate::dom::abstractworker::WorkerScriptMsg;
+use crate::dom::bindings::codegen::Bindings::MessagePortBinding::PostMessageOptions;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::{WorkerMethods, WorkerOptions};
 use crate::dom::bindings::conversions::ToJSValConvertible;
@@ -15,6 +16,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerGlobalScope, DedicatedWorkerScriptMsg,
 };
@@ -27,7 +29,7 @@ use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
-use js::jsapi::{JSContext, JSObject, JS_RequestInterruptCallback};
+use js::jsapi::{Heap, JSContext, JSObject, JS_RequestInterruptCallback};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooterGuard, HandleValue};
 use script_traits::WorkerScriptLoadOrigin;
@@ -169,22 +171,17 @@ impl Worker {
         let worker = address.root();
         worker.upcast().fire_event(atom!("error"));
     }
-}
 
-impl WorkerMethods for Worker {
     #[allow(unsafe_code)]
-    // https://html.spec.whatwg.org/multipage/#dom-worker-postmessage
-    unsafe fn PostMessage(
+    /// https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
+    fn post_message_impl(
         &self,
         cx: *mut JSContext,
         message: HandleValue,
-        transfer: CustomAutoRooterGuard<Option<Vec<*mut JSObject>>>,
+        transfer: Vec<*mut JSObject>,
     ) -> ErrorResult {
         rooted!(in(cx) let mut val = UndefinedValue());
-        (*transfer)
-            .as_ref()
-            .unwrap_or(&Vec::new())
-            .to_jsval(cx, val.handle_mut());
+        unsafe { (*transfer).to_jsval(cx, val.handle_mut()) };
         let data = StructuredCloneData::write(cx, message, val.handle())?;
         let address = Trusted::new(self);
 
@@ -198,6 +195,36 @@ impl WorkerMethods for Worker {
             },
         ));
         Ok(())
+    }
+}
+
+impl WorkerMethods for Worker {
+    #[allow(unsafe_code)]
+    /// https://html.spec.whatwg.org/multipage/#dom-worker-postmessage
+    unsafe fn PostMessage(
+        &self,
+        cx: *mut JSContext,
+        message: HandleValue,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
+    ) -> ErrorResult {
+        self.post_message_impl(cx, message, transfer.to_vec())
+    }
+
+    #[allow(unsafe_code)]
+    /// https://html.spec.whatwg.org/multipage/#dom-worker-postmessage
+    unsafe fn PostMessage_(
+        &self,
+        cx: *mut JSContext,
+        message: HandleValue,
+        options: RootedTraceableBox<PostMessageOptions>,
+    ) -> ErrorResult {
+        //let transfer:
+        let transfer: Vec<*mut JSObject> = options
+            .transfer
+            .iter()
+            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+            .collect();
+        self.post_message_impl(cx, message, transfer)
     }
 
     #[allow(unsafe_code)]
