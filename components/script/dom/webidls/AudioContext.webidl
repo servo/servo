@@ -23,7 +23,7 @@ dictionary AudioTimestamp {
 };
 
 [Exposed=Window,
- Constructor(optional AudioContextOptions contextOptions)]
+ Constructor(optional AudioContextOptions contextOptions = {})]
 interface AudioContext : BaseAudioContext {
   readonly attribute double baseLatency;
   readonly attribute double outputLatency;

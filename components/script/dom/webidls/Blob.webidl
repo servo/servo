@@ -5,7 +5,7 @@
 // https://w3c.github.io/FileAPI/#blob
 
 [Constructor(optional sequence<BlobPart> blobParts,
-  optional BlobPropertyBag options),
+  optional BlobPropertyBag options = {}),
  Exposed=(Window,Worker)]
 interface Blob {
 

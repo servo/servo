@@ -11,6 +11,6 @@ dictionary ChannelSplitterOptions : AudioNodeOptions {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional ChannelSplitterOptions options)]
+ Constructor (BaseAudioContext context, optional ChannelSplitterOptions options = {})]
 interface ChannelSplitterNode : AudioNode {
 };

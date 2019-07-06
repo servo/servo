@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#hashchangeevent
-[Constructor(DOMString type, optional HashChangeEventInit eventInitDict),
+[Constructor(DOMString type, optional HashChangeEventInit eventInitDict = {}),
  Exposed=Window]
 interface HashChangeEvent : Event {
   readonly attribute USVString oldURL;

@@ -14,7 +14,7 @@ dictionary AnalyserOptions : AudioNodeOptions {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional AnalyserOptions options)]
+ Constructor (BaseAudioContext context, optional AnalyserOptions options = {})]
 interface AnalyserNode : AudioNode {
   void getFloatFrequencyData (Float32Array array);
   void getByteFrequencyData (Uint8Array array);

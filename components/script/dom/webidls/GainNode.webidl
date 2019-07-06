@@ -11,7 +11,7 @@ dictionary GainOptions : AudioNodeOptions {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional GainOptions options)]
+ Constructor (BaseAudioContext context, optional GainOptions options = {})]
  interface GainNode : AudioNode {
    readonly attribute AudioParam gain;
  };

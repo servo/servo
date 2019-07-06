@@ -6,7 +6,7 @@
  * https://dom.spec.whatwg.org/#event
  */
 
-[Constructor(DOMString type, optional TransitionEventInit transitionEventInitDict),
+[Constructor(DOMString type, optional TransitionEventInit transitionEventInitDict = {}),
  Exposed=Window]
 interface TransitionEvent : Event {
   readonly attribute DOMString          propertyName;

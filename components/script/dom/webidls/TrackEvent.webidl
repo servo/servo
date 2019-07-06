@@ -5,7 +5,7 @@
 // https://html.spec.whatwg.org/multipage/#the-trackevent-interface
 
 [Exposed=Window,
- Constructor(DOMString type, optional TrackEventInit eventInitDict)]
+ Constructor(DOMString type, optional TrackEventInit eventInitDict = {})]
 interface TrackEvent : Event {
   readonly attribute (VideoTrack or AudioTrack or TextTrack)? track;
 };

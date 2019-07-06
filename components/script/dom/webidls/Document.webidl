@@ -33,9 +33,9 @@ interface Document : Node {
   HTMLCollection getElementsByClassName(DOMString classNames);
 
   [CEReactions, NewObject, Throws]
-  Element createElement(DOMString localName, optional ElementCreationOptions options);
+  Element createElement(DOMString localName, optional ElementCreationOptions options = {});
   [CEReactions, NewObject, Throws]
-  Element createElementNS(DOMString? namespace, DOMString qualifiedName, optional ElementCreationOptions options);
+  Element createElementNS(DOMString? namespace, DOMString qualifiedName, optional ElementCreationOptions options = {});
   [NewObject]
   DocumentFragment createDocumentFragment();
   [NewObject]

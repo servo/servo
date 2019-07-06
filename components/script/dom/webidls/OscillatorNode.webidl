@@ -22,7 +22,7 @@ dictionary OscillatorOptions : AudioNodeOptions {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional OscillatorOptions options)]
+ Constructor (BaseAudioContext context, optional OscillatorOptions options = {})]
 interface OscillatorNode : AudioScheduledSourceNode {
   [SetterThrows]
   attribute OscillatorType type;

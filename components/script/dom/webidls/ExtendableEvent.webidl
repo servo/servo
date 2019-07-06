@@ -5,7 +5,7 @@
 // https://w3c.github.io/ServiceWorker/#extendable-event
 
 [Constructor(DOMString type,
- optional ExtendableEventInit eventInitDict),
+ optional ExtendableEventInit eventInitDict = {}),
  Exposed=ServiceWorker,
  Pref="dom.serviceworker.enabled"]
 interface ExtendableEvent : Event {

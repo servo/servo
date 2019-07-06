@@ -6,7 +6,7 @@
 [Pref="dom.customelements.enabled"]
 interface CustomElementRegistry {
   [Throws, CEReactions]
-  void define(DOMString name, CustomElementConstructor constructor_, optional ElementDefinitionOptions options);
+  void define(DOMString name, CustomElementConstructor constructor_, optional ElementDefinitionOptions options = {});
 
   any get(DOMString name);
 

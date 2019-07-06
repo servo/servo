@@ -6,7 +6,7 @@
 
 typedef (Request or USVString) RequestInfo;
 
-[Constructor(RequestInfo input, optional RequestInit init),
+[Constructor(RequestInfo input, optional RequestInit init = {}),
  Exposed=(Window,Worker)]
 
 interface Request {
