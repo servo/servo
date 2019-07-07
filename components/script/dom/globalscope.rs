@@ -273,7 +273,8 @@ impl MessageListener {
                         let global = context.lock().root();
                         global.maybe_add_message_port(&port_id);
                         if let Some(port) = global.upcast::<GlobalScope>().message_ports.borrow().find_port(&port_id) {
-                            if !global.message_ports_shipped.borrow_mut().remove(&port_id).is_some() {
+                            let removed = global.message_ports_shipped.borrow_mut().remove(&port_id);
+                            if !removed.is_some() {
                                 port.complete_transfer(tasks, outgoing_msgs, entangled_with, entangled_sender);
                             }
                         };
@@ -398,14 +399,12 @@ impl GlobalScope {
         match self.message_ports_shipped.borrow_mut().remove(&port_id) {
             Some(Some(entangled)) => {
                 if let Some(entangled_port) = self.message_ports.borrow().find_port(&entangled) {
-                    if !entangled_port.has_been_shipped() {
-                        // This is a case of a message having been sent immediately after transfer,
-                        // before the entangled knew it was shipped.
-                        // Make sure it knows, and re-route the message(via buffering).
-                        entangled_port.set_has_been_shipped();
-                        entangled_port.post_message(task);
-                        return;
-                    }
+                    // This is a case of a message having been sent immediately after transfer,
+                    // before the entangled knew it was shipped.
+                    // Make sure it knows, and re-route the message(via buffering).
+                    entangled_port.set_has_been_shipped();
+                    entangled_port.post_message(task);
+                    return;
                 }
             },
             _ => {},
