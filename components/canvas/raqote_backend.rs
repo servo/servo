@@ -72,10 +72,11 @@ impl Backend for RaqoteBackend {
 
 impl<'a> CanvasPaintState<'a> {
     pub fn new(_antialias: AntialiasMode) -> CanvasPaintState<'a> {
+        let solid_src = raqote::SolidSource { r: 0, g: 0, b: 0, a: 255 };
         CanvasPaintState {
             draw_options: DrawOptions::Raqote(raqote::DrawOptions::new()),
-            fill_style: Pattern::Raqote(()),
-            stroke_style: Pattern::Raqote(()),
+            fill_style: Pattern::Raqote(raqote::Source::Solid(solid_src)),
+            stroke_style: Pattern::Raqote(raqote::Source::Solid(solid_src)),
             stroke_opts: StrokeOptions::Raqote(Default::default(), PhantomData),
             transform: Transform2D::identity(),
             shadow_offset_x: 0.0,
@@ -86,10 +87,15 @@ impl<'a> CanvasPaintState<'a> {
     }
 }
 
-impl Pattern {
+impl Pattern<'_> {
     pub fn is_zero_size_gradient(&self) -> bool {
         match *self {
-            Pattern::Raqote(()) => unimplemented!(),
+            Pattern::Raqote(_) => unimplemented!(),
+        }
+    }
+    pub fn as_raqote(&self) -> &raqote::Source {
+        match self {
+            Pattern::Raqote(p) => p,
         }
     }
 }
@@ -123,6 +129,11 @@ impl DrawOptions {
             DrawOptions::Raqote(draw_options) => draw_options.alpha = _val,
         }
     }
+    pub fn as_raqote(&self) -> &raqote::DrawOptions {
+        match self {
+            DrawOptions::Raqote(options) => options,
+        }
+    }
 }
 
 impl Path {
@@ -139,6 +150,12 @@ impl Path {
 
     pub fn copy_to_builder(&self) -> Box<dyn GenericPathBuilder> {
         unimplemented!()
+    }
+
+    pub fn as_raqote(&self) -> &raqote::Path {
+        match self {
+            Path::Raqote(p) => p,
+        }
     }
 }
 
@@ -200,8 +217,8 @@ impl GenericDrawTarget for raqote::DrawTarget {
     ) {
         unimplemented!();
     }
-    fn fill(&mut self, _path: &Path, _pattern: Pattern, _draw_options: &DrawOptions) {
-        unimplemented!();
+    fn fill(&mut self, path: &Path, pattern: Pattern, draw_options: &DrawOptions) {
+        self.fill(path.as_raqote(), pattern.as_raqote(), draw_options.as_raqote());
     }
     fn fill_rect(
         &mut self,
@@ -361,5 +378,13 @@ impl ToRaqoteStyle for LineCapStyle {
             LineCapStyle::Round => raqote::LineCap::Round,
             LineCapStyle::Square => raqote::LineCap::Square,
         }
+    }
+}
+
+// TODO(pylbrecht)
+#[cfg(feature = "raqote_backend")]
+impl Clone for Pattern<'_> {
+    fn clone(&self) -> Self {
+        unimplemented!();
     }
 }
