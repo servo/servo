@@ -1698,8 +1698,8 @@ where
         source_pipeline_id: PipelineId,
         port_id: MessagePortId,
         entangled: Option<MessagePortId>,
-        message_queue: VecDeque<PortMessageTask>,
-        outgoing_message_queue: VecDeque<PortMessageTask>,
+        mut message_queue: VecDeque<PortMessageTask>,
+        mut outgoing_message_queue: VecDeque<PortMessageTask>,
     ) {
         match entangled {
             Some(id) => {
@@ -1719,8 +1719,22 @@ where
                     source_pipeline_id, info.pipeline
                 );
             }
-            info.message_queue = Some(message_queue);
-            info.outgoing_message_queue = Some(outgoing_message_queue);
+            match &mut info.message_queue {
+                Some(queue) => {
+                    while let Some(task) = message_queue.pop_back() {
+                        queue.push_front(task);
+                    }
+                },
+                None => info.message_queue = Some(message_queue),
+            }
+            match &mut info.outgoing_message_queue {
+                Some(queue) => {
+                    while let Some(task) = outgoing_message_queue.pop_back() {
+                        queue.push_front(task);
+                    }
+                },
+                None => info.outgoing_message_queue = Some(outgoing_message_queue),
+            }
             info.is_being_transferred = true;
         }
     }
@@ -1806,6 +1820,7 @@ where
                 Some(entangled),
                 sender,
             ));
+
             // 2: let the entangled port know about the new ipc-sender.
             // This also deals with the case were the sender was set to None above,
             // and our entangled port has been recently transferred, and is still waiting on a sender.

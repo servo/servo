@@ -23,11 +23,5 @@ pub trait Transferable: DomObject {
         extra_data: u64,
         return_object: MutableHandleObject,
     ) -> bool;
-    fn detached(&self) -> Option<bool> {
-        None
-    }
-    fn set_detached(&self, _value: bool) {}
-    fn transferable(&self) -> bool {
-        false
-    }
+    fn transferred(&self) -> bool;
 }
