@@ -352,11 +352,11 @@ pub enum Path {
 }
 
 #[derive(Clone)]
-pub enum Pattern {
+pub enum Pattern<'a> {
     #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::Pattern),
     #[cfg(feature = "canvas2d-raqote")]
-    Raqote(()),
+    Raqote(raqote::Source<'a>),
 }
 
 pub enum DrawSurfaceOptions {
@@ -1113,8 +1113,8 @@ impl<'a> Drop for CanvasData<'a> {
 #[derive(Clone)]
 pub struct CanvasPaintState<'a> {
     pub draw_options: DrawOptions,
-    pub fill_style: Pattern,
-    pub stroke_style: Pattern,
+    pub fill_style: Pattern<'a>,
+    pub stroke_style: Pattern<'a>,
     pub stroke_opts: StrokeOptions<'a>,
     /// The current 2D transform matrix.
     pub transform: Transform2D<f32>,
