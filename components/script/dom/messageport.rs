@@ -40,6 +40,7 @@ use std::rc::Rc;
 pub struct MessagePort {
     eventtarget: EventTarget,
     detached: Cell<bool>,
+    transferred: Cell<bool>,
     enabled: Cell<bool>,
     awaiting_transfer: Cell<bool>,
     entangled_port: RefCell<Option<MessagePortId>>,
@@ -76,6 +77,7 @@ impl MessagePort {
         MessagePort {
             eventtarget: EventTarget::new_inherited(),
             detached: Cell::new(false),
+            transferred: Cell::new(false),
             enabled: Cell::new(false),
             awaiting_transfer: Cell::new(false),
             entangled_port: RefCell::new(None),
@@ -96,6 +98,7 @@ impl MessagePort {
         MessagePort {
             eventtarget: EventTarget::new_inherited(),
             detached: Cell::new(false),
+            transferred: Cell::new(false),
             enabled: Cell::new(false),
             awaiting_transfer: Cell::new(true),
             entangled_port: RefCell::new(None),
@@ -114,7 +117,7 @@ impl MessagePort {
     /// We received an ipc-sender to communicate with our entangled, and shipped, port.
     /// Drain the buffer of messages waiting to be sent, and use the ipc-sender going forward.
     pub fn set_entangled_sender(&self, sender: IpcSender<MessagePortMsg>) {
-        if self.awaiting_transfer.get() {
+        if self.awaiting_transfer.get() || self.transferred.get() || self.detached.get() {
             // Note: we don't accept new senders while we are awaiting completion of our transfer,
             // because we don't know yet which port we're entangled with, if any,
             // and we'll get the new sender along with the entangled info when the transfer completes.
@@ -132,6 +135,10 @@ impl MessagePort {
             let _ = sender.send(MessagePortMsg::NewTask(target_port_id, task));
         }
         *self.entangled_sender.borrow_mut() = Some(sender);
+    }
+
+    pub fn detached(&self) -> bool {
+        self.detached.get()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#entangle>
@@ -165,7 +172,7 @@ impl MessagePort {
         entangled_with: Option<MessagePortId>,
         entangled_sender: Option<IpcSender<MessagePortMsg>>,
     ) {
-        if self.detached.get() {
+        if self.detached.get() || self.transferred.get() {
             return;
         }
         self.awaiting_transfer.set(false);
@@ -202,7 +209,7 @@ impl MessagePort {
     /// This method should always run as part of a Task on the relevant event-loop.
     /// We buffer incoming messages if we haven't been enabled yet.
     pub fn handle_incoming(&self, task: PortMessageTask) {
-        if self.detached.get() {
+        if self.detached.get() || self.transferred.get() {
             return;
         }
 
@@ -278,7 +285,7 @@ impl MessagePort {
         message: HandleValue,
         transfer: Vec<*mut JSObject>,
     ) -> ErrorResult {
-        if self.detached.get() {
+        if self.detached.get() || self.transferred.get() {
             return Ok(());
         }
         // Step 1
@@ -346,6 +353,10 @@ impl Transferable for MessagePort {
 
         // Step 3
         // Substep 1
+
+        // Used to GC the port.
+        self.transferred.set(true);
+
         self.global().mark_port_as_shipped(
             self.message_port_id().clone(),
             self.entangled_port.borrow().clone(),
@@ -384,6 +395,10 @@ impl Transferable for MessagePort {
 
             *extra_data = u64::from_ne_bytes(big);
         }
+
+        // Disable the port.
+        *self.entangled_sender.borrow_mut() = None;
+        *self.entangled_port.borrow_mut() = None;
 
         true
     }
@@ -425,7 +440,7 @@ impl Transferable for MessagePort {
 
         let transferred_port = MessagePort::new_transferred(id.clone());
         let value = reflect_dom_object(Box::new(transferred_port), &*owner, Wrap);
-        owner.track_message_port(&value);
+        owner.track_message_port(&value, true);
 
         return_object.set(value.reflector().rootable().get());
 
@@ -434,16 +449,8 @@ impl Transferable for MessagePort {
         true
     }
 
-    fn detached(&self) -> Option<bool> {
-        Some(self.detached.get())
-    }
-
-    fn set_detached(&self, value: bool) {
-        self.detached.set(value);
-    }
-
-    fn transferable(&self) -> bool {
-        !self.detached.get()
+    fn transferred(&self) -> bool {
+        self.transferred.get()
     }
 }
 
@@ -479,7 +486,7 @@ impl MessagePortMethods for MessagePort {
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-start>
     fn Start(&self) {
         self.enabled.set(true);
-        if self.awaiting_transfer.get() {
+        if self.awaiting_transfer.get() || self.transferred.get() {
             return;
         }
         let port_id = self.message_port_id().clone();
@@ -499,6 +506,9 @@ impl MessagePortMethods for MessagePort {
     fn Close(&self) {
         // Step 1
         self.detached.set(true);
+        // Disable the port.
+        *self.entangled_sender.borrow_mut() = None;
+        *self.entangled_port.borrow_mut() = None;
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>

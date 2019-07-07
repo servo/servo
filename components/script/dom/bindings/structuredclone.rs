@@ -226,14 +226,13 @@ unsafe extern "C" fn write_transfer_callback(
     extra_data: *mut u64,
 ) -> bool {
     if let Ok(port) = root_from_handleobject::<MessagePort>(Handle::from_raw(obj), cx) {
-        if let Some(true) = port.detached() {
+        if port.detached() {
             return false;
         }
 
         *tag = StructuredCloneTags::MessagePort as u32;
         *ownership = TransferableOwnership::SCTAG_TMO_CUSTOM;
         if port.transfer(closure, content, extra_data) {
-            port.set_detached(true);
             return true;
         }
     }
