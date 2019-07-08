@@ -109,6 +109,8 @@ pub enum ScriptMsg {
     GePipelineNameSpaceId(IpcSender<PipelineNamespaceId>),
     /// A new message-port was created or transferred, with corresponding control-sender.
     NewMessagePort(MessagePortId, IpcSender<MessagePortMsg>),
+    /// A task requires re-routing to an already shipped message-port.
+    RerouteMessagePort(MessagePortId, PortMessageTask),
     /// A message-port was shipped, let the entangled port know.
     MessagePortShipped(
         MessagePortId,
@@ -239,6 +241,7 @@ impl fmt::Debug for ScriptMsg {
         let variant = match *self {
             GePipelineNameSpaceId(..) => "GePipelineNameSpaceId",
             NewMessagePort(..) => "NewMessagePort",
+            RerouteMessagePort(..) => "RerouteMessagePort",
             RemoveMessagePort(..) => "RemoveMessagePort",
             MessagePortShipped(..) => "MessagePortShipped",
             EntanglePorts(..) => "EntanglePorts",

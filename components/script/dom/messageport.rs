@@ -255,6 +255,7 @@ impl MessagePort {
             Some(port_id) => port_id.clone(),
             None => return,
         };
+
         if self.has_been_shipped.get() {
             if let Some(sender) = &*self.entangled_sender.borrow() {
                 let _ = sender.send(MessagePortMsg::NewTask(target_port_id, task));
@@ -395,10 +396,6 @@ impl Transferable for MessagePort {
 
             *extra_data = u64::from_ne_bytes(big);
         }
-
-        // Disable the port.
-        *self.entangled_sender.borrow_mut() = None;
-        *self.entangled_port.borrow_mut() = None;
 
         true
     }
