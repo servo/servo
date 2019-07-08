@@ -121,6 +121,11 @@ impl<'a> StrokeOptions<'a> {
             StrokeOptions::Raqote(options, _) => options.cap = _val.to_raqote_style(),
         }
     }
+    pub fn as_raqote(&self) -> &raqote::StrokeStyle {
+        match self {
+            StrokeOptions::Raqote(options, _) => options,
+        }
+    }
 }
 
 impl DrawOptions {
@@ -235,28 +240,33 @@ impl GenericDrawTarget for raqote::DrawTarget {
         unimplemented!();
     }
     fn get_transform(&self) -> Transform2D<f32> {
-        unimplemented!();
+        *self.get_transform()
     }
     fn pop_clip(&mut self) {
-        unimplemented!();
+        self.pop_clip();
     }
-    fn push_clip(&mut self, _path: &Path) {
-        unimplemented!();
+    fn push_clip(&mut self, path: &Path) {
+        self.push_clip(path.as_raqote());
     }
-    fn set_transform(&mut self, _matrix: &Transform2D<f32>) {
-        unimplemented!();
+    fn set_transform(&mut self, matrix: &Transform2D<f32>) {
+        self.set_transform(matrix);
     }
     fn snapshot(&self) -> SourceSurface {
         unimplemented!();
     }
     fn stroke(
         &mut self,
-        _path: &Path,
-        _pattern: Pattern,
-        _stroke_options: &StrokeOptions,
-        _draw_options: &DrawOptions,
+        path: &Path,
+        pattern: Pattern,
+        stroke_options: &StrokeOptions,
+        draw_options: &DrawOptions,
     ) {
-        unimplemented!();
+        self.stroke(
+            path.as_raqote(),
+            pattern.as_raqote(),
+            stroke_options.as_raqote(),
+            draw_options.as_raqote(),
+            );
     }
     fn stroke_line(
         &mut self,
