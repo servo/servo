@@ -845,20 +845,7 @@ impl VRDisplay {
         let now = self.global().as_window().Performance().Now();
 
         if let Some(session) = self.xr_session.get() {
-            let mut callbacks = mem::replace(&mut *self.xr_raf_callback_list.borrow_mut(), vec![]);
-            if callbacks.is_empty() {
-                return;
-            }
-            self.sync_frame_data();
-            let frame = XRFrame::new(&self.global(), &session, self.frame_data.borrow().clone());
-
-            for (_, callback) in callbacks.drain(..) {
-                if let Some(callback) = callback {
-                    let _ = callback.Call__(Finite::wrap(*now), &frame, ExceptionHandling::Report);
-                }
-            }
-            // frame submission is automatic in XR
-            self.SubmitFrame();
+            unreachable!("old webxr-on-webvr cruft")
         } else {
             self.running_display_raf.set(true);
             let mut callbacks = mem::replace(&mut *self.raf_callback_list.borrow_mut(), vec![]);
