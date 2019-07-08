@@ -1097,7 +1097,9 @@ fn static_assert() {
                                 TrackListValue::TrackSize(size) => size,
                                 // FIXME(emilio): This shouldn't be
                                 // representable in the first place.
-                                TrackListValue::TrackRepeat(..) => unreachable!("Shouldn't have track-repeats in computed track lists"),
+                                TrackListValue::TrackRepeat(..) => {
+                                    unreachable!("Shouldn't have track-repeats in computed track lists")
+                                }
                             }
                         };
                     }
