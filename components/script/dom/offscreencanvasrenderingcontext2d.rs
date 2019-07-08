@@ -100,7 +100,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsetx
     fn SetShadowOffsetX(&self, value: f64) {
-        self.canvas_state.borrow().SetShadowOffsetX(value)
+        self.canvas_state.borrow_mut().SetShadowOffsetX(value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsety
@@ -110,7 +110,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsety
     fn SetShadowOffsetY(&self, value: f64) {
-        self.canvas_state.borrow().SetShadowOffsetY(value)
+        self.canvas_state.borrow_mut().SetShadowOffsetY(value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowblur
@@ -120,7 +120,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowblur
     fn SetShadowBlur(&self, value: f64) {
-        self.canvas_state.borrow().SetShadowBlur(value)
+        self.canvas_state.borrow_mut().SetShadowBlur(value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
@@ -130,7 +130,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
     fn SetShadowColor(&self, value: DOMString) {
-        self.canvas_state.borrow().SetShadowColor(value)
+        self.canvas_state.borrow_mut().SetShadowColor(value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
@@ -141,7 +141,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
         self.canvas_state
-            .borrow()
+            .borrow_mut()
             .SetStrokeStyle(self.htmlcanvas.as_ref().map(|c| &**c), value)
     }
 
@@ -153,7 +153,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
         self.canvas_state
-            .borrow()
+            .borrow_mut()
             .SetFillStyle(self.htmlcanvas.as_ref().map(|c| &**c), value)
     }
 
@@ -192,19 +192,19 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         repetition: DOMString,
     ) -> Fallible<DomRoot<CanvasPattern>> {
         self.canvas_state
-            .borrow()
+            .borrow_mut()
             .CreatePattern(&self.global(), image, repetition)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-save
     fn Save(&self) {
-        self.canvas_state.borrow().Save()
+        self.canvas_state.borrow_mut().Save()
     }
 
     #[allow(unrooted_must_root)]
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-restore
     fn Restore(&self) {
-        self.canvas_state.borrow().Restore()
+        self.canvas_state.borrow_mut().Restore()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalalpha
@@ -214,7 +214,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalalpha
     fn SetGlobalAlpha(&self, alpha: f64) {
-        self.canvas_state.borrow().SetGlobalAlpha(alpha)
+        self.canvas_state.borrow_mut().SetGlobalAlpha(alpha)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
@@ -225,7 +225,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
     fn SetGlobalCompositeOperation(&self, op_str: DOMString) {
         self.canvas_state
-            .borrow()
+            .borrow_mut()
             .SetGlobalCompositeOperation(op_str)
     }
 
@@ -236,7 +236,9 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-imagesmoothingenabled
     fn SetImageSmoothingEnabled(&self, value: bool) {
-        self.canvas_state.borrow().SetImageSmoothingEnabled(value)
+        self.canvas_state
+            .borrow_mut()
+            .SetImageSmoothingEnabled(value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
@@ -251,7 +253,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth
     fn SetLineWidth(&self, width: f64) {
-        self.canvas_state.borrow().SetLineWidth(width)
+        self.canvas_state.borrow_mut().SetLineWidth(width)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
@@ -261,7 +263,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
     fn SetLineCap(&self, cap: CanvasLineCap) {
-        self.canvas_state.borrow().SetLineCap(cap)
+        self.canvas_state.borrow_mut().SetLineCap(cap)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
@@ -271,7 +273,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
     fn SetLineJoin(&self, join: CanvasLineJoin) {
-        self.canvas_state.borrow().SetLineJoin(join)
+        self.canvas_state.borrow_mut().SetLineJoin(join)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-miterlimit
@@ -281,7 +283,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-miterlimit
     fn SetMiterLimit(&self, limit: f64) {
-        self.canvas_state.borrow().SetMiterLimit(limit)
+        self.canvas_state.borrow_mut().SetMiterLimit(limit)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
@@ -346,9 +348,12 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn DrawImage(&self, image: CanvasImageSource, dx: f64, dy: f64) -> ErrorResult {
-        self.canvas_state
-            .borrow()
-            .DrawImage(self.htmlcanvas.as_ref().map(|c| &**c), image, dx, dy)
+        self.canvas_state.borrow_mut().DrawImage(
+            self.htmlcanvas.as_ref().map(|c| &**c),
+            image,
+            dx,
+            dy,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
@@ -360,7 +365,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         dw: f64,
         dh: f64,
     ) -> ErrorResult {
-        self.canvas_state.borrow().DrawImage_(
+        self.canvas_state.borrow_mut().DrawImage_(
             self.htmlcanvas.as_ref().map(|c| &**c),
             image,
             dx,
@@ -383,7 +388,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         dw: f64,
         dh: f64,
     ) -> ErrorResult {
-        self.canvas_state.borrow().DrawImage__(
+        self.canvas_state.borrow_mut().DrawImage__(
             self.htmlcanvas.as_ref().map(|c| &**c),
             image,
             sx,
@@ -426,32 +431,34 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-scale
     fn Scale(&self, x: f64, y: f64) {
-        self.canvas_state.borrow().Scale(x, y)
+        self.canvas_state.borrow_mut().Scale(x, y)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-rotate
     fn Rotate(&self, angle: f64) {
-        self.canvas_state.borrow().Rotate(angle)
+        self.canvas_state.borrow_mut().Rotate(angle)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-translate
     fn Translate(&self, x: f64, y: f64) {
-        self.canvas_state.borrow().Translate(x, y)
+        self.canvas_state.borrow_mut().Translate(x, y)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-transform
     fn Transform(&self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) {
-        self.canvas_state.borrow().Transform(a, b, c, d, e, f)
+        self.canvas_state.borrow_mut().Transform(a, b, c, d, e, f)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform
     fn SetTransform(&self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) {
-        self.canvas_state.borrow().SetTransform(a, b, c, d, e, f)
+        self.canvas_state
+            .borrow_mut()
+            .SetTransform(a, b, c, d, e, f)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-resettransform
     fn ResetTransform(&self) {
-        self.canvas_state.borrow().ResetTransform()
+        self.canvas_state.borrow_mut().ResetTransform()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-closepath
