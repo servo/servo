@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::compartments::InCompartment;
+use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
@@ -14,14 +15,16 @@ use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCal
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
 use crate::dom::bindings::error::Error;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutDom, MutNullableDom};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::dom::xrframe::XRFrame;
 use crate::dom::xrinputsource::XRInputSource;
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrenderstate::XRRenderState;
@@ -34,6 +37,7 @@ use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use profile_traits::ipc;
 use std::cell::Cell;
+use std::mem;
 use std::rc::Rc;
 use webxr_api::{self, Frame, Session};
 
@@ -98,7 +102,7 @@ impl XRSession {
 
     /// https://immersive-web.github.io/webxr/#xr-animation-frame
     fn raf_callback(&self, (time, frame): (f64, Frame)) {
-        let session = self.session.borrow_mut();
+        let mut session = self.session.borrow_mut();
         // Step 1
         if let Some(pending) = self.pending_render_state.take() {
             // https://immersive-web.github.io/webxr/#apply-the-pending-render-state
@@ -117,6 +121,30 @@ impl XRSession {
                 }
             }
         }
+
+        // Step 2
+        if self.active_render_state.get().GetBaseLayer().is_none() {
+            return;
+        }
+
+        // Step 3: XXXManishearth handle inline session
+
+        // Step 4-5
+        let mut callbacks = mem::replace(&mut *self.raf_callback_list.borrow_mut(), vec![]);
+
+        let frame = XRFrame::new(&self.global(), self, frame);
+        // Step 6-7: XXXManishearth set `active`/`animationFrame` bools on `frame` to true
+
+        // Step 8
+        for (_, callback) in callbacks.drain(..) {
+            if let Some(callback) = callback {
+                let _ = callback.Call__(Finite::wrap(time), &frame, ExceptionHandling::Report);
+            }
+        }
+
+        // Step 9: XXXManishearth unset `active` bool on `frame`
+
+        session.render_animation_frame();
     }
 }
 
