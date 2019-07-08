@@ -70,6 +70,7 @@ ${helpers.predefined_type(
     flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
     gecko_pref="layout.css.backdrop-filter.enabled",
     spec="https://drafts.fxtf.org/filter-effects-2/#propdef-backdrop-filter",
+    products="gecko",
 )}
 
 ${helpers.single_keyword(
