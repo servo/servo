@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::compartments::InCompartment;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateInit;
@@ -38,6 +39,10 @@ pub struct XRSession {
     frame_requested: Cell<bool>,
     pending_render_state: MutNullableDom<XRRenderState>,
     active_render_state: MutDom<XRRenderState>,
+
+    next_raf_id: Cell<i32>,
+    #[ignore_malloc_size_of = "closures are hard"]
+    raf_callback_list: DomRefCell<Vec<(i32, Option<Rc<XRFrameRequestCallback>>)>>,
 }
 
 impl XRSession {
@@ -52,6 +57,9 @@ impl XRSession {
             frame_requested: Cell::new(false),
             pending_render_state: MutNullableDom::new(None),
             active_render_state: MutDom::new(render_state),
+
+            next_raf_id: Cell::new(0),
+            raf_callback_list: DomRefCell::new(vec![]),
         }
     }
 
@@ -114,12 +122,21 @@ impl XRSessionMethods for XRSession {
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe
     fn RequestAnimationFrame(&self, callback: Rc<XRFrameRequestCallback>) -> i32 {
-        unimplemented!()
+        let raf_id = self.next_raf_id.get();
+        self.next_raf_id.set(raf_id + 1);
+        self.raf_callback_list
+            .borrow_mut()
+            .push((raf_id, Some(callback)));
+        // XXXManishearth fill in callback request
+        raf_id
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-cancelanimationframe
     fn CancelAnimationFrame(&self, frame: i32) {
-        unimplemented!()
+        let mut list = self.raf_callback_list.borrow_mut();
+        if let Some(pair) = list.iter_mut().find(|pair| pair.0 == frame) {
+            pair.1 = None;
+        }
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-environmentblendmode
