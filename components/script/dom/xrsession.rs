@@ -12,6 +12,7 @@ use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XREnvironmentBlen
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
 use crate::dom::bindings::error::Error;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutDom, MutNullableDom};
 use crate::dom::eventtarget::EventTarget;
@@ -22,11 +23,15 @@ use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrenderstate::XRRenderState;
 use crate::dom::xrspace::XRSpace;
+use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use euclid::Vector3D;
+use ipc_channel::ipc::IpcSender;
+use ipc_channel::router::ROUTER;
+use profile_traits::ipc;
 use std::cell::Cell;
 use std::rc::Rc;
-use webxr_api::Session;
+use webxr_api::{self, Frame, Session};
 
 #[dom_struct]
 pub struct XRSession {
@@ -35,7 +40,7 @@ pub struct XRSession {
     blend_mode: XREnvironmentBlendMode,
     viewer_space: MutNullableDom<XRSpace>,
     #[ignore_malloc_size_of = "defined in webxr"]
-    session: Session,
+    session: DomRefCell<Session>,
     frame_requested: Cell<bool>,
     pending_render_state: MutNullableDom<XRRenderState>,
     active_render_state: MutDom<XRRenderState>,
@@ -43,6 +48,8 @@ pub struct XRSession {
     next_raf_id: Cell<i32>,
     #[ignore_malloc_size_of = "closures are hard"]
     raf_callback_list: DomRefCell<Vec<(i32, Option<Rc<XRFrameRequestCallback>>)>>,
+    #[ignore_malloc_size_of = "defined in ipc-channel"]
+    raf_sender: DomRefCell<Option<IpcSender<(f64, Frame)>>>,
 }
 
 impl XRSession {
@@ -53,13 +60,14 @@ impl XRSession {
             // we don't yet support any AR devices
             blend_mode: XREnvironmentBlendMode::Opaque,
             viewer_space: Default::default(),
-            session,
+            session: DomRefCell::new(session),
             frame_requested: Cell::new(false),
             pending_render_state: MutNullableDom::new(None),
             active_render_state: MutDom::new(render_state),
 
             next_raf_id: Cell::new(0),
             raf_callback_list: DomRefCell::new(vec![]),
+            raf_sender: DomRefCell::new(None),
         }
     }
 
@@ -81,6 +89,10 @@ impl XRSession {
     }
 
     pub fn right_eye_params_offset(&self) -> Vector3D<f64> {
+        unimplemented!()
+    }
+
+    fn raf_callback(&self, (time, frame): (f64, Frame)) {
         unimplemented!()
     }
 }
@@ -122,12 +134,54 @@ impl XRSessionMethods for XRSession {
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe
     fn RequestAnimationFrame(&self, callback: Rc<XRFrameRequestCallback>) -> i32 {
+        #[derive(serde::Serialize, serde::Deserialize)]
+        pub struct FrameCallback {
+            sender: IpcSender<(f64, Frame)>,
+        }
+
+        #[typetag::serde]
+        impl webxr_api::FrameRequestCallback for FrameCallback {
+            fn callback(&mut self, time: f64, frame: Frame) {
+                let _ = self.sender.send((time, frame));
+            }
+        }
+
+        // queue up RAF callback, obtain ID
         let raf_id = self.next_raf_id.get();
         self.next_raf_id.set(raf_id + 1);
         self.raf_callback_list
             .borrow_mut()
             .push((raf_id, Some(callback)));
-        // XXXManishearth fill in callback request
+
+        // set up listener for response, if necessary
+        if self.raf_sender.borrow().is_none() {
+            let this = Trusted::new(self);
+            let global = self.global();
+            let window = global.as_window();
+            let (task_source, canceller) = window
+                .task_manager()
+                .dom_manipulation_task_source_with_canceller();
+            let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
+            *self.raf_sender.borrow_mut() = Some(sender);
+            ROUTER.add_route(
+                receiver.to_opaque(),
+                Box::new(move |message| {
+                    let this = this.clone();
+                    let _ = task_source.queue_with_canceller(
+                        task!(xr_raf_callback: move || {
+                            this.root().raf_callback(message.to().unwrap());
+                        }),
+                        &canceller,
+                    );
+                }),
+            );
+        }
+        let sender = self.raf_sender.borrow().clone().unwrap();
+
+        // request animation frame
+        self.session.borrow_mut()
+            .request_animation_frame(FrameCallback { sender });
+
         raf_id
     }
 
