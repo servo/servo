@@ -88,10 +88,6 @@ impl XRSession {
         )
     }
 
-    pub fn set_layer(&self, layer: &XRLayer) {
-        self.base_layer.set(Some(layer))
-    }
-
     pub fn with_session<F: FnOnce(&Session)>(&self, with: F) {
         let session = self.session.borrow();
         with(&session)
