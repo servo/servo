@@ -29,7 +29,7 @@ interface XRSession : EventTarget {
   // FrozenArray<XRInputSource> getInputSources();
   sequence<XRInputSource> getInputSources();
 
-  Promise<void> updateRenderState(optional XRRenderStateInit state);
+  void updateRenderState(optional XRRenderStateInit state);
   long requestAnimationFrame(XRFrameRequestCallback callback);
   void cancelAnimationFrame(long handle);
 

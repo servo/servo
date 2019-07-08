@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCal
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{DomRoot, MutDom, MutNullableDom};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -23,6 +23,7 @@ use crate::dom::xrrenderstate::XRRenderState;
 use crate::dom::xrspace::XRSpace;
 use dom_struct::dom_struct;
 use euclid::Vector3D;
+use std::cell::Cell;
 use std::rc::Rc;
 use webxr_api::Session;
 
@@ -34,10 +35,13 @@ pub struct XRSession {
     viewer_space: MutNullableDom<XRSpace>,
     #[ignore_malloc_size_of = "defined in webxr"]
     session: Session,
+    frame_requested: Cell<bool>,
+    pending_render_state: MutNullableDom<XRRenderState>,
+    active_render_state: MutDom<XRRenderState>,
 }
 
 impl XRSession {
-    fn new_inherited(session: Session) -> XRSession {
+    fn new_inherited(session: Session, render_state: &XRRenderState) -> XRSession {
         XRSession {
             eventtarget: EventTarget::new_inherited(),
             base_layer: Default::default(),
@@ -45,12 +49,16 @@ impl XRSession {
             blend_mode: XREnvironmentBlendMode::Opaque,
             viewer_space: Default::default(),
             session,
+            frame_requested: Cell::new(false),
+            pending_render_state: MutNullableDom::new(None),
+            active_render_state: MutDom::new(render_state),
         }
     }
 
     pub fn new(global: &GlobalScope, session: Session) -> DomRoot<XRSession> {
+        let render_state = XRRenderState::new(global, 0.1, 1000.0, None);
         reflect_dom_object(
-            Box::new(XRSession::new_inherited(session)),
+            Box::new(XRSession::new_inherited(session, &render_state)),
             global,
             XRSessionBinding::Wrap,
         )
@@ -77,12 +85,31 @@ impl XRSessionMethods for XRSession {
 
     // https://immersive-web.github.io/webxr/#dom-xrsession-renderstate
     fn RenderState(&self) -> DomRoot<XRRenderState> {
-        unimplemented!()
+        self.active_render_state.get()
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe
-    fn UpdateRenderState(&self, init: &XRRenderStateInit, comp: InCompartment) -> Rc<Promise> {
-        unimplemented!()
+    /// https://immersive-web.github.io/webxr/#dom-xrsession-updaterenderstate
+    fn UpdateRenderState(&self, init: &XRRenderStateInit, _: InCompartment) {
+        // XXXManishearth various checks:
+        // If session’s ended value is true, throw an InvalidStateError and abort these steps
+        // If newState’s baseLayer's was created with an XRSession other than session,
+        // throw an InvalidStateError and abort these steps
+        // If newState’s inlineVerticalFieldOfView is set and session is an
+        // immersive session, throw an InvalidStateError and abort these steps.
+
+        let pending = self
+            .pending_render_state
+            .or_init(|| self.active_render_state.get().copy());
+        if let Some(near) = init.depthNear {
+            pending.set_depth_near(*near);
+        }
+        if let Some(far) = init.depthFar {
+            pending.set_depth_far(*far);
+        }
+        if let Some(ref layer) = init.baseLayer {
+            pending.set_layer(Some(&layer))
+        }
+        // XXXManishearth handle inlineVerticalFieldOfView
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe
