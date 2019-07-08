@@ -11,7 +11,7 @@ use crate::dom::vrframedata::create_typed_array;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::XRSession;
 use dom_struct::dom_struct;
-use euclid::{RigidTransform3D, Vector3D};
+use euclid::RigidTransform3D;
 use js::jsapi::{Heap, JSContext, JSObject};
 use std::ptr::NonNull;
 use webvr_traits::WebVRFrameData;
@@ -48,22 +48,19 @@ impl XRView {
         pose: &RigidTransform3D<f64>,
         data: &WebVRFrameData,
     ) -> DomRoot<XRView> {
-        let vr_display = session.display();
-
         // XXXManishearth compute and cache projection matrices on the Display
         let (proj, offset) = if eye == XREye::Left {
             (
                 &data.left_projection_matrix,
-                vr_display.left_eye_params_offset(),
+                session.left_eye_params_offset(),
             )
         } else {
             (
                 &data.right_projection_matrix,
-                vr_display.right_eye_params_offset(),
+                session.right_eye_params_offset(),
             )
         };
 
-        let offset = Vector3D::new(offset[0] as f64, offset[1] as f64, offset[2] as f64);
         let transform = pose.post_mul(&offset.into());
         let transform = XRRigidTransform::new(global, transform);
 
