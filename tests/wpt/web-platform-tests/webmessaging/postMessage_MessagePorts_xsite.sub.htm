@@ -59,14 +59,25 @@
         TARGET.postMessage("ports", "*", firstBatch);
         TARGET.postMessage("ports", {targetOrigin: '*', transfer: secondBatch});
     });
+    var counter = 0;
     window.onmessage = function(e)
     {
         if (e.data === "ports")
         {
-            for (var i=0; i<TOTALPORTS; i++)
-            {
-                LocalPorts[i].postMessage(LocalPorts[i].foo);
+            if (counter == 0) {
+                for (var i=0; i<51; i++)
+                {
+                    LocalPorts[i].postMessage(LocalPorts[i].foo);
+                }
+                counter = 1;
+            } else {
+                for (var i=51; i<100; i++)
+                {
+                    LocalPorts[i].postMessage(LocalPorts[i].foo);
+                }
+                counter = 1;
             }
+
         }
     }
 </script>
