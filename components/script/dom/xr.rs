@@ -10,7 +10,7 @@ use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionCreationOptions
 use crate::dom::bindings::codegen::Bindings::XRBinding::{XRMethods, XRSessionMode};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::TrustedPromise;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::event::Event;
@@ -32,7 +32,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVREvent, WebVRMsg};
 use webvr_traits::{WebVRGamepadData, WebVRGamepadEvent, WebVRGamepadState};
-use webxr_api::{Error as XRError, SessionMode};
+use webxr_api::{Error as XRError, Session, SessionMode};
 
 #[dom_struct]
 pub struct XR {
@@ -160,6 +160,17 @@ impl XRMethods for XR {
         options: &XRSessionCreationOptions,
         comp: InCompartment,
     ) -> Rc<Promise> {
+        #[derive(serde::Serialize, serde::Deserialize)]
+        pub struct RequestSession {
+            sender: IpcSender<Result<Session, XRError>>,
+        }
+
+        #[typetag::serde]
+        impl webxr_api::SessionRequestCallback for RequestSession {
+            fn callback(&mut self, result: Result<Session, XRError>) {
+                let _ = self.sender.send(result);
+            }
+        }
         let promise = Promise::new_in_current_compartment(&self.global(), comp);
         if options.mode != XRSessionMode::Immersive_vr {
             promise.reject_error(Error::NotSupported);
@@ -170,28 +181,42 @@ impl XRMethods for XR {
             promise.reject_error(Error::InvalidState);
             return promise;
         }
-        // we set pending immersive session to true further down
-        // to handle rejections in a cleaner way
-
-        let displays = self.get_displays();
-
-        let displays = match displays {
-            Ok(d) => d,
-            Err(_) => {
-                promise.reject_native(&());
-                return promise;
-            },
-        };
-
-        // XXXManishearth filter for displays which can_present
-        if displays.is_empty() {
-            promise.reject_error(Error::Security);
-        }
 
         self.set_pending();
 
-        let session = XRSession::new(&self.global(), &displays[0]);
-        session.xr_present(promise.clone());
+        let promise = Promise::new_in_current_compartment(&self.global(), comp);
+        let mut trusted = Some(TrustedPromise::new(promise.clone()));
+        let this = Trusted::new(self);
+        let global = self.global();
+        let window = global.as_window();
+        let (task_source, canceller) = window
+            .task_manager()
+            .dom_manipulation_task_source_with_canceller();
+        let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
+        ROUTER.add_route(
+            receiver.to_opaque(),
+            Box::new(move |message| {
+                // router doesn't know this is only called once
+                let trusted = trusted.take().unwrap();
+                let this = this.clone();
+                let message = if let Ok(message) = message.to() {
+                    message
+                } else {
+                    error!("requestSession callback given incorrect payload");
+                    return;
+                };
+                let _ = task_source.queue_with_canceller(
+                    task!(request_session: move || {
+                        this.root().session_obtained(message, trusted.root());
+                    }),
+                    &canceller,
+                );
+            }),
+        );
+        window
+            .webxr_registry()
+            .request_session(options.mode.into(), RequestSession { sender });
+
         promise
     }
 
@@ -202,6 +227,19 @@ impl XRMethods for XR {
 }
 
 impl XR {
+    fn session_obtained(&self, response: Result<Session, XRError>, promise: Rc<Promise>) {
+        let session = match response {
+            Ok(session) => session,
+            Err(_) => {
+                promise.reject_native(&());
+                return;
+            },
+        };
+
+        let session = XRSession::new(&self.global(), session);
+        promise.resolve_native(&session);
+    }
+
     pub fn get_displays(&self) -> Result<Vec<DomRoot<VRDisplay>>, ()> {
         if let Some(webvr_thread) = self.webvr_thread() {
             let (sender, receiver) =
