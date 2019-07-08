@@ -15,7 +15,6 @@ use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGL
 use crate::dom::bindings::codegen::Bindings::WindowBinding::FrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateInit;
-use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -35,8 +34,6 @@ use crate::dom::vrpose::VRPose;
 use crate::dom::vrstageparameters::VRStageParameters;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::xrinputsource::XRInputSource;
-use crate::dom::xrsession::XRSession;
-use crate::dom::xrwebgllayer::XRWebGLLayer;
 use crate::script_runtime::CommonScriptMsg;
 use crate::script_runtime::ScriptThreadEventCategory::WebVREvent;
 use crate::task_source::{TaskSource, TaskSourceName};
@@ -88,8 +85,6 @@ pub struct VRDisplay {
     running_display_raf: Cell<bool>,
     paused: Cell<bool>,
     stopped_on_pause: Cell<bool>,
-    /// Whether or not this is XR mode, and the session
-    xr_session: MutNullableDom<XRSession>,
     /// Have inputs been initialized? (i.e, has getInputSources() been called?)
     /// XR only
     initialized_inputs: Cell<bool>,
@@ -166,7 +161,6 @@ impl VRDisplay {
             // This flag is set when the Display was presenting when it received a VR Pause event.
             // When the VR Resume event is received and the flag is set, VR presentation automatically restarts.
             stopped_on_pause: Cell::new(false),
-            xr_session: MutNullableDom::default(),
             initialized_inputs: Cell::new(false),
             input_sources: DomRefCell::new(HashMap::new()),
         }
@@ -178,14 +172,6 @@ impl VRDisplay {
             global,
             VRDisplayBinding::Wrap,
         )
-    }
-
-    pub fn left_eye_params_offset(&self) -> [f32; 3] {
-        self.left_eye_params.get().offset_array()
-    }
-
-    pub fn right_eye_params_offset(&self) -> [f32; 3] {
-        self.right_eye_params.get().offset_array()
     }
 }
 
@@ -628,47 +614,8 @@ impl VRDisplay {
         }
     }
 
-    pub fn queue_renderstate(&self, state: &XRRenderStateInit, promise: Rc<Promise>) {
-        // can't clone dictionaries
-        let new_state = XRRenderStateInit {
-            depthNear: state.depthNear,
-            depthFar: state.depthFar,
-            baseLayer: state.baseLayer.clone(),
-        };
-        self.pending_renderstate_updates
-            .borrow_mut()
-            .push((new_state, promise));
-
-        if let Some(ref wakeup) = *self.raf_wakeup_sender.borrow() {
-            let _ = wakeup.send(());
-        }
-    }
-
-    fn process_renderstate_queue(&self) {
-        let mut updates = self.pending_renderstate_updates.borrow_mut();
-
-        debug_assert!(updates.is_empty() || self.xr_session.get().is_some());
-        for update in updates.drain(..) {
-            if let Some(near) = update.0.depthNear {
-                self.depth_near.set(*near);
-            }
-            if let Some(far) = update.0.depthFar {
-                self.depth_far.set(*far);
-            }
-            if let Some(ref layer) = update.0.baseLayer {
-                self.xr_session.get().unwrap().set_layer(&layer);
-                let layer = layer.downcast::<XRWebGLLayer>().unwrap();
-                self.layer_ctx.set(Some(&layer.Context()));
-            }
-            update.1.resolve_native(&());
-        }
-    }
-
     fn init_present(&self) {
         self.presenting.set(true);
-        let xr = self.global().as_window().Navigator().Xr();
-        xr.set_active_immersive_session(&self);
-        self.process_renderstate_queue();
         if self.has_raf_thread.get() {
             return;
         }
@@ -739,7 +686,6 @@ impl VRDisplay {
                         let this = address.clone();
                         let task = Box::new(task!(flush_renderstate_queue: move || {
                             let this = this.root();
-                            this.process_renderstate_queue();
                             sender.send(Ok(this.vr_raf_update())).unwrap();
                         }));
                         js_sender
@@ -785,8 +731,6 @@ impl VRDisplay {
 
     fn stop_present(&self) {
         self.presenting.set(false);
-        let xr = self.global().as_window().Navigator().Xr();
-        xr.deactivate_session();
         *self.frame_data_receiver.borrow_mut() = None;
         self.has_raf_thread.set(false);
         if let Some(api_sender) = self.api_sender() {
@@ -839,29 +783,24 @@ impl VRDisplay {
 
         let now = self.global().as_window().Performance().Now();
 
-        if let Some(_) = self.xr_session.get() {
-            unreachable!("old webxr-on-webvr cruft")
-        } else {
-            self.running_display_raf.set(true);
-            let mut callbacks = mem::replace(&mut *self.raf_callback_list.borrow_mut(), vec![]);
-            // Call registered VRDisplay.requestAnimationFrame callbacks.
-            for (_, callback) in callbacks.drain(..) {
-                if let Some(callback) = callback {
-                    let _ = callback.Call__(Finite::wrap(*now), ExceptionHandling::Report);
-                }
-            }
-
-            self.running_display_raf.set(false);
-            if self.frame_data_status.get() == VRFrameDataStatus::Waiting {
-                // User didn't call getFrameData while presenting.
-                // We automatically reads the pending VRFrameData to avoid overflowing the IPC-Channel buffers.
-                // Show a warning as the WebVR Spec recommends.
-                warn!("WebVR: You should call GetFrameData while presenting");
-                self.sync_frame_data();
+        self.running_display_raf.set(true);
+        let mut callbacks = mem::replace(&mut *self.raf_callback_list.borrow_mut(), vec![]);
+        // Call registered VRDisplay.requestAnimationFrame callbacks.
+        for (_, callback) in callbacks.drain(..) {
+            if let Some(callback) = callback {
+                let _ = callback.Call__(Finite::wrap(*now), ExceptionHandling::Report);
             }
         }
 
-        self.process_renderstate_queue();
+        self.running_display_raf.set(false);
+        if self.frame_data_status.get() == VRFrameDataStatus::Waiting {
+            // User didn't call getFrameData while presenting.
+            // We automatically reads the pending VRFrameData to avoid overflowing the IPC-Channel buffers.
+            // Show a warning as the WebVR Spec recommends.
+            warn!("WebVR: You should call GetFrameData while presenting");
+            self.sync_frame_data();
+        }
+
         match self.frame_data_status.get() {
             VRFrameDataStatus::Synced => {
                 // Sync succeeded. Notify RAF thread.
@@ -873,72 +812,6 @@ impl VRDisplay {
                 end_sender.send(Err(())).unwrap();
             },
         }
-    }
-}
-
-// XR stuff
-// XXXManishearth eventually we should share as much logic as possible
-impl VRDisplay {
-    pub fn xr_present(
-        &self,
-        session: &XRSession,
-        ctx: Option<&WebGLRenderingContext>,
-        promise: Option<Rc<Promise>>,
-    ) {
-        let layer_bounds = WebVRLayer::default();
-        self.xr_session.set(Some(session));
-        let session = Trusted::new(session);
-        self.request_present(layer_bounds, ctx, promise, move |p| {
-            let session = session.root();
-            p.resolve_native(&session);
-        });
-    }
-
-    /// Initialize XRInputSources
-    fn initialize_inputs(&self) {
-        if self.initialized_inputs.get() {
-            return;
-        }
-        self.initialized_inputs.set(true);
-
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        let display = self.display.borrow().display_id;
-        self.webvr_thread()
-            .send(WebVRMsg::GetGamepadsForDisplay(display, sender))
-            .unwrap();
-        match receiver.recv().unwrap() {
-            Ok(gamepads) => {
-                let global = self.global();
-                let session = self
-                    .xr_session
-                    .get()
-                    .expect("initialize_inputs called on a VR session");
-                let roots: Vec<_> = gamepads
-                    .into_iter()
-                    .map(|g| {
-                        (
-                            g.1.gamepad_id,
-                            XRInputSource::new(&global, &session, g.0, g.1),
-                        )
-                    })
-                    .collect();
-
-                let mut inputs = self.input_sources.borrow_mut();
-                for (id, root) in &roots {
-                    inputs.insert(*id, Dom::from_ref(&root));
-                }
-            },
-            Err(_) => {},
-        }
-    }
-
-    pub fn get_input_sources(&self) -> Vec<DomRoot<XRInputSource>> {
-        self.initialize_inputs();
-        self.input_sources
-            .borrow()
-            .iter()
-            .map(|(_, x)| DomRoot::from_ref(&**x))
-            .collect()
     }
 }
 

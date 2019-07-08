@@ -40,7 +40,7 @@ pub struct XR {
     displays: DomRefCell<Vec<Dom<VRDisplay>>>,
     gamepads: DomRefCell<Vec<Dom<Gamepad>>>,
     pending_immersive_session: Cell<bool>,
-    active_immersive_session: MutNullableDom<VRDisplay>,
+    active_immersive_session: MutNullableDom<XRSession>,
     test: MutNullableDom<XRTest>,
 }
 
@@ -70,7 +70,7 @@ impl XR {
         self.pending_immersive_session.set(true)
     }
 
-    pub fn set_active_immersive_session(&self, session: &VRDisplay) {
+    pub fn set_active_immersive_session(&self, session: &XRSession) {
         // XXXManishearth when we support non-immersive (inline) sessions we should
         // ensure they never reach these codepaths
         self.pending_immersive_session.set(false);
@@ -237,6 +237,7 @@ impl XR {
         };
 
         let session = XRSession::new(&self.global(), session);
+        self.set_active_immersive_session(&session);
         promise.resolve_native(&session);
     }
 
