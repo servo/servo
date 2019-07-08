@@ -1465,6 +1465,9 @@ where
             FromScriptMsg::GePipelineNameSpaceId(sender) => {
                 let _ = sender.send(self.next_pipeline_namespace_id());
             },
+            FromScriptMsg::RerouteMessagePort(port_id, task) => {
+                self.handle_reroute_messageport(port_id, task);
+            },
             FromScriptMsg::MessagePortShipped(
                 port_id,
                 entangled,
@@ -1690,6 +1693,21 @@ where
             FromLayoutMsg::ViewportConstrained(pipeline_id, constraints) => {
                 self.handle_viewport_constrained_msg(pipeline_id, constraints);
             },
+        }
+    }
+
+    fn handle_reroute_messageport(&mut self, port_id: MessagePortId, task: PortMessageTask) {
+        if let Some(info) = self.message_ports.get_mut(&port_id) {
+            match &mut info.message_queue {
+                Some(queue) => {
+                    queue.push_back(task);
+                },
+                None => {
+                    let mut queue = VecDeque::new();
+                    queue.push_back(task);
+                    info.message_queue = Some(queue);
+                },
+            }
         }
     }
 

@@ -393,18 +393,15 @@ impl GlobalScope {
     /// Therefore, pending_message_ports should be used to track ports,
     /// that are either transfer-received or created in a task.
     pub fn route_task_to_port(&self, port_id: MessagePortId, task: PortMessageTask) {
-        match self.message_ports_shipped.borrow_mut().get_mut(&port_id) {
-            Some(Some(entangled)) => {
-                if let Some(entangled_port) = self.message_ports.borrow().find_port(&entangled) {
-                    // This is a case of a message having been sent immediately after transfer,
-                    // before the entangled knew it was shipped.
-                    // Make sure it knows, and re-route the message(via buffering).
-                    entangled_port.set_has_been_shipped();
-                    entangled_port.post_message(task);
-                    return;
-                }
-            },
-            _ => {},
+        if self
+            .message_ports_shipped
+            .borrow_mut()
+            .contains_key(&port_id)
+        {
+            let _ = self
+                .script_to_constellation_chan()
+                .send(ScriptMsg::RerouteMessagePort(port_id.clone(), task));
+            return;
         }
         if let Some(port) = self.pending_message_ports.borrow_mut().remove(&port_id) {
             self.message_ports
@@ -423,14 +420,14 @@ impl GlobalScope {
                 self.message_ports
                     .borrow_mut()
                     .insert(port_id.clone(), &port);
-                let port = self
+                let control_sender = self
                     .port_senders
                     .borrow_mut()
                     .remove(&port_id)
                     .expect("This global to be tracking this port");
                 let _ = self
                     .script_to_constellation_chan()
-                    .send(ScriptMsg::NewMessagePort(port_id.clone(), port));
+                    .send(ScriptMsg::NewMessagePort(port_id.clone(), control_sender));
             }
         }
     }
