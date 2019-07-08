@@ -7,10 +7,12 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateInit;
+use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateMethods;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XREnvironmentBlendMode;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
+use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
@@ -19,10 +21,12 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::xrinputsource::XRInputSource;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrenderstate::XRRenderState;
 use crate::dom::xrspace::XRSpace;
+use crate::dom::xrwebgllayer::XRWebGLLayer;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use euclid::Vector3D;
@@ -92,8 +96,29 @@ impl XRSession {
         unimplemented!()
     }
 
+    /// https://immersive-web.github.io/webxr/#xr-animation-frame
     fn raf_callback(&self, (time, frame): (f64, Frame)) {
-        unimplemented!()
+        let session = self.session.borrow_mut();
+        // Step 1
+        if let Some(pending) = self.pending_render_state.take() {
+            // https://immersive-web.github.io/webxr/#apply-the-pending-render-state
+            // (Steps 1-4 are implicit)
+            // Step 5
+            self.active_render_state.set(&pending);
+            // Step 6-7: XXXManishearth handle inlineVerticalFieldOfView
+
+            // XXXManishearth handle inline sessions and composition disabled flag
+            let layer = pending.GetBaseLayer();
+            if let Some(layer) = layer {
+                if let Some(layer) = layer.downcast::<XRWebGLLayer>() {
+                    session.update_webgl_external_image_api(
+                        layer.Context().webgl_sender().webxr_external_image_api(),
+                    );
+                } else {
+                    error!("updateRenderState() called with unknown layer type")
+                }
+            }
+        }
     }
 }
 
@@ -119,7 +144,7 @@ impl XRSessionMethods for XRSession {
 
         let pending = self
             .pending_render_state
-            .or_init(|| self.active_render_state.get().copy());
+            .or_init(|| self.active_render_state.get().clone_object());
         if let Some(near) = init.depthNear {
             pending.set_depth_near(*near);
         }
@@ -179,7 +204,8 @@ impl XRSessionMethods for XRSession {
         let sender = self.raf_sender.borrow().clone().unwrap();
 
         // request animation frame
-        self.session.borrow_mut()
+        self.session
+            .borrow_mut()
             .request_animation_frame(FrameCallback { sender });
 
         raf_id

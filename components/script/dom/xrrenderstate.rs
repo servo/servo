@@ -47,7 +47,7 @@ impl XRRenderState {
         )
     }
 
-    pub fn copy(&self) -> DomRoot<Self> {
+    pub fn clone_object(&self) -> DomRoot<Self> {
         XRRenderState::new(
             &self.global(),
             self.depth_near.get(),
