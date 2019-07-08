@@ -28,7 +28,6 @@ def main(task_for):
         all_tests = [
             linux_tidy_unit_docs,
             windows_unit,
-            windows_x86,
             windows_arm64,
             macos_unit,
             magicleap_dev,
@@ -55,7 +54,7 @@ def main(task_for):
 
             "try-mac": [macos_unit],
             "try-linux": [linux_tidy_unit_docs, linux_release],
-            "try-windows": [windows_unit, windows_x86, windows_arm64],
+            "try-windows": [windows_unit, windows_arm64],
             "try-magicleap": [magicleap_dev],
             "try-arm": [windows_arm64],
             "try-wpt": [linux_wpt],
@@ -125,10 +124,6 @@ linux_build_env = {
 }
 macos_build_env = {}
 windows_build_env = {
-    "x86": {
-        "LIB": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86\\lib;%LIB%",
-        "GSTREAMER_1_0_ROOT_X86": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86\\",
-    },
     "x86_64": {
         "LIB": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\lib;%LIB%",
         "GSTREAMER_1_0_ROOT_X86_64": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\",
@@ -376,20 +371,6 @@ def android_x86_wpt():
                 /_mozilla/mozilla/webgl/context_creation_error.html
         """)
         .find_or_create("android_x86_release." + CONFIG.task_id())
-    )
-
-
-def windows_x86():
-    return (
-        windows_cross_build_task("Dev build", arch="x86", package=True)
-        .with_treeherder("Windows x86")
-        .with_script(
-            "python mach build --dev --target i686-pc-windows-msvc",
-            "python mach package --dev --target i686-pc-windows-msvc",
-        )
-        .with_artifacts("repo/target/i686-pc-windows-msvc/debug/msi/Servo.exe",
-                        "repo/target/i686-pc-windows-msvc/debug/msi/Servo.zip")
-        .find_or_create("build.windows_x86_dev." + CONFIG.task_id())
     )
 
 
@@ -774,16 +755,13 @@ def windows_build_task(name, package=True, arch="x86_64"):
     hashes = {
         "devel": {
             "x86_64": "c136cbfb0330041d52fe6ec4e3e468563176333c857f6ed71191ebc37fc9d605",
-            "x86": "fed862659360b4fbc77920bdc28f1a7da56bb953b88044834db5161c0ee05eb3",
         },
         "non-devel": {
             "x86_64": "0744a8ef2a4ba393dacb7927d741df871400a85bab5aecf7905f63bf52c405e4",
-            "x86": "f36df8ba7a3858c2299162312cb939e3fe8ff65c704f988c497405ba8d9cb275",
         },
     }
     prefix = {
         "x86_64": "msvc",
-        "x86": "mingw",
     }
     version = "1.16.0"
     task = (

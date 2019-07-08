@@ -127,8 +127,54 @@ pub use servo_url as url;
     target_arch = "x86_64"
 ))]
 mod media_platform {
-    pub use self::servo_media_gstreamer::GStreamerBackend as MediaBackend;
-    use servo_media_gstreamer;
+    use super::ServoMedia;
+    use servo_media_gstreamer::GStreamerBackend;
+
+    #[cfg(windows)]
+    pub fn init() {
+        let mut plugin_dir = std::env::current_exe().unwrap();
+        plugin_dir.pop();
+
+        let plugins = &[
+            "gstapp.dll",
+            "gstaudioconvert.dll",
+            "gstaudiofx.dll",
+            "gstaudioparsers.dll",
+            "gstaudioresample.dll",
+            "gstautodetect.dll",
+            "gstcoreelements.dll",
+            "gstdeinterlace.dll",
+            "gstplayback.dll",
+            "gstinterleave.dll",
+            "gstisomp4.dll",
+            "gstlibav.dll",
+            "gstnice.dll",
+            "gstogg.dll",
+            "gstopengl.dll",
+            "gstopus.dll",
+            "gstproxy.dll",
+            "gstrtp.dll",
+            "gsttheora.dll",
+            "gsttypefindfunctions.dll",
+            "gstvideoconvert.dll",
+            "gstvideoparsersbad.dll",
+            "gstvideoscale.dll",
+            "gstvolume.dll",
+            "gstvorbis.dll",
+            "gstvpx.dll",
+            "gstwasapi.dll",
+            "gstwebrtc.dll",
+        ];
+
+        let backend = GStreamerBackend::init_with_plugins(plugin_dir, plugins)
+            .expect("Error initializing GStreamer");
+        ServoMedia::init_with_backend(backend);
+    }
+
+    #[cfg(not(windows))]
+    pub fn init() {
+        ServoMedia::init::<GStreamerBackend>();
+    }
 }
 
 #[cfg(not(any(
@@ -136,11 +182,11 @@ mod media_platform {
     target_arch = "x86_64"
 )))]
 mod media_platform {
-    pub use self::servo_media_dummy::DummyBackend as MediaBackend;
-    use servo_media_dummy;
+    use super::ServoMedia;
+    pub fn init() {
+        ServoMedia::init::<servo_media_dummy::DummyBackend>();
+    }
 }
-
-type MediaBackend = media_platform::MediaBackend;
 
 /// The in-process interface to Servo.
 ///
@@ -209,7 +255,7 @@ where
         let opts = opts::get();
 
         if !opts.multiprocess {
-            ServoMedia::init::<MediaBackend>();
+            media_platform::init();
         }
 
         // Make sure the gl context is made current.
@@ -847,7 +893,7 @@ pub fn run_content_process(token: String) {
     script::init();
     script::init_service_workers(sw_senders);
 
-    ServoMedia::init::<MediaBackend>();
+    media_platform::init();
 
     unprivileged_content.start_all::<script_layout_interface::message::Msg,
                                      layout_thread::LayoutThread,
