@@ -15,7 +15,6 @@ use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGL
 use crate::dom::bindings::codegen::Bindings::WindowBinding::FrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateInit;
-use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
@@ -35,7 +34,6 @@ use crate::dom::vrframedata::VRFrameData;
 use crate::dom::vrpose::VRPose;
 use crate::dom::vrstageparameters::VRStageParameters;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
-use crate::dom::xrframe::XRFrame;
 use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
@@ -79,8 +77,6 @@ pub struct VRDisplay {
     /// List of request animation frame callbacks
     #[ignore_malloc_size_of = "closures are hard"]
     raf_callback_list: DomRefCell<Vec<(u32, Option<Rc<FrameRequestCallback>>)>>,
-    #[ignore_malloc_size_of = "closures are hard"]
-    xr_raf_callback_list: DomRefCell<Vec<(u32, Option<Rc<XRFrameRequestCallback>>)>>,
     /// When there isn't any layer_ctx the RAF thread needs to be "woken up"
     raf_wakeup_sender: DomRefCell<Option<Sender<()>>>,
     #[ignore_malloc_size_of = "Rc is hard"]
@@ -159,7 +155,6 @@ impl VRDisplay {
             layer_ctx: MutNullableDom::default(),
             next_raf_id: Cell::new(1),
             raf_callback_list: DomRefCell::new(vec![]),
-            xr_raf_callback_list: DomRefCell::new(vec![]),
             raf_wakeup_sender: DomRefCell::new(None),
             pending_renderstate_updates: DomRefCell::new(vec![]),
             frame_data_status: Cell::new(VRFrameDataStatus::Waiting),
@@ -897,22 +892,6 @@ impl VRDisplay {
             let session = session.root();
             p.resolve_native(&session);
         });
-    }
-
-    pub fn xr_raf(&self, callback: Rc<XRFrameRequestCallback>) -> u32 {
-        let raf_id = self.next_raf_id.get();
-        self.next_raf_id.set(raf_id + 1);
-        self.xr_raf_callback_list
-            .borrow_mut()
-            .push((raf_id, Some(callback)));
-        raf_id
-    }
-
-    pub fn xr_cancel_raf(&self, handle: i32) {
-        let mut list = self.xr_raf_callback_list.borrow_mut();
-        if let Some(pair) = list.iter_mut().find(|pair| pair.0 == handle as u32) {
-            pair.1 = None;
-        }
     }
 
     /// Initialize XRInputSources
