@@ -324,7 +324,7 @@ impl RawSelector {
         #[cfg(feature = "gecko")]
         {
             if unsafe {
-                !crate::gecko_bindings::structs::StaticPrefs_sVarCache_layout_css_supports_selector_enabled
+                !crate::gecko_bindings::structs::StaticPrefs::sVarCache_layout_css_supports_selector_enabled
             } {
                 return false;
             }

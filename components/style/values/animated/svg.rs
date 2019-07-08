@@ -4,25 +4,10 @@
 
 //! Animation implementations for various SVG-related types.
 
-use super::{Animate, Procedure, ToAnimatedZero};
+use super::{Animate, Procedure};
 use crate::properties::animated_properties::ListAnimation;
-use crate::values::animated::color::Color as AnimatedColor;
-use crate::values::computed::url::ComputedUrl;
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
-use crate::values::generics::svg::{SVGPaint, SVGStrokeDashArray};
-
-/// Animated SVGPaint.
-pub type IntermediateSVGPaint = SVGPaint<AnimatedColor, ComputedUrl>;
-
-impl ToAnimatedZero for IntermediateSVGPaint {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        Ok(IntermediateSVGPaint {
-            kind: self.kind.to_animated_zero()?,
-            fallback: self.fallback.and_then(|v| v.to_animated_zero().ok()),
-        })
-    }
-}
+use crate::values::generics::svg::SVGStrokeDashArray;
 
 /// <https://www.w3.org/TR/SVG11/painting.html#StrokeDasharrayProperty>
 impl<L> Animate for SVGStrokeDashArray<L>

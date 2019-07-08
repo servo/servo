@@ -144,6 +144,7 @@
                     products="gecko">
     use crate::values::specified::GridLine;
     use crate::parser::Parse;
+    use crate::Zero;
 
     // NOTE: Since both the shorthands have the same code, we should (re-)use code from one to implement
     // the other. This might not be a big deal for now, but we should consider looking into this in the future
@@ -157,8 +158,8 @@
             GridLine::parse(context, input)?
         } else {
             let mut line = GridLine::auto();
-            if start.line_num.is_none() && !start.is_span {
-                line.ident = start.ident.clone();       // ident from start value should be taken
+            if start.line_num.is_zero() && !start.is_span {
+                line.ident = start.ident.clone(); // ident from start value should be taken
             }
 
             line
@@ -186,6 +187,7 @@
                     products="gecko">
     use crate::values::specified::GridLine;
     use crate::parser::Parse;
+    use crate::Zero;
 
     // The code is the same as `grid-{row,column}` except that this can have four values at most.
     pub fn parse_value<'i, 't>(
@@ -194,7 +196,7 @@
     ) -> Result<Longhands, ParseError<'i>> {
         fn line_with_ident_from(other: &GridLine) -> GridLine {
             let mut this = GridLine::auto();
-            if other.line_num.is_none() && !other.is_span {
+            if other.line_num.is_zero() && !other.is_span {
                 this.ident = other.ident.clone();
             }
 

@@ -7,10 +7,10 @@
 use self::transform::DirectionVector;
 use super::animated::ToAnimatedValue;
 use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
-use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as GenericTrackBreadth};
-use super::generics::grid::{TrackList as GenericTrackList, TrackSize as GenericTrackSize};
+use super::generics::grid::{GenericGridLine, GenericTrackBreadth};
+use super::generics::grid::{GenericTrackSize, TrackList as GenericTrackList};
 use super::generics::transform::IsParallelTo;
-use super::generics::{self, GreaterThanOrEqualToOne, NonNegative};
+use super::generics::{self, GreaterThanOrEqualToOne, NonNegative, ZeroToOne};
 use super::specified;
 use super::{CSSFloat, CSSInteger};
 use crate::context::QuirksMode;
@@ -75,6 +75,7 @@ pub use self::svg::MozContextProperties;
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind};
 pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
 pub use self::table::XSpan;
+pub use self::text::TextDecorationSkipInk;
 pub use self::text::{InitialLetter, LetterSpacing, LineBreak, LineHeight};
 pub use self::text::{OverflowWrap, TextOverflow, WordBreak, WordSpacing};
 pub use self::text::{TextAlign, TextEmphasisPosition, TextEmphasisStyle};
@@ -516,6 +517,30 @@ impl From<NonNegativeNumber> for CSSFloat {
     #[inline]
     fn from(number: NonNegativeNumber) -> CSSFloat {
         number.0
+    }
+}
+
+/// A wrapper of Number, but the value between 0 and 1
+pub type ZeroToOneNumber = ZeroToOne<CSSFloat>;
+
+impl ToAnimatedValue for ZeroToOneNumber {
+    type AnimatedValue = CSSFloat;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        self.0
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        Self(animated.max(0.).min(1.))
+    }
+}
+
+impl From<CSSFloat> for ZeroToOneNumber {
+    #[inline]
+    fn from(number: CSSFloat) -> Self {
+        Self(number)
     }
 }
 

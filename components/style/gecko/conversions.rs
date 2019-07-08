@@ -10,57 +10,15 @@
 
 #![allow(unsafe_code)]
 
-use crate::gecko::values::GeckoStyleCoordConvertible;
 use crate::gecko_bindings::bindings;
-use crate::gecko_bindings::structs::{self, nsStyleCoord_CalcValue, Matrix4x4Components};
+use crate::gecko_bindings::structs::{self, Matrix4x4Components};
 use crate::gecko_bindings::structs::{nsStyleImage, nsresult};
-use crate::gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use crate::stylesheets::RulesMutateError;
 use crate::values::computed::transform::Matrix3D;
 use crate::values::computed::url::ComputedImageUrl;
-use crate::values::computed::{Angle, Gradient, Image};
-use crate::values::computed::{Integer, LengthPercentage};
-use crate::values::computed::{Length, Percentage, TextAlign};
-use crate::values::generics::grid::{TrackListValue, TrackSize};
+use crate::values::computed::{Gradient, Image, TextAlign};
 use crate::values::generics::image::GenericImage;
 use crate::values::generics::rect::Rect;
-use crate::Zero;
-use app_units::Au;
-use style_traits::values::specified::AllowedNumericType;
-
-impl From<LengthPercentage> for nsStyleCoord_CalcValue {
-    fn from(other: LengthPercentage) -> nsStyleCoord_CalcValue {
-        debug_assert!(
-            other.was_calc || !other.has_percentage || other.unclamped_length() == Length::zero()
-        );
-        nsStyleCoord_CalcValue {
-            mLength: other.unclamped_length().to_i32_au(),
-            mPercent: other.percentage(),
-            mHasPercent: other.has_percentage,
-        }
-    }
-}
-
-impl From<nsStyleCoord_CalcValue> for LengthPercentage {
-    fn from(other: nsStyleCoord_CalcValue) -> LengthPercentage {
-        let percentage = if other.mHasPercent {
-            Some(Percentage(other.mPercent))
-        } else {
-            None
-        };
-        Self::with_clamping_mode(
-            Au(other.mLength).into(),
-            percentage,
-            AllowedNumericType::All,
-            /* was_calc = */ true,
-        )
-    }
-}
-impl From<Angle> for CoordDataValue {
-    fn from(reference: Angle) -> Self {
-        CoordDataValue::Degree(reference.degrees())
-    }
-}
 
 impl nsStyleImage {
     /// Set a given Servo `Image` value into this `nsStyleImage`.
@@ -77,18 +35,12 @@ impl nsStyleImage {
 
                     // Set CropRect
                     let ref mut rect = *self.mCropRect.mPtr;
-                    image_rect
-                        .top
-                        .to_gecko_style_coord(&mut rect.data_at_mut(0));
-                    image_rect
-                        .right
-                        .to_gecko_style_coord(&mut rect.data_at_mut(1));
-                    image_rect
-                        .bottom
-                        .to_gecko_style_coord(&mut rect.data_at_mut(2));
-                    image_rect
-                        .left
-                        .to_gecko_style_coord(&mut rect.data_at_mut(3));
+                    *rect = Rect(
+                        image_rect.top,
+                        image_rect.right,
+                        image_rect.bottom,
+                        image_rect.left,
+                    );
                 }
             },
             GenericImage::Element(ref element) => unsafe {
@@ -106,7 +58,7 @@ impl nsStyleImage {
     /// Converts into Image.
     pub unsafe fn into_image(self: &nsStyleImage) -> Option<Image> {
         use crate::gecko_bindings::structs::nsStyleImageType;
-        use crate::values::computed::{MozImageRect, NumberOrPercentage};
+        use crate::values::computed::MozImageRect;
 
         match self.mType {
             nsStyleImageType::eStyleImageType_Null => None,
@@ -115,30 +67,14 @@ impl nsStyleImage {
                 if self.mCropRect.mPtr.is_null() {
                     Some(GenericImage::Url(url))
                 } else {
-                    let ref rect = *self.mCropRect.mPtr;
-                    match (
-                        NumberOrPercentage::from_gecko_style_coord(&rect.data_at(0)),
-                        NumberOrPercentage::from_gecko_style_coord(&rect.data_at(1)),
-                        NumberOrPercentage::from_gecko_style_coord(&rect.data_at(2)),
-                        NumberOrPercentage::from_gecko_style_coord(&rect.data_at(3)),
-                    ) {
-                        (Some(top), Some(right), Some(bottom), Some(left)) => {
-                            Some(GenericImage::Rect(Box::new(MozImageRect {
-                                url,
-                                top,
-                                right,
-                                bottom,
-                                left,
-                            })))
-                        },
-                        _ => {
-                            debug_assert!(
-                                false,
-                                "mCropRect could not convert to NumberOrPercentage"
-                            );
-                            None
-                        },
-                    }
+                    let rect = &*self.mCropRect.mPtr;
+                    Some(GenericImage::Rect(Box::new(MozImageRect {
+                        url,
+                        top: rect.0,
+                        right: rect.1,
+                        bottom: rect.2,
+                        left: rect.3,
+                    })))
                 }
             },
             nsStyleImageType::eStyleImageType_Gradient => {
@@ -328,98 +264,6 @@ impl From<RulesMutateError> for nsresult {
             RulesMutateError::HierarchyRequest => nsresult::NS_ERROR_DOM_HIERARCHY_REQUEST_ERR,
             RulesMutateError::InvalidState => nsresult::NS_ERROR_DOM_INVALID_STATE_ERR,
         }
-    }
-}
-
-impl TrackSize<LengthPercentage> {
-    /// Return TrackSize from given two nsStyleCoord
-    pub fn from_gecko_style_coords<T: CoordData>(gecko_min: &T, gecko_max: &T) -> Self {
-        use crate::gecko_bindings::structs::root::nsStyleUnit;
-        use crate::values::generics::grid::TrackBreadth;
-
-        if gecko_min.unit() == nsStyleUnit::eStyleUnit_None {
-            debug_assert!(
-                gecko_max.unit() == nsStyleUnit::eStyleUnit_Coord ||
-                    gecko_max.unit() == nsStyleUnit::eStyleUnit_Percent ||
-                    gecko_max.unit() == nsStyleUnit::eStyleUnit_Calc
-            );
-            return TrackSize::FitContent(
-                LengthPercentage::from_gecko_style_coord(gecko_max)
-                    .expect("gecko_max could not convert to LengthPercentage"),
-            );
-        }
-
-        let min = TrackBreadth::from_gecko_style_coord(gecko_min)
-            .expect("gecko_min could not convert to TrackBreadth");
-        let max = TrackBreadth::from_gecko_style_coord(gecko_max)
-            .expect("gecko_max could not convert to TrackBreadth");
-        if min == max {
-            TrackSize::Breadth(max)
-        } else {
-            TrackSize::Minmax(min, max)
-        }
-    }
-
-    /// Save TrackSize to given gecko fields.
-    pub fn to_gecko_style_coords<T: CoordDataMut>(&self, gecko_min: &mut T, gecko_max: &mut T) {
-        match *self {
-            TrackSize::FitContent(ref lop) => {
-                // Gecko sets min value to None and max value to the actual value in fit-content
-                // https://searchfox.org/mozilla-central/rev/c05d9d61188d32b8/layout/style/nsRuleNode.cpp#7910
-                gecko_min.set_value(CoordDataValue::None);
-                lop.to_gecko_style_coord(gecko_max);
-            },
-            TrackSize::Breadth(ref breadth) => {
-                // Set the value to both fields if there's one breadth value
-                // https://searchfox.org/mozilla-central/rev/c05d9d61188d32b8/layout/style/nsRuleNode.cpp#7919
-                breadth.to_gecko_style_coord(gecko_min);
-                breadth.to_gecko_style_coord(gecko_max);
-            },
-            TrackSize::Minmax(ref min, ref max) => {
-                min.to_gecko_style_coord(gecko_min);
-                max.to_gecko_style_coord(gecko_max);
-            },
-        }
-    }
-}
-
-impl TrackListValue<LengthPercentage, Integer> {
-    /// Return TrackSize from given two nsStyleCoord
-    pub fn from_gecko_style_coords<T: CoordData>(gecko_min: &T, gecko_max: &T) -> Self {
-        TrackListValue::TrackSize(TrackSize::from_gecko_style_coords(gecko_min, gecko_max))
-    }
-
-    /// Save TrackSize to given gecko fields.
-    pub fn to_gecko_style_coords<T: CoordDataMut>(&self, gecko_min: &mut T, gecko_max: &mut T) {
-        match *self {
-            TrackListValue::TrackSize(ref size) => size.to_gecko_style_coords(gecko_min, gecko_max),
-            _ => unreachable!("Should only transform from track-size computed values"),
-        }
-    }
-}
-
-impl<T> Rect<T>
-where
-    T: GeckoStyleCoordConvertible,
-{
-    /// Convert this generic Rect to given Gecko fields.
-    pub fn to_gecko_rect(&self, sides: &mut crate::gecko_bindings::structs::nsStyleSides) {
-        self.0.to_gecko_style_coord(&mut sides.data_at_mut(0));
-        self.1.to_gecko_style_coord(&mut sides.data_at_mut(1));
-        self.2.to_gecko_style_coord(&mut sides.data_at_mut(2));
-        self.3.to_gecko_style_coord(&mut sides.data_at_mut(3));
-    }
-
-    /// Convert from given Gecko data to generic Rect.
-    pub fn from_gecko_rect(
-        sides: &crate::gecko_bindings::structs::nsStyleSides,
-    ) -> Option<crate::values::generics::rect::Rect<T>> {
-        Some(Rect::new(
-            T::from_gecko_style_coord(&sides.data_at(0)).expect("coord[0] cound not convert"),
-            T::from_gecko_style_coord(&sides.data_at(1)).expect("coord[1] cound not convert"),
-            T::from_gecko_style_coord(&sides.data_at(2)).expect("coord[2] cound not convert"),
-            T::from_gecko_style_coord(&sides.data_at(3)).expect("coord[3] cound not convert"),
-        ))
     }
 }
 

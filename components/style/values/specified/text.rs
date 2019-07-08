@@ -1054,3 +1054,28 @@ pub enum OverflowWrap {
     BreakWord,
     Anywhere,
 }
+
+/// Implements text-decoration-skip-ink which takes the keywords auto | none
+///
+/// https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-ink-property
+#[repr(u8)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[allow(missing_docs)]
+pub enum TextDecorationSkipInk {
+    Auto,
+    None,
+}

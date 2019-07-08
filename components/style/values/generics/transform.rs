@@ -542,11 +542,7 @@ impl<T: ToMatrix> Transform<T> {
             )
         };
 
-        let (m, is_3d) = match self.to_transform_3d_matrix_f64(reference_box) {
-            Ok(result) => result,
-            Err(err) => return Err(err),
-        };
-
+        let (m, is_3d) = self.to_transform_3d_matrix_f64(reference_box)?;
         Ok((cast_3d_transform(m), is_3d))
     }
 

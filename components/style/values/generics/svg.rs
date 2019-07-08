@@ -5,14 +5,11 @@
 //! Generic types for CSS values in SVG
 
 use crate::parser::{Parse, ParserContext};
-use crate::values::{Either, None_};
 use cssparser::Parser;
-use style_traits::{ParseError, StyleParseErrorKind};
+use style_traits::ParseError;
 
-/// An SVG paint value
-///
-/// <https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint>
-#[animation(no_bound(UrlPaintServer))]
+/// The fallback of an SVG paint server value.
+/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[derive(
     Animate,
     Clone,
@@ -20,26 +17,35 @@ use style_traits::{ParseError, StyleParseErrorKind};
     Debug,
     MallocSizeOf,
     PartialEq,
+    Parse,
     SpecifiedValueInfo,
     ToAnimatedValue,
+    ToAnimatedZero,
     ToComputedValue,
     ToCss,
     ToResolvedValue,
     ToShmem,
 )]
-pub struct SVGPaint<ColorType, UrlPaintServer> {
-    /// The paint source
-    pub kind: SVGPaintKind<ColorType, UrlPaintServer>,
-    /// The fallback color. It would be empty, the `none` keyword or <color>.
-    pub fallback: Option<Either<ColorType, None_>>,
+#[repr(C, u8)]
+pub enum GenericSVGPaintFallback<C> {
+    /// The `none` keyword.
+    None,
+    /// A magic value that represents no fallback specified and serializes to
+    /// the empty string.
+    #[css(skip)]
+    Unset,
+    /// A color.
+    Color(C),
 }
 
-/// An SVG paint value without the fallback
+pub use self::GenericSVGPaintFallback as SVGPaintFallback;
+
+/// An SVG paint value
 ///
-/// Whereas the spec only allows PaintServer
-/// to have a fallback, Gecko lets the context
-/// properties have a fallback as well.
-#[animation(no_bound(UrlPaintServer))]
+/// <https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint>
+///
+/// cbindgen:derive-tagged-enum-copy-constructor=true
+#[animation(no_bound(Url))]
 #[derive(
     Animate,
     Clone,
@@ -55,80 +61,82 @@ pub struct SVGPaint<ColorType, UrlPaintServer> {
     ToResolvedValue,
     ToShmem,
 )]
-pub enum SVGPaintKind<ColorType, UrlPaintServer> {
+#[repr(C)]
+pub struct GenericSVGPaint<Color, Url> {
+    /// The paint source.
+    pub kind: GenericSVGPaintKind<Color, Url>,
+    /// The fallback color.
+    pub fallback: GenericSVGPaintFallback<Color>,
+}
+
+pub use self::GenericSVGPaint as SVGPaint;
+
+impl<C, U> Default for SVGPaint<C, U> {
+    fn default() -> Self {
+        Self {
+            kind: SVGPaintKind::None,
+            fallback: SVGPaintFallback::Unset,
+        }
+    }
+}
+
+/// An SVG paint value without the fallback.
+///
+/// Whereas the spec only allows PaintServer to have a fallback, Gecko lets the
+/// context properties have a fallback as well.
+///
+/// cbindgen:derive-tagged-enum-copy-constructor=true
+#[animation(no_bound(U))]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    Parse,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C, u8)]
+pub enum GenericSVGPaintKind<C, U> {
     /// `none`
     #[animation(error)]
     None,
     /// `<color>`
-    Color(ColorType),
+    Color(C),
     /// `url(...)`
     #[animation(error)]
-    PaintServer(UrlPaintServer),
+    PaintServer(U),
     /// `context-fill`
     ContextFill,
     /// `context-stroke`
     ContextStroke,
 }
 
-impl<ColorType, UrlPaintServer> SVGPaintKind<ColorType, UrlPaintServer> {
-    /// Parse a keyword value only
-    fn parse_ident<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        try_match_ident_ignore_ascii_case! { input,
-            "none" => Ok(SVGPaintKind::None),
-            "context-fill" => Ok(SVGPaintKind::ContextFill),
-            "context-stroke" => Ok(SVGPaintKind::ContextStroke),
-        }
-    }
-}
+pub use self::GenericSVGPaintKind as SVGPaintKind;
 
-/// Parse SVGPaint's fallback.
-/// fallback is keyword(none), Color or empty.
-/// <https://svgwg.org/svg2-draft/painting.html#SpecifyingPaint>
-fn parse_fallback<'i, 't, ColorType: Parse>(
-    context: &ParserContext,
-    input: &mut Parser<'i, 't>,
-) -> Option<Either<ColorType, None_>> {
-    if input.try(|i| i.expect_ident_matching("none")).is_ok() {
-        Some(Either::Second(None_))
-    } else {
-        if let Ok(color) = input.try(|i| ColorType::parse(context, i)) {
-            Some(Either::First(color))
-        } else {
-            None
-        }
-    }
-}
-
-impl<ColorType: Parse, UrlPaintServer: Parse> Parse for SVGPaint<ColorType, UrlPaintServer> {
+impl<C: Parse, U: Parse> Parse for SVGPaint<C, U> {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(url) = input.try(|i| UrlPaintServer::parse(context, i)) {
-            Ok(SVGPaint {
-                kind: SVGPaintKind::PaintServer(url),
-                fallback: parse_fallback(context, input),
-            })
-        } else if let Ok(kind) = input.try(SVGPaintKind::parse_ident) {
-            if let SVGPaintKind::None = kind {
-                Ok(SVGPaint {
-                    kind: kind,
-                    fallback: None,
-                })
-            } else {
-                Ok(SVGPaint {
-                    kind: kind,
-                    fallback: parse_fallback(context, input),
-                })
-            }
-        } else if let Ok(color) = input.try(|i| ColorType::parse(context, i)) {
-            Ok(SVGPaint {
-                kind: SVGPaintKind::Color(color),
-                fallback: None,
-            })
-        } else {
-            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        let kind = SVGPaintKind::parse(context, input)?;
+        if matches!(kind, SVGPaintKind::None | SVGPaintKind::Color(..)) {
+            return Ok(SVGPaint {
+                kind,
+                fallback: SVGPaintFallback::Unset,
+            });
         }
+        let fallback = input
+            .try(|i| SVGPaintFallback::parse(context, i))
+            .unwrap_or(SVGPaintFallback::Unset);
+        Ok(SVGPaint { kind, fallback })
     }
 }
 
@@ -171,13 +179,16 @@ pub enum SVGLength<L> {
     ToResolvedValue,
     ToShmem,
 )]
-pub enum SVGStrokeDashArray<L> {
+#[repr(C, u8)]
+pub enum GenericSVGStrokeDashArray<L> {
     /// `[ <length> | <percentage> | <number> ]#`
     #[css(comma)]
-    Values(#[css(if_empty = "none", iterable)] Vec<L>),
+    Values(#[css(if_empty = "none", iterable)] crate::OwnedSlice<L>),
     /// `context-value`
     ContextValue,
 }
+
+pub use self::GenericSVGStrokeDashArray as SVGStrokeDashArray;
 
 /// An SVG opacity value accepts `context-{fill,stroke}-opacity` in
 /// addition to opacity value.
@@ -197,7 +208,8 @@ pub enum SVGStrokeDashArray<L> {
     ToResolvedValue,
     ToShmem,
 )]
-pub enum SVGOpacity<OpacityType> {
+#[repr(C, u8)]
+pub enum GenericSVGOpacity<OpacityType> {
     /// `<opacity-value>`
     Opacity(OpacityType),
     /// `context-fill-opacity`
@@ -207,3 +219,5 @@ pub enum SVGOpacity<OpacityType> {
     #[animation(error)]
     ContextStrokeOpacity,
 }
+
+pub use self::GenericSVGOpacity as SVGOpacity;

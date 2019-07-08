@@ -62,10 +62,7 @@ impl Animate for TrackSize {
     }
 }
 
-impl Animate for generics::TrackRepeat<LengthPercentage, Integer>
-where
-    generics::RepeatCount<Integer>: PartialEq,
-{
+impl Animate for generics::TrackRepeat<LengthPercentage, Integer> {
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         // If the keyword, auto-fit/fill, is the same it can result in different
         // number of tracks. For both auto-fit/fill, the number of columns isn't

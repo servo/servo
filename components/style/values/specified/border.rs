@@ -242,7 +242,7 @@ impl Parse for BorderSpacing {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         Size2D::parse_with(context, input, |context, input| {
-            NonNegativeLength::parse_quirky(context, input, AllowQuirks::Yes).map(From::from)
+            NonNegativeLength::parse_quirky(context, input, AllowQuirks::Yes)
         })
         .map(GenericBorderSpacing)
     }

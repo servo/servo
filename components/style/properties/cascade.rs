@@ -686,7 +686,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             return;
         }
 
-        let use_document_fonts = unsafe { structs::StaticPrefs_sVarCache_browser_display_use_document_fonts != 0 };
+        let use_document_fonts = unsafe { structs::StaticPrefs::sVarCache_browser_display_use_document_fonts != 0 };
         let builder = &mut self.context.builder;
         let (default_font_type, prioritize_user_fonts) = {
             let font = builder.get_font().gecko();

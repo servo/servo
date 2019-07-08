@@ -6,14 +6,21 @@
 //! [grids](https://drafts.csswg.org/css-grid/).
 
 use crate::parser::{Parse, ParserContext};
-use crate::values::computed::{Context, ToComputedValue};
 use crate::values::specified;
 use crate::values::specified::grid::parse_line_names;
 use crate::values::{CSSFloat, CustomIdent};
+use crate::{Atom, Zero};
 use cssparser::Parser;
 use std::fmt::{self, Write};
-use std::{mem, usize};
+use std::{cmp, mem, usize};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+
+/// These are the limits that we choose to clamp grid line numbers to.
+/// http://drafts.csswg.org/css-grid/#overlarge-grids
+/// line_num is clamped to this range at parse time.
+pub const MIN_GRID_LINE: i32 = -10000;
+/// See above.
+pub const MAX_GRID_LINE: i32 = 10000;
 
 /// A `<grid-line>` type.
 ///
@@ -29,36 +36,48 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
     ToResolvedValue,
     ToShmem,
 )]
-pub struct GridLine<Integer> {
-    /// Flag to check whether it's a `span` keyword.
-    pub is_span: bool,
-    /// A custom identifier for named lines.
+#[repr(C)]
+pub struct GenericGridLine<Integer> {
+    /// A custom identifier for named lines, or the empty atom otherwise.
     ///
     /// <https://drafts.csswg.org/css-grid/#grid-placement-slot>
-    pub ident: Option<CustomIdent>,
+    pub ident: Atom,
     /// Denotes the nth grid line from grid item's placement.
-    pub line_num: Option<Integer>,
+    ///
+    /// This is clamped by MIN_GRID_LINE and MAX_GRID_LINE.
+    ///
+    /// NOTE(emilio): If we ever allow animating these we need to either do
+    /// something more complicated for the clamping, or do this clamping at
+    /// used-value time.
+    pub line_num: Integer,
+    /// Flag to check whether it's a `span` keyword.
+    pub is_span: bool,
 }
 
-impl<Integer> GridLine<Integer> {
+pub use self::GenericGridLine as GridLine;
+
+impl<Integer> GridLine<Integer>
+where
+    Integer: Zero,
+{
     /// The `auto` value.
     pub fn auto() -> Self {
         Self {
             is_span: false,
-            line_num: None,
-            ident: None,
+            line_num: Zero::zero(),
+            ident: atom!(""),
         }
     }
 
     /// Check whether this `<grid-line>` represents an `auto` value.
     pub fn is_auto(&self) -> bool {
-        self.ident.is_none() && self.line_num.is_none() && !self.is_span
+        self.ident == atom!("") && self.line_num.is_zero() && !self.is_span
     }
 }
 
 impl<Integer> ToCss for GridLine<Integer>
 where
-    Integer: ToCss,
+    Integer: ToCss + Zero,
 {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
@@ -72,18 +91,18 @@ where
             dest.write_str("span")?;
         }
 
-        if let Some(ref i) = self.line_num {
+        if !self.line_num.is_zero() {
             if self.is_span {
                 dest.write_str(" ")?;
             }
-            i.to_css(dest)?;
+            self.line_num.to_css(dest)?;
         }
 
-        if let Some(ref s) = self.ident {
-            if self.is_span || self.line_num.is_some() {
+        if self.ident != atom!("") {
+            if self.is_span || !self.line_num.is_zero() {
                 dest.write_str(" ")?;
             }
-            s.to_css(dest)?;
+            CustomIdent(self.ident.clone()).to_css(dest)?;
         }
 
         Ok(())
@@ -114,25 +133,29 @@ impl Parse for GridLine<specified::Integer> {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
 
-                if grid_line.line_num.is_some() || grid_line.ident.is_some() {
+                if !grid_line.line_num.is_zero() || grid_line.ident != atom!("") {
                     val_before_span = true;
                 }
 
                 grid_line.is_span = true;
             } else if let Ok(i) = input.try(|i| specified::Integer::parse(context, i)) {
                 // FIXME(emilio): Probably shouldn't reject if it's calc()...
-                if i.value() == 0 || val_before_span || grid_line.line_num.is_some() {
+                let value = i.value();
+                if value == 0 || val_before_span || !grid_line.line_num.is_zero() {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
 
-                grid_line.line_num = Some(i);
+                grid_line.line_num = specified::Integer::new(cmp::max(
+                    MIN_GRID_LINE,
+                    cmp::min(value, MAX_GRID_LINE),
+                ));
             } else if let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
-                if val_before_span || grid_line.ident.is_some() {
+                if val_before_span || grid_line.ident != atom!("") {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
                 // NOTE(emilio): `span` is consumed above, so we only need to
                 // reject `auto`.
-                grid_line.ident = Some(CustomIdent::from_ident(location, &name, &["auto"])?);
+                grid_line.ident = CustomIdent::from_ident(location, &name, &["auto"])?.0;
             } else {
                 break;
             }
@@ -143,12 +166,12 @@ impl Parse for GridLine<specified::Integer> {
         }
 
         if grid_line.is_span {
-            if let Some(i) = grid_line.line_num {
-                if i.value() <= 0 {
+            if !grid_line.line_num.is_zero() {
+                if grid_line.line_num.value() <= 0 {
                     // disallow negative integers for grid spans
                     return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
-            } else if grid_line.ident.is_none() {
+            } else if grid_line.ident == atom!("") {
                 // integer could be omitted
                 return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
             }
@@ -158,33 +181,12 @@ impl Parse for GridLine<specified::Integer> {
     }
 }
 
-#[allow(missing_docs)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(
-    Animate,
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
-)]
-pub enum TrackKeyword {
-    Auto,
-    MaxContent,
-    MinContent,
-}
-
 /// A track breadth for explicit grid track sizing. It's generic solely to
 /// avoid re-implementing it for the computed type.
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-breadth>
+///
+/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[derive(
     Animate,
     Clone,
@@ -197,15 +199,22 @@ pub enum TrackKeyword {
     ToResolvedValue,
     ToShmem,
 )]
-pub enum TrackBreadth<L> {
+#[repr(C, u8)]
+pub enum GenericTrackBreadth<L> {
     /// The generic type is almost always a non-negative `<length-percentage>`
     Breadth(L),
     /// A flex fraction specified in `fr` units.
     #[css(dimension)]
     Fr(CSSFloat),
-    /// One of the track-sizing keywords (`auto`, `min-content`, `max-content`)
-    Keyword(TrackKeyword),
+    /// `auto`
+    Auto,
+    /// `min-content`
+    MinContent,
+    /// `max-content`
+    MaxContent,
 }
+
+pub use self::GenericTrackBreadth as TrackBreadth;
 
 impl<L> TrackBreadth<L> {
     /// Check whether this is a `<fixed-breadth>` (i.e., it only has `<length-percentage>`)
@@ -221,22 +230,39 @@ impl<L> TrackBreadth<L> {
 /// generic only to avoid code bloat. It only takes `<length-percentage>`
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-size>
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToResolvedValue, ToShmem)]
-pub enum TrackSize<L> {
+///
+/// cbindgen:derive-tagged-enum-copy-constructor=true
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C, u8)]
+pub enum GenericTrackSize<L> {
     /// A flexible `<track-breadth>`
-    Breadth(TrackBreadth<L>),
+    Breadth(GenericTrackBreadth<L>),
     /// A `minmax` function for a range over an inflexible `<track-breadth>`
     /// and a flexible `<track-breadth>`
     ///
     /// <https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-minmax>
     #[css(function)]
-    Minmax(TrackBreadth<L>, TrackBreadth<L>),
+    Minmax(GenericTrackBreadth<L>, GenericTrackBreadth<L>),
     /// A `fit-content` function.
+    ///
+    /// This stores a TrackBreadth<L> for convenience, but it can only be a
+    /// LengthPercentage.
     ///
     /// <https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-fit-content>
     #[css(function)]
-    FitContent(L),
+    FitContent(GenericTrackBreadth<L>),
 }
+
+pub use self::GenericTrackSize as TrackSize;
 
 impl<L> TrackSize<L> {
     /// Check whether this is a `<fixed-size>`
@@ -266,7 +292,7 @@ impl<L> TrackSize<L> {
 
 impl<L> Default for TrackSize<L> {
     fn default() -> Self {
-        TrackSize::Breadth(TrackBreadth::Keyword(TrackKeyword::Auto))
+        TrackSize::Breadth(TrackBreadth::Auto)
     }
 }
 
@@ -287,7 +313,7 @@ impl<L: ToCss> ToCss for TrackSize<L> {
             TrackSize::Minmax(ref min, ref max) => {
                 // According to gecko minmax(auto, <flex>) is equivalent to <flex>,
                 // and both are serialized as <flex>.
-                if let TrackBreadth::Keyword(TrackKeyword::Auto) = *min {
+                if let TrackBreadth::Auto = *min {
                     if let TrackBreadth::Fr(_) = *max {
                         return max.to_css(dest);
                     }
@@ -303,48 +329,6 @@ impl<L: ToCss> ToCss for TrackSize<L> {
                 dest.write_str("fit-content(")?;
                 lp.to_css(dest)?;
                 dest.write_str(")")
-            },
-        }
-    }
-}
-
-impl<L: ToComputedValue> ToComputedValue for TrackSize<L> {
-    type ComputedValue = TrackSize<L::ComputedValue>;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        match *self {
-            TrackSize::Breadth(TrackBreadth::Fr(ref f)) => {
-                // <flex> outside `minmax()` expands to `mimmax(auto, <flex>)`
-                // https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-flex
-                // FIXME(nox): This sounds false, the spec just says that <flex>
-                // implies `minmax(auto, <flex>)`, not that it should be changed
-                // into `minmax` at computed value time.
-                TrackSize::Minmax(
-                    TrackBreadth::Keyword(TrackKeyword::Auto),
-                    TrackBreadth::Fr(f.to_computed_value(context)),
-                )
-            },
-            TrackSize::Breadth(ref b) => TrackSize::Breadth(b.to_computed_value(context)),
-            TrackSize::Minmax(ref b1, ref b2) => {
-                TrackSize::Minmax(b1.to_computed_value(context), b2.to_computed_value(context))
-            },
-            TrackSize::FitContent(ref lp) => TrackSize::FitContent(lp.to_computed_value(context)),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            TrackSize::Breadth(ref b) => {
-                TrackSize::Breadth(ToComputedValue::from_computed_value(b))
-            },
-            TrackSize::Minmax(ref b1, ref b2) => TrackSize::Minmax(
-                ToComputedValue::from_computed_value(b1),
-                ToComputedValue::from_computed_value(b2),
-            ),
-            TrackSize::FitContent(ref lp) => {
-                TrackSize::FitContent(ToComputedValue::from_computed_value(lp))
             },
         }
     }

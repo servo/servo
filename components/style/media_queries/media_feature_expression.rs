@@ -302,7 +302,7 @@ impl MediaFeatureExpression {
                         feature_name = &feature_name[8..];
                         requirements.insert(ParsingRequirements::WEBKIT_PREFIX);
                         if unsafe {
-                            structs::StaticPrefs_sVarCache_layout_css_prefixes_device_pixel_ratio_webkit
+                            structs::StaticPrefs::sVarCache_layout_css_prefixes_device_pixel_ratio_webkit
                         } {
                             requirements.insert(
                                 ParsingRequirements::WEBKIT_DEVICE_PIXEL_RATIO_PREF_ENABLED,
