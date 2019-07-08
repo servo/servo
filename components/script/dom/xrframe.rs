@@ -16,6 +16,7 @@ use crate::dom::xrspace::XRSpace;
 use crate::dom::xrviewerpose::XRViewerPose;
 use dom_struct::dom_struct;
 use webvr_traits::WebVRFrameData;
+use webxr_api::Frame;
 
 #[dom_struct]
 pub struct XRFrame {
@@ -34,11 +35,8 @@ impl XRFrame {
         }
     }
 
-    pub fn new(
-        global: &GlobalScope,
-        session: &XRSession,
-        data: WebVRFrameData,
-    ) -> DomRoot<XRFrame> {
+    pub fn new(global: &GlobalScope, session: &XRSession, data: Frame) -> DomRoot<XRFrame> {
+        let data = unimplemented!();
         reflect_dom_object(
             Box::new(XRFrame::new_inherited(session, data)),
             global,
