@@ -130,7 +130,7 @@ impl<C: Parse, U: Parse> Parse for SVGPaint<C, U> {
         if matches!(kind, SVGPaintKind::None | SVGPaintKind::Color(..)) {
             return Ok(SVGPaint {
                 kind,
-                fallback: SVGPaintFallback::Unset
+                fallback: SVGPaintFallback::Unset,
             });
         }
         let fallback = input

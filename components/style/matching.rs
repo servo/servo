@@ -531,7 +531,6 @@ trait PrivateMatchMethods: TElement {
             }
         }
 
-
         // Children with justify-items: auto may depend on our
         // justify-items property value.
         //

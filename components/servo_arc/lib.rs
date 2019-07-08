@@ -314,11 +314,7 @@ impl<T: ?Sized> Arc<T> {
     fn record_drop(&self) {
         #[cfg(feature = "gecko_refcount_logging")]
         unsafe {
-            NS_LogDtor(
-                self.ptr() as *mut _,
-                b"ServoArc\0".as_ptr() as *const _,
-                8,
-            );
+            NS_LogDtor(self.ptr() as *mut _, b"ServoArc\0".as_ptr() as *const _, 8);
         }
     }
 
