@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::compartments::InCompartment;
-use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
 use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateInit;
@@ -13,58 +12,60 @@ use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCal
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::dom::vrdisplay::VRDisplay;
 use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrenderstate::XRRenderState;
 use crate::dom::xrspace::XRSpace;
 use dom_struct::dom_struct;
+use euclid::Vector3D;
 use std::rc::Rc;
+use webxr_api::Session;
 
 #[dom_struct]
 pub struct XRSession {
     eventtarget: EventTarget,
-    display: Dom<VRDisplay>,
     base_layer: MutNullableDom<XRLayer>,
     blend_mode: XREnvironmentBlendMode,
     viewer_space: MutNullableDom<XRSpace>,
+    #[ignore_malloc_size_of = "defined in webxr"]
+    session: Session,
 }
 
 impl XRSession {
-    fn new_inherited(display: &VRDisplay) -> XRSession {
+    fn new_inherited(session: Session) -> XRSession {
         XRSession {
             eventtarget: EventTarget::new_inherited(),
-            display: Dom::from_ref(display),
             base_layer: Default::default(),
             // we don't yet support any AR devices
             blend_mode: XREnvironmentBlendMode::Opaque,
             viewer_space: Default::default(),
+            session,
         }
     }
 
-    pub fn new(global: &GlobalScope, display: &VRDisplay) -> DomRoot<XRSession> {
+    pub fn new(global: &GlobalScope, session: Session) -> DomRoot<XRSession> {
         reflect_dom_object(
-            Box::new(XRSession::new_inherited(display)),
+            Box::new(XRSession::new_inherited(session)),
             global,
             XRSessionBinding::Wrap,
         )
     }
 
-    pub fn xr_present(&self, p: Rc<Promise>) {
-        self.display.xr_present(self, None, Some(p));
-    }
-
-    pub fn display(&self) -> &VRDisplay {
-        &self.display
-    }
-
     pub fn set_layer(&self, layer: &XRLayer) {
         self.base_layer.set(Some(layer))
+    }
+
+    pub fn left_eye_params_offset(&self) -> Vector3D<f64> {
+        unimplemented!()
+    }
+
+    pub fn right_eye_params_offset(&self) -> Vector3D<f64> {
+        unimplemented!()
     }
 }
 
@@ -76,30 +77,22 @@ impl XRSessionMethods for XRSession {
 
     // https://immersive-web.github.io/webxr/#dom-xrsession-renderstate
     fn RenderState(&self) -> DomRoot<XRRenderState> {
-        // XXXManishearth maybe cache this
-        XRRenderState::new(
-            &self.global(),
-            *self.display.DepthNear(),
-            *self.display.DepthFar(),
-            self.base_layer.get().as_ref().map(|l| &**l),
-        )
+        unimplemented!()
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe
     fn UpdateRenderState(&self, init: &XRRenderStateInit, comp: InCompartment) -> Rc<Promise> {
-        let p = Promise::new_in_current_compartment(&self.global(), comp);
-        self.display.queue_renderstate(init, p.clone());
-        p
+        unimplemented!()
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe
     fn RequestAnimationFrame(&self, callback: Rc<XRFrameRequestCallback>) -> i32 {
-        self.display.xr_raf(callback) as i32
+        unimplemented!()
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-cancelanimationframe
     fn CancelAnimationFrame(&self, frame: i32) {
-        self.display.xr_cancel_raf(frame)
+        unimplemented!()
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-environmentblendmode
@@ -131,6 +124,6 @@ impl XRSessionMethods for XRSession {
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-getinputsources
     fn GetInputSources(&self) -> Vec<DomRoot<XRInputSource>> {
-        self.display.get_input_sources()
+        unimplemented!()
     }
 }
