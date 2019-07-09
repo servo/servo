@@ -12,7 +12,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use dom_struct::dom_struct;
-use js::jsapi::JSContext;
+// use js::jsapi::JSContext;
+use crate::script_runtime::JSContext;
 use js::rust::HandleValue;
 use servo_atoms::Atom;
 

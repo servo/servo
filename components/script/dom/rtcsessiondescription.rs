@@ -16,7 +16,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::{/*JSContext, */JSObject};
+use crate::script_runtime::JSContext;
 use js::jsval::UndefinedValue;
 use std::ptr::NonNull;
 

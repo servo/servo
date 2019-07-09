@@ -4,7 +4,8 @@
 
 //! Machinery to conditionally expose things.
 
-use js::jsapi::JSContext;
+//use js::jsapi::JSContext;
+use crate::script_runtime::JSContext;
 use js::rust::HandleObject;
 use servo_config::prefs;
 

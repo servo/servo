@@ -15,7 +15,8 @@ use crate::dom::xrview::XRView;
 use dom_struct::dom_struct;
 use euclid::RigidTransform3D;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{Heap, JSContext};
+use js::jsapi::{Heap/*, JSContext*/};
+use crate::script_runtime::JSContext;
 use js::jsval::{JSVal, UndefinedValue};
 use webvr_traits::WebVRFrameData;
 

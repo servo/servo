@@ -6,7 +6,8 @@
 
 use crate::dom::bindings::guard::Guard;
 use crate::dom::bindings::interface::{create_object, define_on_global_object};
-use js::jsapi::{JSClass, JSContext, JSFunctionSpec};
+use js::jsapi::{JSClass/*, JSContext*/, JSFunctionSpec};
+use crate::script_runtime::JSContext;
 use js::rust::{HandleObject, MutableHandleObject};
 
 /// The class of a namespace object.

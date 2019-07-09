@@ -18,7 +18,8 @@ use crate::dom::globalscope::GlobalScope;
 #[cfg(feature = "js_backtrace")]
 use backtrace::Backtrace;
 use js::error::{throw_range_error, throw_type_error};
-use js::jsapi::JSContext;
+//use js::jsapi::JSContext;
+use crate::script_runtime::JSContext;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::JS_IsExceptionPending;
 use js::jsval::UndefinedValue;

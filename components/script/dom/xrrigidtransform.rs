@@ -16,7 +16,8 @@ use crate::dom::vrframedata::create_typed_array;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::{RigidTransform3D, Rotation3D, Vector3D};
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::jsapi::{Heap, /*JSContext, */JSObject};
+use crate::script_runtime::JSContext;
 use std::ptr::NonNull;
 
 #[dom_struct]

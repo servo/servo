@@ -49,7 +49,8 @@ use js::glue::JS_GetReservedSlot;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::glue::{RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING};
-use js::jsapi::{Heap, JSContext, JSObject, JSString};
+use js::jsapi::{Heap/*, JSContext*/, JSObject, JSString};
+use crate::script_runtime::JSContext;
 use js::jsapi::{
     JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength, JS_IsExceptionPending,
 };

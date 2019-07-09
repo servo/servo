@@ -12,7 +12,8 @@ use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::XRSession;
 use dom_struct::dom_struct;
 use euclid::{RigidTransform3D, Vector3D};
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::jsapi::{Heap, /*JSContext, */JSObject};
+use crate::script_runtime::JSContext;
 use std::ptr::NonNull;
 use webvr_traits::WebVRFrameData;
 

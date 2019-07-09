@@ -8,7 +8,8 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use js::jsapi::JSContext;
+//use js::jsapi::JSContext;
+use crate::script_runtime::JSContext;
 use js::rust::HandleValue;
 use malloc_size_of::MallocSizeOf;
 

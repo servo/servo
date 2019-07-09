@@ -7,7 +7,8 @@
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::jsapi::{Heap/*, JSContext*/, JSObject};
+use crate::script_runtime::JSContext;
 use js::rust::HandleObject;
 use std::default::Default;
 

@@ -116,7 +116,8 @@ use euclid::Point2D;
 use html5ever::{LocalName, Namespace, QualName};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{JSContext, JSObject, JSRuntime};
+use js::jsapi::{JSObject, JSRuntime};
+use crate::script_runtime::JSContext;
 use keyboard_types::{Key, KeyState, Modifiers};
 use metrics::{
     InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory,

@@ -21,7 +21,8 @@ use js::jsapi::HandleId as RawHandleId;
 use js::jsapi::HandleObject as RawHandleObject;
 use js::jsapi::MutableHandleObject as RawMutableHandleObject;
 use js::jsapi::{AutoIdVector, CallArgs, DOMCallbacks, GetNonCCWObjectGlobal};
-use js::jsapi::{Heap, JSAutoRealm, JSContext};
+use js::jsapi::{Heap, JSAutoRealm/*, JSContext*/};
+use crate::script_runtime::JSContext;
 use js::jsapi::{JSJitInfo, JSObject, JSTracer, JSWrapObjectCallbacks};
 use js::jsapi::{JS_EnumerateStandardClasses, JS_GetLatin1StringCharsAndLength};
 use js::jsapi::{JS_IsExceptionPending, JS_IsGlobalObject};
@@ -353,7 +354,7 @@ pub unsafe extern "C" fn enumerate_global(
         return false;
     }
     for init_fun in InterfaceObjectMap::MAP.values() {
-        init_fun(cx, Handle::from_raw(obj));
+        init_fun(*cx, Handle::from_raw(obj));
     }
     true
 }
@@ -388,7 +389,7 @@ pub unsafe extern "C" fn resolve_global(
     let bytes = slice::from_raw_parts(ptr, length as usize);
 
     if let Some(init_fun) = InterfaceObjectMap::MAP.get(bytes) {
-        init_fun(cx, Handle::from_raw(obj));
+        init_fun(*cx, Handle::from_raw(obj));
         *rval = true;
     } else {
         *rval = false;

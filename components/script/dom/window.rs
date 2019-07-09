@@ -78,7 +78,8 @@ use euclid::{Point2D, Rect, Size2D, TypedPoint2D, TypedScale, TypedSize2D, Vecto
 use ipc_channel::ipc::{channel, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
-use js::jsapi::JSContext;
+//use js::jsapi::JSContext;
+use crate::script_runtime::JSContext;
 use js::jsapi::JSPROP_ENUMERATE;
 use js::jsapi::{GCReason, JS_GC};
 use js::jsval::JSVal;
