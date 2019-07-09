@@ -10,10 +10,10 @@ use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::xrsession::XRSession;
+use crate::dom::xrsession::{ApiPose, XRSession};
 use crate::dom::xrspace::XRSpace;
 use dom_struct::dom_struct;
-use webvr_traits::{WebVRGamepadData, WebVRGamepadHand, WebVRGamepadState, WebVRPose};
+use webvr_traits::{WebVRGamepadData, WebVRGamepadHand, WebVRGamepadState};
 
 #[dom_struct]
 pub struct XRInputSource {
@@ -58,8 +58,8 @@ impl XRInputSource {
         *self.state.borrow_mut() = state;
     }
 
-    pub fn pose(&self) -> WebVRPose {
-        self.state.borrow().pose
+    pub fn pose(&self) -> ApiPose {
+        unimplemented!()
     }
 }
 
