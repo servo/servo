@@ -78,6 +78,7 @@ ${helpers.predefined_type(
     "computed::OverflowWrap::Normal",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-text/#propdef-overflow-wrap",
+    flags="APPLIES_TO_CUE",
     alias="word-wrap",
     needs_context=False,
     servo_restyle_damage="rebuild_and_reflow",
