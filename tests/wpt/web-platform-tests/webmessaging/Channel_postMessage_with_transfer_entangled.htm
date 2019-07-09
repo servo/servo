@@ -14,12 +14,11 @@ async_test(function(t) {
     var channel1 = new MessageChannel();
     var channel2 = new MessageChannel();
 
-    // One, send a message.
-    channel1.port1.postMessage(1);
+     // One, send a message.
+     channel1.port1.postMessage(1);
 
      // Two, transfer both ports.
      channel2.port1.postMessage("transfer", [channel1.port1]);
-     // Two, transfer both ports.
      channel2.port1.postMessage("transfer", [channel1.port2]);
 
      var transfer_counter = 0;
