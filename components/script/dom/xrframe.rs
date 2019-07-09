@@ -15,7 +15,6 @@ use crate::dom::xrsession::XRSession;
 use crate::dom::xrspace::XRSpace;
 use crate::dom::xrviewerpose::XRViewerPose;
 use dom_struct::dom_struct;
-use webvr_traits::WebVRFrameData;
 use webxr_api::Frame;
 
 #[dom_struct]
@@ -23,11 +22,11 @@ pub struct XRFrame {
     reflector_: Reflector,
     session: Dom<XRSession>,
     #[ignore_malloc_size_of = "defined in rust-webvr"]
-    data: WebVRFrameData,
+    data: Frame,
 }
 
 impl XRFrame {
-    fn new_inherited(session: &XRSession, data: WebVRFrameData) -> XRFrame {
+    fn new_inherited(session: &XRSession, data: Frame) -> XRFrame {
         XRFrame {
             reflector_: Reflector::new(),
             session: Dom::from_ref(session),
@@ -36,7 +35,6 @@ impl XRFrame {
     }
 
     pub fn new(global: &GlobalScope, session: &XRSession, data: Frame) -> DomRoot<XRFrame> {
-        let data = unimplemented!();
         reflect_dom_object(
             Box::new(XRFrame::new_inherited(session, data)),
             global,
@@ -60,12 +58,7 @@ impl XRFrameMethods for XRFrame {
             return Err(Error::InvalidState);
         }
         let pose = reference.get_viewer_pose(&self.data);
-        Ok(Some(XRViewerPose::new(
-            &self.global(),
-            &self.session,
-            pose,
-            &self.data,
-        )))
+        Ok(Some(XRViewerPose::new(&self.global(), &self.session, pose)))
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrframe-getpose

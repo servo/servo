@@ -9,12 +9,11 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::vrframedata::create_typed_array;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::dom::xrsession::XRSession;
+use crate::dom::xrsession::{cast_transform, ApiRigidTransform, XRSession};
 use dom_struct::dom_struct;
-use euclid::RigidTransform3D;
 use js::jsapi::{Heap, JSContext, JSObject};
 use std::ptr::NonNull;
-use webvr_traits::WebVRFrameData;
+use webxr_api::View;
 
 #[dom_struct]
 pub struct XRView {
@@ -41,25 +40,15 @@ impl XRView {
     }
 
     #[allow(unsafe_code)]
-    pub fn new(
+    pub fn new<V: Copy>(
         global: &GlobalScope,
         session: &XRSession,
+        view: &View<V>,
         eye: XREye,
-        pose: &RigidTransform3D<f64>,
-        data: &WebVRFrameData,
+        pose: &ApiRigidTransform,
     ) -> DomRoot<XRView> {
         // XXXManishearth compute and cache projection matrices on the Display
-        let (proj, offset) = if eye == XREye::Left {
-            (
-                &data.left_projection_matrix,
-                session.left_eye_params_offset(),
-            )
-        } else {
-            (
-                &data.right_projection_matrix,
-                session.right_eye_params_offset(),
-            )
-        };
+        let offset = cast_transform(view.transform);
 
         let transform = pose.post_mul(&offset.into());
         let transform = XRRigidTransform::new(global, transform);
@@ -70,9 +59,11 @@ impl XRView {
             XRViewBinding::Wrap,
         );
 
+        // row_major since euclid uses row vectors
+        let proj = view.projection.to_row_major_array();
         let cx = global.get_cx();
         unsafe {
-            create_typed_array(cx, proj, &ret.proj);
+            create_typed_array(cx, &proj, &ret.proj);
         }
         ret
     }
