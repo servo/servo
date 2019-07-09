@@ -10,9 +10,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::dom::xrsession::{
-    cast_transform, cast_transform_to_pose, ApiPose, ApiRigidTransform, XRSession,
-};
+use crate::dom::xrsession::{cast_transform, ApiPose, ApiRigidTransform, ApiViewerPose, XRSession};
 use crate::dom::xrspace::XRSpace;
 use dom_struct::dom_struct;
 use euclid::{TypedRigidTransform3D, TypedVector3D};
@@ -82,7 +80,7 @@ impl XRReferenceSpace {
     ///
     /// This is equivalent to `get_pose(self).inverse() * get_pose(viewerSpace)` (in column vector notation),
     /// however we specialize it to be efficient
-    pub fn get_viewer_pose(&self, base_pose: &Frame) -> ApiRigidTransform {
+    pub fn get_viewer_pose(&self, base_pose: &Frame) -> ApiViewerPose {
         let pose = self.get_unoffset_viewer_pose(base_pose);
 
         // This may change, see https://github.com/immersive-web/webxr/issues/567
@@ -100,8 +98,8 @@ impl XRReferenceSpace {
     /// Gets pose of the viewer with respect to this space
     ///
     /// Does not apply originOffset, use get_viewer_pose instead if you need it
-    pub fn get_unoffset_viewer_pose(&self, base_pose: &Frame) -> ApiRigidTransform {
-        let viewer_pose = cast_transform(base_pose.transform);
+    pub fn get_unoffset_viewer_pose(&self, base_pose: &Frame) -> ApiViewerPose {
+        let viewer_pose: ApiViewerPose = cast_transform(base_pose.transform);
         // all math is in column-vector notation
         // we use the following equation to verify correctness here:
         // get_viewer_pose(space) = get_pose(space).inverse() * get_pose(viewer_space)
@@ -164,7 +162,7 @@ impl XRReferenceSpace {
                 // the floor-level space is 2m below the eye-level space, which is (0, 0, 0)
                 TypedVector3D::new(0., -2., 0.).into()
             },
-            XRReferenceSpaceType::Viewer => cast_transform_to_pose(base_pose.transform),
+            XRReferenceSpaceType::Viewer => cast_transform(base_pose.transform),
             _ => unimplemented!(),
         }
     }

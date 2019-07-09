@@ -10,7 +10,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrpose::XRPose;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::dom::xrsession::{ApiRigidTransform, XRSession};
+use crate::dom::xrsession::{cast_transform, ApiViewerPose, XRSession};
 use crate::dom::xrview::XRView;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
@@ -37,7 +37,7 @@ impl XRViewerPose {
     pub fn new(
         global: &GlobalScope,
         session: &XRSession,
-        pose: ApiRigidTransform,
+        pose: ApiViewerPose,
     ) -> DomRoot<XRViewerPose> {
         rooted_vec!(let mut views);
         session.with_session(|s| match s.views() {
@@ -49,7 +49,7 @@ impl XRViewerPose {
                 views.push(XRView::new(global, session, &right, XREye::Right, &pose));
             },
         });
-        let transform = XRRigidTransform::new(global, pose);
+        let transform = XRRigidTransform::new(global, cast_transform(pose));
         let pose = reflect_dom_object(
             Box::new(XRViewerPose::new_inherited(&transform)),
             global,
