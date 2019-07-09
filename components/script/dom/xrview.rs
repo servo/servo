@@ -9,7 +9,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::vrframedata::create_typed_array;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::dom::xrsession::{cast_transform, ApiRigidTransform, XRSession};
+use crate::dom::xrsession::{cast_transform, ApiViewerPose, XRSession};
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject};
 use std::ptr::NonNull;
@@ -45,13 +45,16 @@ impl XRView {
         session: &XRSession,
         view: &View<V>,
         eye: XREye,
-        pose: &ApiRigidTransform,
+        pose: &ApiViewerPose,
     ) -> DomRoot<XRView> {
         // XXXManishearth compute and cache projection matrices on the Display
-        let offset = cast_transform(view.transform);
 
-        let transform = pose.post_mul(&offset.into());
-        let transform = XRRigidTransform::new(global, transform);
+        // this transform is the pose of the viewer in the eye space, i.e. it is the transform
+        // from the viewer space to the eye space. We invert it to get the pose of the eye in the viewer space.
+        let offset = view.transform.inverse();
+
+        let transform = pose.pre_mul(&offset);
+        let transform = XRRigidTransform::new(global, cast_transform(transform));
 
         let ret = reflect_dom_object(
             Box::new(XRView::new_inherited(session, &transform, eye)),
