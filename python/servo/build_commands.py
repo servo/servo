@@ -606,7 +606,7 @@ class MachCommands(CommandBase):
                 target_triple = target or host_triple()
                 if "aarch64" not in target_triple:
                     print("Packaging gstreamer DLLs")
-                    if not package_gstreamer_dlls(servo_exe_dir, target_triple):
+                    if not package_gstreamer_dlls(servo_exe_dir, target_triple, uwp):
                         status = 1
                 print("Packaging MSVC DLLs")
                 if not package_msvc_dlls(servo_exe_dir, target_triple):
@@ -658,7 +658,7 @@ class MachCommands(CommandBase):
         return check_call(["cargo", "clean"] + opts, env=self.build_env(), verbose=verbose)
 
 
-def package_gstreamer_dlls(servo_exe_dir, target):
+def package_gstreamer_dlls(servo_exe_dir, target, uwp):
     msvc_x64 = "64" if "x86_64" in target else ""
     gst_x64 = "X86_64" if msvc_x64 == "64" else "X86"
     gst_root = ""
@@ -684,7 +684,6 @@ def package_gstreamer_dlls(servo_exe_dir, target):
         "glib-2.0-0.dll",
         "gmodule-2.0-0.dll",
         "gobject-2.0-0.dll",
-        "graphene-1.0-0.dll",
         "gstapp-1.0-0.dll",
         "gstaudio-1.0-0.dll",
         "gstbase-1.0-0.dll",
@@ -697,32 +696,41 @@ def package_gstreamer_dlls(servo_exe_dir, target):
         "gstreamer-1.0-0.dll",
         "gstriff-1.0-0.dll",
         "gstrtp-1.0-0.dll",
-        "gstsctp-1.0-0.dll",
         "gstsdp-1.0-0.dll",
         "gsttag-1.0-0.dll",
         "gstvideo-1.0-0.dll",
         "gstwebrtc-1.0-0.dll",
         "intl-8.dll",
-        "libgmp-10.dll",
-        "libgnutls-30.dll",
-        "libhogweed-4.dll",
-        "libjpeg-8.dll",
-        "libnettle-6.dll.",
-        "libpng16-16.dll",
-        "libogg-0.dll",
-        "libopus-0.dll",
-        "libtasn1-6.dll",
-        "libtheora-0.dll",
-        "libtheoradec-1.dll",
-        "libtheoraenc-1.dll",
-        "libvorbis-0.dll",
-        "libvorbisenc-2.dll",
-        "libwinpthread-1.dll",
-        "nice-10.dll",
         "orc-0.4-0.dll",
         "swresample-3.dll",
         "z-1.dll",
     ]
+
+    # FIXME: until we build with UWP-enabled GStreamer binaries,
+    #        almost every UWP-friendly DLL depends on this
+    #        incompatible DLL.
+    gst_dlls += ["libwinpthread-1.dll"]
+
+    if not uwp:
+        gst_dlls += [
+            "graphene-1.0-0.dll",
+            "gstsctp-1.0-0.dll",
+            "libgmp-10.dll",
+            "libgnutls-30.dll",
+            "libhogweed-4.dll",
+            "libjpeg-8.dll",
+            "libnettle-6.dll.",
+            "libogg-0.dll",
+            "libopus-0.dll",
+            "libpng16-16.dll",
+            "libtasn1-6.dll",
+            "libtheora-0.dll",
+            "libtheoradec-1.dll",
+            "libtheoraenc-1.dll",
+            "libvorbis-0.dll",
+            "libvorbisenc-2.dll",
+            "nice-10.dll",
+        ]
 
     missing = []
     for gst_lib in gst_dlls:
@@ -749,25 +757,29 @@ def package_gstreamer_dlls(servo_exe_dir, target):
         "gstplayback.dll",
         "gstinterleave.dll",
         "gstisomp4.dll",
-        "gstnice.dll",
-        "gstogg.dll",
-        "gstopengl.dll",
-        "gstopus.dll",
+        "gstlibav.dll",
         "gstproxy.dll",
-        "gstrtp.dll",
-        "gsttheora.dll",
         "gsttypefindfunctions.dll",
         "gstvideoconvert.dll",
         "gstvideofilter.dll",
         "gstvideoparsersbad.dll",
         "gstvideoscale.dll",
         "gstvolume.dll",
-        "gstvorbis.dll",
-        "gstvpx.dll",
-        "gstwebrtc.dll",
         "gstwasapi.dll",
-        "gstlibav.dll",
     ]
+
+    if not uwp:
+        gst_dlls += [
+            "gstnice.dll",
+            "gstogg.dll",
+            "gstopengl.dll",
+            "gstopus.dll",
+            "gstrtp.dll",
+            "gsttheora.dll",
+            "gstvorbis.dll",
+            "gstvpx.dll",
+            "gstwebrtc.dll",
+        ]
 
     gst_plugin_path_root = os.environ.get("GSTREAMER_PACKAGE_PLUGIN_PATH") or gst_root
     gst_plugin_path = path.join(gst_plugin_path_root, "lib", "gstreamer-1.0")

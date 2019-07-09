@@ -135,7 +135,7 @@ mod media_platform {
         let mut plugin_dir = std::env::current_exe().unwrap();
         plugin_dir.pop();
 
-        let plugins = &[
+        let uwp_plugins = [
             "gstapp.dll",
             "gstaudioconvert.dll",
             "gstaudiofx.dll",
@@ -144,31 +144,49 @@ mod media_platform {
             "gstautodetect.dll",
             "gstcoreelements.dll",
             "gstdeinterlace.dll",
-            "gstplayback.dll",
             "gstinterleave.dll",
             "gstisomp4.dll",
             "gstlibav.dll",
-            "gstnice.dll",
-            "gstogg.dll",
-            "gstopengl.dll",
-            "gstopus.dll",
+            "gstplayback.dll",
             "gstproxy.dll",
-            "gstrtp.dll",
-            "gsttheora.dll",
             "gsttypefindfunctions.dll",
             "gstvideoconvert.dll",
             "gstvideofilter.dll",
             "gstvideoparsersbad.dll",
             "gstvideoscale.dll",
             "gstvolume.dll",
+            "gstwasapi.dll",
+        ];
+
+        let non_uwp_plugins = [
+            "gstnice.dll",
+            "gstogg.dll",
+            "gstopengl.dll",
+            "gstopus.dll",
+            "gstrtp.dll",
+            "gsttheora.dll",
             "gstvorbis.dll",
             "gstvpx.dll",
-            "gstwasapi.dll",
             "gstwebrtc.dll",
         ];
 
-        let backend = GStreamerBackend::init_with_plugins(plugin_dir, plugins)
-            .expect("Error initializing GStreamer");
+        let plugins: Vec<_> = if cfg!(feature = "uwp") {
+            uwp_plugins.to_vec()
+        } else {
+            uwp_plugins
+                .iter()
+                .map(|&s| s)
+                .chain(non_uwp_plugins.iter().map(|&s| s))
+                .collect()
+        };
+
+        let backend = match GStreamerBackend::init_with_plugins(plugin_dir, &plugins) {
+            Ok(b) => b,
+            Err(e) => {
+                error!("Error initializing GStreamer: {:?}", e);
+                panic!()
+            },
+        };
         ServoMedia::init_with_backend(backend);
     }
 
