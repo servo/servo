@@ -408,8 +408,8 @@ dependencies = [
  "raqote 0.4.1-alpha.0 (git+https://github.com/jrmuizel/raqote)",
  "serde_bytes 0.10.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
- "webrender 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender 0.60.0 (git+https://github.com/servo/webrender)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "webrender_traits 0.0.1",
 ]
 
@@ -429,7 +429,7 @@ dependencies = [
  "serde_bytes 0.10.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
  "typetag 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "webvr_traits 0.0.1",
  "webxr-api 0.0.1 (git+https://github.com/servo/webxr)",
 ]
@@ -617,8 +617,8 @@ dependencies = [
  "style_traits 0.0.1",
  "time 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
  "toml 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender 0.60.0 (git+https://github.com/servo/webrender)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "webvr 0.0.1",
  "webvr_traits 0.0.1",
  "webxr-api 0.0.1 (git+https://github.com/servo/webxr)",
@@ -662,7 +662,7 @@ dependencies = [
  "servo_remutex 0.0.1",
  "servo_url 0.0.1",
  "style_traits 0.0.1",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "webvr_traits 0.0.1",
  "webxr-api 0.0.1 (git+https://github.com/servo/webxr)",
 ]
@@ -1124,7 +1124,7 @@ dependencies = [
  "serde 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_url 0.0.1",
  "style_traits 0.0.1",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -1212,7 +1212,7 @@ name = "erased-serde"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1466,7 +1466,7 @@ dependencies = [
  "ucd 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-bidi 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-script 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "xi-unicode 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "xml5ever 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -2359,7 +2359,7 @@ dependencies = [
  "style_traits 0.0.1",
  "unicode-bidi 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-script 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "xi-unicode 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -2413,7 +2413,7 @@ dependencies = [
  "style 0.0.1",
  "style_traits 0.0.1",
  "time 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -2434,7 +2434,7 @@ dependencies = [
  "script_traits 0.0.1",
  "servo_geometry 0.0.1",
  "servo_url 0.0.1",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -2452,7 +2452,7 @@ dependencies = [
  "script_traits 0.0.1",
  "servo_geometry 0.0.1",
  "servo_url 0.0.1",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -2568,8 +2568,8 @@ dependencies = [
  "style 0.0.1",
  "style_traits 0.0.1",
  "webdriver_server 0.0.1",
- "webrender 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender 0.60.0 (git+https://github.com/servo/webrender)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "webrender_traits 0.0.1",
  "webvr 0.0.1",
  "webvr_traits 0.0.1",
@@ -2700,7 +2700,7 @@ dependencies = [
  "time 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "void 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "xml5ever 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -2752,11 +2752,11 @@ dependencies = [
  "ipc-channel 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-media 0.1.0 (git+https://github.com/servo/media)",
  "servo_config 0.0.1",
- "webrender 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender 0.60.0 (git+https://github.com/servo/webrender)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "webrender_traits 0.0.1",
 ]
 
@@ -2817,7 +2817,7 @@ dependencies = [
  "profile_traits 0.0.1",
  "servo_url 0.0.1",
  "time 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -2970,7 +2970,7 @@ dependencies = [
  "malloc_size_of_derive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
  "size_of_test 0.0.1",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -3027,7 +3027,7 @@ dependencies = [
  "tokio-timer 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "uuid 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "ws 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -3070,7 +3070,7 @@ dependencies = [
  "time 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "uuid 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -3929,7 +3929,7 @@ dependencies = [
  "url 1.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "utf-8 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "uuid 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "webvr_traits 0.0.1",
  "webxr-api 0.0.1 (git+https://github.com/servo/webxr)",
  "xml5ever 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3963,7 +3963,7 @@ dependencies = [
  "servo_url 0.0.1",
  "style 0.0.1",
  "time 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -4021,7 +4021,7 @@ dependencies = [
  "style_traits 0.0.1",
  "time 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "webvr_traits 0.0.1",
  "webxr-api 0.0.1 (git+https://github.com/servo/webxr)",
 ]
@@ -4188,6 +4188,7 @@ dependencies = [
  "serde 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-media-traits 0.1.0 (git+https://github.com/servo/media)",
+ "servo_media_derive 0.1.0 (git+https://github.com/servo/media)",
  "smallvec 0.6.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -4386,7 +4387,7 @@ dependencies = [
  "malloc_size_of 0.0.1",
  "malloc_size_of_derive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "style_traits 0.0.1",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -4747,7 +4748,7 @@ dependencies = [
  "servo_url 0.0.1",
  "to_shmem 0.0.1",
  "to_shmem_derive 0.0.1",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -5118,7 +5119,7 @@ dependencies = [
  "erased-serde 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "inventory 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
  "typetag-impl 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -5405,7 +5406,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.60.0"
-source = "git+https://github.com/servo/webrender#81703c1274cd4935f82412d4e5819942934d0c96"
+source = "git+https://github.com/servo/webrender#2afa0c3ba85d2f6b219a1349268d1250760ebd64"
 dependencies = [
  "base64 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5446,7 +5447,7 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.60.0"
-source = "git+https://github.com/servo/webrender#81703c1274cd4935f82412d4e5819942934d0c96"
+source = "git+https://github.com/servo/webrender#2afa0c3ba85d2f6b219a1349268d1250760ebd64"
 dependencies = [
  "app_units 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5462,13 +5463,13 @@ dependencies = [
  "serde_bytes 0.10.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
- "wr_malloc_size_of 0.0.1 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "wr_malloc_size_of 0.0.1 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
 name = "webrender_build"
 version = "0.0.1"
-source = "git+https://github.com/servo/webrender#81703c1274cd4935f82412d4e5819942934d0c96"
+source = "git+https://github.com/servo/webrender#2afa0c3ba85d2f6b219a1349268d1250760ebd64"
 dependencies = [
  "sha2 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -5478,8 +5479,8 @@ name = "webrender_traits"
 version = "0.0.1"
 dependencies = [
  "euclid 0.19.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
- "webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)",
+ "webrender 0.60.0 (git+https://github.com/servo/webrender)",
+ "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -5516,7 +5517,7 @@ version = "0.0.1"
 source = "git+https://github.com/servo/webxr#39600af83b714e910389c912706d7cd06406c7bb"
 dependencies = [
  "euclid 0.19.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "gleam 0.6.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.6.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "webxr-api 0.0.1 (git+https://github.com/servo/webxr)",
 ]
@@ -5527,7 +5528,7 @@ version = "0.0.1"
 source = "git+https://github.com/servo/webxr#39600af83b714e910389c912706d7cd06406c7bb"
 dependencies = [
  "euclid 0.19.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "gleam 0.6.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.6.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
  "typetag 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5620,7 +5621,7 @@ dependencies = [
 [[package]]
 name = "wr_malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/webrender#81703c1274cd4935f82412d4e5819942934d0c96"
+source = "git+https://github.com/servo/webrender#2afa0c3ba85d2f6b219a1349268d1250760ebd64"
 dependencies = [
  "app_units 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.19.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -6159,9 +6160,9 @@ dependencies = [
 "checksum wayland-scanner 0.21.4 (registry+https://github.com/rust-lang/crates.io-index)" = "f1927ee62e4e149c010dc9eca8ca47e238416cd6f45f688eb9f8a8e9c3794c30"
 "checksum wayland-sys 0.21.4 (registry+https://github.com/rust-lang/crates.io-index)" = "ca41ed78a12256f81df6f53fcbe4503213ba442e02cdad3c9c888a64a668eaf4"
 "checksum webdriver 0.39.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0533b0b0a05e2e5c081317759a038482806c6085c9605dded03c8bbd2498b042"
-"checksum webrender 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)" = "<none>"
-"checksum webrender_api 0.60.0 (git+https://github.com/jdm/webrender?branch=servo-hl)" = "<none>"
-"checksum webrender_build 0.0.1 (git+https://github.com/jdm/webrender?branch=servo-hl)" = "<none>"
+"checksum webrender 0.60.0 (git+https://github.com/servo/webrender)" = "<none>"
+"checksum webrender_api 0.60.0 (git+https://github.com/servo/webrender)" = "<none>"
+"checksum webrender_build 0.0.1 (git+https://github.com/servo/webrender)" = "<none>"
 "checksum webxr 0.0.1 (git+https://github.com/servo/webxr)" = "<none>"
 "checksum webxr-api 0.0.1 (git+https://github.com/servo/webxr)" = "<none>"
 "checksum weedle 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bcc44aa200daee8b1f3a004beaf16554369746f1b4486f0cf93b0caf8a3c2d1e"
