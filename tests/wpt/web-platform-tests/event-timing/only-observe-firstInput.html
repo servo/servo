@@ -12,7 +12,7 @@
 
 <script>
   /* Test:
-     PerformanceObserver for firstInput is registered
+     PerformanceObserver for first-input is registered
      Click 1
      Click 2
      Wait
@@ -27,14 +27,14 @@
         const observedEntries = entryList.getEntries().filter(
             entry => entry.name === 'mousedown');
         assert_equals(observedEntries.length, 1);
-        assert_equals(observedEntries[0].entryType, 'firstInput');
+        assert_equals(observedEntries[0].entryType, 'first-input');
         assert_equals(observedEntries[0].name, 'mousedown');
-    })).observe({ entryTypes: ['firstInput'] });
+    })).observe({ entryTypes: ['first-input'] });
     on_event(window, 'load', () => {
       clickAndBlockMain('button').then(() => {
         clickAndBlockMain('button').then(wait).then( () => {
           // After some wait, the PerformanceObserver should have processed both clicks.
-          // One and only one firstInput entry should have been dispatched, so
+          // One and only one first-input entry should have been dispatched, so
           // |hasObservedFirstInput| should be true.
           t.step_timeout( () => {
             assert_true(hasObservedFirstInput);
@@ -44,7 +44,7 @@
       });
     });
   },
-  "Event Timing: check firstInput for a PerformanceObserver observing only firstInput."
+  "Event Timing: check first-input for a PerformanceObserver observing only first-input."
   );
 </script>
 </html>

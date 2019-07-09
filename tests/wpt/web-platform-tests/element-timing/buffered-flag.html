@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: observe element with buffered flag</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+  async_test(t => {
+    const beforeRender = performance.now();
+    const img = document.createElement('img');
+    if (!window.PerformanceElementTiming) {
+      assert_unreached("PerformanceElementTiming is not implemented");
+    }
+    // Initial observer used to know when entry has been dispatched
+    new PerformanceObserver(() => {
+      // Second observer should require buffered flag to receive the already-dispatched entry.
+      new PerformanceObserver(t.step_func_done(entryList => {
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+        const pathname = window.location.origin + '/images/black-rectangle.png';
+        checkElement(entry, pathname, 'my_image', 'my_id', beforeRender, document.getElementById('my_id'));
+        // Test that viewport size is at least 100, so element is fully visible.
+        assert_greater_than_equal(document.documentElement.clientWidth, 100, 'Width should be >= 100');
+        assert_greater_than_equal(document.documentElement.clientHeight, 100, 'Height should be >= 100');
+
+        checkRect(entry, [0, 100, 0, 50]);
+        checkNaturalSize(entry, 100, 50);
+      })).observe({type: 'element', buffered: true});
+    }).observe({type: 'element'});
+    img.src = '/images/black-rectangle.png';
+    img.setAttribute('elementtiming', 'my_image');
+    img.setAttribute('id', 'my_id');
+    document.body.appendChild(img);
+  }, 'Element Timing entries are observable via buffered flag.');
+</script>
+</body>

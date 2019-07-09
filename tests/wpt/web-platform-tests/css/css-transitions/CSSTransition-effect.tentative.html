@@ -56,6 +56,37 @@ promise_test(async t => {
   assert_equals(getComputedStyle(div).left, '100px');
 }, 'After setting a transition\'s effect to null, style is updated');
 
+// This is a regression test for https://crbug.com/964113, where Chromium would
+// crash if the running transition's effect was set to null and a new transition
+// was started before the running one could finish.
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.left = '0px';
+
+  div.style.transition = 'left 100s';
+  getComputedStyle(div).left;
+  div.style.left = '100px';
+
+  assert_equals(div.getAnimations().length, 1);
+
+  const transition = div.getAnimations()[0];
+  await transition.ready;
+
+  // Without yielding to the rendering loop, set the current transition's
+  // effect to null and start a new transition. This should work correctly.
+  transition.effect = null;
+
+  div.style.left = '150px';
+
+  // This will run style update.
+  assert_equals(div.getAnimations().length, 1);
+
+  const new_transition = div.getAnimations()[0];
+  await new_transition.ready;
+
+  assert_equals(getComputedStyle(div).left, '0px');
+}, 'After setting a transition\'s effect to null, a new transition can be started');
+
 promise_test(async t => {
   const div = addDiv(t);
   div.style.left = '0px';

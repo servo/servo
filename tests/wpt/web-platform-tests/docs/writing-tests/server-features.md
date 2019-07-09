@@ -1,12 +1,31 @@
 # Server Features
 
-## Advanced Testing Features
+For many tests, writing one or more static HTML files is
+sufficient. However there are a large class of tests for which this
+approach is insufficient, including:
 
-Certain test scenarios require more than just static HTML
-generation. This is supported through the
-[wptserve](http://wptserve.readthedocs.io) server, and controlled by
-[file name flags](file-names). Several scenarios in particular are common:
+* Tests that require cross-domain access
 
+* Tests that depend on setting specific headers or status codes
+
+* Tests that need to inspect the browser-sent request
+
+* Tests that require state to be stored on the server
+
+* Tests that require precise timing of the response.
+
+To make writing such tests possible, we are using a number of
+server-side components designed to make it easy to manipulate the
+precise details of the response:
+
+* *wptserve*, a custom Python HTTP server.
+
+* *pywebsocket*, an existing websockets server
+
+wptserve is a Python-based web server. By default it serves static
+files in the testsuite. For more sophisticated requirements, several
+mechanisms are available to take control of the response. These are
+outlined below.
 
 ### Tests Involving Multiple Origins
 
@@ -90,13 +109,17 @@ the file e.g. `test.html.sub.headers`.
    server-pipes
 ```
 
-For full control over the request and response the server provides the
-ability to write `.asis` files; these are served as literal HTTP
-responses. It also provides the ability to write [Python
+For full control over the request and response, the server provides the ability
+to write `.asis` files; these are served as literal HTTP responses. In other
+words, they are sent byte-for-byte to the server without adding an HTTP status
+line, headers, or anything else. This makes them suitable for testing
+situations where the precise bytes on the wire are static, and control over the
+timing is unnecessary, but the response does not conform to HTTP requirements.
+
+The server also provides the ability to write [Python
 "handlers"](python-handlers/index)--Python scripts that have access to request
 data and can manipulate the content and timing of the response. Responses are
 also influenced by [the `pipe` query string parameter](server-pipes).
-
 
 ### Writing tests for HTTP/2.0
 

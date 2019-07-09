@@ -149,6 +149,9 @@ class SeleniumSelectorProtocolPart(SelectorProtocolPart):
     def elements_by_selector(self, selector):
         return self.webdriver.find_elements_by_css_selector(selector)
 
+    def elements_by_selector_and_frame(self, element_selector, frame):
+        return self.webdriver.find_elements_by_css_selector(element_selector)
+
 
 class SeleniumClickProtocolPart(ClickProtocolPart):
     def setup(self):
