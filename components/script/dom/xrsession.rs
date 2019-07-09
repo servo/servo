@@ -32,7 +32,7 @@ use crate::dom::xrspace::XRSpace;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
-use euclid::Vector3D;
+use euclid::TypedRigidTransform3D;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use profile_traits::ipc;
@@ -92,12 +92,9 @@ impl XRSession {
         self.base_layer.set(Some(layer))
     }
 
-    pub fn left_eye_params_offset(&self) -> Vector3D<f64> {
-        unimplemented!()
-    }
-
-    pub fn right_eye_params_offset(&self) -> Vector3D<f64> {
-        unimplemented!()
+    pub fn with_session<F: FnOnce(&Session)>(&self, with: F) {
+        let session = self.session.borrow();
+        with(&session)
     }
 
     /// https://immersive-web.github.io/webxr/#xr-animation-frame
@@ -273,4 +270,23 @@ impl XRSessionMethods for XRSession {
     fn GetInputSources(&self) -> Vec<DomRoot<XRInputSource>> {
         unimplemented!()
     }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct ApiSpace;
+// The pose of an object in native-space. Should never be exposed.
+pub type ApiPose = TypedRigidTransform3D<f32, ApiSpace, webxr_api::Native>;
+// A transform between objects in some API-space
+pub type ApiRigidTransform = TypedRigidTransform3D<f32, ApiSpace, ApiSpace>;
+
+#[allow(unsafe_code)]
+pub fn cast_transform_to_pose<T>(
+    transform: TypedRigidTransform3D<f32, T, webxr_api::Native>,
+) -> ApiPose {
+    unsafe { mem::transmute(transform) }
+}
+
+#[allow(unsafe_code)]
+pub fn cast_transform<T, U>(transform: TypedRigidTransform3D<f32, T, U>) -> ApiRigidTransform {
+    unsafe { mem::transmute(transform) }
 }

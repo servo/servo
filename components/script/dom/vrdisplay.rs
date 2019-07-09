@@ -839,7 +839,7 @@ impl VRDisplay {
 
         let now = self.global().as_window().Performance().Now();
 
-        if let Some(session) = self.xr_session.get() {
+        if let Some(_) = self.xr_session.get() {
             unreachable!("old webxr-on-webvr cruft")
         } else {
             self.running_display_raf.set(true);
