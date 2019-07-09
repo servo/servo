@@ -24,9 +24,9 @@ infrastructure.
 
 [Web Bluetooth Testing API]: https://docs.google.com/document/d/1Nhv_oVDCodd1pEH_jj9k8gF4rPGb_84VYaZ9IG8M_WY/
 
-# Generated gen-* files from generator.py
+# Generated gen-* files from generate.py
 
-`generator.py` builds `gen-*.html` tests using templates in
+`generate.py` builds `gen-*.html` tests using templates in
 `script-tests/*/*.js`.
 
 The subdirectory structure in `bluetooth/script-test/*` is recreated into

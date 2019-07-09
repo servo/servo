@@ -17,7 +17,7 @@
      PerformanceObserver is registered
      Click 1
      Click 2
-     PerformanceObserver should observe only one firstInput entry.
+     PerformanceObserver should observe only one first-input entry.
      (Dispatch and Process Click 2 - not buffered)
   */
   async_test(function(t) {
@@ -43,7 +43,7 @@
       new PerformanceObserver(function(entryList) {
         assert_equals(entryList.getEntries().length, 1);
         resolve();
-      }).observe({ type: 'firstInput' , buffered: true});
+      }).observe({ type: 'first-input' , buffered: true});
     });
 
     on_event(window, 'load', function(e) {
@@ -57,7 +57,7 @@
       });
     });
   },
-  "Event Timing: check firstInput after onload, observer, click, click."
+  "Event Timing: check first-input after onload, observer, click, click."
   );
 </script>
 </html>

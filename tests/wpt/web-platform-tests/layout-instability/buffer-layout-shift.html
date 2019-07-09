@@ -1,6 +1,6 @@
 <!DOCTYPE HTML>
 <meta charset=utf-8>
-<title>Layout Instability: query layout shift value via the performance timeline</title>
+<title>Layout Instability entries are not available via the performance timeline</title>
 <body>
 <style>
 #myDiv { position: relative; width: 300px; height: 100px; }
@@ -13,19 +13,11 @@
 <script>
   async_test(function (t) {
     const startTime = performance.now();
-    // Modify the position of the div.
-    document.getElementById('myDiv').style = "top: 60px";
-    function testBufferedEntry() {
-      if (performance.getEntriesByType('layoutShift').length === 0) {
-        t.step_timeout(testBufferedEntry, 0);
-        return;
-      }
+    new PerformanceObserver(list => {
       const endTime = performance.now();
-      assert_equals(performance.getEntriesByType('layoutShift').length, 1);
-      assert_equals(performance.getEntries().filter(
-        entry => entry.entryType === 'layoutShift').length, 1);
-      const entry = performance.getEntriesByType('layoutShift')[0];
-      assert_equals(entry.entryType, "layoutShift");
+      assert_equals(list.getEntries().length, 1);
+      const entry = list.getEntries()[0];
+      assert_equals(entry.entryType, "layout-shift");
       assert_equals(entry.name, "");
       assert_greater_than_equal(entry.startTime, startTime)
       assert_less_than_equal(entry.startTime, endTime)
@@ -36,10 +28,16 @@
       // 300 * (100 + 60) * (60 / maxDimension) / viewport size.
       assert_equals(entry.value, 300 * (100 + 60) * (60 / maxDimension) /
         (document.documentElement.clientWidth * document.documentElement.clientHeight));
+
+      // The entry should not be available via getEntries* methods.
+      assert_equals(performance.getEntriesByType('layout-shift').length, 0, 'getEntriesByType should have no layout-shift entries');
+      assert_equals(performance.getEntriesByName('', 'layout-shift').length, 0, 'getEntriesByName should have no layout-shift entries');
+      assert_equals(performance.getEntries().filter(e => e.entryType === 'layout-shift').length, 0, 'getEntries should have no layout-shift entries');
       t.done();
-    }
-    t.step(testBufferedEntry);
-  }, 'Layout shift before onload is buffered into the performance timeline.');
+    }).observe({type: 'layout-shift'});
+    // Modify the position of the div.
+    document.getElementById('myDiv').style = "top: 60px";
+  }, 'Layout shift before onload is not buffered into the performance timeline.');
 </script>
 
 </body>

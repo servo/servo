@@ -22,12 +22,15 @@ This function must return a value in one of the following four formats:
     content
 
 Above, `headers` is a list of (field name, value) pairs, and `content` is a
-string or an iterable returning strings. The `main` function may also update
-the response manually. For example, one may use `response.headers.set` to set a
-response header, and only return the content. One may even use this kind of
-handler, but manipulate the output socket directly, in which case the return
-value of the function, and the properties of the response object, will be
-ignored.
+string or an iterable returning strings.
+
+The `main` function may also update the response manually. For example, one may
+use `response.headers.set` to set a response header, and only return the
+content. One may even use this kind of handler, but manipulate the output
+socket directly. The `writer` property of the response exposes a
+`ResponseWriter` object that allows writing specific parts of the request or
+direct access to the underlying socket. If used, the return value of the
+`main` function and the properties of the `response` object will be ignored.
 
 The wptserver implements a number of Python APIs for controlling traffic.
 

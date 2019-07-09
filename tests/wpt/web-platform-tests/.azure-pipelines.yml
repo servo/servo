@@ -225,6 +225,8 @@ jobs:
   - template: tools/ci/azure/update_manifest.yml
   - script: python ./wpt run --yes --no-manifest-update --install-fonts --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl - --log-tbpl-level info --channel dev edgechromium infrastructure/
     displayName: 'Run tests (Edge Dev)'
+  - script: python ./wpt run --yes --no-manifest-update --install-fonts --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl - --log-tbpl-level info --channel canary edgechromium infrastructure/
+    displayName: 'Run tests (Edge Canary)'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
     inputs:
@@ -258,6 +260,8 @@ jobs:
   - template: tools/ci/azure/update_manifest.yml
   - script: python ./wpt run --yes --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --install-fonts --this-chunk $(System.JobPositionInPhase) --total-chunks $(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-tbpl - --log-tbpl-level info --channel dev edgechromium
     displayName: 'Run tests (Edge Dev)'
+  - script: python ./wpt run --yes --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --install-fonts --this-chunk $(System.JobPositionInPhase) --total-chunks $(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-tbpl - --log-tbpl-level info --channel canary edgechromium
+    displayName: 'Run tests (Edge Canary)'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
     inputs:

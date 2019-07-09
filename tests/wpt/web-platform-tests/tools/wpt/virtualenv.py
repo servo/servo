@@ -34,6 +34,11 @@ class Virtualenv(object):
     def exists(self):
         return os.path.isdir(self.path)
 
+    @property
+    def broken_link(self):
+        python_link = os.path.join(self.path, ".Python")
+        return os.path.lexists(python_link) and not os.path.exists(python_link)
+
     def create(self):
         if os.path.exists(self.path):
             shutil.rmtree(self.path)
@@ -88,7 +93,7 @@ class Virtualenv(object):
         execfile(path, {"__file__": path})  # noqa: F821
 
     def start(self):
-        if not self.exists:
+        if not self.exists or self.broken_link:
             self.create()
         self.activate()
 

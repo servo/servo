@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <meta charset=utf-8>
-<title>Event Timing: make sure event-timing entries are retrievable by existing perf APIs.</title>
+<title>Event Timing: make sure 'event' entries are not retrievable by performance.getEntries* APIs.</title>
 <meta name="timeout" content="long">
 <button id='button'>Generate a 'click' event</button>
 <script src=/resources/testharness.js></script>
@@ -10,17 +10,15 @@
 <script src=/resources/testdriver-vendor.js></script>
 
 <script src=resources/event-timing-test-utils.js></script>
-<img src=resources/slow-image.py>
 
 <script>
   function validateEntries() {
     const entriesByName = performance.getEntriesByName('mousedown', 'event');
     const entriesByType = performance.getEntriesByType('event');
     const allEntries = performance.getEntries();
-    assert_equals(entriesByName.length, 1, 'event-timing entry should be retrievable by getEntriesByName');
-    const e = entriesByName[0];
-    assert_true(entriesByType.includes(e), 'event-timing entry should be retrievable by getEntries');
-    assert_true(allEntries.includes(e), 'event-timing entry should be retrievable by getEntriesByType');
+    assert_equals(entriesByName.length, 0, 'Event Timing entry should not be retrievable by getEntriesByName');
+    assert_equals(entriesByType.length, 0, 'Event Timing entry should not be retrievable by getEntriesByType');
+    assert_equals(allEntries.filter(e => e.entryType === 'event').length, 0, 'Event Timing entry should not be retrievable by getEntries');
   }
 
   /* Timeline:
@@ -32,12 +30,15 @@
      Validate entries
   */
   async_test(function(t) {
-    clickAndBlockMain('button');
-    on_event(window, 'load', e => {
+    if (!window.PerformanceEventTiming) {
+      assert_unreached('PerformanceEventTiming is not implemented');
+    }
+    new PerformanceObserver(t.step_func_done(() => {
       validateEntries();
       t.done();
-    });
-  }, "Event Timing: make sure event-timing entries are retrievable by existing perf APIs.");
+    })).observe({entryTypes: ['event']});
+    clickAndBlockMain('button');
+  }, "Event Timing: make sure event-timing entries are not retrievable by performance.getEntries*.");
 
 </script>
 </html>

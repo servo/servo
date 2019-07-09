@@ -160,7 +160,7 @@ class TestResponse(TestUsingServer):
     def test_write_raw_none(self):
         @wptserve.handlers.handler
         def handler(request, response):
-            with pytest.raises(ValueError, message="data cannot be None"):
+            with pytest.raises(ValueError):
                 response.writer.write_raw_content(None)
 
         route = ("GET", "/test/test_write_raw_content", handler)

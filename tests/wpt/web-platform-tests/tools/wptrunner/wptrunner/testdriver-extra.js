@@ -21,10 +21,26 @@
         }
     });
 
+    const get_frame = function(element, frame) {
+        let foundFrame = frame;
+        let frameDocument = frame == window ? window.document : frame.contentDocument;
+        if (!frameDocument.contains(element)) {
+          foundFrame = null;
+          let frames = document.getElementsByTagName("iframe");
+          for (let i = 0; i < frames.length; i++) {
+            if (get_frame(element, frames[i])) {
+              foundFrame = frames[i];
+              break;
+            }
+          }
+        }
+        return foundFrame;
+    };
+
     const get_selector = function(element) {
         let selector;
 
-        if (element.id && document.getElementById(element.id) === element) {
+        if (element.id) {
             const id = element.id;
 
             selector = "#";
@@ -81,8 +97,16 @@
         for (let actionSequence of actions) {
             if (actionSequence.type == "pointer") {
                 for (let action of actionSequence.actions) {
-                    if (action.type == "pointerMove" && action.origin instanceof Element) {
-                        action.origin = {selector: get_selector(action.origin)};
+                    // The origin of each action can only be an element or a string of a value "viewport" or "pointer".
+                    if (action.type == "pointerMove" && typeof(action.origin) != 'string') {
+                        let frame = get_frame(action.origin, window);
+                        if (frame != null) {
+                            if (frame == window)
+                                action.frame = {frame: "window"};
+                            else
+                                action.frame = {frame: frame};
+                            action.origin = {selector: get_selector(action.origin)};
+                        } 
                     }
                 }
             }

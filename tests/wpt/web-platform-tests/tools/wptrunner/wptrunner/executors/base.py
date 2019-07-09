@@ -669,11 +669,11 @@ class ActionSequenceAction(object):
                 for action in actionSequence["actions"]:
                     if (action["type"] == "pointerMove" and
                         isinstance(action["origin"], dict)):
-                        action["origin"] = self.get_element(action["origin"]["selector"])
+                        action["origin"] = self.get_element(action["origin"]["selector"], action["frame"]["frame"])
         self.protocol.action_sequence.send_actions({"actions": actions})
 
-    def get_element(self, selector):
-        element = self.protocol.select.element_by_selector(selector)
+    def get_element(self, element_selector, frame):
+        element = self.protocol.select.element_by_selector(element_selector, frame)
         return element
 
 class GenerateTestReportAction(object):

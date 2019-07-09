@@ -235,18 +235,28 @@ class SelectorProtocolPart(ProtocolPart):
 
     name = "select"
 
-    def element_by_selector(self, selector):
-        elements = self.elements_by_selector(selector)
+    def element_by_selector(self, element_selector, frame="window"):
+        elements = self.elements_by_selector_and_frame(element_selector, frame)
+        frame_name = "window"
+        if (frame != "window"):
+            frame_name = frame.id
         if len(elements) == 0:
-            raise ValueError("Selector '%s' matches no elements" % selector)
+            raise ValueError("Selector '%s' in frame '%s' matches no elements" % (element_selector, frame_name))
         elif len(elements) > 1:
-            raise ValueError("Selector '%s' matches multiple elements" % selector)
+            raise ValueError("Selector '%s' in frame '%s' matches multiple elements" % (element_selector, frame_name))
         return elements[0]
 
     @abstractmethod
     def elements_by_selector(self, selector):
         """Select elements matching a CSS selector
 
+        :param str selector: The CSS selector
+        :returns: A list of protocol-specific handles to elements"""
+        pass
+
+    @abstractmethod
+    def elements_by_selector_and_frame(self, element_selector, frame):
+        """Select elements matching a CSS selector
         :param str selector: The CSS selector
         :returns: A list of protocol-specific handles to elements"""
         pass

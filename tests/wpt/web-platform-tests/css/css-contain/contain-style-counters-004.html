@@ -6,7 +6,7 @@
 
   <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
   <link rel="help" href="https://www.w3.org/TR/css-contain-1/#containment-style">
-  <link rel="match" href="reference/contain-style-counters-003-ref.html">
+  <link rel="match" href="reference/contain-style-counters-004-ref.html">
 
   <meta name="flags" content="">
 
@@ -63,8 +63,10 @@
 
   <p> <span></span> <span></span> <span></span> <span></span>
 
-  <!-- 4 span inside the <p> -->
+  <!-- 4 span inside the <p>. However, since div isn't a sibling of spans,
+       it creates a new counter.
+  -->
 
-  <p>Test passes if there is the number 20.
+  <p>Test passes if there is the number 0.
 
   <div></div>

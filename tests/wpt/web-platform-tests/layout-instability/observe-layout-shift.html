@@ -46,7 +46,7 @@
         const endTime = performance.now();
         assert_equals(entryList.getEntries().length, 1);
         const entry = entryList.getEntries()[0];
-        assert_equals(entry.entryType, "layoutShift");
+        assert_equals(entry.entryType, "layout-shift");
         assert_equals(entry.name, "");
         assert_greater_than_equal(entry.startTime, startTime)
         assert_less_than_equal(entry.startTime, endTime)
@@ -59,7 +59,7 @@
           (document.documentElement.clientWidth * document.documentElement.clientHeight));
       })
     );
-    observer.observe({entryTypes: ['layoutShift']});
+    observer.observe({entryTypes: ['layout-shift']});
     window.onload = () => {
       // Modify the position of the div.
       document.getElementById('myDiv').style = "top: 60px";
@@ -73,7 +73,7 @@
         const endTime = performance.now();
         assert_equals(entryList.getEntries().length, 1);
         const entry = entryList.getEntries()[0];
-        assert_equals(entry.entryType, "layoutShift");
+        assert_equals(entry.entryType, "layout-shift");
         assert_equals(entry.name, "");
         assert_greater_than_equal(entry.startTime, startTime)
         assert_less_than_equal(entry.startTime, endTime)
@@ -89,7 +89,7 @@
         assert_greater_than_equal(timeAfterClick, entry.lastInputTime);
       })
     );
-    observer.observe({entryTypes: ['layoutShift']});
+    observer.observe({entryTypes: ['layout-shift']});
     window.onload = () => {
       // User input event
       clickAndBlockMain('button').then( () => {

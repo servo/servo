@@ -13,6 +13,17 @@ from mozlog import structuredlog, capture
 Stop = object()
 
 
+def release_mozlog_lock():
+    try:
+        from mozlog.structuredlog import StructuredLogger
+        try:
+            StructuredLogger._lock.release()
+        except threading.ThreadError:
+            pass
+    except ImportError:
+        pass
+
+
 class MessageLogger(object):
     def __init__(self, message_func):
         self.send_message = message_func
@@ -137,6 +148,10 @@ def start_runner(runner_command_queue, runner_result_queue,
     def handle_error(e):
         logger.critical(traceback.format_exc())
         stop_flag.set()
+
+    # Ensure that when we start this in a new process we have the global lock
+    # in the logging module unlocked
+    release_mozlog_lock()
 
     logger = MessageLogger(send_message)
 
