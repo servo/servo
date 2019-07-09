@@ -104,7 +104,7 @@ pub struct QuotePair {
     pub closing: crate::OwnedStr,
 }
 
-/// Specified and computed `quotes` property.
+/// List of quote pairs for the specified/computed value of `quotes` property.
 #[derive(
     Clone,
     Debug,
@@ -117,12 +117,35 @@ pub struct QuotePair {
     ToResolvedValue,
     ToShmem,
 )]
-#[repr(C)]
-pub struct Quotes(
+#[repr(transparent)]
+pub struct QuoteList(
     #[css(iterable, if_empty = "none")]
     #[ignore_malloc_size_of = "Arc"]
     pub crate::ArcSlice<QuotePair>,
 );
+
+/// Specified and computed `quotes` property: `auto`, `none`, or a list
+/// of characters.
+///
+/// cbindgen:derive-tagged-enum-copy-constructor=true
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C)]
+pub enum Quotes {
+    /// list of quote pairs
+    QuoteList(QuoteList),
+    /// auto (use lang-dependent quote marks)
+    Auto,
+}
 
 impl Parse for Quotes {
     fn parse<'i, 't>(
@@ -130,10 +153,17 @@ impl Parse for Quotes {
         input: &mut Parser<'i, 't>,
     ) -> Result<Quotes, ParseError<'i>> {
         if input
+            .try(|input| input.expect_ident_matching("auto"))
+            .is_ok()
+        {
+            return Ok(Quotes::Auto);
+        }
+
+        if input
             .try(|input| input.expect_ident_matching("none"))
             .is_ok()
         {
-            return Ok(Self::default());
+            return Ok(Quotes::QuoteList(QuoteList::default()))
         }
 
         let mut quotes = Vec::new();
@@ -150,7 +180,7 @@ impl Parse for Quotes {
         }
 
         if !quotes.is_empty() {
-            Ok(Quotes(crate::ArcSlice::from_iter(quotes.into_iter())))
+            Ok(Quotes::QuoteList(QuoteList(crate::ArcSlice::from_iter(quotes.into_iter()))))
         } else {
             Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
