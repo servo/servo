@@ -27,6 +27,7 @@ pub enum GLContextFactory {
     Native(
         NativeGLContextHandle,
         Option<Box<dyn CloneableDispatcher + Send>>,
+        gl::GlType,
     ),
     OSMesa(OSMesaContextHandle),
 }
@@ -35,6 +36,7 @@ impl GLContextFactory {
     /// Creates a new GLContextFactory that uses the currently bound GL context to create shared contexts.
     pub fn current_native_handle(
         dispatcher: Box<dyn CloneableDispatcher + Send>,
+        api_type: gl::GlType,
     ) -> Option<GLContextFactory> {
         let dispatcher = if cfg!(target_os = "windows") {
             // Used to dispatch functions from the GLContext thread to the main thread's
@@ -46,7 +48,8 @@ impl GLContextFactory {
         // FIXME(emilio): This assumes a single GL backend per platform which is
         // not true on Linux, we probably need a third `Egl` variant or abstract
         // it a bit more...
-        NativeGLContext::current_handle().map(|handle| GLContextFactory::Native(handle, dispatcher))
+        NativeGLContext::current_handle()
+            .map(|handle| GLContextFactory::Native(handle, dispatcher, api_type))
     }
 
     /// Creates a new GLContextFactory that uses the currently bound OSMesa context to create shared contexts.
@@ -63,13 +66,13 @@ impl GLContextFactory {
     ) -> Result<GLContextWrapper, &'static str> {
         let attributes = map_attrs(attributes);
         Ok(match *self {
-            GLContextFactory::Native(ref handle, ref dispatcher) => {
+            GLContextFactory::Native(ref handle, ref dispatcher, ref api_type) => {
                 GLContextWrapper::Native(GLContext::new_shared_with_dispatcher(
                     // FIXME(nox): Why are those i32 values?
                     size.to_i32(),
                     attributes,
                     ColorAttachmentType::Texture,
-                    gl::GlType::default(),
+                    *api_type,
                     Self::gl_version(webgl_version),
                     Some(handle),
                     dispatcher.as_ref().map(|d| (**d).clone()),
@@ -99,13 +102,13 @@ impl GLContextFactory {
     ) -> Result<GLContextWrapper, &'static str> {
         let attributes = map_attrs(attributes);
         Ok(match *self {
-            GLContextFactory::Native(..) => {
+            GLContextFactory::Native(_, _, ref api_type) => {
                 GLContextWrapper::Native(GLContext::new_shared_with_dispatcher(
                     // FIXME(nox): Why are those i32 values?
                     size.to_i32(),
                     attributes,
                     ColorAttachmentType::Texture,
-                    gl::GlType::default(),
+                    *api_type,
                     Self::gl_version(webgl_version),
                     None,
                     None,

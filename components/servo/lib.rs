@@ -747,7 +747,7 @@ fn create_constellation(
         GLContextFactory::current_osmesa_handle()
     } else {
         let dispatcher = Box::new(MainThreadDispatcher::new(compositor_proxy.clone())) as Box<_>;
-        GLContextFactory::current_native_handle(dispatcher)
+        GLContextFactory::current_native_handle(dispatcher, window_gl.get_type())
     };
 
     let (external_image_handlers, external_images) = WebrenderExternalImageHandlers::new();
