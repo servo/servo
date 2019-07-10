@@ -175,6 +175,7 @@ class Longhand(object):
                  predefined_type=None, servo_pref=None, gecko_pref=None,
                  enabled_in="content", need_index=False,
                  gecko_ffi_name=None,
+                 has_effect_on_gecko_scrollbars=None,
                  allowed_in_keyframe_block=True, cast_type='u8',
                  logical=False, logical_group=None, alias=None, extra_prefixes=None, boxed=False,
                  flags=None, allowed_in_page_rule=False, allow_quirks="No",
@@ -192,6 +193,14 @@ class Longhand(object):
         self.style_struct = style_struct
         self.servo_pref = servo_pref
         self.gecko_pref = gecko_pref
+        self.has_effect_on_gecko_scrollbars = has_effect_on_gecko_scrollbars
+        assert (
+            has_effect_on_gecko_scrollbars in [None, False, True] and
+            not style_struct.inherited or
+            (gecko_pref is None) == (has_effect_on_gecko_scrollbars is None)), (
+            "Property " + name + ": has_effect_on_gecko_scrollbars must be " +
+            "specified, and must have a value of True or False, iff a " +
+            "property is inherited and is behind a Gecko pref")
         # For enabled_in, the setup is as follows:
         # It needs to be one of the four values: ["", "ua", "chrome", "content"]
         #  * "chrome" implies "ua", and implies that they're explicitly
