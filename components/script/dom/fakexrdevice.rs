@@ -7,43 +7,39 @@ use crate::dom::bindings::codegen::Bindings::FakeXRDeviceBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use webvr_traits::{MockVRControlMsg, MockVRView, WebVRMsg};
+use euclid::{TypedRigidTransform3D, TypedRotation3D, TypedTransform3D, TypedVector3D};
+use ipc_channel::ipc::IpcSender;
+use webxr_api::{MockDeviceMsg, View, Views};
 
 #[dom_struct]
 pub struct FakeXRDevice {
     reflector: Reflector,
+    #[ignore_malloc_size_of = "defined in ipc-channel"]
+    sender: IpcSender<MockDeviceMsg>,
 }
 
 impl FakeXRDevice {
-    pub fn new_inherited() -> FakeXRDevice {
+    pub fn new_inherited(sender: IpcSender<MockDeviceMsg>) -> FakeXRDevice {
         FakeXRDevice {
             reflector: Reflector::new(),
+            sender,
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<FakeXRDevice> {
+    pub fn new(global: &GlobalScope, sender: IpcSender<MockDeviceMsg>) -> DomRoot<FakeXRDevice> {
         reflect_dom_object(
-            Box::new(FakeXRDevice::new_inherited()),
+            Box::new(FakeXRDevice::new_inherited(sender)),
             global,
             FakeXRDeviceBinding::Wrap,
         )
     }
-
-    fn send_msg(&self, msg: MockVRControlMsg) {
-        self.global()
-            .as_window()
-            .webvr_thread()
-            .unwrap()
-            .send(WebVRMsg::MessageMockDisplay(msg))
-            .unwrap();
-    }
 }
 
-pub fn get_views(views: &[FakeXRViewInit]) -> Fallible<(MockVRView, MockVRView)> {
+pub fn get_views(views: &[FakeXRViewInit]) -> Fallible<Views> {
     if views.len() != 2 {
         return Err(Error::NotSupported);
     }
@@ -66,45 +62,53 @@ pub fn get_views(views: &[FakeXRViewInit]) -> Fallible<(MockVRView, MockVRView)>
     let mut proj_r = [0.; 16];
     let v: Vec<_> = left.projectionMatrix.iter().map(|x| **x).collect();
     proj_l.copy_from_slice(&v);
+    let proj_l = TypedTransform3D::from_array(proj_l);
     let v: Vec<_> = right.projectionMatrix.iter().map(|x| **x).collect();
     proj_r.copy_from_slice(&v);
+    let proj_r = TypedTransform3D::from_array(proj_r);
 
-    let mut offset_l = [0.; 3];
-    let mut offset_r = [0.; 3];
-    let v: Vec<_> = left.viewOffset.position.iter().map(|x| **x).collect();
-    offset_l.copy_from_slice(&v);
-    let v: Vec<_> = right.viewOffset.position.iter().map(|x| **x).collect();
-    offset_r.copy_from_slice(&v);
-    let left = MockVRView {
+    // spec defines offsets as origins, but mock API expects the inverse transform
+    let offset_l = get_origin(&left.viewOffset)?.inverse();
+    let offset_r = get_origin(&right.viewOffset)?.inverse();
+
+    let left = View {
         projection: proj_l,
-        offset: offset_l,
+        transform: offset_l,
     };
-    let right = MockVRView {
+    let right = View {
         projection: proj_r,
-        offset: offset_r,
+        transform: offset_r,
     };
-    Ok((left, right))
+    Ok(Views::Stereo(left, right))
 }
 
-pub fn get_origin(origin: &FakeXRRigidTransformInit) -> Fallible<([f32; 3], [f32; 4])> {
+pub fn get_origin<T, U>(
+    origin: &FakeXRRigidTransformInit,
+) -> Fallible<TypedRigidTransform3D<f32, T, U>> {
     if origin.position.len() != 3 || origin.orientation.len() != 4 {
         return Err(Error::Type("Incorrectly sized array".into()));
     }
-    let mut p = [0.; 3];
-    let mut o = [0.; 4];
-    let v: Vec<_> = origin.position.iter().map(|x| **x).collect();
-    p.copy_from_slice(&v[0..3]);
-    let v: Vec<_> = origin.orientation.iter().map(|x| **x).collect();
-    o.copy_from_slice(&v);
+    let p = TypedVector3D::new(
+        *origin.position[0],
+        *origin.position[1],
+        *origin.position[2],
+    );
+    let o = TypedRotation3D::unit_quaternion(
+        *origin.orientation[0],
+        *origin.orientation[1],
+        *origin.orientation[2],
+        *origin.orientation[3],
+    );
 
-    Ok((p, o))
+    Ok(TypedRigidTransform3D::new(o, p))
 }
 
 impl FakeXRDeviceMethods for FakeXRDevice {
     /// https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
     fn SetViews(&self, views: Vec<FakeXRViewInit>) -> Fallible<()> {
-        let (left, right) = get_views(&views)?;
-        self.send_msg(MockVRControlMsg::SetViews(left, right));
+        let _ = self
+            .sender
+            .send(MockDeviceMsg::SetViews(get_views(&views)?));
         Ok(())
     }
 
@@ -114,8 +118,9 @@ impl FakeXRDeviceMethods for FakeXRDevice {
         origin: &FakeXRRigidTransformInit,
         _emulated_position: bool,
     ) -> Fallible<()> {
-        let (position, orientation) = get_origin(origin)?;
-        self.send_msg(MockVRControlMsg::SetViewerPose(position, orientation));
+        let _ = self
+            .sender
+            .send(MockDeviceMsg::SetViewerOrigin(get_origin(origin)?));
         Ok(())
     }
 }

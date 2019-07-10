@@ -29,7 +29,7 @@ dictionary FakeXRDeviceInit {
     // The bounds coordinates. If null, bounded reference spaces are not supported.
     sequence<FakeXRBoundsPoint> boundsCoodinates;
     // Eye level used for calculating floor-level spaces
-    float eyeLevel = 1.5;
+    FakeXRRigidTransformInit floorOrigin;
     FakeXRRigidTransformInit viewerOrigin;
 };
 
