@@ -877,6 +877,13 @@ impl<T: ClipboardProvider> TextInput<T> {
                 self.select_all();
                 KeyReaction::RedrawSelection
             })
+            .shortcut(CMD_OR_CONTROL, 'X', || {
+                if let Some(text) = self.get_selection_text() {
+                    self.clipboard_provider.set_clipboard_contents(text);
+                    self.delete_char(Direction::Backward);
+                }
+                KeyReaction::DispatchInput
+            })
             .shortcut(CMD_OR_CONTROL, 'C', || {
                 if let Some(text) = self.get_selection_text() {
                     self.clipboard_provider.set_clipboard_contents(text);
