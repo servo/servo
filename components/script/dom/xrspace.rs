@@ -10,7 +10,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrreferencespace::XRReferenceSpace;
-use crate::dom::xrsession::{ApiPose, XRSession};
+use crate::dom::xrsession::{cast_transform, ApiPose, XRSession};
 use dom_struct::dom_struct;
 use webxr_api::Frame;
 
@@ -61,7 +61,18 @@ impl XRSpace {
         if let Some(reference) = self.downcast::<XRReferenceSpace>() {
             reference.get_pose(base_pose)
         } else if let Some(source) = self.input_source.get() {
-            source.pose()
+            // XXXManishearth we should be able to request frame information
+            // for inputs when necessary instead of always loading it
+            //
+            // Also, the below code is quadratic, so this API may need an overhaul anyway
+            let id = source.id();
+            // XXXManishearth once we have dynamic inputs we'll need to handle this better
+            let frame = base_pose
+                .inputs
+                .iter()
+                .find(|i| i.id == id)
+                .expect("no input found");
+            cast_transform(frame.target_ray_origin)
         } else {
             unreachable!()
         }
