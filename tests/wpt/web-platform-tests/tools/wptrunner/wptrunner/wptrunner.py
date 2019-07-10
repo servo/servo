@@ -52,7 +52,8 @@ def get_loader(test_paths, product, debug=None, run_info_extras=None, **kwargs):
                                     browser_channel=kwargs.get("browser_channel"),
                                     verify=kwargs.get("verify"),
                                     debug=debug,
-                                    extras=run_info_extras)
+                                    extras=run_info_extras,
+                                    enable_webrender=kwargs.get("enable_webrender"))
 
     test_manifests = testloader.ManifestLoader(test_paths, force_manifest_update=kwargs["manifest_update"],
                                                manifest_download=kwargs["manifest_download"]).load()

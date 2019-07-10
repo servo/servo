@@ -8,6 +8,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-backgrounds/#box-shadow">
 <meta name="assert" content="box-shadow supports only the grammar 'none | <shadow>#'.">
 <meta name="assert" content="Lengths must stay adjacent." />
+<meta name="assert" content="<blur-radius> must be non-negative." />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -57,6 +58,9 @@ test_invalid_value("box-shadow", "inset 4px -4px red 0");
 test_invalid_value("box-shadow", "4px -4px red 0 inset");
 test_invalid_value("box-shadow", "red 4px -4px inset 0");
 test_invalid_value("box-shadow", "4px -4px inset 0 red");
+
+// <blur-radius> must be non-negative
+test_invalid_value("box-shadow", "1px 1px -1px");
 </script>
 </body>
 </html>

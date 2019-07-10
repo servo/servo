@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="km">
+<meta charset=utf-8>
+<title>CSS Generated Content test: quotes</title>
+<meta name="assert" content="Khmer quotation marks follow CLDR">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-content-3/#quotes">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#quotes">
+<link rel=match href="reference/quotes-017-ref.html">
+<style>
+body { font: 32px serif; }
+</style>
+<body>
+<p>Test passes if the quote marks in both lines match:
+<p><q>មួយ <q>ពីរ</q> បី</q>
+<p>&#x201c;មួយ &#x2018;ពីរ&#x2019; បី&#x201d;

@@ -39,6 +39,12 @@
                 style:"--gap: 20;border-spacing: var(--gap)px;"
             },
             {
+                testName:"You can't build up a single token where part of it is provided by a variable (percentages)",
+                propertyName:"text-indent",
+                expectedValue:"0px",
+                style:"--v: 20;text-indent: var(--v)%;"
+            },
+            {
                 testName:"Multiple variable references in a single property",
                 propertyName:"border-spacing",
                 expectedValue:"19px 47px",

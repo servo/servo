@@ -42,6 +42,17 @@ def int_prop(name, node):
         return None
 
 
+def list_prop(name, node):
+    """List property"""
+    try:
+        list_prop = node.get(name)
+        if isinstance(list_prop, basestring):
+            return [list_prop]
+        return list(list_prop)
+    except KeyError:
+        return []
+
+
 def tags(node):
     """Set of tags that have been applied to the test"""
     try:
@@ -288,6 +299,14 @@ class ExpectedManifest(ManifestItem):
     def fuzzy(self):
         return fuzzy_prop(self)
 
+    @property
+    def expected(self):
+        return list_prop("expected", self)[0]
+
+    @property
+    def known_intermittent(self):
+        return list_prop("expected", self)[1:]
+
 
 class DirectoryManifest(ManifestItem):
     @property
@@ -414,6 +433,14 @@ class TestNode(ManifestItem):
     @property
     def fuzzy(self):
         return fuzzy_prop(self)
+
+    @property
+    def expected(self):
+        return list_prop("expected", self)[0]
+
+    @property
+    def known_intermittent(self):
+        return list_prop("expected", self)[1:]
 
     def append(self, node):
         """Add a subtest to the current test

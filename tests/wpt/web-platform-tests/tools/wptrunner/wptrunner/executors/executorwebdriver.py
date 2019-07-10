@@ -143,7 +143,7 @@ class WebDriverSelectorProtocolPart(SelectorProtocolPart):
         return self.webdriver.find.css(selector)
 
     def elements_by_selector_and_frame(self, element_selector, frame):
-        return self.webdriver.find.css(element_selector, frame)
+        return self.webdriver.find.css(element_selector, frame=frame)
 
 
 class WebDriverClickProtocolPart(ClickProtocolPart):

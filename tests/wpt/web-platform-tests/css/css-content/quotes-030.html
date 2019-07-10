@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<meta charset=utf-8>
+<title>CSS Generated Content test: quotes</title>
+<meta name="assert" content="quotes:auto with mixed languages uses appropriate CLDR quotes for each language">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-content-3/#quotes">
+<link rel=match href="reference/quotes-030-ref.html">
+<style>
+body { font: 32px serif; quotes: auto; }
+</style>
+<body>
+<p>Test passes if the quote marks in both lines match:
+<p>One <q>two <q lang="ja">three <q lang="fr">four</q></q></q>
+<p>One “two <span lang="ja">『three <span lang="fr">«four»</span>』</span>”

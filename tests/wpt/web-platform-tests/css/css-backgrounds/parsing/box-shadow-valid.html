@@ -57,6 +57,11 @@ test_valid_value("box-shadow", "4px -4px 0 0 green inset", "green 4px -4px 0px 0
 test_valid_value("box-shadow", "4px -4px 0 0 inset green", "green 4px -4px 0px 0px inset");
 test_valid_value("box-shadow", "green 4px -4px 0 0 inset", "green 4px -4px 0px 0px inset");
 test_valid_value("box-shadow", "inset 4px -4px 0 0 green", "green 4px -4px 0px 0px inset");
+
+// No parse-time range-checking for <blur-radius> given as a math function
+// https://drafts.csswg.org/css-values-4/#calc-range
+test_valid_value("box-shadow", "1px 1px calc(-1px)", "1px 1px calc(-1px)");
+test_valid_value("box-shadow", "1px 1px calc(1em - 2px)", "1px 1px calc(1em - 2px)");
 </script>
 </body>
 </html>

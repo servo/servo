@@ -46,35 +46,30 @@ ways:
 
 * By using a textual substitution feature of the server.
 
-In order for the latter to work, a file must either have a name of the
-form `{name}.sub.{ext}` e.g. `example-test.sub.html` or be referenced
-through a URL containing `pipe=sub` in the query string
-e.g. `example-test.html?pipe=sub`. The substitution syntax uses `{%
-raw %}{{ }}{% endraw %}` to delimit items for substitution. For
-example to substitute in the main host name, one would write:
-`{% raw %}{{host}}{% endraw %}`.
+In order for the latter to work, a file must either have a name of the form
+`{name}.sub.{ext}` e.g. `example-test.sub.html` or be referenced through a URL
+containing `pipe=sub` in the query string e.g. `example-test.html?pipe=sub`.
+The substitution syntax uses `{{ }}` to delimit items for substitution. For
+example to substitute in the main host name, one would write: `{{host}}`.
 
-To get full domains, including subdomains, there is the `hosts`
-dictionary, where the first dimension is the name of the domain, and
-the second the subdomain. For example, `{% raw %}{{hosts[][www]}}{%
-endraw %}` would give the `www` subdomain under the main (unnamed)
-domain, and `{% raw %}{{hosts[alt][élève]}}{% endraw %}` would give
-the `élève` subdomain under the alt domain.
+To get full domains, including subdomains, there is the `hosts` dictionary,
+where the first dimension is the name of the domain, and the second the
+subdomain. For example, `{{hosts[][www]}}` would give the `www` subdomain under
+the main (unnamed) domain, and `{{hosts[alt][élève]}}` would give the `élève`
+subdomain under the alt domain.
 
 For mostly historic reasons, the subdomains of the main domain are
 also available under the `domains` dictionary; this is identical to
 `hosts[]`.
 
-Ports are also available on a per-protocol basis. For example, `{% raw
-%}{{ports[ws][0]}}{% endraw %}` is replaced with the first (and only)
-WebSockets port, while `{% raw %}{{ports[http][1]}}{% endraw %}` is
-replaced with the second HTTP port.
+Ports are also available on a per-protocol basis. For example,
+`{{ports[ws][0]}}` is replaced with the first (and only) WebSockets port, while
+`{{ports[http][1]}}` is replaced with the second HTTP port.
 
-The request URL itself can be used as part of the substitution using
-the `location` dictionary, which has entries matching the
-`window.location` API. For example, `{% raw %}{{location[host]}}{%
-endraw %}`is replaced by `hostname:port` for the current request,
-matching `location.host`.
+The request URL itself can be used as part of the substitution using the
+`location` dictionary, which has entries matching the `window.location` API.
+For example, `{{location[host]}}` is replaced by `hostname:port` for the
+current request, matching `location.host`.
 
 
 ### Tests Requiring Special Headers

@@ -20,4 +20,14 @@ test(() => {
   const mediaStream = new MediaStream();
   assert_throws(new TypeError(), () => URL.createObjectURL(mediaStream));
 }, "Passing MediaStream to URL.createObjectURL() should throw");
+
+test(() => {
+  const mediaStream = new MediaStream();
+  assert_false("onactive" in mediaStream);
+}, "MediaStream.onactive should not exist");
+
+test(() => {
+  const mediaStream = new MediaStream();
+  assert_false("oninactive" in mediaStream);
+}, "MediaStream.oninactive should not exist");
 </script>

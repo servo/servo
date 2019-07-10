@@ -1,0 +1,27 @@
+<!doctype html>
+<title>Image width and height attributes are used to infer aspect-ratio</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  img {
+    width: 100%;
+    max-width: 100px;
+    height: auto;
+  }
+</style>
+<img src=broken width=100 height=125>
+<img src="/images/green.png" width=100 height=125>
+<img src="/images/green.png">
+<script>
+let t = async_test("Image width and height attributes are used to infer aspect-ratio");
+function assert_ratio(img, expected) {
+  let epsilon = 0.001;
+  assert_approx_equals(parseInt(getComputedStyle(img).width, 10) / parseInt(getComputedStyle(img).height, 10), expected, epsilon);
+}
+onload = t.step_func_done(function() {
+  let images = document.querySelectorAll("img");
+  assert_ratio(images[0], 0.8);
+  assert_ratio(images[1], 0.8);
+  assert_ratio(images[2], 2.0); // 2.0 is the original aspect ratio of green.png
+});
+</script>

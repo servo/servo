@@ -5,6 +5,7 @@
 <link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
 <script src="resources/test-sab.js"></script>
 
 <div id="log"></div>
@@ -13,9 +14,10 @@
 "use strict";
 
 async_test(t => {
+  const testId = token();
   const sab = new SharedArrayBuffer(1);
   window.addEventListener("message", t.step_func(({ data }) => {
-    if (data.testId !== 1) {
+    if (data.testId !== testId) {
       return;
     }
 
@@ -24,15 +26,16 @@ async_test(t => {
     t.done();
   }));
 
-  window.postMessage({ sab, testId: 1 }, "*");
+  window.postMessage({ testId, sab }, "*");
 }, "postMessaging to this window does not give back the same SharedArrayBuffer (but does use the same backing block)");
 
 async_test(t => {
+  const testId = token();
   const sab = new SharedArrayBuffer();
-  const worker = new Worker("resources/echo-worker.js");
+  const worker = new Worker("../resources/echo-worker.js");
 
   worker.addEventListener("message", t.step_func(({ data }) => {
-    if (data.testId !== 2) {
+    if (data.testId !== testId) {
       return;
     }
 
@@ -40,13 +43,14 @@ async_test(t => {
     t.done();
   }));
 
-  worker.postMessage({ testId: 2, sab });
+  worker.postMessage({ testId, sab });
 }, "postMessaging to a worker and back does not give back the same SharedArrayBuffer");
 
 async_test(t => {
+  const testId = token();
   const sab = new SharedArrayBuffer();
   window.addEventListener("message", t.step_func(({ data }) => {
-    if (data.testId !== 3) {
+    if (data.testId !== testId) {
       return;
     }
 
@@ -56,9 +60,9 @@ async_test(t => {
 
   const iframe = document.createElement("iframe");
   iframe.onload = t.step_func(() => {
-    iframe.contentWindow.postMessage({ testId: 3, sab }, "*");
+    iframe.contentWindow.postMessage({ testId, sab }, "*");
   });
-  iframe.src = "resources/echo-iframe.html";
+  iframe.src = "../resources/echo-iframe.html";
   document.body.appendChild(iframe);
 }, "postMessaging to an iframe and back does not give back the same SharedArrayBuffer");
 </script>
