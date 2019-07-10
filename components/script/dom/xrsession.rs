@@ -19,7 +19,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{DomRoot, MutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutDom, MutNullableDom};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -58,6 +58,7 @@ pub struct XRSession {
     raf_callback_list: DomRefCell<Vec<(i32, Option<Rc<XRFrameRequestCallback>>)>>,
     #[ignore_malloc_size_of = "defined in ipc-channel"]
     raf_sender: DomRefCell<Option<IpcSender<(f64, Frame)>>>,
+    input_sources: DomRefCell<Vec<Dom<XRInputSource>>>,
 }
 
 impl XRSession {
@@ -76,16 +77,27 @@ impl XRSession {
             next_raf_id: Cell::new(0),
             raf_callback_list: DomRefCell::new(vec![]),
             raf_sender: DomRefCell::new(None),
+            input_sources: DomRefCell::new(vec![]),
         }
     }
 
     pub fn new(global: &GlobalScope, session: Session) -> DomRoot<XRSession> {
         let render_state = XRRenderState::new(global, 0.1, 1000.0, None);
-        reflect_dom_object(
+        let ret = reflect_dom_object(
             Box::new(XRSession::new_inherited(session, &render_state)),
             global,
             XRSessionBinding::Wrap,
-        )
+        );
+        {
+            let mut input_sources = ret.input_sources.borrow_mut();
+            for info in ret.session.initial_inputs() {
+                // XXXManishearth we should be able to listen for updates
+                // to the input sources
+                let input = XRInputSource::new(global, &ret, *info);
+                input_sources.push(Dom::from_ref(&input));
+            }
+        }
+        ret
     }
 
     pub fn with_session<F: FnOnce(&Session)>(&self, with: F) {
@@ -267,7 +279,11 @@ impl XRSessionMethods for XRSession {
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-getinputsources
     fn GetInputSources(&self) -> Vec<DomRoot<XRInputSource>> {
-        unimplemented!()
+        self.input_sources
+            .borrow()
+            .iter()
+            .map(|x| DomRoot::from_ref(&**x))
+            .collect()
     }
 }
 
