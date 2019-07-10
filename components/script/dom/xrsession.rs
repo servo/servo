@@ -90,7 +90,7 @@ impl XRSession {
         );
         {
             let mut input_sources = ret.input_sources.borrow_mut();
-            for info in ret.session.initial_inputs() {
+            for info in ret.session.borrow().initial_inputs() {
                 // XXXManishearth we should be able to listen for updates
                 // to the input sources
                 let input = XRInputSource::new(global, &ret, *info);

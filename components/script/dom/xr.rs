@@ -76,11 +76,6 @@ impl XR {
         self.pending_immersive_session.set(false);
         self.active_immersive_session.set(Some(session))
     }
-
-    pub fn deactivate_session(&self) {
-        self.pending_immersive_session.set(false);
-        self.active_immersive_session.set(None)
-    }
 }
 
 impl Drop for XR {
