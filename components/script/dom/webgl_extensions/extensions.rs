@@ -18,7 +18,7 @@ use crate::dom::oestexturehalffloat::OESTextureHalfFloat;
 use crate::dom::webglcolorbufferfloat::WEBGLColorBufferFloat;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::webgltexture::TexCompression;
-use canvas_traits::webgl::WebGLVersion;
+use canvas_traits::webgl::{GlType, WebGLVersion};
 use fnv::{FnvHashMap, FnvHashSet};
 use gleam::gl::{self, GLenum};
 use js::jsapi::JSObject;
@@ -146,14 +146,16 @@ pub struct WebGLExtensions {
     extensions: DomRefCell<HashMap<String, Box<dyn WebGLExtensionWrapper>>>,
     features: DomRefCell<WebGLExtensionFeatures>,
     webgl_version: WebGLVersion,
+    api_type: GlType,
 }
 
 impl WebGLExtensions {
-    pub fn new(webgl_version: WebGLVersion) -> WebGLExtensions {
+    pub fn new(webgl_version: WebGLVersion, api_type: GlType) -> WebGLExtensions {
         Self {
             extensions: DomRefCell::new(HashMap::new()),
             features: DomRefCell::new(WebGLExtensionFeatures::new(webgl_version)),
             webgl_version,
+            api_type,
         }
     }
 
@@ -424,6 +426,10 @@ impl WebGLExtensions {
             }
         }
         type_
+    }
+
+    pub fn is_gles(&self) -> bool {
+        self.api_type == GlType::Gles
     }
 }
 

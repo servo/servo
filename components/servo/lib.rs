@@ -734,7 +734,7 @@ fn create_constellation(
     let gl_factory = if opts.should_use_osmesa() {
         GLContextFactory::current_osmesa_handle()
     } else {
-        GLContextFactory::current_native_handle(&compositor_proxy)
+        GLContextFactory::current_native_handle(&compositor_proxy, window_gl.get_type())
     };
 
     let (external_image_handlers, external_images) = WebrenderExternalImageHandlers::new();
