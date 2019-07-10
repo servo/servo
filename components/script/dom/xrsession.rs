@@ -140,7 +140,9 @@ impl XRSession {
         let mut callbacks = mem::replace(&mut *self.raf_callback_list.borrow_mut(), vec![]);
 
         let frame = XRFrame::new(&self.global(), self, frame);
-        // Step 6-7: XXXManishearth set `active`/`animationFrame` bools on `frame` to true
+        // Step 6,7
+        frame.set_active(true);
+        frame.set_animation_frame(true);
 
         // Step 8
         for (_, callback) in callbacks.drain(..) {
