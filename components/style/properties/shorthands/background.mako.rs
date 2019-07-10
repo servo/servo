@@ -15,7 +15,7 @@
     use crate::properties::longhands::background_clip;
     use crate::properties::longhands::background_clip::single_value::computed_value::T as Clip;
     use crate::properties::longhands::background_origin::single_value::computed_value::T as Origin;
-    use crate::values::specified::{Color, Position, PositionComponent};
+    use crate::values::specified::{AllowQuirks, Color, Position, PositionComponent};
     use crate::parser::Parse;
 
     // FIXME(emilio): Should be the same type!
@@ -64,7 +64,9 @@
                     }
                 }
                 if position.is_none() {
-                    if let Ok(value) = input.try(|input| Position::parse(context, input)) {
+                    if let Ok(value) = input.try(|input| {
+                        Position::parse_three_value_quirky(context, input, AllowQuirks::No)
+                    }) {
                         position = Some(value);
 
                         // Parse background size, if applicable.
@@ -211,7 +213,7 @@
         let mut any = false;
 
         input.parse_comma_separated(|input| {
-            let value = Position::parse_quirky(context, input, AllowQuirks::Yes)?;
+            let value = Position::parse_three_value_quirky(context, input, AllowQuirks::Yes)?;
             position_x.push(value.horizontal);
             position_y.push(value.vertical);
             any = true;
