@@ -157,6 +157,7 @@ mod media_platform {
             "gsttheora.dll",
             "gsttypefindfunctions.dll",
             "gstvideoconvert.dll",
+            "gstvideofilter.dll",
             "gstvideoparsersbad.dll",
             "gstvideoscale.dll",
             "gstvolume.dll",
