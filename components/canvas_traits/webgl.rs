@@ -74,6 +74,12 @@ pub enum WebGLMsg {
     Exit,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum GlType {
+    Gl,
+    Gles,
+}
+
 /// Contains the WebGLCommand sender and information about a WebGLContext
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WebGLCreateContextResult {
@@ -85,6 +91,8 @@ pub struct WebGLCreateContextResult {
     pub share_mode: WebGLContextShareMode,
     /// The GLSL version supported by the context.
     pub glsl_version: WebGLSLVersion,
+    /// The GL API used by the context.
+    pub api_type: GlType,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -742,12 +750,6 @@ parameters! {
             TextureWrapT = gl::TEXTURE_WRAP_T,
         }),
     }
-}
-
-pub fn is_gles() -> bool {
-    // TODO: align this with the actual kind of graphics context in use, rather than
-    // making assumptions based on platform
-    cfg!(any(target_os = "android", target_os = "ios"))
 }
 
 #[macro_export]

@@ -14,7 +14,7 @@ use crate::dom::webgl_extensions::ext::oesstandardderivatives::OESStandardDeriva
 use crate::dom::webgl_extensions::WebGLExtensions;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
-use canvas_traits::webgl::{webgl_channel, WebGLVersion};
+use canvas_traits::webgl::{webgl_channel, GlType, WebGLVersion};
 use canvas_traits::webgl::{GLLimits, WebGLCommand, WebGLError};
 use canvas_traits::webgl::{WebGLResult, WebGLSLVersion, WebGLShaderId};
 use dom_struct::dom_struct;
@@ -93,6 +93,7 @@ impl WebGLShader {
     /// glCompileShader
     pub fn compile(
         &self,
+        api_type: GlType,
         webgl_version: WebGLVersion,
         glsl_version: WebGLSLVersion,
         limits: &GLLimits,
@@ -122,7 +123,7 @@ impl WebGLShader {
         };
         let validator = match webgl_version {
             WebGLVersion::WebGL1 => {
-                let output_format = if cfg!(any(target_os = "android", target_os = "ios")) {
+                let output_format = if api_type == GlType::Gles {
                     Output::Essl
                 } else {
                     Output::Glsl
@@ -130,7 +131,7 @@ impl WebGLShader {
                 ShaderValidator::for_webgl(self.gl_type, output_format, &params).unwrap()
             },
             WebGLVersion::WebGL2 => {
-                let output_format = if cfg!(any(target_os = "android", target_os = "ios")) {
+                let output_format = if api_type == GlType::Gles {
                     Output::Essl
                 } else {
                     match (glsl_version.major, glsl_version.minor) {

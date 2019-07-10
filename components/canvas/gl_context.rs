@@ -22,24 +22,32 @@ use std::sync::{Arc, Mutex};
 /// Currently, shared textures are used to render WebGL textures into the WR compositor.
 /// In order to create a shared context, the GLContextFactory stores the handle of the main GL context.
 pub enum GLContextFactory {
-    Native(NativeGLContextHandle, Option<MainThreadDispatcher>),
+    Native(
+        NativeGLContextHandle,
+        Option<MainThreadDispatcher>,
+        gl::GlType,
+    ),
     OSMesa(OSMesaContextHandle),
 }
 
 impl GLContextFactory {
     /// Creates a new GLContextFactory that uses the currently bound GL context to create shared contexts.
-    pub fn current_native_handle(proxy: &CompositorProxy) -> Option<GLContextFactory> {
+    pub fn current_native_handle(
+        proxy: &CompositorProxy,
+        api_type: gl::GlType,
+    ) -> Option<GLContextFactory> {
         // FIXME(emilio): This assumes a single GL backend per platform which is
         // not true on Linux, we probably need a third `Egl` variant or abstract
         // it a bit more...
         NativeGLContext::current_handle().map(|handle| {
-            if cfg!(target_os = "windows") {
+            let dispatcher = if cfg!(target_os = "windows") {
                 // Used to dispatch functions from the GLContext thread to the main thread's event loop.
                 // Required to allow WGL GLContext sharing in Windows.
-                GLContextFactory::Native(handle, Some(MainThreadDispatcher::new(proxy.clone())))
+                Some(MainThreadDispatcher::new(proxy.clone()))
             } else {
-                GLContextFactory::Native(handle, None)
-            }
+                None
+            };
+            GLContextFactory::Native(handle, dispatcher, api_type)
         })
     }
 
@@ -57,14 +65,14 @@ impl GLContextFactory {
     ) -> Result<GLContextWrapper, &'static str> {
         let attributes = map_attrs(attributes);
         Ok(match *self {
-            GLContextFactory::Native(ref handle, ref dispatcher) => {
+            GLContextFactory::Native(ref handle, ref dispatcher, ref api_type) => {
                 let dispatcher = dispatcher.as_ref().map(|d| Box::new(d.clone()) as Box<_>);
                 GLContextWrapper::Native(GLContext::new_shared_with_dispatcher(
                     // FIXME(nox): Why are those i32 values?
                     size.to_i32(),
                     attributes,
                     ColorAttachmentType::Texture,
-                    gl::GlType::default(),
+                    *api_type,
                     Self::gl_version(webgl_version),
                     Some(handle),
                     dispatcher,
@@ -94,13 +102,13 @@ impl GLContextFactory {
     ) -> Result<GLContextWrapper, &'static str> {
         let attributes = map_attrs(attributes);
         Ok(match *self {
-            GLContextFactory::Native(..) => {
+            GLContextFactory::Native(_, _, ref api_type) => {
                 GLContextWrapper::Native(GLContext::new_shared_with_dispatcher(
                     // FIXME(nox): Why are those i32 values?
                     size.to_i32(),
                     attributes,
                     ColorAttachmentType::Texture,
-                    gl::GlType::default(),
+                    *api_type,
                     Self::gl_version(webgl_version),
                     None,
                     None,
