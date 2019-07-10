@@ -2397,7 +2397,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'js::error::throw_type_error',
         'js::rust::HandleValue',
         'js::jsapi::Heap',
-        'js::jsapi::JSContext',
+        'crate::script_runtime::JSContext',
         'js::jsapi::JSObject',
         'js::rust::MutableHandleValue',
         'js::jsval::JSVal',
@@ -4152,7 +4152,7 @@ pub enum %s {
 
         inner = string.Template("""\
 use crate::dom::bindings::conversions::ToJSValConvertible;
-use js::jsapi::JSContext;
+use crate::script_runtime::JSContext;
 use js::rust::MutableHandleValue;
 use js::jsval::JSVal;
 
@@ -5781,7 +5781,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JSCLASS_FOREGROUND_FINALIZE',
         'js::jsapi::JSCLASS_RESERVED_SLOTS_SHIFT',
         'js::jsapi::JSClass',
-        'js::jsapi::JSContext',
+        'crate::script_runtime::JSContext',
         'js::jsapi::JSFreeOp',
         'js::jsapi::JSFunctionSpec',
         'js::jsapi::JSITER_HIDDEN',
@@ -7292,7 +7292,7 @@ class GlobalGenRoots():
     def InterfaceObjectMap(config):
         mods = [
             "crate::dom::bindings::codegen",
-            "js::jsapi::JSContext",
+            "crate::script_runtime::JSContext",
             "js::rust::HandleObject",
             "phf",
         ]
