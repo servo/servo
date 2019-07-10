@@ -35,9 +35,13 @@ function matrix2D(dict) {
   return matrix;
 }
 
-function checkMatrix(actual, expected) {
+function checkMatrix(actual, expected, { epsilon = 0 } = {}) {
   for (let member in expected) {
-    assert_equals(actual[member], expected[member], member);
+    if (epsilon && typeof expected[member] === "number") {
+      assert_approx_equals(actual[member], expected[member], epsilon, member);
+    } else {
+      assert_equals(actual[member], expected[member], member);
+    }
   }
 }
 

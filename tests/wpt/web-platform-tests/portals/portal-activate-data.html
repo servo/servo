@@ -68,13 +68,11 @@ promise_test(async () => {
   assert_equals((await replyViaPort).data, 42);
 }, "A message port can be passed through activate data.");
 
-if (window.SharedArrayBuffer) {
-  promise_test(async t => {
-  await promise_rejects(
-      t, 'DataCloneError',
-      openPortalAndActivate('', {data: new SharedArrayBuffer}));
-  }, "A SharedArrayBuffer cannot be passed through activate data.");
-}
+promise_test(async t => {
+await promise_rejects(
+    t, 'DataCloneError',
+    openPortalAndActivate('', {data: new SharedArrayBuffer}));
+}, "A SharedArrayBuffer cannot be passed through activate data.");
 
 promise_test(async t => {
   await promise_rejects(

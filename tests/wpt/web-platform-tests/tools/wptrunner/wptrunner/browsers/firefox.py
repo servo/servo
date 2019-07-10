@@ -79,6 +79,7 @@ def browser_kwargs(test_type, run_info_data, config, **kwargs):
             "certutil_binary": kwargs["certutil_binary"],
             "ca_certificate_path": config.ssl_config["ca_cert_path"],
             "e10s": kwargs["gecko_e10s"],
+            "enable_webrender": kwargs["enable_webrender"],
             "lsan_dir": kwargs["lsan_dir"],
             "stackfix_dir": kwargs["stackfix_dir"],
             "binary_args": kwargs["binary_args"],
@@ -188,7 +189,7 @@ class FirefoxBrowser(Browser):
 
     def __init__(self, logger, binary, prefs_root, test_type, extra_prefs=None, debug_info=None,
                  symbols_path=None, stackwalk_binary=None, certutil_binary=None,
-                 ca_certificate_path=None, e10s=False, lsan_dir=None, stackfix_dir=None,
+                 ca_certificate_path=None, e10s=False, enable_webrender=False, lsan_dir=None, stackfix_dir=None,
                  binary_args=None, timeout_multiplier=None, leak_check=False, asan=False,
                  stylo_threads=1, chaos_mode_flags=None, config=None, browser_channel="nightly", headless=None, **kwargs):
         Browser.__init__(self, logger)
@@ -205,6 +206,7 @@ class FirefoxBrowser(Browser):
         self.ca_certificate_path = ca_certificate_path
         self.certutil_binary = certutil_binary
         self.e10s = e10s
+        self.enable_webrender = enable_webrender
         self.binary_args = binary_args
         self.config = config
         if stackfix_dir:
@@ -266,6 +268,11 @@ class FirefoxBrowser(Browser):
             env["MOZ_CHAOSMODE"] = str(self.chaos_mode_flags)
         if self.headless:
             env["MOZ_HEADLESS"] = "1"
+        if self.enable_webrender:
+            env["MOZ_WEBRENDER"] = "1"
+            env["MOZ_ACCELERATED"] = "1"
+        else:
+            env["MOZ_WEBRENDER"] = "0"
 
         preferences = self.load_prefs()
 

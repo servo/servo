@@ -330,10 +330,12 @@ class ExpectedUpdater(object):
                 action_map["test_status"]({"test": test["test"],
                                            "subtest": subtest["name"],
                                            "status": subtest["status"],
-                                           "expected": subtest.get("expected")})
+                                           "expected": subtest.get("expected"),
+                                           "known_intermittent": subtest.get("known_intermittent")})
             action_map["test_end"]({"test": test["test"],
                                     "status": test["status"],
-                                    "expected": test.get("expected")})
+                                    "expected": test.get("expected"),
+                                    "known_intermittent": test.get("known_intermittent")})
             if "asserts" in test:
                 asserts = test["asserts"]
                 action_map["assertion_count"]({"test": test["test"],

@@ -256,6 +256,8 @@ scheme host and port.""")
                              help="Path to the folder containing browser prefs")
     gecko_group.add_argument("--disable-e10s", dest="gecko_e10s", action="store_false", default=True,
                              help="Run tests without electrolysis preferences")
+    gecko_group.add_argument("--enable-webrender", dest="enable_webrender", action="store_true", default=False,
+                             help="Enable the WebRender compositor in Gecko.")
     gecko_group.add_argument("--stackfix-dir", dest="stackfix_dir", action="store",
                              help="Path to directory containing assertion stack fixing scripts")
     gecko_group.add_argument("--lsan-dir", dest="lsan_dir", action="store",

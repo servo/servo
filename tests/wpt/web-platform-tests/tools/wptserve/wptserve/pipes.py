@@ -347,18 +347,20 @@ def sub(request, response, escape_type="html"):
       A dictionary of HTTP headers in the request.
     header_or_default(header, default)
       The value of an HTTP header, or a default value if it is absent.
-      For example:
+      For example::
 
         {{header_or_default(X-Test, test-header-absent)}}
+
     GET
       A dictionary of query parameters supplied with the request.
     uuid()
       A pesudo-random UUID suitable for usage with stash
     file_hash(algorithm, filepath)
       The cryptographic hash of a file. Supported algorithms: md5, sha1,
-      sha224, sha256, sha384, and sha512. For example:
+      sha224, sha256, sha384, and sha512. For example::
 
         {{file_hash(md5, dom/interfaces.html)}}
+
     fs_path(filepath)
       The absolute path to a file inside the wpt document root
 
@@ -369,16 +371,15 @@ def sub(request, response, escape_type="html"):
       {{domains[www]}} => www.localhost
       {{ports[http][1]}} => 81
 
+    It is also possible to assign a value to a variable name, which must start
+    with the $ character, using the ":" syntax e.g.::
 
-    It is also possible to assign a value to a variable name, which must start with
-    the $ character, using the ":" syntax e.g.
-
-    {{$id:uuid()}}
+      {{$id:uuid()}}
 
     Later substitutions in the same file may then refer to the variable
-    by name e.g.
+    by name e.g.::
 
-    {{$id}}
+      {{$id}}
     """
     content = resolve_content(response)
 

@@ -1,6 +1,6 @@
 html5lib==1.0.1
 mozinfo==1.1.0
-mozlog==4.1
+mozlog==4.2.0
 mozdebug==0.1.1
 pillow==6.0.0
 urllib3[secure]==1.25.3

@@ -313,7 +313,7 @@ class Find(object):
         self.session = session
 
     @command
-    def css(self, element_selector, frame, all=True):
+    def css(self, element_selector, all=True, frame="window"):
         if (frame != "window"):
             self.session.switch_frame(frame)
         elements = self._find_element("css selector", element_selector, all)

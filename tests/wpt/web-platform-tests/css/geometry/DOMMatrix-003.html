@@ -140,6 +140,13 @@
         },"test scale() with offsets");
 
         test(function() {
+          var result = new DOMMatrixReadOnly([1, 2, 3, 4, 5, 6])
+                          .scale(1, 1, 1, 1, 1, 1);
+          var expected = new DOMMatrixReadOnly([1, 2, 0, 0, 3, 4, 0, 0, 0, 0, 1, 0, 5, 6, 0, 1]);
+          checkDOMMatrix(result, expected);
+        },"test scale() with identity scale and nonzero originZ");
+
+        test(function() {
           var result = initialDOMMatrix().scaleNonUniform();
           var expected = initialDOMMatrix()
                           .scale(1, 1, 1, 0, 0, 0);
@@ -182,10 +189,37 @@
         },"test rotate()");
 
         test(function() {
+          var result = initialDOMMatrix().rotate(90, 90, 90);
+          var expected = initialDOMMatrix()
+                          .rotate(0, 0, 90)
+                          .rotate(0, 90, 0)
+                          .rotate(90, 0, 0);
+          checkDOMMatrix(result, expected);
+        },"test rotate() order");
+
+        test(function() {
           var result = initialDOMMatrix().rotateFromVector(1, 1);
           var expected = initialDOMMatrix().rotate(45);
           checkDOMMatrix(result, expected);
         },"test rotateFromVector()");
+
+        test(function() {
+          var result = initialDOMMatrix().rotateFromVector(0, 1);
+          var expected = initialDOMMatrix().rotate(90);
+          checkDOMMatrix(result, expected);
+        },"test rotateFromVector() with x being zero");
+
+        test(function() {
+          var result = initialDOMMatrix().rotateFromVector(1, 0);
+          var expected = initialDOMMatrix()
+          checkDOMMatrix(result, expected);
+        },"test rotateFromVector() with y being zero");
+
+        test(function() {
+          var result = initialDOMMatrix().rotateFromVector(0, 0);
+          var expected = initialDOMMatrix()
+          checkDOMMatrix(result, expected);
+        },"test rotateFromVector() with two zeros");
 
         test(function() {
           var result = initialDOMMatrix().rotateAxisAngle(3, 3, 3, 120);

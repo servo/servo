@@ -37,63 +37,53 @@ test(function () {
   //   list.groupId
   }, "mediaDevices.getUserMedia() is present on navigator");
 
-promise_test(t => {
-  return navigator.mediaDevices.enumerateDevices()
-    .then(t.step_func(async devices => {
-      for (var i in devices) {
-        await navigator.mediaDevices.getUserMedia(
-          {video: {groupId: {exact: devices[i].groupId}}})
-            .then(
-              t.step_func(stream => {
-                var found_device = devices.find(element => {
-                  return element.deviceId ==
-                           stream.getTracks()[0].getSettings().deviceId;
-                });
-                assert_true(undefined !== found_device);
-                assert_equals(found_device.kind, "videoinput");
-                assert_equals(found_device.groupId, devices[i].groupId);
-              }),
-              t.step_func(error => {
-                assert_equals(error.name, "OverconstrainedError");
-                assert_equals(error.constraint, "groupId");
-                var found_device = devices.find(element => {
-                  return element.kind == "videoinput" &&
-                        element.groupId == devices[i].groupId});
-                assert_true(undefined === found_device);
-              }));
-      }
-    }));
+promise_test(async t => {
+  assert_true(navigator.mediaDevices.getSupportedConstraints()["groupId"],
+    "groupId should be supported");
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  for (const device of devices) {
+    await navigator.mediaDevices.getUserMedia(
+        {video: {groupId: {exact: device.groupId}}}).then(stream => {
+      const found_device = devices.find(({deviceId}) =>
+        deviceId == stream.getTracks()[0].getSettings().deviceId);
+      assert_not_equals(found_device, undefined);
+      assert_equals(found_device.kind, "videoinput");
+      assert_equals(found_device.groupId, device.groupId);
+    }, error => {
+      assert_equals(error.name, "OverconstrainedError");
+      assert_equals(error.constraint, "groupId");
+      const found_device = devices.find(element =>
+        element.kind == "videoinput" && element.groupId == device.groupId);
+      assert_equals(found_device, undefined);
+    });
+  }
 }, 'groupId is correctly supported by getUserMedia() for video devices');
 
-promise_test(t => {
-  return navigator.mediaDevices.enumerateDevices()
-    .then(t.step_func(async devices => {
-      for (var i in devices) {
-        await navigator.mediaDevices.getUserMedia(
-          {audio: {groupId: {exact: devices[i].groupId}}})
-            .then(
-              t.step_func(stream => {
-                var found_device = devices.find(element => {
-                  return element.deviceId ==
-                           stream.getTracks()[0].getSettings().deviceId;
-                });
-                assert_true(undefined !== found_device);
-                assert_equals(found_device.kind, "audioinput");
-                assert_equals(found_device.groupId, devices[i].groupId);
-              }),
-              t.step_func(error => {
-                assert_equals(error.name, "OverconstrainedError");
-                assert_equals(error.constraint, "groupId");
-                var found_device = devices.find(element => {
-                  return element.kind == "audioinput" &&
-                        element.groupId == devices[i].groupId});
-                assert_true(undefined === found_device);
-              }));
-      }
-    }));
+promise_test(async t => {
+  assert_true(navigator.mediaDevices.getSupportedConstraints()["groupId"],
+    "groupId should be supported");
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  for (const device of devices) {
+    await navigator.mediaDevices.getUserMedia(
+        {audio: {groupId: {exact: device.groupId}}}).then(stream => {
+      const found_device = devices.find(({deviceId}) =>
+        deviceId == stream.getTracks()[0].getSettings().deviceId);
+      assert_not_equals(found_device, undefined);
+      assert_equals(found_device.kind, "audioinput");
+      assert_equals(found_device.groupId, device.groupId);
+    }, error => {
+      assert_equals(error.name, "OverconstrainedError");
+      assert_equals(error.constraint, "groupId");
+      const found_device = devices.find(element =>
+        element.kind == "audioinput" && element.groupId == device.groupId);
+      assert_equals(found_device, undefined);
+    });
+  }
 }, 'groupId is correctly supported by getUserMedia() for audio devices');
 
 promise_test(async t => {
+  assert_true(navigator.mediaDevices.getSupportedConstraints()["resizeMode"],
+    "resizeMode should be supported");
   const stream = await navigator.mediaDevices.getUserMedia(
       { video: {resizeMode: {exact: 'none'}}});
   const [track] = stream.getVideoTracks();
@@ -102,6 +92,8 @@ promise_test(async t => {
 }, 'getUserMedia() supports setting none as resizeMode.');
 
 promise_test(async t => {
+  assert_true(navigator.mediaDevices.getSupportedConstraints()["resizeMode"],
+    "resizeMode should be supported");
   const stream = await navigator.mediaDevices.getUserMedia(
       { video: {resizeMode: {exact: 'crop-and-scale'}}});
   const [track] = stream.getVideoTracks();
@@ -110,8 +102,10 @@ promise_test(async t => {
 }, 'getUserMedia() supports setting crop-and-scale as resizeMode.');
 
 promise_test(async t => {
+  assert_true(navigator.mediaDevices.getSupportedConstraints()["resizeMode"],
+    "resizeMode should be supported");
   try {
-    let stream = await navigator.mediaDevices.getUserMedia(
+    const stream = await navigator.mediaDevices.getUserMedia(
         { video: {resizeMode: {exact: 'INVALID'}}});
     t.add_cleanup(() => stream.getVideoTracks()[0].stop());
     t.unreached_func('getUserMedia() should fail with invalid resizeMode')();

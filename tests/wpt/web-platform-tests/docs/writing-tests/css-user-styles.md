@@ -25,12 +25,12 @@ should not be applied.
 Harness style sheet rules:
 
 ``` css
-#userstyle
+.userstyle
 {
     color: green;
     display: none;
 }
-#nouserstyle
+.nouserstyle
 {
     color: red;
     display: none;

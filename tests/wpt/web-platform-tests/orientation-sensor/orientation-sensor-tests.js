@@ -36,10 +36,8 @@ async function checkPopulateMatrix(t, sensorType) {
   //Throws if no orientation data available.
   assert_throws({ name: 'NotReadableError' }, () => sensor.populateMatrix(new Float32Array(16)));
 
-  if (window.SharedArrayBuffer) {
-    // Throws if passed SharedArrayBuffer view.
-    assert_throws({ name: 'TypeError' }, () => sensor.populateMatrix(new Float32Array(new SharedArrayBuffer(16))));
-  }
+  // Throws if passed SharedArrayBuffer view.
+  assert_throws({ name: 'TypeError' }, () => sensor.populateMatrix(new Float32Array(new SharedArrayBuffer(16))));
 
   sensor.start();
   await eventWatcher.wait_for("reading");

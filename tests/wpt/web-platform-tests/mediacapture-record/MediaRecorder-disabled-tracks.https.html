@@ -46,7 +46,7 @@
       });
 
       const onError = test.unreached_func('Error creating MediaStream.');
-      navigator.getUserMedia(args[1], gotStream, onError);
+      navigator.mediaDevices.getUserMedia(args[1]).then(gotStream, onError);
     }, args[0]);
   });
 

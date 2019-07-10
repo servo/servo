@@ -1,0 +1,11 @@
+<!doctype html>
+<html>
+<title>foreignObject overflow</title>
+<svg width="400" height="400">
+  <foreignObject x="100" y="100" style="overflow: visible" width="250" height="250" font-size="16px">
+    <div style="width:100px;height:100px;background:yellow;border:1px solid red">
+      <div style="position:absolute;top:20px;left:30px;width:20px;height:20px;background:navy"></div>
+      Should show all the text
+    </div>
+  </foreignObject>
+</svg>
