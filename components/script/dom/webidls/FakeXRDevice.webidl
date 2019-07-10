@@ -36,13 +36,11 @@ dictionary FakeXRViewInit {
   // https://immersive-web.github.io/webxr/#view-offset
   required FakeXRRigidTransformInit viewOffset;
   // https://immersive-web.github.io/webxr/#dom-xrwebgllayer-getviewport
-  required FakeXRViewportInit viewport;
+  required FakeXRDeviceResolution resolution;
 };
 
 // https://immersive-web.github.io/webxr/#xrviewport
-dictionary FakeXRViewportInit {
-    required long x;
-    required long y;
+dictionary FakeXRDeviceResolution {
     required long width;
     required long height;
 };
