@@ -64,7 +64,9 @@ pip install virtualenv
 ##### On macOS (MacPorts)
 
 ``` sh
-sudo port install python27 py27-virtualenv cmake yasm llvm
+sudo port install python27 py27-virtualenv cmake yasm llvm \
+    gstreamer1 gstreamer1-gst-plugins-base  gstreamer1-gst-libav \
+    gstreamer1-gst-plugins-bad gstreamer1-gst-plugins-good autoconf213
 ```
 ##### On macOS >= 10.11 (El Capitan), you also have to install OpenSSL
 
