@@ -60,7 +60,7 @@ use js::jsapi::{
 };
 use js::jsapi::{JS_NewStringCopyN, JS_StringHasLatin1Chars};
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
-use js::rust::wrappers::{JS_GetProperty, JS_IsArrayObject};
+use js::rust::wrappers::{JS_GetProperty, JS_HasProperty, JS_IsArrayObject};
 use js::rust::{get_object_class, is_dom_class, is_dom_object, maybe_wrap_value, ToString};
 use js::rust::{HandleId, HandleObject, HandleValue, MutableHandleValue};
 use num_traits::Float;
@@ -596,11 +596,18 @@ pub unsafe fn get_property_jsval(
         Ok(cname) => cname,
         Err(_) => return Ok(()),
     };
-    JS_GetProperty(cx, object, cname.as_ptr(), rval);
-    if JS_IsExceptionPending(cx) {
-        return Err(Error::JSFailed);
+    let mut found = false;
+    if JS_HasProperty(cx, object, cname.as_ptr(), &mut found) && found {
+        JS_GetProperty(cx, object, cname.as_ptr(), rval);
+        if JS_IsExceptionPending(cx) {
+            return Err(Error::JSFailed);
+        }
+        Ok(())
+    } else if JS_IsExceptionPending(cx) {
+        Err(Error::JSFailed)
+    } else {
+        Ok(())
     }
-    Ok(())
 }
 
 /// Get a property from a JS object, and convert it to a Rust value.
