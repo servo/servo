@@ -12,7 +12,6 @@
 <script src="/css/support/inheritance-testcommon.js"></script>
 <style>
   #box {
-    font: initial;
     font-size: medium;
   }
 </style>
@@ -25,10 +24,9 @@
 <script>
 'use strict';
 const box = document.getElementById('box');
-const initialFontFamily = getComputedStyle(box).fontFamily;
 const mediumFontSize = getComputedStyle(box).fontSize;
 
-assert_inherited('font-family', initialFontFamily, '"Not Initial!"');
+assert_inherited('font-family', null, '"Not Initial!"');  // Initial value depends on user agent.
 assert_inherited('font-feature-settings', 'normal', '"smcp", "swsh" 2');
 assert_inherited('font-kerning', 'auto', 'none');
 assert_inherited('font-size', mediumFontSize /* medium */, '123px');

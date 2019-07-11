@@ -133,7 +133,7 @@
       // Task: verify if the method chaining actually works.
       audit.define('verification', (task, should) => {
         // We pick the lowest sample rate allowed to run the test efficiently.
-        let context = new OfflineAudioContext(1, 128, 3000);
+        let context = new OfflineAudioContext(1, 128, 8000);
 
         let constantBuffer = createConstantBuffer(context, 1, 1.0);
 

@@ -6,7 +6,6 @@
 <style>
 body {
   margin: 0px;
-  overflow: scroll;
   scroll-snap-type: both mandatory;
 }
 #content {
@@ -22,6 +21,7 @@ body {
   width: 400px;
   height: 400px;
   background-color: lightblue;
+  overflow: hidden;
   scroll-snap-align: start;
 }
 #i1 {
@@ -74,10 +74,13 @@ button.onclick = function() {
   if (!scrolled_x || !scrolled_y)
     return;
 
-  assert_equals(window.scrollX, target.offsetLeft,
-        "window.scrollX should be at snapped position.");
-  assert_equals(window.scrollY, target.offsetTop,
-        "window.scrollY should be at snapped position.");
+  snap_test.step(() => {
+    assert_equals(window.scrollX, target.offsetLeft,
+          "window.scrollX should be at snapped position.");
+    assert_equals(window.scrollY, target.offsetTop,
+          "window.scrollY should be at snapped position.");
+  });
+
   // To make the test result visible.
   var content = document.getElementById("content");
   body.removeChild(content);

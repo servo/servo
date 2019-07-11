@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Toast: action tests</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<main></main>
+
+<script type="module">
+import { testActionToast, testToastElement, assertActionButtonOnToast } from './resources/helpers.js';
+import { showToast } from 'std:elements/toast';
+
+testActionToast((toast) => {
+    assert_equals(toast.action.textContent, 'action');
+}, 'the action element gets properly captured with this.action');
+
+testActionToast((toast) => {
+    toast.innerHTML = `<button slot='action'>new action</button>`
+    assert_equals(toast.action.textContent, 'new action');
+}, 'changing the action button changes this.action');
+
+testToastElement((toast) => {
+    assert_equals(toast.action, null);
+}, 'the action property of a toast without an action is null');
+
+testToastElement((toast) => {
+    toast.innerHTML = `<button slot="action" id="first">first</button>
+        <button slot="action" id="second">second</button>`;
+
+    assert_equals(toast.action, toast.querySelector('#first'));
+}, 'toast action returns the first item with the action slot');
+
+test(() => {
+    const toast = showToast('Message', {action: 'action'});
+    const actionButton = toast.querySelector('button');
+
+    assertActionButtonOnToast(actionButton, toast);
+}, 'passing an action via showToast creates a button');
+
+test(() => {
+    const actionMarkup = '<b>strong text</b>';
+    const toast = showToast('Message', {action: actionMarkup});
+    const actionButton = toast.querySelector('button');
+
+    assert_equals(actionButton.textContent, actionMarkup);
+    assert_equals(toast.querySelector('b'), null);
+}, 'passing markup to the action option represents as text');
+
+test(() => {
+    const toast = document.createElement('std-toast');
+    toast.textContent = 'Message';
+    toast.show({action: 'action'});
+    const actionButton = toast.querySelector('button');
+
+    assert_equals(actionButton, null);
+}, 'passing action option to show does not create a button');
+
+test(() => {
+    const toast = showToast('Message', {action: null});
+    const actionButton = toast.querySelector('button');
+
+    assertActionButtonOnToast(actionButton, toast);
+    assert_equals(actionButton.textContent, 'null');
+}, 'passing non-string (null) as action option stringifies it and creates an action button');
+
+test(() => {
+    const toast = showToast('Message', {action: false});
+    const actionButton = toast.querySelector('button');
+
+    assertActionButtonOnToast(actionButton, toast);
+    assert_equals(actionButton.textContent, 'false');
+}, 'passing non-string (false) as action option stringifies it and creates an action button');
+
+test(() => {
+    const toast = showToast('Message', {action: 0});
+    const actionButton = toast.querySelector('button');
+
+    assertActionButtonOnToast(actionButton, toast);
+    assert_equals(actionButton.textContent, '0');
+}, 'passing non-string (0) as action option stringifies it and creates an action button');
+
+test(() => {
+    const toast = showToast('Message', {action: 1});
+    const actionButton = toast.querySelector('button');
+
+    assertActionButtonOnToast(actionButton, toast);
+    assert_equals(actionButton.textContent, '1');
+}, 'passing non-string (1) as action option stringifies it and creates an action button');
+
+test(() => {
+    const toast = showToast('Message', {action: {field: 'value'}});
+    const actionButton = toast.querySelector('button');
+
+    assertActionButtonOnToast(actionButton, toast);
+    assert_equals(actionButton.textContent, '[object Object]');
+}, 'passing non-string ({field: value}) as action option stringifies it and creates an action button');
+
+test(() => {
+    const toast = showToast('Message', {});
+    const actionButton = toast.querySelector('button');
+
+    assert_equals(actionButton, null);
+}, 'passing non-string (undefined) as action option does not create an action button');
+</script>

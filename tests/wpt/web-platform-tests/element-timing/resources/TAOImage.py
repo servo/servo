@@ -1,7 +1,7 @@
 import os
 
 def main(request, response):
-    origin = request.GET.first('origin', '');
+    origin = request.GET.first('origin')
     if origin:
         response.headers.set('Access-Control-Allow-Origin', origin)
 

@@ -3,6 +3,19 @@
 // This polyfill library implements the WebXR Test API as specified here:
 // https://github.com/immersive-web/webxr-test-api
 
+
+let default_standing = new gfx.mojom.Transform();
+default_standing.matrix = [1, 0, 0, 0,
+                           0, 1, 0, 0,
+                           0, 0, 1, 0,
+                           0, 1.65, 0, 1];
+const default_stage_parameters = {
+  standingTransform: default_standing,
+  sizeX: 0,
+  sizeZ: 0,
+  bounds: null
+};
+
 class ChromeXRTest {
   constructor() {
     this.mockVRService_ = new MockVRService(mojo.frameInterfaces);
@@ -67,6 +80,17 @@ class MockVRService {
     }
 
     this.runtimes_ = [];
+  }
+
+  removeRuntime(device) {
+    let index = this.runtimes_.indexOf(device);
+    if (index >= 0) {
+      this.runtimes_.splice(index, 1);
+      if (this.client_) {
+        console.error("Notifying client");
+        this.client_.onDeviceChanged();
+      }
+    }
   }
 
   // VRService implementation.
@@ -147,6 +171,8 @@ class MockRuntime {
 
     this.pose_ = null;
     this.next_frame_id_ = 0;
+    this.bounds_ = null;
+    this.send_pose_reset_ = false;
 
     this.service_ = service;
 
@@ -168,10 +194,27 @@ class MockRuntime {
       this.setViewerOrigin(fakeDeviceInit.viewerOrigin);
     }
 
+    if (fakeDeviceInit.localToFloorLevelTransform != null) {
+      this.setLocalToFloorLevelTransform(fakeDeviceInit.localToFloorLevelTransform);
+    }
+
+    // This appropriately handles if the coordinates are null
+    this.setBoundsGeometry(fakeDeviceInit.boundsCoordinates);
+
     this.setViews(fakeDeviceInit.views);
   }
 
   // Test API methods.
+  disconnect() {
+    this.service_.removeRuntime(this);
+    this.presentation_provider_.Close();
+    if (this.sessionClient_.ptr.isBound()) {
+      this.sessionClient_.ptr.reset();
+    }
+
+    return Promise.resolve();
+  }
+
   setViews(views) {
     if (views) {
       let changed = false;
@@ -210,7 +253,91 @@ class MockRuntime {
     this.pose_ = null;
   }
 
+  simulateVisibilityChange(visibilityState) {
+    // TODO(https://crbug.com/982099): Chrome currently does not have a way for
+    // devices to bubble up any form of visibilityChange.
+  }
+
+  setBoundsGeometry(bounds) {
+    if (bounds == null) {
+      this.bounds_ = null;
+    } else if (bounds.length < 3) {
+      throw new Error("Bounds must have a length of at least 3");
+    } else {
+      this.bounds_ = bounds;
+    }
+
+    // We can only set bounds if we have stageParameters set; otherwise, we
+    // don't know the transform from local space to bounds space.
+    // We'll cache the bounds so that they can be set in the future if the
+    // floorLevel transform is set, but we won't update them just yet.
+    if (this.displayInfo_.stageParameters) {
+      this.displayInfo_.stageParameters.bounds = this.bounds_;
+
+      if (this.sessionClient_.ptr.isBound()) {
+        this.sessionClient_.onChanged(this.displayInfo_);
+      }
+    }
+  }
+
+  setLocalToFloorLevelTransform(transform) {
+    if (!this.displayInfo_.stageParameters) {
+      this.displayInfo_.stageParameters = default_stage_parameters;
+      this.displayInfo_.stageParameters.bounds = this.bounds_;
+    }
+
+    this.displayInfo_.stageParameters.standingTransform = new gfx.mojom.Transform();
+    this.displayInfo_.stageParameters.standingTransform.matrix =
+      this.getMatrixFromTransform(transform);
+
+    if (this.sessionClient_.ptr.isBound()) {
+      this.sessionClient_.onChanged(this.displayInfo_);
+    }
+  }
+
+  clearLocalToFloorLevelTransform() {
+    if (this.displayInfo_.stageParameters) {
+      this.displayInfo_.stageParameters = null;
+
+      if (this.sessionClient_.ptr.isBound()) {
+        this.sessionClient_.onChanged(this.displayInfo_);
+      }
+    }
+  }
+
+  simulateResetPose() {
+    this.send_pose_reset_ = true;
+  }
+
   // Helper methods
+  getMatrixFromTransform(transform) {
+    let x = transform.orientation[0];
+    let y = transform.orientation[1];
+    let z = transform.orientation[2];
+    let w = transform.orientation[3];
+
+    let m11 = 1.0 - 2.0 * (y * y + z * z);
+    let m21 = 2.0 * (x * y + z * w);
+    let m31 = 2.0 * (x * z - y * w);
+
+    let m12 = 2.0 * (x * y - z * w);
+    let m22 = 1.0 - 2.0 * (x * x + z * z);
+    let m32 = 2.0 * (y * z + x * w);
+
+    let m13 = 2.0 * (x * z + y * w);
+    let m23 = 2.0 * (y * z - x * w);
+    let m33 = 1.0 - 2.0 * (x * x + y * y);
+
+    let m14 = transform.position[0];
+    let m24 = transform.position[1];
+    let m34 = transform.position[2];
+
+    // Column-major linearized order is expected.
+    return [m11, m21, m31, 0,
+            m12, m22, m32, 0,
+            m13, m23, m33, 0,
+            m14, m24, m34, 1];
+  }
   getNonImmersiveDisplayInfo() {
     let displayInfo = this.getImmersiveDisplayInfo();
 
@@ -297,6 +424,8 @@ class MockRuntime {
   getFrameData() {
     if (this.pose_) {
       this.pose_.poseIndex++;
+      this.pose_.poseReset = this.send_pose_reset_;
+      this.send_pose_reset_ = false;
     }
 
     // Convert current document time to monotonic time.
@@ -428,6 +557,11 @@ class MockXRPresentationProvider {
     // calls would be queued until the current execution context finishes.
     this.submitFrameClient_.onSubmitFrameTransferred(true);
     this.submitFrameClient_.onSubmitFrameRendered();
+  }
+
+  // Utility methods
+  Close() {
+    this.binding_.close();
   }
 }
 

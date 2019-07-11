@@ -28,7 +28,7 @@
         defaultView:null,
         body:null,
         doctype:null,
-        all:undefined,
+        all:HTMLAllCollection,
         cookie:''
       }
 
@@ -38,7 +38,11 @@
 
       function runTest(name, value){
         test(function(){
-          assert_equals(client.responseXML[name], value)
+          if (name == "all") {
+            assert_equals(client.responseXML[name].__proto__, value.prototype)
+          } else {
+            assert_equals(client.responseXML[name], value)
+          }
         }, name)
       }
 
