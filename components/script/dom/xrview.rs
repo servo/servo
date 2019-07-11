@@ -9,12 +9,11 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::vrframedata::create_typed_array;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::dom::xrsession::XRSession;
+use crate::dom::xrsession::{cast_transform, ApiViewerPose, XRSession};
 use dom_struct::dom_struct;
-use euclid::{RigidTransform3D, Vector3D};
 use js::jsapi::{Heap, JSContext, JSObject};
 use std::ptr::NonNull;
-use webvr_traits::WebVRFrameData;
+use webxr_api::View;
 
 #[dom_struct]
 pub struct XRView {
@@ -41,31 +40,21 @@ impl XRView {
     }
 
     #[allow(unsafe_code)]
-    pub fn new(
+    pub fn new<V: Copy>(
         global: &GlobalScope,
         session: &XRSession,
+        view: &View<V>,
         eye: XREye,
-        pose: &RigidTransform3D<f64>,
-        data: &WebVRFrameData,
+        pose: &ApiViewerPose,
     ) -> DomRoot<XRView> {
-        let vr_display = session.display();
-
         // XXXManishearth compute and cache projection matrices on the Display
-        let (proj, offset) = if eye == XREye::Left {
-            (
-                &data.left_projection_matrix,
-                vr_display.left_eye_params_offset(),
-            )
-        } else {
-            (
-                &data.right_projection_matrix,
-                vr_display.right_eye_params_offset(),
-            )
-        };
 
-        let offset = Vector3D::new(offset[0] as f64, offset[1] as f64, offset[2] as f64);
-        let transform = pose.post_mul(&offset.into());
-        let transform = XRRigidTransform::new(global, transform);
+        // this transform is the pose of the viewer in the eye space, i.e. it is the transform
+        // from the viewer space to the eye space. We invert it to get the pose of the eye in the viewer space.
+        let offset = view.transform.inverse();
+
+        let transform = pose.pre_mul(&offset);
+        let transform = XRRigidTransform::new(global, cast_transform(transform));
 
         let ret = reflect_dom_object(
             Box::new(XRView::new_inherited(session, &transform, eye)),
@@ -73,9 +62,11 @@ impl XRView {
             XRViewBinding::Wrap,
         );
 
+        // row_major since euclid uses row vectors
+        let proj = view.projection.to_row_major_array();
         let cx = global.get_cx();
         unsafe {
-            create_typed_array(cx, proj, &ret.proj);
+            create_typed_array(cx, &proj, &ret.proj);
         }
         ret
     }

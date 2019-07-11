@@ -266,6 +266,9 @@ pub struct Window {
     #[ignore_malloc_size_of = "channels are hard"]
     webvr_chan: Option<IpcSender<WebVRMsg>>,
 
+    #[ignore_malloc_size_of = "defined in webxr"]
+    webxr_registry: webxr_api::Registry,
+
     /// A map for storing the previous permission state read results.
     permission_state_invocation_results: DomRefCell<HashMap<String, PermissionState>>,
 
@@ -434,6 +437,10 @@ impl Window {
 
     pub fn webvr_thread(&self) -> Option<IpcSender<WebVRMsg>> {
         self.webvr_chan.clone()
+    }
+
+    pub fn webxr_registry(&self) -> webxr_api::Registry {
+        self.webxr_registry.clone()
     }
 
     fn new_paint_worklet(&self) -> DomRoot<Worklet> {
@@ -2072,6 +2079,7 @@ impl Window {
         navigation_start_precise: u64,
         webgl_chan: Option<WebGLChan>,
         webvr_chan: Option<IpcSender<WebVRMsg>>,
+        webxr_registry: webxr_api::Registry,
         microtask_queue: Rc<MicrotaskQueue>,
         webrender_document: DocumentId,
         webrender_api_sender: RenderApiSender,
@@ -2149,6 +2157,7 @@ impl Window {
             test_runner: Default::default(),
             webgl_chan,
             webvr_chan,
+            webxr_registry,
             permission_state_invocation_results: Default::default(),
             pending_layout_images: Default::default(),
             unminified_js_dir: Default::default(),

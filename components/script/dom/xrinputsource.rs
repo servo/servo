@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding;
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
     XRHandedness, XRInputSourceMethods,
@@ -13,30 +12,24 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrspace::XRSpace;
 use dom_struct::dom_struct;
-use webvr_traits::{WebVRGamepadData, WebVRGamepadHand, WebVRGamepadState, WebVRPose};
+use webxr_api::{Handedness, InputId, InputSource};
 
 #[dom_struct]
 pub struct XRInputSource {
     reflector: Reflector,
     session: Dom<XRSession>,
     #[ignore_malloc_size_of = "Defined in rust-webvr"]
-    data: WebVRGamepadData,
+    info: InputSource,
     #[ignore_malloc_size_of = "Defined in rust-webvr"]
-    state: DomRefCell<WebVRGamepadState>,
     target_ray_space: MutNullableDom<XRSpace>,
 }
 
 impl XRInputSource {
-    pub fn new_inherited(
-        session: &XRSession,
-        data: WebVRGamepadData,
-        state: WebVRGamepadState,
-    ) -> XRInputSource {
+    pub fn new_inherited(session: &XRSession, info: InputSource) -> XRInputSource {
         XRInputSource {
             reflector: Reflector::new(),
             session: Dom::from_ref(session),
-            data,
-            state: DomRefCell::new(state),
+            info,
             target_ray_space: Default::default(),
         }
     }
@@ -44,32 +37,27 @@ impl XRInputSource {
     pub fn new(
         global: &GlobalScope,
         session: &XRSession,
-        data: WebVRGamepadData,
-        state: WebVRGamepadState,
+        info: InputSource,
     ) -> DomRoot<XRInputSource> {
         reflect_dom_object(
-            Box::new(XRInputSource::new_inherited(session, data, state)),
+            Box::new(XRInputSource::new_inherited(session, info)),
             global,
             XRInputSourceBinding::Wrap,
         )
     }
 
-    pub fn update_state(&self, state: WebVRGamepadState) {
-        *self.state.borrow_mut() = state;
-    }
-
-    pub fn pose(&self) -> WebVRPose {
-        self.state.borrow().pose
+    pub fn id(&self) -> InputId {
+        self.info.id
     }
 }
 
 impl XRInputSourceMethods for XRInputSource {
     /// https://immersive-web.github.io/webxr/#dom-xrinputsource-handedness
     fn Handedness(&self) -> XRHandedness {
-        match self.data.hand {
-            WebVRGamepadHand::Unknown => XRHandedness::None,
-            WebVRGamepadHand::Left => XRHandedness::Left,
-            WebVRGamepadHand::Right => XRHandedness::Right,
+        match self.info.handedness {
+            Handedness::None => XRHandedness::None,
+            Handedness::Left => XRHandedness::Left,
+            Handedness::Right => XRHandedness::Right,
         }
     }
 

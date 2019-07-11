@@ -2975,6 +2975,7 @@ impl ScriptThread {
             incomplete.navigation_start_precise,
             self.webgl_chan.as_ref().map(|chan| chan.channel()),
             self.webvr_chan.clone(),
+            self.webxr_registry.clone(),
             self.microtask_queue.clone(),
             self.webrender_document,
             self.webrender_api_sender.clone(),

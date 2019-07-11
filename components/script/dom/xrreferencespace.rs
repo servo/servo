@@ -10,11 +10,11 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::dom::xrsession::XRSession;
+use crate::dom::xrsession::{cast_transform, ApiPose, ApiRigidTransform, ApiViewerPose, XRSession};
 use crate::dom::xrspace::XRSpace;
 use dom_struct::dom_struct;
-use euclid::{RigidTransform3D, Vector3D};
-use webvr_traits::WebVRFrameData;
+use euclid::{TypedRigidTransform3D, TypedVector3D};
+use webxr_api::Frame;
 
 #[dom_struct]
 pub struct XRReferenceSpace {
@@ -80,7 +80,7 @@ impl XRReferenceSpace {
     ///
     /// This is equivalent to `get_pose(self).inverse() * get_pose(viewerSpace)` (in column vector notation),
     /// however we specialize it to be efficient
-    pub fn get_viewer_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
+    pub fn get_viewer_pose(&self, base_pose: &Frame) -> ApiViewerPose {
         let pose = self.get_unoffset_viewer_pose(base_pose);
 
         // This may change, see https://github.com/immersive-web/webxr/issues/567
@@ -98,8 +98,8 @@ impl XRReferenceSpace {
     /// Gets pose of the viewer with respect to this space
     ///
     /// Does not apply originOffset, use get_viewer_pose instead if you need it
-    pub fn get_unoffset_viewer_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
-        let viewer_pose = XRSpace::pose_to_transform(&base_pose.pose);
+    pub fn get_unoffset_viewer_pose(&self, base_pose: &Frame) -> ApiViewerPose {
+        let viewer_pose: ApiViewerPose = cast_transform(base_pose.transform);
         // all math is in column-vector notation
         // we use the following equation to verify correctness here:
         // get_viewer_pose(space) = get_pose(space).inverse() * get_pose(viewer_space)
@@ -120,13 +120,13 @@ impl XRReferenceSpace {
                 //                            = Translate(2) * viewer_pose
 
                 // assume approximate user height of 2 meters
-                let floor_to_eye: RigidTransform3D<f64> = Vector3D::new(0., 2., 0.).into();
+                let floor_to_eye: ApiRigidTransform = TypedVector3D::new(0., 2., 0.).into();
                 floor_to_eye.pre_mul(&viewer_pose)
             },
             XRReferenceSpaceType::Viewer => {
                 // This reference space follows the viewer around, so the viewer is
                 // always at an identity transform with respect to it
-                RigidTransform3D::identity()
+                TypedRigidTransform3D::identity()
             },
             _ => unimplemented!(),
         }
@@ -137,7 +137,7 @@ impl XRReferenceSpace {
     /// The reference origin used is common between all
     /// get_pose calls for spaces from the same device, so this can be used to compare
     /// with other spaces
-    pub fn get_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
+    pub fn get_pose(&self, base_pose: &Frame) -> ApiPose {
         let pose = self.get_unoffset_pose(base_pose);
 
         // This may change, see https://github.com/immersive-web/webxr/issues/567
@@ -148,21 +148,21 @@ impl XRReferenceSpace {
     /// Gets pose represented by this space
     ///
     /// Does not apply originOffset, use get_viewer_pose instead if you need it
-    pub fn get_unoffset_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
+    pub fn get_unoffset_pose(&self, base_pose: &Frame) -> ApiPose {
         match self.ty {
             XRReferenceSpaceType::Local => {
                 // The eye-level pose is basically whatever the headset pose was at t=0, which
                 // for most devices is (0, 0, 0)
-                RigidTransform3D::identity()
+                TypedRigidTransform3D::identity()
             },
             XRReferenceSpaceType::Local_floor => {
                 // XXXManishearth support getting floor info from stage parameters
 
                 // Assume approximate height of 2m
                 // the floor-level space is 2m below the eye-level space, which is (0, 0, 0)
-                Vector3D::new(0., -2., 0.).into()
+                TypedVector3D::new(0., -2., 0.).into()
             },
-            XRReferenceSpaceType::Viewer => XRSpace::pose_to_transform(&base_pose.pose),
+            XRReferenceSpaceType::Viewer => cast_transform(base_pose.transform),
             _ => unimplemented!(),
         }
     }

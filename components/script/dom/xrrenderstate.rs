@@ -4,8 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::{self, XRRenderStateMethods};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::reflector::Reflector;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrlayer::XRLayer;
@@ -46,6 +45,25 @@ impl XRRenderState {
             global,
             XRRenderStateBinding::Wrap,
         )
+    }
+
+    pub fn clone_object(&self) -> DomRoot<Self> {
+        XRRenderState::new(
+            &self.global(),
+            self.depth_near.get(),
+            self.depth_far.get(),
+            self.layer.get().as_ref().map(|x| &**x),
+        )
+    }
+
+    pub fn set_depth_near(&self, depth: f64) {
+        self.depth_near.set(depth)
+    }
+    pub fn set_depth_far(&self, depth: f64) {
+        self.depth_far.set(depth)
+    }
+    pub fn set_layer(&self, layer: Option<&XRLayer>) {
+        self.layer.set(layer)
     }
 }
 

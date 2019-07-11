@@ -73,18 +73,19 @@ impl EmbedderMethods for EmbedderCallbacks {
     }
 
     fn register_webxr(&mut self, xr: &mut webxr_api::MainThreadRegistry) {
-        if !opts::get().headless {
-            if pref!(dom.webxr.test) {
-                warn!("Creating test XR device");
-                let gl = self.gl.clone();
-                let events_loop_clone = self.events_loop.clone();
-                let events_loop_factory = Box::new(move || {
-                    events_loop_clone.borrow_mut().take().ok_or(EventsLoopClosed)
-                });
-                let gl_version = app::gl_version();
-                let discovery = webxr::glwindow::GlWindowDiscovery::new(gl, events_loop_factory, gl_version);
-                xr.register(discovery);
-            }
+        if pref!(dom.webxr.test) {
+            let gl = self.gl.clone();
+            xr.register_mock(webxr::headless::HeadlessMockDiscovery::new(gl));
+        } else if !opts::get().headless && pref!(dom.webxr.glwindow) {
+            warn!("Creating test XR device");
+            let gl = self.gl.clone();
+            let events_loop_clone = self.events_loop.clone();
+            let events_loop_factory = Box::new(move || {
+                events_loop_clone.borrow_mut().take().ok_or(EventsLoopClosed)
+            });
+            let gl_version = app::gl_version();
+            let discovery = webxr::glwindow::GlWindowDiscovery::new(gl, events_loop_factory, gl_version);
+            xr.register(discovery);
         }
     }
 }

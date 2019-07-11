@@ -10,10 +10,9 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrreferencespace::XRReferenceSpace;
-use crate::dom::xrsession::XRSession;
+use crate::dom::xrsession::{cast_transform, ApiPose, XRSession};
 use dom_struct::dom_struct;
-use euclid::{RigidTransform3D, Rotation3D, Vector3D};
-use webvr_traits::{WebVRFrameData, WebVRPose};
+use webxr_api::Frame;
 
 #[dom_struct]
 pub struct XRSpace {
@@ -58,28 +57,25 @@ impl XRSpace {
     /// The reference origin used is common between all
     /// get_pose calls for spaces from the same device, so this can be used to compare
     /// with other spaces
-    pub fn get_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
+    pub fn get_pose(&self, base_pose: &Frame) -> ApiPose {
         if let Some(reference) = self.downcast::<XRReferenceSpace>() {
             reference.get_pose(base_pose)
         } else if let Some(source) = self.input_source.get() {
-            XRSpace::pose_to_transform(&source.pose())
+            // XXXManishearth we should be able to request frame information
+            // for inputs when necessary instead of always loading it
+            //
+            // Also, the below code is quadratic, so this API may need an overhaul anyway
+            let id = source.id();
+            // XXXManishearth once we have dynamic inputs we'll need to handle this better
+            let frame = base_pose
+                .inputs
+                .iter()
+                .find(|i| i.id == id)
+                .expect("no input found");
+            cast_transform(frame.target_ray_origin)
         } else {
             unreachable!()
         }
-    }
-
-    pub fn pose_to_transform(pose: &WebVRPose) -> RigidTransform3D<f64> {
-        let pos = pose.position.unwrap_or([0., 0., 0.]);
-        let translation = Vector3D::new(pos[0] as f64, pos[1] as f64, pos[2] as f64);
-        let orient = pose.orientation.unwrap_or([0., 0., 0., 0.]);
-        let rotation = Rotation3D::quaternion(
-            orient[0] as f64,
-            orient[1] as f64,
-            orient[2] as f64,
-            orient[3] as f64,
-        )
-        .normalize();
-        RigidTransform3D::new(rotation, translation)
     }
 
     pub fn session(&self) -> &XRSession {

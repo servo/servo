@@ -9,6 +9,7 @@ use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
 use half::f16;
+use ipc_channel::ipc::IpcSender;
 use offscreen_gl_context::{DrawBuffer, GLContext, NativeGLContextMethods};
 use pixels::{self, PixelFormat};
 use std::borrow::Cow;
@@ -181,6 +182,9 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             WebGLMsg::Lock(ctx_id, sender) => {
                 self.handle_lock(ctx_id, sender);
             },
+            WebGLMsg::LockIPC(ctx_id, sender) => {
+                self.handle_lock_ipc(ctx_id, sender);
+            },
             WebGLMsg::Unlock(ctx_id) => {
                 self.handle_unlock(ctx_id);
             },
@@ -231,13 +235,27 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             );
         }
     }
-
     /// Handles a lock external callback received from webrender::ExternalImageHandler
     fn handle_lock(
         &mut self,
         context_id: WebGLContextId,
         sender: WebGLSender<(u32, Size2D<i32>, usize)>,
     ) {
+        sender.send(self.handle_lock_inner(context_id)).unwrap();
+    }
+
+    /// handle_lock, but unconditionally IPC (used by webxr)
+    fn handle_lock_ipc(
+        &mut self,
+        context_id: WebGLContextId,
+        sender: IpcSender<(u32, Size2D<i32>, usize)>,
+    ) {
+        sender.send(self.handle_lock_inner(context_id)).unwrap();
+    }
+
+    /// Shared code between handle_lock and handle_lock_ipc, does the actual syncing/flushing
+    /// but the caller must send the response back
+    fn handle_lock_inner(&mut self, context_id: WebGLContextId) -> (u32, Size2D<i32>, usize) {
         let data =
             Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id)
                 .expect("WebGLContext not found in a WebGLMsg::Lock message");
@@ -251,9 +269,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         // Without proper flushing, the sync object may never be signaled.
         data.ctx.gl().flush();
 
-        sender
-            .send((info.texture_id, info.size, gl_sync as usize))
-            .unwrap();
+        (info.texture_id, info.size, gl_sync as usize)
     }
 
     /// Handles an unlock external callback received from webrender::ExternalImageHandler

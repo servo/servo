@@ -60,7 +60,7 @@ rust-webvr = { version = "0.13", features = ["glwindow"] }
 servo-media = {git = "https://github.com/servo/media"}
 tinyfiledialogs = "3.0"
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
-webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow"] }
+webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless"] }
 
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
 image = "0.21"

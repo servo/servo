@@ -57,8 +57,8 @@ use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
 use encoding_rs::{Decoder, Encoding};
 use euclid::Length as EuclidLength;
 use euclid::{
-    Point2D, Rect, RigidTransform3D, Rotation3D, Transform2D, Transform3D, TypedScale, TypedSize2D,
-    Vector2D,
+    Point2D, Rect, RigidTransform3D, Rotation3D, Transform2D, Transform3D, TypedRigidTransform3D,
+    TypedScale, TypedSize2D, Vector2D,
 };
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::{LocalName, Namespace, Prefix, QualName};
@@ -486,7 +486,12 @@ unsafe_no_jsmanaged_fields!(WebGLVersion);
 unsafe_no_jsmanaged_fields!(WebGLSLVersion);
 unsafe_no_jsmanaged_fields!(MediaList);
 unsafe_no_jsmanaged_fields!(WebVRGamepadData, WebVRGamepadState, WebVRGamepadHand);
-unsafe_no_jsmanaged_fields!(webxr_api::Registry);
+unsafe_no_jsmanaged_fields!(
+    webxr_api::Registry,
+    webxr_api::Session,
+    webxr_api::Frame,
+    webxr_api::InputSource
+);
 unsafe_no_jsmanaged_fields!(ScriptToConstellationChan);
 unsafe_no_jsmanaged_fields!(InteractiveMetrics);
 unsafe_no_jsmanaged_fields!(InteractiveWindow);
@@ -601,6 +606,13 @@ where
 }
 
 unsafe impl<T, U> JSTraceable for TypedScale<f32, T, U> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl<T, U> JSTraceable for TypedRigidTransform3D<f32, T, U> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing

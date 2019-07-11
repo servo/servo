@@ -10,14 +10,13 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrpose::XRPose;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::dom::xrsession::XRSession;
+use crate::dom::xrsession::{cast_transform, ApiViewerPose, XRSession};
 use crate::dom::xrview::XRView;
 use dom_struct::dom_struct;
-use euclid::RigidTransform3D;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSContext};
 use js::jsval::{JSVal, UndefinedValue};
-use webvr_traits::WebVRFrameData;
+use webxr_api::Views;
 
 #[dom_struct]
 pub struct XRViewerPose {
@@ -38,12 +37,19 @@ impl XRViewerPose {
     pub fn new(
         global: &GlobalScope,
         session: &XRSession,
-        pose: RigidTransform3D<f64>,
-        data: &WebVRFrameData,
+        pose: ApiViewerPose,
     ) -> DomRoot<XRViewerPose> {
-        let left = XRView::new(global, session, XREye::Left, &pose, &data);
-        let right = XRView::new(global, session, XREye::Right, &pose, &data);
-        let transform = XRRigidTransform::new(global, pose);
+        rooted_vec!(let mut views);
+        session.with_session(|s| match s.views() {
+            Views::Mono(view) => {
+                views.push(XRView::new(global, session, &view, XREye::Unknown, &pose))
+            },
+            Views::Stereo(left, right) => {
+                views.push(XRView::new(global, session, &left, XREye::Left, &pose));
+                views.push(XRView::new(global, session, &right, XREye::Right, &pose));
+            },
+        });
+        let transform = XRRigidTransform::new(global, cast_transform(pose));
         let pose = reflect_dom_object(
             Box::new(XRViewerPose::new_inherited(&transform)),
             global,
@@ -53,8 +59,7 @@ impl XRViewerPose {
         unsafe {
             let cx = global.get_cx();
             rooted!(in(cx) let mut jsval = UndefinedValue());
-            let vec = vec![left, right];
-            vec.to_jsval(cx, jsval.handle_mut());
+            views.to_jsval(cx, jsval.handle_mut());
             pose.views.set(jsval.get());
         }
 

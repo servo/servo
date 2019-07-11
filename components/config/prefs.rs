@@ -296,6 +296,8 @@ mod gen {
                     enabled: bool,
                     #[serde(default)]
                     test: bool,
+                    #[serde(default)]
+                    glwindow: bool,
                 },
                 worklet: {
                     blockingsleep: {
