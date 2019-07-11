@@ -752,8 +752,8 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             if memberType.isDictionary()
         ]
         if (defaultValue and
-            not isinstance(defaultValue, IDLNullValue) and
-            not isinstance(defaultValue, IDLDefaultDictionaryValue)):
+                not isinstance(defaultValue, IDLNullValue) and
+                not isinstance(defaultValue, IDLDefaultDictionaryValue)):
             tag = defaultValue.type.tag()
             if tag is IDLType.Tags.bool:
                 default = "%s::Boolean(%s)" % (
