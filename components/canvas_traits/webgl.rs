@@ -7,7 +7,7 @@ use gleam::gl;
 use gleam::gl::GLsync;
 use gleam::gl::GLuint;
 use gleam::gl::Gl;
-use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{self, IpcBytesReceiver, IpcBytesSender, IpcSender, IpcSharedMemory};
 use pixels::PixelFormat;
 use std::borrow::Cow;
 use std::fmt;
@@ -61,6 +61,8 @@ pub enum WebGLMsg {
     /// The WR client should not change the shared texture content until the Unlock call.
     /// Currently OpenGL Sync Objects are used to implement the synchronization mechanism.
     Lock(WebGLContextId, WebGLSender<(u32, Size2D<i32>, usize)>),
+    /// Lock(), but unconditionally IPC (used by webxr)
+    LockIPC(WebGLContextId, IpcSender<(u32, Size2D<i32>, usize)>),
     /// Unlocks a specific WebGLContext. Unlock messages are used for a correct synchronization
     /// with WebRender external image API.
     /// The WR unlocks a context when it finished reading the shared texture contents.
@@ -195,9 +197,9 @@ struct SerializableWebGLMsgSender {
 #[typetag::serde]
 impl webxr_api::WebGLExternalImageApi for SerializableWebGLMsgSender {
     fn lock(&self) -> Result<(GLuint, Size2D<i32>, GLsync), webxr_api::Error> {
-        let (sender, receiver) = webgl_channel().or(Err(webxr_api::Error::CommunicationError))?;
+        let (sender, receiver) = ipc::channel().or(Err(webxr_api::Error::CommunicationError))?;
         self.sender
-            .send(WebGLMsg::Lock(self.ctx_id, sender))
+            .send(WebGLMsg::LockIPC(self.ctx_id, sender))
             .or(Err(webxr_api::Error::CommunicationError))?;
         let (texture, size, sync) = receiver
             .recv()
