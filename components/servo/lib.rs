@@ -65,7 +65,7 @@ fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) {}
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas::gl_context::{CloneableDispatcher, GLContextFactory};
-use canvas::webgl_thread::WebGLThreads;
+use canvas::webgl_thread::{ThreadMode, WebGLMainThread, WebGLThreads};
 use compositing::compositor_thread::{
     CompositorProxy, CompositorReceiver, InitialCompositorState, Msg,
 };
@@ -117,6 +117,7 @@ use std::rc::Rc;
 use webrender::{RendererKind, ShaderPrecacheFlags};
 use webrender_traits::{WebrenderExternalImageHandlers, WebrenderImageHandlerType};
 use webvr::{VRServiceManager, WebVRCompositorHandler, WebVRThread};
+use webvr_traits::WebVRMsg;
 
 pub use gleam::gl;
 pub use keyboard_types;
@@ -226,6 +227,7 @@ pub struct Servo<Window: WindowMethods + 'static + ?Sized> {
     embedder_receiver: EmbedderReceiver,
     embedder_events: Vec<(Option<BrowserId>, EmbedderMsg)>,
     profiler_enabled: bool,
+    webgl_thread_data: Option<WebGLMainThread>,
 }
 
 #[derive(Clone)]
@@ -384,12 +386,83 @@ where
             None
         };
 
+        let (webvr_chan, webvr_constellation_sender, webvr_compositor) =
+            if let Some(services) = webvr_services {
+                // WebVR initialization
+                let (mut handler, sender) = WebVRCompositorHandler::new();
+                let (webvr_thread, constellation_sender) = WebVRThread::spawn(sender, services);
+                handler.set_webvr_thread_sender(webvr_thread.clone());
+                (
+                    Some(webvr_thread),
+                    Some(constellation_sender),
+                    Some(handler),
+                )
+            } else {
+                (None, None, None)
+            };
+
+        // GLContext factory used to create WebGL Contexts
+        let gl_factory = if opts.should_use_osmesa() {
+            GLContextFactory::current_osmesa_handle()
+        } else {
+            let dispatcher =
+                Box::new(MainThreadDispatcher::new(compositor_proxy.clone())) as Box<_>;
+            GLContextFactory::current_native_handle(dispatcher, window.gl().get_type())
+        };
+
+        let (external_image_handlers, external_images) = WebrenderExternalImageHandlers::new();
+        let mut external_image_handlers = Box::new(external_image_handlers);
+
+        // Initialize WebGL Thread entry point.
+        let webgl_result = gl_factory.map(|factory| {
+            let run_on_main_thread =
+                cfg!(windows) || std::env::var("SERVO_WEBGL_MAIN_THREAD").is_ok();
+
+            let (webgl_threads, thread_data, image_handler, output_handler) = WebGLThreads::new(
+                factory,
+                webrender_api_sender.clone(),
+                webvr_compositor.map(|c| c as Box<_>),
+                external_images.clone(),
+                if run_on_main_thread {
+                    ThreadMode::MainThread(embedder.create_event_loop_waker())
+                } else {
+                    ThreadMode::OffThread(window.gl())
+                },
+            );
+
+            // Set webrender external image handler for WebGL textures
+            external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::WebGL);
+
+            // Set DOM to texture handler, if enabled.
+            if let Some(output_handler) = output_handler {
+                webrender.set_output_image_handler(output_handler);
+            }
+
+            (webgl_threads, thread_data)
+        });
+        let (webgl_threads, webgl_thread_data) = match webgl_result {
+            Some((a, b)) => (Some(a), b),
+            None => (None, None),
+        };
+
+        let glplayer_threads = match window.get_gl_context() {
+            GlContext::Unknown => None,
+            _ => {
+                let (glplayer_threads, image_handler) = GLPlayerThreads::new(external_images);
+                external_image_handlers
+                    .set_handler(image_handler, WebrenderImageHandlerType::Media);
+                Some(glplayer_threads)
+            },
+        };
+
         let player_context = WindowGLContext {
             gl_context: window.get_gl_context(),
             native_display: window.get_native_display(),
             gl_api: window.get_gl_api(),
-            glplayer_chan: None,
+            glplayer_chan: glplayer_threads.as_ref().map(GLPlayerThreads::pipeline),
         };
+
+        webrender.set_external_image_handler(external_image_handlers);
 
         // Create the constellation, which maintains the engine
         // pipelines, including the script and layout threads, as well
@@ -403,13 +476,14 @@ where
             mem_profiler_chan.clone(),
             debugger_chan,
             devtools_chan,
-            &mut webrender,
             webrender_document,
             webrender_api_sender,
-            window.gl(),
-            webvr_services,
             webxr_main_thread.registry(),
             player_context,
+            webgl_threads,
+            webvr_chan,
+            webvr_constellation_sender,
+            glplayer_threads,
         );
 
         // Send the constellation's swmanager sender to service worker manager thread
@@ -450,6 +524,7 @@ where
             embedder_receiver: embedder_receiver,
             embedder_events: Vec::new(),
             profiler_enabled: false,
+            webgl_thread_data,
         }
     }
 
@@ -641,6 +716,10 @@ where
     }
 
     pub fn handle_events(&mut self, events: Vec<WindowEvent>) {
+        if let Some(ref mut webgl_thread) = self.webgl_thread_data {
+            webgl_thread.process();
+        }
+
         if self.compositor.receive_messages() {
             self.receive_messages();
         }
@@ -715,13 +794,14 @@ fn create_constellation(
     mem_profiler_chan: mem::ProfilerChan,
     debugger_chan: Option<debugger::Sender>,
     devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
-    webrender: &mut webrender::Renderer,
     webrender_document: webrender_api::DocumentId,
     webrender_api_sender: webrender_api::RenderApiSender,
-    window_gl: Rc<dyn gl::Gl>,
-    webvr_services: Option<VRServiceManager>,
     webxr_registry: webxr_api::Registry,
     player_context: WindowGLContext,
+    webgl_threads: Option<WebGLThreads>,
+    webvr_chan: Option<IpcSender<WebVRMsg>>,
+    webvr_constellation_sender: Option<Sender<Sender<ConstellationMsg>>>,
+    glplayer_threads: Option<GLPlayerThreads>,
 ) -> (Sender<ConstellationMsg>, SWManagerSenders) {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
@@ -744,69 +824,6 @@ fn create_constellation(
     );
 
     let resource_sender = public_resource_threads.sender();
-
-    let (webvr_chan, webvr_constellation_sender, webvr_compositor) =
-        if let Some(services) = webvr_services {
-            // WebVR initialization
-            let (mut handler, sender) = WebVRCompositorHandler::new();
-            let (webvr_thread, constellation_sender) = WebVRThread::spawn(sender, services);
-            handler.set_webvr_thread_sender(webvr_thread.clone());
-            (
-                Some(webvr_thread),
-                Some(constellation_sender),
-                Some(handler),
-            )
-        } else {
-            (None, None, None)
-        };
-
-    // GLContext factory used to create WebGL Contexts
-    let gl_factory = if opts.should_use_osmesa() {
-        GLContextFactory::current_osmesa_handle()
-    } else {
-        let dispatcher = Box::new(MainThreadDispatcher::new(compositor_proxy.clone())) as Box<_>;
-        GLContextFactory::current_native_handle(dispatcher, window_gl.get_type())
-    };
-
-    let (external_image_handlers, external_images) = WebrenderExternalImageHandlers::new();
-    let mut external_image_handlers = Box::new(external_image_handlers);
-
-    // Initialize WebGL Thread entry point.
-    let webgl_threads = gl_factory.map(|factory| {
-        let (webgl_threads, image_handler, output_handler) = WebGLThreads::new(
-            factory,
-            window_gl,
-            webrender_api_sender.clone(),
-            webvr_compositor.map(|c| c as Box<_>),
-            external_images.clone(),
-        );
-
-        // Set webrender external image handler for WebGL textures
-        external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::WebGL);
-
-        // Set DOM to texture handler, if enabled.
-        if let Some(output_handler) = output_handler {
-            webrender.set_output_image_handler(output_handler);
-        }
-
-        webgl_threads
-    });
-
-    let glplayer_threads = match player_context.gl_context {
-        GlContext::Unknown => None,
-        _ => {
-            let (glplayer_threads, image_handler) = GLPlayerThreads::new(external_images);
-            external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::Media);
-            Some(glplayer_threads)
-        },
-    };
-
-    webrender.set_external_image_handler(external_image_handlers);
-
-    let player_context = WindowGLContext {
-        glplayer_chan: glplayer_threads.as_ref().map(|threads| threads.pipeline()),
-        ..player_context
-    };
 
     let initial_state = InitialConstellationState {
         compositor_proxy,

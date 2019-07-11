@@ -71,6 +71,13 @@ where
             WebGLReceiver::Mpsc(ref receiver) => receiver.recv().map_err(|_| ()),
         }
     }
+
+    pub fn try_recv(&self) -> Result<T, ()> {
+        match *self {
+            WebGLReceiver::Ipc(ref receiver) => receiver.try_recv().map_err(|_| ()),
+            WebGLReceiver::Mpsc(ref receiver) => receiver.try_recv().map_err(|_| ()),
+        }
+    }
 }
 
 pub fn webgl_channel<T>() -> Result<(WebGLSender<T>, WebGLReceiver<T>), ()>
