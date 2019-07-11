@@ -164,13 +164,16 @@ class MachCommands(CommandBase):
     @CommandArgument('--very-verbose', '-vv',
                      action='store_true',
                      help='Print very verbose output')
+    @CommandArgument('--ignore-gstreamer-package-errors',
+                     action='store_true',
+                     help='Do not fail the build for errors packaging GStreamer binaries')
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     @CommandBase.build_like_command_arguments
     def build(self, release=False, dev=False, jobs=None, params=None,
               no_package=False, verbose=False, very_verbose=False,
               target=None, android=False, magicleap=False, libsimpleservo=False, uwp=False,
-              features=None, **kwargs):
+              features=None, ignore_gstreamer_package_errors=False, **kwargs):
         opts = params or []
         features = features or []
         target, android = self.pick_target_triple(target, android, magicleap)
@@ -606,7 +609,8 @@ class MachCommands(CommandBase):
                 target_triple = target or host_triple()
                 if "aarch64" not in target_triple:
                     print("Packaging gstreamer DLLs")
-                    if not package_gstreamer_dlls(servo_exe_dir, target_triple):
+                    if not package_gstreamer_dlls(servo_exe_dir, target_triple) and \
+                       not ignore_gstreamer_package_errors:
                         status = 1
                 print("Packaging MSVC DLLs")
                 if not package_msvc_dlls(servo_exe_dir, target_triple):
