@@ -44,7 +44,7 @@ def WebIDLTest(parser, harness):
         };
       """)
       results = parser.finish()
-    except Exception, exception:
+    except Exception as exception:
         pass
 
     harness.ok(exception, "Should have thrown.")
@@ -70,7 +70,7 @@ def WebIDLTest(parser, harness):
         };
       """)
       results = parser.finish()
-    except Exception, exception:
+    except Exception as exception:
         pass
 
     harness.ok(exception, "Should have thrown (2).")
@@ -100,7 +100,7 @@ def WebIDLTest(parser, harness):
         };
       """)
       results = parser.finish()
-    except Exception, exception:
+    except Exception as exception:
         pass
 
     harness.ok(exception, "Should have thrown (3).")

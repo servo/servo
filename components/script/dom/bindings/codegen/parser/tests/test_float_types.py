@@ -68,7 +68,7 @@ def WebIDLTest(parser, harness):
               long m(float arg);
             };
         """)
-    except Exception, x:
+    except Exception as x:
         threw = True
     harness.ok(threw, "[LenientFloat] only allowed on void methods")
 
@@ -81,7 +81,7 @@ def WebIDLTest(parser, harness):
               void m(unrestricted float arg);
             };
         """)
-    except Exception, x:
+    except Exception as x:
         threw = True
     harness.ok(threw, "[LenientFloat] only allowed on methods with unrestricted float args")
 
@@ -94,7 +94,7 @@ def WebIDLTest(parser, harness):
               void m(sequence<unrestricted float> arg);
             };
         """)
-    except Exception, x:
+    except Exception as x:
         threw = True
     harness.ok(threw, "[LenientFloat] only allowed on methods with unrestricted float args (2)")
 
@@ -107,7 +107,7 @@ def WebIDLTest(parser, harness):
               void m((unrestricted float or FloatTypes) arg);
             };
         """)
-    except Exception, x:
+    except Exception as x:
         threw = True
     harness.ok(threw, "[LenientFloat] only allowed on methods with unrestricted float args (3)")
 
@@ -120,6 +120,6 @@ def WebIDLTest(parser, harness):
               readonly attribute float foo;
             };
         """)
-    except Exception, x:
+    except Exception as x:
         threw = True
     harness.ok(threw, "[LenientFloat] only allowed on writable attributes")

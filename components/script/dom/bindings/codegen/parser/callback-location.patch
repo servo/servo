@@ -1,7 +1,7 @@
 --- WebIDL.py
 +++ WebIDL.py
-@@ -2275,7 +2275,7 @@ class IDLUnresolvedType(IDLType):
-             return typedefType.complete(scope)
+@@ -2283,7 +2283,7 @@ class IDLUnresolvedType(IDLType):
+             return typedefType.complete(scope).withExtendedAttributes(self.extraTypeAttributes)
          elif obj.isCallback() and not obj.isInterface():
              assert self.name.name == obj.identifier.name
 -            return IDLCallbackType(self.location, obj)
@@ -9,7 +9,7 @@
  
          name = self.name.resolve(scope, None)
          return IDLWrapperType(self.location, obj)
-@@ -6688,7 +6688,7 @@ class Parser(Tokenizer):
+@@ -6854,7 +6854,7 @@ class Parser(Tokenizer):
                      type = IDLTypedefType(self.getLocation(p, 1), obj.innerType,
                                            obj.identifier.name)
                  elif obj.isCallback() and not obj.isInterface():

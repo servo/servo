@@ -13,6 +13,7 @@ def WebIDLTest(parser, harness):
 
     harness.ok(threw, "Should have thrown.")
 
+    parser = parser.reset()
     threw = False
     try:
         parser.parse("""

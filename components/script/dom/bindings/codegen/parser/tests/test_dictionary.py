@@ -174,6 +174,22 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
+              void doFoo(optional A arg);
+            };
+        """)
+        results = parser.finish()
+    except:
+        threw = True
+
+    harness.ok(threw, "Trailing dictionary arg must have a default value")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            dictionary A {
+            };
+            interface X {
               void doFoo((A or DOMString) arg);
             };
         """)
@@ -191,6 +207,23 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
+              void doFoo(optional (A or DOMString) arg);
+            };
+        """)
+        results = parser.finish()
+    except:
+        threw = True
+
+    harness.ok(threw,
+               "Trailing union arg containing a dictionary must have a default value")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            dictionary A {
+            };
+            interface X {
               void doFoo(A arg1, optional long arg2);
             };
         """)
@@ -199,6 +232,22 @@ def WebIDLTest(parser, harness):
         threw = True
 
     harness.ok(threw, "Dictionary arg followed by optional arg must be optional")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            dictionary A {
+            };
+            interface X {
+              void doFoo(optional A arg1, optional long arg2);
+            };
+        """)
+        results = parser.finish()
+    except:
+        threw = True
+
+    harness.ok(threw, "Dictionary arg followed by optional arg must have default value")
 
     parser = parser.reset()
     threw = False
@@ -234,6 +283,24 @@ def WebIDLTest(parser, harness):
     harness.ok(threw,
                "Union arg containing dictionary followed by optional arg must "
                "be optional")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            dictionary A {
+            };
+            interface X {
+              void doFoo(optional (A or DOMString) arg1, optional long arg2);
+            };
+        """)
+        results = parser.finish()
+    except:
+        threw = True
+
+    harness.ok(threw,
+               "Union arg containing dictionary followed by optional arg must "
+               "have a default value")
 
     parser = parser.reset()
     parser.parse("""
@@ -326,7 +393,7 @@ def WebIDLTest(parser, harness):
         dictionary A {
         };
         interface X {
-          void doFoo(optional A arg);
+          void doFoo(optional A arg = {});
         };
     """)
     results = parser.finish()
@@ -337,11 +404,22 @@ def WebIDLTest(parser, harness):
         dictionary A {
         };
         interface X {
-          void doFoo(optional (A or DOMString) arg);
+          void doFoo(optional (A or DOMString) arg = {});
         };
     """)
     results = parser.finish()
     harness.ok(True, "Union arg containing a dictionary should actually parse")
+
+    parser = parser.reset()
+    parser.parse("""
+        dictionary A {
+        };
+        interface X {
+          void doFoo(optional (A or DOMString) arg = "abc");
+        };
+    """)
+    results = parser.finish()
+    harness.ok(True, "Union arg containing a dictionary with string default should actually parse")
 
     parser = parser.reset()
     threw = False
