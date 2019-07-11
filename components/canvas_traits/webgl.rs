@@ -7,7 +7,7 @@ use gleam::gl;
 use gleam::gl::GLsync;
 use gleam::gl::GLuint;
 use gleam::gl::Gl;
-use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory};
+use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender, IpcSharedMemory};
 use pixels::PixelFormat;
 use std::borrow::Cow;
 use std::fmt;
@@ -175,10 +175,25 @@ impl WebGLMsgSender {
     pub fn send_dom_to_texture(&self, command: DOMToTextureCommand) -> WebGLSendResult {
         self.sender.send(WebGLMsg::DOMToTextureCommand(command))
     }
+
+    pub fn webxr_external_image_api(&self) -> impl webxr_api::WebGLExternalImageApi {
+        SerializableWebGLMsgSender {
+            ctx_id: self.ctx_id,
+            sender: self.sender.to_ipc(),
+        }
+    }
+}
+
+// WegGLMsgSender isn't actually serializable, despite what it claims.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+struct SerializableWebGLMsgSender {
+    ctx_id: WebGLContextId,
+    #[ignore_malloc_size_of = "channels are hard"]
+    sender: IpcSender<WebGLMsg>,
 }
 
 #[typetag::serde]
-impl webxr_api::WebGLExternalImageApi for WebGLMsgSender {
+impl webxr_api::WebGLExternalImageApi for SerializableWebGLMsgSender {
     fn lock(&self) -> Result<(GLuint, Size2D<i32>, GLsync), webxr_api::Error> {
         let (sender, receiver) = webgl_channel().or(Err(webxr_api::Error::CommunicationError))?;
         self.sender
