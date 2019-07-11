@@ -54,8 +54,6 @@ install:
   - appveyor-retry appveyor DownloadFile https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-msvc-x86_64-1.16.0.msi
   - msiexec /i gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi /quiet /qn /norestart /log install-devel.log
   - msiexec /i gstreamer-1.0-msvc-x86_64-1.16.0.msi /quiet /qn /norestart /log install.log
-  - echo GSTREAMER_1_0_ROOT_X86_64 %GSTREAMER_1_0_ROOT_X86_64%
-  - dir c:\gstreamer\1.0\x86_64\bin
   - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
   - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
   - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain none
@@ -73,6 +71,8 @@ install:
 #  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 build_script:
+  - echo GSTREAMER_1_0_ROOT_X86_64 %GSTREAMER_1_0_ROOT_X86_64%
+  - dir c:\gstreamer\1.0\x86_64\bin
   - mach clean-nightlies --keep 2 --force
   # see https://github.com/servo/servo/issues/20664
   #- mach cargo check -p compositing --no-default-features
