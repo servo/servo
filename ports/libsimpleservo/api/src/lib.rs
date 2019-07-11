@@ -251,7 +251,9 @@ impl ServoGlue {
         debug!("perform_updates");
         let events = mem::replace(&mut self.events, Vec::new());
         self.servo.handle_events(events);
-        self.handle_servo_events()
+        let r = self.handle_servo_events();
+        debug!("done perform_updates");
+        r
     }
 
     /// In batch mode, Servo won't call perform_updates automatically.
@@ -628,7 +630,7 @@ impl WindowMethods for ServoWindowCallbacks {
     }
 
     fn set_animation_state(&self, state: AnimationState) {
-        debug!("WindowMethods::set_animation_state");
+        debug!("WindowMethods::set_animation_state: {:?}", state);
         self.host_callbacks
             .on_animating_changed(state == AnimationState::Animating);
     }
