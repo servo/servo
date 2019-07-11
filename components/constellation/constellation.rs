@@ -1698,15 +1698,21 @@ where
 
     fn handle_reroute_messageport(&mut self, port_id: MessagePortId, task: PortMessageTask) {
         if let Some(info) = self.message_ports.get_mut(&port_id) {
-            match &mut info.message_queue {
-                Some(queue) => {
-                    queue.push_back(task);
-                },
-                None => {
-                    let mut queue = VecDeque::new();
-                    queue.push_back(task);
-                    info.message_queue = Some(queue);
-                },
+            if info.is_being_transferred {
+                match &mut info.message_queue {
+                    Some(queue) => {
+                        queue.push_back(task);
+                    },
+                    None => {
+                        let mut queue = VecDeque::new();
+                        queue.push_back(task);
+                        info.message_queue = Some(queue);
+                    },
+                }
+            } else {
+                let _ = info
+                    .control_sender
+                    .send(MessagePortMsg::NewTask(port_id, task));
             }
         }
     }
