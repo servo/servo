@@ -38,7 +38,6 @@
         logical=side[1],
         logical_group="scroll-margin",
         spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-%s" % side[0],
-        flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE",
         animation_value_type="ComputedValue",
     )}
 % endfor
