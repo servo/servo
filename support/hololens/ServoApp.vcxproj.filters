@@ -55,9 +55,6 @@
   <ItemGroup>
     <None Include="ServoApp_TemporaryKey.pfx" />
     <None Include="packages.config" />
-    <None Include="..\..\target\debug\simpleservo.dll">
-      <Filter>ServoDLLsDebug</Filter>
-    </None>
     <None Include="..\..\target\debug\api-ms-win-crt-runtime-l1-1-0.dll">
       <Filter>ServoDLLsDebug</Filter>
     </None>
@@ -552,6 +549,9 @@
     </None>
     <None Include="..\..\target\release\z-1.dll">
       <Filter>ServoDLLsRelease</Filter>
+    </None>
+    <None Include="..\..\target\debug\simpleservo.dll">
+      <Filter>ServoDLLsDebug</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
