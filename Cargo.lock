@@ -395,6 +395,7 @@ dependencies = [
  "byteorder 1.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas_traits 0.0.1",
  "cssparser 0.25.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "embedder_traits 0.0.1",
  "euclid 0.19.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.6.18 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -594,6 +595,7 @@ dependencies = [
 name = "compositing"
 version = "0.0.1"
 dependencies = [
+ "canvas 0.0.1",
  "crossbeam-channel 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "embedder_traits 0.0.1",
  "euclid 0.19.8 (registry+https://github.com/rust-lang/crates.io-index)",

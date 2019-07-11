@@ -47,6 +47,10 @@ impl<T> WebGLReceiver<T> {
     pub fn recv(&self) -> Result<T, mpsc::RecvError> {
         self.0.recv()
     }
+    #[inline]
+    pub fn try_recv(&self) -> Result<T, mpsc::TryRecvError> {
+        self.0.try_recv()
+    }
 }
 
 pub fn webgl_channel<T>() -> Result<(WebGLSender<T>, WebGLReceiver<T>), ()> {

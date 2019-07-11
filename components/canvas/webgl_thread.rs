@@ -5,6 +5,7 @@
 use super::gl_context::{map_attrs_to_script_attrs, GLContextFactory, GLContextWrapper};
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use canvas_traits::webgl::*;
+use embedder_traits::EventLoopWaker;
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
@@ -13,13 +14,17 @@ use ipc_channel::ipc::IpcSender;
 use offscreen_gl_context::{DrawBuffer, GLContext, NativeGLContextMethods};
 use pixels::{self, PixelFormat};
 use std::borrow::Cow;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::mem;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 
 /// WebGL Threading API entry point that lives in the constellation.
 /// It allows to get a WebGLThread handle for each script pipeline.
-pub use crate::webgl_mode::WebGLThreads;
+pub use crate::webgl_mode::{ThreadMode, WebGLThreads};
 
 struct GLContextData {
     ctx: GLContextWrapper,
@@ -50,7 +55,7 @@ impl Default for GLState {
 
 /// A WebGLThread manages the life cycle and message multiplexing of
 /// a set of WebGLContexts living in the same thread.
-pub struct WebGLThread<VR: WebVRRenderHandler + 'static> {
+pub(crate) struct WebGLThread {
     /// Factory used to create a new GLContext shared with the WR/Main thread.
     gl_factory: GLContextFactory,
     /// Channel used to generate/update or delete `webrender_api::ImageKey`s.
@@ -62,20 +67,74 @@ pub struct WebGLThread<VR: WebVRRenderHandler + 'static> {
     /// Current bound context.
     bound_context_id: Option<WebGLContextId>,
     /// Handler user to send WebVR commands.
-    webvr_compositor: Option<VR>,
+    webvr_compositor: Option<Box<dyn WebVRRenderHandler>>,
     /// Texture ids and sizes used in DOM to texture outputs.
     dom_outputs: FnvHashMap<webrender_api::PipelineId, DOMToTextureData>,
     /// List of registered webrender external images.
     /// We use it to get an unique ID for new WebGLContexts.
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+    /// The receiver that will be used for processing WebGL messages.
+    receiver: WebGLReceiver<WebGLMsg>,
+    /// The receiver that should be used to send WebGL messages for processing.
+    sender: WebGLSender<WebGLMsg>,
 }
 
-impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
-    pub fn new(
-        gl_factory: GLContextFactory,
-        webrender_api_sender: webrender_api::RenderApiSender,
-        webvr_compositor: Option<VR>,
-        external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+/// A map of GL contexts to backing textures and their sizes.
+/// Only used for accessing this information when the WebGL processing is run
+/// on the main thread and the compositor needs access to this information
+/// synchronously.
+pub(crate) type TexturesMap = Rc<RefCell<HashMap<WebGLContextId, (u32, Size2D<i32>)>>>;
+
+#[derive(PartialEq)]
+enum EventLoop {
+    Blocking,
+    Nonblocking,
+}
+
+/// The data required to initialize an instance of the WebGLThread type.
+pub(crate) struct WebGLThreadInit {
+    pub gl_factory: GLContextFactory,
+    pub webrender_api_sender: webrender_api::RenderApiSender,
+    pub webvr_compositor: Option<Box<dyn WebVRRenderHandler>>,
+    pub external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+    pub sender: WebGLSender<WebGLMsg>,
+    pub receiver: WebGLReceiver<WebGLMsg>,
+}
+
+/// The extra data required to run an instance of WebGLThread when it is
+/// not running in its own thread.
+pub struct WebGLMainThread {
+    thread_data: WebGLThread,
+    shut_down: bool,
+    textures: TexturesMap,
+}
+
+impl WebGLMainThread {
+    /// Synchronously process all outstanding WebGL messages.
+    pub fn process(&mut self) {
+        if self.shut_down {
+            return;
+        }
+
+        // Any context could be current when we start.
+        self.thread_data.bound_context_id = None;
+        self.shut_down = !self
+            .thread_data
+            .process(EventLoop::Nonblocking, Some(self.textures.clone()))
+    }
+}
+
+impl WebGLThread {
+    /// Create a new instance of WebGLThread.
+    pub(crate) fn new(
+        WebGLThreadInit {
+            gl_factory,
+            webrender_api_sender,
+            webvr_compositor,
+            external_images,
+            sender,
+            receiver,
+        }: WebGLThreadInit,
     ) -> Self {
         WebGLThread {
             gl_factory,
@@ -86,49 +145,83 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             webvr_compositor,
             dom_outputs: Default::default(),
             external_images,
+            sender,
+            receiver,
         }
     }
 
-    /// Creates a new `WebGLThread` and returns a Sender to
-    /// communicate with it.
-    pub fn start(
-        gl_factory: GLContextFactory,
-        webrender_api_sender: webrender_api::RenderApiSender,
-        webvr_compositor: Option<VR>,
-        external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
-    ) -> WebGLSender<WebGLMsg> {
-        let (sender, receiver) = webgl_channel::<WebGLMsg>().unwrap();
-        let result = sender.clone();
+    /// Perform all initialization required to run an instance of WebGLThread
+    /// concurrently on the current thread. Returns a `WebGLMainThread` instance
+    /// that can be used to process any outstanding WebGL messages at any given
+    /// point in time.
+    pub(crate) fn run_on_current_thread(
+        mut init: WebGLThreadInit,
+        event_loop_waker: Box<dyn EventLoopWaker>,
+        textures: TexturesMap,
+    ) -> WebGLMainThread {
+        // Interpose a new channel in between the existing WebGL channel endpoints.
+        // This will bounce all WebGL messages through a second thread adding a small
+        // delay, but this will also ensure that the main thread will wake up and
+        // process the WebGL message when it arrives.
+        let (from_router_sender, from_router_receiver) = webgl_channel::<WebGLMsg>().unwrap();
+        let receiver = mem::replace(&mut init.receiver, from_router_receiver);
+
+        let thread_data = WebGLThread::new(init);
+
         thread::Builder::new()
-            .name("WebGLThread".to_owned())
+            .name("WebGL main thread pump".to_owned())
             .spawn(move || {
-                let mut renderer = WebGLThread::new(
-                    gl_factory,
-                    webrender_api_sender,
-                    webvr_compositor,
-                    external_images,
-                );
-                let webgl_chan = WebGLChan(sender);
-                loop {
-                    let msg = receiver.recv().unwrap();
-                    let exit = renderer.handle_msg(msg, &webgl_chan);
-                    if exit {
-                        return;
-                    }
+                while let Ok(msg) = receiver.recv() {
+                    let _ = from_router_sender.send(msg);
+                    event_loop_waker.wake();
                 }
             })
             .expect("Thread spawning failed");
 
-        result
+        WebGLMainThread {
+            thread_data,
+            textures,
+            shut_down: false,
+        }
+    }
+
+    /// Perform all initialization required to run an instance of WebGLThread
+    /// in parallel on its own dedicated thread.
+    pub(crate) fn run_on_own_thread(init: WebGLThreadInit) {
+        thread::Builder::new()
+            .name("WebGL thread".to_owned())
+            .spawn(move || {
+                let mut data = WebGLThread::new(init);
+                data.process(EventLoop::Blocking, None);
+            })
+            .expect("Thread spawning failed");
+    }
+
+    fn process(&mut self, loop_type: EventLoop, textures: Option<TexturesMap>) -> bool {
+        let webgl_chan = WebGLChan(self.sender.clone());
+        while let Ok(msg) = match loop_type {
+            EventLoop::Blocking => self.receiver.recv(),
+            EventLoop::Nonblocking => self.receiver.try_recv(),
+        } {
+            let exit = self.handle_msg(msg, &webgl_chan, textures.as_ref());
+            if exit {
+                return false;
+            }
+        }
+        true
     }
 
     /// Handles a generic WebGLMsg message
-    #[inline]
-    fn handle_msg(&mut self, msg: WebGLMsg, webgl_chan: &WebGLChan) -> bool {
+    fn handle_msg(
+        &mut self,
+        msg: WebGLMsg,
+        webgl_chan: &WebGLChan,
+        textures: Option<&TexturesMap>,
+    ) -> bool {
         trace!("processing {:?}", msg);
         match msg {
             WebGLMsg::CreateContext(version, size, attributes, result_sender) => {
-                let result = self.create_webgl_context(version, size, attributes);
+                let result = self.create_webgl_context(version, size, attributes, textures);
                 result_sender
                     .send(result.map(|(id, limits, share_mode)| {
                         let data = Self::make_current_if_needed(
@@ -173,10 +266,10 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
                     .unwrap();
             },
             WebGLMsg::ResizeContext(ctx_id, size, sender) => {
-                self.resize_webgl_context(ctx_id, size, sender);
+                self.resize_webgl_context(ctx_id, size, sender, textures);
             },
             WebGLMsg::RemoveContext(ctx_id) => {
-                self.remove_webgl_context(ctx_id);
+                self.remove_webgl_context(ctx_id, textures);
             },
             WebGLMsg::WebGLCommand(ctx_id, command, backtrace) => {
                 self.handle_webgl_command(ctx_id, command, backtrace);
@@ -273,6 +366,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         // It is important that the fence sync is properly flushed into the GPU's command queue.
         // Without proper flushing, the sync object may never be signaled.
         data.ctx.gl().flush();
+        let gl_sync = 0;
 
         (info.texture_id, info.size, gl_sync as usize)
     }
@@ -296,6 +390,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         version: WebGLVersion,
         size: Size2D<u32>,
         attributes: GLContextAttributes,
+        textures: Option<&TexturesMap>,
     ) -> Result<(WebGLContextId, GLLimits, WebGLContextShareMode), String> {
         // Creating a new GLContext may make the current bound context_id dirty.
         // Clear it to ensure that  make_current() is called in subsequent commands.
@@ -332,6 +427,11 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
                 state: Default::default(),
             },
         );
+
+        if let Some(ref textures) = textures {
+            textures.borrow_mut().insert(id, (texture_id, size));
+        }
+
         self.cached_context_info.insert(
             id,
             WebGLContextInfo {
@@ -354,6 +454,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         context_id: WebGLContextId,
         size: Size2D<u32>,
         sender: WebGLSender<Result<(), String>>,
+        textures: Option<&TexturesMap>,
     ) {
         let data = Self::make_current_if_needed_mut(
             context_id,
@@ -378,6 +479,13 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
                 // Update webgl texture size. Texture id may change too.
                 info.texture_id = texture_id;
                 info.size = real_size;
+
+                if let Some(ref textures) = textures {
+                    textures
+                        .borrow_mut()
+                        .insert(context_id, (texture_id, real_size));
+                }
+
                 // Update WR image if needed. Resize image updates are only required for SharedTexture mode.
                 // Readback mode already updates the image every frame to send the raw pixels.
                 // See `handle_update_wr_image`.
@@ -403,7 +511,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
     }
 
     /// Removes a WebGLContext and releases attached resources.
-    fn remove_webgl_context(&mut self, context_id: WebGLContextId) {
+    fn remove_webgl_context(&mut self, context_id: WebGLContextId, textures: Option<&TexturesMap>) {
         // Release webrender image keys.
         if let Some(info) = self.cached_context_info.remove(&context_id) {
             let mut txn = webrender_api::Transaction::new();
@@ -421,6 +529,10 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
 
         // Release GL context.
         self.contexts.remove(&context_id);
+
+        if let Some(ref textures) = textures {
+            textures.borrow_mut().remove(&context_id);
+        }
 
         // Removing a GLContext may make the current bound context_id dirty.
         self.bound_context_id = None;
@@ -729,12 +841,12 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
     }
 }
 
-impl<VR: WebVRRenderHandler + 'static> Drop for WebGLThread<VR> {
+impl Drop for WebGLThread {
     fn drop(&mut self) {
         // Call remove_context functions in order to correctly delete WebRender image keys.
         let context_ids: Vec<WebGLContextId> = self.contexts.keys().map(|id| *id).collect();
         for id in context_ids {
-            self.remove_webgl_context(id);
+            self.remove_webgl_context(id, None);
         }
     }
 }

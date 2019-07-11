@@ -60,9 +60,9 @@ layout_thread_2020 = {path = "../layout_thread_2020", optional = true}
 log = "0.4"
 media = {path = "../media"}
 msg = {path = "../msg"}
-offscreen_gl_context = "0.22"
 net = {path = "../net"}
 net_traits = {path = "../net_traits"}
+offscreen_gl_context = "0.22"
 profile = {path = "../profile"}
 profile_traits = {path = "../profile_traits"}
 script = {path = "../script"}

@@ -16,6 +16,7 @@ default = []
 gl = ["gleam", "pixels"]
 
 [dependencies]
+canvas = { path = "../canvas" }
 crossbeam-channel = "0.3"
 embedder_traits = {path = "../embedder_traits"}
 euclid = "0.19"

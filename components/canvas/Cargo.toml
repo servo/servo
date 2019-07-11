@@ -21,6 +21,7 @@ azure = {git = "https://github.com/servo/rust-azure", optional = true}
 byteorder = "1"
 canvas_traits = {path = "../canvas_traits"}
 cssparser = "0.25"
+embedder_traits = {path = "../embedder_traits"}
 euclid = "0.19"
 fnv = "1.0"
 gleam = "0.6.7"
