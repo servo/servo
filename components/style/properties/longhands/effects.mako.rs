@@ -12,8 +12,7 @@ ${helpers.predefined_type(
     "Opacity",
     "1.0",
     animation_value_type="ComputedValue",
-    flags="APPLIES_TO_CUE CREATES_STACKING_CONTEXT APPLIES_TO_PLACEHOLDER \
-           CAN_ANIMATE_ON_COMPOSITOR",
+    flags="CREATES_STACKING_CONTEXT CAN_ANIMATE_ON_COMPOSITOR",
     spec="https://drafts.csswg.org/css-color/#opacity",
     servo_restyle_damage = "reflow_out_of_flow",
 )}
@@ -28,7 +27,6 @@ ${helpers.predefined_type(
     vector_animation_type="with_zero",
     extra_prefixes="webkit",
     ignored_when_colors_disabled=True,
-    flags="APPLIES_TO_FIRST_LETTER",
     spec="https://drafts.csswg.org/css-backgrounds/#box-shadow",
 )}
 

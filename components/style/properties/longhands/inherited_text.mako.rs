@@ -11,7 +11,6 @@ ${helpers.predefined_type(
     "ColorPropertyValue",
     "::cssparser::RGBA::new(0, 0, 0, 255)",
     animation_value_type="AnimatedRGBA",
-    flags="APPLIES_TO_CUE APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER APPLIES_TO_MARKER",
     ignored_when_colors_disabled="True",
     spec="https://drafts.csswg.org/css-color/#color",
 )}
@@ -21,8 +20,7 @@ ${helpers.predefined_type(
     "LineHeight",
     "computed::LineHeight::normal()",
     animation_value_type="LineHeight",
-    flags="APPLIES_TO_CUE APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE \
-           APPLIES_TO_PLACEHOLDER GETCS_NEEDS_LAYOUT_FLUSH",
+    flags="GETCS_NEEDS_LAYOUT_FLUSH",
     spec="https://drafts.csswg.org/css2/visudet.html#propdef-line-height",
     servo_restyle_damage="reflow"
 )}
@@ -34,7 +32,6 @@ ${helpers.predefined_type(
     "TextTransform",
     "computed::TextTransform::none()",
     animation_value_type="discrete",
-    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-text/#propdef-text-transform",
     servo_restyle_damage="rebuild_and_reflow",
 )}
@@ -103,7 +100,6 @@ ${helpers.predefined_type(
     animation_value_type="discrete"
     gecko_pref="layout.css.text-justify.enabled"
     has_effect_on_gecko_scrollbars="False"
-    flags="APPLIES_TO_PLACEHOLDER"
     spec="https://drafts.csswg.org/css-text/#propdef-text-justify"
     servo_restyle_damage="rebuild_and_reflow"
 >
@@ -149,7 +145,6 @@ ${helpers.predefined_type(
     "TextAlign",
     "computed::TextAlign::Start",
     animation_value_type="discrete",
-    flags="APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-text/#propdef-text-align",
     servo_restyle_damage = "reflow",
 )}
@@ -159,7 +154,6 @@ ${helpers.predefined_type(
     "LetterSpacing",
     "computed::LetterSpacing::normal()",
     animation_value_type="ComputedValue",
-    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-text/#propdef-letter-spacing",
     servo_restyle_damage="rebuild_and_reflow",
 )}
@@ -169,7 +163,6 @@ ${helpers.predefined_type(
     "WordSpacing",
     "computed::WordSpacing::zero()",
     animation_value_type="ComputedValue",
-    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-text/#propdef-word-spacing",
     servo_restyle_damage="rebuild_and_reflow",
 )}
@@ -181,7 +174,6 @@ ${helpers.predefined_type(
     gecko_enum_prefix="StyleWhiteSpace"
     needs_conversion="True"
     animation_value_type="discrete"
-    flags="APPLIES_TO_CUE APPLIES_TO_PLACEHOLDER"
     spec="https://drafts.csswg.org/css-text/#propdef-white-space"
     servo_restyle_damage="rebuild_and_reflow"
 >
@@ -229,7 +221,6 @@ ${helpers.predefined_type(
     animation_value_type="AnimatedTextShadowList",
     ignored_when_colors_disabled=True,
     simple_vector_bindings=True,
-    flags="APPLIES_TO_CUE APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-text-decor-3/#text-shadow-property",
 )}
 
@@ -293,7 +284,6 @@ ${helpers.predefined_type(
     products="gecko",
     animation_value_type="AnimatedColor",
     ignored_when_colors_disabled=True,
-    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://compat.spec.whatwg.org/#the-webkit-text-fill-color",
 )}
 
@@ -305,7 +295,6 @@ ${helpers.predefined_type(
     products="gecko",
     animation_value_type="AnimatedColor",
     ignored_when_colors_disabled=True,
-    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color",
 )}
 
@@ -316,7 +305,6 @@ ${helpers.predefined_type(
     initial_specified_value="specified::BorderSideWidth::zero()",
     computed_type="crate::values::computed::NonNegativeLength",
     products="gecko",
-    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-width",
     animation_value_type="discrete",
 )}
@@ -337,7 +325,6 @@ ${helpers.single_keyword(
     products="gecko",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-ruby/#ruby-position-property",
-    flags="APPLIES_TO_CUE",
 )}
 
 // CSS Writing Modes Module Level 3
@@ -349,7 +336,6 @@ ${helpers.single_keyword(
     products="gecko",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-writing-modes-3/#text-combine-upright",
-    flags="APPLIES_TO_CUE APPLIES_TO_MARKER",
 )}
 
 // SVG 1.1: Section 11 - Painting: Filling, Stroking and Marker Symbols

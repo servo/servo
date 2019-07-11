@@ -59,7 +59,6 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-box/#propdef-float",
     animation_value_type="discrete",
     needs_context=False,
-    flags="APPLIES_TO_FIRST_LETTER",
     servo_restyle_damage="rebuild_and_reflow",
     gecko_ffi_name="mFloat",
 )}
@@ -80,7 +79,6 @@ ${helpers.predefined_type(
     "VerticalAlign",
     "computed::VerticalAlign::baseline()",
     animation_value_type="ComputedValue",
-    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://www.w3.org/TR/CSS2/visudet.html#propdef-vertical-align",
     servo_restyle_damage = "reflow",
 )}
@@ -607,7 +605,6 @@ ${helpers.predefined_type(
     "shape-image-threshold", "Opacity", "0.0",
     products="gecko",
     animation_value_type="ComputedValue",
-    flags="APPLIES_TO_FIRST_LETTER",
     spec="https://drafts.csswg.org/css-shapes/#shape-image-threshold-property",
 )}
 
@@ -617,7 +614,6 @@ ${helpers.predefined_type(
     "computed::NonNegativeLengthPercentage::zero()",
     products="gecko",
     animation_value_type="NonNegativeLengthPercentage",
-    flags="APPLIES_TO_FIRST_LETTER",
     spec="https://drafts.csswg.org/css-shapes/#shape-margin-property",
 )}
 
@@ -627,7 +623,6 @@ ${helpers.predefined_type(
     "generics::basic_shape::ShapeSource::None",
     products="gecko",
     animation_value_type="basic_shape::FloatAreaShape",
-    flags="APPLIES_TO_FIRST_LETTER",
     spec="https://drafts.csswg.org/css-shapes/#shape-outside-property",
 )}
 

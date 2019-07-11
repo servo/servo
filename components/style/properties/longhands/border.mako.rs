@@ -29,7 +29,6 @@
         logical=is_logical,
         logical_group="border-color",
         allow_quirks="No" if is_logical else "Yes",
-        flags="APPLIES_TO_FIRST_LETTER",
         ignored_when_colors_disabled=True,
     )}
 
@@ -38,7 +37,6 @@
         "specified::BorderStyle::None",
         alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-style"),
         spec=maybe_logical_spec(side, "style"),
-        flags="APPLIES_TO_FIRST_LETTER",
         animation_value_type="discrete" if not is_logical else "none",
         logical=is_logical,
         logical_group="border-style",
@@ -55,7 +53,7 @@
         animation_value_type="NonNegativeLength",
         logical=is_logical,
         logical_group="border-width",
-        flags="APPLIES_TO_FIRST_LETTER GETCS_NEEDS_LAYOUT_FLUSH",
+        flags="GETCS_NEEDS_LAYOUT_FLUSH",
         allow_quirks="No" if is_logical else "Yes",
         servo_restyle_damage="reflow rebuild_and_reflow_inline"
     )}
@@ -78,7 +76,6 @@
         extra_prefixes=prefixes,
         spec=maybe_logical_spec(corner, "radius"),
         boxed=True,
-        flags="APPLIES_TO_FIRST_LETTER",
         animation_value_type="BorderCornerRadius",
         logical_group="border-radius",
         logical=is_logical,
@@ -112,7 +109,6 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
     vector=False,
     animation_value_type="discrete",
-    flags="APPLIES_TO_FIRST_LETTER",
     boxed=product == "servo",
     ignored_when_colors_disabled=True
 )}
@@ -124,7 +120,6 @@ ${helpers.predefined_type(
     initial_specified_value="generics::rect::Rect::all(specified::NonNegativeLengthOrNumber::zero())",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-outset",
     animation_value_type="discrete",
-    flags="APPLIES_TO_FIRST_LETTER",
     boxed=True,
 )}
 
@@ -135,7 +130,6 @@ ${helpers.predefined_type(
     initial_specified_value="specified::BorderImageRepeat::stretch()",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-backgrounds/#the-border-image-repeat",
-    flags="APPLIES_TO_FIRST_LETTER",
 )}
 
 ${helpers.predefined_type(
@@ -145,7 +139,6 @@ ${helpers.predefined_type(
     initial_specified_value="specified::BorderImageWidth::all(specified::BorderImageSideWidth::one())",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-width",
     animation_value_type="discrete",
-    flags="APPLIES_TO_FIRST_LETTER",
     boxed=True,
 )}
 
@@ -156,6 +149,5 @@ ${helpers.predefined_type(
     initial_specified_value="specified::BorderImageSlice::hundred_percent()",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-slice",
     animation_value_type="discrete",
-    flags="APPLIES_TO_FIRST_LETTER",
     boxed=True,
 )}

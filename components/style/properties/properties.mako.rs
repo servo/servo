@@ -1003,6 +1003,28 @@ bitflags! {
         if logical_count * 2 != len(props):
             raise RuntimeError("Logical group {} has ".format(group) +
                                "unbalanced logical / physical properties")
+
+    FIRST_LINE_RESTRICTIONS = PropertyRestrictions.first_line(data)
+    FIRST_LETTER_RESTRICTIONS = PropertyRestrictions.first_letter(data)
+    MARKER_RESTRICTIONS = PropertyRestrictions.marker(data)
+    PLACEHOLDER_RESTRICTIONS = PropertyRestrictions.placeholder(data)
+    CUE_RESTRICTIONS = PropertyRestrictions.cue(data)
+
+    def restriction_flags(property):
+        name = property.name
+        flags = []
+        if name in FIRST_LINE_RESTRICTIONS:
+            flags.append("APPLIES_TO_FIRST_LINE")
+        if name in FIRST_LETTER_RESTRICTIONS:
+            flags.append("APPLIES_TO_FIRST_LETTER")
+        if name in PLACEHOLDER_RESTRICTIONS:
+            flags.append("APPLIES_TO_PLACEHOLDER")
+        if name in MARKER_RESTRICTIONS:
+            flags.append("APPLIES_TO_MARKER")
+        if name in CUE_RESTRICTIONS:
+            flags.append("APPLIES_TO_CUE")
+        return flags
+
 %>
 
 /// A group for properties which may override each other
@@ -1206,7 +1228,7 @@ impl LonghandId {
         // constant expression support.
         const FLAGS: [u16; ${len(data.longhands)}] = [
             % for property in data.longhands:
-                % for flag in property.flags:
+                % for flag in property.flags + restriction_flags(property):
                     PropertyFlags::${flag}.bits |
                 % endfor
                 0,
@@ -3884,17 +3906,3 @@ macro_rules! longhand_properties_idents {
     }
 % endfor
 % endif
-
-<%
-for (restricted_properties, flag) in [
-    (PropertyRestrictions.cue(data), "APPLIES_TO_CUE"),
-    (PropertyRestrictions.placeholder(data), "APPLIES_TO_PLACEHOLDER"),
-    (PropertyRestrictions.first_line(data), "APPLIES_TO_FIRST_LINE"),
-    (PropertyRestrictions.first_letter(data), "APPLIES_TO_FIRST_LETTER"),
-    (PropertyRestrictions.marker(data), "APPLIES_TO_MARKER"),
-]:
-    for property in data.longhands:
-        applies = property.name in restricted_properties
-        should_apply = flag in property.flags
-        assert applies == should_apply, "Should %s %s?" % (property.name, flag)
-%>

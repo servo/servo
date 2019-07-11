@@ -14,7 +14,6 @@ ${helpers.single_keyword(
     gecko_ffi_name="mVisible",
     animation_value_type="ComputedValue",
     spec="https://drafts.csswg.org/css-box/#propdef-visibility",
-    flags="APPLIES_TO_CUE",
 )}
 
 // CSS Writing Modes Level 3
@@ -38,7 +37,6 @@ ${helpers.single_keyword(
     animation_value_type="none",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-direction",
     needs_conversion=True,
-    flags="APPLIES_TO_MARKER",
     servo_restyle_damage="rebuild_and_reflow",
 )}
 
