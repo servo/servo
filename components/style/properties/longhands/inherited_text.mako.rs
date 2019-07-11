@@ -78,7 +78,6 @@ ${helpers.predefined_type(
     "computed::OverflowWrap::Normal",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-text/#propdef-overflow-wrap",
-    flags="APPLIES_TO_CUE",
     alias="word-wrap",
     needs_context=False,
     servo_restyle_damage="rebuild_and_reflow",
@@ -182,7 +181,6 @@ ${helpers.predefined_type(
     gecko_enum_prefix="StyleWhiteSpace"
     needs_conversion="True"
     animation_value_type="discrete"
-    // Only allowed for UA sheets, which set it !important.
     flags="APPLIES_TO_CUE APPLIES_TO_PLACEHOLDER"
     spec="https://drafts.csswg.org/css-text/#propdef-white-space"
     servo_restyle_damage="rebuild_and_reflow"

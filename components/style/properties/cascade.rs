@@ -153,7 +153,7 @@ where
                         // longhands are only allowed if they have our
                         // restriction flag set.
                         if let PropertyDeclarationId::Longhand(id) = declaration.id() {
-                            if !id.flags().contains(restriction) {
+                            if !id.flags().contains(restriction) && cascade_level.origin() != Origin::UserAgent {
                                 return None;
                             }
                         }

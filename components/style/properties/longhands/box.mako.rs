@@ -9,15 +9,12 @@
                          inherited=False,
                          gecko_name="Display") %>
 
-// We allow "display" to apply to placeholders because we need to make the
-// placeholder pseudo-element an inline-block in the UA stylesheet in Gecko.
 ${helpers.predefined_type(
     "display",
     "Display",
     "computed::Display::inline()",
     initial_specified_value="specified::Display::inline()",
     animation_value_type="discrete",
-    flags="APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-display/#propdef-display",
     servo_restyle_damage="rebuild_and_reflow",
     needs_context=product == "gecko"
@@ -103,7 +100,6 @@ ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
         products="gecko",
         enabled_in="ua",
         needs_context=False,
-        flags="APPLIES_TO_PLACEHOLDER",
         gecko_pref="layout.css.overflow-clip-box.enabled",
         animation_value_type="discrete",
         spec="Internal, may be standardized in the future: \
@@ -111,9 +107,6 @@ ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
     )}
 % endfor
 
-// FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-//
-// We allow it to apply to placeholders for UA sheets, which set it !important.
 % for (axis, logical) in ALL_AXES:
     <% full_name = "overflow-{}".format(axis) %>
     ${helpers.predefined_type(
@@ -123,7 +116,6 @@ ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
         logical_group="overflow",
         logical=logical,
         animation_value_type="discrete",
-        flags="APPLIES_TO_PLACEHOLDER",
         spec="https://drafts.csswg.org/css-overflow-3/#propdef-{}".format(full_name),
         needs_context=False,
         servo_restyle_damage = "reflow",
@@ -477,10 +469,6 @@ ${helpers.predefined_type(
 
 // CSS Basic User Interface Module Level 3
 // http://dev.w3.org/csswg/css-ui
-//
-// This is APPLIES_TO_PLACEHOLDER so we can override, in the UA sheet, the
-// 'resize' property we'd inherit from textarea otherwise.  Basically, just
-// makes the UA rules easier to write.
 ${helpers.predefined_type(
     "resize",
     "Resize",
@@ -489,7 +477,6 @@ ${helpers.predefined_type(
     animation_value_type="discrete",
     needs_context=False,
     gecko_ffi_name="mResize",
-    flags="APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-ui/#propdef-resize",
 )}
 

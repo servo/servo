@@ -29,7 +29,6 @@ ${helpers.single_keyword(
     servo_pref="layout.writing-mode.enabled",
     animation_value_type="none",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-writing-mode",
-    flags="APPLIES_TO_CUE",
     servo_restyle_damage="rebuild_and_reflow",
 )}
 
