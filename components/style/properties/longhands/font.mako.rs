@@ -180,13 +180,6 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-fonts/#propdef-font-feature-settings",
 )}
 
-<%
-# This spec link is too long to fit elsewhere
-variation_spec = """\
-https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-the-font-variation-settings-property\
-"""
-%>
-
 ${helpers.predefined_type(
     "font-variation-settings",
     "FontVariationSettings",
@@ -197,7 +190,7 @@ ${helpers.predefined_type(
     initial_specified_value="specified::FontVariationSettings::normal()",
     animation_value_type="ComputedValue",
     flags="APPLIES_TO_CUE APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER APPLIES_TO_MARKER",
-    spec="${variation_spec}",
+    spec="https://drafts.csswg.org/css-fonts-4/#propdef-font-variation-settings"
 )}
 
 ${helpers.predefined_type(
