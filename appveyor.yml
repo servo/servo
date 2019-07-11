@@ -54,6 +54,9 @@ install:
   - appveyor-retry appveyor DownloadFile https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-msvc-x86_64-1.16.0.msi
   - msiexec /i gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi /quiet /qn /norestart /log install-devel.log
   - msiexec /i gstreamer-1.0-msvc-x86_64-1.16.0.msi /quiet /qn /norestart /log install.log
+  - echo root: %GSTREAMER_1_0_ROOT_X86_64%
+  - if NOT "%GSTREAMER_1_0_ROOT_X86_64%" == "" dir %GSTREAMER_1_0_ROOT_X86_64%\bin
+  - dir c:\gstreamer\1.0\x86_64\bin
   - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
   - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
   - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain none
