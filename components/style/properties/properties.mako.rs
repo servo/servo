@@ -53,7 +53,7 @@ pub use self::cascade::*;
 
 <%!
     from collections import defaultdict
-    from data import Method, Keyword, to_rust_ident, to_camel_case, SYSTEM_FONT_LONGHANDS
+    from data import Method, PropertyRestrictions, Keyword, to_rust_ident, to_camel_case, SYSTEM_FONT_LONGHANDS
     import os.path
 %>
 
@@ -3884,3 +3884,17 @@ macro_rules! longhand_properties_idents {
     }
 % endfor
 % endif
+
+<%
+for (restricted_properties, flag) in [
+    (PropertyRestrictions.cue(data), "APPLIES_TO_CUE"),
+    (PropertyRestrictions.placeholder(data), "APPLIES_TO_PLACEHOLDER"),
+    (PropertyRestrictions.first_line(data), "APPLIES_TO_FIRST_LINE"),
+    (PropertyRestrictions.first_letter(data), "APPLIES_TO_FIRST_LETTER"),
+    (PropertyRestrictions.marker(data), "APPLIES_TO_MARKER"),
+]:
+    for property in data.longhands:
+        applies = property.name in restricted_properties
+        should_apply = flag in property.flags
+        assert applies == should_apply, "Should %s %s?" % (property.name, flag)
+%>

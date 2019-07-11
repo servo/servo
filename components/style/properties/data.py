@@ -217,6 +217,7 @@ class Longhand(object):
         self.logical_group = logical_group
         if self.logical:
             assert logical_group, "Property " + name + " must have a logical group"
+
         self.alias = parse_property_aliases(alias)
         self.extra_prefixes = parse_property_aliases(extra_prefixes)
         self.boxed = arg_to_bool(boxed)
@@ -541,8 +542,10 @@ class PropertiesData(object):
         self.current_style_struct = None
         self.longhands = []
         self.longhands_by_name = {}
+        self.longhands_by_logical_group = {}
         self.longhand_aliases = []
         self.shorthands = []
+        self.shorthands_by_name = {}
         self.shorthand_aliases = []
 
     def new_style_struct(self, *args, **kwargs):
@@ -572,6 +575,8 @@ class PropertiesData(object):
         self.current_style_struct.longhands.append(longhand)
         self.longhands.append(longhand)
         self.longhands_by_name[name] = longhand
+        if longhand.logical_group:
+            self.longhands_by_logical_group.setdefault(longhand.logical_group, []).append(longhand)
 
         return longhand
 
@@ -586,6 +591,7 @@ class PropertiesData(object):
         shorthand.alias = list(map(lambda xp: Alias(xp[0], shorthand, xp[1]), shorthand.alias))
         self.shorthand_aliases += shorthand.alias
         self.shorthands.append(shorthand)
+        self.shorthands_by_name[name] = shorthand;
         return shorthand
 
     def shorthands_except_all(self):
@@ -593,3 +599,168 @@ class PropertiesData(object):
 
     def all_aliases(self):
         return self.longhand_aliases + self.shorthand_aliases
+
+
+def _add_logical_props(data, props):
+    groups = set()
+    for prop in props:
+        prop = data.longhands_by_name[prop]
+        if prop.logical_group:
+            groups.add(prop.logical_group)
+    for group in groups:
+        for prop in data.longhands_by_logical_group[group]:
+            props.add(prop.name)
+
+# These are probably Gecko bugs and should be supported per spec.
+def _remove_common_first_line_and_first_letter_properties(props):
+    props.remove("-moz-tab-size")
+    props.remove("hyphens")
+    props.remove("line-break")
+    props.remove("overflow-wrap")
+    props.remove("text-align")
+    props.remove("text-align-last")
+    props.remove("text-justify")
+    props.remove("white-space")
+    props.remove("word-break")
+
+    props.remove("text-emphasis-position")
+    props.remove("text-emphasis-style")
+    props.remove("text-emphasis-color")
+    props.remove("text-indent")
+    props.remove("text-decoration-skip-ink")
+    props.remove("text-decoration-width")
+    props.remove("text-underline-offset")
+
+
+class PropertyRestrictions:
+    @staticmethod
+    def logical_group(data, group):
+        return map(lambda p: p.name, data.longhands_by_logical_group[group])
+
+    @staticmethod
+    def shorthand(data, shorthand):
+        return map(lambda p: p.name, data.shorthands_by_name[shorthand].sub_properties)
+
+    @staticmethod
+    def spec(data, spec_path):
+        return map(lambda p: p.name, filter(lambda p: spec_path in p.spec, data.longhands))
+
+    # https://drafts.csswg.org/css-pseudo/#first-letter-styling
+    @staticmethod
+    def first_letter(data):
+        props = set([
+            "color",
+            "float",
+            "initial-letter",
+
+            # Kinda like css-fonts?
+            "-moz-osx-font-smoothing",
+
+            # Kinda like css-text?
+            "-webkit-text-stroke-width",
+            "-webkit-text-fill-color",
+            "-webkit-text-stroke-color",
+            "vertical-align",
+            "line-height",
+
+            # Kinda like css-backgrounds?
+            "background-blend-mode",
+        ] + PropertyRestrictions.shorthand(data, "padding") \
+          + PropertyRestrictions.shorthand(data, "margin") \
+          + PropertyRestrictions.spec(data, "css-fonts") \
+          + PropertyRestrictions.spec(data, "css-backgrounds") \
+          + PropertyRestrictions.spec(data, "css-text") \
+          + PropertyRestrictions.spec(data, "css-shapes") \
+          + PropertyRestrictions.spec(data, "css-text-decor"))
+
+        _add_logical_props(data, props)
+
+        _remove_common_first_line_and_first_letter_properties(props)
+        return props
+
+
+    # https://drafts.csswg.org/css-pseudo/#first-line-styling
+    @staticmethod
+    def first_line(data):
+        props = set([
+            # Per spec.
+            "color",
+
+            # Kinda like css-fonts?
+            "-moz-osx-font-smoothing",
+
+            # Kinda like css-text?
+            "-webkit-text-stroke-width",
+            "-webkit-text-fill-color",
+            "-webkit-text-stroke-color",
+            "vertical-align",
+            "line-height",
+
+            # Kinda like css-backgrounds?
+            "background-blend-mode",
+        ] + PropertyRestrictions.spec(data, "css-fonts") \
+          + PropertyRestrictions.spec(data, "css-backgrounds") \
+          + PropertyRestrictions.spec(data, "css-text") \
+          + PropertyRestrictions.spec(data, "css-text-decor"))
+
+        # These are probably Gecko bugs and should be supported per spec.
+        for prop in PropertyRestrictions.shorthand(data, "border"):
+            props.remove(prop)
+        for prop in PropertyRestrictions.shorthand(data, "border-radius"):
+            props.remove(prop)
+        props.remove("box-shadow")
+
+        _remove_common_first_line_and_first_letter_properties(props)
+        return props
+
+    # https://drafts.csswg.org/css-pseudo/#placeholder
+    #
+    # The spec says that placeholder and first-line have the same restrictions,
+    # but that's not true in Gecko and we also allow a handful other properties
+    # for ::placeholder.
+    @staticmethod
+    def placeholder(data):
+        props = PropertyRestrictions.first_line(data)
+        props.add("opacity")
+        props.add("white-space")
+        props.add("text-overflow")
+        props.add("text-align")
+        props.add("text-justify")
+        return props
+
+    # https://drafts.csswg.org/css-pseudo/#marker-pseudo
+    @staticmethod
+    def marker(data):
+        return set([
+            "color",
+            "text-combine-upright",
+            "unicode-bidi",
+            "direction",
+            "content",
+            "-moz-osx-font-smoothing",
+        ] + PropertyRestrictions.spec(data, "css-fonts"))
+
+    # https://www.w3.org/TR/webvtt1/#the-cue-pseudo-element
+    @staticmethod
+    def cue(data):
+        return set([
+            "color",
+            "opacity",
+            "visibility",
+            "text-shadow",
+            "white-space",
+            "text-combine-upright",
+            "ruby-position",
+
+            # XXX Should these really apply to cue?
+            "font-synthesis",
+            "-moz-osx-font-smoothing",
+
+            # FIXME(emilio): background-blend-mode should be part of the
+            # background shorthand, and get reset, per
+            # https://drafts.fxtf.org/compositing/#background-blend-mode
+            "background-blend-mode",
+        ] + PropertyRestrictions.shorthand(data, "text-decoration") \
+          + PropertyRestrictions.shorthand(data, "background") \
+          + PropertyRestrictions.shorthand(data, "outline") \
+          + PropertyRestrictions.shorthand(data, "font"))
