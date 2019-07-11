@@ -319,14 +319,18 @@ impl MessagePort {
         let data = StructuredCloneData::write(cx, message, val.handle())?.move_to_arraybuffer();
 
         if doomed {
+            // TODO: The spec says to optionally report such a case to a dev console.
+            //
+            // Note: if we are awaiting transfer, target_port is None by default.
+            // Hence, doomed will not be set to true, even if we just transferred our entangled port.
+            // The message will never be received,
+            // however neither are we able to report anything to a dev console.
             return Ok(());
         }
 
         // Step 6
-        if target_port.is_none() {
-            // TODO: find a way to deal with target_port being none
-            // because we haven't complete the transfer.
-            // One way would be to transfer the entangled port ID along with our own ID.
+        if target_port.is_none() && !self.awaiting_transfer.get() {
+            return Ok(());
         }
 
         // Step 7
@@ -372,30 +376,29 @@ impl Transferable for MessagePort {
                 self.outgoing_message_buffer.borrow().clone(),
             ));
 
-        unsafe {
-            // TODO: also transfer the Id of the entangled port, using content?
+        // Disable the now-transferred port.
+        *self.entangled_port.borrow_mut() = None;
+        *self.entangled_sender.borrow_mut() = None;
 
-            // Steps 2, 3.2 and 4
+        // Steps 2, 3.2 and 4
+        let PipelineNamespaceId(name_space) = self.message_port_id().clone().namespace_id;
+        let MessagePortIndex(index) = self.message_port_id().clone().index;
+        let index = index.get();
 
-            let PipelineNamespaceId(name_space) = self.message_port_id().clone().namespace_id;
-            let MessagePortIndex(index) = self.message_port_id().clone().index;
-            let index = index.get();
+        let mut big: [u8; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
+        let name_space = name_space.to_ne_bytes();
+        let index = index.to_ne_bytes();
 
-            let mut big: [u8; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
-            let name_space = name_space.to_ne_bytes();
-            let index = index.to_ne_bytes();
+        big[0] = name_space[0];
+        big[1] = name_space[1];
+        big[2] = name_space[2];
+        big[3] = name_space[3];
+        big[4] = index[0];
+        big[5] = index[1];
+        big[6] = index[2];
+        big[7] = index[3];
 
-            big[0] = name_space[0];
-            big[1] = name_space[1];
-            big[2] = name_space[2];
-            big[3] = name_space[3];
-            big[4] = index[0];
-            big[5] = index[1];
-            big[6] = index[2];
-            big[7] = index[3];
-
-            *extra_data = u64::from_ne_bytes(big);
-        }
+        unsafe { *extra_data = u64::from_ne_bytes(big) };
 
         true
     }
