@@ -77,6 +77,12 @@ impl XRRigidTransform {
             orientation.z as f32,
             orientation.w as f32,
         );
+
+        if !rotate.i.is_finite() {
+            // if quaternion has zero norm, we'll get an infinite or NaN
+            // value for each element. This is preferable to checking for zero.
+            return Err(Error::InvalidState);
+        }
         let transform = TypedRigidTransform3D::new(rotate, translate);
         Ok(XRRigidTransform::new(&window.global(), transform))
     }
