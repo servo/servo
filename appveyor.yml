@@ -74,7 +74,8 @@ build_script:
   - mach clean-nightlies --keep 2 --force
   # see https://github.com/servo/servo/issues/20664
   #- mach cargo check -p compositing --no-default-features
-  - mach build -d -v
+  # see https://github.com/servo/servo/issues/23749
+  - mach build --ignore-gstreamer-package-errors -d -v
   - mach test-unit
 
 test: off
