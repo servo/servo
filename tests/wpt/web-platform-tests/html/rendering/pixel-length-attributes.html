@@ -1,11 +1,18 @@
 <!doctype html>
 <meta charset=utf-8>
+<!-- Creating iframes is slow in browsers -->
+<meta name=timeout content=long>
 <title>Test handling of attributes that map to pixel length properties</title>
 <link rel="help"
       href="https://html.spec.whatwg.org/multipage/rendering.html#maps-to-the-pixel-length-property">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <body>
+  <div id="container" style="display: none">
+    <img id="defaultImg">
+    <object id="defaultObject"></object>
+    <input type="image" id="defaultInput"></input>
+  </div>
 <script>
  /*
   * This test tests
@@ -69,13 +76,53 @@ const tests = [
   [ createFrame, "marginwidth", "marginRight", document.body ],
   [ createFrame, "marginheight", "marginTop", document.body ],
   [ createFrame, "marginheight", "marginBottom", document.body ],
+  [ createBody, "marginwidth", "marginLeft", document.body ],
+  [ createBody, "marginwidth", "marginRight", document.body ],
+  [ createBody, "leftmargin", "marginLeft", document.body ],
+  [ createBody, "rightmargin", "marginRight", document.body ],
+  [ createBody, "marginheight", "marginTop", document.body ],
+  [ createBody, "marginheight", "marginBottom", document.body ],
+  [ createBody, "topmargin", "marginTop", document.body ],
+  [ createBody, "bottommargin", "marginBottom", document.body ],
+  [ newElem("img"), "border", "borderTopWidth", defaultImg ],
+  [ newElem("img"), "border", "borderRightWidth", defaultImg ],
+  [ newElem("img"), "border", "borderBottomWidth", defaultImg ],
+  [ newElem("img"), "border", "borderLeftWidth", defaultImg ],
+  [ newElem("object"), "border", "borderTopWidth", defaultObject ],
+  [ newElem("object"), "border", "borderRightWidth", defaultObject ],
+  [ newElem("object"), "border", "borderBottomWidth", defaultObject ],
+  [ newElem("object"), "border", "borderLeftWidth", defaultObject ],
+  [ newImageInput, "border", "borderTopWidth", defaultInput ],
+  [ newImageInput, "border", "borderRightWidth", defaultInput ],
+  [ newImageInput, "border", "borderBottomWidth", defaultInput ],
+  [ newImageInput, "border", "borderLeftWidth", defaultInput ],
 ];
 
+function newElem(name) {
+  return () => {
+    var elem = document.createElement(name);
+    document.getElementById("container").appendChild(elem);
+    return [ elem, elem, () => elem.remove() ];
+  }
+}
+
+function newImageInput() {
+  var elem = document.createElement("input");
+  elem.type = "image";
+  document.getElementById("container").appendChild(elem);
+  return [ elem, elem, () => elem.remove() ];
+}
 
 function createIframe() {
   let ifr = document.createElement("iframe");
   document.body.appendChild(ifr);
   return [ ifr, ifr.contentDocument.body, () => ifr.remove() ];
+ }
+
+function createBody() {
+  let ifr = document.createElement("iframe");
+  document.body.appendChild(ifr);
+  return [ ifr.contentDocument.body, ifr.contentDocument.body, () => ifr.remove() ];
 }
 
 function createFrame() {

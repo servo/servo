@@ -20,7 +20,7 @@ content_types = utils.invert_dict({
     "text/css": ["css"],
     "text/event-stream": ["event_stream"],
     "text/html": ["htm", "html"],
-    "text/javascript": ["js"],
+    "text/javascript": ["js", "mjs"],
     "text/plain": ["txt", "md"],
     "text/vtt": ["vtt"],
     "video/mp4": ["mp4", "m4v"],

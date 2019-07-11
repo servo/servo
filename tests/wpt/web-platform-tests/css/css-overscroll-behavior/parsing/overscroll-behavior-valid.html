@@ -26,7 +26,7 @@ test_valid_value("overscroll-behavior", "none none", "none");
 test_valid_value("overscroll-behavior", "auto auto", "auto");
 
 
-for (let property of ["overscroll-behavior-x", "overscroll-behavior-y"]) {
+for (let property of ["overscroll-behavior-x", "overscroll-behavior-y", "overscroll-behavior-inline", "overscroll-behavior-block"]) {
   test_valid_value(property, "contain");
   test_valid_value(property, "none");
   test_valid_value(property, "auto");

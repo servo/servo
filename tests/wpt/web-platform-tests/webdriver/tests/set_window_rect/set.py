@@ -75,15 +75,15 @@ def test_out_of_bounds(session, rect):
 
 
 def test_width_height_floats(session):
-    response = set_window_rect(session, {"width": 500.5, "height": 420})
+    response = set_window_rect(session, {"width": 750.5, "height": 700})
     value = assert_success(response)
-    assert value["width"] == 500
-    assert value["height"] == 420
+    assert value["width"] == 750
+    assert value["height"] == 700
 
-    response = set_window_rect(session, {"width": 500, "height": 450.5})
+    response = set_window_rect(session, {"width": 750, "height": 700.5})
     value = assert_success(response)
-    assert value["width"] == 500
-    assert value["height"] == 450
+    assert value["width"] == 750
+    assert value["height"] == 700
 
 
 def test_x_y_floats(session):
@@ -147,10 +147,10 @@ def test_restore_from_minimized(session):
     session.window.minimize()
     assert document_hidden(session)
 
-    response = set_window_rect(session, {"width": 450, "height": 450})
+    response = set_window_rect(session, {"width": 750, "height": 700})
     value = assert_success(response)
-    assert value["width"] == 450
-    assert value["height"] == 450
+    assert value["width"] == 750
+    assert value["height"] == 700
 
     assert not document_hidden(session)
 
@@ -160,10 +160,10 @@ def test_restore_from_maximized(session):
     session.window.maximize()
     assert session.window.size != original_size
 
-    response = set_window_rect(session, {"width": 400, "height": 400})
+    response = set_window_rect(session, {"width": 750, "height": 700})
     value = assert_success(response)
-    assert value["width"] == 400
-    assert value["height"] == 400
+    assert value["width"] == 750
+    assert value["height"] == 700
 
 
 def test_height_width(session):

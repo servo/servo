@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/xr-test-asserts.js"></script>
+<canvas></canvas>
+
+<script>
+let testName =
+  "'XRBoundedReferenceSpace updates properly when the changes are applied";
+
+let fakeDeviceInitParams = {
+    supportsImmersive: true,
+    views: VALID_VIEWS,
+    viewerOrigin: IDENTITY_TRANSFORM,
+    localToFloorLevelTransform: VALID_LOCAL_TO_FLOOR_TRANSFORM
+};
+
+let testFunction = function(session, fakeDeviceController, t) {
+
+  return new Promise((resolve, reject) => {
+    session.requestReferenceSpace('bounded-floor')
+      .then((referenceSpace) => {
+          t.step(() => {
+            assert_unreached("Should not be able to get a bounded space until bounds set");
+          });
+        }).catch((err) => {
+          t.step(() => {
+            assert_equals(err.name, "NotSupportedError");
+          });
+
+          function onFrame(time, xrFrame) {
+            // After setting the bounds explicitly, we should be able to get a
+            // reference space
+            session.requestReferenceSpace('bounded-floor')
+            .then((referenceSpace) => {
+              t.step(() => {
+                assert_equals(referenceSpace.boundsGeometry.length, VALID_BOUNDS.length);
+                for (i = 0; i < VALID_BOUNDS.length; ++i) {
+                  let valid_point = VALID_BOUNDS[i];
+                  let bounds_point = referenceSpace.boundsGeometry[i];
+                  assert_equals(valid_point.x, bounds_point.x);
+                  assert_equals(bounds_point.y, 0.0);
+                  assert_equals(valid_point.z, bounds_point.z);
+                  assert_equals(bounds_point.w, 1.0);
+                }
+              });
+
+              resolve();
+            });
+          }
+
+          // Now set the bounds explicitly and check again on the next frame.
+          fakeDeviceController.setBoundsGeometry(VALID_BOUNDS);
+          session.requestAnimationFrame(onFrame);
+      });
+    });
+};
+
+xr_session_promise_test(testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+
+</script>

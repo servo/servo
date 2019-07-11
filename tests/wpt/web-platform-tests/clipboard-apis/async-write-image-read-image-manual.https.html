@@ -61,6 +61,14 @@ promise_test(async t => {
 
   assert_equals(comparableOutput, comparableInput);
 }, 'Verify write and read clipboard [image/png Blob]');
+
+promise_test(async t => {
+  const invalidPngBlob = new Blob(['this text is not a valid png image'],
+      {type: "image/png"});
+  const clipboardItemInput = new ClipboardItem({'image/png' : invalidPngBlob});
+  await promise_rejects(t, "DataError",
+      navigator.clipboard.write([clipboardItemInput]));
+}, 'Verify write error on malformed data [image/png ClipboardItem]');
 </script>
 <p>
   Note: This is a manual test because it writes/reads to the shared system

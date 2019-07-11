@@ -37,16 +37,25 @@ const VALID_POINTER_OFFSET = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1];
 const VALID_GRIP_WITH_POINTER_OFFSET =
     [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 4, 3, 3, 1];
 
-const VALID_STAGE_TRANSFORM =
-    [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1.0, 1.65, -1.0, 1];
+// A Valid Local to floor matrix/transform for when we don't care about specific
+// values.  Note that these should be identical, just different representations.
+const VALID_LOCAL_TO_FLOOR_MATRIX = [1, 0,    0,  0,
+                                     0, 1,    0,  0,
+                                     0, 0,    1,  0,
+                                     1, 1.65, -1, 1];
+
+const VALID_LOCAL_TO_FLOOR_TRANSFORM = {
+    position: [1.0, 1.65, -1.0],
+    orientation: [0, 0, 0, 1]
+};
 
 const VALID_BOUNDS = [
-    { x: 3.0, y: 0, z: -2.0 },
-    { x: 3.5, y: 0, z: 0.0 },
-    { x: 3.0, y: 0, z: 2.0 },
-    { x: -3.0, y: 0, z: 2.0 },
-    { x: -3.5, y: 0, z: 0.0 },
-    { x: -3.0, y: 0, z: -2.0 }
+    { x: 3.0, z: -2.0 },
+    { x: 3.5, z: 0.0 },
+    { x: 3.0, z: 2.0 },
+    { x: -3.0, z: 2.0 },
+    { x: -3.5, z: 0.0 },
+    { x: -3.0, z: -2.0 }
 ];
 
 const VALID_RESOLUTION = {

@@ -53,6 +53,12 @@ export const assertToastNotShown = (toast) => {
     assert_false(toast.open);
 };
 
+export const assertActionButtonOnToast = (action, toast) => {
+    assert_equals(toast.action, action);
+    assert_equals(action.getAttribute('slot'), 'action');
+    assert_equals(action, toast.querySelector('button'));
+};
+
 export class EventCollector {
     events = [];
 

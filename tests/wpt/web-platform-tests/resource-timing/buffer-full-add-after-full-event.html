@@ -12,7 +12,7 @@
 <script>
 let eventFired = false;
 let loadRandomResource = () => {
-    return fetch(window.location.href + "?" + Math.random());
+    return fetch(window.location.href + "?" + Math.random()).then(r => r.text());
 }
 
 setup(() => {

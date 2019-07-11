@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+  <canvas></canvas>
+
+  <script>
+    const testName = "Immersive session ends when device is disconnected";
+    let watcherDone = new Event("watcherdone");
+    const fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+    let testFunction = function(session, testDeviceController, t) {
+      let sessionWatcher = new EventWatcher(t, session, ["end", "watcherdone"]);
+      let sessionPromise = sessionWatcher.wait_for(["end", "watcherdone"]);
+
+      let xrWatcher = new EventWatcher(t, navigator.xr, ["devicechange"]);
+      let xrPromise = xrWatcher.wait_for(["devicechange"]);
+
+      function onSessionEnd(event) {
+        t.step( () => {
+          assert_equals(event.session, session);
+          session.dispatchEvent(watcherDone);
+        });
+      }
+
+      session.addEventListener("end", onSessionEnd, false);
+
+      // The javascript needs to yield so that the event registration processes.
+      t.step_timeout(() => { testDeviceController.disconnect(); }, 0);
+
+      return Promise.all([sessionPromise, xrPromise]);
+    };
+
+    xr_session_promise_test(testName, testFunction,
+      fakeDeviceInitParams, 'immersive-vr');
+  </script>
+</body>
