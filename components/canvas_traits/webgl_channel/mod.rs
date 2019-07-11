@@ -8,6 +8,7 @@ mod ipc;
 mod mpsc;
 
 use crate::webgl::WebGLMsg;
+use ipc_channel::ipc::IpcSender;
 use serde::{Deserialize, Serialize};
 use servo_config::opts;
 use std::fmt;
@@ -92,6 +93,26 @@ impl WebGLChan {
     #[inline]
     pub fn send(&self, msg: WebGLMsg) -> WebGLSendResult {
         self.0.send(msg)
+    }
+
+    pub fn to_ipc(&self) -> IpcSender<WebGLMsg> {
+        match self.0 {
+            WebGLSender::Ipc(ref sender) => sender.clone(),
+            WebGLSender::Mpsc(ref mpsc_sender) => {
+                let (sender, receiver) =
+                    ipc_channel::ipc::channel().expect("IPC Channel creation failed");
+                let mpsc_sender = mpsc_sender.clone();
+                ipc_channel::router::ROUTER.add_route(
+                    receiver.to_opaque(),
+                    Box::new(move |message| {
+                        if let Ok(message) = message.to() {
+                            let _ = mpsc_sender.send(message);
+                        }
+                    }),
+                );
+                sender
+            },
+        }
     }
 }
 
