@@ -64,7 +64,7 @@ fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) {}
 
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
-use canvas::gl_context::GLContextFactory;
+use canvas::gl_context::{CloneableDispatcher, GLContextFactory};
 use canvas::webgl_thread::WebGLThreads;
 use compositing::compositor_thread::{
     CompositorProxy, CompositorReceiver, InitialCompositorState, Msg,
@@ -99,6 +99,7 @@ use media::{GLPlayerThreads, WindowGLContext};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId};
 use net::resource_thread::new_resource_threads;
 use net_traits::IpcSend;
+use offscreen_gl_context::GLContextDispatcher;
 use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
@@ -112,6 +113,7 @@ use std::borrow::Cow;
 use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 use webrender::{RendererKind, ShaderPrecacheFlags};
 use webrender_traits::{WebrenderExternalImageHandlers, WebrenderImageHandlerType};
 use webvr::{VRServiceManager, WebVRCompositorHandler, WebVRThread};
@@ -734,7 +736,8 @@ fn create_constellation(
     let gl_factory = if opts.should_use_osmesa() {
         GLContextFactory::current_osmesa_handle()
     } else {
-        GLContextFactory::current_native_handle(&compositor_proxy)
+        let dispatcher = Box::new(MainThreadDispatcher::new(compositor_proxy.clone())) as Box<_>;
+        GLContextFactory::current_native_handle(dispatcher)
     };
 
     let (external_image_handlers, external_images) = WebrenderExternalImageHandlers::new();
@@ -925,4 +928,30 @@ fn create_sandbox() {
 ))]
 fn create_sandbox() {
     panic!("Sandboxing is not supported on Windows, iOS, ARM targets and android.");
+}
+
+/// Implements GLContextDispatcher to dispatch functions from GLContext threads to the main thread's event loop.
+/// It's used in Windows to allow WGL GLContext sharing.
+pub struct MainThreadDispatcher {
+    compositor_proxy: Arc<Mutex<CompositorProxy>>,
+}
+
+impl MainThreadDispatcher {
+    fn new(proxy: CompositorProxy) -> Self {
+        Self {
+            compositor_proxy: Arc::new(Mutex::new(proxy)),
+        }
+    }
+}
+impl GLContextDispatcher for MainThreadDispatcher {
+    fn dispatch(&self, f: Box<dyn Fn() + Send>) {
+        self.compositor_proxy.lock().unwrap().send(Msg::Dispatch(f));
+    }
+}
+impl CloneableDispatcher for MainThreadDispatcher {
+    fn clone(&self) -> Box<dyn GLContextDispatcher> {
+        Box::new(MainThreadDispatcher {
+            compositor_proxy: self.compositor_proxy.clone(),
+        }) as Box<_>
+    }
 }
