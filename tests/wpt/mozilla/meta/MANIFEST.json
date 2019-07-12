@@ -11954,6 +11954,12 @@
      {}
     ]
    ],
+   "mozilla/media_fragment_seek.html": [
+    [
+     "mozilla/media_fragment_seek.html",
+     {}
+    ]
+   ],
    "mozilla/media_query_list_gc.html": [
     [
      "mozilla/media_query_list_gc.html",
@@ -18939,6 +18945,10 @@
   ],
   "mozilla/localeCompare.html": [
    "c6042d8739edd005e2ce812cebc168a062753a65",
+   "testharness"
+  ],
+  "mozilla/media_fragment_seek.html": [
+   "0479fbe7dd97d999e188896ae192623e67436dab",
    "testharness"
   ],
   "mozilla/media_query_list_gc.html": [

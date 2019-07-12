@@ -55,6 +55,10 @@ impl AudioTrack {
         self.id.clone()
     }
 
+    pub fn kind(&self) -> DOMString {
+        self.kind.clone()
+    }
+
     pub fn enabled(&self) -> bool {
         self.enabled.get()
     }
@@ -72,7 +76,7 @@ impl AudioTrackMethods for AudioTrack {
 
     // https://html.spec.whatwg.org/multipage/#dom-audiotrack-kind
     fn Kind(&self) -> DOMString {
-        self.kind.clone()
+        self.kind()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-audiotrack-label

@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Video should seek to time specified in media fragment syntax</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<video id="video" src="resources/video.mp4#t=2,5"></video>
+<script>
+async_test(function () {
+  let video = document.getElementById("video");
+  video.load();
+
+  this.step_timeout(function () {
+    assert_equals(video.currentTime, 2.0);
+
+    video.src = "resources/video.mp4#t=npt:3.0";
+    video.load();
+    this.step_timeout(function () {
+      assert_true(video.src.endsWith("video.mp4#t=npt:3.0"));
+      assert_equals(video.currentTime, 3.0);
+
+      video.src = "resources/video.mp4#t=00:00:01.00,00:00:03.00";
+      video.load();
+      this.step_timeout(function () {
+        assert_true(video.src.endsWith("video.mp4#t=00:00:01.00,00:00:03.00"));
+        assert_equals(video.currentTime, 1.0);
+
+        video.src = "resources/video.mp4#t=19961108T000004.00Z-";
+        video.load();
+        this.step_timeout(function () {
+          assert_true(video.src.endsWith("video.mp4#t=19961108T000004.00Z-"));
+          assert_equals(video.currentTime, 4.0);
+          this.done();
+        }, 1000);
+      }, 1000);
+    }, 1000);
+  }, 1000);
+});
+</script>
