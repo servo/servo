@@ -61,7 +61,6 @@ use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use msg::constellation_msg::{MessagePortId, MessagePortMsg, PipelineId, PortMessageTask};
 use net_traits::image_cache::ImageCache;
 use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
-use parking_lot::Mutex;
 use profile_traits::{mem as profile_mem, time as profile_time};
 use script_traits::{MsDuration, ScriptMsg, ScriptToConstellationChan, TimerEvent};
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
@@ -158,7 +157,10 @@ pub struct GlobalScope {
     #[ignore_malloc_size_of = "MessagePorts are hard"]
     pending_message_ports: DomRefCell<MessagePorts>,
 
-    #[ignore_malloc_size_of = "MessagePorts are hard"]
+    #[ignore_malloc_size_of = "Channels are hard"]
+    /// Senders to port we know about, that are currently pending.
+    /// We need to temporarily store them here to potentially send to the constellation,
+    /// if and when the ports are moved to message_ports
     port_senders: DomRefCell<HashMap<MessagePortId, IpcSender<MessagePortMsg>>>,
 
     /// The message-ports that are up for garbage-collection.
@@ -254,8 +256,8 @@ pub struct GlobalScope {
 /// A wrapper for glue-code between the ipc router and the event-loop.
 struct MessageListener {
     canceller: TaskCanceller,
-    task_source: Arc<Mutex<PortMessageQueue>>,
-    context: Arc<Mutex<Trusted<GlobalScope>>>,
+    task_source: PortMessageQueue,
+    context: Trusted<GlobalScope>,
 }
 
 impl MessageListener {
@@ -272,10 +274,10 @@ impl MessageListener {
                 entangled_sender,
             ) => {
                 let context = self.context.clone();
-                let _ = self.task_source.lock().queue_with_canceller(
+                let _ = self.task_source.queue_with_canceller(
                     task!(process_new_entangled_sender: move || {
-                        let global = context.lock().root();
-                        if let Some(port) = global.upcast::<GlobalScope>().message_ports.borrow().find_port(&port_id) {
+                        let global = context.root();
+                        if let Some(port) = global.message_ports.borrow().find_port(&port_id) {
                             port.complete_transfer(tasks, outgoing_msgs, entangled_with, entangled_sender);
                         };
                     }),
@@ -284,10 +286,10 @@ impl MessageListener {
             },
             MessagePortMsg::NewEntangledSender(port_id, ipc_sender) => {
                 let context = self.context.clone();
-                let _ = self.task_source.lock().queue_with_canceller(
+                let _ = self.task_source.queue_with_canceller(
                     task!(process_new_entangled_sender: move || {
-                        let global = context.lock().root();
-                        if let Some(port) = global.upcast::<GlobalScope>().message_ports.borrow().find_port(&port_id) {
+                        let global = context.root();
+                        if let Some(port) = global.message_ports.borrow().find_port(&port_id) {
                             port.set_entangled_sender(ipc_sender);
                         };
                     }),
@@ -296,10 +298,10 @@ impl MessageListener {
             },
             MessagePortMsg::EntangledPortShipped(port_id) => {
                 let context = self.context.clone();
-                let _ = self.task_source.lock().queue_with_canceller(
+                let _ = self.task_source.queue_with_canceller(
                     task!(process_entangled_port_shipped: move || {
-                        let global = context.lock().root();
-                        if let Some(port) = global.upcast::<GlobalScope>().message_ports.borrow().find_port(&port_id) {
+                        let global = context.root();
+                        if let Some(port) = global.message_ports.borrow().find_port(&port_id) {
                             port.set_has_been_shipped();
                         };
                     }),
@@ -308,20 +310,20 @@ impl MessageListener {
             },
             MessagePortMsg::NewTask(port_id, task) => {
                 let context = self.context.clone();
-                let _ = self.task_source.lock().queue_with_canceller(
+                let _ = self.task_source.queue_with_canceller(
                     task!(process_new_task: move || {
-                        let global = context.lock().root();
-                        global.upcast::<GlobalScope>().route_task_to_port(port_id, task);
+                        let global = context.root();
+                        global.route_task_to_port(port_id, task);
                     }),
                     &self.canceller,
                 );
             },
             MessagePortMsg::RemoveMessagePort(port_id) => {
                 let context = self.context.clone();
-                let _ = self.task_source.lock().queue_with_canceller(
+                let _ = self.task_source.queue_with_canceller(
                     task!(process_remove_message_port: move || {
-                        let global = context.lock().root();
-                        if let Some(port) = global.upcast::<GlobalScope>().message_ports.borrow().find_port(&port_id) {
+                        let global = context.root();
+                        if let Some(port) = global.message_ports.borrow().find_port(&port_id) {
                             port.Close();
                         };
                     }),
@@ -531,22 +533,22 @@ impl GlobalScope {
             &self,
         );
 
-        let context = Arc::new(Mutex::new(Trusted::new(self)));
+        let context = Trusted::new(self);
         let (task_source, canceller) = (
-            Arc::new(Mutex::new(self.port_message_queue())),
+            self.port_message_queue(),
             self.task_canceller(TaskSourceName::PortMessage),
         );
-        let listener = Arc::new(Mutex::new(MessageListener {
+        let listener = MessageListener {
             canceller,
             task_source,
             context,
-        }));
+        };
         ROUTER.add_route(
             port_control_receiver.to_opaque(),
             Box::new(move |message| {
                 let msg = message.to();
                 match msg {
-                    Ok(msg) => listener.lock().notify(msg),
+                    Ok(msg) => listener.notify(msg),
                     Err(err) => warn!("Error receiving a MessagePortMsg: {:?}", err),
                 }
             }),
