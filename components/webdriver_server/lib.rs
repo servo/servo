@@ -13,8 +13,10 @@ extern crate serde;
 #[macro_use]
 extern crate serde_json;
 
+mod actions;
 mod capabilities;
 
+use actions::InputSourceState;
 use base64;
 use capabilities::ServoCapabilities;
 use crossbeam_channel::Sender;
@@ -37,14 +39,16 @@ use serde_json::{json, Value};
 use servo_config::{prefs, prefs::PrefValue};
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt;
+use std::mem;
 use std::net::{SocketAddr, SocketAddrV4};
 use std::thread;
 use std::time::Duration;
 use uuid::Uuid;
+use webdriver::actions::ActionSequence;
 use webdriver::capabilities::{Capabilities, CapabilitiesMatching};
-use webdriver::command::SwitchToWindowParameters;
+use webdriver::command::{ActionsParameters, SwitchToWindowParameters};
 use webdriver::command::{
     AddCookieParameters, GetParameters, JavascriptCommandParameters, LocatorParameters,
 };
@@ -111,7 +115,7 @@ pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
 }
 
 /// Represents the current WebDriver session and holds relevant session state.
-struct WebDriverSession {
+pub struct WebDriverSession {
     id: Uuid,
     browsing_context_id: BrowsingContextId,
     top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -131,6 +135,13 @@ struct WebDriverSession {
     secure_tls: bool,
     strict_file_interactability: bool,
     unhandled_prompt_behavior: String,
+
+    // https://w3c.github.io/webdriver/#dfn-active-input-sources
+    active_input_sources: Vec<InputSourceState>,
+    // https://w3c.github.io/webdriver/#dfn-input-state-table
+    input_state_table: HashMap<String, InputSourceState>,
+    // https://w3c.github.io/webdriver/#dfn-input-cancel-list
+    input_cancel_list: Vec<ActionSequence>,
 }
 
 impl WebDriverSession {
@@ -151,6 +162,10 @@ impl WebDriverSession {
             secure_tls: true,
             strict_file_interactability: false,
             unhandled_prompt_behavior: "dismiss and notify".to_string(),
+
+            active_input_sources: Vec::new(),
+            input_state_table: HashMap::new(),
+            input_cancel_list: Vec::new(),
         }
     }
 }
@@ -1339,6 +1354,31 @@ impl Handler {
         }
     }
 
+    fn handle_perform_actions(
+        &mut self,
+        parameters: &ActionsParameters,
+    ) -> WebDriverResult<WebDriverResponse> {
+        let constellation_chan = self.constellation_chan.clone();
+        let session = self.session_mut()?;
+
+        session.dispatch_actions(constellation_chan, &parameters.actions);
+
+        Ok(WebDriverResponse::Void)
+    }
+
+    fn handle_release_actions(&mut self) -> WebDriverResult<WebDriverResponse> {
+        let constellation_chan = self.constellation_chan.clone();
+        let session = self.session_mut()?;
+
+        session.input_cancel_list.reverse();
+        let input_cancel_list = mem::replace(&mut session.input_cancel_list, Vec::new());
+        session.dispatch_actions(constellation_chan, &input_cancel_list);
+        session.input_state_table = HashMap::new();
+        session.active_input_sources = Vec::new();
+
+        Ok(WebDriverResponse::Void)
+    }
+
     fn handle_execute_script(
         &self,
         parameters: &JavascriptCommandParameters,
@@ -1616,6 +1656,8 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
                 self.handle_element_css(element, name)
             },
             WebDriverCommand::GetPageSource => self.handle_get_page_source(),
+            WebDriverCommand::PerformActions(ref x) => self.handle_perform_actions(x),
+            WebDriverCommand::ReleaseActions => self.handle_release_actions(),
             WebDriverCommand::ExecuteScript(ref x) => self.handle_execute_script(x),
             WebDriverCommand::ExecuteAsyncScript(ref x) => self.handle_execute_async_script(x),
             WebDriverCommand::ElementSendKeys(ref element, ref keys) => {
