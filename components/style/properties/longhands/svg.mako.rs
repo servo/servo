@@ -40,7 +40,7 @@ ${helpers.predefined_type(
     "1.0",
     products="gecko",
     animation_value_type="ComputedValue",
-    spec="https://www.w3.org/TR/SVGTiny12/painting.html#propdef-stop-opacity",
+    spec="https://svgwg.org/svg2-draft/pservers.html#StopOpacityProperty",
 )}
 
 // Section 15 - Filter Effects
@@ -60,7 +60,7 @@ ${helpers.predefined_type(
     "1.0",
     products="gecko",
     animation_value_type="ComputedValue",
-    spec="https://www.w3.org/TR/SVG/filters.html#FloodOpacityProperty",
+    spec="https://drafts.fxtf.org/filter-effects/#FloodOpacityProperty",
 )}
 
 ${helpers.predefined_type(

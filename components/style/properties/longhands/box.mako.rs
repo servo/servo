@@ -601,8 +601,10 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-will-change/#will-change",
 )}
 
+// The spec issue for the parse_method: https://github.com/w3c/csswg-drafts/issues/4102.
 ${helpers.predefined_type(
     "shape-image-threshold", "Opacity", "0.0",
+    parse_method="parse_number",
     products="gecko",
     animation_value_type="ComputedValue",
     spec="https://drafts.csswg.org/css-shapes/#shape-image-threshold-property",

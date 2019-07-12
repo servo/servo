@@ -52,7 +52,7 @@ ${helpers.predefined_type(
     "Default::default()",
     products="gecko",
     animation_value_type="ComputedValue",
-    spec="https://www.w3.org/TR/SVG11/painting.html#FillOpacityProperty",
+    spec="https://svgwg.org/svg2-draft/painting.html#FillOpacity",
 )}
 
 ${helpers.predefined_type(
@@ -123,7 +123,7 @@ ${helpers.predefined_type(
     "Default::default()",
     products="gecko",
     animation_value_type="ComputedValue",
-    spec="https://www.w3.org/TR/SVG11/painting.html#StrokeOpacityProperty",
+    spec="https://svgwg.org/svg2-draft/painting.html#StrokeOpacity",
 )}
 
 ${helpers.predefined_type(
