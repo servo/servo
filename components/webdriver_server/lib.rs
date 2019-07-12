@@ -37,14 +37,17 @@ use serde_json::{json, Value};
 use servo_config::{prefs, prefs::PrefValue};
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
-use std::collections::BTreeMap;
+use std::cmp;
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt;
 use std::net::{SocketAddr, SocketAddrV4};
 use std::thread;
 use std::time::Duration;
 use uuid::Uuid;
+use webdriver::actions::{ActionSequence, ActionsType, GeneralAction, NullActionItem};
+use webdriver::actions::{KeyAction, KeyActionItem, PointerAction, PointerActionItem, PointerType};
 use webdriver::capabilities::{Capabilities, CapabilitiesMatching};
-use webdriver::command::SwitchToWindowParameters;
+use webdriver::command::{ActionsParameters, SwitchToWindowParameters};
 use webdriver::command::{
     AddCookieParameters, GetParameters, JavascriptCommandParameters, LocatorParameters,
 };
@@ -110,6 +113,55 @@ pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
         .expect("Thread spawning failed");
 }
 
+struct KeyInputState {
+    pressed: HashSet<String>,
+    alt: bool,
+    shift: bool,
+    ctrl: bool,
+    meta: bool,
+}
+
+impl KeyInputState {
+    pub fn new() -> KeyInputState {
+        KeyInputState {
+            pressed: HashSet::new(),
+            alt: false,
+            shift: false,
+            ctrl: false,
+            meta: false,
+        }
+    }
+}
+
+struct PointerInputState {
+    subtype: PointerType,
+    pressed: HashSet<u64>,
+    x: u64,
+    y: u64,
+}
+
+impl PointerInputState {
+    pub fn new(subtype: &PointerType) -> PointerInputState {
+        PointerInputState {
+            subtype: match subtype {
+                PointerType::Mouse => PointerType::Mouse,
+                PointerType::Pen => PointerType::Pen,
+                PointerType::Touch => PointerType::Touch,
+            },
+            pressed: HashSet::new(),
+            x: 0,
+            y: 0,
+        }
+    }
+}
+
+// https://w3c.github.io/webdriver/#dfn-input-source-state
+enum InputSourceState {
+    Null,
+    Key(KeyInputState),
+    Pointer(PointerInputState),
+}
+
 /// Represents the current WebDriver session and holds relevant session state.
 struct WebDriverSession {
     id: Uuid,
@@ -131,6 +183,11 @@ struct WebDriverSession {
     secure_tls: bool,
     strict_file_interactability: bool,
     unhandled_prompt_behavior: String,
+
+    // https://w3c.github.io/webdriver/#dfn-active-input-sources
+    active_input_sources: Vec<InputSourceState>,
+    // https://w3c.github.io/webdriver/#dfn-input-state-table
+    input_state_table: HashMap<String, InputSourceState>,
 }
 
 impl WebDriverSession {
@@ -151,6 +208,9 @@ impl WebDriverSession {
             secure_tls: true,
             strict_file_interactability: false,
             unhandled_prompt_behavior: "dismiss and notify".to_string(),
+
+            active_input_sources: Vec::new(),
+            input_state_table: HashMap::new(),
         }
     }
 }
@@ -345,6 +405,131 @@ impl<'de> Visitor<'de> for TupleVecMapVisitor {
 
         Ok(values)
     }
+}
+
+fn compute_tick_duration(tick_actions: &ActionSequence) -> u64 {
+    let mut duration = 0;
+    match &tick_actions.actions {
+        ActionsType::Null { actions } => {
+            for action in actions.iter() {
+                let NullActionItem::General(GeneralAction::Pause(pause_action)) = action;
+                duration = cmp::max(duration, pause_action.duration.unwrap_or(0));
+            }
+        },
+        ActionsType::Pointer {
+            parameters: _,
+            actions,
+        } => {
+            for action in actions.iter() {
+                if let PointerActionItem::General(GeneralAction::Pause(pause_action)) = action {
+                    duration = cmp::max(duration, pause_action.duration.unwrap_or(0));
+                } else if let PointerActionItem::Pointer(PointerAction::Move(move_action)) = action
+                {
+                    duration = cmp::max(duration, move_action.duration.unwrap_or(0));
+                }
+            }
+        },
+        _ => (),
+    }
+    duration
+}
+
+// https://w3c.github.io/webdriver/#dfn-dispatch-tick-actions
+fn dispatch_tick_actions(
+    session: &mut WebDriverSession,
+    tick_actions: &ActionSequence,
+    tick_duration: u64,
+) -> WebDriverResult<WebDriverResponse> {
+    // Step 1.1
+    let source_id = tick_actions.id.as_ref().unwrap();
+    // Step 1.2 - 1.6
+    match &tick_actions.actions {
+        ActionsType::Null { actions } => {
+            for action in actions.iter() {
+                // Step 1.3 - 1.4
+                session
+                    .input_state_table
+                    .entry(source_id.to_string())
+                    .or_insert(InputSourceState::Null);
+                // https://w3c.github.io/webdriver/#dfn-dispatch-a-pause-action
+                // Nothing to be done
+            }
+        },
+        ActionsType::Key { actions } => {
+            for action in actions.iter() {
+                match action {
+                    KeyActionItem::General(action) => {
+                        // Step 1.3 - 1.4
+                        session
+                            .input_state_table
+                            .entry(source_id.to_string())
+                            .or_insert(InputSourceState::Null);
+                        // https://w3c.github.io/webdriver/#dfn-dispatch-a-pause-action
+                        // Nothing to be done
+                    },
+                    KeyActionItem::Key(action) => {
+                        // Step 1.3 - 1.4
+                        let device_state = session
+                            .input_state_table
+                            .entry(source_id.to_string())
+                            .or_insert(InputSourceState::Key(KeyInputState::new()));
+                        match action {
+                            KeyAction::Down(action) => (),
+                            KeyAction::Up(action) => (),
+                        }
+                    },
+                }
+            }
+        },
+        ActionsType::Pointer {
+            parameters,
+            actions,
+        } => {
+            for action in actions.iter() {
+                match action {
+                    PointerActionItem::General(action) => {
+                        // Step 1.3 - 1.4
+                        session
+                            .input_state_table
+                            .entry(source_id.to_string())
+                            .or_insert(InputSourceState::Null);
+                        // https://w3c.github.io/webdriver/#dfn-dispatch-a-pause-action
+                        // Nothing to be done
+                    },
+                    PointerActionItem::Pointer(action) => {
+                        // Step 1.3 - 1.4
+                        let device_state = session
+                            .input_state_table
+                            .entry(source_id.to_string())
+                            .or_insert(InputSourceState::Pointer(PointerInputState::new(
+                                &parameters.pointer_type,
+                            )));
+                        match action {
+                            PointerAction::Cancel => (),
+                            PointerAction::Down(action) => (),
+                            PointerAction::Move(action) => (),
+                            PointerAction::Up(action) => (),
+                        }
+                    },
+                }
+            }
+        },
+    }
+    // Step 2
+    Ok(WebDriverResponse::Void)
+}
+
+fn dispatch_actions(
+    session: &mut WebDriverSession,
+    actions_by_tick: &Vec<ActionSequence>
+) -> WebDriverResult<WebDriverResponse> {
+    for tick_actions in actions_by_tick.iter() {
+        let tick_duration = compute_tick_duration(&tick_actions);
+        if let Err(error) = dispatch_tick_actions(session, &tick_actions, tick_duration) {
+            return Err(error);
+        }
+    }
+    Ok(WebDriverResponse::Void)
 }
 
 impl Handler {
@@ -1240,6 +1425,13 @@ impl Handler {
         }
     }
 
+    fn handle_perform_actions(
+        &mut self,
+        parameters: &ActionsParameters,
+    ) -> WebDriverResult<WebDriverResponse> {
+        dispatch_actions(self.session.as_mut().unwrap(), &parameters.actions)
+    }
+
     fn handle_execute_script(
         &self,
         parameters: &JavascriptCommandParameters,
@@ -1514,6 +1706,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
                 self.handle_element_css(element, name)
             },
             WebDriverCommand::GetPageSource => self.handle_get_page_source(),
+            WebDriverCommand::PerformActions(ref x) => self.handle_perform_actions(x),
             WebDriverCommand::ExecuteScript(ref x) => self.handle_execute_script(x),
             WebDriverCommand::ExecuteAsyncScript(ref x) => self.handle_execute_async_script(x),
             WebDriverCommand::ElementSendKeys(ref element, ref keys) => {
