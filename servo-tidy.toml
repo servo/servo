@@ -35,7 +35,6 @@ packages = [
   "crossbeam-deque",
   "crossbeam-epoch",
   "crossbeam-utils",
-  "dwrote",
   "gl_generator", # https://github.com/servo/servo/pull/23288#issuecomment-494687746
   "lock_api",
   "memmap",
@@ -46,7 +45,6 @@ packages = [
   "rand_core",
   "scopeguard",
   "unicase",
-  "ws",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [

@@ -12,8 +12,8 @@ use style::values::computed::{BorderCornerRadius, BorderImageWidth};
 use style::values::computed::{BorderImageSideWidth, NonNegativeLengthOrNumber};
 use style::values::generics::rect::Rect as StyleRect;
 use style::values::generics::NonNegative;
-use webrender_api::{BorderRadius, BorderSide, BorderStyle, ColorF};
-use webrender_api::{LayoutSideOffsets, LayoutSize, NormalBorder};
+use webrender_api::units::{LayoutSideOffsets, LayoutSize};
+use webrender_api::{BorderRadius, BorderSide, BorderStyle, ColorF, NormalBorder};
 
 /// Computes a border radius size against the containing size.
 ///

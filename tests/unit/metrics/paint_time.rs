@@ -9,7 +9,8 @@ use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use profile_traits::time::{ProfilerChan, TimerMetadata};
 use servo_url::ServoUrl;
-use webrender_api::{AlphaType, ColorF, ImageDisplayItem, ImageKey, ImageRendering, LayoutSize};
+use webrender_api::units::{LayoutRect, LayoutSize};
+use webrender_api::{AlphaType, ColorF, ImageDisplayItem, ImageKey, ImageRendering};
 
 struct DummyProfilerMetadataFactory {}
 impl ProfilerMetadataFactory for DummyProfilerMetadataFactory {
@@ -118,6 +119,8 @@ fn test_first_contentful_paint_setter() {
     let image = DisplayItem::Image(CommonDisplayItem::new(
         BaseDisplayItem::empty(),
         ImageDisplayItem {
+            bounds: LayoutRect::zero(),
+            common: layout::display_list::items::empty_common_item_properties(),
             image_key: ImageKey::DUMMY,
             stretch_size: LayoutSize::zero(),
             tile_spacing: LayoutSize::zero(),

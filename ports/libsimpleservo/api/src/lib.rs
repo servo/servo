@@ -22,7 +22,8 @@ use servo::script_traits::{TouchEventType, TouchId};
 use servo::servo_config::opts;
 use servo::servo_config::{pref, set_pref};
 use servo::servo_url::ServoUrl;
-use servo::webrender_api::{DevicePixel, FramebufferPixel, ScrollLocation};
+use servo::webrender_api::units::DevicePixel;
+use servo::webrender_api::ScrollLocation;
 use servo::webvr::{VRExternalShmemPtr, VRMainThreadHeartbeat, VRService, VRServiceManager};
 use servo::{self, gl, BrowserId, Servo};
 use servo_media::player::context as MediaPlayerContext;
@@ -61,7 +62,7 @@ pub enum VRInitOptions {
 #[derive(Clone, Debug)]
 pub struct Coordinates {
     pub viewport: TypedRect<i32, DevicePixel>,
-    pub framebuffer: TypedSize2D<i32, FramebufferPixel>,
+    pub framebuffer: TypedSize2D<i32, DevicePixel>,
 }
 
 impl Coordinates {

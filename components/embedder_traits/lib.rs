@@ -19,7 +19,7 @@ use keyboard_types::KeyboardEvent;
 use msg::constellation_msg::{InputMethodType, PipelineId, TopLevelBrowsingContextId};
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
-use webrender_api::{DeviceIntPoint, DeviceIntSize};
+use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 
 /// A cursor for the window. This is different from a CSS cursor (see
 /// `CursorKind`) in that it has no `Auto` value.

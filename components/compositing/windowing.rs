@@ -19,10 +19,9 @@ use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
 use std::time::Duration;
 use style_traits::DevicePixel;
-use webrender_api::{
-    DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, FramebufferIntRect,
-    FramebufferIntSize, ScrollLocation,
-};
+use webrender_api::units::DevicePoint;
+use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
+use webrender_api::ScrollLocation;
 use webvr::VRServiceManager;
 use webvr_traits::WebVRMainThreadHeartbeat;
 
@@ -192,16 +191,16 @@ pub struct EmbedderCoordinates {
     /// Size of the native window.
     pub window: (DeviceIntSize, DeviceIntPoint),
     /// Size of the GL buffer in the window.
-    pub framebuffer: FramebufferIntSize,
+    pub framebuffer: DeviceIntSize,
     /// Coordinates of the document within the framebuffer.
     pub viewport: DeviceIntRect,
 }
 
 impl EmbedderCoordinates {
-    pub fn get_flipped_viewport(&self) -> FramebufferIntRect {
+    pub fn get_flipped_viewport(&self) -> DeviceIntRect {
         let fb_height = self.framebuffer.height;
         let mut view = self.viewport.clone();
         view.origin.y = fb_height - view.origin.y - view.size.height;
-        FramebufferIntRect::from_untyped(&view.to_untyped())
+        DeviceIntRect::from_untyped(&view.to_untyped())
     }
 }

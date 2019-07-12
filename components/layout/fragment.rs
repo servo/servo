@@ -65,7 +65,8 @@ use style::values::computed::{LengthPercentage, LengthPercentageOrAuto, Size, Ve
 use style::values::generics::box_::{Perspective, VerticalAlignKeyword};
 use style::values::generics::transform;
 use style::Zero;
-use webrender_api::{self, LayoutTransform};
+use webrender_api;
+use webrender_api::units::LayoutTransform;
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;

@@ -84,6 +84,7 @@ use constellation::{FromCompositorLogger, FromScriptLogger};
 use crossbeam_channel::{unbounded, Sender};
 use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use env_logger::Builder as EnvLoggerBuilder;
+use euclid::TypedSize2D;
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),
@@ -304,11 +305,19 @@ where
 
             let render_notifier = Box::new(RenderNotifier::new(compositor_proxy.clone()));
 
+            // Cast from `DeviceIndependentPixel` to `DevicePixel`
+            let device_pixel_ratio = coordinates.hidpi_factor.get();
+            let window_size = TypedSize2D::from_untyped(
+                &(opts.initial_window_size.to_f32() / device_pixel_ratio)
+                    .to_i32()
+                    .to_untyped(),
+            );
+
             webrender::Renderer::new(
                 window.gl(),
                 render_notifier,
                 webrender::RendererOptions {
-                    device_pixel_ratio: coordinates.hidpi_factor.get(),
+                    device_pixel_ratio,
                     resource_override_path: opts.shaders_dir.clone(),
                     enable_aa: opts.enable_text_antialiasing,
                     debug_flags: debug_flags,
@@ -324,6 +333,7 @@ where
                     ..Default::default()
                 },
                 None,
+                window_size,
             )
             .expect("Unable to initialize webrender!")
         };

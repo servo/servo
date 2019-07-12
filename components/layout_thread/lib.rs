@@ -833,7 +833,7 @@ impl LayoutThread {
                 let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
                 let mut txn = webrender_api::Transaction::new();
                 txn.scroll_node_with_id(
-                    webrender_api::LayoutPoint::from_untyped(&point),
+                    webrender_api::units::LayoutPoint::from_untyped(&point),
                     state.scroll_id,
                     webrender_api::ScrollClamping::ToContentBounds,
                 );
@@ -1138,8 +1138,13 @@ impl LayoutThread {
                     rw_data.display_list.is_none()
                 {
                     if reflow_goal.needs_display_list() {
-                        let mut build_state =
-                            sequential::build_display_list_for_subtree(layout_root, layout_context);
+                        let background_color = get_root_flow_background_color(layout_root);
+                        let mut build_state = sequential::build_display_list_for_subtree(
+                            layout_root,
+                            layout_context,
+                            background_color,
+                            data.page_clip_rect.size,
+                        );
 
                         debug!("Done building display list.");
 
@@ -1203,7 +1208,7 @@ impl LayoutThread {
                             &mut build_state.indexable_text,
                             IndexableText::default(),
                         );
-                        rw_data.display_list = Some(Arc::new(build_state.to_display_list()));
+                        rw_data.display_list = Some(build_state.to_display_list());
                     }
                 }
 
@@ -1220,7 +1225,8 @@ impl LayoutThread {
                 if let Some(document) = document {
                     document.will_paint();
                 }
-                let display_list = (*rw_data.display_list.as_ref().unwrap()).clone();
+
+                let display_list = rw_data.display_list.as_mut().unwrap();
 
                 if self.dump_display_list {
                     display_list.print();
@@ -1232,11 +1238,7 @@ impl LayoutThread {
                 debug!("Layout done!");
 
                 // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
-                let builder = rw_data
-                    .display_list
-                    .as_ref()
-                    .unwrap()
-                    .convert_to_webrender(self.id);
+                let builder = display_list.convert_to_webrender(self.id);
 
                 let viewport_size = Size2D::new(
                     self.viewport_size.width.to_f32_px(),
@@ -1247,7 +1249,7 @@ impl LayoutThread {
                 epoch.next();
                 self.epoch.set(epoch);
 
-                let viewport_size = webrender_api::LayoutSize::from_untyped(&viewport_size);
+                let viewport_size = webrender_api::units::LayoutSize::from_untyped(&viewport_size);
 
                 // Observe notifications about rendered frames if needed right before
                 // sending the display list to WebRender in order to set time related
@@ -1258,7 +1260,7 @@ impl LayoutThread {
                 let mut txn = webrender_api::Transaction::new();
                 txn.set_display_list(
                     webrender_api::Epoch(epoch.0),
-                    Some(get_root_flow_background_color(layout_root)),
+                    None,
                     viewport_size,
                     builder.finalize(),
                     true,
@@ -1669,7 +1671,8 @@ impl LayoutThread {
                     // particular pipeline, so we need to tell WebRender about that.
                     flags.insert(webrender_api::HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
 
-                    let client_point = webrender_api::WorldPoint::from_untyped(&client_point);
+                    let client_point =
+                        webrender_api::units::WorldPoint::from_untyped(&client_point);
                     let results = self.webrender_api.hit_test(
                         self.webrender_document,
                         Some(self.id.to_webrender()),

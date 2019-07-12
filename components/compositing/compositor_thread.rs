@@ -17,7 +17,8 @@ use profile_traits::time;
 use script_traits::{AnimationState, ConstellationMsg, EventResult};
 use std::fmt::{Debug, Error, Formatter};
 use style_traits::viewport::ViewportConstraints;
-use webrender_api::{self, DeviceIntPoint, DeviceIntSize};
+use webrender_api;
+use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use webvr_traits::WebVRMainThreadHeartbeat;
 
 /// Sends messages to the compositor.

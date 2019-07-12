@@ -32,7 +32,7 @@ use script_traits::{
     MouseButton, MouseEventType, ScrollState, TouchEventType, TouchId, WheelDelta,
 };
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
-use servo_geometry::DeviceIndependentPixel;
+use servo_geometry::{DeviceIndependentPixel, FramebufferUintLength};
 use std::collections::HashMap;
 use std::env;
 use std::fs::{create_dir_all, File};
@@ -42,10 +42,8 @@ use std::rc::Rc;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
-use webrender_api::{
-    self, DeviceIntPoint, DevicePoint, FramebufferIntSize, HitTestFlags, HitTestResult,
-};
-use webrender_api::{LayoutVector2D, ScrollLocation};
+use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutVector2D};
+use webrender_api::{self, HitTestFlags, HitTestResult, ScrollLocation};
 use webvr_traits::WebVRMainThreadHeartbeat;
 
 #[derive(Debug, PartialEq)]
@@ -724,7 +722,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let dppx = self.page_zoom * self.hidpi_factor();
         let scaled_point = (point / dppx).to_untyped();
 
-        let world_cursor = webrender_api::WorldPoint::from_untyped(&scaled_point);
+        let world_cursor = webrender_api::units::WorldPoint::from_untyped(&scaled_point);
         self.webrender_api.hit_test(
             self.webrender_document,
             None,
@@ -844,9 +842,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let cursor = TypedPoint2D::new(-1, -1); // Make sure this hits the base layer.
                 self.pending_scroll_zoom_events.push(ScrollZoomEvent {
                     magnification: magnification,
-                    scroll_location: ScrollLocation::Delta(
-                        webrender_api::LayoutVector2D::from_untyped(&scroll_delta.to_untyped()),
-                    ),
+                    scroll_location: ScrollLocation::Delta(LayoutVector2D::from_untyped(
+                        &scroll_delta.to_untyped(),
+                    )),
                     cursor: cursor,
                     event_count: 1,
                 });
@@ -933,9 +931,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 last_combined_event @ &mut None => {
                     *last_combined_event = Some(ScrollZoomEvent {
                         magnification: scroll_event.magnification,
-                        scroll_location: ScrollLocation::Delta(
-                            webrender_api::LayoutVector2D::from_untyped(&this_delta.to_untyped()),
-                        ),
+                        scroll_location: ScrollLocation::Delta(LayoutVector2D::from_untyped(
+                            &this_delta.to_untyped(),
+                        )),
                         cursor: this_cursor,
                         event_count: 1,
                     })
@@ -966,15 +964,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     let scaled_delta = (TypedVector2D::from_untyped(&delta.to_untyped()) /
                         self.scale)
                         .to_untyped();
-                    let calculated_delta =
-                        webrender_api::LayoutVector2D::from_untyped(&scaled_delta);
+                    let calculated_delta = LayoutVector2D::from_untyped(&scaled_delta);
                     ScrollLocation::Delta(calculated_delta)
                 },
                 // Leave ScrollLocation unchanged if it is Start or End location.
                 sl @ ScrollLocation::Start | sl @ ScrollLocation::End => sl,
             };
             let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
-            let cursor = webrender_api::WorldPoint::from_untyped(&cursor);
+            let cursor = webrender_api::units::WorldPoint::from_untyped(&cursor);
             let mut txn = webrender_api::Transaction::new();
             txn.scroll(scroll_location, cursor);
             if combined_event.magnification != 1.0 {
@@ -1168,8 +1165,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let mut pipeline_epochs = HashMap::new();
                 for (id, _) in &self.pipeline_details {
                     let webrender_pipeline_id = id.to_webrender();
-                    if let Some(webrender_api::Epoch(epoch)) =
-                        self.webrender.current_epoch(webrender_pipeline_id)
+                    if let Some(webrender_api::Epoch(epoch)) = self
+                        .webrender
+                        .current_epoch(self.webrender_document, webrender_pipeline_id)
                     {
                         let epoch = Epoch(epoch);
                         pipeline_epochs.insert(*id, epoch);
@@ -1269,9 +1267,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             #[cfg(feature = "gl")]
             CompositeTarget::Window => gl::RenderTargetInfo::default(),
             #[cfg(feature = "gl")]
-            CompositeTarget::WindowAndPng | CompositeTarget::PngFile => {
-                gl::initialize_png(&*self.window.gl(), width, height)
-            },
+            CompositeTarget::WindowAndPng | CompositeTarget::PngFile => gl::initialize_png(
+                &*self.window.gl(),
+                FramebufferUintLength::new(width.get()),
+                FramebufferUintLength::new(height.get()),
+            ),
             #[cfg(not(feature = "gl"))]
             _ => (),
         };
@@ -1283,7 +1283,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             || {
                 debug!("compositor: compositing");
 
-                let size = FramebufferIntSize::from_untyped(
+                let size = DeviceIntSize::from_untyped(
                     &self.embedder_coordinates.framebuffer.to_untyped(),
                 );
 
@@ -1304,8 +1304,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             // For each pending paint metrics pipeline id
             for (id, pending_epoch) in &self.pending_paint_metrics {
                 // we get the last painted frame id from webrender
-                if let Some(webrender_api::Epoch(epoch)) =
-                    self.webrender.current_epoch(id.to_webrender())
+                if let Some(webrender_api::Epoch(epoch)) = self
+                    .webrender
+                    .current_epoch(self.webrender_document, id.to_webrender())
                 {
                     // and check if it is the one the layout thread is expecting,
                     let epoch = Epoch(epoch);
@@ -1332,7 +1333,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             CompositeTarget::Window => None,
             #[cfg(feature = "gl")]
             CompositeTarget::WindowAndPng => {
-                let img = gl::draw_img(&*self.window.gl(), rt_info, width, height);
+                let img = gl::draw_img(
+                    &*self.window.gl(),
+                    rt_info,
+                    FramebufferUintLength::new(width.get()),
+                    FramebufferUintLength::new(height.get()),
+                );
                 Some(Image {
                     width: img.width(),
                     height: img.height(),
@@ -1351,7 +1357,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     || match self.output_file.as_ref() {
                         Some(path) => match File::create(path) {
                             Ok(mut file) => {
-                                let img = gl::draw_img(gl, rt_info, width, height);
+                                let img = gl::draw_img(
+                                    gl,
+                                    rt_info,
+                                    FramebufferUintLength::new(width.get()),
+                                    FramebufferUintLength::new(height.get()),
+                                );
                                 let dynamic_image = DynamicImage::ImageRgb8(img);
                                 if let Err(e) = dynamic_image.write_to(&mut file, ImageFormat::PNG)
                                 {
