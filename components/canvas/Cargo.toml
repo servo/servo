@@ -21,7 +21,6 @@ no_wgl = ["offscreen_gl_context/no_wgl"]
 azure = {git = "https://github.com/servo/rust-azure", optional = true}
 byteorder = "1"
 canvas_traits = {path = "../canvas_traits"}
-compositing = {path = "../compositing"}
 cssparser = "0.25"
 euclid = "0.19"
 fnv = "1.0"
