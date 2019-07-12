@@ -396,6 +396,7 @@ pub mod keyboardevent;
 pub mod location;
 pub mod mediadevices;
 pub mod mediaerror;
+pub mod mediafragmentparser;
 pub mod medialist;
 pub mod mediaquerylist;
 pub mod mediaquerylistevent;
