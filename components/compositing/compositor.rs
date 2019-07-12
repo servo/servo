@@ -198,6 +198,9 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// Current mouse cursor.
     cursor: Cursor,
 
+    /// Current cursor position.
+    cursor_pos: DevicePoint,
+
     output_file: Option<String>,
 
     is_running_problem_test: bool,
@@ -320,6 +323,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             webxr_main_thread: state.webxr_main_thread,
             pending_paint_metrics: HashMap::new(),
             cursor: Cursor::None,
+            cursor_pos: DevicePoint::new(0.0, 0.0),
             output_file,
             is_running_problem_test,
             exit_after_load,
@@ -359,6 +363,21 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     pub fn deinit(self) {
         self.window.prepare_for_composite();
         self.webrender.deinit();
+    }
+
+    pub fn update_cursor(&mut self) {
+        let results = self.hit_test_at_point(self.cursor_pos);
+        if let Some(item) = results.items.first() {
+            if let Some(cursor) = Cursor::from_u8(item.tag.1 as _) {
+                if cursor != self.cursor {
+                    self.cursor = cursor;
+                    let msg = ConstellationMsg::SetCursor(cursor);
+                    if let Err(e) = self.constellation_chan.send(msg) {
+                        warn!("Sending event to constellation failed ({:?}).", e);
+                    }
+                }
+            }
+        }
     }
 
     pub fn maybe_start_shutting_down(&mut self) {
@@ -481,6 +500,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
             (Msg::NewScrollFrameReady(recomposite_needed), ShutdownState::NotShuttingDown) => {
                 self.waiting_for_results_of_scroll = false;
+                self.update_cursor();
                 if recomposite_needed {
                     self.composition_request = CompositionRequest::CompositeNow(
                         CompositingReason::NewWebRenderScrollFrame,
