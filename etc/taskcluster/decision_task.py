@@ -399,6 +399,7 @@ def windows_unit():
 
             "mach build --dev",
             "mach test-unit",
+            "mach smoketest --angle",
             "mach package --dev",
             "mach build --dev --libsimpleservo",
         )
