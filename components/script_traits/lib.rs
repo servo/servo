@@ -798,6 +798,8 @@ pub enum WebDriverCommandMsg {
     ScriptCommand(BrowsingContextId, WebDriverScriptCommand),
     /// Act as if keys were pressed in the browsing context with the given ID.
     SendKeys(BrowsingContextId, Vec<WebDriverInputEvent>),
+    /// Act as if keys were pressed or release in the browsing context with the given ID.
+    KeyboardAction(BrowsingContextId, KeyboardEvent),
     /// Set the window size.
     SetWindowSize(
         TopLevelBrowsingContextId,
