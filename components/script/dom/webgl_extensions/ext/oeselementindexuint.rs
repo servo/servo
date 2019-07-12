@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::OESElementIndexUintBinding;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
-use canvas_traits::webgl::{is_gles, WebGLVersion};
+use canvas_traits::webgl::WebGLVersion;
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -40,7 +40,7 @@ impl WebGLExtension for OESElementIndexUint {
 
     fn is_supported(ext: &WebGLExtensions) -> bool {
         // This extension is always available in desktop OpenGL.
-        !is_gles() || ext.supports_gl_extension("GL_OES_element_index_uint")
+        !ext.is_gles() || ext.supports_gl_extension("GL_OES_element_index_uint")
     }
 
     fn enable(ext: &WebGLExtensions) {

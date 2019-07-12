@@ -52,8 +52,8 @@ use crate::dom::window::Window;
 use backtrace::Backtrace;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
-    webgl_channel, AlphaTreatment, DOMToTextureCommand, GLContextAttributes, GLLimits, Parameter,
-    TexDataType, TexFormat, TexParameter, WebGLCommand, WebGLCommandBacktrace,
+    webgl_channel, AlphaTreatment, DOMToTextureCommand, GLContextAttributes, GLLimits, GlType,
+    Parameter, TexDataType, TexFormat, TexParameter, WebGLCommand, WebGLCommandBacktrace,
     WebGLContextShareMode, WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender,
     WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLSender, WebGLVersion, WebVRCommand,
     YAxisTreatment,
@@ -166,6 +166,7 @@ pub struct WebGLRenderingContext {
     default_vao: DomOnceCell<WebGLVertexArrayObjectOES>,
     current_vao: MutNullableDom<WebGLVertexArrayObjectOES>,
     textures: Textures,
+    api_type: GlType,
 }
 
 impl WebGLRenderingContext {
@@ -216,11 +217,12 @@ impl WebGLRenderingContext {
                 // what was requested
                 size: Cell::new(size),
                 current_clear_color: Cell::new((0.0, 0.0, 0.0, 0.0)),
-                extension_manager: WebGLExtensions::new(webgl_version),
+                extension_manager: WebGLExtensions::new(webgl_version, ctx_data.api_type),
                 capabilities: Default::default(),
                 default_vao: Default::default(),
                 current_vao: Default::default(),
                 textures: Textures::new(max_combined_texture_image_units),
+                api_type: ctx_data.api_type,
             }
         })
     }
@@ -2106,6 +2108,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         handle_potential_webgl_error!(
             self,
             shader.compile(
+                self.api_type,
                 self.webgl_version,
                 self.glsl_version,
                 &self.limits,
@@ -4031,7 +4034,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             self.bound_renderbuffer.get().ok_or(InvalidOperation),
             return
         );
-        handle_potential_webgl_error!(self, rb.storage(internal_format, width, height));
+        handle_potential_webgl_error!(
+            self,
+            rb.storage(self.api_type, internal_format, width, height)
+        );
         if let Some(fb) = self.bound_framebuffer.get() {
             fb.invalidate_renderbuffer(&*rb);
         }

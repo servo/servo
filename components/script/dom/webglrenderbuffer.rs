@@ -14,7 +14,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use canvas_traits::webgl::{
-    is_gles, webgl_channel, WebGLCommand, WebGLError, WebGLRenderbufferId, WebGLResult,
+    webgl_channel, GlType, WebGLCommand, WebGLError, WebGLRenderbufferId, WebGLResult,
 };
 use dom_struct::dom_struct;
 use std::cell::Cell;
@@ -120,7 +120,15 @@ impl WebGLRenderbuffer {
         self.ever_bound.get()
     }
 
-    pub fn storage(&self, internal_format: u32, width: i32, height: i32) -> WebGLResult<()> {
+    pub fn storage(
+        &self,
+        api_type: GlType,
+        internal_format: u32,
+        width: i32,
+        height: i32,
+    ) -> WebGLResult<()> {
+        let is_gles = api_type == GlType::Gles;
+
         // Validate the internal_format, and save it for completeness
         // validation.
         let actual_format = match internal_format {
@@ -131,7 +139,7 @@ impl WebGLRenderbuffer {
             constants::DEPTH_STENCIL => WebGL2RenderingContextConstants::DEPTH24_STENCIL8,
             constants::RGB5_A1 => {
                 // 16-bit RGBA formats are not supported on desktop GL.
-                if is_gles() {
+                if is_gles {
                     constants::RGB5_A1
                 } else {
                     WebGL2RenderingContextConstants::RGBA8
@@ -139,7 +147,7 @@ impl WebGLRenderbuffer {
             },
             constants::RGB565 => {
                 // RGB565 is not supported on desktop GL.
-                if is_gles() {
+                if is_gles {
                     constants::RGB565
                 } else {
                     WebGL2RenderingContextConstants::RGB8

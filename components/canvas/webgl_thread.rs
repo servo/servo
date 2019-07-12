@@ -138,9 +138,13 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
                         )
                         .expect("WebGLContext not found");
                         let glsl_version = Self::get_glsl_version(&data.ctx);
+                        let api_type = match data.ctx.gl().get_type() {
+                            gl::GlType::Gl => GlType::Gl,
+                            gl::GlType::Gles => GlType::Gles,
+                        };
 
                         // FIXME(nox): Should probably be done by offscreen_gl_context.
-                        if !is_gles() {
+                        if api_type != GlType::Gles {
                             // Points sprites are enabled by default in OpenGL 3.2 core
                             // and in GLES. Rather than doing version detection, it does
                             // not hurt to enable them anyways.
@@ -163,6 +167,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
                             limits,
                             share_mode,
                             glsl_version,
+                            api_type,
                         }
                     }))
                     .unwrap();
