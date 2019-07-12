@@ -2398,6 +2398,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'js::rust::HandleValue',
         'js::jsapi::Heap',
         'js::jsapi::JSContext',
+        'crate::script_runtime::JSContext as SafeJSContext',
         'js::jsapi::JSObject',
         'js::rust::MutableHandleValue',
         'js::jsval::JSVal',
@@ -3251,7 +3252,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert descriptor.interface.hasInterfaceObject()
         args = [
-            Argument('*mut JSContext', 'cx'),
+            Argument('SafeJSContext', 'cx'),
             Argument('HandleObject', 'global'),
         ]
         CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface',
@@ -3268,7 +3269,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         return CGGeneric("""\
 assert!(!global.get().is_null());
 
-if !ConstructorEnabled(cx, global) {
+if !ConstructorEnabled(*cx, global) {
     return;
 }
 
@@ -4153,6 +4154,7 @@ pub enum %s {
         inner = string.Template("""\
 use crate::dom::bindings::conversions::ToJSValConvertible;
 use js::jsapi::JSContext;
+use crate::script_runtime::JSContext as SafeJSContext;
 use js::rust::MutableHandleValue;
 use js::jsval::JSVal;
 
@@ -5782,6 +5784,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JSCLASS_RESERVED_SLOTS_SHIFT',
         'js::jsapi::JSClass',
         'js::jsapi::JSContext',
+        'crate::script_runtime::JSContext as SafeJSContext',
         'js::jsapi::JSFreeOp',
         'js::jsapi::JSFunctionSpec',
         'js::jsapi::JSITER_HIDDEN',

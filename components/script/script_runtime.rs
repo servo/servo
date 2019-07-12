@@ -749,11 +749,12 @@ unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
 #[cfg(not(feature = "debugmozjs"))]
 unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
 
-struct JSContext(*mut RawJSContext);
+#[repr(transparent)]
+pub struct JSContext(*mut RawJSContext);
 
 #[allow(unsafe_code)]
 impl JSContext {
-    unsafe fn from_ptr(raw_js_context: *mut RawJSContext) -> Self {
+    pub unsafe fn from_ptr(raw_js_context: *mut RawJSContext) -> Self {
         JSContext(raw_js_context)
     }
 }
