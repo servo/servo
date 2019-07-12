@@ -11,7 +11,7 @@
 <script src="./resources/reactions.js"></script>
 <body>
 <script>
-if (HTMLInputElement.prototype.capture) {
+if ('capture' in HTMLInputElement.prototype) {
     test(() => {
         const element = define_build_in_custom_element(['capture'], HTMLInputElement, 'input');
         const instance = document.createElement('input', { is: element.name });

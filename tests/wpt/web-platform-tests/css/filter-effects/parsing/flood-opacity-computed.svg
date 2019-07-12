@@ -2,7 +2,7 @@
 <svg xmlns="http://www.w3.org/2000/svg"
      xmlns:h="http://www.w3.org/1999/xhtml"
      width="800px" height="800px">
-  <title>Filter Effects Module Level 1: getComputedValue().floodOpacity</title>
+  <title>Filter Effects Module Level 1: getComputedStyle().floodOpacity</title>
   <metadata>
     <h:link rel="help" href="https://drafts.fxtf.org/filter-effects/#propdef-flood-opacity"/>
     <h:meta name="assert" content="flood-opacity computed value is clamped to the range [0,1]."/>

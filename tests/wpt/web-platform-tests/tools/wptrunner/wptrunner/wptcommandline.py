@@ -256,8 +256,10 @@ scheme host and port.""")
                              help="Path to the folder containing browser prefs")
     gecko_group.add_argument("--disable-e10s", dest="gecko_e10s", action="store_false", default=True,
                              help="Run tests without electrolysis preferences")
-    gecko_group.add_argument("--enable-webrender", dest="enable_webrender", action="store_true", default=False,
-                             help="Enable the WebRender compositor in Gecko.")
+    gecko_group.add_argument("--enable-webrender", dest="enable_webrender", action="store_true", default=None,
+                             help="Enable the WebRender compositor in Gecko (defaults to disabled).")
+    gecko_group.add_argument("--no-enable-webrender", dest="enable_webrender", action="store_false",
+                             help="Disable the WebRender compositor in Gecko.")
     gecko_group.add_argument("--stackfix-dir", dest="stackfix_dir", action="store",
                              help="Path to directory containing assertion stack fixing scripts")
     gecko_group.add_argument("--lsan-dir", dest="lsan_dir", action="store",
@@ -551,6 +553,9 @@ def check_args(kwargs):
 
     if kwargs["reftest_screenshot"] is None:
         kwargs["reftest_screenshot"] = "unexpected"
+
+    if kwargs["enable_webrender"] is None:
+        kwargs["enable_webrender"] = False
 
     return kwargs
 

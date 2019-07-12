@@ -1,30 +1,6 @@
-# Introduction
+# Test Suite Design
 
-web-platform-tests is a W3C-coordinated effort to build a
-cross-browser testsuite for the majority of
-the [web platform][web-platform]; it excludes only ECMAScript (whose
-testsuite lives in [test262][test262]) and WebGL (whose testsuite
-lives in [WebGL][WebGL]).
-
-## Watch a Talk
-
-If you prefer watching a video, here is a talk introducing web-platform-tests:
-
-<iframe width="560" height="315" src="https://www.youtube.com/embed/XnfE3MfH5hQ" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-
-## Help!
-
-If you get stuck or want clarification about anything, feel free to
-ask on either the [mailing list][public-test-infra] or [IRC][]
-([webclient][web irc], join channel `#testing`); IRC is generally
-busiest during the European working day but frequently has people on
-it at all times and should probably be the general first port of call
-for any help.
-
-
-## Testsuite Design
-
-The vast majority of the testsuite is formed of HTML pages, which can
+The vast majority of the test suite is formed of HTML pages, which can
 be loaded in a browser and either programmatically provide a result or
 provide a set of steps to run the test and obtain the result.
 
@@ -36,7 +12,7 @@ and should be easy to run in any browser.
 
 Each top level directory in the repository corresponds to tests for a
 single specification, with the exception of `css/` which contains
-testsuites for CSS WG specifications. For W3C specs, these directories
+test suites for CSS WG specifications. For W3C specs, these directories
 are typically named after the shortname of the spec (i.e. the name
 used for snapshot publications under `/TR/`); for WHATWG specs, they
 are typically named after the subdomain of the spec (i.e. trimming
@@ -82,33 +58,9 @@ expectations:
 * [Manual tests][manual] rely on a human to run them and determine their
   result.
 
-## GitHub
-
-[GitHub](https://github.com/web-platform-tests/wpt/) is used both for [issue tracking](https://github.com/web-platform-tests/wpt/issues) and [test submissions](https://github.com/web-platform-tests/wpt/pulls); we
-provide [a limited introduction][github-intro] to both git and
-GitHub.
-
-Pull Requests are automatically labeled based on the directory the
-files they change are in; there are also comments added automatically
-to notify a number of people: this list of people comes from META.yml
-files in those same directories and their parents (i.e., they work
-recursively: `a/META.yml` will get notified for `a/foo.html` and
-`a/b/bar.html`).
-
-If you want to be notified about changes to tests in a directory, feel
-free to add yourself to the META.yml file!
-
-[web-platform]: https://platform.html5.org
-[test262]: https://github.com/tc39/test262
-[webgl]: https://github.com/KhronosGroup/WebGL
-[public-test-infra]: https://lists.w3.org/Archives/Public/public-test-infra/
-[IRC]: irc://irc.w3.org:6667/testing
-[web irc]: http://irc.w3.org
-
 [reftests]: writing-tests/reftests
 [testharness.js]: writing-tests/testharness
 [visual]: writing-tests/visual
 [manual]: writing-tests/manual
-[github-intro]: appendix/github-intro
 [running-from-local-system]: running-tests/from-local-system
 [wdspec]: writing-tests/wdspec

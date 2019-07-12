@@ -298,7 +298,7 @@ different results. Recognizing when (and understanding how) to use other
 approaches is beyond the scope of this tutorial. [The Pro Git Book][git-book]
 is a free digital resource that can help you learn more.
 
-[local-setup]: ../introduction#local-setup
+[local-setup]: ../running-tests/from-local-system
 [git]: https://git-scm.com/downloads
 [git-book]: https://git-scm.com/book
 [github]: https://github.com/

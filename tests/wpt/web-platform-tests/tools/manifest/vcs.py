@@ -61,24 +61,11 @@ class GitHasher(object):
         # type: () -> Set[bytes]
         """get a set of files which have changed between HEAD and working copy"""
         assert self.git is not None
-
-        changes = set()  # type: Set[bytes]
-
-        cmd = [b"status", b"-z", b"--ignore-submodules=all"]
-        data = self.git(*cmd)  # type: bytes
-
-        in_rename = False
-        for line in data.split(b"\0")[:-1]:
-            if in_rename:
-                changes.add(line)
-                in_rename = False
-            else:
-                status = line[:2]
-                if b"R" in status or b"C" in status:
-                    in_rename = True
-                changes.add(line[3:])
-
-        return changes
+        # note that git runs the command with tests_root as the cwd, which may
+        # not be the root of the git repo (e.g., within a browser repo)
+        cmd = [b"diff-index", b"--relative", b"--no-renames", b"--name-only", b"-z", b"HEAD"]
+        data = self.git(*cmd)
+        return set(data.split(b"\0"))
 
     def hash_cache(self):
         # type: () -> Dict[bytes, Optional[bytes]]
@@ -90,7 +77,9 @@ class GitHasher(object):
         if self.git is None:
             return hash_cache
 
-        cmd = [b"ls-tree", b"-r", b"-z", b"HEAD"]
+        # note that git runs the command with tests_root as the cwd, which may
+        # not be the root of the git repo (e.g., within a browser repo)
+        cmd = ["ls-tree", "-r", "-z", "HEAD"]
         local_changes = self._local_changes()
         for result in self.git(*cmd).split(b"\0")[:-1]:  # type: bytes
             data, rel_path = result.rsplit(b"\t", 1)

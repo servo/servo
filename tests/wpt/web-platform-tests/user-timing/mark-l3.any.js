@@ -1,11 +1,6 @@
-<!DOCTYPE HTML>
-<meta charset=utf-8>
-<title>User Timing L3: mark</title>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="resources/user-timing-helper.js"></script>
-<script>
-  async_test(function (t) {
+// META: script=resources/user-timing-helper.js
+
+async_test(function (t) {
     let mark_entries = [];
     const expected_entries =
         [{ entryType: "mark", name: "mark1", detail: null},
@@ -41,5 +36,4 @@
     returned_entries.push(self.performance.mark("mark8", {startTime: 234.56}));
     returned_entries.push(self.performance.mark("mark9", {detail: {count: 3}, startTime: 345.67}));
     checkEntries(returned_entries, expected_entries);
-  }, "mark entries' detail and startTime are customizable.");
-</script>
+}, "mark entries' detail and startTime are customizable.");
