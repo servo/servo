@@ -12182,6 +12182,12 @@
      {}
     ]
    ],
+   "mozilla/script-does-not-crash-on-new-layout.html": [
+    [
+     "mozilla/script-does-not-crash-on-new-layout.html",
+     {}
+    ]
+   ],
    "mozilla/script_type.html": [
     [
      "mozilla/script_type.html",
@@ -19224,6 +19230,10 @@
   "mozilla/restyle-out-of-document.html": [
    "cff2590e4ebc00d182ffb7a970a82d94426cbb27",
    "reftest"
+  ],
+  "mozilla/script-does-not-crash-on-new-layout.html": [
+   "1c3d881bcd789dfd522f962271184174ef294995",
+   "testharness"
   ],
   "mozilla/script_type.html": [
    "e05202e737148e8aad2287fd10ac18bc781cd526",

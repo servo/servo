@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> When reloading a document when a cross-origin iframe loads,
+ script should not crash </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+</head>
+<body>
+<div id=log></div>
+<div style="display:none">
+    <iframe width="70%"></iframe>
+</div>
+<script>
+async_test(function(t) {
+    var host = get_host_info();
+    var noteSameSiteURL = host.HTTP_NOTSAMESITE_ORIGIN + "/webmessaging/support/ChildWindowPostMessage.htm";
+    var TARGET = document.querySelector("iframe").contentWindow;
+    document.querySelector("iframe").src = noteSameSiteURL;
+    document.querySelector("iframe").onload = t.step_func(function() {
+        location.reload()
+        t.done();
+    });
+}, "Script doesn't crash when reloading a parent when the cross-origin iframe loads");
+</script>
+</body>
+</html>
