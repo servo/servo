@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://w3c.github.io/uievents/#interface-wheelevent
-[Constructor(DOMString typeArg, optional WheelEventInit wheelEventInitDict),
+[Constructor(DOMString typeArg, optional WheelEventInit wheelEventInitDict = {}),
  Exposed=Window]
 interface WheelEvent : MouseEvent {
     const unsigned long DOM_DELTA_PIXEL = 0x00;

@@ -4,7 +4,7 @@
 
 // https://w3c.github.io/ServiceWorker/#extendablemessage-event-section
 
-[Constructor(DOMString type, optional ExtendableMessageEventInit eventInitDict),
+[Constructor(DOMString type, optional ExtendableMessageEventInit eventInitDict = {}),
  Exposed=ServiceWorker,
  Pref="dom.serviceworker.enabled"]
 interface ExtendableMessageEvent : ExtendableEvent {

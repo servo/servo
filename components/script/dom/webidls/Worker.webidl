@@ -9,7 +9,7 @@ interface AbstractWorker {
 };
 
 // https://html.spec.whatwg.org/multipage/#worker
-[Constructor(USVString scriptURL, optional WorkerOptions options), Exposed=(Window,Worker)]
+[Constructor(USVString scriptURL, optional WorkerOptions options = {}), Exposed=(Window,Worker)]
 interface Worker : EventTarget {
   void terminate();
 

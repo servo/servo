@@ -14,4 +14,4 @@ unrooted_must_root_lint = []
 webidl_lint = []
 
 [dependencies]
-weedle = "0.9"
+weedle = "0.10"

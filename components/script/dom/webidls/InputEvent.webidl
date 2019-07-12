@@ -8,7 +8,7 @@
  */
 
 // https://w3c.github.io/uievents/#idl-inputevent
-[Constructor(DOMString type, optional InputEventInit eventInitDict)]
+[Constructor(DOMString type, optional InputEventInit eventInitDict = {})]
 interface InputEvent : UIEvent {
   readonly attribute DOMString? data;
   readonly attribute boolean isComposing;

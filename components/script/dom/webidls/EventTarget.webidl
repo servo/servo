@@ -10,13 +10,13 @@ interface EventTarget {
   void addEventListener(
     DOMString type,
     EventListener? callback,
-    optional (AddEventListenerOptions or boolean) options
+    optional (AddEventListenerOptions or boolean) options = {}
   );
 
   void removeEventListener(
     DOMString type,
     EventListener? callback,
-    optional (EventListenerOptions or boolean) options
+    optional (EventListenerOptions or boolean) options = {}
   );
 
   [Throws]

@@ -12,7 +12,7 @@
  * http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0.
  */
 
-[Constructor(DOMString type, optional ProgressEventInit eventInitDict),
+[Constructor(DOMString type, optional ProgressEventInit eventInitDict = {}),
  Exposed=(Window,Worker)]
 interface ProgressEvent : Event {
   readonly attribute boolean lengthComputable;

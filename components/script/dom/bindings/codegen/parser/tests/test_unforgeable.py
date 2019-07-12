@@ -111,7 +111,7 @@ def WebIDLTest(parser, harness):
         """)
 
         results = parser.finish()
-    except Exception,x:
+    except Exception as x:
         threw = True
     harness.ok(threw,
                "Should have thrown when shadowing unforgeable attribute on "
@@ -130,7 +130,7 @@ def WebIDLTest(parser, harness):
         """)
 
         results = parser.finish()
-    except Exception,x:
+    except Exception as x:
         threw = True
     harness.ok(threw,
                "Should have thrown when shadowing unforgeable operation on "

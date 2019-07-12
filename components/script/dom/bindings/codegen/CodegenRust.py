@@ -17,6 +17,7 @@ import functools
 from WebIDL import (
     BuiltinTypes,
     IDLBuiltinType,
+    IDLDefaultDictionaryValue,
     IDLEmptySequenceValue,
     IDLInterfaceMember,
     IDLNullableType,
@@ -678,13 +679,16 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             return None
 
         if isinstance(defaultValue, IDLNullValue):
-            assert type.nullable() or type.isDictionary()
+            assert type.nullable()
+            return nullValue
+        elif isinstance(defaultValue, IDLDefaultDictionaryValue):
+            assert type.isDictionary()
             return nullValue
         elif isinstance(defaultValue, IDLEmptySequenceValue):
             assert type.isSequence()
             return "Vec::new()"
 
-        raise TypeError("Can't handle non-null or non-empty sequence default value here")
+        raise TypeError("Can't handle non-null, non-empty sequence or non-empty dictionary default value here")
 
     # A helper function for wrapping up the template body for
     # possibly-nullable objecty stuff
@@ -747,17 +751,19 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             for memberType in type.unroll().flatMemberTypes
             if memberType.isDictionary()
         ]
-        if defaultValue and not isinstance(defaultValue, IDLNullValue):
+        if (defaultValue and
+                not isinstance(defaultValue, IDLNullValue) and
+                not isinstance(defaultValue, IDLDefaultDictionaryValue)):
             tag = defaultValue.type.tag()
             if tag is IDLType.Tags.bool:
                 default = "%s::Boolean(%s)" % (
                     union_native_type(type),
                     "true" if defaultValue.value else "false")
             else:
-                raise("We don't currently support default values that aren't null or boolean")
+                raise("We don't currently support default values that aren't null, boolean or default dictionary")
         elif dictionaries:
             if defaultValue:
-                assert isinstance(defaultValue, IDLNullValue)
+                assert isinstance(defaultValue, IDLDefaultDictionaryValue)
                 dictionary, = dictionaries
                 default = "%s::%s(%s::%s::empty())" % (
                     union_native_type(type),

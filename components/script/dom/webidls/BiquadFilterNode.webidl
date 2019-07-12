@@ -26,7 +26,7 @@ dictionary BiquadFilterOptions : AudioNodeOptions {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional BiquadFilterOptions options)]
+ Constructor (BaseAudioContext context, optional BiquadFilterOptions options = {})]
 interface BiquadFilterNode : AudioNode {
   attribute BiquadFilterType type;
   readonly attribute AudioParam frequency;

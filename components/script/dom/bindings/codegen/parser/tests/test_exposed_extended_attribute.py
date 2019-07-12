@@ -124,7 +124,7 @@ def WebIDLTest(parser, harness):
         """)
 
         results = parser.finish()
-    except Exception,x:
+    except Exception as x:
         threw = True
 
     harness.ok(threw, "Should have thrown on invalid Exposed value on interface.")
@@ -140,7 +140,7 @@ def WebIDLTest(parser, harness):
         """)
 
         results = parser.finish()
-    except Exception,x:
+    except Exception as x:
         threw = True
 
     harness.ok(threw, "Should have thrown on invalid Exposed value on attribute.")
@@ -156,7 +156,7 @@ def WebIDLTest(parser, harness):
         """)
 
         results = parser.finish()
-    except Exception,x:
+    except Exception as x:
         threw = True
 
     harness.ok(threw, "Should have thrown on invalid Exposed value on operation.")
@@ -172,7 +172,7 @@ def WebIDLTest(parser, harness):
         """)
 
         results = parser.finish()
-    except Exception,x:
+    except Exception as x:
         threw = True
 
     harness.ok(threw, "Should have thrown on invalid Exposed value on constant.")
@@ -192,7 +192,7 @@ def WebIDLTest(parser, harness):
         """)
 
         results = parser.finish()
-    except Exception,x:
+    except Exception as x:
         threw = True
 
     harness.ok(threw, "Should have thrown on member exposed where its interface is not.")
@@ -216,7 +216,7 @@ def WebIDLTest(parser, harness):
         """)
 
         results = parser.finish()
-    except Exception,x:
+    except Exception as x:
         threw = True
 
     harness.ok(threw, "Should have thrown on LHS of implements being exposed where RHS is not.")
