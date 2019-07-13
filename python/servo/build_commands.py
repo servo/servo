@@ -600,7 +600,7 @@ class MachCommands(CommandBase):
                         print("WARNING: could not find " + lib)
 
                 if not uwp:
-                    package_generated_shared_libraries(["libEGL.dll"], build_path, servo_exe_dir)
+                    package_generated_shared_libraries(["libEGL.dll", "libGLESv2.dll"], build_path, servo_exe_dir)
 
                 # copy needed gstreamer DLLs in to servo.exe dir
                 target_triple = target or host_triple()

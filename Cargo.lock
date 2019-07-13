@@ -402,7 +402,7 @@ dependencies = [
  "ipc-channel 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "offscreen_gl_context 0.22.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "offscreen_gl_context 0.22.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "pixels 0.0.1",
  "raqote 0.4.1-alpha.0 (git+https://github.com/jrmuizel/raqote)",
  "serde_bytes 0.10.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2537,11 +2537,11 @@ dependencies = [
  "layout_thread_2020 0.0.1",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "media 0.0.1",
- "mozangle 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mozangle 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net 0.0.1",
  "net_traits 0.0.1",
- "offscreen_gl_context 0.22.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "offscreen_gl_context 0.22.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "profile 0.0.1",
  "profile_traits 0.0.1",
  "script 0.0.1",
@@ -2909,12 +2909,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "mozangle"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cc 1.0.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "walkdir 2.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3184,7 +3185,7 @@ dependencies = [
 
 [[package]]
 name = "offscreen_gl_context"
-version = "0.22.3"
+version = "0.22.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cgl 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3877,7 +3878,7 @@ dependencies = [
  "mime 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime_guess 2.0.0-alpha.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "mitochondria 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "mozangle 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mozangle 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "mozjs 0.12.0 (git+https://github.com/servo/rust-mozjs)",
  "msg 0.0.1",
  "net_traits 0.0.1",
@@ -5953,7 +5954,7 @@ dependencies = [
 "checksum mio-uds 0.6.7 (registry+https://github.com/rust-lang/crates.io-index)" = "966257a94e196b11bb43aca423754d87429960a768de9414f3691d6957abf125"
 "checksum miow 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "396aa0f2003d7df8395cb93e09871561ccc3e785f0acb369170e8cc74ddf9226"
 "checksum mitochondria 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "9de3eca27871df31c33b807f834b94ef7d000956f57aa25c5aed9c5f0aae8f6f"
-"checksum mozangle 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "1dc10080cc8b83bfb5580de720f00c768ec1b365c75fbc4c57324118a38a618d"
+"checksum mozangle 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "c16c861307809350d6ebf120bb43fa081ddde85c32b1a8c205c7a2287ada24e7"
 "checksum mozjs 0.12.0 (git+https://github.com/servo/rust-mozjs)" = "<none>"
 "checksum mozjs_sys 0.67.0 (git+https://github.com/servo/mozjs?rev=b2f83932fe9d361face14efd03f2465b9262e687)" = "<none>"
 "checksum msdos_time 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "aad9dfe950c057b1bfe9c1f2aa51583a8468ef2a5baba2ebbe06d775efeb7729"
@@ -5973,7 +5974,7 @@ dependencies = [
 "checksum objc 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)" = "31d20fd2b37e07cf5125be68357b588672e8cefe9a96f8c17a9d46053b3e590d"
 "checksum objc-foundation 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1add1b659e36c9607c7aab864a76c7a4c2760cd0cd2e120f3fb8b952c7e22bf9"
 "checksum objc_id 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e4730aa1c64d722db45f7ccc4113a3e2c465d018de6db4d3e7dfe031e8c8a297"
-"checksum offscreen_gl_context 0.22.3 (registry+https://github.com/rust-lang/crates.io-index)" = "070391b55c4d07b1550f1f2b6464e07ac6a1f9962c71b5097baa5882d644a693"
+"checksum offscreen_gl_context 0.22.4 (registry+https://github.com/rust-lang/crates.io-index)" = "154c923c8bf54299672a5121836a929395d763778525ce752c00b61249fe9cab"
 "checksum opaque-debug 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "51ecbcb821e1bd256d456fe858aaa7f380b63863eab2eb86eee1bd9f33dd6682"
 "checksum openssl 0.10.11 (registry+https://github.com/rust-lang/crates.io-index)" = "6c24d3508b4fb6da175c10baac54c578b33f09c89ae90c6fe9788b3b4768efdc"
 "checksum openssl-sys 0.9.35 (registry+https://github.com/rust-lang/crates.io-index)" = "912f301a749394e1025d9dcddef6106ddee9252620e6d0a0e5f8d0681de9b129"
