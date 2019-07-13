@@ -1,16 +1,11 @@
-<!DOCTYPE HTML>
-<meta charset=utf-8>
-<title>User Timing L3: measure is customizable</title>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="resources/user-timing-helper.js"></script>
-<script>
-  function cleanupPerformanceTimeline() {
+// META: script=resources/user-timing-helper.js
+
+function cleanupPerformanceTimeline() {
     performance.clearMarks();
     performance.clearMeasures();
-  }
+}
 
-  async_test(function (t) {
+async_test(function (t) {
     this.add_cleanup(cleanupPerformanceTimeline);
     let measureEntries = [];
     const timeStamp1 = 784.4;
@@ -91,9 +86,9 @@
     returnedEntries.push(self.performance.measure("measure20", undefined, 'mark1'));
     returnedEntries.push(self.performance.measure("measure21", { invalidDict:1 }, 'mark1'));
     checkEntries(returnedEntries, expectedEntries);
-  }, "measure entries' detail and start/end are customizable");
+}, "measure entries' detail and start/end are customizable");
 
-  test(function() {
+test(function() {
     this.add_cleanup(cleanupPerformanceTimeline);
     assert_throws(new TypeError(), function() {
       self.performance.measure("optionsAndNumberEnd", {'start': 2}, 12);
@@ -107,5 +102,5 @@
     assert_throws(new TypeError(), function() {
       self.performance.measure("negativeEndInOptions", {'end': -1});
     }, "measure cannot have a negative time stamp for end.");
-  }, "measure should throw a TypeError when passed an invalid argument combination");
-</script>
+}, "measure should throw a TypeError when passed an invalid argument combination");
+

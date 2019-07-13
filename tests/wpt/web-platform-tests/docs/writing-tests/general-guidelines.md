@@ -41,7 +41,7 @@ Various support files are available in in the `/common/` and `/media/`
 directories (web-platform-tests) and `/support/` (in css/). Reusing
 existing resources is encouraged where possible, as is adding
 generally useful files to these common areas rather than to specific
-testsuites.
+test suites.
 
 
 #### Tools
@@ -169,7 +169,7 @@ see the [lint-tool documentation][lint-tool].
 
 ## CSS-Specific Requirements
 
-In order to be included in an official specification testsuite, tests
+In order to be included in an official specification test suite, tests
 for CSS have some additional requirements for:
 
 * [Metadata][css-metadata], and

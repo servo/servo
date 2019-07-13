@@ -23,7 +23,7 @@ precise details of the response:
 * *pywebsocket*, an existing websockets server
 
 wptserve is a Python-based web server. By default it serves static
-files in the testsuite. For more sophisticated requirements, several
+files in the test suite. For more sophisticated requirements, several
 mechanisms are available to take control of the response. These are
 outlined below.
 

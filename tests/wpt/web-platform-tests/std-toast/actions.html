@@ -102,4 +102,89 @@ test(() => {
 
     assert_equals(actionButton, null);
 }, 'passing non-string (undefined) as action option does not create an action button');
+
+testToastElement((toast) => {
+    const actionButton = document.createElement('button');
+    actionButton.textContent = 'action';
+    toast.action = actionButton;
+
+    assertActionButtonOnToast(actionButton, toast);
+}, 'setting the action on an actionless toast inserts the element into the slot');
+
+testActionToast((toast, action) => {
+    const actionButton = document.createElement('button');
+    actionButton.textContent = 'replacement';
+    toast.action = actionButton;
+
+    assert_false(document.contains(action));
+    assertActionButtonOnToast(actionButton, toast);
+}, 'resetting the action on an action toast changes the action element');
+
+testToastElement((toast) => {
+    const text = document.createTextNode('some text');
+    assert_throws(new TypeError(), () => {
+        toast.action = text;
+    });
+}, 'setting the action to an invalid type (Text node) throws an error');
+
+testToastElement((toast) => {
+    const text = 'some text';
+    assert_throws(new TypeError(), () => {
+        toast.action = text;
+    });
+}, 'setting the action to an invalid type (string) throws an error');
+
+test(() => {
+    const actionButton = document.createElement('button');
+    actionButton.textContent = 'action';
+    const toast = showToast('Message', {action: actionButton});
+
+    assertActionButtonOnToast(actionButton, toast);
+}, 'showToast can take an Element as the action parameter');
+
+testActionToast((toast, action) => {
+    toast.action = null;
+
+    assert_not_equals(toast.action, action);
+    assert_equals(toast.querySelector('button'), null);
+}, 'setting toast.action to null removes the action from the toast');
+
+testActionToast((toast, action) => {
+    const wrongAction = document.createElement('button');
+    wrongAction.textContent = 'wrong';
+    wrongAction.setAttribute('slot', 'action');
+    toast.appendChild(wrongAction);
+
+    const correctAction = document.createElement('button');
+    correctAction.textContent = 'correct';
+    toast.action = correctAction;
+
+    assertActionButtonOnToast(correctAction, toast);
+}, 'resetting toast.action on a toast with multiple actions slotted sets properly');
+
+test(() => {
+    try {
+        Object.defineProperty(Element, Symbol.hasInstance, {
+            value: () => true,
+            configurable: true
+        });
+
+        const fakeElement = {};
+        const toast = showToast('Message');
+        assert_throws(new TypeError(), () => toast.action = fakeElement);
+    } finally {
+        delete Element[Symbol.hasInstance];
+    }
+}, 'spoofing element instance will not register as element to action setter');
+
+test(() => {
+    const iframe = document.createElement('iframe');
+    document.body.append(iframe);
+    iframe.contentDocument.body.innerHTML = '<div></div>';
+    const elementFromAnotherFrame = iframe.contentDocument.querySelector('div');
+
+    // Should not throw:
+    const toast = showToast('Message');
+    toast.action = elementFromAnotherFrame;
+}, 'element from iframe instance will pass correctly to action without throwing an error');
 </script>

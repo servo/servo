@@ -2,7 +2,7 @@
 <svg xmlns="http://www.w3.org/2000/svg"
      xmlns:h="http://www.w3.org/1999/xhtml"
      width="800px" height="800px">
-  <title>SVG Painting: getComputedValue().paintOrder</title>
+  <title>SVG Painting: getComputedStyle().paintOrder</title>
   <metadata>
     <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#PaintOrderProperty"/>
     <h:meta name="assert" content="paint-order computed value is as specified."/>

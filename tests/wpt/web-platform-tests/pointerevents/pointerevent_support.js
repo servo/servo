@@ -325,3 +325,31 @@ function pointerDragInTarget(pointerType, target, direction) {
                    .pointerUp()
                    .send();
 }
+
+function pointerHoverInTarget(pointerType, target, direction) {
+    var x_delta = 0;
+    var y_delta = 0;
+    if (direction == "down") {
+        x_delta = 0;
+        y_delta = 10;
+    } else if (direction == "up") {
+        x_delta = 0;
+        y_delta = -10;
+    } else if (direction == "right") {
+        x_delta = 10;
+        y_delta = 0;
+    } else if (direction == "left") {
+        x_delta = -10;
+        y_delta = 0;
+    } else {
+        throw("drag direction '" + direction + "' is not expected, direction should be 'down', 'up', 'left' or 'right'");
+    }
+    var pointerId = pointerType + "Pointer1";
+    return new test_driver.Actions()
+                   .addPointer(pointerId, pointerType)
+                   .pointerMove(0, 0, {origin: target})
+                   .pointerMove(x_delta, y_delta, {origin: target})
+                   .pointerMove(2 * x_delta, 2 * y_delta, {origin: target})
+                   .pointerMove(3 * x_delta, 3 * y_delta, {origin: target})
+                   .send();
+}
