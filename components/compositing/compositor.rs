@@ -365,9 +365,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.webrender.deinit();
     }
 
-    pub fn update_cursor(&mut self) {
-        let results = self.hit_test_at_point(self.cursor_pos);
-        if let Some(item) = results.items.first() {
+    pub fn update_cursor(&mut self, hit_test_results: HitTestResult) {
+        if let Some(item) = hit_test_results.items.first() {
             if let Some(cursor) = Cursor::from_u8(item.tag.1 as _) {
                 if cursor != self.cursor {
                     self.cursor = cursor;
@@ -500,7 +499,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
             (Msg::NewScrollFrameReady(recomposite_needed), ShutdownState::NotShuttingDown) => {
                 self.waiting_for_results_of_scroll = false;
-                self.update_cursor();
+                self.update_cursor(self.hit_test_at_point(self.cursor_pos));
                 if recomposite_needed {
                     self.composition_request = CompositionRequest::CompositeNow(
                         CompositingReason::NewWebRenderScrollFrame,
@@ -784,16 +783,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             if let Err(e) = self.constellation_chan.send(msg) {
                 warn!("Sending event to constellation failed ({:?}).", e);
             }
-
-            if let Some(cursor) = Cursor::from_u8(item.tag.1 as _) {
-                if cursor != self.cursor {
-                    self.cursor = cursor;
-                    let msg = ConstellationMsg::SetCursor(cursor);
-                    if let Err(e) = self.constellation_chan.send(msg) {
-                        warn!("Sending event to constellation failed ({:?}).", e);
-                    }
-                }
-            }
+            self.update_cursor(results);
         }
     }
 
