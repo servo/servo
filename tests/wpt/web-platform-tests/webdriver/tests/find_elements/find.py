@@ -47,6 +47,10 @@ def test_find_elements(session, using, value):
     # Step 8 - 9
     session.url = inline("<a href=# id=linkText>full link text</a>")
 
+    with open("debug.log", "a") as f:
+        f.write("Url is: " + session.url + "\n")
+        f.write("Source is: " + session.source + "\n")
+
     response = find_elements(session, using, value)
     assert_success(response)
     assert len(response.body["value"]) == 1
