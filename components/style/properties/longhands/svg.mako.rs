@@ -8,8 +8,8 @@
 
 ${helpers.single_keyword(
     "dominant-baseline",
-    """auto use-script no-change reset-size ideographic alphabetic hanging
-    mathematical central middle text-after-edge text-before-edge""",
+    """auto ideographic alphabetic hanging mathematical central middle
+       text-after-edge text-before-edge""",
     products="gecko",
     animation_value_type="discrete",
     spec="https://www.w3.org/TR/SVG11/text.html#DominantBaselineProperty",
