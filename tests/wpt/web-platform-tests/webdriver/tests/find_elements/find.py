@@ -48,6 +48,9 @@ def test_find_elements(session, using, value):
     session.url = inline("<a href=# id=linkText>full link text</a>")
 
     with open("debug.log", "a") as f:
+        import os, threading
+        f.write("pid " + str(os.getpid()) + " tid: " + str(threading.current_thread().ident) + "\n")
+        f.write("using: " + using + " value: " + value + "\n")
         f.write("Url is: " + session.url + "\n")
         f.write("Source is: " + session.source + "\n")
 

@@ -91,12 +91,21 @@ class TestEnvironment(object):
 
         self.servers = serve.start(self.config,
                                    self.get_routes())
+
+        import os, threading
+        with open("debug.log", "a") as f:
+            f.write("Starting servers on pid " + str(os.getpid()) + " and tid " + str(threading.current_thread().ident) + "\n")
+
         if self.options.get("supports_debugger") and self.debug_info and self.debug_info.interactive:
             self.ignore_interrupts()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.process_interrupts()
+
+        import os, threading
+        with open("debug.log", "a") as f:
+            f.write("Killing servers on pid " + str(os.getpid()) + " and tid " + str(threading.current_thread().ident) + "\n")
 
         for scheme, servers in self.servers.iteritems():
             for port, server in servers:

@@ -4,6 +4,7 @@ env:
   CARGO_INCREMENTAL: "0"
   SCCACHE_IDLE_TIMEOUT: "1200"
   GST_DEBUG: '3'
+  HOST_FILE: 'tests/wpt/hosts'
 
 linux-rel-nogate:
  env:
@@ -37,6 +38,7 @@ linux-rel-wpt:
     - ./mach test-wpt --release --product=servodriver --headless --log-raw test-bluetooth.log --log-errorsummary bluetooth-errorsummary.log bluetooth
     - ./mach test-wpt --release --headless --timeout-multiplier=4 --log-raw test-wdspec.log --log-errorsummary wdspec-errorsummary.log --always-succeed webdriver
     - ./mach filter-intermittents wdspec-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wdspec-errorsummary.log --tracker-api default --reporter-api default
+    - cat debug.log
     - ./etc/ci/clean_build_artifacts.sh
 
 linux-rel-css:
