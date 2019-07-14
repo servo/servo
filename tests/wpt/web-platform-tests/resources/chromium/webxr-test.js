@@ -16,6 +16,35 @@ const default_stage_parameters = {
   bounds: null
 };
 
+function getMatrixFromTransform(transform) {
+  let x = transform.orientation[0];
+  let y = transform.orientation[1];
+  let z = transform.orientation[2];
+  let w = transform.orientation[3];
+
+  let m11 = 1.0 - 2.0 * (y * y + z * z);
+  let m21 = 2.0 * (x * y + z * w);
+  let m31 = 2.0 * (x * z - y * w);
+
+  let m12 = 2.0 * (x * y - z * w);
+  let m22 = 1.0 - 2.0 * (x * x + z * z);
+  let m32 = 2.0 * (y * z + x * w);
+
+  let m13 = 2.0 * (x * z + y * w);
+  let m23 = 2.0 * (y * z - x * w);
+  let m33 = 1.0 - 2.0 * (x * x + y * y);
+
+  let m14 = transform.position[0];
+  let m24 = transform.position[1];
+  let m34 = transform.position[2];
+
+  // Column-major linearized order is expected.
+  return [m11, m21, m31, 0,
+          m12, m22, m32, 0,
+          m13, m23, m33, 0,
+          m14, m24, m34, 1];
+}
+
 class ChromeXRTest {
   constructor() {
     this.mockVRService_ = new MockVRService(mojo.frameInterfaces);
@@ -178,6 +207,9 @@ class MockRuntime {
 
     this.framesOfReference = {};
 
+    this.input_sources_ = [];
+    this.next_input_source_index_ = 1;
+
     // Initialize DisplayInfo first to set the defaults, then override with
     // anything from the deviceInit
     if (fakeDeviceInit.supportsImmersive) {
@@ -194,8 +226,8 @@ class MockRuntime {
       this.setViewerOrigin(fakeDeviceInit.viewerOrigin);
     }
 
-    if (fakeDeviceInit.localToFloorLevelTransform != null) {
-      this.setLocalToFloorLevelTransform(fakeDeviceInit.localToFloorLevelTransform);
+    if (fakeDeviceInit.floorOrigin != null) {
+      this.setFloorOrigin(fakeDeviceInit.floorOrigin);
     }
 
     // This appropriately handles if the coordinates are null
@@ -280,7 +312,7 @@ class MockRuntime {
     }
   }
 
-  setLocalToFloorLevelTransform(transform) {
+  setFloorOrigin(floorOrigin) {
     if (!this.displayInfo_.stageParameters) {
       this.displayInfo_.stageParameters = default_stage_parameters;
       this.displayInfo_.stageParameters.bounds = this.bounds_;
@@ -288,14 +320,14 @@ class MockRuntime {
 
     this.displayInfo_.stageParameters.standingTransform = new gfx.mojom.Transform();
     this.displayInfo_.stageParameters.standingTransform.matrix =
-      this.getMatrixFromTransform(transform);
+      getMatrixFromTransform(floorOrigin);
 
     if (this.sessionClient_.ptr.isBound()) {
       this.sessionClient_.onChanged(this.displayInfo_);
     }
   }
 
-  clearLocalToFloorLevelTransform() {
+  clearFloorOrigin() {
     if (this.displayInfo_.stageParameters) {
       this.displayInfo_.stageParameters = null;
 
@@ -309,35 +341,16 @@ class MockRuntime {
     this.send_pose_reset_ = true;
   }
 
-  // Helper methods
-  getMatrixFromTransform(transform) {
-    let x = transform.orientation[0];
-    let y = transform.orientation[1];
-    let z = transform.orientation[2];
-    let w = transform.orientation[3];
+  simulateInputSourceConnection(fakeInputSourceInit) {
+    let index = this.next_input_source_index_;
+    this.next_input_source_index_++;
 
-    let m11 = 1.0 - 2.0 * (y * y + z * z);
-    let m21 = 2.0 * (x * y + z * w);
-    let m31 = 2.0 * (x * z - y * w);
-
-    let m12 = 2.0 * (x * y - z * w);
-    let m22 = 1.0 - 2.0 * (x * x + z * z);
-    let m32 = 2.0 * (y * z + x * w);
-
-    let m13 = 2.0 * (x * z + y * w);
-    let m23 = 2.0 * (y * z - x * w);
-    let m33 = 1.0 - 2.0 * (x * x + y * y);
-
-    let m14 = transform.position[0];
-    let m24 = transform.position[1];
-    let m34 = transform.position[2];
-
-    // Column-major linearized order is expected.
-    return [m11, m21, m31, 0,
-            m12, m22, m32, 0,
-            m13, m23, m33, 0,
-            m14, m24, m34, 1];
+    let source = new MockXRInputSource(fakeInputSourceInit, index, this);
+    this.input_sources_.push(source);
+    return source;
   }
+
+  // Helper methods
   getNonImmersiveDisplayInfo() {
     let displayInfo = this.getImmersiveDisplayInfo();
 
@@ -418,6 +431,21 @@ class MockRuntime {
     };
   }
 
+  // These methods are intended to be used by MockXRInputSource only.
+  addInputSource(source) {
+    let index = this.input_sources_.indexOf(source);
+    if (index == -1) {
+      this.input_sources_.push(source);
+    }
+  }
+
+  removeInputSource(source) {
+    let index = this.input_sources_.indexOf(source);
+    if (index >= 0) {
+      this.input_sources_.splice(index, 1);
+    }
+  }
+
   // Mojo function implementations.
 
   // XRFrameDataProvider implementation.
@@ -426,6 +454,19 @@ class MockRuntime {
       this.pose_.poseIndex++;
       this.pose_.poseReset = this.send_pose_reset_;
       this.send_pose_reset_ = false;
+
+      // Setting the input_state to null tests a slightly different path than
+      // the browser tests where if the last input source is removed, the device
+      // code always sends up an empty array, but it's also valid mojom to send
+      // up a null array.
+      if (this.input_sources_.length > 0) {
+        this.pose_.inputState = [];
+        for (let i = 0; i < this.input_sources_.length; i++) {
+          this.pose_.inputState.push(this.input_sources_[i].getInputSourceState());
+        }
+      } else {
+        this.pose_.inputState = null;
+      }
     }
 
     // Convert current document time to monotonic time.
@@ -514,6 +555,147 @@ class MockRuntime {
           !options.immersive || this.displayInfo_.capabilities.canPresent
     });
   };
+}
+
+class MockXRInputSource {
+  constructor(fakeInputSourceInit, id, pairedDevice) {
+    this.source_id_ = id;
+    this.pairedDevice_ = pairedDevice;
+    this.handedness_ = fakeInputSourceInit.handedness;
+    this.target_ray_mode_ = fakeInputSourceInit.targetRayMode;
+    this.setPointerOrigin(fakeInputSourceInit.pointerOrigin);
+
+    this.primary_input_pressed_ = false;
+    if (fakeInputSourceInit.selectionStarted != null) {
+      this.primary_input_pressed_ = fakeInputSourceInit.selectionStarted;
+    }
+
+    this.primary_input_clicked_ = false;
+    if (fakeInputSourceInit.selectionClicked != null) {
+      this.primary_input_clicked_ = fakeInputSourceInit.selectionClicked;
+    }
+
+    this.grip_ = null;
+    if (fakeInputSourceInit.gripOrigin != null) {
+      this.setGripOrigin(fakeInputSourceInit.gripOrigin);
+    }
+
+    this.gamepad_ = null;
+    this.emulated_position_ = false;
+    this.desc_dirty_ = true;
+  }
+
+  // Webxr-test-api
+  setHandedness(handedness) {
+    if (this.handedness_ != handedness) {
+      this.desc_dirty_ = true;
+      this.handedness_ = handedness;
+    }
+  }
+
+  setTargetRayMode(targetRayMode) {
+    if (this.target_ray_mode_ != targetRayMode) {
+      this.desc_dirty_ = true;
+      this.target_ray_mode_ = targetRayMode;
+    }
+  }
+
+  setProfiles(profiles) {
+    // Profiles are not yet implemented by chromium
+  }
+
+  setGripOrigin(transform, emulatedPosition = false) {
+    this.grip_ = new gfx.mojom.Transform();
+    this.grip_.matrix = getMatrixFromTransform(transform);
+    this.emulated_position_ = emulatedPosition;
+  }
+
+  clearGripOrigin() {
+    if (this.grip_ != null) {
+      this.grip_ = null;
+      this.emulated_position_ = false;
+    }
+  }
+
+  setPointerOrigin(transform, emulatedPosition = false) {
+    this.desc_dirty_ = true;
+    this.pointer_offset_ = new gfx.mojom.Transform();
+    this.pointer_offset_.matrix = getMatrixFromTransform(transform);
+  }
+
+  disconnect() {
+    this.pairedDevice_.removeInputSource(this);
+  }
+
+  reconnect() {
+    this.pairedDevice_.addInputSource(this);
+  }
+
+  startSelection() {
+    this.primary_input_pressed_ = true;
+  }
+
+  endSelection() {
+    if (!this.primary_input_pressed_) {
+      throw new Error("Attempted to end selection which was not started");
+    }
+
+    this.primary_input_pressed_ = false;
+    this.primary_input_clicked_ = true;
+  }
+
+  simulateSelect() {
+    this.primary_input_clicked_ = true;
+  }
+
+  // Helpers for Mojom
+  getInputSourceState() {
+    let input_state = new device.mojom.XRInputSourceState();
+
+    input_state.sourceId = this.source_id_;
+
+    input_state.primaryInputPressed = this.primary_input_pressed_;
+    input_state.primaryInputClicked = this.primary_input_clicked_;
+
+    input_state.grip = this.grip_;
+
+    input_state.gamepad = this.gamepad_;
+
+    if (this.desc_dirty_) {
+      let input_desc = new device.mojom.XRInputSourceDescription();
+
+      input_desc.emulatedPosition = this.emulated_position_;
+
+      switch (this.target_ray_mode_) {
+        case 'gaze':
+          input_desc.targetRayMode = device.mojom.XRTargetRayMode.GAZING;
+          break;
+        case 'tracked-pointer':
+          input_desc.targetRayMode = device.mojom.XRTargetRayMode.POINTING;
+          break;
+      }
+
+      switch (this.handedness_) {
+        case 'left':
+          input_desc.handedness = device.mojom.XRHandedness.LEFT;
+          break;
+        case 'right':
+          input_desc.handedness = device.mojom.XRHandedness.RIGHT;
+          break;
+        default:
+          input_desc.handedness = device.mojom.XRHandedness.NONE;
+          break;
+      }
+
+      input_desc.pointerOffset = this.pointer_offset_;
+
+      input_state.description = input_desc;
+
+      this.desc_dirty_ = false;
+    }
+
+    return input_state;
+  }
 }
 
 // Mojo helper classes

@@ -17,6 +17,10 @@ test_valid_value("opacity", "0.5");
 test_valid_value("opacity", "0");
 test_valid_value("opacity", "-2");
 test_valid_value("opacity", "3");
+test_valid_value("opacity", "-100%", "-1");
+test_valid_value("opacity", "50%", "0.5");
+test_valid_value("opacity", "300%", "3");
+
 </script>
 </body>
 </html>

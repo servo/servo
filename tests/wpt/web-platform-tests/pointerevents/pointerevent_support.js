@@ -353,3 +353,11 @@ function pointerHoverInTarget(pointerType, target, direction) {
                    .pointerMove(3 * x_delta, 3 * y_delta, {origin: target})
                    .send();
 }
+
+function moveToDocument(pointerType) {
+    var pointerId = pointerType + "Pointer1";
+    return new test_driver.Actions()
+                   .addPointer(pointerId, pointerType)
+                   .pointerMove(0, 0)
+                   .send();
+}
