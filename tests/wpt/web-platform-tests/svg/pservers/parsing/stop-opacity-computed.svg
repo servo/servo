@@ -16,6 +16,9 @@
 test_computed_value("stop-opacity", "-1", "0");
 test_computed_value("stop-opacity", "0.5");
 test_computed_value("stop-opacity", "3", "1");
+test_computed_value("stop-opacity", "-100%", "0");
+test_computed_value("stop-opacity", "50%", "0.5");
+test_computed_value("stop-opacity", "300%", "1");
 
   ]]></script>
 </svg>

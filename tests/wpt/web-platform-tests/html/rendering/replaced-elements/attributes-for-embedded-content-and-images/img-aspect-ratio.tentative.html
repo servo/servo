@@ -10,8 +10,8 @@
   }
 </style>
 <img src=broken width=100 height=125>
-<img src="/images/green.png" width=100 height=125>
 <img src="/images/green.png">
+<img src="/images/green.png" width=100 height=125>
 <script>
 let t = async_test("Image width and height attributes are used to infer aspect-ratio");
 function assert_ratio(img, expected) {
@@ -21,7 +21,7 @@ function assert_ratio(img, expected) {
 onload = t.step_func_done(function() {
   let images = document.querySelectorAll("img");
   assert_ratio(images[0], 0.8);
-  assert_ratio(images[1], 0.8);
   assert_ratio(images[2], 2.0); // 2.0 is the original aspect ratio of green.png
+  assert_ratio(images[1], 2.0); // Loaded image's aspect ratio, at least by default, overrides width / height ratio.
 });
 </script>

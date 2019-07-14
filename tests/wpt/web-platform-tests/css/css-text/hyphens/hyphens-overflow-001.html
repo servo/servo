@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS Text Test: Test when soft-hyphen overflows</title>
+<link rel="match" href="reference/hyphens-overflow-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#hyphens-property">
+<link rel="author" href="mailto:kojii@chromium.org">
+<style>
+div {
+  font-size: 10px;
+  font-family: Ahem;
+  width: 5.1ch;
+}
+</style>
+<body>
+  <div>12 4&shy;xx</div>
+  <div>12 45&shy;xx</div>
+  <div>12 456&shy;xx</div>
+  <div>1234&shy;xx</div>
+  <div>12345&shy;xx</div>
+  <div>123456&shy;xx</div>
+</body>

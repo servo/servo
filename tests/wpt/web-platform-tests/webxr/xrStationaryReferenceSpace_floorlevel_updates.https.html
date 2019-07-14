@@ -32,7 +32,7 @@ let testFunction = function(session, fakeDeviceController, t) {
           assert_greater_than(poseMatrix[13], 1.0);
           assert_approx_equals(poseMatrix[14], 0.0, FLOAT_EPSILON);
 
-          fakeDeviceController.setLocalToFloorLevelTransform(VALID_LOCAL_TO_FLOOR_TRANSFORM);
+          fakeDeviceController.setFloorOrigin(VALID_FLOOR_ORIGIN);
 
           // Need to request one animation frame for the new stage transform to
           // propagate before we check that it's what we expect.
@@ -49,7 +49,7 @@ let testFunction = function(session, fakeDeviceController, t) {
           assert_not_equals(pose, null);
 
           let poseMatrix = pose.transform.matrix;
-          assert_matrix_approx_equals(poseMatrix, VALID_LOCAL_TO_FLOOR_MATRIX, FLOAT_EPSILON);
+          assert_matrix_approx_equals(poseMatrix, VALID_FLOOR_ORIGIN_MATRIX, FLOAT_EPSILON);
         });
 
         // Finished.

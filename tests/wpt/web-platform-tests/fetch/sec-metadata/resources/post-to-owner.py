@@ -1,7 +1,10 @@
 import json
 
 def main(request, response):
-    headers = [("Content-Type", "text/html")]
+    headers = [
+        ("Content-Type", "text/html"),
+        ("Cache-Control", "no-cache, no-store, must-revalidate")
+    ]
 
     body = """
         <!DOCTYPE html>

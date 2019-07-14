@@ -29,22 +29,38 @@ const VALID_PROJECTION_MATRIX =
     [1, 0, 0, 0, 0, 1, 0, 0, 3, 2, -1, -1, 0, 0, -0.2, 0];
 
 // A valid input grip matrix for  when we don't care about specific values
-const VALID_GRIP = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 4, 3, 2, 1];
+const VALID_GRIP = [1, 0, 0, 0,
+                    0, 1, 0, 0,
+                    0, 0, 1, 0,
+                    4, 3, 2, 1];
+
+const VALID_GRIP_TRANSFORM = {
+    position: [4, 3, 2],
+    orientation: [0, 0, 0, 1]
+};
 
 // A valid input pointer offset for  when we don't care about specific values
-const VALID_POINTER_OFFSET = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1];
+const VALID_POINTER_OFFSET = [1, 0, 0, 0,
+                              0, 1, 0, 0,
+                              0, 0, 1, 0,
+                              0, 0, 1, 1];
+
+const VALID_POINTER_TRANSFORM = {
+    position: [0, 0, 1],
+    orientation: [0, 0, 0, 1]
+};
 
 const VALID_GRIP_WITH_POINTER_OFFSET =
     [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 4, 3, 3, 1];
 
 // A Valid Local to floor matrix/transform for when we don't care about specific
 // values.  Note that these should be identical, just different representations.
-const VALID_LOCAL_TO_FLOOR_MATRIX = [1, 0,    0,  0,
+const VALID_FLOOR_ORIGIN_MATRIX = [1, 0,    0,  0,
                                      0, 1,    0,  0,
                                      0, 0,    1,  0,
                                      1, 1.65, -1, 1];
 
-const VALID_LOCAL_TO_FLOOR_TRANSFORM = {
+const VALID_FLOOR_ORIGIN = {
     position: [1.0, 1.65, -1.0],
     orientation: [0, 0, 0, 1]
 };
@@ -105,3 +121,17 @@ const VALID_NON_IMMERSIVE_DEVICE = {
     views: NON_IMMERSIVE_VIEWS,
     viewerOrigin: IDENTITY_TRANSFORM
 };
+
+const VALID_CONTROLLER = {
+    handedness: "none",
+    targetRayMode: "tracked-pointer",
+    pointerOrigin: VALID_POINTER_TRANSFORM,
+    profiles: []
+};
+
+const RIGHT_CONTROLLER = {
+    handedness: "right",
+    targetRayMode: "tracked-pointer",
+    pointerOrigin: VALID_POINTER_TRANSFORM,
+    profiles: []
+}

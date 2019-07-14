@@ -35,7 +35,7 @@
               `context.sampleRate (${context.sampleRate} Hz)`).beGreaterThan(0);
 
             defaultLatency = context.baseLatency;
-            should(defaultLatency, 'default baseLatency').beGreaterThan(0);
+            should(defaultLatency, 'default baseLatency').beGreaterThanOrEqualTo(0);
 
             // Verify that an AudioContext can be created with the expected
             // latency types.
@@ -130,7 +130,7 @@
             should(context1.baseLatency, 'high latency context baseLatency')
                 .beEqualTo(context2.baseLatency);
             should(context1.baseLatency, 'high latency context baseLatency')
-                .beGreaterThan(interactiveLatency);
+                .beGreaterThanOrEqualTo(interactiveLatency);
             closingPromises.push(context1.close());
             closingPromises.push(context2.close());
 

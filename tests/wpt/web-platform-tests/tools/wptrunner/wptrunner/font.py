@@ -95,11 +95,11 @@ class FontInstaller(object):
             from ctypes import wintypes
             wparam = 0
             lparam = 0
-            SendMessageW = ctypes.windll.user32.SendMessageW
-            SendMessageW.argtypes = [wintypes.HANDLE, wintypes.UINT,
-                                     wintypes.WPARAM, wintypes.LPARAM]
-            return bool(SendMessageW(hwnd_broadcast, wm_fontchange,
-                                     wparam, lparam))
+            SendNotifyMessageW = ctypes.windll.user32.SendNotifyMessageW
+            SendNotifyMessageW.argtypes = [wintypes.HANDLE, wintypes.UINT,
+                                           wintypes.WPARAM, wintypes.LPARAM]
+            return bool(SendNotifyMessageW(hwnd_broadcast, wm_fontchange,
+                                           wparam, lparam))
 
     def remove_linux_font(self, font_name, _):
         if self.created_dir:
@@ -129,8 +129,8 @@ class FontInstaller(object):
             from ctypes import wintypes
             wparam = 0
             lparam = 0
-            SendMessageW = ctypes.windll.user32.SendMessageW
-            SendMessageW.argtypes = [wintypes.HANDLE, wintypes.UINT,
-                                     wintypes.WPARAM, wintypes.LPARAM]
-            return bool(SendMessageW(hwnd_broadcast, wm_fontchange,
-                                     wparam, lparam))
+            SendNotifyMessageW = ctypes.windll.user32.SendNotifyMessageW
+            SendNotifyMessageW.argtypes = [wintypes.HANDLE, wintypes.UINT,
+                                           wintypes.WPARAM, wintypes.LPARAM]
+            return bool(SendNotifyMessageW(hwnd_broadcast, wm_fontchange,
+                                           wparam, lparam))
