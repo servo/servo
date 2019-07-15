@@ -111,6 +111,7 @@ interface RTCPeerConnection : EventTarget {
     readonly        attribute RTCIceConnectionState iceConnectionState;
     readonly        attribute RTCPeerConnectionState connectionState;
     readonly        attribute boolean? canTrickleIceCandidates;
+    void restartIce();
     static sequence<RTCIceServer> getDefaultIceServers();
     RTCConfiguration getConfiguration();
     void setConfiguration(RTCConfiguration configuration);
