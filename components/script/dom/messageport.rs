@@ -271,10 +271,6 @@ impl MessagePortImpl {
         self.possibly_unreachable.get()
     }
 
-    pub fn set_possibly_unreachable(&self) {
-        self.possibly_unreachable.set(true)
-    }
-
     /// Send a message to the entangled port, letting it know we could GC.
     pub fn send_potential_gc_msg(&self) {
         if let Some(sender) = &*self.entangled_sender.borrow() {
@@ -351,6 +347,9 @@ impl MessagePortImpl {
             return false;
         }
 
+        // Each message received means we could be unreachable
+        // (from JS, unless the event target is stored somewhere from the onmessage handler),
+        // unless we send a message back.
         self.possibly_unreachable.set(true);
 
         if self.enabled.get() {
@@ -364,8 +363,6 @@ impl MessagePortImpl {
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
     // Step 7 substeps
     pub fn post_message(&self, owner: &GlobalScope, task: PortMessageTask) {
-        self.possibly_unreachable.set(false);
-
         if self.awaiting_transfer.get() {
             // If this port has been transfered and is waiting on the transfer to complete,
             // we will not have up to date data on
@@ -379,6 +376,10 @@ impl MessagePortImpl {
             Some(port_id) => port_id.clone(),
             None => return,
         };
+
+        // We're sending a message, this means we are still "reachable" from an onmessage handler,
+        // since the entangled port could respond.
+        self.possibly_unreachable.set(false);
 
         if self.has_been_shipped.get() {
             if let Some(sender) = &*self.entangled_sender.borrow() {
@@ -394,7 +395,7 @@ impl MessagePortImpl {
         } else {
             let this = Trusted::new(&*owner);
             let _ = owner.port_message_queue().queue(
-                task!(process_pending_port_messages: move || {
+                task!(post_message: move || {
                     let global = this.root();
                     global.upcast::<GlobalScope>().route_task_to_port(target_port_id, task);
                 }),

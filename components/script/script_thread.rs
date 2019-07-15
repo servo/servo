@@ -110,7 +110,7 @@ use mime::{self, Mime};
 use msg::constellation_msg::{
     BackgroundHangMonitor, BackgroundHangMonitorRegister, ScriptHangAnnotation,
 };
-use msg::constellation_msg::{BrowsingContextId, HistoryStateId, MessagePortId, PipelineId};
+use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
 use msg::constellation_msg::{HangAnnotation, MonitoredComponentId, MonitoredComponentType};
 use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
@@ -513,8 +513,6 @@ unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 
 unsafe_no_jsmanaged_fields!(dyn BackgroundHangMonitorRegister);
 unsafe_no_jsmanaged_fields!(dyn BackgroundHangMonitor);
-
-unsafe_no_jsmanaged_fields!(MessagePortId);
 
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay

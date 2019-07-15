@@ -2112,21 +2112,23 @@ where
 
         // Drop message-ports infos from this pipeline,
         // and notify script to drop the entangled ports.
-        let mut entanged_to_notify = HashSet::new();
-        self.message_ports.retain(|id, info| {
+        let mut entangled_to_notify = HashSet::new();
+        self.message_ports.retain(|_id, info| {
             let should_retain = info.pipeline != pipeline_id;
             if let Some(entangled) = info.entangled_with {
                 if !should_retain {
-                    entanged_to_notify.insert(entangled.clone());
+                    entangled_to_notify.insert(entangled.clone());
                 }
             }
-            if entanged_to_notify.contains(id) {
+            should_retain
+        });
+        for id in entangled_to_notify.iter() {
+            if let Some(info) = self.message_ports.get(id) {
                 let _ = info
                     .control_sender
                     .send(MessagePortMsg::RemoveMessagePort(id.clone()));
             }
-            should_retain
-        });
+        }
     }
 
     fn handle_send_error(&mut self, pipeline_id: PipelineId, err: IpcError) {
