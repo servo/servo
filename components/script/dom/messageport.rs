@@ -17,7 +17,6 @@ use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::messageevent::MessageEvent;
 use crate::task_source::TaskSource;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::Heap;
@@ -27,7 +26,6 @@ use js::rust::{CustomAutoRooterGuard, HandleValue};
 use msg::constellation_msg::{
     MessagePortId, MessagePortIndex, MessagePortMsg, PipelineNamespaceId, PortMessageTask,
 };
-use script_traits::ScriptMsg;
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::num::NonZeroU32;
@@ -37,22 +35,13 @@ use std::rc::Rc;
 #[derive(DenyPublicFields, DomObject, MallocSizeOf)]
 #[must_root]
 #[repr(C)]
+/// The MessagePort used in the DOM.
 pub struct MessagePort {
     eventtarget: EventTarget,
-    detached: Cell<bool>,
-    transferred: Cell<bool>,
-    enabled: Cell<bool>,
-    awaiting_transfer: Cell<bool>,
-    entangled_port: RefCell<Option<MessagePortId>>,
-    #[ignore_malloc_size_of = "Channels are hard"]
-    entangled_sender: RefCell<Option<IpcSender<MessagePortMsg>>>,
-    #[ignore_malloc_size_of = "Task queues are hard"]
-    message_buffer: RefCell<VecDeque<PortMessageTask>>,
-    #[ignore_malloc_size_of = "Messages are hard"]
-    outgoing_message_buffer: RefCell<VecDeque<PortMessageTask>>,
-    has_been_shipped: Cell<bool>,
-    #[ignore_malloc_size_of = "Defined in std"]
     message_port_id: MessagePortId,
+    entangled_port: RefCell<Option<MessagePortId>>,
+    transferred: Cell<bool>,
+    detached: Cell<bool>,
 }
 
 #[allow(unsafe_code)]
@@ -64,6 +53,119 @@ unsafe impl JSTraceable for MessagePort {
     }
 }
 
+impl MessagePort {
+    fn new_inherited(message_port_id: MessagePortId) -> MessagePort {
+        MessagePort {
+            eventtarget: EventTarget::new_inherited(),
+            transferred: Cell::new(false),
+            entangled_port: RefCell::new(None),
+            detached: Cell::new(false),
+            message_port_id,
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#create-a-new-messageport-object>
+    pub fn new(owner: &GlobalScope) -> DomRoot<MessagePort> {
+        let port_id = MessagePortId::new();
+        reflect_dom_object(Box::new(MessagePort::new_inherited(port_id)), owner, Wrap)
+    }
+
+    pub fn new_existing(owner: &GlobalScope, port_id: MessagePortId) -> DomRoot<MessagePort> {
+        reflect_dom_object(Box::new(MessagePort::new_inherited(port_id)), owner, Wrap)
+    }
+
+    fn new_transferred(transferred_port: MessagePortId) -> MessagePort {
+        MessagePort {
+            message_port_id: transferred_port,
+            eventtarget: EventTarget::new_inherited(),
+            transferred: Cell::new(true),
+            detached: Cell::new(false),
+            entangled_port: RefCell::new(None),
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#entangle>
+    pub fn entangle(&self, other_id: MessagePortId) {
+        *self.entangled_port.borrow_mut() = Some(other_id);
+    }
+
+    pub fn message_port_id(&self) -> &MessagePortId {
+        &self.message_port_id
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
+    pub fn set_onmessage(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+        let eventtarget = self.upcast::<EventTarget>();
+        eventtarget.set_event_handler_common("message", listener)
+    }
+
+    pub fn detached(&self) -> bool {
+        self.detached.get()
+    }
+
+    #[allow(unsafe_code)]
+    pub fn post_message_impl(
+        &self,
+        cx: *mut JSContext,
+        message: HandleValue,
+        transfer: Vec<*mut JSObject>,
+    ) -> ErrorResult {
+        if self.detached.get() {
+            return Ok(());
+        }
+        // Step 1
+        let target_port = self.entangled_port.borrow();
+
+        // Step 3
+        let mut doomed = false;
+
+        rooted!(in(cx) let mut val = UndefinedValue());
+        let ports = transfer
+            .iter()
+            .filter_map(|&obj| root_from_object::<MessagePort>(obj, cx).ok());
+        for port in ports {
+            // Step 2
+            if port.message_port_id() == self.message_port_id() {
+                return Err(Error::DataClone);
+            }
+
+            // Step 4
+            if let Some(target_id) = target_port.as_ref() {
+                if port.message_port_id() == target_id {
+                    doomed = true;
+                }
+            }
+        }
+
+        unsafe { transfer.to_jsval(cx, val.handle_mut()) };
+
+        // Step 5
+        let data = StructuredCloneData::write(cx, message, val.handle())?.move_to_arraybuffer();
+
+        if doomed {
+            // TODO: The spec says to optionally report such a case to a dev console.
+            //
+            // Note: if we are awaiting transfer, target_port is None by default.
+            // Hence, doomed will not be set to true, even if we just transferred our entangled port.
+            // The message will never be received,
+            // however neither are we able to report anything to a dev console.
+            return Ok(());
+        }
+
+        // Step 6, done in MessagePortImpl.
+
+        // Step 7
+        let task = PortMessageTask {
+            origin: self.global().origin().immutable().ascii_serialization(),
+            data,
+        };
+
+        self.global()
+            .post_messageport_msg(self.message_port_id().clone(), task);
+        Ok(())
+    }
+}
+
 impl HasParent for MessagePort {
     type Parent = EventTarget;
 
@@ -72,46 +174,70 @@ impl HasParent for MessagePort {
     }
 }
 
-impl MessagePort {
-    fn new_inherited() -> MessagePort {
-        MessagePort {
-            eventtarget: EventTarget::new_inherited(),
+#[derive(DenyPublicFields, MallocSizeOf)]
+/// The data and logic backing the DOM managed MessagePort.
+pub struct MessagePortImpl {
+    detached: Cell<bool>,
+    transferred: Cell<bool>,
+    enabled: Cell<bool>,
+    possibly_unreachable: Cell<bool>,
+    awaiting_transfer: Cell<bool>,
+    entangled_port: RefCell<Option<MessagePortId>>,
+    #[ignore_malloc_size_of = "Channels are hard"]
+    entangled_sender: RefCell<Option<IpcSender<MessagePortMsg>>>,
+    message_buffer: RefCell<VecDeque<PortMessageTask>>,
+    outgoing_message_buffer: RefCell<VecDeque<PortMessageTask>>,
+    has_been_shipped: Cell<bool>,
+    message_port_id: MessagePortId,
+}
+
+impl MessagePortImpl {
+    fn new_inherited(port_id: MessagePortId) -> MessagePortImpl {
+        MessagePortImpl {
             detached: Cell::new(false),
             transferred: Cell::new(false),
             enabled: Cell::new(false),
+            possibly_unreachable: Cell::new(true),
             awaiting_transfer: Cell::new(false),
             entangled_port: RefCell::new(None),
             entangled_sender: RefCell::new(None),
             message_buffer: RefCell::new(VecDeque::new()),
             outgoing_message_buffer: RefCell::new(VecDeque::new()),
             has_been_shipped: Cell::new(false),
-            message_port_id: MessagePortId::new(),
+            message_port_id: port_id,
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#create-a-new-messageport-object>
-    pub fn new(owner: &GlobalScope) -> DomRoot<MessagePort> {
-        reflect_dom_object(Box::new(MessagePort::new_inherited()), owner, Wrap)
-    }
-
-    fn new_transferred(transferred_port: MessagePortId) -> MessagePort {
-        MessagePort {
-            eventtarget: EventTarget::new_inherited(),
-            detached: Cell::new(false),
-            transferred: Cell::new(false),
-            enabled: Cell::new(false),
-            awaiting_transfer: Cell::new(true),
-            entangled_port: RefCell::new(None),
-            entangled_sender: RefCell::new(None),
-            message_buffer: RefCell::new(VecDeque::new()),
-            outgoing_message_buffer: RefCell::new(VecDeque::new()),
-            has_been_shipped: Cell::new(true),
-            message_port_id: transferred_port,
+    pub fn new(port_id: MessagePortId, transfer_received: bool) -> MessagePortImpl {
+        let port = MessagePortImpl::new_inherited(port_id);
+        if transfer_received {
+            port.has_been_shipped.set(true);
+            port.awaiting_transfer.set(true);
         }
+        port
     }
 
     pub fn message_port_id(&self) -> &MessagePortId {
         &self.message_port_id
+    }
+
+    pub fn entangled_port_id(&self) -> Option<MessagePortId> {
+        self.entangled_port.borrow().clone()
+    }
+
+    pub fn detached(&self) -> bool {
+        self.detached.get()
+    }
+
+    pub fn is_entangled(&self) -> bool {
+        self.entangled_port.borrow().is_some() || self.awaiting_transfer.get()
+    }
+
+    pub fn message_buffers(&self) -> (VecDeque<PortMessageTask>, VecDeque<PortMessageTask>) {
+        (
+            self.message_buffer.borrow().clone(),
+            self.outgoing_message_buffer.borrow().clone(),
+        )
     }
 
     /// We received an ipc-sender to communicate with our entangled, and shipped, port.
@@ -137,24 +263,43 @@ impl MessagePort {
         *self.entangled_sender.borrow_mut() = Some(sender);
     }
 
-    pub fn detached(&self) -> bool {
-        self.detached.get()
+    pub fn enabled(&self) -> bool {
+        self.enabled.get()
+    }
+
+    pub fn possibly_unreachable(&self) -> bool {
+        self.possibly_unreachable.get()
+    }
+
+    pub fn set_possibly_unreachable(&self) {
+        self.possibly_unreachable.set(true)
+    }
+
+    /// Send a message to the entangled port, letting it know we could GC.
+    pub fn send_potential_gc_msg(&self) {
+        if let Some(sender) = &*self.entangled_sender.borrow() {
+            let entangled = self
+                .entangled_port
+                .borrow()
+                .expect("A port with a sender to be entangled");
+            let _ = sender.send(MessagePortMsg::PotentialGC(entangled.clone()));
+        }
+    }
+
+    /// In response to receiving a PotentialGC, we comfirm the opportunity for GC to the other port.
+    pub fn comfirm_gc(&self) {
+        if let Some(sender) = &*self.entangled_sender.borrow() {
+            let entangled = self
+                .entangled_port
+                .borrow()
+                .expect("A port with a sender to be entangled");
+            let _ = sender.send(MessagePortMsg::ComfirmGC(entangled.clone()));
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#entangle>
-    pub fn entangle(&self, other: &MessagePort) {
-        let other_id = other.message_port_id().clone();
-        let self_id = self.message_port_id().clone();
+    pub fn entangle(&self, other_id: MessagePortId) {
         *self.entangled_port.borrow_mut() = Some(other_id);
-        *other.entangled_port.borrow_mut() = Some(self_id);
-        let _ = self
-            .global()
-            .script_to_constellation_chan()
-            .send(ScriptMsg::EntanglePorts(other_id, self_id));
-    }
-
-    pub fn has_been_shipped(&self) -> bool {
-        self.has_been_shipped.get()
     }
 
     pub fn set_has_been_shipped(&self) {
@@ -198,50 +343,29 @@ impl MessagePort {
                 incoming_buffer.push_front(task);
             }
         }
-
-        if self.enabled.get() {
-            // Execute tasks that might have been buffered after the transfer.
-            self.Start();
-        }
     }
 
     /// A message was received from our entangled port over ipc.
-    /// This method should always run as part of a Task on the relevant event-loop.
-    /// We buffer incoming messages if we haven't been enabled yet.
-    pub fn handle_incoming(&self, task: PortMessageTask) {
+    pub fn handle_incoming(&self, task: &PortMessageTask) -> bool {
         if self.detached.get() || self.transferred.get() {
-            return;
+            return false;
         }
 
+        self.possibly_unreachable.set(true);
+
         if self.enabled.get() {
-            let PortMessageTask { origin, data } = task;
-
-            // Substep 2
-            let target_global = self.global();
-
-            // Substep 3-4
-            rooted!(in(target_global.get_cx()) let mut message_clone = UndefinedValue());
-            if let Ok(deserialize_result) =
-                StructuredCloneData::Vector(data).read(&target_global, message_clone.handle_mut())
-            {
-                // Substep 6
-                MessageEvent::dispatch_jsval(
-                    self.upcast(),
-                    &target_global,
-                    message_clone.handle(),
-                    Some(&origin),
-                    None,
-                    deserialize_result.message_ports.into_iter().collect(),
-                );
-            }
+            true
         } else {
-            self.message_buffer.borrow_mut().push_back(task);
+            self.message_buffer.borrow_mut().push_back(task.clone());
+            false
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
     // Step 7 substeps
-    pub fn post_message(&self, task: PortMessageTask) {
+    pub fn post_message(&self, owner: &GlobalScope, task: PortMessageTask) {
+        self.possibly_unreachable.set(false);
+
         if self.awaiting_transfer.get() {
             // If this port has been transfered and is waiting on the transfer to complete,
             // we will not have up to date data on
@@ -268,79 +392,43 @@ impl MessagePort {
                 self.outgoing_message_buffer.borrow_mut().push_back(task);
             }
         } else {
-            let this = Trusted::new(&*self.global());
-            let _ = self.global().port_message_queue().queue(
+            let this = Trusted::new(&*owner);
+            let _ = owner.port_message_queue().queue(
                 task!(process_pending_port_messages: move || {
                     let global = this.root();
                     global.upcast::<GlobalScope>().route_task_to_port(target_port_id, task);
                 }),
-                &self.global(),
+                owner,
             );
         }
     }
 
-    #[allow(unsafe_code)]
-    fn post_message_impl(
-        &self,
-        cx: *mut JSContext,
-        message: HandleValue,
-        transfer: Vec<*mut JSObject>,
-    ) -> ErrorResult {
-        if self.detached.get() || self.transferred.get() {
-            return Ok(());
+    /// <https://html.spec.whatwg.org/multipage/#dom-messageport-start>
+    pub fn start(&self, owner: &GlobalScope) {
+        self.enabled.set(true);
+        if self.awaiting_transfer.get() || self.transferred.get() {
+            return;
         }
+        let port_id = self.message_port_id().clone();
+        for task in self.message_buffer.borrow_mut().drain(0..) {
+            let this = Trusted::new(&*owner);
+            let _ = owner.port_message_queue().queue(
+                task!(process_pending_port_messages: move || {
+                    let target_global = this.root();
+                    target_global.upcast::<GlobalScope>().route_task_to_port(port_id, task);
+                }),
+                &owner,
+            );
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-messageport-close>
+    pub fn close(&self) {
         // Step 1
-        let target_port = self.entangled_port.borrow();
-
-        // Step 3
-        let mut doomed = false;
-
-        rooted!(in(cx) let mut val = UndefinedValue());
-        let ports = transfer
-            .iter()
-            .filter_map(|&obj| root_from_object::<MessagePort>(obj, cx).ok());
-        for port in ports {
-            // Step 2
-            if port.message_port_id() == self.message_port_id() {
-                return Err(Error::DataClone);
-            }
-
-            // Step 4
-            if let Some(target_id) = target_port.as_ref() {
-                if port.message_port_id() == target_id {
-                    doomed = true;
-                }
-            }
-        }
-
-        unsafe { transfer.to_jsval(cx, val.handle_mut()) };
-
-        // Step 5
-        let data = StructuredCloneData::write(cx, message, val.handle())?.move_to_arraybuffer();
-
-        if doomed {
-            // TODO: The spec says to optionally report such a case to a dev console.
-            //
-            // Note: if we are awaiting transfer, target_port is None by default.
-            // Hence, doomed will not be set to true, even if we just transferred our entangled port.
-            // The message will never be received,
-            // however neither are we able to report anything to a dev console.
-            return Ok(());
-        }
-
-        // Step 6
-        if target_port.is_none() && !self.awaiting_transfer.get() {
-            return Ok(());
-        }
-
-        // Step 7
-        let task = PortMessageTask {
-            origin: self.global().origin().immutable().ascii_serialization(),
-            data,
-        };
-
-        self.post_message(task);
-        Ok(())
+        self.detached.set(true);
+        // Disable the port.
+        *self.entangled_sender.borrow_mut() = None;
+        *self.entangled_port.borrow_mut() = None;
     }
 }
 
@@ -353,32 +441,12 @@ impl Transferable for MessagePort {
         _content: *mut *mut raw::c_void,
         extra_data: *mut u64,
     ) -> bool {
-        // Step 1
-        self.has_been_shipped.set(true);
+        // Step 1 - 3
 
-        // Step 3
-        // Substep 1
+        self.global()
+            .mark_port_as_transferred(self.message_port_id().clone());
 
-        // Used to GC the port.
-        self.transferred.set(true);
-
-        self.global().mark_port_as_shipped(
-            self.message_port_id().clone(),
-            self.entangled_port.borrow().clone(),
-        );
-        let _ = self
-            .global()
-            .script_to_constellation_chan()
-            .send(ScriptMsg::MessagePortShipped(
-                self.message_port_id().clone(),
-                self.entangled_port.borrow().clone(),
-                self.message_buffer.borrow().clone(),
-                self.outgoing_message_buffer.borrow().clone(),
-            ));
-
-        // Disable the now-transferred port.
-        *self.entangled_port.borrow_mut() = None;
-        *self.entangled_sender.borrow_mut() = None;
+        self.detached.set(true);
 
         // Steps 2, 3.2 and 4
         let PipelineNamespaceId(name_space) = self.message_port_id().clone().namespace_id;
@@ -463,6 +531,9 @@ impl MessagePortMethods for MessagePort {
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
+        if self.detached.get() {
+            return Ok(());
+        }
         self.post_message_impl(cx, message, transfer.to_vec())
     }
 
@@ -474,6 +545,9 @@ impl MessagePortMethods for MessagePort {
         message: HandleValue,
         options: RootedTraceableBox<PostMessageOptions>,
     ) -> ErrorResult {
+        if self.detached.get() {
+            return Ok(());
+        }
         //let transfer:
         let transfer: Vec<*mut JSObject> = options
             .transfer
@@ -485,42 +559,36 @@ impl MessagePortMethods for MessagePort {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-start>
     fn Start(&self) {
-        self.enabled.set(true);
-        if self.awaiting_transfer.get() || self.transferred.get() {
+        if self.detached.get() {
             return;
         }
-        let port_id = self.message_port_id().clone();
-        for task in self.message_buffer.borrow_mut().drain(0..) {
-            let this = Trusted::new(&*self.global());
-            let _ = self.global().port_message_queue().queue(
-                task!(process_pending_port_messages: move || {
-                    let target_global = this.root();
-                    target_global.route_task_to_port(port_id, task);
-                }),
-                &self.global(),
-            );
-        }
+        self.global().start_message_port(self.message_port_id());
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-close>
     fn Close(&self) {
-        // Step 1
+        if self.detached.get() {
+            return;
+        }
         self.detached.set(true);
-        // Disable the port.
-        *self.entangled_sender.borrow_mut() = None;
-        *self.entangled_port.borrow_mut() = None;
+        self.global().close_message_port(self.message_port_id());
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
     fn GetOnmessage(&self) -> Option<Rc<EventHandlerNonNull>> {
-        let eventtarget = self.upcast::<EventTarget>();
-        eventtarget.get_event_handler_common("message")
+        if self.detached.get() {
+            return None;
+        }
+        self.global()
+            .get_message_port_onmessage(self.message_port_id())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
     fn SetOnmessage(&self, listener: Option<Rc<EventHandlerNonNull>>) {
-        self.Start();
-        let eventtarget = self.upcast::<EventTarget>();
-        eventtarget.set_event_handler_common("message", listener)
+        if self.detached.get() {
+            return;
+        }
+        self.global()
+            .set_message_port_onmessage(self.message_port_id(), listener);
     }
 }

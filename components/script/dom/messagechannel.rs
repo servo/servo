@@ -32,7 +32,10 @@ impl MessageChannel {
         incumbent.track_message_port(&port2, false);
 
         // Step 3
-        port1.entangle(&port2);
+        incumbent.entangle_ports(
+            port1.message_port_id().clone(),
+            port2.message_port_id().clone(),
+        );
 
         // Steps 4-6
         let channel = reflect_dom_object(

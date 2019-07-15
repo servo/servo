@@ -2109,6 +2109,24 @@ where
     fn handle_pipeline_exited(&mut self, pipeline_id: PipelineId) {
         debug!("Pipeline {:?} exited.", pipeline_id);
         self.pipelines.remove(&pipeline_id);
+
+        // Drop message-ports infos from this pipeline,
+        // and notify script to drop the entangled ports.
+        let mut entanged_to_notify = HashSet::new();
+        self.message_ports.retain(|id, info| {
+            let should_retain = info.pipeline != pipeline_id;
+            if let Some(entangled) = info.entangled_with {
+                if !should_retain {
+                    entanged_to_notify.insert(entangled.clone());
+                }
+            }
+            if entanged_to_notify.contains(id) {
+                let _ = info
+                    .control_sender
+                    .send(MessagePortMsg::RemoveMessagePort(id.clone()));
+            }
+            should_retain
+        });
     }
 
     fn handle_send_error(&mut self, pipeline_id: PipelineId, err: IpcError) {
