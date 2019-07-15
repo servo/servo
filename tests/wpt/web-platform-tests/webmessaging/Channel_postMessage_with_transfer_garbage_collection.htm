@@ -30,7 +30,7 @@ async_test(function(t) {
          } else {
              assert_equals(Number(evt.data), counter);
          }
-         if (counter == 10) {
+         if (counter == 100) {
              t.done();
          }
          evt.target.postMessage(counter);
@@ -62,7 +62,7 @@ async_test(function(t) {
         channel1.port2.postMessage(counter);
         channel1.port2.onmessage = t.step_func(function (evt) {
             assert_equals(Number(evt.data), counter);
-            if (counter == 10) {
+            if (counter == 100) {
                 t.done();
             }
             counter = counter +1;

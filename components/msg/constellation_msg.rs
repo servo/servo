@@ -228,7 +228,7 @@ impl PartialEq<BrowsingContextId> for TopLevelBrowsingContextId {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct PortMessageTask {
     pub origin: String,
     pub data: Vec<u8>,
@@ -246,6 +246,8 @@ pub enum MessagePortMsg {
     ),
     EntangledPortShipped(MessagePortId),
     RemoveMessagePort(MessagePortId),
+    PotentialGC(MessagePortId),
+    ComfirmGC(MessagePortId),
     NewTask(MessagePortId, PortMessageTask),
 }
 
