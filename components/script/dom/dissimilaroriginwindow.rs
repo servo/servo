@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowMethods;
-use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowOptions;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowPostMessageOptions;
 
 use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult};
@@ -179,7 +179,7 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
         &self,
         cx: *mut JSContext,
         message: HandleValue,
-        options: RootedTraceableBox<DissimilarOriginWindowOptions>,
+        options: RootedTraceableBox<WindowPostMessageOptions>,
     ) -> ErrorResult {
         let transfer: Vec<*mut JSObject> = options
             .transfer

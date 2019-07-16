@@ -9,7 +9,7 @@
 [Exposed=(Window,Worker)]
 interface MessagePort : EventTarget {
   [Throws] void postMessage(any message, sequence<object> transfer /*= []*/);
-  [Throws] void postMessage(any message, optional PostMessageOptions options);
+  [Throws] void postMessage(any message, optional PostMessageOptions options = {});
   void start();
   void close();
 

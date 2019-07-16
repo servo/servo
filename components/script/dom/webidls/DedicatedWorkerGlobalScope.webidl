@@ -8,7 +8,7 @@
   [Throws]
   void postMessage(any message, sequence<object> transfer);
   [Throws]
-  void postMessage(any message, optional PostMessageOptions options);
+  void postMessage(any message, optional PostMessageOptions options = {});
   attribute EventHandler onmessage;
 
   void close();

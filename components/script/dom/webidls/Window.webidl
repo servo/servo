@@ -66,7 +66,7 @@
   [Throws]
   void postMessage(any message, USVString targetOrigin, optional sequence<object> transfer /*= []*/);
   [Throws]
-  void postMessage(any message, optional WindowPostMessageOptions options);
+  void postMessage(any message, optional WindowPostMessageOptions options = {});
 
   // also has obsolete members
 };
