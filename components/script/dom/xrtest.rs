@@ -170,4 +170,12 @@ impl XRTestMethods for XRTest {
         // XXXManishearth actually check for activation in XRSession
         let _ = f.Call__(vec![], ExceptionHandling::Rethrow);
     }
+
+    /// https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
+    fn DisconnectAllDevices(&self) -> Rc<Promise> {
+        // XXXManishearth implement device disconnection and session ending
+        let p = Promise::new(&self.global());
+        p.resolve_native(&());
+        p
+    }
 }

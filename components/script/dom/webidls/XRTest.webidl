@@ -16,7 +16,7 @@ interface XRTest {
   void simulateUserActivation(Function f);
 
   // // Disconnect all fake devices
-  // Promise<void> disconnectAllDevices();
+  Promise<void> disconnectAllDevices();
 };
 
 dictionary FakeXRDeviceInit {
