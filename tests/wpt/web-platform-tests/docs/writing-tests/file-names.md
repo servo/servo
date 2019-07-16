@@ -16,11 +16,6 @@ are mutually exclusive.
 `-manual`
  : Indicates that a test is a non-automated test.
 
-`-support`
- : Indicates that a file is not a test but a support file.  Not
-   required for files in a directory called `resources`, `tools` or
-   `support`.
-
 `-visual`
  : Indicates that a file is a visual test.
 

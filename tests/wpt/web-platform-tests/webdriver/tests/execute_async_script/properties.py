@@ -14,7 +14,7 @@ def execute_async_script(session, script, args=None):
 def test_content_attribute(session):
     session.url = inline("<input value=foobar>")
     response = execute_async_script(session, """
-        const [resolve] = arguments;
+        const resolve = arguments[0];
         const input = document.querySelector("input");
         resolve(input.value);
         """)
@@ -30,7 +30,7 @@ def test_idl_attribute(session):
         </script>
         """)
     response = execute_async_script(session, """
-        const [resolve] = arguments;
+        const resolve = arguments[0];
         const input = document.querySelector("input");
         resolve(input.value);
         """)
@@ -43,13 +43,15 @@ def test_idl_attribute_element(session):
         <p>bar
 
         <script>
-        const [foo, bar] = document.querySelectorAll("p");
+        const elements = document.querySelectorAll("p");
+        let foo = elements[0];
+        let bar = elements[1];
         foo.bar = bar;
         </script>
         """)
     _foo, bar = session.find.css("p")
     response = execute_async_script(session, """
-        const [resolve] = arguments;
+        const resolve = arguments[0];
         const foo = document.querySelector("p");
         resolve(foo.bar);
         """)
@@ -64,7 +66,7 @@ def test_script_defining_property(session):
         input.foobar = "foobar";
         """)
     response = execute_async_script(session, """
-        const [resolve] = arguments;
+        const resolve = arguments[0];
         const input = document.querySelector("input");
         resolve(input.foobar);
         """)
