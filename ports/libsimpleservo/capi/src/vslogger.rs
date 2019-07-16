@@ -17,7 +17,9 @@ impl log::Log for VSLogger {
 
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
-            let log = format!("RUST: {} - {}\r\n\0", record.level(), record.args());
+            let log = format!("RUST: {} - {} - {}\r\n\0", record.level(),
+                                                          record.target(),
+                                                          record.args());
             unsafe {
                 OutputDebugStringA(log.as_ptr());
             };
