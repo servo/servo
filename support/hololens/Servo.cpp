@@ -46,7 +46,7 @@ Servo::Servo(GLsizei width, GLsizei height)
 
   CInitOptions o;
   o.args = NULL;
-  o.url = "http://example.com";
+  o.url = "http://google.com";
   o.width = mWindowWidth;
   o.height = mWindowHeight;
   o.density = 1.0;
