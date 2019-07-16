@@ -6,6 +6,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::XRTestBinding::{
     self, FakeXRDeviceInit, XRTestMethods,
 };
@@ -161,5 +163,11 @@ impl XRTestMethods for XRTest {
             .simulate_device_connection(init, MockDevice { sender });
 
         p
+    }
+
+    /// https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
+    fn SimulateUserActivation(&self, f: Rc<Function>) {
+        // XXXManishearth actually check for activation in XRSession
+        let _ = f.Call__(vec![], ExceptionHandling::Rethrow);
     }
 }
