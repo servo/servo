@@ -37,5 +37,19 @@
         }
       });
     }
+    if (test == "adopt-and-activate") {
+      var portal = e.adoptPredecessor();
+      portal.activate();
+    }
+    if (test == "adopt-attach-remove") {
+      var portal = e.adoptPredecessor();
+      document.body.appendChild(portal);
+      setTimeout(() => {
+        document.body.removeChild(portal);
+        var bc_test = new BroadcastChannel(`test-${test}`);
+        bc_test.postMessage("passed");
+        bc_test.close();
+      });
+    }
   }
 </script>

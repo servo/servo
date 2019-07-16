@@ -10,7 +10,6 @@ var unexpected = [
   "Audio",
   "HTMLCanvasElement",
   "Path",
-  "TextMetrics",
   "CanvasProxy",
   "CanvasRenderingContext2D",
   "DrawingStyle",

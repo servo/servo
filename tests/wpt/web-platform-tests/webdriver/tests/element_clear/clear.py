@@ -267,7 +267,7 @@ def test_contenteditable(session, add_event_listeners, tracked_events):
     response = element_clear(session, element)
     assert_success(response)
     assert element.property("innerHTML") == ""
-    assert_events_equal(session, ["focus", "change", "blur"])
+    assert_events_equal(session, ["focus", "blur"])
     assert_element_has_focus(session.execute_script("return document.body"))
 
 

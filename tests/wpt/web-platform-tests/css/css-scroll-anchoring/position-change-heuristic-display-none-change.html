@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1543599">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/#suppression-triggers">
+<style>
+#hidden {
+  display: none;
+  background: red;
+}
+#spacer {
+  height: calc(100vh + 200px); /* At least 200px of scroll range */
+}
+</style>
+<table>
+  <thead>
+    <tr>
+      <th>1
+      <th>1
+      <th>1
+      <th>1
+    </tr>
+  </thead>
+  <thead id="hidden">
+    <tr>
+      <th>1
+      <th>1
+      <th>1
+      <th>1
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>0 <td>0 <td>0 <td>0 </tr>
+    <tr><td>0 <td>0 <td>0 <td>0 </tr>
+    <tr><td>0 <td>0 <td>0 <td>0 </tr>
+    <tr><td>0 <td>0 <td>0 <td>0 </tr>
+    <tr><td>0 <td>0 <td>0 <td>0 </tr>
+    <tr><td>0 <td>0 <td>0 <td>0 </tr>
+    <tr><td>0 <td>0 <td>0 <td>0 </tr>
+  </tbody>
+</table>
+<div id="spacer"></div>
+<script>
+let firstEvent = true;
+const targetScrollPosition = 100;
+const hidden = document.querySelector("#hidden");
+const t = async_test("Scroll offset doesn't change when an element goes back and forth to display: none");
+window.onscroll = t.step_func(function() {
+  hidden.style.display = "block";
+  hidden.style.position = "absolute";
+  hidden.style.visibility = "hidden";
+  window.unused = hidden.offsetHeight;
+  hidden.style.display = "";
+  hidden.style.position = "";
+  hidden.style.visibility = "";
+
+  if (firstEvent) {
+    firstEvent = false;
+    requestAnimationFrame(t.step_func(function() {
+      requestAnimationFrame(t.step_func_done(function() {
+        assert_equals(document.scrollingElement.scrollTop, targetScrollPosition);
+      }));
+    }));
+  }
+});
+
+window.onload = t.step_func(function() {
+  window.scrollTo(0, targetScrollPosition);
+});
+</script>

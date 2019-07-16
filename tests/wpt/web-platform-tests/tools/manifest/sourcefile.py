@@ -339,7 +339,6 @@ class SourceFile(object):
                 self.filename == "META.yml" or
                 self.filename.startswith(".") or
                 self.filename.endswith(".headers") or
-                self.type_flag == "support" or
                 self.in_non_test_dir())
 
     @property

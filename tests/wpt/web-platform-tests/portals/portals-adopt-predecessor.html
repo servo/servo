@@ -35,4 +35,21 @@
     });
     window.open(`resources/portals-adopt-predecessor.html?test=${test}`);
   }, "Tests that trying to adopt the predecessor after the PortalActivateEvent will throw an exception.");
+
+  promise_test(async t => {
+    var test = "adopt-and-activate";
+    window.open(`resources/portals-adopt-predecessor.html?test=${test}`);
+    var message = await waitForCompletion(test);
+    assert_equals(message, "passed");
+  }, "Tests that activating an adopted predecessor without inserting it works");
+
+  async_test(t => {
+    var test = "adopt-attach-remove";
+    var bc = new BroadcastChannel(`test-${test}`);
+    bc.onmessage = t.step_func_done(function(e) {
+      assert_equals(e.data, "passed");
+      bc.close();
+    });
+    window.open(`resources/portals-adopt-predecessor.html?test=${test}`);
+  }, "Tests that an adopting, inserting and then removing a predecessor works correctly");
 </script>
