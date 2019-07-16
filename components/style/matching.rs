@@ -240,15 +240,30 @@ trait PrivateMatchMethods: TElement {
         let new_box_style = new_style.get_box();
         let new_style_specifies_animations = new_box_style.specifies_animations();
 
-        let old_style = match old_style {
-            Some(old) => old,
-            None => return new_style_specifies_animations,
-        };
-
         let has_animations = self.has_css_animations();
         if !new_style_specifies_animations && !has_animations {
             return false;
         }
+
+        let old_style = match old_style {
+            Some(old) => old,
+            // If we have no old style but have animations, we may be a
+            // pseudo-element which was re-created without style changes.
+            //
+            // This can happen when we reframe the pseudo-element without
+            // restyling it (due to content insertion on a flex container or
+            // such, for example). See bug 1564366.
+            //
+            // FIXME(emilio): The really right fix for this is keeping the
+            // pseudo-element itself around on reframes, but that's a bit
+            // harder. If we do that we can probably remove quite a lot of the
+            // EffectSet complexity though, since right now it's stored on the
+            // parent element for pseudo-elements given we need to keep it
+            // around...
+            None => {
+                return new_style_specifies_animations || new_style.is_pseudo_style();
+            }
+        };
 
         let old_box_style = old_style.get_box();
 

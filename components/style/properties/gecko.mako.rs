@@ -118,8 +118,13 @@ impl ComputedValues {
     }
 
     #[inline]
+    pub fn is_pseudo_style(&self) -> bool {
+        self.0.mPseudoType != PseudoStyleType::NotPseudo
+    }
+
+    #[inline]
     pub fn pseudo(&self) -> Option<PseudoElement> {
-        if self.0.mPseudoType == PseudoStyleType::NotPseudo {
+        if !self.is_pseudo_style() {
             return None;
         }
         PseudoElement::from_pseudo_type(self.0.mPseudoType)
