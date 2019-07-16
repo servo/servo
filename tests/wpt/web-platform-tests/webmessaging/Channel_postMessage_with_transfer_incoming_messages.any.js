@@ -1,14 +1,3 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title> When transferring a non-enabled port mutiple times,
-    incoming messages sent at various transfer steps are received in order upon enablement. </title>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-</head>
-<body>
-<div id=log></div>
-<script>
 async_test(function(t) {
   var channel1 = new MessageChannel();
   var channel2 = new MessageChannel();
@@ -39,7 +28,5 @@ async_test(function(t) {
   });
   channel1.port2.postMessage("First");
   channel2.port1.postMessage("1", [channel1.port1]);
-});
-</script>
-</body>
-</html>
+}, `When transferring a non-enabled port mutiple times,
+    incoming messages sent at various transfer steps are received in order upon enablement.`);

@@ -1,20 +1,5 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title> When transferring a port,
-    the original port should become un-usable,
-    and the port received via transfer should remain usable
-    across several cycles of the event-loop. </title>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="/common/get-host-info.sub.js"></script>
-</head>
-<body>
-<div id=log></div>
-<div style="display:none">
-    <iframe width="70%"></iframe>
-</div>
-<script>
+// META: script=/common/get-host-info.sub.js
+
 async_test(function(t) {
     var channel1 = new MessageChannel();
     var channel2 = new MessageChannel();
@@ -52,9 +37,11 @@ async_test(function(t) {
     var channel1 = new MessageChannel();
     var host = get_host_info();
     var noteSameSiteURL = host.HTTP_NOTSAMESITE_ORIGIN + "/webmessaging/support/ChildWindowPostMessage.htm";
+    let iframe = document.createElement('iframe');
+    iframe.src = noteSameSiteURL;
+    document.body.appendChild(iframe);
     var TARGET = document.querySelector("iframe").contentWindow;
-    document.querySelector("iframe").src = noteSameSiteURL;
-    document.querySelector("iframe").onload = t.step_func(function() {
+    iframe.onload = t.step_func(function() {
         // First, transfer the port.
         TARGET.postMessage("ports", "*", [channel1.port1]);
 
@@ -73,6 +60,3 @@ async_test(function(t) {
         channel1.port1.postMessage("Should not be sent");
     });
 }, "A port transferred to a different site is not garbage collected while active");
-</script>
-</body>
-</html>

@@ -1,23 +1,6 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title> postMessage to cross-site iframe with MessagePort array [100 ports] </title>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="/common/get-host-info.sub.js"></script>
-</head>
-<body>
-<div id=log></div>
+// META: script=/common/get-host-info.sub.js
 
-<div style="display:none">
-    <iframe width="70%"></iframe>
-</div>
-
-<script>
-
-    var t = async_test(description);
-    var description = "Test Description: postMessage to cross-site iframe with MessagePort array containing 100 ports.";
-
+async_test(function(t) {
     var host = get_host_info();
     var noteSameSiteURL = host.HTTP_NOTSAMESITE_ORIGIN + "/webmessaging/support/ChildWindowPostMessage.htm";
     var TOTALPORTS = 100;
@@ -25,9 +8,11 @@
     var RemotePorts = [];
     var PassedResult = 0;
     var sum = 0;
+    let iframe = document.createElement('iframe');
+    iframe.src = noteSameSiteURL;
+    document.body.appendChild(iframe);
     var TARGET = document.querySelector("iframe").contentWindow;
-    document.querySelector("iframe").src = noteSameSiteURL;
-    document.querySelector("iframe").onload = t.step_func(function() {
+    iframe.onload = t.step_func(function() {
         assert_own_property(window, "MessageChannel", "window");
 
         var channels = [];
@@ -78,6 +63,4 @@
             }
         }
     }
-</script>
-</body>
-</html>
+}, "Test Description: postMessage to cross-site iframe with MessagePort array containing 100 ports.");

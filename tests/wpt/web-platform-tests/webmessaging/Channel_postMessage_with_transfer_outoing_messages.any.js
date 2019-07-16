@@ -1,14 +1,4 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title> When transferring a port,
-    outgoing messages sent at each transfer step are received in order by the entangled port. </title>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-</head>
-<body>
-<div id=log></div>
-<script>
+
 async_test(function(t) {
   var channel1 = new MessageChannel();
   var channel2 = new MessageChannel();
@@ -41,7 +31,5 @@ async_test(function(t) {
       t.done();
     }
   });
-});
-</script>
-</body>
-</html>
+}, `When transferring a port,
+    outgoing messages sent at each transfer step are received in order by the entangled port.`);
