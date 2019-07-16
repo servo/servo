@@ -42,6 +42,7 @@ mime_guess = "2.0.0-alpha.6"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 openssl = "0.10"
+percent-encoding = "1.0"
 pixels = {path = "../pixels"}
 profile_traits = {path = "../profile_traits"}
 rayon = "1"
@@ -55,10 +56,10 @@ tokio = "0.1"
 tokio-timer = "0.2"
 threadpool = "1.0"
 time = "0.1.17"
-url = "1.2"
+url = "2.0"
 uuid = {version = "0.7", features = ["v4"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
-ws = { version = "0.8", features = ["ssl"] }
+ws = { version = "0.9", features = ["ssl"] }
 
 [dev-dependencies]
 std_test_override = { path = "../std_test_override" }

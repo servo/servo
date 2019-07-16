@@ -29,13 +29,14 @@ malloc_size_of_derive = "0.1"
 mime = "0.3"
 msg = {path = "../msg"}
 num-traits = "0.2"
+percent-encoding = "1.0"
 pixels = {path = "../pixels"}
 serde = "1.0"
 servo_arc = {path = "../servo_arc"}
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 time = "0.1"
-url = "1.2"
+url = "2.0"
 uuid = {version = "0.7", features = ["v4", "serde"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 

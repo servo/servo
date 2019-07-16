@@ -79,6 +79,7 @@ msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 num-traits = "0.2"
 parking_lot = "0.8"
+percent-encoding = "1.0"
 phf = "0.7"
 pixels = {path = "../pixels"}
 profile_traits = {path = "../profile_traits"}
@@ -107,7 +108,7 @@ tendril = {version = "0.4.1", features = ["encoding_rs"]}
 time = "0.1.12"
 typetag = "0.1"
 unicode-segmentation = "1.1.0"
-url = "1.6"
+url = "2.0"
 utf-8 = "0.7"
 uuid = {version = "0.7", features = ["v4"]}
 xml5ever = {version = "0.14"}

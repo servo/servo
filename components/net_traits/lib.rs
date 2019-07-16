@@ -14,8 +14,6 @@ extern crate malloc_size_of;
 extern crate malloc_size_of_derive;
 #[macro_use]
 extern crate serde;
-#[macro_use]
-extern crate url;
 
 use crate::filemanager_thread::FileManagerThreadMsg;
 use crate::request::{Request, RequestBuilder};
@@ -35,7 +33,6 @@ use msg::constellation_msg::HistoryStateId;
 use servo_url::ServoUrl;
 use std::error::Error;
 use time::precise_time_ns;
-use url::percent_encoding;
 
 pub mod blob_url_store;
 pub mod filemanager_thread;
@@ -656,7 +653,7 @@ pub fn trim_http_whitespace(mut slice: &[u8]) -> &[u8] {
 }
 
 pub fn http_percent_encode(bytes: &[u8]) -> String {
-    define_encode_set! {
+    percent_encoding::define_encode_set! {
         // This encode set is used for HTTP header values and is defined at
         // https://tools.ietf.org/html/rfc5987#section-3.2
         pub HTTP_VALUE = [percent_encoding::SIMPLE_ENCODE_SET] | {
@@ -665,5 +662,5 @@ pub fn http_percent_encode(bytes: &[u8]) -> String {
         }
     }
 
-    url::percent_encoding::percent_encode(bytes, HTTP_VALUE).to_string()
+    percent_encoding::percent_encode(bytes, HTTP_VALUE).to_string()
 }

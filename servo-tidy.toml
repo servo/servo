@@ -50,6 +50,7 @@ packages = [
   "scopeguard",
   "unicase",
   "url", # https://github.com/servo/servo/pull/23838
+  "ws",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
