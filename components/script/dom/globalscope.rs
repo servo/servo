@@ -544,7 +544,7 @@ impl GlobalScope {
                 None => false,
             };
 
-            if (!alive_js && !port.is_entangled()) {
+            if !alive_js && !port.is_entangled() {
                 to_be_removed.insert(id.clone());
                 // Let the constellation know to drop this port and the one it is entangled with,
                 // and to forward this message to the script-process where the entangled is found.

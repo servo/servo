@@ -225,10 +225,6 @@ impl MessagePortImpl {
         self.entangled_port.borrow().clone()
     }
 
-    pub fn detached(&self) -> bool {
-        self.detached.get()
-    }
-
     pub fn is_entangled(&self) -> bool {
         self.entangled_port.borrow().is_some() || self.awaiting_transfer.get()
     }
