@@ -7,7 +7,7 @@
 enum XREye {
   "left",
   "right",
-  "unknown",
+  "none",
 };
 
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
