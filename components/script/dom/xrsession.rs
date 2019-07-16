@@ -5,6 +5,7 @@
 use crate::compartments::InCompartment;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateInit;
@@ -22,6 +23,8 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutDom, MutNullableDom};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::node::Node;
+use crate::dom::node::NodeDamage;
 use crate::dom::promise::Promise;
 use crate::dom::xrframe::XRFrame;
 use crate::dom::xrinputsource::XRInputSource;
@@ -130,9 +133,10 @@ impl XRSession {
         }
 
         // Step 2
-        if self.active_render_state.get().GetBaseLayer().is_none() {
-            return;
-        }
+        let base_layer = match self.active_render_state.get().GetBaseLayer() {
+            Some(layer) => layer,
+            None => return,
+        };
 
         // Step 3: XXXManishearth handle inline session
 
@@ -153,6 +157,16 @@ impl XRSession {
 
         // Step 9: XXXManishearth unset `active` bool on `frame`
         self.session.borrow_mut().render_animation_frame();
+
+        // If the canvas element is attached to the DOM, it is now dirty,
+        // and we need to trigger a reflow.
+        if let Some(webgl_layer) = base_layer.downcast::<XRWebGLLayer>() {
+            webgl_layer
+                .Context()
+                .Canvas()
+                .upcast::<Node>()
+                .dirty(NodeDamage::OtherNodeDamage);
+        }
     }
 }
 
