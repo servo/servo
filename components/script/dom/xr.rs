@@ -6,7 +6,7 @@ use crate::compartments::InCompartment;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
 use crate::dom::bindings::codegen::Bindings::XRBinding;
-use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionCreationOptions;
+use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionInit;
 use crate::dom::bindings::codegen::Bindings::XRBinding::{XRMethods, XRSessionMode};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
@@ -96,7 +96,7 @@ impl Into<SessionMode> for XRSessionMode {
 
 impl XRMethods for XR {
     /// https://immersive-web.github.io/webxr/#dom-xr-supportssessionmode
-    fn SupportsSessionMode(&self, mode: XRSessionMode, comp: InCompartment) -> Rc<Promise> {
+    fn SupportsSession(&self, mode: XRSessionMode) -> Rc<Promise> {
         #[derive(serde::Serialize, serde::Deserialize)]
         pub struct SupportsSession {
             sender: IpcSender<bool>,
@@ -110,7 +110,7 @@ impl XRMethods for XR {
         }
 
         // XXXManishearth this should select an XR device first
-        let promise = Promise::new_in_current_compartment(&self.global(), comp);
+        let promise = Promise::new(&self.global());
         let mut trusted = Some(TrustedPromise::new(promise.clone()));
         let global = self.global();
         let window = global.as_window();
@@ -152,7 +152,8 @@ impl XRMethods for XR {
     /// https://immersive-web.github.io/webxr/#dom-xr-requestsession
     fn RequestSession(
         &self,
-        options: &XRSessionCreationOptions,
+        mode: XRSessionMode,
+        _: &XRSessionInit,
         comp: InCompartment,
     ) -> Rc<Promise> {
         #[derive(serde::Serialize, serde::Deserialize)]
@@ -167,7 +168,7 @@ impl XRMethods for XR {
             }
         }
         let promise = Promise::new_in_current_compartment(&self.global(), comp);
-        if options.mode != XRSessionMode::Immersive_vr {
+        if mode != XRSessionMode::Immersive_vr {
             promise.reject_error(Error::NotSupported);
             return promise;
         }
@@ -210,7 +211,7 @@ impl XRMethods for XR {
         );
         window
             .webxr_registry()
-            .request_session(options.mode.into(), RequestSession { sender });
+            .request_session(mode.into(), RequestSession { sender });
 
         promise
     }
