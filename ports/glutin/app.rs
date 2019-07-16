@@ -36,11 +36,12 @@ impl App {
         let window = if opts::get().headless {
             headless_window::Window::new(opts::get().initial_window_size)
         } else {
-            headed_window::Window::new(opts::get().initial_window_size, events_loop.borrow().as_winit())
+            Rc::new(headed_window::Window::new(opts::get().initial_window_size, None, events_loop.clone()))
         };
 
         // Implements embedder methods, used by libservo and constellation.
         let embedder = Box::new(EmbedderCallbacks::new(
+            window.clone(),
             events_loop.clone(),
             window.gl(),
         ));

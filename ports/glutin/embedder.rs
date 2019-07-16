@@ -6,6 +6,7 @@
 
 use crate::app;
 use crate::events_loop::EventsLoop;
+use crate::window_trait::WindowPortsMethods;
 use gleam::gl;
 use glutin;
 use glutin::EventsLoopClosed;
@@ -20,13 +21,18 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 pub struct EmbedderCallbacks {
+    window: Rc<dyn WindowPortsMethods>,
     events_loop: Rc<RefCell<EventsLoop>>,
     gl: Rc<dyn gl::Gl>,
 }
 
 impl EmbedderCallbacks {
-    pub fn new(events_loop: Rc<RefCell<EventsLoop>>, gl: Rc<dyn gl::Gl>) -> EmbedderCallbacks {
-        EmbedderCallbacks { events_loop, gl }
+    pub fn new(
+        window: Rc<dyn WindowPortsMethods>,
+        events_loop: Rc<RefCell<EventsLoop>>,
+        gl: Rc<dyn gl::Gl>
+    ) -> EmbedderCallbacks {
+        EmbedderCallbacks { window, events_loop, gl }
     }
 }
 
@@ -79,12 +85,9 @@ impl EmbedderMethods for EmbedderCallbacks {
         } else if !opts::get().headless && pref!(dom.webxr.glwindow) {
             warn!("Creating test XR device");
             let gl = self.gl.clone();
-            let events_loop_clone = self.events_loop.clone();
-            let events_loop_factory = Box::new(move || {
-                events_loop_clone.borrow_mut().take().ok_or(EventsLoopClosed)
-            });
-            let gl_version = app::gl_version();
-            let discovery = webxr::glwindow::GlWindowDiscovery::new(gl, events_loop_factory, gl_version);
+            let window = self.window.clone();
+            let factory = Box::new(move || window.new_window());
+            let discovery = webxr::glwindow::GlWindowDiscovery::new(gl, factory);
             xr.register(discovery);
         }
     }

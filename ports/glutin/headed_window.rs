@@ -6,9 +6,10 @@
 
 use crate::app;
 use crate::context::GlContext;
+use crate::events_loop::EventsLoop;
 use crate::keyutils::keyboard_event_from_winit;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
-use euclid::{TypedPoint2D, TypedScale, TypedSize2D, TypedVector2D};
+use euclid::{Size2D, TypedPoint2D, TypedScale, TypedSize2D, TypedVector2D};
 use gleam::gl;
 use glutin::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
@@ -55,6 +56,7 @@ fn builder_with_platform_options(builder: glutin::WindowBuilder) -> glutin::Wind
 
 pub struct Window {
     gl_context: RefCell<GlContext>,
+    events_loop: Rc<RefCell<EventsLoop>>,
     screen_size: TypedSize2D<u32, DeviceIndependentPixel>,
     inner_size: Cell<TypedSize2D<u32, DeviceIndependentPixel>>,
     mouse_down_button: Cell<Option<glutin::MouseButton>>,
@@ -83,8 +85,9 @@ fn window_creation_scale_factor() -> TypedScale<f32, DeviceIndependentPixel, Dev
 impl Window {
     pub fn new(
         win_size: TypedSize2D<u32, DeviceIndependentPixel>,
-        events_loop: &glutin::EventsLoop,
-    ) -> Rc<dyn WindowPortsMethods> {
+        sharing: Option<&GlContext>,
+        events_loop: Rc<RefCell<EventsLoop>>,
+    ) -> Window {
         let opts = opts::get();
 
         // If there's no chrome, start off with the window invisible. It will be set to visible in
@@ -115,9 +118,10 @@ impl Window {
             context_builder = context_builder.with_multisampling(MULTISAMPLES)
         }
 
-        let context = context_builder
-            .build_windowed(window_builder, &events_loop)
-            .expect("Failed to create window.");
+        let context = match sharing {
+            Some(sharing) => sharing.new_window(context_builder, window_builder, events_loop.borrow().as_winit()),
+            None => context_builder.build_windowed(window_builder, events_loop.borrow().as_winit()),
+        }.expect("Failed to create window.");
 
         #[cfg(any(target_os = "linux", target_os = "windows"))]
         {
@@ -129,7 +133,7 @@ impl Window {
             context.make_current().expect("Couldn't make window current")
         };
 
-        let primary_monitor = events_loop.get_primary_monitor();
+        let primary_monitor = events_loop.borrow().as_winit().get_primary_monitor();
 
         let PhysicalSize {
             width: screen_width,
@@ -165,6 +169,7 @@ impl Window {
 
         let window = Window {
             gl_context: RefCell::new(context),
+            events_loop,
             event_queue: RefCell::new(vec![]),
             mouse_down_button: Cell::new(None),
             mouse_down_point: Cell::new(TypedPoint2D::new(0, 0)),
@@ -180,7 +185,7 @@ impl Window {
 
         window.present();
 
-        Rc::new(window)
+        window
     }
 
     fn handle_received_character(&self, mut ch: char) {
@@ -464,6 +469,37 @@ impl WindowPortsMethods for Window {
             },
             _ => {},
         }
+    }
+}
+
+impl webxr::glwindow::GlWindow for Window {
+    fn make_current(&mut self) {
+        self.gl_context.get_mut().make_current();
+    }
+
+    fn swap_buffers(&mut self) {
+        self.gl_context.get_mut().swap_buffers();
+        self.gl_context.get_mut().make_not_current();
+    }
+
+    fn size(&self) -> Size2D<gl::GLsizei> {
+        let dpr = self.device_hidpi_factor().get() as f64;
+        let LogicalSize { width, height } = self
+            .gl_context
+            .borrow()
+            .window()
+            .get_inner_size()
+            .expect("Failed to get window inner size.");
+        Size2D::new(width * dpr, height *dpr).to_i32()
+    }
+
+    fn new_window(&self) -> Result<Box<dyn webxr::glwindow::GlWindow>, ()> {
+        let gl_context = self.gl_context.borrow();
+        Ok(Box::new(Window::new(
+            self.inner_size.get(),
+            Some(&*gl_context),
+            self.events_loop.clone(),
+        )))
     }
 }
 

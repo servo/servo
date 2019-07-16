@@ -6,7 +6,7 @@
 
 use crate::window_trait::WindowPortsMethods;
 use glutin;
-use euclid::{TypedPoint2D, TypedScale, TypedSize2D};
+use euclid::{Size2D, TypedPoint2D, TypedScale, TypedSize2D};
 use gleam::gl;
 use servo::compositing::windowing::{AnimationState, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
@@ -40,7 +40,7 @@ struct HeadlessContext {
 
 impl HeadlessContext {
     #[cfg(any(target_os = "linux", target_os = "macos"))]
-    fn new(width: u32, height: u32) -> HeadlessContext {
+    fn new(width: u32, height: u32, share: Option<&HeadlessContext>) -> HeadlessContext {
         let mut attribs = Vec::new();
 
         attribs.push(osmesa_sys::OSMESA_PROFILE);
@@ -51,8 +51,9 @@ impl HeadlessContext {
         attribs.push(3);
         attribs.push(0);
 
-        let context =
-            unsafe { osmesa_sys::OSMesaCreateContextAttribs(attribs.as_ptr(), ptr::null_mut()) };
+        let share = share.map_or(ptr::null_mut(), |share| share._context as *mut _);
+
+        let context = unsafe { osmesa_sys::OSMesaCreateContextAttribs(attribs.as_ptr(), share) };
 
         assert!(!context.is_null());
 
@@ -78,7 +79,7 @@ impl HeadlessContext {
     }
 
     #[cfg(not(any(target_os = "linux", target_os = "macos")))]
-    fn new(width: u32, height: u32) -> HeadlessContext {
+    fn new(width: u32, height: u32, _share: Option<&HeadlessContext>) -> HeadlessContext {
         HeadlessContext {
             width: width,
             height: height,
@@ -106,7 +107,7 @@ pub struct Window {
 
 impl Window {
     pub fn new(size: TypedSize2D<u32, DeviceIndependentPixel>) -> Rc<dyn WindowPortsMethods> {
-        let context = HeadlessContext::new(size.width, size.height);
+        let context = HeadlessContext::new(size.width, size.height, None);
         let gl = unsafe { gl::GlFns::load_with(|s| HeadlessContext::get_proc_address(s)) };
 
         // Print some information about the headless renderer that
@@ -207,5 +208,27 @@ impl WindowMethods for Window {
 
     fn get_gl_api(&self) -> MediaPlayerCtxt::GlApi {
         MediaPlayerCtxt::GlApi::None
+    }
+}
+
+impl webxr::glwindow::GlWindow for Window {
+    fn make_current(&mut self) {}
+    fn swap_buffers(&mut self) {}
+    fn size(&self) -> Size2D<gl::GLsizei> {
+        let dpr = self.servo_hidpi_factor().get();
+        Size2D::new((self.context.width as f32 * dpr) as gl::GLsizei, (self.context.height as f32 * dpr) as gl::GLsizei)
+    }
+    fn new_window(&self) -> Result<Box<dyn webxr::glwindow::GlWindow>, ()> {
+        let width = self.context.width;
+        let height = self.context.height;
+        let share = Some(&self.context);
+        let context = HeadlessContext::new(width, height, share);
+        let gl = self.gl.clone();
+        Ok(Box::new(Window {
+            context,
+            gl,
+            animation_state: Cell::new(AnimationState::Idle),
+            fullscreen: Cell::new(false),
+        }))
     }
 }
