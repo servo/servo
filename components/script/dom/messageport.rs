@@ -28,6 +28,7 @@ use msg::constellation_msg::{
 };
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
+use std::convert::TryInto;
 use std::num::NonZeroU32;
 use std::os::raw;
 use std::rc::Rc;
@@ -450,18 +451,13 @@ impl Transferable for MessagePort {
         let MessagePortIndex(index) = self.message_port_id().clone().index;
         let index = index.get();
 
-        let mut big: [u8; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
+        let mut big: [u8; 8] = [0; 8];
         let name_space = name_space.to_ne_bytes();
         let index = index.to_ne_bytes();
 
-        big[0] = name_space[0];
-        big[1] = name_space[1];
-        big[2] = name_space[2];
-        big[3] = name_space[3];
-        big[4] = index[0];
-        big[5] = index[1];
-        big[6] = index[2];
-        big[7] = index[3];
+        let (left, right) = big.split_at_mut(4);
+        left.copy_from_slice(&name_space);
+        right.copy_from_slice(&index);
 
         unsafe { *extra_data = u64::from_ne_bytes(big) };
 
@@ -483,20 +479,18 @@ impl Transferable for MessagePort {
         let owner = unsafe { GlobalScope::from_context(cx) };
 
         let big: [u8; 8] = extra_data.to_ne_bytes();
-        let mut name_space: [u8; 4] = [0, 0, 0, 0];
-        let mut index: [u8; 4] = [0, 0, 0, 0];
-        name_space[0] = big[0];
-        name_space[1] = big[1];
-        name_space[2] = big[2];
-        name_space[3] = big[3];
-        index[0] = big[4];
-        index[1] = big[5];
-        index[2] = big[6];
-        index[3] = big[7];
+        let (name_space, index) = big.split_at(4);
 
-        let namespace_id = PipelineNamespaceId(u32::from_ne_bytes(name_space));
-        let index =
-            unsafe { MessagePortIndex(NonZeroU32::new_unchecked(u32::from_ne_bytes(index))) };
+        let namespace_id = PipelineNamespaceId(u32::from_ne_bytes(
+            name_space
+                .try_into()
+                .expect("name_space to be a slice of four."),
+        ));
+        let index = unsafe {
+            MessagePortIndex(NonZeroU32::new_unchecked(u32::from_ne_bytes(
+                index.try_into().expect("index to be a slice of four."),
+            )))
+        };
 
         let id = MessagePortId {
             namespace_id,
