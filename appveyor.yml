@@ -1,8 +1,12 @@
 version: 1.0.{build}
 image: Visual Studio 2017
 
+clone_depth: 5
+
 environment:
-  CCACHE_DIR: "%APPVEYOR_BUILD_FOLDER%\\.ccache"
+  SCCACHE_DIR: "C:\\Users\\appveyor\\.sccache"
+  CCACHE: sccache
+  RUSTC_WRAPPER: sccache
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: 1
   RUSTFLAGS: -Dwarnings
@@ -43,10 +47,10 @@ branches:
     - master
 
 cache:
+  - C:\Users\appveyor\.sccache -> rust-toolchain
   - C:\Users\appveyor\.rustup -> rust-toolchain
   - C:\Users\appveyor\.cargo -> rust-toolchain
   - .servo -> rust-toolchain
-  - .ccache
 
 install:
   - appveyor-retry choco install pkgconfiglite
@@ -62,6 +66,9 @@ install:
   - rustup -V
   - rustc --version
   - cargo --version
+  - appveyor-retry appveyor DownloadFile https://github.com/mozilla/sccache/releases/download/0.2.9/sccache-0.2.9-x86_64-pc-windows-msvc.tar.gz
+  - tar xzf sccache-0.2.9-x86_64-pc-windows-msvc.tar.gz --strip-components=1 -C "C:/Users/appveyor/.cargo/bin"
+  - sccache --version
 
 # Uncomment these lines to expose RDP access information to the build machine in the build log.
 #init:
