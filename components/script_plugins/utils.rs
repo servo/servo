@@ -4,7 +4,7 @@
 
 use rustc::hir::def_id::DefId;
 use rustc::lint::LateContext;
-use syntax::source_map::{ExpnFormat, Span};
+use syntax::source_map::{ExpnKind, MacroKind, Span};
 use syntax::symbol::Symbol;
 
 /// check if a DefId's path matches the given absolute type path
@@ -31,7 +31,7 @@ pub fn match_def_path(cx: &LateContext, def_id: DefId, path: &[Symbol]) -> bool 
 
 pub fn in_derive_expn(span: Span) -> bool {
     if let Some(i) = span.ctxt().outer().expn_info() {
-        if let ExpnFormat::MacroAttribute(n) = i.format {
+        if let ExpnKind::Macro(MacroKind::Attr, n) = i.kind {
             n.as_str().contains("derive")
         } else {
             false
