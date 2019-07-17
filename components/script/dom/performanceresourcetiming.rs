@@ -59,8 +59,6 @@ pub struct PerformanceResourceTiming {
 // TODO(#21255): duration
 // TODO(#21269): next_hop
 // TODO(#21264): worker_start
-// TODO(#21256): redirect_start
-// TODO(#21257): redirect_end
 // TODO(#21258): fetch_start
 // TODO(#21259): domain_lookup_start
 // TODO(#21260): domain_lookup_end
@@ -116,7 +114,7 @@ impl PerformanceResourceTiming {
             next_hop: next_hop,
             worker_start: 0.,
             redirect_start: resource_timing.redirect_start as f64,
-            redirect_end: 0.,
+            redirect_end: resource_timing.redirect_end as f64,
             fetch_start: resource_timing.fetch_start as f64,
             domain_lookup_start: resource_timing.domain_lookup_start as f64,
             domain_lookup_end: 0.,
@@ -185,6 +183,11 @@ impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectstart
     fn RedirectStart(&self) -> DOMHighResTimeStamp {
         Finite::wrap(self.redirect_start)
+    }
+
+    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectend
+    fn RedirectEnd(&self) -> DOMHighResTimeStamp {
+        Finite::wrap(self.redirect_end)
     }
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-responsestart

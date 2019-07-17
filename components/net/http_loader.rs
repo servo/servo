@@ -621,8 +621,6 @@ pub fn http_fetch(
         };
     }
 
-    // TODO redirect_end: last byte of response of last redirect
-
     // set back to default
     response.return_internal = true;
     context
@@ -770,6 +768,7 @@ pub fn http_redirect_fetch(
         done_chan,
         context,
     )
+    // TODO redirectEnd should just be responseEnd, right? 
 }
 
 fn try_immutable_origin_to_hyper_origin(url_origin: &ImmutableOrigin) -> Option<HyperOrigin> {

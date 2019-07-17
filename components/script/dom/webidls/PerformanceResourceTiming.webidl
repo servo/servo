@@ -13,7 +13,7 @@ interface PerformanceResourceTiming : PerformanceEntry {
     readonly attribute DOMString           nextHopProtocol;
     // readonly attribute DOMHighResTimeStamp workerStart;
     readonly attribute DOMHighResTimeStamp redirectStart;
-    // readonly attribute DOMHighResTimeStamp redirectEnd;
+    readonly attribute DOMHighResTimeStamp redirectEnd;
     readonly attribute DOMHighResTimeStamp fetchStart;
     readonly attribute DOMHighResTimeStamp domainLookupStart;
     // readonly attribute DOMHighResTimeStamp domainLookupEnd;
