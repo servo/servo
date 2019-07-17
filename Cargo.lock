@@ -5485,7 +5485,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#abc779798259d287539347a5d2048ae745f1f2ac"
+source = "git+https://github.com/servo/webxr#5c0eb61f8f38429fde45673d0884f947d14e9c79"
 dependencies = [
  "euclid 0.19.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.6.18 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5497,7 +5497,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#abc779798259d287539347a5d2048ae745f1f2ac"
+source = "git+https://github.com/servo/webxr#5c0eb61f8f38429fde45673d0884f947d14e9c79"
 dependencies = [
  "euclid 0.19.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.6.18 (registry+https://github.com/rust-lang/crates.io-index)",

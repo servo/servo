@@ -37,6 +37,7 @@ pub enum DOMErrorName {
     InvalidNodeTypeError = DOMExceptionConstants::INVALID_NODE_TYPE_ERR,
     DataCloneError = DOMExceptionConstants::DATA_CLONE_ERR,
     NotReadableError = DOMExceptionConstants::NOT_READABLE_ERR,
+    OperationError = DOMExceptionConstants::OPERATION_ERR,
 }
 
 impl DOMErrorName {
@@ -64,6 +65,7 @@ impl DOMErrorName {
             "InvalidNodeTypeError" => Some(DOMErrorName::InvalidNodeTypeError),
             "DataCloneError" => Some(DOMErrorName::DataCloneError),
             "NotReadableError" => Some(DOMErrorName::NotReadableError),
+            "OperationError" => Some(DOMErrorName::OperationError),
             _ => None,
         }
     }
@@ -107,6 +109,9 @@ impl DOMException {
             },
             DOMErrorName::DataCloneError => "The object can not be cloned.",
             DOMErrorName::NotReadableError => "The I/O read operation failed.",
+            DOMErrorName::OperationError => {
+                "The operation failed for an operation-specific reason."
+            },
         };
 
         (

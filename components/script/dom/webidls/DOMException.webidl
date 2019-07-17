@@ -38,7 +38,10 @@ interface DOMException {
   const unsigned short TIMEOUT_ERR = 23;
   const unsigned short INVALID_NODE_TYPE_ERR = 24;
   const unsigned short DATA_CLONE_ERR = 25;
+  // Only the first 25 errors are given codes in
+  // https://heycam.github.io/webidl/#idl-DOMException
   const unsigned short NOT_READABLE_ERR = 26;
+  const unsigned short OPERATION_ERR = 27;
 
   // Error code as u16
   readonly attribute unsigned short code;

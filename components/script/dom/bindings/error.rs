@@ -84,6 +84,8 @@ pub enum Error {
     InvalidModification,
     /// NotReadableError DOMException
     NotReadable,
+    /// OperationError DOMException
+    Operation,
 
     /// TypeError JavaScript Error
     Type(String),
@@ -136,6 +138,7 @@ pub unsafe fn throw_dom_exception(cx: *mut JSContext, global: &GlobalScope, resu
         Error::TypeMismatch => DOMErrorName::TypeMismatchError,
         Error::InvalidModification => DOMErrorName::InvalidModificationError,
         Error::NotReadable => DOMErrorName::NotReadableError,
+        Error::Operation => DOMErrorName::OperationError,
         Error::Type(message) => {
             assert!(!JS_IsExceptionPending(cx));
             throw_type_error(cx, &message);

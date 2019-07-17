@@ -103,7 +103,7 @@ impl XRSession {
         ret
     }
 
-    pub fn with_session<F: FnOnce(&Session)>(&self, with: F) {
+    pub fn with_session<R, F: FnOnce(&Session) -> R>(&self, with: F) -> R {
         let session = self.session.borrow();
         with(&session)
     }

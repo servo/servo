@@ -30,9 +30,9 @@ interface XRWebGLLayer : XRLayer {
   readonly attribute boolean stencil;
   readonly attribute boolean alpha;
 
-  // readonly attribute WebGLFramebuffer framebuffer;
-  // readonly attribute unsigned long framebufferWidth;
-  // readonly attribute unsigned long framebufferHeight;
+  readonly attribute WebGLFramebuffer framebuffer;
+  readonly attribute unsigned long framebufferWidth;
+  readonly attribute unsigned long framebufferHeight;
 
   // // Methods
   XRViewport? getViewport(XRView view);
