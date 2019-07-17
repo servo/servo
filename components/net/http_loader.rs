@@ -42,7 +42,7 @@ use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
 use net_traits::request::{ResponseTainting, ServiceWorkersMode};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
-use net_traits::{RedirectStartValue, ResourceAttribute, ResourceFetchTiming};
+use net_traits::{RedirectEndValue, RedirectStartValue, ResourceAttribute, ResourceFetchTiming};
 use openssl::ssl::SslConnectorBuilder;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::{HashMap, HashSet};
@@ -621,8 +621,6 @@ pub fn http_fetch(
         };
     }
 
-    // TODO redirect_end: last byte of response of last redirect
-
     // set back to default
     response.return_internal = true;
     context
@@ -639,6 +637,27 @@ pub fn http_fetch(
     response
 }
 
+// Convenience struct that implements Drop, for setting redirectEnd on function return
+struct RedirectEndTimer(Option<Arc<Mutex<ResourceFetchTiming>>>);
+
+impl RedirectEndTimer {
+    fn neuter(&mut self) {
+        self.0 = None;
+    }
+}
+
+impl Drop for RedirectEndTimer {
+    fn drop(&mut self) {
+        let RedirectEndTimer(resource_fetch_timing_opt) = self;
+
+        resource_fetch_timing_opt.as_ref().map_or((), |t| {
+            t.lock()
+                .unwrap()
+                .set_attribute(ResourceAttribute::RedirectEnd(RedirectEndValue::Zero));
+        })
+    }
+}
+
 /// [HTTP redirect fetch](https://fetch.spec.whatwg.org#http-redirect-fetch)
 pub fn http_redirect_fetch(
     request: &mut Request,
@@ -649,6 +668,8 @@ pub fn http_redirect_fetch(
     done_chan: &mut DoneChannel,
     context: &FetchContext,
 ) -> Response {
+    let mut redirect_end_timer = RedirectEndTimer(Some(context.timing.clone()));
+
     // Step 1
     assert!(response.return_internal);
 
@@ -761,7 +782,7 @@ pub fn http_redirect_fetch(
     // Step 15
     let recursive_flag = request.redirect_mode != RedirectMode::Manual;
 
-    main_fetch(
+    let fetch_response = main_fetch(
         request,
         cache,
         cors_flag,
@@ -769,7 +790,19 @@ pub fn http_redirect_fetch(
         target,
         done_chan,
         context,
-    )
+    );
+
+    // TODO: timing allow check
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::RedirectEnd(
+            RedirectEndValue::ResponseEnd,
+        ));
+    redirect_end_timer.neuter();
+
+    fetch_response
 }
 
 fn try_immutable_origin_to_hyper_origin(url_origin: &ImmutableOrigin) -> Option<HyperOrigin> {
@@ -1197,6 +1230,7 @@ fn http_network_fetch(
     context: &FetchContext,
 ) -> Response {
     let mut response_end_timer = ResponseEndTimer(Some(context.timing.clone()));
+
     // Step 1
     // nothing to do here, since credentials_flag is already a boolean
 
