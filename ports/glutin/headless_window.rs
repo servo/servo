@@ -17,6 +17,8 @@ use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize};
 use servo_media::player::context as MediaPlayerCtxt;
 use std::cell::Cell;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
+use std::cell::RefCell;
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::ffi::CString;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::mem;
@@ -28,8 +30,8 @@ use std::rc::Rc;
 struct HeadlessContext {
     width: u32,
     height: u32,
-    _context: osmesa_sys::OSMesaContext,
-    _buffer: Vec<u32>,
+    context: osmesa_sys::OSMesaContext,
+    buffer: RefCell<Vec<u32>>,
 }
 
 #[cfg(not(any(target_os = "linux", target_os = "macos")))]
@@ -57,24 +59,11 @@ impl HeadlessContext {
 
         assert!(!context.is_null());
 
-        let mut buffer = vec![0; (width * height) as usize];
-
-        unsafe {
-            let ret = osmesa_sys::OSMesaMakeCurrent(
-                context,
-                buffer.as_mut_ptr() as *mut _,
-                gl::UNSIGNED_BYTE,
-                width as i32,
-                height as i32,
-            );
-            assert_ne!(ret, 0);
-        };
-
         HeadlessContext {
             width: width,
             height: height,
-            _context: context,
-            _buffer: buffer,
+            context: context,
+            buffer: RefCell::new(vec![0; (width * height) as usize]),
         }
     }
 
@@ -196,7 +185,19 @@ impl WindowMethods for Window {
         self.animation_state.set(state);
     }
 
-    fn prepare_for_composite(&self) { }
+    fn prepare_for_composite(&self) {
+        unsafe {
+            let mut buffer = self.context.buffer.borrow_mut();
+            let ret = osmesa_sys::OSMesaMakeCurrent(
+                self.context.context,
+                buffer.as_mut_ptr() as *mut _,
+                gl::UNSIGNED_BYTE,
+                self.context.width as i32,
+                self.context.height as i32,
+            );
+            assert_ne!(ret, 0);
+        };
+    }
 
     fn get_gl_context(&self) -> MediaPlayerCtxt::GlContext {
         MediaPlayerCtxt::GlContext::Unknown
