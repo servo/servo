@@ -151,7 +151,7 @@ impl XRSession {
             }
         }
 
-        // Step 9: XXXManishearth unset `active` bool on `frame`
+        frame.set_active(false);
         self.session.borrow_mut().render_animation_frame();
     }
 }
