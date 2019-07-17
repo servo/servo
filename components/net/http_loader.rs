@@ -653,13 +653,10 @@ impl Drop for RedirectEndTimer {
         resource_fetch_timing_opt.as_ref().map_or((), |t| {
             t.lock()
                 .unwrap()
-                .set_attribute(ResourceAttribute::RedirectEnd(
-                    RedirectEndValue::Zero,
-                ));
+                .set_attribute(ResourceAttribute::RedirectEnd(RedirectEndValue::Zero));
         })
     }
 }
-
 
 /// [HTTP redirect fetch](https://fetch.spec.whatwg.org#http-redirect-fetch)
 pub fn http_redirect_fetch(
