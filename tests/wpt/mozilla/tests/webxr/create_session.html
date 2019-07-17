@@ -12,7 +12,7 @@
               views: TEST_VIEWS,
               viewerOrigin: {position: [0.5, 0.1, 0.1], orientation: [1, 0, 0, 1] }
             }).then((m) => {
-                return navigator.xr.requestSession({mode: "immersive-vr"})
+                return navigator.xr.requestSession("immersive-vr")
               }).then(() => t.done());
           });
         </script>

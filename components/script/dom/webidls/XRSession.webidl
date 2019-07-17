@@ -33,7 +33,7 @@ interface XRSession : EventTarget {
   long requestAnimationFrame(XRFrameRequestCallback callback);
   void cancelAnimationFrame(long handle);
 
-  // Promise<void> end();
+  Promise<void> end();
 
   // // Events
   // attribute EventHandler onblur;

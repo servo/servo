@@ -42,7 +42,7 @@ impl XRViewerPose {
         rooted_vec!(let mut views);
         session.with_session(|s| match s.views() {
             Views::Mono(view) => {
-                views.push(XRView::new(global, session, &view, XREye::Unknown, &pose))
+                views.push(XRView::new(global, session, &view, XREye::None, &pose))
             },
             Views::Stereo(left, right) => {
                 views.push(XRView::new(global, session, &left, XREye::Left, &pose));

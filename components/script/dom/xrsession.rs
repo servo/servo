@@ -155,7 +155,7 @@ impl XRSession {
             }
         }
 
-        // Step 9: XXXManishearth unset `active` bool on `frame`
+        frame.set_active(false);
         self.session.borrow_mut().render_animation_frame();
 
         // If the canvas element is attached to the DOM, it is now dirty,
@@ -301,6 +301,14 @@ impl XRSessionMethods for XRSession {
             .iter()
             .map(|x| DomRoot::from_ref(&**x))
             .collect()
+    }
+
+    /// https://immersive-web.github.io/webxr/#dom-xrsession-end
+    fn End(&self) -> Rc<Promise> {
+        // XXXManishearth implement device disconnection and session ending
+        let p = Promise::new(&self.global());
+        p.resolve_native(&());
+        p
     }
 }
 
