@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<!-- Copyright © 2019 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>Exercise implicit changeType for supported test types, using mime types WITH and WITHOUT codecs for addSourceBuffer.</title>
+        <meta name="timeout" content="long">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+        <script src="mediasource-changetype-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+
+// Helper that generates implicit codec switching tests for a pair of media
+// types, with full codecs in the original addSourceBuffer calls, and
+// separately without full codecs parameters in the original addSourceBuffer
+// calls.
+function generateTestsForMediaPair(type1, type2) {
+  // Implicit changeType across bytestream formats is not expected to be
+  // supported, so skip those tests' generation.
+  if (type1.mime_subtype != type2.mime_subtype)
+    return;
+
+  assert_equals(type1.is_video, type2.is_video,
+      "Types must both be audio or both be video");
+  test_description_prefix = "Test " + (type1.is_video ? "video" : "audio") +
+      "-only implicit changeType for " + type1.type + " <-> " + type2.type;
+
+  mediaSourceChangeTypeTest(
+      type1, type2,
+      test_description_prefix,
+      { implicit_changetype: true } );
+
+  // Skip test generation if the relaxed types are already fully specified and
+  // tested, above.
+  if (type1.type == type1.relaxed_type &&
+      type2.type == type2.relaxed_type) {
+    return;
+  }
+
+  mediaSourceChangeTypeTest(
+      type1, type2,
+      test_description_prefix +
+          " (using types without codecs parameters for addSourceBuffer)",
+      { use_relaxed_mime_types: true, implicit_changetype: true } );
+}
+
+function generateImplicitChangeTypeTests(audio_types, video_types) {
+  async_test((test) => {
+    // Require at least 1 pair of different audio-only or video-only test media
+    // files sharing same bytestream format.
+    assert_true(audio_types.length > 1 || video_types.length > 1,
+        "Browser doesn't support enough test media");
+
+    // Count the number of unique bytestream formats used in each of audio_types
+    // and video_types.
+    let audio_formats = new Set(Array.from(audio_types, t => t.mime_subtype));
+    let video_formats = new Set(Array.from(video_types, t => t.mime_subtype));
+    assert_true(audio_types.length > audio_formats.size ||
+                video_types.length > video_formats.size,
+        "Browser doesn't support at least 2 audio-only or 2 video-only test " +
+            "media with same bytestream format");
+
+    test.done();
+  }, "Check if browser supports enough test media types and pairs of " +
+         "audio-only or video-only media with same bytestream format");
+
+  // Generate audio-only tests
+  for (let audio1 of audio_types) {
+    for (let audio2 of audio_types) {
+      generateTestsForMediaPair(audio1, audio2);
+    }
+  }
+
+  // Generate video-only tests
+  for (let video1 of video_types) {
+    for (let video2 of video_types) {
+      generateTestsForMediaPair(video1, video2);
+    }
+  }
+}
+
+findSupportedChangeTypeTestTypes(generateImplicitChangeTypeTests);
+
+        </script>
+    </body>
+</html>

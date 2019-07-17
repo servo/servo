@@ -60,4 +60,23 @@
 
     document.body.appendChild(i);
   }, "Non-secure cross-site iframe => No headers.");
+
+  async_test(t => {
+    let i = document.createElement('iframe');
+    i.src = "https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/post-to-owner.py";
+    window.addEventListener('message', t.step_func(e => {
+      if (e.source != i.contentWindow)
+        return;
+
+      assert_header_equals(e.data, {
+        "dest": "nested-document",
+        "site": "cross-site",
+        "user": "",
+        "mode": "nested-navigate",
+      });
+      t.done();
+    }));
+
+    document.body.appendChild(i);
+  }, "Secure, cross-site (cross-scheme, same-host) iframe");
 </script>

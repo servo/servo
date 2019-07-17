@@ -19,7 +19,7 @@
     <div id="fontTest">Upgraded font</div>
     <script>
   let nonce = token();
-  let expected = { "dest": "", "site": "same-site", "user": "", "mode": "" };
+  let expected = { "dest": "", "site": "cross-site", "user": "", "mode": "" };
 
   // Validate various scenarios handle a request that redirects from http => https correctly and add the proper Sec- headers.
   RunCommonRedirectTests("Http upgrade", upgradeRedirectTo, expected);
@@ -51,7 +51,7 @@
            // Note that we're using `undefined` here, as opposed to "" elsewhere because of the way
            // that `image.py` encodes data.
            "dest": undefined,
-           "site": "same-site",
+           "site": "cross-site",
            "user": undefined,
            "mode": undefined,
          });

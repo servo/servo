@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>KV Storage: should not work in non-secure contexts when included via a script element</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+test(() => {
+  assert_false(self.isSecureContext, "This test must run in a non-secure context");
+}, "Prerequisite check");
+
+window.t = async_test("Check the events");
+</script>
+
+<script type="module"
+        src="std:kv-storage"
+        onload="t.step(() => { assert_unreached('load event fired'); })"
+        onerror="t.done()">
+</script>

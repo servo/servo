@@ -50,8 +50,10 @@ const VALID_POINTER_TRANSFORM = {
     orientation: [0, 0, 0, 1]
 };
 
-const VALID_GRIP_WITH_POINTER_OFFSET =
-    [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 4, 3, 3, 1];
+const VALID_GRIP_WITH_POINTER_OFFSET = [1, 0, 0, 0,
+                                        0, 1, 0, 0,
+                                        0, 0, 1, 0,
+                                        4, 3, 3, 1];
 
 // A Valid Local to floor matrix/transform for when we don't care about specific
 // values.  Note that these should be identical, just different representations.

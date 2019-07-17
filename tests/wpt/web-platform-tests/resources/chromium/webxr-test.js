@@ -580,7 +580,9 @@ class MockXRInputSource {
       this.setGripOrigin(fakeInputSourceInit.gripOrigin);
     }
 
-    this.gamepad_ = null;
+    // This properly handles if supportedButtons were not specified.
+    this.setSupportedButtons(fakeInputSourceInit.supportedButtons);
+
     this.emulated_position_ = false;
     this.desc_dirty_ = true;
   }
@@ -633,6 +635,10 @@ class MockXRInputSource {
 
   startSelection() {
     this.primary_input_pressed_ = true;
+    if (this.gamepad_) {
+      this.gamepad_.buttons[0].pressed = true;
+      this.gamepad_.buttons[0].touched = true;
+    }
   }
 
   endSelection() {
@@ -642,10 +648,87 @@ class MockXRInputSource {
 
     this.primary_input_pressed_ = false;
     this.primary_input_clicked_ = true;
+
+    if (this.gamepad_) {
+      this.gamepad_.buttons[0].pressed = false;
+      this.gamepad_.buttons[0].touched = false;
+    }
   }
 
   simulateSelect() {
     this.primary_input_clicked_ = true;
+  }
+
+  setSupportedButtons(supportedButtons) {
+    this.gamepad_ = null;
+    this.supported_buttons_ = [];
+
+    // If there are no supported buttons, we can stop now.
+    if (supportedButtons == null || supportedButtons.length < 1) {
+      return;
+    }
+
+    let supported_button_map = {};
+    this.gamepad_ = this.getEmptyGamepad();
+    for (let i = 0; i < supportedButtons.length; i++) {
+      let buttonType = supportedButtons[i].buttonType;
+      this.supported_buttons_.push(buttonType);
+      supported_button_map[buttonType] = supportedButtons[i];
+    }
+
+    // Let's start by building the button state in order of priority:
+    // Primary button is index 0.
+    this.gamepad_.buttons.push({
+      pressed: this.primary_input_pressed_,
+      touched: this.primary_input_pressed_,
+      value: this.primary_input_pressed_ ? 1.0 : 0.0
+    });
+
+    // Now add the rest of our buttons
+    this.addGamepadButton(supported_button_map['grip']);
+    this.addGamepadButton(supported_button_map['touchpad']);
+    this.addGamepadButton(supported_button_map['thumbstick']);
+    this.addGamepadButton(supported_button_map['optional-button']);
+    this.addGamepadButton(supported_button_map['optional-thumbstick']);
+
+    // Finally, back-fill placeholder buttons/axes
+    for (let i = 0; i < this.gamepad_.buttons.length; i++) {
+      if (this.gamepad_.buttons[i] == null) {
+        this.gamepad_.buttons[i] = {
+          pressed: false,
+          touched: false,
+          value: 0
+        }
+      }
+    }
+
+    for (let i=0; i < this.gamepad_.axes.length; i++) {
+      if (this.gamepad_.axes[i] == null) {
+        this.gamepad_.axes[i] = 0;
+      }
+    }
+  }
+
+  updateButtonState(buttonState) {
+    if (this.supported_buttons_.indexOf(buttonState.buttonType) == -1) {
+      throw new Error("Tried to update state on an unsupported button");
+    }
+
+    let buttonIndex = this.getButtonIndex(buttonState.buttonType);
+    let axesStartIndex = this.getAxesStartIndex(buttonState.buttonType);
+
+    if (buttonIndex == -1) {
+      throw new Error("Unknown Button Type!");
+    }
+
+    this.gamepad_.buttons[buttonIndex].pressed = buttonState.pressed;
+    this.gamepad_.buttons[buttonIndex].touched = buttonState.touched;
+    this.gamepad_.buttons[buttonIndex].value = buttonState.pressedValue;
+
+    if (axesStartIndex != -1) {
+      this.gamepad_.axes[axesStartIndex] = buttonState.xValue == null ? 0.0 : buttonState.xValue;
+      this.gamepad_.axes[axesStartIndex + 1] = buttonState.yValue == null ? 0.0 : buttonState.yValue;
+    }
   }
 
   // Helpers for Mojom
@@ -695,6 +778,89 @@ class MockXRInputSource {
     }
 
     return input_state;
+  }
+
+  getEmptyGamepad() {
+    // Mojo complains if some of the properties on Gamepad are null, so set
+    // everything to reasonable defaults that tests can override.
+    let gamepad = new device.mojom.Gamepad();
+    gamepad.connected = true;
+    gamepad.id = "";
+    gamepad.timestamp = 0;
+    gamepad.axes = [];
+    gamepad.buttons = [];
+    gamepad.mapping = "xr-standard";
+    gamepad.display_id = 0;
+
+    switch (this.handedness_) {
+      case 'left':
+      gamepad.hand = device.mojom.GamepadHand.GamepadHandLeft;
+      break;
+      case 'right':
+      gamepad.hand = device.mojom.GamepadHand.GamepadHandRight;
+      break;
+      default:
+      gamepad.hand = device.mojom.GamepadHand.GamepadHandNone;
+      break;
+    }
+
+    return gamepad;
+  }
+
+  addGamepadButton(buttonState) {
+    if (buttonState == null) {
+      return;
+    }
+
+    let buttonIndex = this.getButtonIndex(buttonState.buttonType);
+    let axesStartIndex = this.getAxesStartIndex(buttonState.buttonType);
+
+    if (buttonIndex == -1) {
+      throw new Error("Unknown Button Type!");
+    }
+
+    this.gamepad_.buttons[buttonIndex] = {
+      pressed: buttonState.pressed,
+      touched: buttonState.touched,
+      value: buttonState.pressedValue
+    };
+
+    // Add x/y value if supported.
+    if (axesStartIndex != -1) {
+      this.gamepad_.axes[axesStartIndex] = (buttonState.xValue == null ? 0.0 : buttonSate.xValue);
+      this.gamepad_.axes[axesStartIndex + 1] = (buttonState.yValue == null ? 0.0 : buttonSate.yValue);
+    }
+  }
+
+  // General Helper methods
+  getButtonIndex(buttonType) {
+    switch (buttonType) {
+      case 'grip':
+        return 1;
+      case 'touchpad':
+        return 2;
+      case 'thumbstick':
+        return 3;
+      case 'optional-button':
+        return 4;
+      case 'optional-thumbstick':
+        return 5;
+      default:
+        return -1;
+    }
+  }
+
+  getAxesStartIndex(buttonType) {
+    switch (buttonType) {
+      case 'touchpad':
+        return 0;
+      case 'thumbstick':
+        return 2;
+      case 'optional-thumbstick':
+        return 4;
+      default:
+        return -1;
+    }
   }
 }
 

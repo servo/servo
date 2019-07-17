@@ -788,21 +788,31 @@ window.Audit = (function() {
       }
 
       // Compare against the expected sequence.
-      for (let j = 0; j < this._expected.length; j++) {
-        if (this._expected[j] !== indexedActual[j].value) {
-          firstErrorIndex = indexedActual[j].index;
-          passed = false;
-          break;
+      let failMessage =
+          '${actual} expected to have the value sequence of ${expected} but ' +
+          'got ';
+      if (this._expected.length === indexedActual.length) {
+        for (let j = 0; j < this._expected.length; j++) {
+          if (this._expected[j] !== indexedActual[j].value) {
+            firstErrorIndex = indexedActual[j].index;
+            passed = false;
+            failMessage += this._actual[firstErrorIndex] + ' at index ' +
+                firstErrorIndex + '.';
+            break;
+          }
         }
+      } else {
+        passed = false;
+        let indexedValues = indexedActual.map(x => x.value);
+        failMessage += `${indexedActual.length} values, [${
+            indexedValues}], instead of ${this._expected.length}.`;
       }
 
       return this._assert(
           passed,
           '${actual} contains all the expected values in the correct order: ' +
               '${expected}.',
-          '${actual} expected to have the value sequence of ${expected} but ' +
-              'got ' + this._actual[firstErrorIndex] + ' at index ' +
-              firstErrorIndex + '.');
+          failMessage);
     }
 
     /**

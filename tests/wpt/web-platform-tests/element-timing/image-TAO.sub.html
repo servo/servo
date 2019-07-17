@@ -39,7 +39,7 @@
           if (valid_tao.includes(tao)) {
             checkElement(entry, remote_img + tao, tao, 'id_' + tao, beforeRender, img);
           } else if (invalid_tao.includes(tao)) {
-            assert_equals(entry.startTime, 0, 'Entry with tao=' + tao + ' must have a startTime of 0');
+            assert_equals(entry.renderTime, 0, 'Entry with tao=' + tao + ' must have a renderTime of 0');
             checkElement(entry, remote_img + tao, tao, 'id_' + tao, 0, img);
           }
           else {
@@ -51,6 +51,6 @@
         });
       })
     ).observe({type: 'element', buffered: true});
-  }, 'Cross-origin elements with valid TAO have correct startTime, with invalid TAO have startTime set to 0.');
+  }, 'Cross-origin elements with valid TAO have correct renderTime, with invalid TAO have renderTime set to 0.');
 </script>
 </body>

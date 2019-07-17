@@ -4,16 +4,17 @@ function checkElementInternal(entry, expectedUrl, expectedIdentifier, expectedID
   assert_equals(entry.entryType, 'element');
   assert_equals(entry.url, expectedUrl);
   assert_equals(entry.identifier, expectedIdentifier);
+  assert_equals(entry.startTime, 0);
   assert_equals(entry.duration, 0);
   assert_equals(entry.id, expectedID);
-  assert_greater_than_equal(entry.startTime, beforeRender);
-  assert_greater_than_equal(performance.now(), entry.startTime);
+  assert_greater_than_equal(entry.renderTime, beforeRender);
+  assert_greater_than_equal(performance.now(), entry.renderTime);
   if (expectedElement !== null)
     assert_equals(entry.element, expectedElement);
 }
 
 // Checks that this is an ElementTiming entry with url |expectedUrl|. It also
-// does a very basic check on |startTime|: after |beforeRender| and before now().
+// does a very basic check on |renderTime|: after |beforeRender| and before now().
 function checkElement(entry, expectedUrl, expectedIdentifier, expectedID, beforeRender,
     expectedElement) {
   checkElementInternal(entry, expectedUrl, expectedIdentifier, expectedID, beforeRender,

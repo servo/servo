@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Level 3: parsing place-self with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-place-self">
+<meta name="assert" content="place-self supports the full grammar '<align-self> <justify-self>?'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("place-self", "auto auto", "auto");
+test_valid_value("place-self", "normal");
+test_valid_value("place-self", "stretch");
+
+test_valid_value("place-self", "first baseline", "baseline");
+test_valid_value("place-self", "last baseline last baseline", "last baseline");
+
+test_valid_value("place-self", "center center", "center");
+test_valid_value("place-self", "start");
+test_valid_value("place-self", "self-start");
+test_valid_value("place-self", "flex-end");
+test_valid_value("place-self", "unsafe center");
+test_valid_value("place-self", "safe self-end safe self-end", "safe self-end");
+
+test_valid_value("place-self", "auto last baseline");
+test_valid_value("place-self", "baseline flex-end");
+test_valid_value("place-self", "unsafe center stretch");
+
+test_valid_value("place-self", "normal right");
+test_valid_value("place-self", "baseline unsafe left");
+</script>
+</body>
+</html>

@@ -12,8 +12,31 @@
   "webkitSpeechRecognitionError",
   "webkitSpeechRecognitionEvent",
 ].forEach(name => {
-  test(function() {
+  test(() => {
     assert_false(name in window);
-  }, name + " interface should not exist");
+  }, `${name} interface should not exist`);
+});
+
+test(() => {
+  if (!window.SpeechRecognition) {
+    // TODO(foolip): use `t.skip()` after
+    // https://github.com/web-platform-tests/rfcs/pull/16 is done.
+    return;
+  }
+  assert_false("serviceURI" in SpeechRecognition.prototype);
+}, "SpeechRecognition's serviceURI attribute should not exist");
+
+[
+  "interpretation",
+  "emma",
+].forEach(name => {
+  test(() => {
+    if (!window.SpeechRecognitionEvent) {
+      // TODO(foolip): use `t.skip()` after
+      // https://github.com/web-platform-tests/rfcs/pull/16 is done.
+      return;
+    }
+    assert_false(name in SpeechRecognitionEvent.prototype);
+  }, `SpeechRecognitionEvent's ${name} attribute should not exist`);
 });
 </script>

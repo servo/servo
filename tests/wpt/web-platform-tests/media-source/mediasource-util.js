@@ -323,7 +323,9 @@
         test.done = function()
         {
             if (test.status == test.PASS) {
-                assert_false(test.eventExpectations_.expectingEvents(), "No pending event expectations.");
+                test.step(function() {
+                    assert_false(test.eventExpectations_.expectingEvents(), "No pending event expectations.");
+                });
             }
             oldTestDone();
         };

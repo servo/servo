@@ -1,6 +1,6 @@
 <!DOCTYPE HTML>
 <meta charset=utf-8>
-<title>Element Timing: observe cross-origin images but without startTime</title>
+<title>Element Timing: observe cross-origin images but without renderTime</title>
 <body>
 <style>
 body {
@@ -23,8 +23,8 @@ body {
         assert_equals(entryList.getEntries().length, 1);
         const entry = entryList.getEntries()[0];
         checkElement(entry, pathname, 'my_image', 'the_id', 0, img);
-        assert_equals(entry.startTime, 0,
-          'The startTime of a cross-origin image should be 0.');
+        assert_equals(entry.renderTime, 0,
+          'The renderTime of a cross-origin image should be 0.');
         checkRect(entry, [0, 100, 0, 100]);
         checkNaturalSize(entry, 100, 100);
       })
