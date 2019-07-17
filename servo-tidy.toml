@@ -78,6 +78,7 @@ files = [
 directories = [
   # Upstream
   "./support/android/apk",
+  "./support/hololens",
   "./support/linux/gstreamer",
   "./support/magicleap/Servo2D/.vscode",
   "./support/magicleap/Servo2D/code/inc.gen",
