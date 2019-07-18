@@ -97,7 +97,7 @@ sudo apt install git curl autoconf libx11-dev \
     libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev autoconf2.13
 ```
 
-Additionally, you'll need a local copy of GStreamer with a version later than 12.0. You can place it in `support/linux/gstreamer/gstreamer`, or run `./mach bootstrap-gstreamer` to set it up.
+Additionally, you'll need a local copy of GStreamer with a version later than 12.0. You can place it in `support/linux/gstreamer/gst`, or run `./mach bootstrap-gstreamer` to set it up.
 
 If you are using **Ubuntu 16.04** or **Linux Mint 18.&#42;** run `export HARFBUZZ_SYS_NO_PKG_CONFIG=1` before building to avoid an error with harfbuzz.
 
