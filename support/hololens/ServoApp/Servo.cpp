@@ -56,6 +56,7 @@ Servo::Servo(GLsizei width, GLsizei height)
   o.height = mWindowHeight;
   o.density = 1.0;
   o.enable_subpixel_text_antialiasing = false;
+  o.vr_pointer = NULL;
 
   CHostCallbacks c;
   c.flush = &flush;
