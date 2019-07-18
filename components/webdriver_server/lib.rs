@@ -188,6 +188,8 @@ struct WebDriverSession {
     active_input_sources: Vec<InputSourceState>,
     // https://w3c.github.io/webdriver/#dfn-input-state-table
     input_state_table: HashMap<String, InputSourceState>,
+    // https://w3c.github.io/webdriver/#dfn-input-cancel-list
+    input_cancel_list: Option<ActionSequence>,
 }
 
 impl WebDriverSession {
@@ -211,6 +213,7 @@ impl WebDriverSession {
 
             active_input_sources: Vec::new(),
             input_state_table: HashMap::new(),
+            input_cancel_list: None,
         }
     }
 }
@@ -521,7 +524,7 @@ fn dispatch_tick_actions(
 
 fn dispatch_actions(
     session: &mut WebDriverSession,
-    actions_by_tick: &Vec<ActionSequence>
+    actions_by_tick: &Vec<ActionSequence>,
 ) -> WebDriverResult<WebDriverResponse> {
     for tick_actions in actions_by_tick.iter() {
         let tick_duration = compute_tick_duration(&tick_actions);
@@ -1429,7 +1432,28 @@ impl Handler {
         &mut self,
         parameters: &ActionsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        dispatch_actions(self.session.as_mut().unwrap(), &parameters.actions)
+        dispatch_actions(self.session_mut()?, &parameters.actions)
+    }
+
+    fn handle_release_actions(&mut self) -> WebDriverResult<WebDriverResponse> {
+        let mut session = self.session_mut()?;
+
+        // Step 1.2
+        // TODO: georgeroman
+        // Let undo actions be the reverse of input cancel list
+        // Step 1.3
+        if session.input_cancel_list.is_some() {
+            // TODO: georgeroman
+            // Dispatch tick actions with undo actions
+        }
+        // Step 1.4
+        session.input_cancel_list = None;
+        // Step 1.5
+        session.input_state_table = HashMap::new();
+        // Step 1.6
+        session.active_input_sources = Vec::new();
+
+        Ok(WebDriverResponse::Void)
     }
 
     fn handle_execute_script(
@@ -1707,6 +1731,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             },
             WebDriverCommand::GetPageSource => self.handle_get_page_source(),
             WebDriverCommand::PerformActions(ref x) => self.handle_perform_actions(x),
+            WebDriverCommand::ReleaseActions => self.handle_release_actions(),
             WebDriverCommand::ExecuteScript(ref x) => self.handle_execute_script(x),
             WebDriverCommand::ExecuteAsyncScript(ref x) => self.handle_execute_async_script(x),
             WebDriverCommand::ElementSendKeys(ref element, ref keys) => {
