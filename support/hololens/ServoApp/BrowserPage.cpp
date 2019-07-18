@@ -9,9 +9,6 @@
 #include "ImmersiveView.h"
 #include "OpenGLES.h"
 
-#include "winrt/Windows.UI.ViewManagement.h"
-#include "winrt/Windows.UI.Popups.h"
-
 using namespace winrt::Windows::UI::Xaml;
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::UI::ViewManagement;
