@@ -119,7 +119,7 @@ void ImmersiveView::Run() {
 // your IFrameworkView class is torn down while the app is in the foreground,
 // for example if the Run method exits.
 void ImmersiveView::Uninitialize() {
-  // FIXME: m_main.reset();
+  m_main.reset();
   m_deviceResources.reset();
 
   CoreApplication::Suspending(m_suspendingEventToken);
