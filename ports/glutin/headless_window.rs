@@ -53,7 +53,7 @@ impl HeadlessContext {
         attribs.push(3);
         attribs.push(0);
 
-        let share = share.map_or(ptr::null_mut(), |share| share._context as *mut _);
+        let share = share.map_or(ptr::null_mut(), |share| share.context as *mut _);
 
         let context = unsafe { osmesa_sys::OSMesaCreateContextAttribs(attribs.as_ptr(), share) };
 
