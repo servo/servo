@@ -14,7 +14,7 @@ promise_test(async t => {
   ];
 
   for (let signal of invalidSignals) {
-    await promise_rejects(t, new TypeError(), WakeLock.request('screen', { signal: signal }));
+    await promise_rejects(t, new TypeError(), WakeLock.request('system', { signal: signal }));
   }
 }, "'TypeError' is thrown when the signal option is not an AbortSignal");
 
@@ -24,7 +24,7 @@ promise_test(t => {
   abortController.abort();
   assert_true(abortSignal.aborted);
 
-  return promise_rejects(t, "AbortError", WakeLock.request('screen', { signal: abortSignal }));
+  return promise_rejects(t, "AbortError", WakeLock.request('system', { signal: abortSignal }));
 }, "A WakeLock request with an AbortSignal whose abort flag is set always aborts");
 
 promise_test(async t => {
@@ -33,8 +33,8 @@ promise_test(async t => {
   abortController.abort();
   assert_true(abortSignal.aborted);
 
-  const lock1 = WakeLock.request('screen', { signal: abortSignal });
-  const lock2 = WakeLock.request('screen', { signal: abortSignal });
+  const lock1 = WakeLock.request('system', { signal: abortSignal });
+  const lock2 = WakeLock.request('system', { signal: abortSignal });
   const lock3 = WakeLock.request('system', { signal: abortSignal });
 
   await promise_rejects(t, "AbortError", lock1);

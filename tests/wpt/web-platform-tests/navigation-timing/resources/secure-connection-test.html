@@ -1,0 +1,13 @@
+<!doctype html>
+<script>
+const entries =  performance.getEntriesByType("navigation");
+if (!entries) {
+  window.top.postMessage("FAIL - not supported", "*");
+}
+const entry = entries[0];
+if (entry.secureConnectionStart != entry.fetchStart) {
+  window.top.postMessage("FAIL - unexpected secureConnectionStart value of " +
+    entry.secureConnectionStart + " does not equal " + entry.fetchStart, "*");
+}
+window.top.postMessage("PASS", "*");
+</script>

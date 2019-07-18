@@ -4,7 +4,7 @@
   <script src=/resources/testharnessreport.js></script>
   <script src="resources/webxr_util.js"></script>
   <script src="resources/webxr_test_constants.js"></script>
-  <script src="resources/xr-test-asserts.js"></script>
+  <script src="resources/webxr_test_asserts.js"></script>
   <canvas></canvas>
 
   <script>
@@ -54,7 +54,7 @@
 
                 let poseMatrix = pose.transform.matrix;
                 assert_not_equals(poseMatrix, null);
-                assert_matrix_approx_equals(poseMatrix, expectedPoseMatrix, FLOAT_EPSILON);
+                assert_matrix_approx_equals(poseMatrix, expectedPoseMatrix);
               });
 
               // Finished.

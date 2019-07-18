@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<canvas id="webgl-canvas"></canvas>
+
+<script>
+let testName = "XRInputSources primary input presses properly fires off the "
+  + "right events";
+
+let watcherDone = new Event("watcherdone");
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let xrViewerSpace = null;
+
+let testFunction = function(session, fakeDeviceController, t) {
+  let eventWatcher = new EventWatcher(
+    t, session, ["selectstart", "select", "selectend", "watcherdone"]);
+  let eventPromise = eventWatcher.wait_for(
+    ["selectstart", "select", "selectend", "watcherdone"]);
+
+  function tryCallingFrameMethods(frame) {
+    t.step(() => {
+      // Frame is active but not an animation frame, so calling getPose is
+      // allowed while getViewerPose is not.
+      assert_throws('InvalidStateError', () => frame.getViewerPose(currentReferenceSpace));
+      let pose = frame.getPose(xrViewerSpace, currentReferenceSpace);
+      assert_not_equals(pose, null);
+      assert_true(pose instanceof XRPose);
+      assert_false(pose instanceof XRViewerPose);
+    });
+  }
+
+  function onSessionSelectStart(event) {
+    t.step( () => {
+      let input_sources = session.inputSources;
+      assert_equals(event.frame.session, session);
+      assert_equals(event.inputSource, input_sources[0]);
+      tryCallingFrameMethods(event.frame);
+    });
+  }
+
+  function onSessionSelectEnd(event) {
+    t.step( () => {
+      let input_sources = session.inputSources;
+      assert_equals(event.frame.session, session);
+      assert_equals(event.inputSource, input_sources[0]);
+      tryCallingFrameMethods(event.frame);
+    });
+    session.dispatchEvent(watcherDone);
+  }
+
+  function onSessionSelect(event) {
+    t.step( () => {
+      let input_sources = session.inputSources;
+      assert_equals(event.frame.session, session);
+      assert_equals(event.inputSource, input_sources[0]);
+      tryCallingFrameMethods(event.frame);
+    });
+  }
+
+  session.addEventListener("selectstart", onSessionSelectStart, false);
+  session.addEventListener("selectend", onSessionSelectEnd, false);
+  session.addEventListener("select", onSessionSelect, false);
+
+  let input_source =
+    fakeDeviceController.simulateInputSourceConnection(VALID_CONTROLLER);
+  let currentReferenceSpace = null;
+
+  session.requestReferenceSpace('viewer').then(function(viewerSpace) {
+    xrViewerSpace = viewerSpace;
+
+    session.requestReferenceSpace('local').then((referenceSpace) => {
+      currentReferenceSpace = referenceSpace;
+
+      // Press the primary input button and then release it a short time later.
+      session.requestAnimationFrame((time, xrFrame) => {
+        input_source.startSelection();
+
+          session.requestAnimationFrame((time, xrFrame) => {
+            input_source.endSelection();
+
+            session.requestAnimationFrame((time, xrFrame) => {
+              // Need to process one more frame to allow select to propegate.
+            });
+          });
+      });
+    });
+  });
+
+  return eventPromise;
+};
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+
+</script>

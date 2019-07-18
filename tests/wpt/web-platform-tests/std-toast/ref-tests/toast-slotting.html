@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Toast: slotting test</title>
+<link rel="help" href="https://github.com/jackbsteinberg/std-toast">
+<meta name="assert" content="Toast slots action button behind any text">
+<link rel="match" href="toast-slotting-expected.html">
+<script type="module">
+import 'std:elements/toast';
+</script>
+<p>Pass if the toast is displayed with the action button last.</p>
+<std-toast open>First. <button slot="action">Last.</button> Second. </std-toast>

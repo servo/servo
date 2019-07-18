@@ -15,9 +15,7 @@ test(() => {
 
 async_test(t => {
   window.addEventListener("error", t.step_func_done(errorEvent => {
-    assert_equals(errorEvent.error.constructor, DOMException, "Must trigger a DOMException");
-    assert_equals(errorEvent.error.name, "SecurityError",
-      "The DOMException must be a \"SecurityError\"");
+    assert_equals(errorEvent.error.constructor, TypeError, "Must trigger a TypeError");
   }, { once: true }));
 });
 </script>

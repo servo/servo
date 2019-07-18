@@ -48,18 +48,18 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
                                            **kwargs)
     executor_kwargs["close_after_done"] = True
     capabilities = dict(DesiredCapabilities.CHROME.items())
-    capabilities["chromeOptions"] = {}
-    # required to start on mobile
-    capabilities["chromeOptions"]["androidPackage"] = "com.google.android.apps.chrome"
+    capabilities["goog:chromeOptions"] = {}
+    # TODO(chrome): browser_channel should be properly supported.
+    package_name = "com.android.chrome"  # stable channel
+    # Required to start on mobile
+    capabilities["goog:chromeOptions"]["androidPackage"] = package_name
 
     for (kwarg, capability) in [("binary", "binary"), ("binary_args", "args")]:
         if kwargs[kwarg] is not None:
-            capabilities["chromeOptions"][capability] = kwargs[kwarg]
+            capabilities["goog:chromeOptions"][capability] = kwargs[kwarg]
     if test_type == "testharness":
         capabilities["useAutomationExtension"] = False
         capabilities["excludeSwitches"] = ["enable-automation"]
-    if test_type == "wdspec":
-        capabilities["chromeOptions"]["w3c"] = True
     executor_kwargs["capabilities"] = capabilities
     return executor_kwargs
 
@@ -86,15 +86,17 @@ class ChromeAndroidBrowser(Browser):
         self.server = ChromeDriverServer(self.logger,
                                          binary=webdriver_binary,
                                          args=webdriver_args)
+        self.setup_adb_reverse()
 
     def _adb_run(self, args):
         self.logger.info('adb ' + ' '.join(args))
         subprocess.check_call(['adb'] + args)
 
-    def setup(self):
+    def setup_adb_reverse(self):
         self._adb_run(['wait-for-device'])
         self._adb_run(['forward', '--remove-all'])
         self._adb_run(['reverse', '--remove-all'])
+        # "adb reverse" forwards network connection from device to host.
         for port in _wptserve_ports:
             self._adb_run(['reverse', 'tcp:%d' % port, 'tcp:%d' % port])
 

@@ -15,10 +15,11 @@
         assert_equals(entryList.getEntries().length, 1);
         const entry = entryList.getEntries()[0];
         assert_equals(entry.entryType, 'largest-contentful-paint');
-        assert_greater_than_equal(entry.startTime, beforeRender,
+        assert_greater_than_equal(entry.renderTime, beforeRender,
           'The rendering timestamp should occur after script starts running.');
-        assert_greater_than_equal(performance.now(), entry.startTime,
+        assert_greater_than_equal(performance.now(), entry.renderTime,
           'The rendering timestamp should occur before the entry is dispatched to the observer.');
+        assert_equals(entry.startTime, 0);
         assert_equals(entry.duration, 0);
         // blue.png is 133 x 106.
         assert_equals(entry.size, 14098);

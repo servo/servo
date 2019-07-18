@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Clicking on an &lt;a> element with a download attribute and href that redirects to 'javascript:' should not navigate or execute</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-a-element:activation-behaviour">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/links.html#attr-hyperlink-download">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+"use strict";
+async_test(t => {
+    const errorFrame = document.createElement("iframe");
+
+    errorFrame.addEventListener("load", t.step_func(function () {
+        assert_false(errorFrame.contentWindow.executed);
+        errorFrame.contentWindow.addEventListener(
+            "beforeunload", t.unreached_func("Page should not navigate."));
+
+        errorFrame.contentDocument.querySelector("#error-url").click();
+        t.step_timeout(_ => {
+          assert_false(errorFrame.contentWindow.executed, "Redirecting to javascript: was suppressed.");
+          t.done();
+        }, 1000);
+    }));
+    errorFrame.src = "resources/a-download-redirect-to-javascript.html";
+    document.body.appendChild(errorFrame);
+}, "Do not navigate or execute JS when redirecting a download to 'javascript:..'");
+</script>
+</body>

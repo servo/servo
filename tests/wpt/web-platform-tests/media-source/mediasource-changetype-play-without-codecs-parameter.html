@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!-- Copyright © 2019 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>Exercise changeType for supported test types, using mime types WITHOUT codecs for addSourceBuffer and changeType.</title>
+        <meta name="timeout" content="long">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+        <script src="mediasource-changetype-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+
+function generateChangeTypeTests(audio_types, video_types) {
+  async_test((test) => {
+    assert_true(audio_types.length > 1, "Browser doesn't support at least 2 types of audio test media");
+    assert_true(video_types.length > 1, "Browser doesn't support at least 2 types of video test media");
+    test.done();
+  }, "Check if browser supports enough test media types");
+
+  // Generate audio-only changeType tests
+  for (let audio1 of audio_types) {
+    for (let audio2 of audio_types) {
+      mediaSourceChangeTypeTest(
+          audio1, audio2,
+          "Test audio-only changeType for " +
+              audio1.type + " <-> " + audio2.type +
+              " (using types without codecs parameters)",
+          { use_relaxed_mime_types: true } );
+    }
+  }
+
+  // Generate video-only changeType tests
+  for (let video1 of video_types) {
+    for (let video2 of video_types) {
+      mediaSourceChangeTypeTest(
+          video1, video2,
+          "Test video-only changeType for " +
+              video1.type + " <-> " + video2.type +
+              " (using types without codecs parameters)",
+          { use_relaxed_mime_types: true });
+    }
+  }
+}
+
+findSupportedChangeTypeTestTypes(generateChangeTypeTests);
+
+        </script>
+    </body>
+</html>

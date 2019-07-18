@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Toast: style tests</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<main>
+</main>
+
+<script type="module">
+import { testToastElement, assertComputedStyleMapsEqual } from './resources/helpers.js';
+
+testToastElement((toast) => {
+    toast.open = true;
+
+    const mockToast = document.createElement('span');
+    mockToast.id = 'mock-toast-open';
+    mockToast.textContent = 'Message';
+
+    const mockStyler = document.createElement('style');
+    mockStyler.textContent = `
+        #mock-toast-open {
+          position: fixed;
+          bottom: 1em;
+          right: 1em;
+          border: solid;
+          padding: 1em;
+          background: white;
+          color: black;
+          z-index: 1;
+        }`;
+
+    document.querySelector('main').appendChild(mockStyler);
+    document.querySelector('main').appendChild(mockToast);
+
+    assertComputedStyleMapsEqual(toast, mockToast);
+}, 'the computed style map of an open unstyled toast is the same as a span given toast defaults');
+
+testToastElement((toast) => {
+    const mockToast = document.createElement('span');
+    mockToast.id = 'mock-toast-hidden';
+    mockToast.textContent = 'Message';
+
+    const mockStyler = document.createElement('style');
+    mockStyler.textContent = `
+        #mock-toast-hidden {
+          position: fixed;
+          bottom: 1em;
+          right: 1em;
+          border: solid;
+          padding: 1em;
+          background: white;
+          color: black;
+          z-index: 1;
+          display: none;
+        }`;
+
+    document.querySelector('main').appendChild(mockStyler);
+    document.querySelector('main').appendChild(mockToast);
+
+    assertComputedStyleMapsEqual(toast, mockToast);
+}, 'the computed style map of a closed unstyled toast is the same as a span given toast defaults');
+</script>
