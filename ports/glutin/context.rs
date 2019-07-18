@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use glutin::os::ContextTraitExt;
-use glutin::{NotCurrent, PossiblyCurrent, WindowedContext};
+use glutin::{ContextBuilder, CreationError, EventsLoop, NotCurrent, PossiblyCurrent, WindowedContext, WindowBuilder};
 use servo_media::player::context::GlContext as RawContext;
 use std::os::raw;
 
@@ -133,6 +133,28 @@ impl GlContext {
                 RawContext::Unknown
             }
             GlContext::None => unreachable!(),
+        }
+    }
+
+    pub fn new_window<T>(
+        &self,
+        cb: ContextBuilder<T>,
+        wb: WindowBuilder,
+        el: &EventsLoop
+    ) -> Result<WindowedContext<NotCurrent>, CreationError>
+    where
+        T: glutin::ContextCurrentState,
+    {
+        match self {
+            GlContext::Current(ref c) => {
+                cb.with_shared_lists(c).build_windowed(wb, el)
+            },
+            GlContext::NotCurrent(ref c) => {
+                cb.with_shared_lists(c).build_windowed(wb, el)
+            },
+            GlContext::None => {
+                cb.build_windowed(wb, el)
+            },
         }
     }
 
