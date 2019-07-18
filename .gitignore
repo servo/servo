@@ -48,37 +48,39 @@ capture_webrender/
 
 support/hololens/x64/
 support/hololens/ARM/
-support/hololens/Generated\ Files
+support/hololens/ServoApp/x64/
+support/hololens/ServoApp/ARM/
+support/hololens/ServoApp/Generated\ Files
 
 # Ignore thumbnails created by Windows
-support/hololens/Thumbs.db
+support/hololens/ServoApp/Thumbs.db
 
 # Ignore files built by Visual Studio
-support/hololens/*.obj
-support/hololens/*.exe
-support/hololens/*.pdb
-support/hololens/*.user
-support/hololens/*.aps
-support/hololens/*.pch
-support/hololens/*.vspscc
-support/hololens/*_i.c
-support/hololens/*_p.c
-support/hololens/*.ncb
-support/hololens/*.suo
-support/hololens/*.tlb
-support/hololens/*.tlh
-support/hololens/*.bak
-support/hololens/*.cache
-support/hololens/*.ilk
-support/hololens/*.log
-support/hololens/[Bb]in
-support/hololens/[Dd]ebug*/
-support/hololens/*.lib
-support/hololens/*.sbr
-support/hololens/obj/
-support/hololens/[Rr]elease*/
-support/hololens/_ReSharper*/
-support/hololens/[Tt]est[Rr]esult*
+support/hololens/ServoApp/*.obj
+support/hololens/ServoApp/*.exe
+support/hololens/ServoApp/*.pdb
+support/hololens/ServoApp/*.user
+support/hololens/ServoApp/*.aps
+support/hololens/ServoApp/*.pch
+support/hololens/ServoApp/*.vspscc
+support/hololens/ServoApp/*_i.c
+support/hololens/ServoApp/*_p.c
+support/hololens/ServoApp/*.ncb
+support/hololens/ServoApp/*.suo
+support/hololens/ServoApp/*.tlb
+support/hololens/ServoApp/*.tlh
+support/hololens/ServoApp/*.bak
+support/hololens/ServoApp/*.cache
+support/hololens/ServoApp/*.ilk
+support/hololens/ServoApp/*.log
+support/hololens/ServoApp/[Bb]in
+support/hololens/ServoApp/[Dd]ebug*/
+support/hololens/ServoApp/*.lib
+support/hololens/ServoApp/*.sbr
+support/hololens/ServoApp/obj/
+support/hololens/ServoApp/[Rr]elease*/
+support/hololens/ServoApp/_ReSharper*/
+support/hololens/ServoApp/[Tt]est[Rr]esult*
 support/hololens/.vs/
 
 # Nuget packages folder
