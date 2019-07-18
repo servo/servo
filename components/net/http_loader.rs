@@ -42,7 +42,7 @@ use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
 use net_traits::request::{ResponseTainting, ServiceWorkersMode};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
-use net_traits::{RedirectStartValue, RedirectEndValue, ResourceAttribute, ResourceFetchTiming};
+use net_traits::{RedirectEndValue, RedirectStartValue, ResourceAttribute, ResourceFetchTiming};
 use openssl::ssl::SslConnectorBuilder;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::{HashMap, HashSet};
