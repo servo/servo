@@ -15,7 +15,7 @@ use crate::values::computed::CSSPixelLength;
 use crate::values::KeyframesName;
 use app_units::Au;
 use cssparser::RGBA;
-use euclid::{Size2D, TypedScale, TypedSize2D};
+use euclid::{Size2D, Scale, Size2D};
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel};
@@ -29,9 +29,9 @@ pub struct Device {
     /// The current media type used by de device.
     media_type: MediaType,
     /// The current viewport size, in CSS pixels.
-    viewport_size: TypedSize2D<f32, CSSPixel>,
+    viewport_size: Size2D<f32, CSSPixel>,
     /// The current device pixel ratio, from CSS pixels to device pixels.
-    device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
+    device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
 
     /// The font size of the root element
     /// This is set when computing the style of the root
@@ -59,8 +59,8 @@ impl Device {
     /// Trivially construct a new `Device`.
     pub fn new(
         media_type: MediaType,
-        viewport_size: TypedSize2D<f32, CSSPixel>,
-        device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
+        viewport_size: Size2D<f32, CSSPixel>,
+        device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
     ) -> Device {
         Device {
             media_type,
@@ -140,7 +140,7 @@ impl Device {
     }
 
     /// Returns the device pixel ratio.
-    pub fn device_pixel_ratio(&self) -> TypedScale<f32, CSSPixel, DevicePixel> {
+    pub fn device_pixel_ratio(&self) -> Scale<f32, CSSPixel, DevicePixel> {
         self.device_pixel_ratio
     }
 

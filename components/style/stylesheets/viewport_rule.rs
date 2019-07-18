@@ -25,7 +25,7 @@ use crate::values::specified::{NonNegativeLengthPercentageOrAuto, ViewportPercen
 use app_units::Au;
 use cssparser::CowRcStr;
 use cssparser::{parse_important, AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
-use euclid::TypedSize2D;
+use euclid::Size2D;
 use selectors::parser::SelectorParseErrorKind;
 use std::borrow::Cow;
 use std::cell::RefCell;
@@ -832,7 +832,7 @@ impl MaybeNew for ViewportConstraints {
         });
 
         Some(ViewportConstraints {
-            size: TypedSize2D::new(width.to_f32_px(), height.to_f32_px()),
+            size: Size2D::new(width.to_f32_px(), height.to_f32_px()),
 
             // TODO: compute a zoom factor for 'auto' as suggested by DEVICE-ADAPT § 10.
             initial_zoom: PinchZoomFactor::new(initial_zoom.unwrap_or(1.)),

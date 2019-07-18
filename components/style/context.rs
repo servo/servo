@@ -31,8 +31,8 @@ use crate::traversal_flags::TraversalFlags;
 use app_units::Au;
 #[cfg(feature = "servo")]
 use crossbeam_channel::Sender;
-use euclid::Size2D;
-use euclid::TypedScale;
+use euclid::default::Size2D;
+use euclid::Scale;
 use fxhash::FxHashMap;
 #[cfg(feature = "servo")]
 use parking_lot::RwLock;
@@ -195,7 +195,7 @@ impl<'a> SharedStyleContext<'a> {
     }
 
     /// The device pixel ratio
-    pub fn device_pixel_ratio(&self) -> TypedScale<f32, CSSPixel, DevicePixel> {
+    pub fn device_pixel_ratio(&self) -> Scale<f32, CSSPixel, DevicePixel> {
         self.stylist.device().device_pixel_ratio()
     }
 

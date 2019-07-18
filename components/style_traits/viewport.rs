@@ -6,7 +6,7 @@
 
 use crate::{CSSPixel, CssWriter, ParseError, PinchZoomFactor, ToCss};
 use cssparser::Parser;
-use euclid::TypedSize2D;
+use euclid::Size2D;
 use std::fmt::{self, Write};
 
 define_css_keyword_enum! {
@@ -33,7 +33,7 @@ pub struct ViewportConstraints {
     /// Width and height:
     ///  * https://drafts.csswg.org/css-device-adapt/#width-desc
     ///  * https://drafts.csswg.org/css-device-adapt/#height-desc
-    pub size: TypedSize2D<f32, CSSPixel>,
+    pub size: Size2D<f32, CSSPixel>,
     /// <https://drafts.csswg.org/css-device-adapt/#zoom-desc>
     pub initial_zoom: PinchZoomFactor,
     /// <https://drafts.csswg.org/css-device-adapt/#min-max-width-desc>

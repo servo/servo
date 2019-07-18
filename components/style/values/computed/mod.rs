@@ -23,7 +23,7 @@ use crate::rule_cache::RuleCacheConditions;
 use crate::Atom;
 #[cfg(feature = "servo")]
 use crate::Prefix;
-use euclid::Size2D;
+use euclid::default::Size2D;
 use std::cell::RefCell;
 use std::cmp;
 use std::f32;

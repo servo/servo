@@ -27,7 +27,7 @@ servo = [
 app_units = "0.7"
 crossbeam-channel = { version = "0.3", optional = true }
 cssparser = "0.25"
-euclid = "0.19"
+euclid = "0.20"
 hashglobe = { path = "../hashglobe" }
 hyper = { version = "0.12", optional = true }
 hyper_serde = { version = "0.11", optional = true }

@@ -12,7 +12,8 @@ use crate::values::specified::length::LengthPercentage as SpecifiedLengthPercent
 use crate::values::{computed, CSSFloat};
 use crate::Zero;
 use app_units::Au;
-use euclid::{self, Rect, Transform3D};
+use euclid::default::{Rect, Transform3D};
+use euclid;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
@@ -562,7 +563,7 @@ impl<T: ToMatrix> Transform<T> {
         for operation in &*self.0 {
             let matrix = operation.to_3d_matrix(reference_box)?;
             contain_3d |= operation.is_3d();
-            transform = transform.pre_mul(&matrix);
+            transform = transform.pre_transform(&matrix);
         }
 
         Ok((transform, contain_3d))

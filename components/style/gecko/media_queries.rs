@@ -16,8 +16,8 @@ use crate::values::{CustomIdent, KeyframesName};
 use app_units::Au;
 use app_units::AU_PER_PX;
 use cssparser::RGBA;
-use euclid::Size2D;
-use euclid::TypedScale;
+use euclid::default::Size2D;
+use euclid::Scale;
 use servo_arc::Arc;
 use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicIsize, AtomicUsize, Ordering};
@@ -247,20 +247,20 @@ impl Device {
     }
 
     /// Returns the device pixel ratio.
-    pub fn device_pixel_ratio(&self) -> TypedScale<f32, CSSPixel, DevicePixel> {
+    pub fn device_pixel_ratio(&self) -> Scale<f32, CSSPixel, DevicePixel> {
         let pc = match self.pres_context() {
             Some(pc) => pc,
-            None => return TypedScale::new(1.),
+            None => return Scale::new(1.),
         };
 
         let override_dppx = pc.mOverrideDPPX;
         if override_dppx > 0.0 {
-            return TypedScale::new(override_dppx);
+            return Scale::new(override_dppx);
         }
 
         let au_per_dpx = pc.mCurAppUnitsPerDevPixel as f32;
         let au_per_px = AU_PER_PX as f32;
-        TypedScale::new(au_per_px / au_per_dpx)
+        Scale::new(au_per_px / au_per_dpx)
     }
 
     /// Returns whether document colors are enabled.
