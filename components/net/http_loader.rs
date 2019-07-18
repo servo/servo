@@ -792,6 +792,7 @@ pub fn http_redirect_fetch(
         context,
     );
 
+    // TODO: timing allow check
     context
         .timing
         .lock()
