@@ -4,13 +4,13 @@
 
 #[macro_use]
 extern crate lazy_static;
-#[cfg(feature = "bindgen")]
+#[cfg(feature = "gecko")]
 extern crate bindgen;
-#[cfg(feature = "bindgen")]
+#[cfg(feature = "gecko")]
 extern crate log;
-#[cfg(feature = "bindgen")]
+#[cfg(feature = "gecko")]
 extern crate regex;
-#[cfg(feature = "bindgen")]
+#[cfg(feature = "gecko")]
 extern crate toml;
 extern crate walkdir;
 
