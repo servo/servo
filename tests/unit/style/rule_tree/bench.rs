@@ -187,13 +187,13 @@ fn bench_insertion_basic_parallel(b: &mut Bencher) {
     b.iter(|| {
         let _gc = AutoGCRuleTree::new(&r, &lock);
 
-        rayon::scope(|s| {
+        rayon::scope_fifo(|s| {
             for _ in 0..4 {
-                s.spawn(|s| {
+                s.spawn_fifo(|s| {
                     for _ in 0..1000 {
                         test::black_box(test_insertion(&r, rules_matched.clone()));
                     }
-                    s.spawn(|_| {
+                    s.spawn_fifo(|_| {
                         for _ in 0..100 {
                             test::black_box(test_insertion(&r, rules_matched.clone()));
                         }
@@ -220,13 +220,13 @@ fn bench_expensive_insertion_parallel(b: &mut Bencher) {
     b.iter(|| {
         let _gc = AutoGCRuleTree::new(&r, &lock);
 
-        rayon::scope(|s| {
+        rayon::scope_fifo(|s| {
             for _ in 0..4 {
-                s.spawn(|s| {
+                s.spawn_fifo(|s| {
                     for _ in 0..1000 {
                         test::black_box(test_insertion_style_attribute(&r, &rules_matched, &lock));
                     }
-                    s.spawn(|_| {
+                    s.spawn_fifo(|_| {
                         for _ in 0..100 {
                             test::black_box(test_insertion_style_attribute(
                                 &r,

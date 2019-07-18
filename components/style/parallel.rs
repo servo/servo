@@ -104,7 +104,7 @@ fn top_down_dom<'a, 'scope, E, D>(
     nodes: &'a [SendNode<E::ConcreteNode>],
     root: OpaqueNode,
     mut traversal_data: PerLevelTraversalData,
-    scope: &'a rayon::Scope<'scope>,
+    scope: &'a rayon::ScopeFifo<'scope>,
     pool: &'scope rayon::ThreadPool,
     traversal: &'scope D,
     tls: &'scope ScopedTLS<'scope, ThreadLocalStyleContext<E>>,
@@ -248,7 +248,7 @@ pub fn traverse_nodes<'a, 'scope, E, D, I>(
     recursion_ok: bool,
     root: OpaqueNode,
     traversal_data: PerLevelTraversalData,
-    scope: &'a rayon::Scope<'scope>,
+    scope: &'a rayon::ScopeFifo<'scope>,
     pool: &'scope rayon::ThreadPool,
     traversal: &'scope D,
     tls: &'scope ScopedTLS<'scope, ThreadLocalStyleContext<E>>,
@@ -276,7 +276,7 @@ pub fn traverse_nodes<'a, 'scope, E, D, I>(
         if may_dispatch_tail {
             top_down_dom(&work, root, traversal_data, scope, pool, traversal, tls);
         } else {
-            scope.spawn(move |scope| {
+            scope.spawn_fifo(move |scope| {
                 profiler_label!(Style);
                 let work = work;
                 top_down_dom(&work, root, traversal_data, scope, pool, traversal, tls);
@@ -286,7 +286,7 @@ pub fn traverse_nodes<'a, 'scope, E, D, I>(
         for chunk in nodes.chunks(WORK_UNIT_MAX).into_iter() {
             let nodes: WorkUnit<E::ConcreteNode> = chunk.collect();
             let traversal_data_copy = traversal_data.clone();
-            scope.spawn(move |scope| {
+            scope.spawn_fifo(move |scope| {
                 profiler_label!(Style);
                 let n = nodes;
                 top_down_dom(&*n, root, traversal_data_copy, scope, pool, traversal, tls)
