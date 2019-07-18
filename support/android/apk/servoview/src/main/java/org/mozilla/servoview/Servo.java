@@ -169,6 +169,8 @@ public class Servo {
     }
 
     public interface Client {
+        void onAlert(String message);
+
         boolean onAllowNavigation(String url);
 
         void onLoadStarted();
@@ -226,6 +228,10 @@ public class Servo {
         public void makeCurrent() {
             // Up to the callback to execute this in the right thread
             mGfxCb.makeCurrent();
+        }
+
+        public void onAlert(String message) {
+            mRunCallback.inUIThread(() -> mClient.onAlert(message));
         }
 
         public void onShutdownComplete() {

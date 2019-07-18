@@ -375,6 +375,23 @@ impl HostTrait for HostCallbacks {
             .unwrap();
     }
 
+    fn on_alert(&self, message: String) {
+        debug!("on_alert");
+        let env = self.jvm.get_env().unwrap();
+        let s = match new_string(&env, &message) {
+            Ok(s) => s,
+            Err(_) => return,
+        };
+        let s = JValue::from(JObject::from(s));
+        env.call_method(
+            self.callbacks.as_obj(),
+            "onAlert",
+            "(Ljava/lang/String;)V",
+            &[s],
+        )
+        .unwrap();
+    }
+
     fn on_load_started(&self) {
         debug!("on_load_started");
         let env = self.jvm.get_env().unwrap();

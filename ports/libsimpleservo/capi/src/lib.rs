@@ -38,6 +38,7 @@ where
 pub struct CHostCallbacks {
     pub flush: extern "C" fn(),
     pub make_current: extern "C" fn(),
+    pub on_alert: extern "C" fn(message: *const c_char),
     pub on_load_started: extern "C" fn(),
     pub on_load_ended: extern "C" fn(),
     pub on_title_changed: extern "C" fn(title: *const c_char),
@@ -344,6 +345,14 @@ impl HostTrait for HostCallbacks {
     fn make_current(&self) {
         debug!("make_current");
         (self.0.make_current)();
+    }
+
+    fn on_alert(&self, message: String) {
+        debug!("on_alert");
+        let message = CString::new(message).expect("Can't create string");
+        let msg_ptr = message.as_ptr();
+        mem::forget(message);
+        (self.0.on_alert)(msg_ptr);
     }
 
     fn on_load_started(&self) {
