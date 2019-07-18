@@ -47,7 +47,10 @@ use msg::constellation_msg::BrowsingContextId;
 use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::request::Referrer;
-use script_traits::{AuxiliaryBrowsingContextLoadInfo, LoadData, NewLayoutInfo, ScriptMsg};
+use script_traits::{
+    AuxiliaryBrowsingContextLoadInfo, HistoryEntryReplacement, LoadData, LoadOrigin,
+};
+use script_traits::{NewLayoutInfo, ScriptMsg};
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::ptr;
@@ -268,24 +271,28 @@ impl WindowProxy {
             let new_browsing_context_id =
                 BrowsingContextId::from(new_top_level_browsing_context_id);
             let new_pipeline_id = PipelineId::new();
-            let load_info = AuxiliaryBrowsingContextLoadInfo {
-                opener_pipeline_id: self.currently_active.get().unwrap(),
-                new_browsing_context_id: new_browsing_context_id,
-                new_top_level_browsing_context_id: new_top_level_browsing_context_id,
-                new_pipeline_id: new_pipeline_id,
-            };
             let document = self
                 .currently_active
                 .get()
                 .and_then(|id| ScriptThread::find_document(id))
-                .unwrap();
+                .expect("A WindowProxy creating an auxiliary to have an active document");
+
             let blank_url = ServoUrl::parse("about:blank").ok().unwrap();
             let load_data = LoadData::new(
+                LoadOrigin::Script(document.origin().immutable().clone()),
                 blank_url,
                 None,
                 Some(Referrer::ReferrerUrl(document.url().clone())),
                 document.get_referrer_policy(),
             );
+            let load_info = AuxiliaryBrowsingContextLoadInfo {
+                load_data: load_data.clone(),
+                opener_pipeline_id: self.currently_active.get().unwrap(),
+                new_browsing_context_id: new_browsing_context_id,
+                new_top_level_browsing_context_id: new_top_level_browsing_context_id,
+                new_pipeline_id: new_pipeline_id,
+            };
+
             let (pipeline_sender, pipeline_receiver) = ipc::channel().unwrap();
             let new_layout_info = NewLayoutInfo {
                 parent_info: None,
@@ -437,13 +444,21 @@ impl WindowProxy {
                 Referrer::Client
             };
             // Step 14.5
-            target_window.load_url(
+            let referrer_policy = target_document.get_referrer_policy();
+            let pipeline_id = target_window.upcast::<GlobalScope>().pipeline_id();
+            let load_data = LoadData::new(
+                LoadOrigin::Script(existing_document.origin().immutable().clone()),
                 url,
-                new,
-                false,
-                referrer,
-                target_document.get_referrer_policy(),
+                Some(pipeline_id),
+                Some(referrer),
+                referrer_policy,
             );
+            let replacement_flag = if new {
+                HistoryEntryReplacement::Enabled
+            } else {
+                HistoryEntryReplacement::Disabled
+            };
+            target_window.load_url(replacement_flag, false, load_data);
         }
         if noopener {
             // Step 15 (Dis-owning has been done in create_auxiliary_browsing_context).

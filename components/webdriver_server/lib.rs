@@ -30,7 +30,7 @@ use script_traits::webdriver_msg::{LoadStatus, WebDriverCookieError, WebDriverFr
 use script_traits::webdriver_msg::{
     WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverScriptCommand,
 };
-use script_traits::{ConstellationMsg, LoadData, WebDriverCommandMsg};
+use script_traits::{ConstellationMsg, LoadData, LoadOrigin, WebDriverCommandMsg};
 use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
 use serde::ser::{Serialize, Serializer};
 use serde_json::{json, Value};
@@ -593,7 +593,7 @@ impl Handler {
 
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let load_data = LoadData::new(url, None, None, None);
+        let load_data = LoadData::new(LoadOrigin::WebDriver, url, None, None, None);
         let cmd_msg =
             WebDriverCommandMsg::LoadUrl(top_level_browsing_context_id, load_data, sender.clone());
         self.constellation_chan
