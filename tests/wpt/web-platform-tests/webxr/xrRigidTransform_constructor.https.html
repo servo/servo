@@ -75,13 +75,6 @@ let testFunction =
   checkDOMPoint(identity.position, 0.0, 0.0, 0.0, 1.0);
   checkDOMPoint(identity.orientation, 0.0, 0.0, 0.0, 1.0);
 
-  // test creating transform with quaternion of length 0
-  // constructor should not crash
-  let zeroLength = new XRRigidTransform(
-      createDOMPoint([1.0, 2.0, 3.0]),
-      createDOMPoint([0.0, 0.0, 0.0, 0.0]));
-  checkTransform(zeroLength);
-
   // create transform with only position specified
   transform = new XRRigidTransform(createDOMPoint([1.0, 2.0, 3.0]));
   checkTransform(transform);
@@ -102,6 +95,15 @@ let testFunction =
       coordDict([1.1, 2.1, 3.1, 1.0]));
   checkTransform(transform);
 
+  assert_throws(new TypeError(), () => new XRRigidTransform(
+      coordDict([1.0, 2.0, 3.0, 0.5]),
+      coordDict([1.1, 2.1, 3.1, 1.0])
+  ), "Constructor should throw TypeError for non-1 position w values");
+
+  assert_throws("InvalidStateError", () => new XRRigidTransform(
+      coordDict([1.0, 2.0, 3.0, 1.0]),
+      coordDict([0, 0, 0, 0])
+  ), "Constructor should throw InvalidStateError for non-normalizeable orientation values");
   resolve();
 });
 
