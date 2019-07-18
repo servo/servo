@@ -24,6 +24,7 @@ public:
   // Will be called from GL thread
   static std::function<void()> sFlush;
   static std::function<void()> sMakeCurrent;
+  static std::function<void(std::wstring const &)> sOnAlert;
   static std::function<void(std::wstring const &)> sOnTitleChanged;
   static std::function<void(std::wstring const &)> sOnURLChanged;
   static bool sAnimating;

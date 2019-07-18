@@ -9,6 +9,8 @@ void on_shutdown_complete() {}
 std::function<void()> Servo::sFlush = []() {};
 std::function<void()> Servo::sMakeCurrent = []() {};
 std::function<void()> Servo::sWakeUp = []() {};
+std::function<void(std::wstring const &)> Servo::sOnAlert =
+    [](std::wstring const &) {};
 std::function<void(std::wstring const &)> Servo::sOnTitleChanged =
     [](std::wstring const &) {};
 std::function<void(std::wstring const &)> Servo::sOnURLChanged =
@@ -24,6 +26,10 @@ std::wstring char2w(const char *c_str) {
   MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &str2[0],
                       size_needed);
   return str2;
+}
+
+void on_alert(const char *message) {
+  Servo::sOnAlert(char2w(message));
 }
 
 void on_title_changed(const char *title) {
@@ -54,6 +60,7 @@ Servo::Servo(GLsizei width, GLsizei height)
   CHostCallbacks c;
   c.flush = &flush;
   c.make_current = &make_current;
+  c.on_alert = &on_alert;
   c.on_load_started = &on_load_started;
   c.on_load_ended = &on_load_ended;
   c.on_title_changed = &on_title_changed;

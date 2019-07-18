@@ -9,9 +9,8 @@
 #include "ImmersiveView.h"
 #include "OpenGLES.h"
 
-// FIXME: necessary for ApplicationView::GetForCurrentView() to work.
-// https://devblogs.microsoft.com/oldnewthing/20190530-00/?p=102529
 #include "winrt/Windows.UI.ViewManagement.h"
+#include "winrt/Windows.UI.Popups.h"
 
 using namespace winrt::Windows::UI::Xaml;
 using namespace winrt::Windows::UI::Core;
@@ -50,12 +49,11 @@ void BrowserPage::OnImmersiveButtonClicked(IInspectable const &,
         winrt::Windows::ApplicationModel::Core::CoreApplication::CreateNewView(
             mImmersiveViewSource);
     auto parentId = ApplicationView::GetForCurrentView().Id();
-    v.Dispatcher().RunAsync(
-        Windows::UI::Core::CoreDispatcherPriority::Normal, [=]() {
-          auto winId = ApplicationView::GetForCurrentView().Id();
-          ApplicationViewSwitcher::SwitchAsync(winId, parentId);
-          log("Immersive view started");
-        });
+    v.Dispatcher().RunAsync(CoreDispatcherPriority::Normal, [=]() {
+      auto winId = ApplicationView::GetForCurrentView().Id();
+      ApplicationViewSwitcher::SwitchAsync(winId, parentId);
+      log("Immersive view started");
+    });
   } else {
     log("Holographic space not available");
   }
@@ -98,16 +96,24 @@ void BrowserPage::Loop(cancellation_token cancel) {
 
   HANDLE hEvent = ::CreateEventA(nullptr, FALSE, FALSE, sWakeupEvent);
 
-  Servo::sOnTitleChanged = [=](std::wstring title) {
+  Servo::sOnAlert = [=](std::wstring message) {
+    // FIXME: make this sync
     swapChainPanel().Dispatcher().RunAsync(
-        Windows::UI::Core::CoreDispatcherPriority::High,
-        [=]() { ApplicationView::GetForCurrentView().Title(title); });
+        Windows::UI::Core::CoreDispatcherPriority::High, [=]() {
+          Windows::UI::Popups::MessageDialog msg{message};
+          msg.ShowAsync();
+        });
+  };
+
+  Servo::sOnTitleChanged = [=](std::wstring title) {
+    swapChainPanel().Dispatcher().RunAsync(CoreDispatcherPriority::High, [=]() {
+      ApplicationView::GetForCurrentView().Title(title);
+    });
   };
 
   Servo::sOnURLChanged = [=](std::wstring url) {
-    swapChainPanel().Dispatcher().RunAsync(
-        Windows::UI::Core::CoreDispatcherPriority::High,
-        [=]() { urlTextbox().Text(url); });
+    swapChainPanel().Dispatcher().RunAsync(CoreDispatcherPriority::High,
+                                           [=]() { urlTextbox().Text(url); });
   };
 
   Servo::sMakeCurrent = [=]() {
@@ -126,8 +132,7 @@ void BrowserPage::Loop(cancellation_token cancel) {
       // Lost) If the call fails, then we must reinitialize EGL and the GL
       // resources.
       swapChainPanel().Dispatcher().RunAsync(
-          Windows::UI::Core::CoreDispatcherPriority::High,
-          [this]() { RecoverFromLostDevice(); });
+          CoreDispatcherPriority::High, [this]() { RecoverFromLostDevice(); });
     }
   };
 
