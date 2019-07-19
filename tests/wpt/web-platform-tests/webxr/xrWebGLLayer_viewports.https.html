@@ -22,6 +22,8 @@ let testFunction = function(session, fakeDeviceController, t) {
       let layer = xrFrame.session.renderState.baseLayer;
       for (view of viewer_pose.views) {
         let viewport = layer.getViewport(view);
+        let index = (view.eye === "right"? 1: 0);
+        let params = fakeDeviceInitParams.views[index];
 
         // Ensure the returned object is an XRViewport object
         assert_not_equals(viewport, null);
@@ -30,8 +32,20 @@ let testFunction = function(session, fakeDeviceController, t) {
         // Ensure the viewport dimensions are valid
         assert_greater_than_equal(viewport.x, 0);
         assert_greater_than_equal(viewport.y, 0);
-        assert_greater_than_equal(viewport.width, 1);
-        assert_greater_than_equal(viewport.height, 1);
+        assert_equals(viewport.width, params.resolution.width);
+        assert_equals(viewport.height, params.resolution.height);
+
+        // Ensure none of the viewports overlap
+        for (other of viewer_pose.views) {
+          if (view !== other) {
+            let otherport = layer.getViewport(other);
+            let no_overlap = (viewport.x + viewport.width <= otherport.x) ||
+              (otherport.x + otherport.width <= viewport.x) ||
+              (viewport.y + viewport.height <= otherport.y) ||
+              (otherport.y + otherport.height <= viewport.y);
+            assert_true(no_overlap, "Overlap between viewport " + view.eye + " and " + other.eye);
+          }
+        }
       }
 
       // Finished test.

@@ -349,10 +349,6 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn size(&self) -> Size2D<u32> {
-        self.size.get()
-    }
-
     // Helper function for validating framebuffer completeness in
     // calls touching the framebuffer.  From the GLES 2.0.25 spec,
     // page 119:

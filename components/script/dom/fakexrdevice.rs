@@ -11,6 +11,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use euclid::{TypedPoint2D, TypedRect, TypedSize2D};
 use euclid::{TypedRigidTransform3D, TypedRotation3D, TypedTransform3D, TypedVector3D};
 use ipc_channel::ipc::IpcSender;
 use webxr_api::{MockDeviceMsg, View, Views};
@@ -71,13 +72,24 @@ pub fn get_views(views: &[FakeXRViewInit]) -> Fallible<Views> {
     let offset_l = get_origin(&left.viewOffset)?.inverse();
     let offset_r = get_origin(&right.viewOffset)?.inverse();
 
+    let size_l = TypedSize2D::new(views[0].resolution.width, views[0].resolution.height);
+    let size_r = TypedSize2D::new(views[1].resolution.width, views[1].resolution.height);
+
+    let origin_l = TypedPoint2D::new(0, 0);
+    let origin_r = TypedPoint2D::new(size_l.width, 0);
+
+    let viewport_l = TypedRect::new(origin_l, size_l);
+    let viewport_r = TypedRect::new(origin_r, size_r);
+
     let left = View {
         projection: proj_l,
         transform: offset_l,
+        viewport: viewport_l,
     };
     let right = View {
         projection: proj_r,
         transform: offset_r,
+        viewport: viewport_r,
     };
     Ok(Views::Stereo(left, right))
 }

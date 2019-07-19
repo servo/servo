@@ -13,7 +13,7 @@ use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 
 #[repr(u16)]
-#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
+#[derive(Clone, Copy, Debug, Eq, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub enum DOMErrorName {
     IndexSizeError = DOMExceptionConstants::INDEX_SIZE_ERR,
     HierarchyRequestError = DOMExceptionConstants::HIERARCHY_REQUEST_ERR,
@@ -36,7 +36,8 @@ pub enum DOMErrorName {
     TimeoutError = DOMExceptionConstants::TIMEOUT_ERR,
     InvalidNodeTypeError = DOMExceptionConstants::INVALID_NODE_TYPE_ERR,
     DataCloneError = DOMExceptionConstants::DATA_CLONE_ERR,
-    NotReadableError = DOMExceptionConstants::NOT_READABLE_ERR,
+    NotReadableError,
+    OperationError,
 }
 
 impl DOMErrorName {
@@ -64,6 +65,7 @@ impl DOMErrorName {
             "InvalidNodeTypeError" => Some(DOMErrorName::InvalidNodeTypeError),
             "DataCloneError" => Some(DOMErrorName::DataCloneError),
             "NotReadableError" => Some(DOMErrorName::NotReadableError),
+            "OperationError" => Some(DOMErrorName::OperationError),
             _ => None,
         }
     }
@@ -107,6 +109,9 @@ impl DOMException {
             },
             DOMErrorName::DataCloneError => "The object can not be cloned.",
             DOMErrorName::NotReadableError => "The I/O read operation failed.",
+            DOMErrorName::OperationError => {
+                "The operation failed for an operation-specific reason."
+            },
         };
 
         (
@@ -147,11 +152,11 @@ impl DOMException {
 }
 
 impl DOMExceptionMethods for DOMException {
-    // https://heycam.github.io/webidl/#dfn-DOMException
+    // https://heycam.github.io/webidl/#dom-domexception-code
     fn Code(&self) -> u16 {
         match DOMErrorName::from(&self.name) {
-            Some(code) => code as u16,
-            None => 0 as u16,
+            Some(code) if code <= DOMErrorName::DataCloneError => code as u16,
+            _ => 0,
         }
     }
 

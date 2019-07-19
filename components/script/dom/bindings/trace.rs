@@ -57,8 +57,8 @@ use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
 use encoding_rs::{Decoder, Encoding};
 use euclid::Length as EuclidLength;
 use euclid::{
-    Point2D, Rect, RigidTransform3D, Rotation3D, Transform2D, Transform3D, TypedRigidTransform3D,
-    TypedScale, TypedSize2D, Vector2D,
+    Point2D, Rect, RigidTransform3D, Rotation3D, Transform2D, Transform3D, TypedRect,
+    TypedRigidTransform3D, TypedScale, TypedSize2D, Vector2D,
 };
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::{LocalName, Namespace, Prefix, QualName};
@@ -641,6 +641,13 @@ unsafe impl<U> JSTraceable for TypedSize2D<f32, U> {
 }
 
 unsafe impl<U> JSTraceable for TypedSize2D<u32, U> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl<U> JSTraceable for TypedRect<i32, U> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
