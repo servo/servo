@@ -42,7 +42,7 @@ use profile_traits::ipc;
 use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
-use webxr_api::{self, Frame, Session};
+use webxr_api::{self, Event, Frame, Session};
 
 #[dom_struct]
 pub struct XRSession {
@@ -100,12 +100,56 @@ impl XRSession {
                 input_sources.push(Dom::from_ref(&input));
             }
         }
+        ret.attach_event_handler();
         ret
     }
 
     pub fn with_session<R, F: FnOnce(&Session) -> R>(&self, with: F) -> R {
         let session = self.session.borrow();
         with(&session)
+    }
+
+    fn attach_event_handler(&self) {
+        #[derive(serde::Serialize, serde::Deserialize)]
+        pub struct EventCallback {
+            sender: IpcSender<Event>,
+        }
+
+        #[typetag::serde]
+        impl webxr_api::EventCallback for EventCallback {
+            fn callback(&mut self, event: Event) {
+                let _ = self.sender.send(event);
+            }
+        }
+
+        let this = Trusted::new(self);
+        let global = self.global();
+        let window = global.as_window();
+        let (task_source, canceller) = window
+            .task_manager()
+            .dom_manipulation_task_source_with_canceller();
+        let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
+        ROUTER.add_route(
+            receiver.to_opaque(),
+            Box::new(move |message| {
+                let this = this.clone();
+                let _ = task_source.queue_with_canceller(
+                    task!(xr_event_callback: move || {
+                        this.root().event_callback(message.to().unwrap());
+                    }),
+                    &canceller,
+                );
+            }),
+        );
+
+        // request animation frame
+        self.session
+            .borrow_mut()
+            .set_event_callback(EventCallback { sender });
+    }
+
+    fn event_callback(&self, _: Event) {
+        // XXXManishearth tbd
     }
 
     /// https://immersive-web.github.io/webxr/#xr-animation-frame
