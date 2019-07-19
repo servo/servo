@@ -11,6 +11,15 @@
 // Section 10 - Text
 
 ${helpers.single_keyword(
+    "dominant-baseline",
+    """auto ideographic alphabetic hanging mathematical central middle
+       text-after-edge text-before-edge""",
+    products="gecko",
+    animation_value_type="discrete",
+    spec="https://www.w3.org/TR/css-inline-3/#propdef-dominant-baseline",
+)}
+
+${helpers.single_keyword(
     "text-anchor",
     "start middle end",
     products="gecko",

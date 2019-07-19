@@ -7,15 +7,6 @@
 <% data.new_style_struct("SVG", inherited=False, gecko_name="SVGReset") %>
 
 ${helpers.single_keyword(
-    "dominant-baseline",
-    """auto ideographic alphabetic hanging mathematical central middle
-       text-after-edge text-before-edge""",
-    products="gecko",
-    animation_value_type="discrete",
-    spec="https://www.w3.org/TR/SVG11/text.html#DominantBaselineProperty",
-)}
-
-${helpers.single_keyword(
     "vector-effect",
     "none non-scaling-stroke",
     products="gecko",
