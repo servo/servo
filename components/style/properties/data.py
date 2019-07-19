@@ -628,7 +628,7 @@ def _remove_common_first_line_and_first_letter_properties(props):
     props.remove("text-emphasis-color")
     props.remove("text-indent")
     props.remove("text-decoration-skip-ink")
-    props.remove("text-decoration-width")
+    props.remove("text-decoration-thickness")
     props.remove("text-underline-offset")
 
 

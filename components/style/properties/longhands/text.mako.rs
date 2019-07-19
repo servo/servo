@@ -66,11 +66,11 @@ ${helpers.predefined_type(
 )}
 
 ${helpers.predefined_type(
-   "text-decoration-width",
+   "text-decoration-thickness",
    "LengthOrAuto",
    "computed::LengthOrAuto::auto()",
    products="gecko",
    animation_value_type="ComputedValue",
-   gecko_pref="layout.css.text-decoration-width.enabled",
+   gecko_pref="layout.css.text-decoration-thickness.enabled",
    spec="https://drafts.csswg.org/css-text-decor-4/#text-decoration-width-property"
 )}
