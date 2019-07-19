@@ -15,7 +15,11 @@ public:
   Servo(GLsizei width, GLsizei height);
   ~Servo();
   void PerformUpdates();
+  void Click(float, float);
   void SetSize(GLsizei width, GLsizei height);
+  void SetBatchMode(bool);
+  void GoBack();
+  void GoForward();
 
   // Static lambas called by Servo callbacks.
 

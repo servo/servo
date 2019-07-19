@@ -9,6 +9,7 @@
 #include "ImmersiveView.h"
 #include "OpenGLES.h"
 
+using namespace std::placeholders;
 using namespace winrt::Windows::UI::Xaml;
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::UI::ViewManagement;
@@ -22,22 +23,47 @@ namespace winrt::ServoApp::implementation {
 BrowserPage::BrowserPage() {
   InitializeComponent();
   log("BrowserPage::BrowserPage()");
-  Loaded([this](IInspectable const &, RoutedEventArgs const &) {
-    OnPageLoaded();
-    auto window = Window::Current().CoreWindow();
-    window.VisibilityChanged(
-        [this](CoreWindow const &, VisibilityChangedEventArgs const &args) {
-          OnVisibilityChanged(args.Visible());
-        });
-  });
+  Loaded(std::bind(&BrowserPage::OnPageLoaded, this, _1, _2));
+  Window::Current().CoreWindow().VisibilityChanged(
+      std::bind(&BrowserPage::OnVisibilityChanged, this, _1, _2));
 }
 
-void BrowserPage::OnPageLoaded() {
+void BrowserPage::OnPageLoaded(IInspectable const &, RoutedEventArgs const &) {
   log("BrowserPage::OnPageLoaded()");
   CreateRenderSurface();
   StartRenderLoop();
+
+  swapChainPanel().PointerReleased(
+      std::bind(&BrowserPage::OnSurfaceClicked, this, _1, _2));
 }
 
+void BrowserPage::OnSurfaceClicked(IInspectable const &,
+                                   Input::PointerRoutedEventArgs const &e) {
+  auto coords = e.GetCurrentPoint(swapChainPanel());
+  auto x = coords.Position().X;
+  auto y = coords.Position().Y;
+
+  SendEventToServo({{Event::CLICK}, {x, y}});
+
+  e.Handled(true);
+}
+
+void BrowserPage::SendEventToServo(Event event) {
+  mEventsMutex.lock();
+  mEvents.push_back(event);
+  mEventsMutex.unlock();
+  Servo::sWakeUp();
+}
+
+void BrowserPage::OnBackButtonClicked(IInspectable const &,
+                                      RoutedEventArgs const &) {
+  SendEventToServo({{Event::BACK}});
+}
+
+void BrowserPage::OnForwardButtonClicked(IInspectable const &,
+                                         RoutedEventArgs const &) {
+  SendEventToServo({{Event::FORWARD}});
+}
 void BrowserPage::OnImmersiveButtonClicked(IInspectable const &,
                                            RoutedEventArgs const &) {
   if (HolographicSpace::IsAvailable()) {
@@ -56,7 +82,9 @@ void BrowserPage::OnImmersiveButtonClicked(IInspectable const &,
   }
 }
 
-void BrowserPage::OnVisibilityChanged(bool visible) {
+void BrowserPage::OnVisibilityChanged(CoreWindow const &,
+                                      VisibilityChangedEventArgs const &args) {
+  auto visible = args.Visible();
   if (visible && !IsLoopRunning()) {
     StartRenderLoop();
   }
@@ -89,7 +117,7 @@ bool BrowserPage::IsLoopRunning() {
 }
 
 void BrowserPage::Loop(cancellation_token cancel) {
-  log("BrowserPage::Loop() thread: %i", GetCurrentThreadId());
+  log("BrowserPage::Loop(). GL thread: %i", GetCurrentThreadId());
 
   HANDLE hEvent = ::CreateEventA(nullptr, FALSE, FALSE, sWakeupEvent);
 
@@ -141,6 +169,12 @@ void BrowserPage::Loop(cancellation_token cancel) {
   glViewport(0, 0, panelWidth, panelHeight);
   mServo = std::make_unique<Servo>(panelWidth, panelHeight);
 
+  // mServo->SetBatchMode(true);
+  // FIXME: ^ this should be necessary as call perform_update
+  // ourself. But enabling batch mode will make clicking a link
+  // not working because during the click, this thread is not
+  // waiting on the hEvent object. See the "wakeup" comment.
+
   while (!cancel.is_canceled()) {
     // Block until Servo::sWakeUp is called.
     // Or run full speed if animating (see on_animating_changed),
@@ -148,6 +182,24 @@ void BrowserPage::Loop(cancellation_token cancel) {
     if (!Servo::sAnimating) {
       ::WaitForSingleObject(hEvent, INFINITE);
     }
+    mEventsMutex.lock();
+    for (auto &&e : mEvents) {
+      switch (e.type) {
+      case Event::CLICK: {
+        auto [x, y] = e.coords;
+        mServo->Click(x, y);
+        break;
+      }
+      case Event::FORWARD:
+        mServo->GoForward();
+        break;
+      case Event::BACK:
+        mServo->GoBack();
+        break;
+      }
+    }
+    mEvents.clear();
+    mEventsMutex.unlock();
     mServo->PerformUpdates();
   }
   cancel_current_task();
@@ -161,11 +213,13 @@ void BrowserPage::StartRenderLoop() {
   auto token = mLoopCancel.get_token();
 
   Servo::sWakeUp = []() {
+    // FIXME: this won't work if it's triggered while the thread is not
+    // waiting. We need a better looping logic.
     HANDLE hEvent = ::OpenEventA(EVENT_ALL_ACCESS, FALSE, sWakeupEvent);
     ::SetEvent(hEvent);
   };
 
-  log("BrowserPage::StartRenderLoop() thread: %i", GetCurrentThreadId());
+  log("BrowserPage::StartRenderLoop(). UI thread: %i", GetCurrentThreadId());
 
   mLoopTask = std::make_unique<Concurrency::task<void>>(
       Concurrency::create_task([=] { Loop(token); }, token));

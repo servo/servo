@@ -10,16 +10,33 @@
 #include "Servo.h"
 
 namespace winrt::ServoApp::implementation {
+
+struct Event {
+  enum { CLICK, BACK, FORWARD } type;
+  std::tuple<float, float> coords;
+};
+
 struct BrowserPage : BrowserPageT<BrowserPage> {
 public:
   BrowserPage();
 
   void OnImmersiveButtonClicked(Windows::Foundation::IInspectable const &,
                                 Windows::UI::Xaml::RoutedEventArgs const &);
+  void OnForwardButtonClicked(Windows::Foundation::IInspectable const &,
+                              Windows::UI::Xaml::RoutedEventArgs const &);
+  void OnBackButtonClicked(Windows::Foundation::IInspectable const &,
+                           Windows::UI::Xaml::RoutedEventArgs const &);
+
+  void
+  OnSurfaceClicked(Windows::Foundation::IInspectable const &,
+                   Windows::UI::Xaml::Input::PointerRoutedEventArgs const &);
 
 private:
-  void OnVisibilityChanged(bool);
-  void OnPageLoaded();
+  void OnVisibilityChanged(
+      Windows::UI::Core::CoreWindow const &,
+      Windows::UI::Core::VisibilityChangedEventArgs const &args);
+  void OnPageLoaded(Windows::Foundation::IInspectable const &,
+                    Windows::UI::Xaml::RoutedEventArgs const &);
 
   void CreateRenderSurface();
   void DestroyRenderSurface();
@@ -35,6 +52,10 @@ private:
   winrt::ServoApp::ImmersiveViewSource mImmersiveViewSource;
   EGLSurface mRenderSurface{EGL_NO_SURFACE};
   std::unique_ptr<Servo> mServo;
+
+  void BrowserPage::SendEventToServo(Event event);
+  std::vector<Event> mEvents;
+  std::mutex mEventsMutex;
 
   OpenGLES mOpenGLES; // FIXME: shared pointer
 };

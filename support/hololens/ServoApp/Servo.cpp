@@ -28,9 +28,7 @@ std::wstring char2w(const char *c_str) {
   return str2;
 }
 
-void on_alert(const char *message) {
-  Servo::sOnAlert(char2w(message));
-}
+void on_alert(const char *message) { Servo::sOnAlert(char2w(message)); }
 
 void on_title_changed(const char *title) {
   Servo::sOnTitleChanged(char2w(title));
@@ -43,6 +41,8 @@ void flush() { Servo::sFlush(); }
 void make_current() { Servo::sMakeCurrent(); }
 
 void wakeup() { Servo::sWakeUp(); }
+
+bool on_allow_navigation(const char *url) { return true; };
 
 void on_animating_changed(bool aAnimating) { Servo::sAnimating = aAnimating; }
 
@@ -69,6 +69,7 @@ Servo::Servo(GLsizei width, GLsizei height)
   c.on_history_changed = &on_history_changed;
   c.on_animating_changed = &on_animating_changed;
   c.on_shutdown_complete = &on_shutdown_complete;
+  c.on_allow_navigation = &on_allow_navigation;
 
   init_with_egl(o, &wakeup, c);
 }
@@ -77,6 +78,12 @@ Servo::~Servo() { deinit(); }
 
 void Servo::PerformUpdates() { perform_updates(); }
 
+void Servo::SetBatchMode(bool mode) { set_batch_mode(mode); }
+
+void Servo::GoForward() { go_forward(); }
+
+void Servo::GoBack() { go_back(); }
+
 void Servo::SetSize(GLsizei width, GLsizei height) {
   if (width != mWindowWidth || height != mWindowHeight) {
     mWindowWidth = width;
@@ -84,3 +91,5 @@ void Servo::SetSize(GLsizei width, GLsizei height) {
     resize(mWindowWidth, mWindowHeight);
   }
 }
+
+void Servo::Click(float x, float y) { click(x, y); }
