@@ -396,7 +396,7 @@ class MachCommands(CommandBase):
     def _test_wpt(self, android=False, **kwargs):
         self.set_run_env(android)
         hosts_file_path = path.join(self.context.topdir, 'tests', 'wpt', 'hosts')
-        os.environ["hosts_file_path"] = hosts_file_path
+        os.environ["HOST_FILE"] = hosts_file_path
         run_file = path.abspath(path.join(self.context.topdir, "tests", "wpt", "run.py"))
         return self.wptrunner(run_file, **kwargs)
 
