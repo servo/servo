@@ -103,10 +103,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _lib_webidl2_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
 /* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "parse", function() { return _lib_webidl2_js__WEBPACK_IMPORTED_MODULE_0__["parse"]; });
 
-/* harmony import */ var _lib_writer_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(11);
+/* harmony import */ var _lib_writer_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(14);
 /* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "write", function() { return _lib_writer_js__WEBPACK_IMPORTED_MODULE_1__["write"]; });
 
-/* harmony import */ var _lib_validator_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(12);
+/* harmony import */ var _lib_validator_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(15);
 /* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "validate", function() { return _lib_validator_js__WEBPACK_IMPORTED_MODULE_2__["validate"]; });
 
 
@@ -122,13 +122,13 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "parse", function() { return parse; });
 /* harmony import */ var _productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2);
-/* harmony import */ var _tokeniser_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(3);
-/* harmony import */ var _productions_array_base_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(5);
-/* harmony import */ var _productions_base_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(6);
-/* harmony import */ var _productions_token_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(7);
-/* harmony import */ var _productions_default_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(8);
-/* harmony import */ var _productions_enum_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(9);
-/* harmony import */ var _productions_includes_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(10);
+/* harmony import */ var _tokeniser_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(5);
+/* harmony import */ var _productions_base_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(4);
+/* harmony import */ var _productions_default_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(8);
+/* harmony import */ var _productions_enum_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(12);
+/* harmony import */ var _productions_includes_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(13);
+/* harmony import */ var _productions_type_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(3);
+/* harmony import */ var _productions_extended_attributes_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(9);
 
 
 
@@ -148,10 +148,7 @@ __webpack_require__.r(__webpack_exports__);
 function parseByTokens(tokeniser, options) {
   const source = tokeniser.source;
 
-  const DECIMAL = "decimal";
-  const INT = "integer";
   const ID = "identifier";
-  const STR = "string";
 
   function error(str) {
     tokeniser.error(str);
@@ -169,320 +166,17 @@ function parseByTokens(tokeniser, options) {
     return tokeniser.unconsume(position);
   }
 
-  function integer_type() {
-    const prefix = consume("unsigned");
-    const base = consume("short", "long");
-    if (base) {
-      const postfix = consume("long");
-      return new Type({ source, tokens: { prefix, base, postfix } });
-    }
-    if (prefix) error("Failed to parse integer type");
-  }
-
-  function float_type() {
-    const prefix = consume("unrestricted");
-    const base = consume("float", "double");
-    if (base) {
-      return new Type({ source, tokens: { prefix, base } });
-    }
-    if (prefix) error("Failed to parse float type");
-  }
-
-  function primitive_type() {
-    const num_type = integer_type() || float_type();
-    if (num_type) return num_type;
-    const base = consume("boolean", "byte", "octet");
-    if (base) {
-      return new Type({ source, tokens: { base } });
-    }
-  }
-
-  function type_suffix(obj) {
-    const nullable = consume("?");
-    if (nullable) {
-      obj.tokens.nullable = nullable;
-    }
-    if (probe("?")) error("Can't nullable more than once");
-  }
-
-  class Type extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
-    constructor({ source, tokens }) {
-      super({ source, tokens });
-      Object.defineProperty(this, "subtype", { value: [] });
-      this.extAttrs = [];
-    }
-
-    get generic() {
-      return "";
-    }
-    get nullable() {
-      return !!this.tokens.nullable;
-    }
-    get union() {
-      return false;
-    }
-    get idlType() {
-      if (this.subtype.length) {
-        return this.subtype;
-      }
-      // Adding prefixes/postfixes for "unrestricted float", etc.
-      const name = [
-        this.tokens.prefix,
-        this.tokens.base,
-        this.tokens.postfix
-      ].filter(t => t).map(t => t.value).join(" ");
-      return Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["unescape"])(name);
-    }
-  }
-
-  class GenericType extends Type {
-    static parse(typeName) {
-      const base = consume("FrozenArray", "Promise", "sequence", "record");
-      if (!base) {
-        return;
-      }
-      const ret = new GenericType({ source, tokens: { base } });
-      ret.tokens.open = consume("<") || error(`No opening bracket after ${base.type}`);
-      switch (base.type) {
-        case "Promise": {
-          if (probe("[")) error("Promise type cannot have extended attribute");
-          const subtype = return_type(typeName) || error("Missing Promise subtype");
-          ret.subtype.push(subtype);
-          break;
-        }
-        case "sequence":
-        case "FrozenArray": {
-          const subtype = type_with_extended_attributes(typeName) || error(`Missing ${base.type} subtype`);
-          ret.subtype.push(subtype);
-          break;
-        }
-        case "record": {
-          if (probe("[")) error("Record key cannot have extended attribute");
-          const keyType = consume(..._tokeniser_js__WEBPACK_IMPORTED_MODULE_1__["stringTypes"]) || error(`Record key must be one of: ${_tokeniser_js__WEBPACK_IMPORTED_MODULE_1__["stringTypes"].join(", ")}`);
-          const keyIdlType = new Type({ source, tokens: { base: keyType }});
-          keyIdlType.tokens.separator = consume(",") || error("Missing comma after record key type");
-          keyIdlType.type = typeName;
-          const valueType = type_with_extended_attributes(typeName) || error("Error parsing generic type record");
-          ret.subtype.push(keyIdlType, valueType);
-          break;
-        }
-      }
-      if (!ret.idlType) error(`Error parsing generic type ${base.type}`);
-      ret.tokens.close = consume(">") || error(`Missing closing bracket after ${base.type}`);
-      return ret;
-    }
-
-    get generic() {
-      return this.tokens.base.value;
-    }
-  }
-
-  function single_type(typeName) {
-    let ret = GenericType.parse(typeName) || primitive_type();
-    if (!ret) {
-      const base = consume(ID, ..._tokeniser_js__WEBPACK_IMPORTED_MODULE_1__["stringTypes"]);
-      if (!base) {
-        return;
-      }
-      ret = new Type({ source, tokens: { base } });
-      if (probe("<")) error(`Unsupported generic type ${base.value}`);
-    }
-    if (ret.generic === "Promise" && probe("?")) {
-      error("Promise type cannot be nullable");
-    }
-    ret.type = typeName || null;
-    type_suffix(ret);
-    if (ret.nullable && ret.idlType === "any") error("Type `any` cannot be made nullable");
-    return ret;
-  }
-
-  class UnionType extends Type {
-    static parse(type) {
-      const tokens = {};
-      tokens.open = consume("(");
-      if (!tokens.open) return;
-      const ret = new UnionType({ source, tokens });
-      ret.type = type || null;
-      while (true) {
-        const typ = type_with_extended_attributes() || error("No type after open parenthesis or 'or' in union type");
-        if (typ.idlType === "any") error("Type `any` cannot be included in a union type");
-        ret.subtype.push(typ);
-        const or = consume("or");
-        if (or) {
-          typ.tokens.separator = or;
-        }
-        else break;
-      }
-      if (ret.idlType.length < 2) {
-        error("At least two types are expected in a union type but found less");
-      }
-      tokens.close = consume(")") || error("Unterminated union type");
-      type_suffix(ret);
-      return ret;
-    }
-
-    get union() {
-      return true;
-    }
-  }
-
-  function type(typeName) {
-    return single_type(typeName) || UnionType.parse(typeName);
-  }
-
-  function type_with_extended_attributes(typeName) {
-    const extAttrs = ExtendedAttributes.parse();
-    const ret = type(typeName);
-    if (ret) ret.extAttrs = extAttrs;
-    return ret;
-  }
-
-  class Argument extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
-    static parse() {
-      const start_position = tokeniser.position;
-      const tokens = {};
-      const ret = new Argument({ source, tokens });
-      ret.extAttrs = ExtendedAttributes.parse();
-      tokens.optional = consume("optional");
-      ret.idlType = type_with_extended_attributes("argument-type");
-      if (!ret.idlType) {
-        return unconsume(start_position);
-      }
-      if (!tokens.optional) {
-        tokens.variadic = consume("...");
-      }
-      tokens.name = consume(ID, ..._tokeniser_js__WEBPACK_IMPORTED_MODULE_1__["argumentNameKeywords"]);
-      if (!tokens.name) {
-        return unconsume(start_position);
-      }
-      ret.default = tokens.optional ? _productions_default_js__WEBPACK_IMPORTED_MODULE_5__["Default"].parse(tokeniser) : null;
-      return ret;
-    }
-
-    get optional() {
-      return !!this.tokens.optional;
-    }
-    get variadic() {
-      return !!this.tokens.variadic;
-    }
-    get name() {
-      return Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["unescape"])(this.tokens.name.value);
-    }
-  }
-
-  function argument_list() {
-    return Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["list"])(tokeniser, { parser: Argument.parse, listName: "arguments list" });
-  }
-
-  function identifiers() {
-    const ids = Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["list"])(tokeniser, { parser: _productions_token_js__WEBPACK_IMPORTED_MODULE_4__["Token"].parser(tokeniser, ID), listName: "identifier list" });
-    if (!ids.length) {
-      error("Expected identifiers but none found");
-    }
-    return ids;
-  }
-
-  class ExtendedAttributeParameters extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
-    static parse() {
-      const tokens = { assign: consume("=") };
-      const ret = new ExtendedAttributeParameters({ source, tokens });
-      if (tokens.assign) {
-        tokens.secondaryName = consume(ID, DECIMAL, INT, STR);
-      }
-      tokens.open = consume("(");
-      if (tokens.open) {
-        ret.list = ret.rhsType === "identifier-list" ?
-          // [Exposed=(Window,Worker)]
-          identifiers() :
-          // [NamedConstructor=Audio(DOMString src)] or [Constructor(DOMString str)]
-          argument_list();
-        tokens.close = consume(")") || error("Unexpected token in extended attribute argument list");
-      } else if (ret.hasRhs && !tokens.secondaryName) {
-        error("No right hand side to extended attribute assignment");
-      }
-      return ret;
-    }
-
-    get rhsType() {
-      return !this.tokens.assign ? null :
-        !this.tokens.secondaryName ? "identifier-list" :
-        this.tokens.secondaryName.type;
-    }
-  }
-
-  class SimpleExtendedAttribute extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
-    static parse() {
-      const name = consume(ID);
-      if (name) {
-        return new SimpleExtendedAttribute({
-          tokens: { name },
-          params: ExtendedAttributeParameters.parse()
-        });
-      }
-    }
-
-    constructor({ source, tokens, params }) {
-      super({ source, tokens });
-      Object.defineProperty(this, "params", { value: params });
-    }
-
-    get type() {
-      return "extended-attribute";
-    }
-    get name() {
-      return this.tokens.name.value;
-    }
-    get rhs() {
-      const { rhsType: type, tokens, list } = this.params;
-      if (!type) {
-        return null;
-      }
-      const value = type === "identifier-list" ? list : tokens.secondaryName.value;
-      return { type, value };
-    }
-    get arguments() {
-      const { rhsType, list } = this.params;
-      if (!list || rhsType === "identifier-list") {
-        return [];
-      }
-      return list;
-    }
-  }
-
-  // Note: we parse something simpler than the official syntax. It's all that ever
-  // seems to be used
-  class ExtendedAttributes extends _productions_array_base_js__WEBPACK_IMPORTED_MODULE_2__["ArrayBase"] {
-    static parse() {
-      const tokens = {};
-      tokens.open = consume("[");
-      if (!tokens.open) return [];
-      const ret = new ExtendedAttributes({ source, tokens });
-      ret.push(...Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["list"])(tokeniser, {
-        parser: SimpleExtendedAttribute.parse,
-        listName: "extended attribute"
-      }));
-      tokens.close = consume("]") || error("Unexpected form of extended attribute");
-      if (!ret.length) {
-        error("Found an empty extended attribute");
-      }
-      if (probe("[")) {
-        error("Illegal double extended attribute lists, consider merging them");
-      }
-      return ret;
-    }
-  }
-
-  class Constant extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
+  class Constant extends _productions_base_js__WEBPACK_IMPORTED_MODULE_2__["Base"] {
     static parse() {
       const tokens = {};
       tokens.base = consume("const");
       if (!tokens.base) {
         return;
       }
-      let idlType = primitive_type();
+      let idlType = Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["primitive_type"])(tokeniser);
       if (!idlType) {
         const base = consume(ID) || error("No type for const");
-        idlType = new Type({ source, tokens: { base } });
+        idlType = new _productions_type_js__WEBPACK_IMPORTED_MODULE_6__["Type"]({ source, tokens: { base } });
       }
       if (probe("?")) {
         error("Unexpected nullable constant type");
@@ -508,16 +202,16 @@ function parseByTokens(tokeniser, options) {
     }
   }
 
-  class CallbackFunction extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
+  class CallbackFunction extends _productions_base_js__WEBPACK_IMPORTED_MODULE_2__["Base"] {
     static parse(base) {
       const tokens = { base };
       const ret = new CallbackFunction({ source, tokens });
       tokens.name = consume(ID) || error("No name for callback");
       tokeniser.current = ret;
       tokens.assign = consume("=") || error("No assignment in callback");
-      ret.idlType = return_type() || error("Missing return type");
+      ret.idlType = Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["return_type"])(tokeniser) || error("Missing return type");
       tokens.open = consume("(") || error("No arguments in callback");
-      ret.arguments = argument_list();
+      ret.arguments = Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["argument_list"])(tokeniser);
       tokens.close = consume(")") || error("Unterminated callback");
       tokens.termination = consume(";") || error("Unterminated callback");
       return ret;
@@ -541,7 +235,7 @@ function parseByTokens(tokeniser, options) {
     return CallbackFunction.parse(callback);
   }
 
-  class Attribute extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
+  class Attribute extends _productions_base_js__WEBPACK_IMPORTED_MODULE_2__["Base"] {
     static parse({ special, noInherit = false, readonly = false } = {}) {
       const start_position = tokeniser.position;
       const tokens = { special };
@@ -561,7 +255,7 @@ function parseByTokens(tokeniser, options) {
         unconsume(start_position);
         return;
       }
-      ret.idlType = type_with_extended_attributes("attribute-type") || error("No type in attribute");
+      ret.idlType = Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["type_with_extended_attributes"])(tokeniser, "attribute-type") || error("No type in attribute");
       switch (ret.idlType.generic) {
         case "sequence":
         case "record": error(`Attributes cannot accept ${ret.idlType.generic} types`);
@@ -588,20 +282,7 @@ function parseByTokens(tokeniser, options) {
     }
   }
 
-  function return_type(typeName) {
-    const typ = type(typeName || "return-type");
-    if (typ) {
-      return typ;
-    }
-    const voidToken = consume("void");
-    if (voidToken) {
-      const ret = new Type({ source, tokens: { base: voidToken } });
-      ret.type = "return-type";
-      return ret;
-    }
-  }
-
-  class Operation extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
+  class Operation extends _productions_base_js__WEBPACK_IMPORTED_MODULE_2__["Base"] {
     static parse({ special, regular } = {}) {
       const tokens = { special };
       const ret = new Operation({ source, tokens });
@@ -615,10 +296,10 @@ function parseByTokens(tokeniser, options) {
       if (!special && !regular) {
         tokens.special = consume("getter", "setter", "deleter");
       }
-      ret.idlType = return_type() || error("Missing return type");
+      ret.idlType = Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["return_type"])(tokeniser) || error("Missing return type");
       tokens.name = consume(ID);
       tokens.open = consume("(") || error("Invalid operation");
-      ret.arguments = argument_list();
+      ret.arguments = Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["argument_list"])(tokeniser);
       tokens.close = consume(")") || error("Unterminated operation");
       tokens.termination = consume(";") || error("Unterminated attribute");
       return ret;
@@ -660,7 +341,7 @@ function parseByTokens(tokeniser, options) {
     return member;
   }
 
-  class IterableLike extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
+  class IterableLike extends _productions_base_js__WEBPACK_IMPORTED_MODULE_2__["Base"] {
     static parse() {
       const start_position = tokeniser.position;
       const tokens = {};
@@ -679,12 +360,12 @@ function parseByTokens(tokeniser, options) {
       const secondTypeAllowed = secondTypeRequired || type === "iterable";
 
       tokens.open = consume("<") || error(`Error parsing ${type} declaration`);
-      const first = type_with_extended_attributes() || error(`Error parsing ${type} declaration`);
+      const first = Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["type_with_extended_attributes"])(tokeniser) || error(`Error parsing ${type} declaration`);
       ret.idlType = [first];
       if (secondTypeAllowed) {
         first.tokens.separator = consume(",");
         if (first.tokens.separator) {
-          ret.idlType.push(type_with_extended_attributes());
+          ret.idlType.push(Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["type_with_extended_attributes"])(tokeniser));
         }
         else if (secondTypeRequired)
           error(`Missing second type argument in ${type} declaration`);
@@ -712,7 +393,7 @@ function parseByTokens(tokeniser, options) {
     return { colon, inheritance };
   }
 
-  class Container extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
+  class Container extends _productions_base_js__WEBPACK_IMPORTED_MODULE_2__["Base"] {
     static parse(instance, { type, inheritable, allowedMembers }) {
       const { tokens } = instance;
       tokens.name = consume(ID) || error("No name for interface");
@@ -728,7 +409,7 @@ function parseByTokens(tokeniser, options) {
           tokens.termination = consume(";") || error(`Missing semicolon after ${type}`);
           return instance;
         }
-        const ea = ExtendedAttributes.parse();
+        const ea = _productions_extended_attributes_js__WEBPACK_IMPORTED_MODULE_7__["ExtendedAttributes"].parse(tokeniser);
         let mem;
         for (const [parser, ...args] of allowedMembers) {
           mem = parser(...args);
@@ -866,15 +547,15 @@ function parseByTokens(tokeniser, options) {
     }
   }
 
-  class Field extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
+  class Field extends _productions_base_js__WEBPACK_IMPORTED_MODULE_2__["Base"] {
     static parse() {
       const tokens = {};
       const ret = new Field({ source, tokens });
-      ret.extAttrs = ExtendedAttributes.parse();
+      ret.extAttrs = _productions_extended_attributes_js__WEBPACK_IMPORTED_MODULE_7__["ExtendedAttributes"].parse(tokeniser);
       tokens.required = consume("required");
-      ret.idlType = type_with_extended_attributes("dictionary-type") || error("No type for dictionary member");
+      ret.idlType = Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["type_with_extended_attributes"])(tokeniser, "dictionary-type") || error("No type for dictionary member");
       tokens.name = consume(ID) || error("No name for dictionary member");
-      ret.default = _productions_default_js__WEBPACK_IMPORTED_MODULE_5__["Default"].parse(tokeniser);
+      ret.default = _productions_default_js__WEBPACK_IMPORTED_MODULE_3__["Default"].parse(tokeniser);
       if (tokens.required && ret.default) error("Required member must not have a default");
       tokens.termination = consume(";") || error("Unterminated dictionary member");
       return ret;
@@ -891,7 +572,7 @@ function parseByTokens(tokeniser, options) {
     }
   }
 
-  class Typedef extends _productions_base_js__WEBPACK_IMPORTED_MODULE_3__["Base"] {
+  class Typedef extends _productions_base_js__WEBPACK_IMPORTED_MODULE_2__["Base"] {
     static parse() {
       const tokens = {};
       const ret = new Typedef({ source, tokens });
@@ -899,7 +580,7 @@ function parseByTokens(tokeniser, options) {
       if (!tokens.base) {
         return;
       }
-      ret.idlType = type_with_extended_attributes("typedef-type") || error("No type in typedef");
+      ret.idlType = Object(_productions_helpers_js__WEBPACK_IMPORTED_MODULE_0__["type_with_extended_attributes"])(tokeniser, "typedef-type") || error("No type in typedef");
       tokens.name = consume(ID) || error("No name in typedef");
       tokeniser.current = ret;
       tokens.termination = consume(";") || error("Unterminated typedef");
@@ -919,9 +600,9 @@ function parseByTokens(tokeniser, options) {
       interface_() ||
       partial() ||
       Dictionary.parse() ||
-      _productions_enum_js__WEBPACK_IMPORTED_MODULE_6__["Enum"].parse(tokeniser) ||
+      _productions_enum_js__WEBPACK_IMPORTED_MODULE_4__["Enum"].parse(tokeniser) ||
       Typedef.parse() ||
-      _productions_includes_js__WEBPACK_IMPORTED_MODULE_7__["Includes"].parse(tokeniser) ||
+      _productions_includes_js__WEBPACK_IMPORTED_MODULE_5__["Includes"].parse(tokeniser) ||
       Namespace.parse();
   }
 
@@ -929,7 +610,7 @@ function parseByTokens(tokeniser, options) {
     if (!source.length) return [];
     const defs = [];
     while (true) {
-      const ea = ExtendedAttributes.parse();
+      const ea = _productions_extended_attributes_js__WEBPACK_IMPORTED_MODULE_7__["ExtendedAttributes"].parse(tokeniser);
       const def = definition();
       if (!def) {
         if (ea.length) error("Stray extended attributes");
@@ -965,6 +646,20 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "list", function() { return list; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "const_value", function() { return const_value; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "const_data", function() { return const_data; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "primitive_type", function() { return primitive_type; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "identifiers", function() { return identifiers; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "argument_list", function() { return argument_list; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "type_with_extended_attributes", function() { return type_with_extended_attributes; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "return_type", function() { return return_type; });
+/* harmony import */ var _type_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3);
+/* harmony import */ var _argument_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7);
+/* harmony import */ var _token_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(11);
+/* harmony import */ var _extended_attributes_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(9);
+
+
+
+
+
 /**
  * @param {string} identifier
  */
@@ -1024,13 +719,93 @@ function const_data({ type, value }) {
       return { type: "Infinity", negative: type.startsWith("-") };
     case "[":
       return { type: "sequence", value: [] };
+    case "{":
+      return { type: "dictionary" };
     case "decimal":
     case "integer":
-        return { type: "number", value };
+      return { type: "number", value };
     case "string":
       return { type: "string", value: value.slice(1, -1) };
     default:
       return { type };
+  }
+}
+
+/**
+ * @param {import("../tokeniser").Tokeniser} tokeniser
+ */
+function primitive_type(tokeniser) {
+  function integer_type() {
+    const prefix = tokeniser.consume("unsigned");
+    const base = tokeniser.consume("short", "long");
+    if (base) {
+      const postfix = tokeniser.consume("long");
+      return new _type_js__WEBPACK_IMPORTED_MODULE_0__["Type"]({ source, tokens: { prefix, base, postfix } });
+    }
+    if (prefix) tokeniser.error("Failed to parse integer type");
+  }
+
+  function decimal_type() {
+    const prefix = tokeniser.consume("unrestricted");
+    const base = tokeniser.consume("float", "double");
+    if (base) {
+      return new _type_js__WEBPACK_IMPORTED_MODULE_0__["Type"]({ source, tokens: { prefix, base } });
+    }
+    if (prefix) tokeniser.error("Failed to parse float type");
+  }
+
+  const { source } = tokeniser;
+  const num_type = integer_type(tokeniser) || decimal_type(tokeniser);
+  if (num_type) return num_type;
+  const base = tokeniser.consume("boolean", "byte", "octet");
+  if (base) {
+    return new _type_js__WEBPACK_IMPORTED_MODULE_0__["Type"]({ source, tokens: { base } });
+  }
+}
+
+/**
+ * @param {import("../tokeniser").Tokeniser} tokeniser
+ */
+function identifiers(tokeniser) {
+  const ids = list(tokeniser, { parser: _token_js__WEBPACK_IMPORTED_MODULE_2__["Token"].parser(tokeniser, "identifier"), listName: "identifier list" });
+  if (!ids.length) {
+    tokeniser.error("Expected identifiers but none found");
+  }
+  return ids;
+}
+
+/**
+ * @param {import("../tokeniser").Tokeniser} tokeniser
+ */
+function argument_list(tokeniser) {
+  return list(tokeniser, { parser: _argument_js__WEBPACK_IMPORTED_MODULE_1__["Argument"].parse, listName: "arguments list" });
+}
+
+/**
+ * @param {import("../tokeniser").Tokeniser} tokeniser
+ * @param {string} typeName
+ */
+function type_with_extended_attributes(tokeniser, typeName) {
+  const extAttrs = _extended_attributes_js__WEBPACK_IMPORTED_MODULE_3__["ExtendedAttributes"].parse(tokeniser);
+  const ret = _type_js__WEBPACK_IMPORTED_MODULE_0__["Type"].parse(tokeniser, typeName);
+  if (ret) ret.extAttrs = extAttrs;
+  return ret;
+}
+
+/**
+ * @param {import("../tokeniser").Tokeniser} tokeniser
+ * @param {string} typeName
+ */
+function return_type(tokeniser, typeName) {
+  const typ = _type_js__WEBPACK_IMPORTED_MODULE_0__["Type"].parse(tokeniser, typeName || "return-type");
+  if (typ) {
+    return typ;
+  }
+  const voidToken = tokeniser.consume("void");
+  if (voidToken) {
+    const ret = new _type_js__WEBPACK_IMPORTED_MODULE_0__["Type"]({ source: tokeniser.source, tokens: { base: voidToken } });
+    ret.type = "return-type";
+    return ret;
   }
 }
 
@@ -1041,10 +816,200 @@ function const_data({ type, value }) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Type", function() { return Type; });
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4);
+/* harmony import */ var _helpers_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(2);
+/* harmony import */ var _tokeniser_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(5);
+
+
+
+
+/**
+ * @param {import("../tokeniser").Tokeniser} tokeniser
+ * @param {string} typeName
+ */
+function generic_type(tokeniser, typeName) {
+  const base = tokeniser.consume("FrozenArray", "Promise", "sequence", "record");
+  if (!base) {
+    return;
+  }
+  const ret = new Type({ source: tokeniser.source, tokens: { base } });
+  ret.tokens.open = tokeniser.consume("<") || tokeniser.error(`No opening bracket after ${base.type}`);
+  switch (base.type) {
+    case "Promise": {
+      if (tokeniser.probe("[")) tokeniser.error("Promise type cannot have extended attribute");
+      const subtype = Object(_helpers_js__WEBPACK_IMPORTED_MODULE_1__["return_type"])(tokeniser, typeName) || tokeniser.error("Missing Promise subtype");
+      ret.subtype.push(subtype);
+      break;
+    }
+    case "sequence":
+    case "FrozenArray": {
+      const subtype = Object(_helpers_js__WEBPACK_IMPORTED_MODULE_1__["type_with_extended_attributes"])(tokeniser, typeName) || tokeniser.error(`Missing ${base.type} subtype`);
+      ret.subtype.push(subtype);
+      break;
+    }
+    case "record": {
+      if (tokeniser.probe("[")) tokeniser.error("Record key cannot have extended attribute");
+      const keyType = tokeniser.consume(..._tokeniser_js__WEBPACK_IMPORTED_MODULE_2__["stringTypes"]) || tokeniser.error(`Record key must be one of: ${_tokeniser_js__WEBPACK_IMPORTED_MODULE_2__["stringTypes"].join(", ")}`);
+      const keyIdlType = new Type({ source: tokeniser.source, tokens: { base: keyType }});
+      keyIdlType.tokens.separator = tokeniser.consume(",") || tokeniser.error("Missing comma after record key type");
+      keyIdlType.type = typeName;
+      const valueType = Object(_helpers_js__WEBPACK_IMPORTED_MODULE_1__["type_with_extended_attributes"])(tokeniser, typeName) || tokeniser.error("Error parsing generic type record");
+      ret.subtype.push(keyIdlType, valueType);
+      break;
+    }
+  }
+  if (!ret.idlType) tokeniser.error(`Error parsing generic type ${base.type}`);
+  ret.tokens.close = tokeniser.consume(">") || tokeniser.error(`Missing closing bracket after ${base.type}`);
+  return ret;
+}
+
+/**
+ * @param {import("../tokeniser").Tokeniser} tokeniser
+ */
+function type_suffix(tokeniser, obj) {
+  const nullable = tokeniser.consume("?");
+  if (nullable) {
+    obj.tokens.nullable = nullable;
+  }
+  if (tokeniser.probe("?")) tokeniser.error("Can't nullable more than once");
+}
+
+/**
+ * @param {import("../tokeniser").Tokeniser} tokeniser
+ * @param {string} typeName
+ */
+function single_type(tokeniser, typeName) {
+  let ret = generic_type(tokeniser, typeName) || Object(_helpers_js__WEBPACK_IMPORTED_MODULE_1__["primitive_type"])(tokeniser);
+  if (!ret) {
+    const base = tokeniser.consume("identifier", ..._tokeniser_js__WEBPACK_IMPORTED_MODULE_2__["stringTypes"]);
+    if (!base) {
+      return;
+    }
+    ret = new Type({ source: tokeniser.source, tokens: { base } });
+    if (tokeniser.probe("<")) tokeniser.error(`Unsupported generic type ${base.value}`);
+  }
+  if (ret.generic === "Promise" && tokeniser.probe("?")) {
+    tokeniser.error("Promise type cannot be nullable");
+  }
+  ret.type = typeName || null;
+  type_suffix(tokeniser, ret);
+  if (ret.nullable && ret.idlType === "any") tokeniser.error("Type `any` cannot be made nullable");
+  return ret;
+}
+
+/**
+ * @param {import("../tokeniser").Tokeniser} tokeniser
+ * @param {string} type
+ */
+function union_type(tokeniser, type) {
+  const tokens = {};
+  tokens.open = tokeniser.consume("(");
+  if (!tokens.open) return;
+  const ret = new Type({ source: tokeniser.source, tokens });
+  ret.type = type || null;
+  while (true) {
+    const typ = Object(_helpers_js__WEBPACK_IMPORTED_MODULE_1__["type_with_extended_attributes"])(tokeniser) || tokeniser.error("No type after open parenthesis or 'or' in union type");
+    if (typ.idlType === "any") tokeniser.error("Type `any` cannot be included in a union type");
+    ret.subtype.push(typ);
+    const or = tokeniser.consume("or");
+    if (or) {
+      typ.tokens.separator = or;
+    }
+    else break;
+  }
+  if (ret.idlType.length < 2) {
+    tokeniser.error("At least two types are expected in a union type but found less");
+  }
+  tokens.close = tokeniser.consume(")") || tokeniser.error("Unterminated union type");
+  type_suffix(tokeniser, ret);
+  return ret;
+}
+
+class Type extends _base_js__WEBPACK_IMPORTED_MODULE_0__["Base"] {
+  /**
+   * @param {import("../tokeniser").Tokeniser} tokeniser
+   * @param {string} typeName
+   */
+  static parse(tokeniser, typeName) {
+    return single_type(tokeniser, typeName) || union_type(tokeniser, typeName);
+  }
+
+  constructor({ source, tokens }) {
+    super({ source, tokens });
+    Object.defineProperty(this, "subtype", { value: [] });
+    this.extAttrs = [];
+  }
+
+  get generic() {
+    if (this.subtype.length && this.tokens.base) {
+      return this.tokens.base.value;
+    }
+    return "";
+  }
+  get nullable() {
+    return Boolean(this.tokens.nullable);
+  }
+  get union() {
+    return Boolean(this.subtype.length) && !this.tokens.base;
+  }
+  get idlType() {
+    if (this.subtype.length) {
+      return this.subtype;
+    }
+    // Adding prefixes/postfixes for "unrestricted float", etc.
+    const name = [
+      this.tokens.prefix,
+      this.tokens.base,
+      this.tokens.postfix
+    ].filter(t => t).map(t => t.value).join(" ");
+    return Object(_helpers_js__WEBPACK_IMPORTED_MODULE_1__["unescape"])(name);
+  }
+}
+
+
+/***/ }),
+/* 4 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Base", function() { return Base; });
+class Base {
+  constructor({ source, tokens }) {
+    Object.defineProperties(this, {
+      source: { value: source },
+      tokens: { value: tokens }
+    });
+  }
+
+  toJSON() {
+    const json = { type: undefined, name: undefined, inheritance: undefined };
+    let proto = this;
+    while (proto !== Object.prototype) {
+      const descMap = Object.getOwnPropertyDescriptors(proto);
+      for (const [key, value] of Object.entries(descMap)) {
+        if (value.enumerable || value.get) {
+          json[key] = this[key];
+        }
+      }
+      proto = Object.getPrototypeOf(proto);
+    }
+    return json;
+  }
+}
+
+
+/***/ }),
+/* 5 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "stringTypes", function() { return stringTypes; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "argumentNameKeywords", function() { return argumentNameKeywords; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Tokeniser", function() { return Tokeniser; });
-/* harmony import */ var _error_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4);
+/* harmony import */ var _error_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6);
 
 
 // These regular expressions use the sticky flag so they will only match at
@@ -1281,7 +1246,7 @@ class WebIDLParseError extends Error {
 
 
 /***/ }),
-/* 4 */
+/* 6 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -1365,81 +1330,56 @@ function validationError(source, token, current, message) {
 
 
 /***/ }),
-/* 5 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ArrayBase", function() { return ArrayBase; });
-class ArrayBase extends Array {
-  constructor({ source, tokens }) {
-    super();
-    Object.defineProperties(this, {
-      source: { value: source },
-      tokens: { value: tokens }
-    });
-  }
-}
-
-
-/***/ }),
-/* 6 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Base", function() { return Base; });
-class Base {
-  constructor({ source, tokens }) {
-    Object.defineProperties(this, {
-      source: { value: source },
-      tokens: { value: tokens }
-    });
-  }
-
-  toJSON() {
-    const json = { type: undefined, name: undefined, inheritance: undefined };
-    let proto = this;
-    while (proto !== Object.prototype) {
-      const descMap = Object.getOwnPropertyDescriptors(proto);
-      for (const [key, value] of Object.entries(descMap)) {
-        if (value.enumerable || value.get) {
-          json[key] = this[key];
-        }
-      }
-      proto = Object.getPrototypeOf(proto);
-    }
-    return json;
-  }
-}
-
-
-/***/ }),
 /* 7 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Token", function() { return Token; });
-/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Argument", function() { return Argument; });
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4);
+/* harmony import */ var _default_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(8);
+/* harmony import */ var _extended_attributes_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(9);
+/* harmony import */ var _helpers_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(2);
+/* harmony import */ var _tokeniser_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(5);
 
 
-class Token extends _base_js__WEBPACK_IMPORTED_MODULE_0__["Base"] {
+
+
+
+
+class Argument extends _base_js__WEBPACK_IMPORTED_MODULE_0__["Base"] {
   /**
    * @param {import("../tokeniser").Tokeniser} tokeniser
-   * @param {string} type
    */
-  static parser(tokeniser, type) {
-    return () => {
-      const value = tokeniser.consume(type);
-      if (value) {
-        return new Token({ source: tokeniser.source, tokens: { value } });
-      }
-    };
+  static parse(tokeniser) {
+    const start_position = tokeniser.position;
+    const tokens = {};
+    const ret = new Argument({ source: tokeniser.source, tokens });
+    ret.extAttrs = _extended_attributes_js__WEBPACK_IMPORTED_MODULE_2__["ExtendedAttributes"].parse(tokeniser);
+    tokens.optional = tokeniser.consume("optional");
+    ret.idlType = Object(_helpers_js__WEBPACK_IMPORTED_MODULE_3__["type_with_extended_attributes"])(tokeniser, "argument-type");
+    if (!ret.idlType) {
+      return tokeniser.unconsume(start_position);
+    }
+    if (!tokens.optional) {
+      tokens.variadic = tokeniser.consume("...");
+    }
+    tokens.name = tokeniser.consume("identifier", ..._tokeniser_js__WEBPACK_IMPORTED_MODULE_4__["argumentNameKeywords"]);
+    if (!tokens.name) {
+      return tokeniser.unconsume(start_position);
+    }
+    ret.default = tokens.optional ? _default_js__WEBPACK_IMPORTED_MODULE_1__["Default"].parse(tokeniser) : null;
+    return ret;
   }
 
-  get value() {
-    return this.tokens.value.value;
+  get optional() {
+    return !!this.tokens.optional;
+  }
+  get variadic() {
+    return !!this.tokens.variadic;
+  }
+  get name() {
+    return Object(_helpers_js__WEBPACK_IMPORTED_MODULE_3__["unescape"])(this.tokens.name.value);
   }
 }
 
@@ -1451,7 +1391,7 @@ class Token extends _base_js__WEBPACK_IMPORTED_MODULE_0__["Base"] {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Default", function() { return Default; });
-/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6);
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4);
 /* harmony import */ var _helpers_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(2);
 
 
@@ -1465,10 +1405,13 @@ class Default extends _base_js__WEBPACK_IMPORTED_MODULE_0__["Base"] {
     if (!assign) {
       return null;
     }
-    const def = Object(_helpers_js__WEBPACK_IMPORTED_MODULE_1__["const_value"])(tokeniser) || tokeniser.consume("string", "null", "[") || tokeniser.error("No value for default");
+    const def = Object(_helpers_js__WEBPACK_IMPORTED_MODULE_1__["const_value"])(tokeniser) || tokeniser.consume("string", "null", "[", "{") || tokeniser.error("No value for default");
     const expression = [def];
     if (def.type === "[") {
       const close = tokeniser.consume("]") || tokeniser.error("Default sequence value must be empty");
+      expression.push(close);
+    } else if (def.type === "{") {
+      const close = tokeniser.consume("}") || tokeniser.error("Default dictionary value must be empty");
       expression.push(close);
     }
     return new Default({ source: tokeniser.source, tokens: { assign }, expression });
@@ -1497,10 +1440,172 @@ class Default extends _base_js__WEBPACK_IMPORTED_MODULE_0__["Base"] {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ExtendedAttributes", function() { return ExtendedAttributes; });
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4);
+/* harmony import */ var _array_base_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(10);
+/* harmony import */ var _helpers_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(2);
+
+
+
+
+class ExtendedAttributeParameters extends _base_js__WEBPACK_IMPORTED_MODULE_0__["Base"] {
+  /**
+   * @param {import("../tokeniser").Tokeniser} tokeniser
+   */
+  static parse(tokeniser) {
+    const tokens = { assign: tokeniser.consume("=") };
+    const ret = new ExtendedAttributeParameters({ source: tokeniser.source, tokens });
+    if (tokens.assign) {
+      tokens.secondaryName = tokeniser.consume("identifier", "decimal", "integer", "string");
+    }
+    tokens.open = tokeniser.consume("(");
+    if (tokens.open) {
+      ret.list = ret.rhsType === "identifier-list" ?
+        // [Exposed=(Window,Worker)]
+        Object(_helpers_js__WEBPACK_IMPORTED_MODULE_2__["identifiers"])(tokeniser) :
+        // [NamedConstructor=Audio(DOMString src)] or [Constructor(DOMString str)]
+        Object(_helpers_js__WEBPACK_IMPORTED_MODULE_2__["argument_list"])(tokeniser);
+      tokens.close = tokeniser.consume(")") || tokeniser.error("Unexpected token in extended attribute argument list");
+    } else if (ret.hasRhs && !tokens.secondaryName) {
+      tokeniser.error("No right hand side to extended attribute assignment");
+    }
+    return ret;
+  }
+
+  get rhsType() {
+    return !this.tokens.assign ? null :
+      !this.tokens.secondaryName ? "identifier-list" :
+        this.tokens.secondaryName.type;
+  }
+}
+
+class SimpleExtendedAttribute extends _base_js__WEBPACK_IMPORTED_MODULE_0__["Base"] {
+  /**
+   * @param {import("../tokeniser").Tokeniser} tokeniser
+   */
+  static parse(tokeniser) {
+    const name = tokeniser.consume("identifier");
+    if (name) {
+      return new SimpleExtendedAttribute({
+        tokens: { name },
+        params: ExtendedAttributeParameters.parse(tokeniser)
+      });
+    }
+  }
+
+  constructor({ source, tokens, params }) {
+    super({ source, tokens });
+    Object.defineProperty(this, "params", { value: params });
+  }
+
+  get type() {
+    return "extended-attribute";
+  }
+  get name() {
+    return this.tokens.name.value;
+  }
+  get rhs() {
+    const { rhsType: type, tokens, list } = this.params;
+    if (!type) {
+      return null;
+    }
+    const value = type === "identifier-list" ? list : tokens.secondaryName.value;
+    return { type, value };
+  }
+  get arguments() {
+    const { rhsType, list } = this.params;
+    if (!list || rhsType === "identifier-list") {
+      return [];
+    }
+    return list;
+  }
+}
+
+// Note: we parse something simpler than the official syntax. It's all that ever
+// seems to be used
+class ExtendedAttributes extends _array_base_js__WEBPACK_IMPORTED_MODULE_1__["ArrayBase"] {
+  /**
+   * @param {import("../tokeniser").Tokeniser} tokeniser
+   */
+  static parse(tokeniser) {
+    const tokens = {};
+    tokens.open = tokeniser.consume("[");
+    if (!tokens.open) return [];
+    const ret = new ExtendedAttributes({ source: tokeniser.source, tokens });
+    ret.push(...Object(_helpers_js__WEBPACK_IMPORTED_MODULE_2__["list"])(tokeniser, {
+      parser: SimpleExtendedAttribute.parse,
+      listName: "extended attribute"
+    }));
+    tokens.close = tokeniser.consume("]") || tokeniser.error("Unexpected closing token of extended attribute");
+    if (!ret.length) {
+      tokeniser.error("Found an empty extended attribute");
+    }
+    if (tokeniser.probe("[")) {
+      tokeniser.error("Illegal double extended attribute lists, consider merging them");
+    }
+    return ret;
+  }
+}
+
+
+/***/ }),
+/* 10 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ArrayBase", function() { return ArrayBase; });
+class ArrayBase extends Array {
+  constructor({ source, tokens }) {
+    super();
+    Object.defineProperties(this, {
+      source: { value: source },
+      tokens: { value: tokens }
+    });
+  }
+}
+
+
+/***/ }),
+/* 11 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Token", function() { return Token; });
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4);
+
+
+class Token extends _base_js__WEBPACK_IMPORTED_MODULE_0__["Base"] {
+  /**
+   * @param {import("../tokeniser").Tokeniser} tokeniser
+   * @param {string} type
+   */
+  static parser(tokeniser, type) {
+    return () => {
+      const value = tokeniser.consume(type);
+      if (value) {
+        return new Token({ source: tokeniser.source, tokens: { value } });
+      }
+    };
+  }
+
+  get value() {
+    return this.tokens.value.value;
+  }
+}
+
+
+/***/ }),
+/* 12 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Enum", function() { return Enum; });
 /* harmony import */ var _helpers_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2);
-/* harmony import */ var _token_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7);
-/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(6);
+/* harmony import */ var _token_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(11);
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(4);
 
 
 
@@ -1563,13 +1668,13 @@ class Enum extends _base_js__WEBPACK_IMPORTED_MODULE_2__["Base"] {
 
 
 /***/ }),
-/* 10 */
+/* 13 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Includes", function() { return Includes; });
-/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6);
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4);
 /* harmony import */ var _helpers_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(2);
 
 
@@ -1607,7 +1712,7 @@ class Includes extends _base_js__WEBPACK_IMPORTED_MODULE_0__["Base"] {
 
 
 /***/ }),
-/* 11 */
+/* 14 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -1921,13 +2026,13 @@ function write(ast, { templates: ts = templates } = {}) {
 
 
 /***/ }),
-/* 12 */
+/* 15 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "validate", function() { return validate; });
-/* harmony import */ var _error_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4);
+/* harmony import */ var _error_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6);
 
 
 

@@ -88,18 +88,6 @@
           );
           checkCount++;
         }
-        // Don't assert(false) immediately here if the bin is still higher than
-        // -40db the analyzer node has a window and it's expecte that it takes some
-        // time for the volume of this bin to decrease. Similarly, -50 may seem
-        // quite high but is also a product of windowing.
-        if (frequencyData[indexToCheckForLowEnergy] < -50) {
-          assert_true(true, "Correct track routed to the AudioContext.");
-        } else {
-          assert_true(
-            false,
-            "Other track seem to be routed to the AudioContext?"
-          );
-        }
         if (checkCount > 5 && checkCount < 20) {
           twoTrackMediaStream.getAudioTracks().forEach(track => {
             if (track.id == ids[0]) {

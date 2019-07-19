@@ -590,6 +590,29 @@ class ChromeAndroid(Browser):
         return None
 
 
+class ChromeiOS(Browser):
+    """Chrome-specific interface for iOS.
+    """
+
+    product = "chrome_ios"
+    requirements = "requirements_chrome_ios.txt"
+
+    def install(self, dest=None, channel=None):
+        raise NotImplementedError
+
+    def find_binary(self, venv_path=None, channel=None):
+        raise NotImplementedError
+
+    def find_webdriver(self, channel=None):
+        raise NotImplementedError
+
+    def install_webdriver(self, dest=None, channel=None, browser_binary=None):
+        raise NotImplementedError
+
+    def version(self, binary=None, webdriver_binary=None):
+        return None
+
+
 class Opera(Browser):
     """Opera-specific interface.
 

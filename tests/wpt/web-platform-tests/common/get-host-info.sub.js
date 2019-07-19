@@ -12,7 +12,7 @@ function get_host_info() {
   var ORIGINAL_HOST = '{{host}}';
   var REMOTE_HOST = (ORIGINAL_HOST === 'localhost') ? '127.0.0.1' : ('www1.' + ORIGINAL_HOST);
   var OTHER_HOST = '{{domains[www2]}}';
-  var NOTSAMESITE_HOST = (ORIGINAL_HOST === 'localhost') ? '127.0.0.1' : ('not-' + ORIGINAL_HOST);
+  var NOTSAMESITE_HOST = (ORIGINAL_HOST === 'localhost') ? '127.0.0.1' : ('{{hosts[alt][]}}');
 
   return {
     HTTP_PORT: HTTP_PORT,

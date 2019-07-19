@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/fetch/sec-metadata/resources/helper.js></script>
+<script>
+  // Site
+  promise_test(t => {
+    return fetch("https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/echo-as-json.py",
+                 {
+                   mode: "cors",
+                   headers: { 'x-test': 'testing' }
+                 })
+        .then(r => r.json())
+        .then(j => {
+          assert_header_equals(j, {
+            "dest": "empty",
+            "site": "same-site",
+            "user": "",
+            "mode": "cors",
+          });
+        });
+  }, "Same-site fetch with preflight");
+
+  promise_test(t => {
+    return fetch("https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/echo-as-json.py",
+                 {
+                   mode: "cors",
+                   headers: { 'x-test': 'testing' }
+                 })
+        .then(r => r.json())
+        .then(j => {
+          assert_header_equals(j, {
+            "dest": "empty",
+            "site": "cross-site",
+            "user": "",
+            "mode": "cors",
+          });
+        });
+  }, "Cross-site fetch with preflight");
+</script>

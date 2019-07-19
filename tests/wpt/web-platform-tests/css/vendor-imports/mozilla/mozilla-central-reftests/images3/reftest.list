@@ -1,3 +1,7 @@
+# Tests for dynamic change to aspect ratio on element with 'object-fit' set
+== object-fit-dyn-aspect-ratio-001.html object-fit-dyn-aspect-ratio-001-ref.html
+== object-fit-dyn-aspect-ratio-002.html object-fit-dyn-aspect-ratio-002-ref.html
+
 # Tests for 'object-fit' / 'object-position' with a PNG image
 == object-fit-fill-png-001c.html object-fit-fill-png-001-ref.html
 == object-fit-fill-png-001e.html object-fit-fill-png-001-ref.html

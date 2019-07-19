@@ -175,11 +175,10 @@ function reportload() {
         }, 'pushState must not be able to use a DOM node as data');
         test(function () {
             try { a.b = c; } catch(errdata) {
-                assert_throws( 'DATA_CLONE_ERR', function () {
-                    history.pushState({dummy:errdata},'');
-                } );
+                history.pushState({dummy:errdata},'');
+                assert_equals(ReferenceError.prototype, Object.getPrototypeOf(history.state.dummy));
             }
-        }, 'pushState must not be able to use an error object as data');
+        }, 'pushState must be able to use an error object as data');
         test(function () {
             assert_throws( 'DATA_CLONE_ERR', function () {
                 iframe.contentWindow.history.pushState(document,'');

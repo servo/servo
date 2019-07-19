@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Masking Module Level 1: getComputedStyle().clipRule</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-clip-rule">
+<meta name="assert" content="clip-rule computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("clip-rule", "nonzero");
+test_computed_value("clip-rule", "evenodd");
+</script>
+</body>
+</html>

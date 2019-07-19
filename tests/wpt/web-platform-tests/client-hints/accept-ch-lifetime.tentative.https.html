@@ -1,0 +1,106 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<title>Accept-CH-Lifetime test</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/accept-ch-lifetime-test.js"></script>
+
+<script>
+setup({ explicit_done: true });
+
+// Cross-origin header tests
+run_test({ name: "cross origin iframe not setting other origins",
+    initial_url: echo,
+    accept_url: host_info.HTTPS_REMOTE_ORIGIN + accept,
+    expect_url: do_not_expect,
+    type: "iframe" });
+
+run_test({ name: "cross origin iframe not setting own origin",
+    initial_url: host_info.HTTPS_REMOTE_ORIGIN + echo,
+    accept_url: host_info.HTTPS_REMOTE_ORIGIN + accept,
+    expect_url: host_info.HTTPS_REMOTE_ORIGIN + do_not_expect,
+    type: "iframe" });
+
+run_test({ name: "cross origin navigation",
+    initial_url: echo,
+    accept_url: host_info.HTTPS_REMOTE_ORIGIN + accept,
+    expect_url: host_info.HTTPS_REMOTE_ORIGIN + expect,
+    type: "navigation" });
+
+run_test({ name: "cross origin subresource",
+    initial_url: host_info.HTTPS_REMOTE_ORIGIN + echo,
+    accept_url: host_info.HTTPS_REMOTE_ORIGIN + accept,
+    expect_url: host_info.HTTPS_REMOTE_ORIGIN + do_not_expect,
+    type: "subresource" });
+
+// Same origin header tests
+run_test({ name: "same origin iframe",
+    initial_url: echo,
+    accept_url: accept,
+    expect_url: expect,
+    type: "iframe" });
+
+run_test({ name: "same origin navigation",
+    initial_url: echo,
+    accept_url: accept,
+    expect_url: expect,
+    type: "navigation" });
+
+run_test({ name: "same origin subresource",
+    initial_url: echo,
+    accept_url: accept,
+    expect_url: do_not_expect,
+    type: "subresource" });
+
+// Cross-origin http-equiv tests
+run_test({ name: "http-equiv cross origin iframe not setting other origins",
+    initial_url: echo,
+    accept_url: host_info.HTTPS_REMOTE_ORIGIN + httpequiv_accept,
+    expect_url: do_not_expect,
+    type: "iframe" });
+
+run_test({ name: "http-equiv cross origin iframe not setting own origin",
+    initial_url: host_info.HTTPS_REMOTE_ORIGIN + echo,
+    accept_url: host_info.HTTPS_REMOTE_ORIGIN + httpequiv_accept,
+    expect_url: host_info.HTTPS_REMOTE_ORIGIN + do_not_expect,
+    type: "iframe" });
+
+run_test({ name: "http-equiv cross origin navigation",
+    initial_url: echo,
+    accept_url: host_info.HTTPS_REMOTE_ORIGIN + httpequiv_accept,
+    expect_url: host_info.HTTPS_REMOTE_ORIGIN + expect,
+    type: "navigation" });
+
+run_test({ name: "http-equiv cross origin subresource",
+    initial_url: host_info.HTTPS_REMOTE_ORIGIN + echo,
+    accept_url: host_info.HTTPS_REMOTE_ORIGIN + httpequiv_accept,
+    expect_url: host_info.HTTPS_REMOTE_ORIGIN + do_not_expect,
+    type: "subresource" });
+
+// same-origin http-equiv tests
+run_test({ name: "http-equiv same origin iframe",
+    initial_url: echo,
+    accept_url: httpequiv_accept,
+    expect_url: expect,
+    type: "iframe" });
+
+run_test({ name: "http-equiv same origin navigation",
+    initial_url: echo,
+    accept_url: httpequiv_accept,
+    expect_url: expect,
+    type: "navigation" });
+
+run_test({ name: "http-equiv same origin subresource",
+    initial_url: echo,
+    accept_url: httpequiv_accept,
+    expect_url: do_not_expect,
+    type: "subresource" });
+
+done();
+
+</script>
+</body>
+</html>
+

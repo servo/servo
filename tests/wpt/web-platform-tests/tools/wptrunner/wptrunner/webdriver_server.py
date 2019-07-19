@@ -9,8 +9,9 @@ import traceback
 import mozprocess
 
 
-__all__ = ["SeleniumServer", "ChromeDriverServer", "EdgeChromiumDriverServer", "OperaDriverServer",
-           "GeckoDriverServer", "InternetExplorerDriverServer", "EdgeDriverServer",
+__all__ = ["SeleniumServer", "ChromeDriverServer", "CWTChromeDriverServer",
+           "EdgeChromiumDriverServer", "OperaDriverServer", "GeckoDriverServer",
+           "InternetExplorerDriverServer", "EdgeDriverServer",
            "ServoDriverServer", "WebKitDriverServer", "WebDriverServer"]
 
 
@@ -127,6 +128,14 @@ class ChromeDriverServer(WebDriverServer):
                 cmd_arg("port", str(self.port)),
                 cmd_arg("url-base", self.base_path) if self.base_path else ""] + self._args
 
+class CWTChromeDriverServer(WebDriverServer):
+    def __init__(self, logger, binary, port=None, args=None):
+        WebDriverServer.__init__(self, logger, binary, port=port, args=args)
+
+    def make_command(self):
+        return [self.binary,
+                "--port=%s" % str(self.port)] + self._args
+
 class EdgeChromiumDriverServer(WebDriverServer):
     def __init__(self, logger, binary="msedgedriver", port=None,
                  base_path="", args=None):
@@ -239,7 +248,7 @@ def get_free_port():
             s.close()
 
 
-def wait_for_service(addr, timeout=15):
+def wait_for_service(addr, timeout=60):
     """Waits until network service given as a tuple of (host, port) becomes
     available or the `timeout` duration is reached, at which point
     ``socket.error`` is raised."""

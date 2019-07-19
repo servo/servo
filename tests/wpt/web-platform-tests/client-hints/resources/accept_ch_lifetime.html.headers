@@ -1,2 +1,3 @@
 Accept-CH: device-memory
-Accept-CH-Lifetime: 5
+Accept-CH-Lifetime: 1
+Access-Control-Allow-Origin: *

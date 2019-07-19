@@ -89,7 +89,7 @@
       effect.localTime = this.test_local_time++;
     }
     state() {
-      return new Error('foo');
+      return new Symbol('foo');
     }
   });
 </script>
