@@ -509,7 +509,7 @@
                 });
                 t.step(function() {
                     const error = frames[0].URIError("some message");
-                    assert_equals(Object.getPrototypeOf(error), frames[0].prototype, "Checking prototype before cloning");
+                    assert_equals(Object.getPrototypeOf(error), frames[0].URIError.prototype, "Checking prototype before cloning");
                     assert_equals(error.constructor, frames[0].URIError, "Checking constructor before cloning");
                     assert_equals(error.name, "URIError", "Checking name before cloning");
                     error.foo = "bar";

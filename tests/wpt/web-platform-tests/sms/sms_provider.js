@@ -19,9 +19,21 @@ let interceptor = (async function() {
   return load.then(intercept);
 })();
 
-class SmsProvider {
+// Fake implementation of blink.mojom.SmsReceiver.
+class FakeSmsReceiverImpl {
   constructor() {
     this.returnValues = {}
+  }
+
+  bindHandleToMojoReceiver(handle) {
+    this.mojoReceiver_ = new blink.mojom.SmsReceiverReceiver(this);
+    this.mojoReceiver_.$.bindHandle(handle);
+  }
+
+  pushReturnValuesForTesting(callName, returnValues) {
+    this.returnValues[callName] = this.returnValues[callName] || [];
+    this.returnValues[callName].push(returnValues);
+    return this;
   }
 
   receive(timeout) {
@@ -30,12 +42,6 @@ class SmsProvider {
       throw new Error("Unexpected call.");
     }
     return call(timeout);
-  }
-
-  pushReturnValues(callName, returnValues) {
-    this.returnValues[callName] = this.returnValues[callName] || [];
-    this.returnValues[callName].push(returnValues);
-    return this;
   }
 }
 
@@ -46,8 +52,8 @@ function receive(timeout, callback) {
 function expect(call) {
   return {
     async andReturn(callback) {
-      let provider = await interceptor;
-      provider.pushReturnValues(call.name, callback);
+      let smsReceiverImpl = await interceptor;
+      smsReceiverImpl.pushReturnValuesForTesting(call.name, callback);
     }
   }
 }
@@ -55,13 +61,12 @@ function expect(call) {
 const Status = {};
 
 function intercept() {
-  let provider = new SmsProvider();
+  let smsReceiverImpl = new FakeSmsReceiverImpl();
 
   let interceptor = new MojoInterfaceInterceptor(
       blink.mojom.SmsReceiver.$interfaceName);
   interceptor.oninterfacerequest = (e) => {
-    let impl = new blink.mojom.SmsReceiver(provider);
-    impl.$.bindHandle(e.handle);
+    smsReceiverImpl.bindHandleToMojoReceiver(e.handle);
   }
 
   interceptor.start();
@@ -69,5 +74,5 @@ function intercept() {
   Status.kSuccess = blink.mojom.SmsStatus.kSuccess;
   Status.kTimeout = blink.mojom.SmsStatus.kTimeout;
 
-  return provider;
+  return smsReceiverImpl;
 }

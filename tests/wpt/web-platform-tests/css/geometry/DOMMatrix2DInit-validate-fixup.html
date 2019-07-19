@@ -39,6 +39,8 @@ function drawRectWithAddPathTransform(ctx, transform) {
   return window.canvas.toDataURL();
 }
 
+var emptyCanvasURL = window.canvas.toDataURL();
+
 [
   {a: 1, m11: 2},
   {b: 0, m12: -1},
@@ -95,10 +97,10 @@ test(() => {
   [{c: 0, m21: -0},                matrix2D({m21: -0})],
   [{c: -0, m21: 0},                matrix2D({m21: 0})],
   [{c: -0, m21: -0},               matrix2D({m21: -0})],
-  [{d: Infinity, m22: Infinity},   matrix2D({})], // should be silently ignored
-  [{e: -Infinity, m41: -Infinity}, matrix2D({})], // should be silently ignored
-  [{f: NaN, m42: NaN},             matrix2D({})], // should be silently ignored
-  [{f: NaN, m42: NaN, is2D: true}, matrix2D({})], // should be silently ignored
+  [{d: Infinity, m22: Infinity},   null], // setTransform: silently ignore / addPath: silently halt
+  [{e: -Infinity, m41: -Infinity}, null], // setTransform: silently ignore / addPath: silently halt
+  [{f: NaN, m42: NaN},             null], // setTransform: silently ignore / addPath: silently halt
+  [{f: NaN, m42: NaN, is2D: true}, null], // setTransform: silently ignore / addPath: silently halt
   [{f: 0, m42: null},              matrix2D({m42: 0})], // null is converted to 0
   [{f: -0, m42: null},             matrix2D({m42: 0})], // null is converted to 0
   [{a: 2},                         matrix2D({m11: 2})],
@@ -171,12 +173,14 @@ test(() => {
     ctx.resetTransform();
     ctx.setTransform(dict);
     const matrix = ctx.getTransform();
-    checkMatrix(matrix, expected);
+    checkMatrix(matrix, expected || matrix2D({}));
   }, `setTransform(${format_dict(dict)})`);
 
   test(() => {
-    var expectedResultURL = drawRectWithSetTransform(ctx, expected);
-    var actualResultURL = drawRectWithAddPathTransform(ctx, expected);
+    var expectedResultURL = expected ?
+      drawRectWithSetTransform(ctx, expected) :
+      emptyCanvasURL;
+    var actualResultURL = drawRectWithAddPathTransform(ctx, dict);
     assert_equals(actualResultURL, expectedResultURL);
   }, `addPath(${format_dict(dict)})`);
  });

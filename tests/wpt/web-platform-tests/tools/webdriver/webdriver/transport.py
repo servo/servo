@@ -191,4 +191,4 @@ class HTTPWireProtocol(object):
         return self.connection.getresponse()
 
     def _has_unread_data(self):
-        return self._conn and select.select([self._conn.sock], [], [], 0)[0]
+        return self._conn and self._conn.sock and select.select([self._conn.sock], [], [], 0)[0]

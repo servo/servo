@@ -128,7 +128,8 @@ function t(desc, func, expect) {
     if (expect == 'timeout') {
       setTimeout(this.step_func_done(), 1000);
     } else {
-      img['on' + expect] = this.step_func_done(function() {});
+      img['on' + expect] = this.step_func_done();
+      setTimeout(this.unreached_func('update the image data didn\'t run'), 1000);
     }
     func.call(this, img);
   }, desc);
