@@ -25,7 +25,7 @@ private:
   void Cleanup();
 
 private:
-  EGLDisplay mEglDisplay;
-  EGLContext mEglContext;
-  EGLConfig mEglConfig;
+  EGLDisplay mEglDisplay = EGL_NO_DISPLAY;
+  EGLContext mEglContext = nullptr;
+  EGLConfig mEglConfig = nullptr;
 };

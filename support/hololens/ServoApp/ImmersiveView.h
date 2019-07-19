@@ -54,9 +54,9 @@ protected:
                         winrt::Windows::UI::Core::PointerEventArgs const &args);
 
 private:
-  std::unique_ptr<Immersive::ImmersiveMain> m_main;
+  std::unique_ptr<Immersive::ImmersiveMain> m_main = nullptr;
 
-  std::shared_ptr<DX::DeviceResources> m_deviceResources;
+  std::shared_ptr<DX::DeviceResources> m_deviceResources = nullptr;
   bool m_windowClosed = false;
   bool m_windowVisible = true;
 

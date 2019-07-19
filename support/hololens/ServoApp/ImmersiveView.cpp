@@ -54,6 +54,13 @@ void ImmersiveView::Initialize(CoreApplicationView const &applicationView) {
 
 // Called when the CoreWindow object is created (or re-created).
 void ImmersiveView::SetWindow(CoreWindow const &window) {
+
+  if (m_main == nullptr) {
+    winrt::hstring message(L"main program not intialized.\n");
+    OutputDebugStringW(message.data());
+    return;
+  }
+
   // Register for keypress notifications.
   m_keyDownEventToken =
       window.KeyDown(bind(&ImmersiveView::OnKeyPressed, this, _1, _2));
@@ -93,6 +100,12 @@ void ImmersiveView::Load(winrt::hstring const &) {}
 // update, draw, and present loop, and it also oversees window message
 // processing.
 void ImmersiveView::Run() {
+
+  if (m_main == nullptr) {
+    winrt::hstring message(L"main program not intialized.\n");
+    OutputDebugStringW(message.data());
+    return;
+  }
 
   CoreWindow::GetForCurrentThread().Activate();
 
