@@ -38,7 +38,7 @@ interface XRSession : EventTarget {
   // // Events
   // attribute EventHandler onblur;
   // attribute EventHandler onfocus;
-  // attribute EventHandler onend;
+  attribute EventHandler onend;
   // attribute EventHandler onselect;
   // attribute EventHandler oninputsourceschange;
   // attribute EventHandler onselectstart;

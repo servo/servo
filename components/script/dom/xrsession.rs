@@ -5,7 +5,9 @@
 use crate::compartments::InCompartment;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateInit;
@@ -21,6 +23,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutDom, MutNullableDom};
+use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::Node;
@@ -31,6 +34,7 @@ use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrenderstate::XRRenderState;
+use crate::dom::xrsessionevent::XRSessionEvent;
 use crate::dom::xrspace::XRSpace;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
 use crate::task_source::TaskSource;
@@ -42,7 +46,7 @@ use profile_traits::ipc;
 use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
-use webxr_api::{self, Event, Frame, Session};
+use webxr_api::{self, Event as XREvent, Frame, Session};
 
 #[dom_struct]
 pub struct XRSession {
@@ -62,6 +66,11 @@ pub struct XRSession {
     #[ignore_malloc_size_of = "defined in ipc-channel"]
     raf_sender: DomRefCell<Option<IpcSender<(f64, Frame)>>>,
     input_sources: DomRefCell<Vec<Dom<XRInputSource>>>,
+    // Any promises from calling end()
+    #[ignore_malloc_size_of = "promises are hard"]
+    end_promises: DomRefCell<Vec<Rc<Promise>>>,
+    /// https://immersive-web.github.io/webxr/#ended
+    ended: Cell<bool>,
 }
 
 impl XRSession {
@@ -81,6 +90,8 @@ impl XRSession {
             raf_callback_list: DomRefCell::new(vec![]),
             raf_sender: DomRefCell::new(None),
             input_sources: DomRefCell::new(vec![]),
+            end_promises: DomRefCell::new(vec![]),
+            ended: Cell::new(false),
         }
     }
 
@@ -112,12 +123,12 @@ impl XRSession {
     fn attach_event_handler(&self) {
         #[derive(serde::Serialize, serde::Deserialize)]
         pub struct EventCallback {
-            sender: IpcSender<Event>,
+            sender: IpcSender<XREvent>,
         }
 
         #[typetag::serde]
         impl webxr_api::EventCallback for EventCallback {
-            fn callback(&mut self, event: Event) {
+            fn callback(&mut self, event: XREvent) {
                 let _ = self.sender.send(event);
             }
         }
@@ -148,8 +159,26 @@ impl XRSession {
             .set_event_callback(EventCallback { sender });
     }
 
-    fn event_callback(&self, _: Event) {
-        // XXXManishearth tbd
+    fn event_callback(&self, event: XREvent) {
+        match event {
+            XREvent::SessionEnd => {
+                // https://immersive-web.github.io/webxr/#shut-down-the-session
+                // Step 2
+                self.ended.set(true);
+                // Step 3-4
+                self.global().as_window().Navigator().Xr().end_session(self);
+                // Step 5: We currently do not have any such promises
+                // Step 6 is happening n the XR session
+                // https://immersive-web.github.io/webxr/#dom-xrsession-end step 3
+                for promise in self.end_promises.borrow_mut().drain(..) {
+                    promise.resolve_native(&());
+                }
+                // Step 7
+                let event = XRSessionEvent::new(&self.global(), atom!("end"), false, false, self);
+                event.upcast::<Event>().fire(self.upcast());
+            },
+            _ => (), // XXXManishearth TBD
+        }
     }
 
     /// https://immersive-web.github.io/webxr/#xr-animation-frame
@@ -215,6 +244,9 @@ impl XRSession {
 }
 
 impl XRSessionMethods for XRSession {
+    /// https://immersive-web.github.io/webxr/#eventdef-xrsession-end
+    event_handler!(end, GetOnend, SetOnend);
+
     /// https://immersive-web.github.io/webxr/#dom-xrsession-mode
     fn Mode(&self) -> XRSessionMode {
         XRSessionMode::Immersive_vr
@@ -349,9 +381,14 @@ impl XRSessionMethods for XRSession {
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-end
     fn End(&self) -> Rc<Promise> {
-        // XXXManishearth implement device disconnection and session ending
-        let p = Promise::new(&self.global());
-        p.resolve_native(&());
+        let global = self.global();
+        let p = Promise::new(&global);
+        self.end_promises.borrow_mut().push(p.clone());
+        // This is duplicated in event_callback since this should
+        // happen ASAP for end() but can happen later if the device
+        // shuts itself down
+        self.ended.set(true);
+        global.as_window().Navigator().Xr().end_session(self);
         p
     }
 }
