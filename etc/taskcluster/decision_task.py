@@ -609,7 +609,8 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                     --log-errorsummary bluetooth-errorsummary.log \
                     bluetooth \
                     | cat
-                time ./mach test-wpt --release --processes $PROCESSES --timeout-multiplier=4 \
+                time HOST_FILE=tests/wpt/hosts ./mach test-wpt --release --processes $PROCESSES \
+                    --timeout-multiplier=4 \
                     --headless --log-raw test-wdspec.log \
                     --log-errorsummary wdspec-errorsummary.log \
                     --always-succeed \

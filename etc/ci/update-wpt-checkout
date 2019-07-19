@@ -72,8 +72,8 @@ function unsafe_run_tests() {
            --log-raw "${2}" /bluetooth --always-succeed || return 2
 
     # Run the wdspec testsuite
-    ./mach test-wpt --release --timeout-multiplier=4 --log-raw "${3}" /webdriver \
-           --always-succeed || return 3
+    HOST_FILE=tests/wpt/hosts ./mach test-wpt --release --timeout-multiplier=4 \
+           --log-raw "${3}" /webdriver --always-succeed || return 3
 }
 
 # Using an existing log file, update the expected test results and amend the
