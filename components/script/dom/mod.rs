@@ -552,6 +552,7 @@ pub mod xrreferencespace;
 pub mod xrrenderstate;
 pub mod xrrigidtransform;
 pub mod xrsession;
+pub mod xrsessionevent;
 pub mod xrspace;
 pub mod xrtest;
 pub mod xrview;
