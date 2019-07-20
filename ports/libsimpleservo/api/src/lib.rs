@@ -89,6 +89,8 @@ pub trait HostTrait {
     /// Will be called before drawing.
     /// Time to make the targetted GL context current.
     fn make_current(&self);
+    /// javascript window.alert()
+    fn on_alert(&self, msg: String);
     /// Page starts loading.
     /// "Reload button" should be disabled.
     /// "Stop button" should be enabled.
@@ -521,6 +523,7 @@ impl ServoGlue {
                 },
                 EmbedderMsg::Alert(message, sender) => {
                     info!("Alert: {}", message);
+                    self.callbacks.host_callbacks.on_alert(message);
                     let _ = sender.send(());
                 },
                 EmbedderMsg::AllowOpeningBrowser(response_chan) => {

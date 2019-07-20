@@ -130,6 +130,10 @@ public class MainActivity extends Activity implements Servo.Client {
     }
 
     @Override
+    public void onAlert(String message) {
+    }
+
+    @Override
     public void onLoadStarted() {
         mReloadButton.setEnabled(false);
         mStopButton.setEnabled(true);

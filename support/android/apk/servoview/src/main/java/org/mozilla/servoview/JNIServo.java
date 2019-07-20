@@ -93,6 +93,8 @@ public class JNIServo {
 
         void makeCurrent();
 
+        void onAlert(String message);
+
         void onAnimatingChanged(boolean animating);
 
         void onLoadStarted();

@@ -347,6 +347,7 @@ impl HostTrait for HostCallbacks {
         MakeCurrent(self.disp, self.surf, self.surf, self.ctxt);
     }
 
+    fn on_alert(&self, _message: String) {}
     fn on_load_started(&self) {}
     fn on_load_ended(&self) {}
     fn on_title_changed(&self, _title: String) {}
