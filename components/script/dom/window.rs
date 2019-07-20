@@ -57,7 +57,8 @@ use crate::fetch;
 use crate::layout_image::fetch_image_for_layout;
 use crate::microtask::MicrotaskQueue;
 use crate::script_runtime::{
-    CommonScriptMsg, Runtime, ScriptChan, ScriptPort, ScriptThreadEventCategory,
+    CommonScriptMsg, JSContext as SafeJSContext, Runtime, ScriptChan, ScriptPort,
+    ScriptThreadEventCategory,
 };
 use crate::script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg};
 use crate::script_thread::{ScriptThread, SendableMainThreadScriptChan};
@@ -2176,7 +2177,7 @@ impl Window {
             player_context,
         });
 
-        unsafe { WindowBinding::Wrap(runtime.cx(), win) }
+        unsafe { WindowBinding::Wrap(SafeJSContext::from_ptr(runtime.cx()), win) }
     }
 
     pub fn pipeline_id(&self) -> Option<PipelineId> {

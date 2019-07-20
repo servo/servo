@@ -60,13 +60,14 @@ use crate::dom::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
 use crate::dom::window::Window;
+use crate::script_runtime::JSContext;
 use crate::script_thread::ScriptThread;
 use app_units::Au;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D, Vector2D};
 use html5ever::{Namespace, Prefix, QualName};
-use js::jsapi::{JSContext, JSObject, JSRuntime};
+use js::jsapi::{JSObject, JSRuntime};
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
@@ -1625,7 +1626,7 @@ impl Node {
     pub fn reflect_node<N>(
         node: Box<N>,
         document: &Document,
-        wrap_fn: unsafe fn(*mut JSContext, &GlobalScope, Box<N>) -> DomRoot<N>,
+        wrap_fn: unsafe fn(JSContext, &GlobalScope, Box<N>) -> DomRoot<N>,
     ) -> DomRoot<N>
     where
         N: DerivedFrom<Node> + DomObject,

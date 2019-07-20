@@ -23,6 +23,7 @@ use crate::dom::worklet::WorkletExecutor;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::dom::workletglobalscope::WorkletTask;
+use crate::script_runtime::JSContext;
 use crossbeam_channel::{unbounded, Sender};
 use dom_struct::dom_struct;
 use euclid::TypedScale;
@@ -128,7 +129,7 @@ impl PaintWorkletGlobalScope {
                 missing_image_urls: Vec::new(),
             }),
         });
-        unsafe { PaintWorkletGlobalScopeBinding::Wrap(runtime.cx(), global) }
+        unsafe { PaintWorkletGlobalScopeBinding::Wrap(JSContext::from_ptr(runtime.cx()), global) }
     }
 
     pub fn image_cache(&self) -> Arc<dyn ImageCache> {
