@@ -224,6 +224,7 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
                     ));
             }
         }
+
         self.source_node
             .upcast::<AudioScheduledSourceNode>()
             .Start(when)
