@@ -2586,7 +2586,7 @@ class CGConstructorEnabled(CGAbstractMethod):
     def __init__(self, descriptor):
         CGAbstractMethod.__init__(self, descriptor,
                                   'ConstructorEnabled', 'bool',
-                                  [Argument("*mut JSContext", "aCx"),
+                                  [Argument("SafeJSContext", "aCx"),
                                    Argument("HandleObject", "aObj")],
                                   unsafe=True)
 
@@ -3285,7 +3285,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         return CGGeneric("""\
 assert!(!global.get().is_null());
 
-if !ConstructorEnabled(cx, global) {
+if !ConstructorEnabled(SafeJSContext::from_ptr(cx), global) {
     return;
 }
 
@@ -6006,6 +6006,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::mem::malloc_size_of_including_raw_self',
         'crate::compartments::InCompartment',
         'crate::compartments::AlreadyInCompartment',
+        'crate::script_runtime::JSContext as SafeJSContext',
         'libc',
         'servo_config::pref',
         'servo_config::prefs',
