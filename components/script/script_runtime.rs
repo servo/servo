@@ -748,3 +748,22 @@ unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
 #[allow(unsafe_code)]
 #[cfg(not(feature = "debugmozjs"))]
 unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
+
+#[derive(Clone, Copy)]
+pub struct JSContext(*mut RawJSContext);
+
+#[allow(unsafe_code)]
+impl JSContext {
+    pub unsafe fn from_ptr(raw_js_context: *mut RawJSContext) -> Self {
+        JSContext(raw_js_context)
+    }
+}
+
+#[allow(unsafe_code)]
+impl Deref for JSContext {
+    type Target = *mut RawJSContext;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
