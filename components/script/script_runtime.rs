@@ -52,7 +52,7 @@ use servo_config::pref;
 use std::cell::Cell;
 use std::fmt;
 use std::io::{stdout, Write};
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::os;
 use std::os::raw::c_void;
 use std::panic::AssertUnwindSafe;
@@ -748,3 +748,28 @@ unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
 #[allow(unsafe_code)]
 #[cfg(not(feature = "debugmozjs"))]
 unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
+
+pub struct JSContext(*mut RawJSContext);
+
+#[allow(unsafe_code)]
+impl JSContext {
+    pub unsafe fn from_ptr(raw_js_context: *mut RawJSContext) -> Self {
+        JSContext(raw_js_context)
+    }
+}
+
+#[allow(unsafe_code)]
+impl Deref for JSContext {
+    type Target = RawJSContext;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*self.0 }
+    }
+}
+
+#[allow(unsafe_code)]
+impl DerefMut for JSContext {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { &mut *self.0 }
+    }
+}
