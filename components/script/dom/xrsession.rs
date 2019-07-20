@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XREnvironmentBlen
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
-use crate::dom::bindings::error::Error;
+use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
@@ -31,7 +31,6 @@ use crate::dom::node::NodeDamage;
 use crate::dom::promise::Promise;
 use crate::dom::xrframe::XRFrame;
 use crate::dom::xrinputsource::XRInputSource;
-use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrenderstate::XRRenderState;
 use crate::dom::xrsessionevent::XRSessionEvent;
@@ -51,7 +50,7 @@ use webxr_api::{self, Event as XREvent, Frame, Session};
 #[dom_struct]
 pub struct XRSession {
     eventtarget: EventTarget,
-    base_layer: MutNullableDom<XRLayer>,
+    base_layer: MutNullableDom<XRWebGLLayer>,
     blend_mode: XREnvironmentBlendMode,
     viewer_space: MutNullableDom<XRSpace>,
     #[ignore_malloc_size_of = "defined in webxr"]
@@ -118,6 +117,10 @@ impl XRSession {
     pub fn with_session<R, F: FnOnce(&Session) -> R>(&self, with: F) -> R {
         let session = self.session.borrow();
         with(&session)
+    }
+
+    pub fn is_ended(&self) -> bool {
+        self.ended.get()
     }
 
     fn attach_event_handler(&self) {
@@ -195,13 +198,9 @@ impl XRSession {
             let layer = pending.GetBaseLayer();
             if let Some(layer) = layer {
                 let mut session = self.session.borrow_mut();
-                if let Some(layer) = layer.downcast::<XRWebGLLayer>() {
-                    session.update_webgl_external_image_api(
-                        layer.Context().webgl_sender().webxr_external_image_api(),
-                    );
-                } else {
-                    error!("updateRenderState() called with unknown layer type")
-                }
+                session.update_webgl_external_image_api(
+                    layer.Context().webgl_sender().webxr_external_image_api(),
+                );
             }
         }
 
@@ -233,13 +232,11 @@ impl XRSession {
 
         // If the canvas element is attached to the DOM, it is now dirty,
         // and we need to trigger a reflow.
-        if let Some(webgl_layer) = base_layer.downcast::<XRWebGLLayer>() {
-            webgl_layer
-                .Context()
-                .Canvas()
-                .upcast::<Node>()
-                .dirty(NodeDamage::OtherNodeDamage);
-        }
+        base_layer
+            .Context()
+            .Canvas()
+            .upcast::<Node>()
+            .dirty(NodeDamage::OtherNodeDamage);
     }
 }
 
@@ -258,11 +255,19 @@ impl XRSessionMethods for XRSession {
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-updaterenderstate
-    fn UpdateRenderState(&self, init: &XRRenderStateInit, _: InCompartment) {
-        // XXXManishearth various checks:
-        // If session’s ended value is true, throw an InvalidStateError and abort these steps
-        // If newState’s baseLayer's was created with an XRSession other than session,
-        // throw an InvalidStateError and abort these steps
+    fn UpdateRenderState(&self, init: &XRRenderStateInit, _: InCompartment) -> ErrorResult {
+        // Step 2
+        if self.ended.get() {
+            return Err(Error::InvalidState);
+        }
+        // Step 3:
+        if let Some(ref layer) = init.baseLayer {
+            if Dom::from_ref(layer.session()) != Dom::from_ref(self) {
+                return Err(Error::InvalidState);
+            }
+        }
+
+        // XXXManishearth step 4:
         // If newState’s inlineVerticalFieldOfView is set and session is an
         // immersive session, throw an InvalidStateError and abort these steps.
 
@@ -279,6 +284,7 @@ impl XRSessionMethods for XRSession {
             pending.set_layer(Some(&layer))
         }
         // XXXManishearth handle inlineVerticalFieldOfView
+        Ok(())
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe

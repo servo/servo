@@ -21,7 +21,7 @@ dictionary XRWebGLLayerInit {
             XRWebGLRenderingContext context,
             optional XRWebGLLayerInit layerInit = {}),
     Pref="dom.webxr.enabled"]
-interface XRWebGLLayer : XRLayer {
+interface XRWebGLLayer {
   // // Attributes
   readonly attribute XRWebGLRenderingContext context;
 
