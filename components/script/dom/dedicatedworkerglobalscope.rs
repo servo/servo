@@ -26,7 +26,9 @@ use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::load_whole_resource;
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
-use crate::script_runtime::{new_child_runtime, CommonScriptMsg, Runtime, ScriptChan, ScriptPort};
+use crate::script_runtime::{
+    new_child_runtime, CommonScriptMsg, JSContext as SafeJSContext, Runtime, ScriptChan, ScriptPort,
+};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 use crossbeam_channel::{unbounded, Receiver, Sender};
@@ -283,7 +285,7 @@ impl DedicatedWorkerGlobalScope {
             closing,
             image_cache,
         ));
-        unsafe { DedicatedWorkerGlobalScopeBinding::Wrap(cx, scope) }
+        unsafe { DedicatedWorkerGlobalScopeBinding::Wrap(SafeJSContext::from_ptr(cx), scope) }
     }
 
     #[allow(unsafe_code)]

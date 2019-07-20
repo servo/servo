@@ -2618,17 +2618,17 @@ def CreateBindingJSObject(descriptor):
     if descriptor.proxy:
         create += """
 let handler = RegisterBindings::PROXY_HANDLERS[PrototypeList::Proxies::%s as usize];
-rooted!(in(cx) let private = PrivateValue(raw as *const libc::c_void));
-let obj = NewProxyObject(cx, handler,
+rooted!(in(*cx) let private = PrivateValue(raw as *const libc::c_void));
+let obj = NewProxyObject(*cx, handler,
                          Handle::from_raw(UndefinedHandleValue),
                          proto.get());
 assert!(!obj.is_null());
 SetProxyReservedSlot(obj, 0, &private.get());
-rooted!(in(cx) let obj = obj);\
+rooted!(in(*cx) let obj = obj);\
 """ % (descriptor.name)
     else:
-        create += ("rooted!(in(cx) let obj = JS_NewObjectWithGivenProto(\n"
-                   "    cx, &Class.base as *const JSClass, proto.handle()));\n"
+        create += ("rooted!(in(*cx) let obj = JS_NewObjectWithGivenProto(\n"
+                   "    *cx, &Class.base as *const JSClass, proto.handle()));\n"
                    "assert!(!obj.is_null());\n"
                    "\n"
                    "let val = PrivateValue(raw as *const libc::c_void);\n"
@@ -2676,8 +2676,8 @@ def CopyUnforgeablePropertiesToInstance(descriptor):
     # reflector, so we can make sure we don't get confused by named getters.
     if descriptor.proxy:
         copyCode += """\
-rooted!(in(cx) let mut expando = ptr::null_mut::<JSObject>());
-ensure_expando_object(cx, obj.handle().into(), expando.handle_mut());
+rooted!(in(*cx) let mut expando = ptr::null_mut::<JSObject>());
+ensure_expando_object(*cx, obj.handle().into(), expando.handle_mut());
 """
         obj = "expando"
     else:
@@ -2693,9 +2693,9 @@ ensure_expando_object(cx, obj.handle().into(), expando.handle_mut());
     copyCode += """\
 let mut slot = UndefinedValue();
 JS_GetReservedSlot(proto.get(), DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, &mut slot);
-rooted!(in(cx) let mut unforgeable_holder = ptr::null_mut::<JSObject>());
+rooted!(in(*cx) let mut unforgeable_holder = ptr::null_mut::<JSObject>());
 unforgeable_holder.handle_mut().set(slot.to_object());
-assert!(%(copyFunc)s(cx, %(obj)s.handle(), unforgeable_holder.handle()));
+assert!(%(copyFunc)s(*cx, %(obj)s.handle(), unforgeable_holder.handle()));
 """ % {'copyFunc': copyFunc, 'obj': obj}
 
     return copyCode
@@ -2709,7 +2709,7 @@ class CGWrapMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert not descriptor.interface.isCallback()
         assert not descriptor.isGlobal()
-        args = [Argument('*mut JSContext', 'cx'),
+        args = [Argument('SafeJSContext', 'cx'),
                 Argument('&GlobalScope', 'scope'),
                 Argument("Box<%s>" % descriptor.concreteType, 'object')]
         retval = 'DomRoot<%s>' % descriptor.concreteType
@@ -2724,9 +2724,9 @@ let scope = scope.reflector().get_jsobject();
 assert!(!scope.get().is_null());
 assert!(((*get_object_class(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
 
-rooted!(in(cx) let mut proto = ptr::null_mut::<JSObject>());
-let _ac = JSAutoRealm::new(cx, scope.get());
-GetProtoObject(cx, scope, proto.handle_mut());
+rooted!(in(*cx) let mut proto = ptr::null_mut::<JSObject>());
+let _ac = JSAutoRealm::new(*cx, scope.get());
+GetProtoObject(*cx, scope, proto.handle_mut());
 assert!(!proto.is_null());
 
 %(createObject)s
@@ -2744,7 +2744,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
     def __init__(self, descriptor, properties):
         assert not descriptor.interface.isCallback()
         assert descriptor.isGlobal()
-        args = [Argument('*mut JSContext', 'cx'),
+        args = [Argument('SafeJSContext', 'cx'),
                 Argument("Box<%s>" % descriptor.concreteType, 'object')]
         retval = 'DomRoot<%s>' % descriptor.concreteType
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
@@ -2761,7 +2761,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             ("define_guarded_methods", self.properties.methods),
             ("define_guarded_constants", self.properties.consts)
         ]
-        members = ["%s(cx, obj.handle(), %s, obj.handle());" % (function, array.variableName())
+        members = ["%s(*cx, obj.handle(), %s, obj.handle());" % (function, array.variableName())
                    for (function, array) in pairs if array.length() > 0]
         values["members"] = "\n".join(members)
 
@@ -2769,9 +2769,9 @@ class CGWrapGlobalMethod(CGAbstractMethod):
 let raw = Box::into_raw(object);
 let _rt = RootedTraceable::new(&*raw);
 
-rooted!(in(cx) let mut obj = ptr::null_mut::<JSObject>());
+rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
 create_global_object(
-    cx,
+    *cx,
     &Class.base,
     raw as *const libc::c_void,
     _trace,
@@ -2780,12 +2780,12 @@ assert!(!obj.is_null());
 
 (*raw).init_reflector(obj.get());
 
-let _ac = JSAutoRealm::new(cx, obj.get());
-rooted!(in(cx) let mut proto = ptr::null_mut::<JSObject>());
-GetProtoObject(cx, obj.handle(), proto.handle_mut());
-assert!(JS_SplicePrototype(cx, obj.handle(), proto.handle()));
+let _ac = JSAutoRealm::new(*cx, obj.get());
+rooted!(in(*cx) let mut proto = ptr::null_mut::<JSObject>());
+GetProtoObject(*cx, obj.handle(), proto.handle_mut());
+assert!(JS_SplicePrototype(*cx, obj.handle(), proto.handle()));
 let mut immutable = false;
-assert!(JS_SetImmutablePrototype(cx, obj.handle(), &mut immutable));
+assert!(JS_SetImmutablePrototype(*cx, obj.handle(), &mut immutable));
 assert!(immutable);
 
 %(members)s
@@ -6022,6 +6022,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'std::rc::Rc',
         'std::default::Default',
         'std::ffi::CString',
+        'std::ops::Deref',
     ], config)
 
 
