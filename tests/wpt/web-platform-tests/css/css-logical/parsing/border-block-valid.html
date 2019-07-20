@@ -19,7 +19,7 @@ test_valid_value("border-block", "double", ["double", "medium double"]);
 test_valid_value("border-block-start", "green double thin", "thin double green");
 test_valid_value("border-block-start", "green", ["green", "medium none green"]);
 test_valid_value("border-block-end", "thin", ["thin", "thin none"]);
-test_valid_value("border-block-end", "calc(10px - 0.5em) dotted red");
+test_valid_value("border-block-end", "calc(10px - 0.5em) dotted red", "calc(-0.5em + 10px) dotted red");
 </script>
 </body>
 </html>

@@ -65,14 +65,33 @@ promise_test(async t => {
   await new Promise(resolve => {
     iframe.addEventListener("load", resolve);
     iframe.src = "/payment-request/resources/page2.html";
+    // An implementation may optionally reject |showPromise|.
+    showPromise.catch(e => {});
   });
-  await promise_rejects(
-    t,
-    "AbortError",
-    showPromise,
-    "The iframe was navigated away, so showPromise must reject with AbortError"
-  );
-  // We are done, so clean up.
-  iframe.remove();
-}, "If a payment request is showing, but its document is navigated away (so no longer fully active), the payment request aborts.");
+
+  // The navigaton should have dismissed the previous payment request so it
+  // should be possible to show another one now.
+  const request2 = new iframe.contentWindow.PaymentRequest(
+    validMethods, validDetails);
+  const [showPromise2] = await test_driver.bless(
+    "show 2nd payment request", () => {
+      return [request2.show()];
+    });
+
+  // Stop the test in 1 second if it has not rejected, which means that a
+  // payment sheet is successfully shown.
+  t.step_timeout(async () => {
+    // We are done, so clean up.
+    iframe.remove();
+    t.done();
+  }, 1000);
+
+  // This should never settle because the payment sheet should be pending.
+  await showPromise2.then(() => {
+    assert_true(false, "Second payment should be pending but is resolved.");
+  })
+  .catch(e => {
+    assert_true(false, "Second payment should be pending but is rejected.");
+  });
+}, "If a payment request is showing, but its document is navigated away (so no longer fully active), the payment sheet is dismissed.");
 </script>

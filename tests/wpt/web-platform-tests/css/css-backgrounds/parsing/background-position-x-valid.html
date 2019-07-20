@@ -19,13 +19,13 @@ test_valid_value("background-position-x", "x-end");
 test_valid_value("background-position-x", "-20%");
 test_valid_value("background-position-x", "10px");
 test_valid_value("background-position-x", "0.5em");
-test_valid_value("background-position-x", "calc(10px - 0.5em)");
+test_valid_value("background-position-x", "calc(10px - 0.5em)", "calc(-0.5em + 10px)");
 test_valid_value("background-position-x", "left -20%");
 test_valid_value("background-position-x", "right 10px");
 test_valid_value("background-position-x", "-20%, 10px");
 test_valid_value("background-position-x", "center, left, right");
 test_valid_value("background-position-x", "0.5em, x-start, x-end");
-test_valid_value("background-position-x", "calc(10px - 0.5em), left -20%, right 10px");
+test_valid_value("background-position-x", "calc(10px - 0.5em), left -20%, right 10px", "calc(-0.5em + 10px), left -20%, right 10px");
 </script>
 </body>
 </html>

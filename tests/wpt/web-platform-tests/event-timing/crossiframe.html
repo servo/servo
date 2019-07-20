@@ -65,6 +65,9 @@
   }
 
   async_test(function(t) {
+    if (!window.PerformanceEventTiming)
+      assert_unreached("PerformanceEventTiming is not supported");
+
     clickTimeMin = performance.now();
     clickAndBlockMain('button');
     processingStartMin = performance.now();

@@ -81,6 +81,15 @@ promise_test(async t => {
 
 promise_test(async t => {
   const [registration, expected_url] =
+      await prepare_ready_registration(t, 'redirect');
+  t.add_cleanup(() => registration.unregister());
+
+  promise_rejects(t, new TypeError(), registration.update())
+  assert_active_only(registration, expected_url);
+}, 'update() should fail when a response for the main script is redirect.');
+
+promise_test(async t => {
+  const [registration, expected_url] =
       await prepare_ready_registration(t, 'syntax_error');
   t.add_cleanup(() => registration.unregister());
 

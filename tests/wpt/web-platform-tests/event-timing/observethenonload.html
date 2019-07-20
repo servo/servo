@@ -66,6 +66,9 @@
      observer callback start
   */
   async_test(function(t) {
+    if (!window.PerformanceEventTiming)
+      assert_unreached("PerformanceEventTiming is not supported");
+
     const observerPromise = new Promise((resolve, reject) => {
       new PerformanceObserver(function(entryList) {
         observedEntries = observedEntries.concat(entryList.getEntries().filter(

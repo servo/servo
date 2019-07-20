@@ -56,10 +56,16 @@
         })
     };
 
+    // Reference spaces that aren't included in the default feature list must
+    // be specified as a required or optional features on session creation.
     xr_session_promise_test(
-      immersiveTestName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+      immersiveTestName, testFunction, fakeDeviceInitParams, 'immersive-vr',
+        {requiredFeatures: ['local-floor'],
+         optionalFeatures: ['bounded-floor', 'unbounded']});
     xr_session_promise_test(
-      nonImmersiveTestName, testFunction, fakeDeviceInitParams, 'inline');
+      nonImmersiveTestName, testFunction, fakeDeviceInitParams, 'inline',
+        {requiredFeatures: ['local'],
+         optionalFeatures: ['local-floor']});
 
   </script>
 </body>
