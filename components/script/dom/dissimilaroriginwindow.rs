@@ -11,6 +11,7 @@ use crate::dom::bindings::structuredclone::StructuredCloneData;
 use crate::dom::dissimilaroriginlocation::DissimilarOriginLocation;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy::WindowProxy;
+use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use js::jsapi::JSContext;
@@ -68,7 +69,7 @@ impl DissimilarOriginWindow {
             window_proxy: Dom::from_ref(window_proxy),
             location: Default::default(),
         });
-        unsafe { DissimilarOriginWindowBinding::Wrap(cx, win) }
+        unsafe { DissimilarOriginWindowBinding::Wrap(&mut SafeJSContext::from_ptr(cx), win) }
     }
 
     pub fn window_proxy(&self) -> DomRoot<WindowProxy> {

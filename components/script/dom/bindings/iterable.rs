@@ -13,6 +13,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSContext, JSObject};
@@ -62,7 +63,11 @@ impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
     pub fn new(
         iterable: &T,
         type_: IteratorType,
-        wrap: unsafe fn(*mut JSContext, &GlobalScope, Box<IterableIterator<T>>) -> DomRoot<Self>,
+        wrap: unsafe fn(
+            &mut SafeJSContext,
+            &GlobalScope,
+            Box<IterableIterator<T>>,
+        ) -> DomRoot<Self>,
     ) -> DomRoot<Self> {
         let iterator = Box::new(IterableIterator {
             reflector: Reflector::new(),

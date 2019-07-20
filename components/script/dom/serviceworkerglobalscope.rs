@@ -21,7 +21,9 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::load_whole_resource;
-use crate::script_runtime::{new_rt_and_cx, CommonScriptMsg, Runtime, ScriptChan};
+use crate::script_runtime::{
+    new_rt_and_cx, CommonScriptMsg, JSContext as SafeJSContext, Runtime, ScriptChan,
+};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 use crossbeam_channel::{unbounded, Receiver, Sender};
@@ -246,7 +248,7 @@ impl ServiceWorkerGlobalScope {
             swmanager_sender,
             scope_url,
         ));
-        unsafe { ServiceWorkerGlobalScopeBinding::Wrap(cx, scope) }
+        unsafe { ServiceWorkerGlobalScopeBinding::Wrap(&mut SafeJSContext::from_ptr(cx), scope) }
     }
 
     #[allow(unsafe_code)]

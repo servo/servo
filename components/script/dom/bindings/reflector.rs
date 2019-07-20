@@ -7,7 +7,8 @@
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-use js::jsapi::{Heap, JSContext, JSObject};
+use crate::script_runtime::JSContext as SafeJSContext;
+use js::jsapi::{Heap, JSObject};
 use js::rust::HandleObject;
 use std::default::Default;
 
@@ -16,14 +17,20 @@ use std::default::Default;
 pub fn reflect_dom_object<T, U>(
     obj: Box<T>,
     global: &U,
-    wrap_fn: unsafe fn(*mut JSContext, &GlobalScope, Box<T>) -> DomRoot<T>,
+    wrap_fn: unsafe fn(&mut SafeJSContext, &GlobalScope, Box<T>) -> DomRoot<T>,
 ) -> DomRoot<T>
 where
     T: DomObject,
     U: DerivedFrom<GlobalScope>,
 {
     let global_scope = global.upcast();
-    unsafe { wrap_fn(global_scope.get_cx(), global_scope, obj) }
+    unsafe {
+        wrap_fn(
+            &mut SafeJSContext::from_ptr(global_scope.get_cx()),
+            global_scope,
+            obj,
+        )
+    }
 }
 
 /// A struct to store a reference to the reflector of a DOM object.
