@@ -395,6 +395,7 @@ impl XRSessionMethods for XRSession {
         // shuts itself down
         self.ended.set(true);
         global.as_window().Navigator().Xr().end_session(self);
+        self.session.borrow_mut().end_session();
         p
     }
 }
