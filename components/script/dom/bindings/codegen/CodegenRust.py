@@ -2650,8 +2650,8 @@ def InitUnforgeablePropertiesOnHolder(descriptor, properties):
     """
     unforgeables = []
 
-    defineUnforgeableAttrs = "define_guarded_properties(cx, unforgeable_holder.handle(), %s, global);"
-    defineUnforgeableMethods = "define_guarded_methods(cx, unforgeable_holder.handle(), %s, global);"
+    defineUnforgeableAttrs = "define_guarded_properties(cx.deref_mut(), unforgeable_holder.handle(), %s, global);"
+    defineUnforgeableMethods = "define_guarded_methods(cx.deref_mut(), unforgeable_holder.handle(), %s, global);"
 
     unforgeableMembers = [
         (defineUnforgeableAttrs, properties.unforgeable_attrs),
@@ -2888,7 +2888,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
     properties should be a PropertyArrays instance.
     """
     def __init__(self, descriptor, properties, haveUnscopables):
-        args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'global'),
+        args = [Argument('&mut SafeJSContext', 'cx'), Argument('HandleObject', 'global'),
                 Argument('*mut ProtoOrIfaceArray', 'cache')]
         CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', 'void', args,
                                   unsafe=True)
@@ -2899,18 +2899,18 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         name = self.descriptor.interface.identifier.name
         if self.descriptor.interface.isNamespace():
             if self.descriptor.interface.getExtendedAttribute("ProtoObjectHack"):
-                proto = "GetRealmObjectPrototype(cx)"
+                proto = "GetRealmObjectPrototype(cx.deref_mut())"
             else:
-                proto = "JS_NewPlainObject(cx)"
+                proto = "JS_NewPlainObject(cx.deref_mut())"
             if self.properties.static_methods.length():
                 methods = self.properties.static_methods.variableName()
             else:
                 methods = "&[]"
             return CGGeneric("""\
-rooted!(in(cx) let proto = %(proto)s);
+rooted!(in(cx.deref_mut()) let proto = %(proto)s);
 assert!(!proto.is_null());
-rooted!(in(cx) let mut namespace = ptr::null_mut::<JSObject>());
-create_namespace_object(cx, global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
+rooted!(in(cx.deref_mut()) let mut namespace = ptr::null_mut::<JSObject>());
+create_namespace_object(cx.deref_mut(), global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
                         %(methods)s, %(name)s, namespace.handle_mut());
 assert!(!namespace.is_null());
 assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
@@ -2922,8 +2922,8 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
         if self.descriptor.interface.isCallback():
             assert not self.descriptor.interface.ctor() and self.descriptor.interface.hasConstants()
             return CGGeneric("""\
-rooted!(in(cx) let mut interface = ptr::null_mut::<JSObject>());
-create_callback_interface_object(cx, global, sConstants, %(name)s, interface.handle_mut());
+rooted!(in(cx.deref_mut()) let mut interface = ptr::null_mut::<JSObject>());
+create_callback_interface_object(cx.deref_mut(), global, sConstants, %(name)s, interface.handle_mut());
 assert!(!interface.is_null());
 assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
 (*cache)[PrototypeList::Constructor::%(id)s as usize] = interface.get();
@@ -2940,13 +2940,13 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                 protoGetter = "GetRealmIteratorPrototype"
             else:
                 protoGetter = "GetRealmObjectPrototype"
-            getPrototypeProto = "prototype_proto.set(%s(cx))" % protoGetter
+            getPrototypeProto = "prototype_proto.set(%s(cx.deref_mut()))" % protoGetter
         else:
-            getPrototypeProto = ("%s::GetProtoObject(cx, global, prototype_proto.handle_mut())" %
+            getPrototypeProto = ("%s::GetProtoObject(cx.deref_mut(), global, prototype_proto.handle_mut())" %
                                  toBindingNamespace(parentName))
 
         code = [CGGeneric("""\
-rooted!(in(cx) let mut prototype_proto = ptr::null_mut::<JSObject>());
+rooted!(in(cx.deref_mut()) let mut prototype_proto = ptr::null_mut::<JSObject>());
 %s;
 assert!(!prototype_proto.is_null());""" % getPrototypeProto)]
 
@@ -2974,8 +2974,8 @@ assert!(!prototype_proto.is_null());""" % getPrototypeProto)]
             proto_properties = properties
 
         code.append(CGGeneric("""
-rooted!(in(cx) let mut prototype = ptr::null_mut::<JSObject>());
-create_interface_prototype_object(cx,
+rooted!(in(cx.deref_mut()) let mut prototype = ptr::null_mut::<JSObject>());
+create_interface_prototype_object(cx.deref_mut(),
                                   global.into(),
                                   prototype_proto.handle().into(),
                                   &PrototypeClass,
@@ -2999,18 +2999,18 @@ assert!((*cache)[PrototypeList::ID::%(id)s as usize].is_null());
             else:
                 properties["length"] = 0
             parentName = self.descriptor.getParentName()
-            code.append(CGGeneric("rooted!(in(cx) let mut interface_proto = ptr::null_mut::<JSObject>());"))
+            code.append(CGGeneric("rooted!(in(cx.deref_mut()) let mut interface_proto = ptr::null_mut::<JSObject>());"))
             if parentName:
                 parentName = toBindingNamespace(parentName)
                 code.append(CGGeneric("""
-%s::GetConstructorObject(cx, global, interface_proto.handle_mut());""" % parentName))
+%s::GetConstructorObject(cx.deref_mut(), global, interface_proto.handle_mut());""" % parentName))
             else:
-                code.append(CGGeneric("interface_proto.set(GetRealmFunctionPrototype(cx));"))
+                code.append(CGGeneric("interface_proto.set(GetRealmFunctionPrototype(cx.deref_mut()));"))
             code.append(CGGeneric("""\
 assert!(!interface_proto.is_null());
 
-rooted!(in(cx) let mut interface = ptr::null_mut::<JSObject>());
-create_noncallback_interface_object(cx,
+rooted!(in(cx.deref_mut()) let mut interface = ptr::null_mut::<JSObject>());
+create_noncallback_interface_object(cx.deref_mut(),
                                     global.into(),
                                     interface_proto.handle(),
                                     &INTERFACE_OBJECT_CLASS,
@@ -3035,8 +3035,8 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
         if aliasedMembers:
             def defineAlias(alias):
                 if alias == "@@iterator":
-                    symbolJSID = "RUST_SYMBOL_TO_JSID(GetWellKnownSymbol(cx, SymbolCode::iterator))"
-                    getSymbolJSID = CGGeneric(fill("rooted!(in(cx) let iteratorId = ${symbolJSID});",
+                    symbolJSID = "RUST_SYMBOL_TO_JSID(GetWellKnownSymbol(cx.deref_mut(), SymbolCode::iterator))"
+                    getSymbolJSID = CGGeneric(fill("rooted!(in(cx.deref_mut()) let iteratorId = ${symbolJSID});",
                                                    symbolJSID=symbolJSID))
                     defineFn = "JS_DefinePropertyById2"
                     prop = "iteratorId.handle()"
@@ -3053,7 +3053,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                     #     match the enumerability of the property being aliased.
                     CGGeneric(fill(
                         """
-                        assert!(${defineFn}(cx, prototype.handle(), ${prop}, aliasedVal.handle(),
+                        assert!(${defineFn}(cx.deref_mut(), prototype.handle(), ${prop}, aliasedVal.handle(),
                                             JSPROP_ENUMERATE as u32));
                         """,
                         defineFn=defineFn,
@@ -3064,7 +3064,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                 return CGList([
                     CGGeneric(fill(
                         """
-                        assert!(JS_GetProperty(cx, prototype.handle(),
+                        assert!(JS_GetProperty(cx.deref_mut(), prototype.handle(),
                                                ${prop} as *const u8 as *const _,
                                                aliasedVal.handle_mut()));
                         """,
@@ -3076,7 +3076,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                     // Set up aliases on the interface prototype object we just created.
 
                     """)),
-                CGGeneric("rooted!(in(cx) let mut aliasedVal = UndefinedValue());\n\n")
+                CGGeneric("rooted!(in(cx.deref_mut()) let mut aliasedVal = UndefinedValue());\n\n")
             ] + [defineAliasesFor(m) for m in sorted(aliasedMembers)])
             code.append(defineAliases)
 
@@ -3091,7 +3091,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                 specs.append(CGGeneric("(%s as ConstructorClassHook, %s, %d)" % (hook, name, length)))
             values = CGIndenter(CGList(specs, "\n"), 4)
             code.append(CGWrapper(values, pre="%s = [\n" % decl, post="\n];"))
-            code.append(CGGeneric("create_named_constructors(cx, global, &named_constructors, prototype.handle());"))
+            code.append(CGGeneric("create_named_constructors(cx.deref_mut(), global, &named_constructors, prototype.handle());"))
 
         if self.descriptor.hasUnforgeableMembers:
             # We want to use the same JSClass and prototype as the object we'll
@@ -3112,9 +3112,9 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                 holderClass = "&Class.base as *const JSClass"
                 holderProto = "prototype.handle()"
             code.append(CGGeneric("""
-rooted!(in(cx) let mut unforgeable_holder = ptr::null_mut::<JSObject>());
+rooted!(in(cx.deref_mut()) let mut unforgeable_holder = ptr::null_mut::<JSObject>());
 unforgeable_holder.handle_mut().set(
-    JS_NewObjectWithoutMetadata(cx, %(holderClass)s, %(holderProto)s));
+    JS_NewObjectWithoutMetadata(cx.deref_mut(), %(holderClass)s, %(holderProto)s));
 assert!(!unforgeable_holder.is_null());
 """ % {'holderClass': holderClass, 'holderProto': holderProto}))
             code.append(InitUnforgeablePropertiesOnHolder(self.descriptor, self.properties))
@@ -3149,7 +3149,7 @@ if !rval.get().is_null() {
     return;
 }
 
-CreateInterfaceObjects(cx, global, proto_or_iface_array);
+CreateInterfaceObjects(&mut SafeJSContext::from_ptr(cx), global, proto_or_iface_array);
 rval.set((*proto_or_iface_array)[%(id)s as usize]);
 assert!(!rval.get().is_null());
 """ % {"id": self.id})
