@@ -56,6 +56,9 @@ registration are lost
      (Dispatch and Process Click 2 (not buffered, observed))
   */
   async_test(function(t) {
+    if (!window.PerformanceEventTiming)
+      assert_unreached("PerformanceEventTiming is not supported");
+
     // Use a dummy observer to know when the first click has been dispatched.
     const observerPromise = new Promise((resolve, reject) => {
       new PerformanceObserver((entryList, observer) => {

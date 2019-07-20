@@ -25,7 +25,7 @@ function xr_promise_test(name, func, properties) {
 // device, and the test object.
 // Requires a webglCanvas on the page.
 function xr_session_promise_test(
-    name, func, fakeDeviceInit, sessionMode, properties) {
+    name, func, fakeDeviceInit, sessionMode, sessionInit, properties) {
   let testDeviceController;
   let testSession;
 
@@ -39,7 +39,22 @@ function xr_session_promise_test(
 
   xr_promise_test(
       name,
-      (t) =>{
+      (t) => {
+          // Ensure that any pending sessions are ended and devices are
+          // disconnected when done. This needs to use a cleanup function to
+          // ensure proper sequencing. If this were done in a .then() for the
+          // success case, a test that expected failure would already be marked
+          // done at the time that runs, and the shutdown would interfere with
+          // the next test which may have started already.
+          t.add_cleanup(async () => {
+                // If a session was created, end it.
+                if (testSession) {
+                  await testSession.end().catch(() => {});
+                }
+                // Cleanup system state.
+                await navigator.xr.test.disconnectAllDevices();
+          });
+
           return navigator.xr.test.simulateDeviceConnection(fakeDeviceInit)
               .then((controller) => {
                 testDeviceController = controller;
@@ -48,7 +63,7 @@ function xr_session_promise_test(
               .then(() => new Promise((resolve, reject) => {
                       // Perform the session request in a user gesture.
                       navigator.xr.test.simulateUserActivation(() => {
-                        navigator.xr.requestSession(sessionMode)
+                        navigator.xr.requestSession(sessionMode, sessionInit || {})
                             .then((session) => {
                               testSession = session;
                               session.mode = sessionMode;
@@ -71,13 +86,8 @@ function xr_session_promise_test(
                                   ' with error: ' + err);
                             });
                       });
-                    }))
-              .then(() => {
-                // Cleanup system state.
-                testSession.end().catch(() => {});
-                return navigator.xr.test.disconnectAllDevices();
-              })
-            },
+              }));
+      },
       properties);
 }
 

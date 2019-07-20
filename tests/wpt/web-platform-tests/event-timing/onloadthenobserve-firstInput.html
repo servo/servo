@@ -21,6 +21,9 @@
      (Dispatch and Process Click 2 - not buffered)
   */
   async_test(function(t) {
+    if (!window.PerformanceEventTiming)
+      assert_unreached("PerformanceEventTiming is not supported");
+
     let numFirstInputObserved = 0;
     let numEventsObserved = 0;
     let observedEventEntries = [];

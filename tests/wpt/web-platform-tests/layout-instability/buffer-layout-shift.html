@@ -12,6 +12,8 @@
 <img src="resources/slow-image.py">
 <script>
   async_test(function (t) {
+    if (!window.LayoutShift)
+      assert_unreached('LayoutShift entries are not supported');
     const startTime = performance.now();
     new PerformanceObserver(list => {
       const endTime = performance.now();

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Decoration Test: parsing text-decoration-thickness with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-width-property">
+<meta name="assert" content="text-decoration-thickness supports the following values: auto | from-font | <length>">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("text-decoration-thickness", "otto");
+test_invalid_value("text-decoration-thickness", "asdlflj");
+test_invalid_value("text-decoration-thickness", "-10");
+test_invalid_value("text-decoration-thickness", "60002020");
+test_invalid_value("text-decoration-thickness", "!@#$%^&");
+test_invalid_value("text-decoration-thickness", "10e2");
+test_invalid_value("text-decoration-thickness", "from font");
+test_invalid_value("text-decoration-thickness", "10%");
+test_invalid_value("text-decoration-thickness", "-27%");
+test_invalid_value("text-decoration-thickness", "calc(40% - 20px)");
+test_invalid_value("text-decoration-thickness", "calc(100% - 40em)");
+</script>
+</body>
+</html>

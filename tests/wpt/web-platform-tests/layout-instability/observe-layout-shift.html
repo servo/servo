@@ -40,6 +40,8 @@
   }
 
   async_test(function (t) {
+    if (!window.LayoutShift)
+      assert_unreached('LayoutShift entries are not supported');
     const startTime = performance.now();
     const observer = new PerformanceObserver(
       t.step_func_done(function(entryList) {
