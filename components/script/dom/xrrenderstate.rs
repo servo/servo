@@ -7,7 +7,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::xrlayer::XRLayer;
+use crate::dom::xrwebgllayer::XRWebGLLayer;
 
 use dom_struct::dom_struct;
 use std::cell::Cell;
@@ -17,14 +17,14 @@ pub struct XRRenderState {
     reflector_: Reflector,
     depth_near: Cell<f64>,
     depth_far: Cell<f64>,
-    layer: MutNullableDom<XRLayer>,
+    layer: MutNullableDom<XRWebGLLayer>,
 }
 
 impl XRRenderState {
     pub fn new_inherited(
         depth_near: f64,
         depth_far: f64,
-        layer: Option<&XRLayer>,
+        layer: Option<&XRWebGLLayer>,
     ) -> XRRenderState {
         XRRenderState {
             reflector_: Reflector::new(),
@@ -38,7 +38,7 @@ impl XRRenderState {
         global: &GlobalScope,
         depth_near: f64,
         depth_far: f64,
-        layer: Option<&XRLayer>,
+        layer: Option<&XRWebGLLayer>,
     ) -> DomRoot<XRRenderState> {
         reflect_dom_object(
             Box::new(XRRenderState::new_inherited(depth_near, depth_far, layer)),
@@ -62,7 +62,7 @@ impl XRRenderState {
     pub fn set_depth_far(&self, depth: f64) {
         self.depth_far.set(depth)
     }
-    pub fn set_layer(&self, layer: Option<&XRLayer>) {
+    pub fn set_layer(&self, layer: Option<&XRWebGLLayer>) {
         self.layer.set(layer)
     }
 }
@@ -79,7 +79,7 @@ impl XRRenderStateMethods for XRRenderState {
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrrenderstate-baselayer
-    fn GetBaseLayer(&self) -> Option<DomRoot<XRLayer>> {
+    fn GetBaseLayer(&self) -> Option<DomRoot<XRWebGLLayer>> {
         self.layer.get()
     }
 }
