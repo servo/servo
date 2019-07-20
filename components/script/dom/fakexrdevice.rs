@@ -38,6 +38,10 @@ impl FakeXRDevice {
             FakeXRDeviceBinding::Wrap,
         )
     }
+
+    pub fn disconnect(&self, sender: IpcSender<()>) {
+        let _ = self.sender.send(MockDeviceMsg::Disconnect(sender));
+    }
 }
 
 pub fn get_views(views: &[FakeXRViewInit]) -> Fallible<Views> {

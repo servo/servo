@@ -7,13 +7,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::XRTestBinding::{
     self, FakeXRDeviceInit, XRTestMethods,
 };
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::fakexrdevice::{get_origin, get_views, FakeXRDevice};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -31,6 +32,7 @@ use webxr_api::{self, Error as XRError, MockDeviceInit, MockDeviceMsg};
 pub struct XRTest {
     reflector: Reflector,
     session_started: Cell<bool>,
+    devices_connected: DomRefCell<Vec<Dom<FakeXRDevice>>>,
 }
 
 impl XRTest {
@@ -38,6 +40,7 @@ impl XRTest {
         XRTest {
             reflector: Reflector::new(),
             session_started: Cell::new(false),
+            devices_connected: DomRefCell::new(vec![]),
         }
     }
 
@@ -57,6 +60,9 @@ impl XRTest {
         let promise = trusted.root();
         if let Ok(sender) = response {
             let device = FakeXRDevice::new(&self.global(), sender);
+            self.devices_connected
+                .borrow_mut()
+                .push(Dom::from_ref(&device));
             promise.resolve_native(&device);
         } else {
             promise.reject_native(&());
@@ -174,8 +180,45 @@ impl XRTestMethods for XRTest {
     /// https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
     fn DisconnectAllDevices(&self) -> Rc<Promise> {
         // XXXManishearth implement device disconnection and session ending
-        let p = Promise::new(&self.global());
-        p.resolve_native(&());
+        let global = self.global();
+        let p = Promise::new(&global);
+        let mut devices = self.devices_connected.borrow_mut();
+        if devices.is_empty() {
+            p.resolve_native(&());
+        } else {
+            let mut len = devices.len();
+
+            let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
+            let mut rooted_devices: Vec<_> =
+                devices.iter().map(|x| DomRoot::from_ref(&**x)).collect();
+            devices.clear();
+            for device in rooted_devices.drain(..) {
+                device.disconnect(sender.clone());
+            }
+            let mut trusted = Some(TrustedPromise::new(p.clone()));
+            let (task_source, canceller) = global
+                .as_window()
+                .task_manager()
+                .dom_manipulation_task_source_with_canceller();
+
+            ROUTER.add_route(
+                receiver.to_opaque(),
+                Box::new(move |_| {
+                    len -= 1;
+                    if len == 0 {
+                        let trusted = trusted
+                            .take()
+                            .expect("DisconnectAllDevices disconnected more devices than expected");
+                        let _ =
+                            task_source.queue_with_canceller(trusted.resolve_task(()), &canceller);
+                    }
+                }),
+            );
+
+            // XXXManishearth this is a hack, it will need to be replaced when
+            // we improve how mock messaging works
+            p.resolve_native(&())
+        };
         p
     }
 }
