@@ -17,6 +17,7 @@ use crate::dom::bluetoothpermissionresult::BluetoothPermissionResult;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissionstatus::PermissionStatus;
 use crate::dom::promise::Promise;
+use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
 use js::jsapi::{JSContext, JSObject};
@@ -232,7 +233,7 @@ impl PermissionAlgorithm for Permissions {
             .handle_mut()
             .set(ObjectValue(permission_descriptor_obj));
         unsafe {
-            match PermissionDescriptor::new(cx, property.handle()) {
+            match PermissionDescriptor::new(SafeJSContext::from_ptr(cx), property.handle()) {
                 Ok(ConversionResult::Success(descriptor)) => Ok(descriptor),
                 Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
                 Err(_) => Err(Error::JSFailed),

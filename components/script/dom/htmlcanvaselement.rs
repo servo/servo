@@ -28,6 +28,7 @@ use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
 use crate::dom::webglrenderingcontext::{
     LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext,
 };
+use crate::script_runtime::JSContext as SafeJSContext;
 use base64;
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
@@ -263,7 +264,7 @@ impl HTMLCanvasElement {
         cx: *mut JSContext,
         options: HandleValue,
     ) -> Option<GLContextAttributes> {
-        match WebGLContextAttributes::new(cx, options) {
+        match WebGLContextAttributes::new(SafeJSContext::from_ptr(cx), options) {
             Ok(ConversionResult::Success(ref attrs)) => Some(From::from(attrs)),
             Ok(ConversionResult::Failure(ref error)) => {
                 throw_type_error(cx, &error);
