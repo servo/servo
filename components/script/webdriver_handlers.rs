@@ -322,6 +322,40 @@ pub fn handle_find_element_element_css(
     reply.send(node_id).unwrap();
 }
 
+pub fn handle_find_element_element_link_text(
+    documents: &Documents,
+    pipeline: PipelineId,
+    element_id: String,
+    selector: String,
+    partial: bool,
+    reply: IpcSender<Result<Option<String>, ()>>,
+) {
+    let node_id = find_node_by_unique_id(documents, pipeline, element_id)
+        .ok_or(())
+        .and_then(|node| {
+            node.query_selector_all(DOMString::from("a"))
+                .map_err(|_| ())
+        })
+        .map(|nodes| {
+            nodes
+                .iter()
+                .find(|node| {
+                    let content = node
+                        .GetTextContent()
+                        .map_or("".to_owned(), String::from)
+                        .trim()
+                        .to_owned();
+                    if partial {
+                        content.contains(&selector)
+                    } else {
+                        content == selector
+                    }
+                })
+                .map(|node| node.upcast::<Node>().unique_id())
+        });
+    reply.send(node_id).unwrap();
+}
+
 pub fn handle_find_element_element_tag_name(
     documents: &Documents,
     pipeline: PipelineId,

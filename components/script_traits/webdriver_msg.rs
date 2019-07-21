@@ -31,6 +31,7 @@ pub enum WebDriverScriptCommand {
     FindElementsLinkText(String, bool, IpcSender<Result<Vec<String>, ()>>),
     FindElementsTagName(String, IpcSender<Result<Vec<String>, ()>>),
     FindElementElementCSS(String, String, IpcSender<Result<Option<String>, ()>>),
+    FindElementElementLinkText(String, String, bool, IpcSender<Result<Option<String>, ()>>),
     FindElementElementTagName(String, String, IpcSender<Result<Option<String>, ()>>),
     FindElementElementsCSS(String, String, IpcSender<Result<Vec<String>, ()>>),
     FindElementElementsTagName(String, String, IpcSender<Result<Vec<String>, ()>>),
