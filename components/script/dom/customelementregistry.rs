@@ -31,6 +31,7 @@ use crate::dom::node::{document_from_node, window_from_node, Node, ShadowIncludi
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::microtask::Microtask;
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix};
@@ -238,7 +239,10 @@ unsafe fn get_callback(
         if !callback.is_object() || !IsCallable(callback.to_object()) {
             return Err(Error::Type("Lifecycle callback is not callable".to_owned()));
         }
-        Ok(Some(Function::new(cx, callback.to_object())))
+        Ok(Some(Function::new(
+            SafeJSContext::from_ptr(cx),
+            callback.to_object(),
+        )))
     } else {
         Ok(None)
     }

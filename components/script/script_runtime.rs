@@ -179,7 +179,7 @@ unsafe extern "C" fn enqueue_promise_job(
             let pipeline = global.pipeline_id();
             microtask_queue.enqueue(
                 Microtask::Promise(EnqueuedPromiseCallback {
-                    callback: PromiseJobCallback::new(cx, job.get()),
+                    callback: PromiseJobCallback::new(JSContext::from_ptr(cx), job.get()),
                     pipeline,
                 }),
                 cx,
