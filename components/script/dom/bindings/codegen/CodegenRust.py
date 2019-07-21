@@ -2726,7 +2726,7 @@ assert!(((*get_object_class(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
 
 rooted!(in(*cx) let mut proto = ptr::null_mut::<JSObject>());
 let _ac = JSAutoRealm::new(*cx, scope.get());
-GetProtoObject(*cx, scope, proto.handle_mut());
+GetProtoObject(cx, scope, proto.handle_mut());
 assert!(!proto.is_null());
 
 %(createObject)s
@@ -2782,7 +2782,7 @@ assert!(!obj.is_null());
 
 let _ac = JSAutoRealm::new(*cx, obj.get());
 rooted!(in(*cx) let mut proto = ptr::null_mut::<JSObject>());
-GetProtoObject(*cx, obj.handle(), proto.handle_mut());
+GetProtoObject(cx, obj.handle(), proto.handle_mut());
 assert!(JS_SplicePrototype(*cx, obj.handle(), proto.handle()));
 let mut immutable = false;
 assert!(JS_SetImmutablePrototype(*cx, obj.handle(), &mut immutable));
@@ -2942,7 +2942,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                 protoGetter = "GetRealmObjectPrototype"
             getPrototypeProto = "prototype_proto.set(%s(*cx))" % protoGetter
         else:
-            getPrototypeProto = ("%s::GetProtoObject(*cx, global, prototype_proto.handle_mut())" %
+            getPrototypeProto = ("%s::GetProtoObject(cx, global, prototype_proto.handle_mut())" %
                                  toBindingNamespace(parentName))
 
         code = [CGGeneric("""\
@@ -3003,7 +3003,7 @@ assert!((*cache)[PrototypeList::ID::%(id)s as usize].is_null());
             if parentName:
                 parentName = toBindingNamespace(parentName)
                 code.append(CGGeneric("""
-%s::GetConstructorObject(*cx, global, interface_proto.handle_mut());""" % parentName))
+%s::GetConstructorObject(cx, global, interface_proto.handle_mut());""" % parentName))
             else:
                 code.append(CGGeneric("interface_proto.set(GetRealmFunctionPrototype(*cx));"))
             code.append(CGGeneric("""\
@@ -3131,7 +3131,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
     constructor object).
     """
     def __init__(self, descriptor, name, idPrefix="", pub=False):
-        args = [Argument('*mut JSContext', 'cx'),
+        args = [Argument('SafeJSContext', 'cx'),
                 Argument('HandleObject', 'global'),
                 Argument('MutableHandleObject', 'mut rval')]
         CGAbstractMethod.__init__(self, descriptor, name,
@@ -3149,7 +3149,7 @@ if !rval.get().is_null() {
     return;
 }
 
-CreateInterfaceObjects(SafeJSContext::from_ptr(cx), global, proto_or_iface_array);
+CreateInterfaceObjects(cx, global, proto_or_iface_array);
 rval.set((*proto_or_iface_array)[%(id)s as usize]);
 assert!(!rval.get().is_null());
 """ % {"id": self.id})
@@ -3290,7 +3290,7 @@ if !ConstructorEnabled(SafeJSContext::from_ptr(cx), global) {
 }
 
 rooted!(in(cx) let mut proto = ptr::null_mut::<JSObject>());
-%s(cx, global, proto.handle_mut());
+%s(SafeJSContext::from_ptr(cx), global, proto.handle_mut());
 assert!(!proto.is_null());""" % (function,))
 
 
@@ -5574,7 +5574,7 @@ rooted!(in(cx) let mut prototype = ptr::null_mut::<JSObject>());
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1317658
 
         rooted!(in(cx) let global_object = CurrentGlobalOrNull(cx));
-        GetProtoObject(cx, global_object.handle(), prototype.handle_mut());
+        GetProtoObject(SafeJSContext::from_ptr(cx), global_object.handle(), prototype.handle_mut());
     } else {
         // Step 6
         prototype.set(proto_val.to_object());
