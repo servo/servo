@@ -76,6 +76,7 @@ use crate::dom::customelementregistry::{ConstructionStackEntry, CustomElementSta
 use crate::dom::element::{Element, ElementCreator};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::window::Window;
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::script_thread::ScriptThread;
 use html5ever::interface::QualName;
 use html5ever::LocalName;
@@ -125,7 +126,7 @@ where
 
             // Retrieve the constructor object for HTMLElement
             HTMLElementBinding::GetConstructorObject(
-                window.get_cx(),
+                SafeJSContext::from_ptr(window.get_cx()),
                 global_object.handle(),
                 constructor.handle_mut(),
             );
@@ -201,7 +202,7 @@ pub fn get_constructor_object_from_local_name(
 ) -> bool {
     macro_rules! get_constructor(
         ($binding:ident) => ({
-            unsafe { $binding::GetConstructorObject(cx, global, rval); }
+            unsafe { $binding::GetConstructorObject(SafeJSContext::from_ptr(cx), global, rval); }
             true
         })
     );
