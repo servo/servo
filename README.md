@@ -209,8 +209,11 @@ export LIBCLANG_PATH=$(llvm-config --prefix)/lib64
 ```
 #### On Windows (MSVC)
 
-1. Install Python for Windows (https://www.python.org/downloads/release/python-2716/). The Windows x86-64 MSI installer is fine.
+1. Install Python 2.7 for Windows (https://www.python.org/downloads/release/python-2716/). The Windows x86-64 MSI installer is fine. This is required for the build system execution and many dependencies.
+
 You should change the installation to install the "Add python.exe to Path" feature.
+
+2. Install Python 3.7 for Windows (https://www.python.org/downloads/release/python-374/). The Windows x86-64 MSI installer is fine. This is required in order to build the JavaScript engine, SpiderMonkey.
 
 2. Install virtualenv.
 
@@ -221,6 +224,8 @@ pip install virtualenv
  If this does not work, you may need to reboot for the changed PATH settings (by the python installer) to take effect.
 
 3. Install the most recent [GStreamer](https://gstreamer.freedesktop.org/data/pkg/windows/) development package following [these instructions](https://github.com/sdroege/gstreamer-rs#gstreamer-binaries-1). You will also need to add `C:\gstreamer\1.0\x86_64\lib` to your `LIB` environment variable.
+
+Note that you should ensure that _all_ components are installed from gstreamer, as we require many of the optional libraries that are not installed by default.
 
 4. Install Git for Windows (https://git-scm.com/download/win). DO allow it to add git.exe to the PATH (default
 settings for the installer are fine).
