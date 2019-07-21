@@ -2101,6 +2101,19 @@ impl ScriptThread {
                     reply,
                 )
             },
+            WebDriverScriptCommand::FindElementElementsLinkText(
+                selector,
+                element_id,
+                partial,
+                reply,
+            ) => webdriver_handlers::handle_find_element_elements_link_text(
+                &*documents,
+                pipeline_id,
+                element_id,
+                selector,
+                partial,
+                reply,
+            ),
             WebDriverScriptCommand::FindElementElementsTagName(selector, element_id, reply) => {
                 webdriver_handlers::handle_find_element_elements_tag_name(
                     &*documents,

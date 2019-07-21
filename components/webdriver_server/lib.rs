@@ -1058,6 +1058,24 @@ impl Handler {
                 );
                 self.browsing_context_script_command(cmd)?;
             },
+            LocatorStrategy::LinkText => {
+                let cmd = WebDriverScriptCommand::FindElementElementsLinkText(
+                    parameters.value.clone(),
+                    element.id.clone(),
+                    false,
+                    sender,
+                );
+                self.browsing_context_script_command(cmd)?;
+            },
+            LocatorStrategy::PartialLinkText => {
+                let cmd = WebDriverScriptCommand::FindElementElementsLinkText(
+                    parameters.value.clone(),
+                    element.id.clone(),
+                    true,
+                    sender,
+                );
+                self.browsing_context_script_command(cmd)?;
+            },
             LocatorStrategy::TagName => {
                 let cmd = WebDriverScriptCommand::FindElementElementsTagName(
                     parameters.value.clone(),
