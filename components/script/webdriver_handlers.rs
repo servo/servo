@@ -254,6 +254,38 @@ pub fn handle_find_elements_css(
     reply.send(node_ids).unwrap();
 }
 
+pub fn handle_find_elements_link_text(
+    documents: &Documents,
+    pipeline: PipelineId,
+    selector: String,
+    partial: bool,
+    reply: IpcSender<Result<Vec<String>, ()>>,
+) {
+    let node_ids = documents
+        .find_document(pipeline)
+        .ok_or(())
+        .and_then(|doc| doc.QuerySelectorAll(DOMString::from("a")).map_err(|_| ()))
+        .map(|nodes| {
+            nodes
+                .iter()
+                .filter(|node| {
+                    let content = node
+                        .GetTextContent()
+                        .map_or("".to_owned(), String::from)
+                        .trim()
+                        .to_owned();
+                    if partial {
+                        content.contains(&selector)
+                    } else {
+                        content == selector
+                    }
+                })
+                .map(|node| node.upcast::<Node>().unique_id())
+                .collect()
+        });
+    reply.send(node_ids).unwrap();
+}
+
 pub fn handle_find_elements_tag_name(
     documents: &Documents,
     pipeline: PipelineId,

@@ -930,6 +930,22 @@ impl Handler {
                 let cmd = WebDriverScriptCommand::FindElementsCSS(parameters.value.clone(), sender);
                 self.browsing_context_script_command(cmd)?;
             },
+            LocatorStrategy::LinkText => {
+                let cmd = WebDriverScriptCommand::FindElementsLinkText(
+                    parameters.value.clone(),
+                    false,
+                    sender,
+                );
+                self.browsing_context_script_command(cmd)?;
+            },
+            LocatorStrategy::PartialLinkText => {
+                let cmd = WebDriverScriptCommand::FindElementsLinkText(
+                    parameters.value.clone(),
+                    true,
+                    sender,
+                );
+                self.browsing_context_script_command(cmd)?;
+            },
             LocatorStrategy::TagName => {
                 let cmd =
                     WebDriverScriptCommand::FindElementsTagName(parameters.value.clone(), sender);
