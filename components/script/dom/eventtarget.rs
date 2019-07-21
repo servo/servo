@@ -33,6 +33,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::document_from_node;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
 use js::jsapi::{JSAutoRealm, JSFunction, JS_GetFunctionObject, SourceText};
@@ -543,16 +544,16 @@ impl EventTarget {
         // Step 1.14
         if is_error {
             Some(CommonEventHandler::ErrorEventHandler(unsafe {
-                OnErrorEventHandlerNonNull::new(cx, funobj)
+                OnErrorEventHandlerNonNull::new(JSContext::from_ptr(cx), funobj)
             }))
         } else {
             if ty == &atom!("beforeunload") {
                 Some(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
-                    OnBeforeUnloadEventHandlerNonNull::new(cx, funobj)
+                    OnBeforeUnloadEventHandlerNonNull::new(JSContext::from_ptr(cx), funobj)
                 }))
             } else {
                 Some(CommonEventHandler::EventHandler(unsafe {
-                    EventHandlerNonNull::new(cx, funobj)
+                    EventHandlerNonNull::new(JSContext::from_ptr(cx), funobj)
                 }))
             }
         }
@@ -567,7 +568,7 @@ impl EventTarget {
 
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::EventHandler(unsafe {
-                EventHandlerNonNull::new(cx, listener.callback())
+                EventHandlerNonNull::new(JSContext::from_ptr(cx), listener.callback())
             }))
         });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
@@ -582,7 +583,7 @@ impl EventTarget {
 
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::ErrorEventHandler(unsafe {
-                OnErrorEventHandlerNonNull::new(cx, listener.callback())
+                OnErrorEventHandlerNonNull::new(JSContext::from_ptr(cx), listener.callback())
             }))
         });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
@@ -600,7 +601,7 @@ impl EventTarget {
 
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
-                OnBeforeUnloadEventHandlerNonNull::new(cx, listener.callback())
+                OnBeforeUnloadEventHandlerNonNull::new(JSContext::from_ptr(cx), listener.callback())
             }))
         });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
@@ -612,7 +613,10 @@ impl EventTarget {
         let listener = self.get_inline_event_listener(&Atom::from(ty));
         unsafe {
             listener.map(|listener| {
-                CallbackContainer::new(cx, listener.parent().callback_holder().get())
+                CallbackContainer::new(
+                    JSContext::from_ptr(cx),
+                    listener.parent().callback_holder().get(),
+                )
             })
         }
     }
