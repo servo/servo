@@ -2019,8 +2019,24 @@ impl ScriptThread {
                     reply,
                 )
             },
+            WebDriverScriptCommand::FindElementTagName(selector, reply) => {
+                webdriver_handlers::handle_find_element_tag_name(
+                    &*documents,
+                    pipeline_id,
+                    selector,
+                    reply,
+                )
+            },
             WebDriverScriptCommand::FindElementsCSS(selector, reply) => {
                 webdriver_handlers::handle_find_elements_css(
+                    &*documents,
+                    pipeline_id,
+                    selector,
+                    reply,
+                )
+            },
+            WebDriverScriptCommand::FindElementsTagName(selector, reply) => {
+                webdriver_handlers::handle_find_elements_tag_name(
                     &*documents,
                     pipeline_id,
                     selector,
@@ -2036,8 +2052,26 @@ impl ScriptThread {
                     reply,
                 )
             },
+            WebDriverScriptCommand::FindElementElementTagName(selector, element_id, reply) => {
+                webdriver_handlers::handle_find_element_element_tag_name(
+                    &*documents,
+                    pipeline_id,
+                    element_id,
+                    selector,
+                    reply,
+                )
+            },
             WebDriverScriptCommand::FindElementElementsCSS(selector, element_id, reply) => {
                 webdriver_handlers::handle_find_element_elements_css(
+                    &*documents,
+                    pipeline_id,
+                    element_id,
+                    selector,
+                    reply,
+                )
+            },
+            WebDriverScriptCommand::FindElementElementsTagName(selector, element_id, reply) => {
+                webdriver_handlers::handle_find_element_elements_tag_name(
                     &*documents,
                     pipeline_id,
                     element_id,
