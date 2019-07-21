@@ -3268,7 +3268,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert descriptor.interface.hasInterfaceObject()
         args = [
-            Argument('*mut JSContext', 'cx'),
+            Argument('SafeJSContext', 'cx'),
             Argument('HandleObject', 'global'),
         ]
         CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface',
@@ -3285,12 +3285,12 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         return CGGeneric("""\
 assert!(!global.get().is_null());
 
-if !ConstructorEnabled(SafeJSContext::from_ptr(cx), global) {
+if !ConstructorEnabled(cx, global) {
     return;
 }
 
-rooted!(in(cx) let mut proto = ptr::null_mut::<JSObject>());
-%s(SafeJSContext::from_ptr(cx), global, proto.handle_mut());
+rooted!(in(*cx) let mut proto = ptr::null_mut::<JSObject>());
+%s(cx, global, proto.handle_mut());
 assert!(!proto.is_null());""" % (function,))
 
 
@@ -7312,7 +7312,7 @@ class GlobalGenRoots():
     def InterfaceObjectMap(config):
         mods = [
             "crate::dom::bindings::codegen",
-            "js::jsapi::JSContext",
+            "crate::script_runtime::JSContext",
             "js::rust::HandleObject",
             "phf",
         ]
