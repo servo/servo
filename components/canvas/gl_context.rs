@@ -15,6 +15,7 @@ use offscreen_gl_context::{
 use offscreen_gl_context::{GLLimits as RawGLLimits, GLVersion};
 use offscreen_gl_context::{NativeGLContext, NativeGLContextHandle, NativeGLContextMethods};
 use offscreen_gl_context::{OSMesaContext, OSMesaContextHandle};
+use servo_config::opts;
 
 pub trait CloneableDispatcher: GLContextDispatcher {
     fn clone(&self) -> Box<dyn GLContextDispatcher>;
@@ -67,32 +68,32 @@ impl GLContextFactory {
         let attributes = map_attrs(attributes);
         Ok(match *self {
             GLContextFactory::Native(ref _handle, ref _dispatcher, ref api_type) => {
-                #[cfg(not(target_os = "macos"))]
-                {
-                    GLContextWrapper::Native(GLContext::new_shared_with_dispatcher(
-                        // FIXME(nox): Why are those i32 values?
-                        size.to_i32(),
-                        attributes,
-                        ColorAttachmentType::Texture,
-                        *api_type,
-                        Self::gl_version(webgl_version),
-                        Some(_handle),
-                        _dispatcher.as_ref().map(|d| (**d).clone()),
-                    )?)
-                }
                 #[cfg(target_os = "macos")]
                 {
-                    GLContextWrapper::NativeWithIOSurface(GLContext::new_shared_with_dispatcher(
-                        // FIXME(nox): Why are those i32 values?
-                        size.to_i32(),
-                        attributes,
-                        ColorAttachmentType::IOSurface,
-                        *api_type,
-                        Self::gl_version(webgl_version),
-                        None,
-                        None,
-                    )?)
+                    if opts::get().with_io_surface {
+                        return GLContext::new_shared_with_dispatcher(
+                            // FIXME(nox): Why are those i32 values?
+                            size.to_i32(),
+                            attributes,
+                            ColorAttachmentType::IOSurface,
+                            *api_type,
+                            Self::gl_version(webgl_version),
+                            None,
+                            None,
+                        )
+                        .map(|ctx| GLContextWrapper::NativeWithIOSurface(ctx));
+                    }
                 }
+                GLContextWrapper::Native(GLContext::new_shared_with_dispatcher(
+                    // FIXME(nox): Why are those i32 values?
+                    size.to_i32(),
+                    attributes,
+                    ColorAttachmentType::Texture,
+                    *api_type,
+                    Self::gl_version(webgl_version),
+                    Some(_handle),
+                    _dispatcher.as_ref().map(|d| (**d).clone()),
+                )?)
             },
             GLContextFactory::OSMesa(ref _handle) => {
                 {

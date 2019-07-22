@@ -234,6 +234,9 @@ pub struct Opts {
 
     /// Only shutdown once all theads are finished.
     pub clean_shutdown: bool,
+
+    /// Use IOSurfaces for texture sharing for WebGL on macOS
+    pub with_io_surface: bool,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -610,6 +613,7 @@ pub fn default_opts() -> Opts {
         unminify_js: false,
         print_pwm: false,
         clean_shutdown: false,
+        with_io_surface: false,
     }
 }
 
@@ -778,6 +782,11 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optopt("", "profiler-db-pass", "Profiler database password", "");
     opts.optopt("", "profiler-db-name", "Profiler database name", "");
     opts.optflag("", "print-pwm", "Print Progressive Web Metrics");
+    opts.optflag(
+        "",
+        "io-surface",
+        "Use IOSurfaces for WebGL to share textures with WebRender (macOS-only)",
+    );
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -1056,6 +1065,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         unminify_js: opt_match.opt_present("unminify-js"),
         print_pwm: opt_match.opt_present("print-pwm"),
         clean_shutdown: opt_match.opt_present("clean-shutdown"),
+        with_io_surface: opt_match.opt_present("io-surface"),
     };
 
     set_options(opts);
