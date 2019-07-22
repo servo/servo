@@ -100,7 +100,7 @@ where
     // Step 2 is checked in the generated caller code
 
     // Step 3
-    rooted!(in(window.get_cx()) let new_target = call_args.new_target().to_object());
+    rooted!(in(*window.get_cx()) let new_target = call_args.new_target().to_object());
     let definition = match registry.lookup_definition_by_constructor(new_target.handle()) {
         Some(definition) => definition,
         None => {
@@ -110,15 +110,15 @@ where
         },
     };
 
-    rooted!(in(window.get_cx()) let callee = UnwrapObjectStatic(call_args.callee()));
+    rooted!(in(*window.get_cx()) let callee = UnwrapObjectStatic(call_args.callee()));
     if callee.is_null() {
         return Err(Error::Security);
     }
 
     {
-        let _ac = JSAutoRealm::new(window.get_cx(), callee.get());
-        rooted!(in(window.get_cx()) let mut constructor = ptr::null_mut::<JSObject>());
-        rooted!(in(window.get_cx()) let global_object = CurrentGlobalOrNull(window.get_cx()));
+        let _ac = JSAutoRealm::new(*window.get_cx(), callee.get());
+        rooted!(in(*window.get_cx()) let mut constructor = ptr::null_mut::<JSObject>());
+        rooted!(in(*window.get_cx()) let global_object = CurrentGlobalOrNull(*window.get_cx()));
 
         if definition.is_autonomous() {
             // Step 4
@@ -126,7 +126,7 @@ where
 
             // Retrieve the constructor object for HTMLElement
             HTMLElementBinding::GetConstructorObject(
-                SafeJSContext::from_ptr(window.get_cx()),
+                window.get_cx(),
                 global_object.handle(),
                 constructor.handle_mut(),
             );
@@ -134,7 +134,7 @@ where
             // Step 5
             get_constructor_object_from_local_name(
                 definition.local_name.clone(),
-                window.get_cx(),
+                *window.get_cx(),
                 global_object.handle(),
                 constructor.handle_mut(),
             );

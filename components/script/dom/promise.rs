@@ -89,17 +89,17 @@ impl Promise {
     #[allow(unsafe_code)]
     pub fn new_in_current_compartment(global: &GlobalScope, _comp: InCompartment) -> Rc<Promise> {
         let cx = global.get_cx();
-        rooted!(in(cx) let mut obj = ptr::null_mut::<JSObject>());
+        rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
         unsafe {
-            Promise::create_js_promise(cx, HandleObject::null(), obj.handle_mut());
-            Promise::new_with_js_promise(obj.handle(), cx)
+            Promise::create_js_promise(*cx, HandleObject::null(), obj.handle_mut());
+            Promise::new_with_js_promise(obj.handle(), *cx)
         }
     }
 
     #[allow(unsafe_code)]
     pub fn duplicate(&self) -> Rc<Promise> {
         let cx = self.global().get_cx();
-        unsafe { Promise::new_with_js_promise(self.reflector().get_jsobject(), cx) }
+        unsafe { Promise::new_with_js_promise(self.reflector().get_jsobject(), *cx) }
     }
 
     #[allow(unsafe_code, unrooted_must_root)]
@@ -166,10 +166,10 @@ impl Promise {
     {
         let cx = self.global().get_cx();
         let _ac = enter_realm(&*self);
-        rooted!(in(cx) let mut v = UndefinedValue());
+        rooted!(in(*cx) let mut v = UndefinedValue());
         unsafe {
-            val.to_jsval(cx, v.handle_mut());
-            self.resolve(cx, v.handle());
+            val.to_jsval(*cx, v.handle_mut());
+            self.resolve(*cx, v.handle());
         }
     }
 
@@ -187,10 +187,10 @@ impl Promise {
     {
         let cx = self.global().get_cx();
         let _ac = enter_realm(&*self);
-        rooted!(in(cx) let mut v = UndefinedValue());
+        rooted!(in(*cx) let mut v = UndefinedValue());
         unsafe {
-            val.to_jsval(cx, v.handle_mut());
-            self.reject(cx, v.handle());
+            val.to_jsval(*cx, v.handle_mut());
+            self.reject(*cx, v.handle());
         }
     }
 
@@ -198,10 +198,10 @@ impl Promise {
     pub fn reject_error(&self, error: Error) {
         let cx = self.global().get_cx();
         let _ac = enter_realm(&*self);
-        rooted!(in(cx) let mut v = UndefinedValue());
+        rooted!(in(*cx) let mut v = UndefinedValue());
         unsafe {
-            error.to_jsval(cx, &self.global(), v.handle_mut());
-            self.reject(cx, v.handle());
+            error.to_jsval(*cx, &self.global(), v.handle_mut());
+            self.reject(*cx, v.handle());
         }
     }
 
@@ -233,19 +233,19 @@ impl Promise {
     #[allow(unsafe_code)]
     pub fn append_native_handler(&self, handler: &PromiseNativeHandler) {
         let cx = self.global().get_cx();
-        rooted!(in(cx) let resolve_func =
-                create_native_handler_function(cx,
+        rooted!(in(*cx) let resolve_func =
+                create_native_handler_function(*cx,
                                                handler.reflector().get_jsobject(),
                                                NativeHandlerTask::Resolve));
 
-        rooted!(in(cx) let reject_func =
-                create_native_handler_function(cx,
+        rooted!(in(*cx) let reject_func =
+                create_native_handler_function(*cx,
                                                handler.reflector().get_jsobject(),
                                                NativeHandlerTask::Reject));
 
         unsafe {
             let ok = AddPromiseReactions(
-                cx,
+                *cx,
                 self.promise_obj(),
                 resolve_func.handle(),
                 reject_func.handle(),

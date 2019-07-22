@@ -115,7 +115,7 @@ impl XRWebGLLayer {
             0,
             constants::RGBA,
             constants::UNSIGNED_BYTE,
-            pixels.root(cx),
+            pixels.root(*cx),
         );
 
         // Bind the new texture to the framebuffer

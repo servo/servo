@@ -45,10 +45,10 @@ impl VREyeParameters {
         let fov = VRFieldOfView::new(&global, parameters.field_of_view.clone());
 
         let cx = global.get_cx();
-        rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
+        rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
         unsafe {
             let _ = Float32Array::create(
-                cx,
+                *cx,
                 CreateWith::Slice(&parameters.offset),
                 array.handle_mut(),
             );

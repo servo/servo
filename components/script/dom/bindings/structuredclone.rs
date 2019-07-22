@@ -321,7 +321,7 @@ impl StructuredCloneData {
             WriteBytesToJSStructuredCloneData(data as *const u8, nbytes, scdata);
 
             assert!(JS_ReadStructuredClone(
-                cx,
+                *cx,
                 scdata,
                 JS_STRUCTURED_CLONE_VERSION,
                 StructuredCloneScope::DifferentProcess,

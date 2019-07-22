@@ -12,7 +12,7 @@ impl AlreadyInCompartment {
     #![allow(unsafe_code)]
     pub fn assert(global: &GlobalScope) -> AlreadyInCompartment {
         unsafe {
-            assert!(!GetCurrentRealmOrNull(global.get_cx()).is_null());
+            assert!(!GetCurrentRealmOrNull(*global.get_cx()).is_null());
         }
         AlreadyInCompartment(())
     }
@@ -43,7 +43,7 @@ impl<'a> InCompartment<'a> {
 
 pub fn enter_realm(object: &impl DomObject) -> JSAutoRealm {
     JSAutoRealm::new(
-        object.global().get_cx(),
+        *object.global().get_cx(),
         object.reflector().get_jsobject().get(),
     )
 }

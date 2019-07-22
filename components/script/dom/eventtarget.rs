@@ -33,7 +33,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::document_from_node;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
-use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
 use js::jsapi::{JSAutoRealm, JSFunction, JS_GetFunctionObject, SourceText};
@@ -151,7 +150,6 @@ pub enum CompiledEventListener {
 }
 
 impl CompiledEventListener {
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#the-event-handler-processing-algorithm
     pub fn call_or_handle_event<T: DomObject>(
         &self,
@@ -169,7 +167,7 @@ impl CompiledEventListener {
                     CommonEventHandler::ErrorEventHandler(ref handler) => {
                         if let Some(event) = event.downcast::<ErrorEvent>() {
                             let cx = object.global().get_cx();
-                            rooted!(in(cx) let error = unsafe { event.Error(JSContext::from_ptr(cx)) });
+                            rooted!(in(*cx) let error = event.Error(cx));
                             let return_value = handler.Call_(
                                 object,
                                 EventOrString::String(event.Message()),
@@ -181,7 +179,7 @@ impl CompiledEventListener {
                             );
                             // Step 4
                             if let Ok(return_value) = return_value {
-                                rooted!(in(cx) let return_value = return_value);
+                                rooted!(in(*cx) let return_value = return_value);
                                 if return_value.handle().is_boolean() &&
                                     return_value.handle().to_boolean() == true
                                 {
@@ -226,7 +224,7 @@ impl CompiledEventListener {
                     CommonEventHandler::EventHandler(ref handler) => {
                         if let Ok(value) = handler.Call_(object, event, exception_handle) {
                             let cx = object.global().get_cx();
-                            rooted!(in(cx) let value = value);
+                            rooted!(in(*cx) let value = value);
                             let value = value.handle();
 
                             //Step 4
@@ -503,16 +501,16 @@ impl EventTarget {
         };
 
         let cx = window.get_cx();
-        let options = CompileOptionsWrapper::new(cx, url_serialized.as_ptr(), handler.line as u32);
+        let options = CompileOptionsWrapper::new(*cx, url_serialized.as_ptr(), handler.line as u32);
         // TODO step 1.10.1-3 (document, form owner, element in scope chain)
 
-        let scopechain = AutoObjectVectorWrapper::new(cx);
+        let scopechain = AutoObjectVectorWrapper::new(*cx);
 
         let _ac = enter_realm(&*window);
-        rooted!(in(cx) let mut handler = ptr::null_mut::<JSFunction>());
+        rooted!(in(*cx) let mut handler = ptr::null_mut::<JSFunction>());
         let rv = unsafe {
             CompileFunction(
-                cx,
+                *cx,
                 scopechain.ptr,
                 options.ptr,
                 name.as_ptr(),
@@ -530,9 +528,9 @@ impl EventTarget {
         if !rv || handler.get().is_null() {
             // Step 1.8.2
             unsafe {
-                let _ac = JSAutoRealm::new(cx, self.reflector().get_jsobject().get());
+                let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
                 // FIXME(#13152): dispatch error event.
-                report_pending_exception(cx, false);
+                report_pending_exception(*cx, false);
             }
             // Step 1.8.1 / 1.8.3
             return None;
@@ -544,16 +542,16 @@ impl EventTarget {
         // Step 1.14
         if is_error {
             Some(CommonEventHandler::ErrorEventHandler(unsafe {
-                OnErrorEventHandlerNonNull::new(JSContext::from_ptr(cx), funobj)
+                OnErrorEventHandlerNonNull::new(cx, funobj)
             }))
         } else {
             if ty == &atom!("beforeunload") {
                 Some(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
-                    OnBeforeUnloadEventHandlerNonNull::new(JSContext::from_ptr(cx), funobj)
+                    OnBeforeUnloadEventHandlerNonNull::new(cx, funobj)
                 }))
             } else {
                 Some(CommonEventHandler::EventHandler(unsafe {
-                    EventHandlerNonNull::new(JSContext::from_ptr(cx), funobj)
+                    EventHandlerNonNull::new(cx, funobj)
                 }))
             }
         }
@@ -568,7 +566,7 @@ impl EventTarget {
 
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::EventHandler(unsafe {
-                EventHandlerNonNull::new(JSContext::from_ptr(cx), listener.callback())
+                EventHandlerNonNull::new(cx, listener.callback())
             }))
         });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
@@ -583,7 +581,7 @@ impl EventTarget {
 
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::ErrorEventHandler(unsafe {
-                OnErrorEventHandlerNonNull::new(JSContext::from_ptr(cx), listener.callback())
+                OnErrorEventHandlerNonNull::new(cx, listener.callback())
             }))
         });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
@@ -601,7 +599,7 @@ impl EventTarget {
 
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
-                OnBeforeUnloadEventHandlerNonNull::new(JSContext::from_ptr(cx), listener.callback())
+                OnBeforeUnloadEventHandlerNonNull::new(cx, listener.callback())
             }))
         });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
@@ -613,10 +611,7 @@ impl EventTarget {
         let listener = self.get_inline_event_listener(&Atom::from(ty));
         unsafe {
             listener.map(|listener| {
-                CallbackContainer::new(
-                    JSContext::from_ptr(cx),
-                    listener.parent().callback_holder().get(),
-                )
+                CallbackContainer::new(cx, listener.parent().callback_holder().get())
             })
         }
     }

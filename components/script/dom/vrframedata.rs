@@ -62,7 +62,7 @@ impl VRFrameData {
             global,
             VRFrameDataBinding::Wrap,
         );
-        let cx = unsafe { JSContext::from_ptr(global.get_cx()) };
+        let cx = global.get_cx();
         create_typed_array(cx, &matrix, &root.left_proj);
         create_typed_array(cx, &matrix, &root.left_view);
         create_typed_array(cx, &matrix, &root.right_proj);
@@ -90,7 +90,7 @@ impl VRFrameData {
     #[allow(unsafe_code)]
     pub fn update(&self, data: &WebVRFrameData) {
         unsafe {
-            let cx = JSContext::from_ptr(self.global().get_cx());
+            let cx = self.global().get_cx();
             typedarray!(in(*cx) let left_proj_array: Float32Array = self.left_proj.get());
             if let Ok(mut array) = left_proj_array {
                 array.update(&data.left_projection_matrix);

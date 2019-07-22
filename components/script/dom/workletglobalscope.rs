@@ -10,13 +10,13 @@ use crate::dom::paintworkletglobalscope::PaintWorkletTask;
 use crate::dom::testworkletglobalscope::TestWorkletGlobalScope;
 use crate::dom::testworkletglobalscope::TestWorkletTask;
 use crate::dom::worklet::WorkletExecutor;
+use crate::script_runtime::JSContext;
 use crate::script_thread::MainThreadScriptMsg;
 use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::JSContext;
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
@@ -83,14 +83,14 @@ impl WorkletGlobalScope {
     }
 
     /// Get the JS context.
-    pub fn get_cx(&self) -> *mut JSContext {
+    pub fn get_cx(&self) -> JSContext {
         self.globalscope.get_cx()
     }
 
     /// Evaluate a JS script in this global.
     pub fn evaluate_js(&self, script: &str) -> bool {
         debug!("Evaluating Dom.");
-        rooted!(in (self.globalscope.get_cx()) let mut rval = UndefinedValue());
+        rooted!(in (*self.globalscope.get_cx()) let mut rval = UndefinedValue());
         self.globalscope
             .evaluate_js_on_global_with_result(&*script, rval.handle_mut())
     }

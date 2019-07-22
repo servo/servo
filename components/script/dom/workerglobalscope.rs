@@ -26,7 +26,7 @@ use crate::dom::window::{base64_atob, base64_btoa};
 use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::JSContext;
 use crate::script_runtime::{get_reports, CommonScriptMsg, Runtime, ScriptChan, ScriptPort};
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
@@ -40,7 +40,7 @@ use crossbeam_channel::Receiver;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{JSAutoRealm, JSContext};
+use js::jsapi::JSAutoRealm;
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::rust::{HandleValue, ParentRuntime};
@@ -165,8 +165,9 @@ impl WorkerGlobalScope {
         &self.from_devtools_receiver
     }
 
-    pub fn get_cx(&self) -> *mut JSContext {
-        self.runtime.cx()
+    #[allow(unsafe_code)]
+    pub fn get_cx(&self) -> JSContext {
+        unsafe { JSContext::from_ptr(self.runtime.cx()) }
     }
 
     pub fn is_closing(&self) -> bool {
@@ -292,7 +293,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
     fn SetTimeout(
         &self,
-        _cx: SafeJSContext,
+        _cx: JSContext,
         callback: Rc<Function>,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -308,7 +309,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
     fn SetTimeout_(
         &self,
-        _cx: SafeJSContext,
+        _cx: JSContext,
         callback: DOMString,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -330,7 +331,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval(
         &self,
-        _cx: SafeJSContext,
+        _cx: JSContext,
         callback: Rc<Function>,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -346,7 +347,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval_(
         &self,
-        _cx: SafeJSContext,
+        _cx: JSContext,
         callback: DOMString,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -477,7 +478,7 @@ impl WorkerGlobalScope {
             CommonScriptMsg::CollectReports(reports_chan) => {
                 let cx = self.get_cx();
                 let path_seg = format!("url({})", self.get_url());
-                let reports = get_reports(cx, path_seg);
+                let reports = get_reports(*cx, path_seg);
                 reports_chan.send(reports);
             },
         }

@@ -57,8 +57,7 @@ use crate::fetch;
 use crate::layout_image::fetch_image_for_layout;
 use crate::microtask::MicrotaskQueue;
 use crate::script_runtime::{
-    CommonScriptMsg, JSContext as SafeJSContext, Runtime, ScriptChan, ScriptPort,
-    ScriptThreadEventCategory,
+    CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort, ScriptThreadEventCategory,
 };
 use crate::script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg};
 use crate::script_thread::{ScriptThread, SendableMainThreadScriptChan};
@@ -80,7 +79,6 @@ use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use ipc_channel::ipc::{channel, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
-use js::jsapi::JSContext;
 use js::jsapi::JSPROP_ENUMERATE;
 use js::jsapi::{GCReason, JS_GC};
 use js::jsval::JSVal;
@@ -372,8 +370,9 @@ impl Window {
         self.globalscope.origin()
     }
 
-    pub fn get_cx(&self) -> *mut JSContext {
-        self.js_runtime.borrow().as_ref().unwrap().cx()
+    #[allow(unsafe_code)]
+    pub fn get_cx(&self) -> JSContext {
+        unsafe { JSContext::from_ptr(self.js_runtime.borrow().as_ref().unwrap().cx()) }
     }
 
     pub fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
@@ -615,13 +614,13 @@ impl WindowMethods for Window {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    fn Opener(&self, cx: SafeJSContext) -> JSVal {
+    fn Opener(&self, cx: JSContext) -> JSVal {
         unsafe { self.window_proxy().opener(*cx) }
     }
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    fn SetOpener(&self, cx: SafeJSContext, value: HandleValue) {
+    fn SetOpener(&self, cx: JSContext, value: HandleValue) {
         // Step 1.
         if value.is_null() {
             return self.window_proxy().disown();
@@ -744,7 +743,7 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
     fn SetTimeout(
         &self,
-        _cx: SafeJSContext,
+        _cx: JSContext,
         callback: Rc<Function>,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -760,7 +759,7 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
     fn SetTimeout_(
         &self,
-        _cx: SafeJSContext,
+        _cx: JSContext,
         callback: DOMString,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -782,7 +781,7 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval(
         &self,
-        _cx: SafeJSContext,
+        _cx: JSContext,
         callback: Rc<Function>,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -798,7 +797,7 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval_(
         &self,
-        _cx: SafeJSContext,
+        _cx: JSContext,
         callback: DOMString,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -902,12 +901,7 @@ impl WindowMethods for Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
-    fn PostMessage(
-        &self,
-        cx: SafeJSContext,
-        message: HandleValue,
-        origin: DOMString,
-    ) -> ErrorResult {
+    fn PostMessage(&self, cx: JSContext, message: HandleValue, origin: DOMString) -> ErrorResult {
         let source_global = GlobalScope::incumbent().expect("no incumbent global??");
         let source = source_global.as_window();
 
@@ -948,7 +942,7 @@ impl WindowMethods for Window {
     #[allow(unsafe_code)]
     fn Gc(&self) {
         unsafe {
-            JS_GC(self.get_cx(), GCReason::API);
+            JS_GC(*self.get_cx(), GCReason::API);
         }
     }
 
@@ -958,7 +952,7 @@ impl WindowMethods for Window {
     }
 
     #[allow(unsafe_code)]
-    fn WebdriverCallback(&self, cx: SafeJSContext, val: HandleValue) {
+    fn WebdriverCallback(&self, cx: JSContext, val: HandleValue) {
         let rv = unsafe { jsval_to_webdriver(*cx, val) };
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {
@@ -2177,7 +2171,7 @@ impl Window {
             player_context,
         });
 
-        unsafe { WindowBinding::Wrap(SafeJSContext::from_ptr(runtime.cx()), win) }
+        unsafe { WindowBinding::Wrap(JSContext::from_ptr(runtime.cx()), win) }
     }
 
     pub fn pipeline_id(&self) -> Option<PipelineId> {
@@ -2279,8 +2273,8 @@ impl Window {
             // Steps 7.2.-7.5.
             let cx = this.get_cx();
             let obj = this.reflector().get_jsobject();
-            let _ac = JSAutoRealm::new(cx, obj.get());
-            rooted!(in(cx) let mut message_clone = UndefinedValue());
+            let _ac = JSAutoRealm::new(*cx, obj.get());
+            rooted!(in(*cx) let mut message_clone = UndefinedValue());
             serialize_with_transfer_result.read(
                 this.upcast(),
                 message_clone.handle_mut(),

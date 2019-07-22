@@ -147,7 +147,7 @@ impl Worker {
         let global = worker.global();
         let target = worker.upcast();
         let _ac = enter_realm(target);
-        rooted!(in(global.get_cx()) let mut message = UndefinedValue());
+        rooted!(in(*global.get_cx()) let mut message = UndefinedValue());
         data.read(&global, message.handle_mut());
         MessageEvent::dispatch_jsval(target, &global, message.handle(), None, None);
     }
@@ -186,7 +186,7 @@ impl WorkerMethods for Worker {
 
         // Step 3
         let cx = self.global().get_cx();
-        unsafe { JS_RequestInterruptCallback(cx) };
+        unsafe { JS_RequestInterruptCallback(*cx) };
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-worker-onmessage

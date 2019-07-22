@@ -131,7 +131,7 @@ impl DocumentOrShadowRoot {
             .first()
         {
             Some(address) => {
-                let js_runtime = unsafe { JS_GetRuntime(self.window.get_cx()) };
+                let js_runtime = unsafe { JS_GetRuntime(*self.window.get_cx()) };
                 let node = unsafe { node::from_untrusted_node_address(js_runtime, *address) };
                 let parent_node = node.GetParentNode().unwrap();
                 let element_ref = node
@@ -167,7 +167,7 @@ impl DocumentOrShadowRoot {
             return vec![];
         }
 
-        let js_runtime = unsafe { JS_GetRuntime(self.window.get_cx()) };
+        let js_runtime = unsafe { JS_GetRuntime(*self.window.get_cx()) };
 
         // Step 1 and Step 3
         let nodes = self.nodes_from_point(point, NodesFromPointQueryType::All);

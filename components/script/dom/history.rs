@@ -117,7 +117,7 @@ impl History {
         match serialized_data {
             Some(serialized_data) => {
                 let global_scope = self.window.upcast::<GlobalScope>();
-                rooted!(in(global_scope.get_cx()) let mut state = UndefinedValue());
+                rooted!(in(*global_scope.get_cx()) let mut state = UndefinedValue());
                 StructuredCloneData::Vector(serialized_data)
                     .read(&global_scope, state.handle_mut());
                 self.state.set(state.get());
