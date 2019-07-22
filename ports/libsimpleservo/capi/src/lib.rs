@@ -15,6 +15,7 @@ use simpleservo::{Coordinates, EventLoopWaker, HostTrait, InitOptions, VRInitOpt
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::os::raw::{c_char, c_void};
+use std::panic::{self, AssertUnwindSafe};
 
 fn call<F>(f: F)
 where
@@ -66,11 +67,19 @@ pub struct CInitOptions {
 /// The returned string is not freed. This will leak.
 #[no_mangle]
 pub extern "C" fn servo_version() -> *const c_char {
-    let v = simpleservo::servo_version();
-    let text = CString::new(v).expect("Can't create string");
-    let ptr = text.as_ptr();
-    mem::forget(text);
-    ptr
+    let mut _ptr: *const c_char = std::ptr::null();
+
+    let _result = panic::catch_unwind(AssertUnwindSafe(|| {
+        let v = simpleservo::servo_version();
+        let text = CString::new(v).expect("Can't create string");
+        _ptr = text.as_ptr();
+        mem::forget(text);
+    }));
+
+    match _result {
+        Ok(_) => return _ptr,
+        Err(_) => return std::ptr::null(),
+    }
 }
 
 #[cfg(target_os = "windows")]
@@ -146,18 +155,25 @@ pub extern "C" fn init_with_egl(
     opts: CInitOptions,
     wakeup: extern "C" fn(),
     callbacks: CHostCallbacks,
-) {
-    init_logger();
-    let gl = gl_glue::egl::init().unwrap();
-    unsafe {
-        init(
-            opts,
-            gl.gl_wrapper,
-            Some(gl.gl_context),
-            Some(gl.display),
-            wakeup,
-            callbacks,
-        )
+) -> bool {
+    let _result = panic::catch_unwind(|| {
+        init_logger();
+        let gl = gl_glue::egl::init().unwrap();
+        unsafe {
+            init(
+                opts,
+                gl.gl_wrapper,
+                Some(gl.gl_context),
+                Some(gl.display),
+                wakeup,
+                callbacks,
+            )
+        }
+    });
+
+    match _result {
+        Ok(_) => return true,
+        Err(_) => return false,
     }
 }
 
@@ -167,10 +183,17 @@ pub extern "C" fn init_with_gl(
     opts: CInitOptions,
     wakeup: extern "C" fn(),
     callbacks: CHostCallbacks,
-) {
-    init_logger();
-    let gl = gl_glue::gl::init().unwrap();
-    unsafe { init(opts, gl, None, None, wakeup, callbacks) }
+) -> bool {
+    let _result = panic::catch_unwind(|| {
+        init_logger();
+        let gl = gl_glue::gl::init().unwrap();
+        unsafe { init(opts, gl, None, None, wakeup, callbacks) }
+    });
+
+    match _result {
+        Ok(_) => return true,
+        Err(_) => return false,
+    }
 }
 
 #[no_mangle]
@@ -201,113 +224,239 @@ pub extern "C" fn resize(width: i32, height: i32) {
 }
 
 #[no_mangle]
-pub extern "C" fn perform_updates() {
-    debug!("perform_updates");
-    call(|s| s.perform_updates());
+pub extern "C" fn perform_updates() -> bool {
+    let _result = std::panic::catch_unwind(|| {
+        debug!("perform_updates");
+        call(|s| s.perform_updates());
+    });
+
+    match _result {
+        Ok(_) => return true,
+        Err(_) => return false,
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn load_uri(url: *const c_char) {
-    debug!("load_url");
-    let url = unsafe { CStr::from_ptr(url) };
-    let url = url.to_str().expect("Can't read string");
-    call(|s| s.load_uri(url));
+pub extern "C" fn load_uri(url: *const c_char) -> bool {
+    let _result = std::panic::catch_unwind(|| {
+        debug!("load_url");
+        let url = unsafe { CStr::from_ptr(url) };
+        let url = url.to_str().expect("Can't read string");
+        call(|s| s.load_uri(url));
+    });
+
+    match _result {
+        Ok(_) => return true,
+        Err(_) => return false,
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn reload() {
-    debug!("reload");
-    call(|s| s.reload());
+pub extern "C" fn reload() -> bool {
+    let _result = std::panic::catch_unwind(|| {
+        debug!("reload");
+        call(|s| s.reload());
+    });
+
+    match _result {
+        Ok(_) => return true,
+        Err(_) => return false,
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn stop() {
-    debug!("stop");
-    call(|s| s.stop());
+pub extern "C" fn stop() -> bool {
+    let _result = std::panic::catch_unwind(|| {
+        debug!("stop");
+        call(|s| s.stop());
+    });
+
+    match _result {
+        Ok(_) => return true,
+        Err(_) => return false,
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn refresh() {
-    debug!("refresh");
-    call(|s| s.refresh());
+pub extern "C" fn refresh() -> bool {
+    let _result = std::panic::catch_unwind(|| {
+        debug!("refresh");
+        call(|s| s.refresh());
+    });
+
+    match _result {
+        Ok(_) => return true,
+        Err(_) => return false,
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn go_back() {
-    debug!("go_back");
-    call(|s| s.go_back());
+pub extern "C" fn go_back() -> bool {
+    let _result = std::panic::catch_unwind(|| {
+        debug!("go_back");
+        call(|s| s.go_back());
+    });
+
+    match _result {
+        Ok(_) => return true,
+        Err(_) => return false,
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn go_forward() {
-    debug!("go_forward");
-    call(|s| s.go_forward());
+pub extern "C" fn go_forward() -> bool {
+    let _result = std::panic::catch_unwind(|| {
+        debug!("go_forward");
+        call(|s| s.go_forward());
+    });
+
+    match _result {
+        Ok(_) => return true,
+        Err(_) => return false,
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn scroll_start(dx: i32, dy: i32, x: i32, y: i32) {
-    debug!("scroll_start");
-    call(|s| s.scroll_start(dx as f32, dy as f32, x, y));
+pub extern "C" fn scroll_start(dx: i32, dy: i32, x: i32, y: i32) -> bool {
+    let _result = std::panic::catch_unwind(|| {
+        debug!("scroll_start");
+        call(|s| s.scroll_start(dx as f32, dy as f32, x, y));
+    });
+
+    match _result {
+        Ok(_) => return true,
+        Err(_) => return false,
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn scroll_end(dx: i32, dy: i32, x: i32, y: i32) {
-    debug!("scroll_end");
-    call(|s| s.scroll_end(dx as f32, dy as f32, x, y));
+pub extern "C" fn scroll_end(dx: i32, dy: i32, x: i32, y: i32) -> bool {
+    let _result = std::panic::catch_unwind(|| {
+        debug!("scroll_end");
+        call(|s| s.scroll_end(dx as f32, dy as f32, x, y));
+    });
+
+    match _result {
+        Ok(_) => return true,
+        Err(_) => return false,
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn scroll(dx: i32, dy: i32, x: i32, y: i32) {
-    debug!("scroll");
-    call(|s| s.scroll(dx as f32, dy as f32, x, y));
+pub extern "C" fn scroll(dx: i32, dy: i32, x: i32, y: i32) -> bool {
+    let _result = std::panic::catch_unwind(|| {
+        debug!("scroll");
+        call(|s| s.scroll(dx as f32, dy as f32, x, y));
+    });
+
+    match _result {
+        Ok(_) => return true,
+        Err(_) => return false,
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn touch_down(x: f32, y: f32, pointer_id: i32) {
-    debug!("touch down");
-    call(|s| s.touch_down(x, y, pointer_id));
+pub extern "C" fn touch_down(x: f32, y: f32, pointer_id: i32) -> bool {
+    let _result = std::panic::catch_unwind(|| {
+        debug!("touch down");
+        call(|s| s.touch_down(x, y, pointer_id));
+    });
+
+    match _result {
+        Ok(_) => return true,
+        Err(_) => return false,
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn touch_up(x: f32, y: f32, pointer_id: i32) {
-    debug!("touch up");
-    call(|s| s.touch_up(x, y, pointer_id));
+pub extern "C" fn touch_up(x: f32, y: f32, pointer_id: i32) -> bool {
+    let _result = std::panic::catch_unwind(|| {
+        debug!("touch up");
+        call(|s| s.touch_up(x, y, pointer_id));
+    });
+
+    match _result {
+        Ok(_) => return true,
+        Err(_) => return false,
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn touch_move(x: f32, y: f32, pointer_id: i32) {
-    debug!("touch move");
-    call(|s| s.touch_move(x, y, pointer_id));
+pub extern "C" fn touch_move(x: f32, y: f32, pointer_id: i32) -> bool {
+    let _result = std::panic::catch_unwind(|| {
+        debug!("touch move");
+        call(|s| s.touch_move(x, y, pointer_id));
+    });
+
+    match _result {
+        Ok(_) => return true,
+        Err(_) => return false,
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn touch_cancel(x: f32, y: f32, pointer_id: i32) {
-    debug!("touch cancel");
-    call(|s| s.touch_cancel(x, y, pointer_id));
+pub extern "C" fn touch_cancel(x: f32, y: f32, pointer_id: i32) -> bool {
+    let _result = std::panic::catch_unwind(|| {
+        debug!("touch cancel");
+        call(|s| s.touch_cancel(x, y, pointer_id));
+    });
+
+    match _result {
+        Ok(_) => return true,
+        Err(_) => return false,
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn pinchzoom_start(factor: f32, x: i32, y: i32) {
-    debug!("pinchzoom_start");
-    call(|s| s.pinchzoom_start(factor, x as u32, y as u32));
+pub extern "C" fn pinchzoom_start(factor: f32, x: i32, y: i32) -> bool {
+    let _result = std::panic::catch_unwind(|| {
+        debug!("pinchzoom_start");
+        call(|s| s.pinchzoom_start(factor, x as u32, y as u32));
+    });
+
+    match _result {
+        Ok(_) => return true,
+        Err(_) => return false,
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn pinchzoom(factor: f32, x: i32, y: i32) {
-    debug!("pinchzoom");
-    call(|s| s.pinchzoom(factor, x as u32, y as u32));
+pub extern "C" fn pinchzoom(factor: f32, x: i32, y: i32) -> bool {
+    let _result = std::panic::catch_unwind(|| {
+        debug!("pinchzoom");
+        call(|s| s.pinchzoom(factor, x as u32, y as u32));
+    });
+
+    match _result {
+        Ok(_) => return true,
+        Err(_) => return false,
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn pinchzoom_end(factor: f32, x: i32, y: i32) {
-    debug!("pinchzoom_end");
-    call(|s| s.pinchzoom_end(factor, x as u32, y as u32));
+pub extern "C" fn pinchzoom_end(factor: f32, x: i32, y: i32) -> bool {
+    let _result = std::panic::catch_unwind(|| {
+        debug!("pinchzoom_end");
+        call(|s| s.pinchzoom_end(factor, x as u32, y as u32));
+    });
+
+    match _result {
+        Ok(_) => return true,
+        Err(_) => return false,
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn click(x: i32, y: i32) {
-    debug!("click");
-    call(|s| s.click(x as f32, y as f32));
+pub extern "C" fn click(x: i32, y: i32) -> bool {
+    let _result = std::panic::catch_unwind(|| {
+        debug!("click");
+        call(|s| s.click(x as f32, y as f32));
+    });
+
+    match _result {
+        Ok(_) => return true,
+        Err(_) => return false,
+    }
 }
 
 pub struct WakeupCallback(extern "C" fn());
