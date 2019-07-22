@@ -5,7 +5,7 @@
 //! Abstract windowing methods. The concrete implementations of these can be found in `platform/`.
 
 use embedder_traits::EventLoopWaker;
-use euclid::TypedScale;
+use euclid::Scale;
 #[cfg(feature = "gl")]
 use gleam::gl;
 use keyboard_types::KeyboardEvent;
@@ -183,7 +183,7 @@ pub trait EmbedderMethods {
 #[derive(Clone, Copy, Debug)]
 pub struct EmbedderCoordinates {
     /// The pixel density of the display.
-    pub hidpi_factor: TypedScale<f32, DeviceIndependentPixel, DevicePixel>,
+    pub hidpi_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     /// Size of the screen.
     pub screen: DeviceIntSize,
     /// Size of the available screen space (screen without toolbars and docks).

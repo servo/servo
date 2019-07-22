@@ -12,7 +12,7 @@ use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use crate::text::shaping::ShaperMethods;
 use crate::text::Shaper;
 use app_units::Au;
-use euclid::{Point2D, Rect, Size2D};
+use euclid::default::{Point2D, Rect, Size2D};
 use ordered_float::NotNan;
 use servo_atoms::Atom;
 use smallvec::SmallVec;

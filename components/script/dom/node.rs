@@ -64,7 +64,7 @@ use crate::script_thread::ScriptThread;
 use app_units::Au;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
-use euclid::{Point2D, Rect, Size2D, Vector2D};
+use euclid::default::{Point2D, Rect, Size2D, Vector2D};
 use html5ever::{Namespace, Prefix, QualName};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use libc::{self, c_void, uintptr_t};
@@ -778,7 +778,7 @@ impl Node {
     pub fn scroll_offset(&self) -> Vector2D<f32> {
         let document = self.owner_doc();
         let window = document.window();
-        window.scroll_offset_query(self)
+        window.scroll_offset_query(self).to_untyped()
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-before

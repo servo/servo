@@ -12,7 +12,7 @@ use crate::display_list::{
 use crate::flow::{Flow, FlowClass, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use app_units::Au;
-use euclid::Point2D;
+use euclid::default::Point2D;
 use gfx_traits::print_tree::PrintTree;
 use std::fmt;
 use style::logical_geometry::LogicalSize;

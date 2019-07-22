@@ -262,7 +262,7 @@ trait PrivateMatchMethods: TElement {
             // around...
             None => {
                 return new_style_specifies_animations || new_style.is_pseudo_style();
-            }
+            },
         };
 
         let old_box_style = old_style.get_box();

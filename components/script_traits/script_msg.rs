@@ -14,7 +14,8 @@ use crate::WorkerScriptLoadOrigin;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::EmbedderMsg;
-use euclid::{Size2D, TypedSize2D};
+use euclid::default::Size2D as UntypedSize2D;
+use euclid::Size2D;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
@@ -35,7 +36,7 @@ pub struct IFrameSize {
     /// The child browsing context for this iframe.
     pub id: BrowsingContextId,
     /// The size of the iframe.
-    pub size: TypedSize2D<f32, CSSPixel>,
+    pub size: Size2D<f32, CSSPixel>,
 }
 
 /// An iframe sizing operation.
@@ -126,7 +127,10 @@ pub enum ScriptMsg {
     ChangeRunningAnimationsState(AnimationState),
     /// Requests that a new 2D canvas thread be created. (This is done in the constellation because
     /// 2D canvases may use the GPU and we don't want to give untrusted content access to the GPU.)
-    CreateCanvasPaintThread(Size2D<u64>, IpcSender<(IpcSender<CanvasMsg>, CanvasId)>),
+    CreateCanvasPaintThread(
+        UntypedSize2D<u64>,
+        IpcSender<(IpcSender<CanvasMsg>, CanvasId)>,
+    ),
     /// Notifies the constellation that this frame has received focus.
     Focus,
     /// Get the top-level browsing context info for a given browsing context.

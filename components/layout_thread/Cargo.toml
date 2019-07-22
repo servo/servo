@@ -15,7 +15,7 @@ app_units = "0.7"
 atomic_refcell = "0.1"
 crossbeam-channel = "0.3"
 embedder_traits = {path = "../embedder_traits"}
-euclid = "0.19"
+euclid = "0.20"
 fnv = "1.0"
 fxhash = "0.2"
 gfx = {path = "../gfx"}

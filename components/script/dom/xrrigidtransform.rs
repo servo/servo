@@ -16,7 +16,7 @@ use crate::dom::vrframedata::create_typed_array;
 use crate::dom::window::Window;
 use crate::dom::xrsession::ApiRigidTransform;
 use dom_struct::dom_struct;
-use euclid::{TypedRigidTransform3D, TypedRotation3D, TypedVector3D};
+use euclid::{RigidTransform3D, Rotation3D, Vector3D};
 use js::jsapi::{Heap, JSContext, JSObject};
 use std::ptr::NonNull;
 
@@ -53,7 +53,7 @@ impl XRRigidTransform {
     }
 
     pub fn identity(window: &GlobalScope) -> DomRoot<XRRigidTransform> {
-        let transform = TypedRigidTransform3D::identity();
+        let transform = RigidTransform3D::identity();
         XRRigidTransform::new(window, transform)
     }
 
@@ -70,8 +70,8 @@ impl XRRigidTransform {
             )));
         }
 
-        let translate = TypedVector3D::new(position.x as f32, position.y as f32, position.z as f32);
-        let rotate = TypedRotation3D::unit_quaternion(
+        let translate = Vector3D::new(position.x as f32, position.y as f32, position.z as f32);
+        let rotate = Rotation3D::unit_quaternion(
             orientation.x as f32,
             orientation.y as f32,
             orientation.z as f32,
@@ -83,7 +83,7 @@ impl XRRigidTransform {
             // value for each element. This is preferable to checking for zero.
             return Err(Error::InvalidState);
         }
-        let transform = TypedRigidTransform3D::new(rotate, translate);
+        let transform = RigidTransform3D::new(rotate, translate);
         Ok(XRRigidTransform::new(&window.global(), transform))
     }
 }

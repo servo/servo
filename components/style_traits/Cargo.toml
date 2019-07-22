@@ -10,7 +10,7 @@ name = "style_traits"
 path = "lib.rs"
 
 [features]
-servo = ["serde", "servo_atoms", "cssparser/serde", "webrender_api", "servo_url"]
+servo = ["serde", "servo_atoms", "cssparser/serde", "webrender_api", "servo_url", "euclid/serde"]
 gecko = []
 
 [dependencies]

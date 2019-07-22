@@ -24,7 +24,7 @@ use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::imagedata::ImageData;
 use crate::dom::offscreencanvas::OffscreenCanvas;
 use dom_struct::dom_struct;
-use euclid::Size2D;
+use euclid::default::Size2D;
 
 #[dom_struct]
 pub struct OffscreenCanvasRenderingContext2D {

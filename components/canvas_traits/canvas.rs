@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use cssparser::RGBA;
-use euclid::{Point2D, Rect, Size2D, Transform2D};
+use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender, IpcSharedMemory};
 use serde_bytes::ByteBuf;
 use std::default::Default;

@@ -11,7 +11,7 @@ use libc::{dup2, pipe, read};
 use log::info;
 use log::warn;
 use rust_webvr::api::MagicLeapVRService;
-use servo::euclid::TypedScale;
+use servo::euclid::Scale;
 use servo::keyboard_types::Key;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::units::{DevicePixel, DevicePoint, LayoutPixel};
@@ -176,7 +176,7 @@ pub unsafe extern "C" fn init_servo(
 
     let result = Box::new(ServoInstance {
         scroll_state: ScrollState::TriggerUp,
-        scroll_scale: TypedScale::new(SCROLL_SCALE / hidpi),
+        scroll_scale: Scale::new(SCROLL_SCALE / hidpi),
         shut_down_complete,
     });
     Box::into_raw(result)
@@ -389,7 +389,7 @@ impl HostTrait for HostCallbacks {
 
 pub struct ServoInstance {
     scroll_state: ScrollState,
-    scroll_scale: TypedScale<f32, DevicePixel, LayoutPixel>,
+    scroll_scale: Scale<f32, DevicePixel, LayoutPixel>,
     shut_down_complete: Rc<Cell<bool>>,
 }
 

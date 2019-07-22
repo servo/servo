@@ -10,7 +10,7 @@
 //   that these modules won't have to depend on layout.
 
 use crossbeam_channel::{Receiver, Sender};
-use euclid::TypedSize2D;
+use euclid::Size2D;
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use metrics::PaintTimeMetrics;
@@ -49,7 +49,7 @@ pub trait LayoutThreadFactory {
         paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,
         load_webfonts_synchronously: bool,
-        initial_window_size: TypedSize2D<u32, DeviceIndependentPixel>,
+        initial_window_size: Size2D<u32, DeviceIndependentPixel>,
         device_pixels_per_px: Option<f32>,
         dump_display_list: bool,
         dump_display_list_json: bool,

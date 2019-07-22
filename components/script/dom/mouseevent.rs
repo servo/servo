@@ -15,7 +15,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
-use euclid::Point2D;
+use euclid::default::Point2D;
 use servo_config::pref;
 use std::cell::Cell;
 use std::default::Default;

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Vector2D};
+use euclid::default::{Point2D, Rect, SideOffsets2D, Size2D, Vector2D};
 use style::computed_values::image_rendering::T as ImageRendering;
 use style::computed_values::mix_blend_mode::T as MixBlendMode;
 use style::computed_values::transform_style::T as TransformStyle;

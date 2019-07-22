@@ -32,7 +32,10 @@ use canvas_traits::canvas::{RadialGradientStyle, RepetitionStyle};
 use cssparser::Color as CSSColor;
 use cssparser::{Parser, ParserInput, RGBA};
 use dom_struct::dom_struct;
-use euclid::{vec2, Point2D, Rect, Size2D, Transform2D};
+use euclid::{
+    default::{Point2D, Rect, Size2D, Transform2D},
+    vec2,
+};
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image_cache::CanRequestImages;
 use net_traits::image_cache::ImageCache;
@@ -1223,7 +1226,7 @@ impl CanvasState {
 
         let (sin, cos) = (angle.sin(), angle.cos());
         let transform = self.state.borrow().transform;
-        self.state.borrow_mut().transform = transform.pre_mul(&Transform2D::row_major(
+        self.state.borrow_mut().transform = transform.pre_transform(&Transform2D::row_major(
             cos as f32,
             sin as f32,
             -sin as f32,
@@ -1258,7 +1261,7 @@ impl CanvasState {
         }
 
         let transform = self.state.borrow().transform;
-        self.state.borrow_mut().transform = transform.pre_mul(&Transform2D::row_major(
+        self.state.borrow_mut().transform = transform.pre_transform(&Transform2D::row_major(
             a as f32, b as f32, c as f32, d as f32, e as f32, f as f32,
         ));
         self.update_transform()

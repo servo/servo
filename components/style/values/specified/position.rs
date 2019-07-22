@@ -266,11 +266,14 @@ impl<S> PositionComponent<S> {
     /// Returns the count of this component.
     fn component_count(&self) -> usize {
         match *self {
-            PositionComponent::Length(..) |
-            PositionComponent::Center => 1,
+            PositionComponent::Length(..) | PositionComponent::Center => 1,
             PositionComponent::Side(_, ref lp) => {
-                if lp.is_some() { 2 } else { 1 }
-            }
+                if lp.is_some() {
+                    2
+                } else {
+                    1
+                }
+            },
         }
     }
 }

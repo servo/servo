@@ -25,6 +25,23 @@ use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::generics::counters::ContentItem;
+use style::values::specified::list::{QuotePair, Quotes};
+
+lazy_static! {
+    static ref INITIAL_QUOTES: style::ArcSlice<QuotePair> = style::ArcSlice::from_iter_leaked(
+        vec![
+            QuotePair {
+                opening: "\u{201c}".to_owned().into(),
+                closing: "\u{201d}".to_owned().into(),
+            },
+            QuotePair {
+                opening: "\u{2018}".to_owned().into(),
+                closing: "\u{2019}".to_owned().into(),
+            },
+        ]
+        .into_iter()
+    );
+}
 
 // Decimal styles per CSS-COUNTER-STYLES § 6.1:
 static DECIMAL: [char; 10] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -326,14 +343,17 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
     }
 
     fn quote(&self, style: &ComputedValues, close: bool) -> String {
-        let quotes = &style.get_list().quotes;
-        if quotes.0.is_empty() {
+        let quotes = match style.get_list().quotes {
+            Quotes::Auto => &*INITIAL_QUOTES,
+            Quotes::QuoteList(ref list) => &list.0,
+        };
+        if quotes.is_empty() {
             return String::new();
         }
-        let pair = if self.traversal.quote as usize >= quotes.0.len() {
-            quotes.0.last().unwrap()
+        let pair = if self.traversal.quote as usize >= quotes.len() {
+            quotes.last().unwrap()
         } else {
-            &quotes.0[self.traversal.quote as usize]
+            &quotes[self.traversal.quote as usize]
         };
         if close {
             pair.closing.to_string()

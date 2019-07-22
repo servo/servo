@@ -24,7 +24,7 @@ use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::model::MaybeAuto;
 use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 use app_units::Au;
-use euclid::Point2D;
+use euclid::default::Point2D;
 use gfx_traits::print_tree::PrintTree;
 use std::cmp::{max, min};
 use std::fmt;

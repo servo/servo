@@ -10,7 +10,7 @@ use crate::flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::layout_debug;
 use app_units::Au;
-use euclid::Point2D;
+use euclid::default::Point2D;
 use std::fmt;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;

@@ -17,7 +17,7 @@ mod media_thread;
 pub use crate::media_channel::glplayer_channel;
 use crate::media_channel::{GLPlayerChan, GLPlayerPipeline, GLPlayerReceiver, GLPlayerSender};
 use crate::media_thread::GLPlayerThread;
-use euclid::Size2D;
+use euclid::default::Size2D;
 use servo_media::player::context::{GlApi, GlContext, NativeDisplay, PlayerGLContext};
 use std::sync::{Arc, Mutex};
 use webrender_traits::{WebrenderExternalImageApi, WebrenderExternalImageRegistry};

@@ -44,7 +44,7 @@ use crate::table_row::TableRowFlow;
 use crate::table_rowgroup::TableRowGroupFlow;
 use crate::table_wrapper::TableWrapperFlow;
 use app_units::Au;
-use euclid::{Point2D, Rect, Size2D, Vector2D};
+use euclid::default::{Point2D, Rect, Size2D, Vector2D};
 use gfx_traits::print_tree::PrintTree;
 use gfx_traits::StackingContextId;
 use num_traits::cast::FromPrimitive;

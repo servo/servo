@@ -18,7 +18,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use euclid::Point2D;
+use euclid::default::Point2D;
 use html5ever::{LocalName, Prefix};
 use std::default::Default;
 use std::f32;

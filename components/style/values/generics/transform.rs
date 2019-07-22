@@ -12,8 +12,8 @@ use crate::values::specified::length::LengthPercentage as SpecifiedLengthPercent
 use crate::values::{computed, CSSFloat};
 use crate::Zero;
 use app_units::Au;
-use euclid::default::{Rect, Transform3D};
 use euclid;
+use euclid::default::{Rect, Transform3D};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 

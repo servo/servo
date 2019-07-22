@@ -50,7 +50,7 @@ use crate::model::{
 use crate::sequential;
 use crate::traversal::PreorderFlowTraversal;
 use app_units::{Au, MAX_AU};
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
+use euclid::default::{Point2D, Rect, SideOffsets2D, Size2D};
 use gfx_traits::print_tree::PrintTree;
 use serde::{Serialize, Serializer};
 use servo_geometry::MaxRect;
@@ -2610,7 +2610,7 @@ impl Flow for BlockFlow {
                         .relative_containing_block_mode,
                     CoordinateSystem::Own,
                 )
-                .translate(&stacking_context_position.to_vector()),
+                .translate(stacking_context_position.to_vector()),
         );
     }
 

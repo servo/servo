@@ -4,7 +4,7 @@
 
 #![deny(unsafe_code)]
 
-use euclid::Size2D;
+use euclid::default::Size2D;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use webrender_api::units::TexelRect;

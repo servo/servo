@@ -9,7 +9,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use euclid::{Rect, Size2D};
+use euclid::default::{Rect, Size2D};
 use ipc_channel::ipc::IpcSharedMemory;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::rust::Runtime;

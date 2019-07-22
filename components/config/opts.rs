@@ -6,7 +6,7 @@
 //! from command line arguments.
 
 use crate::prefs::{self, PrefValue};
-use euclid::TypedSize2D;
+use euclid::Size2D;
 use getopts::Options;
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
@@ -135,7 +135,7 @@ pub struct Opts {
     pub webdriver_port: Option<u16>,
 
     /// The initial requested size of the window.
-    pub initial_window_size: TypedSize2D<u32, DeviceIndependentPixel>,
+    pub initial_window_size: Size2D<u32, DeviceIndependentPixel>,
 
     /// An optional string allowing the user agent to be set for testing.
     pub user_agent: Cow<'static, str>,
@@ -576,7 +576,7 @@ pub fn default_opts() -> Opts {
         debugger_port: None,
         devtools_port: None,
         webdriver_port: None,
-        initial_window_size: TypedSize2D::new(1024, 740),
+        initial_window_size: Size2D::new(1024, 740),
         user_agent: default_user_agent_string(DEFAULT_USER_AGENT).into(),
         multiprocess: false,
         random_pipeline_closure_probability: None,
@@ -954,9 +954,9 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                     })
                 })
                 .collect();
-            TypedSize2D::new(res[0], res[1])
+            Size2D::new(res[0], res[1])
         },
-        None => TypedSize2D::new(1024, 740),
+        None => Size2D::new(1024, 740),
     };
 
     if opt_match.opt_present("M") {

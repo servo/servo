@@ -189,7 +189,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                 ),
                                 (Some(t), None) => (t, ReferenceFrameKind::Transform),
                                 (Some(t), Some(p)) => (
-                                    t.pre_mul(&p),
+                                    t.pre_transform(&p),
                                     ReferenceFrameKind::Perspective {
                                         scrolling_relative_to: None,
                                     },

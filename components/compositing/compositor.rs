@@ -14,7 +14,7 @@ use crate::CompositionPipeline;
 use crate::SendableFrameTree;
 use crossbeam_channel::Sender;
 use embedder_traits::Cursor;
-use euclid::{TypedPoint2D, TypedScale, TypedVector2D};
+use euclid::{Point2D, Scale, Vector2D};
 use gfx_traits::Epoch;
 #[cfg(feature = "gl")]
 use image::{DynamicImage, ImageFormat};
@@ -115,7 +115,7 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     pipeline_details: HashMap<PipelineId, PipelineDetails>,
 
     /// The scene scale, to allow for zooming and high-resolution painting.
-    scale: TypedScale<f32, LayerPixel, DevicePixel>,
+    scale: Scale<f32, LayerPixel, DevicePixel>,
 
     /// "Mobile-style" zoom that does not reflow the page.
     viewport_zoom: PinchZoomFactor,
@@ -125,7 +125,7 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     max_viewport_zoom: Option<PinchZoomFactor>,
 
     /// "Desktop-style" zoom that resizes the viewport to fit the window.
-    page_zoom: TypedScale<f32, CSSPixel, DeviceIndependentPixel>,
+    page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
 
     /// The type of composition to perform
     composite_target: CompositeTarget,
@@ -296,14 +296,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             port: state.receiver,
             root_pipeline: None,
             pipeline_details: HashMap::new(),
-            scale: TypedScale::new(1.0),
+            scale: Scale::new(1.0),
             composition_request: CompositionRequest::NoCompositingNecessary,
             touch_handler: TouchHandler::new(),
             pending_scroll_zoom_events: Vec::new(),
             waiting_for_results_of_scroll: false,
             composite_target,
             shutdown_state: ShutdownState::NotShuttingDown,
-            page_zoom: TypedScale::new(1.0),
+            page_zoom: Scale::new(1.0),
             viewport_zoom: PinchZoomFactor::new(1.0),
             min_viewport_zoom: None,
             max_viewport_zoom: None,
@@ -741,7 +741,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let dppx = self.page_zoom * self.hidpi_factor();
         let scaled_point = (point / dppx).to_untyped();
 
-        let world_cursor = webrender_api::units::WorldPoint::from_untyped(&scaled_point);
+        let world_cursor = webrender_api::units::WorldPoint::from_untyped(scaled_point);
         self.webrender_api.hit_test(
             self.webrender_document,
             None,
@@ -845,15 +845,15 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     fn on_touch_move(&mut self, identifier: TouchId, point: DevicePoint) {
         match self.touch_handler.on_touch_move(identifier, point) {
             TouchAction::Scroll(delta) => self.on_scroll_window_event(
-                ScrollLocation::Delta(LayoutVector2D::from_untyped(&delta.to_untyped())),
+                ScrollLocation::Delta(LayoutVector2D::from_untyped(delta.to_untyped())),
                 point.cast(),
             ),
             TouchAction::Zoom(magnification, scroll_delta) => {
-                let cursor = TypedPoint2D::new(-1, -1); // Make sure this hits the base layer.
+                let cursor = Point2D::new(-1, -1); // Make sure this hits the base layer.
                 self.pending_scroll_zoom_events.push(ScrollZoomEvent {
                     magnification: magnification,
                     scroll_location: ScrollLocation::Delta(LayoutVector2D::from_untyped(
-                        &scroll_delta.to_untyped(),
+                        scroll_delta.to_untyped(),
                     )),
                     cursor: cursor,
                     event_count: 1,
@@ -942,7 +942,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     *last_combined_event = Some(ScrollZoomEvent {
                         magnification: scroll_event.magnification,
                         scroll_location: ScrollLocation::Delta(LayoutVector2D::from_untyped(
-                            &this_delta.to_untyped(),
+                            this_delta.to_untyped(),
                         )),
                         cursor: this_cursor,
                         event_count: 1,
@@ -954,11 +954,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     // nasty-looking "pops". To mitigate this, during a fling we average
                     // deltas instead of summing them.
                     if let ScrollLocation::Delta(delta) = last_combined_event.scroll_location {
-                        let old_event_count =
-                            TypedScale::new(last_combined_event.event_count as f32);
+                        let old_event_count = Scale::new(last_combined_event.event_count as f32);
                         last_combined_event.event_count += 1;
-                        let new_event_count =
-                            TypedScale::new(last_combined_event.event_count as f32);
+                        let new_event_count = Scale::new(last_combined_event.event_count as f32);
                         last_combined_event.scroll_location = ScrollLocation::Delta(
                             (delta * old_event_count + this_delta) / new_event_count,
                         );
@@ -971,17 +969,16 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         if let Some(combined_event) = last_combined_event {
             let scroll_location = match combined_event.scroll_location {
                 ScrollLocation::Delta(delta) => {
-                    let scaled_delta = (TypedVector2D::from_untyped(&delta.to_untyped()) /
-                        self.scale)
-                        .to_untyped();
-                    let calculated_delta = LayoutVector2D::from_untyped(&scaled_delta);
+                    let scaled_delta =
+                        (Vector2D::from_untyped(delta.to_untyped()) / self.scale).to_untyped();
+                    let calculated_delta = LayoutVector2D::from_untyped(scaled_delta);
                     ScrollLocation::Delta(calculated_delta)
                 },
                 // Leave ScrollLocation unchanged if it is Start or End location.
                 sl @ ScrollLocation::Start | sl @ ScrollLocation::End => sl,
             };
             let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
-            let cursor = webrender_api::units::WorldPoint::from_untyped(&cursor);
+            let cursor = webrender_api::units::WorldPoint::from_untyped(cursor);
             let mut txn = webrender_api::Transaction::new();
             txn.scroll(scroll_location, cursor);
             if combined_event.magnification != 1.0 {
@@ -1063,34 +1060,34 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
     }
 
-    fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
+    fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
         match self.device_pixels_per_px {
-            Some(device_pixels_per_px) => TypedScale::new(device_pixels_per_px),
+            Some(device_pixels_per_px) => Scale::new(device_pixels_per_px),
             None => match self.output_file {
-                Some(_) => TypedScale::new(1.0),
+                Some(_) => Scale::new(1.0),
                 None => self.embedder_coordinates.hidpi_factor,
             },
         }
     }
 
-    fn device_pixels_per_page_px(&self) -> TypedScale<f32, CSSPixel, DevicePixel> {
+    fn device_pixels_per_page_px(&self) -> Scale<f32, CSSPixel, DevicePixel> {
         self.page_zoom * self.hidpi_factor()
     }
 
     fn update_zoom_transform(&mut self) {
         let scale = self.device_pixels_per_page_px();
-        self.scale = TypedScale::new(scale.get());
+        self.scale = Scale::new(scale.get());
     }
 
     pub fn on_zoom_reset_window_event(&mut self) {
-        self.page_zoom = TypedScale::new(1.0);
+        self.page_zoom = Scale::new(1.0);
         self.update_zoom_transform();
         self.send_window_size(WindowSizeType::Resize);
         self.update_page_zoom_for_webrender();
     }
 
     pub fn on_zoom_window_event(&mut self, magnification: f32) {
-        self.page_zoom = TypedScale::new(
+        self.page_zoom = Scale::new(
             (self.page_zoom.get() * magnification)
                 .max(MIN_ZOOM)
                 .min(MAX_ZOOM),
@@ -1113,8 +1110,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     pub fn on_pinch_zoom_window_event(&mut self, magnification: f32) {
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: magnification,
-            scroll_location: ScrollLocation::Delta(TypedVector2D::zero()), // TODO: Scroll to keep the center in view?
-            cursor: TypedPoint2D::new(-1, -1), // Make sure this hits the base layer.
+            scroll_location: ScrollLocation::Delta(Vector2D::zero()), // TODO: Scroll to keep the center in view?
+            cursor: Point2D::new(-1, -1), // Make sure this hits the base layer.
             event_count: 1,
         });
     }
@@ -1127,7 +1124,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         {
             let scroll_state = ScrollState {
                 scroll_id: scroll_layer_state.id,
-                scroll_offset: scroll_layer_state.scroll_offset.to_untyped(),
+                scroll_offset: scroll_layer_state.scroll_offset,
             };
 
             scroll_states_per_pipeline
@@ -1243,12 +1240,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         &mut self,
         target: CompositeTarget,
     ) -> Result<Option<Image>, UnableToComposite> {
-        let width = self.embedder_coordinates.framebuffer.to_u32().width_typed();
-        let height = self
-            .embedder_coordinates
-            .framebuffer
-            .to_u32()
-            .height_typed();
+        let size = self.embedder_coordinates.framebuffer.to_u32();
 
         self.window.prepare_for_composite();
         self.webrender.update();
@@ -1279,8 +1271,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             #[cfg(feature = "gl")]
             CompositeTarget::WindowAndPng | CompositeTarget::PngFile => gl::initialize_png(
                 &*self.window.gl(),
-                FramebufferUintLength::new(width.get()),
-                FramebufferUintLength::new(height.get()),
+                FramebufferUintLength::new(size.width),
+                FramebufferUintLength::new(size.height),
             ),
             #[cfg(not(feature = "gl"))]
             _ => (),
@@ -1293,9 +1285,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             || {
                 debug!("compositor: compositing");
 
-                let size = DeviceIntSize::from_untyped(
-                    &self.embedder_coordinates.framebuffer.to_untyped(),
-                );
+                let size =
+                    DeviceIntSize::from_untyped(self.embedder_coordinates.framebuffer.to_untyped());
 
                 // Paint the scene.
                 // TODO(gw): Take notice of any errors the renderer returns!
@@ -1346,8 +1337,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let img = gl::draw_img(
                     &*self.window.gl(),
                     rt_info,
-                    FramebufferUintLength::new(width.get()),
-                    FramebufferUintLength::new(height.get()),
+                    FramebufferUintLength::new(size.width),
+                    FramebufferUintLength::new(size.height),
                 );
                 Some(Image {
                     width: img.width(),
@@ -1370,8 +1361,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                                 let img = gl::draw_img(
                                     gl,
                                     rt_info,
-                                    FramebufferUintLength::new(width.get()),
-                                    FramebufferUintLength::new(height.get()),
+                                    FramebufferUintLength::new(size.width),
+                                    FramebufferUintLength::new(size.height),
                                 );
                                 let dynamic_image = DynamicImage::ImageRgb8(img);
                                 if let Err(e) = dynamic_image.write_to(&mut file, ImageFormat::PNG)

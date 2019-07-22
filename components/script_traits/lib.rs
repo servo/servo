@@ -25,7 +25,10 @@ use canvas_traits::webgl::WebGLPipeline;
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::Cursor;
-use euclid::{Length, Point2D, Rect, TypedScale, TypedSize2D, Vector2D};
+use euclid::{
+    default::{Point2D, Rect},
+    Length, Scale, Size2D, Vector2D,
+};
 use gfx_traits::Epoch;
 use http::HeaderMap;
 use hyper::Method;
@@ -58,7 +61,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
-use webrender_api::units::{DeviceIntSize, DevicePixel};
+use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId, ImageKey, RenderApiSender};
 use webvr_traits::{WebVREvent, WebVRMsg};
 
@@ -295,7 +298,10 @@ pub enum ConstellationControlMsg {
     /// Notifies script of the viewport.
     Viewport(PipelineId, Rect<f32>),
     /// Notifies script of a new set of scroll offsets.
-    SetScrollState(PipelineId, Vec<(UntrustedNodeAddress, Vector2D<f32>)>),
+    SetScrollState(
+        PipelineId,
+        Vec<(UntrustedNodeAddress, Vector2D<f32, LayoutPixel>)>,
+    ),
     /// Requests that the script thread immediately send the constellation the title of a pipeline.
     GetTitle(PipelineId),
     /// Notifies script thread of a change to one of its document's activity
@@ -753,7 +759,7 @@ pub struct ScrollState {
     /// The ID of the scroll root.
     pub scroll_id: ExternalScrollId,
     /// The scrolling offset of this stacking context.
-    pub scroll_offset: Vector2D<f32>,
+    pub scroll_offset: Vector2D<f32, LayoutPixel>,
 }
 
 /// Data about the window size.
@@ -761,10 +767,10 @@ pub struct ScrollState {
 pub struct WindowSizeData {
     /// The size of the initial layout viewport, before parsing an
     /// <http://www.w3.org/TR/css-device-adapt/#initial-viewport>
-    pub initial_viewport: TypedSize2D<f32, CSSPixel>,
+    pub initial_viewport: Size2D<f32, CSSPixel>,
 
     /// The resolution of the window in dppx, not including any "pinch zoom" factor.
-    pub device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
+    pub device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
 }
 
 /// The type of window size change.
@@ -953,8 +959,8 @@ pub trait Painter: SpeculativePainter {
     /// <https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image>
     fn draw_a_paint_image(
         &self,
-        size: TypedSize2D<f32, CSSPixel>,
-        zoom: TypedScale<f32, CSSPixel, DevicePixel>,
+        size: Size2D<f32, CSSPixel>,
+        zoom: Scale<f32, CSSPixel, DevicePixel>,
         properties: Vec<(Atom, String)>,
         arguments: Vec<String>,
     ) -> Result<DrawAPaintImageResult, PaintWorkletError>;

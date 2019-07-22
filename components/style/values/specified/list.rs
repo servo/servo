@@ -163,7 +163,7 @@ impl Parse for Quotes {
             .try(|input| input.expect_ident_matching("none"))
             .is_ok()
         {
-            return Ok(Quotes::QuoteList(QuoteList::default()))
+            return Ok(Quotes::QuoteList(QuoteList::default()));
         }
 
         let mut quotes = Vec::new();
@@ -180,7 +180,9 @@ impl Parse for Quotes {
         }
 
         if !quotes.is_empty() {
-            Ok(Quotes::QuoteList(QuoteList(crate::ArcSlice::from_iter(quotes.into_iter()))))
+            Ok(Quotes::QuoteList(QuoteList(crate::ArcSlice::from_iter(
+                quotes.into_iter(),
+            ))))
         } else {
             Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }

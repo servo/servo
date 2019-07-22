@@ -5,7 +5,7 @@
 use super::gl_context::{map_attrs_to_script_attrs, GLContextFactory, GLContextWrapper};
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use canvas_traits::webgl::*;
-use euclid::Size2D;
+use euclid::default::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
 use half::f16;

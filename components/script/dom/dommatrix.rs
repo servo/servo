@@ -18,7 +18,7 @@ use crate::dom::dommatrixreadonly::{
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
-use euclid::Transform3D;
+use euclid::default::Transform3D;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{Float32Array, Float64Array};
 

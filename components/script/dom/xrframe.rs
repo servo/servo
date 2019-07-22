@@ -95,7 +95,7 @@ impl XRFrameMethods for XRFrame {
         }
         let space = space.get_pose(&self.data);
         let relative_to = relative_to.get_pose(&self.data);
-        let pose = relative_to.inverse().pre_mul(&space);
+        let pose = relative_to.inverse().pre_transform(&space);
         Ok(Some(XRPose::new(&self.global(), pose)))
     }
 }

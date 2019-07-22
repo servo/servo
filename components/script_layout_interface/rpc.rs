@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use euclid::Rect;
+use euclid::default::Rect;
 use script_traits::UntrustedNodeAddress;
 use servo_arc::Arc;
 use style::properties::ComputedValues;

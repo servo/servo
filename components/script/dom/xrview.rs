@@ -53,7 +53,7 @@ impl XRView {
         // from the viewer space to the eye space. We invert it to get the pose of the eye in the viewer space.
         let offset = view.transform.inverse();
 
-        let transform = pose.pre_mul(&offset);
+        let transform = pose.pre_transform(&offset);
         let transform = XRRigidTransform::new(global, cast_transform(transform));
 
         let ret = reflect_dom_object(

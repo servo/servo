@@ -4,7 +4,7 @@
 
 use canvas_traits::webgl;
 use crossbeam_channel::{unbounded, Receiver, Sender};
-use euclid::Size2D;
+use euclid::default::Size2D;
 use gleam::gl::Gl;
 use ipc_channel::ipc;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};

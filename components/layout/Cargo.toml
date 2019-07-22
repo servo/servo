@@ -19,13 +19,14 @@ bitflags = "1.0"
 canvas_traits = {path = "../canvas_traits"}
 crossbeam-channel = "0.3"
 embedder_traits = {path = "../embedder_traits"}
-euclid = "0.19"
+euclid = "0.20"
 fnv = "1.0"
 fxhash = "0.2"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 html5ever = "0.23"
 ipc-channel = "0.11"
+lazy_static = "1"
 libc = "0.2"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }

@@ -55,11 +55,8 @@ use crossbeam_channel::{Receiver, Sender};
 use cssparser::RGBA;
 use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
 use encoding_rs::{Decoder, Encoding};
+use euclid::default::{Point2D, Rect, Rotation3D, Transform2D, Transform3D};
 use euclid::Length as EuclidLength;
-use euclid::{
-    Point2D, Rect, RigidTransform3D, Rotation3D, Transform2D, Transform3D, TypedRect,
-    TypedRigidTransform3D, TypedScale, TypedSize2D, Vector2D,
-};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::{LocalName, Namespace, Prefix, QualName};
 use http::header::HeaderMap;
@@ -510,8 +507,8 @@ unsafe_no_jsmanaged_fields!(ResourceFetchTiming);
 unsafe_no_jsmanaged_fields!(Timespec);
 unsafe_no_jsmanaged_fields!(HTMLMediaElementFetchContext);
 unsafe_no_jsmanaged_fields!(Rotation3D<f64>, Transform2D<f32>, Transform3D<f64>);
-unsafe_no_jsmanaged_fields!(Point2D<f32>, Vector2D<f32>, Rect<Au>);
-unsafe_no_jsmanaged_fields!(Rect<f32>, RigidTransform3D<f64>);
+unsafe_no_jsmanaged_fields!(Point2D<f32>, Rect<Au>);
+unsafe_no_jsmanaged_fields!(Rect<f32>);
 unsafe_no_jsmanaged_fields!(CascadeData);
 unsafe_no_jsmanaged_fields!(WindowGLContext);
 
@@ -605,14 +602,28 @@ where
     }
 }
 
-unsafe impl<T, U> JSTraceable for TypedScale<f32, T, U> {
+unsafe impl<U> JSTraceable for euclid::Vector2D<f32, U> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
     }
 }
 
-unsafe impl<T, U> JSTraceable for TypedRigidTransform3D<f32, T, U> {
+unsafe impl<T, U> JSTraceable for euclid::Scale<f32, T, U> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl<T, U> JSTraceable for euclid::RigidTransform3D<f32, T, U> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl<T, U> JSTraceable for euclid::RigidTransform3D<f64, T, U> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
@@ -626,28 +637,28 @@ unsafe impl<T> JSTraceable for EuclidLength<u64, T> {
     }
 }
 
-unsafe impl<U> JSTraceable for TypedSize2D<i32, U> {
+unsafe impl<U> JSTraceable for euclid::Size2D<i32, U> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
     }
 }
 
-unsafe impl<U> JSTraceable for TypedSize2D<f32, U> {
+unsafe impl<U> JSTraceable for euclid::Size2D<f32, U> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
     }
 }
 
-unsafe impl<U> JSTraceable for TypedSize2D<u32, U> {
+unsafe impl<U> JSTraceable for euclid::Size2D<u32, U> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
     }
 }
 
-unsafe impl<U> JSTraceable for TypedRect<i32, U> {
+unsafe impl<U> JSTraceable for euclid::Rect<i32, U> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing

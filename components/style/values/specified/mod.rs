@@ -142,8 +142,8 @@ fn parse_number_with_clamping_mode<'i, 't>(
                 value: value.min(f32::MAX).max(f32::MIN),
                 calc_clamping_mode: None,
             });
-        }
-        Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {}
+        },
+        Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {},
         ref t => return Err(location.new_unexpected_token_error(t.clone())),
     }
 
@@ -537,7 +537,7 @@ impl Parse for Integer {
             Token::Number {
                 int_value: Some(v), ..
             } => return Ok(Integer::new(v)),
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {}
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {},
             ref t => return Err(location.new_unexpected_token_error(t.clone())),
         }
 
@@ -813,7 +813,7 @@ impl Attr {
                             None => {
                                 return Err(location
                                     .new_custom_error(StyleParseErrorKind::UnspecifiedError));
-                            }
+                            },
                         };
                         Some((prefix, ns))
                     } else {
@@ -823,10 +823,10 @@ impl Attr {
                         namespace: prefix_and_ns,
                         attribute: Atom::from(second_token.as_ref()),
                     });
-                }
+                },
                 // In the case of attr(foobar    ) we don't want to error out
                 // because of the trailing whitespace
-                Token::WhiteSpace(..) => {}
+                Token::WhiteSpace(..) => {},
                 ref t => return Err(input.new_unexpected_token_error(t.clone())),
             }
         }

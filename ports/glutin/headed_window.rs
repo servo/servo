@@ -9,7 +9,7 @@ use crate::context::GlContext;
 use crate::events_loop::EventsLoop;
 use crate::keyutils::keyboard_event_from_winit;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
-use euclid::{Size2D, TypedPoint2D, TypedScale, TypedSize2D, TypedVector2D};
+use euclid::{default::Size2D as UntypedSize2D, Point2D, Scale, Size2D, Vector2D};
 use gleam::gl;
 use glutin::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
@@ -57,13 +57,13 @@ fn builder_with_platform_options(builder: glutin::WindowBuilder) -> glutin::Wind
 pub struct Window {
     gl_context: RefCell<GlContext>,
     events_loop: Rc<RefCell<EventsLoop>>,
-    screen_size: TypedSize2D<u32, DeviceIndependentPixel>,
-    inner_size: Cell<TypedSize2D<u32, DeviceIndependentPixel>>,
+    screen_size: Size2D<u32, DeviceIndependentPixel>,
+    inner_size: Cell<Size2D<u32, DeviceIndependentPixel>>,
     mouse_down_button: Cell<Option<glutin::MouseButton>>,
-    mouse_down_point: Cell<TypedPoint2D<i32, DevicePixel>>,
+    mouse_down_point: Cell<Point2D<i32, DevicePixel>>,
     primary_monitor: glutin::MonitorId,
     event_queue: RefCell<Vec<WindowEvent>>,
-    mouse_pos: Cell<TypedPoint2D<i32, DevicePixel>>,
+    mouse_pos: Cell<Point2D<i32, DevicePixel>>,
     last_pressed: Cell<Option<KeyboardEvent>>,
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
@@ -71,20 +71,20 @@ pub struct Window {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn window_creation_scale_factor() -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
-    TypedScale::new(1.0)
+fn window_creation_scale_factor() -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+    Scale::new(1.0)
 }
 
 #[cfg(target_os = "windows")]
-fn window_creation_scale_factor() -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
+fn window_creation_scale_factor() -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
     let hdc = unsafe { winapi::um::winuser::GetDC(::std::ptr::null_mut()) };
     let ppi = unsafe { winapi::um::wingdi::GetDeviceCaps(hdc, winapi::um::wingdi::LOGPIXELSY) };
-    TypedScale::new(ppi as f32 / 96.0)
+    Scale::new(ppi as f32 / 96.0)
 }
 
 impl Window {
     pub fn new(
-        win_size: TypedSize2D<u32, DeviceIndependentPixel>,
+        win_size: Size2D<u32, DeviceIndependentPixel>,
         sharing: Option<&GlContext>,
         events_loop: Rc<RefCell<EventsLoop>>,
     ) -> Window {
@@ -139,13 +139,13 @@ impl Window {
             width: screen_width,
             height: screen_height,
         } = primary_monitor.get_dimensions();
-        let screen_size = TypedSize2D::new(screen_width as u32, screen_height as u32);
+        let screen_size = Size2D::new(screen_width as u32, screen_height as u32);
         // TODO(ajeffrey): can this fail?
         let LogicalSize { width, height } = context
             .window()
             .get_inner_size()
             .expect("Failed to get window inner size.");
-        let inner_size = TypedSize2D::new(width as u32, height as u32);
+        let inner_size = Size2D::new(width as u32, height as u32);
 
         context.window().show();
 
@@ -172,8 +172,8 @@ impl Window {
             events_loop,
             event_queue: RefCell::new(vec![]),
             mouse_down_button: Cell::new(None),
-            mouse_down_point: Cell::new(TypedPoint2D::new(0, 0)),
-            mouse_pos: Cell::new(TypedPoint2D::new(0, 0)),
+            mouse_down_point: Cell::new(Point2D::new(0, 0)),
+            mouse_pos: Cell::new(Point2D::new(0, 0)),
             last_pressed: Cell::new(None),
             gl: gl.clone(),
             animation_state: Cell::new(AnimationState::Idle),
@@ -233,7 +233,7 @@ impl Window {
         &self,
         button: glutin::MouseButton,
         action: glutin::ElementState,
-        coords: TypedPoint2D<i32, DevicePixel>,
+        coords: Point2D<i32, DevicePixel>,
     ) {
         use servo::script_traits::MouseButton;
 
@@ -271,15 +271,15 @@ impl Window {
             .push(WindowEvent::MouseWindowEventClass(event));
     }
 
-    fn device_hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
-        TypedScale::new(self.gl_context.borrow().window().get_hidpi_factor() as f32)
+    fn device_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+        Scale::new(self.gl_context.borrow().window().get_hidpi_factor() as f32)
     }
 
-    fn servo_hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
+    fn servo_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
         match opts::get().device_pixels_per_px {
-            Some(device_pixels_per_px) => TypedScale::new(device_pixels_per_px),
+            Some(device_pixels_per_px) => Scale::new(device_pixels_per_px),
             _ => match opts::get().output_file {
-                Some(_) => TypedScale::new(1.0),
+                Some(_) => Scale::new(1.0),
                 None => self.device_hidpi_factor(),
             },
         }
@@ -397,10 +397,10 @@ impl WindowPortsMethods for Window {
             glutin::WindowEvent::CursorMoved { position, .. } => {
                 let pos = position.to_physical(self.device_hidpi_factor().get() as f64);
                 let (x, y): (i32, i32) = pos.into();
-                self.mouse_pos.set(TypedPoint2D::new(x, y));
+                self.mouse_pos.set(Point2D::new(x, y));
                 self.event_queue
                     .borrow_mut()
-                    .push(WindowEvent::MouseWindowMoveEventClass(TypedPoint2D::new(
+                    .push(WindowEvent::MouseWindowMoveEventClass(Point2D::new(
                         x as f32, y as f32,
                     )));
             },
@@ -418,7 +418,7 @@ impl WindowPortsMethods for Window {
                 // Create wheel event before snapping to the major axis of movement
                 let wheel_delta = WheelDelta { x: dx, y: dy, z: 0.0, mode };
                 let pos = self.mouse_pos.get();
-                let position = TypedPoint2D::new(pos.x as f32, pos.y as f32);
+                let position = Point2D::new(pos.x as f32, pos.y as f32);
                 let wheel_event = WindowEvent::Wheel(wheel_delta, position);
 
                 // Scroll events snap to the major axis of movement, with vertical
@@ -429,7 +429,7 @@ impl WindowPortsMethods for Window {
                     dy = 0.0;
                 }
 
-                let scroll_location = ScrollLocation::Delta(TypedVector2D::new(dx as f32, dy as f32));
+                let scroll_location = ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
                 let phase = winit_phase_to_touch_event_type(phase);
                 let scroll_event = WindowEvent::Scroll(scroll_location, self.mouse_pos.get(), phase);
 
@@ -445,7 +445,7 @@ impl WindowPortsMethods for Window {
                 let position = touch
                     .location
                     .to_physical(self.device_hidpi_factor().get() as f64);
-                let point = TypedPoint2D::new(position.x as f32, position.y as f32);
+                let point = Point2D::new(position.x as f32, position.y as f32);
                 self.event_queue
                     .borrow_mut()
                     .push(WindowEvent::Touch(phase, id, point));
@@ -461,7 +461,7 @@ impl WindowPortsMethods for Window {
                 self.gl_context.borrow_mut().resize(physical_size);
                 // window.set_inner_size() takes DeviceIndependentPixel.
                 let (width, height) = size.into();
-                let new_size = TypedSize2D::new(width, height);
+                let new_size = Size2D::new(width, height);
                 if self.inner_size.get() != new_size {
                     self.inner_size.set(new_size);
                     self.event_queue.borrow_mut().push(WindowEvent::Resize);
@@ -482,7 +482,7 @@ impl webxr::glwindow::GlWindow for Window {
         self.gl_context.get_mut().make_not_current();
     }
 
-    fn size(&self) -> Size2D<gl::GLsizei> {
+    fn size(&self) -> UntypedSize2D<gl::GLsizei> {
         let dpr = self.device_hidpi_factor().get() as f64;
         let LogicalSize { width, height } = self
             .gl_context
@@ -523,8 +523,8 @@ impl WindowMethods for Window {
             .window()
             .get_position()
             .unwrap_or(LogicalPosition::new(0., 0.));
-        let win_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_i32();
-        let win_origin = (TypedPoint2D::new(x as f32, y as f32) * dpr).to_i32();
+        let win_size = (Size2D::new(width as f32, height as f32) * dpr).to_i32();
+        let win_origin = (Point2D::new(x as f32, y as f32) * dpr).to_i32();
         let screen = (self.screen_size.to_f32() * dpr).to_i32();
 
         let LogicalSize { width, height } = self
@@ -533,9 +533,9 @@ impl WindowMethods for Window {
             .window()
             .get_inner_size()
             .expect("Failed to get window inner size.");
-        let inner_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_i32();
-        let viewport = DeviceIntRect::new(TypedPoint2D::zero(), inner_size);
-        let framebuffer = DeviceIntSize::from_untyped(&viewport.size.to_untyped());
+        let inner_size = (Size2D::new(width as f32, height as f32) * dpr).to_i32();
+        let viewport = DeviceIntRect::new(Point2D::zero(), inner_size);
+        let framebuffer = DeviceIntSize::from_untyped(viewport.size.to_untyped());
 
         EmbedderCoordinates {
             viewport,

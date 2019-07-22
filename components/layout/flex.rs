@@ -17,7 +17,7 @@ use crate::model::{self, AdjoiningMargins, CollapsibleMargins};
 use crate::model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
 use crate::traversal::PreorderFlowTraversal;
 use app_units::{Au, MAX_AU};
-use euclid::Point2D;
+use euclid::default::Point2D;
 use std::cmp::{max, min};
 use std::ops::Range;
 use style::computed_values::align_content::T as AlignContent;

@@ -8,24 +8,24 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use euclid::TypedRect;
+use euclid::Rect;
 use webxr_api::Viewport;
 
 #[dom_struct]
 pub struct XRViewport {
     reflector_: Reflector,
-    viewport: TypedRect<i32, Viewport>,
+    viewport: Rect<i32, Viewport>,
 }
 
 impl XRViewport {
-    fn new_inherited(viewport: TypedRect<i32, Viewport>) -> XRViewport {
+    fn new_inherited(viewport: Rect<i32, Viewport>) -> XRViewport {
         XRViewport {
             reflector_: Reflector::new(),
             viewport,
         }
     }
 
-    pub fn new(global: &GlobalScope, viewport: TypedRect<i32, Viewport>) -> DomRoot<XRViewport> {
+    pub fn new(global: &GlobalScope, viewport: Rect<i32, Viewport>) -> DomRoot<XRViewport> {
         reflect_dom_object(
             Box::new(XRViewport::new_inherited(viewport)),
             global,

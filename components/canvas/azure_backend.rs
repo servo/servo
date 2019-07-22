@@ -16,7 +16,7 @@ use azure::azure_hl::{CapStyle, JoinStyle};
 use azure::azure_hl::{LinearGradientPattern, RadialGradientPattern};
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
-use euclid::{Point2D, Rect, Size2D, Transform2D, Vector2D};
+use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 
 pub struct AzureBackend;
 

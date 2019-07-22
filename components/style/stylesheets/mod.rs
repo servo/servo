@@ -194,11 +194,15 @@ impl fmt::Debug for UrlExtraData {
                         spec.fmt(formatter)
                     }
                 }
-            }
+            };
         }
 
         define_debug_struct!(DebugURI, nsIURI, Gecko_nsIURI_Debug);
-        define_debug_struct!(DebugReferrerInfo, nsIReferrerInfo, Gecko_nsIReferrerInfo_Debug);
+        define_debug_struct!(
+            DebugReferrerInfo,
+            nsIReferrerInfo,
+            Gecko_nsIReferrerInfo_Debug
+        );
 
         formatter
             .debug_struct("URLExtraData")
@@ -209,7 +213,11 @@ impl fmt::Debug for UrlExtraData {
             )
             .field(
                 "referrer",
-                &DebugReferrerInfo(self.as_ref().mReferrerInfo.raw::<structs::nsIReferrerInfo>()),
+                &DebugReferrerInfo(
+                    self.as_ref()
+                        .mReferrerInfo
+                        .raw::<structs::nsIReferrerInfo>(),
+                ),
             )
             .finish()
     }

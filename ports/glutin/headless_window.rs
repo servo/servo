@@ -6,7 +6,7 @@
 
 use crate::window_trait::WindowPortsMethods;
 use glutin;
-use euclid::{Size2D, TypedPoint2D, TypedScale, TypedSize2D};
+use euclid::{default::Size2D as UntypedSize2D, Point2D, Scale, Size2D};
 use gleam::gl;
 use servo::compositing::windowing::{AnimationState, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
@@ -106,7 +106,7 @@ pub struct Window {
 }
 
 impl Window {
-    pub fn new(size: TypedSize2D<u32, DeviceIndependentPixel>) -> Rc<dyn WindowPortsMethods> {
+    pub fn new(size: Size2D<u32, DeviceIndependentPixel>) -> Rc<dyn WindowPortsMethods> {
         let context = HeadlessContext::new(size.width, size.height, None);
         let gl = unsafe { gl::GlFns::load_with(|s| HeadlessContext::get_proc_address(s)) };
 
@@ -126,10 +126,10 @@ impl Window {
         Rc::new(window)
     }
 
-    fn servo_hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
+    fn servo_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
         match opts::get().device_pixels_per_px {
-            Some(device_pixels_per_px) => TypedScale::new(device_pixels_per_px),
-            _ => TypedScale::new(1.0),
+            Some(device_pixels_per_px) => Scale::new(device_pixels_per_px),
+            _ => Scale::new(1.0),
         }
     }
 }
@@ -177,13 +177,13 @@ impl WindowMethods for Window {
     fn get_coordinates(&self) -> EmbedderCoordinates {
         let dpr = self.servo_hidpi_factor();
         let size =
-            (TypedSize2D::new(self.context.width, self.context.height).to_f32() * dpr).to_i32();
-        let viewport = DeviceIntRect::new(TypedPoint2D::zero(), size);
-        let framebuffer = DeviceIntSize::from_untyped(&size.to_untyped());
+            (Size2D::new(self.context.width, self.context.height).to_f32() * dpr).to_i32();
+        let viewport = DeviceIntRect::new(Point2D::zero(), size);
+        let framebuffer = DeviceIntSize::from_untyped(size.to_untyped());
         EmbedderCoordinates {
             viewport,
             framebuffer,
-            window: (size, TypedPoint2D::zero()),
+            window: (size, Point2D::zero()),
             screen: size,
             screen_avail: size,
             hidpi_factor: dpr,
@@ -214,7 +214,7 @@ impl WindowMethods for Window {
 impl webxr::glwindow::GlWindow for Window {
     fn make_current(&mut self) {}
     fn swap_buffers(&mut self) {}
-    fn size(&self) -> Size2D<gl::GLsizei> {
+    fn size(&self) -> UntypedSize2D<gl::GLsizei> {
         let dpr = self.servo_hidpi_factor().get();
         Size2D::new((self.context.width as f32 * dpr) as gl::GLsizei, (self.context.height as f32 * dpr) as gl::GLsizei)
     }

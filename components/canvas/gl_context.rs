@@ -6,7 +6,7 @@ use super::webgl_thread::{GLState, WebGLImpl};
 use canvas_traits::webgl::{
     GLContextAttributes, GLLimits, WebGLCommand, WebGLCommandBacktrace, WebGLVersion,
 };
-use euclid::Size2D;
+use euclid::default::Size2D;
 use gleam::gl;
 use offscreen_gl_context::{
     ColorAttachmentType, DrawBuffer, GLContext, GLContextAttributes as RawGLContextAttributes,

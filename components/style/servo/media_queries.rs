@@ -15,7 +15,8 @@ use crate::values::computed::CSSPixelLength;
 use crate::values::KeyframesName;
 use app_units::Au;
 use cssparser::RGBA;
-use euclid::{Size2D, Scale, Size2D};
+use euclid::default::Size2D as UntypedSize2D;
+use euclid::{Scale, Size2D};
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel};
@@ -121,7 +122,7 @@ impl Device {
     /// Returns the viewport size of the current device in app units, needed,
     /// among other things, to resolve viewport units.
     #[inline]
-    pub fn au_viewport_size(&self) -> Size2D<Au> {
+    pub fn au_viewport_size(&self) -> UntypedSize2D<Au> {
         Size2D::new(
             Au::from_f32_px(self.viewport_size.width),
             Au::from_f32_px(self.viewport_size.height),
@@ -129,7 +130,7 @@ impl Device {
     }
 
     /// Like the above, but records that we've used viewport units.
-    pub fn au_viewport_size_for_viewport_unit_resolution(&self) -> Size2D<Au> {
+    pub fn au_viewport_size_for_viewport_unit_resolution(&self) -> UntypedSize2D<Au> {
         self.used_viewport_units.store(true, Ordering::Relaxed);
         self.au_viewport_size()
     }

@@ -21,14 +21,14 @@ azure = {git = "https://github.com/servo/rust-azure", optional = true}
 byteorder = "1"
 canvas_traits = {path = "../canvas_traits"}
 cssparser = "0.25"
-euclid = "0.19"
+euclid = "0.20"
 fnv = "1.0"
 gleam = "0.6.7"
 half = "1"
 ipc-channel = "0.11"
 log = "0.4"
 num-traits = "0.2"
-offscreen_gl_context = {version = "0.22", features = ["serde", "osmesa"]}
+offscreen_gl_context = {version = "0.23", features = ["serde", "osmesa"]}
 raqote = {git = "https://github.com/jrmuizel/raqote", optional = true}
 pixels = {path = "../pixels"}
 serde_bytes = "0.10"

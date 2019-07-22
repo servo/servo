@@ -32,7 +32,7 @@ use base64;
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use dom_struct::dom_struct;
-use euclid::{Rect, Size2D};
+use euclid::default::{Rect, Size2D};
 use html5ever::{LocalName, Prefix};
 use image::png::PNGEncoder;
 use image::ColorType;

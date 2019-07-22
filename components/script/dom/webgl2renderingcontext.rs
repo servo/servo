@@ -32,7 +32,7 @@ use crate::dom::window::Window;
 /// https://www.khronos.org/registry/webgl/specs/latest/2.0/webgl.idl
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use dom_struct::dom_struct;
-use euclid::Size2D;
+use euclid::default::Size2D;
 use js::jsapi::{JSContext, JSObject};
 use js::jsval::JSVal;
 use js::rust::CustomAutoRooterGuard;

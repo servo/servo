@@ -11,7 +11,7 @@ use compositing::CompositionPipeline;
 use compositing::CompositorProxy;
 use crossbeam_channel::Sender;
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
-use euclid::{TypedScale, TypedSize2D};
+use euclid::{Scale, Size2D};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -158,10 +158,10 @@ pub struct InitialPipelineState {
     pub mem_profiler_chan: profile_mem::ProfilerChan,
 
     /// Information about the initial window size.
-    pub window_size: TypedSize2D<f32, CSSPixel>,
+    pub window_size: Size2D<f32, CSSPixel>,
 
     /// Information about the device pixel ratio.
-    pub device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
+    pub device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
 
     /// The event loop to run in, if applicable.
     pub event_loop: Option<Rc<EventLoop>>,

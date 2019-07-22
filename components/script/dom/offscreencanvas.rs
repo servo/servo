@@ -16,7 +16,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::offscreencanvasrenderingcontext2d::OffscreenCanvasRenderingContext2D;
 use dom_struct::dom_struct;
-use euclid::Size2D;
+use euclid::default::Size2D;
 use js::jsapi::JSContext;
 use js::rust::HandleValue;
 use ref_filter_map;
