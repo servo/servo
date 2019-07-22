@@ -1048,9 +1048,7 @@ impl InlineFlow {
                 inline_start_position_for_fragment =
                     inline_start_position_for_fragment + slack_inline_size
             },
-            TextAlign::Left | TextAlign::ServoLeft | TextAlign::Right | TextAlign::ServoRight => {
-                unreachable!()
-            },
+            TextAlign::Left | TextAlign::ServoLeft | TextAlign::Right | TextAlign::ServoRight => unreachable!(),
         }
 
         // Lay out the fragments in visual order.
