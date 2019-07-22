@@ -26,6 +26,7 @@ use crate::dom::window::{base64_atob, base64_btoa};
 use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch;
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::script_runtime::{get_reports, CommonScriptMsg, Runtime, ScriptChan, ScriptPort};
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
@@ -288,11 +289,10 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         base64_atob(atob)
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
-    unsafe fn SetTimeout(
+    fn SetTimeout(
         &self,
-        _cx: *mut JSContext,
+        _cx: SafeJSContext,
         callback: Rc<Function>,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -305,11 +305,10 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         )
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
-    unsafe fn SetTimeout_(
+    fn SetTimeout_(
         &self,
-        _cx: *mut JSContext,
+        _cx: SafeJSContext,
         callback: DOMString,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -328,11 +327,10 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
             .clear_timeout_or_interval(handle);
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    unsafe fn SetInterval(
+    fn SetInterval(
         &self,
-        _cx: *mut JSContext,
+        _cx: SafeJSContext,
         callback: Rc<Function>,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -345,11 +343,10 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         )
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    unsafe fn SetInterval_(
+    fn SetInterval_(
         &self,
-        _cx: *mut JSContext,
+        _cx: SafeJSContext,
         callback: DOMString,
         timeout: i32,
         args: Vec<HandleValue>,

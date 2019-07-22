@@ -29,11 +29,12 @@ use crate::dom::webglshaderprecisionformat::WebGLShaderPrecisionFormat;
 use crate::dom::webgltexture::WebGLTexture;
 use crate::dom::webgluniformlocation::WebGLUniformLocation;
 use crate::dom::window::Window;
+use crate::script_runtime::JSContext;
 /// https://www.khronos.org/registry/webgl/specs/latest/2.0/webgl.idl
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::JSObject;
 use js::jsval::JSVal;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBufferView;
@@ -109,21 +110,19 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.DrawingBufferHeight()
     }
 
-    #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    unsafe fn GetBufferParameter(&self, _cx: *mut JSContext, target: u32, parameter: u32) -> JSVal {
-        self.base.GetBufferParameter(_cx, target, parameter)
+    fn GetBufferParameter(&self, cx: JSContext, target: u32, parameter: u32) -> JSVal {
+        self.base.GetBufferParameter(cx, target, parameter)
     }
 
     #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    unsafe fn GetParameter(&self, cx: *mut JSContext, parameter: u32) -> JSVal {
+    fn GetParameter(&self, cx: JSContext, parameter: u32) -> JSVal {
         self.base.GetParameter(cx, parameter)
     }
 
-    #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    unsafe fn GetTexParameter(&self, cx: *mut JSContext, target: u32, pname: u32) -> JSVal {
+    fn GetTexParameter(&self, cx: JSContext, target: u32, pname: u32) -> JSVal {
         self.base.GetTexParameter(cx, target, pname)
     }
 
@@ -142,21 +141,15 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.GetSupportedExtensions()
     }
 
-    #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
-    unsafe fn GetExtension(
-        &self,
-        cx: *mut JSContext,
-        name: DOMString,
-    ) -> Option<NonNull<JSObject>> {
+    fn GetExtension(&self, cx: JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
         self.base.GetExtension(cx, name)
     }
 
-    #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.4
-    unsafe fn GetFramebufferAttachmentParameter(
+    fn GetFramebufferAttachmentParameter(
         &self,
-        cx: *mut JSContext,
+        cx: JSContext,
         target: u32,
         attachment: u32,
         pname: u32,
@@ -165,14 +158,8 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             .GetFramebufferAttachmentParameter(cx, target, attachment, pname)
     }
 
-    #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
-    unsafe fn GetRenderbufferParameter(
-        &self,
-        cx: *mut JSContext,
-        target: u32,
-        pname: u32,
-    ) -> JSVal {
+    fn GetRenderbufferParameter(&self, cx: JSContext, target: u32, pname: u32) -> JSVal {
         self.base.GetRenderbufferParameter(cx, target, pname)
     }
 
@@ -505,14 +492,8 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.GetProgramInfoLog(program)
     }
 
-    #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    unsafe fn GetProgramParameter(
-        &self,
-        cx: *mut JSContext,
-        program: &WebGLProgram,
-        param_id: u32,
-    ) -> JSVal {
+    fn GetProgramParameter(&self, cx: JSContext, program: &WebGLProgram, param_id: u32) -> JSVal {
         self.base.GetProgramParameter(cx, program, param_id)
     }
 
@@ -521,14 +502,8 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.GetShaderInfoLog(shader)
     }
 
-    #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    unsafe fn GetShaderParameter(
-        &self,
-        cx: *mut JSContext,
-        shader: &WebGLShader,
-        param_id: u32,
-    ) -> JSVal {
+    fn GetShaderParameter(&self, cx: JSContext, shader: &WebGLShader, param_id: u32) -> JSVal {
         self.base.GetShaderParameter(cx, shader, param_id)
     }
 
@@ -551,9 +526,8 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.GetUniformLocation(program, name)
     }
 
-    #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    unsafe fn GetVertexAttrib(&self, cx: *mut JSContext, index: u32, pname: u32) -> JSVal {
+    fn GetVertexAttrib(&self, cx: JSContext, index: u32, pname: u32) -> JSVal {
         self.base.GetVertexAttrib(cx, index, pname)
     }
 
@@ -815,10 +789,9 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
-    unsafe fn GetUniform(
+    fn GetUniform(
         &self,
-        cx: *mut JSContext,
+        cx: JSContext,
         program: &WebGLProgram,
         location: &WebGLUniformLocation,
     ) -> JSVal {

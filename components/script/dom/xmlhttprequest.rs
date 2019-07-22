@@ -38,6 +38,7 @@ use crate::dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use crate::dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use crate::fetch::FetchCanceller;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::TaskSourceName;
 use crate::timers::{OneshotTimerCallback, OneshotTimerHandle};
@@ -877,19 +878,19 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     #[allow(unsafe_code)]
     // https://xhr.spec.whatwg.org/#the-response-attribute
-    unsafe fn Response(&self, cx: *mut JSContext) -> JSVal {
-        rooted!(in(cx) let mut rval = UndefinedValue());
+    fn Response(&self, cx: SafeJSContext) -> JSVal {
+        rooted!(in(*cx) let mut rval = UndefinedValue());
         match self.response_type.get() {
-            XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => {
+            XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => unsafe {
                 let ready_state = self.ready_state.get();
                 // Step 2
                 if ready_state == XMLHttpRequestState::Done ||
                     ready_state == XMLHttpRequestState::Loading
                 {
-                    self.text_response().to_jsval(cx, rval.handle_mut());
+                    self.text_response().to_jsval(*cx, rval.handle_mut());
                 } else {
                     // Step 1
-                    "".to_jsval(cx, rval.handle_mut());
+                    "".to_jsval(*cx, rval.handle_mut());
                 }
             },
             // Step 1
@@ -897,18 +898,20 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 return NullValue();
             },
             // Step 2
-            XMLHttpRequestResponseType::Document => {
-                self.document_response().to_jsval(cx, rval.handle_mut());
+            XMLHttpRequestResponseType::Document => unsafe {
+                self.document_response().to_jsval(*cx, rval.handle_mut());
             },
-            XMLHttpRequestResponseType::Json => {
-                self.json_response(cx).to_jsval(cx, rval.handle_mut());
+            XMLHttpRequestResponseType::Json => unsafe {
+                self.json_response(*cx).to_jsval(*cx, rval.handle_mut());
             },
-            XMLHttpRequestResponseType::Blob => {
-                self.blob_response().to_jsval(cx, rval.handle_mut());
+            XMLHttpRequestResponseType::Blob => unsafe {
+                self.blob_response().to_jsval(*cx, rval.handle_mut());
             },
-            XMLHttpRequestResponseType::Arraybuffer => match self.arraybuffer_response(cx) {
-                Some(js_object) => js_object.to_jsval(cx, rval.handle_mut()),
-                None => return NullValue(),
+            XMLHttpRequestResponseType::Arraybuffer => unsafe {
+                match self.arraybuffer_response(*cx) {
+                    Some(js_object) => js_object.to_jsval(*cx, rval.handle_mut()),
+                    None => return NullValue(),
+                }
             },
         }
         rval.get()

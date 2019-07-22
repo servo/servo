@@ -200,22 +200,19 @@ impl Permissions {
 }
 
 impl PermissionsMethods for Permissions {
-    #[allow(unsafe_code)]
     // https://w3c.github.io/permissions/#dom-permissions-query
-    unsafe fn Query(&self, cx: *mut JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
-        self.manipulate(Operation::Query, cx, permissionDesc, None)
+    fn Query(&self, cx: SafeJSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
+        self.manipulate(Operation::Query, *cx, permissionDesc, None)
     }
 
-    #[allow(unsafe_code)]
     // https://w3c.github.io/permissions/#dom-permissions-request
-    unsafe fn Request(&self, cx: *mut JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
-        self.manipulate(Operation::Request, cx, permissionDesc, None)
+    fn Request(&self, cx: SafeJSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
+        self.manipulate(Operation::Request, *cx, permissionDesc, None)
     }
 
-    #[allow(unsafe_code)]
     // https://w3c.github.io/permissions/#dom-permissions-revoke
-    unsafe fn Revoke(&self, cx: *mut JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
-        self.manipulate(Operation::Revoke, cx, permissionDesc, None)
+    fn Revoke(&self, cx: SafeJSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
+        self.manipulate(Operation::Revoke, *cx, permissionDesc, None)
     }
 }
 

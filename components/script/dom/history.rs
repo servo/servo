@@ -18,6 +18,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::popstateevent::PopStateEvent;
 use crate::dom::window::Window;
+use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
@@ -279,8 +280,7 @@ impl History {
 
 impl HistoryMethods for History {
     // https://html.spec.whatwg.org/multipage/#dom-history-state
-    #[allow(unsafe_code)]
-    unsafe fn GetState(&self, _cx: *mut JSContext) -> Fallible<JSVal> {
+    fn GetState(&self, _cx: SafeJSContext) -> Fallible<JSVal> {
         if !self.window.Document().is_fully_active() {
             return Err(Error::Security);
         }
@@ -327,26 +327,24 @@ impl HistoryMethods for History {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-pushstate
-    #[allow(unsafe_code)]
-    unsafe fn PushState(
+    fn PushState(
         &self,
-        cx: *mut JSContext,
+        cx: SafeJSContext,
         data: HandleValue,
         title: DOMString,
         url: Option<USVString>,
     ) -> ErrorResult {
-        self.push_or_replace_state(cx, data, title, url, PushOrReplace::Push)
+        self.push_or_replace_state(*cx, data, title, url, PushOrReplace::Push)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-replacestate
-    #[allow(unsafe_code)]
-    unsafe fn ReplaceState(
+    fn ReplaceState(
         &self,
-        cx: *mut JSContext,
+        cx: SafeJSContext,
         data: HandleValue,
         title: DOMString,
         url: Option<USVString>,
     ) -> ErrorResult {
-        self.push_or_replace_state(cx, data, title, url, PushOrReplace::Replace)
+        self.push_or_replace_state(*cx, data, title, url, PushOrReplace::Replace)
     }
 }

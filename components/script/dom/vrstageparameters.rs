@@ -9,8 +9,9 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::jsapi::{Heap, JSObject};
 use js::typedarray::{CreateWith, Float32Array};
 use std::ptr;
 use std::ptr::NonNull;
@@ -78,8 +79,8 @@ impl VRStageParameters {
 impl VRStageParametersMethods for VRStageParameters {
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrstageparameters-sittingtostandingtransform
-    unsafe fn SittingToStandingTransform(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
-        NonNull::new_unchecked(self.transform.get())
+    fn SittingToStandingTransform(&self, _cx: JSContext) -> NonNull<JSObject> {
+        unsafe { NonNull::new_unchecked(self.transform.get()) }
     }
 
     // https://w3c.github.io/webvr/#dom-vrstageparameters-sizex

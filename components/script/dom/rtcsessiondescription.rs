@@ -14,9 +14,10 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::JSObject;
 use js::jsval::UndefinedValue;
 use std::ptr::NonNull;
 
@@ -73,13 +74,15 @@ impl RTCSessionDescriptionMethods for RTCSessionDescription {
 
     #[allow(unsafe_code)]
     /// https://w3c.github.io/webrtc-pc/#dom-rtcsessiondescription-tojson
-    unsafe fn ToJSON(&self, cx: *mut JSContext) -> NonNull<JSObject> {
+    fn ToJSON(&self, cx: JSContext) -> NonNull<JSObject> {
         let init = RTCSessionDescriptionInit {
             type_: self.ty,
             sdp: self.sdp.clone(),
         };
-        rooted!(in(cx) let mut jsval = UndefinedValue());
-        init.to_jsval(cx, jsval.handle_mut());
-        NonNull::new(jsval.to_object()).unwrap()
+        unsafe {
+            rooted!(in(*cx) let mut jsval = UndefinedValue());
+            init.to_jsval(*cx, jsval.handle_mut());
+            NonNull::new(jsval.to_object()).unwrap()
+        }
     }
 }
