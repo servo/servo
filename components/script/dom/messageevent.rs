@@ -15,8 +15,9 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy::WindowProxy;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::jsapi::{Heap, JSObject};
 use js::jsval::JSVal;
 use js::rust::HandleValue;
 use servo_atoms::Atom;
@@ -127,9 +128,8 @@ impl MessageEvent {
 }
 
 impl MessageEventMethods for MessageEvent {
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-messageevent-data
-    unsafe fn Data(&self, _cx: *mut JSContext) -> JSVal {
+    fn Data(&self, _cx: JSContext) -> JSVal {
         self.data.get()
     }
 
@@ -139,8 +139,7 @@ impl MessageEventMethods for MessageEvent {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-messageevent-source
-    #[allow(unsafe_code)]
-    unsafe fn GetSource(&self, _cx: *mut JSContext) -> Option<NonNull<JSObject>> {
+    fn GetSource(&self, _cx: JSContext) -> Option<NonNull<JSObject>> {
         self.source
             .as_ref()
             .and_then(|source| NonNull::new(source.reflector().get_jsobject().get()))

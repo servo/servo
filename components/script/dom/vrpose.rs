@@ -7,6 +7,7 @@ use crate::dom::bindings::codegen::Bindings::VRPoseBinding::VRPoseMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::typedarray::{CreateWith, Float32Array};
@@ -131,39 +132,33 @@ impl VRPose {
 }
 
 impl VRPoseMethods for VRPose {
-    #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrpose-position
-    unsafe fn GetPosition(&self, _cx: *mut JSContext) -> Option<NonNull<JSObject>> {
+    fn GetPosition(&self, _cx: SafeJSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.position)
     }
 
-    #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrpose-linearvelocity
-    unsafe fn GetLinearVelocity(&self, _cx: *mut JSContext) -> Option<NonNull<JSObject>> {
+    fn GetLinearVelocity(&self, _cx: SafeJSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.linear_vel)
     }
 
-    #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrpose-linearacceleration
-    unsafe fn GetLinearAcceleration(&self, _cx: *mut JSContext) -> Option<NonNull<JSObject>> {
+    fn GetLinearAcceleration(&self, _cx: SafeJSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.linear_acc)
     }
 
-    #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrpose-orientation
-    unsafe fn GetOrientation(&self, _cx: *mut JSContext) -> Option<NonNull<JSObject>> {
+    fn GetOrientation(&self, _cx: SafeJSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.orientation)
     }
 
-    #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrpose-angularvelocity
-    unsafe fn GetAngularVelocity(&self, _cx: *mut JSContext) -> Option<NonNull<JSObject>> {
+    fn GetAngularVelocity(&self, _cx: SafeJSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.angular_vel)
     }
 
-    #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrpose-angularacceleration
-    unsafe fn GetAngularAcceleration(&self, _cx: *mut JSContext) -> Option<NonNull<JSObject>> {
+    fn GetAngularAcceleration(&self, _cx: SafeJSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.angular_acc)
     }
 }

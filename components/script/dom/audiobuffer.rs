@@ -13,6 +13,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
+use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
 use js::jsapi::JS_GetArrayBufferViewBuffer;
 use js::jsapi::{Heap, JSContext, JSObject};
@@ -230,22 +231,20 @@ impl AudioBufferMethods for AudioBuffer {
 
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-getchanneldata
     #[allow(unsafe_code)]
-    unsafe fn GetChannelData(
-        &self,
-        cx: *mut JSContext,
-        channel: u32,
-    ) -> Fallible<NonNull<JSObject>> {
+    fn GetChannelData(&self, cx: SafeJSContext, channel: u32) -> Fallible<NonNull<JSObject>> {
         if channel >= self.number_of_channels {
             return Err(Error::IndexSize);
         }
 
-        if !self.restore_js_channel_data(cx) {
-            return Err(Error::JSFailed);
-        }
+        unsafe {
+            if !self.restore_js_channel_data(*cx) {
+                return Err(Error::JSFailed);
+            }
 
-        Ok(NonNull::new_unchecked(
-            self.js_channels.borrow()[channel as usize].get(),
-        ))
+            Ok(NonNull::new_unchecked(
+                self.js_channels.borrow()[channel as usize].get(),
+            ))
+        }
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-copyfromchannel

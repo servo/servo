@@ -405,13 +405,13 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-get>
     #[allow(unsafe_code)]
-    unsafe fn Get(&self, cx: *mut JSContext, name: DOMString) -> JSVal {
+    fn Get(&self, cx: SafeJSContext, name: DOMString) -> JSVal {
         match self.definitions.borrow().get(&LocalName::from(&*name)) {
-            Some(definition) => {
-                rooted!(in(cx) let mut constructor = UndefinedValue());
+            Some(definition) => unsafe {
+                rooted!(in(*cx) let mut constructor = UndefinedValue());
                 definition
                     .constructor
-                    .to_jsval(cx, constructor.handle_mut());
+                    .to_jsval(*cx, constructor.handle_mut());
                 constructor.get()
             },
             None => UndefinedValue(),

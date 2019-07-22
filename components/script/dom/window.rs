@@ -614,26 +614,28 @@ impl WindowMethods for Window {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    unsafe fn Opener(&self, cx: *mut JSContext) -> JSVal {
-        self.window_proxy().opener(cx)
+    fn Opener(&self, cx: SafeJSContext) -> JSVal {
+        unsafe { self.window_proxy().opener(*cx) }
     }
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    unsafe fn SetOpener(&self, cx: *mut JSContext, value: HandleValue) {
+    fn SetOpener(&self, cx: SafeJSContext, value: HandleValue) {
         // Step 1.
         if value.is_null() {
             return self.window_proxy().disown();
         }
         // Step 2.
         let obj = self.reflector().get_jsobject();
-        assert!(JS_DefineProperty(
-            cx,
-            obj,
-            "opener\0".as_ptr() as *const libc::c_char,
-            value,
-            JSPROP_ENUMERATE as u32
-        ));
+        unsafe {
+            assert!(JS_DefineProperty(
+                *cx,
+                obj,
+                "opener\0".as_ptr() as *const libc::c_char,
+                value,
+                JSPROP_ENUMERATE as u32
+            ));
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-closed
@@ -738,11 +740,10 @@ impl WindowMethods for Window {
         self.navigator.or_init(|| Navigator::new(self))
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
-    unsafe fn SetTimeout(
+    fn SetTimeout(
         &self,
-        _cx: *mut JSContext,
+        _cx: SafeJSContext,
         callback: Rc<Function>,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -755,11 +756,10 @@ impl WindowMethods for Window {
         )
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
-    unsafe fn SetTimeout_(
+    fn SetTimeout_(
         &self,
-        _cx: *mut JSContext,
+        _cx: SafeJSContext,
         callback: DOMString,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -778,11 +778,10 @@ impl WindowMethods for Window {
             .clear_timeout_or_interval(handle);
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    unsafe fn SetInterval(
+    fn SetInterval(
         &self,
-        _cx: *mut JSContext,
+        _cx: SafeJSContext,
         callback: Rc<Function>,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -795,11 +794,10 @@ impl WindowMethods for Window {
         )
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    unsafe fn SetInterval_(
+    fn SetInterval_(
         &self,
-        _cx: *mut JSContext,
+        _cx: SafeJSContext,
         callback: DOMString,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -902,11 +900,10 @@ impl WindowMethods for Window {
         doc.cancel_animation_frame(ident);
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
-    unsafe fn PostMessage(
+    fn PostMessage(
         &self,
-        cx: *mut JSContext,
+        cx: SafeJSContext,
         message: HandleValue,
         origin: DOMString,
     ) -> ErrorResult {
@@ -925,7 +922,7 @@ impl WindowMethods for Window {
 
         // Step 1-2, 6-8.
         // TODO(#12717): Should implement the `transfer` argument.
-        let data = StructuredCloneData::write(cx, message)?;
+        let data = StructuredCloneData::write(*cx, message)?;
 
         // Step 9.
         self.post_message(origin, &*source.window_proxy(), data);
@@ -960,8 +957,8 @@ impl WindowMethods for Window {
     }
 
     #[allow(unsafe_code)]
-    unsafe fn WebdriverCallback(&self, cx: *mut JSContext, val: HandleValue) {
-        let rv = jsval_to_webdriver(cx, val);
+    fn WebdriverCallback(&self, cx: SafeJSContext, val: HandleValue) {
+        let rv = unsafe { jsval_to_webdriver(*cx, val) };
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {
             chan.send(rv).unwrap();

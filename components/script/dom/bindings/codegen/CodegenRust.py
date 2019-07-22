@@ -3332,7 +3332,7 @@ class CGCallGenerator(CGThing):
         needsCx = needCx(returnType, (a for (a, _) in arguments), True)
 
         if "cx" not in argsPre and needsCx:
-            args.prepend(CGGeneric("*cx"))
+            args.prepend(CGGeneric("cx"))
         if nativeMethodName in descriptor.inCompartmentMethods:
             args.append(CGGeneric("InCompartment::in_compartment(&AlreadyInCompartment::assert_for_cx(*cx))"))
 
@@ -5649,7 +5649,7 @@ class CGInterfaceTrait(CGThing):
 
         def attribute_arguments(needCx, argument=None, inCompartment=False):
             if needCx:
-                yield "cx", "*mut JSContext"
+                yield "cx", "SafeJSContext"
 
             if argument:
                 yield "value", argument_type(descriptor, argument)
@@ -6720,7 +6720,7 @@ def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, var
 
 def method_arguments(descriptorProvider, returnType, arguments, passJSBits=True, trailing=None, inCompartment=False):
     if needCx(returnType, arguments, passJSBits):
-        yield "cx", "*mut JSContext"
+        yield "cx", "SafeJSContext"
 
     for argument in arguments:
         ty = argument_type(descriptorProvider, argument.type, argument.optional,

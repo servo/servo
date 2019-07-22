@@ -15,9 +15,10 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::vrframedata::create_typed_array;
 use crate::dom::window::Window;
 use crate::dom::xrsession::ApiRigidTransform;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use euclid::{TypedRigidTransform3D, TypedRotation3D, TypedVector3D};
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::jsapi::{Heap, JSObject};
 use std::ptr::NonNull;
 
 #[dom_struct]
@@ -119,9 +120,9 @@ impl XRRigidTransformMethods for XRRigidTransform {
     }
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-matrix
     #[allow(unsafe_code)]
-    unsafe fn Matrix(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
+    fn Matrix(&self, _cx: JSContext) -> NonNull<JSObject> {
         if self.matrix.get().is_null() {
-            let cx = self.global().get_cx();
+            let cx = unsafe { JSContext::from_ptr(self.global().get_cx()) };
             // According to the spec all matrices are column-major,
             // however euclid uses row vectors so we use .to_row_major_array()
             let arr = self.transform.to_transform().to_row_major_array();

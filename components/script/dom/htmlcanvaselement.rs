@@ -330,9 +330,9 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-getcontext
     #[allow(unsafe_code)]
-    unsafe fn GetContext(
+    fn GetContext(
         &self,
-        cx: *mut JSContext,
+        cx: SafeJSContext,
         id: DOMString,
         options: HandleValue,
     ) -> Option<RenderingContext> {
@@ -340,21 +340,22 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
             "2d" => self
                 .get_or_init_2d_context()
                 .map(RenderingContext::CanvasRenderingContext2D),
-            "webgl" | "experimental-webgl" => self
-                .get_or_init_webgl_context(cx, options)
-                .map(RenderingContext::WebGLRenderingContext),
-            "webgl2" | "experimental-webgl2" => self
-                .get_or_init_webgl2_context(cx, options)
-                .map(RenderingContext::WebGL2RenderingContext),
+            "webgl" | "experimental-webgl" => unsafe {
+                self.get_or_init_webgl_context(*cx, options)
+                    .map(RenderingContext::WebGLRenderingContext)
+            },
+            "webgl2" | "experimental-webgl2" => unsafe {
+                self.get_or_init_webgl2_context(*cx, options)
+                    .map(RenderingContext::WebGL2RenderingContext)
+            },
             _ => None,
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-todataurl
-    #[allow(unsafe_code)]
-    unsafe fn ToDataURL(
+    fn ToDataURL(
         &self,
-        _context: *mut JSContext,
+        _context: SafeJSContext,
         _mime_type: Option<DOMString>,
         _quality: HandleValue,
     ) -> Fallible<USVString> {

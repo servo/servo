@@ -18,10 +18,11 @@ use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::script_runtime::JSContext;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::{Angle, Transform3D};
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::JSObject;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::CreateWith;
 use js::typedarray::{Float32Array, Float64Array};
@@ -667,7 +668,7 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-tofloat32array
     #[allow(unsafe_code)]
-    unsafe fn ToFloat32Array(&self, cx: *mut JSContext) -> NonNull<JSObject> {
+    fn ToFloat32Array(&self, cx: JSContext) -> NonNull<JSObject> {
         let vec: Vec<f32> = self
             .matrix
             .borrow()
@@ -675,18 +676,22 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
             .iter()
             .map(|&x| x as f32)
             .collect();
-        rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
-        let _ = Float32Array::create(cx, CreateWith::Slice(&vec), array.handle_mut()).unwrap();
-        NonNull::new_unchecked(array.get())
+        unsafe {
+            rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
+            let _ = Float32Array::create(*cx, CreateWith::Slice(&vec), array.handle_mut()).unwrap();
+            NonNull::new_unchecked(array.get())
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-tofloat64array
     #[allow(unsafe_code)]
-    unsafe fn ToFloat64Array(&self, cx: *mut JSContext) -> NonNull<JSObject> {
+    fn ToFloat64Array(&self, cx: JSContext) -> NonNull<JSObject> {
         let arr = self.matrix.borrow().to_row_major_array();
-        rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
-        let _ = Float64Array::create(cx, CreateWith::Slice(&arr), array.handle_mut()).unwrap();
-        NonNull::new_unchecked(array.get())
+        unsafe {
+            rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
+            let _ = Float64Array::create(*cx, CreateWith::Slice(&arr), array.handle_mut()).unwrap();
+            NonNull::new_unchecked(array.get())
+        }
     }
 }
 

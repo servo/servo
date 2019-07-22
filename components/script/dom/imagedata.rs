@@ -8,10 +8,11 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use euclid::{Rect, Size2D};
 use ipc_channel::ipc::IpcSharedMemory;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::jsapi::{Heap, JSObject};
 use js::rust::Runtime;
 use js::typedarray::{CreateWith, Uint8ClampedArray};
 use std::borrow::Cow;
@@ -131,7 +132,7 @@ impl ImageData {
     #[allow(unsafe_code)]
     #[allow(unused_variables)]
     pub unsafe fn Constructor_(
-        cx: *mut JSContext,
+        cx: JSContext,
         global: &GlobalScope,
         jsobject: *mut JSObject,
         width: u32,
@@ -183,9 +184,8 @@ impl ImageDataMethods for ImageData {
         self.height
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-imagedata-data
-    unsafe fn Data(&self, _: *mut JSContext) -> NonNull<JSObject> {
+    fn Data(&self, _: JSContext) -> NonNull<JSObject> {
         NonNull::new(self.data.get()).expect("got a null pointer")
     }
 }

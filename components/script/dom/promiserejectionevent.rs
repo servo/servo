@@ -14,8 +14,9 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext};
+use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleValue;
 use servo_atoms::Atom;
@@ -100,9 +101,8 @@ impl PromiseRejectionEventMethods for PromiseRejectionEvent {
         self.promise.clone()
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-promiserejectionevent-reason
-    unsafe fn Reason(&self, _cx: *mut JSContext) -> JSVal {
+    fn Reason(&self, _cx: JSContext) -> JSVal {
         self.reason.get()
     }
 
