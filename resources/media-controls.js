@@ -321,7 +321,7 @@
               break;
           }
           break;
-          break;
+        default:
           throw new Error(`Unknown event ${event.type}`);
       }
     }
