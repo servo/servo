@@ -604,6 +604,9 @@ class PropertiesData(object):
 def _add_logical_props(data, props):
     groups = set()
     for prop in props:
+        if not prop in data.longhands_by_name:
+            assert data.product == "servo"
+            continue
         prop = data.longhands_by_name[prop]
         if prop.logical_group:
             groups.add(prop.logical_group)
@@ -612,24 +615,25 @@ def _add_logical_props(data, props):
             props.add(prop.name)
 
 # These are probably Gecko bugs and should be supported per spec.
-def _remove_common_first_line_and_first_letter_properties(props):
-    props.remove("-moz-tab-size")
-    props.remove("hyphens")
-    props.remove("line-break")
+def _remove_common_first_line_and_first_letter_properties(props, product):
+    if product == "gecko":
+        props.remove("-moz-tab-size")
+        props.remove("hyphens")
+        props.remove("line-break")
+        props.remove("text-align-last")
+        props.remove("text-emphasis-position")
+        props.remove("text-emphasis-style")
+        props.remove("text-emphasis-color")
+        props.remove("text-decoration-skip-ink")
+        props.remove("text-decoration-thickness")
+        props.remove("text-underline-offset")
+
     props.remove("overflow-wrap")
     props.remove("text-align")
-    props.remove("text-align-last")
     props.remove("text-justify")
     props.remove("white-space")
     props.remove("word-break")
-
-    props.remove("text-emphasis-position")
-    props.remove("text-emphasis-style")
-    props.remove("text-emphasis-color")
     props.remove("text-indent")
-    props.remove("text-decoration-skip-ink")
-    props.remove("text-decoration-thickness")
-    props.remove("text-underline-offset")
 
 
 class PropertyRestrictions:
@@ -675,7 +679,7 @@ class PropertyRestrictions:
 
         _add_logical_props(data, props)
 
-        _remove_common_first_line_and_first_letter_properties(props)
+        _remove_common_first_line_and_first_letter_properties(props, data.product)
         return props
 
 
@@ -710,7 +714,7 @@ class PropertyRestrictions:
             props.remove(prop)
         props.remove("box-shadow")
 
-        _remove_common_first_line_and_first_letter_properties(props)
+        _remove_common_first_line_and_first_letter_properties(props, data.product)
         return props
 
     # https://drafts.csswg.org/css-pseudo/#placeholder
