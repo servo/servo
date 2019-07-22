@@ -591,7 +591,7 @@ class PropertiesData(object):
         shorthand.alias = list(map(lambda xp: Alias(xp[0], shorthand, xp[1]), shorthand.alias))
         self.shorthand_aliases += shorthand.alias
         self.shorthands.append(shorthand)
-        self.shorthands_by_name[name] = shorthand;
+        self.shorthands_by_name[name] = shorthand
         return shorthand
 
     def shorthands_except_all(self):
@@ -604,7 +604,7 @@ class PropertiesData(object):
 def _add_logical_props(data, props):
     groups = set()
     for prop in props:
-        if not prop in data.longhands_by_name:
+        if prop not in data.longhands_by_name:
             assert data.product == "servo"
             continue
         prop = data.longhands_by_name[prop]
@@ -613,6 +613,7 @@ def _add_logical_props(data, props):
     for group in groups:
         for prop in data.longhands_by_logical_group[group]:
             props.add(prop.name)
+
 
 # These are probably Gecko bugs and should be supported per spec.
 def _remove_common_first_line_and_first_letter_properties(props, product):
@@ -669,19 +670,18 @@ class PropertyRestrictions:
 
             # Kinda like css-backgrounds?
             "background-blend-mode",
-        ] + PropertyRestrictions.shorthand(data, "padding") \
-          + PropertyRestrictions.shorthand(data, "margin") \
-          + PropertyRestrictions.spec(data, "css-fonts") \
-          + PropertyRestrictions.spec(data, "css-backgrounds") \
-          + PropertyRestrictions.spec(data, "css-text") \
-          + PropertyRestrictions.spec(data, "css-shapes") \
+        ] + PropertyRestrictions.shorthand(data, "padding")
+          + PropertyRestrictions.shorthand(data, "margin")
+          + PropertyRestrictions.spec(data, "css-fonts")
+          + PropertyRestrictions.spec(data, "css-backgrounds")
+          + PropertyRestrictions.spec(data, "css-text")
+          + PropertyRestrictions.spec(data, "css-shapes")
           + PropertyRestrictions.spec(data, "css-text-decor"))
 
         _add_logical_props(data, props)
 
         _remove_common_first_line_and_first_letter_properties(props, data.product)
         return props
-
 
     # https://drafts.csswg.org/css-pseudo/#first-line-styling
     @staticmethod
@@ -702,9 +702,9 @@ class PropertyRestrictions:
 
             # Kinda like css-backgrounds?
             "background-blend-mode",
-        ] + PropertyRestrictions.spec(data, "css-fonts") \
-          + PropertyRestrictions.spec(data, "css-backgrounds") \
-          + PropertyRestrictions.spec(data, "css-text") \
+        ] + PropertyRestrictions.spec(data, "css-fonts")
+          + PropertyRestrictions.spec(data, "css-backgrounds")
+          + PropertyRestrictions.spec(data, "css-text")
           + PropertyRestrictions.spec(data, "css-text-decor"))
 
         # These are probably Gecko bugs and should be supported per spec.
@@ -764,7 +764,7 @@ class PropertyRestrictions:
             # background shorthand, and get reset, per
             # https://drafts.fxtf.org/compositing/#background-blend-mode
             "background-blend-mode",
-        ] + PropertyRestrictions.shorthand(data, "text-decoration") \
-          + PropertyRestrictions.shorthand(data, "background") \
-          + PropertyRestrictions.shorthand(data, "outline") \
+        ] + PropertyRestrictions.shorthand(data, "text-decoration")
+          + PropertyRestrictions.shorthand(data, "background")
+          + PropertyRestrictions.shorthand(data, "outline")
           + PropertyRestrictions.shorthand(data, "font"))
