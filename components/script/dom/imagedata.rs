@@ -41,7 +41,7 @@ impl ImageData {
         let len = width * height * 4;
         unsafe {
             let cx = global.get_cx();
-            rooted!(in (cx) let mut js_object = ptr::null_mut::<JSObject>());
+            rooted!(in (*cx) let mut js_object = ptr::null_mut::<JSObject>());
             let data = match data {
                 Some(ref mut d) => {
                     d.resize(len as usize, 0);
@@ -49,7 +49,7 @@ impl ImageData {
                 },
                 None => CreateWith::Length(len),
             };
-            Uint8ClampedArray::create(cx, data, js_object.handle_mut()).unwrap();
+            Uint8ClampedArray::create(*cx, data, js_object.handle_mut()).unwrap();
             Self::new_with_jsobject(global, width, Some(height), Some(js_object.get()))
         }
     }
@@ -70,7 +70,7 @@ impl ImageData {
         // checking jsobject type and verifying (height * width * 4 == jsobject.byte_len())
         if let Some(jsobject) = opt_jsobject {
             let cx = global.get_cx();
-            typedarray!(in(cx) let array_res: Uint8ClampedArray = jsobject);
+            typedarray!(in(*cx) let array_res: Uint8ClampedArray = jsobject);
             let array = array_res.map_err(|_| {
                 Error::Type("Argument to Image data is not an Uint8ClampedArray".to_owned())
             })?;
@@ -110,8 +110,8 @@ impl ImageData {
         } else {
             let len = width * height * 4;
             let cx = global.get_cx();
-            rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
-            Uint8ClampedArray::create(cx, CreateWith::Length(len), array.handle_mut()).unwrap();
+            rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
+            Uint8ClampedArray::create(*cx, CreateWith::Length(len), array.handle_mut()).unwrap();
             (*imagedata).data.set(array.get());
         }
 

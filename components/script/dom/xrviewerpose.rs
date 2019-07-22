@@ -57,10 +57,10 @@ impl XRViewerPose {
             XRViewerPoseBinding::Wrap,
         );
 
+        let cx = global.get_cx();
         unsafe {
-            let cx = global.get_cx();
-            rooted!(in(cx) let mut jsval = UndefinedValue());
-            views.to_jsval(cx, jsval.handle_mut());
+            rooted!(in(*cx) let mut jsval = UndefinedValue());
+            views.to_jsval(*cx, jsval.handle_mut());
             pose.views.set(jsval.get());
         }
 

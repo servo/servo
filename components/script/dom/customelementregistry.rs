@@ -145,7 +145,7 @@ impl CustomElementRegistry {
         unsafe {
             // Step 10.1
             if !JS_GetProperty(
-                global_scope.get_cx(),
+                *global_scope.get_cx(),
                 constructor,
                 b"prototype\0".as_ptr() as *const _,
                 prototype,
@@ -171,10 +171,14 @@ impl CustomElementRegistry {
 
         // Step 4
         Ok(LifecycleCallbacks {
-            connected_callback: get_callback(cx, prototype, b"connectedCallback\0")?,
-            disconnected_callback: get_callback(cx, prototype, b"disconnectedCallback\0")?,
-            adopted_callback: get_callback(cx, prototype, b"adoptedCallback\0")?,
-            attribute_changed_callback: get_callback(cx, prototype, b"attributeChangedCallback\0")?,
+            connected_callback: get_callback(*cx, prototype, b"connectedCallback\0")?,
+            disconnected_callback: get_callback(*cx, prototype, b"disconnectedCallback\0")?,
+            adopted_callback: get_callback(*cx, prototype, b"adoptedCallback\0")?,
+            attribute_changed_callback: get_callback(
+                *cx,
+                prototype,
+                b"attributeChangedCallback\0",
+            )?,
         })
     }
 
@@ -183,10 +187,10 @@ impl CustomElementRegistry {
     #[allow(unsafe_code)]
     fn get_observed_attributes(&self, constructor: HandleObject) -> Fallible<Vec<DOMString>> {
         let cx = self.window.get_cx();
-        rooted!(in(cx) let mut observed_attributes = UndefinedValue());
+        rooted!(in(*cx) let mut observed_attributes = UndefinedValue());
         if unsafe {
             !JS_GetProperty(
-                cx,
+                *cx,
                 constructor,
                 b"observedAttributes\0".as_ptr() as *const _,
                 observed_attributes.handle_mut(),
@@ -201,7 +205,7 @@ impl CustomElementRegistry {
 
         let conversion = unsafe {
             FromJSValConvertible::from_jsval(
-                cx,
+                *cx,
                 observed_attributes.handle(),
                 StringificationBehavior::Default,
             )
@@ -258,12 +262,12 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         options: &ElementDefinitionOptions,
     ) -> ErrorResult {
         let cx = self.window.get_cx();
-        rooted!(in(cx) let constructor = constructor_.callback());
+        rooted!(in(*cx) let constructor = constructor_.callback());
         let name = LocalName::from(&*name);
 
         // Step 1
         // We must unwrap the constructor as all wrappers are constructable if they are callable.
-        rooted!(in(cx) let unwrapped_constructor = unsafe { UnwrapObjectStatic(constructor.get()) });
+        rooted!(in(*cx) let unwrapped_constructor = unsafe { UnwrapObjectStatic(constructor.get()) });
 
         if unwrapped_constructor.is_null() {
             // We do not have permission to access the unwrapped constructor.
@@ -326,9 +330,9 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         self.element_definition_is_running.set(true);
 
         // Steps 10.1 - 10.2
-        rooted!(in(cx) let mut prototype = UndefinedValue());
+        rooted!(in(*cx) let mut prototype = UndefinedValue());
         {
-            let _ac = JSAutoRealm::new(cx, constructor.get());
+            let _ac = JSAutoRealm::new(*cx, constructor.get());
             if let Err(error) = self.check_prototype(constructor.handle(), prototype.handle_mut()) {
                 self.element_definition_is_running.set(false);
                 return Err(error);
@@ -336,9 +340,9 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         };
 
         // Steps 10.3 - 10.4
-        rooted!(in(cx) let proto_object = prototype.to_object());
+        rooted!(in(*cx) let proto_object = prototype.to_object());
         let callbacks = {
-            let _ac = JSAutoRealm::new(cx, proto_object.get());
+            let _ac = JSAutoRealm::new(*cx, proto_object.get());
             match unsafe { self.get_callbacks(proto_object.handle()) } {
                 Ok(callbacks) => callbacks,
                 Err(error) => {
@@ -350,7 +354,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
         // Step 10.5 - 10.6
         let observed_attributes = if callbacks.attribute_changed_callback.is_some() {
-            let _ac = JSAutoRealm::new(cx, constructor.get());
+            let _ac = JSAutoRealm::new(*cx, constructor.get());
             match self.get_observed_attributes(constructor.handle()) {
                 Ok(attributes) => attributes,
                 Err(error) => {
@@ -523,20 +527,20 @@ impl CustomElementDefinition {
         let window = document.window();
         let cx = window.get_cx();
         // Step 2
-        rooted!(in(cx) let constructor = ObjectValue(self.constructor.callback()));
-        rooted!(in(cx) let mut element = ptr::null_mut::<JSObject>());
+        rooted!(in(*cx) let constructor = ObjectValue(self.constructor.callback()));
+        rooted!(in(*cx) let mut element = ptr::null_mut::<JSObject>());
         {
             // Go into the constructor's compartment
-            let _ac = JSAutoRealm::new(cx, self.constructor.callback());
+            let _ac = JSAutoRealm::new(*cx, self.constructor.callback());
             let args = HandleValueArray::new();
-            if unsafe { !Construct1(cx, constructor.handle(), &args, element.handle_mut()) } {
+            if unsafe { !Construct1(*cx, constructor.handle(), &args, element.handle_mut()) } {
                 return Err(Error::JSFailed);
             }
         }
 
-        rooted!(in(cx) let element_val = ObjectValue(element.get()));
+        rooted!(in(*cx) let element_val = ObjectValue(element.get()));
         let element: DomRoot<Element> =
-            match unsafe { DomRoot::from_jsval(cx, element_val.handle(), ()) } {
+            match unsafe { DomRoot::from_jsval(*cx, element_val.handle(), ()) } {
                 Ok(ConversionResult::Success(element)) => element,
                 Ok(ConversionResult::Failure(..)) => {
                     return Err(Error::Type(
@@ -627,8 +631,8 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
         let global = GlobalScope::current().expect("No current global");
         let cx = global.get_cx();
         unsafe {
-            throw_dom_exception(cx, &global, error);
-            report_pending_exception(cx, true);
+            throw_dom_exception(*cx, &global, error);
+            report_pending_exception(*cx, true);
         }
         return;
     }
@@ -649,20 +653,20 @@ fn run_upgrade_constructor(
 ) -> ErrorResult {
     let window = window_from_node(element);
     let cx = window.get_cx();
-    rooted!(in(cx) let constructor_val = ObjectValue(constructor.callback()));
-    rooted!(in(cx) let mut element_val = UndefinedValue());
+    rooted!(in(*cx) let constructor_val = ObjectValue(constructor.callback()));
+    rooted!(in(*cx) let mut element_val = UndefinedValue());
     unsafe {
-        element.to_jsval(cx, element_val.handle_mut());
+        element.to_jsval(*cx, element_val.handle_mut());
     }
-    rooted!(in(cx) let mut construct_result = ptr::null_mut::<JSObject>());
+    rooted!(in(*cx) let mut construct_result = ptr::null_mut::<JSObject>());
     {
         // Go into the constructor's compartment
-        let _ac = JSAutoRealm::new(cx, constructor.callback());
+        let _ac = JSAutoRealm::new(*cx, constructor.callback());
         let args = HandleValueArray::new();
         // Step 7.1
         if unsafe {
             !Construct1(
-                cx,
+                *cx,
                 constructor_val.handle(),
                 &args,
                 construct_result.handle_mut(),
@@ -672,10 +676,10 @@ fn run_upgrade_constructor(
         }
         // Step 7.2
         let mut same = false;
-        rooted!(in(cx) let construct_result_val = ObjectValue(construct_result.get()));
+        rooted!(in(*cx) let construct_result_val = ObjectValue(construct_result.get()));
         if unsafe {
             !SameValue(
-                cx,
+                *cx,
                 construct_result_val.handle(),
                 element_val.handle(),
                 &mut same,
@@ -863,30 +867,30 @@ impl CustomElementReactionStack {
                 let cx = element.global().get_cx();
 
                 let local_name = DOMString::from(&*local_name);
-                rooted!(in(cx) let mut name_value = UndefinedValue());
+                rooted!(in(*cx) let mut name_value = UndefinedValue());
                 unsafe {
-                    local_name.to_jsval(cx, name_value.handle_mut());
+                    local_name.to_jsval(*cx, name_value.handle_mut());
                 }
 
-                rooted!(in(cx) let mut old_value = NullValue());
+                rooted!(in(*cx) let mut old_value = NullValue());
                 if let Some(old_val) = old_val {
                     unsafe {
-                        old_val.to_jsval(cx, old_value.handle_mut());
+                        old_val.to_jsval(*cx, old_value.handle_mut());
                     }
                 }
 
-                rooted!(in(cx) let mut value = NullValue());
+                rooted!(in(*cx) let mut value = NullValue());
                 if let Some(val) = val {
                     unsafe {
-                        val.to_jsval(cx, value.handle_mut());
+                        val.to_jsval(*cx, value.handle_mut());
                     }
                 }
 
-                rooted!(in(cx) let mut namespace_value = NullValue());
+                rooted!(in(*cx) let mut namespace_value = NullValue());
                 if namespace != ns!() {
                     let namespace = DOMString::from(&*namespace);
                     unsafe {
-                        namespace.to_jsval(cx, namespace_value.handle_mut());
+                        namespace.to_jsval(*cx, namespace_value.handle_mut());
                     }
                 }
 

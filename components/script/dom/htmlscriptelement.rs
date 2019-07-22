@@ -654,7 +654,7 @@ impl HTMLScriptElement {
         } else {
             self.line_number as u32
         };
-        rooted!(in(window.get_cx()) let mut rval = UndefinedValue());
+        rooted!(in(*window.get_cx()) let mut rval = UndefinedValue());
         let global = window.upcast::<GlobalScope>();
         global.evaluate_script_on_global_with_result(
             &script.text,

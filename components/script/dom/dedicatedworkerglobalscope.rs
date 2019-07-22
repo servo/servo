@@ -405,7 +405,7 @@ impl DedicatedWorkerGlobalScope {
 
                 unsafe {
                     // Handle interrupt requests
-                    JS_AddInterruptCallback(scope.get_cx(), Some(interrupt_callback));
+                    JS_AddInterruptCallback(*scope.get_cx(), Some(interrupt_callback));
                 }
 
                 if scope.is_closing() {
@@ -466,7 +466,7 @@ impl DedicatedWorkerGlobalScope {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let target = self.upcast();
                 let _ac = enter_realm(self);
-                rooted!(in(scope.get_cx()) let mut message = UndefinedValue());
+                rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
                 data.read(scope.upcast(), message.handle_mut());
                 MessageEvent::dispatch_jsval(target, scope.upcast(), message.handle(), None, None);
             },

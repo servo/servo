@@ -99,9 +99,9 @@ impl Gamepad {
         );
 
         let cx = global.get_cx();
-        rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
+        rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
         unsafe {
-            let _ = Float64Array::create(cx, CreateWith::Slice(&state.axes), array.handle_mut());
+            let _ = Float64Array::create(*cx, CreateWith::Slice(&state.axes), array.handle_mut());
         }
         gamepad.axes.set(array.get());
 
@@ -173,7 +173,7 @@ impl Gamepad {
         self.timestamp.set(state.timestamp);
         unsafe {
             let cx = self.global().get_cx();
-            typedarray!(in(cx) let axes: Float64Array = self.axes.get());
+            typedarray!(in(*cx) let axes: Float64Array = self.axes.get());
             if let Ok(mut array) = axes {
                 array.update(&state.axes);
             }

@@ -337,7 +337,7 @@ impl ServiceWorkerGlobalScope {
 
                 unsafe {
                     // Handle interrupt requests
-                    JS_AddInterruptCallback(scope.get_cx(), Some(interrupt_callback));
+                    JS_AddInterruptCallback(*scope.get_cx(), Some(interrupt_callback));
                 }
 
                 scope.execute_script(DOMString::from(source));
@@ -413,7 +413,7 @@ impl ServiceWorkerGlobalScope {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let target = self.upcast();
                 let _ac = enter_realm(&*scope);
-                rooted!(in(scope.get_cx()) let mut message = UndefinedValue());
+                rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
                 data.read(scope.upcast(), message.handle_mut());
                 ExtendableMessageEvent::dispatch_jsval(target, scope.upcast(), message.handle());
             },

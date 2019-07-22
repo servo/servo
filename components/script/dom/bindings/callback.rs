@@ -255,8 +255,8 @@ impl CallSetup {
         let ais = callback.incumbent().map(AutoIncumbentScript::new);
         CallSetup {
             exception_global: global,
-            cx: cx,
-            old_realm: unsafe { EnterRealm(cx, callback.callback()) },
+            cx: *cx,
+            old_realm: unsafe { EnterRealm(*cx, callback.callback()) },
             handling: handling,
             entry_script: Some(aes),
             incumbent_script: ais,

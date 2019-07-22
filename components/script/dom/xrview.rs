@@ -40,7 +40,6 @@ impl XRView {
         }
     }
 
-    #[allow(unsafe_code)]
     pub fn new<V: Copy>(
         global: &GlobalScope,
         session: &XRSession,
@@ -65,7 +64,7 @@ impl XRView {
 
         // row_major since euclid uses row vectors
         let proj = view.projection.to_row_major_array();
-        let cx = unsafe { JSContext::from_ptr(global.get_cx()) };
+        let cx = global.get_cx();
         create_typed_array(cx, &proj, &ret.proj);
         ret
     }

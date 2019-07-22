@@ -173,15 +173,15 @@ impl AudioBuffer {
 
             // Step 2.
             let channel_data = unsafe {
-                typedarray!(in(cx) let array: Float32Array = channel.get());
+                typedarray!(in(*cx) let array: Float32Array = channel.get());
                 if let Ok(array) = array {
                     let data = array.to_vec();
                     let mut is_shared = false;
-                    rooted!(in (cx) let view_buffer =
-                        JS_GetArrayBufferViewBuffer(cx, channel.handle(), &mut is_shared));
+                    rooted!(in (*cx) let view_buffer =
+                        JS_GetArrayBufferViewBuffer(*cx, channel.handle(), &mut is_shared));
                     // This buffer is always created unshared
                     debug_assert!(!is_shared);
-                    let _ = DetachArrayBuffer(cx, view_buffer.handle());
+                    let _ = DetachArrayBuffer(*cx, view_buffer.handle());
                     data
                 } else {
                     return None;
@@ -272,7 +272,7 @@ impl AudioBufferMethods for AudioBuffer {
         // We either copy form js_channels or shared_channels.
         let js_channel = self.js_channels.borrow()[channel_number].get();
         if !js_channel.is_null() {
-            typedarray!(in(cx) let array: Float32Array = js_channel);
+            typedarray!(in(*cx) let array: Float32Array = js_channel);
             if let Ok(array) = array {
                 let data = unsafe { array.as_slice() };
                 dest.extend_from_slice(&data[offset..offset + bytes_to_copy]);
@@ -307,7 +307,7 @@ impl AudioBufferMethods for AudioBuffer {
         }
 
         let cx = self.global().get_cx();
-        if unsafe { !self.restore_js_channel_data(cx) } {
+        if unsafe { !self.restore_js_channel_data(*cx) } {
             return Err(Error::JSFailed);
         }
 
@@ -317,7 +317,7 @@ impl AudioBufferMethods for AudioBuffer {
             return Err(Error::IndexSize);
         }
 
-        typedarray!(in(cx) let js_channel: Float32Array = js_channel);
+        typedarray!(in(*cx) let js_channel: Float32Array = js_channel);
         if let Ok(mut js_channel) = js_channel {
             let bytes_to_copy = min(self.length - start_in_channel, source.len() as u32) as usize;
             let js_channel_data = unsafe { js_channel.as_mut_slice() };

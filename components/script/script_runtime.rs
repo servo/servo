@@ -245,7 +245,7 @@ unsafe extern "C" fn promise_rejection_tracker(
                         let cx = target.global().get_cx();
                         let root_promise = trusted_promise.root();
 
-                        rooted!(in(cx) let reason = GetPromiseResult(root_promise.reflector().get_jsobject()));
+                        rooted!(in(*cx) let reason = GetPromiseResult(root_promise.reflector().get_jsobject()));
 
                         let event = PromiseRejectionEvent::new(
                             &target.global(),
@@ -270,9 +270,8 @@ unsafe extern "C" fn promise_rejection_tracker(
 #[allow(unsafe_code, unrooted_must_root)]
 /// https://html.spec.whatwg.org/multipage/#notify-about-rejected-promises
 pub fn notify_about_rejected_promises(global: &GlobalScope) {
+    let cx = global.get_cx();
     unsafe {
-        let cx = global.get_cx();
-
         // Step 2.
         if global.get_uncaught_rejections().borrow().len() > 0 {
             // Step 1.
@@ -282,7 +281,7 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
                 .iter()
                 .map(|promise| {
                     let promise =
-                        Promise::new_with_js_promise(Handle::from_raw(promise.handle()), cx);
+                        Promise::new_with_js_promise(Handle::from_raw(promise.handle()), *cx);
 
                     TrustedPromise::new(promise)
                 })
@@ -309,7 +308,7 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
                         }
 
                         // Step 4-2.
-                        rooted!(in(cx) let reason = GetPromiseResult(promise.reflector().get_jsobject()));
+                        rooted!(in(*cx) let reason = GetPromiseResult(promise.reflector().get_jsobject()));
 
                         let event = PromiseRejectionEvent::new(
                             &target.global(),

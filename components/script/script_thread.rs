@@ -70,7 +70,7 @@ use crate::dom::worklet::WorkletThreadPool;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::fetch::FetchCanceller;
 use crate::microtask::{Microtask, MicrotaskQueue};
-use crate::script_runtime::{get_reports, new_rt_and_cx, Runtime, ScriptPort};
+use crate::script_runtime::{get_reports, new_rt_and_cx, JSContext, Runtime, ScriptPort};
 use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use crate::serviceworkerjob::{Job, JobQueue};
 use crate::task_manager::TaskManager;
@@ -101,7 +101,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
-use js::jsapi::{JSContext, JS_SetWrapObjectCallbacks};
+use js::jsapi::JS_SetWrapObjectCallbacks;
 use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
@@ -913,7 +913,7 @@ impl ScriptThread {
                     let script_thread = &*script_thread;
                     script_thread
                         .microtask_queue
-                        .enqueue(task, script_thread.get_cx());
+                        .enqueue(task, *script_thread.get_cx());
                 }
             }
         });
@@ -1315,8 +1315,9 @@ impl ScriptThread {
         }
     }
 
-    pub fn get_cx(&self) -> *mut JSContext {
-        self.js_runtime.cx()
+    #[allow(unsafe_code)]
+    pub fn get_cx(&self) -> JSContext {
+        unsafe { JSContext::from_ptr(self.js_runtime.cx()) }
     }
 
     /// Starts the script thread. After calling this method, the script thread will loop receiving
@@ -2260,7 +2261,7 @@ impl ScriptThread {
         let path_seg = format!("url({})", urls);
 
         let mut reports = vec![];
-        reports.extend(get_reports(self.get_cx(), path_seg));
+        reports.extend(get_reports(*self.get_cx(), path_seg));
         reports_chan.send(reports);
     }
 
@@ -3451,13 +3452,13 @@ impl ScriptThread {
 
         // Script source is ready to be evaluated (11.)
         let _ac = enter_realm(global_scope);
-        rooted!(in(global_scope.get_cx()) let mut jsval = UndefinedValue());
+        rooted!(in(*global_scope.get_cx()) let mut jsval = UndefinedValue());
         global_scope.evaluate_js_on_global_with_result(&script_source, jsval.handle_mut());
 
         load_data.js_eval_result = if jsval.get().is_string() {
             unsafe {
                 let strval = DOMString::from_jsval(
-                    global_scope.get_cx(),
+                    *global_scope.get_cx(),
                     jsval.handle(),
                     StringificationBehavior::Empty,
                 );
@@ -3687,7 +3688,7 @@ impl ScriptThread {
             let script_thread = &*root.get().unwrap();
             script_thread
                 .microtask_queue
-                .enqueue(job, script_thread.get_cx());
+                .enqueue(job, *script_thread.get_cx());
         });
     }
 
@@ -3702,7 +3703,7 @@ impl ScriptThread {
 
         unsafe {
             self.microtask_queue.checkpoint(
-                self.get_cx(),
+                *self.get_cx(),
                 |id| self.documents.borrow().find_global(id),
                 globals,
             )

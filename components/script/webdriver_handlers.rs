@@ -98,11 +98,11 @@ pub fn handle_execute_script(
         Some(window) => {
             let result = unsafe {
                 let cx = window.get_cx();
-                rooted!(in(cx) let mut rval = UndefinedValue());
+                rooted!(in(*cx) let mut rval = UndefinedValue());
                 window
                     .upcast::<GlobalScope>()
                     .evaluate_js_on_global_with_result(&eval, rval.handle_mut());
-                jsval_to_webdriver(cx, rval.handle())
+                jsval_to_webdriver(*cx, rval.handle())
             };
 
             reply.send(result).unwrap();
@@ -124,7 +124,7 @@ pub fn handle_execute_async_script(
         Some(window) => {
             let cx = window.get_cx();
             window.set_webdriver_script_chan(Some(reply));
-            rooted!(in(cx) let mut rval = UndefinedValue());
+            rooted!(in(*cx) let mut rval = UndefinedValue());
             window
                 .upcast::<GlobalScope>()
                 .evaluate_js_on_global_with_result(&eval, rval.handle_mut());

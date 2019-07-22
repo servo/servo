@@ -7,7 +7,7 @@
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::rust::HandleObject;
 use std::default::Default;
@@ -17,7 +17,7 @@ use std::default::Default;
 pub fn reflect_dom_object<T, U>(
     obj: Box<T>,
     global: &U,
-    wrap_fn: unsafe fn(SafeJSContext, &GlobalScope, Box<T>) -> DomRoot<T>,
+    wrap_fn: unsafe fn(JSContext, &GlobalScope, Box<T>) -> DomRoot<T>,
 ) -> DomRoot<T>
 where
     T: DomObject,
@@ -26,7 +26,7 @@ where
     let global_scope = global.upcast();
     unsafe {
         wrap_fn(
-            SafeJSContext::from_ptr(global_scope.get_cx()),
+            JSContext::from_ptr(*global_scope.get_cx()),
             global_scope,
             obj,
         )

@@ -26,7 +26,7 @@ use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::microtask::{Microtask, MicrotaskQueue};
-use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
+use crate::script_runtime::{CommonScriptMsg, JSContext as SafeJSContext, ScriptChan, ScriptPort};
 use crate::script_thread::{MainThreadScriptChan, ScriptThread};
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
@@ -311,8 +311,8 @@ impl GlobalScope {
     }
 
     #[allow(unsafe_code)]
-    pub fn get_cx(&self) -> *mut JSContext {
-        Runtime::get()
+    pub fn get_cx(&self) -> SafeJSContext {
+        unsafe { SafeJSContext::from_ptr(Runtime::get()) }
     }
 
     pub fn crypto(&self) -> DomRoot<Crypto> {
@@ -571,14 +571,14 @@ impl GlobalScope {
                 let globalhandle = self.reflector().get_jsobject();
                 let filename = CString::new(filename).unwrap();
 
-                let _ac = JSAutoRealm::new(cx, globalhandle.get());
+                let _ac = JSAutoRealm::new(*cx, globalhandle.get());
                 let _aes = AutoEntryScript::new(self);
-                let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), line_number);
+                let options = CompileOptionsWrapper::new(*cx, filename.as_ptr(), line_number);
 
                 debug!("evaluating Dom string");
                 let result = unsafe {
                     EvaluateUtf8(
-                        cx,
+                        *cx,
                         options.ptr,
                         code.as_ptr() as *const _,
                         code.len() as libc::size_t,
@@ -588,7 +588,7 @@ impl GlobalScope {
 
                 if !result {
                     debug!("error evaluating Dom string");
-                    unsafe { report_pending_exception(cx, true) };
+                    unsafe { report_pending_exception(*cx, true) };
                 }
 
                 maybe_resume_unwind();
@@ -681,7 +681,7 @@ impl GlobalScope {
     pub fn perform_a_microtask_checkpoint(&self) {
         unsafe {
             self.microtask_queue.checkpoint(
-                self.get_cx(),
+                *self.get_cx(),
                 |_| Some(DomRoot::from_ref(self)),
                 vec![DomRoot::from_ref(self)],
             );
@@ -692,7 +692,7 @@ impl GlobalScope {
     #[allow(unsafe_code)]
     pub fn enqueue_microtask(&self, job: Microtask) {
         unsafe {
-            self.microtask_queue.enqueue(job, self.get_cx());
+            self.microtask_queue.enqueue(job, *self.get_cx());
         }
     }
 
