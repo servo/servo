@@ -30,7 +30,7 @@ pub fn match_def_path(cx: &LateContext, def_id: DefId, path: &[Symbol]) -> bool 
 }
 
 pub fn in_derive_expn(span: Span) -> bool {
-    if let Some(i) = span.ctxt().outer().expn_info() {
+    if let Some(i) = span.ctxt().outer_expn().expn_info() {
         if let ExpnKind::Macro(MacroKind::Attr, n) = i.kind {
             n.as_str().contains("derive")
         } else {
