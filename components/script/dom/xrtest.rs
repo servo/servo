@@ -178,9 +178,7 @@ impl XRTestMethods for XRTest {
             let mut rooted_devices: Vec<_> =
                 devices.iter().map(|x| DomRoot::from_ref(&**x)).collect();
             devices.clear();
-            for device in rooted_devices.drain(..) {
-                device.disconnect(sender.clone());
-            }
+
             let mut trusted = Some(TrustedPromise::new(p.clone()));
             let (task_source, canceller) = global
                 .as_window()
@@ -201,9 +199,9 @@ impl XRTestMethods for XRTest {
                 }),
             );
 
-            // XXXManishearth this is a hack, it will need to be replaced when
-            // we improve how mock messaging works
-            p.resolve_native(&())
+            for device in rooted_devices.drain(..) {
+                device.disconnect(sender.clone());
+            }
         };
         p
     }

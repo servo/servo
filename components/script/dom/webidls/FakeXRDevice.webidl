@@ -26,6 +26,9 @@ interface FakeXRDevice {
 
   // Promise<FakeXRInputController>
   //     simulateInputSourceConnection(FakeXRInputSourceInit);
+
+  // behaves as if device was disconnected
+  Promise<void> disconnect();
 };
 
 // https://immersive-web.github.io/webxr/#dom-xrwebgllayer-getviewport
