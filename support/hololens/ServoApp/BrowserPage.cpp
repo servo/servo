@@ -35,6 +35,21 @@ void BrowserPage::OnPageLoaded(IInspectable const &, RoutedEventArgs const &) {
 
   swapChainPanel().PointerReleased(
       std::bind(&BrowserPage::OnSurfaceClicked, this, _1, _2));
+
+  swapChainPanel().ManipulationDelta(
+      std::bind(&BrowserPage::OnSurfaceManipulationDelta, this, _1, _2));
+}
+
+void BrowserPage::OnSurfaceManipulationDelta(
+    IInspectable const &, Input::ManipulationDeltaRoutedEventArgs const &e) {
+  auto x = e.Position().X;
+  auto y = e.Position().Y;
+  auto dx = e.Delta().Translation.X;
+  auto dy = e.Delta().Translation.Y;
+  Event event = {{Event::SCROLL}};
+  event.scrollCoords = {dx, dy, x, y};
+  SendEventToServo(event);
+  e.Handled(true);
 }
 
 void BrowserPage::OnSurfaceClicked(IInspectable const &,
@@ -186,8 +201,13 @@ void BrowserPage::Loop(cancellation_token cancel) {
     for (auto &&e : mEvents) {
       switch (e.type) {
       case Event::CLICK: {
-        auto [x, y] = e.coords;
+        auto [x, y] = e.clickCoords;
         mServo->Click(x, y);
+        break;
+      }
+      case Event::SCROLL: {
+        auto [x, y, dx, dy] = e.scrollCoords;
+        mServo->Scroll(x, y, dx, dy);
         break;
       }
       case Event::FORWARD:

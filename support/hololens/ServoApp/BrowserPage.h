@@ -12,8 +12,9 @@
 namespace winrt::ServoApp::implementation {
 
 struct Event {
-  enum { CLICK, BACK, FORWARD } type;
-  std::tuple<float, float> coords;
+  enum { CLICK, SCROLL, BACK, FORWARD } type;
+  std::tuple<float, float> clickCoords;
+  std::tuple<float, float, float, float> scrollCoords;
 };
 
 struct BrowserPage : BrowserPageT<BrowserPage> {
@@ -30,6 +31,10 @@ public:
   void
   OnSurfaceClicked(Windows::Foundation::IInspectable const &,
                    Windows::UI::Xaml::Input::PointerRoutedEventArgs const &);
+
+  void BrowserPage::OnSurfaceManipulationDelta(
+      IInspectable const &,
+      Windows::UI::Xaml::Input::ManipulationDeltaRoutedEventArgs const &e);
 
 private:
   void OnVisibilityChanged(
