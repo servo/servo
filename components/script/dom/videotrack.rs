@@ -55,6 +55,10 @@ impl VideoTrack {
         self.id.clone()
     }
 
+    pub fn kind(&self) -> DOMString {
+        self.kind.clone()
+    }
+
     pub fn selected(&self) -> bool {
         self.selected.get().clone()
     }
@@ -72,7 +76,7 @@ impl VideoTrackMethods for VideoTrack {
 
     // https://html.spec.whatwg.org/multipage/#dom-videotrack-kind
     fn Kind(&self) -> DOMString {
-        self.kind.clone()
+        self.kind()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-videotrack-label

@@ -44,6 +44,7 @@ use crate::dom::htmlsourceelement::HTMLSourceElement;
 use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::htmlvideoelement::HTMLVideoElement;
 use crate::dom::mediaerror::MediaError;
+use crate::dom::mediafragmentparser::MediaFragmentParser;
 use crate::dom::mediastream::MediaStream;
 use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage, UnbindContext};
 use crate::dom::performanceresourcetiming::InitiatorType;
@@ -1522,8 +1523,20 @@ impl HTMLMediaElement {
                         self.AudioTracks().add(&audio_track);
 
                         // Step 4
-                        // https://www.w3.org/TR/media-frags/#media-fragment-syntax
-                        // https://github.com/servo/servo/issues/22366
+                        if let Some(servo_url) = self.resource_url.borrow().as_ref() {
+                            let fragment = MediaFragmentParser::from(servo_url);
+                            if let Some(id) = fragment.id() {
+                                if audio_track.id() == id {
+                                    self.AudioTracks()
+                                        .set_enabled(self.AudioTracks().len() - 1, true);
+                                }
+                            }
+
+                            if fragment.tracks().contains(&audio_track.kind()) {
+                                self.AudioTracks()
+                                    .set_enabled(self.AudioTracks().len() - 1, true);
+                            }
+                        }
 
                         // Step 5. & 6,
                         if self.AudioTracks().enabled_index().is_none() {
@@ -1565,8 +1578,18 @@ impl HTMLMediaElement {
                         self.VideoTracks().add(&video_track);
 
                         // Step 4.
-                        // https://www.w3.org/TR/media-frags/#media-fragment-syntax
-                        // https://github.com/servo/servo/issues/22366
+                        if let Some(track) = self.VideoTracks().item(0) {
+                            if let Some(servo_url) = self.resource_url.borrow().as_ref() {
+                                let fragment = MediaFragmentParser::from(servo_url);
+                                if let Some(id) = fragment.id() {
+                                    if track.id() == id {
+                                        self.VideoTracks().set_selected(0, true);
+                                    }
+                                } else if fragment.tracks().contains(&track.kind()) {
+                                    self.VideoTracks().set_selected(0, true);
+                                }
+                            }
+                        }
 
                         // Step 5. & 6.
                         if self.VideoTracks().selected_index().is_none() {
@@ -1628,7 +1651,7 @@ impl HTMLMediaElement {
                 self.change_ready_state(ReadyState::HaveMetadata);
 
                 // Step 7.
-                let mut _jumped = false;
+                let mut jumped = false;
 
                 // Step 8.
                 if self.default_playback_start_position.get() > 0. {
@@ -1636,16 +1659,24 @@ impl HTMLMediaElement {
                         self.default_playback_start_position.get(),
                         /* approximate_for_speed*/ false,
                     );
-                    _jumped = true;
+                    jumped = true;
                 }
 
                 // Step 9.
                 self.default_playback_start_position.set(0.);
 
                 // Steps 10 and 11.
-                // XXX(ferjm) Implement parser for
-                //            https://www.w3.org/TR/media-frags/#media-fragment-syntax
-                //            https://github.com/servo/media/issues/156
+                if let Some(servo_url) = self.resource_url.borrow().as_ref() {
+                    let fragment = MediaFragmentParser::from(servo_url);
+                    if let Some(start) = fragment.start() {
+                        if start > 0. && start < self.duration.get() {
+                            self.playback_position.set(start);
+                            if !jumped {
+                                self.seek(self.playback_position.get(), false)
+                            }
+                        }
+                    }
+                }
 
                 // Step 12 & 13 are already handled by the earlier media track processing.
 
