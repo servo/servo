@@ -653,14 +653,29 @@ pub fn trim_http_whitespace(mut slice: &[u8]) -> &[u8] {
 }
 
 pub fn http_percent_encode(bytes: &[u8]) -> String {
-    percent_encoding::define_encode_set! {
-        // This encode set is used for HTTP header values and is defined at
-        // https://tools.ietf.org/html/rfc5987#section-3.2
-        pub HTTP_VALUE = [percent_encoding::SIMPLE_ENCODE_SET] | {
-            ' ', '"', '%', '\'', '(', ')', '*', ',', '/', ':', ';', '<', '-', '>', '?',
-            '[', '\\', ']', '{', '}'
-        }
-    }
+    // This encode set is used for HTTP header values and is defined at
+    // https://tools.ietf.org/html/rfc5987#section-3.2
+    const HTTP_VALUE: &percent_encoding::AsciiSet = &percent_encoding::CONTROLS
+        .add(b' ')
+        .add(b'"')
+        .add(b'%')
+        .add(b'\'')
+        .add(b'(')
+        .add(b')')
+        .add(b'*')
+        .add(b',')
+        .add(b'/')
+        .add(b':')
+        .add(b';')
+        .add(b'<')
+        .add(b'-')
+        .add(b'>')
+        .add(b'?')
+        .add(b'[')
+        .add(b'\\')
+        .add(b']')
+        .add(b'{')
+        .add(b'}');
 
     percent_encoding::percent_encode(bytes, HTTP_VALUE).to_string()
 }

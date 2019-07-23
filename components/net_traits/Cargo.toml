@@ -29,7 +29,7 @@ malloc_size_of_derive = "0.1"
 mime = "0.3"
 msg = {path = "../msg"}
 num-traits = "0.2"
-percent-encoding = "1.0"
+percent-encoding = "2.0"
 pixels = {path = "../pixels"}
 serde = "1.0"
 servo_arc = {path = "../servo_arc"}
