@@ -11,6 +11,7 @@ import os
 import platform
 import shutil
 import subprocess
+import urllib
 from subprocess import PIPE
 from zipfile import BadZipfile
 
@@ -292,7 +293,7 @@ def windows_msvc(context, force=False):
 
     def prepare_file(zip_path, full_spec):
         if not os.path.isfile(zip_path):
-            zip_url = "{}{}.zip".format(deps_url, full_spec)
+            zip_url = "{}{}.zip".format(deps_url, urllib.quote(full_spec))
             download_file(full_spec, zip_url, zip_path)
 
         print("Extracting {}...".format(full_spec), end='')
