@@ -125,7 +125,6 @@ linux_build_env = {
 macos_build_env = {}
 windows_build_env = {
     "x86_64": {
-        "LIB": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\lib;%LIB%",
         "GSTREAMER_1_0_ROOT_X86_64": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\",
     },
     "arm64": {
@@ -376,7 +375,7 @@ def android_x86_wpt():
 
 def windows_arm64():
     return (
-        windows_cross_build_task("Dev build", arch="arm64", package=False)
+        windows_build_task("Dev build", arch="arm64", package=False)
         .with_treeherder("Windows arm64")
         .with_script(
             "python mach build --dev --libsimpleservo \
@@ -738,17 +737,6 @@ def android_build_task(name):
             apt-get install -y --no-install-recommends openjdk-8-jdk-headless file wget
             ./mach bootstrap-android --accept-all-licences --build
         """)
-    )
-
-
-def windows_cross_build_task(name, arch, package):
-    return (
-        windows_build_task(name, package, arch)
-        .with_env(**{
-            "VCINSTALLDIR_SERVO": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\",
-            "VisualStudioVersion": "15.0",
-            "WindowsSdkDir": "C:\\Program Files (x86)\\Windows Kits\\10\\",
-        })
     )
 
 

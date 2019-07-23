@@ -164,13 +164,14 @@ class MachCommands(CommandBase):
     @CommandArgument('--very-verbose', '-vv',
                      action='store_true',
                      help='Print very verbose output')
+    @CommandArgument('--win-arm64', action='store_true', help="Use arm64 Windows target")
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     @CommandBase.build_like_command_arguments
     def build(self, release=False, dev=False, jobs=None, params=None,
               no_package=False, verbose=False, very_verbose=False,
               target=None, android=False, magicleap=False, libsimpleservo=False, uwp=False,
-              features=None, **kwargs):
+              features=None, win_arm64=False, **kwargs):
         opts = params or []
         features = features or []
         target, android = self.pick_target_triple(target, android, magicleap)
@@ -219,6 +220,12 @@ class MachCommands(CommandBase):
         if very_verbose:
             opts += ["-vv"]
 
+        if win_arm64:
+            if target:
+                print("Can't specify explicit --target value with --win-arm64.")
+                sys.exit(1)
+            target = "aarch64-pc-windows-msvc"
+
         if target:
             if self.config["tools"]["use-rustup"]:
                 # 'rustup target add' fails if the toolchain is not installed at all.
@@ -235,10 +242,36 @@ class MachCommands(CommandBase):
         env["CARGO_TARGET_DIR"] = target_path
 
         host = host_triple()
-        if 'apple-darwin' in host and (not target or target == host):
+        target_triple = target or host_triple()
+        if 'apple-darwin' in host and target_triple == host:
             if 'CXXFLAGS' not in env:
                 env['CXXFLAGS'] = ''
             env["CXXFLAGS"] += "-mmacosx-version-min=10.10"
+
+        vcinstalldir = None
+        vs_version = None
+        if host != target_triple and 'windows' in target_triple:
+            if os.environ.get('VisualStudioVersion'):
+                print("Can't cross-compile for Windows inside of a Visual Studio shell.\n"
+                      "Please run `python mach build [arguments]` to bypass automatic "
+                      "Visual Studio shell.")
+                sys.exit(1)
+            editions = ["Enterprise", "Professional", "Community", "BuildTools"]
+            prog_files = os.environ.get("ProgramFiles(x86)")
+            base_vs_path = os.path.join(prog_files, "Microsoft Visual Studio", "2017")
+            vs_version = "15.0"
+            for edition in editions:
+                vcinstalldir = os.path.join(base_vs_path, edition, "VC")
+                if os.path.exists(vcinstalldir):
+                    break
+            else:
+                print("Can't find Visual Studio 2017 installation at %s." % base_vs_path)
+                sys.exit(1)
+
+        if 'windows' in target_triple:
+            gst_root = gstreamer_root(target_triple)
+            if gst_root:
+                append_to_path_env(os.path.join(gst_root, "lib"), env, "LIB")
 
         if uwp:
             # Don't try and build a desktop port.
@@ -603,13 +636,12 @@ class MachCommands(CommandBase):
                     package_generated_shared_libraries(["libEGL.dll", "libGLESv2.dll"], build_path, servo_exe_dir)
 
                 # copy needed gstreamer DLLs in to servo.exe dir
-                target_triple = target or host_triple()
                 if "aarch64" not in target_triple:
                     print("Packaging gstreamer DLLs")
                     if not package_gstreamer_dlls(servo_exe_dir, target_triple, uwp):
                         status = 1
                 print("Packaging MSVC DLLs")
-                if not package_msvc_dlls(servo_exe_dir, target_triple):
+                if not package_msvc_dlls(servo_exe_dir, target_triple, vcinstalldir, vs_version):
                     status = 1
 
             elif sys.platform == "darwin":
@@ -658,17 +690,26 @@ class MachCommands(CommandBase):
         return check_call(["cargo", "clean"] + opts, env=self.build_env(), verbose=verbose)
 
 
-def package_gstreamer_dlls(servo_exe_dir, target, uwp):
-    msvc_x64 = "64" if "x86_64" in target else ""
-    gst_x64 = "X86_64" if msvc_x64 == "64" else "X86"
-    gst_root = ""
+def gstreamer_root(target):
+    arch = {
+        "x86_64": "X86_64",
+        "x86": "X86",
+        "aarch64": "ARM64",
+    }
+    gst_x64 = arch[target.split('-')[0]]
     gst_default_path = path.join("C:\\gstreamer\\1.0", gst_x64)
     gst_env = "GSTREAMER_1_0_ROOT_" + gst_x64
     if os.environ.get(gst_env) is not None:
-        gst_root = os.environ.get(gst_env)
+        return os.environ.get(gst_env)
     elif os.path.exists(path.join(gst_default_path, "bin", "ffi-7.dll")):
-        gst_root = gst_default_path
+        return gst_default_path
     else:
+        return None
+
+
+def package_gstreamer_dlls(servo_exe_dir, target, uwp):
+    gst_root = gstreamer_root(target)
+    if not gst_root:
         print("Could not find GStreamer installation directory.")
         return False
 
@@ -799,7 +840,7 @@ def package_gstreamer_dlls(servo_exe_dir, target, uwp):
     return not missing
 
 
-def package_msvc_dlls(servo_exe_dir, target):
+def package_msvc_dlls(servo_exe_dir, target, vcinstalldir, vs_version):
     # copy some MSVC DLLs to servo.exe dir
     msvc_redist_dir = None
     vs_platforms = {
@@ -809,8 +850,9 @@ def package_msvc_dlls(servo_exe_dir, target):
     }
     target_arch = target.split('-')[0]
     vs_platform = vs_platforms[target_arch]
-    vc_dir = os.environ.get("VCINSTALLDIR", "") or os.environ.get("VCINSTALLDIR_SERVO")
-    vs_version = os.environ.get("VisualStudioVersion", "")
+    vc_dir = vcinstalldir or os.environ.get("VCINSTALLDIR", "")
+    if not vs_version:
+        vs_version = os.environ.get("VisualStudioVersion", "")
     msvc_deps = [
         "msvcp140.dll",
         "vcruntime140.dll",
@@ -846,8 +888,9 @@ def package_msvc_dlls(servo_exe_dir, target):
         return False
     redist_dirs = [
         msvc_redist_dir,
-        path.join(os.environ["WindowsSdkDir"], "Redist", "ucrt", "DLLs", vs_platform),
     ]
+    if "WindowsSdkDir" in os.environ:
+        redist_dirs += [path.join(os.environ["WindowsSdkDir"], "Redist", "ucrt", "DLLs", vs_platform)]
     missing = []
     for msvc_dll in msvc_deps:
         for dll_dir in redist_dirs:
