@@ -24,16 +24,6 @@ self.addEventListener('install', (event) => {
   })());
 });
 
-// Workaround because add_cleanup doesn't support async functions yet.
-// See https://github.com/web-platform-tests/wpt/issues/6075
-async function async_cleanup(cleanup_function) {
-  try {
-    await cleanup_function();
-  } catch (e) {
-    // Errors in cleanup functions shouldn't result in test failures.
-  }
-}
-
 // Resolves when the service worker receives the 'activate' event.
 const kServiceWorkerActivatedPromise = new Promise(resolve => {
   self.addEventListener('activate', event => { resolve(); });
@@ -96,8 +86,13 @@ promise_test(async testCase => {
   await kServiceWorkerActivatedPromise;
 
   await cookieStore.set('cookie-name', 'cookie-value');
+  testCase.add_cleanup(async () => {
+    await cookieStore.delete('cookie-name');
+  });
+  testCase.add_cleanup(() => { g_cookie_changes = []; });
 
   await g_cookie_change_received_promise;
+  testCase.add_cleanup(() => RearmCookieChangeReceivedPromise());
 
   assert_equals(g_cookie_changes.length, 1);
   const event = g_cookie_changes[0]
@@ -108,12 +103,6 @@ promise_test(async testCase => {
   assert_equals(event.deleted.length, 0);
   assert_true(event instanceof ExtendableCookieChangeEvent);
   assert_true(event instanceof ExtendableEvent);
-
-  await async_cleanup(async () => {
-    await cookieStore.delete('cookie-name');
-    g_cookie_changes = [];
-    RearmCookieChangeReceivedPromise();
-  });
 }, 'cookiechange dispatched with cookie change that matches subscription');
 
 done();
