@@ -7,13 +7,19 @@ use crate::dom::bindings::codegen::Bindings::FakeXRDeviceBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::refcounted::TrustedPromise;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::promise::Promise;
+use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D};
 use euclid::{RigidTransform3D, Rotation3D, Transform3D, Vector3D};
 use ipc_channel::ipc::IpcSender;
+use ipc_channel::router::ROUTER;
+use profile_traits::ipc;
+use std::rc::Rc;
 use webxr_api::{MockDeviceMsg, View, Views};
 
 #[dom_struct]
@@ -138,5 +144,28 @@ impl FakeXRDeviceMethods for FakeXRDevice {
             .sender
             .send(MockDeviceMsg::SetViewerOrigin(get_origin(origin)?));
         Ok(())
+    }
+
+    /// https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
+    fn Disconnect(&self) -> Rc<Promise> {
+        let global = self.global();
+        let p = Promise::new(&global);
+        let mut trusted = Some(TrustedPromise::new(p.clone()));
+        let (task_source, canceller) = global
+            .as_window()
+            .task_manager()
+            .dom_manipulation_task_source_with_canceller();
+        let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
+        ROUTER.add_route(
+            receiver.to_opaque(),
+            Box::new(move |_| {
+                let trusted = trusted
+                    .take()
+                    .expect("disconnect callback called multiple times");
+                let _ = task_source.queue_with_canceller(trusted.resolve_task(()), &canceller);
+            }),
+        );
+        self.disconnect(sender);
+        p
     }
 }
