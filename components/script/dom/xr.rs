@@ -76,6 +76,17 @@ impl XR {
         self.pending_immersive_session.set(false);
         self.active_immersive_session.set(Some(session))
     }
+
+    /// https://immersive-web.github.io/webxr/#ref-for-eventdef-xrsession-end
+    pub fn end_session(&self, session: &XRSession) {
+        // Step 3
+        if let Some(active) = self.active_immersive_session.get() {
+            if Dom::from_ref(&*active) == Dom::from_ref(session) {
+                self.active_immersive_session.set(None);
+            }
+        }
+        // XXXManishearth when we support inline sessions we should remove them too
+    }
 }
 
 impl Drop for XR {

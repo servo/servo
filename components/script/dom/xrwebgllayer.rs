@@ -10,14 +10,13 @@ use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGL
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::webgl_validations::types::TexImageTarget;
 use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::window::Window;
-use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrview::XRView;
 use crate::dom::xrviewport::XRViewport;
@@ -28,7 +27,7 @@ use webxr_api::Views;
 
 #[dom_struct]
 pub struct XRWebGLLayer {
-    xrlayer: XRLayer,
+    reflector_: Reflector,
     antialias: bool,
     depth: bool,
     stencil: bool,
@@ -46,7 +45,7 @@ impl XRWebGLLayer {
         framebuffer: &WebGLFramebuffer,
     ) -> XRWebGLLayer {
         XRWebGLLayer {
-            xrlayer: XRLayer::new_inherited(),
+            reflector_: Reflector::new(),
             antialias: init.antialias,
             depth: init.depth,
             stencil: init.stencil,
@@ -83,6 +82,13 @@ impl XRWebGLLayer {
         context: &WebGLRenderingContext,
         init: &XRWebGLLayerInit,
     ) -> Fallible<DomRoot<Self>> {
+        // Step 2
+        if session.is_ended() {
+            return Err(Error::InvalidState);
+        }
+        // XXXManishearth step 3: throw error if context is lost
+        // XXXManishearth step 4: check XR compat flag for immersive sessions
+
         let cx = global.get_cx();
         let old_fbo = context.bound_framebuffer();
         let old_texture = context
@@ -138,6 +144,10 @@ impl XRWebGLLayer {
             init,
             &framebuffer,
         ))
+    }
+
+    pub fn session(&self) -> &XRSession {
+        &self.session
     }
 }
 
