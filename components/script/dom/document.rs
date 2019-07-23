@@ -20,6 +20,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFram
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     FrameRequestCallback, ScrollBehavior, WindowMethods,
@@ -163,6 +164,7 @@ use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{Origin, OriginSet, Stylesheet};
 use url::percent_encoding::percent_decode;
 use url::Host;
+use uuid::Uuid;
 
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
 /// falling back to fake ones.
@@ -385,6 +387,12 @@ pub struct Document {
     shadow_roots: DomRefCell<HashSet<Dom<ShadowRoot>>>,
     /// Whether any of the shadow roots need the stylesheets flushed.
     shadow_roots_styles_changed: Cell<bool>,
+    /// List of registered media controls.
+    /// We need to keep this list to allow the media controls to
+    /// access the "privileged" document.servoGetMediaControls(id) API,
+    /// where `id` needs to match any of the registered ShadowRoots
+    /// hosting the media controls UI.
+    media_controls: DomRefCell<HashMap<String, Dom<ShadowRoot>>>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -2457,6 +2465,23 @@ impl Document {
             self.responsive_images.borrow_mut().remove(i);
         }
     }
+
+    pub fn register_media_controls(&self, controls: &ShadowRoot) -> String {
+        let id = Uuid::new_v4().to_string();
+        self.media_controls
+            .borrow_mut()
+            .insert(id.clone(), Dom::from_ref(controls));
+        id
+    }
+
+    pub fn unregister_media_controls(&self, id: &str) {
+        if let Some(ref media_controls) = self.media_controls.borrow_mut().remove(id) {
+            let media_controls = DomRoot::from_ref(&**media_controls);
+            media_controls.Host().detach_shadow();
+        } else {
+            debug_assert!(false, "Trying to unregister unknown media controls");
+        }
+    }
 }
 
 #[derive(MallocSizeOf, PartialEq)]
@@ -2750,6 +2775,7 @@ impl Document {
             delayed_tasks: Default::default(),
             shadow_roots: DomRefCell::new(HashSet::new()),
             shadow_roots_styles_changed: Cell::new(false),
+            media_controls: DomRefCell::new(HashMap::new()),
         }
     }
 
@@ -4550,6 +4576,16 @@ impl DocumentMethods for Document {
     // https://fullscreen.spec.whatwg.org/#dom-document-exitfullscreen
     fn ExitFullscreen(&self) -> Rc<Promise> {
         self.exit_fullscreen()
+    }
+
+    // check-tidy: no specs after this line
+    // Servo only API to get an instance of the controls of a specific
+    // media element matching the given id.
+    fn ServoGetMediaControls(&self, id: DOMString) -> Fallible<DomRoot<ShadowRoot>> {
+        match self.media_controls.borrow().get(&*id) {
+            Some(m) => Ok(DomRoot::from_ref(&*m)),
+            None => Err(Error::InvalidAccess),
+        }
     }
 }
 

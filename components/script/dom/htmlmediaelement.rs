@@ -15,6 +15,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaE
 use crate::dom::bindings::codegen::Bindings::HTMLSourceElementBinding::HTMLSourceElementMethods;
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConstants::*;
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackKind, TextTrackMode};
 use crate::dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId};
 use crate::dom::bindings::codegen::InheritTypes::{HTMLMediaElementTypeId, NodeTypeId};
@@ -33,18 +34,21 @@ use crate::dom::document::Document;
 use crate::dom::element::{
     cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
 };
-use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
+use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::htmlsourceelement::HTMLSourceElement;
+use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::htmlvideoelement::HTMLVideoElement;
 use crate::dom::mediaerror::MediaError;
 use crate::dom::mediastream::MediaStream;
 use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage, UnbindContext};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
+use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::texttracklist::TextTrackList;
 use crate::dom::timeranges::{TimeRanges, TimeRangesContainer};
@@ -59,6 +63,7 @@ use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingLi
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
+use embedder_traits::resources::{self, Resource as EmbedderResource};
 use euclid::Size2D;
 use headers::{ContentLength, ContentRange, HeaderMapExt};
 use html5ever::{LocalName, Prefix};
@@ -335,6 +340,11 @@ pub struct HTMLMediaElement {
     current_fetch_context: DomRefCell<Option<HTMLMediaElementFetchContext>>,
     /// Player Id reported the player thread
     id: Cell<u64>,
+    /// Media controls id.
+    /// In order to workaround the lack of privileged JS context, we secure the
+    /// the access to the "privileged" document.servoGetMediaControls(id) API by
+    /// keeping a whitelist of media controls identifiers.
+    media_controls_id: DomRefCell<Option<String>>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -397,6 +407,7 @@ impl HTMLMediaElement {
             next_timeupdate_event: Cell::new(time::get_time() + Duration::milliseconds(250)),
             current_fetch_context: DomRefCell::new(None),
             id: Cell::new(0),
+            media_controls_id: DomRefCell::new(None),
         }
     }
 
@@ -1637,6 +1648,12 @@ impl HTMLMediaElement {
                 //            https://github.com/servo/media/issues/156
 
                 // Step 12 & 13 are already handled by the earlier media track processing.
+
+                // We wait until we have metadata to render the controls, so we render them
+                // with the appropriate size.
+                if self.Controls() {
+                    self.render_controls();
+                }
             },
             PlayerEvent::NeedData => {
                 // The player needs more data.
@@ -1712,6 +1729,68 @@ impl HTMLMediaElement {
             .start(0)
             .unwrap_or_else(|_| self.playback_position.get())
     }
+
+    fn render_controls(&self) {
+        let element = self.htmlelement.upcast::<Element>();
+        if self.ready_state.get() < ReadyState::HaveMetadata || element.is_shadow_host() {
+            // Bail out if we have no metadata yet or
+            // if we are already showing the controls.
+            return;
+        }
+        let shadow_root = element.attach_shadow(IsUserAgentWidget::Yes).unwrap();
+        let document = document_from_node(self);
+        let script = HTMLScriptElement::new(
+            local_name!("script"),
+            None,
+            &document,
+            ElementCreator::ScriptCreated,
+        );
+        let mut media_controls_script = resources::read_string(EmbedderResource::MediaControlsJS);
+        // This is our hacky way to temporarily workaround the lack of a privileged
+        // JS context.
+        // The media controls UI accesses the document.servoGetMediaControls(id) API
+        // to get an instance to the media controls ShadowRoot.
+        // `id` needs to match the internally generated UUID assigned to a media element.
+        let id = document.register_media_controls(&shadow_root);
+        let media_controls_script = media_controls_script.as_mut_str().replace("@@@id@@@", &id);
+        *self.media_controls_id.borrow_mut() = Some(id);
+        script
+            .upcast::<Node>()
+            .SetTextContent(Some(DOMString::from(media_controls_script)));
+        if let Err(e) = shadow_root
+            .upcast::<Node>()
+            .AppendChild(&*script.upcast::<Node>())
+        {
+            warn!("Could not render media controls {:?}", e);
+            return;
+        }
+
+        let media_controls_style = resources::read_string(EmbedderResource::MediaControlsCSS);
+        let style = HTMLStyleElement::new(
+            local_name!("script"),
+            None,
+            &document,
+            ElementCreator::ScriptCreated,
+        );
+        style
+            .upcast::<Node>()
+            .SetTextContent(Some(DOMString::from(media_controls_style)));
+
+        if let Err(e) = shadow_root
+            .upcast::<Node>()
+            .AppendChild(&*style.upcast::<Node>())
+        {
+            warn!("Could not render media controls {:?}", e);
+        }
+
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+    }
+
+    fn remove_controls(&self) {
+        if let Some(id) = self.media_controls_id.borrow_mut().take() {
+            document_from_node(self).unregister_media_controls(&id);
+        }
+    }
 }
 
 // XXX Placeholder for [https://github.com/servo/servo/issues/22293]
@@ -1754,6 +1833,7 @@ impl Drop for HTMLMediaElement {
                 .unwrap()
                 .shutdown_player(&client_context_id, player.clone());
         }
+        self.remove_controls();
     }
 }
 
@@ -1782,6 +1862,11 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     make_bool_getter!(DefaultMuted, "muted");
     // https://html.spec.whatwg.org/multipage/#dom-media-defaultmuted
     make_bool_setter!(SetDefaultMuted, "muted");
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-controls
+    make_bool_getter!(Controls, "controls");
+    // https://html.spec.whatwg.org/multipage/#dom-media-controls
+    make_bool_setter!(SetControls, "controls");
 
     // https://html.spec.whatwg.org/multipage/#dom-media-src
     make_url_getter!(Src, "src");
@@ -2177,18 +2262,22 @@ impl VirtualMethods for HTMLMediaElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
 
-        if &local_name!("muted") == attr.local_name() {
-            self.SetMuted(mutation.new_value(attr).is_some());
-            return;
-        }
-
-        if mutation.new_value(attr).is_none() {
-            return;
-        }
-
         match attr.local_name() {
+            &local_name!("muted") => {
+                self.SetMuted(mutation.new_value(attr).is_some());
+            },
             &local_name!("src") => {
+                if mutation.new_value(attr).is_none() {
+                    return;
+                }
                 self.media_element_load_algorithm();
+            },
+            &local_name!("controls") => {
+                if mutation.new_value(attr).is_some() {
+                    self.render_controls();
+                } else {
+                    self.remove_controls();
+                }
             },
             _ => (),
         };

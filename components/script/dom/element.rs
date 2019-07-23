@@ -78,7 +78,7 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
 use crate::dom::raredata::ElementRareData;
 use crate::dom::servoparser::ServoParser;
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
 use crate::dom::validation::Validatable;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
@@ -229,13 +229,6 @@ impl FromStr for AdjacentPosition {
             _             => Err(Error::Syntax)
         }
     }
-}
-
-/// Whether a shadow root hosts an User Agent widget.
-#[derive(PartialEq)]
-pub enum IsUserAgentWidget {
-    No,
-    Yes,
 }
 
 //
@@ -498,13 +491,24 @@ impl Element {
         self.ensure_rare_data().shadow_root = Some(Dom::from_ref(&*shadow_root));
         shadow_root
             .upcast::<Node>()
-            .set_containing_shadow_root(&shadow_root);
+            .set_containing_shadow_root(Some(&shadow_root));
 
         if self.is_connected() {
             self.node.owner_doc().register_shadow_root(&*shadow_root);
         }
 
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+
         Ok(shadow_root)
+    }
+
+    pub fn detach_shadow(&self) {
+        if let Some(ref shadow_root) = self.shadow_root() {
+            shadow_root.detach();
+            self.ensure_rare_data().shadow_root = None;
+        } else {
+            debug_assert!(false, "Trying to detach a non-attached shadow root");
+        }
     }
 }
 

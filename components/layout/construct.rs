@@ -705,9 +705,16 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         // List of absolute descendants, in tree order.
         let mut abs_descendants = AbsoluteDescendants::new();
         let mut legalizer = Legalizer::new();
-        if !node.is_replaced_content() {
+        let is_media_element_with_widget = node.type_id() ==
+            Some(LayoutNodeType::Element(LayoutElementType::HTMLMediaElement)) &&
+            node.as_element().unwrap().is_shadow_host();
+        if !node.is_replaced_content() || is_media_element_with_widget {
             for kid in node.children() {
                 if kid.get_pseudo_element_type() != PseudoElementType::Normal {
+                    if node.is_replaced_content() {
+                        // Replaced elements don't have pseudo-elements per spec.
+                        continue;
+                    }
                     self.process(&kid);
                 }
 

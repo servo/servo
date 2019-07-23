@@ -53,7 +53,7 @@ interface HTMLMediaElement : HTMLElement {
   void pause();
 
   // controls
-  // [CEReactions] attribute boolean controls;
+  [CEReactions] attribute boolean controls;
   [Throws] attribute double volume;
   attribute boolean muted;
   [CEReactions] attribute boolean defaultMuted;

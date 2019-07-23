@@ -283,7 +283,7 @@ impl Node {
         for node in new_child.traverse_preorder(ShadowIncluding::No) {
             if parent_in_shadow_tree {
                 if let Some(shadow_root) = self.containing_shadow_root() {
-                    node.set_containing_shadow_root(&*shadow_root);
+                    node.set_containing_shadow_root(Some(&*shadow_root));
                 }
                 debug_assert!(node.containing_shadow_root().is_some());
             }
@@ -296,6 +296,36 @@ impl Node {
                 tree_connected: parent_is_connected,
                 tree_in_doc: parent_in_doc,
             });
+        }
+    }
+
+    /// Clean up flags and unbind from tree.
+    pub fn complete_remove_subtree(root: &Node, context: &UnbindContext) {
+        for node in root.traverse_preorder(ShadowIncluding::Yes) {
+            // Out-of-document elements never have the descendants flag set.
+            node.set_flag(
+                NodeFlags::IS_IN_DOC |
+                    NodeFlags::IS_CONNECTED |
+                    NodeFlags::HAS_DIRTY_DESCENDANTS |
+                    NodeFlags::HAS_SNAPSHOT |
+                    NodeFlags::HANDLED_SNAPSHOT,
+                false,
+            );
+        }
+        for node in root.traverse_preorder(ShadowIncluding::Yes) {
+            // This needs to be in its own loop, because unbind_from_tree may
+            // rely on the state of IS_IN_DOC of the context node's descendants,
+            // e.g. when removing a <form>.
+            vtable_for(&&*node).unbind_from_tree(&context);
+            node.style_and_layout_data.get().map(|d| node.dispose(d));
+            // https://dom.spec.whatwg.org/#concept-node-remove step 14
+            if let Some(element) = node.as_custom_element() {
+                ScriptThread::enqueue_callback_reaction(
+                    &*element,
+                    CallbackReaction::Disconnected,
+                    None,
+                );
+            }
         }
     }
 
@@ -339,32 +369,7 @@ impl Node {
         child.parent_node.set(None);
         self.children_count.set(self.children_count.get() - 1);
 
-        for node in child.traverse_preorder(ShadowIncluding::Yes) {
-            // Out-of-document elements never have the descendants flag set.
-            node.set_flag(
-                NodeFlags::IS_IN_DOC |
-                    NodeFlags::IS_CONNECTED |
-                    NodeFlags::HAS_DIRTY_DESCENDANTS |
-                    NodeFlags::HAS_SNAPSHOT |
-                    NodeFlags::HANDLED_SNAPSHOT,
-                false,
-            );
-        }
-        for node in child.traverse_preorder(ShadowIncluding::Yes) {
-            // This needs to be in its own loop, because unbind_from_tree may
-            // rely on the state of IS_IN_DOC of the context node's descendants,
-            // e.g. when removing a <form>.
-            vtable_for(&&*node).unbind_from_tree(&context);
-            node.style_and_layout_data.get().map(|d| node.dispose(d));
-            // https://dom.spec.whatwg.org/#concept-node-remove step 14
-            if let Some(element) = node.as_custom_element() {
-                ScriptThread::enqueue_callback_reaction(
-                    &*element,
-                    CallbackReaction::Disconnected,
-                    None,
-                );
-            }
-        }
+        Self::complete_remove_subtree(child, &context);
     }
 
     pub fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
@@ -961,8 +966,8 @@ impl Node {
             .map(|sr| DomRoot::from_ref(&**sr))
     }
 
-    pub fn set_containing_shadow_root(&self, shadow_root: &ShadowRoot) {
-        self.ensure_rare_data().containing_shadow_root = Some(Dom::from_ref(shadow_root));
+    pub fn set_containing_shadow_root(&self, shadow_root: Option<&ShadowRoot>) {
+        self.ensure_rare_data().containing_shadow_root = shadow_root.map(Dom::from_ref);
     }
 
     pub fn is_in_html_doc(&self) -> bool {
@@ -3082,7 +3087,7 @@ pub struct UnbindContext<'a> {
 
 impl<'a> UnbindContext<'a> {
     /// Create a new `UnbindContext` value.
-    fn new(
+    pub fn new(
         parent: &'a Node,
         prev_sibling: Option<&'a Node>,
         next_sibling: Option<&'a Node>,
