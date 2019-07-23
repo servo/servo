@@ -408,7 +408,7 @@ where
             webrender_api_sender,
             window.gl(),
             webvr_services,
-            webxr_main_thread.registry(),
+            &mut webxr_main_thread,
             player_context,
         );
 
@@ -720,7 +720,7 @@ fn create_constellation(
     webrender_api_sender: webrender_api::RenderApiSender,
     window_gl: Rc<dyn gl::Gl>,
     webvr_services: Option<VRServiceManager>,
-    webxr_registry: webxr_api::Registry,
+    webxr_main_thread: &mut webxr_api::MainThreadRegistry,
     player_context: WindowGLContext,
 ) -> (Sender<ConstellationMsg>, SWManagerSenders) {
     // Global configuration options, parsed from the command line.
@@ -760,6 +760,8 @@ fn create_constellation(
             (None, None, None)
         };
 
+    let webxr_registry = webxr_main_thread.registry();
+
     // GLContext factory used to create WebGL Contexts
     let gl_factory = if opts.should_use_osmesa() {
         GLContextFactory::current_osmesa_handle()
@@ -773,7 +775,7 @@ fn create_constellation(
 
     // Initialize WebGL Thread entry point.
     let webgl_threads = gl_factory.map(|factory| {
-        let (webgl_threads, image_handler, output_handler) = WebGLThreads::new(
+        let (webgl_threads, webxr_images, image_handler, output_handler) = WebGLThreads::new(
             factory,
             window_gl,
             webrender_api_sender.clone(),
@@ -783,6 +785,9 @@ fn create_constellation(
 
         // Set webrender external image handler for WebGL textures
         external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::WebGL);
+
+        // Set webxr external image handler for WebGL textures
+        webxr_main_thread.set_webgl(webxr_images);
 
         // Set DOM to texture handler, if enabled.
         if let Some(output_handler) = output_handler {

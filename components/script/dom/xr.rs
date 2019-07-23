@@ -108,18 +108,6 @@ impl Into<SessionMode> for XRSessionMode {
 impl XRMethods for XR {
     /// https://immersive-web.github.io/webxr/#dom-xr-supportssessionmode
     fn SupportsSession(&self, mode: XRSessionMode) -> Rc<Promise> {
-        #[derive(serde::Serialize, serde::Deserialize)]
-        pub struct SupportsSession {
-            sender: IpcSender<bool>,
-        }
-
-        #[typetag::serde]
-        impl webxr_api::SessionSupportCallback for SupportsSession {
-            fn callback(&mut self, result: Result<(), XRError>) {
-                let _ = self.sender.send(result.is_ok());
-            }
-        }
-
         // XXXManishearth this should select an XR device first
         let promise = Promise::new(&self.global());
         let mut trusted = Some(TrustedPromise::new(promise.clone()));
@@ -139,13 +127,13 @@ impl XRMethods for XR {
                     error!("supportsSession callback called twice!");
                     return;
                 };
-                let message = if let Ok(message) = message.to() {
+                let message: Result<(), webxr_api::Error> = if let Ok(message) = message.to() {
                     message
                 } else {
                     error!("supportsSession callback given incorrect payload");
                     return;
                 };
-                if message {
+                if let Ok(()) = message {
                     let _ = task_source.queue_with_canceller(trusted.resolve_task(()), &canceller);
                 } else {
                     let _ = task_source
@@ -155,7 +143,7 @@ impl XRMethods for XR {
         );
         window
             .webxr_registry()
-            .supports_session(mode.into(), SupportsSession { sender });
+            .supports_session(mode.into(), sender);
 
         promise
     }
@@ -167,17 +155,6 @@ impl XRMethods for XR {
         _: &XRSessionInit,
         comp: InCompartment,
     ) -> Rc<Promise> {
-        #[derive(serde::Serialize, serde::Deserialize)]
-        pub struct RequestSession {
-            sender: IpcSender<Result<Session, XRError>>,
-        }
-
-        #[typetag::serde]
-        impl webxr_api::SessionRequestCallback for RequestSession {
-            fn callback(&mut self, result: Result<Session, XRError>) {
-                let _ = self.sender.send(result);
-            }
-        }
         let promise = Promise::new_in_current_compartment(&self.global(), comp);
         if mode != XRSessionMode::Immersive_vr {
             promise.reject_error(Error::NotSupported);
@@ -206,7 +183,7 @@ impl XRMethods for XR {
                 // router doesn't know this is only called once
                 let trusted = trusted.take().unwrap();
                 let this = this.clone();
-                let message = if let Ok(message) = message.to() {
+                let message: Result<Session, webxr_api::Error> = if let Ok(message) = message.to() {
                     message
                 } else {
                     error!("requestSession callback given incorrect payload");
@@ -220,9 +197,7 @@ impl XRMethods for XR {
                 );
             }),
         );
-        window
-            .webxr_registry()
-            .request_session(mode.into(), RequestSession { sender });
+        window.webxr_registry().request_session(mode.into(), sender);
 
         promise
     }

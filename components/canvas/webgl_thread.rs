@@ -9,7 +9,6 @@ use euclid::default::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
 use half::f16;
-use ipc_channel::ipc::IpcSender;
 use offscreen_gl_context::{DrawBuffer, GLContext, NativeGLContextMethods};
 use pixels::{self, PixelFormat};
 use std::borrow::Cow;
@@ -187,9 +186,6 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             WebGLMsg::Lock(ctx_id, sender) => {
                 self.handle_lock(ctx_id, sender);
             },
-            WebGLMsg::LockIPC(ctx_id, sender) => {
-                self.handle_lock_ipc(ctx_id, sender);
-            },
             WebGLMsg::Unlock(ctx_id) => {
                 self.handle_unlock(ctx_id);
             },
@@ -245,15 +241,6 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         &mut self,
         context_id: WebGLContextId,
         sender: WebGLSender<(u32, Size2D<i32>, usize)>,
-    ) {
-        sender.send(self.handle_lock_inner(context_id)).unwrap();
-    }
-
-    /// handle_lock, but unconditionally IPC (used by webxr)
-    fn handle_lock_ipc(
-        &mut self,
-        context_id: WebGLContextId,
-        sender: IpcSender<(u32, Size2D<i32>, usize)>,
     ) {
         sender.send(self.handle_lock_inner(context_id)).unwrap();
     }

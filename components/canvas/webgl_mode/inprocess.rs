@@ -15,6 +15,7 @@ use servo_config::pref;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use webrender_traits::{WebrenderExternalImageApi, WebrenderExternalImageRegistry};
+use webxr_api::WebGLExternalImageApi;
 
 /// WebGL Threading API entry point that lives in the constellation.
 pub struct WebGLThreads(WebGLSender<WebGLMsg>);
@@ -29,6 +30,7 @@ impl WebGLThreads {
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     ) -> (
         WebGLThreads,
+        Box<dyn webxr_api::WebGLExternalImageApi>,
         Box<dyn WebrenderExternalImageApi>,
         Option<Box<dyn webrender::OutputImageHandler>>,
     ) {
@@ -50,6 +52,7 @@ impl WebGLThreads {
         let external = WebGLExternalImages::new(webrender_gl, channel.clone());
         (
             WebGLThreads(channel),
+            external.sendable.clone_box(),
             Box::new(external),
             output_handler.map(|b| b as Box<_>),
         )
@@ -69,9 +72,8 @@ impl WebGLThreads {
     }
 }
 
-/// Bridge between the webrender::ExternalImage callbacks and the WebGLThreads.
-struct WebGLExternalImages {
-    webrender_gl: Rc<dyn gl::Gl>,
+/// Bridge between the webxr_api::ExternalImage callbacks and the WebGLThreads.
+struct SendableWebGLExternalImages {
     webgl_channel: WebGLSender<WebGLMsg>,
     // Used to avoid creating a new channel on each received WebRender request.
     lock_channel: (
@@ -80,39 +82,67 @@ struct WebGLExternalImages {
     ),
 }
 
-impl WebGLExternalImages {
-    fn new(webrender_gl: Rc<dyn gl::Gl>, channel: WebGLSender<WebGLMsg>) -> Self {
+impl SendableWebGLExternalImages {
+    fn new(channel: WebGLSender<WebGLMsg>) -> Self {
         Self {
-            webrender_gl,
             webgl_channel: channel,
             lock_channel: webgl_channel().unwrap(),
         }
     }
 }
 
-impl WebrenderExternalImageApi for WebGLExternalImages {
-    fn lock(&mut self, id: u64) -> (u32, Size2D<i32>) {
+impl webxr_api::WebGLExternalImageApi for SendableWebGLExternalImages {
+    fn lock(&self, id: usize) -> (u32, Size2D<i32>, gl::GLsync) {
         // WebGL Thread has it's own GL command queue that we need to synchronize with the WR GL command queue.
         // The WebGLMsg::Lock message inserts a fence in the WebGL command queue.
         self.webgl_channel
             .send(WebGLMsg::Lock(
-                WebGLContextId(id as usize),
+                WebGLContextId(id),
                 self.lock_channel.0.clone(),
             ))
             .unwrap();
         let (image_id, size, gl_sync) = self.lock_channel.1.recv().unwrap();
+        (image_id, size, gl_sync as gl::GLsync)
+    }
+
+    fn unlock(&self, id: usize) {
+        self.webgl_channel
+            .send(WebGLMsg::Unlock(WebGLContextId(id as usize)))
+            .unwrap();
+    }
+
+    fn clone_box(&self) -> Box<dyn webxr_api::WebGLExternalImageApi> {
+        Box::new(Self::new(self.webgl_channel.clone()))
+    }
+}
+
+/// Bridge between the webrender::ExternalImage callbacks and the WebGLThreads.
+struct WebGLExternalImages {
+    webrender_gl: Rc<dyn gl::Gl>,
+    sendable: SendableWebGLExternalImages,
+}
+
+impl WebGLExternalImages {
+    fn new(webrender_gl: Rc<dyn gl::Gl>, channel: WebGLSender<WebGLMsg>) -> Self {
+        Self {
+            webrender_gl,
+            sendable: SendableWebGLExternalImages::new(channel),
+        }
+    }
+}
+
+impl WebrenderExternalImageApi for WebGLExternalImages {
+    fn lock(&mut self, id: u64) -> (u32, Size2D<i32>) {
+        let (image_id, size, gl_sync) = self.sendable.lock(id as usize);
         // The next glWaitSync call is run on the WR thread and it's used to synchronize the two
         // flows of OpenGL commands in order to avoid WR using a semi-ready WebGL texture.
         // glWaitSync doesn't block WR thread, it affects only internal OpenGL subsystem.
-        self.webrender_gl
-            .wait_sync(gl_sync as gl::GLsync, 0, gl::TIMEOUT_IGNORED);
+        self.webrender_gl.wait_sync(gl_sync, 0, gl::TIMEOUT_IGNORED);
         (image_id, size)
     }
 
     fn unlock(&mut self, id: u64) {
-        self.webgl_channel
-            .send(WebGLMsg::Unlock(WebGLContextId(id as usize)))
-            .unwrap();
+        self.sendable.unlock(id as usize);
     }
 }
 
