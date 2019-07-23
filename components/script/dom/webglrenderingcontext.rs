@@ -55,9 +55,9 @@ use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
     webgl_channel, AlphaTreatment, DOMToTextureCommand, GLContextAttributes, GLLimits, GlType,
     Parameter, TexDataType, TexFormat, TexParameter, WebGLCommand, WebGLCommandBacktrace,
-    WebGLContextShareMode, WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender,
-    WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLSender, WebGLVersion, WebVRCommand,
-    YAxisTreatment,
+    WebGLContextId, WebGLContextShareMode, WebGLError, WebGLFramebufferBindingRequest, WebGLMsg,
+    WebGLMsgSender, WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLSender, WebGLVersion,
+    WebVRCommand, YAxisTreatment,
 };
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
@@ -321,6 +321,10 @@ impl WebGLRenderingContext {
 
     pub fn webgl_sender(&self) -> WebGLMsgSender {
         self.webgl_sender.clone()
+    }
+
+    pub fn context_id(&self) -> WebGLContextId {
+        self.webgl_sender.context_id()
     }
 
     #[inline]

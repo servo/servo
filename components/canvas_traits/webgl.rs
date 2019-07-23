@@ -4,10 +4,8 @@
 
 use euclid::default::{Rect, Size2D};
 use gleam::gl;
-use gleam::gl::GLsync;
-use gleam::gl::GLuint;
 use gleam::gl::Gl;
-use ipc_channel::ipc::{self, IpcBytesReceiver, IpcBytesSender, IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory};
 use pixels::PixelFormat;
 use std::borrow::Cow;
 use std::fmt;
@@ -61,8 +59,6 @@ pub enum WebGLMsg {
     /// The WR client should not change the shared texture content until the Unlock call.
     /// Currently OpenGL Sync Objects are used to implement the synchronization mechanism.
     Lock(WebGLContextId, WebGLSender<(u32, Size2D<i32>, usize)>),
-    /// Lock(), but unconditionally IPC (used by webxr)
-    LockIPC(WebGLContextId, IpcSender<(u32, Size2D<i32>, usize)>),
     /// Unlocks a specific WebGLContext. Unlock messages are used for a correct synchronization
     /// with WebRender external image API.
     /// The WR unlocks a context when it finished reading the shared texture contents.
@@ -184,39 +180,6 @@ impl WebGLMsgSender {
 
     pub fn send_dom_to_texture(&self, command: DOMToTextureCommand) -> WebGLSendResult {
         self.sender.send(WebGLMsg::DOMToTextureCommand(command))
-    }
-
-    pub fn webxr_external_image_api(&self) -> impl webxr_api::WebGLExternalImageApi {
-        SerializableWebGLMsgSender {
-            ctx_id: self.ctx_id,
-            sender: self.sender.to_ipc(),
-        }
-    }
-}
-
-// WegGLMsgSender isn't actually serializable, despite what it claims.
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
-struct SerializableWebGLMsgSender {
-    ctx_id: WebGLContextId,
-    #[ignore_malloc_size_of = "channels are hard"]
-    sender: IpcSender<WebGLMsg>,
-}
-
-#[typetag::serde]
-impl webxr_api::WebGLExternalImageApi for SerializableWebGLMsgSender {
-    fn lock(&self) -> Result<(GLuint, Size2D<i32>, GLsync), webxr_api::Error> {
-        let (sender, receiver) = ipc::channel().or(Err(webxr_api::Error::CommunicationError))?;
-        self.sender
-            .send(WebGLMsg::LockIPC(self.ctx_id, sender))
-            .or(Err(webxr_api::Error::CommunicationError))?;
-        let (texture, size, sync) = receiver
-            .recv()
-            .or(Err(webxr_api::Error::CommunicationError))?;
-        Ok((texture, size, sync as GLsync))
-    }
-
-    fn unlock(&self) {
-        let _ = self.sender.send(WebGLMsg::Unlock(self.ctx_id));
     }
 }
 
