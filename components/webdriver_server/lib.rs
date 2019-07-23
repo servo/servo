@@ -811,6 +811,14 @@ impl Handler {
                 let cmd = WebDriverScriptCommand::FindElementCSS(parameters.value.clone(), sender);
                 self.browsing_context_script_command(cmd)?;
             },
+            LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
+                let cmd = WebDriverScriptCommand::FindElementLinkText(
+                    parameters.value.clone(),
+                    parameters.using == LocatorStrategy::PartialLinkText,
+                    sender,
+                );
+                self.browsing_context_script_command(cmd)?;
+            },
             LocatorStrategy::TagName => {
                 let cmd =
                     WebDriverScriptCommand::FindElementTagName(parameters.value.clone(), sender);
@@ -914,6 +922,14 @@ impl Handler {
                 let cmd = WebDriverScriptCommand::FindElementsCSS(parameters.value.clone(), sender);
                 self.browsing_context_script_command(cmd)?;
             },
+            LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
+                let cmd = WebDriverScriptCommand::FindElementsLinkText(
+                    parameters.value.clone(),
+                    parameters.using == LocatorStrategy::PartialLinkText,
+                    sender,
+                );
+                self.browsing_context_script_command(cmd)?;
+            },
             LocatorStrategy::TagName => {
                 let cmd =
                     WebDriverScriptCommand::FindElementsTagName(parameters.value.clone(), sender);
@@ -961,6 +977,15 @@ impl Handler {
                 );
                 self.browsing_context_script_command(cmd)?;
             },
+            LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
+                let cmd = WebDriverScriptCommand::FindElementElementLinkText(
+                    parameters.value.clone(),
+                    element.id.clone(),
+                    parameters.using == LocatorStrategy::PartialLinkText,
+                    sender,
+                );
+                self.browsing_context_script_command(cmd)?;
+            },
             LocatorStrategy::TagName => {
                 let cmd = WebDriverScriptCommand::FindElementElementTagName(
                     parameters.value.clone(),
@@ -1004,6 +1029,15 @@ impl Handler {
                 let cmd = WebDriverScriptCommand::FindElementElementsCSS(
                     parameters.value.clone(),
                     element.id.clone(),
+                    sender,
+                );
+                self.browsing_context_script_command(cmd)?;
+            },
+            LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
+                let cmd = WebDriverScriptCommand::FindElementElementsLinkText(
+                    parameters.value.clone(),
+                    element.id.clone(),
+                    parameters.using == LocatorStrategy::PartialLinkText,
                     sender,
                 );
                 self.browsing_context_script_command(cmd)?;
