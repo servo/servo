@@ -432,6 +432,36 @@
     <None Include="..\..\..\target\debug\simpleservo.dll">
       <Filter>DebugServoDLLs</Filter>
     </None>
+    <None Include="..\..\..\target\aarch64-pc-windows-msvc\debug\libcrypto.dll">
+      <Filter>DebugARM64ServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\aarch64-pc-windows-msvc\debug\libssl.dll">
+      <Filter>DebugARM64ServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\aarch64-pc-windows-msvc\debug\msvcp140.dll">
+      <Filter>DebugARM64ServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\aarch64-pc-windows-msvc\debug\simpleservo.dll">
+      <Filter>DebugARM64ServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\aarch64-pc-windows-msvc\debug\vcruntime140.dll">
+      <Filter>DebugARM64ServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\aarch64-pc-windows-msvc\release\libcrypto.dll">
+      <Filter>ReleaseARM64ServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\aarch64-pc-windows-msvc\release\libssl.dll">
+      <Filter>ReleaseARM64ServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\aarch64-pc-windows-msvc\release\msvcp140.dll">
+      <Filter>ReleaseARM64ServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\aarch64-pc-windows-msvc\release\simpleservo.dll">
+      <Filter>ReleaseARM64ServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\aarch64-pc-windows-msvc\release\vcruntime140.dll">
+      <Filter>ReleaseARM64ServoDLLs</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Assets">
@@ -448,6 +478,12 @@
     </Filter>
     <Filter Include="Content">
       <UniqueIdentifier>{83d6e7af-b929-4869-804e-571256af2969}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DebugARM64ServoDLLs">
+      <UniqueIdentifier>{e372e8ac-7cab-47de-80a5-020370a51fd4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ReleaseARM64ServoDLLs">
+      <UniqueIdentifier>{384b4019-d076-4301-994d-a891969a3036}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

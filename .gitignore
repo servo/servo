@@ -48,8 +48,10 @@ capture_webrender/
 
 support/hololens/x64/
 support/hololens/ARM/
+support/hololens/ARM64/
 support/hololens/ServoApp/x64/
 support/hololens/ServoApp/ARM/
+support/hololens/ServoApp/ARM64/
 support/hololens/ServoApp/Generated\ Files
 
 # Ignore thumbnails created by Windows
