@@ -328,6 +328,10 @@ impl WebGLRenderingContext {
         self.webgl_sender.clone()
     }
 
+    pub fn context_id(&self) -> WebGLContextId {
+        self.webgl_sender.context_id()
+    }
+
     #[inline]
     pub fn send_command(&self, command: WebGLCommand) {
         self.webgl_sender
@@ -4376,9 +4380,5 @@ impl WebGLMessageSender {
 
     pub fn send_dom_to_texture(&self, command: DOMToTextureCommand) -> WebGLSendResult {
         self.wake_after_send(|| self.sender.send_dom_to_texture(command))
-    }
-
-    pub fn webxr_external_image_api(&self) -> impl webxr_api::WebGLExternalImageApi {
-        self.sender.webxr_external_image_api()
     }
 }

@@ -418,21 +418,25 @@ where
 
         // Initialize WebGL Thread entry point.
         let webgl_result = gl_factory.map(|factory| {
-            let (webgl_threads, thread_data, image_handler, output_handler) = WebGLThreads::new(
-                factory,
-                window.gl(),
-                webrender_api_sender.clone(),
-                webvr_compositor.map(|c| c as Box<_>),
-                external_images.clone(),
-                if run_webgl_on_main_thread {
-                    ThreadMode::MainThread(embedder.create_event_loop_waker())
-                } else {
-                    ThreadMode::OffThread
-                },
-            );
+            let (webgl_threads, thread_data, webxr_handler, image_handler, output_handler) =
+                WebGLThreads::new(
+                    factory,
+                    window.gl(),
+                    webrender_api_sender.clone(),
+                    webvr_compositor.map(|c| c as Box<_>),
+                    external_images.clone(),
+                    if run_webgl_on_main_thread {
+                        ThreadMode::MainThread(embedder.create_event_loop_waker())
+                    } else {
+                        ThreadMode::OffThread
+                    },
+                );
 
             // Set webrender external image handler for WebGL textures
             external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::WebGL);
+
+            // Set webxr external image handler for WebGL textures
+            webxr_main_thread.set_webgl(webxr_handler);
 
             // Set DOM to texture handler, if enabled.
             if let Some(output_handler) = output_handler {

@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
 use crate::gl_context::GLContextFactory;
 use crate::webgl_thread::{WebGLMainThread, WebGLThread, WebGLThreadInit};
 use canvas_traits::webgl::webgl_channel;
@@ -17,6 +16,7 @@ use std::default::Default;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use webrender_traits::{WebrenderExternalImageApi, WebrenderExternalImageRegistry};
+use webxr_api::WebGLExternalImageApi;
 
 /// WebGL Threading API entry point that lives in the constellation.
 pub struct WebGLThreads(WebGLSender<WebGLMsg>);
@@ -38,6 +38,7 @@ impl WebGLThreads {
     ) -> (
         WebGLThreads,
         Option<Rc<WebGLMainThread>>,
+        Box<dyn webxr_api::WebGLExternalImageApi>,
         Box<dyn WebrenderExternalImageApi>,
         Option<Box<dyn webrender::OutputImageHandler>>,
     ) {
@@ -77,6 +78,7 @@ impl WebGLThreads {
         (
             WebGLThreads(sender),
             webgl_thread,
+            external.sendable.clone_box(),
             Box::new(external),
             output_handler.map(|b| b as Box<_>),
         )
@@ -96,9 +98,8 @@ impl WebGLThreads {
     }
 }
 
-/// Bridge between the webrender::ExternalImage callbacks and the WebGLThreads.
-struct WebGLExternalImages {
-    webrender_gl: Rc<dyn gl::Gl>,
+/// Bridge between the webxr_api::ExternalImage callbacks and the WebGLThreads.
+struct SendableWebGLExternalImages {
     webgl_channel: WebGLSender<WebGLMsg>,
     // Used to avoid creating a new channel on each received WebRender request.
     lock_channel: (
@@ -107,24 +108,26 @@ struct WebGLExternalImages {
     ),
 }
 
-impl WebGLExternalImages {
-    fn new(webrender_gl: Rc<dyn gl::Gl>, channel: WebGLSender<WebGLMsg>) -> Self {
-        WebGLExternalImages {
-            webrender_gl,
+impl SendableWebGLExternalImages {
+    fn new(channel: WebGLSender<WebGLMsg>) -> Self {
+        Self {
             webgl_channel: channel,
             lock_channel: webgl_channel().unwrap(),
         }
     }
 }
 
-impl WebrenderExternalImageApi for WebGLExternalImages {
-    fn lock(&mut self, id: u64) -> (u32, Size2D<i32>) {
+impl webxr_api::WebGLExternalImageApi for SendableWebGLExternalImages {
+    fn lock(&self, id: usize) -> (u32, Size2D<i32>, Option<gl::GLsync>) {
         if let Some(main_thread) = WebGLMainThread::on_current_thread() {
             // If we're on the same thread as WebGL, we can get the data directly
-            main_thread
+            let (image_id, size) = main_thread
                 .thread_data
                 .borrow_mut()
-                .handle_lock_unsync(WebGLContextId(id as usize))
+                .handle_lock_unsync(WebGLContextId(id as usize));
+            // We don't need a GLsync object if we're running on the main thread
+            // Might be better to return an option?
+            (image_id, size, None)
         } else {
             // WebGL Thread has it's own GL command queue that we need to synchronize with the WR GL command queue.
             // The WebGLMsg::Lock message inserts a fence in the WebGL command queue.
@@ -135,16 +138,11 @@ impl WebrenderExternalImageApi for WebGLExternalImages {
                 ))
                 .unwrap();
             let (image_id, size, gl_sync) = self.lock_channel.1.recv().unwrap();
-            // The next glWaitSync call is run on the WR thread and it's used to synchronize the two
-            // flows of OpenGL commands in order to avoid WR using a semi-ready WebGL texture.
-            // glWaitSync doesn't block WR thread, it affects only internal OpenGL subsystem.
-            self.webrender_gl
-                .wait_sync(gl_sync as gl::GLsync, 0, gl::TIMEOUT_IGNORED);
-            (image_id, size)
+            (image_id, size, Some(gl_sync as gl::GLsync))
         }
     }
 
-    fn unlock(&mut self, id: u64) {
+    fn unlock(&self, id: usize) {
         if let Some(main_thread) = WebGLMainThread::on_current_thread() {
             // If we're on the same thread as WebGL, we can unlock directly
             main_thread
@@ -156,6 +154,42 @@ impl WebrenderExternalImageApi for WebGLExternalImages {
                 .send(WebGLMsg::Unlock(WebGLContextId(id as usize)))
                 .unwrap()
         }
+    }
+
+    fn clone_box(&self) -> Box<dyn webxr_api::WebGLExternalImageApi> {
+        Box::new(Self::new(self.webgl_channel.clone()))
+    }
+}
+
+/// Bridge between the webrender::ExternalImage callbacks and the WebGLThreads.
+struct WebGLExternalImages {
+    webrender_gl: Rc<dyn gl::Gl>,
+    sendable: SendableWebGLExternalImages,
+}
+
+impl WebGLExternalImages {
+    fn new(webrender_gl: Rc<dyn gl::Gl>, channel: WebGLSender<WebGLMsg>) -> Self {
+        Self {
+            webrender_gl,
+            sendable: SendableWebGLExternalImages::new(channel),
+        }
+    }
+}
+
+impl WebrenderExternalImageApi for WebGLExternalImages {
+    fn lock(&mut self, id: u64) -> (u32, Size2D<i32>) {
+        let (image_id, size, gl_sync) = self.sendable.lock(id as usize);
+        // The next glWaitSync call is run on the WR thread and it's used to synchronize the two
+        // flows of OpenGL commands in order to avoid WR using a semi-ready WebGL texture.
+        // glWaitSync doesn't block WR thread, it affects only internal OpenGL subsystem.
+        if let Some(gl_sync) = gl_sync {
+            self.webrender_gl.wait_sync(gl_sync, 0, gl::TIMEOUT_IGNORED);
+        }
+        (image_id, size)
+    }
+
+    fn unlock(&mut self, id: u64) {
+        self.sendable.unlock(id as usize);
     }
 }
 
