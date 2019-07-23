@@ -182,6 +182,7 @@ impl WebGLProgram {
         }
 
         self.linked.set(link_info.linked);
+        self.link_called.set(true);
         *self.active_attribs.borrow_mut() = link_info.active_attribs;
         *self.active_uniforms.borrow_mut() = link_info.active_uniforms;
         Ok(())
