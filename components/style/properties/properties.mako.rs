@@ -17,7 +17,7 @@ use servo_arc::{Arc, UniqueArc};
 use std::borrow::Cow;
 use std::{ops, ptr};
 use std::fmt::{self, Write};
-use std::mem::{self, ManuallyDrop};
+use std::mem;
 
 use cssparser::{Parser, RGBA, TokenSerializationType};
 use cssparser::ParserInput;
@@ -294,12 +294,12 @@ impl Clone for PropertyDeclaration {
             }
 
             unsafe {
-                let mut out = mem::uninitialized();
+                let mut out = mem::MaybeUninit::uninit();
                 ptr::write(
-                    &mut out as *mut _ as *mut CopyVariants,
+                    out.as_mut_ptr() as *mut CopyVariants,
                     *(self as *const _ as *const CopyVariants),
                 );
-                return out;
+                return out.assume_init();
             }
         }
 
@@ -333,15 +333,15 @@ impl Clone for PropertyDeclaration {
             % else:
             ${" |\n".join("{}(ref value)".format(v["name"]) for v in vs)} => {
                 unsafe {
-                    let mut out = ManuallyDrop::new(mem::uninitialized());
+                    let mut out = mem::MaybeUninit::uninit();
                     ptr::write(
-                        &mut out as *mut _ as *mut PropertyDeclarationVariantRepr<${ty}>,
+                        out.as_mut_ptr() as *mut PropertyDeclarationVariantRepr<${ty}>,
                         PropertyDeclarationVariantRepr {
                             tag: *(self as *const _ as *const u16),
                             value: value.clone(),
                         },
                     );
-                    ManuallyDrop::into_inner(out)
+                    out.assume_init()
                 }
             }
             % endif

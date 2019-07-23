@@ -34,7 +34,7 @@ use nodrop::NoDrop;
 #[cfg(feature = "servo")]
 use serde::{Deserialize, Serialize};
 use stable_deref_trait::{CloneStableDeref, StableDeref};
-use std::alloc::Layout;
+use std::alloc::{self, Layout};
 use std::borrow;
 use std::cmp::Ordering;
 use std::convert::From;
@@ -51,25 +51,6 @@ use std::slice;
 use std::sync::atomic;
 use std::sync::atomic::Ordering::{Acquire, Relaxed, Release};
 use std::{isize, usize};
-
-// Private macro to get the offset of a struct field in bytes from the address of the struct.
-macro_rules! offset_of {
-    ($container:path, $field:ident) => {{
-        // Make sure the field actually exists. This line ensures that a compile-time error is
-        // generated if $field is accessed through a Deref impl.
-        let $container { $field: _, .. };
-
-        // Create an (invalid) instance of the container and calculate the offset to its
-        // field. Using a null pointer might be UB if `&(*(0 as *const T)).field` is interpreted to
-        // be nullptr deref.
-        let invalid: $container = ::std::mem::uninitialized();
-        let offset = &invalid.$field as *const _ as usize - &invalid as *const _ as usize;
-
-        // Do not run destructors on the made up invalid instance.
-        ::std::mem::forget(invalid);
-        offset as isize
-    }};
-}
 
 /// A soft limit on the amount of references that may be made to an `Arc`.
 ///
@@ -134,10 +115,38 @@ impl<T> UniqueArc<T> {
         UniqueArc(Arc::new(data))
     }
 
+    /// Construct an uninitialized arc
+    #[inline]
+    pub fn new_uninit() -> UniqueArc<mem::MaybeUninit<T>> {
+        unsafe {
+            let layout = Layout::new::<ArcInner<mem::MaybeUninit<T>>>();
+            let ptr = alloc::alloc(layout);
+            let mut p = ptr::NonNull::new(ptr)
+                .unwrap_or_else(|| alloc::handle_alloc_error(layout))
+                .cast::<ArcInner<mem::MaybeUninit<T>>>();
+            ptr::write(&mut p.as_mut().count, atomic::AtomicUsize::new(1));
+            UniqueArc(Arc {
+                p,
+                phantom: PhantomData,
+            })
+        }
+    }
+
     #[inline]
     /// Convert to a shareable Arc<T> once we're done mutating it
     pub fn shareable(self) -> Arc<T> {
         self.0
+    }
+}
+
+impl<T> UniqueArc<mem::MaybeUninit<T>> {
+    /// Convert to an initialized Arc.
+    #[inline]
+    pub unsafe fn assume_init(this: Self) -> UniqueArc<T> {
+        UniqueArc(Arc {
+            p: this.0.p.cast(),
+            phantom: PhantomData,
+        })
     }
 }
 
@@ -167,6 +176,14 @@ struct ArcInner<T: ?Sized> {
 
 unsafe impl<T: ?Sized + Sync + Send> Send for ArcInner<T> {}
 unsafe impl<T: ?Sized + Sync + Send> Sync for ArcInner<T> {}
+
+/// Computes the offset of the data field within ArcInner.
+fn data_offset<T>() -> usize {
+    let size = size_of::<ArcInner<()>>();
+    let align = align_of::<T>();
+    // https://github.com/rust-lang/rust/blob/1.36.0/src/libcore/alloc.rs#L187-L207
+    size.wrapping_add(align).wrapping_sub(1) & !align.wrapping_sub(1)
+}
 
 impl<T> Arc<T> {
     /// Construct an `Arc<T>`
@@ -223,7 +240,7 @@ impl<T> Arc<T> {
     unsafe fn from_raw(ptr: *const T) -> Self {
         // To find the corresponding pointer to the `ArcInner` we need
         // to subtract the offset of the `data` field from the pointer.
-        let ptr = (ptr as *const u8).offset(-offset_of!(ArcInner<T>, data));
+        let ptr = (ptr as *const u8).sub(data_offset::<T>());
         Arc {
             p: ptr::NonNull::new_unchecked(ptr as *mut ArcInner<T>),
             phantom: PhantomData,

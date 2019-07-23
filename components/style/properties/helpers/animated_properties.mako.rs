@@ -18,7 +18,7 @@ use crate::properties::LonghandId;
 use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::ptr;
-use std::mem::{self, ManuallyDrop};
+use std::mem;
 use crate::hash::FxHashMap;
 use super::ComputedValues;
 use crate::values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
@@ -252,12 +252,12 @@ impl Clone for AnimationValue {
             }
 
             unsafe {
-                let mut out = mem::uninitialized();
+                let mut out = mem::MaybeUninit::uninit();
                 ptr::write(
-                    &mut out as *mut _ as *mut CopyVariants,
+                    out.as_mut_ptr() as *mut CopyVariants,
                     *(self as *const _ as *const CopyVariants),
                 );
-                return out;
+                return out.assume_init();
             }
         }
 
@@ -269,15 +269,15 @@ impl Clone for AnimationValue {
                 ${props[0].camel_case}(value.clone())
                 % else:
                 unsafe {
-                    let mut out = ManuallyDrop::new(mem::uninitialized());
+                    let mut out = mem::MaybeUninit::uninit();
                     ptr::write(
-                        &mut out as *mut _ as *mut AnimationValueVariantRepr<${ty}>,
+                        out.as_mut_ptr() as *mut AnimationValueVariantRepr<${ty}>,
                         AnimationValueVariantRepr {
                             tag: *(self as *const _ as *const u16),
                             value: value.clone(),
                         },
                     );
-                    ManuallyDrop::into_inner(out)
+                    out.assume_init()
                 }
                 % endif
             }
@@ -356,15 +356,15 @@ impl AnimationValue {
                 PropertyDeclaration::${props[0].camel_case}(value)
                 % else:
                 unsafe {
-                    let mut out = mem::uninitialized();
+                    let mut out = mem::MaybeUninit::uninit();
                     ptr::write(
-                        &mut out as *mut _ as *mut PropertyDeclarationVariantRepr<${specified}>,
+                        out.as_mut_ptr() as *mut PropertyDeclarationVariantRepr<${specified}>,
                         PropertyDeclarationVariantRepr {
                             tag: *(self as *const _ as *const u16),
                             value,
                         },
                     );
-                    out
+                    out.assume_init()
                 }
                 % endif
             }
@@ -424,15 +424,15 @@ impl AnimationValue {
                 % endif
 
                 unsafe {
-                    let mut out = mem::uninitialized();
+                    let mut out = mem::MaybeUninit::uninit();
                     ptr::write(
-                        &mut out as *mut _ as *mut AnimationValueVariantRepr<${ty}>,
+                        out.as_mut_ptr() as *mut AnimationValueVariantRepr<${ty}>,
                         AnimationValueVariantRepr {
                             tag: longhand_id.to_physical(context.builder.writing_mode) as u16,
                             value,
                         },
                     );
-                    out
+                    out.assume_init()
                 }
             }
             % endfor
@@ -579,15 +579,15 @@ impl Animate for AnimationValue {
                     let value = this.animate(&other_repr.value, procedure)?;
                     % endif
 
-                    let mut out = mem::uninitialized();
+                    let mut out = mem::MaybeUninit::uninit();
                     ptr::write(
-                        &mut out as *mut _ as *mut AnimationValueVariantRepr<${ty}>,
+                        out.as_mut_ptr() as *mut AnimationValueVariantRepr<${ty}>,
                         AnimationValueVariantRepr {
                             tag: this_tag,
                             value,
                         },
                     );
-                    out
+                    out.assume_init()
                 }
                 % endfor
                 ${" |\n".join("{}(void)".format(prop.camel_case) for prop in unanimated)} => {
