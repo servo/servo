@@ -113,7 +113,7 @@ use compositing::SendableFrameTree;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use embedder_traits::{Cursor, EmbedderMsg, EmbedderProxy};
-use euclid::{Size2D, TypedScale, TypedSize2D};
+use euclid::{default::Size2D as UntypedSize2D, Scale, Size2D};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -644,7 +644,7 @@ where
     /// Create a new constellation thread.
     pub fn start(
         state: InitialConstellationState,
-        initial_window_size: TypedSize2D<u32, DeviceIndependentPixel>,
+        initial_window_size: Size2D<u32, DeviceIndependentPixel>,
         device_pixels_per_px: Option<f32>,
         random_pipeline_closure_probability: Option<f32>,
         random_pipeline_closure_seed: Option<usize>,
@@ -738,8 +738,8 @@ where
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan,
                     window_size: WindowSizeData {
-                        initial_viewport: initial_window_size.to_f32() * TypedScale::new(1.0),
-                        device_pixel_ratio: TypedScale::new(device_pixels_per_px.unwrap_or(1.0)),
+                        initial_viewport: initial_window_size.to_f32() * Scale::new(1.0),
+                        device_pixel_ratio: Scale::new(device_pixels_per_px.unwrap_or(1.0)),
                     },
                     phantom: PhantomData,
                     webdriver: WebDriverData::new(),
@@ -903,7 +903,7 @@ where
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         parent_pipeline_id: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
-        initial_window_size: TypedSize2D<f32, CSSPixel>,
+        initial_window_size: Size2D<f32, CSSPixel>,
         // TODO: we have to provide ownership of the LoadData
         // here, because it will be send on an ipc channel,
         // and ipc channels take onership of their data.
@@ -1078,7 +1078,7 @@ where
         top_level_id: TopLevelBrowsingContextId,
         pipeline_id: PipelineId,
         parent_pipeline_id: Option<PipelineId>,
-        size: TypedSize2D<f32, CSSPixel>,
+        size: Size2D<f32, CSSPixel>,
         is_private: bool,
         is_visible: bool,
     ) {
@@ -3341,7 +3341,7 @@ where
 
     fn handle_create_canvas_paint_thread_msg(
         &mut self,
-        size: Size2D<u64>,
+        size: UntypedSize2D<u64>,
         response_sender: IpcSender<(IpcSender<CanvasMsg>, CanvasId)>,
     ) {
         let webrender_api = self.webrender_api_sender.clone();
@@ -4015,7 +4015,7 @@ where
             // If the rectangle for this pipeline is zero sized, it will
             // never be painted. In this case, don't query the layout
             // thread as it won't contribute to the final output image.
-            if browsing_context.size == TypedSize2D::zero() {
+            if browsing_context.size == Size2D::zero() {
                 continue;
             }
 

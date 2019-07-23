@@ -18,7 +18,7 @@ gl = ["gleam", "pixels"]
 [dependencies]
 crossbeam-channel = "0.3"
 embedder_traits = {path = "../embedder_traits"}
-euclid = "0.19"
+euclid = "0.20"
 gfx_traits = {path = "../gfx_traits"}
 gleam = {version = "0.6", optional = true}
 image = "0.21"

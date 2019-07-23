@@ -4,7 +4,7 @@
 
 use crate::display_list::border;
 use app_units::Au;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
+use euclid::default::{Point2D, Rect, SideOffsets2D, Size2D};
 use style::computed_values::background_attachment::single_value::T as BackgroundAttachment;
 use style::computed_values::background_clip::single_value::T as BackgroundClip;
 use style::computed_values::background_origin::single_value::T as BackgroundOrigin;

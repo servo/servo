@@ -4,7 +4,7 @@
 
 use crate::display_list::ToLayout;
 use app_units::Au;
-use euclid::{Point2D, Size2D, Vector2D};
+use euclid::default::{Point2D, Size2D, Vector2D};
 use style::properties::ComputedValues;
 use style::values::computed::image::{EndingShape, LineDirection};
 use style::values::computed::{Angle, GradientItem, LengthPercentage, Percentage, Position};

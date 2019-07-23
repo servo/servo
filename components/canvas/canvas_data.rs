@@ -5,7 +5,7 @@
 use crate::canvas_paint_thread::AntialiasMode;
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
-use euclid::{Point2D, Rect, Size2D, Transform2D, Vector2D};
+use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use num_traits::ToPrimitive;
 #[allow(unused_imports)]
@@ -13,6 +13,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::sync::Arc;
 use webrender::api::DirtyRect;
+use webrender_api::units::RectExt;
 
 /// The canvas data stores a state machine for the current status of
 /// the path data and any relevant transformations that are
@@ -123,12 +124,12 @@ struct PathBuilderRef<'a> {
 
 impl<'a> PathBuilderRef<'a> {
     fn line_to(&self, pt: &Point2D<f32>) {
-        let pt = self.transform.transform_point(pt);
+        let pt = self.transform.transform_point(*pt);
         self.builder.line_to(pt);
     }
 
     fn move_to(&self, pt: &Point2D<f32>) {
-        let pt = self.transform.transform_point(pt);
+        let pt = self.transform.transform_point(*pt);
         self.builder.move_to(pt);
     }
 
@@ -142,32 +143,30 @@ impl<'a> PathBuilderRef<'a> {
             ),
             Point2D::new(rect.origin.x, rect.origin.y + rect.size.height),
         );
-        self.builder.move_to(self.transform.transform_point(&first));
-        self.builder
-            .line_to(self.transform.transform_point(&second));
-        self.builder.line_to(self.transform.transform_point(&third));
-        self.builder
-            .line_to(self.transform.transform_point(&fourth));
+        self.builder.move_to(self.transform.transform_point(first));
+        self.builder.line_to(self.transform.transform_point(second));
+        self.builder.line_to(self.transform.transform_point(third));
+        self.builder.line_to(self.transform.transform_point(fourth));
         self.builder.close();
     }
 
     fn quadratic_curve_to(&self, cp: &Point2D<f32>, endpoint: &Point2D<f32>) {
         self.builder.quadratic_curve_to(
-            &self.transform.transform_point(cp),
-            &self.transform.transform_point(endpoint),
+            &self.transform.transform_point(*cp),
+            &self.transform.transform_point(*endpoint),
         )
     }
 
     fn bezier_curve_to(&self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, endpoint: &Point2D<f32>) {
         self.builder.bezier_curve_to(
-            &self.transform.transform_point(cp1),
-            &self.transform.transform_point(cp2),
-            &self.transform.transform_point(endpoint),
+            &self.transform.transform_point(*cp1),
+            &self.transform.transform_point(*cp2),
+            &self.transform.transform_point(*endpoint),
         )
     }
 
     fn arc(&self, center: &Point2D<f32>, radius: f32, start_angle: f32, end_angle: f32, ccw: bool) {
-        let center = self.transform.transform_point(center);
+        let center = self.transform.transform_point(*center);
         self.builder
             .arc(center, radius, start_angle, end_angle, ccw);
     }
@@ -182,7 +181,7 @@ impl<'a> PathBuilderRef<'a> {
         end_angle: f32,
         ccw: bool,
     ) {
-        let center = self.transform.transform_point(center);
+        let center = self.transform.transform_point(*center);
         self.builder.ellipse(
             center,
             radius_x,
@@ -200,7 +199,7 @@ impl<'a> PathBuilderRef<'a> {
             None => return None,
         };
         let current_point = self.builder.get_current_point();
-        Some(inverse.transform_point(&Point2D::new(current_point.x, current_point.y)))
+        Some(inverse.transform_point(Point2D::new(current_point.x, current_point.y)))
     }
 }
 
@@ -1033,7 +1032,7 @@ impl<'a> CanvasData<'a> {
         );
         let matrix = Transform2D::identity()
             .pre_translate(-source_rect.origin.to_vector().cast())
-            .pre_mul(&self.state.transform);
+            .pre_transform(&self.state.transform);
         draw_target.set_transform(&matrix);
         draw_target
     }

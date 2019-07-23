@@ -14,7 +14,7 @@ use crate::values::computed::CSSPixelLength;
 use crate::values::computed::Resolution;
 use crate::Atom;
 use app_units::Au;
-use euclid::Size2D;
+use euclid::default::Size2D;
 
 fn viewport_size(device: &Device) -> Size2D<Au> {
     if let Some(pc) = device.pres_context() {

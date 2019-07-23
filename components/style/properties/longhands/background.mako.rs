@@ -15,8 +15,7 @@ ${helpers.predefined_type(
     animation_value_type="AnimatedColor",
     ignored_when_colors_disabled=True,
     allow_quirks="Yes",
-    flags="APPLIES_TO_CUE APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER \
-           CAN_ANIMATE_ON_COMPOSITOR",
+    flags="CAN_ANIMATE_ON_COMPOSITOR",
 )}
 
 ${helpers.predefined_type(
@@ -28,7 +27,6 @@ ${helpers.predefined_type(
     vector="True",
     animation_value_type="discrete",
     ignored_when_colors_disabled="True",
-    flags="APPLIES_TO_CUE APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
 )}
 
 % for (axis, direction, initial) in [("x", "Horizontal", "left"), ("y", "Vertical", "top")]:
@@ -41,7 +39,6 @@ ${helpers.predefined_type(
         animation_value_type="ComputedValue",
         vector=True,
         vector_animation_type="repeatable_list",
-        flags="APPLIES_TO_CUE APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     )}
 % endfor
 
@@ -53,7 +50,6 @@ ${helpers.predefined_type(
     animation_value_type="discrete",
     vector=True,
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-repeat",
-    flags="APPLIES_TO_CUE APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
 )}
 
 ${helpers.single_keyword(
@@ -63,7 +59,6 @@ ${helpers.single_keyword(
     gecko_enum_prefix="StyleImageLayerAttachment",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-attachment",
     animation_value_type="discrete",
-    flags="APPLIES_TO_CUE APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
 )}
 
 ${helpers.single_keyword(
@@ -75,7 +70,6 @@ ${helpers.single_keyword(
     gecko_inexhaustive=True,
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-clip",
     animation_value_type="discrete",
-    flags="APPLIES_TO_CUE APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
 )}
 
 ${helpers.single_keyword(
@@ -86,7 +80,6 @@ ${helpers.single_keyword(
     gecko_inexhaustive=True,
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-origin",
     animation_value_type="discrete",
-    flags="APPLIES_TO_CUE APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
 )}
 
 ${helpers.predefined_type(
@@ -98,7 +91,6 @@ ${helpers.predefined_type(
     vector=True,
     vector_animation_type="repeatable_list",
     animation_value_type="BackgroundSizeList",
-    flags="APPLIES_TO_CUE APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     extra_prefixes="webkit")}
 
 // https://drafts.fxtf.org/compositing/#background-blend-mode
@@ -110,5 +102,4 @@ ${helpers.single_keyword(
     gecko_constant_prefix="NS_STYLE_BLEND",
     vector=True, products="gecko", animation_value_type="discrete",
     spec="https://drafts.fxtf.org/compositing/#background-blend-mode",
-    flags="APPLIES_TO_CUE APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
 )}

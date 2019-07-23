@@ -94,7 +94,8 @@ use devtools_traits::CSSError;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::EmbedderMsg;
-use euclid::{Point2D, Rect, Vector2D};
+use euclid::default::{Point2D, Rect};
+use euclid::Vector2D;
 use headers::ReferrerPolicy as ReferrerPolicyHeader;
 use headers::{HeaderMapExt, LastModified};
 use hyper_serde::Serde;
@@ -161,6 +162,7 @@ use style::thread_state::{self, ThreadState};
 use time::{at_utc, get_time, precise_time_ns, Timespec};
 use url::percent_encoding::percent_decode;
 use url::Position;
+use webrender_api::units::LayoutPixel;
 use webrender_api::{DocumentId, RenderApiSender};
 use webvr_traits::{WebVREvent, WebVRMsg};
 
@@ -2230,7 +2232,7 @@ impl ScriptThread {
     fn handle_set_scroll_state(
         &self,
         id: PipelineId,
-        scroll_states: &[(UntrustedNodeAddress, Vector2D<f32>)],
+        scroll_states: &[(UntrustedNodeAddress, Vector2D<f32, LayoutPixel>)],
     ) {
         let window = match { self.documents.borrow().find_window(id) } {
             Some(window) => window,

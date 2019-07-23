@@ -18,7 +18,6 @@ ${helpers.predefined_type(
     animation_value_type="AnimatedColor",
     ignored_when_colors_disabled=True,
     spec="https://drafts.csswg.org/css-ui/#propdef-outline-color",
-    flags="APPLIES_TO_CUE",
 )}
 
 ${helpers.predefined_type(
@@ -28,7 +27,6 @@ ${helpers.predefined_type(
     initial_specified_value="specified::OutlineStyle::none()",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-ui/#propdef-outline-style",
-    flags="APPLIES_TO_CUE",
 )}
 
 ${helpers.predefined_type(
@@ -39,7 +37,6 @@ ${helpers.predefined_type(
     computed_type="crate::values::computed::NonNegativeLength",
     animation_value_type="NonNegativeLength",
     spec="https://drafts.csswg.org/css-ui/#propdef-outline-width",
-    flags="APPLIES_TO_CUE",
 )}
 
 // The -moz-outline-radius-* properties are non-standard and not on a standards track.

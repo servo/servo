@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::pipeline::Pipeline;
-use euclid::TypedSize2D;
+use euclid::Size2D;
 use msg::constellation_msg::{
     BrowsingContextGroupId, BrowsingContextId, PipelineId, TopLevelBrowsingContextId,
 };
@@ -46,7 +46,7 @@ pub struct BrowsingContext {
     pub top_level_id: TopLevelBrowsingContextId,
 
     /// The size of the frame.
-    pub size: TypedSize2D<f32, CSSPixel>,
+    pub size: Size2D<f32, CSSPixel>,
 
     /// Whether this browsing context is in private browsing mode.
     pub is_private: bool,
@@ -76,7 +76,7 @@ impl BrowsingContext {
         top_level_id: TopLevelBrowsingContextId,
         pipeline_id: PipelineId,
         parent_pipeline_id: Option<PipelineId>,
-        size: TypedSize2D<f32, CSSPixel>,
+        size: Size2D<f32, CSSPixel>,
         is_private: bool,
         is_visible: bool,
     ) -> BrowsingContext {

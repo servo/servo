@@ -28,7 +28,7 @@ use crate::dom::windowproxy::WindowProxy;
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
-use euclid::TypedSize2D;
+use euclid::Size2D;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
@@ -202,10 +202,7 @@ impl HTMLIFrameElement {
                     window_size: WindowSizeData {
                         initial_viewport: {
                             let rect = self.upcast::<Node>().bounding_content_box_or_zero();
-                            TypedSize2D::new(
-                                rect.size.width.to_f32_px(),
-                                rect.size.height.to_f32_px(),
-                            )
+                            Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px())
                         },
                         device_pixel_ratio: window.device_pixel_ratio(),
                     },

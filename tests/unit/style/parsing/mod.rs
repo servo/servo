@@ -36,27 +36,6 @@ where
     f(&context, &mut parser)
 }
 
-fn parse_entirely<T, F>(f: F, s: &'static str) -> Result<T, ParseError<'static>>
-where
-    F: for<'t> Fn(&ParserContext, &mut Parser<'static, 't>) -> Result<T, ParseError<'static>>,
-{
-    let mut input = ParserInput::new(s);
-    parse_entirely_input(f, &mut input)
-}
-
-fn parse_entirely_input<'i: 't, 't, T, F>(
-    f: F,
-    input: &'t mut ParserInput<'i>,
-) -> Result<T, ParseError<'i>>
-where
-    F: Fn(&ParserContext, &mut Parser<'i, 't>) -> Result<T, ParseError<'i>>,
-{
-    parse_input(
-        |context, parser| parser.parse_entirely(|p| f(context, p)),
-        input,
-    )
-}
-
 // This is a macro so that the file/line information
 // is preserved in the panic
 macro_rules! assert_roundtrip_with_context {
@@ -141,7 +120,6 @@ mod effects;
 mod image;
 mod inherited_text;
 mod outline;
-mod position;
 mod selectors;
 mod supports;
 mod text_overflow;

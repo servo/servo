@@ -16,7 +16,7 @@ atomic_refcell = "0.1"
 canvas_traits = {path = "../canvas_traits"}
 cssparser = "0.25"
 crossbeam-channel = "0.3"
-euclid = "0.19"
+euclid = "0.20"
 gfx_traits = {path = "../gfx_traits"}
 html5ever = "0.23"
 ipc-channel = "0.11"

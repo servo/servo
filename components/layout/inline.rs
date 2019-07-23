@@ -21,7 +21,7 @@ use crate::text;
 use crate::traversal::PreorderFlowTraversal;
 use crate::ServoArc;
 use app_units::{Au, MIN_AU};
-use euclid::{Point2D, Rect, Size2D};
+use euclid::default::{Point2D, Rect, Size2D};
 use gfx::font::FontMetrics;
 use gfx_traits::print_tree::PrintTree;
 use range::{Range, RangeIndex};
@@ -1977,7 +1977,7 @@ impl Flow for InlineFlow {
                         relative_containing_block_mode,
                         CoordinateSystem::Own,
                     )
-                    .translate(&stacking_context_position.to_vector()),
+                    .translate(stacking_context_position.to_vector()),
             )
         }
     }

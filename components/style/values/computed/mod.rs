@@ -23,7 +23,7 @@ use crate::rule_cache::RuleCacheConditions;
 use crate::Atom;
 #[cfg(feature = "servo")]
 use crate::Prefix;
-use euclid::Size2D;
+use euclid::default::Size2D;
 use std::cell::RefCell;
 use std::cmp;
 use std::f32;
@@ -64,7 +64,7 @@ pub use self::length::{NonNegativeLengthPercentage, NonNegativeLengthPercentageO
 #[cfg(feature = "gecko")]
 pub use self::list::ListStyleType;
 pub use self::list::MozListReversed;
-pub use self::list::{QuotePair, Quotes};
+pub use self::list::Quotes;
 pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
 pub use self::percentage::{NonNegativePercentage, Percentage};

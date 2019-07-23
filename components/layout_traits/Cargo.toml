@@ -12,7 +12,7 @@ path = "lib.rs"
 
 [dependencies]
 crossbeam-channel = "0.3"
-euclid = "0.19"
+euclid = "0.20"
 gfx = {path = "../gfx"}
 ipc-channel = "0.11"
 metrics = {path = "../metrics"}

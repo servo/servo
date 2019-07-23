@@ -65,7 +65,7 @@ pub use self::length::{NonNegativeLengthPercentage, NonNegativeLengthPercentageO
 #[cfg(feature = "gecko")]
 pub use self::list::ListStyleType;
 pub use self::list::MozListReversed;
-pub use self::list::{QuotePair, Quotes};
+pub use self::list::Quotes;
 pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
 pub use self::percentage::Percentage;
@@ -402,18 +402,45 @@ impl Parse for NonNegativeNumberOrPercentage {
     }
 }
 
-#[allow(missing_docs)]
+/// The value of Opacity is <alpha-value>, which is "<number> | <percentage>".
+/// However, we serialize the specified value as number, so it's ok to store
+/// the Opacity as Number.
 #[derive(
     Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, SpecifiedValueInfo, ToCss, ToShmem,
 )]
 pub struct Opacity(Number);
 
-impl Parse for Opacity {
-    fn parse<'i, 't>(
+impl Opacity {
+    /// Parse number value only.
+    #[inline]
+    pub fn parse_number<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         Number::parse(context, input).map(Opacity)
+    }
+}
+
+impl Parse for Opacity {
+    /// Opacity accepts <number> | <percentage>, so we parse it as NumberOrPercentage,
+    /// and then convert into an Number if it's a Percentage.
+    /// https://drafts.csswg.org/cssom/#serializing-css-values
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let number = match NumberOrPercentage::parse(context, input)? {
+            NumberOrPercentage::Percentage(p) => Number {
+                value: p.get(),
+                calc_clamping_mode: if p.is_calc() {
+                    Some(AllowedNumericType::All)
+                } else {
+                    None
+                },
+            },
+            NumberOrPercentage::Number(n) => n,
+        };
+        Ok(Opacity(number))
     }
 }
 

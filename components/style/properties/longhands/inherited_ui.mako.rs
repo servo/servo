@@ -23,7 +23,6 @@ ${helpers.single_keyword(
     "auto none",
     animation_value_type="discrete",
     extra_gecko_values="visiblepainted visiblefill visiblestroke visible painted fill stroke all",
-    flags="APPLIES_TO_PLACEHOLDER",
     spec="https://www.w3.org/TR/SVG11/interact.html#PointerEventsProperty",
 )}
 
@@ -74,6 +73,10 @@ ${helpers.predefined_type(
     "Default::default()",
     spec="https://drafts.csswg.org/css-scrollbars-1/#scrollbar-color",
     gecko_pref="layout.css.scrollbar-color.enabled",
+    # Surprisingly, yes the computed value of scrollbar-color has no effect on
+    # Gecko scrollbar elements, since the value only matters on the scrollable
+    # element itself.
+    has_effect_on_gecko_scrollbars=False,
     animation_value_type="ScrollbarColor",
     boxed=True,
     ignored_when_colors_disabled=True,

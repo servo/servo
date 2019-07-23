@@ -33,6 +33,7 @@ rand = [
 # Ignored packages with duplicated versions
 packages = [
   "crossbeam-deque",
+  "euclid", # https://github.com/servo/rust-webvr/pull/89
   "gl_generator", # https://github.com/servo/servo/pull/23288#issuecomment-494687746
   "lock_api",
   "nix", # https://github.com/servo/servo/issues/23189#issuecomment-487512605

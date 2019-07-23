@@ -20,7 +20,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
-use euclid::TypedRigidTransform3D;
+use euclid::RigidTransform3D;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use profile_traits::ipc;
@@ -103,7 +103,7 @@ impl XRTestMethods for XRTest {
                 },
             }
         } else {
-            TypedRigidTransform3D::identity()
+            RigidTransform3D::identity()
         };
 
         let floor_origin = if let Some(ref o) = init.floorOrigin {
@@ -115,7 +115,7 @@ impl XRTestMethods for XRTest {
                 },
             }
         } else {
-            TypedRigidTransform3D::identity()
+            RigidTransform3D::identity()
         };
 
         let views = match get_views(&init.views) {

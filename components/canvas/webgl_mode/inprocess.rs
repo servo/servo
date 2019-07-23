@@ -8,7 +8,7 @@ use canvas_traits::webgl::webgl_channel;
 use canvas_traits::webgl::DOMToTextureCommand;
 use canvas_traits::webgl::{WebGLChan, WebGLContextId, WebGLMsg, WebGLPipeline, WebGLReceiver};
 use canvas_traits::webgl::{WebGLSender, WebVRCommand, WebVRRenderHandler};
-use euclid::Size2D;
+use euclid::default::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
 use servo_config::pref;

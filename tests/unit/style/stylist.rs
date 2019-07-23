@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use cssparser::SourceLocation;
-use euclid::TypedScale;
-use euclid::TypedSize2D;
+use euclid::Scale;
+use euclid::Size2D;
 use selectors::parser::{AncestorHashes, Selector};
 use servo_arc::Arc;
 use servo_atoms::Atom;
@@ -214,8 +214,8 @@ fn test_insert() {
 fn mock_stylist() -> Stylist {
     let device = Device::new(
         MediaType::screen(),
-        TypedSize2D::new(0f32, 0f32),
-        TypedScale::new(1.0),
+        Size2D::new(0f32, 0f32),
+        Scale::new(1.0),
     );
     Stylist::new(device, QuirksMode::NoQuirks)
 }

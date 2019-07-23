@@ -50,7 +50,7 @@ devtools = {path = "../devtools"}
 devtools_traits = {path = "../devtools_traits"}
 embedder_traits = {path = "../embedder_traits"}
 env_logger = "0.6"
-euclid = "0.19"
+euclid = "0.20"
 gfx = {path = "../gfx"}
 gleam = "0.6"
 ipc-channel = "0.11"
@@ -60,7 +60,7 @@ layout_thread_2020 = {path = "../layout_thread_2020", optional = true}
 log = "0.4"
 media = {path = "../media"}
 msg = {path = "../msg"}
-offscreen_gl_context = "0.22"
+offscreen_gl_context = "0.23"
 net = {path = "../net"}
 net_traits = {path = "../net_traits"}
 profile = {path = "../profile"}

@@ -84,7 +84,7 @@ use constellation::{FromCompositorLogger, FromScriptLogger};
 use crossbeam_channel::{unbounded, Sender};
 use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use env_logger::Builder as EnvLoggerBuilder;
-use euclid::TypedSize2D;
+use euclid::Size2D;
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),
@@ -326,8 +326,8 @@ where
 
             // Cast from `DeviceIndependentPixel` to `DevicePixel`
             let device_pixel_ratio = coordinates.hidpi_factor.get();
-            let window_size = TypedSize2D::from_untyped(
-                &(opts.initial_window_size.to_f32() / device_pixel_ratio)
+            let window_size = Size2D::from_untyped(
+                (opts.initial_window_size.to_f32() / device_pixel_ratio)
                     .to_i32()
                     .to_untyped(),
             );

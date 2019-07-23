@@ -74,7 +74,8 @@ use cssparser::{Parser, ParserInput, SourceLocation};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
-use euclid::{Point2D, Rect, Size2D, TypedPoint2D, TypedScale, TypedSize2D, Vector2D};
+use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
+use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use ipc_channel::ipc::{channel, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
@@ -131,7 +132,7 @@ use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::CssRuleType;
 use style_traits::{CSSPixel, DevicePixel, ParsingMode};
 use url::Position;
-use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
+use webrender_api::units::{DeviceIntPoint, DeviceIntSize, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId, RenderApiSender};
 use webvr_traits::WebVRMsg;
 
@@ -229,7 +230,7 @@ pub struct Window {
 
     /// An enlarged rectangle around the page contents visible in the viewport, used
     /// to prevent creating display list items for content that is far away from the viewport.
-    page_clip_rect: Cell<Rect<Au>>,
+    page_clip_rect: Cell<UntypedRect<Au>>,
 
     /// Flag to suppress reflows. The first reflow will come either with
     /// RefreshTick or with FirstLoad. Until those first reflows, we want to
@@ -246,12 +247,12 @@ pub struct Window {
     /// The current state of the window object
     current_state: Cell<WindowState>,
 
-    current_viewport: Cell<Rect<Au>>,
+    current_viewport: Cell<UntypedRect<Au>>,
 
     error_reporter: CSSErrorReporter,
 
     /// A list of scroll offsets for each scrollable element.
-    scroll_offsets: DomRefCell<HashMap<OpaqueNode, Vector2D<f32>>>,
+    scroll_offsets: DomRefCell<HashMap<OpaqueNode, Vector2D<f32, LayoutPixel>>>,
 
     /// All the MediaQueryLists we need to update
     media_query_lists: DOMTracker<MediaQueryList>,
@@ -423,11 +424,11 @@ impl Window {
     /// Sets a new list of scroll offsets.
     ///
     /// This is called when layout gives us new ones and WebRender is in use.
-    pub fn set_scroll_offsets(&self, offsets: HashMap<OpaqueNode, Vector2D<f32>>) {
+    pub fn set_scroll_offsets(&self, offsets: HashMap<OpaqueNode, Vector2D<f32, LayoutPixel>>) {
         *self.scroll_offsets.borrow_mut() = offsets
     }
 
-    pub fn current_viewport(&self) -> Rect<Au> {
+    pub fn current_viewport(&self) -> UntypedRect<Au> {
         self.current_viewport.clone().get()
     }
 
@@ -1093,7 +1094,7 @@ impl WindowMethods for Window {
         // Step 1
         //TODO determine if this operation is allowed
         let dpr = self.device_pixel_ratio();
-        let size = TypedSize2D::new(width, height).to_f32() * dpr;
+        let size = Size2D::new(width, height).to_f32() * dpr;
         self.send_to_embedder(EmbedderMsg::ResizeTo(size.to_i32()));
     }
 
@@ -1112,7 +1113,7 @@ impl WindowMethods for Window {
         // Step 1
         //TODO determine if this operation is allowed
         let dpr = self.device_pixel_ratio();
-        let point = TypedPoint2D::new(x, y).to_f32() * dpr;
+        let point = Point2D::new(x, y).to_f32() * dpr;
         let msg = EmbedderMsg::MoveTo(point.to_i32());
         self.send_to_embedder(msg);
     }
@@ -1377,18 +1378,16 @@ impl Window {
         self.current_viewport.set(new_viewport)
     }
 
-    pub fn device_pixel_ratio(&self) -> TypedScale<f32, CSSPixel, DevicePixel> {
+    pub fn device_pixel_ratio(&self) -> Scale<f32, CSSPixel, DevicePixel> {
         self.window_size.get().device_pixel_ratio
     }
 
-    fn client_window(&self) -> (TypedSize2D<u32, CSSPixel>, TypedPoint2D<i32, CSSPixel>) {
+    fn client_window(&self) -> (Size2D<u32, CSSPixel>, Point2D<i32, CSSPixel>) {
         let timer_profile_chan = self.global().time_profiler_chan().clone();
         let (send, recv) =
             ProfiledIpc::channel::<(DeviceIntSize, DeviceIntPoint)>(timer_profile_chan).unwrap();
         self.send_to_constellation(ScriptMsg::GetClientWindow(send));
-        let (size, point) = recv
-            .recv()
-            .unwrap_or((TypedSize2D::zero(), TypedPoint2D::zero()));
+        let (size, point) = recv.recv().unwrap_or((Size2D::zero(), Point2D::zero()));
         let dpr = self.device_pixel_ratio();
         (
             (size.to_f32() / dpr).to_u32(),
@@ -1626,7 +1625,7 @@ impl Window {
         &*self.layout_rpc
     }
 
-    pub fn content_box_query(&self, node: &Node) -> Option<Rect<Au>> {
+    pub fn content_box_query(&self, node: &Node) -> Option<UntypedRect<Au>> {
         if !self.layout_reflow(QueryMsg::ContentBoxQuery(node.to_opaque())) {
             return None;
         }
@@ -1634,7 +1633,7 @@ impl Window {
         rect
     }
 
-    pub fn content_boxes_query(&self, node: &Node) -> Vec<Rect<Au>> {
+    pub fn content_boxes_query(&self, node: &Node) -> Vec<UntypedRect<Au>> {
         if !self.layout_reflow(QueryMsg::ContentBoxesQuery(node.to_opaque())) {
             return vec![];
         }
@@ -1642,21 +1641,21 @@ impl Window {
         rects
     }
 
-    pub fn client_rect_query(&self, node: &Node) -> Rect<i32> {
+    pub fn client_rect_query(&self, node: &Node) -> UntypedRect<i32> {
         if !self.layout_reflow(QueryMsg::NodeGeometryQuery(node.to_opaque())) {
             return Rect::zero();
         }
         self.layout_rpc.node_geometry().client_rect
     }
 
-    pub fn scroll_area_query(&self, node: &Node) -> Rect<i32> {
+    pub fn scroll_area_query(&self, node: &Node) -> UntypedRect<i32> {
         if !self.layout_reflow(QueryMsg::NodeScrollGeometryQuery(node.to_opaque())) {
             return Rect::zero();
         }
         self.layout_rpc.node_scroll_area().client_rect
     }
 
-    pub fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32> {
+    pub fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32, LayoutPixel> {
         if let Some(scroll_offset) = self.scroll_offsets.borrow().get(&node.to_opaque()) {
             return *scroll_offset;
         }
@@ -1702,7 +1701,7 @@ impl Window {
     }
 
     #[allow(unsafe_code)]
-    pub fn offset_parent_query(&self, node: &Node) -> (Option<DomRoot<Element>>, Rect<Au>) {
+    pub fn offset_parent_query(&self, node: &Node) -> (Option<DomRoot<Element>>, UntypedRect<Au>) {
         if !self.layout_reflow(QueryMsg::OffsetParentQuery(node.to_opaque())) {
             return (None, Rect::zero());
         }
@@ -1726,7 +1725,11 @@ impl Window {
         self.layout_rpc.style().0
     }
 
-    pub fn text_index_query(&self, node: &Node, point_in_node: Point2D<f32>) -> TextIndexResponse {
+    pub fn text_index_query(
+        &self,
+        node: &Node,
+        point_in_node: UntypedPoint2D<f32>,
+    ) -> TextIndexResponse {
         if !self.layout_reflow(QueryMsg::TextIndexQuery(node.to_opaque(), point_in_node)) {
             return TextIndexResponse(None);
         }
@@ -1891,7 +1894,7 @@ impl Window {
         event
     }
 
-    pub fn set_page_clip_rect_with_new_viewport(&self, viewport: Rect<f32>) -> bool {
+    pub fn set_page_clip_rect_with_new_viewport(&self, viewport: UntypedRect<f32>) -> bool {
         let rect = f32_rect_to_au_rect(viewport.clone());
         self.current_viewport.set(rect);
         // We use a clipping rectangle that is five times the size of the of the viewport,
@@ -2184,8 +2187,8 @@ impl Window {
     }
 }
 
-fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool {
-    let clip_rect = Rect::new(
+fn should_move_clip_rect(clip_rect: UntypedRect<Au>, new_viewport: UntypedRect<f32>) -> bool {
+    let clip_rect = UntypedRect::new(
         Point2D::new(
             clip_rect.origin.x.to_f32_px(),
             clip_rect.origin.y.to_f32_px(),

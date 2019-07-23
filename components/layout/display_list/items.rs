@@ -24,7 +24,7 @@ use std::f32;
 use std::fmt;
 use style::computed_values::_servo_top_layer::T as InTopLayer;
 use webrender_api as wr;
-use webrender_api::units::{LayoutPoint, LayoutRect, LayoutSize, LayoutTransform};
+use webrender_api::units::{LayoutPixel, LayoutPoint, LayoutRect, LayoutSize, LayoutTransform};
 use webrender_api::{BorderRadius, ClipId, ClipMode, CommonItemProperties, ComplexClipRegion};
 use webrender_api::{ExternalScrollId, FilterOp, GlyphInstance, GradientStop, ImageKey};
 use webrender_api::{MixBlendMode, ScrollSensitivity, Shadow, SpatialId};
@@ -343,7 +343,7 @@ impl fmt::Debug for StackingContext {
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct StickyFrameData {
-    pub margins: SideOffsets2D<Option<f32>>,
+    pub margins: SideOffsets2D<Option<f32>, LayoutPixel>,
     pub vertical_offset_bounds: StickyOffsetBounds,
     pub horizontal_offset_bounds: StickyOffsetBounds,
 }
@@ -792,4 +792,4 @@ impl WebRenderImageInfo {
 }
 
 /// The type of the scroll offset list. This is only populated if WebRender is in use.
-pub type ScrollOffsetMap = HashMap<ExternalScrollId, Vector2D<f32>>;
+pub type ScrollOffsetMap = HashMap<ExternalScrollId, Vector2D<f32, LayoutPixel>>;

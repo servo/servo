@@ -22,7 +22,7 @@ use crate::wrapper::ThreadSafeLayoutNodeHelpers;
 use crate::ServoArc;
 use app_units::Au;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
-use euclid::{Point2D, Rect, Size2D, Vector2D};
+use euclid::default::{Point2D, Rect, Size2D, Vector2D};
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use gfx_traits::StackingContextId;
@@ -2671,8 +2671,12 @@ impl Fragment {
         // this.
         let relative_position = self.relative_position(relative_containing_block_size);
         border_box
-            .translate_by_size(&relative_position.to_physical(self.style.writing_mode))
-            .translate(&stacking_relative_flow_origin)
+            .translate(
+                relative_position
+                    .to_physical(self.style.writing_mode)
+                    .to_vector(),
+            )
+            .translate(*stacking_relative_flow_origin)
     }
 
     /// Given the stacking-context-relative border box, returns the stacking-context-relative
@@ -2789,8 +2793,11 @@ impl Fragment {
         // FIXME(pcwalton): I'm not a fan of the way this makes us crawl though so many styles all
         // the time. Can't we handle relative positioning by just adjusting `border_box`?
         let relative_position = self.relative_position(relative_containing_block_size);
-        border_box =
-            border_box.translate_by_size(&relative_position.to_physical(self.style.writing_mode));
+        border_box = border_box.translate(
+            relative_position
+                .to_physical(self.style.writing_mode)
+                .to_vector(),
+        );
         let mut overflow = Overflow::from_rect(&border_box);
 
         // Box shadows cause us to draw outside our border box.
@@ -2803,7 +2810,7 @@ impl Fragment {
                 Au::from(box_shadow.base.blur) * BLUR_INFLATION_FACTOR;
             overflow.paint = overflow
                 .paint
-                .union(&border_box.translate(&offset).inflate(inflation, inflation))
+                .union(&border_box.translate(offset).inflate(inflation, inflation))
         }
 
         // Outlines cause us to draw outside our border box.
@@ -3172,7 +3179,11 @@ impl Fragment {
             -transform_origin_z,
         );
 
-        Some(pre_transform.pre_mul(&transform).pre_mul(&post_transform))
+        Some(
+            pre_transform
+                .pre_transform(&transform)
+                .pre_transform(&post_transform),
+        )
     }
 
     /// Returns the 4D matrix representing this fragment's perspective.
@@ -3210,8 +3221,8 @@ impl Fragment {
 
                 Some(
                     pre_transform
-                        .pre_mul(&perspective_matrix)
-                        .pre_mul(&post_transform),
+                        .pre_transform(&perspective_matrix)
+                        .pre_transform(&post_transform),
                 )
             },
             Perspective::None => None,
@@ -3378,8 +3389,8 @@ impl Overflow {
     }
 
     pub fn translate(&mut self, by: &Vector2D<Au>) {
-        self.scroll = self.scroll.translate(by);
-        self.paint = self.paint.translate(by);
+        self.scroll = self.scroll.translate(*by);
+        self.paint = self.paint.translate(*by);
     }
 }
 

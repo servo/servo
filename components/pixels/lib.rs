@@ -5,7 +5,7 @@
 #[macro_use]
 extern crate serde;
 
-use euclid::{Point2D, Rect, Size2D};
+use euclid::default::{Point2D, Rect, Size2D};
 use malloc_size_of_derive::MallocSizeOf;
 use std::borrow::Cow;
 

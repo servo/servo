@@ -5,7 +5,7 @@
 #![allow(missing_docs)]
 
 use cookie::Cookie;
-use euclid::Rect;
+use euclid::default::Rect;
 use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::BrowsingContextId;

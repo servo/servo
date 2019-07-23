@@ -17,7 +17,7 @@ oculusvr = ['rust-webvr/oculusvr']
 [dependencies]
 canvas_traits = {path = "../canvas_traits"}
 crossbeam-channel = "0.3"
-euclid = "0.19"
+euclid = "0.20"
 gleam = "0.6"
 ipc-channel = "0.11.2"
 log = "0.4"

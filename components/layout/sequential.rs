@@ -15,7 +15,7 @@ use crate::incremental::RelayoutMode;
 use crate::traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
 use crate::traversal::{InorderFlowTraversal, PostorderFlowTraversal, PreorderFlowTraversal};
 use app_units::Au;
-use euclid::{Point2D, Rect, Size2D, Vector2D};
+use euclid::default::{Point2D, Rect, Size2D, Vector2D};
 use servo_config::opts;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use webrender_api::units::LayoutPoint;
@@ -125,7 +125,7 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(
                     .as_block()
                     .stacking_relative_border_box(CoordinateSystem::Own);
                 if let Some(matrix) = kid.as_block().fragment.transform_matrix(&relative_position) {
-                    let transform_matrix = matrix.transform_point2d(&LayoutPoint::zero()).unwrap();
+                    let transform_matrix = matrix.transform_point2d(LayoutPoint::zero()).unwrap();
                     stacking_context_position = stacking_context_position +
                         Vector2D::new(
                             Au::from_f32_px(transform_matrix.x),

@@ -14,7 +14,7 @@ name = "servo_config"
 path = "lib.rs"
 
 [dependencies]
-euclid = "0.19"
+euclid = "0.20"
 embedder_traits = { path = "../embedder_traits" }
 getopts = "0.2.11"
 lazy_static = "1"

@@ -32,7 +32,10 @@ use crate::table_cell::CollapsedBordersForCell;
 use app_units::{Au, AU_PER_PX};
 use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
 use embedder_traits::Cursor;
-use euclid::{rect, Point2D, Rect, SideOffsets2D, Size2D, TypedRect, TypedSize2D};
+use euclid::{
+    default::{Point2D, Rect, SideOffsets2D as UntypedSideOffsets2D, Size2D},
+    rect, SideOffsets2D,
+};
 use fnv::FnvHashMap;
 use gfx::text::glyph::ByteIndex;
 use gfx::text::TextRun;
@@ -874,7 +877,7 @@ impl Fragment {
     ) -> Option<WebRenderImageInfo> {
         let device_pixel_ratio = state.layout_context.style_context.device_pixel_ratio();
         let size_in_px =
-            TypedSize2D::new(size_in_au.width.to_f32_px(), size_in_au.height.to_f32_px());
+            euclid::Size2D::new(size_in_au.width.to_f32_px(), size_in_au.height.to_f32_px());
 
         // TODO: less copying.
         let name = paint_worklet.name.clone();
@@ -1169,7 +1172,7 @@ impl Fragment {
         base: BaseDisplayItem,
         bounds: Rect<Au>,
         image: &Image,
-        border_width: SideOffsets2D<Au>,
+        border_width: UntypedSideOffsets2D<Au>,
     ) -> Option<()> {
         let border_style_struct = style.get_border();
         let border_image_outset =
@@ -1238,11 +1241,13 @@ impl Fragment {
             _ => return None,
         };
 
+        // FIXME(emilio): WR expects device pixels here... somehow?
+        let size = euclid::Size2D::new(width as i32, height as i32);
         let details = BorderDetails::NinePatch(NinePatchBorder {
             source,
             width: width as i32,
             height: height as i32,
-            slice: border::image_slice(border_image_slice, width as i32, height as i32),
+            slice: border::image_slice(border_image_slice, size),
             fill: border_image_fill,
             repeat_horizontal: border_image_repeat.0.to_layout(),
             repeat_vertical: border_image_repeat.1.to_layout(),
@@ -1660,7 +1665,7 @@ impl Fragment {
             // of this fragment's background but behind its content. This ensures that any
             // hit tests inside the content box but not on actual content target the current
             // scrollable ancestor.
-            let content_size = TypedRect::new(stacking_relative_border_box.origin, content_size);
+            let content_size = Rect::new(stacking_relative_border_box.origin, content_size);
             let base = state.create_base_display_item_with_clipping_and_scrolling(
                 content_size,
                 self.node,
@@ -1810,10 +1815,9 @@ impl Fragment {
 
                     // XXXjdm: This sleight-of-hand to convert LayoutRect -> Size2D<CSSPixel>
                     //         looks bogus.
-                    let size = Size2D::new(bounds.size.width, bounds.size.height);
                     state.iframe_sizes.push(IFrameSize {
                         id: browsing_context_id,
-                        size: TypedSize2D::from_untyped(&size),
+                        size: euclid::Size2D::new(bounds.size.width, bounds.size.height),
                     });
 
                     state.add_display_item(item);
@@ -1926,13 +1930,13 @@ impl Fragment {
         // First, compute the offset of our border box (including relative positioning)
         // from our flow origin, since that is what `BaseFlow::overflow` is relative to.
         let border_box_offset = border_box
-            .translate(&-base_flow.stacking_relative_position)
+            .translate(-base_flow.stacking_relative_position)
             .origin;
         // Then, using that, compute our overflow region relative to our border box.
         let overflow = base_flow
             .overflow
             .paint
-            .translate(&-border_box_offset.to_vector());
+            .translate(-border_box_offset.to_vector());
 
         // Create the filter pipeline.
         let effects = self.style().get_effects();
@@ -2269,7 +2273,7 @@ impl BlockFlow {
             .fragment
             .perspective_matrix(&border_box)
             .unwrap_or(LayoutTransform::identity());
-        let transform = transform.pre_mul(&perspective).inverse();
+        let transform = transform.pre_transform(&perspective).inverse();
 
         let origin = border_box.origin;
         let transform_clip = |clip: Rect<Au>| {
@@ -3016,7 +3020,7 @@ trait ToF32Px {
     fn to_f32_px(&self) -> Self::Output;
 }
 
-impl ToF32Px for TypedRect<Au> {
+impl ToF32Px for Rect<Au> {
     type Output = LayoutRect;
     fn to_f32_px(&self) -> LayoutRect {
         LayoutRect::from_untyped(&servo_geometry::au_rect_to_f32_rect(*self))

@@ -38,7 +38,7 @@ use crate::dom::xrspace::XRSpace;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
-use euclid::TypedRigidTransform3D;
+use euclid::RigidTransform3D;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use profile_traits::ipc;
@@ -403,15 +403,15 @@ impl XRSessionMethods for XRSession {
 #[derive(Clone, Copy, Debug)]
 pub struct ApiSpace;
 // The pose of an object in native-space. Should never be exposed.
-pub type ApiPose = TypedRigidTransform3D<f32, ApiSpace, webxr_api::Native>;
+pub type ApiPose = RigidTransform3D<f32, ApiSpace, webxr_api::Native>;
 // The pose of the viewer in some api-space.
-pub type ApiViewerPose = TypedRigidTransform3D<f32, webxr_api::Viewer, ApiSpace>;
+pub type ApiViewerPose = RigidTransform3D<f32, webxr_api::Viewer, ApiSpace>;
 // A transform between objects in some API-space
-pub type ApiRigidTransform = TypedRigidTransform3D<f32, ApiSpace, ApiSpace>;
+pub type ApiRigidTransform = RigidTransform3D<f32, ApiSpace, ApiSpace>;
 
 #[allow(unsafe_code)]
 pub fn cast_transform<T, U, V, W>(
-    transform: TypedRigidTransform3D<f32, T, U>,
-) -> TypedRigidTransform3D<f32, V, W> {
+    transform: RigidTransform3D<f32, T, U>,
+) -> RigidTransform3D<f32, V, W> {
     unsafe { mem::transmute(transform) }
 }

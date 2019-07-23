@@ -11,8 +11,8 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use euclid::{TypedPoint2D, TypedRect, TypedSize2D};
-use euclid::{TypedRigidTransform3D, TypedRotation3D, TypedTransform3D, TypedVector3D};
+use euclid::{Point2D, Rect, Size2D};
+use euclid::{RigidTransform3D, Rotation3D, Transform3D, Vector3D};
 use ipc_channel::ipc::IpcSender;
 use webxr_api::{MockDeviceMsg, View, Views};
 
@@ -67,23 +67,23 @@ pub fn get_views(views: &[FakeXRViewInit]) -> Fallible<Views> {
     let mut proj_r = [0.; 16];
     let v: Vec<_> = left.projectionMatrix.iter().map(|x| **x).collect();
     proj_l.copy_from_slice(&v);
-    let proj_l = TypedTransform3D::from_array(proj_l);
+    let proj_l = Transform3D::from_array(proj_l);
     let v: Vec<_> = right.projectionMatrix.iter().map(|x| **x).collect();
     proj_r.copy_from_slice(&v);
-    let proj_r = TypedTransform3D::from_array(proj_r);
+    let proj_r = Transform3D::from_array(proj_r);
 
     // spec defines offsets as origins, but mock API expects the inverse transform
     let offset_l = get_origin(&left.viewOffset)?.inverse();
     let offset_r = get_origin(&right.viewOffset)?.inverse();
 
-    let size_l = TypedSize2D::new(views[0].resolution.width, views[0].resolution.height);
-    let size_r = TypedSize2D::new(views[1].resolution.width, views[1].resolution.height);
+    let size_l = Size2D::new(views[0].resolution.width, views[0].resolution.height);
+    let size_r = Size2D::new(views[1].resolution.width, views[1].resolution.height);
 
-    let origin_l = TypedPoint2D::new(0, 0);
-    let origin_r = TypedPoint2D::new(size_l.width, 0);
+    let origin_l = Point2D::new(0, 0);
+    let origin_r = Point2D::new(size_l.width, 0);
 
-    let viewport_l = TypedRect::new(origin_l, size_l);
-    let viewport_r = TypedRect::new(origin_r, size_r);
+    let viewport_l = Rect::new(origin_l, size_l);
+    let viewport_r = Rect::new(origin_r, size_r);
 
     let left = View {
         projection: proj_l,
@@ -100,23 +100,23 @@ pub fn get_views(views: &[FakeXRViewInit]) -> Fallible<Views> {
 
 pub fn get_origin<T, U>(
     origin: &FakeXRRigidTransformInit,
-) -> Fallible<TypedRigidTransform3D<f32, T, U>> {
+) -> Fallible<RigidTransform3D<f32, T, U>> {
     if origin.position.len() != 3 || origin.orientation.len() != 4 {
         return Err(Error::Type("Incorrectly sized array".into()));
     }
-    let p = TypedVector3D::new(
+    let p = Vector3D::new(
         *origin.position[0],
         *origin.position[1],
         *origin.position[2],
     );
-    let o = TypedRotation3D::unit_quaternion(
+    let o = Rotation3D::unit_quaternion(
         *origin.orientation[0],
         *origin.orientation[1],
         *origin.orientation[2],
         *origin.orientation[3],
     );
 
-    Ok(TypedRigidTransform3D::new(o, p))
+    Ok(RigidTransform3D::new(o, p))
 }
 
 impl FakeXRDeviceMethods for FakeXRDevice {

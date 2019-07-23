@@ -13,7 +13,7 @@ use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::{cast_transform, ApiPose, ApiRigidTransform, ApiViewerPose, XRSession};
 use crate::dom::xrspace::XRSpace;
 use dom_struct::dom_struct;
-use euclid::{TypedRigidTransform3D, TypedVector3D};
+use euclid::{RigidTransform3D, Vector3D};
 use webxr_api::Frame;
 
 #[dom_struct]
@@ -64,7 +64,7 @@ impl XRReferenceSpace {
 impl XRReferenceSpaceMethods for XRReferenceSpace {
     /// https://immersive-web.github.io/webxr/#dom-xrreferencespace-getoffsetreferencespace
     fn GetOffsetReferenceSpace(&self, new: &XRRigidTransform) -> DomRoot<Self> {
-        let offset = new.transform().pre_mul(&self.offset.transform());
+        let offset = new.transform().pre_transform(&self.offset.transform());
         let offset = XRRigidTransform::new(&self.global(), offset);
         Self::new_offset(
             &self.global(),
@@ -92,7 +92,7 @@ impl XRReferenceSpace {
         //                        = offset.inverse() * get_unoffset_viewer_pose(space)
         let offset = self.offset.transform();
         let inverse = offset.inverse();
-        inverse.pre_mul(&pose)
+        inverse.pre_transform(&pose)
     }
 
     /// Gets pose of the viewer with respect to this space
@@ -120,13 +120,13 @@ impl XRReferenceSpace {
                 //                            = Translate(2) * viewer_pose
 
                 // assume approximate user height of 2 meters
-                let floor_to_eye: ApiRigidTransform = TypedVector3D::new(0., 2., 0.).into();
-                floor_to_eye.pre_mul(&viewer_pose)
+                let floor_to_eye: ApiRigidTransform = Vector3D::new(0., 2., 0.).into();
+                floor_to_eye.pre_transform(&viewer_pose)
             },
             XRReferenceSpaceType::Viewer => {
                 // This reference space follows the viewer around, so the viewer is
                 // always at an identity transform with respect to it
-                TypedRigidTransform3D::identity()
+                RigidTransform3D::identity()
             },
             _ => unimplemented!(),
         }
@@ -142,7 +142,7 @@ impl XRReferenceSpace {
 
         // This may change, see https://github.com/immersive-web/webxr/issues/567
         let offset = self.offset.transform();
-        offset.post_mul(&pose)
+        offset.post_transform(&pose)
     }
 
     /// Gets pose represented by this space
@@ -153,14 +153,14 @@ impl XRReferenceSpace {
             XRReferenceSpaceType::Local => {
                 // The eye-level pose is basically whatever the headset pose was at t=0, which
                 // for most devices is (0, 0, 0)
-                TypedRigidTransform3D::identity()
+                RigidTransform3D::identity()
             },
             XRReferenceSpaceType::Local_floor => {
                 // XXXManishearth support getting floor info from stage parameters
 
                 // Assume approximate height of 2m
                 // the floor-level space is 2m below the eye-level space, which is (0, 0, 0)
-                TypedVector3D::new(0., -2., 0.).into()
+                Vector3D::new(0., -2., 0.).into()
             },
             XRReferenceSpaceType::Viewer => cast_transform(base_pose.transform),
             _ => unimplemented!(),

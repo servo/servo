@@ -181,17 +181,28 @@ impl UrlExtraData {
 #[cfg(feature = "gecko")]
 impl fmt::Debug for UrlExtraData {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        struct DebugURI(*mut structs::nsIURI);
-        impl fmt::Debug for DebugURI {
-            fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                use nsstring::nsCString;
-                let mut spec = nsCString::new();
-                unsafe {
-                    bindings::Gecko_nsIURI_Debug(self.0, &mut spec);
+        macro_rules! define_debug_struct {
+            ($struct_name:ident, $gecko_class:ident, $debug_fn:ident) => {
+                struct $struct_name(*mut structs::$gecko_class);
+                impl fmt::Debug for $struct_name {
+                    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                        use nsstring::nsCString;
+                        let mut spec = nsCString::new();
+                        unsafe {
+                            bindings::$debug_fn(self.0, &mut spec);
+                        }
+                        spec.fmt(formatter)
+                    }
                 }
-                spec.fmt(formatter)
-            }
+            };
         }
+
+        define_debug_struct!(DebugURI, nsIURI, Gecko_nsIURI_Debug);
+        define_debug_struct!(
+            DebugReferrerInfo,
+            nsIReferrerInfo,
+            Gecko_nsIReferrerInfo_Debug
+        );
 
         formatter
             .debug_struct("URLExtraData")
@@ -202,7 +213,11 @@ impl fmt::Debug for UrlExtraData {
             )
             .field(
                 "referrer",
-                &DebugURI(self.as_ref().mReferrer.raw::<structs::nsIURI>()),
+                &DebugReferrerInfo(
+                    self.as_ref()
+                        .mReferrerInfo
+                        .raw::<structs::nsIReferrerInfo>(),
+                ),
             )
             .finish()
     }

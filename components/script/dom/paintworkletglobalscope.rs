@@ -25,8 +25,8 @@ use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::dom::workletglobalscope::WorkletTask;
 use crossbeam_channel::{unbounded, Sender};
 use dom_struct::dom_struct;
-use euclid::TypedScale;
-use euclid::TypedSize2D;
+use euclid::Scale;
+use euclid::Size2D;
 use js::jsapi::HandleValueArray;
 use js::jsapi::Heap;
 use js::jsapi::IsCallable;
@@ -81,9 +81,9 @@ pub struct PaintWorkletGlobalScope {
     /// The most recent name the worklet was called with
     cached_name: DomRefCell<Atom>,
     /// The most recent size the worklet was drawn at
-    cached_size: Cell<TypedSize2D<f32, CSSPixel>>,
+    cached_size: Cell<Size2D<f32, CSSPixel>>,
     /// The most recent device pixel ratio the worklet was drawn at
-    cached_device_pixel_ratio: Cell<TypedScale<f32, CSSPixel, DevicePixel>>,
+    cached_device_pixel_ratio: Cell<Scale<f32, CSSPixel, DevicePixel>>,
     /// The most recent properties the worklet was drawn at
     cached_properties: DomRefCell<Vec<(Atom, String)>>,
     /// The most recent arguments the worklet was drawn at
@@ -116,8 +116,8 @@ impl PaintWorkletGlobalScope {
             paint_definitions: Default::default(),
             paint_class_instances: Default::default(),
             cached_name: DomRefCell::new(Atom::from("")),
-            cached_size: Cell::new(TypedSize2D::zero()),
-            cached_device_pixel_ratio: Cell::new(TypedScale::new(1.0)),
+            cached_size: Cell::new(Size2D::zero()),
+            cached_device_pixel_ratio: Cell::new(Scale::new(1.0)),
             cached_properties: Default::default(),
             cached_arguments: Default::default(),
             cached_result: DomRefCell::new(DrawAPaintImageResult {
@@ -211,13 +211,13 @@ impl PaintWorkletGlobalScope {
     fn draw_a_paint_image(
         &self,
         name: &Atom,
-        size_in_px: TypedSize2D<f32, CSSPixel>,
-        device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
+        size_in_px: Size2D<f32, CSSPixel>,
+        device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
         properties: &StylePropertyMapReadOnly,
         arguments: &[String],
     ) -> DrawAPaintImageResult {
         let size_in_dpx = size_in_px * device_pixel_ratio;
-        let size_in_dpx = TypedSize2D::new(
+        let size_in_dpx = Size2D::new(
             size_in_dpx.width.abs() as u32,
             size_in_dpx.height.abs() as u32,
         );
@@ -240,9 +240,9 @@ impl PaintWorkletGlobalScope {
     fn invoke_a_paint_callback(
         &self,
         name: &Atom,
-        size_in_px: TypedSize2D<f32, CSSPixel>,
-        size_in_dpx: TypedSize2D<u32, DevicePixel>,
-        device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
+        size_in_px: Size2D<f32, CSSPixel>,
+        size_in_dpx: Size2D<u32, DevicePixel>,
+        device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
         properties: &StylePropertyMapReadOnly,
         arguments: &[String],
     ) -> DrawAPaintImageResult {
@@ -383,7 +383,7 @@ impl PaintWorkletGlobalScope {
     // https://drafts.csswg.org/css-images-4/#invalid-image
     fn invalid_image(
         &self,
-        size: TypedSize2D<u32, DevicePixel>,
+        size: Size2D<u32, DevicePixel>,
         missing_image_urls: Vec<ServoUrl>,
     ) -> DrawAPaintImageResult {
         debug!("Returning an invalid image.");
@@ -420,8 +420,8 @@ impl PaintWorkletGlobalScope {
         impl Painter for WorkletPainter {
             fn draw_a_paint_image(
                 &self,
-                size: TypedSize2D<f32, CSSPixel>,
-                device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
+                size: Size2D<f32, CSSPixel>,
+                device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
                 properties: Vec<(Atom, String)>,
                 arguments: Vec<String>,
             ) -> Result<DrawAPaintImageResult, PaintWorkletError> {
@@ -458,8 +458,8 @@ impl PaintWorkletGlobalScope {
 pub enum PaintWorkletTask {
     DrawAPaintImage(
         Atom,
-        TypedSize2D<f32, CSSPixel>,
-        TypedScale<f32, CSSPixel, DevicePixel>,
+        Size2D<f32, CSSPixel>,
+        Scale<f32, CSSPixel, DevicePixel>,
         Vec<(Atom, String)>,
         Vec<String>,
         Sender<DrawAPaintImageResult>,

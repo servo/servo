@@ -15,7 +15,7 @@ use servo::compositing::windowing::{
 };
 use servo::embedder_traits::resources::{self, Resource, ResourceReaderMethods};
 use servo::embedder_traits::EmbedderMsg;
-use servo::euclid::{TypedPoint2D, TypedRect, TypedScale, TypedSize2D, TypedVector2D};
+use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::script_traits::{TouchEventType, TouchId};
@@ -61,8 +61,8 @@ pub enum VRInitOptions {
 
 #[derive(Clone, Debug)]
 pub struct Coordinates {
-    pub viewport: TypedRect<i32, DevicePixel>,
-    pub framebuffer: TypedSize2D<i32, DevicePixel>,
+    pub viewport: Rect<i32, DevicePixel>,
+    pub framebuffer: Size2D<i32, DevicePixel>,
 }
 
 impl Coordinates {
@@ -75,8 +75,8 @@ impl Coordinates {
         fb_height: i32,
     ) -> Coordinates {
         Coordinates {
-            viewport: TypedRect::new(TypedPoint2D::new(x, y), TypedSize2D::new(width, height)),
-            framebuffer: TypedSize2D::new(fb_width, fb_height),
+            viewport: Rect::new(Point2D::new(x, y), Size2D::new(width, height)),
+            framebuffer: Size2D::new(fb_width, fb_height),
         }
     }
 }
@@ -324,13 +324,9 @@ impl ServoGlue {
     /// x/y are scroll coordinates.
     /// dx/dy are scroll deltas.
     pub fn scroll_start(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
-        let delta = TypedVector2D::new(dx, dy);
+        let delta = Vector2D::new(dx, dy);
         let scroll_location = ScrollLocation::Delta(delta);
-        let event = WindowEvent::Scroll(
-            scroll_location,
-            TypedPoint2D::new(x, y),
-            TouchEventType::Down,
-        );
+        let event = WindowEvent::Scroll(scroll_location, Point2D::new(x, y), TouchEventType::Down);
         self.process_event(event)
     }
 
@@ -338,13 +334,9 @@ impl ServoGlue {
     /// x/y are scroll coordinates.
     /// dx/dy are scroll deltas.
     pub fn scroll(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
-        let delta = TypedVector2D::new(dx, dy);
+        let delta = Vector2D::new(dx, dy);
         let scroll_location = ScrollLocation::Delta(delta);
-        let event = WindowEvent::Scroll(
-            scroll_location,
-            TypedPoint2D::new(x, y),
-            TouchEventType::Move,
-        );
+        let event = WindowEvent::Scroll(scroll_location, Point2D::new(x, y), TouchEventType::Move);
         self.process_event(event)
     }
 
@@ -352,10 +344,9 @@ impl ServoGlue {
     /// x/y are scroll coordinates.
     /// dx/dy are scroll deltas.
     pub fn scroll_end(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
-        let delta = TypedVector2D::new(dx, dy);
+        let delta = Vector2D::new(dx, dy);
         let scroll_location = ScrollLocation::Delta(delta);
-        let event =
-            WindowEvent::Scroll(scroll_location, TypedPoint2D::new(x, y), TouchEventType::Up);
+        let event = WindowEvent::Scroll(scroll_location, Point2D::new(x, y), TouchEventType::Up);
         self.process_event(event)
     }
 
@@ -364,7 +355,7 @@ impl ServoGlue {
         let event = WindowEvent::Touch(
             TouchEventType::Down,
             TouchId(pointer_id),
-            TypedPoint2D::new(x as f32, y as f32),
+            Point2D::new(x as f32, y as f32),
         );
         self.process_event(event)
     }
@@ -374,7 +365,7 @@ impl ServoGlue {
         let event = WindowEvent::Touch(
             TouchEventType::Move,
             TouchId(pointer_id),
-            TypedPoint2D::new(x as f32, y as f32),
+            Point2D::new(x as f32, y as f32),
         );
         self.process_event(event)
     }
@@ -384,7 +375,7 @@ impl ServoGlue {
         let event = WindowEvent::Touch(
             TouchEventType::Up,
             TouchId(pointer_id),
-            TypedPoint2D::new(x as f32, y as f32),
+            Point2D::new(x as f32, y as f32),
         );
         self.process_event(event)
     }
@@ -394,28 +385,28 @@ impl ServoGlue {
         let event = WindowEvent::Touch(
             TouchEventType::Cancel,
             TouchId(pointer_id),
-            TypedPoint2D::new(x as f32, y as f32),
+            Point2D::new(x as f32, y as f32),
         );
         self.process_event(event)
     }
 
     /// Register a mouse movement.
     pub fn move_mouse(&mut self, x: f32, y: f32) -> Result<(), &'static str> {
-        let point = TypedPoint2D::new(x, y);
+        let point = Point2D::new(x, y);
         let event = WindowEvent::MouseWindowMoveEventClass(point);
         self.process_event(event)
     }
 
     /// Register a mouse button press.
     pub fn mouse_down(&mut self, x: f32, y: f32, button: MouseButton) -> Result<(), &'static str> {
-        let point = TypedPoint2D::new(x, y);
+        let point = Point2D::new(x, y);
         let event = WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseDown(button, point));
         self.process_event(event)
     }
 
     /// Register a mouse button release.
     pub fn mouse_up(&mut self, x: f32, y: f32, button: MouseButton) -> Result<(), &'static str> {
-        let point = TypedPoint2D::new(x, y);
+        let point = Point2D::new(x, y);
         let event = WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(button, point));
         self.process_event(event)
     }
@@ -440,7 +431,7 @@ impl ServoGlue {
 
     /// Perform a click.
     pub fn click(&mut self, x: f32, y: f32) -> Result<(), &'static str> {
-        let mouse_event = MouseWindowEvent::Click(MouseButton::Left, TypedPoint2D::new(x, y));
+        let mouse_event = MouseWindowEvent::Click(MouseButton::Left, Point2D::new(x, y));
         let event = WindowEvent::MouseWindowEventClass(mouse_event);
         self.process_event(event)
     }
@@ -647,10 +638,10 @@ impl WindowMethods for ServoWindowCallbacks {
         EmbedderCoordinates {
             viewport: coords.viewport,
             framebuffer: coords.framebuffer,
-            window: (coords.viewport.size, TypedPoint2D::new(0, 0)),
+            window: (coords.viewport.size, Point2D::new(0, 0)),
             screen: coords.viewport.size,
             screen_avail: coords.viewport.size,
-            hidpi_factor: TypedScale::new(self.density),
+            hidpi_factor: Scale::new(self.density),
         }
     }
 

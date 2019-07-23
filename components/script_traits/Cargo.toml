@@ -17,7 +17,7 @@ cookie = "0.11"
 crossbeam-channel = "0.3"
 devtools_traits = {path = "../devtools_traits"}
 embedder_traits = {path = "../embedder_traits"}
-euclid = "0.19"
+euclid = "0.20"
 gfx_traits = {path = "../gfx_traits"}
 http = "0.1"
 hyper = "0.12"

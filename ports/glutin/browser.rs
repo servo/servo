@@ -4,7 +4,7 @@
 
 use crate::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
-use euclid::{TypedPoint2D, TypedVector2D};
+use euclid::{Point2D, Vector2D};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
 use servo::embedder_traits::{EmbedderMsg, FilterPattern};
@@ -222,14 +222,14 @@ where
                 self.event_queue.push(WindowEvent::ResetZoom)
             })
             .shortcut(Modifiers::empty(), Key::PageDown, || {
-                let scroll_location = ScrollLocation::Delta(TypedVector2D::new(
+                let scroll_location = ScrollLocation::Delta(Vector2D::new(
                     0.0,
                     -self.window.page_height() + 2.0 * LINE_HEIGHT,
                 ));
                 self.scroll_window_from_key(scroll_location, TouchEventType::Move);
             })
             .shortcut(Modifiers::empty(), Key::PageUp, || {
-                let scroll_location = ScrollLocation::Delta(TypedVector2D::new(
+                let scroll_location = ScrollLocation::Delta(Vector2D::new(
                     0.0,
                     self.window.page_height() - 2.0 * LINE_HEIGHT,
                 ));
@@ -243,32 +243,32 @@ where
             })
             .shortcut(Modifiers::empty(), Key::ArrowUp, || {
                 self.scroll_window_from_key(
-                    ScrollLocation::Delta(TypedVector2D::new(0.0, 3.0 * LINE_HEIGHT)),
+                    ScrollLocation::Delta(Vector2D::new(0.0, 3.0 * LINE_HEIGHT)),
                     TouchEventType::Move,
                 );
             })
             .shortcut(Modifiers::empty(), Key::ArrowDown, || {
                 self.scroll_window_from_key(
-                    ScrollLocation::Delta(TypedVector2D::new(0.0, -3.0 * LINE_HEIGHT)),
+                    ScrollLocation::Delta(Vector2D::new(0.0, -3.0 * LINE_HEIGHT)),
                     TouchEventType::Move,
                 );
             })
             .shortcut(Modifiers::empty(), Key::ArrowLeft, || {
                 self.scroll_window_from_key(
-                    ScrollLocation::Delta(TypedVector2D::new(LINE_HEIGHT, 0.0)),
+                    ScrollLocation::Delta(Vector2D::new(LINE_HEIGHT, 0.0)),
                     TouchEventType::Move,
                 );
             })
             .shortcut(Modifiers::empty(), Key::ArrowRight, || {
                 self.scroll_window_from_key(
-                    ScrollLocation::Delta(TypedVector2D::new(-LINE_HEIGHT, 0.0)),
+                    ScrollLocation::Delta(Vector2D::new(-LINE_HEIGHT, 0.0)),
                     TouchEventType::Move,
                 );
             });
     }
 
     fn scroll_window_from_key(&mut self, scroll_location: ScrollLocation, phase: TouchEventType) {
-        let event = WindowEvent::Scroll(scroll_location, TypedPoint2D::zero(), phase);
+        let event = WindowEvent::Scroll(scroll_location, Point2D::zero(), phase);
         self.event_queue.push(event);
     }
 

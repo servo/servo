@@ -9,7 +9,7 @@ use crate::dom::canvasgradient::ToFillOrStrokeStyle;
 use crate::dom::globalscope::GlobalScope;
 use canvas_traits::canvas::{FillOrStrokeStyle, RepetitionStyle, SurfaceStyle};
 use dom_struct::dom_struct;
-use euclid::Size2D;
+use euclid::default::Size2D;
 
 // https://html.spec.whatwg.org/multipage/#canvaspattern
 #[dom_struct]

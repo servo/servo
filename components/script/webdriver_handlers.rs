@@ -29,7 +29,7 @@ use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
 use crate::script_thread::Documents;
 use cookie::Cookie;
-use euclid::{Point2D, Rect, Size2D};
+use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JSContext;

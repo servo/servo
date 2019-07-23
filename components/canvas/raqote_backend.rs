@@ -10,7 +10,7 @@ use crate::canvas_data::{
 use crate::canvas_paint_thread::AntialiasMode;
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
-use euclid::{Point2D, Rect, Size2D, Transform2D, Vector2D};
+use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use std::marker::PhantomData;
 
 pub struct RaqoteBackend;

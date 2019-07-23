@@ -18,7 +18,7 @@ mod capabilities;
 use base64;
 use capabilities::ServoCapabilities;
 use crossbeam_channel::Sender;
-use euclid::TypedSize2D;
+use euclid::Size2D;
 use hyper::Method;
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -667,7 +667,7 @@ impl Handler {
             Some(v) => v,
             None => 0,
         };
-        let size = TypedSize2D::new(width as u32, height as u32);
+        let size = Size2D::new(width as u32, height as u32);
         let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
         let cmd_msg = WebDriverCommandMsg::SetWindowSize(
             top_level_browsing_context_id,

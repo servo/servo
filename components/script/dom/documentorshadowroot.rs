@@ -13,7 +13,7 @@ use crate::dom::htmlmetaelement::HTMLMetaElement;
 use crate::dom::node::{self, Node, VecPreOrderInsertionHelper};
 use crate::dom::window::Window;
 use crate::stylesheet_set::StylesheetSetRef;
-use euclid::Point2D;
+use euclid::default::Point2D;
 use js::jsapi::JS_GetRuntime;
 use script_layout_interface::message::{NodesFromPointQueryType, QueryMsg};
 use script_traits::UntrustedNodeAddress;
