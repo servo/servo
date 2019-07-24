@@ -289,10 +289,10 @@ where
         // the client window and the compositor. This channel is unique because
         // messages to client may need to pump a platform-specific event loop
         // to deliver the message.
+        let event_loop_waker = embedder.create_event_loop_waker();
         let (compositor_proxy, compositor_receiver) =
-            create_compositor_channel(embedder.create_event_loop_waker());
-        let (embedder_proxy, embedder_receiver) =
-            create_embedder_channel(embedder.create_event_loop_waker());
+            create_compositor_channel(event_loop_waker.clone());
+        let (embedder_proxy, embedder_receiver) = create_embedder_channel(event_loop_waker.clone());
         let time_profiler_chan = profile_time::Profiler::create(
             &opts.time_profiling,
             opts.time_profiler_trace_path.clone(),
@@ -368,8 +368,8 @@ where
 
         // For the moment, we enable use both the webxr crate and the rust-webvr crate,
         // but we are migrating over to just using webxr.
-        let mut webxr_main_thread =
-            webxr_api::MainThreadRegistry::new().expect("Failed to create WebXR device registry");
+        let mut webxr_main_thread = webxr_api::MainThreadRegistry::new(event_loop_waker)
+            .expect("Failed to create WebXR device registry");
         if pref!(dom.webvr.enabled) || pref!(dom.webxr.enabled) {
             embedder.register_webxr(&mut webxr_main_thread);
         }
