@@ -7,8 +7,9 @@ use crate::dom::bindings::codegen::Bindings::VRPoseBinding::VRPoseMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::jsapi::{Heap, JSObject};
 use js::typedarray::{CreateWith, Float32Array};
 use std::ptr;
 use std::ptr::NonNull;
@@ -32,21 +33,19 @@ pub struct VRPose {
 }
 
 #[allow(unsafe_code)]
-unsafe fn update_or_create_typed_array(
-    cx: *mut JSContext,
-    src: Option<&[f32]>,
-    dst: &Heap<*mut JSObject>,
-) {
+fn update_or_create_typed_array(cx: JSContext, src: Option<&[f32]>, dst: &Heap<*mut JSObject>) {
     match src {
         Some(data) => {
             if dst.get().is_null() {
-                rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
-                let _ = Float32Array::create(cx, CreateWith::Slice(data), array.handle_mut());
+                rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
+                let _ = unsafe {
+                    Float32Array::create(*cx, CreateWith::Slice(data), array.handle_mut())
+                };
                 (*dst).set(array.get());
             } else {
-                typedarray!(in(cx) let array: Float32Array = dst.get());
+                typedarray!(in(*cx) let array: Float32Array = dst.get());
                 if let Ok(mut array) = array {
-                    array.update(data);
+                    unsafe { array.update(data) };
                 }
             }
         },
@@ -95,75 +94,63 @@ impl VRPose {
     #[allow(unsafe_code)]
     pub fn update(&self, pose: &webvr::VRPose) {
         let cx = self.global().get_cx();
-        unsafe {
-            update_or_create_typed_array(
-                cx,
-                pose.position.as_ref().map(|v| &v[..]),
-                &self.position,
-            );
-            update_or_create_typed_array(
-                cx,
-                pose.orientation.as_ref().map(|v| &v[..]),
-                &self.orientation,
-            );
-            update_or_create_typed_array(
-                cx,
-                pose.linear_velocity.as_ref().map(|v| &v[..]),
-                &self.linear_vel,
-            );
-            update_or_create_typed_array(
-                cx,
-                pose.angular_velocity.as_ref().map(|v| &v[..]),
-                &self.angular_vel,
-            );
-            update_or_create_typed_array(
-                cx,
-                pose.linear_acceleration.as_ref().map(|v| &v[..]),
-                &self.linear_acc,
-            );
-            update_or_create_typed_array(
-                cx,
-                pose.angular_acceleration.as_ref().map(|v| &v[..]),
-                &self.angular_acc,
-            );
-        }
+        update_or_create_typed_array(cx, pose.position.as_ref().map(|v| &v[..]), &self.position);
+        update_or_create_typed_array(
+            cx,
+            pose.orientation.as_ref().map(|v| &v[..]),
+            &self.orientation,
+        );
+        update_or_create_typed_array(
+            cx,
+            pose.linear_velocity.as_ref().map(|v| &v[..]),
+            &self.linear_vel,
+        );
+        update_or_create_typed_array(
+            cx,
+            pose.angular_velocity.as_ref().map(|v| &v[..]),
+            &self.angular_vel,
+        );
+        update_or_create_typed_array(
+            cx,
+            pose.linear_acceleration.as_ref().map(|v| &v[..]),
+            &self.linear_acc,
+        );
+        update_or_create_typed_array(
+            cx,
+            pose.angular_acceleration.as_ref().map(|v| &v[..]),
+            &self.angular_acc,
+        );
     }
 }
 
 impl VRPoseMethods for VRPose {
-    #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrpose-position
-    unsafe fn GetPosition(&self, _cx: *mut JSContext) -> Option<NonNull<JSObject>> {
+    fn GetPosition(&self, _cx: JSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.position)
     }
 
-    #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrpose-linearvelocity
-    unsafe fn GetLinearVelocity(&self, _cx: *mut JSContext) -> Option<NonNull<JSObject>> {
+    fn GetLinearVelocity(&self, _cx: JSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.linear_vel)
     }
 
-    #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrpose-linearacceleration
-    unsafe fn GetLinearAcceleration(&self, _cx: *mut JSContext) -> Option<NonNull<JSObject>> {
+    fn GetLinearAcceleration(&self, _cx: JSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.linear_acc)
     }
 
-    #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrpose-orientation
-    unsafe fn GetOrientation(&self, _cx: *mut JSContext) -> Option<NonNull<JSObject>> {
+    fn GetOrientation(&self, _cx: JSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.orientation)
     }
 
-    #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrpose-angularvelocity
-    unsafe fn GetAngularVelocity(&self, _cx: *mut JSContext) -> Option<NonNull<JSObject>> {
+    fn GetAngularVelocity(&self, _cx: JSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.angular_vel)
     }
 
-    #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrpose-angularacceleration
-    unsafe fn GetAngularAcceleration(&self, _cx: *mut JSContext) -> Option<NonNull<JSObject>> {
+    fn GetAngularAcceleration(&self, _cx: JSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.angular_acc)
     }
 }

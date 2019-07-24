@@ -145,11 +145,11 @@ pub fn handle_execute_script(
         Some(window) => {
             let result = unsafe {
                 let cx = window.get_cx();
-                rooted!(in(cx) let mut rval = UndefinedValue());
+                rooted!(in(*cx) let mut rval = UndefinedValue());
                 window
                     .upcast::<GlobalScope>()
                     .evaluate_js_on_global_with_result(&eval, rval.handle_mut());
-                jsval_to_webdriver(cx, rval.handle())
+                jsval_to_webdriver(*cx, rval.handle())
             };
 
             reply.send(result).unwrap();
@@ -171,7 +171,7 @@ pub fn handle_execute_async_script(
         Some(window) => {
             let cx = window.get_cx();
             window.set_webdriver_script_chan(Some(reply));
-            rooted!(in(cx) let mut rval = UndefinedValue());
+            rooted!(in(*cx) let mut rval = UndefinedValue());
             window
                 .upcast::<GlobalScope>()
                 .evaluate_js_on_global_with_result(&eval, rval.handle_mut());
@@ -725,21 +725,21 @@ pub fn handle_get_property(
             Some(node) => {
                 let cx = documents.find_document(pipeline).unwrap().window().get_cx();
 
-                rooted!(in(cx) let mut property = UndefinedValue());
+                rooted!(in(*cx) let mut property = UndefinedValue());
                 match unsafe {
                     get_property_jsval(
-                        cx,
+                        *cx,
                         node.reflector().get_jsobject(),
                         &name,
                         property.handle_mut(),
                     )
                 } {
-                    Ok(_) => match unsafe { jsval_to_webdriver(cx, property.handle()) } {
+                    Ok(_) => match unsafe { jsval_to_webdriver(*cx, property.handle()) } {
                         Ok(property) => Ok(property),
                         Err(_) => Ok(WebDriverJSValue::Undefined),
                     },
                     Err(error) => {
-                        unsafe { throw_dom_exception(cx, &node.reflector().global(), error) };
+                        unsafe { throw_dom_exception(*cx, &node.reflector().global(), error) };
                         Ok(WebDriverJSValue::Undefined)
                     },
                 }

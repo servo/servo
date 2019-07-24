@@ -16,9 +16,9 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::structuredclone::StructuredCloneData;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::JSContext;
 use crate::task::TaskOnce;
 use dom_struct::dom_struct;
-use js::jsapi::JSContext;
 use js::rust::HandleValue;
 use script_traits::{DOMMessage, ScriptMsg};
 use servo_url::ServoUrl;
@@ -90,15 +90,14 @@ impl ServiceWorkerMethods for ServiceWorker {
         USVString(self.script_url.borrow().clone())
     }
 
-    #[allow(unsafe_code)]
     // https://w3c.github.io/ServiceWorker/#service-worker-postmessage
-    unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
+    fn PostMessage(&self, cx: JSContext, message: HandleValue) -> ErrorResult {
         // Step 1
         if let ServiceWorkerState::Redundant = self.state.get() {
             return Err(Error::InvalidState);
         }
         // Step 7
-        let data = StructuredCloneData::write(cx, message)?;
+        let data = StructuredCloneData::write(*cx, message)?;
         let msg_vec = DOMMessage(data.move_to_arraybuffer());
         let _ = self
             .global()

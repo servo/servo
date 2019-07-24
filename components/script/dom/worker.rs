@@ -21,12 +21,13 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
+use crate::script_runtime::JSContext;
 use crate::task::TaskOnce;
 use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
-use js::jsapi::{JSContext, JS_RequestInterruptCallback};
+use js::jsapi::JS_RequestInterruptCallback;
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use script_traits::WorkerScriptLoadOrigin;
@@ -146,7 +147,7 @@ impl Worker {
         let global = worker.global();
         let target = worker.upcast();
         let _ac = enter_realm(target);
-        rooted!(in(global.get_cx()) let mut message = UndefinedValue());
+        rooted!(in(*global.get_cx()) let mut message = UndefinedValue());
         data.read(&global, message.handle_mut());
         MessageEvent::dispatch_jsval(target, &global, message.handle(), None, None);
     }
@@ -158,10 +159,9 @@ impl Worker {
 }
 
 impl WorkerMethods for Worker {
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-worker-postmessage
-    unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
-        let data = StructuredCloneData::write(cx, message)?;
+    fn PostMessage(&self, cx: JSContext, message: HandleValue) -> ErrorResult {
+        let data = StructuredCloneData::write(*cx, message)?;
         let address = Trusted::new(self);
 
         // NOTE: step 9 of https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage
@@ -186,7 +186,7 @@ impl WorkerMethods for Worker {
 
         // Step 3
         let cx = self.global().get_cx();
-        unsafe { JS_RequestInterruptCallback(cx) };
+        unsafe { JS_RequestInterruptCallback(*cx) };
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-worker-onmessage

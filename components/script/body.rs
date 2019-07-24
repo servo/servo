@@ -13,8 +13,8 @@ use crate::dom::blob::{Blob, BlobImpl};
 use crate::dom::formdata::FormData;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::script_runtime::JSContext;
 use js::jsapi::Heap;
-use js::jsapi::JSContext;
 use js::jsapi::JSObject;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::Value as JSValue;
@@ -122,7 +122,7 @@ fn run_package_data_algorithm<T: BodyOperations + DomObject>(
         BodyType::Json => run_json_data_algorithm(cx, bytes),
         BodyType::Blob => run_blob_data_algorithm(&global, bytes, mime),
         BodyType::FormData => run_form_data_algorithm(&global, bytes, mime),
-        BodyType::ArrayBuffer => unsafe { run_array_buffer_data_algorithm(cx, bytes) },
+        BodyType::ArrayBuffer => run_array_buffer_data_algorithm(cx, bytes),
     }
 }
 
@@ -133,20 +133,20 @@ fn run_text_data_algorithm(bytes: Vec<u8>) -> Fallible<FetchedData> {
 }
 
 #[allow(unsafe_code)]
-fn run_json_data_algorithm(cx: *mut JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
+fn run_json_data_algorithm(cx: JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
     let json_text = String::from_utf8_lossy(&bytes);
     let json_text: Vec<u16> = json_text.encode_utf16().collect();
-    rooted!(in(cx) let mut rval = UndefinedValue());
+    rooted!(in(*cx) let mut rval = UndefinedValue());
     unsafe {
         if !JS_ParseJSON(
-            cx,
+            *cx,
             json_text.as_ptr(),
             json_text.len() as u32,
             rval.handle_mut(),
         ) {
-            rooted!(in(cx) let mut exception = UndefinedValue());
-            assert!(JS_GetPendingException(cx, exception.handle_mut()));
-            JS_ClearPendingException(cx);
+            rooted!(in(*cx) let mut exception = UndefinedValue());
+            assert!(JS_GetPendingException(*cx, exception.handle_mut()));
+            JS_ClearPendingException(*cx);
             return Ok(FetchedData::JSException(RootedTraceableBox::from_box(
                 Heap::boxed(exception.get()),
             )));
@@ -200,13 +200,15 @@ fn run_form_data_algorithm(
 }
 
 #[allow(unsafe_code)]
-unsafe fn run_array_buffer_data_algorithm(
-    cx: *mut JSContext,
-    bytes: Vec<u8>,
-) -> Fallible<FetchedData> {
-    rooted!(in(cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-    let arraybuffer =
-        ArrayBuffer::create(cx, CreateWith::Slice(&bytes), array_buffer_ptr.handle_mut());
+fn run_array_buffer_data_algorithm(cx: JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
+    rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
+    let arraybuffer = unsafe {
+        ArrayBuffer::create(
+            *cx,
+            CreateWith::Slice(&bytes),
+            array_buffer_ptr.handle_mut(),
+        )
+    };
     if arraybuffer.is_err() {
         return Err(Error::JSFailed);
     }

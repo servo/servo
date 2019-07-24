@@ -30,6 +30,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissions::{get_descriptor_permission_state, PermissionAlgorithm};
 use crate::dom::promise::Promise;
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::task::TaskOnce;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
@@ -625,7 +626,8 @@ impl PermissionAlgorithm for Bluetooth {
             .handle_mut()
             .set(ObjectValue(permission_descriptor_obj));
         unsafe {
-            match BluetoothPermissionDescriptor::new(cx, property.handle()) {
+            match BluetoothPermissionDescriptor::new(SafeJSContext::from_ptr(cx), property.handle())
+            {
                 Ok(ConversionResult::Success(descriptor)) => Ok(descriptor),
                 Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
                 Err(_) => Err(Error::Type(String::from(BT_DESC_CONVERSION_ERROR))),

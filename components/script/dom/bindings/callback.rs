@@ -13,6 +13,7 @@ use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript}
 use crate::dom::bindings::utils::AsCCharPtrPtr;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::script_runtime::JSContext as SafeJSContext;
 use js::jsapi::Heap;
 use js::jsapi::JSAutoRealm;
 use js::jsapi::{AddRawValueRoot, IsCallable, JSContext, JSObject};
@@ -112,7 +113,7 @@ impl PartialEq for CallbackObject {
 /// callback interface types.
 pub trait CallbackContainer {
     /// Create a new CallbackContainer object for the given `JSObject`.
-    unsafe fn new(cx: *mut JSContext, callback: *mut JSObject) -> Rc<Self>;
+    unsafe fn new(cx: SafeJSContext, callback: *mut JSObject) -> Rc<Self>;
     /// Returns the underlying `CallbackObject`.
     fn callback_holder(&self) -> &CallbackObject;
     /// Returns the underlying `JSObject`.
@@ -151,8 +152,8 @@ impl CallbackFunction {
 
     /// Initialize the callback function with a value.
     /// Should be called once this object is done moving.
-    pub unsafe fn init(&mut self, cx: *mut JSContext, callback: *mut JSObject) {
-        self.object.init(cx, callback);
+    pub unsafe fn init(&mut self, cx: SafeJSContext, callback: *mut JSObject) {
+        self.object.init(*cx, callback);
     }
 }
 
@@ -178,8 +179,8 @@ impl CallbackInterface {
 
     /// Initialize the callback function with a value.
     /// Should be called once this object is done moving.
-    pub unsafe fn init(&mut self, cx: *mut JSContext, callback: *mut JSObject) {
-        self.object.init(cx, callback);
+    pub unsafe fn init(&mut self, cx: SafeJSContext, callback: *mut JSObject) {
+        self.object.init(*cx, callback);
     }
 
     /// Returns the property with the given `name`, if it is a callable object,
@@ -254,8 +255,8 @@ impl CallSetup {
         let ais = callback.incumbent().map(AutoIncumbentScript::new);
         CallSetup {
             exception_global: global,
-            cx: cx,
-            old_realm: unsafe { EnterRealm(cx, callback.callback()) },
+            cx: *cx,
+            old_realm: unsafe { EnterRealm(*cx, callback.callback()) },
             handling: handling,
             entry_script: Some(aes),
             incumbent_script: ais,

@@ -15,8 +15,9 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::extendableevent::ExtendableEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext};
+use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleValue;
 use servo_atoms::Atom;
@@ -91,9 +92,8 @@ impl ExtendableMessageEvent {
 }
 
 impl ExtendableMessageEventMethods for ExtendableMessageEvent {
-    #[allow(unsafe_code)]
     // https://w3c.github.io/ServiceWorker/#extendablemessage-event-data-attribute
-    unsafe fn Data(&self, _cx: *mut JSContext) -> JSVal {
+    fn Data(&self, _cx: JSContext) -> JSVal {
         self.data.get()
     }
 

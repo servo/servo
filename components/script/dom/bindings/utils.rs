@@ -13,6 +13,7 @@ use crate::dom::bindings::inheritance::TopTypeId;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::trace_object;
 use crate::dom::windowproxy;
+use crate::script_runtime::JSContext as SafeJSContext;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
 use js::glue::{GetCrossCompartmentWrapper, JS_GetReservedSlot, WrapperNew};
 use js::glue::{UnwrapObjectDynamic, RUST_JSID_TO_INT, RUST_JSID_TO_STRING};
@@ -353,7 +354,7 @@ pub unsafe extern "C" fn enumerate_global(
         return false;
     }
     for init_fun in InterfaceObjectMap::MAP.values() {
-        init_fun(cx, Handle::from_raw(obj));
+        init_fun(SafeJSContext::from_ptr(cx), Handle::from_raw(obj));
     }
     true
 }
@@ -388,7 +389,7 @@ pub unsafe extern "C" fn resolve_global(
     let bytes = slice::from_raw_parts(ptr, length as usize);
 
     if let Some(init_fun) = InterfaceObjectMap::MAP.get(bytes) {
-        init_fun(cx, Handle::from_raw(obj));
+        init_fun(SafeJSContext::from_ptr(cx), Handle::from_raw(obj));
         *rval = true;
     } else {
         *rval = false;
