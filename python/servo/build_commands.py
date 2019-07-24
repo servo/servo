@@ -249,7 +249,7 @@ class MachCommands(CommandBase):
             append_to_path_env(
                 path.join(
                     os.getcwd(), "support", "hololens", "packages",
-                    "ANGLE.WindowsStore.2.1.13", "bin", "UAP", "x64"
+                    "ANGLE.WindowsStore.Servo.2.1.13", "bin", "UAP", "x64"
                 ),
                 env,
                 "LIB"
