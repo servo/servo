@@ -22,6 +22,8 @@ interface DOMQuad {
     [SameObject] readonly attribute DOMPoint p3;
     [SameObject] readonly attribute DOMPoint p4;
     [NewObject] DOMRect getBounds();
+
+    [Default] object toJSON();
 };
 
 dictionary DOMQuadInit {
