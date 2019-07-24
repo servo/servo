@@ -144,7 +144,7 @@ impl<T> UniqueArc<mem::MaybeUninit<T>> {
     #[inline]
     pub unsafe fn assume_init(this: Self) -> UniqueArc<T> {
         UniqueArc(Arc {
-            p: this.0.p.cast(),
+            p: mem::ManuallyDrop::new(this).0.p.cast(),
             phantom: PhantomData,
         })
     }
