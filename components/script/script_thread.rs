@@ -2157,6 +2157,15 @@ impl ScriptThread {
                     reply,
                 )
             },
+            WebDriverScriptCommand::GetElementProperty(node_id, name, reply) => {
+                webdriver_handlers::handle_get_property(
+                    &*documents,
+                    pipeline_id,
+                    node_id,
+                    name,
+                    reply,
+                )
+            },
             WebDriverScriptCommand::GetElementCSS(node_id, name, reply) => {
                 webdriver_handlers::handle_get_css(&*documents, pipeline_id, node_id, name, reply)
             },

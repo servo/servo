@@ -12,9 +12,11 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
 use crate::dom::bindings::conversions::{
-    ConversionResult, FromJSValConvertible, StringificationBehavior,
+    get_property_jsval, ConversionResult, FromJSValConvertible, StringificationBehavior,
 };
+use crate::dom::bindings::error::throw_dom_exception;
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
@@ -705,6 +707,43 @@ pub fn handle_get_attribute(
                 .unwrap()
                 .GetAttribute(DOMString::from(name))
                 .map(String::from)),
+            None => Err(()),
+        })
+        .unwrap();
+}
+
+#[allow(unsafe_code)]
+pub fn handle_get_property(
+    documents: &Documents,
+    pipeline: PipelineId,
+    node_id: String,
+    name: String,
+    reply: IpcSender<Result<WebDriverJSValue, ()>>,
+) {
+    reply
+        .send(match find_node_by_unique_id(documents, pipeline, node_id) {
+            Some(node) => {
+                let cx = documents.find_document(pipeline).unwrap().window().get_cx();
+
+                rooted!(in(cx) let mut property = UndefinedValue());
+                match unsafe {
+                    get_property_jsval(
+                        cx,
+                        node.reflector().get_jsobject(),
+                        &name,
+                        property.handle_mut(),
+                    )
+                } {
+                    Ok(_) => match unsafe { jsval_to_webdriver(cx, property.handle()) } {
+                        Ok(property) => Ok(property),
+                        Err(_) => Ok(WebDriverJSValue::Undefined),
+                    },
+                    Err(error) => {
+                        unsafe { throw_dom_exception(cx, &node.reflector().global(), error) };
+                        Ok(WebDriverJSValue::Undefined)
+                    },
+                }
+            },
             None => Err(()),
         })
         .unwrap();

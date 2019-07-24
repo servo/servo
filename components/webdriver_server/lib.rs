@@ -211,6 +211,7 @@ impl WebDriverExtensionCommand for ServoExtensionCommand {
     }
 }
 
+#[derive(Clone)]
 struct SendableWebDriverJSValue(pub WebDriverJSValue);
 
 impl Serialize for SendableWebDriverJSValue {
@@ -1163,6 +1164,28 @@ impl Handler {
         }
     }
 
+    fn handle_element_property(
+        &self,
+        element: &WebElement,
+        name: &str,
+    ) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        let cmd =
+            WebDriverScriptCommand::GetElementProperty(element.id.clone(), name.to_owned(), sender);
+        self.browsing_context_script_command(cmd)?;
+
+        match receiver.recv().unwrap() {
+            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
+                serde_json::to_value(SendableWebDriverJSValue(value))?,
+            ))),
+            Err(_) => Err(WebDriverError::new(
+                ErrorStatus::StaleElementReference,
+                "Unable to find element in document",
+            )),
+        }
+    }
+
     fn handle_element_css(
         &self,
         element: &WebElement,
@@ -1585,6 +1608,9 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             },
             WebDriverCommand::GetElementAttribute(ref element, ref name) => {
                 self.handle_element_attribute(element, name)
+            },
+            WebDriverCommand::GetElementProperty(ref element, ref name) => {
+                self.handle_element_property(element, name)
             },
             WebDriverCommand::GetCSSValue(ref element, ref name) => {
                 self.handle_element_css(element, name)

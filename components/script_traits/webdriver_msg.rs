@@ -41,6 +41,7 @@ pub enum WebDriverScriptCommand {
     GetCookie(String, IpcSender<Vec<Serde<Cookie<'static>>>>),
     GetCookies(IpcSender<Vec<Serde<Cookie<'static>>>>),
     GetElementAttribute(String, String, IpcSender<Result<Option<String>, ()>>),
+    GetElementProperty(String, String, IpcSender<Result<WebDriverJSValue, ()>>),
     GetElementCSS(String, String, IpcSender<Result<String, ()>>),
     GetElementRect(String, IpcSender<Result<Rect<f64>, ()>>),
     GetElementTagName(String, IpcSender<Result<String, ()>>),
@@ -59,7 +60,7 @@ pub enum WebDriverCookieError {
     UnableToSetCookie,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebDriverJSValue {
     Undefined,
     Null,
