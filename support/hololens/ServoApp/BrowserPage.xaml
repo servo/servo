@@ -20,8 +20,10 @@
         <ColumnDefinition Width="auto"/>
       </Grid.ColumnDefinitions>
       <StackPanel Orientation="Horizontal" Grid.Column="0">
-        <Button Content="Back" Click="OnBackButtonClicked"/>
-        <Button Content="Forward" Click="OnForwardButtonClicked"/>
+        <Button x:Name="backButton" IsEnabled="false" Content="Back" Click="OnBackButtonClicked"/>
+        <Button x:Name="forwardButton" IsEnabled="false" Content="Forward" Click="OnForwardButtonClicked"/>
+        <Button x:Name="reloadButton" IsEnabled="false" Content="reload" Click="OnReloadButtonClicked"/>
+        <Button x:Name="stopButton" IsEnabled="false" Content="stop" Click="OnStopButtonClicked"/>
       </StackPanel>
       <TextBox Text="" AcceptsReturn="True" PlaceholderText="Type a URL" x:Name="urlTextbox" Grid.Column="1" IsReadOnly="True"/>
       <StackPanel Orientation="Horizontal" Grid.Column="2">
