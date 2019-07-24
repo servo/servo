@@ -51,7 +51,7 @@ Servo::Servo(GLsizei width, GLsizei height)
 
   CInitOptions o;
   o.args = NULL;
-  o.url = "https://google.com";
+  o.url = "https://servo.org";
   o.width = mWindowWidth;
   o.height = mWindowHeight;
   o.density = 1.0;
@@ -93,3 +93,4 @@ void Servo::SetSize(GLsizei width, GLsizei height) {
 }
 
 void Servo::Click(float x, float y) { click(x, y); }
+void Servo::Scroll(float dx, float dy, float x, float y) { scroll(dx, dy, x, y); }
