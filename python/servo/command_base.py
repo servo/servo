@@ -610,7 +610,7 @@ install them, let us know by filing a bug!")
             # Link openssl
             env["OPENSSL_INCLUDE_DIR"] = path.join(openssl_base_dir, "include")
             env["OPENSSL_LIB_DIR"] = path.join(openssl_base_dir, "lib")
-            env["OPENSSL_LIBS"] = "libeay32:ssleay32"
+            env["OPENSSL_LIBS"] = "libssl:libcrypto"
             # Link moztools, used for building SpiderMonkey
             env["MOZTOOLS_PATH"] = os.pathsep.join([
                 path.join(package_dir("moztools"), "bin"),

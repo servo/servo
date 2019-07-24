@@ -234,7 +234,10 @@
     <None Include="..\..\..\target\debug\intl-8.dll">
       <Filter>DebugServoDLLs</Filter>
     </None>
-    <None Include="..\..\..\target\debug\libeay32.dll">
+    <None Include="..\..\..\target\debug\libcrypto.dll">
+      <Filter>DebugServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\debug\libssl.dll">
       <Filter>DebugServoDLLs</Filter>
     </None>
     <None Include="..\..\..\target\debug\libwinpthread-1.dll">
@@ -244,9 +247,6 @@
       <Filter>DebugServoDLLs</Filter>
     </None>
     <None Include="..\..\..\target\debug\orc-0.4-0.dll">
-      <Filter>DebugServoDLLs</Filter>
-    </None>
-    <None Include="..\..\..\target\debug\ssleay32.dll">
       <Filter>DebugServoDLLs</Filter>
     </None>
     <None Include="..\..\..\target\debug\swresample-3.dll">
@@ -267,9 +267,6 @@
     <None Include="..\..\..\target\release\swresample-3.dll">
       <Filter>ReleaseServoDLLs</Filter>
     </None>
-    <None Include="..\..\..\target\release\ssleay32.dll">
-      <Filter>ReleaseServoDLLs</Filter>
-    </None>
     <None Include="..\..\..\target\release\simpleservo.dll">
       <Filter>ReleaseServoDLLs</Filter>
     </None>
@@ -282,7 +279,10 @@
     <None Include="..\..\..\target\release\libwinpthread-1.dll">
       <Filter>ReleaseServoDLLs</Filter>
     </None>
-    <None Include="..\..\..\target\release\libeay32.dll">
+    <None Include="..\..\..\target\release\libssl.dll">
+      <Filter>ReleaseServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\release\libcrypto.dll">
       <Filter>ReleaseServoDLLs</Filter>
     </None>
     <None Include="..\..\..\target\release\intl-8.dll">
