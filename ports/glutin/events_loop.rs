@@ -87,7 +87,7 @@ impl EventLoopWaker for HeadedEventLoopWaker {
             warn!("Failed to wake up event loop ({}).", err);
         }
     }
-    fn clone(&self) -> Box<dyn EventLoopWaker + Send> {
+    fn clone_box(&self) -> Box<dyn EventLoopWaker> {
         Box::new(HeadedEventLoopWaker {
             proxy: self.proxy.clone(),
         })
@@ -97,5 +97,5 @@ impl EventLoopWaker for HeadedEventLoopWaker {
 struct HeadlessEventLoopWaker;
 impl EventLoopWaker for HeadlessEventLoopWaker {
     fn wake(&self) {}
-    fn clone(&self) -> Box<dyn EventLoopWaker + Send> { Box::new(HeadlessEventLoopWaker) }
+    fn clone_box(&self) -> Box<dyn EventLoopWaker> { Box::new(HeadlessEventLoopWaker) }
 }

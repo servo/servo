@@ -67,7 +67,7 @@ fn create_embedder_proxy() -> EmbedderProxy {
         }
         impl EventLoopWaker for DummyEventLoopWaker {
             fn wake(&self) {}
-            fn clone(&self) -> Box<dyn EventLoopWaker + Send> {
+            fn clone_box(&self) -> Box<dyn EventLoopWaker> {
                 Box::new(DummyEventLoopWaker {})
             }
         }

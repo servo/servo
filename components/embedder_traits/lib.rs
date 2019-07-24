@@ -21,6 +21,8 @@ use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 
+pub use webxr_api::MainThreadWaker as EventLoopWaker;
+
 /// A cursor for the window. This is different from a CSS cursor (see
 /// `CursorKind`) in that it has no `Auto` value.
 #[repr(u8)]
@@ -61,12 +63,6 @@ pub enum Cursor {
     AllScroll,
     ZoomIn,
     ZoomOut,
-}
-
-/// Used to wake up the event loop, provided by the servo port/embedder.
-pub trait EventLoopWaker: 'static + Send {
-    fn clone(&self) -> Box<dyn EventLoopWaker + Send>;
-    fn wake(&self);
 }
 
 /// Sends messages to the embedder.

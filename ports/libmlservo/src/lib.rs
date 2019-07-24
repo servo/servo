@@ -403,7 +403,7 @@ enum ScrollState {
 struct EventLoopWakerInstance;
 
 impl EventLoopWaker for EventLoopWakerInstance {
-    fn clone(&self) -> Box<dyn EventLoopWaker + Send> {
+    fn clone_box(&self) -> Box<dyn EventLoopWaker> {
         Box::new(EventLoopWakerInstance)
     }
 
