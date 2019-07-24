@@ -28,14 +28,18 @@ function xr_session_promise_test(
     name, func, fakeDeviceInit, sessionMode, sessionInit, properties) {
   let testDeviceController;
   let testSession;
+  let sessionObjects = {};
 
   const webglCanvas = document.getElementsByTagName('canvas')[0];
+  // We can't use assert_true here because it causes the wpt testharness to treat
+  // this as a test page and not as a test.
   if (!webglCanvas) {
     promise_test(async (t) => {
       Promise.reject('xr_session_promise_test requires a canvas on the page!');
     }, name, properties);
   }
   let gl = webglCanvas.getContext('webgl', {alpha: false, antialias: false});
+  sessionObjects.gl = gl;
 
   xr_promise_test(
       name,
@@ -75,7 +79,8 @@ function xr_session_promise_test(
                               session.updateRenderState({
                                   baseLayer: glLayer
                               });
-                              resolve(func(session, testDeviceController, t));
+                              sessionObjects.glLayer = glLayer;
+                              resolve(func(session, testDeviceController, t, sessionObjects));
                             })
                             .catch((err) => {
                               reject(

@@ -408,10 +408,10 @@ class Firefox(Browser):
         return m.group(1)
 
 
-class Fennec(Browser):
-    """Fennec-specific interface."""
+class FirefoxAndroid(Browser):
+    """Android-specific Firefox interface."""
 
-    product = "fennec"
+    product = "firefox_android"
     requirements = "requirements_firefox.txt"
 
     def install(self, dest=None, channel=None):

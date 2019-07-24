@@ -10,12 +10,34 @@
 'use strict';
 
 const SCOPE = 'resources/simple.txt';
-const WORKER_URL_BASE = 'resources/update-worker.py';
 
-async function prepare_ready_registration(t, mode) {
+// Create a service worker (update-worker.py). The response to update() will be
+// different based on the mode.
+async function prepare_ready_registration_with_mode(t, mode) {
   const key = token();
-  const worker_url = `${WORKER_URL_BASE}?Key=${key}&Mode=${mode}`;
+  const worker_url = `resources/update-worker.py?Key=${key}&Mode=${mode}`;
   const expected_url = normalizeURL(worker_url);
+  const registration = await service_worker_unregister_and_register(
+      t, worker_url, SCOPE);
+  await wait_for_state(t, registration.installing, 'activated');
+  assert_equals(registration.installing, null,
+                'prepare_ready: installing');
+  assert_equals(registration.waiting, null,
+                'prepare_ready: waiting');
+  assert_equals(registration.active.scriptURL, expected_url,
+                'prepare_ready: active');
+  return [registration, expected_url];
+}
+
+// Create a service worker (update-worker-from-file.py), which is initially
+// |initial_worker| and |updated_worker| later.
+async function prepare_ready_registration_with_file(
+    t, initial_worker, updated_worker) {
+  const key = token();
+  const worker_url = `resources/update-worker-from-file.py?` +
+      `First=${initial_worker}&Second=${updated_worker}&Key=${key}`;
+  const expected_url = normalizeURL(worker_url);
+
   const registration = await service_worker_unregister_and_register(
       t, worker_url, SCOPE);
   await wait_for_state(t, registration.installing, 'activated');
@@ -57,7 +79,7 @@ function assert_active_only(registration, expected_url) {
 
 promise_test(async t => {
   const [registration, expected_url] =
-      await prepare_ready_registration(t, 'normal');
+      await prepare_ready_registration_with_mode(t, 'normal');
   t.add_cleanup(() => registration.unregister());
 
   await Promise.all([registration.update(), wait_for_update(t, registration)]);
@@ -72,34 +94,34 @@ promise_test(async t => {
 
 promise_test(async t => {
   const [registration, expected_url] =
-      await prepare_ready_registration(t, 'bad_mime_type');
+      await prepare_ready_registration_with_mode(t, 'bad_mime_type');
   t.add_cleanup(() => registration.unregister());
 
-  promise_rejects(t, 'SecurityError', registration.update());
+  await promise_rejects(t, 'SecurityError', registration.update());
   assert_active_only(registration, expected_url);
 }, 'update() should fail when mime type is invalid.');
 
 promise_test(async t => {
   const [registration, expected_url] =
-      await prepare_ready_registration(t, 'redirect');
+      await prepare_ready_registration_with_mode(t, 'redirect');
   t.add_cleanup(() => registration.unregister());
 
-  promise_rejects(t, new TypeError(), registration.update())
+  await promise_rejects(t, new TypeError(), registration.update());
   assert_active_only(registration, expected_url);
 }, 'update() should fail when a response for the main script is redirect.');
 
 promise_test(async t => {
   const [registration, expected_url] =
-      await prepare_ready_registration(t, 'syntax_error');
+      await prepare_ready_registration_with_mode(t, 'syntax_error');
   t.add_cleanup(() => registration.unregister());
 
-  promise_rejects(t, new TypeError(), registration.update());
+  await promise_rejects(t, new TypeError(), registration.update());
   assert_active_only(registration, expected_url);
 }, 'update() should fail when a new script contains a syntax error.');
 
 promise_test(async t => {
   const [registration, expected_url] =
-      await prepare_ready_registration(t, 'throw_install');
+      await prepare_ready_registration_with_mode(t, 'throw_install');
   t.add_cleanup(() => registration.unregister());
 
   await Promise.all([registration.update(), wait_for_update(t, registration)]);
@@ -108,7 +130,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const [registration, expected_url] =
-      await prepare_ready_registration(t, 'normal');
+      await prepare_ready_registration_with_mode(t, 'normal');
   t.add_cleanup(() => registration.unregister());
 
   // We need to hold a client alive so that unregister() below doesn't remove
@@ -117,8 +139,26 @@ promise_test(async t => {
   const frame = await with_iframe(SCOPE);
   t.add_cleanup(() => frame.remove());
 
-  promise_rejects(
+  await promise_rejects(
       t, new TypeError(),
       Promise.all([registration.unregister(), registration.update()]));
-}, 'update() should fail when the pending uninstall flag is set.')
+}, 'update() should fail when the pending uninstall flag is set.');
+
+promise_test(async t => {
+  const [registration, expected_url] =
+      await prepare_ready_registration_with_file(
+        t,
+        'update-smaller-body-before-update-worker.js',
+        'update-smaller-body-after-update-worker.js');
+  t.add_cleanup(() => registration.unregister());
+
+  await Promise.all([registration.update(), wait_for_update(t, registration)]);
+  assert_installing_and_active(registration, expected_url);
+
+  await wait_for_state(t, registration.installing, 'installed');
+  assert_waiting_and_active(registration, expected_url);
+
+  await wait_for_state(t, registration.waiting, 'activated');
+  assert_active_only(registration, expected_url);
+}, 'update() should succeed when the script shrinks.');
 </script>

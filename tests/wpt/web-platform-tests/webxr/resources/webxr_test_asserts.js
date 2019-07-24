@@ -6,19 +6,107 @@
 // |epsilon| - float specifying precision
 // |prefix| - string used as a prefix for logging
 let assert_point_approx_equals = function(p1, p2, epsilon = FLOAT_EPSILON, prefix = "") {
-  assert_approx_equals(p1.x, p2.x, epsilon, prefix + "xs must match");
-  assert_approx_equals(p1.y, p2.y, epsilon, prefix + "ys must match");
-  assert_approx_equals(p1.z, p2.z, epsilon, prefix + "zs must match");
-  assert_approx_equals(p1.w, p2.w, epsilon, prefix + "ws must match");
+  if (p1 == null && p2 == null) {
+    return;
+  }
+
+  assert_not_equals(p1, null, prefix + "p1 must be non-null");
+  assert_not_equals(p2, null, prefix + "p2 must be non-null");
+
+  let mismatched_component = null;
+  for (const v of ['x', 'y', 'z', 'w']) {
+    if (Math.abs(p1[v] - p2[v]) > epsilon) {
+      mismatched_component = v;
+      break;
+    }
+  }
+
+  if (mismatched_component !== null) {
+    let error_message = prefix + ' Point comparison failed.\n';
+    error_message += ` p1: {x: ${p1.x}, y: ${p1.y}, z: ${p1.z}, w: ${p1.w}}\n`;
+    error_message += ` p2: {x: ${p2.x}, y: ${p2.y}, z: ${p2.z}, w: ${p2.w}}\n`;
+    error_message += ` Difference in component ${mismatched_component} exceeded the given epsilon.\n`;
+    assert_approx_equals(p2[mismatched_component], p1[mismatched_component], epsilon, error_message);
+  }
 };
 
 // |m1|, |m2| - arrays of floating point numbers
 // |epsilon| - float specifying precision
 // |prefix| - string used as a prefix for logging
 let assert_matrix_approx_equals = function(m1, m2, epsilon = FLOAT_EPSILON, prefix = "") {
-  assert_equals(m1.length, m2.length, prefix + "Matrix lengths should match");
-  for(var i = 0; i < m1.length; ++i) {
-    assert_approx_equals(m1[i], m2[i], epsilon, prefix + "Component number " + i + " should match");
+  if (m1 == null && m2 == null) {
+    return;
+  }
+
+  assert_not_equals(m1, null, prefix + "m1 must be non-null");
+  assert_not_equals(m2, null, prefix + "m2 must be non-null");
+
+  assert_equals(m1.length, 16, prefix + "m1 must have length of 16");
+  assert_equals(m2.length, 16, prefix + "m2 must have length of 16");
+
+  let mismatched_element = -1;
+  for (let i = 0; i < 16; ++i) {
+    if (Math.abs(m1[i] - m2[i]) > epsilon) {
+      mismatched_element = i;
+      break;
+    }
+  }
+
+  if (mismatched_element > -1) {
+    let error_message = prefix + 'Matrix comparison failed.\n';
+    error_message += ' Difference in element ' + mismatched_element +
+        ' exceeded the given epsilon.\n';
+
+    error_message += ' Matrix 1: [' + m1.join(',') + ']\n';
+    error_message += ' Matrix 2: [' + m2.join(',') + ']\n';
+
+    assert_approx_equals(
+        m1[mismatched_element], m2[mismatched_element], epsilon,
+        error_message);
+  }
+}
+
+
+// |m1|, |m2| - arrays of floating point numbers
+// |epsilon| - float specifying precision
+// |prefix| - string used as a prefix for logging
+let assert_matrix_significantly_not_equals = function(m1, m2, epsilon = FLOAT_EPSILON, prefix = "") {
+  if (m1 == null && m2 == null) {
+    return;
+  }
+
+  assert_not_equals(m1, null, prefix + "m1 must be non-null");
+  assert_not_equals(m2, null, prefix + "m2 must be non-null");
+
+  assert_equals(m1.length, 16, prefix + "m1 must have length of 16");
+  assert_equals(m2.length, 16, prefix + "m2 must have length of 16");
+
+  let mismatch = false;
+  for (let i = 0; i < 16; ++i) {
+    if (Math.abs(m1[i] - m2[i]) > epsilon) {
+      mismatch = true;
+      break;
+    }
+  }
+
+  if (!mismatch) {
+    let m1_str = '[';
+    let m2_str = '[';
+    for (let i = 0; i < 16; ++i) {
+      m1_str += m1[i] + (i < 15 ? ', ' : '');
+      m2_str += m2[i] + (i < 15 ? ', ' : '');
+    }
+    m1_str += ']';
+    m2_str += ']';
+
+    let error_message = prefix + 'Matrix comparison failed.\n';
+    error_message +=
+        ' No element exceeded the given epsilon ' + epsilon + '.\n';
+
+    error_message += ' Matrix A: ' + m1_str + '\n';
+    error_message += ' Matrix B: ' + m2_str + '\n';
+
+    assert_unreached(error_message);
   }
 }
 

@@ -20,9 +20,9 @@ from .firefox import (get_timeout_multiplier,  # noqa: F401
                       FirefoxBrowser)  # noqa: F401
 
 
-__wptrunner__ = {"product": "fennec",
+__wptrunner__ = {"product": "firefox_android",
                  "check_args": "check_args",
-                 "browser": "FennecBrowser",
+                 "browser": "FirefoxAndroidBrowser",
                  "executor": {"testharness": "MarionetteTestharnessExecutor",
                               "reftest": "MarionetteRefTestExecutor"},
                  "browser_kwargs": "browser_kwargs",
@@ -100,30 +100,18 @@ def write_hosts_file(config, device):
         os.remove(hosts_path)
 
 
-class FennecBrowser(FirefoxBrowser):
+class FirefoxAndroidBrowser(FirefoxBrowser):
     init_timeout = 300
     shutdown_timeout = 60
 
-    def __init__(self, logger, prefs_root, test_type, package_name=None,
+    def __init__(self, logger, prefs_root, test_type, package_name="org.mozilla.geckoview.test",
                  device_serial="emulator-5444", **kwargs):
         FirefoxBrowser.__init__(self, logger, None, prefs_root, test_type, **kwargs)
-        self._package_name = package_name
+        self.package_name = package_name
         self.device_serial = device_serial
         self.tests_root = kwargs["tests_root"]
         self.install_fonts = kwargs["install_fonts"]
         self.stackwalk_binary = kwargs["stackwalk_binary"]
-
-    @property
-    def package_name(self):
-        """
-        Name of app to run on emulator.
-        """
-        if self._package_name is None:
-            self._package_name = "org.mozilla.fennec"
-            user = os.getenv("USER")
-            if user:
-                self._package_name += "_" + user
-        return self._package_name
 
     def start(self, **kwargs):
         if self.marionette_port is None:
