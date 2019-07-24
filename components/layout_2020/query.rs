@@ -4,16 +4,11 @@
 
 //! Utilities for querying the layout, as needed by the layout thread.
 
-use crate::construct::ConstructionResult;
 use crate::context::LayoutContext;
 use crate::display_list::items::{DisplayList, OpaqueNode, ScrollOffsetMap};
 use crate::display_list::IndexableText;
-use crate::flow::{Flow, GetBaseFlow};
-use crate::fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
-use crate::inline::InlineFragmentNodeFlags;
+use crate::fragment::{Fragment, FragmentBorderBoxIterator};
 use crate::opaque_node::OpaqueNodeMethods;
-use crate::sequential;
-use crate::wrapper::LayoutNodeLayoutData;
 use app_units::Au;
 use euclid::{Point2D, Rect, Size2D, Vector2D};
 use ipc_channel::ipc::IpcSender;
@@ -30,7 +25,6 @@ use script_layout_interface::{LayoutElementType, LayoutNodeType};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
 use std::cmp::{max, min};
-use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use style::computed_values::display::T as Display;
 use style::computed_values::position::T as Position;
@@ -366,24 +360,16 @@ impl FragmentBorderBoxIterator for MarginRetrievingFragmentBorderBoxIterator {
 
 pub fn process_content_box_request(
     requested_node: OpaqueNode,
-    layout_root: &mut dyn Flow,
 ) -> Option<Rect<Au>> {
-    // FIXME(pcwalton): This has not been updated to handle the stacking context relative
-    // stuff. So the position is wrong in most cases.
-    let mut iterator = UnioningFragmentBorderBoxIterator::new(requested_node);
-    sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
-    iterator.rect
+    UnioningFragmentBorderBoxIterator::new(requested_node).rect
 }
 
 pub fn process_content_boxes_request(
     requested_node: OpaqueNode,
-    layout_root: &mut dyn Flow,
 ) -> Vec<Rect<Au>> {
     // FIXME(pcwalton): This has not been updated to handle the stacking context relative
     // stuff. So the position is wrong in most cases.
-    let mut iterator = CollectingFragmentBorderBoxIterator::new(requested_node);
-    sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
-    iterator.rects
+    CollectingFragmentBorderBoxIterator::new(requested_node).rects
 }
 
 struct FragmentLocatingFragmentIterator {
@@ -581,45 +567,6 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
             if fragment.style.get_box().position == Position::Fixed {
                 self.parent_nodes.clear();
             }
-        } else if let Some(node) = fragment.inline_context.as_ref().and_then(|inline_context| {
-            inline_context
-                .nodes
-                .iter()
-                .find(|node| node.address == self.node_address)
-        }) {
-            // TODO: Handle cases where the `offsetParent` is an inline
-            // element. This will likely be impossible until
-            // https://github.com/servo/servo/issues/13982 is fixed.
-
-            // Found a fragment in the flow tree whose inline context
-            // contains the DOM node we're looking for, i.e. the node
-            // is inline and contains this fragment.
-            match self.node_offset_box {
-                Some(NodeOffsetBoxInfo {
-                    ref mut rectangle, ..
-                }) => {
-                    *rectangle = rectangle.union(border_box);
-                },
-                None => {
-                    // https://github.com/servo/servo/issues/13982 will
-                    // cause this assertion to fail sometimes, so it's
-                    // commented out for now.
-                    /*assert!(node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT),
-                    "First fragment of inline node found wasn't its first fragment!");*/
-
-                    self.node_offset_box = Some(NodeOffsetBoxInfo {
-                        offset: border_box.origin,
-                        rectangle: *border_box,
-                    });
-                },
-            }
-
-            if node
-                .flags
-                .contains(InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT)
-            {
-                self.has_processed_node = true;
-            }
         } else if self.node_offset_box.is_none() {
             // TODO(gw): Is there a less fragile way of checking whether this
             // fragment is the body element, rather than just checking that
@@ -636,8 +583,6 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
                 //  2) Is static position *and* is a table or table cell
                 //  3) Is not static position
                 (true, _, _) |
-                (false, Position::Static, &SpecificFragmentInfo::Table) |
-                (false, Position::Static, &SpecificFragmentInfo::TableCell) |
                 (false, Position::Sticky, _) |
                 (false, Position::Absolute, _) |
                 (false, Position::Relative, _) |
@@ -671,11 +616,8 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
 
 pub fn process_node_geometry_request(
     requested_node: OpaqueNode,
-    layout_root: &mut dyn Flow,
 ) -> Rect<i32> {
-    let mut iterator = FragmentLocatingFragmentIterator::new(requested_node);
-    sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
-    iterator.client_rect
+    FragmentLocatingFragmentIterator::new(requested_node).client_rect
 }
 
 pub fn process_node_scroll_id_request<N: LayoutNode>(
@@ -689,10 +631,8 @@ pub fn process_node_scroll_id_request<N: LayoutNode>(
 /// https://drafts.csswg.org/cssom-view/#scrolling-area
 pub fn process_node_scroll_area_request(
     requested_node: OpaqueNode,
-    layout_root: &mut dyn Flow,
 ) -> Rect<i32> {
-    let mut iterator = UnioningFragmentScrollAreaIterator::new(requested_node);
-    sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+    let iterator = UnioningFragmentScrollAreaIterator::new(requested_node);
     match iterator.overflow_direction {
         OverflowDirection::RightAndDown => {
             let right = max(
@@ -742,7 +682,6 @@ pub fn process_resolved_style_request<'a, N>(
     node: N,
     pseudo: &Option<PseudoElement>,
     property: &PropertyId,
-    layout_root: &mut dyn Flow,
 ) -> String
 where
     N: LayoutNode,
@@ -755,7 +694,7 @@ where
     // We call process_resolved_style_request after performing a whole-document
     // traversal, so in the common case, the element is styled.
     if element.get_data().is_some() {
-        return process_resolved_style_request_internal(node, pseudo, property, layout_root);
+        return process_resolved_style_request_internal(node, pseudo, property);
     }
 
     // In a display: none subtree. No pseudo-element exists.
@@ -791,7 +730,6 @@ fn process_resolved_style_request_internal<'a, N>(
     requested_node: N,
     pseudo: &Option<PseudoElement>,
     property: &PropertyId,
-    layout_root: &mut dyn Flow,
 ) -> String
 where
     N: LayoutNode,
@@ -842,24 +780,11 @@ where
     let applies = true;
 
     fn used_value_for_position_property<N: LayoutNode>(
-        layout_el: <N::ConcreteThreadSafeLayoutNode as ThreadSafeLayoutNode>::ConcreteThreadSafeLayoutElement,
-        layout_root: &mut dyn Flow,
+        _layout_el: <N::ConcreteThreadSafeLayoutNode as ThreadSafeLayoutNode>::ConcreteThreadSafeLayoutElement,
         requested_node: N,
         longhand_id: LonghandId,
     ) -> String {
-        let maybe_data = layout_el.borrow_layout_data();
-        let position = maybe_data.map_or(Point2D::zero(), |data| {
-            match (*data).flow_construction_result {
-                ConstructionResult::Flow(ref flow_ref, _) => flow_ref
-                    .deref()
-                    .base()
-                    .stacking_relative_position
-                    .to_point(),
-                // TODO(dzbarsky) search parents until we find node with a flow ref.
-                // https://github.com/servo/servo/issues/8307
-                _ => Point2D::zero(),
-            }
-        });
+        let position = Point2D::zero();
         let property = match longhand_id {
             LonghandId::Bottom => PositionProperty::Bottom,
             LonghandId::Top => PositionProperty::Top,
@@ -869,12 +794,11 @@ where
             LonghandId::Height => PositionProperty::Height,
             _ => unreachable!(),
         };
-        let mut iterator = PositionRetrievingFragmentBorderBoxIterator::new(
+        let iterator = PositionRetrievingFragmentBorderBoxIterator::new(
             requested_node.opaque(),
             property,
             position,
         );
-        sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
         iterator
             .result
             .map(|r| r.to_css_string())
@@ -904,13 +828,12 @@ where
                 LonghandId::PaddingRight => (MarginPadding::Padding, Side::Right),
                 _ => unreachable!(),
             };
-            let mut iterator = MarginRetrievingFragmentBorderBoxIterator::new(
+            let iterator = MarginRetrievingFragmentBorderBoxIterator::new(
                 requested_node.opaque(),
                 side,
                 margin_padding,
                 style.writing_mode,
             );
-            sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
             iterator
                 .result
                 .map(|r| r.to_css_string())
@@ -920,12 +843,12 @@ where
         LonghandId::Bottom | LonghandId::Top | LonghandId::Right | LonghandId::Left
             if applies && positioned && style.get_box().display != Display::None =>
         {
-            used_value_for_position_property(layout_el, layout_root, requested_node, longhand_id)
+            used_value_for_position_property(layout_el, requested_node, longhand_id)
         },
         LonghandId::Width | LonghandId::Height
             if applies && style.get_box().display != Display::None =>
         {
-            used_value_for_position_property(layout_el, layout_root, requested_node, longhand_id)
+            used_value_for_position_property(layout_el, requested_node, longhand_id)
         },
         // FIXME: implement used value computation for line-height
         _ => style.computed_value_to_string(PropertyDeclarationId::Longhand(longhand_id)),
@@ -934,10 +857,8 @@ where
 
 pub fn process_offset_parent_query(
     requested_node: OpaqueNode,
-    layout_root: &mut dyn Flow,
 ) -> OffsetParentResponse {
-    let mut iterator = ParentOffsetBorderBoxIterator::new(requested_node);
-    sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+    let iterator = ParentOffsetBorderBoxIterator::new(requested_node);
 
     let node_offset_box = iterator.node_offset_box;
     let parent_info = iterator

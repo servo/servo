@@ -7,8 +7,6 @@ use libc::c_void;
 use script_traits::UntrustedNodeAddress;
 
 pub trait OpaqueNodeMethods {
-    /// Converts this node to an `UntrustedNodeAddress`. An `UntrustedNodeAddress` is just the type
-    /// of node that script expects to receive in a hit test.
     fn to_untrusted_node_address(&self) -> UntrustedNodeAddress;
 }
 
