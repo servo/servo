@@ -90,9 +90,6 @@
     <None Include="Content\VertexShaderShared.hlsl">
       <Filter>Content</Filter>
     </None>
-    <None Include="..\..\..\target\debug\api-ms-win-crt-runtime-l1-1-0.dll">
-      <Filter>DebugServoDLLs</Filter>
-    </None>
     <None Include="..\..\..\target\debug\avcodec-58.dll">
       <Filter>DebugServoDLLs</Filter>
     </None>
@@ -243,25 +240,16 @@
     <None Include="..\..\..\target\debug\libwinpthread-1.dll">
       <Filter>DebugServoDLLs</Filter>
     </None>
-    <None Include="..\..\..\target\debug\msvcp140.dll">
-      <Filter>DebugServoDLLs</Filter>
-    </None>
     <None Include="..\..\..\target\debug\orc-0.4-0.dll">
       <Filter>DebugServoDLLs</Filter>
     </None>
     <None Include="..\..\..\target\debug\swresample-3.dll">
       <Filter>DebugServoDLLs</Filter>
     </None>
-    <None Include="..\..\..\target\debug\vcruntime140.dll">
-      <Filter>DebugServoDLLs</Filter>
-    </None>
     <None Include="..\..\..\target\debug\z-1.dll">
       <Filter>DebugServoDLLs</Filter>
     </None>
     <None Include="..\..\..\target\release\z-1.dll">
-      <Filter>ReleaseServoDLLs</Filter>
-    </None>
-    <None Include="..\..\..\target\release\vcruntime140.dll">
       <Filter>ReleaseServoDLLs</Filter>
     </None>
     <None Include="..\..\..\target\release\swresample-3.dll">
@@ -271,9 +259,6 @@
       <Filter>ReleaseServoDLLs</Filter>
     </None>
     <None Include="..\..\..\target\release\orc-0.4-0.dll">
-      <Filter>ReleaseServoDLLs</Filter>
-    </None>
-    <None Include="..\..\..\target\release\msvcp140.dll">
       <Filter>ReleaseServoDLLs</Filter>
     </None>
     <None Include="..\..\..\target\release\libwinpthread-1.dll">
@@ -426,9 +411,6 @@
     <None Include="..\..\..\target\release\avcodec-58.dll">
       <Filter>ReleaseServoDLLs</Filter>
     </None>
-    <None Include="..\..\..\target\release\api-ms-win-crt-runtime-l1-1-0.dll">
-      <Filter>ReleaseServoDLLs</Filter>
-    </None>
     <None Include="..\..\..\target\debug\simpleservo.dll">
       <Filter>DebugServoDLLs</Filter>
     </None>
@@ -438,13 +420,7 @@
     <None Include="..\..\..\target\aarch64-pc-windows-msvc\debug\libssl.dll">
       <Filter>DebugARM64ServoDLLs</Filter>
     </None>
-    <None Include="..\..\..\target\aarch64-pc-windows-msvc\debug\msvcp140.dll">
-      <Filter>DebugARM64ServoDLLs</Filter>
-    </None>
     <None Include="..\..\..\target\aarch64-pc-windows-msvc\debug\simpleservo.dll">
-      <Filter>DebugARM64ServoDLLs</Filter>
-    </None>
-    <None Include="..\..\..\target\aarch64-pc-windows-msvc\debug\vcruntime140.dll">
       <Filter>DebugARM64ServoDLLs</Filter>
     </None>
     <None Include="..\..\..\target\aarch64-pc-windows-msvc\release\libcrypto.dll">
@@ -453,13 +429,7 @@
     <None Include="..\..\..\target\aarch64-pc-windows-msvc\release\libssl.dll">
       <Filter>ReleaseARM64ServoDLLs</Filter>
     </None>
-    <None Include="..\..\..\target\aarch64-pc-windows-msvc\release\msvcp140.dll">
-      <Filter>ReleaseARM64ServoDLLs</Filter>
-    </None>
     <None Include="..\..\..\target\aarch64-pc-windows-msvc\release\simpleservo.dll">
-      <Filter>ReleaseARM64ServoDLLs</Filter>
-    </None>
-    <None Include="..\..\..\target\aarch64-pc-windows-msvc\release\vcruntime140.dll">
       <Filter>ReleaseARM64ServoDLLs</Filter>
     </None>
   </ItemGroup>
