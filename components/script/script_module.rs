@@ -411,24 +411,24 @@ fn compile_module_script(
 
     let url_cstr = ffi::CString::new(url.as_str().as_bytes()).unwrap();
 
-    let _ac = JSAutoRealm::new(global.get_cx(), *global.reflector().get_jsobject());
+    let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
 
-    let compile_options = CompileOptionsWrapper::new(global.get_cx(), url_cstr.as_ptr(), 1);
+    let compile_options = CompileOptionsWrapper::new(*global.get_cx(), url_cstr.as_ptr(), 1);
 
-    rooted!(in(global.get_cx()) let mut module_script = ptr::null_mut::<JSObject>());
+    rooted!(in(*global.get_cx()) let mut module_script = ptr::null_mut::<JSObject>());
 
     let mut source = get_source_text(module);
 
     unsafe {
         if !CompileModule(
-            global.get_cx(),
+            *global.get_cx(),
             compile_options.ptr,
             &mut source,
             &mut module_script.handle_mut(),
         ) {
             println!("fail to compile module script of {}", url);
 
-            report_pending_exception(global.get_cx(), true);
+            report_pending_exception(*global.get_cx(), true);
             maybe_resume_unwind();
 
             Err(())
@@ -445,13 +445,13 @@ pub fn instantiate_module_tree(
     global: &GlobalScope,
     module_record: HandleObject,
 ) -> Result<(), ()> {
-    let _ac = JSAutoRealm::new(global.get_cx(), *global.reflector().get_jsobject());
+    let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
 
     unsafe {
-        if !ModuleInstantiate(global.get_cx(), module_record) {
+        if !ModuleInstantiate(*global.get_cx(), module_record) {
             println!("fail to instantiate module");
 
-            report_pending_exception(global.get_cx(), true);
+            report_pending_exception(*global.get_cx(), true);
             maybe_resume_unwind();
 
             Err(())
@@ -465,13 +465,13 @@ pub fn instantiate_module_tree(
 
 #[allow(unsafe_code)]
 pub fn execute_module(global: &GlobalScope, module_record: HandleObject) -> Result<(), ()> {
-    let _ac = JSAutoRealm::new(global.get_cx(), *global.reflector().get_jsobject());
+    let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
 
     unsafe {
-        if !ModuleEvaluate(global.get_cx(), module_record) {
+        if !ModuleEvaluate(*global.get_cx(), module_record) {
             println!("fail to evaluate module");
 
-            report_pending_exception(global.get_cx(), true);
+            report_pending_exception(*global.get_cx(), true);
             maybe_resume_unwind();
 
             Err(())
@@ -496,7 +496,7 @@ unsafe extern "C" fn HostResolveImportedModule(
     let base_url = global_scope.api_base_url();
 
     // Step 5.
-    let url = resolve_module_specifier(global_scope.get_cx(), &base_url, specifier);
+    let url = resolve_module_specifier(*global_scope.get_cx(), &base_url, specifier);
 
     // Step 6.
     assert!(url.is_ok());
