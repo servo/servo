@@ -9,6 +9,7 @@
 ${helpers.single_keyword(
     "table-layout",
     "auto fixed",
+    engines="gecko servo-2013",
     gecko_ffi_name="mLayoutStrategy",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-tables/#propdef-table-layout",
@@ -19,7 +20,7 @@ ${helpers.predefined_type(
     "-x-span",
     "XSpan",
     "computed::XSpan(1)",
-    products="gecko",
+    engines="gecko",
     spec="Internal-only (for `<col span>` pres attr)",
     animation_value_type="none",
     enabled_in="",

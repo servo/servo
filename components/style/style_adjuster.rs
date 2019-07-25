@@ -243,7 +243,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                 .add_flags(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE);
         }
 
-        #[cfg(feature = "servo")]
+        #[cfg(feature = "servo-layout-2013")]
         {
             if self.style.get_parent_column().is_multicol() {
                 self.style.add_flags(ComputedValueFlags::CAN_BE_FRAGMENTED);

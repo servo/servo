@@ -30,35 +30,36 @@ STYLE_STRUCT_LIST = [
     "effects",
     "font",
     "inherited_box",
+    "inherited_svg",
     "inherited_table",
     "inherited_text",
     "inherited_ui",
-    "inherited_svg",
     "list",
     "margin",
     "outline",
     "padding",
     "position",
+    "svg",
     "table",
     "text",
     "ui",
-    "svg",
     "xul",
 ]
 
 
 def main():
-    usage = ("Usage: %s [ servo | gecko ] [ style-crate | geckolib <template> | html ]" %
+    usage = ("Usage: %s [ servo-2013 | servo-2020 | gecko ] [ style-crate | geckolib <template> | html ]" %
              sys.argv[0])
     if len(sys.argv) < 3:
         abort(usage)
-    product = sys.argv[1]
+    engine = sys.argv[1]
     output = sys.argv[2]
 
-    if product not in ["servo", "gecko"] or output not in ["style-crate", "geckolib", "html"]:
+    if engine not in ["servo-2013", "servo-2020", "gecko"] \
+            or output not in ["style-crate", "geckolib", "html"]:
         abort(usage)
 
-    properties = data.PropertiesData(product=product)
+    properties = data.PropertiesData(engine=engine)
     files = {}
     for kind in ["longhands", "shorthands"]:
         files[kind] = {}
@@ -69,13 +70,13 @@ def main():
                 continue
             files[kind][struct] = render(
                 file_name,
-                product=product,
+                engine=engine,
                 data=properties,
             )
     properties_template = os.path.join(BASE, "properties.mako.rs")
     files["properties"] = render(
         properties_template,
-        product=product,
+        engine=engine,
         data=properties,
         __file__=properties_template,
         OUT_DIR=OUT_DIR,
@@ -90,14 +91,18 @@ def main():
                     files[kind][struct],
                 )
 
-        if product == "gecko":
+        if engine == "gecko":
             template = os.path.join(BASE, "gecko.mako.rs")
             rust = render(template, data=properties)
             write(OUT_DIR, "gecko_properties.rs", rust)
 
-        if product == "servo":
+        if engine in ["servo-2013", "servo-2020"]:
+            if engine == "servo-2013":
+                pref_attr = "servo_2013_pref"
+            if engine == "servo-2020":
+                pref_attr = "servo_2020_pref"
             names_and_prefs = [
-                (prop.name, prop.servo_pref)
+                (prop.name, getattr(prop, pref_attr))
                 for p in properties.longhands + properties.shorthands
                 if p.enabled_in_content()
                 for prop in [p] + p.alias
@@ -151,7 +156,7 @@ def write(directory, filename, content):
 def write_html(properties):
     properties = dict(
         (p.name, {
-            "flag": p.servo_pref,
+            "flag": p.servo_2013_pref,
             "shorthand": hasattr(p, "sub_properties")
         })
         for p in properties.longhands + properties.shorthands

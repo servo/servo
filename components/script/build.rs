@@ -42,9 +42,7 @@ fn main() {
         start.elapsed().as_secs()
     );
 
-    let json = out_dir
-        .join("build")
-        .join("InterfaceObjectMapData.json");
+    let json = out_dir.join("build").join("InterfaceObjectMapData.json");
     let json: Value = serde_json::from_reader(File::open(&json).unwrap()).unwrap();
     let mut map = phf_codegen::Map::new();
     for (key, value) in json.as_object().unwrap() {

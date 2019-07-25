@@ -5,6 +5,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <%helpers:shorthand name="list-style"
+                    engines="gecko servo-2013"
                     sub_properties="list-style-position list-style-image list-style-type"
                     derive_serialize="True"
                     spec="https://drafts.csswg.org/css-lists/#propdef-list-style">
@@ -61,11 +62,11 @@
         let position = unwrap_or_initial!(list_style_position, position);
 
         fn list_style_type_none() -> list_style_type::SpecifiedValue {
-            % if product == "servo":
-            list_style_type::SpecifiedValue::None
+            % if engine == "gecko":
+                use crate::values::generics::CounterStyleOrNone;
+                list_style_type::SpecifiedValue::CounterStyle(CounterStyleOrNone::None)
             % else:
-            use crate::values::generics::CounterStyleOrNone;
-            list_style_type::SpecifiedValue::CounterStyle(CounterStyleOrNone::None)
+                list_style_type::SpecifiedValue::None
             % endif
         }
 

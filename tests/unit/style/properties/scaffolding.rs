@@ -30,7 +30,7 @@ fn properties_list_json() {
         .join("build.py");
     let status = Command::new(python)
         .arg(&script)
-        .arg("servo")
+        .arg("servo-2013")
         .arg("html")
         .arg("regular")
         .status()

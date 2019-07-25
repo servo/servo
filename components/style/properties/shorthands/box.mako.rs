@@ -9,6 +9,7 @@ ${helpers.two_properties_shorthand(
     "overflow-x",
     "overflow-y",
     "specified::Overflow::parse",
+    engines="gecko servo-2013",
     flags="SHORTHAND_IN_GETCS",
     needs_context=False,
     spec="https://drafts.csswg.org/css-overflow/#propdef-overflow",
@@ -19,14 +20,15 @@ ${helpers.two_properties_shorthand(
     "overflow-clip-box-block",
     "overflow-clip-box-inline",
     "specified::OverflowClipBox::parse",
+    engines="gecko",
     enabled_in="ua",
     needs_context=False,
     gecko_pref="layout.css.overflow-clip-box.enabled",
     spec="Internal, may be standardized in the future "
          "(https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)",
-    products="gecko",
 )}
 
+#[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
 macro_rules! try_parse_one {
     ($context: expr, $input: expr, $var: ident, $prop_module: ident) => {
         if $var.is_none() {
@@ -41,6 +43,7 @@ macro_rules! try_parse_one {
 }
 
 <%helpers:shorthand name="transition"
+                    engines="gecko servo-2013"
                     extra_prefixes="moz:layout.css.prefixes.transitions webkit"
                     sub_properties="transition-property transition-duration
                                     transition-timing-function
@@ -186,6 +189,7 @@ macro_rules! try_parse_one {
 </%helpers:shorthand>
 
 <%helpers:shorthand name="animation"
+                    engines="gecko servo-2013"
                     extra_prefixes="moz:layout.css.prefixes.animations webkit"
                     sub_properties="animation-name animation-duration
                                     animation-timing-function animation-delay
@@ -308,15 +312,15 @@ ${helpers.two_properties_shorthand(
     "overscroll-behavior-x",
     "overscroll-behavior-y",
     "specified::OverscrollBehavior::parse",
+    engines="gecko",
     needs_context=False,
-    products="gecko",
     gecko_pref="layout.css.overscroll-behavior.enabled",
     spec="https://wicg.github.io/overscroll-behavior/#overscroll-behavior-properties",
 )}
 
 <%helpers:shorthand
+    engines="gecko"
     name="page-break-before"
-    products="gecko"
     flags="SHORTHAND_IN_GETCS IS_LEGACY_SHORTHAND"
     sub_properties="break-before"
     spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-before"
@@ -339,8 +343,8 @@ ${helpers.two_properties_shorthand(
 </%helpers:shorthand>
 
 <%helpers:shorthand
+    engines="gecko"
     name="page-break-after"
-    products="gecko"
     flags="SHORTHAND_IN_GETCS IS_LEGACY_SHORTHAND"
     sub_properties="break-after"
     spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-after"
