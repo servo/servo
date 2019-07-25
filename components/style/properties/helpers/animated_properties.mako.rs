@@ -391,7 +391,7 @@ impl AnimationValue {
                 x.boxed,
                 not x.is_animatable_with_computed_value,
                 x.style_struct.inherited,
-                x.ident in SYSTEM_FONT_LONGHANDS and product == "gecko",
+                x.ident in SYSTEM_FONT_LONGHANDS and engine == "gecko",
             )
         %>
 
@@ -851,7 +851,7 @@ impl Animate for AnimatedFilter {
                 Ok(Filter::${func}(animate_multiplicative_factor(this, other, procedure)?))
             },
             % endfor
-            % if product == "gecko":
+            % if engine == "gecko":
             (&Filter::DropShadow(ref this), &Filter::DropShadow(ref other)) => {
                 Ok(Filter::DropShadow(this.animate(other, procedure)?))
             },
@@ -871,7 +871,7 @@ impl ToAnimatedZero for AnimatedFilter {
             % for func in ['Brightness', 'Contrast', 'Opacity', 'Saturate']:
             Filter::${func}(_) => Ok(Filter::${func}(1.)),
             % endfor
-            % if product == "gecko":
+            % if engine == "gecko":
             Filter::DropShadow(ref this) => Ok(Filter::DropShadow(this.to_animated_zero()?)),
             % endif
             _ => Err(()),

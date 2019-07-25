@@ -5,6 +5,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <%helpers:shorthand name="outline"
+                    engines="gecko servo-2013"
                     sub_properties="outline-color outline-style outline-width"
                     derive_serialize="True"
                     spec="https://drafts.csswg.org/css-ui/#propdef-outline">
@@ -58,10 +59,15 @@
 </%helpers:shorthand>
 
 // The -moz-outline-radius shorthand is non-standard and not on a standards track.
-<%helpers:shorthand name="-moz-outline-radius" sub_properties="${' '.join(
-    '-moz-outline-radius-%s' % corner
-    for corner in ['topleft', 'topright', 'bottomright', 'bottomleft']
-)}" products="gecko" spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)">
+<%helpers:shorthand
+    name="-moz-outline-radius"
+    engines="gecko"
+    sub_properties="${' '.join(
+        '-moz-outline-radius-%s' % corner
+        for corner in ['topleft', 'topright', 'bottomright', 'bottomleft']
+    )}"
+    spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)"
+>
     use crate::values::generics::rect::Rect;
     use crate::values::specified::border::BorderRadius;
     use crate::parser::Parse;

@@ -237,7 +237,7 @@ class PostBuildCommands(CommandBase):
         'params', nargs='...',
         help="Command-line arguments to be passed through to cargo doc")
     @CommandBase.build_like_command_arguments
-    def doc(self, params, **kwargs):
+    def doc(self, params, features, **kwargs):
         env = os.environ.copy()
         env["RUSTUP_TOOLCHAIN"] = self.toolchain()
         rustc_path = check_output(["rustup" + BIN_SUFFIX, "which", "rustc"], env=env)
@@ -265,7 +265,8 @@ class PostBuildCommands(CommandBase):
                     else:
                         copy2(full_name, destination)
 
-        returncode = self.run_cargo_build_like_command("doc", params, **kwargs)
+        features = features or []
+        returncode = self.run_cargo_build_like_command("doc", params, features=features, **kwargs)
         if returncode:
             return returncode
 
@@ -274,7 +275,11 @@ class PostBuildCommands(CommandBase):
             copy2(path.join(static, name), path.join(docs, name))
 
         build = path.join(self.context.topdir, "components", "style", "properties", "build.py")
-        subprocess.check_call([sys.executable, build, "servo", "html"])
+        if "layout-2020" in features:
+            engine = "servo-2020"
+        if "layout-2013" in features:
+            engine = "servo-2013"
+        subprocess.check_call([sys.executable, build, engine, "html"])
 
         script = path.join(self.context.topdir, "components", "script")
         subprocess.check_call(["cmake", "."], cwd=script)

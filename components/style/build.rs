@@ -89,14 +89,19 @@ fn generate_properties() {
     let script = Path::new(&env::var_os("CARGO_MANIFEST_DIR").unwrap())
         .join("properties")
         .join("build.py");
-    let product = if cfg!(feature = "gecko") {
-        "gecko"
-    } else {
-        "servo"
-    };
+
+    #[cfg(feature = "gecko")]
+    let engine = "gecko";
+
+    #[cfg(feature = "servo-layout-2013")]
+    let engine = "servo-2013";
+
+    #[cfg(feature = "servo-layout-2020")]
+    let engine = "servo-2020";
+
     let status = Command::new(&*PYTHON)
         .arg(&script)
-        .arg(product)
+        .arg(engine)
         .arg("style-crate")
         .status()
         .unwrap();
@@ -116,6 +121,9 @@ fn main() {
             "The style crate does not support enabling both its 'servo' or 'gecko' \
              feature flags at the same time."
         );
+    }
+    if gecko && (cfg!(feature = "servo-layout-2013") || cfg!(feature = "servo-layout-2020")) {
+        panic!("The 'servo-layout-*' features can only be enabled together with 'servo'.");
     }
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:out_dir={}", env::var("OUT_DIR").unwrap());

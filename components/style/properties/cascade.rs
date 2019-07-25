@@ -639,13 +639,8 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
 
         #[cfg(feature = "servo")]
         {
-            // TODO(emilio): Use get_font_if_mutated instead.
-            if self.seen.contains(LonghandId::FontStyle) ||
-                self.seen.contains(LonghandId::FontWeight) ||
-                self.seen.contains(LonghandId::FontStretch) ||
-                self.seen.contains(LonghandId::FontFamily)
-            {
-                builder.mutate_font().compute_font_hash();
+            if let Some(font) = builder.get_font_if_mutated() {
+                font.compute_font_hash();
             }
         }
     }
