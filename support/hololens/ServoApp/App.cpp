@@ -63,7 +63,12 @@ void App::OnLaunched(LaunchActivatedEventArgs const &e) {
 }
 
 void App::OnSuspending([[maybe_unused]] IInspectable const &sender,
-                       [[maybe_unused]] SuspendingEventArgs const &e) {}
+                       [[maybe_unused]] SuspendingEventArgs const &e) {
+  auto content = Window::Current().Content();
+  Frame rootFrame = content.try_as<Frame>();
+  auto page = rootFrame.Content().try_as<BrowserPage>();
+  page->Shutdown();
+}
 
 void App::OnNavigationFailed(IInspectable const &,
                              NavigationFailedEventArgs const &e) {
