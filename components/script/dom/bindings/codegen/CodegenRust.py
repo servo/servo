@@ -2901,7 +2901,7 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
         for m in interface.members:
             if m.isAttr() and not m.isStatic() and m.type.isJSONType():
                 name = m.identifier.name
-                getAndDefine = fill(
+                ret += fill(
                     """
                     rooted!(in(*cx) let mut temp = UndefinedValue());
                     if !get_${name}(cx, obj, this, JSJitGetterCallArgs { _base: temp.handle_mut().into() }) {
@@ -2914,13 +2914,6 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
                     }
                     """,
                     name=name, nameAsArray=str_to_const_array(name))
-                ret += fill(
-                    """
-                    { // scope for "temp"
-                        $*{getAndDefine}
-                    }
-                    """,
-                    getAndDefine=getAndDefine)
         ret += 'return true;\n'
         return CGGeneric(ret)
 
