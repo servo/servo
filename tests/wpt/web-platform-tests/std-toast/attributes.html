@@ -100,11 +100,6 @@ testToastElement((toast) => {
     assertToastNotShown(toast);
 }, 'setting `toast.open` to some falsy value on a shown toast will hide the toast');
 
-testToastElement((toast) => {
-    toast.toggleAttribute('open');
-    assert_true(toast.open);
-}, 'toggling `open` on a hidden toast sets `toast.open` to true');
-
 testToastElementAsync((t, toast) => {
     toast.toggleAttribute('open', true);
 
@@ -115,7 +110,18 @@ testToastElementAsync((t, toast) => {
 }, 'toggling open attribute does not start timeout');
 
 testToastElement((toast) => {
-    const permitted_properties = ['constructor', 'show', 'hide', 'toggle', 'open', 'action', 'closeButton'];
+    const permitted_properties = ['constructor', 'show', 'hide', 'toggle', 'open', 'action', 'closeButton', 'type'];
     assert_array_equals(permitted_properties.sort(), Object.getOwnPropertyNames(toast.__proto__).sort());
 }, 'toast only exposes certain properties');
+
+testToastElement((toast) => {
+    assert_false(toast.hasAttribute('type'));
+    assert_equals(toast.type, '');
+}, 'default type is empty string without attribute present');
+
+testToastElement((toast) => {
+    toast.type = 'info';
+    assert_equals(toast.type, '');
+    assert_equals(toast.getAttribute('type'), 'info');
+}, 'info was briefly a valid type, but no longer is, so it will return empty string');
 </script>

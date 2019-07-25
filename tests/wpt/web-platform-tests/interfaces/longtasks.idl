@@ -5,6 +5,7 @@
 
 interface PerformanceLongTaskTiming : PerformanceEntry {
     readonly attribute FrozenArray<TaskAttributionTiming> attribution;
+    [Default] object toJSON();
 };
 
 interface TaskAttributionTiming : PerformanceEntry {
@@ -12,4 +13,5 @@ interface TaskAttributionTiming : PerformanceEntry {
     readonly attribute DOMString containerSrc;
     readonly attribute DOMString containerId;
     readonly attribute DOMString containerName;
+    [Default] object toJSON();
 };

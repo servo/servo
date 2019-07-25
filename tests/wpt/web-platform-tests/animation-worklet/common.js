@@ -18,11 +18,18 @@ function registerConstantLocalTimeAnimator(localTime) {
   `);
 }
 
-
 function runInAnimationWorklet(code) {
   return CSS.animationWorklet.addModule(
     URL.createObjectURL(new Blob([code], {type: 'text/javascript'}))
   );
+}
+
+function approxEquals(actual, expected){
+  // precision in ms
+  const epsilon = 0.005;
+  const lowerBound = (expected - epsilon) < actual;
+  const upperBound = (expected + epsilon) > actual;
+  return lowerBound && upperBound;
 }
 
 function waitForAsyncAnimationFrames(count) {

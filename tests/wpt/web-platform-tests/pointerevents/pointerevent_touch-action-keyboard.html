@@ -121,6 +121,7 @@
 
                 // Inject keyboard scroll inputs.
                 actions_promise = new test_driver.Actions()
+                    .addPointer("mousePointer1", "mouse")
                     .pointerMove(0, 0, {origin: target0})
                     .pointerDown()
                     .pointerUp()

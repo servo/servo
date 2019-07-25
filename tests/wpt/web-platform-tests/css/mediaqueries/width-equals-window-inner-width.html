@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSS Test: CSS media query width equals window innerWidth</title>
+
+<link rel="author" title="Jinfeng Ma" href="mailto:majinfeng1@xiaomi.org">
+<link rel="help" href="https://www.w3.org/TR/css3-mediaqueries/#width">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-window-innerwidth">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+It'd be best to programmatically change device scale factor so that the document
+width becomes non integral but for now this test is only effective when run on
+devices with a fractional device scale factor.
+-->
+<script type="text/javascript">
+    'use strict';
+    test(() => {
+      assert_true(window.matchMedia('(width: ' + window.innerWidth + 'px)').matches);
+    }, 'CSS media query width equals window innerWidth.');
+</script>

@@ -8,6 +8,7 @@
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/common/subset-tests-by-key.js></script>
+<script src=/common/get-host-info.sub.js></script>
 <script src=/resources/WebIDLParser.js></script>
 <script src=/resources/idlharness.js></script>
 
@@ -200,7 +201,8 @@ idl_test(
       PeerConnection: [],
       MediaStreamEvent: [],
       ErrorEvent: [],
-      WebSocket: ['new WebSocket("wss://foo")'],
+      // https://web-platform-tests.org/writing-tests/server-features.html?tests-involving-multiple-origins
+      WebSocket: ['new WebSocket("wss://nonexistent.' + get_host_info().ORIGINAL_HOST + '")'],
       CloseEvent: ['new CloseEvent("close")'],
       AbstractWorker: [],
       Worker: [],

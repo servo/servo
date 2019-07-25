@@ -20,26 +20,37 @@ let testFunction = function(session, fakeDeviceController, t) {
       let gl = layer.context;
 
       // The layer's framebuffer is a WebGL framebuffer
-      assert_not_equals(layer.framebuffer, null);
-      assert_true(layer.framebuffer instanceof WebGLFramebuffer);
+      t.step(() => {
+        assert_not_equals(layer.framebuffer, null);
+        assert_true(layer.framebuffer instanceof WebGLFramebuffer);
 
-      // The XR framebuffer is not bound to the GL context by default.
-      assert_not_equals(layer.framebuffer, gl.getParameter(gl.FRAMEBUFFER_BINDING));
+        // The XR framebuffer is not bound to the GL context by default.
+        assert_not_equals(layer.framebuffer, gl.getParameter(gl.FRAMEBUFFER_BINDING));
+      });
 
       // The XR framebuffer can be bound to the GL context.
       gl.bindFramebuffer(gl.FRAMEBUFFER, layer.framebuffer);
-      assert_equals(layer.framebuffer, gl.getParameter(gl.FRAMEBUFFER_BINDING));
+
+      t.step(() => {
+        assert_equals(layer.framebuffer, gl.getParameter(gl.FRAMEBUFFER_BINDING));
+      });
 
       // The XR framebuffer has a 2D texture
       let attachment = gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
-      assert_equals(attachment, gl.TEXTURE);
+
+      t.step(() => {
+        assert_equals(attachment, gl.TEXTURE);
+      });
 
       // Check that each viewport fits inside the framebuffer dimensions
       let viewer_pose = xrFrame.getViewerPose(space);
       for (view of viewer_pose.views) {
         let viewport = layer.getViewport(view);
-        assert_less_than_equal(viewport.x + viewport.width, layer.framebufferWidth);
-        assert_less_than_equal(viewport.y + viewport.height, layer.framebufferHeight);
+
+        t.step(() => {
+          assert_less_than_equal(viewport.x + viewport.width, layer.framebufferWidth);
+          assert_less_than_equal(viewport.y + viewport.height, layer.framebufferHeight);
+        });
       }
 
       // Finished test.

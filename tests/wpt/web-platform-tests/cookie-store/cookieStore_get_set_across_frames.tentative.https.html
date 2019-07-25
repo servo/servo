@@ -19,7 +19,9 @@ promise_test(async t => {
       'Precondition not met: cookie store should be empty');
 
   await cookieStore.set('cookie-name', 'cookie-value');
-  t.add_cleanup(() => cookieStore.delete('cookie-name'));
+  t.add_cleanup(async () => {
+    await cookieStore.delete('cookie-name');
+  });
 
   const frameCookie = await frameCookieStore.get('cookie-name');
   assert_equals(frameCookie.value, 'cookie-value');
@@ -34,7 +36,9 @@ promise_test(async t => {
       'Precondition not met: cookie store should be empty');
 
   await frameCookieStore.set('cookie-name', 'cookie-value');
-  t.add_cleanup(() => frameCookieStore.delete('cookie-name'));
+  t.add_cleanup(async () => {
+    await frameCookieStore.delete('cookie-name');
+  });
 
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie.value, 'cookie-value');
