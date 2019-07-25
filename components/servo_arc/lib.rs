@@ -125,6 +125,12 @@ impl<T> UniqueArc<T> {
                 .unwrap_or_else(|| alloc::handle_alloc_error(layout))
                 .cast::<ArcInner<mem::MaybeUninit<T>>>();
             ptr::write(&mut p.as_mut().count, atomic::AtomicUsize::new(1));
+
+            #[cfg(feature = "gecko_refcount_logging")]
+            {
+                NS_LogCtor(p.as_ptr() as *mut _, b"ServoArc\0".as_ptr() as *const _, 8)
+            }
+
             UniqueArc(Arc {
                 p,
                 phantom: PhantomData,
@@ -144,7 +150,7 @@ impl<T> UniqueArc<mem::MaybeUninit<T>> {
     #[inline]
     pub unsafe fn assume_init(this: Self) -> UniqueArc<T> {
         UniqueArc(Arc {
-            p: this.0.p.cast(),
+            p: mem::ManuallyDrop::new(this).0.p.cast(),
             phantom: PhantomData,
         })
     }
