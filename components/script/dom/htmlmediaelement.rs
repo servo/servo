@@ -1526,13 +1526,13 @@ impl HTMLMediaElement {
                         if let Some(servo_url) = self.resource_url.borrow().as_ref() {
                             let fragment = MediaFragmentParser::from(servo_url);
                             if let Some(id) = fragment.id() {
-                                if audio_track.id() == id {
+                                if audio_track.id() == DOMString::from(id) {
                                     self.AudioTracks()
                                         .set_enabled(self.AudioTracks().len() - 1, true);
                                 }
                             }
 
-                            if fragment.tracks().contains(&audio_track.kind()) {
+                            if fragment.tracks().contains(&audio_track.kind().into()) {
                                 self.AudioTracks()
                                     .set_enabled(self.AudioTracks().len() - 1, true);
                             }
@@ -1582,10 +1582,10 @@ impl HTMLMediaElement {
                             if let Some(servo_url) = self.resource_url.borrow().as_ref() {
                                 let fragment = MediaFragmentParser::from(servo_url);
                                 if let Some(id) = fragment.id() {
-                                    if track.id() == id {
+                                    if track.id() == DOMString::from(id) {
                                         self.VideoTracks().set_selected(0, true);
                                     }
-                                } else if fragment.tracks().contains(&track.kind()) {
+                                } else if fragment.tracks().contains(&track.kind().into()) {
                                     self.VideoTracks().set_selected(0, true);
                                 }
                             }
