@@ -31,6 +31,5 @@ iovec = { git = "https://github.com/servo/iovec.git", branch = "servo" }
 cmake = { git = "https://github.com/alexcrichton/cmake-rs" }
 
 [patch."https://github.com/servo/webxr"]
-webxr = { git = "https://github.com/asajeffrey/webxr", branch = "moar-senders" }
-webxr-api = { git = "https://github.com/asajeffrey/webxr", branch = "moar-senders" }
-
+webxr = { git = "https://github.com/asajeffrey/webxr", branch = "sessions-track-draw-texture" }
+webxr-api = { git = "https://github.com/asajeffrey/webxr", branch = "sessions-track-draw-texture" }

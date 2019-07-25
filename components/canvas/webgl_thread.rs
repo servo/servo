@@ -242,12 +242,6 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         context_id: WebGLContextId,
         sender: WebGLSender<(u32, Size2D<i32>, usize)>,
     ) {
-        sender.send(self.handle_lock_inner(context_id)).unwrap();
-    }
-
-    /// Shared code between handle_lock and handle_lock_ipc, does the actual syncing/flushing
-    /// but the caller must send the response back
-    fn handle_lock_inner(&mut self, context_id: WebGLContextId) -> (u32, Size2D<i32>, usize) {
         let data =
             Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id)
                 .expect("WebGLContext not found in a WebGLMsg::Lock message");
@@ -261,7 +255,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         // Without proper flushing, the sync object may never be signaled.
         data.ctx.gl().flush();
 
-        (info.texture_id, info.size, gl_sync as usize)
+        let _ = sender.send((info.texture_id, info.size, gl_sync as usize));
     }
 
     /// Handles an unlock external callback received from webrender::ExternalImageHandler

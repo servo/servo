@@ -149,6 +149,10 @@ impl XRWebGLLayer {
     pub fn session(&self) -> &XRSession {
         &self.session
     }
+
+    pub fn framebuffer(&self) -> &WebGLFramebuffer {
+        &self.framebuffer
+    }
 }
 
 impl XRWebGLLayerMethods for XRWebGLLayer {

@@ -6,6 +6,7 @@ use crate::compartments::InCompartment;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorBinding::NavigatorMethods;
+use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionMode;
@@ -29,6 +30,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::Node;
 use crate::dom::node::NodeDamage;
 use crate::dom::promise::Promise;
+use crate::dom::webglframebuffer::WebGLFramebufferAttachmentRoot;
 use crate::dom::xrframe::XRFrame;
 use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrreferencespace::XRReferenceSpace;
@@ -38,6 +40,7 @@ use crate::dom::xrspace::XRSpace;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
+use euclid::default::Size2D;
 use euclid::RigidTransform3D;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
@@ -182,10 +185,19 @@ impl XRSession {
             // Step 6-7: XXXManishearth handle inlineVerticalFieldOfView
 
             // XXXManishearth handle inline sessions and composition disabled flag
-            let context = pending
-                .GetBaseLayer()
-                .map(|layer| layer.Context().context_id().0);
-            self.session.borrow_mut().set_webgl_context(context);
+            if let Some(layer) = pending.GetBaseLayer() {
+                let attachment = layer.framebuffer().attachment(constants::COLOR_ATTACHMENT0);
+                if let Some(WebGLFramebufferAttachmentRoot::Texture(texture)) = attachment {
+                    let context = layer.Context().context_id().0;
+                    let texture_id = texture.id().get();
+                    if let Some((width, height)) = layer.framebuffer().size() {
+                        let size = Size2D::new(width, height);
+                        self.session
+                            .borrow_mut()
+                            .set_texture(context, texture_id, size);
+                    }
+                }
+            }
         }
 
         // Step 2
