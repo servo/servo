@@ -13,10 +13,10 @@ use crate::dom::bindings::utils::{
     get_proto_or_iface_array, ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT,
 };
 use js::error::throw_type_error;
-use js::glue::{UncheckedUnwrapObject, RUST_SYMBOL_TO_JSID};
+use js::glue::UncheckedUnwrapObject;
 use js::jsapi::HandleObject as RawHandleObject;
 use js::jsapi::MutableHandleValue as RawMutableHandleValue;
-use js::jsapi::{Class, ClassOps, RealmOptions};
+use js::jsapi::{jsid, Class, ClassOps};
 use js::jsapi::{GetNonCCWObjectGlobal, GetWellKnownSymbol};
 use js::jsapi::{JSAutoRealm, JSClass, JSContext, JSFunctionSpec, JSObject, JSFUN_CONSTRUCTOR};
 use js::jsapi::{JSPropertySpec, JSString, JSTracer, JS_AtomizeAndPinString};
@@ -27,12 +27,13 @@ use js::jsapi::{ObjectOps, OnNewGlobalHookOption, SymbolCode};
 use js::jsapi::{TrueHandleValue, Value};
 use js::jsapi::{JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING};
 use js::jsval::{JSVal, PrivateValue};
+use js::rust::wrappers::RUST_SYMBOL_TO_JSID;
 use js::rust::wrappers::{JS_DefineProperty, JS_DefineProperty5};
 use js::rust::wrappers::{JS_DefineProperty3, JS_DefineProperty4, JS_DefinePropertyById5};
 use js::rust::wrappers::{JS_FireOnNewGlobalObject, JS_GetPrototype};
 use js::rust::wrappers::{JS_LinkConstructorAndPrototype, JS_NewObjectWithUniqueType};
 use js::rust::{define_methods, define_properties, get_object_class};
-use js::rust::{HandleObject, HandleValue, MutableHandleObject};
+use js::rust::{HandleObject, HandleValue, MutableHandleObject, RealmOptions};
 use std::convert::TryFrom;
 use std::ptr;
 
@@ -145,7 +146,7 @@ pub unsafe fn create_global_object(
         class,
         ptr::null_mut(),
         OnNewGlobalHookOption::DontFireOnNewGlobalHook,
-        &options,
+        &*options,
     ));
     assert!(!rval.is_null());
 
@@ -208,7 +209,8 @@ pub unsafe fn create_interface_prototype_object(
         let unscopable_symbol = GetWellKnownSymbol(cx, SymbolCode::unscopables);
         assert!(!unscopable_symbol.is_null());
 
-        rooted!(in(cx) let unscopable_id = RUST_SYMBOL_TO_JSID(unscopable_symbol));
+        rooted!(in(cx) let mut unscopable_id: jsid);
+        RUST_SYMBOL_TO_JSID(unscopable_symbol, unscopable_id.handle_mut());
         assert!(JS_DefinePropertyById5(
             cx,
             rval.handle(),
