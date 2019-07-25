@@ -96,19 +96,19 @@
     test(function() {
         target.style = 'font-size: var(--font-size-em);';
         assert_property_equals('font-size', unsetFontSize);
-        assert_property_equals('--font-size-em', compute_dimension('2em', 'unset'));
+        assert_property_equals('--font-size-em', '');
     }, 'Lengths with em units may not be referenced from font-size');
 
     test(function() {
         target.style = 'font-size: var(--font-size-ex);';
         assert_property_equals('font-size', unsetFontSize);
-        assert_property_equals('--font-size-ex', compute_dimension('2ex', 'unset'));
+        assert_property_equals('--font-size-ex', '');
     }, 'Lengths with ex units may not be referenced from font-size');
 
     test(function() {
         target.style = 'font-size: var(--font-size-ch);';
         assert_property_equals('font-size', unsetFontSize);
-        assert_property_equals('--font-size-ch', compute_dimension('2ch', 'unset'));
+        assert_property_equals('--font-size-ch', '');
     }, 'Lengths with ch units may not be referenced from font-size');
 
     test(function() {
@@ -120,11 +120,9 @@
 
     test(function() {
         let root = document.documentElement;
-        let expected1rem = compute_dimension('1rem', 'unset', root);
-        let expected2rem = compute_dimension('2rem', 'unset', root);
         root.style = 'font-size: var(--font-size-rem);';
-        assert_property_equals('font-size', expected1rem, root);
-        assert_property_equals('--font-size-rem', expected2rem, root);
+        assert_property_equals('font-size', unsetFontSize, root);
+        assert_property_equals('--font-size-rem', '', root);
     }, 'Lengths with rem units may not be referenced from font-size on root element');
 
     test(function() {
@@ -134,51 +132,50 @@
 
     test(function() {
         target.style = 'font-size: var(--font-size-em, 42px);';
-        assert_property_equals('font-size', '42px');
-    }, 'Fallback triggered when em unit cycle is detected');
+        assert_property_equals('font-size', unsetFontSize);
+    }, 'Fallback not triggered while inside em unit cycle');
 
     test(function() {
         target.style = 'font-size: var(--font-size-ex, 42px);';
-        assert_property_equals('font-size', '42px');
-    }, 'Fallback triggered when ex unit cycle is detected');
+        assert_property_equals('font-size', unsetFontSize);
+    }, 'Fallback not triggered while inside ex unit cycle');
 
     test(function() {
         target.style = 'font-size: var(--font-size-ch, 42px);';
-        assert_property_equals('font-size', '42px');
-    }, 'Fallback triggered when ch unit cycle is detected');
+        assert_property_equals('font-size', unsetFontSize);
+    }, 'Fallback not triggered while inside ch unit cycle');
 
     test(function() {
         let root = document.documentElement;
         root.style = 'font-size: var(--font-size-rem, 42px);';
-        assert_property_equals('font-size', '42px', root);
+        assert_property_equals('font-size', unsetFontSize, root);
         root.style = 'font-size: unset;';
-    }, 'Fallback triggered when rem unit cycle is detected on root element');
+    }, 'Fallback not triggered while inside rem unit cycle on root element');
 
     test(function() {
         target.style = 'font-size: var(--font-size-em-via-var);';
         assert_property_equals('font-size', unsetFontSize);
-        assert_property_equals('--font-size-em-via-var', compute_dimension('10em', 'unset'));
+        assert_property_equals('--font-size-em-via-var', '');
     }, 'Lengths with em units are detected via var references');
 
     test(function() {
         target.style = 'font-size: var(--font-size-ex-via-var);';
         assert_property_equals('font-size', unsetFontSize);
-        assert_property_equals('--font-size-ex-via-var', compute_dimension('10ex', 'unset'));
+        assert_property_equals('--font-size-ex-via-var', '');
     }, 'Lengths with ex units are detected via var references');
 
     test(function() {
         target.style = 'font-size: var(--font-size-ch-via-var);';
         assert_property_equals('font-size', unsetFontSize);
-        assert_property_equals('--font-size-ch-via-var', compute_dimension('10ch', 'unset'));
+        assert_property_equals('--font-size-ch-via-var', '');
     }, 'Lengths with ch units are detected via var references');
 
     test(function() {
         let root = document.documentElement;
-        let expected1rem = compute_dimension('1rem', 'unset', root);
-        let expected10rem = compute_dimension('10rem', 'unset', root);
         root.style = 'font-size: var(--font-size-rem-via-var);';
-        assert_property_equals('font-size', expected1rem, root);
-        assert_property_equals('--font-size-rem-via-var', expected10rem, root);
+        assert_property_equals('font-size', unsetFontSize, root);
+        assert_property_equals('--font-size-rem-via-var', '', root);
+        root.style = 'font-size: unset';
     }, 'Lengths with rem units are detected via var references');
 
     test(function() {

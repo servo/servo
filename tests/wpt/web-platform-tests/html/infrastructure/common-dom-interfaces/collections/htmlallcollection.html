@@ -23,6 +23,7 @@
 <div id="null"></div>
 <div name="divwithname"></div>
 <div id="-0"></div>
+<div id="log"></div>
 <script>
 var anchors = document.querySelectorAll("a");
 var divs = document.querySelectorAll("div");
@@ -34,7 +35,7 @@ test(function() {
 }, "document.all is an HTMLAllCollection");
 
 test(function() {
-  assert_equals(document.all.length, 24);
+  assert_equals(document.all.length, 25);
 }, "length attribute");
 
 // indexed property getter
@@ -42,12 +43,12 @@ test(function() {
 test(function() {
   assert_equals(document.all[0], document.documentElement);
   assert_equals(document.all[-0], document.documentElement);
-  assert_equals(document.all[23], scripts[2]);
+  assert_equals(document.all[24], scripts[2]);
 }, "indexed property getter");
 
 test(function() {
   assert_equals(document.all[-1], undefined);
-  assert_equals(document.all[24], undefined);
+  assert_equals(document.all[25], undefined);
   assert_equals(document.all[42], undefined);
   assert_equals(document.all[43], undefined);
   assert_equals(document.all[4294967294], undefined);
@@ -86,8 +87,8 @@ test(function() {
 
 test(function() {
   assert_equals(document.all["0"], document.documentElement);
-  assert_equals(document.all["23"], document.scripts[2]);
-  assert_equals(document.all["24"], undefined);
+  assert_equals(document.all["24"], document.scripts[2]);
+  assert_equals(document.all["25"], undefined);
   assert_equals(document.all["42"], undefined);
   assert_equals(document.all["43"], undefined);
 }, "named property getter with \"array index property name\"");
@@ -187,16 +188,16 @@ test(function() {
 
 test(function() {
   assert_equals(document.all("0"), document.documentElement);
-  assert_equals(document.all("23"), document.scripts[2]);
-  assert_equals(document.all("24"), null);
+  assert_equals(document.all("24"), document.scripts[2]);
+  assert_equals(document.all("25"), null);
   assert_equals(document.all("42"), null);
   assert_equals(document.all("43"), null);
 }, "legacy caller with \"array index property name\"");
 
 test(function() {
   assert_equals(document.all(0), document.documentElement);
-  assert_equals(document.all(23), document.scripts[2]);
-  assert_equals(document.all(24), null);
+  assert_equals(document.all(24), document.scripts[2]);
+  assert_equals(document.all(25), null);
   assert_equals(document.all(42), null);
   assert_equals(document.all(43), null);
 }, "legacy caller with \"array index property name\" as number");
@@ -267,16 +268,16 @@ test(function() {
 
 test(function() {
   assert_equals(document.all.item("0"), document.documentElement);
-  assert_equals(document.all.item("23"), document.scripts[2]);
-  assert_equals(document.all.item("24"), null);
+  assert_equals(document.all.item("24"), document.scripts[2]);
+  assert_equals(document.all.item("25"), null);
   assert_equals(document.all.item("42"), null);
   assert_equals(document.all.item("43"), null);
 }, "item method with \"array index property name\"");
 
 test(function() {
   assert_equals(document.all.item(0), document.documentElement);
-  assert_equals(document.all.item(23), document.scripts[2]);
-  assert_equals(document.all.item(24), null);
+  assert_equals(document.all.item(24), document.scripts[2]);
+  assert_equals(document.all.item(25), null);
   assert_equals(document.all.item(42), null);
   assert_equals(document.all.item(43), null);
 }, "item method with \"array index property name\" as number");
@@ -329,6 +330,5 @@ test(function() {
   }
 }, "collections are new live HTMLCollection instances");
 </script>
-<div id="log"></div>
 </body>
 </html>

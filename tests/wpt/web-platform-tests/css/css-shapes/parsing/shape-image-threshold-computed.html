@@ -15,6 +15,11 @@
 test_computed_value("shape-image-threshold", "-7", "0");
 test_computed_value("shape-image-threshold", "0.5");
 test_computed_value("shape-image-threshold", "12.5", "1");
+
+// https://github.com/w3c/csswg-drafts/issues/4102
+test_computed_value("shape-image-threshold", "-100%", "0");
+test_computed_value("shape-image-threshold", "50%", "0.5");
+test_computed_value("shape-image-threshold", "300%", "1");
 </script>
 </body>
 </html>

@@ -7,9 +7,6 @@
 <script>
   'use strict';
 
-  // Test is based on the following editor draft:
-  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
-
   // The following helper functions are called from RTCPeerConnection-helper.js:
   //   assert_session_desc_similar()
   //   generateAudioReceiveOnlyOffer
@@ -162,27 +159,77 @@
     });
   }, 'setRemoteDescription(offer) with invalid SDP should reject with RTCError');
 
-  /*
-    4.3.1.6.  Set the RTCSessionSessionDescription
-      2.1.3.  If the description's type is invalid for the current signaling state of
-              connection, then reject p with a newly created InvalidStateError and abort
-              these steps.
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+    await pc1.setLocalDescription(await pc1.createOffer());
+    await pc1.setRemoteDescription(await pc2.createOffer());
+    assert_equals(pc1.signalingState, 'have-remote-offer');
+  }, 'setRemoteDescription(offer) from have-local-offer should roll back and succeed');
 
-    [JSEP]
-      5.6.  If the type is "offer", the PeerConnection state MUST be either "stable" or
-            "have-remote-offer".
-   */
-  promise_test(t => {
-    const pc = new RTCPeerConnection();
-    t.add_cleanup(() => pc.close());
-    return pc.createOffer()
-    .then(offer => {
-      return pc.setLocalDescription(offer)
-      .then(() => {
-        return promise_rejects(t, 'InvalidStateError',
-          pc.setRemoteDescription(offer));
-      });
-    });
-  }, 'setRemoteDescription(offer) from have-local-offer state should reject with InvalidStateError');
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+    await pc1.setLocalDescription(await pc1.createOffer());
+    const p = pc1.setRemoteDescription(await pc2.createOffer());
+    await new Promise(r => pc1.onsignalingstatechange = r);
+    assert_equals(pc1.signalingState, 'stable');
+    assert_equals(pc1.pendingLocalDescription, null);
+    assert_equals(pc1.pendingRemoteDescription, null);
+    await new Promise(r => pc1.onsignalingstatechange = r);
+    assert_equals(pc1.signalingState, 'have-remote-offer');
+    assert_equals(pc1.pendingLocalDescription, null);
+    assert_equals(pc1.pendingRemoteDescription.type, 'answer');
+    await p;
+  }, 'setRemoteDescription(offer) from have-local-offer fires signalingstatechange twice');
 
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+    await pc1.setLocalDescription(await pc1.createOffer());
+    const offer = await pc2.createOffer();
+    const p1 = pc1.setLocalDescription({type: 'rollback'});
+    await new Promise(r => pc1.onsignalingstatechange = r);
+    assert_equals(pc1.signalingState, 'stable');
+    const p2 = pc1.addIceCandidate();
+    const p3 = pc1.setRemoteDescription(offer);
+    await promise_rejects(t, 'InvalidStateError', p2);
+    await p1;
+    await p3;
+    assert_equals(pc1.signalingState, 'have-remote-offer');
+  }, 'Naive rollback approach is not glare-proof (control)');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+    await pc1.setLocalDescription(await pc1.createOffer());
+    const p = pc1.setRemoteDescription(await pc2.createOffer());
+    await new Promise(r => pc1.onsignalingstatechange = r);
+    assert_equals(pc1.signalingState, 'stable');
+    await pc1.addIceCandidate();
+    await p;
+    assert_equals(pc1.signalingState, 'have-remote-offer');
+  }, 'setRemoteDescription(offer) from have-local-offer is glare-proof');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+    await pc1.setLocalDescription(await pc1.createOffer());
+    const p = pc1.setRemoteDescription({type: 'offer', sdp: 'Invalid SDP'});
+    await new Promise(r => pc1.onsignalingstatechange = r);
+    assert_equals(pc1.signalingState, 'stable');
+    assert_equals(pc1.pendingLocalDescription, null);
+    assert_equals(pc1.pendingRemoteDescription, null);
+    await promise_rejects(t, 'RTCError', p);
+  }, 'setRemoteDescription(invalidOffer) from have-local-offer does not undo rollback');
 </script>

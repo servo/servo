@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<canvas />
+
+<script>
+
+let testName = "Ensure framebuffer scaling works as expected.";
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction =
+  (session, fakeDeviceController, t, sessionObjects) => new Promise((resolve, reject) => {
+  let gl = sessionObjects.gl;
+  let webglLayer = sessionObjects.glLayer;
+  let defaultFramebufferWidth = webglLayer.framebufferWidth;
+  let defaultFramebufferHeight = webglLayer.framebufferHeight;
+  let nativeScale = XRWebGLLayer.getNativeFramebufferScaleFactor(session);
+
+  t.step(() => {
+    // Ensure the framebuffer default sizes and native scale are all non-zero.
+    assert_greater_than(defaultFramebufferWidth, 0);
+    assert_greater_than(defaultFramebufferHeight, 0);
+    assert_greater_than(nativeScale, 0);
+
+    // The native scale should be the inverse for the default framebuffer scale.
+    assert_approx_equals(nativeScale, 1/fakeDeviceController.displayInfo_.webxrDefaultFramebufferScale, FLOAT_EPSILON);
+  });
+
+  webglLayer = new XRWebGLLayer(session, gl, { framebufferScaleFactor: nativeScale });
+  t.step(() => {
+    // Ensure that requesting a native scale framebuffer gives the expected result.
+    assert_approx_equals(webglLayer.framebufferWidth, defaultFramebufferWidth*nativeScale, 2);
+    assert_approx_equals(webglLayer.framebufferHeight, defaultFramebufferHeight*nativeScale, 2);
+  });
+
+  webglLayer = new XRWebGLLayer(session, gl, { framebufferScaleFactor: 0 });
+  t.step(() => {
+    // Ensure that the framebuffer has a lower bounds clamp.
+    assert_greater_than(webglLayer.framebufferWidth, 0);
+    assert_greater_than(webglLayer.framebufferHeight, 0);
+  });
+
+  webglLayer = new XRWebGLLayer(session, gl, { framebufferScaleFactor: 100 });
+  t.step(() => {
+    // Ensure that the framebuffer has a reasonable upper bounds clamp.
+    assert_less_than(webglLayer.framebufferWidth, defaultFramebufferWidth*100);
+    assert_less_than(webglLayer.framebufferHeight, defaultFramebufferHeight*100);
+  });
+
+  resolve();
+});
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+
+</script>

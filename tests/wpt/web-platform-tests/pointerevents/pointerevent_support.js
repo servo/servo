@@ -272,7 +272,7 @@ function touchScrollInTarget(target, direction) {
         throw("scroll direction '" + direction + "' is not expected, direction should be 'down', 'up', 'left' or 'right'");
     }
     return new test_driver.Actions()
-                   .addPointer("pointer1", "touch")
+                   .addPointer("touchPointer1", "touch")
                    .pointerMove(0, 0, {origin: target})
                    .pointerDown()
                    .pointerMove(x_delta, y_delta, {origin: target})

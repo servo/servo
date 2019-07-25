@@ -7,8 +7,10 @@
 
 idl_test(
   ['longtasks'],
-  ['performance-timeline'],
+  ['performance-timeline', 'hr-time'],
   (idl_array, t) => new Promise((resolve, reject) => {
+
+
     const longTask = () => {
       const begin = self.performance.now();
       while (self.performance.now() < begin + 100);

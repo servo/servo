@@ -107,3 +107,26 @@ test(() => {
                 'ByteLengthQueuingStrategy.name must be "ByteLengthQueuingStrategy"');
 
 }, 'ByteLengthQueuingStrategy.name is correct');
+
+class SubClass extends ByteLengthQueuingStrategy {
+  size() {
+    return 2;
+  }
+
+  subClassMethod() {
+    return true;
+  }
+}
+
+test(() => {
+
+  const sc = new SubClass({highWaterMark: 77});
+  assert_equals(sc.constructor.name, 'SubClass',
+                'constructor.name should be correct');
+  assert_equals(sc.highWaterMark, 77,
+                'highWaterMark should come from the parent class');
+  assert_equals(sc.size(), 2,
+                'size() on the subclass should override the parent');
+  assert_true(sc.subClassMethod(), 'subClassMethod() should work');
+
+}, 'subclassing ByteLengthQueuingStrategy should work correctly');

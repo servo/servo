@@ -7,6 +7,7 @@
 <meta name="assert" content="Elements msqrt and mroot correctly use the radical parameters from the MATH table.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
 <style>
   math, mspace {
     font-size: 10px;
@@ -56,6 +57,8 @@
 
   function runTests() {
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v1 = 25;
       var v2 = 1000 * emToPx;
       var radicalHeight = getBox("base001").height + v2;
@@ -65,6 +68,8 @@
     }, "RadicalDegreeBottomRaisePercent");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v1 = 7000 * emToPx;
       var v2 = 1000 * emToPx;
       assert_approx_equals(getBox("base0021").top - getBox("radical0021").top,
@@ -76,6 +81,8 @@
     }, "RadicalDisplayStyleVerticalGap");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v1 = 3000 * emToPx;
       var v2 = 1000 * emToPx;
       assert_approx_equals(getBox("base0031").top - getBox("radical0031").top,
@@ -86,7 +93,9 @@
                            "mroot: vertical gap");
     }, "RadicalExtraAscender");
 
-  test(function() {
+    test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       // Note: the size variants of U+221A in this font have width 1000.
       var v1 = 5000 * emToPx;
       var radicalSymbolWidth = 1000 * emToPx;
@@ -97,6 +106,8 @@
     }, "RadicalKernAfterDegree");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v1 = 4000 * emToPx;
       assert_approx_equals(getBox("index005").left - getBox("radical005").left,
                            v1, epsilon,
@@ -104,6 +115,8 @@
     }, "RadicalKernBeforeDegree");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v = 8000 * emToPx;
       assert_approx_equals(getBox("base0061").top - getBox("radical0061").top,
                            v, epsilon,
@@ -114,6 +127,8 @@
     }, "RadicalRuleThickness");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v1 = 6000 * emToPx;
       var v2 = 1000 * emToPx;
       assert_approx_equals(getBox("base0071").top - getBox("radical0071").top,

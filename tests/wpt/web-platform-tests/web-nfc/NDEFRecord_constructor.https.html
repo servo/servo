@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<title>NDEFRecord constructor</title>
+<link rel="help" href="https://w3c.github.io/web-nfc/#dom-ndefrecord">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/nfc_help.js"></script>
+<script>
+
+  test(() => {
+    assert_equals(NDEFRecord.length, 1);
+    assert_throws(new TypeError, () => new NDEFRecord());
+  }, 'NDEFRecord constructor without init dict');
+
+  test(() => {
+    const record = new NDEFRecord(null);
+    assert_equals(record.recordType.length, 0, 'empty recordType');
+    assert_equals(record.mediaType.length, 0, 'empty mediaType');
+    assert_equals(record.data(), null, 'null data');
+  }, 'NDEFRecord constructor with null init dict');
+
+  test(() => {
+    let buffer = new ArrayBuffer(4);
+    let buffer_view = new Uint8Array(buffer);
+    let original_data = new Uint8Array([1, 2, 3, 4]);
+    buffer_view.set(original_data);
+    const record = new NDEFRecord(createOpaqueRecord(buffer));
+    assert_equals(record.recordType, 'opaque', 'recordType');
+    assert_equals(record.mediaType, 'application/octet-stream', 'mediaType');
+
+    const data_1 = record.data();
+    assert_true(data_1 instanceof ArrayBuffer);
+    assert_not_equals(data_1, buffer, 'data() returns a new object');
+    assert_array_equals(new Uint8Array(data_1), original_data,
+        'data() has the same content with the original buffer');
+
+    const data_2 = record.data();
+    assert_true(data_2 instanceof ArrayBuffer);
+    assert_not_equals(data_2, data_1, 'data() again returns another new object');
+    assert_array_equals(new Uint8Array(data_2), original_data,
+        'data() has the same content with the original buffer');
+
+    buffer_view.set([4, 3, 2, 1]);
+    const data_3 = record.data();
+    assert_true(data_3 instanceof ArrayBuffer);
+    assert_array_equals(new Uint8Array(data_1), original_data,
+        'Modifying the original buffer does not affect data() content');
+    assert_array_equals(new Uint8Array(data_2), original_data,
+        'Modifying the original buffer does not affect data() content');
+    assert_array_equals(new Uint8Array(data_3), original_data,
+        'Modifying the original buffer does not affect data() content');
+  }, 'NDEFRecord constructor with opaque data');
+
+  test(() => {
+    const record = new NDEFRecord(createJsonRecord(test_json_data));
+    assert_equals(record.recordType, 'json', 'recordType');
+    assert_equals(record.mediaType, 'application/json', 'mediaType');
+
+    const data_1 = record.data();
+    assert_true(typeof data_1 === 'object');
+    assert_not_equals(data_1, test_json_data, 'data() returns a new object');
+    assert_object_equals(data_1, test_json_data,
+        'data() has the same content with the original dictionary');
+
+    const data_2 = record.data();
+    assert_true(typeof data_2 === 'object');
+    assert_not_equals(data_2, data_1, 'data() again returns another new object');
+    assert_object_equals(data_2, test_json_data,
+        'data() has the same content with the original dictionary');
+  }, 'NDEFRecord constructor with json data');
+
+</script>

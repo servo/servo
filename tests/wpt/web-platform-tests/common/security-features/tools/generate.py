@@ -28,7 +28,10 @@ def expand_pattern(expansion_pattern, test_expansion_schema):
     return expansion
 
 
-def permute_expansion(expansion, artifact_order, selection = {}, artifact_index = 0):
+def permute_expansion(expansion,
+                      artifact_order,
+                      selection={},
+                      artifact_index=0):
     assert isinstance(artifact_order, list), "artifact_order should be a list"
 
     if artifact_index >= len(artifact_order):
@@ -39,18 +42,16 @@ def permute_expansion(expansion, artifact_order, selection = {}, artifact_index 
 
     for artifact_value in expansion[artifact_key]:
         selection[artifact_key] = artifact_value
-        for next_selection in permute_expansion(expansion,
-                                                artifact_order,
-                                                selection,
-                                                artifact_index + 1):
+        for next_selection in permute_expansion(expansion, artifact_order,
+                                                selection, artifact_index + 1):
             yield next_selection
 
 
 def generate_selection(config, selection, spec, test_html_template_basename):
     # TODO: Refactor out this referrer-policy-specific part.
     if 'referrer_policy' in spec:
-      # Oddball: it can be None, so in JS it's null.
-      selection['referrer_policy'] = spec['referrer_policy']
+        # Oddball: it can be None, so in JS it's null.
+        selection['referrer_policy'] = spec['referrer_policy']
 
     test_parameters = json.dumps(selection, indent=2, separators=(',', ':'))
     # Adjust the template for the test invoking JS. Indent it to look nice.
@@ -66,14 +67,16 @@ def generate_selection(config, selection, spec, test_html_template_basename):
       ''' % (config.test_case_name, test_parameters)
 
     selection['spec_name'] = spec['name']
-    selection['test_page_title'] = config.test_page_title_template % spec['title']
+    selection[
+        'test_page_title'] = config.test_page_title_template % spec['title']
     selection['spec_description'] = spec['description']
     selection['spec_specification_url'] = spec['specification_url']
     selection['helper_js'] = config.helper_js
     selection['sanity_checker_js'] = config.sanity_checker_js
     selection['spec_json_js'] = config.spec_json_js
 
-    test_filename = os.path.join(config.spec_directory, config.test_file_path_pattern % selection)
+    test_filename = os.path.join(config.spec_directory,
+                                 config.test_file_path_pattern % selection)
     test_headers_filename = test_filename + ".headers"
     test_directory = os.path.dirname(test_filename)
 
@@ -90,7 +93,8 @@ def generate_selection(config, selection, spec, test_html_template_basename):
 
     # Adjust the template for the test invoking JS. Indent it to look nice.
     selection['generated_disclaimer'] = generated_disclaimer.rstrip()
-    selection['test_description'] = config.test_description_template % selection
+    selection[
+        'test_description'] = config.test_description_template % selection
     selection['test_description'] = \
         selection['test_description'].rstrip().replace("\n", "\n" + " " * 33)
 
@@ -123,9 +127,11 @@ def generate_test_source_files(config, spec_json, target):
     specification = spec_json['specification']
 
     spec_json_js_template = util.get_template('spec_json.js.template')
-    generated_spec_json_filename = os.path.join(config.spec_directory, "spec_json.js")
-    util.write_file(generated_spec_json_filename,
-               spec_json_js_template % {'spec_json': json.dumps(spec_json)})
+    generated_spec_json_filename = os.path.join(config.spec_directory,
+                                                "spec_json.js")
+    util.write_file(
+        generated_spec_json_filename,
+        spec_json_js_template % {'spec_json': json.dumps(spec_json)})
 
     # Choose a debug/release template depending on the target.
     html_template = "test.%s.html.template" % target
@@ -149,13 +155,17 @@ def generate_test_source_files(config, spec_json, target):
         output_dict = {}
 
         for expansion_pattern in spec['test_expansion']:
-            expansion = expand_pattern(expansion_pattern, test_expansion_schema)
+            expansion = expand_pattern(expansion_pattern,
+                                       test_expansion_schema)
             for selection in permute_expansion(expansion, artifact_order):
                 selection_path = config.selection_pattern % selection
                 if not selection_path in exclusion_dict:
                     if selection_path in output_dict:
                         if expansion_pattern['expansion'] != 'override':
-                            print("Error: %s's expansion is default but overrides %s" % (selection['name'], output_dict[selection_path]['name']))
+                            print(
+                                "Error: %s's expansion is default but overrides %s"
+                                % (selection['name'],
+                                   output_dict[selection_path]['name']))
                             sys.exit(1)
                     output_dict[selection_path] = copy.deepcopy(selection)
                 else:
@@ -163,24 +173,30 @@ def generate_test_source_files(config, spec_json, target):
 
         for selection_path in output_dict:
             selection = output_dict[selection_path]
-            generate_selection(config,
-                               selection,
-                               spec,
-                               html_template)
+            generate_selection(config, selection, spec, html_template)
 
 
 def main(config):
-    parser = argparse.ArgumentParser(description='Test suite generator utility')
-    parser.add_argument('-t', '--target', type = str,
-        choices = ("release", "debug"), default = "release",
-        help = 'Sets the appropriate template for generating tests')
-    parser.add_argument('-s', '--spec', type = str, default = None,
-        help = 'Specify a file used for describing and generating the tests')
+    parser = argparse.ArgumentParser(
+        description='Test suite generator utility')
+    parser.add_argument(
+        '-t',
+        '--target',
+        type=str,
+        choices=("release", "debug"),
+        default="release",
+        help='Sets the appropriate template for generating tests')
+    parser.add_argument(
+        '-s',
+        '--spec',
+        type=str,
+        default=None,
+        help='Specify a file used for describing and generating the tests')
     # TODO(kristijanburnik): Add option for the spec_json file.
     args = parser.parse_args()
 
     if args.spec:
-      config.spec_directory = args.spec
+        config.spec_directory = args.spec
 
     spec_filename = os.path.join(config.spec_directory, "spec.src.json")
     spec_json = util.load_spec_json(spec_filename)

@@ -28,10 +28,6 @@ TRAILING WHITESPACE: webaudio/*
 TRAILING WHITESPACE: WebIDL/*
 TRAILING WHITESPACE: webvtt/*
 TRAILING WHITESPACE: server-timing/resources/parsing/*.sub.headers
-TRAILING WHITESPACE: css/css-text/white-space/pre-wrap-leading-spaces-006.html
-TRAILING WHITESPACE: css/css-text/white-space/pre-wrap-leading-spaces-007.html
-TRAILING WHITESPACE: css/css-text/white-space/pre-wrap-leading-spaces-008.html
-TRAILING WHITESPACE: css/css-text/white-space/pre-wrap-leading-spaces-009.html
 
 ## File types that should never be checked ##
 

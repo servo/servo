@@ -13,6 +13,7 @@
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#adjust-space-around-content-mpadded">
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
 <meta name="assert" content="Operators can stretch inside mrow-like elements.">
+<script src="/mathml/support/feature-detection.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
@@ -36,6 +37,7 @@
       ["Mrow", "Sqrt", "Style", "Error", "Phantom", "Math", "Menclose", "Mpadded"].forEach((tag) => {
           var mo = document.getElementById("mo" + tag);
           test(function() {
+              assert_true(MathMLFeatureDetection.has_mspace());
               assert_greater_than_equal(mo.getBoundingClientRect().height, 100);
           }, "operator stretching inside " + tag);
       });

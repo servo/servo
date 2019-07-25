@@ -73,6 +73,7 @@ function intercept() {
 
   Status.kSuccess = blink.mojom.SmsStatus.kSuccess;
   Status.kTimeout = blink.mojom.SmsStatus.kTimeout;
+  Status.kCancelled = blink.mojom.SmsStatus.kCancelled;
 
   return smsReceiverImpl;
 }

@@ -37,11 +37,10 @@ on [file names][file-name-flags].
 
 #### Support Files
 
-Various support files are available in in the `/common/` and `/media/`
-directories (web-platform-tests) and `/support/` (in css/). Reusing
-existing resources is encouraged where possible, as is adding
-generally useful files to these common areas rather than to specific
-test suites.
+Various support files are available in in the directories named `/common/`,
+`/media/`, and `/css/support/`. Reusing existing resources is encouraged where
+possible, as is adding generally-useful files to these common areas rather than
+to specific test suites.
 
 
 #### Tools
@@ -61,9 +60,17 @@ subdirectory and put your script there.
 
 ### File Formats
 
-Tests must be HTML or XML (inc. XHTML and SVG) files; some
-testharness.js tests
-are [auto-generated from JS files][server features].
+Tests are generally formatted as HTML (including XHTML) or XML (including SVG).
+Some test types support other formats:
+
+- [testharness.js tests](testharness) may be expressed as JavaScript files
+  ([the WPT server automatically generates the HTML documents for these][server
+  features])
+- [WebDriver specification tests](wdspec) are expressed as Python files
+
+The best way to determine how to format a new test is to look at how similar
+tests have been formatted. You can also ask for advice in [the project's IRC
+room][IRC].
 
 
 ### Character Encoding
@@ -179,6 +186,7 @@ for CSS have some additional requirements for:
 [server features]: server-features
 [assumptions]: assumptions
 [ahem]: ahem
+[IRC]: irc://irc.w3.org:6667/testing
 [lint-tool]: lint-tool
 [css-metadata]: css-metadata
 [css-user-styles]: css-user-styles

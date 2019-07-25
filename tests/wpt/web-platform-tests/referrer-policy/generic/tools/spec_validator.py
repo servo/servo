@@ -5,6 +5,7 @@ from __future__ import print_function
 import json, sys
 from common_paths import *
 
+
 def assert_non_empty_string(obj, field):
     assert field in obj, 'Missing field "%s"' % field
     assert isinstance(obj[field], basestring), \
@@ -31,8 +32,8 @@ def assert_contains(obj, field):
 
 
 def assert_value_from(obj, field, items):
-   assert obj[field] in items, \
-        'Field "%s" must be from: %s' % (field, str(items))
+    assert obj[field] in items, \
+         'Field "%s" must be from: %s' % (field, str(items))
 
 
 def assert_atom_or_list_items_from(obj, field, items):
@@ -71,14 +72,15 @@ def assert_valid_artifact(exp_pattern, artifact_key, schema):
         assert_valid_artifact(exp_pattern[artifact_key], sub_artifact_key,
                               sub_schema)
 
+
 def validate(spec_json, details):
     """ Validates the json specification for generating tests. """
 
     details['object'] = spec_json
-    assert_contains_only_fields(spec_json, ["specification",
-                                            "referrer_policy_schema",
-                                            "test_expansion_schema",
-                                            "excluded_tests"])
+    assert_contains_only_fields(spec_json, [
+        "specification", "referrer_policy_schema", "test_expansion_schema",
+        "excluded_tests"
+    ])
     assert_non_empty_list(spec_json, "specification")
     assert_non_empty_list(spec_json, "referrer_policy_schema")
     assert_non_empty_dict(spec_json, "test_expansion_schema")
@@ -96,12 +98,10 @@ def validate(spec_json, details):
         details['object'] = spec
 
         # Validate required fields for a single spec.
-        assert_contains_only_fields(spec, ['name',
-                                           'title',
-                                           'description',
-                                           'referrer_policy',
-                                           'specification_url',
-                                           'test_expansion'])
+        assert_contains_only_fields(spec, [
+            'name', 'title', 'description', 'referrer_policy',
+            'specification_url', 'test_expansion'
+        ])
         assert_non_empty_string(spec, 'name')
         assert_non_empty_string(spec, 'title')
         assert_non_empty_string(spec, 'description')
@@ -128,14 +128,10 @@ def validate(spec_json, details):
 
     # Validate the test_expansion schema members.
     details['object'] = test_expansion_schema
-    assert_contains_only_fields(test_expansion_schema, ['expansion',
-                                                        'delivery_method',
-                                                        'redirection',
-                                                        'origin',
-                                                        'source_protocol',
-                                                        'target_protocol',
-                                                        'subresource',
-                                                        'referrer_url'])
+    assert_contains_only_fields(test_expansion_schema, [
+        'expansion', 'delivery_method', 'redirection', 'origin',
+        'source_protocol', 'target_protocol', 'subresource', 'referrer_url'
+    ])
     # Validate excluded tests.
     details['object'] = excluded_tests
     for excluded_test_expansion in excluded_tests:
@@ -144,10 +140,8 @@ def validate(spec_json, details):
         details['object'] = excluded_test_expansion
         for artifact in test_expansion_schema:
             details['test_expansion_field'] = artifact
-            assert_valid_artifact(
-                excluded_test_expansion,
-                artifact,
-                test_expansion_schema[artifact])
+            assert_valid_artifact(excluded_test_expansion, artifact,
+                                  test_expansion_schema[artifact])
             del details['test_expansion_field']
 
     del details['object']
@@ -164,7 +158,7 @@ def assert_valid_spec_json(spec_json):
 
 
 def main():
-    spec_json = load_spec_json();
+    spec_json = load_spec_json()
     assert_valid_spec_json(spec_json)
     print("Spec JSON is valid.")
 

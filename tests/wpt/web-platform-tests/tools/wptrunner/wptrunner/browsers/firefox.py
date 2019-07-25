@@ -160,7 +160,7 @@ def run_info_extras(**kwargs):
     rv = {"e10s": kwargs["gecko_e10s"],
           "wasm": kwargs.get("wasm", True),
           "verify": kwargs["verify"],
-          "headless": "MOZ_HEADLESS" in os.environ,
+          "headless": kwargs.get("headless", False) or "MOZ_HEADLESS" in os.environ,
           "fission": get_bool_pref("fission.autostart"),
           "sw-e10s": get_bool_pref("dom.serviceWorkers.parent_intercept")}
     rv.update(run_info_browser_version(kwargs["binary"]))

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/#conditional-rules" />
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/#conditional-rules">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
@@ -35,8 +35,9 @@ test(function() {
 }, 'CSS.supports(conditionText) should ignore registered syntax');
 
 test(function() {
-  assert_false(CSS.supports('--length', 'red'));
+  assert_true(CSS.supports('--length', 'red'));
   assert_true(CSS.supports('--length', '10px'));
-}, 'CSS.supports(property, value) should parse against registered syntax');
+  assert_true(CSS.supports('--length', ' anything, really'));
+}, 'CSS.supports(property, value) should ignore registered syntax');
 
 </script>

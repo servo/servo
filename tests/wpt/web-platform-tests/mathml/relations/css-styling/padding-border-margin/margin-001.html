@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>margin</title>
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#layout-algorithms">
+<meta name="assert" content="Verify that margin is taken into account.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="helper.js"></script>
+<script>
+  var epsilon = 1;
+
+  setup({ explicit_done: true });
+  window.addEventListener("load", runTests);
+
+  function runTests() {
+      test(function() {
+          var s = measureSpaceAround("mrow-margin")
+          assert_approx_equals(s.left, 20, epsilon, "left margin");
+          assert_approx_equals(s.right, 30, epsilon, "right margin");
+          assert_approx_equals(s.top, 40, epsilon, "top margin");
+          assert_approx_equals(s.bottom, 50, epsilon, "bottom margin");
+      }, "Margin properties on mrow");
+
+      test(function() {
+          var s = measureSpaceAround("mrow-margin-shorthand")
+          assert_approx_equals(s.left, 20, epsilon, "left margin");
+          assert_approx_equals(s.right, 20, epsilon, "right margin");
+          assert_approx_equals(s.top, 20, epsilon, "top margin");
+          assert_approx_equals(s.bottom, 20, epsilon, "bottom margin");
+      }, "Margin properties on mrow (shorthand)");
+
+      test(function() {
+          var s = measureSpaceAround("mrow-margin-logical")
+          assert_approx_equals(s.left, 20, epsilon, "left margin");
+          assert_approx_equals(s.right, 30, epsilon, "right margin");
+          assert_approx_equals(s.top, 40, epsilon, "top margin");
+          assert_approx_equals(s.bottom, 50, epsilon, "bottom margin");
+      }, "Margin properties on mrow (logical)");
+
+      test(function() {
+          var s = measureSpaceAround("mrow-margin-logical-shorthand")
+          assert_approx_equals(s.left, 20, epsilon, "left margin");
+          assert_approx_equals(s.right, 20, epsilon, "right margin");
+          assert_approx_equals(s.top, 30, epsilon, "top margin");
+          assert_approx_equals(s.bottom, 30, epsilon, "bottom margin");
+      }, "Margin properties on mrow (logical, shorthand)");
+
+    done();
+  }
+</script>
+</head>
+<body>
+  <div id="log"></div>
+  <p>
+    <math>
+      <mrow>
+        <mrow id="mrow-margin"
+              style="margin-left: 20px;
+                     margin-right: 30px;
+                     margin-top: 40px;
+                     margin-bottom: 50px;">
+          <mspace width="50px" height="50px"></mspace>
+        </mrow>
+      </mrow>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mrow>
+        <mrow id="mrow-margin-shorthand"
+              style="margin: 20px;">
+          <mspace width="50px" height="50px"></mspace>
+        </mrow>
+      </mrow>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mrow>
+        <mrow id="mrow-margin-logical"
+              style="margin-inline-start: 20px;
+                     margin-inline-end: 30px;
+                     margin-block-start: 40px;
+                     margin-block-end: 50px;">
+          <mspace width="50px" height="50px"></mspace>
+        </mrow>
+      </mrow>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mrow>
+        <mrow id="mrow-margin-logical-shorthand"
+              style="margin-inline: 20px;
+                     margin-block: 30px;">
+          <mspace width="50px" height="50px"></mspace>
+        </mrow>
+      </mrow>
+    </math>
+  </p>
+</body>
+</html>

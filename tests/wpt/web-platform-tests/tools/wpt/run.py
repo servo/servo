@@ -251,9 +251,9 @@ Consider installing certutil via your OS package manager or directly.""")
         kwargs["extra_prefs"].append("media.navigator.streams.fake=true")
 
 
-class Fennec(BrowserSetup):
-    name = "fennec"
-    browser_cls = browser.Fennec
+class FirefoxAndroid(BrowserSetup):
+    name = "firefox_android"
+    browser_cls = browser.FirefoxAndroid
 
     def setup_kwargs(self, kwargs):
         pass
@@ -510,8 +510,8 @@ class Epiphany(BrowserSetup):
 
 
 product_setup = {
-    "fennec": Fennec,
     "firefox": Firefox,
+    "firefox_android": FirefoxAndroid,
     "chrome": Chrome,
     "chrome_android": ChromeAndroid,
     "chrome_ios": ChromeiOS,
