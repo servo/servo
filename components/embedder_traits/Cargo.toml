@@ -23,3 +23,4 @@ serde = "1.0"
 servo_url = {path = "../url"}
 style_traits = {path = "../style_traits", features = ["servo"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
