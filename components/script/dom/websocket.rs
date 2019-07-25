@@ -569,26 +569,26 @@ impl TaskOnce for MessageReceivedTask {
         // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
         unsafe {
             let cx = global.get_cx();
-            let _ac = JSAutoRealm::new(cx, ws.reflector().get_jsobject().get());
-            rooted!(in(cx) let mut message = UndefinedValue());
+            let _ac = JSAutoRealm::new(*cx, ws.reflector().get_jsobject().get());
+            rooted!(in(*cx) let mut message = UndefinedValue());
             match self.message {
-                MessageData::Text(text) => text.to_jsval(cx, message.handle_mut()),
+                MessageData::Text(text) => text.to_jsval(*cx, message.handle_mut()),
                 MessageData::Binary(data) => match ws.binary_type.get() {
                     BinaryType::Blob => {
                         let blob =
                             Blob::new(&global, BlobImpl::new_from_bytes(data), "".to_owned());
-                        blob.to_jsval(cx, message.handle_mut());
+                        blob.to_jsval(*cx, message.handle_mut());
                     },
                     BinaryType::Arraybuffer => {
-                        rooted!(in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+                        rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
                         assert!(ArrayBuffer::create(
-                            cx,
+                            *cx,
                             CreateWith::Slice(&data),
                             array_buffer.handle_mut()
                         )
                         .is_ok());
 
-                        (*array_buffer).to_jsval(cx, message.handle_mut());
+                        (*array_buffer).to_jsval(*cx, message.handle_mut());
                     },
                 },
             }

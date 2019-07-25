@@ -22,7 +22,7 @@ pub fn load_script(head: &HTMLHeadElement) {
     doc.add_delayed_task(task!(UserScriptExecute: move || {
         let win = win.root();
         let cx = win.get_cx();
-        rooted!(in(cx) let mut rval = UndefinedValue());
+        rooted!(in(*cx) let mut rval = UndefinedValue());
 
         let path = PathBuf::from(&path_str);
         let mut files = read_dir(&path)

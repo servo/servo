@@ -9,8 +9,9 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::jsapi::{Heap, JSObject};
 use js::typedarray::{CreateWith, Float32Array};
 use std::ptr;
 use std::ptr::NonNull;
@@ -42,10 +43,10 @@ impl VRStageParameters {
         global: &GlobalScope,
     ) -> DomRoot<VRStageParameters> {
         let cx = global.get_cx();
-        rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
+        rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
         unsafe {
             let _ = Float32Array::create(
-                cx,
+                *cx,
                 CreateWith::Slice(&parameters.sitting_to_standing_transform),
                 array.handle_mut(),
             );
@@ -66,7 +67,7 @@ impl VRStageParameters {
     pub fn update(&self, parameters: &WebVRStageParameters) {
         unsafe {
             let cx = self.global().get_cx();
-            typedarray!(in(cx) let array: Float32Array = self.transform.get());
+            typedarray!(in(*cx) let array: Float32Array = self.transform.get());
             if let Ok(mut array) = array {
                 array.update(&parameters.sitting_to_standing_transform);
             }
@@ -78,8 +79,8 @@ impl VRStageParameters {
 impl VRStageParametersMethods for VRStageParameters {
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrstageparameters-sittingtostandingtransform
-    unsafe fn SittingToStandingTransform(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
-        NonNull::new_unchecked(self.transform.get())
+    fn SittingToStandingTransform(&self, _cx: JSContext) -> NonNull<JSObject> {
+        unsafe { NonNull::new_unchecked(self.transform.get()) }
     }
 
     // https://w3c.github.io/webvr/#dom-vrstageparameters-sizex

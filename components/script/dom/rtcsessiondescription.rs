@@ -14,6 +14,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 
 #[dom_struct]

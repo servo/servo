@@ -11,9 +11,9 @@ use crate::dom::bindings::structuredclone::StructuredCloneData;
 use crate::dom::dissimilaroriginlocation::DissimilarOriginLocation;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy::WindowProxy;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
-use js::jsapi::JSContext;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue;
 use msg::constellation_msg::PipelineId;
@@ -133,14 +133,8 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
         false
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
-    unsafe fn PostMessage(
-        &self,
-        cx: *mut JSContext,
-        message: HandleValue,
-        origin: DOMString,
-    ) -> ErrorResult {
+    fn PostMessage(&self, cx: JSContext, message: HandleValue, origin: DOMString) -> ErrorResult {
         // Step 3-5.
         let origin = match &origin[..] {
             "*" => None,
@@ -156,23 +150,21 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 
         // Step 1-2, 6-8.
         // TODO(#12717): Should implement the `transfer` argument.
-        let data = StructuredCloneData::write(cx, message)?;
+        let data = StructuredCloneData::write(*cx, message)?;
 
         // Step 9.
         self.post_message(origin, data);
         Ok(())
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    unsafe fn Opener(&self, _: *mut JSContext) -> JSVal {
+    fn Opener(&self, _: JSContext) -> JSVal {
         // TODO: Implement x-origin opener
         UndefinedValue()
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    unsafe fn SetOpener(&self, _: *mut JSContext, _: HandleValue) {
+    fn SetOpener(&self, _: JSContext, _: HandleValue) {
         // TODO: Implement x-origin opener
     }
 

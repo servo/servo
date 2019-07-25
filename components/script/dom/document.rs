@@ -102,6 +102,7 @@ use crate::dom::wheelevent::WheelEvent;
 use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
+use crate::script_runtime::JSContext;
 use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
 use crate::stylesheet_set::StylesheetSetRef;
@@ -117,7 +118,7 @@ use euclid::default::Point2D;
 use html5ever::{LocalName, Namespace, QualName};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{JSContext, JSObject, JSRuntime};
+use js::jsapi::{JSObject, JSRuntime};
 use keyboard_types::{Key, KeyState, Modifiers};
 use metrics::{
     InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory,
@@ -4218,11 +4219,7 @@ impl DocumentMethods for Document {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    unsafe fn NamedGetter(
-        &self,
-        _cx: *mut JSContext,
-        name: DOMString,
-    ) -> Option<NonNull<JSObject>> {
+    fn NamedGetter(&self, _cx: JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
         #[derive(JSTraceable, MallocSizeOf)]
         struct NamedElementFilter {
             name: Atom,
@@ -4270,7 +4267,7 @@ impl DocumentMethods for Document {
         }
         let name = Atom::from(name);
         let root = self.upcast::<Node>();
-        {
+        unsafe {
             // Step 1.
             let mut elements = root
                 .traverse_preorder(ShadowIncluding::No)
@@ -4291,9 +4288,11 @@ impl DocumentMethods for Document {
         // Step 4.
         let filter = NamedElementFilter { name: name };
         let collection = HTMLCollection::create(self.window(), root, Box::new(filter));
-        Some(NonNull::new_unchecked(
-            collection.reflector().get_jsobject().get(),
-        ))
+        unsafe {
+            Some(NonNull::new_unchecked(
+                collection.reflector().get_jsobject().get(),
+            ))
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names

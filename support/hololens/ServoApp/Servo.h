@@ -16,6 +16,7 @@ public:
   ~Servo();
   void PerformUpdates();
   void Click(float, float);
+  void Scroll(float dx, float dy, float x, float y);
   void SetSize(GLsizei width, GLsizei height);
   void SetBatchMode(bool);
   void GoBack();

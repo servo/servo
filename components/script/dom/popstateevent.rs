@@ -14,8 +14,9 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::window::Window;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext};
+use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleValue;
 use servo_atoms::Atom;
@@ -81,9 +82,8 @@ impl PopStateEvent {
 }
 
 impl PopStateEventMethods for PopStateEvent {
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-popstateevent-state
-    unsafe fn State(&self, _cx: *mut JSContext) -> JSVal {
+    fn State(&self, _cx: JSContext) -> JSVal {
         self.state.get()
     }
 

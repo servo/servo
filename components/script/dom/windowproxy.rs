@@ -152,10 +152,10 @@ impl WindowProxy {
                 ((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL),
                 0
             );
-            let _ac = JSAutoRealm::new(cx, window_jsobject.get());
+            let _ac = JSAutoRealm::new(*cx, window_jsobject.get());
 
             // Create a new window proxy.
-            rooted!(in(cx) let js_proxy = NewWindowProxy(cx, window_jsobject, handler));
+            rooted!(in(*cx) let js_proxy = NewWindowProxy(*cx, window_jsobject, handler));
             assert!(!js_proxy.is_null());
 
             // Create a new browsing context.
@@ -178,7 +178,7 @@ impl WindowProxy {
             );
 
             // Notify the JS engine about the new window proxy binding.
-            SetWindowProxy(cx, window_jsobject, js_proxy.handle());
+            SetWindowProxy(*cx, window_jsobject, js_proxy.handle());
 
             // Set the reflector.
             debug!(
@@ -223,10 +223,10 @@ impl WindowProxy {
                 ((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL),
                 0
             );
-            let _ac = JSAutoRealm::new(cx, window_jsobject.get());
+            let _ac = JSAutoRealm::new(*cx, window_jsobject.get());
 
             // Create a new window proxy.
-            rooted!(in(cx) let js_proxy = NewWindowProxy(cx, window_jsobject, handler));
+            rooted!(in(*cx) let js_proxy = NewWindowProxy(*cx, window_jsobject, handler));
             assert!(!js_proxy.is_null());
 
             // The window proxy owns the browsing context.
@@ -238,7 +238,7 @@ impl WindowProxy {
             );
 
             // Notify the JS engine about the new window proxy binding.
-            SetWindowProxy(cx, window_jsobject, js_proxy.handle());
+            SetWindowProxy(*cx, window_jsobject, js_proxy.handle());
 
             // Set the reflector.
             debug!(
@@ -576,20 +576,20 @@ impl WindowProxy {
             // of the old window proxy to the new window proxy, then
             // making the old window proxy a cross-compartment wrapper
             // pointing to the new window proxy.
-            rooted!(in(cx) let new_js_proxy = NewWindowProxy(cx, window_jsobject, handler));
+            rooted!(in(*cx) let new_js_proxy = NewWindowProxy(*cx, window_jsobject, handler));
             debug!(
                 "Transplanting proxy from {:p} to {:p}.",
                 old_js_proxy.get(),
                 new_js_proxy.get()
             );
-            rooted!(in(cx) let new_js_proxy = JS_TransplantObject(cx, old_js_proxy, new_js_proxy.handle()));
+            rooted!(in(*cx) let new_js_proxy = JS_TransplantObject(*cx, old_js_proxy, new_js_proxy.handle()));
             debug!("Transplanted proxy is {:p}.", new_js_proxy.get());
 
             // Transfer ownership of this browsing context from the old window proxy to the new one.
             SetProxyReservedSlot(new_js_proxy.get(), 0, &PrivateValue(self.as_void_ptr()));
 
             // Notify the JS engine about the new window proxy binding.
-            SetWindowProxy(cx, window_jsobject, new_js_proxy.handle());
+            SetWindowProxy(*cx, window_jsobject, new_js_proxy.handle());
 
             // Update the reflector.
             debug!(

@@ -150,7 +150,6 @@ pub enum CompiledEventListener {
 }
 
 impl CompiledEventListener {
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#the-event-handler-processing-algorithm
     pub fn call_or_handle_event<T: DomObject>(
         &self,
@@ -168,7 +167,7 @@ impl CompiledEventListener {
                     CommonEventHandler::ErrorEventHandler(ref handler) => {
                         if let Some(event) = event.downcast::<ErrorEvent>() {
                             let cx = object.global().get_cx();
-                            rooted!(in(cx) let error = unsafe { event.Error(cx) });
+                            rooted!(in(*cx) let error = event.Error(cx));
                             let return_value = handler.Call_(
                                 object,
                                 EventOrString::String(event.Message()),
@@ -180,7 +179,7 @@ impl CompiledEventListener {
                             );
                             // Step 4
                             if let Ok(return_value) = return_value {
-                                rooted!(in(cx) let return_value = return_value);
+                                rooted!(in(*cx) let return_value = return_value);
                                 if return_value.handle().is_boolean() &&
                                     return_value.handle().to_boolean() == true
                                 {
@@ -225,7 +224,7 @@ impl CompiledEventListener {
                     CommonEventHandler::EventHandler(ref handler) => {
                         if let Ok(value) = handler.Call_(object, event, exception_handle) {
                             let cx = object.global().get_cx();
-                            rooted!(in(cx) let value = value);
+                            rooted!(in(*cx) let value = value);
                             let value = value.handle();
 
                             //Step 4
@@ -502,16 +501,16 @@ impl EventTarget {
         };
 
         let cx = window.get_cx();
-        let options = CompileOptionsWrapper::new(cx, url_serialized.as_ptr(), handler.line as u32);
+        let options = CompileOptionsWrapper::new(*cx, url_serialized.as_ptr(), handler.line as u32);
         // TODO step 1.10.1-3 (document, form owner, element in scope chain)
 
-        let scopechain = AutoObjectVectorWrapper::new(cx);
+        let scopechain = AutoObjectVectorWrapper::new(*cx);
 
         let _ac = enter_realm(&*window);
-        rooted!(in(cx) let mut handler = ptr::null_mut::<JSFunction>());
+        rooted!(in(*cx) let mut handler = ptr::null_mut::<JSFunction>());
         let rv = unsafe {
             CompileFunction(
-                cx,
+                *cx,
                 scopechain.ptr,
                 options.ptr,
                 name.as_ptr(),
@@ -529,9 +528,9 @@ impl EventTarget {
         if !rv || handler.get().is_null() {
             // Step 1.8.2
             unsafe {
-                let _ac = JSAutoRealm::new(cx, self.reflector().get_jsobject().get());
+                let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
                 // FIXME(#13152): dispatch error event.
-                report_pending_exception(cx, false);
+                report_pending_exception(*cx, false);
             }
             // Step 1.8.1 / 1.8.3
             return None;

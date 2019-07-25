@@ -28,7 +28,7 @@
         <Button x:Name="immersiveButton" Click="OnImmersiveButtonClicked">Run Immersive</Button>
       </StackPanel>
     </Grid>
-    <SwapChainPanel x:Name="swapChainPanel" MinHeight="200" MinWidth="200" Grid.Row="1">
+    <SwapChainPanel x:Name="swapChainPanel" MinHeight="200" MinWidth="200" Grid.Row="1" ManipulationMode="All">
     </SwapChainPanel>
   </Grid>
 </Page>

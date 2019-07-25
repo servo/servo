@@ -76,6 +76,7 @@ use crate::dom::customelementregistry::{ConstructionStackEntry, CustomElementSta
 use crate::dom::element::{Element, ElementCreator};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::window::Window;
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::script_thread::ScriptThread;
 use html5ever::interface::QualName;
 use html5ever::LocalName;
@@ -99,7 +100,7 @@ where
     // Step 2 is checked in the generated caller code
 
     // Step 3
-    rooted!(in(window.get_cx()) let new_target = call_args.new_target().to_object());
+    rooted!(in(*window.get_cx()) let new_target = call_args.new_target().to_object());
     let definition = match registry.lookup_definition_by_constructor(new_target.handle()) {
         Some(definition) => definition,
         None => {
@@ -109,15 +110,15 @@ where
         },
     };
 
-    rooted!(in(window.get_cx()) let callee = UnwrapObjectStatic(call_args.callee()));
+    rooted!(in(*window.get_cx()) let callee = UnwrapObjectStatic(call_args.callee()));
     if callee.is_null() {
         return Err(Error::Security);
     }
 
     {
-        let _ac = JSAutoRealm::new(window.get_cx(), callee.get());
-        rooted!(in(window.get_cx()) let mut constructor = ptr::null_mut::<JSObject>());
-        rooted!(in(window.get_cx()) let global_object = CurrentGlobalOrNull(window.get_cx()));
+        let _ac = JSAutoRealm::new(*window.get_cx(), callee.get());
+        rooted!(in(*window.get_cx()) let mut constructor = ptr::null_mut::<JSObject>());
+        rooted!(in(*window.get_cx()) let global_object = CurrentGlobalOrNull(*window.get_cx()));
 
         if definition.is_autonomous() {
             // Step 4
@@ -133,7 +134,7 @@ where
             // Step 5
             get_constructor_object_from_local_name(
                 definition.local_name.clone(),
-                window.get_cx(),
+                *window.get_cx(),
                 global_object.handle(),
                 constructor.handle_mut(),
             );
@@ -201,7 +202,7 @@ pub fn get_constructor_object_from_local_name(
 ) -> bool {
     macro_rules! get_constructor(
         ($binding:ident) => ({
-            unsafe { $binding::GetConstructorObject(cx, global, rval); }
+            unsafe { $binding::GetConstructorObject(SafeJSContext::from_ptr(cx), global, rval); }
             true
         })
     );

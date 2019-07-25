@@ -12,9 +12,10 @@ use crate::dom::xrpose::XRPose;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::{cast_transform, ApiViewerPose, XRSession};
 use crate::dom::xrview::XRView;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{Heap, JSContext};
+use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use webxr_api::Views;
 
@@ -56,10 +57,10 @@ impl XRViewerPose {
             XRViewerPoseBinding::Wrap,
         );
 
+        let cx = global.get_cx();
         unsafe {
-            let cx = global.get_cx();
-            rooted!(in(cx) let mut jsval = UndefinedValue());
-            views.to_jsval(cx, jsval.handle_mut());
+            rooted!(in(*cx) let mut jsval = UndefinedValue());
+            views.to_jsval(*cx, jsval.handle_mut());
             pose.views.set(jsval.get());
         }
 
@@ -69,8 +70,7 @@ impl XRViewerPose {
 
 impl XRViewerPoseMethods for XRViewerPose {
     /// https://immersive-web.github.io/webxr/#dom-xrviewerpose-views
-    #[allow(unsafe_code)]
-    unsafe fn Views(&self, _cx: *mut JSContext) -> JSVal {
+    fn Views(&self, _cx: JSContext) -> JSVal {
         self.views.get()
     }
 }

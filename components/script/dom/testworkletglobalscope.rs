@@ -10,6 +10,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::worklet::WorkletExecutor;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
+use crate::script_runtime::JSContext;
 use crossbeam_channel::Sender;
 use dom_struct::dom_struct;
 use js::rust::Runtime;
@@ -49,7 +50,7 @@ impl TestWorkletGlobalScope {
             ),
             lookup_table: Default::default(),
         });
-        unsafe { TestWorkletGlobalScopeBinding::Wrap(runtime.cx(), global) }
+        unsafe { TestWorkletGlobalScopeBinding::Wrap(JSContext::from_ptr(runtime.cx()), global) }
     }
 
     pub fn perform_a_worklet_task(&self, task: TestWorkletTask) {

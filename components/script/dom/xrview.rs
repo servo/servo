@@ -10,8 +10,9 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::vrframedata::create_typed_array;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::{cast_transform, ApiViewerPose, XRSession};
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::jsapi::{Heap, JSObject};
 use std::ptr::NonNull;
 use webxr_api::View;
 
@@ -39,7 +40,6 @@ impl XRView {
         }
     }
 
-    #[allow(unsafe_code)]
     pub fn new<V: Copy>(
         global: &GlobalScope,
         session: &XRSession,
@@ -65,9 +65,7 @@ impl XRView {
         // row_major since euclid uses row vectors
         let proj = view.projection.to_row_major_array();
         let cx = global.get_cx();
-        unsafe {
-            create_typed_array(cx, &proj, &ret.proj);
-        }
+        create_typed_array(cx, &proj, &ret.proj);
         ret
     }
 
@@ -82,9 +80,8 @@ impl XRViewMethods for XRView {
         self.eye
     }
 
-    #[allow(unsafe_code)]
     /// https://immersive-web.github.io/webxr/#dom-xrview-projectionmatrix
-    unsafe fn ProjectionMatrix(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
+    fn ProjectionMatrix(&self, _cx: JSContext) -> NonNull<JSObject> {
         NonNull::new(self.proj.get()).unwrap()
     }
 

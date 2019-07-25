@@ -323,7 +323,7 @@ class CGMethodCall(CGThing):
             if requiredArgs > 0:
                 code = (
                     "if argc < %d {\n"
-                    "    throw_type_error(cx, \"Not enough arguments to %s.\");\n"
+                    "    throw_type_error(*cx, \"Not enough arguments to %s.\");\n"
                     "    return false;\n"
                     "}" % (requiredArgs, methodName))
                 self.cgRoot.prepend(
@@ -448,7 +448,7 @@ class CGMethodCall(CGThing):
             # XXXbz Now we're supposed to check for distinguishingArg being
             # an array or a platform object that supports indexed
             # properties... skip that last for now.  It's a bit of a pain.
-            pickFirstSignature("%s.get().is_object() && is_array_like(cx, %s)" %
+            pickFirstSignature("%s.get().is_object() && is_array_like(*cx, %s)" %
                                (distinguishingArg, distinguishingArg),
                                lambda s:
                                    (s[1][distinguishingIndex].type.isSequence() or
@@ -457,9 +457,9 @@ class CGMethodCall(CGThing):
             # Check for Date objects
             # XXXbz Do we need to worry about security wrappers around the Date?
             pickFirstSignature("%s.get().is_object() && "
-                               "{ rooted!(in(cx) let obj = %s.get().to_object()); "
+                               "{ rooted!(in(*cx) let obj = %s.get().to_object()); "
                                "let mut is_date = false; "
-                               "assert!(ObjectIsDate(cx, obj.handle(), &mut is_date)); "
+                               "assert!(ObjectIsDate(*cx, obj.handle(), &mut is_date)); "
                                "is_date }" %
                                (distinguishingArg, distinguishingArg),
                                lambda s: (s[1][distinguishingIndex].type.isDate() or
@@ -467,7 +467,7 @@ class CGMethodCall(CGThing):
 
             # Check for vanilla JS objects
             # XXXbz Do we need to worry about security wrappers?
-            pickFirstSignature("%s.get().is_object() && !is_platform_object(%s.get().to_object(), cx)" %
+            pickFirstSignature("%s.get().is_object() && !is_platform_object(%s.get().to_object(), *cx)" %
                                (distinguishingArg, distinguishingArg),
                                lambda s: (s[1][distinguishingIndex].type.isCallback() or
                                           s[1][distinguishingIndex].type.isCallbackInterface() or
@@ -492,7 +492,7 @@ class CGMethodCall(CGThing):
             else:
                 # Just throw; we have no idea what we're supposed to
                 # do with this.
-                caseBody.append(CGGeneric("throw_internal_error(cx, \"Could not convert JavaScript argument\");\n"
+                caseBody.append(CGGeneric("throw_internal_error(*cx, \"Could not convert JavaScript argument\");\n"
                                           "return false;"))
 
             argCountCases.append(CGCase(str(argCount),
@@ -505,7 +505,7 @@ class CGMethodCall(CGThing):
         overloadCGThings.append(
             CGSwitch("argcount",
                      argCountCases,
-                     CGGeneric("throw_type_error(cx, \"Not enough arguments to %s.\");\n"
+                     CGGeneric("throw_type_error(*cx, \"Not enough arguments to %s.\");\n"
                                "return false;" % methodName)))
         # XXXjdm Avoid unreachable statement warnings
         # overloadCGThings.append(
@@ -638,7 +638,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         exceptionCode = "return false;\n"
 
     if failureCode is None:
-        failOrPropagate = "throw_type_error(cx, &error);\n%s" % exceptionCode
+        failOrPropagate = "throw_type_error(*cx, &error);\n%s" % exceptionCode
     else:
         failOrPropagate = failureCode
 
@@ -657,20 +657,20 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         return CGWrapper(
             CGGeneric(
                 failureCode or
-                ('throw_type_error(cx, "%s is not an object.");\n'
+                ('throw_type_error(*cx, "%s is not an object.");\n'
                  '%s' % (firstCap(sourceDescription), exceptionCode))),
             post="\n")
 
     def onFailureInvalidEnumValue(failureCode, passedVarName):
         return CGGeneric(
             failureCode or
-            ('throw_type_error(cx, &format!("\'{}\' is not a valid enum value for enumeration \'%s\'.", %s)); %s'
+            ('throw_type_error(*cx, &format!("\'{}\' is not a valid enum value for enumeration \'%s\'.", %s)); %s'
              % (type.name, passedVarName, exceptionCode)))
 
     def onFailureNotCallable(failureCode):
         return CGGeneric(
             failureCode or
-            ('throw_type_error(cx, \"%s is not callable.\");\n'
+            ('throw_type_error(*cx, \"%s is not callable.\");\n'
              '%s' % (firstCap(sourceDescription), exceptionCode)))
 
     # A helper function for handling default values.
@@ -723,7 +723,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         if type.nullable():
             declType = CGWrapper(declType, pre="Option<", post=" >")
 
-        templateBody = ("match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
+        templateBody = ("match FromJSValConvertible::from_jsval(*cx, ${val}, %s) {\n"
                         "    Ok(ConversionResult::Success(value)) => value,\n"
                         "    Ok(ConversionResult::Failure(error)) => {\n"
                         "%s\n"
@@ -738,7 +738,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         if type.nullable():
             declType = CGWrapper(declType, pre="Option<", post=" >")
 
-        templateBody = ("match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
+        templateBody = ("match FromJSValConvertible::from_jsval(*cx, ${val}, ()) {\n"
                         "    Ok(ConversionResult::Success(value)) => value,\n"
                         "    Ok(ConversionResult::Failure(error)) => {\n"
                         "%s\n"
@@ -803,17 +803,17 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             """
             { // Scope for our JSAutoRealm.
 
-                rooted!(in(cx) let globalObj = CurrentGlobalOrNull(cx));
-                let promiseGlobal = GlobalScope::from_object_maybe_wrapped(globalObj.handle().get(), cx);
+                rooted!(in(*cx) let globalObj = CurrentGlobalOrNull(*cx));
+                let promiseGlobal = GlobalScope::from_object_maybe_wrapped(globalObj.handle().get(), *cx);
 
-                rooted!(in(cx) let mut valueToResolve = $${val}.get());
-                if !JS_WrapValue(cx, valueToResolve.handle_mut()) {
+                rooted!(in(*cx) let mut valueToResolve = $${val}.get());
+                if !JS_WrapValue(*cx, valueToResolve.handle_mut()) {
                 $*{exceptionCode}
                 }
-                match Promise::new_resolved(&promiseGlobal, cx, valueToResolve.handle()) {
+                match Promise::new_resolved(&promiseGlobal, *cx, valueToResolve.handle()) {
                     Ok(value) => value,
                     Err(error) => {
-                    throw_dom_exception(cx, &promiseGlobal, error);
+                    throw_dom_exception(*cx, &promiseGlobal, error);
                     $*{exceptionCode}
                     }
                 }
@@ -864,7 +864,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                 "exceptionCode": exceptionCode,
             }
             unwrapFailureCode = string.Template(
-                'throw_type_error(cx, "${sourceDescription} does not '
+                'throw_type_error(*cx, "${sourceDescription} does not '
                 'implement interface ${interface}.");\n'
                 '${exceptionCode}').substitute(substitutions)
         else:
@@ -872,7 +872,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         templateBody = fill(
             """
-            match ${function}($${val}, cx) {
+            match ${function}($${val}, *cx) {
                 Ok(val) => val,
                 Err(()) => {
                     $*{failureCode}
@@ -899,7 +899,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                 "exceptionCode": exceptionCode,
             }
             unwrapFailureCode = string.Template(
-                'throw_type_error(cx, "${sourceDescription} is not a typed array.");\n'
+                'throw_type_error(*cx, "${sourceDescription} is not a typed array.");\n'
                 '${exceptionCode}').substitute(substitutions)
         else:
             unwrapFailureCode = failureCode
@@ -942,7 +942,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         nullBehavior = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
 
         conversionCode = (
-            "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
+            "match FromJSValConvertible::from_jsval(*cx, ${val}, %s) {\n"
             "    Ok(ConversionResult::Success(strval)) => strval,\n"
             "    Ok(ConversionResult::Failure(error)) => {\n"
             "%s\n"
@@ -971,7 +971,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         assert not isEnforceRange and not isClamp
 
         conversionCode = (
-            "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
+            "match FromJSValConvertible::from_jsval(*cx, ${val}, ()) {\n"
             "    Ok(ConversionResult::Success(strval)) => strval,\n"
             "    Ok(ConversionResult::Failure(error)) => {\n"
             "%s\n"
@@ -1000,7 +1000,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         assert not isEnforceRange and not isClamp
 
         conversionCode = (
-            "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
+            "match FromJSValConvertible::from_jsval(*cx, ${val}, ()) {\n"
             "    Ok(ConversionResult::Success(strval)) => strval,\n"
             "    Ok(ConversionResult::Failure(error)) => {\n"
             "%s\n"
@@ -1038,7 +1038,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             handleInvalidEnumValueCode = "return true;"
 
         template = (
-            "match find_enum_value(cx, ${val}, %(pairs)s) {\n"
+            "match find_enum_value(*cx, ${val}, %(pairs)s) {\n"
             "    Err(_) => { %(exceptionCode)s },\n"
             "    Ok((None, search)) => { %(handleInvalidEnumValueCode)s },\n"
             "    Ok((Some(&value), _)) => value,\n"
@@ -1174,7 +1174,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         if type_needs_tracing(type):
             declType = CGTemplatedType("RootedTraceableBox", declType)
 
-        template = ("match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
+        template = ("match FromJSValConvertible::from_jsval(*cx, ${val}, ()) {\n"
                     "    Ok(ConversionResult::Success(dictionary)) => dictionary,\n"
                     "    Ok(ConversionResult::Failure(error)) => {\n"
                     "%s\n"
@@ -1202,7 +1202,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         declType = CGWrapper(declType, pre="Option<", post=">")
 
     template = (
-        "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
+        "match FromJSValConvertible::from_jsval(*cx, ${val}, %s) {\n"
         "    Ok(ConversionResult::Success(v)) => v,\n"
         "    Ok(ConversionResult::Failure(error)) => {\n"
         "%s\n"
@@ -1260,7 +1260,7 @@ def instantiateJSToNativeConversionTemplate(templateBody, replacements,
         result.append(conversion)
 
     if needsAutoRoot:
-        result.append(CGGeneric("auto_root!(in(cx) let %s = %s);" % (declName, declName)))
+        result.append(CGGeneric("auto_root!(in(*cx) let %s = %s);" % (declName, declName)))
     # Add an empty CGGeneric to get an extra newline after the argument
     # conversion.
     result.append(CGGeneric(""))
@@ -1383,7 +1383,7 @@ def wrapForType(jsvalRef, result='result', successCode='return true;', pre=''):
       * 'successCode': the code to run once we have done the conversion.
       * 'pre': code to run before the conversion if rooting is necessary
     """
-    wrap = "%s\n(%s).to_jsval(cx, %s);" % (pre, result, jsvalRef)
+    wrap = "%s\n(%s).to_jsval(*cx, %s);" % (pre, result, jsvalRef)
     if successCode:
         wrap += "\n%s" % successCode
     return wrap
@@ -2410,6 +2410,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'crate::dom::bindings::str::USVString',
         'crate::dom::bindings::trace::RootedTraceableBox',
         'crate::dom::types::*',
+        'crate::script_runtime::JSContext as SafeJSContext',
         'js::error::throw_type_error',
         'js::rust::HandleValue',
         'js::jsapi::Heap',
@@ -2586,7 +2587,7 @@ class CGConstructorEnabled(CGAbstractMethod):
     def __init__(self, descriptor):
         CGAbstractMethod.__init__(self, descriptor,
                                   'ConstructorEnabled', 'bool',
-                                  [Argument("*mut JSContext", "aCx"),
+                                  [Argument("SafeJSContext", "aCx"),
                                    Argument("HandleObject", "aObj")],
                                   unsafe=True)
 
@@ -2618,17 +2619,17 @@ def CreateBindingJSObject(descriptor):
     if descriptor.proxy:
         create += """
 let handler = RegisterBindings::PROXY_HANDLERS[PrototypeList::Proxies::%s as usize];
-rooted!(in(cx) let private = PrivateValue(raw as *const libc::c_void));
-let obj = NewProxyObject(cx, handler,
+rooted!(in(*cx) let private = PrivateValue(raw as *const libc::c_void));
+let obj = NewProxyObject(*cx, handler,
                          Handle::from_raw(UndefinedHandleValue),
                          proto.get());
 assert!(!obj.is_null());
 SetProxyReservedSlot(obj, 0, &private.get());
-rooted!(in(cx) let obj = obj);\
+rooted!(in(*cx) let obj = obj);\
 """ % (descriptor.name)
     else:
-        create += ("rooted!(in(cx) let obj = JS_NewObjectWithGivenProto(\n"
-                   "    cx, &Class.base as *const JSClass, proto.handle()));\n"
+        create += ("rooted!(in(*cx) let obj = JS_NewObjectWithGivenProto(\n"
+                   "    *cx, &Class.base as *const JSClass, proto.handle()));\n"
                    "assert!(!obj.is_null());\n"
                    "\n"
                    "let val = PrivateValue(raw as *const libc::c_void);\n"
@@ -2650,8 +2651,8 @@ def InitUnforgeablePropertiesOnHolder(descriptor, properties):
     """
     unforgeables = []
 
-    defineUnforgeableAttrs = "define_guarded_properties(cx, unforgeable_holder.handle(), %s, global);"
-    defineUnforgeableMethods = "define_guarded_methods(cx, unforgeable_holder.handle(), %s, global);"
+    defineUnforgeableAttrs = "define_guarded_properties(*cx, unforgeable_holder.handle(), %s, global);"
+    defineUnforgeableMethods = "define_guarded_methods(*cx, unforgeable_holder.handle(), %s, global);"
 
     unforgeableMembers = [
         (defineUnforgeableAttrs, properties.unforgeable_attrs),
@@ -2676,8 +2677,8 @@ def CopyUnforgeablePropertiesToInstance(descriptor):
     # reflector, so we can make sure we don't get confused by named getters.
     if descriptor.proxy:
         copyCode += """\
-rooted!(in(cx) let mut expando = ptr::null_mut::<JSObject>());
-ensure_expando_object(cx, obj.handle().into(), expando.handle_mut());
+rooted!(in(*cx) let mut expando = ptr::null_mut::<JSObject>());
+ensure_expando_object(*cx, obj.handle().into(), expando.handle_mut());
 """
         obj = "expando"
     else:
@@ -2693,9 +2694,9 @@ ensure_expando_object(cx, obj.handle().into(), expando.handle_mut());
     copyCode += """\
 let mut slot = UndefinedValue();
 JS_GetReservedSlot(proto.get(), DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, &mut slot);
-rooted!(in(cx) let mut unforgeable_holder = ptr::null_mut::<JSObject>());
+rooted!(in(*cx) let mut unforgeable_holder = ptr::null_mut::<JSObject>());
 unforgeable_holder.handle_mut().set(slot.to_object());
-assert!(%(copyFunc)s(cx, %(obj)s.handle(), unforgeable_holder.handle()));
+assert!(%(copyFunc)s(*cx, %(obj)s.handle(), unforgeable_holder.handle()));
 """ % {'copyFunc': copyFunc, 'obj': obj}
 
     return copyCode
@@ -2709,7 +2710,7 @@ class CGWrapMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert not descriptor.interface.isCallback()
         assert not descriptor.isGlobal()
-        args = [Argument('*mut JSContext', 'cx'),
+        args = [Argument('SafeJSContext', 'cx'),
                 Argument('&GlobalScope', 'scope'),
                 Argument("Box<%s>" % descriptor.concreteType, 'object')]
         retval = 'DomRoot<%s>' % descriptor.concreteType
@@ -2724,8 +2725,8 @@ let scope = scope.reflector().get_jsobject();
 assert!(!scope.get().is_null());
 assert!(((*get_object_class(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
 
-rooted!(in(cx) let mut proto = ptr::null_mut::<JSObject>());
-let _ac = JSAutoRealm::new(cx, scope.get());
+rooted!(in(*cx) let mut proto = ptr::null_mut::<JSObject>());
+let _ac = JSAutoRealm::new(*cx, scope.get());
 GetProtoObject(cx, scope, proto.handle_mut());
 assert!(!proto.is_null());
 
@@ -2744,7 +2745,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
     def __init__(self, descriptor, properties):
         assert not descriptor.interface.isCallback()
         assert descriptor.isGlobal()
-        args = [Argument('*mut JSContext', 'cx'),
+        args = [Argument('SafeJSContext', 'cx'),
                 Argument("Box<%s>" % descriptor.concreteType, 'object')]
         retval = 'DomRoot<%s>' % descriptor.concreteType
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
@@ -2761,7 +2762,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             ("define_guarded_methods", self.properties.methods),
             ("define_guarded_constants", self.properties.consts)
         ]
-        members = ["%s(cx, obj.handle(), %s, obj.handle());" % (function, array.variableName())
+        members = ["%s(*cx, obj.handle(), %s, obj.handle());" % (function, array.variableName())
                    for (function, array) in pairs if array.length() > 0]
         values["members"] = "\n".join(members)
 
@@ -2769,9 +2770,9 @@ class CGWrapGlobalMethod(CGAbstractMethod):
 let raw = Box::into_raw(object);
 let _rt = RootedTraceable::new(&*raw);
 
-rooted!(in(cx) let mut obj = ptr::null_mut::<JSObject>());
+rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
 create_global_object(
-    cx,
+    *cx,
     &Class.base,
     raw as *const libc::c_void,
     _trace,
@@ -2780,12 +2781,12 @@ assert!(!obj.is_null());
 
 (*raw).init_reflector(obj.get());
 
-let _ac = JSAutoRealm::new(cx, obj.get());
-rooted!(in(cx) let mut proto = ptr::null_mut::<JSObject>());
+let _ac = JSAutoRealm::new(*cx, obj.get());
+rooted!(in(*cx) let mut proto = ptr::null_mut::<JSObject>());
 GetProtoObject(cx, obj.handle(), proto.handle_mut());
-assert!(JS_SplicePrototype(cx, obj.handle(), proto.handle()));
+assert!(JS_SplicePrototype(*cx, obj.handle(), proto.handle()));
 let mut immutable = false;
-assert!(JS_SetImmutablePrototype(cx, obj.handle(), &mut immutable));
+assert!(JS_SetImmutablePrototype(*cx, obj.handle(), &mut immutable));
 assert!(immutable);
 
 %(members)s
@@ -2931,7 +2932,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
     properties should be a PropertyArrays instance.
     """
     def __init__(self, descriptor, properties, haveUnscopables):
-        args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'global'),
+        args = [Argument('SafeJSContext', 'cx'), Argument('HandleObject', 'global'),
                 Argument('*mut ProtoOrIfaceArray', 'cache')]
         CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', 'void', args,
                                   unsafe=True)
@@ -2942,18 +2943,18 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         name = self.descriptor.interface.identifier.name
         if self.descriptor.interface.isNamespace():
             if self.descriptor.interface.getExtendedAttribute("ProtoObjectHack"):
-                proto = "GetRealmObjectPrototype(cx)"
+                proto = "GetRealmObjectPrototype(*cx)"
             else:
-                proto = "JS_NewPlainObject(cx)"
+                proto = "JS_NewPlainObject(*cx)"
             if self.properties.static_methods.length():
                 methods = self.properties.static_methods.variableName()
             else:
                 methods = "&[]"
             return CGGeneric("""\
-rooted!(in(cx) let proto = %(proto)s);
+rooted!(in(*cx) let proto = %(proto)s);
 assert!(!proto.is_null());
-rooted!(in(cx) let mut namespace = ptr::null_mut::<JSObject>());
-create_namespace_object(cx, global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
+rooted!(in(*cx) let mut namespace = ptr::null_mut::<JSObject>());
+create_namespace_object(*cx, global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
                         %(methods)s, %(name)s, namespace.handle_mut());
 assert!(!namespace.is_null());
 assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
@@ -2965,8 +2966,8 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
         if self.descriptor.interface.isCallback():
             assert not self.descriptor.interface.ctor() and self.descriptor.interface.hasConstants()
             return CGGeneric("""\
-rooted!(in(cx) let mut interface = ptr::null_mut::<JSObject>());
-create_callback_interface_object(cx, global, sConstants, %(name)s, interface.handle_mut());
+rooted!(in(*cx) let mut interface = ptr::null_mut::<JSObject>());
+create_callback_interface_object(*cx, global, sConstants, %(name)s, interface.handle_mut());
 assert!(!interface.is_null());
 assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
 (*cache)[PrototypeList::Constructor::%(id)s as usize] = interface.get();
@@ -2983,13 +2984,13 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                 protoGetter = "GetRealmIteratorPrototype"
             else:
                 protoGetter = "GetRealmObjectPrototype"
-            getPrototypeProto = "prototype_proto.set(%s(cx))" % protoGetter
+            getPrototypeProto = "prototype_proto.set(%s(*cx))" % protoGetter
         else:
             getPrototypeProto = ("%s::GetProtoObject(cx, global, prototype_proto.handle_mut())" %
                                  toBindingNamespace(parentName))
 
         code = [CGGeneric("""\
-rooted!(in(cx) let mut prototype_proto = ptr::null_mut::<JSObject>());
+rooted!(in(*cx) let mut prototype_proto = ptr::null_mut::<JSObject>());
 %s;
 assert!(!prototype_proto.is_null());""" % getPrototypeProto)]
 
@@ -3017,8 +3018,8 @@ assert!(!prototype_proto.is_null());""" % getPrototypeProto)]
             proto_properties = properties
 
         code.append(CGGeneric("""
-rooted!(in(cx) let mut prototype = ptr::null_mut::<JSObject>());
-create_interface_prototype_object(cx,
+rooted!(in(*cx) let mut prototype = ptr::null_mut::<JSObject>());
+create_interface_prototype_object(*cx,
                                   global.into(),
                                   prototype_proto.handle().into(),
                                   &PrototypeClass,
@@ -3042,18 +3043,18 @@ assert!((*cache)[PrototypeList::ID::%(id)s as usize].is_null());
             else:
                 properties["length"] = 0
             parentName = self.descriptor.getParentName()
-            code.append(CGGeneric("rooted!(in(cx) let mut interface_proto = ptr::null_mut::<JSObject>());"))
+            code.append(CGGeneric("rooted!(in(*cx) let mut interface_proto = ptr::null_mut::<JSObject>());"))
             if parentName:
                 parentName = toBindingNamespace(parentName)
                 code.append(CGGeneric("""
 %s::GetConstructorObject(cx, global, interface_proto.handle_mut());""" % parentName))
             else:
-                code.append(CGGeneric("interface_proto.set(GetRealmFunctionPrototype(cx));"))
+                code.append(CGGeneric("interface_proto.set(GetRealmFunctionPrototype(*cx));"))
             code.append(CGGeneric("""\
 assert!(!interface_proto.is_null());
 
-rooted!(in(cx) let mut interface = ptr::null_mut::<JSObject>());
-create_noncallback_interface_object(cx,
+rooted!(in(*cx) let mut interface = ptr::null_mut::<JSObject>());
+create_noncallback_interface_object(*cx,
                                     global.into(),
                                     interface_proto.handle(),
                                     &INTERFACE_OBJECT_CLASS,
@@ -3078,8 +3079,8 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
         if aliasedMembers:
             def defineAlias(alias):
                 if alias == "@@iterator":
-                    symbolJSID = "RUST_SYMBOL_TO_JSID(GetWellKnownSymbol(cx, SymbolCode::iterator))"
-                    getSymbolJSID = CGGeneric(fill("rooted!(in(cx) let iteratorId = ${symbolJSID});",
+                    symbolJSID = "RUST_SYMBOL_TO_JSID(GetWellKnownSymbol(*cx, SymbolCode::iterator))"
+                    getSymbolJSID = CGGeneric(fill("rooted!(in(*cx) let iteratorId = ${symbolJSID});",
                                                    symbolJSID=symbolJSID))
                     defineFn = "JS_DefinePropertyById2"
                     prop = "iteratorId.handle()"
@@ -3096,7 +3097,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                     #     match the enumerability of the property being aliased.
                     CGGeneric(fill(
                         """
-                        assert!(${defineFn}(cx, prototype.handle(), ${prop}, aliasedVal.handle(),
+                        assert!(${defineFn}(*cx, prototype.handle(), ${prop}, aliasedVal.handle(),
                                             JSPROP_ENUMERATE as u32));
                         """,
                         defineFn=defineFn,
@@ -3107,7 +3108,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                 return CGList([
                     CGGeneric(fill(
                         """
-                        assert!(JS_GetProperty(cx, prototype.handle(),
+                        assert!(JS_GetProperty(*cx, prototype.handle(),
                                                ${prop} as *const u8 as *const _,
                                                aliasedVal.handle_mut()));
                         """,
@@ -3119,7 +3120,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                     // Set up aliases on the interface prototype object we just created.
 
                     """)),
-                CGGeneric("rooted!(in(cx) let mut aliasedVal = UndefinedValue());\n\n")
+                CGGeneric("rooted!(in(*cx) let mut aliasedVal = UndefinedValue());\n\n")
             ] + [defineAliasesFor(m) for m in sorted(aliasedMembers)])
             code.append(defineAliases)
 
@@ -3134,7 +3135,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                 specs.append(CGGeneric("(%s as ConstructorClassHook, %s, %d)" % (hook, name, length)))
             values = CGIndenter(CGList(specs, "\n"), 4)
             code.append(CGWrapper(values, pre="%s = [\n" % decl, post="\n];"))
-            code.append(CGGeneric("create_named_constructors(cx, global, &named_constructors, prototype.handle());"))
+            code.append(CGGeneric("create_named_constructors(*cx, global, &named_constructors, prototype.handle());"))
 
         if self.descriptor.hasUnforgeableMembers:
             # We want to use the same JSClass and prototype as the object we'll
@@ -3155,9 +3156,9 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                 holderClass = "&Class.base as *const JSClass"
                 holderProto = "prototype.handle()"
             code.append(CGGeneric("""
-rooted!(in(cx) let mut unforgeable_holder = ptr::null_mut::<JSObject>());
+rooted!(in(*cx) let mut unforgeable_holder = ptr::null_mut::<JSObject>());
 unforgeable_holder.handle_mut().set(
-    JS_NewObjectWithoutMetadata(cx, %(holderClass)s, %(holderProto)s));
+    JS_NewObjectWithoutMetadata(*cx, %(holderClass)s, %(holderProto)s));
 assert!(!unforgeable_holder.is_null());
 """ % {'holderClass': holderClass, 'holderProto': holderProto}))
             code.append(InitUnforgeablePropertiesOnHolder(self.descriptor, self.properties))
@@ -3174,7 +3175,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
     constructor object).
     """
     def __init__(self, descriptor, name, idPrefix="", pub=False):
-        args = [Argument('*mut JSContext', 'cx'),
+        args = [Argument('SafeJSContext', 'cx'),
                 Argument('HandleObject', 'global'),
                 Argument('MutableHandleObject', 'mut rval')]
         CGAbstractMethod.__init__(self, descriptor, name,
@@ -3311,7 +3312,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert descriptor.interface.hasInterfaceObject()
         args = [
-            Argument('*mut JSContext', 'cx'),
+            Argument('SafeJSContext', 'cx'),
             Argument('HandleObject', 'global'),
         ]
         CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface',
@@ -3332,7 +3333,7 @@ if !ConstructorEnabled(cx, global) {
     return;
 }
 
-rooted!(in(cx) let mut proto = ptr::null_mut::<JSObject>());
+rooted!(in(*cx) let mut proto = ptr::null_mut::<JSObject>());
 %s(cx, global, proto.handle_mut());
 assert!(!proto.is_null());""" % (function,))
 
@@ -3376,7 +3377,7 @@ class CGCallGenerator(CGThing):
         if "cx" not in argsPre and needsCx:
             args.prepend(CGGeneric("cx"))
         if nativeMethodName in descriptor.inCompartmentMethods:
-            args.append(CGGeneric("InCompartment::in_compartment(&AlreadyInCompartment::assert_for_cx(cx))"))
+            args.append(CGGeneric("InCompartment::in_compartment(&AlreadyInCompartment::assert_for_cx(*cx))"))
 
         # Build up our actual call
         self.cgRoot = CGList([], "\n")
@@ -3412,7 +3413,7 @@ class CGCallGenerator(CGThing):
                 "let result = match result {\n"
                 "    Ok(result) => result,\n"
                 "    Err(e) => {\n"
-                "        throw_dom_exception(cx, %s, e);\n"
+                "        throw_dom_exception(*cx, %s, e);\n"
                 "        return%s;\n"
                 "    },\n"
                 "};" % (glob, errorResult)))
@@ -3636,7 +3637,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
     def __init__(self, descriptor, method):
         self.method = method
         name = method.identifier.name
-        args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', '_obj'),
+        args = [Argument('SafeJSContext', 'cx'), Argument('HandleObject', '_obj'),
                 Argument('*const %s' % descriptor.concreteType, 'this'),
                 Argument('*const JSJitMethodCallArgs', 'args')]
         CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args)
@@ -3707,9 +3708,10 @@ class CGStaticMethod(CGAbstractStaticBindingMethod):
     def generate_code(self):
         nativeName = CGSpecializedMethod.makeNativeName(self.descriptor,
                                                         self.method)
+        safeContext = CGGeneric("let cx = SafeJSContext::from_ptr(cx);\n")
         setupArgs = CGGeneric("let args = CallArgs::from_vp(vp, argc);\n")
         call = CGMethodCall(["&global"], nativeName, True, self.descriptor, self.method)
-        return CGList([setupArgs, call])
+        return CGList([safeContext, setupArgs, call])
 
 
 class CGSpecializedGetter(CGAbstractExternMethod):
@@ -3720,7 +3722,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
     def __init__(self, descriptor, attr):
         self.attr = attr
         name = 'get_' + descriptor.internalNameFor(attr.identifier.name)
-        args = [Argument('*mut JSContext', 'cx'),
+        args = [Argument('SafeJSContext', 'cx'),
                 Argument('HandleObject', '_obj'),
                 Argument('*const %s' % descriptor.concreteType, 'this'),
                 Argument('JSJitGetterCallArgs', 'args')]
@@ -3761,10 +3763,11 @@ class CGStaticGetter(CGAbstractStaticBindingMethod):
     def generate_code(self):
         nativeName = CGSpecializedGetter.makeNativeName(self.descriptor,
                                                         self.attr)
+        safeContext = CGGeneric("let cx = SafeJSContext::from_ptr(cx);\n")
         setupArgs = CGGeneric("let args = CallArgs::from_vp(vp, argc);\n")
         call = CGGetterCall(["&global"], self.attr.type, nativeName, self.descriptor,
                             self.attr)
-        return CGList([setupArgs, call])
+        return CGList([safeContext, setupArgs, call])
 
 
 class CGSpecializedSetter(CGAbstractExternMethod):
@@ -3775,7 +3778,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
     def __init__(self, descriptor, attr):
         self.attr = attr
         name = 'set_' + descriptor.internalNameFor(attr.identifier.name)
-        args = [Argument('*mut JSContext', 'cx'),
+        args = [Argument('SafeJSContext', 'cx'),
                 Argument('HandleObject', 'obj'),
                 Argument('*const %s' % descriptor.concreteType, 'this'),
                 Argument('JSJitSetterCallArgs', 'args')]
@@ -3809,15 +3812,16 @@ class CGStaticSetter(CGAbstractStaticBindingMethod):
     def generate_code(self):
         nativeName = CGSpecializedSetter.makeNativeName(self.descriptor,
                                                         self.attr)
+        safeContext = CGGeneric("let cx = SafeJSContext::from_ptr(cx);\n")
         checkForArg = CGGeneric(
             "let args = CallArgs::from_vp(vp, argc);\n"
             "if argc == 0 {\n"
-            "    throw_type_error(cx, \"Not enough arguments to %s setter.\");\n"
+            "    throw_type_error(*cx, \"Not enough arguments to %s setter.\");\n"
             "    return false;\n"
             "}" % self.attr.identifier.name)
         call = CGSetterCall(["&global"], self.attr.type, nativeName, self.descriptor,
                             self.attr)
-        return CGList([checkForArg, call])
+        return CGList([safeContext, checkForArg, call])
 
 
 class CGSpecializedForwardingSetter(CGSpecializedSetter):
@@ -3834,16 +3838,16 @@ class CGSpecializedForwardingSetter(CGSpecializedSetter):
         assert all(ord(c) < 128 for c in attrName)
         assert all(ord(c) < 128 for c in forwardToAttrName)
         return CGGeneric("""\
-rooted!(in(cx) let mut v = UndefinedValue());
-if !JS_GetProperty(cx, obj, %s as *const u8 as *const libc::c_char, v.handle_mut()) {
+rooted!(in(*cx) let mut v = UndefinedValue());
+if !JS_GetProperty(*cx, obj, %s as *const u8 as *const libc::c_char, v.handle_mut()) {
     return false;
 }
 if !v.is_object() {
-    throw_type_error(cx, "Value.%s is not an object.");
+    throw_type_error(*cx, "Value.%s is not an object.");
     return false;
 }
-rooted!(in(cx) let target_obj = v.to_object());
-JS_SetProperty(cx, target_obj.handle(), %s as *const u8 as *const libc::c_char, HandleValue::from_raw(args.get(0)))
+rooted!(in(*cx) let target_obj = v.to_object());
+JS_SetProperty(*cx, target_obj.handle(), %s as *const u8 as *const libc::c_char, HandleValue::from_raw(args.get(0)))
 """ % (str_to_const_array(attrName), attrName, str_to_const_array(forwardToAttrName)))
 
 
@@ -3860,7 +3864,7 @@ class CGSpecializedReplaceableSetter(CGSpecializedSetter):
         # JS_DefineProperty can only deal with ASCII.
         assert all(ord(c) < 128 for c in name)
         return CGGeneric("""\
-JS_DefineProperty(cx, obj, %s as *const u8 as *const libc::c_char,
+JS_DefineProperty(*cx, obj, %s as *const u8 as *const libc::c_char,
                   HandleValue::from_raw(args.get(0)), JSPROP_ENUMERATE as u32)""" % name)
 
 
@@ -4449,7 +4453,7 @@ class CGUnionConversionStruct(CGThing):
 
         def get_match(name):
             return (
-                "match %s::TryConvertTo%s(cx, value) {\n"
+                "match %s::TryConvertTo%s(SafeJSContext::from_ptr(cx), value) {\n"
                 "    Err(_) => return Err(()),\n"
                 "    Ok(Some(value)) => return Ok(ConversionResult::Success(%s::%s(value))),\n"
                 "    Ok(None) => (),\n"
@@ -4589,7 +4593,7 @@ class CGUnionConversionStruct(CGThing):
 
         return CGWrapper(
             CGIndenter(jsConversion, 4),
-            pre="unsafe fn TryConvertTo%s(cx: *mut JSContext, value: HandleValue) -> %s {\n"
+            pre="unsafe fn TryConvertTo%s(cx: SafeJSContext, value: HandleValue) -> %s {\n"
                 % (t.name, returnType),
             post="\n}")
 
@@ -4982,7 +4986,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
             }
             self.cgRoot.prepend(instantiateJSToNativeConversionTemplate(
                 template, templateValues, declType, argument.identifier.name))
-            self.cgRoot.prepend(CGGeneric("rooted!(in(cx) let value = desc.value);"))
+            self.cgRoot.prepend(CGGeneric("rooted!(in(*cx) let value = desc.value);"))
 
     def getArguments(self):
         args = [(a, process_arg(a.identifier.name, a)) for a in self.arguments]
@@ -5025,7 +5029,7 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
     def define(self):
         # Our first argument is the id we're getting.
         argName = self.arguments[0].identifier.name
-        return ("let %s = jsid_to_string(cx, Handle::from_raw(id)).expect(\"Not a string-convertible JSID?\");\n"
+        return ("let %s = jsid_to_string(*cx, Handle::from_raw(id)).expect(\"Not a string-convertible JSID?\");\n"
                 "let this = UnwrapProxy(proxy);\n"
                 "let this = &*this;\n" % argName +
                 CGProxySpecialOperation.define(self))
@@ -5094,9 +5098,9 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
     def getBody(self):
         indexedGetter = self.descriptor.operations['IndexedGetter']
 
-        get = ""
+        get = "let cx = SafeJSContext::from_ptr(cx);\n"
         if indexedGetter:
-            get = "let index = get_array_index_from_id(cx, Handle::from_raw(id));\n"
+            get += "let index = get_array_index_from_id(*cx, Handle::from_raw(id));\n"
 
             attrs = "JSPROP_ENUMERATE"
             if self.descriptor.operations['IndexedSetter'] is None:
@@ -5108,7 +5112,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
                 'successCode': fillDescriptor,
-                'pre': 'rooted!(in(cx) let mut result_root = UndefinedValue());'
+                'pre': 'rooted!(in(*cx) let mut result_root = UndefinedValue());'
             }
             get += ("if let Some(index) = index {\n" +
                     "    let this = UnwrapProxy(proxy);\n" +
@@ -5134,7 +5138,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
                 'successCode': fillDescriptor,
-                'pre': 'rooted!(in(cx) let mut result_root = UndefinedValue());'
+                'pre': 'rooted!(in(*cx) let mut result_root = UndefinedValue());'
             }
 
             # See the similar-looking in CGDOMJSProxyHandler_get for the spec quote.
@@ -5147,7 +5151,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             namedGet = """
 if %s {
     let mut has_on_proto = false;
-    if !has_property_on_prototype(cx, proxy_lt, id_lt, &mut has_on_proto) {
+    if !has_property_on_prototype(*cx, proxy_lt, id_lt, &mut has_on_proto) {
         return false;
     }
     if !has_on_proto {
@@ -5159,13 +5163,13 @@ if %s {
             namedGet = ""
 
         return get + """\
-rooted!(in(cx) let mut expando = ptr::null_mut::<JSObject>());
+rooted!(in(*cx) let mut expando = ptr::null_mut::<JSObject>());
 get_expando_object(proxy, expando.handle_mut());
 //if (!xpc::WrapperFactory::IsXrayWrapper(proxy) && (expando = GetExpandoObject(proxy))) {
 let proxy_lt = Handle::from_raw(proxy);
 let id_lt = Handle::from_raw(id);
 if !expando.is_null() {
-    if !JS_GetPropertyDescriptorById(cx, expando.handle().into(), id, desc) {
+    if !JS_GetPropertyDescriptorById(*cx, expando.handle().into(), id, desc) {
         return false;
     }
     if !desc.obj.is_null() {
@@ -5192,11 +5196,11 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
         self.descriptor = descriptor
 
     def getBody(self):
-        set = ""
+        set = "let cx = SafeJSContext::from_ptr(cx);\n"
 
         indexedSetter = self.descriptor.operations['IndexedSetter']
         if indexedSetter:
-            set += ("let index = get_array_index_from_id(cx, Handle::from_raw(id));\n" +
+            set += ("let index = get_array_index_from_id(*cx, Handle::from_raw(id));\n" +
                     "if let Some(index) = index {\n" +
                     "    let this = UnwrapProxy(proxy);\n" +
                     "    let this = &*this;\n" +
@@ -5204,7 +5208,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "    return (*opresult).succeed();\n" +
                     "}\n")
         elif self.descriptor.operations['IndexedGetter']:
-            set += ("if get_array_index_from_id(cx, Handle::from_raw(id)).is_some() {\n" +
+            set += ("if get_array_index_from_id(*cx, Handle::from_raw(id)).is_some() {\n" +
                     "    return (*opresult).failNoIndexedSetter();\n" +
                     "}\n")
 
@@ -5224,7 +5228,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "        return (*opresult).failNoNamedSetter();\n"
                     "    }\n"
                     "}\n")
-        set += "return proxyhandler::define_property(%s);" % ", ".join(a.name for a in self.args)
+        set += "return proxyhandler::define_property(*cx, %s);" % ", ".join(a.name for a in self.args[1:])
         return set
 
     def definition_body(self):
@@ -5240,13 +5244,13 @@ class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
         self.descriptor = descriptor
 
     def getBody(self):
-        set = ""
+        set = "let cx = SafeJSContext::from_ptr(cx);\n"
         if self.descriptor.operations['NamedDeleter']:
             if self.descriptor.hasUnforgeableMembers:
                 raise TypeError("Can't handle a deleter on an interface that has "
                                 "unforgeables. Figure out how that should work!")
             set += CGProxyNamedDeleter(self.descriptor).define()
-        set += "return proxyhandler::delete(%s);" % ", ".join(a.name for a in self.args)
+        set += "return proxyhandler::delete(*cx, %s);" % ", ".join(a.name for a in self.args[1:])
         return set
 
     def definition_body(self):
@@ -5264,6 +5268,7 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
     def getBody(self):
         body = dedent(
             """
+            let cx = SafeJSContext::from_ptr(cx);
             let unwrapped_proxy = UnwrapProxy(proxy);
             """)
 
@@ -5271,7 +5276,7 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
             body += dedent(
                 """
                 for i in 0..(*unwrapped_proxy).Length() {
-                    rooted!(in(cx) let rooted_jsid = int_to_jsid(i as i32));
+                    rooted!(in(*cx) let rooted_jsid = int_to_jsid(i as i32));
                     AppendToAutoIdVector(props, rooted_jsid.handle().get());
                 }
                 """)
@@ -5281,20 +5286,20 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
                 """
                 for name in (*unwrapped_proxy).SupportedPropertyNames() {
                     let cstring = CString::new(name).unwrap();
-                    let jsstring = JS_AtomizeAndPinString(cx, cstring.as_ptr());
-                    rooted!(in(cx) let rooted = jsstring);
-                    let jsid = INTERNED_STRING_TO_JSID(cx, rooted.handle().get());
-                    rooted!(in(cx) let rooted_jsid = jsid);
+                    let jsstring = JS_AtomizeAndPinString(*cx, cstring.as_ptr());
+                    rooted!(in(*cx) let rooted = jsstring);
+                    let jsid = INTERNED_STRING_TO_JSID(*cx, rooted.handle().get());
+                    rooted!(in(*cx) let rooted_jsid = jsid);
                     AppendToAutoIdVector(props, rooted_jsid.handle().get());
                 }
                 """)
 
         body += dedent(
             """
-            rooted!(in(cx) let mut expando = ptr::null_mut::<JSObject>());
+            rooted!(in(*cx) let mut expando = ptr::null_mut::<JSObject>());
             get_expando_object(proxy, expando.handle_mut());
             if !expando.is_null() {
-                GetPropertyKeys(cx, expando.handle(), JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, props);
+                GetPropertyKeys(*cx, expando.handle(), JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, props);
             }
 
             return true;
@@ -5320,6 +5325,7 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
     def getBody(self):
         body = dedent(
             """
+            let cx = SafeJSContext::from_ptr(cx);
             let unwrapped_proxy = UnwrapProxy(proxy);
             """)
 
@@ -5327,17 +5333,17 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
             body += dedent(
                 """
                 for i in 0..(*unwrapped_proxy).Length() {
-                    rooted!(in(cx) let rooted_jsid = int_to_jsid(i as i32));
+                    rooted!(in(*cx) let rooted_jsid = int_to_jsid(i as i32));
                     AppendToAutoIdVector(props, rooted_jsid.handle().get());
                 }
                 """)
 
         body += dedent(
             """
-            rooted!(in(cx) let mut expando = ptr::null_mut::<JSObject>());
+            rooted!(in(*cx) let mut expando = ptr::null_mut::<JSObject>());
             get_expando_object(proxy, expando.handle_mut());
             if !expando.is_null() {
-                GetPropertyKeys(cx, expando.handle(), JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, props);
+                GetPropertyKeys(*cx, expando.handle(), JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, props);
             }
 
             return true;
@@ -5358,17 +5364,16 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
 
     def getBody(self):
         indexedGetter = self.descriptor.operations['IndexedGetter']
+        indexed = "let cx = SafeJSContext::from_ptr(cx);\n"
         if indexedGetter:
-            indexed = ("let index = get_array_index_from_id(cx, Handle::from_raw(id));\n" +
-                       "if let Some(index) = index {\n" +
-                       "    let this = UnwrapProxy(proxy);\n" +
-                       "    let this = &*this;\n" +
-                       CGIndenter(CGProxyIndexedGetter(self.descriptor)).define() + "\n" +
-                       "    *bp = result.is_some();\n" +
-                       "    return true;\n" +
-                       "}\n\n")
-        else:
-            indexed = ""
+            indexed += ("let index = get_array_index_from_id(*cx, Handle::from_raw(id));\n" +
+                        "if let Some(index) = index {\n" +
+                        "    let this = UnwrapProxy(proxy);\n" +
+                        "    let this = &*this;\n" +
+                        CGIndenter(CGProxyIndexedGetter(self.descriptor)).define() + "\n" +
+                        "    *bp = result.is_some();\n" +
+                        "    return true;\n" +
+                        "}\n\n")
 
         namedGetter = self.descriptor.operations['NamedGetter']
         condition = "RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id)"
@@ -5378,7 +5383,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
             named = """\
 if %s {
     let mut has_on_proto = false;
-    if !has_property_on_prototype(cx, proxy_lt, id_lt, &mut has_on_proto) {
+    if !has_property_on_prototype(*cx, proxy_lt, id_lt, &mut has_on_proto) {
         return false;
     }
     if !has_on_proto {
@@ -5393,12 +5398,12 @@ if %s {
             named = ""
 
         return indexed + """\
-rooted!(in(cx) let mut expando = ptr::null_mut::<JSObject>());
+rooted!(in(*cx) let mut expando = ptr::null_mut::<JSObject>());
 let proxy_lt = Handle::from_raw(proxy);
 let id_lt = Handle::from_raw(id);
 get_expando_object(proxy, expando.handle_mut());
 if !expando.is_null() {
-    let ok = JS_HasPropertyById(cx, expando.handle().into(), id, bp);
+    let ok = JS_HasPropertyById(*cx, expando.handle().into(), id, bp);
     if !ok || *bp {
         return ok;
     }
@@ -5422,16 +5427,16 @@ class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
     # https://heycam.github.io/webidl/#LegacyPlatformObjectGetOwnProperty
     def getBody(self):
         getFromExpando = """\
-rooted!(in(cx) let mut expando = ptr::null_mut::<JSObject>());
+rooted!(in(*cx) let mut expando = ptr::null_mut::<JSObject>());
 get_expando_object(proxy, expando.handle_mut());
 if !expando.is_null() {
     let mut hasProp = false;
-    if !JS_HasPropertyById(cx, expando.handle().into(), id, &mut hasProp) {
+    if !JS_HasPropertyById(*cx, expando.handle().into(), id, &mut hasProp) {
         return false;
     }
 
     if hasProp {
-        return JS_ForwardGetPropertyTo(cx, expando.handle().into(), id, receiver, vp);
+        return JS_ForwardGetPropertyTo(*cx, expando.handle().into(), id, receiver, vp);
     }
 }"""
 
@@ -5442,7 +5447,7 @@ if !expando.is_null() {
 
         indexedGetter = self.descriptor.operations['IndexedGetter']
         if indexedGetter:
-            getIndexedOrExpando = ("let index = get_array_index_from_id(cx, id_lt);\n" +
+            getIndexedOrExpando = ("let index = get_array_index_from_id(*cx, id_lt);\n" +
                                    "if let Some(index) = index {\n" +
                                    "    let this = UnwrapProxy(proxy);\n" +
                                    "    let this = &*this;\n" +
@@ -5475,6 +5480,7 @@ if !expando.is_null() {
         return """\
 //MOZ_ASSERT(!xpc::WrapperFactory::IsXrayWrapper(proxy),
 //"Should not have a XrayWrapper here");
+let cx = SafeJSContext::from_ptr(cx);
 let proxy_lt = Handle::from_raw(proxy);
 let vp_lt = MutableHandle::from_raw(vp);
 let id_lt = Handle::from_raw(id);
@@ -5482,7 +5488,7 @@ let receiver_lt = Handle::from_raw(receiver);
 
 %s
 let mut found = false;
-if !get_property_on_prototype(cx, proxy_lt, receiver_lt, id_lt, &mut found, vp_lt) {
+if !get_property_on_prototype(*cx, proxy_lt, receiver_lt, id_lt, &mut found, vp_lt) {
     return false;
 }
 
@@ -5605,7 +5611,9 @@ class CGClassConstructHook(CGAbstractExternMethod):
         self.exposureSet = descriptor.interface.exposureSet
 
     def definition_body(self):
-        preamble = """let global = GlobalScope::from_object(JS_CALLEE(cx, vp).to_object());\n"""
+        preamble = """let cx = SafeJSContext::from_ptr(cx);
+let global = GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());
+"""
         if len(self.exposureSet) == 1:
             preamble += """\
 let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
@@ -5621,24 +5629,24 @@ let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
 
 // The new_target might be a cross-compartment wrapper. Get the underlying object
 // so we can do the spec's object-identity checks.
-rooted!(in(cx) let new_target = UnwrapObjectDynamic(args.new_target().to_object(), cx, 1));
+rooted!(in(*cx) let new_target = UnwrapObjectDynamic(args.new_target().to_object(), *cx, 1));
 if new_target.is_null() {
-    throw_dom_exception(cx, global.upcast::<GlobalScope>(), Error::Type("new.target is null".to_owned()));
+    throw_dom_exception(*cx, global.upcast::<GlobalScope>(), Error::Type("new.target is null".to_owned()));
     return false;
 }
 
 if args.callee() == new_target.get() {
-    throw_dom_exception(cx, global.upcast::<GlobalScope>(),
+    throw_dom_exception(*cx, global.upcast::<GlobalScope>(),
         Error::Type("new.target must not be the active function object".to_owned()));
     return false;
 }
 
 // Step 6
-rooted!(in(cx) let mut prototype = ptr::null_mut::<JSObject>());
+rooted!(in(*cx) let mut prototype = ptr::null_mut::<JSObject>());
 {
-    rooted!(in(cx) let mut proto_val = UndefinedValue());
-    let _ac = JSAutoRealm::new(cx, new_target.get());
-    if !JS_GetProperty(cx, new_target.handle(), b"prototype\\0".as_ptr() as *const _, proto_val.handle_mut()) {
+    rooted!(in(*cx) let mut proto_val = UndefinedValue());
+    let _ac = JSAutoRealm::new(*cx, new_target.get());
+    if !JS_GetProperty(*cx, new_target.handle(), b"prototype\\0".as_ptr() as *const _, proto_val.handle_mut()) {
         return false;
     }
 
@@ -5652,7 +5660,7 @@ rooted!(in(cx) let mut prototype = ptr::null_mut::<JSObject>());
         // whose target is not same-compartment with the proxy, or bound functions, etc).
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1317658
 
-        rooted!(in(cx) let global_object = CurrentGlobalOrNull(cx));
+        rooted!(in(*cx) let global_object = CurrentGlobalOrNull(*cx));
         GetProtoObject(cx, global_object.handle(), prototype.handle_mut());
     } else {
         // Step 6
@@ -5661,7 +5669,7 @@ rooted!(in(cx) let mut prototype = ptr::null_mut::<JSObject>());
 }
 
 // Wrap prototype in this context since it is from the newTarget compartment
-if !JS_WrapObject(cx, prototype.handle_mut()) {
+if !JS_WrapObject(*cx, prototype.handle_mut()) {
     return false;
 }
 
@@ -5669,19 +5677,19 @@ let result: Result<DomRoot<%s>, Error> = html_constructor(&global, &args);
 let result = match result {
     Ok(result) => result,
     Err(e) => {
-        throw_dom_exception(cx, global.upcast::<GlobalScope>(), e);
+        throw_dom_exception(*cx, global.upcast::<GlobalScope>(), e);
         return false;
     },
 };
 
-rooted!(in(cx) let mut element = result.reflector().get_jsobject().get());
-if !JS_WrapObject(cx, element.handle_mut()) {
+rooted!(in(*cx) let mut element = result.reflector().get_jsobject().get());
+if !JS_WrapObject(*cx, element.handle_mut()) {
     return false;
 }
 
-JS_SetPrototype(cx, element.handle(), prototype.handle());
+JS_SetPrototype(*cx, element.handle(), prototype.handle());
 
-(result).to_jsval(cx, MutableHandleValue::from_raw(args.rval()));
+(result).to_jsval(*cx, MutableHandleValue::from_raw(args.rval()));
 return true;
 """ % self.descriptor.name)
         else:
@@ -5720,7 +5728,7 @@ class CGInterfaceTrait(CGThing):
 
         def attribute_arguments(needCx, argument=None, inCompartment=False):
             if needCx:
-                yield "cx", "*mut JSContext"
+                yield "cx", "SafeJSContext"
 
             if argument:
                 yield "value", argument_type(descriptor, argument)
@@ -6088,6 +6096,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::mem::malloc_size_of_including_raw_self',
         'crate::compartments::InCompartment',
         'crate::compartments::AlreadyInCompartment',
+        'crate::script_runtime::JSContext as SafeJSContext',
         'libc',
         'servo_config::pref',
         'servo_config::prefs',
@@ -6103,6 +6112,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'std::rc::Rc',
         'std::default::Default',
         'std::ffi::CString',
+        'std::ops::Deref',
     ], config)
 
 
@@ -6380,7 +6390,7 @@ class CGDictionary(CGThing):
                           "    match r#try!(%s::%s::new(cx, val)) {\n"
                           "        ConversionResult::Success(v) => v,\n"
                           "        ConversionResult::Failure(error) => {\n"
-                          "            throw_type_error(cx, &error);\n"
+                          "            throw_type_error(*cx, &error);\n"
                           "            return Err(());\n"
                           "        }\n"
                           "    }\n"
@@ -6434,7 +6444,7 @@ class CGDictionary(CGThing):
         return string.Template(
             "impl ${selfName} {\n"
             "${empty}\n"
-            "    pub unsafe fn new(cx: *mut JSContext, val: HandleValue) \n"
+            "    pub unsafe fn new(cx: SafeJSContext, val: HandleValue) \n"
             "                      -> Result<ConversionResult<${actualType}>, ()> {\n"
             "        let object = if val.get().is_null_or_undefined() {\n"
             "            ptr::null_mut()\n"
@@ -6443,7 +6453,7 @@ class CGDictionary(CGThing):
             "        } else {\n"
             "            return Ok(ConversionResult::Failure(\"Value is not an object.\".into()));\n"
             "        };\n"
-            "        rooted!(in(cx) let object = object);\n"
+            "        rooted!(in(*cx) let object = object);\n"
             "${preInitial}"
             "${initParent}"
             "${initMembers}"
@@ -6456,7 +6466,7 @@ class CGDictionary(CGThing):
             "    type Config = ();\n"
             "    unsafe fn from_jsval(cx: *mut JSContext, value: HandleValue, _option: ())\n"
             "                         -> Result<ConversionResult<${actualType}>, ()> {\n"
-            "        ${selfName}::new(cx, value)\n"
+            "        ${selfName}::new(SafeJSContext::from_ptr(cx), value)\n"
             "    }\n"
             "}\n"
             "\n"
@@ -6514,7 +6524,7 @@ class CGDictionary(CGThing):
         assert (member.defaultValue is None) == (default is None)
         if not member.optional:
             assert default is None
-            default = ("throw_type_error(cx, \"Missing required member \\\"%s\\\".\");\n"
+            default = ("throw_type_error(*cx, \"Missing required member \\\"%s\\\".\");\n"
                        "return Err(());") % member.identifier.name
         elif not default:
             default = "None"
@@ -6522,8 +6532,8 @@ class CGDictionary(CGThing):
 
         conversion = (
             "{\n"
-            "    rooted!(in(cx) let mut rval = UndefinedValue());\n"
-            "    if r#try!(get_dictionary_property(cx, object.handle(), \"%s\", rval.handle_mut()))"
+            "    rooted!(in(*cx) let mut rval = UndefinedValue());\n"
+            "    if r#try!(get_dictionary_property(*cx, object.handle(), \"%s\", rval.handle_mut()))"
             " && !rval.is_undefined() {\n"
             "%s\n"
             "    } else {\n"
@@ -6802,7 +6812,7 @@ def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, var
 
 def method_arguments(descriptorProvider, returnType, arguments, passJSBits=True, trailing=None, inCompartment=False):
     if needCx(returnType, arguments, passJSBits):
-        yield "cx", "*mut JSContext"
+        yield "cx", "SafeJSContext"
 
     for argument in arguments:
         ty = argument_type(descriptorProvider, argument.type, argument.optional,
@@ -6885,7 +6895,7 @@ class CGCallback(CGClass):
 
     def getConstructors(self):
         return [ClassConstructor(
-            [Argument("*mut JSContext", "aCx"), Argument("*mut JSObject", "aCallback")],
+            [Argument("SafeJSContext", "aCx"), Argument("*mut JSObject", "aCallback")],
             bodyInHeader=True,
             visibility="pub",
             explicit=False,
@@ -6898,14 +6908,14 @@ class CGCallback(CGClass):
         args = list(method.args)
         # Strip out the JSContext*/JSObject* args
         # that got added.
-        assert args[0].name == "cx" and args[0].argType == "*mut JSContext"
+        assert args[0].name == "cx" and args[0].argType == "SafeJSContext"
         assert args[1].name == "aThisObj" and args[1].argType == "HandleObject"
         args = args[2:]
         # Record the names of all the arguments, so we can use them when we call
         # the private method.
         argnames = [arg.name for arg in args]
-        argnamesWithThis = ["s.get_context()", "thisObjJS.handle()"] + argnames
-        argnamesWithoutThis = ["s.get_context()", "thisObjJS.handle()"] + argnames
+        argnamesWithThis = ["SafeJSContext::from_ptr(s.get_context())", "thisObjJS.handle()"] + argnames
+        argnamesWithoutThis = ["SafeJSContext::from_ptr(s.get_context())", "thisObjJS.handle()"] + argnames
         # Now that we've recorded the argnames for our call to our private
         # method, insert our optional argument for deciding whether the
         # CallSetup should re-throw exceptions on aRv.
@@ -6981,7 +6991,7 @@ class CGCallbackFunctionImpl(CGGeneric):
     def __init__(self, callback):
         impl = string.Template("""\
 impl CallbackContainer for ${type} {
-    unsafe fn new(cx: *mut JSContext, callback: *mut JSObject) -> Rc<${type}> {
+    unsafe fn new(cx: SafeJSContext, callback: *mut JSObject) -> Rc<${type}> {
         ${type}::new(cx, callback)
     }
 
@@ -7156,7 +7166,7 @@ class CallbackMember(CGNativeMember):
                          "*arg = Heap::default();\n" +
                          "arg.set(argv_root.get());\n" +
                          "}") % jsvalIndex,
-            pre="rooted!(in(cx) let mut argv_root = UndefinedValue());")
+            pre="rooted!(in(*cx) let mut argv_root = UndefinedValue());")
         if arg.variadic:
             conversion = string.Template(
                 "for idx in 0..${arg}.len() {\n" +
@@ -7185,7 +7195,7 @@ class CallbackMember(CGNativeMember):
             return args
         # We want to allow the caller to pass in a "this" object, as
         # well as a JSContext.
-        return [Argument("*mut JSContext", "cx"),
+        return [Argument("SafeJSContext", "cx"),
                 Argument("HandleObject", "aThisObj")] + args
 
     def getCallSetup(self):
@@ -7226,7 +7236,7 @@ class CallbackMethod(CallbackMember):
                                 needThisHandling)
 
     def getRvalDecl(self):
-        return "rooted!(in(cx) let mut rval = UndefinedValue());\n"
+        return "rooted!(in(*cx) let mut rval = UndefinedValue());\n"
 
     def getCall(self):
         replacements = {
@@ -7242,9 +7252,9 @@ class CallbackMethod(CallbackMember):
             replacements["argc"] = "0"
         return string.Template(
             "${getCallable}"
-            "rooted!(in(cx) let rootedThis = ${thisObj});\n"
+            "rooted!(in(*cx) let rootedThis = ${thisObj});\n"
             "let ok = ${callGuard}JS_CallFunctionValue(\n"
-            "    cx, rootedThis.handle(), callable.handle(),\n"
+            "    *cx, rootedThis.handle(), callable.handle(),\n"
             "    &HandleValueArray {\n"
             "        length_: ${argc} as ::libc::size_t,\n"
             "        elements_: ${argv}\n"
@@ -7265,7 +7275,7 @@ class CallCallback(CallbackMethod):
         return "aThisObj.get()"
 
     def getCallableDecl(self):
-        return "rooted!(in(cx) let callable = ObjectValue(self.callback()));\n"
+        return "rooted!(in(*cx) let callable = ObjectValue(self.callback()));\n"
 
     def getCallGuard(self):
         if self.callback._treatNonObjectAsNull:
@@ -7295,13 +7305,13 @@ class CallbackOperationBase(CallbackMethod):
             "methodName": self.methodName
         }
         getCallableFromProp = string.Template(
-            'r#try!(self.parent.get_callable_property(cx, "${methodName}"))'
+            'r#try!(self.parent.get_callable_property(*cx, "${methodName}"))'
         ).substitute(replacements)
         if not self.singleOperation:
-            return 'rooted!(in(cx) let callable =\n' + getCallableFromProp + ');\n'
+            return 'rooted!(in(*cx) let callable =\n' + getCallableFromProp + ');\n'
         return (
             'let isCallable = IsCallable(self.callback());\n'
-            'rooted!(in(cx) let callable =\n' +
+            'rooted!(in(*cx) let callable =\n' +
             CGIndenter(
                 CGIfElseWrapper('isCallable',
                                 CGGeneric('ObjectValue(self.callback())'),
@@ -7336,21 +7346,21 @@ class CGIterableMethodGenerator(CGGeneric):
             CGGeneric.__init__(self, fill(
                 """
                 if !IsCallable(arg0) {
-                  throw_type_error(cx, "Argument 1 of ${ifaceName}.forEach is not callable.");
+                  throw_type_error(*cx, "Argument 1 of ${ifaceName}.forEach is not callable.");
                   return false;
                 }
-                rooted!(in(cx) let arg0 = ObjectValue(arg0));
-                rooted!(in(cx) let mut call_arg1 = UndefinedValue());
-                rooted!(in(cx) let mut call_arg2 = UndefinedValue());
+                rooted!(in(*cx) let arg0 = ObjectValue(arg0));
+                rooted!(in(*cx) let mut call_arg1 = UndefinedValue());
+                rooted!(in(*cx) let mut call_arg2 = UndefinedValue());
                 let mut call_args = vec![UndefinedValue(), UndefinedValue(), ObjectValue(*_obj)];
-                rooted!(in(cx) let mut ignoredReturnVal = UndefinedValue());
+                rooted!(in(*cx) let mut ignoredReturnVal = UndefinedValue());
                 for i in 0..(*this).get_iterable_length() {
-                  (*this).get_value_at_index(i).to_jsval(cx, call_arg1.handle_mut());
-                  (*this).get_key_at_index(i).to_jsval(cx, call_arg2.handle_mut());
+                  (*this).get_value_at_index(i).to_jsval(*cx, call_arg1.handle_mut());
+                  (*this).get_key_at_index(i).to_jsval(*cx, call_arg2.handle_mut());
                   call_args[0] = call_arg1.handle().get();
                   call_args[1] = call_arg2.handle().get();
                   let call_args = HandleValueArray { length_: 3, elements_: call_args.as_ptr() };
-                  if !Call(cx, arg1, arg0.handle(), &call_args,
+                  if !Call(*cx, arg1, arg0.handle(), &call_args,
                            ignoredReturnVal.handle_mut()) {
                     return false;
                   }
@@ -7402,7 +7412,7 @@ class GlobalGenRoots():
     def InterfaceObjectMap(config):
         mods = [
             "crate::dom::bindings::codegen",
-            "js::jsapi::JSContext",
+            "crate::script_runtime::JSContext",
             "js::rust::HandleObject",
             "phf",
         ]
