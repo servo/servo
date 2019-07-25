@@ -2887,7 +2887,7 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
     Generate the CollectJSONAttributes method for an interface descriptor
     """
     def __init__(self, descriptor, toJSONMethod):
-        args = [Argument('*mut JSContext', 'cx'),
+        args = [Argument('SafeJSContext', 'cx'),
                 Argument('HandleObject', 'obj'),
                 Argument('*const %s' % descriptor.concreteType, 'this'),
                 Argument('&RootedGuard<*mut JSObject>', 'result')]
@@ -2903,11 +2903,11 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
                 name = m.identifier.name
                 getAndDefine = fill(
                     """
-                    rooted!(in(cx) let mut temp = UndefinedValue());
+                    rooted!(in(*cx) let mut temp = UndefinedValue());
                     if !get_${name}(cx, obj, this, JSJitGetterCallArgs { _base: temp.handle_mut().into() }) {
                       return false;
                     }
-                    if !JS_DefineProperty(cx, result.handle().into(),
+                    if !JS_DefineProperty(*cx, result.handle().into(),
                                           ${nameAsArray} as *const u8 as *const libc::c_char,
                                           temp.handle(), JSPROP_ENUMERATE as u32) {
                       return false;
@@ -3667,7 +3667,7 @@ class CGDefaultToJSONMethod(CGSpecializedMethod):
 
     def definition_body(self):
         ret = dedent("""
-            rooted!(in(cx) let result = JS_NewPlainObject(cx));
+            rooted!(in(*cx) let result = JS_NewPlainObject(*cx));
             if result.is_null() {
               return false;
             }
