@@ -8,9 +8,11 @@ EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
+		Debug|ARM64 = Debug|ARM64
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
 		Release|ARM = Release|ARM
+		Release|ARM64 = Release|ARM64
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 	EndGlobalSection
@@ -18,6 +20,9 @@ Global
 		{0EAB7D8B-97FD-4C92-8BB2-D5691B3D5ABD}.Debug|ARM.ActiveCfg = Debug|ARM
 		{0EAB7D8B-97FD-4C92-8BB2-D5691B3D5ABD}.Debug|ARM.Build.0 = Debug|ARM
 		{0EAB7D8B-97FD-4C92-8BB2-D5691B3D5ABD}.Debug|ARM.Deploy.0 = Debug|ARM
+		{0EAB7D8B-97FD-4C92-8BB2-D5691B3D5ABD}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{0EAB7D8B-97FD-4C92-8BB2-D5691B3D5ABD}.Debug|ARM64.Build.0 = Debug|ARM64
+		{0EAB7D8B-97FD-4C92-8BB2-D5691B3D5ABD}.Debug|ARM64.Deploy.0 = Debug|ARM64
 		{0EAB7D8B-97FD-4C92-8BB2-D5691B3D5ABD}.Debug|x64.ActiveCfg = Debug|x64
 		{0EAB7D8B-97FD-4C92-8BB2-D5691B3D5ABD}.Debug|x64.Build.0 = Debug|x64
 		{0EAB7D8B-97FD-4C92-8BB2-D5691B3D5ABD}.Debug|x64.Deploy.0 = Debug|x64
@@ -27,6 +32,9 @@ Global
 		{0EAB7D8B-97FD-4C92-8BB2-D5691B3D5ABD}.Release|ARM.ActiveCfg = Release|ARM
 		{0EAB7D8B-97FD-4C92-8BB2-D5691B3D5ABD}.Release|ARM.Build.0 = Release|ARM
 		{0EAB7D8B-97FD-4C92-8BB2-D5691B3D5ABD}.Release|ARM.Deploy.0 = Release|ARM
+		{0EAB7D8B-97FD-4C92-8BB2-D5691B3D5ABD}.Release|ARM64.ActiveCfg = Release|ARM64
+		{0EAB7D8B-97FD-4C92-8BB2-D5691B3D5ABD}.Release|ARM64.Build.0 = Release|ARM64
+		{0EAB7D8B-97FD-4C92-8BB2-D5691B3D5ABD}.Release|ARM64.Deploy.0 = Release|ARM64
 		{0EAB7D8B-97FD-4C92-8BB2-D5691B3D5ABD}.Release|x64.ActiveCfg = Release|x64
 		{0EAB7D8B-97FD-4C92-8BB2-D5691B3D5ABD}.Release|x64.Build.0 = Release|x64
 		{0EAB7D8B-97FD-4C92-8BB2-D5691B3D5ABD}.Release|x64.Deploy.0 = Release|x64
