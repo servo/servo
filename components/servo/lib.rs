@@ -227,7 +227,7 @@ pub struct Servo<Window: WindowMethods + 'static + ?Sized> {
     embedder_receiver: EmbedderReceiver,
     embedder_events: Vec<(Option<BrowserId>, EmbedderMsg)>,
     profiler_enabled: bool,
-    webgl_thread_data: Option<WebGLMainThread>,
+    webgl_thread_data: Option<Rc<WebGLMainThread>>,
 }
 
 #[derive(Clone)]
@@ -420,13 +420,14 @@ where
         let webgl_result = gl_factory.map(|factory| {
             let (webgl_threads, thread_data, image_handler, output_handler) = WebGLThreads::new(
                 factory,
+                window.gl(),
                 webrender_api_sender.clone(),
                 webvr_compositor.map(|c| c as Box<_>),
                 external_images.clone(),
                 if run_webgl_on_main_thread {
                     ThreadMode::MainThread(embedder.create_event_loop_waker())
                 } else {
-                    ThreadMode::OffThread(window.gl())
+                    ThreadMode::OffThread
                 },
             );
 
