@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::str::DOMString;
 use chrono::NaiveDateTime;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
@@ -39,19 +38,19 @@ pub struct SpatialClipping {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct MediaFragmentParser {
-    id: Option<DOMString>,
-    tracks: Vec<DOMString>,
+    id: Option<String>,
+    tracks: Vec<String>,
     spatial: Option<SpatialClipping>,
     start: Option<f64>,
     end: Option<f64>,
 }
 
 impl MediaFragmentParser {
-    pub fn id(&self) -> Option<DOMString> {
+    pub fn id(&self) -> Option<String> {
         self.id.clone()
     }
 
-    pub fn tracks(&self) -> &Vec<DOMString> {
+    pub fn tracks(&self) -> &Vec<String> {
         self.tracks.as_ref()
     }
 
@@ -80,8 +79,8 @@ impl MediaFragmentParser {
                             parser.spatial = Some(spatial);
                         }
                     },
-                    b"id" => parser.id = Some(DOMString::from(value.as_ref())),
-                    b"track" => parser.tracks.push(DOMString::from(value.as_ref())),
+                    b"id" => parser.id = Some(value.to_string()),
+                    b"track" => parser.tracks.push(value.to_string()),
                     _ => {},
                 }
             }
@@ -219,39 +218,25 @@ fn decode_octets(bytes: &[u8]) -> Vec<(Cow<str>, Cow<str>)> {
 }
 
 // Parse a full URL or a relative URL without a base retaining the query and/or fragment.
-fn split_url(s: &str) -> (DOMString, DOMString) {
+fn split_url(s: &str) -> (&str, &str) {
     if s.contains('?') || s.contains('#') {
-        let mut query = DOMString::new();
-        let mut fragment = DOMString::new();
-
         for (index, byte) in s.bytes().enumerate() {
             if byte == b'?' {
-                let mut found = false;
                 let partial = &s[index + 1..];
                 for (i, byte) in partial.bytes().enumerate() {
                     if byte == b'#' {
-                        found = true;
-                        query.push_str(&partial[..i]);
-                        fragment.push_str(&partial[i + 1..]);
+                        return (&partial[..i], &partial[i + 1..]);
                     }
                 }
-                if found {
-                    break;
-                } else {
-                    query.push_str(partial);
-                    break;
-                }
+                return (partial, "");
             }
 
             if byte == b'#' {
-                fragment.push_str(&s[index + 1..]);
-                break;
+                return ("", &s[index + 1..]);
             }
         }
-        (query, fragment)
-    } else {
-        (DOMString::new(), DOMString::from(s))
     }
+    ("", s)
 }
 
 fn is_byte_number(byte: u8) -> bool {
