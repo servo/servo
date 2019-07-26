@@ -129,7 +129,6 @@ windows_build_env = {
     },
     "arm64": {
         "PKG_CONFIG_ALLOW_CROSS": "1",
-        "GSTREAMER_1_0_ROOT_ARM64": "%HOMEDRIVE%%HOMEPATH%\\repo\\.servo\\msvc-dependencies\\gstreamer-uwp\\1.16.0.3\\arm64\\",
     },
     "all": {
         "PYTHON3": "%HOMEDRIVE%%HOMEPATH%\\python3\\python.exe",
@@ -377,12 +376,15 @@ def windows_arm64():
     return (
         windows_build_task("Dev build", arch="arm64", package=False)
         .with_treeherder("Windows arm64")
-        .with_script(
-            "python mach build --dev --libsimpleservo \
-              --target aarch64-pc-windows-msvc \
-              --with-raqote \
-              --without-wgl",
+        .with_file_mount(
+            "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe",
+            path="nuget.exe"
         )
+        .with_script(
+            "%HOMEDRIVE%%HOMEPATH%\\nuget.exe install ANGLE.WindowsStore.Servo \
+              -Version 2.1.13 -o %HOMEDRIVE%%HOMEPATH%\\repo\\support\\hololens\\packages",
+        )
+        .with_script("python mach build --dev --uwp --win-arm64")
         .find_or_create("build.windows_arm64_dev." + CONFIG.task_id())
     )
 
