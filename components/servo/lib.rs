@@ -134,8 +134,15 @@ mod media_platform {
 
     #[cfg(windows)]
     pub fn init() {
-        let mut plugin_dir = std::env::current_exe().unwrap();
-        plugin_dir.pop();
+        // UWP apps have the working directory set appropriately. Win32 apps
+        // do not and need some assistance finding the DLLs.
+        let plugin_dir = if cfg!(feature = "uwp") {
+            std::path::PathBuf::new()
+        } else {
+            let mut plugin_dir = std::env::current_exe().unwrap();
+            plugin_dir.pop();
+            plugin_dir
+        };
 
         let uwp_plugins = [
             "gstapp.dll",
