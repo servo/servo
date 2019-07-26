@@ -40,7 +40,7 @@ void BrowserPage::Shutdown() {
       log("Waiting for Servo to shutdown");
       ::WaitForSingleObject(hEvent, INFINITE);
       StopRenderLoop();
-      mServo.reset(); // will call servo::deinit
+      mServo.reset();
     }
   }
 }
@@ -168,6 +168,7 @@ void BrowserPage::Loop(cancellation_token cancel) {
     mServo->PerformUpdates();
   }
   log("Leaving loop");
+  mServo->DeInit();
   cancel_current_task();
 } // namespace winrt::ServoApp::implementation
 
@@ -188,6 +189,7 @@ void BrowserPage::StartRenderLoop() {
 void BrowserPage::StopRenderLoop() {
   if (IsLoopRunning()) {
     mLoopCancel.cancel();
+    WakeUp();
     mLoopTask->wait();
     mLoopTask.reset();
   }
