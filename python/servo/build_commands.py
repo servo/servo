@@ -749,7 +749,6 @@ def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
         "avcodec-58.dll",
         "avfilter-7.dll",
         "avformat-58.dll",
-        "avresample-4.dll",
         "avutil-56.dll",
         "bz2.dll",
         "ffi-7.dll",
@@ -775,14 +774,22 @@ def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
         "gstwebrtc-1.0-0.dll",
         "intl-8.dll",
         "orc-0.4-0.dll",
-        "postproc-55.dll",
         "swresample-3.dll",
-        "swscale-5.dll",
-        "x264-157.dll",
         "z-1.dll",
     ]
 
-    if not uwp:
+    if uwp:
+        # These come from a more recent version of ffmpeg and
+        # aren't present in the official GStreamer 1.16 release.
+        gst_dlls += [
+            "avresample-4.dll",
+            "postproc-55.dll",
+            "swscale-5.dll",
+            "x264-157.dll",
+        ]
+    else:
+        # These are built with MinGW and are not yet compatible
+        # with UWP's restrictions.
         gst_dlls += [
             "graphene-1.0-0.dll",
             "gstsctp-1.0-0.dll",

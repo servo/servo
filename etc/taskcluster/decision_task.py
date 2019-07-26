@@ -129,7 +129,7 @@ windows_build_env = {
     },
     "arm64": {
         "PKG_CONFIG_ALLOW_CROSS": "1",
-        # No GStreamer support for arm64 windows yet.
+        "GSTREAMER_1_0_ROOT_ARM64": "%HOMEDRIVE%%HOMEPATH%\\repo\\.servo\\msvc-dependencies\\gstreamer-uwp\\1.16.0.3\\arm64\\",
     },
     "all": {
         "PYTHON3": "%HOMEDRIVE%%HOMEPATH%\\python3\\python.exe",
