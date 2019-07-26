@@ -112,7 +112,7 @@ use compositing::compositor_thread::Msg as ToCompositorMsg;
 use compositing::SendableFrameTree;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
-use embedder_traits::{Cursor, EmbedderMsg, EmbedderProxy};
+use embedder_traits::{Cursor, EmbedderMsg, EmbedderProxy, EventLoopWaker};
 use euclid::{default::Size2D as UntypedSize2D, Scale, Size2D};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
@@ -416,6 +416,9 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// Application window's GL Context for Media player
     player_context: WindowGLContext,
+
+    /// Mechanism to force the compositor to process events.
+    event_loop_waker: Option<Box<dyn EventLoopWaker>>,
 }
 
 /// State needed to construct a constellation.
@@ -469,6 +472,9 @@ pub struct InitialConstellationState {
 
     /// Application window's GL Context for Media player
     pub player_context: WindowGLContext,
+
+    /// Mechanism to force the compositor to process events.
+    pub event_loop_waker: Option<Box<dyn EventLoopWaker>>,
 }
 
 /// Data needed for webdriver
@@ -767,6 +773,7 @@ where
                     enable_canvas_antialiasing,
                     glplayer_threads: state.glplayer_threads,
                     player_context: state.player_context,
+                    event_loop_waker: state.event_loop_waker,
                 };
 
                 constellation.run();
@@ -1009,6 +1016,7 @@ where
             webvr_chan: self.webvr_chan.clone(),
             webxr_registry: self.webxr_registry.clone(),
             player_context: self.player_context.clone(),
+            event_loop_waker: self.event_loop_waker.as_ref().map(|w| (*w).clone_box()),
         });
 
         let pipeline = match result {

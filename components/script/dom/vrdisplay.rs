@@ -32,11 +32,11 @@ use crate::dom::vreyeparameters::VREyeParameters;
 use crate::dom::vrframedata::VRFrameData;
 use crate::dom::vrpose::VRPose;
 use crate::dom::vrstageparameters::VRStageParameters;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::webglrenderingcontext::{WebGLMessageSender, WebGLRenderingContext};
 use crate::script_runtime::CommonScriptMsg;
 use crate::script_runtime::ScriptThreadEventCategory::WebVREvent;
 use crate::task_source::{TaskSource, TaskSourceName};
-use canvas_traits::webgl::{webgl_channel, WebGLMsgSender, WebGLReceiver, WebVRCommand};
+use canvas_traits::webgl::{webgl_channel, WebGLReceiver, WebVRCommand};
 use crossbeam_channel::{unbounded, Sender};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
@@ -102,7 +102,7 @@ struct VRRAFUpdate {
     depth_near: f64,
     depth_far: f64,
     /// WebGL API sender
-    api_sender: Option<WebGLMsgSender>,
+    api_sender: Option<WebGLMessageSender>,
     /// Number uniquely identifying the WebGL context
     /// so that we may setup/tear down VR compositors as things change
     context_id: usize,
@@ -583,7 +583,7 @@ impl VRDisplay {
             .fire(self.global().upcast::<EventTarget>());
     }
 
-    fn api_sender(&self) -> Option<WebGLMsgSender> {
+    fn api_sender(&self) -> Option<WebGLMessageSender> {
         self.layer_ctx.get().map(|c| c.webgl_sender())
     }
 

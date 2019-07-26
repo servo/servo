@@ -50,6 +50,7 @@ use crate::dom::promise::Promise;
 use crate::dom::screen::Screen;
 use crate::dom::storage::Storage;
 use crate::dom::testrunner::TestRunner;
+use crate::dom::webglrenderingcontext::WebGLCommandSender;
 use crate::dom::windowproxy::WindowProxy;
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
@@ -73,7 +74,7 @@ use crossbeam_channel::{unbounded, Sender, TryRecvError};
 use cssparser::{Parser, ParserInput, SourceLocation};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
-use embedder_traits::EmbedderMsg;
+use embedder_traits::{EmbedderMsg, EventLoopWaker};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use ipc_channel::ipc::{channel, IpcSender};
@@ -326,6 +327,10 @@ pub struct Window {
     /// Window's GL context from application
     #[ignore_malloc_size_of = "defined in script_thread"]
     player_context: WindowGLContext,
+
+    /// A mechanism to force the compositor to process events.
+    #[ignore_malloc_size_of = "traits are cumbersome"]
+    event_loop_waker: Option<Box<dyn EventLoopWaker>>,
 }
 
 impl Window {
@@ -432,8 +437,10 @@ impl Window {
         self.current_viewport.clone().get()
     }
 
-    pub fn webgl_chan(&self) -> Option<WebGLChan> {
-        self.webgl_chan.clone()
+    pub(crate) fn webgl_chan(&self) -> Option<WebGLCommandSender> {
+        self.webgl_chan
+            .as_ref()
+            .map(|chan| WebGLCommandSender::new(chan.clone(), self.get_event_loop_waker()))
     }
 
     pub fn webvr_thread(&self) -> Option<IpcSender<WebVRMsg>> {
@@ -497,6 +504,10 @@ impl Window {
 
     pub fn get_player_context(&self) -> WindowGLContext {
         self.player_context.clone()
+    }
+
+    pub fn get_event_loop_waker(&self) -> Option<Box<dyn EventLoopWaker>> {
+        self.event_loop_waker.as_ref().map(|w| (*w).clone_box())
     }
 }
 
@@ -2087,6 +2098,7 @@ impl Window {
         replace_surrogates: bool,
         user_agent: Cow<'static, str>,
         player_context: WindowGLContext,
+        event_loop_waker: Option<Box<dyn EventLoopWaker>>,
     ) -> DomRoot<Self> {
         let layout_rpc: Box<dyn LayoutRPC + Send> = {
             let (rpc_send, rpc_recv) = unbounded();
@@ -2169,6 +2181,7 @@ impl Window {
             userscripts_path,
             replace_surrogates,
             player_context,
+            event_loop_waker,
         });
 
         unsafe { WindowBinding::Wrap(JSContext::from_ptr(runtime.cx()), win) }

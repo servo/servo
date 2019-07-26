@@ -10622,7 +10622,9 @@
    "conformance/context/context-creation-and-destruction.html": [
     [
      "conformance/context/context-creation-and-destruction.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/context/context-creation.html": [
@@ -10672,7 +10674,9 @@
    "conformance/context/context-release-with-workers.html": [
     [
      "conformance/context/context-release-with-workers.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/context/context-size-change.html": [
@@ -11208,7 +11212,9 @@
    "conformance/glsl/bugs/temp-expressions-should-not-crash.html": [
     [
      "conformance/glsl/bugs/temp-expressions-should-not-crash.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/glsl/bugs/unary-minus-operator-float-bug.html": [
@@ -12392,7 +12398,9 @@
    "conformance/glsl/misc/shader-with-non-reserved-words.html": [
     [
      "conformance/glsl/misc/shader-with-non-reserved-words.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/glsl/misc/shader-with-precision.frag.html": [
@@ -13298,7 +13306,9 @@
    "conformance/ogles/GL/abs/abs_001_to_006.html": [
     [
      "conformance/ogles/GL/abs/abs_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/acos/acos_001_to_006.html": [
@@ -13312,19 +13322,25 @@
    "conformance/ogles/GL/all/all_001_to_004.html": [
     [
      "conformance/ogles/GL/all/all_001_to_004.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/any/any_001_to_004.html": [
     [
      "conformance/ogles/GL/any/any_001_to_004.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/array/array_001_to_006.html": [
     [
      "conformance/ogles/GL/array/array_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/asin/asin_001_to_006.html": [
@@ -13338,439 +13354,585 @@
    "conformance/ogles/GL/atan/atan_001_to_008.html": [
     [
      "conformance/ogles/GL/atan/atan_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/atan/atan_009_to_012.html": [
     [
      "conformance/ogles/GL/atan/atan_009_to_012.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/biConstants/biConstants_001_to_008.html": [
     [
      "conformance/ogles/GL/biConstants/biConstants_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/biConstants/biConstants_009_to_016.html": [
     [
      "conformance/ogles/GL/biConstants/biConstants_009_to_016.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/biuDepthRange/biuDepthRange_001_to_002.html": [
     [
      "conformance/ogles/GL/biuDepthRange/biuDepthRange_001_to_002.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_001_to_008.html": [
     [
      "conformance/ogles/GL/build/build_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_009_to_016.html": [
     [
      "conformance/ogles/GL/build/build_009_to_016.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_017_to_024.html": [
     [
      "conformance/ogles/GL/build/build_017_to_024.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_025_to_032.html": [
     [
      "conformance/ogles/GL/build/build_025_to_032.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_033_to_040.html": [
     [
      "conformance/ogles/GL/build/build_033_to_040.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_041_to_048.html": [
     [
      "conformance/ogles/GL/build/build_041_to_048.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_049_to_056.html": [
     [
      "conformance/ogles/GL/build/build_049_to_056.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_057_to_064.html": [
     [
      "conformance/ogles/GL/build/build_057_to_064.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_065_to_072.html": [
     [
      "conformance/ogles/GL/build/build_065_to_072.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_073_to_080.html": [
     [
      "conformance/ogles/GL/build/build_073_to_080.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_081_to_088.html": [
     [
      "conformance/ogles/GL/build/build_081_to_088.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_089_to_096.html": [
     [
      "conformance/ogles/GL/build/build_089_to_096.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_097_to_104.html": [
     [
      "conformance/ogles/GL/build/build_097_to_104.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_105_to_112.html": [
     [
      "conformance/ogles/GL/build/build_105_to_112.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_113_to_120.html": [
     [
      "conformance/ogles/GL/build/build_113_to_120.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_121_to_128.html": [
     [
      "conformance/ogles/GL/build/build_121_to_128.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_129_to_136.html": [
     [
      "conformance/ogles/GL/build/build_129_to_136.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_137_to_144.html": [
     [
      "conformance/ogles/GL/build/build_137_to_144.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_145_to_152.html": [
     [
      "conformance/ogles/GL/build/build_145_to_152.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_153_to_160.html": [
     [
      "conformance/ogles/GL/build/build_153_to_160.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_161_to_168.html": [
     [
      "conformance/ogles/GL/build/build_161_to_168.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_169_to_176.html": [
     [
      "conformance/ogles/GL/build/build_169_to_176.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/build/build_177_to_178.html": [
     [
      "conformance/ogles/GL/build/build_177_to_178.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/built_in_varying_array_out_of_bounds/built_in_varying_array_out_of_bounds_001_to_001.html": [
     [
      "conformance/ogles/GL/built_in_varying_array_out_of_bounds/built_in_varying_array_out_of_bounds_001_to_001.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/ceil/ceil_001_to_006.html": [
     [
      "conformance/ogles/GL/ceil/ceil_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/clamp/clamp_001_to_006.html": [
     [
      "conformance/ogles/GL/clamp/clamp_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/control_flow/control_flow_001_to_008.html": [
     [
      "conformance/ogles/GL/control_flow/control_flow_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/control_flow/control_flow_009_to_010.html": [
     [
      "conformance/ogles/GL/control_flow/control_flow_009_to_010.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/cos/cos_001_to_006.html": [
     [
      "conformance/ogles/GL/cos/cos_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/cross/cross_001_to_002.html": [
     [
      "conformance/ogles/GL/cross/cross_001_to_002.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/default/default_001_to_001.html": [
     [
      "conformance/ogles/GL/default/default_001_to_001.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/degrees/degrees_001_to_006.html": [
     [
      "conformance/ogles/GL/degrees/degrees_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/discard/discard_001_to_002.html": [
     [
      "conformance/ogles/GL/discard/discard_001_to_002.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/distance/distance_001_to_006.html": [
     [
      "conformance/ogles/GL/distance/distance_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/dot/dot_001_to_006.html": [
     [
      "conformance/ogles/GL/dot/dot_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/equal/equal_001_to_008.html": [
     [
      "conformance/ogles/GL/equal/equal_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/equal/equal_009_to_012.html": [
     [
      "conformance/ogles/GL/equal/equal_009_to_012.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/exp/exp_001_to_008.html": [
     [
      "conformance/ogles/GL/exp/exp_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/exp/exp_009_to_012.html": [
     [
      "conformance/ogles/GL/exp/exp_009_to_012.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/exp2/exp2_001_to_008.html": [
     [
      "conformance/ogles/GL/exp2/exp2_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/exp2/exp2_009_to_012.html": [
     [
      "conformance/ogles/GL/exp2/exp2_009_to_012.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/faceforward/faceforward_001_to_006.html": [
     [
      "conformance/ogles/GL/faceforward/faceforward_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/floor/floor_001_to_006.html": [
     [
      "conformance/ogles/GL/floor/floor_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/fract/fract_001_to_006.html": [
     [
      "conformance/ogles/GL/fract/fract_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/functions/functions_001_to_008.html": [
     [
      "conformance/ogles/GL/functions/functions_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/functions/functions_009_to_016.html": [
     [
      "conformance/ogles/GL/functions/functions_009_to_016.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/functions/functions_017_to_024.html": [
     [
      "conformance/ogles/GL/functions/functions_017_to_024.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/functions/functions_025_to_032.html": [
     [
      "conformance/ogles/GL/functions/functions_025_to_032.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/functions/functions_033_to_040.html": [
     [
      "conformance/ogles/GL/functions/functions_033_to_040.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/functions/functions_041_to_048.html": [
     [
      "conformance/ogles/GL/functions/functions_041_to_048.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/functions/functions_049_to_056.html": [
     [
      "conformance/ogles/GL/functions/functions_049_to_056.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/functions/functions_057_to_064.html": [
     [
      "conformance/ogles/GL/functions/functions_057_to_064.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/functions/functions_065_to_072.html": [
     [
      "conformance/ogles/GL/functions/functions_065_to_072.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/functions/functions_073_to_080.html": [
     [
      "conformance/ogles/GL/functions/functions_073_to_080.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/functions/functions_081_to_088.html": [
     [
      "conformance/ogles/GL/functions/functions_081_to_088.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/functions/functions_089_to_096.html": [
     [
      "conformance/ogles/GL/functions/functions_089_to_096.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/functions/functions_097_to_104.html": [
     [
      "conformance/ogles/GL/functions/functions_097_to_104.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/functions/functions_105_to_112.html": [
     [
      "conformance/ogles/GL/functions/functions_105_to_112.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/functions/functions_113_to_120.html": [
     [
      "conformance/ogles/GL/functions/functions_113_to_120.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/functions/functions_121_to_126.html": [
     [
      "conformance/ogles/GL/functions/functions_121_to_126.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/gl_FragCoord/gl_FragCoord_001_to_003.html": [
     [
      "conformance/ogles/GL/gl_FragCoord/gl_FragCoord_001_to_003.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/gl_FrontFacing/gl_FrontFacing_001_to_001.html": [
     [
      "conformance/ogles/GL/gl_FrontFacing/gl_FrontFacing_001_to_001.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/greaterThan/greaterThan_001_to_008.html": [
     [
      "conformance/ogles/GL/greaterThan/greaterThan_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/greaterThanEqual/greaterThanEqual_001_to_008.html": [
     [
      "conformance/ogles/GL/greaterThanEqual/greaterThanEqual_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/inversesqrt/inversesqrt_001_to_006.html": [
     [
      "conformance/ogles/GL/inversesqrt/inversesqrt_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/length/length_001_to_006.html": [
     [
      "conformance/ogles/GL/length/length_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/lessThan/lessThan_001_to_008.html": [
     [
      "conformance/ogles/GL/lessThan/lessThan_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/lessThanEqual/lessThanEqual_001_to_008.html": [
     [
      "conformance/ogles/GL/lessThanEqual/lessThanEqual_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/log/log_001_to_008.html": [
@@ -13784,7 +13946,9 @@
    "conformance/ogles/GL/log/log_009_to_012.html": [
     [
      "conformance/ogles/GL/log/log_009_to_012.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/log2/log2_001_to_008.html": [
@@ -13798,355 +13962,473 @@
    "conformance/ogles/GL/log2/log2_009_to_012.html": [
     [
      "conformance/ogles/GL/log2/log2_009_to_012.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/mat/mat_001_to_008.html": [
     [
      "conformance/ogles/GL/mat/mat_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/mat/mat_009_to_016.html": [
     [
      "conformance/ogles/GL/mat/mat_009_to_016.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/mat/mat_017_to_024.html": [
     [
      "conformance/ogles/GL/mat/mat_017_to_024.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/mat/mat_025_to_032.html": [
     [
      "conformance/ogles/GL/mat/mat_025_to_032.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/mat/mat_033_to_040.html": [
     [
      "conformance/ogles/GL/mat/mat_033_to_040.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/mat/mat_041_to_046.html": [
     [
      "conformance/ogles/GL/mat/mat_041_to_046.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/mat3/mat3_001_to_006.html": [
     [
      "conformance/ogles/GL/mat3/mat3_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/matrixCompMult/matrixCompMult_001_to_004.html": [
     [
      "conformance/ogles/GL/matrixCompMult/matrixCompMult_001_to_004.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/max/max_001_to_006.html": [
     [
      "conformance/ogles/GL/max/max_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/min/min_001_to_006.html": [
     [
      "conformance/ogles/GL/min/min_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/mix/mix_001_to_006.html": [
     [
      "conformance/ogles/GL/mix/mix_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/mod/mod_001_to_008.html": [
     [
      "conformance/ogles/GL/mod/mod_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/normalize/normalize_001_to_006.html": [
     [
      "conformance/ogles/GL/normalize/normalize_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/not/not_001_to_004.html": [
     [
      "conformance/ogles/GL/not/not_001_to_004.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/notEqual/notEqual_001_to_008.html": [
     [
      "conformance/ogles/GL/notEqual/notEqual_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/notEqual/notEqual_009_to_012.html": [
     [
      "conformance/ogles/GL/notEqual/notEqual_009_to_012.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/operators/operators_001_to_008.html": [
     [
      "conformance/ogles/GL/operators/operators_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/operators/operators_009_to_016.html": [
     [
      "conformance/ogles/GL/operators/operators_009_to_016.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/operators/operators_017_to_024.html": [
     [
      "conformance/ogles/GL/operators/operators_017_to_024.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/operators/operators_025_to_026.html": [
     [
      "conformance/ogles/GL/operators/operators_025_to_026.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/pow/pow_001_to_008.html": [
     [
      "conformance/ogles/GL/pow/pow_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/pow/pow_009_to_016.html": [
     [
      "conformance/ogles/GL/pow/pow_009_to_016.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/pow/pow_017_to_024.html": [
     [
      "conformance/ogles/GL/pow/pow_017_to_024.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/radians/radians_001_to_006.html": [
     [
      "conformance/ogles/GL/radians/radians_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/reflect/reflect_001_to_006.html": [
     [
      "conformance/ogles/GL/reflect/reflect_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/refract/refract_001_to_006.html": [
     [
      "conformance/ogles/GL/refract/refract_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/sign/sign_001_to_006.html": [
     [
      "conformance/ogles/GL/sign/sign_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/sin/sin_001_to_006.html": [
     [
      "conformance/ogles/GL/sin/sin_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/smoothstep/smoothstep_001_to_006.html": [
     [
      "conformance/ogles/GL/smoothstep/smoothstep_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/sqrt/sqrt_001_to_006.html": [
     [
      "conformance/ogles/GL/sqrt/sqrt_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/step/step_001_to_006.html": [
     [
      "conformance/ogles/GL/step/step_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/struct/struct_001_to_008.html": [
     [
      "conformance/ogles/GL/struct/struct_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/struct/struct_009_to_016.html": [
     [
      "conformance/ogles/GL/struct/struct_009_to_016.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/struct/struct_017_to_024.html": [
     [
      "conformance/ogles/GL/struct/struct_017_to_024.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/struct/struct_025_to_032.html": [
     [
      "conformance/ogles/GL/struct/struct_025_to_032.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/struct/struct_033_to_040.html": [
     [
      "conformance/ogles/GL/struct/struct_033_to_040.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/struct/struct_041_to_048.html": [
     [
      "conformance/ogles/GL/struct/struct_041_to_048.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/struct/struct_049_to_056.html": [
     [
      "conformance/ogles/GL/struct/struct_049_to_056.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/swizzlers/swizzlers_001_to_008.html": [
     [
      "conformance/ogles/GL/swizzlers/swizzlers_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/swizzlers/swizzlers_009_to_016.html": [
     [
      "conformance/ogles/GL/swizzlers/swizzlers_009_to_016.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/swizzlers/swizzlers_017_to_024.html": [
     [
      "conformance/ogles/GL/swizzlers/swizzlers_017_to_024.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/swizzlers/swizzlers_025_to_032.html": [
     [
      "conformance/ogles/GL/swizzlers/swizzlers_025_to_032.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/swizzlers/swizzlers_033_to_040.html": [
     [
      "conformance/ogles/GL/swizzlers/swizzlers_033_to_040.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/swizzlers/swizzlers_041_to_048.html": [
     [
      "conformance/ogles/GL/swizzlers/swizzlers_041_to_048.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/swizzlers/swizzlers_049_to_056.html": [
     [
      "conformance/ogles/GL/swizzlers/swizzlers_049_to_056.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/swizzlers/swizzlers_057_to_064.html": [
     [
      "conformance/ogles/GL/swizzlers/swizzlers_057_to_064.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/swizzlers/swizzlers_065_to_072.html": [
     [
      "conformance/ogles/GL/swizzlers/swizzlers_065_to_072.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/swizzlers/swizzlers_073_to_080.html": [
     [
      "conformance/ogles/GL/swizzlers/swizzlers_073_to_080.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/swizzlers/swizzlers_081_to_088.html": [
     [
      "conformance/ogles/GL/swizzlers/swizzlers_081_to_088.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/swizzlers/swizzlers_089_to_096.html": [
     [
      "conformance/ogles/GL/swizzlers/swizzlers_089_to_096.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/swizzlers/swizzlers_097_to_104.html": [
     [
      "conformance/ogles/GL/swizzlers/swizzlers_097_to_104.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/swizzlers/swizzlers_105_to_112.html": [
     [
      "conformance/ogles/GL/swizzlers/swizzlers_105_to_112.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/swizzlers/swizzlers_113_to_120.html": [
     [
      "conformance/ogles/GL/swizzlers/swizzlers_113_to_120.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/tan/tan_001_to_006.html": [
     [
      "conformance/ogles/GL/tan/tan_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/vec/vec_001_to_008.html": [
     [
      "conformance/ogles/GL/vec/vec_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/vec/vec_009_to_016.html": [
     [
      "conformance/ogles/GL/vec/vec_009_to_016.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/vec/vec_017_to_018.html": [
     [
      "conformance/ogles/GL/vec/vec_017_to_018.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/ogles/GL/vec3/vec3_001_to_008.html": [
     [
      "conformance/ogles/GL/vec3/vec3_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/programs/get-active-test.html": [
@@ -27627,7 +27909,7 @@
    "testharness"
   ],
   "conformance/context/context-creation-and-destruction.html": [
-   "a3912fcf7eaaf2992ec4a82de0c7262d929b035d",
+   "3ad7a02d79cfbae4b9d7b6f6ee16cdc5d1a829dd",
    "testharness"
   ],
   "conformance/context/context-creation.html": [
@@ -27659,7 +27941,7 @@
    "testharness"
   ],
   "conformance/context/context-release-with-workers.html": [
-   "74127d165d37b9d8f030ade68e802dc19580d513",
+   "8610525b0fe4985b52dd065ca28a8f29c6a578a2",
    "testharness"
   ],
   "conformance/context/context-size-change.html": [
@@ -28043,7 +28325,7 @@
    "testharness"
   ],
   "conformance/glsl/bugs/temp-expressions-should-not-crash.html": [
-   "535739ff7b10b5c6632c1628b45e2c983ee2bf3a",
+   "30a734c642071ebf5232c2a46ea98a1a79b2581b",
    "testharness"
   ],
   "conformance/glsl/bugs/unary-minus-operator-float-bug.html": [
@@ -28859,7 +29141,7 @@
    "testharness"
   ],
   "conformance/glsl/misc/shader-with-non-reserved-words.html": [
-   "6aee7c6eba6745a65c8944d4399d2629084704e8",
+   "29d891e0d11799b6e2adb12eaf979c0083b37c8b",
    "testharness"
   ],
   "conformance/glsl/misc/shader-with-precision.frag.html": [
@@ -29575,7 +29857,7 @@
    "support"
   ],
   "conformance/ogles/GL/abs/abs_001_to_006.html": [
-   "5c2ae1d05b35d49850bda3a012ba0d4479444f9e",
+   "2af0dd4b9c53fc3be5044bb7d88c7b3775b8d16f",
    "testharness"
   ],
   "conformance/ogles/GL/abs/abs_float_frag_xvary.frag": [
@@ -29687,7 +29969,7 @@
    "support"
   ],
   "conformance/ogles/GL/all/all_001_to_004.html": [
-   "226d9c0825b719250492c99f2f4a5f49be283cae",
+   "a00461f8bac17fc190b1c1093fc3c7f45934223a",
    "testharness"
   ],
   "conformance/ogles/GL/all/all_bvec2_frag.frag": [
@@ -29727,7 +30009,7 @@
    "support"
   ],
   "conformance/ogles/GL/any/any_001_to_004.html": [
-   "53bd5a86adbd47b1cce8d5b9730b42f90d00ff86",
+   "780b3b54329bb3bfe17bad5e6d28b3f3c2931925",
    "testharness"
   ],
   "conformance/ogles/GL/any/any_bvec2_frag.frag": [
@@ -29767,7 +30049,7 @@
    "support"
   ],
   "conformance/ogles/GL/array/array_001_to_006.html": [
-   "acb3839137ab3e1ff06df66faa8121e67d5af95f",
+   "21a550687805083985d85ce0a6f3f3264027c244",
    "testharness"
   ],
   "conformance/ogles/GL/array/empty_empty_array_float_frag.frag": [
@@ -29855,11 +30137,11 @@
    "support"
   ],
   "conformance/ogles/GL/atan/atan_001_to_008.html": [
-   "96811c9a934c581364d4257cbd1e9ab1bfbf24dc",
+   "207db792c33f1cdc196c2d973e28a6277559d678",
    "testharness"
   ],
   "conformance/ogles/GL/atan/atan_009_to_012.html": [
-   "f82f4fc8c6ce4490c0e468eb72250e0229407db8",
+   "2d74d0cc759dcebb77547529b382a293f7df920f",
    "testharness"
   ],
   "conformance/ogles/GL/atan/atan_float_frag_xvary.frag": [
@@ -29963,11 +30245,11 @@
    "support"
   ],
   "conformance/ogles/GL/biConstants/biConstants_001_to_008.html": [
-   "362ca8f55393979dbd19a4e438282659bbf87ece",
+   "65706aa293513da08184f11b685646bf74081096",
    "testharness"
   ],
   "conformance/ogles/GL/biConstants/biConstants_009_to_016.html": [
-   "5409dda25a7eeac74c83923afcea0fddcb48c3ea",
+   "510748658222736691509b2fa7e032d0700fe183",
    "testharness"
   ],
   "conformance/ogles/GL/biConstants/gl_MaxCombinedTextureImageUnits_frag.frag": [
@@ -30047,7 +30329,7 @@
    "support"
   ],
   "conformance/ogles/GL/biuDepthRange/biuDepthRange_001_to_002.html": [
-   "d968a2a825b7495a0d39e2a920fb4cbb67554778",
+   "45d0523982e0ca9b0fbe5907359a12a1de718a0e",
    "testharness"
   ],
   "conformance/ogles/GL/biuDepthRange/input.run.txt": [
@@ -30279,95 +30561,95 @@
    "support"
   ],
   "conformance/ogles/GL/build/build_001_to_008.html": [
-   "1883b6a8145507e6fa1ee698698ae086893cf7ba",
+   "c0c33c424a73161475dd6ea88bd391416cf03caa",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_009_to_016.html": [
-   "4afb29be74193935adf200f94215739ce5347f63",
+   "496fdb332ff74e54cc9261ba0593f369cc54a888",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_017_to_024.html": [
-   "10b3d6636ccd00feffc8069685934b2ae4b866d8",
+   "48d22fd4ce1762ab707a031a949c044dfa43f82f",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_025_to_032.html": [
-   "8ee6bdee381325c4a4c96d981ec38a02dd62cfca",
+   "bce572cd24138f5c56d0e9efc169053fb2b581e1",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_033_to_040.html": [
-   "6667f89bb3548fd087b324a40d48dae808733bd4",
+   "91c0ea47de5b857279d1967984d64b9646b04c15",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_041_to_048.html": [
-   "ac62a696181fb397cea3c7d0d6ea198237b4141b",
+   "28d3221fee311fa7ba50a6b63d1308905f4022cc",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_049_to_056.html": [
-   "62358b0c6e4fb4af837064dee8982521e9077613",
+   "be3df66d129262853322fb90704903c42b089193",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_057_to_064.html": [
-   "f194ecf17bec163b152db661b0ee1f475244c9f3",
+   "aa7b633b9f6852a9a21415268d02453f3966d9f9",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_065_to_072.html": [
-   "16372f8862a063c36cb5eaf2097f3afa4006063d",
+   "1d68894b990680ac8ed1f49756562a45cd9e5f3b",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_073_to_080.html": [
-   "0259cae9292446f9cbce9801b96177bec26ce4a6",
+   "58328dba2afd9cff0afbc2f96cf9f1a49a610db1",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_081_to_088.html": [
-   "ce86db8586e8589a141d4e49aea5e62df15c0673",
+   "e02ad3dbe457e9e233f5f4a53a218bd09fafea53",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_089_to_096.html": [
-   "23561488613f7b555b204bb8bd50a0a979a73232",
+   "db801551e64620cf015becbb25c335d58d78fada",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_097_to_104.html": [
-   "2a4f2abcea515533375c73ef4f263b5100cbe3a4",
+   "7b555c682ea258e5543e1771475837cfc86b0058",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_105_to_112.html": [
-   "cd5dabddc62377f33a58ac13379582219079fcf7",
+   "b0f3958ac4d560f8a152734167c7f6a0f2af5ccb",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_113_to_120.html": [
-   "a93b6e6eade0b8057291315c58842c158a44d188",
+   "e6aa88e08fca5cfcc35bb3b391ff136e674abaaf",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_121_to_128.html": [
-   "f13e0656d8b627e7b39fc1695aadfc0aba8b1d32",
+   "cbc49130c181cf68e6cee82353c9bb5bdbb05247",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_129_to_136.html": [
-   "34eaa4352af6821771e3ad4b6249d653de1fe4ed",
+   "c3ec7500d6f24794f3d3b168fd907eb4ca163780",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_137_to_144.html": [
-   "acb4502de59fb63ea492380fa66deab68db06990",
+   "8f1275fe0d0cd87335ba2e368353af2d0965b9a2",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_145_to_152.html": [
-   "ff3ea37f3b7c6565aab729a32bb860157b480ecf",
+   "e77616897e5e203525c90953a5db5a124058361e",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_153_to_160.html": [
-   "844e548a47f021574d358923c933432d9e16989a",
+   "467590650d78c7eab0848b45cbfd3a26f2d38a10",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_161_to_168.html": [
-   "3bbcddaadcd7434132c45958bd52aae6eabb0b89",
+   "ec7a9bb05c31921b008abc8612692d61f53c1d52",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_169_to_176.html": [
-   "f00fa582c6753f5c7f12741dc380cdfdea62065b",
+   "406cab463cb7ca3554c60346318b41cfd082d746",
    "testharness"
   ],
   "conformance/ogles/GL/build/build_177_to_178.html": [
-   "a2406d8ed5b50766f18f4cac0c87eafed6acc15e",
+   "7c0a718ad0616a87c066c448582b55a09224f52f",
    "testharness"
   ],
   "conformance/ogles/GL/build/comma1_vert.vert": [
@@ -30871,7 +31153,7 @@
    "support"
   ],
   "conformance/ogles/GL/built_in_varying_array_out_of_bounds/built_in_varying_array_out_of_bounds_001_to_001.html": [
-   "e6542bfe8d64d97143dac4ca44f11a17ce24f3d0",
+   "d5a93f05ff53eec0941585a1acd68fa68ddcca36",
    "testharness"
   ],
   "conformance/ogles/GL/built_in_varying_array_out_of_bounds/gl_Color_array_index_out_of_bounds_frag.frag": [
@@ -30883,7 +31165,7 @@
    "support"
   ],
   "conformance/ogles/GL/ceil/ceil_001_to_006.html": [
-   "c8b3a25732f9482e08d2ca899a6edbb152b248b7",
+   "9068d26a5d99e0a7e2b02cdb2e4938de1b3edc59",
    "testharness"
   ],
   "conformance/ogles/GL/ceil/ceil_float_frag_xvary.frag": [
@@ -30939,7 +31221,7 @@
    "support"
   ],
   "conformance/ogles/GL/clamp/clamp_001_to_006.html": [
-   "9abe66de09bb106117665e1668e7e220f73487ad",
+   "8cdaad9e20ac77599088369fbe904e9f917f4202",
    "testharness"
   ],
   "conformance/ogles/GL/clamp/clamp_float_frag_xvary_yconstquarter.frag": [
@@ -30995,11 +31277,11 @@
    "support"
   ],
   "conformance/ogles/GL/control_flow/control_flow_001_to_008.html": [
-   "76f9859b88e911b79c648b41bbdca1a28687ba90",
+   "2b5e39031a3f27626ccd8aa15baa6e9d0475bd44",
    "testharness"
   ],
   "conformance/ogles/GL/control_flow/control_flow_009_to_010.html": [
-   "3845a8d9fd587c8becd9d21c7163a12ffa8be736",
+   "018843b589f162e73b0bf169e65249a4baecdc28",
    "testharness"
   ],
   "conformance/ogles/GL/control_flow/for_break_frag.frag": [
@@ -31047,7 +31329,7 @@
    "support"
   ],
   "conformance/ogles/GL/cos/cos_001_to_006.html": [
-   "6da1573843700749bc5da3845dcbcacb39ea1fe9",
+   "fc6b6fd42d5a8655cc83389bcdfb615f41097ab0",
    "testharness"
   ],
   "conformance/ogles/GL/cos/cos_float_frag_xvary.frag": [
@@ -31103,7 +31385,7 @@
    "support"
   ],
   "conformance/ogles/GL/cross/cross_001_to_002.html": [
-   "c0c5bc44c566a9b96da4cec6d1713b014fe21de4",
+   "6b45928307e5e49615cacf5792c13b28c00bd3f1",
    "testharness"
   ],
   "conformance/ogles/GL/cross/cross_vec3_frag_xvaryyconst.frag": [
@@ -31135,7 +31417,7 @@
    "support"
   ],
   "conformance/ogles/GL/default/default_001_to_001.html": [
-   "1a9e6c32143e9469ab30e5af5221c884b0f6219b",
+   "9f2456cfcb25abb666003fdb301dedc32051cdb4",
    "testharness"
   ],
   "conformance/ogles/GL/default/default_textured.frag": [
@@ -31155,7 +31437,7 @@
    "support"
   ],
   "conformance/ogles/GL/degrees/degrees_001_to_006.html": [
-   "1e29130a3dc007742914f49e36eee1dbc0d715d4",
+   "6f9c14d119b6b24788e159ef292f83ac66781092",
    "testharness"
   ],
   "conformance/ogles/GL/degrees/degrees_float_frag_xvary.frag": [
@@ -31211,7 +31493,7 @@
    "support"
   ],
   "conformance/ogles/GL/discard/discard_001_to_002.html": [
-   "0efbe81fb4950589e5e430d89039778b245e794c",
+   "bda9a2d99acdb993793853750671df8e10f18534",
    "testharness"
   ],
   "conformance/ogles/GL/discard/discard_cond_frag.frag": [
@@ -31231,7 +31513,7 @@
    "support"
   ],
   "conformance/ogles/GL/distance/distance_001_to_006.html": [
-   "7ad48ff83b81c7e8a1101c40eb7e1269d57b7f39",
+   "39441600eb1c4eb499d5c23b762dcdfcf6f5ced8",
    "testharness"
   ],
   "conformance/ogles/GL/distance/distance_float_frag_xvaryyhalf.frag": [
@@ -31287,7 +31569,7 @@
    "support"
   ],
   "conformance/ogles/GL/dot/dot_001_to_006.html": [
-   "35af74a12af3c91d57061ff920c7eff96cd36bca",
+   "a75839bf2973009d2ed575d52b2f479dde4c573d",
    "testharness"
   ],
   "conformance/ogles/GL/dot/dot_float_frag_xvaryyone.frag": [
@@ -31343,11 +31625,11 @@
    "support"
   ],
   "conformance/ogles/GL/equal/equal_001_to_008.html": [
-   "4266061afe90e0847db3a6003f7e8549f05443b0",
+   "5b63f08e78c1de60c3508ec9e5ea3f850982d849",
    "testharness"
   ],
   "conformance/ogles/GL/equal/equal_009_to_012.html": [
-   "f5af33c3dba71f4b5f2ab5889540b273f4fdcba8",
+   "e32f98986978cd4a4d5bfd8bf34344afa232a694",
    "testharness"
   ],
   "conformance/ogles/GL/equal/equal_bvec2_frag.frag": [
@@ -31451,11 +31733,11 @@
    "support"
   ],
   "conformance/ogles/GL/exp/exp_001_to_008.html": [
-   "a0ce6c06418e15a1da50701c95db6569f49f4533",
+   "497dc16a87f0f76a6ddc635f44fd476c690b0e1e",
    "testharness"
   ],
   "conformance/ogles/GL/exp/exp_009_to_012.html": [
-   "ddf15b619a126cff7e19550b5536e219133de8c5",
+   "ea46abd3e3682a7afad8d65821b7feea7b193d6a",
    "testharness"
   ],
   "conformance/ogles/GL/exp/exp_float_frag_xvary.frag": [
@@ -31559,11 +31841,11 @@
    "support"
   ],
   "conformance/ogles/GL/exp2/exp2_001_to_008.html": [
-   "7b64d838de89cda134ef3c4e4db56804f17d7d48",
+   "a07d1e5743d1e5c66f06a04de4afebfb2429861e",
    "testharness"
   ],
   "conformance/ogles/GL/exp2/exp2_009_to_012.html": [
-   "2b29d52bd01e750547f56d364fb01f4cce37ebf3",
+   "c771195266dfbd55687c5d7ba578b3b648f3cadf",
    "testharness"
   ],
   "conformance/ogles/GL/exp2/exp2_float_frag_xvary.frag": [
@@ -31667,7 +31949,7 @@
    "support"
   ],
   "conformance/ogles/GL/faceforward/faceforward_001_to_006.html": [
-   "c70334794cc606821ea7244dc7b7a198f5555c47",
+   "c9eb36114237e463a9bc6e58b6a7e637838cff4c",
    "testharness"
   ],
   "conformance/ogles/GL/faceforward/faceforward_float_frag_nvaryiconst.frag": [
@@ -31723,7 +32005,7 @@
    "support"
   ],
   "conformance/ogles/GL/floor/floor_001_to_006.html": [
-   "75d2d91675ccbf46e8478b11d4d5fd746482d4c6",
+   "30438dd7fdbedf445d681a0d8d058c31e64576f3",
    "testharness"
   ],
   "conformance/ogles/GL/floor/floor_float_frag_xvary.frag": [
@@ -31779,7 +32061,7 @@
    "support"
   ],
   "conformance/ogles/GL/fract/fract_001_to_006.html": [
-   "0fde847696ae0cfe29938db385e470495170bc86",
+   "fd28dcff493e22ec1515a0892ebda5f284fe3990",
    "testharness"
   ],
   "conformance/ogles/GL/fract/fract_float_frag_xvary.frag": [
@@ -32043,67 +32325,67 @@
    "support"
   ],
   "conformance/ogles/GL/functions/functions_001_to_008.html": [
-   "309e4b491787524e5304a8e13ba2fe183b43f079",
+   "89af11776db98346fa78a6619b5d92e0ebff4866",
    "testharness"
   ],
   "conformance/ogles/GL/functions/functions_009_to_016.html": [
-   "3a055a2e567daf2700a43efda9407414eef06dce",
+   "dbf4b719e33f6c4b6d96b05522fd9058f47a8973",
    "testharness"
   ],
   "conformance/ogles/GL/functions/functions_017_to_024.html": [
-   "72e2585af436f23b5fa277803ccccd8b795691f0",
+   "e90105b2d9db173048afdfee2963248bc7f9112c",
    "testharness"
   ],
   "conformance/ogles/GL/functions/functions_025_to_032.html": [
-   "32a7ef534dfecf7b5f7ef06fae8f83bd15559620",
+   "0a000a8ddf228a526b3474921b4104b8c1fa2464",
    "testharness"
   ],
   "conformance/ogles/GL/functions/functions_033_to_040.html": [
-   "4a8723664b26b1cc180f4c5f850e7f15d51c0533",
+   "6c89d834f8c88519d077caf163c32b22f23e4218",
    "testharness"
   ],
   "conformance/ogles/GL/functions/functions_041_to_048.html": [
-   "0d3aee927835181214e450d2ad06ca0cc4bd56e3",
+   "4800ca94daaabc9a0e0e34f76ddae7b0c256867c",
    "testharness"
   ],
   "conformance/ogles/GL/functions/functions_049_to_056.html": [
-   "4cbdf62fc97f5ba5492b8eb5c23878a6d0d33667",
+   "ea65d15ce4d3acc2312dd6fbba849034b11474f8",
    "testharness"
   ],
   "conformance/ogles/GL/functions/functions_057_to_064.html": [
-   "2c2545718b72e0d89ec6094028d849936db0a8bd",
+   "62782be16ac3f062da0b0dbd363e2c1b2cd6e306",
    "testharness"
   ],
   "conformance/ogles/GL/functions/functions_065_to_072.html": [
-   "d01ded0bd32d9757e68d56e93ecde9bf534290dd",
+   "05e9864c9c076bfc699400fb8f2f5d1f36ea6fb8",
    "testharness"
   ],
   "conformance/ogles/GL/functions/functions_073_to_080.html": [
-   "969754f71efcf7a3138f54b4de6dd73a8b69aeaa",
+   "a871c24f66d3a761b4ecd9dad7b9b3168ec36cea",
    "testharness"
   ],
   "conformance/ogles/GL/functions/functions_081_to_088.html": [
-   "08c0e1163e4c0639fd083c102199eae1e8f97024",
+   "3142c5cd00b0cd185d8ad7ea7f7dd8a51781b763",
    "testharness"
   ],
   "conformance/ogles/GL/functions/functions_089_to_096.html": [
-   "35158155869e4a7c89d33a8bf6f300e98eed5769",
+   "2413ca6df9f9a9d6c2191b509d87fe449955fd5b",
    "testharness"
   ],
   "conformance/ogles/GL/functions/functions_097_to_104.html": [
-   "2d5ef101d9f8db8535222f0fcecc4f5d235e27d8",
+   "ba4e22d67e92c638764e446cddcddc71755cdeb3",
    "testharness"
   ],
   "conformance/ogles/GL/functions/functions_105_to_112.html": [
-   "7d826450fd458e4925380bc76a482c6d28b4bde3",
+   "c3ce334d457aea471d95bb981e5628cbe6393c69",
    "testharness"
   ],
   "conformance/ogles/GL/functions/functions_113_to_120.html": [
-   "c97b0c2d4a23d72aa242d99a3d0e7fd946290e01",
+   "fd84f794893fa7b112d551229ed0d2c24ab0a9f4",
    "testharness"
   ],
   "conformance/ogles/GL/functions/functions_121_to_126.html": [
-   "10eaee12a889bc9b5baff5f8c02e55c4007051bb",
+   "7c343c192beb567ef9632da8f294218866cf48a3",
    "testharness"
   ],
   "conformance/ogles/GL/functions/input.run.txt": [
@@ -32407,7 +32689,7 @@
    "support"
   ],
   "conformance/ogles/GL/gl_FragCoord/gl_FragCoord_001_to_003.html": [
-   "674ce26dc7733cae9b568e5bcd87818fcab19dd6",
+   "2fa27d8089f525da3febeebbf4a84493760075bd",
    "testharness"
   ],
   "conformance/ogles/GL/gl_FragCoord/gl_FragCoord_w_frag.frag": [
@@ -32439,7 +32721,7 @@
    "support"
   ],
   "conformance/ogles/GL/gl_FrontFacing/gl_FrontFacing_001_to_001.html": [
-   "ace8b2aa6a0a95fc05464d4ecae5bc52c95699b6",
+   "8abc04d7af826b94a0e29aeb895a729b9836dc30",
    "testharness"
   ],
   "conformance/ogles/GL/gl_FrontFacing/gl_FrontFacing_frag.frag": [
@@ -32451,7 +32733,7 @@
    "support"
   ],
   "conformance/ogles/GL/greaterThan/greaterThan_001_to_008.html": [
-   "7fee4bb8e35621843fc60d783dc4b5400f299632",
+   "db5145078d4b567e752cd1e8118c132f855d824d",
    "testharness"
   ],
   "conformance/ogles/GL/greaterThan/greaterThan_ivec2_frag.frag": [
@@ -32523,7 +32805,7 @@
    "support"
   ],
   "conformance/ogles/GL/greaterThanEqual/greaterThanEqual_001_to_008.html": [
-   "2d854b04380685f139fd9312ffbc27d6a5feea03",
+   "73310f3b6b03f216ab8761fe9e06d02fc3e11c11",
    "testharness"
   ],
   "conformance/ogles/GL/greaterThanEqual/greaterThanEqual_ivec2_frag.frag": [
@@ -32599,7 +32881,7 @@
    "support"
   ],
   "conformance/ogles/GL/inversesqrt/inversesqrt_001_to_006.html": [
-   "c48b075aeb92ad98a7a5c57b728d216d5afdf973",
+   "0b1ed4a6456accf77b3c8a7f0b20cdf58d361034",
    "testharness"
   ],
   "conformance/ogles/GL/inversesqrt/inversesqrt_float_frag_xvary.frag": [
@@ -32655,7 +32937,7 @@
    "support"
   ],
   "conformance/ogles/GL/length/length_001_to_006.html": [
-   "d5848dce1f3fb6b5be7efafc313d7ba6e6a5fb50",
+   "9d67dcc6216bcf303f739892b8d7dff3df01f3e7",
    "testharness"
   ],
   "conformance/ogles/GL/length/length_float_frag_xvary.frag": [
@@ -32711,7 +32993,7 @@
    "support"
   ],
   "conformance/ogles/GL/lessThan/lessThan_001_to_008.html": [
-   "0c4b5d7c87c4904f1f18558f9b12ae016b77f15e",
+   "9f134c35a49cb01b6c0f1e41d7d095b8d6c0264f",
    "testharness"
   ],
   "conformance/ogles/GL/lessThan/lessThan_ivec2_frag.frag": [
@@ -32783,7 +33065,7 @@
    "support"
   ],
   "conformance/ogles/GL/lessThanEqual/lessThanEqual_001_to_008.html": [
-   "aca9d7b94d1c991834718f6db0a23a40093b544c",
+   "9fb90921f87caf581bbb2cf47c3f420b48526884",
    "testharness"
   ],
   "conformance/ogles/GL/lessThanEqual/lessThanEqual_ivec2_frag.frag": [
@@ -32859,7 +33141,7 @@
    "testharness"
   ],
   "conformance/ogles/GL/log/log_009_to_012.html": [
-   "1e362043d8599d16ab6c2bb53793fcc6ecbf405d",
+   "a01d5ae7e959501a2e6323c759b38c0521436259",
    "testharness"
   ],
   "conformance/ogles/GL/log/log_float_frag_xvary.frag": [
@@ -32967,7 +33249,7 @@
    "testharness"
   ],
   "conformance/ogles/GL/log2/log2_009_to_012.html": [
-   "e7abb0ba78fa60b721a8ecee8e3a3a78953292aa",
+   "19cb80b8ea92fe62eb572936256d7c4854b6b2f2",
    "testharness"
   ],
   "conformance/ogles/GL/log2/log2_float_frag_xvary.frag": [
@@ -33255,27 +33537,27 @@
    "support"
   ],
   "conformance/ogles/GL/mat/mat_001_to_008.html": [
-   "2010cbe02ca03422f51860d756255162abdbf05f",
+   "de9093445cff00476b75658317b13a0b714bdf29",
    "testharness"
   ],
   "conformance/ogles/GL/mat/mat_009_to_016.html": [
-   "0d73540a867e21a70dc7387e76b35ca309792d0c",
+   "9e5c894705bc3922349568c477b94e0edfcc64f1",
    "testharness"
   ],
   "conformance/ogles/GL/mat/mat_017_to_024.html": [
-   "2e3a4867655d17af4c369b2b6d21a916a025897a",
+   "d5b52de1bb56d354499f8c73991750a7bb298cef",
    "testharness"
   ],
   "conformance/ogles/GL/mat/mat_025_to_032.html": [
-   "8862968e9acd29a95dac32e7ac1fede0a31925d9",
+   "cfe59573d871d9a3570790fccbfb664a95f4db3e",
    "testharness"
   ],
   "conformance/ogles/GL/mat/mat_033_to_040.html": [
-   "66267c5343d58ff89285cbdb9a425269e037f969",
+   "9f367a24de72e8411b8e116b61b141be0e98d195",
    "testharness"
   ],
   "conformance/ogles/GL/mat/mat_041_to_046.html": [
-   "42616f0bfeef2810b91349ee1c3891d0688b070a",
+   "a38b73e06103bb58f9030ac625855d18da2932ed",
    "testharness"
   ],
   "conformance/ogles/GL/mat3/input.run.txt": [
@@ -33283,7 +33565,7 @@
    "support"
   ],
   "conformance/ogles/GL/mat3/mat3_001_to_006.html": [
-   "60f522593372901b166ef1c52219faad00931d0b",
+   "2600512ff125e76c05f610eb56cca0aecddc5f40",
    "testharness"
   ],
   "conformance/ogles/GL/mat3/mat3arrayindirect0_frag.frag": [
@@ -33315,7 +33597,7 @@
    "support"
   ],
   "conformance/ogles/GL/matrixCompMult/matrixCompMult_001_to_004.html": [
-   "bacbc87b42172d1ed723b0705083ab072b8229e1",
+   "caf777df83ca66972ebe0590f4b37623414e9470",
    "testharness"
   ],
   "conformance/ogles/GL/matrixCompMult/matrixMultComp_mat2_frag.frag": [
@@ -33355,7 +33637,7 @@
    "support"
   ],
   "conformance/ogles/GL/max/max_001_to_006.html": [
-   "8cc3f478f3786bd2062495f5fb8cc34b16395507",
+   "e79f3cced4c8e107ceb04151e1055183cbc8c7fe",
    "testharness"
   ],
   "conformance/ogles/GL/max/max_float_frag_xvary_yconsthalf.frag": [
@@ -33411,7 +33693,7 @@
    "support"
   ],
   "conformance/ogles/GL/min/min_001_to_006.html": [
-   "a9dd90c99e9350e3c7383c519226943cd80ea773",
+   "5d927dd73dc549a2c9059dc2e0d416536d75582e",
    "testharness"
   ],
   "conformance/ogles/GL/min/min_float_frag_xvary_yconsthalf.frag": [
@@ -33467,7 +33749,7 @@
    "support"
   ],
   "conformance/ogles/GL/mix/mix_001_to_006.html": [
-   "abeb8c20e9f2e089cc8f1553676cfa5e6913ecd4",
+   "fbe3846b09179f0431a9602b1fe8e46f27e16188",
    "testharness"
   ],
   "conformance/ogles/GL/mix/mix_float_frag_xvary_yconsthalf_aconsthalf.frag": [
@@ -33523,7 +33805,7 @@
    "support"
   ],
   "conformance/ogles/GL/mod/mod_001_to_008.html": [
-   "dcf5ac2405ee0facdd82d0c756a28209d8226b8a",
+   "833b1774a1ac7f46ff75b3b87913a7d04c377da5",
    "testharness"
   ],
   "conformance/ogles/GL/mod/mod_float_frag_xvary_yconst1.frag": [
@@ -33587,7 +33869,7 @@
    "support"
   ],
   "conformance/ogles/GL/normalize/normalize_001_to_006.html": [
-   "d711520fa49827f609146162b607ff9166372ad6",
+   "dab9e4a21eeb70abcb6019ab9d42aaa2a1a8b4a0",
    "testharness"
   ],
   "conformance/ogles/GL/normalize/normalize_float_frag_xvary.frag": [
@@ -33643,7 +33925,7 @@
    "support"
   ],
   "conformance/ogles/GL/not/not_001_to_004.html": [
-   "2376898aba72785e88ecacbac5b9b240ddff57ea",
+   "a3826ed0bb68755a2e9d8259922d8ae588b5aab5",
    "testharness"
   ],
   "conformance/ogles/GL/not/not_bvec2_frag.frag": [
@@ -33683,11 +33965,11 @@
    "support"
   ],
   "conformance/ogles/GL/notEqual/notEqual_001_to_008.html": [
-   "ea39e3045a1fb80884bb5391f58e13c44c6c92fb",
+   "d023cfd46211b9d1f377a608cfa2a917a6ac93cc",
    "testharness"
   ],
   "conformance/ogles/GL/notEqual/notEqual_009_to_012.html": [
-   "3c2b81ee9d00e16799a8dd41097147c62e01235d",
+   "966fd13c915a97a57b72b6d1209ffb5d38687eb0",
    "testharness"
   ],
   "conformance/ogles/GL/notEqual/notEqual_bvec2_frag.frag": [
@@ -33839,19 +34121,19 @@
    "support"
   ],
   "conformance/ogles/GL/operators/operators_001_to_008.html": [
-   "8e59e71d2d1e09fa15305698fba3c6ecace3f13b",
+   "a90031de6acc1cc3574d9f3d0419cf25498e1b94",
    "testharness"
   ],
   "conformance/ogles/GL/operators/operators_009_to_016.html": [
-   "e19f146b757934ad4de74790eaccace479ef1492",
+   "60692b9a321f3b75a0f7b79a7e11a2e2558d8c5d",
    "testharness"
   ],
   "conformance/ogles/GL/operators/operators_017_to_024.html": [
-   "14da8ea63e8dc5c4aaae5da2ac01a9627a3cf667",
+   "dd6e17de738dea45812049a14d09be79e336f585",
    "testharness"
   ],
   "conformance/ogles/GL/operators/operators_025_to_026.html": [
-   "812f24dc9a36a21edab5240c08a5144d641ae7b9",
+   "97a27906101ba71dda163927c288c91124eb997e",
    "testharness"
   ],
   "conformance/ogles/GL/operators/postfixdecrement_frag.frag": [
@@ -33915,15 +34197,15 @@
    "support"
   ],
   "conformance/ogles/GL/pow/pow_001_to_008.html": [
-   "cfd6e3b4f870587a106c17cdce49021d5a26d907",
+   "b4c6eb3ce5b40a7ad12bc876e8e75d95bd740b7a",
    "testharness"
   ],
   "conformance/ogles/GL/pow/pow_009_to_016.html": [
-   "1ae02f1f31c7c61fe569a9329d7028ae12f18e2c",
+   "22634ccd42c8b6183fcde1fd164baaf95fc33b3a",
    "testharness"
   ],
   "conformance/ogles/GL/pow/pow_017_to_024.html": [
-   "06420c91960788321099f0b986d82fede1b314eb",
+   "eb018051f0b31fe175adc4e7df7972a92f5fe9ca",
    "testharness"
   ],
   "conformance/ogles/GL/pow/pow_float_frag_xconst2_yvary.frag": [
@@ -34123,7 +34405,7 @@
    "support"
   ],
   "conformance/ogles/GL/radians/radians_001_to_006.html": [
-   "3d03c34a79a744aac609a94c2ecb18dda8f2e274",
+   "dbcb357a587804a467938e0c3ec1e6ac3965b89d",
    "testharness"
   ],
   "conformance/ogles/GL/radians/radians_float_frag_xvary.frag": [
@@ -34179,7 +34461,7 @@
    "support"
   ],
   "conformance/ogles/GL/reflect/reflect_001_to_006.html": [
-   "e41fa79800989e6c282a25f18d23385598de322e",
+   "03b6a647e93ee3bd57d6b9b94ad13d6a7af33ac6",
    "testharness"
   ],
   "conformance/ogles/GL/reflect/reflect_float_frag_ivarynconst.frag": [
@@ -34235,7 +34517,7 @@
    "support"
   ],
   "conformance/ogles/GL/refract/refract_001_to_006.html": [
-   "3fdad36dabf06566edfc21a8c67f9fcba3252e0f",
+   "594b82158ebdd3a7d290b16edd72b520296f543c",
    "testharness"
   ],
   "conformance/ogles/GL/refract/refract_float_frag_ivarynconst.frag": [
@@ -34291,7 +34573,7 @@
    "support"
   ],
   "conformance/ogles/GL/sign/sign_001_to_006.html": [
-   "0e4a56dbcd112c72f32a266b58ce4fb545c3d7d8",
+   "86bfd7bbeb14bec1c7f10fe273630ce60f92d1dd",
    "testharness"
   ],
   "conformance/ogles/GL/sign/sign_float_frag_xvary.frag": [
@@ -34347,7 +34629,7 @@
    "support"
   ],
   "conformance/ogles/GL/sin/sin_001_to_006.html": [
-   "ae6a80723b5ed6f78a362418635769820fb36d42",
+   "8ea1a134f2f92252d64607f1bc7f0579679d6c80",
    "testharness"
   ],
   "conformance/ogles/GL/sin/sin_float_frag_xvary.frag": [
@@ -34403,7 +34685,7 @@
    "support"
   ],
   "conformance/ogles/GL/smoothstep/smoothstep_001_to_006.html": [
-   "06731acc3148d5fa52cde73bdd8e5a431d6a47e5",
+   "891835904ba10cc4d9bba87cade96fa0152dab89",
    "testharness"
   ],
   "conformance/ogles/GL/smoothstep/smoothstep_float_frag_xvary_edgeconstquarter.frag": [
@@ -34459,7 +34741,7 @@
    "support"
   ],
   "conformance/ogles/GL/sqrt/sqrt_001_to_006.html": [
-   "ff5fb1cee9905a9cd7786aec45f2fbecad49f332",
+   "bc865852bb53e1dd21b4b9cf391c654aba140cd2",
    "testharness"
   ],
   "conformance/ogles/GL/sqrt/sqrt_float_frag_xvary.frag": [
@@ -34515,7 +34797,7 @@
    "support"
   ],
   "conformance/ogles/GL/step/step_001_to_006.html": [
-   "b2572d445b5314dabda93f09541772ed572ea868",
+   "6125e525a3ec485a5286b174305b09297eefb693",
    "testharness"
   ],
   "conformance/ogles/GL/step/step_float_frag_xvary_edgeconsthalf.frag": [
@@ -34579,31 +34861,31 @@
    "support"
   ],
   "conformance/ogles/GL/struct/struct_001_to_008.html": [
-   "28691b789711b9af05ef20076d12749da7d5bbc2",
+   "0b51124eee9141812edbe9563ace6b02c6ac57d2",
    "testharness"
   ],
   "conformance/ogles/GL/struct/struct_009_to_016.html": [
-   "ce9ea01c22c605197b1160d3256209237da71fae",
+   "85b91c16a1a99eb74b41d70325725838745da015",
    "testharness"
   ],
   "conformance/ogles/GL/struct/struct_017_to_024.html": [
-   "5e64ae4210b703d9647cdae42cbda4d6abfb79cb",
+   "c8608a4b0a3e031767f010f3a0e75a2faf7ea218",
    "testharness"
   ],
   "conformance/ogles/GL/struct/struct_025_to_032.html": [
-   "1cd3af91d66ee57e9af7dcdb1c0dce594c06a5d7",
+   "111e7b51ae6360477b20cf37355a09c1fc2d7e52",
    "testharness"
   ],
   "conformance/ogles/GL/struct/struct_033_to_040.html": [
-   "e81478b8bafdf283b22b5af4c3516b57af7ae0ed",
+   "6fbb77a59bdfb820af604668ed9e43af8f991784",
    "testharness"
   ],
   "conformance/ogles/GL/struct/struct_041_to_048.html": [
-   "8aaa8da8e80bf8d0867b360cb2fbd76ce4eecaef",
+   "1101504a4ef8df6b2587062c1a681fdd322c8f3b",
    "testharness"
   ],
   "conformance/ogles/GL/struct/struct_049_to_056.html": [
-   "831ad2fb3714eddd7415187e5e1afa0a2c6bb11d",
+   "83597ef3f686abe4102f231be27bf7382499ba77",
    "testharness"
   ],
   "conformance/ogles/GL/struct/struct_bool_frag.frag": [
@@ -34827,63 +35109,63 @@
    "support"
   ],
   "conformance/ogles/GL/swizzlers/swizzlers_001_to_008.html": [
-   "022d14cab701918476589500ea36804ec92dae7e",
+   "2ad45f6be5a57387c668d97439d48b137d78d0c7",
    "testharness"
   ],
   "conformance/ogles/GL/swizzlers/swizzlers_009_to_016.html": [
-   "b4894c019ee2d8824e2563438a1a27c30bdc55d1",
+   "f85523127ed70a58edfe5c878892db51417454c9",
    "testharness"
   ],
   "conformance/ogles/GL/swizzlers/swizzlers_017_to_024.html": [
-   "76e6a9a97e66715e6092af82ecce098569bcf914",
+   "0d692208aa5e1dd2e51beb6faae2d6cfe53a80a5",
    "testharness"
   ],
   "conformance/ogles/GL/swizzlers/swizzlers_025_to_032.html": [
-   "6a38d1f9e330ba764fe5478ecc14bb660a4f8047",
+   "43f871ca6e41c1a51bc9daff7a4cf0f306c31c83",
    "testharness"
   ],
   "conformance/ogles/GL/swizzlers/swizzlers_033_to_040.html": [
-   "27b9a25bd09bd21f0f264ea841145ce87df298e3",
+   "fa0e139fa4c122a94d339cd841be3e6f4a593c98",
    "testharness"
   ],
   "conformance/ogles/GL/swizzlers/swizzlers_041_to_048.html": [
-   "0258666257052969f53bfc4c43bf55400a30c09d",
+   "4153e79b16fd83050e03630806e31114c94430a3",
    "testharness"
   ],
   "conformance/ogles/GL/swizzlers/swizzlers_049_to_056.html": [
-   "e0953edc174c6f0f3c0befe79e7c3262ab52749f",
+   "d4610d6a6c62072285915373dcea5f03e07b7426",
    "testharness"
   ],
   "conformance/ogles/GL/swizzlers/swizzlers_057_to_064.html": [
-   "6932dca56936fd85a17ad3b1ddc80b9bc1397995",
+   "ec697a92dbc81f5d595f7e9f1346ad4a7cd579d4",
    "testharness"
   ],
   "conformance/ogles/GL/swizzlers/swizzlers_065_to_072.html": [
-   "8687c5dbde538322dde378f761247aee7d2a7f98",
+   "04c139c0eac317e44b1a59cf83ff14cacf721597",
    "testharness"
   ],
   "conformance/ogles/GL/swizzlers/swizzlers_073_to_080.html": [
-   "5df7f6e3bfe574c615befcc5de2dcb10b2801a41",
+   "baafeeee8cce64a8555e3108ea4143e0ee6d77f7",
    "testharness"
   ],
   "conformance/ogles/GL/swizzlers/swizzlers_081_to_088.html": [
-   "f2705dd6559fe3b354bc9f3e41161d5c3c5e3c16",
+   "a61fcb84974915363e8985aa2574a9fdb19ccbd0",
    "testharness"
   ],
   "conformance/ogles/GL/swizzlers/swizzlers_089_to_096.html": [
-   "7f4e8ffbd31474d1e7ed94967e5d816ddc13b058",
+   "eab21a8d4733290dcfb8687a0b253c50e2f8ea41",
    "testharness"
   ],
   "conformance/ogles/GL/swizzlers/swizzlers_097_to_104.html": [
-   "44ad2ab8a82aebb139648cc5050df271730bff33",
+   "1661b5ffe5826b457e745db38acd44b88826ad75",
    "testharness"
   ],
   "conformance/ogles/GL/swizzlers/swizzlers_105_to_112.html": [
-   "27f01167c4804364bd21cc16f33d90612c67a5c0",
+   "198d434663226f2a760cf3a607b5f98decfdd9a7",
    "testharness"
   ],
   "conformance/ogles/GL/swizzlers/swizzlers_113_to_120.html": [
-   "23528dea2a74c9cff0c3b99fd6300565d0a626a0",
+   "dcf962e1b32c9d2155e72ab767cb2fa5cfad9a43",
    "testharness"
   ],
   "conformance/ogles/GL/swizzlers/vec3_bgr_1vec3_frag.frag": [
@@ -35371,7 +35653,7 @@
    "support"
   ],
   "conformance/ogles/GL/tan/tan_001_to_006.html": [
-   "0d8b1d70a87f91f54d1f9391283a60d5bd710c35",
+   "60c92f42992b04eb1691d05beee071c743f28d50",
    "testharness"
   ],
   "conformance/ogles/GL/tan/tan_float_frag_xvary.frag": [
@@ -35499,15 +35781,15 @@
    "support"
   ],
   "conformance/ogles/GL/vec/vec_001_to_008.html": [
-   "5f55e7321768b944a13e6979caa0898740c3d821",
+   "6e31e1fa3688d2dfb97bbf94ea711bbd7d973d0c",
    "testharness"
   ],
   "conformance/ogles/GL/vec/vec_009_to_016.html": [
-   "d8573af715c5ec2530babdbd5933ab3fc4276dfe",
+   "cb28ecaeb8485b8b5ec6f116f03304fb5c272c07",
    "testharness"
   ],
   "conformance/ogles/GL/vec/vec_017_to_018.html": [
-   "0b4c05e43092c1989c642c3a3c7c78d43fc6905e",
+   "492bacd604de0941fc931440486a38a83d7d1f5b",
    "testharness"
   ],
   "conformance/ogles/GL/vec3/input.run.txt": [
@@ -35515,7 +35797,7 @@
    "support"
   ],
   "conformance/ogles/GL/vec3/vec3_001_to_008.html": [
-   "b88ba393ff64480bf0e33191c5106c3104111432",
+   "29476159cee4321a1d64fe595284ef65b63f635d",
    "testharness"
   ],
   "conformance/ogles/GL/vec3/vec3array_frag.frag": [

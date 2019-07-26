@@ -93,7 +93,7 @@ use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::CSSError;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::EmbedderMsg;
+use embedder_traits::{EmbedderMsg, EventLoopWaker};
 use euclid::default::{Point2D, Rect};
 use euclid::Vector2D;
 use headers::ReferrerPolicy as ReferrerPolicyHeader;
@@ -684,6 +684,9 @@ pub struct ScriptThread {
 
     /// Application window's GL Context for Media player
     player_context: WindowGLContext,
+
+    /// A mechanism to force the compositor's event loop to process events.
+    event_loop_waker: Option<Box<dyn EventLoopWaker>>,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -1314,6 +1317,7 @@ impl ScriptThread {
             replace_surrogates,
             user_agent,
             player_context: state.player_context,
+            event_loop_waker: state.event_loop_waker,
         }
     }
 
@@ -3142,6 +3146,7 @@ impl ScriptThread {
             self.replace_surrogates,
             self.user_agent.clone(),
             self.player_context.clone(),
+            self.event_loop_waker.as_ref().map(|w| (*w).clone_box()),
         );
 
         // Initialize the browsing context for the window.

@@ -54,6 +54,7 @@ use canvas_traits::webgl::{WebGLShaderId, WebGLTextureId, WebGLVersion, WebGLVer
 use crossbeam_channel::{Receiver, Sender};
 use cssparser::RGBA;
 use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
+use embedder_traits::EventLoopWaker;
 use encoding_rs::{Decoder, Encoding};
 use euclid::default::{Point2D, Rect, Rotation3D, Transform2D, Transform3D};
 use euclid::Length as EuclidLength;
@@ -146,7 +147,7 @@ pub unsafe trait JSTraceable {
     unsafe fn trace(&self, trc: *mut JSTracer);
 }
 
-unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>);
+unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>, Box<dyn EventLoopWaker>);
 
 unsafe_no_jsmanaged_fields!(CSSError);
 

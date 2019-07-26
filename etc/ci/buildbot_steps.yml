@@ -52,6 +52,8 @@ linux-rel-css:
     - ./mach build --release --with-debug-assertions -p servo
     - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
     - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
+    - env SERVO_WEBGL_MAIN_THREAD=1 ./mach test-wpt --release --processes 24 --log-raw test-wpt-webgl.log --log-errorsummary webgl-errorsummary.log --always-succeed tests/wpt/webgl/tests/conformance
+    - ./mach filter-intermittents webgl-errorsummary.log --log-intermittents webgl-intermittents.log --log-filteredsummary filtered-webgl-errorsummary.log --tracker-api default --reporter-api default
     - bash ./etc/ci/lockfile_changed.sh
     - ./etc/ci/clean_build_artifacts.sh
 
