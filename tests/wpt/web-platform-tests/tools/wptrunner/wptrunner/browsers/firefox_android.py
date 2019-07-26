@@ -1,12 +1,9 @@
 import os
-import tempfile
 
 import moznetwork
 from mozprocess import ProcessHandler
 from mozprofile import FirefoxProfile
 from mozrunner import FennecEmulatorRunner
-
-from tools.serve.serve import make_hosts_file
 
 from .base import (get_free_port,
                    cmd_arg,
@@ -32,7 +29,6 @@ __wptrunner__ = {"product": "firefox_android",
                  "run_info_extras": "run_info_extras",
                  "update_properties": "update_properties",
                  "timeout_multiplier": "get_timeout_multiplier"}
-
 
 
 def check_args(**kwargs):
@@ -85,21 +81,6 @@ def env_options():
             "supports_debugger": True}
 
 
-def write_hosts_file(config, device):
-    new_hosts = make_hosts_file(config, moznetwork.get_ip())
-    current_hosts = device.get_file("/etc/hosts")
-    if new_hosts == current_hosts:
-        return
-    hosts_fd, hosts_path = tempfile.mkstemp()
-    try:
-        with os.fdopen(hosts_fd, "w") as f:
-            f.write(new_hosts)
-        device.remount()
-        device.push(hosts_path, "/etc/hosts")
-    finally:
-        os.remove(hosts_path)
-
-
 class FirefoxAndroidBrowser(FirefoxBrowser):
     init_timeout = 300
     shutdown_timeout = 60
@@ -132,22 +113,28 @@ class FirefoxAndroidBrowser(FirefoxBrowser):
         preferences = self.load_prefs()
 
         self.profile = FirefoxProfile(preferences=preferences)
-        self.profile.set_preferences({"marionette.port": self.marionette_port,
-                                      "dom.disable_open_during_load": False,
-                                      "places.history.enabled": False,
-                                      "dom.send_after_paint_to_content": True,
-                                      "network.preload": True})
+        self.profile.set_preferences({
+            "marionette.port": self.marionette_port,
+            "network.dns.localDomains": ",".join(self.config.domains_set),
+            "dom.disable_open_during_load": False,
+            "places.history.enabled": False,
+            "dom.send_after_paint_to_content": True,
+            "network.preload": True,
+        })
+
         if self.test_type == "reftest":
             self.logger.info("Setting android reftest preferences")
-            self.profile.set_preferences({"browser.viewport.desktopWidth": 800,
-                                          # Disable high DPI
-                                          "layout.css.devPixelsPerPx": "1.0",
-                                          # Ensure that the full browser element
-                                          # appears in the screenshot
-                                          "apz.allow_zooming": False,
-                                          "android.widget_paints_background": False,
-                                          # Ensure that scrollbars are always painted
-                                          "layout.testing.overlay-scrollbars.always-visible": True})
+            self.profile.set_preferences({
+                "browser.viewport.desktopWidth": 800,
+                # Disable high DPI
+                "layout.css.devPixelsPerPx": "1.0",
+                # Ensure that the full browser element
+                # appears in the screenshot
+                "apz.allow_zooming": False,
+                "android.widget_paints_background": False,
+                # Ensure that scrollbars are always painted
+                "layout.testing.overlay-scrollbars.always-visible": True,
+            })
 
         if self.install_fonts:
             self.logger.debug("Copying Ahem font to profile")
@@ -189,26 +176,30 @@ class FirefoxAndroidBrowser(FirefoxBrowser):
         # connect to a running emulator
         self.runner.device.connect()
 
-        write_hosts_file(self.config, self.runner.device.device)
-
         self.runner.stop()
-        self.runner.start(debug_args=debug_args, interactive=self.debug_info and self.debug_info.interactive)
+        self.runner.start(debug_args=debug_args,
+                          interactive=self.debug_info and self.debug_info.interactive)
 
         self.runner.device.device.forward(
             local="tcp:{}".format(self.marionette_port),
             remote="tcp:{}".format(self.marionette_port))
 
+        for ports in self.config.ports.values():
+            for port in ports:
+                self.runner.device.device.reverse(
+                    local="tcp:{}".format(port),
+                    remote="tcp:{}".format(port))
+
         self.logger.debug("%s Started" % self.package_name)
 
     def stop(self, force=False):
         if self.runner is not None:
-            if (self.runner.device.connected and
-                len(self.runner.device.device.list_forwards()) > 0):
+            if self.runner.device.connected:
                 try:
-                    self.runner.device.device.remove_forwards(
-                        "tcp:{}".format(self.marionette_port))
-                except Exception:
-                    self.logger.warning("Failed to remove port forwarding")
+                    self.runner.device.device.remove_forwards()
+                    self.runner.device.device.remove_reverses()
+                except Exception as e:
+                    self.logger.warning("Failed to remove forwarded or reversed ports: %s" % e)
             # We assume that stopping the runner prompts the
             # browser to shut down. This allows the leak log to be written
             self.runner.stop()

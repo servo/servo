@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test Reference</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<style>
+.v-rl {
+  writing-mode: vertical-rl;
+  width: 200px;
+}
+span {
+  display: inline-block;
+  height: 1em;
+}
+#test { color: blue; }
+#test2 { color: brown; }
+#ref { color: orange; }
+.v-rl > div {
+  display: inline-block;
+  border: solid;
+  margin: 0 5px;
+}
+</style>
+<p>Test passes if the blue, orange, brown boxes are identical.
+
+<div class=v-rl>
+  <div id=test>あいう<span></span>えお<span></span></div>
+  <br>
+  <div id=test2>あいう<span></span>えお<span></span></div>
+  <br>
+  <div id=ref>あいう<span></span>えお<span></span></div>
+</div>

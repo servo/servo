@@ -13,7 +13,7 @@
 <div id="target"></div>
 <script>
 test_computed_value("border-image-source", "none");
-test_computed_value("border-image-source", 'url("http://www.example.com/")');
+test_computed_value("border-image-source", 'url("http://{{host}}/")');
 
 test(() => {
   const target = document.getElementById('target');

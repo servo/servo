@@ -12,6 +12,7 @@
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#enclose-expression-inside-notation-menclose">
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#adjust-space-around-content-mpadded">
 <meta name="assert" content="Baseline for mrow-like elements is correct.">
+<script src="/mathml/support/feature-detection.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script type="text/javascript">
@@ -23,6 +24,7 @@
           var x = document.getElementById("above" + tag).getBoundingClientRect();
           var y = document.getElementById("below" + tag).getBoundingClientRect();
           test(function() {
+              assert_true(MathMLFeatureDetection.has_mspace());
               assert_equals(x.bottom, y.top);
           }, "baseline alignment inside " + tag);
       });

@@ -37,6 +37,8 @@
 </head>
 <body>
   <p>This test passes if it renders the same as an invalid fraction with 3 children.</p>
-  <math>
+  <math></math>
+  <script src="/mathml/support/feature-detection.js"></script>
+  <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mfrac");</script>
 </body>
 </html>

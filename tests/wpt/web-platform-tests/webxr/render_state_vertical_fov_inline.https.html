@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<canvas />
+
+<script>
+let testName = "inlineVerticalFieldOfView is set appropriately on inline sessions";
+
+let fakeDeviceInitParams = VALID_NON_IMMERSIVE_DEVICE;
+
+// These are the min, max, and default from the WebXR Spec
+let minFOV = 0.0;
+let maxFOV = Math.PI;
+let defaultFOV = Math.PI/2;
+
+function assertNotEquals(n1, n2, message) {
+  assert_greater_than(Math.abs(n1-n2), FLOAT_EPSILON, message);
+}
+
+let testFunction = function(session, fakeDeviceController, t) {
+  // Helper method because the renderState does not (per the spec) get updated
+  // until the next rAF after it was updated, so this method returns a promise
+  // which will resolve when the updated state should be applied.
+  function updateAndApplyInlineFOV(fov) {
+    session.updateRenderState({
+      inlineVerticalFieldOfView: fov
+    });
+
+    return new Promise((resolve, reject) => {
+      session.requestAnimationFrame(() => { resolve(); });
+    });
+  }
+
+  // Helper method to keep the line length reasonable with a long attribute name
+  // and ensure that the nullable value actually has a value.
+  function getFOV() {
+    let fov = session.renderState.inlineVerticalFieldOfView;
+    t.step(() => {
+      assert_not_equals(fov, null);
+    });
+
+    return fov;
+  }
+
+  return new Promise((resolve, reject) => {
+      // Begin by validating that the default is set as expected/specced.
+      t.step(() => {
+        assert_approx_equals(getFOV(), defaultFOV, FLOAT_EPSILON, "default");
+      });
+
+      // Set something below min, and assert that it is not set below the min,
+      // and significantly different from the default.
+      updateAndApplyInlineFOV(-10).then(() => {
+
+        t.step(() => {
+          let currentFOV = getFOV();
+          assert_greater_than(currentFOV, minFOV, "FOV must be set to something greater than min");
+          assert_less_than(currentFOV, maxFOV, "FOV must be set to something less than max");
+          assertNotEquals(currentFOV, defaultFOV, "FOV should no longer be set to the default");
+        });
+
+        // Set something above the max and assert that it is set to the max.
+        updateAndApplyInlineFOV(10).then(()=> {
+          t.step(()=> {
+            let currentFOV = getFOV();
+            assert_greater_than(currentFOV, minFOV, "FOV must be set to something greater than min");
+            assert_less_than(currentFOV, maxFOV, "FOV must be set to something less than max");
+            assertNotEquals(currentFOV, defaultFOV, "FOV should not be set to the default");
+          });
+
+          // Set to something reasonable and assert that the value gets set.
+          let normalFOV = 1.5;
+          updateAndApplyInlineFOV(normalFOV).then(() => {
+            t.step(() => {
+              assert_approx_equals(getFOV(), normalFOV, FLOAT_EPSILON, "FOV within min and max should get set");
+            });
+
+            resolve();
+          });
+        });
+      });
+  });
+};
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'inline');
+
+</script>

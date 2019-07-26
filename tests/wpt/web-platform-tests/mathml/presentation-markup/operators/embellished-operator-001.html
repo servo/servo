@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Embellished operators</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#embellished-operators">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#definition-of-space-like-elements">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#layout-of-mrow">
+<meta name="assert" content="Verify definition of embellished operators">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
+<style>
+  /* Default spacing of operator 'X' is 0.2777777777777778em so quite different
+     from the measured/specified 0em and 1em. */
+  math, math * {
+      font: 25px/1 Ahem;
+  }
+  mn {
+      color: black;
+  }
+  .testedElement mo {
+      color: yellow !important;
+  }
+  .testedElement, .testedElement * {
+      color: blue !important;
+      background: blue !important;
+  }
+</style>
+<script>
+  function spaceBeforeElement(id) {
+      var element = document.getElementById(id);
+      var mnBefore = element.previousElementSibling;
+      return element.getBoundingClientRect().left - mnBefore.getBoundingClientRect().right;
+  }
+
+  function spaceBeforeCoreOperator(id) {
+      var element = document.getElementById(id);
+      var coreMo = element.getElementsByTagName("mo")[0];
+      return coreMo.getBoundingClientRect().left - element.getBoundingClientRect().left;
+  }
+
+  setup({ explicit_done: true });
+  window.addEventListener("load", runTests);
+
+  function runTests() {
+      var epsilon = 1;
+      var emToPx = 25;
+
+      ["mrow", "mstyle", "mphantom", "mpadded"].forEach(tag => {
+          test(function() {
+              assert_true(MathMLFeatureDetection.has_operator_spacing());
+              assert_approx_equals(spaceBeforeElement(`${tag}-op`), 2 * emToPx, epsilon);
+              assert_approx_equals(spaceBeforeCoreOperator(`${tag}-op`), 0, epsilon);
+          }, `${tag} (embellished operator)`);
+
+          test(function() {
+              assert_true(MathMLFeatureDetection.has_operator_spacing());
+              assert_approx_equals(spaceBeforeElement(`${tag}-nonop`), 0, epsilon);
+              assert_approx_equals(spaceBeforeCoreOperator(`${tag}-nonop`), 2 * emToPx, epsilon);
+          }, `${tag} (not embellished operator)`);
+      });
+
+      done();
+  }
+</script>
+</head>
+<body>
+  <div id="log"></div>
+  <p>
+    <math>
+      <mn>X</mn>
+      <mrow id="mrow-op" class="testedElement">
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mtext class="space-like">X</mtext>
+      </mrow>
+      <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn>X</mn>
+      <mrow id="mrow-nonop" class="testedElement">
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn>X</mn> <!-- "mn" is not space-like -->
+      </mrow>
+      <mn>X</mn>
+    </math>
+  </p>
+  <!-- mstyle is an embellished operator if its children consist
+       of one embellished operator and zero or more space-like elements. -->
+  <p>
+    <math>
+      <mn>X</mn>
+      <mstyle id="mstyle-op" class="testedElement">
+        <mo lspace="2em" rspace="0em">X</mo>
+      </mstyle>
+      <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn>X</mn>
+      <mstyle id="mstyle-nonop" class="testedElement">
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn>X</mn> <!-- "mn" is not space-like -->
+      </mstyle>
+      <mn>X</mn>
+    </math>
+  </p>
+  <!-- mphantom is an embellished operator if its children consist
+       of one embellished operator and zero or more space-like elements. -->
+  <p>
+    <math>
+      <mn>X</mn>
+      <mphantom id="mphantom-op" class="testedElement">
+        <mo lspace="2em" rspace="0em">X</mo>
+      </mphantom>
+      <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn>X</mn>
+      <mphantom id="mphantom-nonop" class="testedElement">
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn>X</mn> <!-- "mn" is not space-like -->
+      </mphantom>
+      <mn>X</mn>
+    </math>
+  </p>
+  <!-- mpadded is an embellished operator if its children consist
+       of one embellished operator and zero or more space-like elements. -->
+  <p>
+    <math>
+      <mn>X</mn>
+      <mpadded id="mpadded-op" class="testedElement">
+        <mo lspace="2em" rspace="0em">X</mo>
+      </mpadded>
+      <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn>X</mn>
+      <mpadded id="mpadded-nonop" class="testedElement">
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn>X</mn> <!-- "mn" is not space-like -->
+      </mpadded>
+      <mn>X</mn>
+    </math>
+  </p>
+</body>
+</html>

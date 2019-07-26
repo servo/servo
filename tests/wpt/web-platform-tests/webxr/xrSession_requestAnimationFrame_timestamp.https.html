@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<canvas />
+
+<script>
+const TEN_SECONDS = 10000; // 10k ms in ten seconds
+const ONE_MINUTE = 60000; // 60k ms in one minute
+
+let immersiveTestName = "XRFrame getViewerPose updates on the next frame for immersive";
+let nonImmersiveTestName = "XRFrame getViewerPose updates on the next frame for non-immersive";
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction = function(session, fakeDeviceController, t) {
+  return session.requestReferenceSpace('local')
+    .then((referenceSpace) => new Promise((resolve, reject) => {
+      let counter = 0;
+      let windowFrameTime = 0;
+      let frameTime = 0;
+
+      function onFrameFirst(time, xrFrame) {
+        frameTime = time;
+        let now = performance.now();
+
+        t.step( () => {
+          // This callback must be the first one called.
+          assert_equals(counter, 0);
+
+          // window.requestAnimationFrame and session.requestAnimationFrame
+          // should be providing timestamps that are on the same scale and
+          // within a resonable margin of error of eachother. This means that
+          // this frame's timestamp should be larger than one provided to a
+          // previous window.requestAnimationFrame and should also be within
+          // a sane delta of it. One minute is probably overly generous here,
+          // but it will at least catch cases where the times are reported with
+          // entirely different bases.
+          assert_greater_than(frameTime, windowFrameTime);
+          assert_approx_equals(frameTime, windowFrameTime, ONE_MINUTE);
+
+          // There's going to be some disparity between performance.now() and
+          // the timestamp passed into the callback, but it shouldn't be huge.
+          // If they're more than ten seconds apart something has gone horribly
+          // wrong.
+          assert_approx_equals(frameTime, now, TEN_SECONDS);
+        });
+
+        counter++;
+      }
+
+      function onFrameSubsequent(time, xrFrame) {
+        t.step( () => {
+          // The timestamp passed to this callback should be exactly equal to
+          // the one passed to the first callback in this set.
+          assert_equals(time, frameTime);
+        });
+
+        counter++;
+      }
+
+      function onFrameLast(time, xrFrame) {
+        t.step( () => {
+          // Make sure all the previous callbacks fired as expected.
+          assert_equals(counter, 11);
+        });
+
+        // Finished.
+        resolve();
+      }
+
+      window.requestAnimationFrame((time) => {
+        windowFrameTime = time;
+
+        // Queue up several callbacks
+        session.requestAnimationFrame(onFrameFirst);
+        for (let i = 0; i < 10; ++i) {
+          session.requestAnimationFrame(onFrameSubsequent);
+        }
+        session.requestAnimationFrame(onFrameLast);
+      });
+
+    }));
+};
+
+xr_session_promise_test(
+  immersiveTestName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+xr_session_promise_test(
+  nonImmersiveTestName, testFunction, fakeDeviceInitParams, 'inline');
+
+</script>

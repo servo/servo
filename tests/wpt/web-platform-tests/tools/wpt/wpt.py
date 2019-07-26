@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 
-from tools import localpaths  # noqa: flake8
+from tools import localpaths  # noqa: F401
 
 from six import iteritems
 from . import virtualenv

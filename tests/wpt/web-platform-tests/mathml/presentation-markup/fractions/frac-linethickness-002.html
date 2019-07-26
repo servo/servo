@@ -7,6 +7,7 @@
     <meta name="assert" content="Verifies fraction with positive, negative, percent and named space linethickness values.">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
+    <script src="/mathml/support/feature-detection.js"></script>
     <style type="text/css">
       @font-face {
         font-family: TestFont;
@@ -37,19 +38,23 @@
         var epsilon = 2;
 
         test(function() {
+          assert_true(MathMLFeatureDetection.has_mspace());
           assert_approx_equals(LineThickness("positive"),  5.67 * 10, epsilon);
         }, "Positive");
 
         test(function() {
+          assert_true(MathMLFeatureDetection.has_mspace());
           /* Negative values are treated as 0 */
           assert_approx_equals(LineThickness("negative"),  0, epsilon);
         }, "Negative");
 
         test(function() {
+          assert_true(MathMLFeatureDetection.has_mspace());
           assert_approx_equals(LineThickness("percent"), defaultRuleThickness * 234 / 100, epsilon);
         }, "Percentage");
 
         test(function() {
+          assert_true(MathMLFeatureDetection.has_mspace());
           /* Namedspace values are invalid in MathML Core. */
           assert_approx_equals(LineThickness("namedspace"), defaultRuleThickness, epsilon);
         }, "Named space");

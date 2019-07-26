@@ -30,6 +30,8 @@ Invoking ```./generic/tools/generate.py``` will parse the spec JSON and determin
 
 The spec can be validated by running ```./generic/tools/spec_validator.py```. This is specially important when you're making changes to  ```spec.src.json```. Make sure it's a valid JSON (no comments or trailing commas). The validator should be informative and very specific on any issues.
 
+The ```spec.src.json``` file can be formatted by running ```../common/security-features/tools/format_spec_src_json.py```.
+
 For details about the spec JSON, see **Overview of the spec JSON** below.
 
 

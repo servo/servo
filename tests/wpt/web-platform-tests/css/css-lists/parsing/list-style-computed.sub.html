@@ -15,10 +15,10 @@
 test_computed_value('list-style', 'none', 'outside none none');
 
 test_computed_value('list-style', 'inside', 'inside none disc');
-test_computed_value('list-style', 'url("https://example.com/")', 'outside url("https://example.com/") disc');
+test_computed_value('list-style', 'url("https://{{host}}/")', 'outside url("https://{{host}}/") disc');
 test_computed_value('list-style', 'square', 'outside none square');
 
-test_computed_value('list-style', 'inside url("https://example.com/") square');
+test_computed_value('list-style', 'inside url("https://{{host}}/") square');
 </script>
 </body>
 </html>

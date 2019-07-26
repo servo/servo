@@ -4,7 +4,7 @@
 // Source: File API (https://w3c.github.io/FileAPI/)
 
 [Constructor(optional sequence<BlobPart> blobParts,
-             optional BlobPropertyBag options),
+             optional BlobPropertyBag options = {}),
  Exposed=(Window,Worker), Serializable]
 interface Blob {
 
@@ -33,7 +33,7 @@ typedef (BufferSource or Blob or USVString) BlobPart;
 
 [Constructor(sequence<BlobPart> fileBits,
              USVString fileName,
-             optional FilePropertyBag options),
+             optional FilePropertyBag options = {}),
  Exposed=(Window,Worker), Serializable]
 interface File : Blob {
   readonly attribute DOMString name;

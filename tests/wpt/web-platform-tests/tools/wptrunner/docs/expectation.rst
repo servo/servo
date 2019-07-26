@@ -98,6 +98,25 @@ wptupdate takes several useful options:
   Overwrite all the expectation data for any tests that have a result
   in the passed log files, not just data for the same platform.
 
+``--disable-intermittent``
+  When updating test results, disable tests that have inconsistent
+  results across many runs. This can precede a message providing a
+  reason why that test is disable. If no message is provided,
+  ``unstable`` is the default text.
+
+``--update-intermittent``
+  When this option is used, the ``expected`` key (see below) stores
+  expected intermittent statuses in addition to the primary expected
+  status. If there is more than one status, it appears as a list. The
+  default behaviour of this option is to retain any existing intermittent
+  statuses in the list unless ``--remove-intermittent`` is specified.
+
+``--remove-intermittent``
+  This option is used in conjunction with ``--update-intermittent``.
+  When the ``expected`` statuses are updated, any obsolete intermittent
+  statuses that did not occur in the specified logfiles are removed from
+  the list.
+
 Examples
 ~~~~~~~~
 
@@ -190,7 +209,8 @@ When used for expectation data, manifests have the following format:
  * A subsection per subtest, with the heading being the title of the
    subtest.
 
- * A key ``expected`` giving the expectation value of each (sub)test.
+ * A key ``expected`` giving the expectation value or values of each 
+   (sub)test.
 
  * A key ``disabled`` which can be set to any value to indicate that
    the (sub)test is disabled and should either not be run (for tests)
@@ -235,6 +255,9 @@ An simple example manifest might look like::
 
     [Test something unsupported]
        expected: FAIL
+
+    [Test with intermittent statuses]
+       expected: [PASS, TIMEOUT]
 
   [test.html?variant=broken]
     expected: ERROR

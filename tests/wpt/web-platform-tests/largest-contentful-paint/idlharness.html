@@ -1,0 +1,30 @@
+<!doctype html>
+<title>Largest Contentful Paint IDL tests</title>
+<link rel="help" href="https://wicg.github.io/largest-contentful-paint/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script>
+'use strict';
+
+idl_test(
+  ['largest-contentful-paint'],
+  ['performance-timeline', 'dom'],
+  async (idl_array, t) => {
+    idl_array.add_objects({
+      LargestContentfulPaint: ['lcp']
+    });
+
+    window.lcp = await new Promise((resolve, reject) => {
+      const observer = new PerformanceObserver(entryList => {
+        resolve(entryList.getEntries()[0]);
+      });
+      observer.observe({type: 'largest-contentful-paint', buffered: true});
+      t.step_timeout(() => reject('Timed out waiting for LargestContentfulPaint entry'), 3000);
+    });
+  }
+);
+</script>
+<!-- a contentful element to observe -->
+<img src=/images/green-100x50.png>

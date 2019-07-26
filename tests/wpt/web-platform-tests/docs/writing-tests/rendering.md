@@ -5,10 +5,6 @@ these are especially using for [visual](visual) tests which need to be manually
 judged and following common patterns makes it easier to correctly tell if a
 given test passed or not.
 
-## Make tests self-describing
-
-Tests should make it obvious when they pass and when they fail. It shouldn't be necessary to consult the specification to figure out whether a test has passed of failed.
-
 ## Indicating success
 
 Success is largely indicated by the color green; typically in one of
@@ -80,7 +76,7 @@ ways:
  * Silver or light gray is often used for irrelevant content, such as
    filler text.
 
-Obviously, none of this can be taken as absolute rules, as testing of
+None of these rules are absolute because testing
 color-related functionality will necessitate using some of these
 colors!
 

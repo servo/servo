@@ -7,6 +7,7 @@
 <meta name="assert" content="Elements munder, mover, munderover correctly use the limit parameters from the MATH table.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
 <style>
   math, mspace, mo {
     font-size: 10px;
@@ -44,6 +45,8 @@
 
   function runTests() {
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v = 3000 * emToPx;
       assert_approx_equals(getBox("under00011").top - getBox("ref0001").bottom,
                            v, epsilon, "munder: under shift");
@@ -52,6 +55,8 @@
     }, "LowerLimitBaselineDropMin");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v = 11000 * emToPx;
       assert_approx_equals(getBox("under00021").top - getBox("ref0002").bottom,
                            v, epsilon, "munder: under gap");
@@ -60,6 +65,8 @@
     }, "LowerLimitGapMin");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v = 5000 * emToPx;
       assert_approx_equals(getBox("ref0003").top - getBox("over00031").bottom,
                            v, epsilon, "mover: over shift");
@@ -68,6 +75,8 @@
     }, "UpperLimitBaselineRiseMin");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v = 7000 * emToPx;
       assert_approx_equals(getBox("ref0004").top - getBox("over00041").bottom,
                            v, epsilon, "mover: over shift");

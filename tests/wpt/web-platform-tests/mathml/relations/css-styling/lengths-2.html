@@ -10,6 +10,7 @@
 <meta name="assert" content="Verify various cases of the MathML length syntax.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
 <style>
   @font-face {
     font-family: TestFont;
@@ -35,6 +36,7 @@
 
   function runTests() {
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
       assert_equals(getBox("unitCm").width, 96, "cm");
       assert_equals(getBox("unitEm").width, 120, "em");
       assert_equals(getBox("unitEx").width, 500, "ex");
@@ -47,6 +49,7 @@
     }, "Units");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
       assert_equals(getBox("spaceCm").width, 96, "cm");
       assert_equals(getBox("spaceEm").width, 120, "em");
       assert_equals(getBox("spaceEx").width, 500, "ex");
@@ -59,6 +62,7 @@
     }, "Trimming of space");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
       assert_approx_equals(getBox("n0").width, 0, epsilon, "n0");
       assert_approx_equals(getBox("n1").width, 90, epsilon, "n1");
       assert_approx_equals(getBox("n2").width, 8, epsilon, "n2");
@@ -72,6 +76,7 @@
     }, "Non-negative numbers");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
       var topRef = getBox("ref").top;
       assert_approx_equals(getBox("N0").top - topRef, -0, epsilon, "N0");
       assert_approx_equals(topRef - getBox("N1").top, -90, epsilon, "N1");
@@ -86,6 +91,7 @@
     }, "Non-positive numbers");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
       // Namedspace values are invalid in MathML Core.
       ["veryverythinmathspace",
        "verythinmathspace",
@@ -110,6 +116,7 @@
     }, "Legacy namedspaces");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
       // These values are invalid in MathML Core.
       assert_equals(getBox("unitNone").width, 30, "Unitless");
       assert_approx_equals(getBox("n3").width, 0, epsilon, "n3");

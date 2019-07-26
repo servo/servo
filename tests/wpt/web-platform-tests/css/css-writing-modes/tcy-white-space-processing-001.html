@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes Test: white-space:normal space processing in text-combine-horizontal</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-4/#text-combine-layout">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-rules">
+<link rel="match" href="reference/tcy-white-space-processing-001-ref.html">
+<meta name="assert" content="Spaces with white-space:normal in a text-combine horizontal is trimmed at the start and end, and collapsed in the middle.">
+<style>
+.v-rl {
+  writing-mode: vertical-rl;
+  width: 200px;
+}
+span {
+  -webkit-text-combine: horizontal; /*testing the layout text-combine, not it's support in general*/
+  text-combine-upright: all;
+  white-space: normal;
+}
+#test { color: blue; }
+#ref { color: orange; }
+</style>
+<p>Test passes if the blue and orange lines of text are identical.
+
+<div class=v-rl>
+  <div id=test>あ<span>  12</span>い<span>34  </span>う<span>5    6</span>えお</div>
+  <div id=ref>あ<span>12</span>い<span>34</span>う<span>5&nbsp;6</span>えお</div>
+</div>
