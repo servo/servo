@@ -94,6 +94,15 @@ def main():
             template = os.path.join(BASE, "gecko.mako.rs")
             rust = render(template, data=properties)
             write(OUT_DIR, "gecko_properties.rs", rust)
+
+        if product == "servo":
+            names_and_prefs = [
+                (prop.name, prop.servo_pref)
+                for p in properties.longhands + properties.shorthands
+                if p.enabled_in_content()
+                for prop in [p] + p.alias
+            ]
+            write(OUT_DIR, "css_properties.json", json.dumps(names_and_prefs, indent=4))
     elif output == "geckolib":
         if len(sys.argv) < 4:
             abort(usage)

@@ -8,7 +8,7 @@ publish = false
 build = "build.rs"
 
 # https://github.com/rust-lang/cargo/issues/3544
-links = "for some reason the links key is required to pass data around between build scripts"
+links = "servo_style_crate"
 
 [lib]
 name = "style"

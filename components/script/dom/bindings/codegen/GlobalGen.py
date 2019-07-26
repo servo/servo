@@ -7,6 +7,7 @@
 
 import sys
 import os
+import json
 sys.path.append(os.path.join(".", "parser"))
 sys.path.append(os.path.join(".", "ply"))
 import WebIDL
@@ -28,7 +29,7 @@ def generate_file(config, name, filename):
 def main():
     # Parse arguments.
     from optparse import OptionParser
-    usageString = "usage: %prog [options] configFile outputdir webidldir [files]"
+    usageString = "usage: %prog [options] configFile outputdir webidldir cssProperties.json [files]"
     o = OptionParser(usage=usageString)
     o.add_option("--cachedir", dest='cachedir', default=None,
                  help="Directory in which to cache lex/parse tables.")
@@ -44,8 +45,9 @@ def main():
     configFile = args[0]
     outputdir = args[1]
     baseDir = args[2]
+    css_properties_json = args[3]
     if options.filelist is not None:
-        fileList = (l.strip() for l in open(options.filelist).xreadlines())
+        fileList = [l.strip() for l in open(options.filelist).xreadlines()]
     else:
         fileList = args[3:]
 
@@ -56,6 +58,9 @@ def main():
         with open(fullPath, 'rb') as f:
             lines = f.readlines()
         parser.parse(''.join(lines), fullPath)
+
+    add_css_properties_attributes(fileList, css_properties_json, parser)
+
     parserResults = parser.finish()
 
     if not options.only_html:
@@ -85,6 +90,58 @@ def main():
 
     for name, filename in to_generate:
         generate_file(config, name, os.path.join(outputdir, filename))
+
+
+def add_css_properties_attributes(webidl_files, css_properties_json, parser):
+    for filename in webidl_files:
+        if os.path.basename(filename) == "CSSStyleDeclaration.webidl":
+            break
+    else:
+        return
+
+    css_properties = json.load(open(css_properties_json, "rb"))
+    idl = "partial interface CSSStyleDeclaration {\n%s\n};\n" % "\n".join(
+        "  [%sCEReactions, SetterThrows] attribute [TreatNullAs=EmptyString] DOMString %s;" % (
+            ('Pref="%s", ' % pref if pref else ""),
+            attribute_name
+        )
+        for (property_name, pref) in css_properties
+        for attribute_name in attribute_names(property_name)
+    )
+    parser.parse(idl.encode("utf-8"), "CSSStyleDeclaration_generated.webidl")
+
+
+def attribute_names(property_name):
+    # https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-dashed-attribute
+    if property_name != "float":
+        yield property_name
+    else:
+        yield "_float"
+
+    # https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-camel-cased-attribute
+    if "-" in property_name:
+        yield "".join(camel_case(property_name))
+
+    # https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-webkit-cased-attribute
+    if property_name.startswith("-webkit-"):
+        yield "".join(camel_case(property_name), True)
+
+
+# https://drafts.csswg.org/cssom/#css-property-to-idl-attribute
+def camel_case(chars, webkit_prefixed=False):
+    if webkit_prefixed:
+        chars = chars[1:]
+    next_is_uppercase = False
+    for c in chars:
+        if c == '-':
+            next_is_uppercase = True
+        elif next_is_uppercase:
+            next_is_uppercase = False
+            # Should be ASCII-uppercase, but all non-custom CSS property names are within ASCII
+            yield c.upper()
+        else:
+            yield c
+
 
 if __name__ == '__main__':
     main()

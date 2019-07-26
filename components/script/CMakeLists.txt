@@ -41,13 +41,11 @@ set(globalgen_deps
   ${bindings_src}/Configuration.py
   ${bindings_src}/CodegenRust.py
   ${bindings_src}/parser/WebIDL.py
+  ${PROJECT_BINARY_DIR}/css_properties.json
   )
 set(bindinggen_deps
+  ${globalgen_deps}
   ${bindings_src}/BindingGen.py
-  ${bindings_src}/Bindings.conf
-  ${bindings_src}/Configuration.py
-  ${bindings_src}/CodegenRust.py
-  ${bindings_src}/parser/WebIDL.py
   )
 
 add_custom_command(
@@ -71,6 +69,7 @@ add_custom_command(
                  ${bindings_src}/Bindings.conf
                  .
                  ${PROJECT_SOURCE_DIR}
+                 ${PROJECT_BINARY_DIR}/css_properties.json
   DEPENDS Bindings _cache ${globalgen_deps} ${webidls}
   VERBATIM
   )
@@ -85,6 +84,7 @@ add_custom_command(
                  ${bindings_src}/Bindings.conf
                  .
                  ${PROJECT_SOURCE_DIR}
+                 ${PROJECT_BINARY_DIR}/css_properties.json
   DEPENDS _cache ${globalgen_deps} ${webidls}
   VERBATIM
   )
