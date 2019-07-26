@@ -22,6 +22,130 @@ fn catch_any_panic<F: FnOnce() + UnwindSafe>(function: F) -> bool {
     panic::catch_unwind(function).is_ok()
 }
 
+#[cfg(not(target_os = "windows"))]
+fn redirect_stdout_stderr() -> Result<(), String> {
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn redirect_stdout_stderr() -> Result<(), String> {
+    do_redirect_stdout_stderr().map_err(|()| {
+        format!("GetLastError() = {}", unsafe {
+            winapi::um::errhandlingapi::GetLastError()
+        })
+    })
+}
+
+#[cfg(target_os = "windows")]
+// Function to redirect STDOUT (1) and STDERR(2) to Windows API
+// OutputDebugString().
+// Return Value: Result<(), String>
+//              Ok() - stdout and stderr redirects.
+//              Err(str) - The Err value can contain the string value of GetLastError.
+fn do_redirect_stdout_stderr() -> Result<(), ()> {
+    use std::thread;
+    use winapi::shared;
+    use winapi::um::debugapi;
+    use winapi::um::handleapi;
+    use winapi::um::minwinbase;
+    use winapi::um::namedpipeapi;
+    use winapi::um::processenv;
+    use winapi::um::winbase;
+    use winapi::um::winnt;
+
+    let mut h_read_pipe: winnt::HANDLE = handleapi::INVALID_HANDLE_VALUE;
+    let mut h_write_pipe: winnt::HANDLE = handleapi::INVALID_HANDLE_VALUE;
+    let mut secattr: minwinbase::SECURITY_ATTRIBUTES = unsafe { mem::zeroed() };
+    const BUF_LENGTH: usize = 1024;
+
+    secattr.nLength = mem::size_of::<minwinbase::SECURITY_ATTRIBUTES>() as u32;
+    secattr.bInheritHandle = shared::minwindef::TRUE;
+    secattr.lpSecurityDescriptor = shared::ntdef::NULL;
+
+    unsafe {
+        if namedpipeapi::CreatePipe(
+            &mut h_read_pipe,
+            &mut h_write_pipe,
+            &mut secattr,
+            BUF_LENGTH as u32,
+        ) == 0
+        {
+            return Err(());
+        }
+
+        if processenv::SetStdHandle(winbase::STD_OUTPUT_HANDLE, h_write_pipe) == 0 ||
+            processenv::SetStdHandle(winbase::STD_ERROR_HANDLE, h_write_pipe) == 0
+        {
+            return Err(());
+        }
+
+        if handleapi::SetHandleInformation(
+            h_read_pipe,
+            winbase::HANDLE_FLAG_INHERIT,
+            winbase::HANDLE_FLAG_INHERIT,
+        ) == 0 ||
+            handleapi::SetHandleInformation(
+                h_write_pipe,
+                winbase::HANDLE_FLAG_INHERIT,
+                winbase::HANDLE_FLAG_INHERIT,
+            ) == 0
+        {
+            return Err(());
+        }
+
+        let h_read_pipe_fd = libc::open_osfhandle(h_read_pipe as libc::intptr_t, libc::O_RDONLY);
+        let h_write_pipe_fd = libc::open_osfhandle(h_write_pipe as libc::intptr_t, libc::O_WRONLY);
+
+        if h_read_pipe_fd == -1 || h_write_pipe_fd == -1 {
+            return Err(());
+        }
+
+        // 0 indicates success.
+        if libc::dup2(h_write_pipe_fd, 1) != 0 || libc::dup2(h_write_pipe_fd, 2) != 0 {
+            return Err(());
+        }
+
+        // If SetStdHandle(winbase::STD_OUTPUT_HANDLE, hWritePipe) is not called prior,
+        // this will fail.  GetStdHandle() is used to make certain "servo" has the stdout
+        // file descriptor associated.
+        let h_stdout = processenv::GetStdHandle(winbase::STD_OUTPUT_HANDLE);
+        if h_stdout == handleapi::INVALID_HANDLE_VALUE || h_stdout == shared::ntdef::NULL {
+            return Err(());
+        }
+
+        // If SetStdHandle(winbase::STD_ERROR_HANDLE, hWritePipe) is not called prior,
+        // this will fail.  GetStdHandle() is used to make certain "servo" has the stderr
+        // file descriptor associated.
+        let h_stderr = processenv::GetStdHandle(winbase::STD_ERROR_HANDLE);
+        if h_stderr == handleapi::INVALID_HANDLE_VALUE || h_stderr == shared::ntdef::NULL {
+            return Err(());
+        }
+
+        // Spawn a thread.  The thread will redirect all STDOUT and STDERR messages
+        // to OutputDebugString()
+        let _handler = thread::spawn(move || {
+            loop {
+                let mut read_buf: [i8; BUF_LENGTH] = [0; BUF_LENGTH];
+
+                let result = libc::read(
+                    h_read_pipe_fd,
+                    read_buf.as_mut_ptr() as *mut _,
+                    read_buf.len() as u32 - 1,
+                );
+
+                if result == -1 {
+                    break;
+                }
+
+                // Write to Debug port.
+                debugapi::OutputDebugStringA(read_buf.as_mut_ptr() as winnt::LPSTR);
+            }
+        });
+    }
+
+    Ok(())
+}
+
 fn call<F>(f: F)
 where
     F: Fn(&mut ServoGlue) -> Result<(), &'static str>,
@@ -116,6 +240,10 @@ unsafe fn init(
     callbacks: CHostCallbacks,
 ) {
     init_logger();
+
+    if let Err(reason) = redirect_stdout_stderr() {
+        warn!("Error redirecting stdout/stderr: {}", reason);
+    }
 
     let args = if !opts.args.is_null() {
         let args = CStr::from_ptr(opts.args);
