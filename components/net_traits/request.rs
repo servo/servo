@@ -10,7 +10,7 @@ use msg::constellation_msg::PipelineId;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 /// An [initiator](https://fetch.spec.whatwg.org/#concept-request-initiator)
-#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum Initiator {
     None,
     Download,
@@ -160,6 +160,7 @@ pub struct RequestBuilder {
     pub unsafe_request: bool,
     pub body: Option<Vec<u8>>,
     pub service_workers_mode: ServiceWorkersMode,
+    pub initiator: Initiator,
     // TODO: client object
     pub destination: Destination,
     pub synchronous: bool,
@@ -189,6 +190,7 @@ impl RequestBuilder {
             unsafe_request: false,
             body: None,
             service_workers_mode: ServiceWorkersMode::All,
+            initiator: Initiator::None,
             destination: Destination::None,
             synchronous: false,
             mode: RequestMode::NoCors,
@@ -229,6 +231,11 @@ impl RequestBuilder {
 
     pub fn destination(mut self, destination: Destination) -> RequestBuilder {
         self.destination = destination;
+        self
+    }
+
+    pub fn initiator(mut self, initiator: Initiator) -> RequestBuilder {
+        self.initiator = initiator;
         self
     }
 

@@ -38,7 +38,7 @@ use hyper_serde::Serde;
 use msg::constellation_msg::{HistoryStateId, PipelineId};
 use net_traits::quality::{quality_to_value, Quality, QualityItem};
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
-use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
+use net_traits::request::{RedirectMode, Referrer, Request, RequestBuilder, RequestMode};
 use net_traits::request::{ResponseTainting, ServiceWorkersMode};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
@@ -1455,17 +1455,18 @@ fn cors_preflight_fetch(
     context: &FetchContext,
 ) -> Response {
     // Step 1
-    let mut preflight = Request::new(
-        request.current_url(),
-        Some(request.origin.clone()),
-        request.pipeline_id,
-    );
-    preflight.method = Method::OPTIONS;
-    preflight.initiator = request.initiator.clone();
-    preflight.destination = request.destination.clone();
-    preflight.origin = request.origin.clone();
-    preflight.referrer = request.referrer.clone();
-    preflight.referrer_policy = request.referrer_policy;
+    let mut preflight = RequestBuilder::new(request.current_url())
+        .method(Method::OPTIONS)
+        .origin(match request.origin.clone() {
+            Origin::Client => ImmutableOrigin::new_opaque(),
+            Origin::Origin(origin) => origin,
+        })
+        .pipeline_id(request.pipeline_id)
+        .initiator(request.initiator.clone())
+        .destination(request.destination.clone())
+        .referrer(Some(request.referrer.clone()))
+        .referrer_policy(request.referrer_policy)
+        .build();
 
     // Step 2
     preflight

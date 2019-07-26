@@ -105,6 +105,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
         unsafe_request: request.unsafe_request,
         body: request.body.clone(),
         service_workers_mode: ServiceWorkersMode::All,
+        initiator: request.initiator.clone(),
         destination: request.destination,
         synchronous: request.synchronous,
         mode: request.mode.clone(),
