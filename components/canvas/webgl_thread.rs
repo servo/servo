@@ -10,7 +10,8 @@ use euclid::default::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
 use half::f16;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender, OpaqueIpcMessage};
+use ipc_channel::router::ROUTER;
 use offscreen_gl_context::{DrawBuffer, GLContext, NativeGLContextMethods};
 use pixels::{self, PixelFormat};
 use std::borrow::Cow;
@@ -159,27 +160,24 @@ impl WebGLThread {
         event_loop_waker: Box<dyn EventLoopWaker>,
         textures: TexturesMap,
     ) -> WebGLMainThread {
-        // Interpose a new channel in between the existing WebGL channel endpoints.
-        // This will bounce all WebGL messages through a second thread adding a small
-        // delay, but this will also ensure that the main thread will wake up and
-        // process the WebGL message when it arrives.
-        let (from_router_sender, from_router_receiver) = webgl_channel::<WebGLMsg>().unwrap();
-        let receiver = mem::replace(&mut init.receiver, from_router_receiver);
-
-        let thread_data = WebGLThread::new(init);
-
-        thread::Builder::new()
-            .name("WebGL main thread pump".to_owned())
-            .spawn(move || {
-                while let Ok(msg) = receiver.recv() {
-                    let _ = from_router_sender.send(msg);
+        if let WebGLReceiver::Ipc(ref mut receiver) = init.receiver {
+            // Interpose a new channel in between the existing WebGL channel endpoints.
+            // This will bounce all WebGL messages through the router thread adding a small
+            // delay, but this will also ensure that the main thread will wake up and
+            // process the WebGL message when it arrives.
+            let (from_router_sender, from_router_receiver) = ipc::channel::<WebGLMsg>().unwrap();
+            let old_receiver = mem::replace(receiver, from_router_receiver);
+            ROUTER.add_route(
+                old_receiver.to_opaque(),
+                Box::new(move |msg: OpaqueIpcMessage| {
+                    let _ = from_router_sender.send(msg.to().unwrap());
                     event_loop_waker.wake();
-                }
-            })
-            .expect("Thread spawning failed");
+                }),
+            );
+        }
 
         WebGLMainThread {
-            thread_data,
+            thread_data: WebGLThread::new(init),
             textures,
             shut_down: false,
         }

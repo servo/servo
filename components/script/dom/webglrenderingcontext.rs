@@ -54,12 +54,13 @@ use backtrace::Backtrace;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
     webgl_channel, AlphaTreatment, DOMToTextureCommand, GLContextAttributes, GLLimits, GlType,
-    Parameter, TexDataType, TexFormat, TexParameter, WebGLCommand, WebGLCommandBacktrace,
-    WebGLContextShareMode, WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender,
-    WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLSender, WebGLVersion, WebVRCommand,
-    YAxisTreatment,
+    Parameter, TexDataType, TexFormat, TexParameter, WebGLChan, WebGLCommand,
+    WebGLCommandBacktrace, WebGLContextId, WebGLContextShareMode, WebGLError,
+    WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId, WebGLResult,
+    WebGLSLVersion, WebGLSendResult, WebGLSender, WebGLVersion, WebVRCommand, YAxisTreatment,
 };
 use dom_struct::dom_struct;
+use embedder_traits::EventLoopWaker;
 use euclid::default::{Point2D, Rect, Size2D};
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use js::jsapi::{JSContext, JSObject, Type};
@@ -79,6 +80,7 @@ use std::cell::Cell;
 use std::cmp;
 use std::ptr::{self, NonNull};
 use std::rc::Rc;
+use webrender_api::ImageKey;
 
 // From the GLES 2.0.25 spec, page 85:
 //
@@ -135,7 +137,7 @@ bitflags! {
 pub struct WebGLRenderingContext {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "Channels are hard"]
-    webgl_sender: WebGLMsgSender,
+    webgl_sender: WebGLMessageSender,
     #[ignore_malloc_size_of = "Defined in webrender"]
     webrender_image: Cell<Option<webrender_api::ImageKey>>,
     share_mode: WebGLContextShareMode,
@@ -197,7 +199,10 @@ impl WebGLRenderingContext {
             let max_combined_texture_image_units = ctx_data.limits.max_combined_texture_image_units;
             Self {
                 reflector_: Reflector::new(),
-                webgl_sender: ctx_data.sender,
+                webgl_sender: WebGLMessageSender::new(
+                    ctx_data.sender,
+                    window.get_event_loop_waker(),
+                ),
                 webrender_image: Cell::new(None),
                 share_mode: ctx_data.share_mode,
                 webgl_version,
@@ -319,7 +324,7 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn webgl_sender(&self) -> WebGLMsgSender {
+    pub(crate) fn webgl_sender(&self) -> WebGLMessageSender {
         self.webgl_sender.clone()
     }
 
@@ -4286,5 +4291,94 @@ impl TexPixels {
             pixel_format: None,
             premultiplied: false,
         }
+    }
+}
+
+#[derive(JSTraceable)]
+pub(crate) struct WebGLCommandSender {
+    sender: WebGLChan,
+    waker: Option<Box<dyn EventLoopWaker>>,
+}
+
+impl WebGLCommandSender {
+    pub fn new(sender: WebGLChan, waker: Option<Box<dyn EventLoopWaker>>) -> WebGLCommandSender {
+        WebGLCommandSender { sender, waker }
+    }
+
+    pub fn send(&self, msg: WebGLMsg) -> WebGLSendResult {
+        let result = self.sender.send(msg);
+        if let Some(ref waker) = self.waker {
+            waker.wake();
+        }
+        result
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) struct WebGLMessageSender {
+    sender: WebGLMsgSender,
+    #[ignore_malloc_size_of = "traits are cumbersome"]
+    waker: Option<Box<dyn EventLoopWaker>>,
+}
+
+impl Clone for WebGLMessageSender {
+    fn clone(&self) -> WebGLMessageSender {
+        WebGLMessageSender {
+            sender: self.sender.clone(),
+            waker: self.waker.as_ref().map(|w| (*w).clone_box()),
+        }
+    }
+}
+
+impl WebGLMessageSender {
+    fn wake_after_send<F: FnOnce() -> WebGLSendResult>(&self, f: F) -> WebGLSendResult {
+        let result = f();
+        if let Some(ref waker) = self.waker {
+            waker.wake();
+        }
+        result
+    }
+
+    pub fn new(
+        sender: WebGLMsgSender,
+        waker: Option<Box<dyn EventLoopWaker>>,
+    ) -> WebGLMessageSender {
+        WebGLMessageSender { sender, waker }
+    }
+
+    pub fn context_id(&self) -> WebGLContextId {
+        self.sender.context_id()
+    }
+
+    pub fn send(&self, msg: WebGLCommand, backtrace: WebGLCommandBacktrace) -> WebGLSendResult {
+        self.wake_after_send(|| self.sender.send(msg, backtrace))
+    }
+
+    pub fn send_vr(&self, command: WebVRCommand) -> WebGLSendResult {
+        self.wake_after_send(|| self.sender.send_vr(command))
+    }
+
+    pub fn send_resize(
+        &self,
+        size: Size2D<u32>,
+        sender: WebGLSender<Result<(), String>>,
+    ) -> WebGLSendResult {
+        self.wake_after_send(|| self.sender.send_resize(size, sender))
+    }
+
+    pub fn send_remove(&self) -> WebGLSendResult {
+        self.wake_after_send(|| self.sender.send_remove())
+    }
+
+    pub fn send_update_wr_image(&self, sender: WebGLSender<ImageKey>) -> WebGLSendResult {
+        self.wake_after_send(|| self.sender.send_update_wr_image(sender))
+    }
+
+    pub fn send_dom_to_texture(&self, command: DOMToTextureCommand) -> WebGLSendResult {
+        self.wake_after_send(|| self.sender.send_dom_to_texture(command))
+    }
+
+    pub fn webxr_external_image_api(&self) -> impl webxr_api::WebGLExternalImageApi {
+        self.sender.webxr_external_image_api()
     }
 }

@@ -413,17 +413,17 @@ where
         let (external_image_handlers, external_images) = WebrenderExternalImageHandlers::new();
         let mut external_image_handlers = Box::new(external_image_handlers);
 
+        let run_webgl_on_main_thread =
+            cfg!(windows) || std::env::var("SERVO_WEBGL_MAIN_THREAD").is_ok();
+
         // Initialize WebGL Thread entry point.
         let webgl_result = gl_factory.map(|factory| {
-            let run_on_main_thread =
-                cfg!(windows) || std::env::var("SERVO_WEBGL_MAIN_THREAD").is_ok();
-
             let (webgl_threads, thread_data, image_handler, output_handler) = WebGLThreads::new(
                 factory,
                 webrender_api_sender.clone(),
                 webvr_compositor.map(|c| c as Box<_>),
                 external_images.clone(),
-                if run_on_main_thread {
+                if run_webgl_on_main_thread {
                     ThreadMode::MainThread(embedder.create_event_loop_waker())
                 } else {
                     ThreadMode::OffThread(window.gl())
@@ -464,6 +464,17 @@ where
 
         webrender.set_external_image_handler(external_image_handlers);
 
+        // When webgl execution occurs on the main thread, and the script thread
+        // lives in the same process, then the script thread needs the ability to
+        // wake up the main thread's event loop when webgl commands need processing.
+        // When there are multiple processes, this is handled automatically by
+        // the IPC receiving handler instead.
+        let event_loop_waker = if run_webgl_on_main_thread && !opts.multiprocess {
+            Some(embedder.create_event_loop_waker())
+        } else {
+            None
+        };
+
         // Create the constellation, which maintains the engine
         // pipelines, including the script and layout threads, as well
         // as the navigation context.
@@ -484,6 +495,7 @@ where
             webvr_chan,
             webvr_constellation_sender,
             glplayer_threads,
+            event_loop_waker,
         );
 
         // Send the constellation's swmanager sender to service worker manager thread
@@ -802,6 +814,7 @@ fn create_constellation(
     webvr_chan: Option<IpcSender<WebVRMsg>>,
     webvr_constellation_sender: Option<Sender<Sender<ConstellationMsg>>>,
     glplayer_threads: Option<GLPlayerThreads>,
+    event_loop_waker: Option<Box<dyn EventLoopWaker>>,
 ) -> (Sender<ConstellationMsg>, SWManagerSenders) {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
@@ -843,6 +856,7 @@ fn create_constellation(
         webxr_registry,
         glplayer_threads,
         player_context,
+        event_loop_waker,
     };
     let (constellation_chan, from_swmanager_sender) = Constellation::<
         script_layout_interface::message::Msg,
@@ -947,7 +961,8 @@ pub fn run_content_process(token: String) {
                                      layout_thread::LayoutThread,
                                      script::script_thread::ScriptThread>(
                                          true,
-                                         background_hang_monitor_register
+                                         background_hang_monitor_register,
+                                         None,
                                      );
 }
 

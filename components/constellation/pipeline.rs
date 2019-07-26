@@ -11,6 +11,7 @@ use compositing::CompositionPipeline;
 use compositing::CompositorProxy;
 use crossbeam_channel::Sender;
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
+use embedder_traits::EventLoopWaker;
 use euclid::{Scale, Size2D};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -195,6 +196,9 @@ pub struct InitialPipelineState {
 
     /// Application window's GL Context for Media player
     pub player_context: WindowGLContext,
+
+    /// Mechanism to force the compositor to process events.
+    pub event_loop_waker: Option<Box<dyn EventLoopWaker>>,
 }
 
 pub struct NewPipeline {
@@ -327,7 +331,11 @@ impl Pipeline {
                     let register = state
                         .background_monitor_register
                         .expect("Couldn't start content, no background monitor has been initiated");
-                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false, register);
+                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(
+                        false,
+                        register,
+                        state.event_loop_waker,
+                    );
                     None
                 };
 
@@ -524,6 +532,7 @@ impl UnprivilegedPipelineContent {
         self,
         wait_for_completion: bool,
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
+        event_loop_waker: Option<Box<dyn EventLoopWaker>>,
     ) where
         LTF: LayoutThreadFactory<Message = Message>,
         STF: ScriptThreadFactory<Message = Message>,
@@ -566,6 +575,7 @@ impl UnprivilegedPipelineContent {
                 webrender_api_sender: self.webrender_api_sender.clone(),
                 layout_is_busy: layout_thread_busy_flag.clone(),
                 player_context: self.player_context.clone(),
+                event_loop_waker,
             },
             self.load_data.clone(),
             self.opts.profile_script_events,
