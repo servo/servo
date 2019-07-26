@@ -23,8 +23,8 @@ callback PerformanceObserverCallback = void (PerformanceObserverEntryList entrie
                                              PerformanceObserver observer);
 [Constructor(PerformanceObserverCallback callback), Exposed=(Window,Worker)]
 interface PerformanceObserver {
-  void observe(optional PerformanceObserverInit options);
-  void disconnect();
+  void observe (optional PerformanceObserverInit options = {});
+  void disconnect ();
   PerformanceEntryList takeRecords();
   [SameObject] static readonly attribute FrozenArray<DOMString> supportedEntryTypes;
 };

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html dir="rtl">
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="./resources/intersection-observer-test-utils.js"></script>
+
+  <style>
+  pre, #log {
+    position: absolute;
+    top: 120px;
+    left: 0;
+  }
+  #root {
+    width: 350px;
+    height: 100px;
+    border: 1px solid black;
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+  }
+  #target-start, #target-end {
+    width: 100px;
+    height: 100px;
+    flex-shrink: 0;
+    background-color: green;
+    text-align: center;
+  }
+  #target-end {
+    margin-inline-start: 500px;
+  }
+  </style>
+</head>
+
+<div id="root">
+  <div id="target-start">start</div>
+  <div id="target-end">end</div>
+</div>
+
+<script>
+runTestCycle(function() {
+  let io = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("intersecting");
+      } else {
+        entry.target.classList.remove("intersecting");
+      }
+    });
+  }, { root: document.getElementById("root") });
+  document.querySelectorAll("#root > div").forEach(element => {
+    io.observe(element);
+  });
+  runTestCycle(step0, "First rAF");
+}, "Explicit rtl root with overflow clipping");
+
+function step0() {
+  assert_true(
+    document.getElementById("target-start").classList.contains("intersecting"),
+    "Target at scroll start is intersecting");
+  assert_false(
+    document.getElementById("target-end").classList.contains("intersecting"),
+    "Target at scroll end is not intersecting");
+}
+</script>

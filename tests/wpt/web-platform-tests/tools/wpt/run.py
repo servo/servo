@@ -661,7 +661,7 @@ def main():
 
 if __name__ == "__main__":
     import pdb
-    from tools import localpaths  # noqa: flake8
+    from tools import localpaths  # noqa: F401
     try:
         main()
     except Exception:

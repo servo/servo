@@ -8,6 +8,7 @@
 <meta name="assert" content="Verify that the display attribute on the math element is supported and impacts centering and line breaking with surrounding content.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
 <script>
   function getBox(aId) {
     return document.getElementById(aId).getBoundingClientRect();
@@ -19,6 +20,7 @@
     var mspace_block = getBox("mspace_block");
     var after_block = getBox("after_block");
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
       assert_approx_equals(before_block.left, content.left, 1,
                            "content before must be left aligned");
       assert_approx_equals((mspace_block.left + mspace_block.right) / 2,
@@ -37,6 +39,7 @@
     var mspace_inline = getBox("mspace_inline");
     var after_inline = getBox("after_inline");
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
       assert_approx_equals((before_inline.top + before_inline.bottom) / 2,
                            (mspace_inline.top + mspace_inline.bottom) / 2,
                            1,

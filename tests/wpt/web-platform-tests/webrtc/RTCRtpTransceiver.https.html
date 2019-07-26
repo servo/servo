@@ -456,12 +456,6 @@
     const offer = await pc1.createOffer();
     await pc1.setLocalDescription(offer);
     await pc2.setRemoteDescription(offer);
-    let answer = await pc2.createAnswer();
-    // Remove mid attr
-    answer.sdp = answer.sdp.replace("a=mid:", "a=unknownattr:");
-    // Remove group attr also
-    answer.sdp = answer.sdp.replace("a=group:", "a=unknownattr:");
-    await pc1.setRemoteDescription(answer);
 
     hasPropsAndUniqueMids(pc1.getTransceivers(),
       [
@@ -469,13 +463,45 @@
           receiver: {track: {kind: "audio"}},
           sender: {track: {kind: "audio"}},
           direction: "sendrecv",
-          currentDirection: "sendonly",
+          currentDirection: null,
           stopped: false
+        }
+      ]);
+
+    const lastMid = pc1.getTransceivers()[0].mid;
+
+    let answer = await pc2.createAnswer();
+    // Remove mid attr
+    answer.sdp = answer.sdp.replace("a=mid:", "a=unknownattr:");
+    // Remove group attr also
+    answer.sdp = answer.sdp.replace("a=group:", "a=unknownattr:");
+    await pc1.setRemoteDescription(answer);
+
+    hasProps(pc1.getTransceivers(),
+      [
+        {
+          receiver: {track: {kind: "audio"}},
+          sender: {track: {kind: "audio"}},
+          direction: "sendrecv",
+          currentDirection: "sendonly",
+          stopped: false,
+          mid: lastMid
         }
       ]);
 
     const reoffer = await pc1.createOffer();
     await pc1.setLocalDescription(reoffer);
+    hasProps(pc1.getTransceivers(),
+      [
+        {
+          receiver: {track: {kind: "audio"}},
+          sender: {track: {kind: "audio"}},
+          direction: "sendrecv",
+          currentDirection: "sendonly",
+          stopped: false,
+          mid: lastMid
+        }
+      ]);
   };
 
   const checkAddTransceiverNoTrackDoesntPair = async t => {

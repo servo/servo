@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>color</title>
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#text-mtext">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fraction-with-nonzero-line-thickness">
+<link rel="match" href="color-002-ref.html"/>
+<meta name="assert" content="Verify that the color is used for text and fraction bar of the mfrac element.">
+</head>
+<body>
+  <p>Test passes if you see a green square.</p>
+  <div style="background: green; color: red; width: 200px; height: 200px; padding: 1px;">
+    <math><mfrac style="color: green"><mn>1</mn><mn>2</mn></mfrac></math>
+  </div>
+  <script src="/mathml/support/feature-detection.js"></script>
+  <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mfrac");</script>
+</body>
+</html>

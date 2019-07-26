@@ -39,6 +39,19 @@ async function assertNoNegotiationNeeded(t, pc) {
   assert_equals(event, undefined, "No negotiationneeded event");
 }
 
+// In Chromium, assert_equals() produces test expectations with the values
+// compared. Because ufrags are different on each run, this would make Chromium
+// test expectations different on each run on tests that failed when comparing
+// ufrags. To work around this problem, assert_ufrags_equals() and
+// assert_ufrags_not_equals() should be preferred over assert_equals() and
+// assert_not_equals().
+function assert_ufrags_equals(x, y, description) {
+  assert_true(x === y, description);
+}
+function assert_ufrags_not_equals(x, y, description) {
+  assert_false(x === y, description);
+}
+
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   const pc2 = new RTCPeerConnection();
@@ -90,21 +103,21 @@ promise_test(async t => {
   const [oldUfrag1] = getUfrags(pc1.localDescription);
   const [oldUfrag2] = getUfrags(pc2.localDescription);
   await doSignalingHandshakeEndOnFirst(pc1, pc2);
-  assert_equals(getUfrags(pc1.localDescription)[0], oldUfrag1, "control 1");
-  assert_equals(getUfrags(pc2.localDescription)[0], oldUfrag2, "control 2");
+  assert_ufrags_equals(getUfrags(pc1.localDescription)[0], oldUfrag1, "control 1");
+  assert_ufrags_equals(getUfrags(pc2.localDescription)[0], oldUfrag2, "control 2");
 
   pc1.restartIce();
   await new Promise(r => pc1.onnegotiationneeded = r);
   await doSignalingHandshakeEndOnFirst(pc1, pc2);
   const [newUfrag1] = getUfrags(pc1.localDescription);
   const [newUfrag2] = getUfrags(pc2.localDescription);
-  assert_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
-  assert_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
+  assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
+  assert_ufrags_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
   await assertNoNegotiationNeeded(t, pc1);
 
   await doSignalingHandshakeEndOnFirst(pc1, pc2);
-  assert_equals(getUfrags(pc1.localDescription)[0], newUfrag1, "Unchanged 1");
-  assert_equals(getUfrags(pc2.localDescription)[0], newUfrag2, "Unchanged 2");
+  assert_ufrags_equals(getUfrags(pc1.localDescription)[0], newUfrag1, "Unchanged 1");
+  assert_ufrags_equals(getUfrags(pc2.localDescription)[0], newUfrag2, "Unchanged 2");
 }, "restartIce() causes fresh ufrags");
 
 promise_test(async t => {
@@ -124,15 +137,25 @@ promise_test(async t => {
   pc1.restartIce();
   await pc2.setRemoteDescription(pc1.localDescription);
   await pc2.setLocalDescription(await pc2.createAnswer());
+  // Several tests in this file initializes the onnegotiationneeded listener
+  // before the setLocalDescription() or setRemoteDescription() that we expect
+  // to trigger negotiation needed. This allows Chrome to exercise these tests
+  // without timing out due to a bug that causes onnegotiationneeded to fire too
+  // early.
+  // TODO(https://crbug.com/985797): Once Chrome does not fire ONN too early,
+  // simply do "await new Promise(...)" instead of
+  // "await negotiationNeededPromise" here and in other tests in this file.
+  const negotiationNeededPromise =
+      new Promise(r => pc1.onnegotiationneeded = r);
   await pc1.setRemoteDescription(pc2.localDescription);
-  assert_equals(getUfrags(pc1.localDescription)[0], oldUfrag1, "Unchanged 1");
-  assert_equals(getUfrags(pc2.localDescription)[0], oldUfrag2, "Unchanged 2");
-  await new Promise(r => pc1.onnegotiationneeded = r);
+  assert_ufrags_equals(getUfrags(pc1.localDescription)[0], oldUfrag1, "Unchanged 1");
+  assert_ufrags_equals(getUfrags(pc2.localDescription)[0], oldUfrag2, "Unchanged 2");
+  await negotiationNeededPromise;
   await doSignalingHandshakeEndOnFirst(pc1, pc2);
   const [newUfrag1] = getUfrags(pc1.localDescription);
   const [newUfrag2] = getUfrags(pc2.localDescription);
-  assert_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
-  assert_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
+  assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
+  assert_ufrags_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
   await assertNoNegotiationNeeded(t, pc1);
 }, "restartIce() works in have-local-offer");
 
@@ -148,15 +171,17 @@ promise_test(async t => {
   pc1.restartIce();
   await pc2.setRemoteDescription(pc1.localDescription);
   await pc2.setLocalDescription(await pc2.createAnswer());
+  const negotiationNeededPromise =
+      new Promise(r => pc1.onnegotiationneeded = r);
   await pc1.setRemoteDescription(pc2.localDescription);
   const [oldUfrag1] = getUfrags(pc1.localDescription);
   const [oldUfrag2] = getUfrags(pc2.localDescription);
-  await new Promise(r => pc1.onnegotiationneeded = r);
+  await negotiationNeededPromise;
   await doSignalingHandshakeEndOnFirst(pc1, pc2);
   const [newUfrag1] = getUfrags(pc1.localDescription);
   const [newUfrag2] = getUfrags(pc2.localDescription);
-  assert_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
-  assert_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
+  assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
+  assert_ufrags_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
   await assertNoNegotiationNeeded(t, pc1);
 }, "restartIce() works in initial have-local-offer");
 
@@ -177,15 +202,17 @@ promise_test(async t => {
   await pc1.setRemoteDescription(pc2.localDescription);
   pc1.restartIce();
   await pc2.setRemoteDescription(await pc1.createAnswer());
+  const negotiationNeededPromise =
+      new Promise(r => pc1.onnegotiationneeded = r);
   await pc1.setLocalDescription(pc2.remoteDescription); // End on pc1. No race
-  assert_equals(getUfrags(pc1.localDescription)[0], oldUfrag1, "Unchanged 1");
-  assert_equals(getUfrags(pc2.localDescription)[0], oldUfrag2, "Unchanged 2");
-  await new Promise(r => pc1.onnegotiationneeded = r);
+  assert_ufrags_equals(getUfrags(pc1.localDescription)[0], oldUfrag1, "Unchanged 1");
+  assert_ufrags_equals(getUfrags(pc2.localDescription)[0], oldUfrag2, "Unchanged 2");
+  await negotiationNeededPromise;
   await doSignalingHandshakeEndOnFirst(pc1, pc2);
   const [newUfrag1] = getUfrags(pc1.localDescription);
   const [newUfrag2] = getUfrags(pc2.localDescription);
-  assert_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
-  assert_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
+  assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
+  assert_ufrags_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
   await assertNoNegotiationNeeded(t, pc1);
 }, "restartIce() works in have-remote-offer");
 
@@ -219,15 +246,17 @@ promise_test(async t => {
 
   pc1.restartIce();
   await new Promise(r => pc1.onnegotiationneeded = r);
+  const negotiationNeededPromise =
+      new Promise(r => pc1.onnegotiationneeded = r);
   await doSignalingHandshakeEndOnSecond(pc2, pc1);
-  assert_equals(getUfrags(pc1.localDescription)[0], oldUfrag1, "nothing yet 1");
-  assert_equals(getUfrags(pc2.localDescription)[0], oldUfrag2, "nothing yet 2");
-  await new Promise(r => pc1.onnegotiationneeded = r);
+  assert_ufrags_equals(getUfrags(pc1.localDescription)[0], oldUfrag1, "nothing yet 1");
+  assert_ufrags_equals(getUfrags(pc2.localDescription)[0], oldUfrag2, "nothing yet 2");
+  await negotiationNeededPromise;
   await doSignalingHandshakeEndOnFirst(pc1, pc2);
   const [newUfrag1] = getUfrags(pc1.localDescription);
   const [newUfrag2] = getUfrags(pc2.localDescription);
-  assert_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
-  assert_not_equals(newUfrag2, oldUfrag2, "ufrag 2 changed");
+  assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
+  assert_ufrags_not_equals(newUfrag2, oldUfrag2, "ufrag 2 changed");
   await assertNoNegotiationNeeded(t, pc1);
 }, "restartIce() survives remote offer");
 
@@ -250,13 +279,13 @@ promise_test(async t => {
   await doSignalingHandshakeEndOnSecond(pc2, pc1);
   const [newUfrag1] = getUfrags(pc1.localDescription);
   const [newUfrag2] = getUfrags(pc2.localDescription);
-  assert_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
-  assert_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
+  assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
+  assert_ufrags_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
   await assertNoNegotiationNeeded(t, pc1);
 
   await doSignalingHandshakeEndOnFirst(pc1, pc2);
-  assert_equals(getUfrags(pc1.localDescription)[0], newUfrag1, "Unchanged 1");
-  assert_equals(getUfrags(pc2.localDescription)[0], newUfrag2, "Unchanged 2");
+  assert_ufrags_equals(getUfrags(pc1.localDescription)[0], newUfrag1, "Unchanged 1");
+  assert_ufrags_equals(getUfrags(pc2.localDescription)[0], newUfrag2, "Unchanged 2");
   await assertNoNegotiationNeeded(t, pc1);
 }, "restartIce() is satisfied by remote ICE restart");
 
@@ -281,8 +310,8 @@ promise_test(async t => {
   await pc1.setRemoteDescription(pc2.localDescription);
   const [newUfrag1] = getUfrags(pc1.localDescription);
   const [newUfrag2] = getUfrags(pc2.localDescription);
-  assert_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
-  assert_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
+  assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
+  assert_ufrags_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
   await assertNoNegotiationNeeded(t, pc1);
 }, "restartIce() trumps {iceRestart: false}");
 
@@ -302,13 +331,15 @@ promise_test(async t => {
   pc1.restartIce();
   await new Promise(r => pc1.onnegotiationneeded = r);
   await pc1.setLocalDescription(await pc1.createOffer());
+  const negotiationNeededPromise =
+      new Promise(r => pc1.onnegotiationneeded = r);
   await pc1.setLocalDescription({type: "rollback"});
-  await new Promise(r => pc1.onnegotiationneeded = r);
+  await negotiationNeededPromise;
   await doSignalingHandshakeEndOnFirst(pc1, pc2);
   const [newUfrag1] = getUfrags(pc1.localDescription);
   const [newUfrag2] = getUfrags(pc2.localDescription);
-  assert_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
-  assert_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
+  assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
+  assert_ufrags_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
   await assertNoNegotiationNeeded(t, pc1);
 }, "restartIce() survives rollback");
 
@@ -340,21 +371,23 @@ promise_test(async t => {
     sdp = sdp.replace(getPwds({sdp})[0], oldPwds2[0]);
     const newUfrags2 = getUfrags({sdp});
     const newPwds2 = getPwds({sdp});
-    assert_equals(newUfrags2[0], oldUfrags2[0], "control ufrag match");
-    assert_equals(newPwds2[0], oldPwds2[0], "control pwd match");
-    assert_not_equals(newUfrags2[1], oldUfrags2[1], "control ufrag non-match");
-    assert_not_equals(newPwds2[1], oldPwds2[1], "control pwd non-match");
+    assert_ufrags_equals(newUfrags2[0], oldUfrags2[0], "control ufrag match");
+    assert_ufrags_equals(newPwds2[0], oldPwds2[0], "control pwd match");
+    assert_ufrags_not_equals(newUfrags2[1], oldUfrags2[1], "control ufrag non-match");
+    assert_ufrags_not_equals(newPwds2[1], oldPwds2[1], "control pwd non-match");
     await pc1.setRemoteDescription({type, sdp});
   }
+  const negotiationNeededPromise =
+      new Promise(r => pc1.onnegotiationneeded = r);
   await pc1.setLocalDescription(await pc1.createAnswer());
   const newUfrags1 = getUfrags(pc1.localDescription);
-  assert_equals(newUfrags1[0], oldUfrags1[0], "Unchanged 1");
-  assert_not_equals(newUfrags1[1], oldUfrags1[1], "Restarted 2");
-  await new Promise(r => pc1.onnegotiationneeded = r);
+  assert_ufrags_equals(newUfrags1[0], oldUfrags1[0], "Unchanged 1");
+  assert_ufrags_not_equals(newUfrags1[1], oldUfrags1[1], "Restarted 2");
+  await negotiationNeededPromise;
   await pc1.setLocalDescription(await pc1.createOffer());
   const newestUfrags1 = getUfrags(pc1.localDescription);
-  assert_not_equals(newestUfrags1[0], oldUfrag1[0], "Restarted 1");
-  assert_not_equals(newestUfrags1[1], oldUfrag1[1], "Restarted 2");
+  assert_ufrags_not_equals(newestUfrags1[0], oldUfrags1[0], "Restarted 1");
+  assert_ufrags_not_equals(newestUfrags1[1], oldUfrags1[1], "Restarted 2");
   await assertNoNegotiationNeeded(t, pc1);
 }, "restartIce() survives remote offer containing partial restart");
 

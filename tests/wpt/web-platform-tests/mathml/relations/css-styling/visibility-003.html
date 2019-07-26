@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>visibility</title>
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#text-mtext">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#radical-symbol">
+<link rel="match" href="visibility-003-ref.html"/>
+<meta name="assert" content="Verify that visibility=hidden is used for the text and radical symbol of the msqrt and mroot elements.">
+</head>
+<body>
+  <p>Test passes if you see a green square.</p>
+  <div style="background: green; color: red; width: 200px; height: 200px;">
+    <math><msqrt style="visibility: hidden"><mn>1</mn></msqrt></math>
+    <math><mroot style="visibility: hidden"><mn>2</mn><mn>3</mn></mroot></math>
+  </div>
+  <script src="/mathml/support/feature-detection.js"></script>
+  <script>MathMLFeatureDetection.ensure_for_match_reftest("has_msqrt");</script>
+</body>
+</html>

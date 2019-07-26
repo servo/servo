@@ -56,6 +56,7 @@
       verify_displaystyle("mtable_true", true, "explicit displaystyle true");
     }, "mtable element");
     test(function() {
+      verify_displaystyle("mfrac_sibling", true, "sibling");
       verify_displaystyle("mfrac_numerator", false, "numerator");
       verify_displaystyle("mfrac_denominator", false, "denominator");
     }, "mfrac element");
@@ -105,7 +106,7 @@
   <math displaystyle="true"><mtable><mtr><mtd><mo id="mtable_default">&#x2AFF;</mo></mtd></mtr></mtable></math>
   <math><mtable displaystyle="true"><mtr><mtd><mo id="mtable_true">&#x2AFF;</mo></mtd></mtr></mtable></math>
   <math displaystyle="true"><mtable displaystyle="false"><mtr><mtd><mo id="mtable_false">&#x2AFF;</mo></mtd></mtr></mtable></math>
-  <math displaystyle="true"><mfrac><mo id="mfrac_numerator">&#x2AFF;</mo><mo id="mfrac_denominator">&#x2AFF;</mo></mfrac></math>
+  <math displaystyle="true"><mo id="mfrac_sibling">&#x2AFF;</mo><mfrac><mo id="mfrac_numerator">&#x2AFF;</mo><mo id="mfrac_denominator">&#x2AFF;</mo></mfrac></math>
   <math displaystyle="true"><mroot><mo id="mroot_base">&#x2AFF;</mo><mo id="mroot_index">&#x2AFF;</mo></mroot></math>
   <math displaystyle="true"><msub><mo id="msub_base">&#x2AFF;</mo><mo id="msub_subscript">&#x2AFF;</mo></msub></math>
   <math displaystyle="true"><msup><mo id="msup_base">&#x2AFF;</mo><mo id="msup_supscript">&#x2AFF;</mo></msup></math>

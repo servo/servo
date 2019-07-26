@@ -1,0 +1,17 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>ElementTiming: element is only exposed for fully active documents.</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe src="resources/iframe-stores-entry.html" id="ifr"></iframe>
+<script>
+  let t = async_test('Only expose element attribute for fully active documents');
+  window.triggerTest = t.step_func_done(elementEntry => {
+    assert_not_equals(elementEntry.element, null);
+    const iframe = document.getElementById('ifr');
+    iframe.remove();
+    assert_equals(elementEntry.element, null);
+  });
+</script>
+</body>

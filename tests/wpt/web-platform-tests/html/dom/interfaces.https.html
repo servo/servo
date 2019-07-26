@@ -38,8 +38,16 @@ const waitForLoad = new Promise(resolve => { addEventListener('load', resolve); 
 
 idl_test(
   ['html'],
-  ['SVG', 'cssom', 'touch-events', 'uievents', 'dom', 'xhr'],
+  ['SVG', 'cssom', 'touch-events', 'uievents', 'dom', 'xhr', 'FileAPI'],
   async idlArray => {
+    self.documentWithHandlers = new Document();
+    const handler = function(e) {};
+    for (const callback of idlArray.members['GlobalEventHandlers'].members) {
+      if (callback.idlType && callback.idlType.idlType === 'EventHandler') {
+        documentWithHandlers[callback.name] = handler;
+      }
+    }
+
     idlArray.add_objects({
       NodeList: ['document.getElementsByName("name")'],
       HTMLAllCollection: ['document.all'],
@@ -48,7 +56,7 @@ idl_test(
       HTMLOptionsCollection: ['document.createElement("select").options'],
       DOMStringMap: ['document.head.dataset'],
       Transferable: [],
-      Document: ['iframe.contentDocument', 'new Document()'],
+      Document: ['iframe.contentDocument', 'new Document()', 'documentWithHandlers'],
       XMLDocument: ['document.implementation.createDocument(null, "", null)'],
       HTMLElement: ['document.createElement("noscript")'], // more tests in html/semantics/interfaces.js
       HTMLUnknownElement: ['document.createElement("bgsound")'], // more tests in html/semantics/interfaces.js

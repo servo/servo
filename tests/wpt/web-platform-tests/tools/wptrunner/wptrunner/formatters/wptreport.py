@@ -104,6 +104,8 @@ class WptreportFormatter(BaseFormatter):
         subtest["status"] = data["status"]
         if "expected" in data:
             subtest["expected"] = data["expected"]
+        if "known_intermittent" in data:
+            subtest["known_intermittent"] = data["known_intermittent"]
         if "message" in data:
             subtest["message"] = replace_lone_surrogate(data["message"])
 
@@ -114,6 +116,8 @@ class WptreportFormatter(BaseFormatter):
         test["status"] = data["status"]
         if "expected" in data:
             test["expected"] = data["expected"]
+        if "known_intermittent" in data:
+            test["known_intermittent"] = data["known_intermittent"]
         if "message" in data:
             test["message"] = replace_lone_surrogate(data["message"])
         if "reftest_screenshots" in data.get("extra", {}):

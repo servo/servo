@@ -111,7 +111,10 @@ class RunInfo(dict):
             self["wasm"] = False
         if extras is not None:
             self.update(extras)
+
+        self["headless"] = extras.get("headless", False)
         self["webrender"] = enable_webrender
+
 
     def _update_mozinfo(self, metadata_root):
         """Add extra build information from a mozinfo.json file in a parent

@@ -155,6 +155,9 @@ An example of an expectation file is::
         if platform == 'osx': ERROR
         FAIL
 
+    [subtest3]
+      expected: [PASS, TIMEOUT]
+
   [filename.html?query=something]
     disabled: bug12345
 
@@ -222,7 +225,9 @@ The web-platform-test harness knows about several keys:
 `expected`
   Must evaluate to a possible test status indicating the expected
   result of the test. The implicit default is PASS or OK when the
-  field isn't present.
+  field isn't present. When `expected` is a list, the first status
+  is the primary expected status and the trailing statuses listed are
+  expected intermittent statuses.
 
 `disabled`
   Any value indicates that the test is disabled.

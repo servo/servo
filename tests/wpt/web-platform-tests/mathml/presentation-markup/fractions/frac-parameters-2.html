@@ -7,6 +7,7 @@
 <meta name="assert" content="Element mfrac correctly uses the stack parameters from the MATH table.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
 <style>
   math, mspace {
     font-size: 10px;
@@ -56,42 +57,56 @@
 
   function runTests() {
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v = 7000 * emToPx;
       assert_approx_equals(getBox("ref0001").top - getBox("num0001").bottom,
                            v, epsilon, "mfrac: axis height");
     }, "AxisHeight");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v = 5000 * emToPx;
       assert_approx_equals(getBox("den0002").top - getBox("ref0002").bottom,
                            v, epsilon, "mfrac: denominator shift");
     }, "BottomDisplayStyleShiftDown");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v = 6000 * emToPx;
       assert_approx_equals(getBox("den0003").top - getBox("ref0003").bottom,
                            v, epsilon, "mfrac: denominator shift");
     }, "BottomShiftDown");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v = 4000 * emToPx;
       assert_approx_equals(getBox("den0004").top - getBox("num0004").bottom,
                            v, epsilon, "mfrac: gap");
     }, "DisplayStyleGapMin");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v = 8000 * emToPx;
       assert_approx_equals(getBox("den0005").top - getBox("num0005").bottom,
                            v, epsilon, "mfrac: gap");
     }, "GapMin");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v = 3000 * emToPx;
       assert_approx_equals(getBox("ref0006").top - getBox("num0006").bottom,
                            v, epsilon, "mfrac: numerator shift");
     }, "TopDisplayStyleShiftUp");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v = 9000 * emToPx;
       assert_approx_equals(getBox("ref0007").top - getBox("num0007").bottom,
                            v, epsilon, "mfrac: numerator shift");
