@@ -6828,8 +6828,8 @@ class CGCallback(CGClass):
         # Record the names of all the arguments, so we can use them when we call
         # the private method.
         argnames = [arg.name for arg in args]
-        argnamesWithThis = ["SafeJSContext::from_ptr(s.get_context())", "thisObjJS.handle()"] + argnames
-        argnamesWithoutThis = ["SafeJSContext::from_ptr(s.get_context())", "thisObjJS.handle()"] + argnames
+        argnamesWithThis = ["s.get_context()", "thisObjJS.handle()"] + argnames
+        argnamesWithoutThis = ["s.get_context()", "thisObjJS.handle()"] + argnames
         # Now that we've recorded the argnames for our call to our private
         # method, insert our optional argument for deciding whether the
         # CallSetup should re-throw exceptions on aRv.
@@ -6849,7 +6849,7 @@ class CGCallback(CGClass):
 
         bodyWithThis = string.Template(
             setupCall +
-            "rooted!(in(s.get_context()) let mut thisObjJS = ptr::null_mut::<JSObject>());\n"
+            "rooted!(in(*s.get_context()) let mut thisObjJS = ptr::null_mut::<JSObject>());\n"
             "wrap_call_this_object(s.get_context(), thisObj, thisObjJS.handle_mut());\n"
             "if thisObjJS.is_null() {\n"
             "    return Err(JSFailed);\n"
@@ -6860,7 +6860,7 @@ class CGCallback(CGClass):
             })
         bodyWithoutThis = string.Template(
             setupCall +
-            "rooted!(in(s.get_context()) let thisObjJS = ptr::null_mut::<JSObject>());\n"
+            "rooted!(in(*s.get_context()) let thisObjJS = ptr::null_mut::<JSObject>());\n"
             "unsafe { ${methodName}(${callArgs}) }").substitute({
                 "callArgs": ", ".join(argnamesWithoutThis),
                 "methodName": 'self.' + method.name,
@@ -7118,7 +7118,7 @@ class CallbackMember(CGNativeMember):
             return ""
         return (
             "CallSetup s(CallbackPreserveColor(), aRv, aExceptionHandling);\n"
-            "JSContext* cx = s.get_context();\n"
+            "JSContext* cx = *s.get_context();\n"
             "if (!cx) {\n"
             "    return Err(JSFailed);\n"
             "}\n")
@@ -7219,7 +7219,7 @@ class CallbackOperationBase(CallbackMethod):
             "methodName": self.methodName
         }
         getCallableFromProp = string.Template(
-            'r#try!(self.parent.get_callable_property(*cx, "${methodName}"))'
+            'r#try!(self.parent.get_callable_property(cx, "${methodName}"))'
         ).substitute(replacements)
         if not self.singleOperation:
             return 'rooted!(in(*cx) let callable =\n' + getCallableFromProp + ');\n'
