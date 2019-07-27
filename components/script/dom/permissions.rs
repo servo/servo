@@ -17,10 +17,10 @@ use crate::dom::bluetoothpermissionresult::BluetoothPermissionResult;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissionstatus::PermissionStatus;
 use crate::dom::promise::Promise;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::JSObject;
 use js::jsval::{ObjectValue, UndefinedValue};
 use servo_config::pref;
 use std::rc::Rc;
@@ -37,17 +37,17 @@ pub trait PermissionAlgorithm {
     type Descriptor;
     type Status;
     fn create_descriptor(
-        cx: *mut JSContext,
+        cx: JSContext,
         permission_descriptor_obj: *mut JSObject,
     ) -> Result<Self::Descriptor, Error>;
     fn permission_query(
-        cx: *mut JSContext,
+        cx: JSContext,
         promise: &Rc<Promise>,
         descriptor: &Self::Descriptor,
         status: &Self::Status,
     );
     fn permission_request(
-        cx: *mut JSContext,
+        cx: JSContext,
         promise: &Rc<Promise>,
         descriptor: &Self::Descriptor,
         status: &Self::Status,
@@ -88,7 +88,7 @@ impl Permissions {
     fn manipulate(
         &self,
         op: Operation,
-        cx: *mut JSContext,
+        cx: JSContext,
         permissionDesc: *mut JSObject,
         promise: Option<Rc<Promise>>,
     ) -> Rc<Promise> {
@@ -201,18 +201,18 @@ impl Permissions {
 
 impl PermissionsMethods for Permissions {
     // https://w3c.github.io/permissions/#dom-permissions-query
-    fn Query(&self, cx: SafeJSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
-        self.manipulate(Operation::Query, *cx, permissionDesc, None)
+    fn Query(&self, cx: JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
+        self.manipulate(Operation::Query, cx, permissionDesc, None)
     }
 
     // https://w3c.github.io/permissions/#dom-permissions-request
-    fn Request(&self, cx: SafeJSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
-        self.manipulate(Operation::Request, *cx, permissionDesc, None)
+    fn Request(&self, cx: JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
+        self.manipulate(Operation::Request, cx, permissionDesc, None)
     }
 
     // https://w3c.github.io/permissions/#dom-permissions-revoke
-    fn Revoke(&self, cx: SafeJSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
-        self.manipulate(Operation::Revoke, *cx, permissionDesc, None)
+    fn Revoke(&self, cx: JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
+        self.manipulate(Operation::Revoke, cx, permissionDesc, None)
     }
 }
 
@@ -220,27 +220,24 @@ impl PermissionAlgorithm for Permissions {
     type Descriptor = PermissionDescriptor;
     type Status = PermissionStatus;
 
-    #[allow(unsafe_code)]
     fn create_descriptor(
-        cx: *mut JSContext,
+        cx: JSContext,
         permission_descriptor_obj: *mut JSObject,
     ) -> Result<PermissionDescriptor, Error> {
-        rooted!(in(cx) let mut property = UndefinedValue());
+        rooted!(in(*cx) let mut property = UndefinedValue());
         property
             .handle_mut()
             .set(ObjectValue(permission_descriptor_obj));
-        unsafe {
-            match PermissionDescriptor::new(SafeJSContext::from_ptr(cx), property.handle()) {
-                Ok(ConversionResult::Success(descriptor)) => Ok(descriptor),
-                Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
-                Err(_) => Err(Error::JSFailed),
-            }
+        match PermissionDescriptor::new(cx, property.handle()) {
+            Ok(ConversionResult::Success(descriptor)) => Ok(descriptor),
+            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
+            Err(_) => Err(Error::JSFailed),
         }
     }
 
     // https://w3c.github.io/permissions/#boolean-permission-query-algorithm
     fn permission_query(
-        _cx: *mut JSContext,
+        _cx: JSContext,
         _promise: &Rc<Promise>,
         _descriptor: &PermissionDescriptor,
         status: &PermissionStatus,
@@ -251,7 +248,7 @@ impl PermissionAlgorithm for Permissions {
 
     // https://w3c.github.io/permissions/#boolean-permission-request-algorithm
     fn permission_request(
-        cx: *mut JSContext,
+        cx: JSContext,
         promise: &Rc<Promise>,
         descriptor: &PermissionDescriptor,
         status: &PermissionStatus,

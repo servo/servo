@@ -30,13 +30,13 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissions::{get_descriptor_permission_state, PermissionAlgorithm};
 use crate::dom::promise::Promise;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::JSContext;
 use crate::task::TaskOnce;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::conversions::ConversionResult;
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::JSObject;
 use js::jsval::{ObjectValue, UndefinedValue};
 use profile_traits::ipc as ProfiledIpc;
 use std::cell::Ref;
@@ -616,28 +616,24 @@ impl PermissionAlgorithm for Bluetooth {
     type Descriptor = BluetoothPermissionDescriptor;
     type Status = BluetoothPermissionResult;
 
-    #[allow(unsafe_code)]
     fn create_descriptor(
-        cx: *mut JSContext,
+        cx: JSContext,
         permission_descriptor_obj: *mut JSObject,
     ) -> Result<BluetoothPermissionDescriptor, Error> {
-        rooted!(in(cx) let mut property = UndefinedValue());
+        rooted!(in(*cx) let mut property = UndefinedValue());
         property
             .handle_mut()
             .set(ObjectValue(permission_descriptor_obj));
-        unsafe {
-            match BluetoothPermissionDescriptor::new(SafeJSContext::from_ptr(cx), property.handle())
-            {
-                Ok(ConversionResult::Success(descriptor)) => Ok(descriptor),
-                Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
-                Err(_) => Err(Error::Type(String::from(BT_DESC_CONVERSION_ERROR))),
-            }
+        match BluetoothPermissionDescriptor::new(cx, property.handle()) {
+            Ok(ConversionResult::Success(descriptor)) => Ok(descriptor),
+            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
+            Err(_) => Err(Error::Type(String::from(BT_DESC_CONVERSION_ERROR))),
         }
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#query-the-bluetooth-permission
     fn permission_query(
-        _cx: *mut JSContext,
+        _cx: JSContext,
         promise: &Rc<Promise>,
         descriptor: &BluetoothPermissionDescriptor,
         status: &BluetoothPermissionResult,
@@ -727,7 +723,7 @@ impl PermissionAlgorithm for Bluetooth {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#request-the-bluetooth-permission
     fn permission_request(
-        _cx: *mut JSContext,
+        _cx: JSContext,
         promise: &Rc<Promise>,
         descriptor: &BluetoothPermissionDescriptor,
         status: &BluetoothPermissionResult,
