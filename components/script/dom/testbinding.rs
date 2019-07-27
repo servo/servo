@@ -1091,12 +1091,11 @@ impl TestBinding {
     pub fn FuncControlledStaticMethodEnabled(_: &GlobalScope) {}
 }
 
-#[allow(unsafe_code)]
 impl TestBinding {
-    pub unsafe fn condition_satisfied(_: *mut JSContext, _: HandleObject) -> bool {
+    pub fn condition_satisfied(_: SafeJSContext, _: HandleObject) -> bool {
         true
     }
-    pub unsafe fn condition_unsatisfied(_: *mut JSContext, _: HandleObject) -> bool {
+    pub fn condition_unsatisfied(_: SafeJSContext, _: HandleObject) -> bool {
         false
     }
 }
