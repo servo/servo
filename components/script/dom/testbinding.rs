@@ -941,29 +941,21 @@ impl TestBindingMethods for TestBinding {
     }
 
     #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
     fn ReturnResolvedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
-        unsafe { Promise::new_resolved(&self.global(), *cx, v) }
+        Promise::new_resolved(&self.global(), cx, v)
     }
 
     #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
     fn ReturnRejectedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
-        unsafe { Promise::new_rejected(&self.global(), *cx, v) }
+        Promise::new_rejected(&self.global(), cx, v)
     }
 
-    #[allow(unsafe_code)]
     fn PromiseResolveNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue) {
-        unsafe {
-            p.resolve(*cx, v);
-        }
+        p.resolve(cx, v);
     }
 
-    #[allow(unsafe_code)]
     fn PromiseRejectNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue) {
-        unsafe {
-            p.reject(*cx, v);
-        }
+        p.reject(cx, v);
     }
 
     fn PromiseRejectWithTypeError(&self, p: &Promise, s: USVString) {
