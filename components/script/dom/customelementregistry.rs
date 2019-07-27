@@ -625,7 +625,7 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
         let global = GlobalScope::current().expect("No current global");
         let cx = global.get_cx();
         unsafe {
-            throw_dom_exception(*cx, &global, error);
+            throw_dom_exception(cx, &global, error);
             report_pending_exception(*cx, true);
         }
         return;

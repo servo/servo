@@ -18,6 +18,7 @@ use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
@@ -959,7 +960,7 @@ pub fn new_window_proxy_handler() -> WindowProxyHandler {
 unsafe fn throw_security_error(cx: *mut JSContext) -> bool {
     if !JS_IsExceptionPending(cx) {
         let global = GlobalScope::from_context(cx);
-        throw_dom_exception(cx, &*global, Error::Security);
+        throw_dom_exception(SafeJSContext::from_ptr(cx), &*global, Error::Security);
     }
     false
 }

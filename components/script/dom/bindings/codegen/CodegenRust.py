@@ -813,7 +813,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                 match Promise::new_resolved(&promiseGlobal, cx, valueToResolve.handle()) {
                     Ok(value) => value,
                     Err(error) => {
-                    throw_dom_exception(*cx, &promiseGlobal, error);
+                    throw_dom_exception(cx, &promiseGlobal, error);
                     $*{exceptionCode}
                     }
                 }
@@ -3372,7 +3372,7 @@ class CGCallGenerator(CGThing):
                 "let result = match result {\n"
                 "    Ok(result) => result,\n"
                 "    Err(e) => {\n"
-                "        throw_dom_exception(*cx, %s, e);\n"
+                "        throw_dom_exception(cx, %s, e);\n"
                 "        return%s;\n"
                 "    },\n"
                 "};" % (glob, errorResult)))
@@ -5556,12 +5556,12 @@ let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
 // so we can do the spec's object-identity checks.
 rooted!(in(*cx) let new_target = UnwrapObjectDynamic(args.new_target().to_object(), *cx, 1));
 if new_target.is_null() {
-    throw_dom_exception(*cx, global.upcast::<GlobalScope>(), Error::Type("new.target is null".to_owned()));
+    throw_dom_exception(cx, global.upcast::<GlobalScope>(), Error::Type("new.target is null".to_owned()));
     return false;
 }
 
 if args.callee() == new_target.get() {
-    throw_dom_exception(*cx, global.upcast::<GlobalScope>(),
+    throw_dom_exception(cx, global.upcast::<GlobalScope>(),
         Error::Type("new.target must not be the active function object".to_owned()));
     return false;
 }
@@ -5602,7 +5602,7 @@ let result: Result<DomRoot<%s>, Error> = html_constructor(&global, &args);
 let result = match result {
     Ok(result) => result,
     Err(e) => {
-        throw_dom_exception(*cx, global.upcast::<GlobalScope>(), e);
+        throw_dom_exception(cx, global.upcast::<GlobalScope>(), e);
         return false;
     },
 };
