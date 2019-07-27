@@ -13,10 +13,10 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use js::jsapi::JS_GetArrayBufferViewBuffer;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::jsapi::{Heap, JSObject};
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{CreateWith, Float32Array};
@@ -127,7 +127,7 @@ impl AudioBuffer {
     }
 
     #[allow(unsafe_code)]
-    unsafe fn restore_js_channel_data(&self, cx: *mut JSContext) -> bool {
+    fn restore_js_channel_data(&self, cx: JSContext) -> bool {
         let _ac = enter_realm(&*self);
         for (i, channel) in self.js_channels.borrow_mut().iter().enumerate() {
             if !channel.get().is_null() {
@@ -135,20 +135,22 @@ impl AudioBuffer {
                 continue;
             }
 
-            rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
+            rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
             if let Some(ref shared_channels) = *self.shared_channels.borrow() {
                 // Step 4. of
                 // https://webaudio.github.io/web-audio-api/#acquire-the-content
                 // "Attach ArrayBuffers containing copies of the data to the AudioBuffer,
                 // to be returned by the next call to getChannelData()".
-                if Float32Array::create(
-                    cx,
-                    CreateWith::Slice(&shared_channels.buffers[i]),
-                    array.handle_mut(),
-                )
-                .is_err()
-                {
-                    return false;
+                unsafe {
+                    if Float32Array::create(
+                        *cx,
+                        CreateWith::Slice(&shared_channels.buffers[i]),
+                        array.handle_mut(),
+                    )
+                    .is_err()
+                    {
+                        return false;
+                    }
                 }
             }
             channel.set(array.get());
@@ -231,16 +233,15 @@ impl AudioBufferMethods for AudioBuffer {
 
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-getchanneldata
     #[allow(unsafe_code)]
-    fn GetChannelData(&self, cx: SafeJSContext, channel: u32) -> Fallible<NonNull<JSObject>> {
+    fn GetChannelData(&self, cx: JSContext, channel: u32) -> Fallible<NonNull<JSObject>> {
         if channel >= self.number_of_channels {
             return Err(Error::IndexSize);
         }
 
+        if !self.restore_js_channel_data(cx) {
+            return Err(Error::JSFailed);
+        }
         unsafe {
-            if !self.restore_js_channel_data(*cx) {
-                return Err(Error::JSFailed);
-            }
-
             Ok(NonNull::new_unchecked(
                 self.js_channels.borrow()[channel as usize].get(),
             ))
@@ -307,7 +308,7 @@ impl AudioBufferMethods for AudioBuffer {
         }
 
         let cx = self.global().get_cx();
-        if unsafe { !self.restore_js_channel_data(*cx) } {
+        if !self.restore_js_channel_data(cx) {
             return Err(Error::JSFailed);
         }
 
