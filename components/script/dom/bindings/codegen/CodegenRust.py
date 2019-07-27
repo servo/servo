@@ -6355,21 +6355,23 @@ class CGDictionary(CGThing):
         return string.Template(
             "impl ${selfName} {\n"
             "${empty}\n"
-            "    pub unsafe fn new(cx: SafeJSContext, val: HandleValue) \n"
+            "    pub fn new(cx: SafeJSContext, val: HandleValue) \n"
             "                      -> Result<ConversionResult<${actualType}>, ()> {\n"
-            "        let object = if val.get().is_null_or_undefined() {\n"
-            "            ptr::null_mut()\n"
-            "        } else if val.get().is_object() {\n"
-            "            val.get().to_object()\n"
-            "        } else {\n"
-            "            return Ok(ConversionResult::Failure(\"Value is not an object.\".into()));\n"
-            "        };\n"
-            "        rooted!(in(*cx) let object = object);\n"
+            "        unsafe {\n"
+            "            let object = if val.get().is_null_or_undefined() {\n"
+            "                ptr::null_mut()\n"
+            "            } else if val.get().is_object() {\n"
+            "                val.get().to_object()\n"
+            "            } else {\n"
+            "                return Ok(ConversionResult::Failure(\"Value is not an object.\".into()));\n"
+            "            };\n"
+            "            rooted!(in(*cx) let object = object);\n"
             "${preInitial}"
             "${initParent}"
             "${initMembers}"
             "${postInitial}"
-            "        Ok(ConversionResult::Success(dictionary))\n"
+            "            Ok(ConversionResult::Success(dictionary))\n"
+            "        }\n"
             "    }\n"
             "}\n"
             "\n"
@@ -6391,11 +6393,11 @@ class CGDictionary(CGThing):
                 "selfName": selfName,
                 "actualType": actualType,
                 "empty": CGIndenter(CGGeneric(self.makeEmpty()), indentLevel=4).define(),
-                "initParent": CGIndenter(CGGeneric(initParent), indentLevel=12).define(),
-                "initMembers": CGIndenter(memberInits, indentLevel=12).define(),
+                "initParent": CGIndenter(CGGeneric(initParent), indentLevel=16).define(),
+                "initMembers": CGIndenter(memberInits, indentLevel=16).define(),
                 "insertMembers": CGIndenter(memberInserts, indentLevel=8).define(),
-                "preInitial": CGIndenter(CGGeneric(preInitial), indentLevel=12).define(),
-                "postInitial": CGIndenter(CGGeneric(postInitial), indentLevel=12).define(),
+                "preInitial": CGIndenter(CGGeneric(preInitial), indentLevel=16).define(),
+                "postInitial": CGIndenter(CGGeneric(postInitial), indentLevel=16).define(),
             })
 
     def membersNeedTracing(self):
