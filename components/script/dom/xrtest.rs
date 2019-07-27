@@ -73,20 +73,6 @@ impl XRTest {
 impl XRTestMethods for XRTest {
     /// https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
     fn SimulateDeviceConnection(&self, init: &FakeXRDeviceInit) -> Rc<Promise> {
-        #[derive(serde::Serialize, serde::Deserialize)]
-        pub struct MockDevice {
-            sender: IpcSender<Result<IpcSender<MockDeviceMsg>, XRError>>,
-        }
-
-        #[typetag::serde]
-        impl webxr_api::MockDeviceCallback for MockDevice {
-            fn callback(&mut self, result: Result<IpcSender<MockDeviceMsg>, XRError>) {
-                self.sender
-                    .send(result)
-                    .expect("mock device callback failed");
-            }
-        }
-
         let p = Promise::new(&self.global());
 
         if !init.supportsImmersive || self.session_started.get() {
@@ -166,7 +152,7 @@ impl XRTestMethods for XRTest {
         );
         window
             .webxr_registry()
-            .simulate_device_connection(init, MockDevice { sender });
+            .simulate_device_connection(init, sender);
 
         p
     }

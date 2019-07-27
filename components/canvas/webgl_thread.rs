@@ -10,7 +10,7 @@ use euclid::default::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
 use half::f16;
-use ipc_channel::ipc::{self, IpcSender, OpaqueIpcMessage};
+use ipc_channel::ipc::{self, OpaqueIpcMessage};
 use ipc_channel::router::ROUTER;
 use offscreen_gl_context::{DrawBuffer, GLContext, NativeGLContextMethods};
 use pixels::{self, PixelFormat};
@@ -284,9 +284,6 @@ impl WebGLThread {
             WebGLMsg::Lock(ctx_id, sender) => {
                 self.handle_lock(ctx_id, sender);
             },
-            WebGLMsg::LockIPC(ctx_id, sender) => {
-                self.handle_lock_ipc(ctx_id, sender);
-            },
             WebGLMsg::Unlock(ctx_id) => {
                 self.handle_unlock(ctx_id);
             },
@@ -343,21 +340,6 @@ impl WebGLThread {
         context_id: WebGLContextId,
         sender: WebGLSender<(u32, Size2D<i32>, usize)>,
     ) {
-        sender.send(self.handle_lock_sync(context_id)).unwrap();
-    }
-
-    /// handle_lock, but unconditionally IPC (used by webxr)
-    fn handle_lock_ipc(
-        &mut self,
-        context_id: WebGLContextId,
-        sender: IpcSender<(u32, Size2D<i32>, usize)>,
-    ) {
-        sender.send(self.handle_lock_sync(context_id)).unwrap();
-    }
-
-    /// Shared code between handle_lock and handle_lock_ipc, does the actual syncing/flushing
-    /// but the caller must send the response back
-    fn handle_lock_sync(&mut self, context_id: WebGLContextId) -> (u32, Size2D<i32>, usize) {
         let data =
             Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id)
                 .expect("WebGLContext not found in a WebGLMsg::Lock message");
@@ -374,7 +356,7 @@ impl WebGLThread {
         data.ctx.gl().flush();
         debug_assert!(data.ctx.gl().get_error() == gl::NO_ERROR);
 
-        (info.texture_id, info.size, gl_sync as usize)
+        let _ = sender.send((info.texture_id, info.size, gl_sync as usize));
     }
 
     /// A version of locking that doesn't return a GLsync object,
