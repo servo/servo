@@ -24,7 +24,7 @@
         assert_equals(entryList.getEntries().length, 1);
         const entry = entryList.getEntries()[0];
         assert_equals(entry.entryType, 'largest-contentful-paint');
-        assert_equals(entry.startTime, 0);
+        assert_equals(entry.startTime, entry.renderTime, 'startTime should equal renderTime');
         assert_equals(entry.duration, 0);
         assert_equals(entry.url, path);
         assert_less_than(entry.renderTime, performance.now(),
