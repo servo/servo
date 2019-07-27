@@ -16,7 +16,7 @@
         const entry = entryList.getEntries()[0];
         assert_equals(entry.entryType, 'largest-contentful-paint');
         assert_equals(entry.renderTime, 0, 'The renderTime value should be 0 for a cross origin image.');
-        assert_equals(entry.startTime, 0);
+        assert_equals(entry.startTime, entry.loadTime, 'startTime should equal loadTime');
         assert_equals(entry.duration, 0);
         // blue.png is 133 x 106.
         assert_equals(entry.size, 14098);

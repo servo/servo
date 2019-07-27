@@ -137,7 +137,7 @@ let loadChromiumResources = Promise.resolve().then(() => {
     '/gen/gpu/ipc/common/mailbox_holder.mojom.js',
     '/gen/gpu/ipc/common/sync_token.mojom.js',
     '/gen/ui/display/mojom/display.mojom.js',
-    '/gen/ui/gfx/geometry/mojo/geometry.mojom.js',
+    '/gen/ui/gfx/geometry/mojom/geometry.mojom.js',
     '/gen/ui/gfx/mojo/gpu_fence_handle.mojom.js',
     '/gen/ui/gfx/mojo/transform.mojom.js',
     '/gen/device/vr/public/mojom/vr_service.mojom.js',

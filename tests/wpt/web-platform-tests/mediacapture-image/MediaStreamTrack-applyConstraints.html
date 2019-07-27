@@ -36,6 +36,8 @@ image_capture_test(async (t, imageCaptureTest) => {
                                       sharpness            : 6,
                                       focusDistance        : 7,
 
+                                      pan                  : 8,
+                                      tilt                 : 9,
                                       zoom                 : 3.141592,
 
                                       torch                : true
@@ -109,6 +111,8 @@ image_capture_test(async (t, imageCaptureTest) => {
     assert_equals(constraintsDict.focusDistance, theMock.options().focusDistance
                   ,'focusDistance');
 
+    assert_equals(constraintsDict.pan, theMock.options().pan, 'pan');
+    assert_equals(constraintsDict.tilt, theMock.options().tilt, 'tilt');
 
     assert_equals(constraintsDict.torch, theMock.options().torch, 'torch');
 

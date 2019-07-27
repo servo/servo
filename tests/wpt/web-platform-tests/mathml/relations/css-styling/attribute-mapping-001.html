@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Attribute mapping</title>
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#legacy-mathml-style-attributes">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#attributes-common-to-html-and-mathml-elements">
+<meta name="assert" content="Verify that dir, mathcolor, mathbackground and mathsize are mapped to CSS">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/mathml-fragments.js"></script>
+<style>
+  #container {
+      color: blue;
+      font-size: 50px;
+  }
+</style>
+<script>
+  setup({ explicit_done: true });
+  window.addEventListener("load", runTests);
+  function runTests() {
+      var container = document.getElementById("container");
+      for (tag in MathMLFragments) {
+          container.insertAdjacentHTML("beforeend", `<math>${MathMLFragments[tag]}</math>`);
+      }
+      Array.from(document.getElementsByClassName("element")).forEach(element => {
+          var tag = element.tagName;
+          var style = window.getComputedStyle(element);
+
+          test(function() {
+              assert_equals(style.getPropertyValue("direction"), "ltr", "no attribute");
+              element.setAttribute("dir", "rtl");
+              assert_equals(style.getPropertyValue("direction"), "rtl", "attribute specified");
+          }, `dir on the ${tag} element is mapped to CSS direction`)
+
+          test(function() {
+              assert_equals(style.getPropertyValue("color"), "rgb(0, 0, 255)", "no attribute");
+              element.setAttribute("mathcolor", "black");
+              assert_equals(style.getPropertyValue("color"), "rgb(0, 0, 0)", "attribute specified");
+          }, `mathcolor on the ${tag} element is mapped to CSS color`);
+
+          test(function() {
+              assert_equals(style.getPropertyValue("background-color"), "rgba(0, 0, 0, 0)", "no attribute");
+              element.setAttribute("mathbackground", "lightblue");
+              assert_equals(style.getPropertyValue("background-color"), "rgb(173, 216, 230)", "attribute specified");
+          }, `mathbackground on the ${tag} element is mapped to CSS background-color`);
+
+          test(function() {
+              assert_equals(style.getPropertyValue("font-size"), "50px", "no attribute");
+              element.setAttribute("mathsize", "20px");
+              assert_equals(style.getPropertyValue("font-size"), "20px", "attribute specified");
+          }, `mathsize on the ${tag} element is mapped to CSS font-size`);
+      });
+
+      done();
+  }
+</script>
+</head>
+<body>
+  <div id="log"></div>
+  <div id="container">
+    <math class="element"></math>
+  </div>
+</body>
+</html>

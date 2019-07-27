@@ -41,5 +41,5 @@ def main(request, response):
     else:
         pass
     response.headers.set("Cache-Control", "no-cache, must-revalidate");
-    image_path = os.path.join(os.path.dirname(__file__), "square20.png");
+    image_path = os.path.join(os.path.dirname(__file__), "square100.png");
     response.content = open(image_path, mode='rb').read();
