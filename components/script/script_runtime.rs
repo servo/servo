@@ -201,7 +201,8 @@ unsafe extern "C" fn promise_rejection_tracker(
     // TODO: Step 2 - If script's muted errors is true, terminate these steps.
 
     // Step 3.
-    let global = GlobalScope::from_context(cx);
+    let cx = JSContext::from_ptr(cx);
+    let global = GlobalScope::from_context(*cx);
 
     wrap_panic(
         AssertUnwindSafe(|| {
@@ -281,7 +282,7 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
                 .iter()
                 .map(|promise| {
                     let promise =
-                        Promise::new_with_js_promise(Handle::from_raw(promise.handle()), *cx);
+                        Promise::new_with_js_promise(Handle::from_raw(promise.handle()), cx);
 
                     TrustedPromise::new(promise)
                 })
