@@ -33,7 +33,7 @@ public:
   virtual void OnAnimatingChanged(bool) = 0;
 
 protected:
-  virtual ~ServoDelegate(){log("A1");};
+  virtual ~ServoDelegate(){};
 };
 
 class Servo {
@@ -43,6 +43,7 @@ public:
   ServoDelegate &Delegate() { return mDelegate; }
 
   void PerformUpdates() { capi::perform_updates(); }
+  void DeInit() { capi::deinit(); }
   void RequestShutdown() { capi::request_shutdown(); }
   void SetBatchMode(bool mode) { capi::set_batch_mode(mode); }
   void GoForward() { capi::go_forward(); }

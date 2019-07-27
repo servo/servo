@@ -59,7 +59,7 @@ Servo::Servo(GLsizei width, GLsizei height, ServoDelegate &aDelegate)
   init_with_egl(o, &wakeup, c);
 }
 
-Servo::~Servo() { capi::deinit(); }
+Servo::~Servo() { sServo = nullptr; }
 
 std::wstring char2w(const char *c_str) {
   auto str = std::string(c_str);
@@ -71,4 +71,4 @@ std::wstring char2w(const char *c_str) {
   return str2;
 }
 
-} // namespace mozilla
+} // namespace servo
