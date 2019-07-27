@@ -910,16 +910,13 @@ impl ScriptThread {
     }
 
     // https://html.spec.whatwg.org/multipage/#await-a-stable-state
-    #[allow(unsafe_code)]
     pub fn await_stable_state(task: Microtask) {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
-                unsafe {
-                    let script_thread = &*script_thread;
-                    script_thread
-                        .microtask_queue
-                        .enqueue(task, *script_thread.get_cx());
-                }
+                let script_thread = unsafe { &*script_thread };
+                script_thread
+                    .microtask_queue
+                    .enqueue(task, script_thread.get_cx());
             }
         });
     }
@@ -3776,17 +3773,15 @@ impl ScriptThread {
         }
     }
 
-    #[allow(unsafe_code)]
     pub fn enqueue_microtask(job: Microtask) {
-        SCRIPT_THREAD_ROOT.with(|root| unsafe {
-            let script_thread = &*root.get().unwrap();
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
             script_thread
                 .microtask_queue
-                .enqueue(job, *script_thread.get_cx());
+                .enqueue(job, script_thread.get_cx());
         });
     }
 
-    #[allow(unsafe_code)]
     fn perform_a_microtask_checkpoint(&self) {
         let globals = self
             .documents
@@ -3795,13 +3790,11 @@ impl ScriptThread {
             .map(|(_id, document)| document.global())
             .collect();
 
-        unsafe {
-            self.microtask_queue.checkpoint(
-                *self.get_cx(),
-                |id| self.documents.borrow().find_global(id),
-                globals,
-            )
-        }
+        self.microtask_queue.checkpoint(
+            self.get_cx(),
+            |id| self.documents.borrow().find_global(id),
+            globals,
+        )
     }
 }
 
