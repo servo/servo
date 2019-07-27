@@ -2651,8 +2651,8 @@ def InitUnforgeablePropertiesOnHolder(descriptor, properties):
     """
     unforgeables = []
 
-    defineUnforgeableAttrs = "define_guarded_properties(*cx, unforgeable_holder.handle(), %s, global);"
-    defineUnforgeableMethods = "define_guarded_methods(*cx, unforgeable_holder.handle(), %s, global);"
+    defineUnforgeableAttrs = "define_guarded_properties(cx, unforgeable_holder.handle(), %s, global);"
+    defineUnforgeableMethods = "define_guarded_methods(cx, unforgeable_holder.handle(), %s, global);"
 
     unforgeableMembers = [
         (defineUnforgeableAttrs, properties.unforgeable_attrs),
@@ -2762,7 +2762,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             ("define_guarded_methods", self.properties.methods),
             ("define_guarded_constants", self.properties.consts)
         ]
-        members = ["%s(*cx, obj.handle(), %s, obj.handle());" % (function, array.variableName())
+        members = ["%s(cx, obj.handle(), %s, obj.handle());" % (function, array.variableName())
                    for (function, array) in pairs if array.length() > 0]
         values["members"] = "\n".join(members)
 
@@ -2772,7 +2772,7 @@ let _rt = RootedTraceable::new(&*raw);
 
 rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
 create_global_object(
-    *cx,
+    cx,
     &Class.base,
     raw as *const libc::c_void,
     _trace,
@@ -2911,7 +2911,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 rooted!(in(*cx) let proto = %(proto)s);
 assert!(!proto.is_null());
 rooted!(in(*cx) let mut namespace = ptr::null_mut::<JSObject>());
-create_namespace_object(*cx, global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
+create_namespace_object(cx, global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
                         %(methods)s, %(name)s, namespace.handle_mut());
 assert!(!namespace.is_null());
 assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
@@ -2924,7 +2924,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
             assert not self.descriptor.interface.ctor() and self.descriptor.interface.hasConstants()
             return CGGeneric("""\
 rooted!(in(*cx) let mut interface = ptr::null_mut::<JSObject>());
-create_callback_interface_object(*cx, global, sConstants, %(name)s, interface.handle_mut());
+create_callback_interface_object(cx, global, sConstants, %(name)s, interface.handle_mut());
 assert!(!interface.is_null());
 assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
 (*cache)[PrototypeList::Constructor::%(id)s as usize] = interface.get();
@@ -2976,7 +2976,7 @@ assert!(!prototype_proto.is_null());""" % getPrototypeProto)]
 
         code.append(CGGeneric("""
 rooted!(in(*cx) let mut prototype = ptr::null_mut::<JSObject>());
-create_interface_prototype_object(*cx,
+create_interface_prototype_object(cx,
                                   global.into(),
                                   prototype_proto.handle().into(),
                                   &PrototypeClass,
@@ -3011,7 +3011,7 @@ assert!((*cache)[PrototypeList::ID::%(id)s as usize].is_null());
 assert!(!interface_proto.is_null());
 
 rooted!(in(*cx) let mut interface = ptr::null_mut::<JSObject>());
-create_noncallback_interface_object(*cx,
+create_noncallback_interface_object(cx,
                                     global.into(),
                                     interface_proto.handle(),
                                     &INTERFACE_OBJECT_CLASS,
@@ -3093,7 +3093,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                 specs.append(CGGeneric("(%s as ConstructorClassHook, %s, %d)" % (hook, name, length)))
             values = CGIndenter(CGList(specs, "\n"), 4)
             code.append(CGWrapper(values, pre="%s = [\n" % decl, post="\n];"))
-            code.append(CGGeneric("create_named_constructors(*cx, global, &named_constructors, prototype.handle());"))
+            code.append(CGGeneric("create_named_constructors(cx, global, &named_constructors, prototype.handle());"))
 
         if self.descriptor.hasUnforgeableMembers:
             # We want to use the same JSClass and prototype as the object we'll
