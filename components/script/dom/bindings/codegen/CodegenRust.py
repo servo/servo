@@ -2588,8 +2588,7 @@ class CGConstructorEnabled(CGAbstractMethod):
         CGAbstractMethod.__init__(self, descriptor,
                                   'ConstructorEnabled', 'bool',
                                   [Argument("SafeJSContext", "aCx"),
-                                   Argument("HandleObject", "aObj")],
-                                  unsafe=True)
+                                   Argument("HandleObject", "aObj")])
 
     def definition_body(self):
         conditions = []
@@ -3137,23 +3136,25 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
                 Argument('HandleObject', 'global'),
                 Argument('MutableHandleObject', 'mut rval')]
         CGAbstractMethod.__init__(self, descriptor, name,
-                                  'void', args, pub=pub, unsafe=True)
+                                  'void', args, pub=pub)
         self.id = idPrefix + "::" + MakeNativeName(self.descriptor.name)
 
     def definition_body(self):
         return CGGeneric("""
-assert!(((*get_object_class(global.get())).flags & JSCLASS_DOM_GLOBAL) != 0);
+unsafe {
+    assert!(((*get_object_class(global.get())).flags & JSCLASS_DOM_GLOBAL) != 0);
 
-/* Check to see whether the interface objects are already installed */
-let proto_or_iface_array = get_proto_or_iface_array(global.get());
-rval.set((*proto_or_iface_array)[%(id)s as usize]);
-if !rval.get().is_null() {
-    return;
+    /* Check to see whether the interface objects are already installed */
+    let proto_or_iface_array = get_proto_or_iface_array(global.get());
+    rval.set((*proto_or_iface_array)[%(id)s as usize]);
+    if !rval.get().is_null() {
+        return;
+    }
+
+    CreateInterfaceObjects(cx, global, proto_or_iface_array);
+    rval.set((*proto_or_iface_array)[%(id)s as usize]);
+    assert!(!rval.get().is_null());
 }
-
-CreateInterfaceObjects(cx, global, proto_or_iface_array);
-rval.set((*proto_or_iface_array)[%(id)s as usize]);
-assert!(!rval.get().is_null());
 """ % {"id": self.id})
 
 
@@ -3274,7 +3275,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
             Argument('HandleObject', 'global'),
         ]
         CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface',
-                                  'void', args, pub=True, unsafe=True)
+                                  'void', args, pub=True)
 
     def define(self):
         return CGAbstractMethod.define(self)

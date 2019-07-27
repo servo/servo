@@ -202,7 +202,7 @@ pub fn get_constructor_object_from_local_name(
 ) -> bool {
     macro_rules! get_constructor(
         ($binding:ident) => ({
-            unsafe { $binding::GetConstructorObject(cx, global, rval); }
+            $binding::GetConstructorObject(cx, global, rval);
             true
         })
     );
