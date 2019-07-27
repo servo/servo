@@ -576,6 +576,9 @@ install them, let us know by filing a bug!")
             os.environ["PKG_CONFIG_PATH"] = path.join(gstpath, "lib", "pkgconfig")
             os.environ["GST_PLUGIN_SCANNER"] = path.join(gstpath, "libexec", "gstreamer-1.0", "gst-plugin-scanner")
 
+    def msvc_package_dir(self, package):
+        return path.join(self.context.sharedir, "msvc-dependencies", package, msvc_deps[package])
+
     def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
@@ -590,14 +593,9 @@ install them, let us know by filing a bug!")
         extra_path = []
         extra_lib = []
         if "msvc" in (target or host_triple()):
-            msvc_deps_dir = path.join(self.context.sharedir, "msvc-dependencies")
-
-            def package_dir(package):
-                return path.join(msvc_deps_dir, package, msvc_deps[package])
-
-            extra_path += [path.join(package_dir("cmake"), "bin")]
-            extra_path += [path.join(package_dir("llvm"), "bin")]
-            extra_path += [path.join(package_dir("ninja"), "bin")]
+            extra_path += [path.join(self.msvc_package_dir("cmake"), "bin")]
+            extra_path += [path.join(self.msvc_package_dir("llvm"), "bin")]
+            extra_path += [path.join(self.msvc_package_dir("ninja"), "bin")]
 
             arch = (target or host_triple()).split('-')[0]
             vcpkg_arch = {
@@ -605,7 +603,7 @@ install them, let us know by filing a bug!")
                 "i686": "x86-windows",
                 "aarch64": "arm64-windows",
             }
-            openssl_base_dir = path.join(package_dir("openssl"), vcpkg_arch[arch])
+            openssl_base_dir = path.join(self.msvc_package_dir("openssl"), vcpkg_arch[arch])
 
             # Link openssl
             env["OPENSSL_INCLUDE_DIR"] = path.join(openssl_base_dir, "include")
@@ -613,13 +611,13 @@ install them, let us know by filing a bug!")
             env["OPENSSL_LIBS"] = "libssl:libcrypto"
             # Link moztools, used for building SpiderMonkey
             env["MOZTOOLS_PATH"] = os.pathsep.join([
-                path.join(package_dir("moztools"), "bin"),
-                path.join(package_dir("moztools"), "msys", "bin"),
+                path.join(self.msvc_package_dir("moztools"), "bin"),
+                path.join(self.msvc_package_dir("moztools"), "msys", "bin"),
             ])
             # Link autoconf 2.13, used for building SpiderMonkey
-            env["AUTOCONF"] = path.join(package_dir("moztools"), "msys", "local", "bin", "autoconf-2.13")
+            env["AUTOCONF"] = path.join(self.msvc_package_dir("moztools"), "msys", "local", "bin", "autoconf-2.13")
             # Link LLVM
-            env["LIBCLANG_PATH"] = path.join(package_dir("llvm"), "lib")
+            env["LIBCLANG_PATH"] = path.join(self.msvc_package_dir("llvm"), "lib")
 
             if not os.environ.get("NATIVE_WIN32_PYTHON"):
                 env["NATIVE_WIN32_PYTHON"] = sys.executable

@@ -127,7 +127,8 @@ pub use servo_url as url;
 
 #[cfg(any(
     all(target_os = "android", target_arch = "arm"),
-    target_arch = "x86_64"
+    target_arch = "x86_64",
+    all(target_os = "windows", target_arch = "aarch64"),
 ))]
 mod media_platform {
     use super::ServoMedia;
@@ -135,8 +136,15 @@ mod media_platform {
 
     #[cfg(windows)]
     pub fn init() {
-        let mut plugin_dir = std::env::current_exe().unwrap();
-        plugin_dir.pop();
+        // UWP apps have the working directory set appropriately. Win32 apps
+        // do not and need some assistance finding the DLLs.
+        let plugin_dir = if cfg!(feature = "uwp") {
+            std::path::PathBuf::new()
+        } else {
+            let mut plugin_dir = std::env::current_exe().unwrap();
+            plugin_dir.pop();
+            plugin_dir
+        };
 
         let uwp_plugins = [
             "gstapp.dll",
@@ -201,7 +209,8 @@ mod media_platform {
 
 #[cfg(not(any(
     all(target_os = "android", target_arch = "arm"),
-    target_arch = "x86_64"
+    target_arch = "x86_64",
+    all(target_os = "windows", target_arch = "aarch64"),
 )))]
 mod media_platform {
     use super::ServoMedia;
