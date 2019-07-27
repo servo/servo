@@ -38,7 +38,7 @@ use crate::dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use crate::dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use crate::fetch::FetchCanceller;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::JSContext;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::TaskSourceName;
 use crate::timers::{OneshotTimerCallback, OneshotTimerHandle};
@@ -54,7 +54,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JS_ClearPendingException;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::wrappers::JS_ParseJSON;
 use js::typedarray::{ArrayBuffer, CreateWith};
@@ -878,7 +878,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     #[allow(unsafe_code)]
     // https://xhr.spec.whatwg.org/#the-response-attribute
-    fn Response(&self, cx: SafeJSContext) -> JSVal {
+    fn Response(&self, cx: JSContext) -> JSVal {
         rooted!(in(*cx) let mut rval = UndefinedValue());
         match self.response_type.get() {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => unsafe {
@@ -902,16 +902,14 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 self.document_response().to_jsval(*cx, rval.handle_mut());
             },
             XMLHttpRequestResponseType::Json => unsafe {
-                self.json_response(*cx).to_jsval(*cx, rval.handle_mut());
+                self.json_response(cx).to_jsval(*cx, rval.handle_mut());
             },
             XMLHttpRequestResponseType::Blob => unsafe {
                 self.blob_response().to_jsval(*cx, rval.handle_mut());
             },
-            XMLHttpRequestResponseType::Arraybuffer => unsafe {
-                match self.arraybuffer_response(*cx) {
-                    Some(js_object) => js_object.to_jsval(*cx, rval.handle_mut()),
-                    None => return NullValue(),
-                }
+            XMLHttpRequestResponseType::Arraybuffer => match self.arraybuffer_response(cx) {
+                Some(js_object) => unsafe { js_object.to_jsval(*cx, rval.handle_mut()) },
+                None => return NullValue(),
             },
         }
         rval.get()
@@ -1278,7 +1276,7 @@ impl XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#arraybuffer-response
     #[allow(unsafe_code)]
-    unsafe fn arraybuffer_response(&self, cx: *mut JSContext) -> Option<NonNull<JSObject>> {
+    fn arraybuffer_response(&self, cx: JSContext) -> Option<NonNull<JSObject>> {
         // Step 1
         let created = self.response_arraybuffer.get();
         if let Some(nonnull) = NonNull::new(created) {
@@ -1287,13 +1285,15 @@ impl XMLHttpRequest {
 
         // Step 2
         let bytes = self.response.borrow();
-        rooted!(in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
-        ArrayBuffer::create(cx, CreateWith::Slice(&bytes), array_buffer.handle_mut())
-            .ok()
-            .and_then(|()| {
-                self.response_arraybuffer.set(array_buffer.get());
-                Some(NonNull::new_unchecked(array_buffer.get()))
-            })
+        rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+        unsafe {
+            ArrayBuffer::create(*cx, CreateWith::Slice(&bytes), array_buffer.handle_mut())
+                .ok()
+                .and_then(|()| {
+                    self.response_arraybuffer.set(array_buffer.get());
+                    Some(NonNull::new_unchecked(array_buffer.get()))
+                })
+        }
     }
 
     // https://xhr.spec.whatwg.org/#document-response
@@ -1345,7 +1345,7 @@ impl XMLHttpRequest {
 
     #[allow(unsafe_code)]
     // https://xhr.spec.whatwg.org/#json-response
-    fn json_response(&self, cx: *mut JSContext) -> JSVal {
+    fn json_response(&self, cx: JSContext) -> JSVal {
         // Step 1
         let response_json = self.response_json.get();
         if !response_json.is_null_or_undefined() {
@@ -1378,15 +1378,15 @@ impl XMLHttpRequest {
         // if present, but UTF-16BE/LE BOM must not be honored.
         let json_text = decode_to_utf16_with_bom_removal(&bytes, UTF_8);
         // Step 5
-        rooted!(in(cx) let mut rval = UndefinedValue());
+        rooted!(in(*cx) let mut rval = UndefinedValue());
         unsafe {
             if !JS_ParseJSON(
-                cx,
+                *cx,
                 json_text.as_ptr(),
                 json_text.len() as u32,
                 rval.handle_mut(),
             ) {
-                JS_ClearPendingException(cx);
+                JS_ClearPendingException(*cx);
                 return NullValue();
             }
         }
