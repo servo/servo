@@ -172,6 +172,7 @@ unsafe extern "C" fn enqueue_promise_job(
     _allocation_site: HandleObject,
     incumbent_global: HandleObject,
 ) -> bool {
+    let cx = JSContext::from_ptr(cx);
     wrap_panic(
         AssertUnwindSafe(|| {
             let microtask_queue = &*(extra as *const MicrotaskQueue);
@@ -179,7 +180,7 @@ unsafe extern "C" fn enqueue_promise_job(
             let pipeline = global.pipeline_id();
             microtask_queue.enqueue(
                 Microtask::Promise(EnqueuedPromiseCallback {
-                    callback: PromiseJobCallback::new(JSContext::from_ptr(cx), job.get()),
+                    callback: PromiseJobCallback::new(cx, job.get()),
                     pipeline,
                 }),
                 cx,

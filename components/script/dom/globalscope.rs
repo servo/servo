@@ -677,23 +677,17 @@ impl GlobalScope {
     }
 
     /// Perform a microtask checkpoint.
-    #[allow(unsafe_code)]
     pub fn perform_a_microtask_checkpoint(&self) {
-        unsafe {
-            self.microtask_queue.checkpoint(
-                *self.get_cx(),
-                |_| Some(DomRoot::from_ref(self)),
-                vec![DomRoot::from_ref(self)],
-            );
-        }
+        self.microtask_queue.checkpoint(
+            self.get_cx(),
+            |_| Some(DomRoot::from_ref(self)),
+            vec![DomRoot::from_ref(self)],
+        );
     }
 
     /// Enqueue a microtask for subsequent execution.
-    #[allow(unsafe_code)]
     pub fn enqueue_microtask(&self, job: Microtask) {
-        unsafe {
-            self.microtask_queue.enqueue(job, *self.get_cx());
-        }
+        self.microtask_queue.enqueue(job, self.get_cx());
     }
 
     /// Create a new sender/receiver pair that can be used to implement an on-demand
