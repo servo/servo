@@ -3335,7 +3335,7 @@ class CGCallGenerator(CGThing):
         if "cx" not in argsPre and needsCx:
             args.prepend(CGGeneric("cx"))
         if nativeMethodName in descriptor.inCompartmentMethods:
-            args.append(CGGeneric("InCompartment::in_compartment(&AlreadyInCompartment::assert_for_cx(*cx))"))
+            args.append(CGGeneric("InCompartment::in_compartment(&AlreadyInCompartment::assert_for_cx(cx))"))
 
         # Build up our actual call
         self.cgRoot = CGList([], "\n")
