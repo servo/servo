@@ -27,15 +27,18 @@ use encoding_rs::{Encoding, UTF_8};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::HandleObject;
-use js::jsapi::SetModuleMetadataHook;
 use js::jsapi::{GetModuleResolveHook, JSRuntime, SetModuleResolveHook};
+use js::jsapi::{GetRequestedModules, SetModuleMetadataHook};
 use js::jsapi::{Handle, JSAutoRealm, JSObject, JSString};
 use js::jsapi::{HandleValue, Heap, JSContext};
 use js::jsapi::{ModuleEvaluate, ModuleInstantiate, SourceText};
 use js::jsapi::{SetModuleDynamicImportHook, SetScriptPrivateReferenceHooks};
+use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
-use js::rust::jsapi_wrapped::CompileModule;
+use js::rust::jsapi_wrapped::GetRequestedModuleSpecifier;
+use js::rust::jsapi_wrapped::{CompileModule, JS_GetArrayLength, JS_GetElement};
 use js::rust::CompileOptionsWrapper;
+use js::rust::IntoHandle;
 use net_traits::request::{Destination, ParserMetadata, Referrer, RequestBuilder, RequestMode};
 use net_traits::{FetchMetadata, Metadata};
 use net_traits::{FetchResponseListener, NetworkError};
@@ -48,9 +51,13 @@ use std::ptr;
 use std::sync::{Arc, Mutex};
 use url::ParseError as UrlParseError;
 
+// FIXME: Consider to create module fetch status
+//        and have a module tree linker struct
+
 #[derive(JSTraceable, PartialEq)]
 pub enum ModuleObject {
     Fetching,
+    // FIXME: Change to `Result<T, E>` so that we can save `error` objects
     Fetched(Option<Box<Heap<*mut JSObject>>>),
 }
 
@@ -91,6 +98,10 @@ struct ModuleContext {
     metadata: Option<Metadata>,
     /// The initial URL requested.
     url: ServoUrl,
+    /// Descendant module urls
+    descendant_urls: HashSet<ServoUrl>,
+    /// Destination of current module context
+    destination: Destination,
     /// Indicates whether the request failed, and why
     status: Result<(), NetworkError>,
     /// Timing object for this resource
@@ -173,36 +184,58 @@ impl FetchResponseListener for ModuleContext {
 
             let compiled = compiled_module.ok().map(|compiled| Heap::boxed(compiled));
 
-            match compiled {
-                Some(record) => {
-                    global.set_module_map(self.url.clone(), ModuleObject::Fetched(Some(record)));
-                },
-                None => {
-                    global.set_module_map(self.url.clone(), ModuleObject::Fetched(None));
-                    return;
-                },
+            if compiled.is_none() {
+                global.set_module_map(self.url.clone(), ModuleObject::Fetched(None));
+                return;
             }
 
-            match &self.owner {
-                ModuleOwner::Worker(_) => unimplemented!(),
-                ModuleOwner::Window(script) => {
-                    let document = document_from_node(&*script.root());
+            if let Some(record) = compiled {
+                global.set_module_map(self.url.clone(), ModuleObject::Fetched(Some(record)));
 
-                    let r#async = script
-                        .root()
-                        .upcast::<Element>()
-                        .has_attribute(&local_name!("async"));
+                let mut visited = HashSet::new();
+                visited.insert(self.url.clone());
 
-                    if !r#async && (&*script.root()).get_parser_inserted() {
-                        document.deferred_script_loaded(&*script.root(), load);
-                    } else if !r#async && !(&*script.root()).get_non_blocking() {
-                        document.asap_in_order_script_loaded(&*script.root(), load);
-                    } else {
-                        document.asap_script_loaded(&*script.root(), load);
-                    };
+                let _descendant_result = fetch_module_descendants(
+                    &self.owner,
+                    &global,
+                    self.url.clone(),
+                    self.destination.clone(),
+                    visited,
+                );
 
-                    document.finish_load(LoadType::Script(self.url.clone()));
-                },
+                match &self.owner {
+                    ModuleOwner::Worker(_) => unimplemented!(),
+                    ModuleOwner::Window(script) => {
+                        let document = document_from_node(&*script.root());
+
+                        let base_url = document.base_url();
+
+                        let r#async = script
+                            .root()
+                            .upcast::<Element>()
+                            .has_attribute(&local_name!("async"));
+
+                        if let Some(script_src) = script
+                            .root()
+                            .upcast::<Element>()
+                            .get_attribute(&ns!(), &local_name!("src"))
+                            .map(|attr| base_url.join(&attr.value()).ok())
+                            .unwrap_or(None)
+                        {
+                            if self.url.clone() == script_src {
+                                if !r#async && (&*script.root()).get_parser_inserted() {
+                                    document.deferred_script_loaded(&*script.root(), load);
+                                } else if !r#async && !(&*script.root()).get_non_blocking() {
+                                    document.asap_in_order_script_loaded(&*script.root(), load);
+                                } else {
+                                    document.asap_script_loaded(&*script.root(), load);
+                                };
+
+                                document.finish_load(LoadType::Script(self.url.clone()));
+                            }
+                        }
+                    },
+                }
             }
         }
     }
@@ -375,6 +408,8 @@ pub fn fetch_single_module_script(
         data: vec![],
         metadata: None,
         url: url.clone(),
+        descendant_urls: HashSet::new(),
+        destination: destination.clone(),
         status: Ok(()),
         resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
     }));
@@ -396,6 +431,32 @@ pub fn fetch_single_module_script(
 
     if let Some(doc) = document {
         doc.fetch_async(LoadType::Script(url), request, action_sender);
+    }
+}
+
+#[allow(unsafe_code)]
+/// https://html.spec.whatwg.org/multipage/#fetch-an-inline-module-script-graph
+pub fn fetch_inline_module_script(
+    owner: ModuleOwner,
+    module_script_text: DOMString,
+    url: ServoUrl,
+) {
+    let global = owner.global();
+
+    let compiled_module = compile_module_script(module_script_text, url.clone(), &global);
+
+    let compiled = compiled_module.ok().map(|compiled| Heap::boxed(compiled));
+
+    if let Some(record) = compiled {
+        let _descendant_result =
+            fetch_inline_module_descendants(&owner, &global, url.clone(), Destination::Script);
+
+        unsafe {
+            let _instantiated = instantiate_module_tree(&global, record.handle());
+            let _evaluated = execute_module(&global, record.handle());
+        }
+
+        return;
     }
 }
 
@@ -480,6 +541,128 @@ pub fn execute_module(global: &GlobalScope, module_record: HandleObject) -> Resu
             Ok(())
         }
     }
+}
+
+// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script
+fn fetch_inline_module_descendants(
+    owner: &ModuleOwner,
+    global: &GlobalScope,
+    url: ServoUrl,
+    destination: Destination,
+) -> Result<(), ()> {
+    fetch_module_descendants(
+        owner,
+        global,
+        url,
+        destination,
+        HashSet::new()
+    )
+}
+
+// https://searchfox.org/mozilla-central/source/dom/script/ScriptLoader.cpp#726
+// void ScriptLoader::StartFetchingModuleDependencies
+#[allow(unsafe_code)]
+// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-a-module-script
+fn fetch_module_descendants(
+    owner: &ModuleOwner,
+    global: &GlobalScope,
+    parent_module_url: ServoUrl,
+    destination: Destination,
+    mut visited: HashSet<ServoUrl>,
+) -> Result<(), ()> {
+    println!("Start to load dependencies of {:?}", parent_module_url.clone());
+    // Step 1. (We can skip step 1 because we won't
+    // execute this function if we don't fetch valid module record)
+
+    if let Ok(requested_urls) = resolve_requested_modules(
+        global,
+        parent_module_url.clone(),
+        &mut visited
+    ) {
+        for url in requested_urls.iter() {
+            create_module_script(
+                owner.clone(),
+                url.clone(),
+                &global,
+                destination.clone(),
+                visited.clone(),
+                Referrer::Client,
+                ParserMetadata::NotParserInserted,
+                true,
+            );
+        }
+
+        return Ok(());
+    }
+
+    Err(())
+}
+
+#[allow(unsafe_code)]
+fn resolve_requested_modules(
+    global: &GlobalScope,
+    parent_module_url: ServoUrl,
+    visited: &mut HashSet<ServoUrl>,
+) -> Result<HashSet<ServoUrl>, ()> {
+    let module_maps = global.get_module_map().borrow();
+
+    let module_record = module_maps.get(&parent_module_url);
+
+    assert!(module_record.is_some());
+
+    let mut requested_urls: HashSet<ServoUrl> = HashSet::new();
+
+    unsafe {
+        if let ModuleObject::Fetched(Some(record)) = module_record.unwrap() {
+            let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
+
+            rooted!(in(*global.get_cx()) let requested_modules = GetRequestedModules(*global.get_cx(), record.handle()));
+
+            let mut length = 0;
+
+            if !JS_GetArrayLength(*global.get_cx(), requested_modules.handle(), &mut length) {
+                println!("Wrong length of requested modules");
+                return Err(());
+            }
+
+            for index in 0..length {
+                rooted!(in(*global.get_cx()) let mut element = UndefinedValue());
+
+                if !JS_GetElement(
+                    *global.get_cx(),
+                    requested_modules.handle(),
+                    index,
+                    &mut element.handle_mut(),
+                ) {
+                    return Err(());
+                }
+
+                rooted!(in(*global.get_cx()) let specifier = GetRequestedModuleSpecifier(*global.get_cx(), element.handle()));
+
+                let base_url = global.api_base_url();
+
+                let url = resolve_module_specifier(
+                    *global.get_cx(),
+                    &base_url,
+                    specifier.handle().into_handle(),
+                );
+
+                assert!(url.is_ok());
+
+                let parsed_url = url.unwrap();
+
+                if !visited.contains(&parsed_url) {
+                    requested_urls.insert(parsed_url.clone());
+
+                    visited.insert(parsed_url.clone());
+                }
+            }
+
+            return Ok(requested_urls);
+        }
+    }
+
+    Err(())
 }
 
 #[allow(unsafe_code)]
