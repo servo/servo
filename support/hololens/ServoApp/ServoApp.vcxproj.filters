@@ -774,6 +774,12 @@
     <None Include="..\..\..\target\aarch64-pc-windows-msvc\release\z-1.dll">
       <Filter>ReleaseARM64ServoDLLs</Filter>
     </None>
+    <None Include="..\..\..\target\aarch64-pc-windows-msvc\release\gstsdp-1.0-0.dll">
+      <Filter>ReleaseARM64ServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\aarch64-pc-windows-msvc\debug\gstsdp-1.0-0.dll">
+      <Filter>DebugARM64ServoDLLs</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Assets">
