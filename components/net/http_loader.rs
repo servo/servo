@@ -1274,7 +1274,7 @@ fn http_network_fetch(
             .timing
             .lock()
             .unwrap()
-            .set_attribute(ResourceAttribute::RedirectStart(0))
+            .set_attribute(ResourceAttribute::RedirectStart(RedirectStartValue::Zero))
             .set_attribute(ResourceAttribute::RedirectEnd(0))
             .set_attribute(ResourceAttribute::DomainLookupStart(0))
             .set_attribute(ResourceAttribute::DomainLookupEnd(0))
