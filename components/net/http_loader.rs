@@ -37,6 +37,7 @@ use hyper::{Body, Client, Method, Response as HyperResponse, StatusCode};
 use hyper_serde::Serde;
 use msg::constellation_msg::{HistoryStateId, PipelineId};
 use net_traits::quality::{quality_to_value, Quality, QualityItem};
+use net_traits::request::Origin::Origin as SpecificOrigin;
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
 use net_traits::request::{ResponseTainting, ServiceWorkersMode};
@@ -828,7 +829,6 @@ fn http_network_or_cache_fetch(
 ) -> Response {
     // Step 2
     let mut response: Option<Response> = None;
-
     // Step 4
     let mut revalidating_flag = false;
 
@@ -1290,8 +1290,32 @@ fn http_network_fetch(
         }
     }
 
+    let header_strings: Vec<&str> = res
+        .headers()
+        .get_all("Timing-Allow-Origin")
+        .iter()
+        .map(|header_value| header_value.to_str().unwrap())
+        .collect();
+    let wildcard_present = header_strings.iter().any(|header_str| *header_str == "*");
+    // The spec: https://www.w3.org/TR/resource-timing-2/#sec-timing-allow-origin
+    // says that a header string is either an origin or a wildcard so we can just do a straight
+    // check against the document origin
+    let req_origin_in_timing_allow = header_strings
+        .iter()
+        .any(|header_str| match request.origin {
+            SpecificOrigin(ref immutable_request_origin) => {
+                *header_str == immutable_request_origin.ascii_serialization()
+            },
+            _ => false,
+        });
+
+    if !req_origin_in_timing_allow && !wildcard_present {
+        context.timing.lock().unwrap().mark_timing_check_failed();
+    }
+
     let timing = context.timing.lock().unwrap().clone();
     let mut response = Response::new(url.clone(), timing);
+
     response.status = Some((
         res.status(),
         res.status().canonical_reason().unwrap_or("").into(),
@@ -1443,6 +1467,11 @@ fn http_network_fetch(
     // Step 16
 
     // Ensure we don't override "responseEnd" on successful return of this function
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::ResponseEnd);
     response_end_timer.neuter();
 
     response
