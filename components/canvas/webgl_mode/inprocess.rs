@@ -117,8 +117,8 @@ impl SendableWebGLExternalImages {
     }
 }
 
-impl webxr_api::WebGLExternalImageApi for SendableWebGLExternalImages {
-    fn lock(&self, id: usize) -> (u32, Size2D<i32>, Option<gl::GLsync>) {
+impl SendableWebGLExternalImages {
+    fn lock_and_get_current_texture(&self, id: usize) -> (u32, Size2D<i32>, Option<gl::GLsync>) {
         if let Some(main_thread) = WebGLMainThread::on_current_thread() {
             // If we're on the same thread as WebGL, we can get the data directly
             let (image_id, size) = main_thread
@@ -140,6 +140,13 @@ impl webxr_api::WebGLExternalImageApi for SendableWebGLExternalImages {
             let (image_id, size, gl_sync) = self.lock_channel.1.recv().unwrap();
             (image_id, size, Some(gl_sync as gl::GLsync))
         }
+    }
+}
+
+impl webxr_api::WebGLExternalImageApi for SendableWebGLExternalImages {
+    fn lock(&self, id: usize) -> Option<gl::GLsync> {
+        let (_, _, gl_sync) = self.lock_and_get_current_texture(id);
+        gl_sync
     }
 
     fn unlock(&self, id: usize) {
@@ -178,7 +185,7 @@ impl WebGLExternalImages {
 
 impl WebrenderExternalImageApi for WebGLExternalImages {
     fn lock(&mut self, id: u64) -> (u32, Size2D<i32>) {
-        let (image_id, size, gl_sync) = self.sendable.lock(id as usize);
+        let (image_id, size, gl_sync) = self.sendable.lock_and_get_current_texture(id as usize);
         // The next glWaitSync call is run on the WR thread and it's used to synchronize the two
         // flows of OpenGL commands in order to avoid WR using a semi-ready WebGL texture.
         // glWaitSync doesn't block WR thread, it affects only internal OpenGL subsystem.
