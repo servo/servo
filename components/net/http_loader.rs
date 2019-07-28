@@ -1290,8 +1290,31 @@ fn http_network_fetch(
         }
     }
 
+    let header_strings: Vec<&str> = res
+        .headers()
+        .get_all("Timing-Allow-Origin")
+        .iter()
+        .map(|header_value| header_value.to_str().unwrap())
+        .collect();
+    let wildcard_present = header_strings
+        .iter()
+        .any(|header_str| *header_str == "*");
+    let req_origin_in_timing_allow = header_strings
+        .iter()
+        .filter_map(|header| ServoUrl::parse(header).ok().map(|u| u.into_url()))
+        .any(|header_url| header_url.origin() == url.as_url().origin());
+
+    if !req_origin_in_timing_allow && !wildcard_present {
+        context
+            .timing
+            .lock()
+            .unwrap()
+            .mark_timing_check_failed();
+    }
+
     let timing = context.timing.lock().unwrap().clone();
     let mut response = Response::new(url.clone(), timing);
+
     response.status = Some((
         res.status(),
         res.status().canonical_reason().unwrap_or("").into(),

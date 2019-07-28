@@ -439,6 +439,7 @@ pub struct ResourceCorsData {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ResourceFetchTiming {
     pub domain_lookup_start: u64,
+    pub timing_check_passed: bool,
     pub timing_type: ResourceTimingType,
     /// Number of redirects until final resource (currently limited to 20)
     pub redirect_count: u16,
@@ -488,6 +489,7 @@ impl ResourceFetchTiming {
     pub fn new(timing_type: ResourceTimingType) -> ResourceFetchTiming {
         ResourceFetchTiming {
             timing_type: timing_type,
+            timing_check_passed: false,
             domain_lookup_start: 0,
             redirect_count: 0,
             request_start: 0,
@@ -504,8 +506,13 @@ impl ResourceFetchTiming {
     // TODO currently this is being set with precise time ns when it should be time since
     // time origin (as described in Performance::now)
     pub fn set_attribute(&mut self, attribute: ResourceAttribute) {
+        if !self.timing_check_passed{
+            return;
+        }
         match attribute {
-            ResourceAttribute::DomainLookupStart => self.domain_lookup_start = precise_time_ns(),
+            ResourceAttribute::DomainLookupStart => {
+                self.domain_lookup_start = precise_time_ns()
+            },
             ResourceAttribute::RedirectCount(count) => self.redirect_count = count,
             ResourceAttribute::RequestStart => self.request_start = precise_time_ns(),
             ResourceAttribute::ResponseStart => self.response_start = precise_time_ns(),
@@ -526,6 +533,19 @@ impl ResourceFetchTiming {
             ResourceAttribute::ConnectEnd(val) => self.connect_end = val,
             ResourceAttribute::ResponseEnd => self.response_end = precise_time_ns(),
         }
+    }
+
+    pub fn mark_timing_check_failed(&mut self) {
+        self.timing_check_passed = false;
+        self.domain_lookup_start = 0;
+        self.redirect_count = 0;
+        self.request_start = 0;
+        self.response_start = 0;
+        self.fetch_start = 0;
+        self.redirect_start = 0;
+        self.connect_start = 0;
+        self.connect_end = 0;
+        self.response_end = 0;
     }
 }
 
