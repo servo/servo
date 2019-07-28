@@ -28,7 +28,7 @@ use crate::dom::node::{BindContext, ChildrenMutation, CloneChildrenFlag, Node};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
-use crate::script_module::{execute_module, instantiate_module_tree};
+use crate::script_module::{execute_module, fetch_inline_module_script, instantiate_module_tree};
 use crate::script_module::{fetch_module_script_graph, ModuleObject, ModuleOwner};
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
@@ -129,7 +129,7 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
     "text/x-javascript",
 ];
 
-#[derive(JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum ScriptType {
     Classic,
     Module,
@@ -568,10 +568,22 @@ impl HTMLScriptElement {
         } else {
             // Step 25.
             assert!(!text.is_empty());
-            // Step 25-1.
-            let result = Ok(ScriptOrigin::internal(text, base_url, ScriptType::Classic));
 
-            // TODO: Step 25-2.
+            // Step 25-1. & 25-2.
+            let result = Ok(ScriptOrigin::internal(
+                text.clone(),
+                base_url.clone(),
+                script_type.clone(),
+            ));
+
+            // Step 25-2.
+            if let ScriptType::Module = script_type {
+                fetch_inline_module_script(
+                    ModuleOwner::Window(Trusted::new(self)),
+                    text.clone(),
+                    base_url.clone(),
+                );
+            }
 
             // Step 26.
             if was_parser_inserted &&
