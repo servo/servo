@@ -1256,8 +1256,36 @@ fn http_network_fetch(
         }
     }
 
+    let req_origin_in_timing_allow = res.headers()
+        .get_all("Timing-Allow-Origin")
+        .iter()
+        .fold(false, |acc, potential_origin| acc || potential_origin.to_str().unwrap() == url.origin() || potential_origin == "*");
+    let valid_origin = match res.origin {
+        Origin::Origin(ref origin) => *origin == url.origin() || req_origin_in_timing_allow,
+        Origin::Client => panic!(
+            "Request origin should not be client for {}",
+            url.origin()
+        )
+    }
+
     let timing = context.timing.lock().unwrap().clone();
+    if !valid_origin {
+        timing = context
+            .timing
+            .lock()
+            .unwrap()
+            .set_attribute(ResourceAttribute::RedirectStart(0))
+            .set_attribute(ResourceAttribute::RedirectEnd(0))
+            .set_attribute(ResourceAttribute::DomainLookupStart(0))
+            .set_attribute(ResourceAttribute::DomainLookupEnd(0))
+            .set_attribute(ResourceAttribute::ConnectStart(0))
+            .set_attribute(ResourceAttribute::ConnectEnd(0))
+            .set_attribute(ResourceAttribute::RequestStart(0))
+            .set_attribute(ResourceAttribute::ResponseStart(0))
+            .set_attribute(ResourceAttribute::SecureConnectionStart(0))
+    }
     let mut response = Response::new(url.clone(), timing);
+
     response.status = Some((
         res.status(),
         res.status().canonical_reason().unwrap_or("").into(),
