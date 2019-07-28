@@ -124,6 +124,18 @@ impl XRSession {
     }
 
     fn attach_event_handler(&self) {
+        #[derive(serde::Serialize, serde::Deserialize)]
+        pub struct EventCallback {
+            sender: IpcSender<XREvent>,
+        }
+
+        #[typetag::serde]
+        impl webxr_api::EventCallback for EventCallback {
+            fn callback(&mut self, event: XREvent) {
+                let _ = self.sender.send(event);
+            }
+        }
+
         let this = Trusted::new(self);
         let global = self.global();
         let window = global.as_window();
@@ -131,7 +143,6 @@ impl XRSession {
             .task_manager()
             .dom_manipulation_task_source_with_canceller();
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
-
         ROUTER.add_route(
             receiver.to_opaque(),
             Box::new(move |message| {
@@ -146,7 +157,9 @@ impl XRSession {
         );
 
         // request animation frame
-        self.session.borrow_mut().set_event_dest(sender);
+        self.session
+            .borrow_mut()
+            .set_event_callback(EventCallback { sender });
     }
 
     fn event_callback(&self, event: XREvent) {
@@ -182,10 +195,13 @@ impl XRSession {
             // Step 6-7: XXXManishearth handle inlineVerticalFieldOfView
 
             // XXXManishearth handle inline sessions and composition disabled flag
-            let context = pending
-                .GetBaseLayer()
-                .map(|layer| layer.Context().context_id().0);
-            self.session.borrow_mut().set_webgl_context(context);
+            let layer = pending.GetBaseLayer();
+            if let Some(layer) = layer {
+                let mut session = self.session.borrow_mut();
+                session.update_webgl_external_image_api(
+                    layer.Context().webgl_sender().webxr_external_image_api(),
+                );
+            }
         }
 
         // Step 2
@@ -273,6 +289,18 @@ impl XRSessionMethods for XRSession {
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe
     fn RequestAnimationFrame(&self, callback: Rc<XRFrameRequestCallback>) -> i32 {
+        #[derive(serde::Serialize, serde::Deserialize)]
+        pub struct FrameCallback {
+            sender: IpcSender<(f64, Frame)>,
+        }
+
+        #[typetag::serde]
+        impl webxr_api::FrameRequestCallback for FrameCallback {
+            fn callback(&mut self, time: f64, frame: Frame) {
+                let _ = self.sender.send((time, frame));
+            }
+        }
+
         // queue up RAF callback, obtain ID
         let raf_id = self.next_raf_id.get();
         self.next_raf_id.set(raf_id + 1);
@@ -306,7 +334,9 @@ impl XRSessionMethods for XRSession {
         let sender = self.raf_sender.borrow().clone().unwrap();
 
         // request animation frame
-        self.session.borrow_mut().request_animation_frame(sender);
+        self.session
+            .borrow_mut()
+            .request_animation_frame(FrameCallback { sender });
 
         raf_id
     }
