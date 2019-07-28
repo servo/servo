@@ -13,6 +13,9 @@ use servo_arc::Arc;
 use servo_url::ServoUrl;
 use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
+// Grab the type of Std Arc that is used in FetchContext so that ResourceTiming can be passed freely between response
+// and FetchContext
+use std::sync::Arc as FetchContextArc;
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
@@ -114,7 +117,8 @@ pub struct Response {
     #[ignore_malloc_size_of = "AtomicBool heap size undefined"]
     pub aborted: Arc<AtomicBool>,
     /// track network metrics
-    pub resource_timing: ResourceFetchTiming,
+    #[ignore_malloc_size_of = "Mutex heap size undefined"]
+    pub resource_timing: FetchContextArc<Mutex<ResourceFetchTiming>>,
 }
 
 impl Response {
@@ -137,7 +141,7 @@ impl Response {
             internal_response: None,
             return_internal: true,
             aborted: Arc::new(AtomicBool::new(false)),
-            resource_timing: resource_timing,
+            resource_timing: FetchContextArc::new(Mutex::new(resource_timing)),
         }
     }
 
@@ -171,7 +175,9 @@ impl Response {
             internal_response: None,
             return_internal: true,
             aborted: Arc::new(AtomicBool::new(false)),
-            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Error),
+            resource_timing: FetchContextArc::new(Mutex::new(ResourceFetchTiming::new(
+                ResourceTimingType::Error,
+            ))),
         }
     }
 
@@ -217,8 +223,8 @@ impl Response {
         }
     }
 
-    pub fn get_resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
+    pub fn get_resource_timing(&self) -> FetchContextArc<Mutex<ResourceFetchTiming>> {
+        FetchContextArc::clone(&self.resource_timing)
     }
 
     /// Convert to a filtered response, of type `filter_type`.
