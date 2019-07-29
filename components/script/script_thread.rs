@@ -3128,7 +3128,7 @@ impl ScriptThread {
             incomplete.pipeline_id,
             incomplete.parent_info,
             incomplete.window_size,
-            origin,
+            origin.clone(),
             incomplete.navigation_start,
             incomplete.navigation_start_precise,
             self.webgl_chan.as_ref().map(|chan| chan.channel()),
