@@ -3212,7 +3212,7 @@ impl ScriptThread {
             &window,
             HasBrowsingContext::Yes,
             Some(final_url.clone()),
-            incomplete.origin,
+            origin,
             is_html_document,
             content_type,
             last_modified,
