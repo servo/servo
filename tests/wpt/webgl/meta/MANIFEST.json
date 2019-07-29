@@ -12424,7 +12424,9 @@
    "conformance/glsl/misc/shader-with-reserved-words.html": [
     [
      "conformance/glsl/misc/shader-with-reserved-words.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/glsl/misc/shader-with-short-circuiting-operators.html": [
@@ -29157,7 +29159,7 @@
    "testharness"
   ],
   "conformance/glsl/misc/shader-with-reserved-words.html": [
-   "a2166e9df78cfd2b47489fcb1b8c082b920dec80",
+   "fb9067f6c208c5763acc2e08add72243f5fbbbc8",
    "testharness"
   ],
   "conformance/glsl/misc/shader-with-short-circuiting-operators.html": [
