@@ -17,10 +17,8 @@ fn main() {
 
     let style_out_dir = PathBuf::from(env::var_os("DEP_SERVO_STYLE_CRATE_OUT_DIR").unwrap());
     let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap());
-    let build_dir = out_dir.join("build");
-    let json = "css_properties.json";
-    let _ = std::fs::create_dir(&build_dir); // Ignore errors: they most likely indicate it already exists
-    std::fs::copy(style_out_dir.join(json), build_dir.join(json)).unwrap();
+    let json = "css-properties.json";
+    std::fs::copy(style_out_dir.join(json), out_dir.join(json)).unwrap();
 
     // This must use the Ninja generator -- it's the only one that
     // parallelizes cmake's output properly.  (Cmake generates

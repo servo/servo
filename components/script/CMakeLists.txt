@@ -41,7 +41,6 @@ set(globalgen_deps
   ${bindings_src}/Configuration.py
   ${bindings_src}/CodegenRust.py
   ${bindings_src}/parser/WebIDL.py
-  ${PROJECT_BINARY_DIR}/css_properties.json
   )
 set(bindinggen_deps
   ${globalgen_deps}
@@ -69,27 +68,11 @@ add_custom_command(
                  ${bindings_src}/Bindings.conf
                  .
                  ${PROJECT_SOURCE_DIR}
-                 ${PROJECT_BINARY_DIR}/css_properties.json
-  DEPENDS Bindings _cache ${globalgen_deps} ${webidls}
+                 ${PROJECT_BINARY_DIR}/../css-properties.json
+                 ${PROJECT_SOURCE_DIR}/../../target/doc/servo
+  DEPENDS Bindings _cache ${globalgen_deps} ${webidls} ${PROJECT_BINARY_DIR}/../css-properties.json
   VERBATIM
   )
-
-add_custom_command(
-  OUTPUT apis.html
-  COMMAND ${PYTHON_EXECUTABLE} -B ${bindings_src}/pythonpath.py -I ${bindings_src}/parser -I ${bindings_src}/ply
-                 ${bindings_src}/GlobalGen.py
-                 --cachedir=_cache
-                 --filelist=webidls.list
-                 --only-html
-                 ${bindings_src}/Bindings.conf
-                 .
-                 ${PROJECT_SOURCE_DIR}
-                 ${PROJECT_BINARY_DIR}/css_properties.json
-  DEPENDS _cache ${globalgen_deps} ${webidls}
-  VERBATIM
-  )
-
-add_custom_target(supported-apis DEPENDS apis.html)
 
 # We need an intermediate custom target for this, due to this misfeature:
 # > If any dependency is an OUTPUT of another custom command in the same

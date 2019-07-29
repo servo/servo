@@ -101,21 +101,32 @@ def main():
                 pref_attr = "servo_2013_pref"
             if engine == "servo-2020":
                 pref_attr = "servo_2020_pref"
-            names_and_prefs = [
-                (prop.name, getattr(prop, pref_attr))
-                for p in properties.longhands + properties.shorthands
-                if p.enabled_in_content()
-                for prop in [p] + p.alias
-            ]
-            write(OUT_DIR, "css_properties.json", json.dumps(names_and_prefs, indent=4))
+            properties_dict = {
+                kind: {
+                    p.name: {
+                        "pref": getattr(p, pref_attr)
+                    }
+                    for prop in properties_list
+                    if prop.enabled_in_content()
+                    for p in [prop] + prop.alias
+                }
+                for kind, properties_list in [
+                    ("longhands", properties.longhands),
+                    ("shorthands", properties.shorthands)
+                ]
+            }
+            as_html = render(os.path.join(BASE, "properties.html.mako"), properties=properties_dict)
+            as_json = json.dumps(properties_dict, indent=4, sort_keys=True)
+            doc_servo = os.path.join(BASE, "..", "..", "..", "target", "doc", "servo")
+            write(doc_servo, "css-properties.html", as_html)
+            write(doc_servo, "css-properties.json", as_json)
+            write(OUT_DIR, "css-properties.json", as_json)
     elif output == "geckolib":
         if len(sys.argv) < 4:
             abort(usage)
         template = sys.argv[3]
         header = render(template, data=properties)
         sys.stdout.write(header)
-    elif output == "html":
-        write_html(properties)
 
 
 def abort(message):
@@ -151,20 +162,6 @@ def write(directory, filename, content):
     python_addr = RE_PYTHON_ADDR.search(content)
     if python_addr:
         abort("Found \"{}\" in {} ({})".format(python_addr.group(0), filename, full_path))
-
-
-def write_html(properties):
-    properties = dict(
-        (p.name, {
-            "flag": p.servo_2013_pref,
-            "shorthand": hasattr(p, "sub_properties")
-        })
-        for p in properties.longhands + properties.shorthands
-    )
-    doc_servo = os.path.join(BASE, "..", "..", "..", "target", "doc", "servo")
-    html = render(os.path.join(BASE, "properties.html.mako"), properties=properties)
-    write(doc_servo, "css-properties.html", html)
-    write(doc_servo, "css-properties.json", json.dumps(properties, indent=4))
 
 
 if __name__ == "__main__":

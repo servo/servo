@@ -29,12 +29,10 @@ def generate_file(config, name, filename):
 def main():
     # Parse arguments.
     from optparse import OptionParser
-    usageString = "usage: %prog [options] configFile outputdir webidldir cssProperties.json [files]"
+    usageString = "usage: %prog [options] configFile outputdir webidldir cssProperties.json docServoDir [files]"
     o = OptionParser(usage=usageString)
     o.add_option("--cachedir", dest='cachedir', default=None,
                  help="Directory in which to cache lex/parse tables.")
-    o.add_option("--only-html", dest='only_html', action="store_true",
-                 help="Only generate HTML from WebIDL inputs")
     o.add_option("--filelist", dest='filelist', default=None,
                  help="A file containing the list (one per line) of webidl files to process.")
     (options, args) = o.parse_args()
@@ -46,6 +44,7 @@ def main():
     outputdir = args[1]
     baseDir = args[2]
     css_properties_json = args[3]
+    doc_servo = args[4]
     if options.filelist is not None:
         fileList = [l.strip() for l in open(options.filelist).xreadlines()]
     else:
@@ -63,33 +62,29 @@ def main():
 
     parserResults = parser.finish()
 
-    if not options.only_html:
-        # Write the parser results out to a pickle.
-        resultsPath = os.path.join(outputdir, 'ParserResults.pkl')
-        with open(resultsPath, 'wb') as resultsFile:
-            cPickle.dump(parserResults, resultsFile, -1)
+    # Write the parser results out to a pickle.
+    resultsPath = os.path.join(outputdir, 'ParserResults.pkl')
+    with open(resultsPath, 'wb') as resultsFile:
+        cPickle.dump(parserResults, resultsFile, -1)
 
     # Load the configuration.
     config = Configuration(configFile, parserResults)
 
     to_generate = [
-        ('SupportedDomApis', 'apis.html'),
+        ('PrototypeList', 'PrototypeList.rs'),
+        ('RegisterBindings', 'RegisterBindings.rs'),
+        ('InterfaceObjectMap', 'InterfaceObjectMap.rs'),
+        ('InterfaceObjectMapData', 'InterfaceObjectMapData.json'),
+        ('InterfaceTypes', 'InterfaceTypes.rs'),
+        ('InheritTypes', 'InheritTypes.rs'),
+        ('Bindings', os.path.join('Bindings', 'mod.rs')),
+        ('UnionTypes', 'UnionTypes.rs'),
     ]
-
-    if not options.only_html:
-        to_generate = [
-            ('PrototypeList', 'PrototypeList.rs'),
-            ('RegisterBindings', 'RegisterBindings.rs'),
-            ('InterfaceObjectMap', 'InterfaceObjectMap.rs'),
-            ('InterfaceObjectMapData', 'InterfaceObjectMapData.json'),
-            ('InterfaceTypes', 'InterfaceTypes.rs'),
-            ('InheritTypes', 'InheritTypes.rs'),
-            ('Bindings', os.path.join('Bindings', 'mod.rs')),
-            ('UnionTypes', 'UnionTypes.rs'),
-        ]
 
     for name, filename in to_generate:
         generate_file(config, name, os.path.join(outputdir, filename))
+
+    generate_file(config, 'SupportedDomApis', os.path.join(doc_servo, 'apis.html'))
 
 
 def add_css_properties_attributes(webidl_files, css_properties_json, parser):
@@ -102,10 +97,11 @@ def add_css_properties_attributes(webidl_files, css_properties_json, parser):
     css_properties = json.load(open(css_properties_json, "rb"))
     idl = "partial interface CSSStyleDeclaration {\n%s\n};\n" % "\n".join(
         "  [%sCEReactions, SetterThrows] attribute [TreatNullAs=EmptyString] DOMString %s;" % (
-            ('Pref="%s", ' % pref if pref else ""),
+            ('Pref="%s", ' % data["pref"] if data["pref"] else ""),
             attribute_name
         )
-        for (property_name, pref) in css_properties
+        for (kind, properties_list) in sorted(css_properties.items())
+        for (property_name, data) in sorted(properties_list.items())
         for attribute_name in attribute_names(property_name)
     )
     parser.parse(idl.encode("utf-8"), "CSSStyleDeclaration_generated.webidl")
