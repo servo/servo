@@ -9534,6 +9534,9 @@
    "mozilla/details_ui_opened_ref.html": [
     []
    ],
+   "mozilla/document_origin_redirect_subpage.html": [
+    []
+   ],
    "mozilla/duplicated_scroll_ids_ref.html": [
     []
    ],
@@ -11524,6 +11527,12 @@
    "mozilla/document_links_cache.html": [
     [
      "mozilla/document_links_cache.html",
+     {}
+    ]
+   ],
+   "mozilla/document_origin_redirect.html": [
+    [
+     "mozilla/document_origin_redirect.html",
      {}
     ]
    ],
@@ -18600,6 +18609,14 @@
   "mozilla/document_links_cache.html": [
    "3a0172826d4ff2d9a754ffb6a437055bb2cf6ec9",
    "testharness"
+  ],
+  "mozilla/document_origin_redirect.html": [
+   "009c899a45482b835dad186a822859f12e0e53fd",
+   "testharness"
+  ],
+  "mozilla/document_origin_redirect_subpage.html": [
+   "3e68ff395f5475e2b618147f270117f576a5b7bd",
+   "support"
   ],
   "mozilla/document_readystate.html": [
    "7ff8f66cdf74430f86ed7028294530229809d8de",
