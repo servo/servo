@@ -91,21 +91,25 @@ impl WebGLBuffer {
         self.capacity.get()
     }
 
-    pub fn mark_for_deletion(&self) {
+    pub fn mark_for_deletion(&self, fallible: bool) {
         if self.marked_for_deletion.get() {
             return;
         }
         self.marked_for_deletion.set(true);
         if self.is_deleted() {
-            self.delete();
+            self.delete(fallible);
         }
     }
 
-    fn delete(&self) {
+    fn delete(&self, fallible: bool) {
         assert!(self.is_deleted());
-        self.upcast::<WebGLObject>()
-            .context()
-            .send_command(WebGLCommand::DeleteBuffer(self.id));
+        let context = self.upcast::<WebGLObject>().context();
+        let cmd = WebGLCommand::DeleteBuffer(self.id);
+        if fallible {
+            context.send_command_ignored(cmd);
+        } else {
+            context.send_command(cmd);
+        }
     }
 
     pub fn is_marked_for_deletion(&self) -> bool {
@@ -149,7 +153,7 @@ impl WebGLBuffer {
                 .expect("refcount underflowed"),
         );
         if self.is_deleted() {
-            self.delete();
+            self.delete(false);
         }
     }
 
@@ -160,6 +164,6 @@ impl WebGLBuffer {
 
 impl Drop for WebGLBuffer {
     fn drop(&mut self) {
-        self.mark_for_deletion();
+        self.mark_for_deletion(true);
     }
 }
