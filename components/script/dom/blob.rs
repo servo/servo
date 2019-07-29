@@ -296,7 +296,7 @@ impl Blob {
 
             let msg = FileManagerThreadMsg::DecRef(f.id.clone(), origin, tx);
             self.send_to_file_manager(msg);
-            let _ = rx.recv().unwrap();
+            let _ = rx.recv();
         }
     }
 
