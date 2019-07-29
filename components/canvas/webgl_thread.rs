@@ -112,12 +112,14 @@ impl WebGLMainThread {
 
         // Any context could be current when we start.
         self.thread_data.borrow_mut().bound_context_id = None;
-        self.shut_down.set(
-            !self
-                .thread_data
-                .borrow_mut()
-                .process(EventLoop::Nonblocking),
-        );
+        let result = self
+            .thread_data
+            .borrow_mut()
+            .process(EventLoop::Nonblocking);
+        if !result {
+            self.shut_down.set(true);
+            WEBGL_MAIN_THREAD.with(|thread_data| thread_data.borrow_mut().take());
+        }
     }
 
     /// Returns the main GL thread if called from the main thread,
