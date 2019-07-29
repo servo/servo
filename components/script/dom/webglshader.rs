@@ -178,12 +178,16 @@ impl WebGLShader {
     /// Mark this shader as deleted (if it wasn't previously)
     /// and delete it as if calling glDeleteShader.
     /// Currently does not check if shader is attached
-    pub fn mark_for_deletion(&self) {
+    pub fn mark_for_deletion(&self, fallible: bool) {
         if !self.marked_for_deletion.get() {
             self.marked_for_deletion.set(true);
-            self.upcast::<WebGLObject>()
-                .context()
-                .send_command(WebGLCommand::DeleteShader(self.id));
+            let context = self.upcast::<WebGLObject>().context();
+            let cmd = WebGLCommand::DeleteShader(self.id);
+            if fallible {
+                context.send_command_ignored(cmd);
+            } else {
+                context.send_command(cmd);
+            }
         }
     }
 
@@ -230,6 +234,6 @@ impl WebGLShader {
 
 impl Drop for WebGLShader {
     fn drop(&mut self) {
-        self.mark_for_deletion();
+        self.mark_for_deletion(true);
     }
 }

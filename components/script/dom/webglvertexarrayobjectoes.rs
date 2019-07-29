@@ -57,16 +57,20 @@ impl WebGLVertexArrayObjectOES {
         self.is_deleted.get()
     }
 
-    pub fn delete(&self) {
+    pub fn delete(&self, fallible: bool) {
         assert!(self.id.is_some());
         if self.is_deleted.get() {
             return;
         }
         self.is_deleted.set(true);
 
-        self.upcast::<WebGLObject>()
-            .context()
-            .send_command(WebGLCommand::DeleteVertexArray(self.id.unwrap()));
+        let context = self.upcast::<WebGLObject>().context();
+        let cmd = WebGLCommand::DeleteVertexArray(self.id.unwrap());
+        if fallible {
+            context.send_command_ignored(cmd);
+        } else {
+            context.send_command(cmd);
+        }
 
         for attrib_data in &**self.vertex_attribs.borrow() {
             if let Some(buffer) = attrib_data.buffer() {
@@ -248,7 +252,7 @@ impl WebGLVertexArrayObjectOES {
 impl Drop for WebGLVertexArrayObjectOES {
     fn drop(&mut self) {
         if self.id.is_some() {
-            self.delete();
+            self.delete(true);
         }
     }
 }

@@ -180,7 +180,7 @@ impl WebGLTexture {
         self.populate_mip_chain(self.base_mipmap_level, last_level)
     }
 
-    pub fn delete(&self) {
+    pub fn delete(&self, fallible: bool) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
             let context = self.upcast::<WebGLObject>().context();
@@ -204,7 +204,12 @@ impl WebGLTexture {
                 fb.detach_texture(self);
             }
 
-            context.send_command(WebGLCommand::DeleteTexture(self.id));
+            let cmd = WebGLCommand::DeleteTexture(self.id);
+            if fallible {
+                context.send_command_ignored(cmd);
+            } else {
+                context.send_command(cmd);
+            }
         }
     }
 
@@ -404,7 +409,7 @@ impl WebGLTexture {
 
 impl Drop for WebGLTexture {
     fn drop(&mut self) {
-        self.delete();
+        self.delete(true);
     }
 }
 

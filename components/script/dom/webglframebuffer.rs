@@ -140,12 +140,16 @@ impl WebGLFramebuffer {
             ));
     }
 
-    pub fn delete(&self) {
+    pub fn delete(&self, fallible: bool) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            self.upcast::<WebGLObject>()
-                .context()
-                .send_command(WebGLCommand::DeleteFramebuffer(self.id));
+            let context = self.upcast::<WebGLObject>().context();
+            let cmd = WebGLCommand::DeleteFramebuffer(self.id);
+            if fallible {
+                context.send_command_ignored(cmd);
+            } else {
+                context.send_command(cmd);
+            }
         }
     }
 
@@ -588,7 +592,7 @@ impl WebGLFramebuffer {
 
 impl Drop for WebGLFramebuffer {
     fn drop(&mut self) {
-        self.delete();
+        self.delete(true);
     }
 }
 

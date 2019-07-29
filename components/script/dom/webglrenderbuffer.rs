@@ -89,7 +89,7 @@ impl WebGLRenderbuffer {
             .send_command(WebGLCommand::BindRenderbuffer(target, Some(self.id)));
     }
 
-    pub fn delete(&self) {
+    pub fn delete(&self, fallible: bool) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
 
@@ -106,9 +106,13 @@ impl WebGLRenderbuffer {
                 fb.detach_renderbuffer(self);
             }
 
-            self.upcast::<WebGLObject>()
-                .context()
-                .send_command(WebGLCommand::DeleteRenderbuffer(self.id));
+            let context = self.upcast::<WebGLObject>().context();
+            let cmd = WebGLCommand::DeleteRenderbuffer(self.id);
+            if fallible {
+                context.send_command_ignored(cmd);
+            } else {
+                context.send_command(cmd);
+            }
         }
     }
 
@@ -199,6 +203,6 @@ impl WebGLRenderbuffer {
 
 impl Drop for WebGLRenderbuffer {
     fn drop(&mut self) {
-        self.delete();
+        self.delete(true);
     }
 }

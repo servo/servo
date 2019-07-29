@@ -77,14 +77,18 @@ impl WebGLProgram {
     }
 
     /// glDeleteProgram
-    pub fn mark_for_deletion(&self) {
+    pub fn mark_for_deletion(&self, fallible: bool) {
         if self.marked_for_deletion.get() {
             return;
         }
         self.marked_for_deletion.set(true);
-        self.upcast::<WebGLObject>()
-            .context()
-            .send_command(WebGLCommand::DeleteProgram(self.id));
+        let cmd = WebGLCommand::DeleteProgram(self.id);
+        let context = self.upcast::<WebGLObject>().context();
+        if fallible {
+            context.send_command_ignored(cmd);
+        } else {
+            context.send_command(cmd);
+        }
         if self.is_deleted() {
             self.detach_shaders();
         }
@@ -443,7 +447,7 @@ impl WebGLProgram {
 impl Drop for WebGLProgram {
     fn drop(&mut self) {
         self.in_use(false);
-        self.mark_for_deletion();
+        self.mark_for_deletion(true);
     }
 }
 
