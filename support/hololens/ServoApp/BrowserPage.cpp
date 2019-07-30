@@ -36,7 +36,7 @@ void BrowserPage::Shutdown() {
       // shutdown event to Servo.
     } else {
       HANDLE hEvent = ::CreateEventA(nullptr, FALSE, FALSE, sShutdownEvent);
-      SendEventToServo({{Event::SHUTDOWN}});
+      RunOnGLThread([=] {mServo->RequestShutdown();});
       log("Waiting for Servo to shutdown");
       ::WaitForSingleObject(hEvent, INFINITE);
       StopRenderLoop();
@@ -132,39 +132,12 @@ void BrowserPage::Loop(cancellation_token cancel) {
     if (!mAnimating) {
       ::WaitForSingleObject(hEvent, INFINITE);
     }
-    mEventsMutex.lock();
-    for (auto &&e : mEvents) {
-      switch (e.type) {
-      case Event::CLICK: {
-        auto [x, y] = e.clickCoords;
-        mServo->Click(x, y);
-        break;
-      }
-      case Event::SCROLL: {
-        auto [x, y, dx, dy] = e.scrollCoords;
-        mServo->Scroll(x, y, dx, dy);
-        break;
-      }
-      case Event::FORWARD:
-        mServo->GoForward();
-        break;
-      case Event::BACK:
-        mServo->GoBack();
-        break;
-      case Event::RELOAD:
-        mServo->Reload();
-        break;
-      case Event::STOP:
-        mServo->Stop();
-        break;
-      case Event::SHUTDOWN:
-        log("Requesting Servo to shutdown");
-        mServo->RequestShutdown();
-        break;
-      }
+    mTasksMutex.lock();
+    for (auto &&task : mTasks) {
+      task();
     }
-    mEvents.clear();
-    mEventsMutex.unlock();
+    mTasks.clear();
+    mTasksMutex.unlock();
     mServo->PerformUpdates();
   }
   log("Leaving loop");
@@ -271,22 +244,22 @@ template <typename Callable> void BrowserPage::RunOnUIThread(Callable cb) {
 
 void BrowserPage::OnBackButtonClicked(IInspectable const &,
                                       RoutedEventArgs const &) {
-  SendEventToServo({{Event::BACK}});
+  RunOnGLThread([=] { mServo->GoBack(); });
 }
 
 void BrowserPage::OnForwardButtonClicked(IInspectable const &,
                                          RoutedEventArgs const &) {
-  SendEventToServo({{Event::FORWARD}});
+  RunOnGLThread([=] { mServo->GoForward(); });
 }
 
 void BrowserPage::OnReloadButtonClicked(IInspectable const &,
                                         RoutedEventArgs const &) {
-  SendEventToServo({{Event::RELOAD}});
+  RunOnGLThread([=] { mServo->Reload(); });
 }
 
 void BrowserPage::OnStopButtonClicked(IInspectable const &,
                                       RoutedEventArgs const &) {
-  SendEventToServo({{Event::STOP}});
+  RunOnGLThread([=] { mServo->Stop(); });
 }
 
 void BrowserPage::OnImmersiveButtonClicked(IInspectable const &,
@@ -313,9 +286,7 @@ void BrowserPage::OnSurfaceManipulationDelta(
   auto y = e.Position().Y;
   auto dx = e.Delta().Translation.X;
   auto dy = e.Delta().Translation.Y;
-  Event event = {{Event::SCROLL}};
-  event.scrollCoords = {dx, dy, x, y};
-  SendEventToServo(event);
+  RunOnGLThread([=] { mServo->Scroll(x, y, dx, dy); });
   e.Handled(true);
 }
 
@@ -324,14 +295,14 @@ void BrowserPage::OnSurfaceClicked(IInspectable const &,
   auto coords = e.GetCurrentPoint(swapChainPanel());
   auto x = coords.Position().X;
   auto y = coords.Position().Y;
-  SendEventToServo({{Event::CLICK}, {x, y}});
+  RunOnGLThread([=] { mServo->Click(x, y); });
   e.Handled(true);
 }
 
-void BrowserPage::SendEventToServo(Event event) {
-  mEventsMutex.lock();
-  mEvents.push_back(event);
-  mEventsMutex.unlock();
+void BrowserPage::RunOnGLThread(std::function<void()> task) {
+  mTasksMutex.lock();
+  mTasks.push_back(task);
+  mTasksMutex.unlock();
   WakeUp();
 }
 
