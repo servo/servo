@@ -1825,7 +1825,7 @@ fn static_assert() {
 
         for (gecko, servo) in self.gecko.mAnimations.iter_mut().take(input_len as usize).zip(v) {
             let result = match servo {
-                % for value in keyword.gecko_values():
+                % for value in keyword.values_for("gecko"):
                     Keyword::${to_camel_case(value)} =>
                         structs::${keyword.gecko_constant(value)} ${keyword.maybe_cast(cast_type)},
                 % endfor
@@ -1838,7 +1838,7 @@ fn static_assert() {
         -> longhands::animation_${ident}::computed_value::SingleComputedValue {
         use crate::properties::longhands::animation_${ident}::single_value::computed_value::T as Keyword;
         match self.gecko.mAnimations[index].m${gecko_ffi_name} ${keyword.maybe_cast("u32")} {
-            % for value in keyword.gecko_values():
+            % for value in keyword.values_for("gecko"):
                 structs::${keyword.gecko_constant(value)} => Keyword::${to_camel_case(value)},
             % endfor
             % if keyword.gecko_inexhaustive:
