@@ -768,6 +768,7 @@ def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
         "gstreamer-1.0-0.dll",
         "gstriff-1.0-0.dll",
         "gstrtp-1.0-0.dll",
+        "gstrtsp-1.0-0.dll",
         "gstsdp-1.0-0.dll",
         "gsttag-1.0-0.dll",
         "gstvideo-1.0-0.dll",
