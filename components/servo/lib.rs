@@ -125,10 +125,12 @@ pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 pub use servo_config as config;
 pub use servo_url as url;
 
-#[cfg(any(
-    all(target_os = "android", target_arch = "arm"),
-    target_arch = "x86_64",
-    all(target_os = "windows", target_arch = "aarch64"),
+#[cfg(all(
+    not(target_os = "windows"),
+    any(
+        all(target_os = "android", target_arch = "arm"),
+        target_arch = "x86_64",
+    )
 ))]
 mod media_platform {
     use super::ServoMedia;
@@ -207,10 +209,12 @@ mod media_platform {
     }
 }
 
-#[cfg(not(any(
-    all(target_os = "android", target_arch = "arm"),
-    target_arch = "x86_64",
-    all(target_os = "windows", target_arch = "aarch64"),
+#[cfg(not(all(
+    not(target_os = "windows"),
+    any(
+        all(target_os = "android", target_arch = "arm"),
+        target_arch = "x86_64",
+    )
 )))]
 mod media_platform {
     use super::ServoMedia;
