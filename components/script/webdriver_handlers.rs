@@ -53,6 +53,7 @@ use script_traits::webdriver_msg::{
     WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue,
 };
 use servo_url::ServoUrl;
+use std::cmp;
 use std::collections::HashMap;
 use std::ffi::CString;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
@@ -357,6 +358,56 @@ pub fn handle_get_browsing_context_id(
                 })
                 .ok_or(ErrorStatus::NoSuchFrame),
         })
+        .unwrap();
+}
+
+// https://w3c.github.io/webdriver/#dfn-center-point
+fn get_element_in_view_center_point(element: &Element) -> Option<Point2D<i64>> {
+    element
+        .GetClientRects()
+        .iter()
+        // Step 1
+        .next()
+        .map(|rectangle| {
+            let x = rectangle.X().round() as i64;
+            let y = rectangle.Y().round() as i64;
+            let width = rectangle.Width().round() as i64;
+            let height = rectangle.Height().round() as i64;
+
+            let window = window_from_node(element.upcast::<Node>());
+            let document = window.Document();
+            let document_element = document.upcast::<Node>().downcast::<Element>().unwrap();
+            let clientWidth = document_element.ClientWidth() as i64;
+            let clientHeight = document_element.ClientHeight() as i64;
+
+            // Steps 2 - 5
+            let left = cmp::max(0, cmp::min(x, x + width));
+            let right = cmp::min(clientWidth, cmp::max(x, x + width));
+            let top = cmp::max(0, cmp::min(y, y + height));
+            let bottom = cmp::min(clientHeight, cmp::max(y, y + height));
+
+            // Steps 6 - 7
+            let x = (left + right) / 2;
+            let y = (top + bottom) / 2;
+
+            // Step 8
+            Point2D::new(x, y)
+        })
+}
+
+pub fn handle_get_element_in_view_center_point(
+    documents: &Documents,
+    pipeline: PipelineId,
+    element_id: String,
+    reply: IpcSender<Result<Option<(i64, i64)>, ErrorStatus>>,
+) {
+    reply
+        .send(
+            find_node_by_unique_id(documents, pipeline, element_id).map(|node| {
+                get_element_in_view_center_point(node.downcast::<Element>().unwrap())
+                    .map(|point| (point.x, point.y))
+            }),
+        )
         .unwrap();
 }
 
