@@ -13,7 +13,6 @@ import json
 import os
 import os.path as path
 import subprocess
-import sys
 from shutil import copytree, rmtree, copy2
 
 from mach.decorators import (
@@ -237,7 +236,7 @@ class PostBuildCommands(CommandBase):
         'params', nargs='...',
         help="Command-line arguments to be passed through to cargo doc")
     @CommandBase.build_like_command_arguments
-    def doc(self, params, **kwargs):
+    def doc(self, params, features, **kwargs):
         env = os.environ.copy()
         env["RUSTUP_TOOLCHAIN"] = self.toolchain()
         rustc_path = check_output(["rustup" + BIN_SUFFIX, "which", "rustc"], env=env)
@@ -265,21 +264,14 @@ class PostBuildCommands(CommandBase):
                     else:
                         copy2(full_name, destination)
 
-        returncode = self.run_cargo_build_like_command("doc", params, **kwargs)
+        features = features or []
+        returncode = self.run_cargo_build_like_command("doc", params, features=features, **kwargs)
         if returncode:
             return returncode
 
         static = path.join(self.context.topdir, "etc", "doc.servo.org")
         for name in os.listdir(static):
             copy2(path.join(static, name), path.join(docs, name))
-
-        build = path.join(self.context.topdir, "components", "style", "properties", "build.py")
-        subprocess.check_call([sys.executable, build, "servo", "html"])
-
-        script = path.join(self.context.topdir, "components", "script")
-        subprocess.check_call(["cmake", "."], cwd=script)
-        subprocess.check_call(["cmake", "--build", ".", "--target", "supported-apis"], cwd=script)
-        copy2(path.join(script, "apis.html"), path.join(docs, "servo", "apis.html"))
 
     @Command('browse-doc',
              description='Generate documentation and open it in a web browser',

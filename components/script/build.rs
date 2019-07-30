@@ -15,6 +15,11 @@ use std::time::Instant;
 fn main() {
     let start = Instant::now();
 
+    let style_out_dir = PathBuf::from(env::var_os("DEP_SERVO_STYLE_CRATE_OUT_DIR").unwrap());
+    let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+    let json = "css-properties.json";
+    std::fs::copy(style_out_dir.join(json), out_dir.join(json)).unwrap();
+
     // This must use the Ninja generator -- it's the only one that
     // parallelizes cmake's output properly.  (Cmake generates
     // separate makefiles, each of which try to build
@@ -35,9 +40,7 @@ fn main() {
         start.elapsed().as_secs()
     );
 
-    let json = PathBuf::from(env::var_os("OUT_DIR").unwrap())
-        .join("build")
-        .join("InterfaceObjectMapData.json");
+    let json = out_dir.join("build").join("InterfaceObjectMapData.json");
     let json: Value = serde_json::from_reader(File::open(&json).unwrap()).unwrap();
     let mut map = phf_codegen::Map::new();
     for (key, value) in json.as_object().unwrap() {

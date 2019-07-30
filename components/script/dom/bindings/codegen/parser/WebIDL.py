@@ -3344,7 +3344,7 @@ class IDLBuiltinType(IDLType):
                                       [self.location, attribute.location])
                 assert not self.nullable()
                 if not attribute.hasValue():
-                    raise WebIDLError("[TreatNullAs] must take an identifier argument"
+                    raise WebIDLError("[TreatNullAs] must take an identifier argument",
                                       [attribute.location])
                 value = attribute.value()
                 if value != 'EmptyString':

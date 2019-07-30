@@ -10,6 +10,8 @@
 ${helpers.single_keyword(
     "visibility",
     "visible hidden",
+    engines="gecko servo-2013 servo-2020",
+    servo_2020_pref="layout.2020.unimplemented",
     extra_gecko_values="collapse",
     gecko_ffi_name="mVisible",
     animation_value_type="ComputedValue",
@@ -21,11 +23,12 @@ ${helpers.single_keyword(
 ${helpers.single_keyword(
     "writing-mode",
     "horizontal-tb vertical-rl vertical-lr",
+    engines="gecko servo-2013 servo-2020",
     extra_gecko_values="sideways-rl sideways-lr",
-    extra_gecko_aliases="lr=horizontal-tb lr-tb=horizontal-tb \
+    gecko_aliases="lr=horizontal-tb lr-tb=horizontal-tb \
                          rl=horizontal-tb rl-tb=horizontal-tb \
                          tb=vertical-rl   tb-rl=vertical-rl",
-    servo_pref="layout.writing-mode.enabled",
+    servo_2013_pref="layout.writing-mode.enabled",
     animation_value_type="none",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-writing-mode",
     servo_restyle_damage="rebuild_and_reflow",
@@ -34,6 +37,7 @@ ${helpers.single_keyword(
 ${helpers.single_keyword(
     "direction",
     "ltr rtl",
+    engines="gecko servo-2013 servo-2020",
     animation_value_type="none",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-direction",
     needs_conversion=True,
@@ -43,8 +47,8 @@ ${helpers.single_keyword(
 ${helpers.single_keyword(
     "text-orientation",
     "mixed upright sideways",
-    extra_gecko_aliases="sideways-right=sideways",
-    products="gecko",
+    engines="gecko",
+    gecko_aliases="sideways-right=sideways",
     animation_value_type="none",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-text-orientation",
 )}
@@ -53,7 +57,8 @@ ${helpers.single_keyword(
 // https://drafts.csswg.org/css-color/
 ${helpers.single_keyword(
     "color-adjust",
-    "economy exact", products="gecko",
+    "economy exact",
+    engines="gecko",
     gecko_enum_prefix="StyleColorAdjust",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-color/#propdef-color-adjust",
@@ -64,9 +69,10 @@ ${helpers.single_keyword(
 ${helpers.single_keyword(
     "image-rendering",
     "auto crisp-edges",
+    engines="gecko servo-2013",
     extra_gecko_values="optimizespeed optimizequality",
-    extra_servo_values="pixelated",
-    extra_gecko_aliases="-moz-crisp-edges=crisp-edges",
+    extra_servo_2013_values="pixelated",
+    gecko_aliases="-moz-crisp-edges=crisp-edges",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-images/#propdef-image-rendering",
 )}
@@ -74,7 +80,7 @@ ${helpers.single_keyword(
 ${helpers.single_keyword(
     "image-orientation",
     "none from-image",
-    products="gecko",
+    engines="gecko",
     gecko_enum_prefix="StyleImageOrientation",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-images/#propdef-image-orientation",

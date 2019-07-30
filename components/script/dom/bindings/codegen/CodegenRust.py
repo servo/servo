@@ -7550,7 +7550,7 @@ impl %(base)s {
     def SupportedDomApis(config):
         descriptors = config.getDescriptors(isExposedConditionally=False)
 
-        base_path = os.path.join('dom', 'bindings', 'codegen')
+        base_path = os.path.dirname(__file__)
         with open(os.path.join(base_path, 'apis.html.template')) as f:
             base_template = f.read()
         with open(os.path.join(base_path, 'api.html.template')) as f:

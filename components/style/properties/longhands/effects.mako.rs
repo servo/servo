@@ -11,6 +11,8 @@ ${helpers.predefined_type(
     "opacity",
     "Opacity",
     "1.0",
+    engines="gecko servo-2013 servo-2020",
+    servo_2020_pref="layout.2020.unimplemented",
     animation_value_type="ComputedValue",
     flags="CREATES_STACKING_CONTEXT CAN_ANIMATE_ON_COMPOSITOR",
     spec="https://drafts.csswg.org/css-color/#transparency",
@@ -21,6 +23,8 @@ ${helpers.predefined_type(
     "box-shadow",
     "BoxShadow",
     None,
+    engines="gecko servo-2013 servo-2020",
+    servo_2020_pref="layout.2020.unimplemented",
     vector=True,
     simple_vector_bindings=True,
     animation_value_type="AnimatedBoxShadowList",
@@ -34,6 +38,8 @@ ${helpers.predefined_type(
     "clip",
     "ClipRectOrAuto",
     "computed::ClipRectOrAuto::auto()",
+    engines="gecko servo-2013 servo-2020",
+    servo_2020_pref="layout.2020.unimplemented",
     animation_value_type="ComputedValue",
     boxed=True,
     allow_quirks="Yes",
@@ -44,6 +50,8 @@ ${helpers.predefined_type(
     "filter",
     "Filter",
     None,
+    engines="gecko servo-2013 servo-2020",
+    servo_2020_pref="layout.2020.unimplemented",
     vector=True,
     simple_vector_bindings=True,
     gecko_ffi_name="mFilters",
@@ -59,6 +67,7 @@ ${helpers.predefined_type(
     "backdrop-filter",
     "Filter",
     None,
+    engines="gecko",
     vector=True,
     simple_vector_bindings=True,
     gecko_ffi_name="mBackdropFilters",
@@ -68,7 +77,6 @@ ${helpers.predefined_type(
     flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
     gecko_pref="layout.css.backdrop-filter.enabled",
     spec="https://drafts.fxtf.org/filter-effects-2/#propdef-backdrop-filter",
-    products="gecko",
 )}
 
 ${helpers.single_keyword(
@@ -76,6 +84,8 @@ ${helpers.single_keyword(
     """normal multiply screen overlay darken lighten color-dodge
     color-burn hard-light soft-light difference exclusion hue
     saturation color luminosity""",
+    engines="gecko servo-2013 servo-2020",
+    servo_2020_pref="layout.2020.unimplemented",
     gecko_constant_prefix="NS_STYLE_BLEND",
     animation_value_type="discrete",
     flags="CREATES_STACKING_CONTEXT",

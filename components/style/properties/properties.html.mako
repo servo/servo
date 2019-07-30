@@ -3,38 +3,29 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="generator" content="rustdoc">
-    <meta name="description" content="API documentation for the Rust `servo` crate.">
-    <meta name="keywords" content="rust, rustlang, rust-lang, servo">
-    <title>Supported CSS properties - servo - Rust</title>
+    <title>Supported CSS properties in Servo</title>
+    <link rel="stylesheet" type="text/css" href="../normalize.css">
     <link rel="stylesheet" type="text/css" href="../rustdoc.css">
-    <link rel="stylesheet" type="text/css" href="../main.css">
+    <link rel="stylesheet" type="text/css" href="../light.css">
 </head>
 <body class="rustdoc">
-    <!--[if lte IE 8]>
-    <div class="warning">
-        This old browser is unsupported and will most likely display funky
-        things.
-    </div>
-    <![endif]-->
     <section id='main' class="content mod">
-      <h1 class='fqn'><span class='in-band'>CSS properties currently supported in <a class='mod' href=''>Servo</a></span></h1>
-      <div id='properties' class='docblock'>
-        <table>
+      <h1 class='fqn'><span class='in-band'>CSS properties currently supported in Servo</span></h1>
+      % for kind, props in sorted(properties.items()):
+      <h2>${kind.capitalize()}</h2>
+      <table>
+        <tr>
+          <th>Name</th>
+          <th>Pref</th>
+        </tr>
+        % for name, data in sorted(props.items()):
           <tr>
-            <th>Property</th>
-            <th>Flag</th>
-            <th>Shorthand</th>
+            <td><code>${name}</code></td>
+            <td><code>${data['pref'] or ''}</code></td>
           </tr>
-          % for prop in properties:
-            <tr>
-              <td>${prop}</td>
-              <td>${properties[prop]['flag']}</td>
-              <td>${properties[prop]['shorthand']}</td>
-            </tr>
-          % endfor
-        </table>
-      </div>
+        % endfor
+      </table>
+      % endfor
     </section>
 </body>
 </html>

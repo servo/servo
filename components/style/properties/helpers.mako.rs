@@ -367,7 +367,7 @@
 
         pub use self::single_value::SpecifiedValue as SingleSpecifiedValue;
 
-        % if not simple_vector_bindings and product == "gecko":
+        % if not simple_vector_bindings and engine == "gecko":
         impl SpecifiedValue {
             fn compute_iter<'a, 'cx, 'cx_a>(
                 &'a self,
@@ -486,7 +486,7 @@
                 _ => panic!("entered the wrong cascade_property() implementation"),
             };
 
-            % if property.ident in SYSTEM_FONT_LONGHANDS and product == "gecko":
+            % if property.ident in SYSTEM_FONT_LONGHANDS and engine == "gecko":
                 if let Some(sf) = specified_value.get_system() {
                     longhands::system_font::resolve_system_font(sf, context);
                 }
@@ -497,7 +497,7 @@
                     .set_writing_mode_dependency(context.builder.writing_mode);
             % endif
 
-            % if property.is_vector and not property.simple_vector_bindings and product == "gecko":
+            % if property.is_vector and not property.simple_vector_bindings and engine == "gecko":
                 // In the case of a vector property we want to pass down an
                 // iterator so that this can be computed without allocation.
                 //
@@ -543,9 +543,13 @@
 <%def name="single_keyword_system(name, values, **kwargs)">
     <%
         keyword_kwargs = {a: kwargs.pop(a, None) for a in [
-            'gecko_constant_prefix', 'gecko_enum_prefix',
-            'extra_gecko_values', 'extra_servo_values',
-            'custom_consts', 'gecko_inexhaustive',
+            'gecko_constant_prefix',
+            'gecko_enum_prefix',
+            'extra_gecko_values',
+            'extra_servo_2013_values',
+            'extra_servo_2020_values',
+            'custom_consts',
+            'gecko_inexhaustive',
         ]}
         keyword = keyword=Keyword(name, values, **keyword_kwargs)
     %>
@@ -569,12 +573,12 @@
                 ToShmem,
             )]
             pub enum T {
-            % for value in keyword.values_for(product):
+            % for value in keyword.values_for(engine):
                 ${to_camel_case(value)},
             % endfor
             }
 
-            ${gecko_keyword_conversion(keyword, keyword.values_for(product), type="T", cast_to="i32")}
+            ${gecko_keyword_conversion(keyword, keyword.values_for(engine), type="T", cast_to="i32")}
         }
 
         #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
@@ -594,13 +598,15 @@
             fn to_computed_value(&self, _cx: &Context) -> Self::ComputedValue {
                 match *self {
                     SpecifiedValue::Keyword(v) => v,
-                    SpecifiedValue::System(_) => {
-                        % if product == "gecko":
+                    % if engine == "gecko":
+                        SpecifiedValue::System(_) => {
                             _cx.cached_system_font.as_ref().unwrap().${to_rust_ident(name)}
-                        % else:
-                            unreachable!()
-                        % endif
-                    }
+                        }
+                    % else:
+                        SpecifiedValue::System(system_font) => {
+                            match system_font {}
+                        }
+                    % endif
                 }
             }
             fn from_computed_value(other: &computed_value::T) -> Self {
@@ -635,7 +641,7 @@
 <%def name="gecko_keyword_conversion(keyword, values=None, type='SpecifiedValue', cast_to=None)">
     <%
         if not values:
-            values = keyword.values_for(product)
+            values = keyword.values_for(engine)
         maybe_cast = "as %s" % cast_to if cast_to else ""
         const_type = cast_to if cast_to else "u32"
     %>
@@ -703,10 +709,17 @@
             extra_specified=None, needs_conversion=False, **kwargs)">
     <%
         keyword_kwargs = {a: kwargs.pop(a, None) for a in [
-            'gecko_constant_prefix', 'gecko_enum_prefix',
-            'extra_gecko_values', 'extra_servo_values',
-            'aliases', 'extra_gecko_aliases', 'custom_consts',
-            'gecko_inexhaustive', 'gecko_strip_moz_prefix',
+            'gecko_constant_prefix',
+            'gecko_enum_prefix',
+            'extra_gecko_values',
+            'extra_servo_2013_values',
+            'extra_servo_2020_values',
+            'gecko_aliases',
+            'servo_2013_aliases',
+            'servo_2020_aliases',
+            'custom_consts',
+            'gecko_inexhaustive',
+            'gecko_strip_moz_prefix',
         ]}
     %>
 
@@ -716,7 +729,7 @@
             % if include_aliases:
             <%
                 aliases = []
-                for alias, v in keyword.aliases_for(product).iteritems():
+                for alias, v in keyword.aliases_for(engine).iteritems():
                     if variant == v:
                         aliases.append(alias)
             %>
@@ -742,7 +755,7 @@
                 ToShmem,
             )]
             pub enum SpecifiedValue {
-                ${variants(keyword.values_for(product) + extra_specified.split(), bool(extra_specified))}
+                ${variants(keyword.values_for(engine) + extra_specified.split(), bool(extra_specified))}
             }
         % else:
             pub use self::computed_value::T as SpecifiedValue;
@@ -754,7 +767,7 @@
             #[derive(Parse, SpecifiedValueInfo, ToComputedValue, ToShmem)]
             % endif
             pub enum T {
-                ${variants(data.longhands_by_name[name].keyword.values_for(product), not extra_specified)}
+                ${variants(data.longhands_by_name[name].keyword.values_for(engine), not extra_specified)}
             }
         }
         #[inline]
@@ -773,10 +786,10 @@
 
         % if needs_conversion:
             <%
-                conversion_values = keyword.values_for(product)
+                conversion_values = keyword.values_for(engine)
                 if extra_specified:
                     conversion_values += extra_specified.split()
-                conversion_values += keyword.aliases_for(product).keys()
+                conversion_values += keyword.aliases_for(engine).keys()
             %>
             ${gecko_keyword_conversion(keyword, values=conversion_values)}
         % endif
@@ -848,11 +861,11 @@
         pub struct LonghandsToSerialize<'a> {
             % for sub_property in shorthand.sub_properties:
                 pub ${sub_property.ident}:
-                % if sub_property.may_be_disabled_in(shorthand, product):
+                % if sub_property.may_be_disabled_in(shorthand, engine):
                     Option<
                 % endif
                     &'a longhands::${sub_property.ident}::SpecifiedValue,
-                % if sub_property.may_be_disabled_in(shorthand, product):
+                % if sub_property.may_be_disabled_in(shorthand, engine):
                     >,
                 % endif
             % endfor
@@ -891,7 +904,7 @@
 
                     (
                     % for sub_property in shorthand.sub_properties:
-                        % if sub_property.may_be_disabled_in(shorthand, product):
+                        % if sub_property.may_be_disabled_in(shorthand, engine):
                         ${sub_property.ident},
                         % else:
                         Some(${sub_property.ident}),
@@ -919,13 +932,13 @@
             use crate::properties::{NonCustomPropertyId, LonghandId};
             input.parse_entirely(|input| parse_value(context, input)).map(|longhands| {
                 % for sub_property in shorthand.sub_properties:
-                % if sub_property.may_be_disabled_in(shorthand, product):
+                % if sub_property.may_be_disabled_in(shorthand, engine):
                 if NonCustomPropertyId::from(LonghandId::${sub_property.camel_case}).allowed_in(context) {
                 % endif
                     declarations.push(PropertyDeclaration::${sub_property.camel_case}(
                         longhands.${sub_property.ident}
                     ));
-                % if sub_property.may_be_disabled_in(shorthand, product):
+                % if sub_property.may_be_disabled_in(shorthand, engine):
                 }
                 % endif
                 % endfor

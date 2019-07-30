@@ -29,8 +29,8 @@ SYSTEM_FONT_LONGHANDS = """font_family font_size font_style
                            font_optical_sizing""".split()
 
 
-def maybe_moz_logical_alias(product, side, prop):
-    if product == "gecko" and side[1]:
+def maybe_moz_logical_alias(engine, side, prop):
+    if engine == "gecko" and side[1]:
         axis, dir = side[0].split("-")
         if axis == "inline":
             return prop % dir
@@ -73,9 +73,12 @@ def parse_aliases(value):
 class Keyword(object):
     def __init__(self, name, values, gecko_constant_prefix=None,
                  gecko_enum_prefix=None, custom_consts=None,
-                 extra_gecko_values=None, extra_servo_values=None,
-                 aliases=None,
-                 extra_gecko_aliases=None,
+                 extra_gecko_values=None,
+                 extra_servo_2013_values=None,
+                 extra_servo_2020_values=None,
+                 gecko_aliases=None,
+                 servo_2013_aliases=None,
+                 servo_2020_aliases=None,
                  gecko_strip_moz_prefix=None,
                  gecko_inexhaustive=None):
         self.name = name
@@ -87,40 +90,35 @@ class Keyword(object):
             "NS_STYLE_" + self.name.upper().replace("-", "_")
         self.gecko_enum_prefix = gecko_enum_prefix
         self.extra_gecko_values = (extra_gecko_values or "").split()
-        self.extra_servo_values = (extra_servo_values or "").split()
-        self.aliases = parse_aliases(aliases or "")
-        self.extra_gecko_aliases = parse_aliases(extra_gecko_aliases or "")
+        self.extra_servo_2013_values = (extra_servo_2013_values or "").split()
+        self.extra_servo_2020_values = (extra_servo_2020_values or "").split()
+        self.gecko_aliases = parse_aliases(gecko_aliases or "")
+        self.servo_2013_aliases = parse_aliases(servo_2013_aliases or "")
+        self.servo_2020_aliases = parse_aliases(servo_2020_aliases or "")
         self.consts_map = {} if custom_consts is None else custom_consts
         self.gecko_strip_moz_prefix = True \
             if gecko_strip_moz_prefix is None else gecko_strip_moz_prefix
         self.gecko_inexhaustive = gecko_inexhaustive or (gecko_enum_prefix is None)
 
-    def gecko_values(self):
-        return self.values + self.extra_gecko_values
-
-    def servo_values(self):
-        return self.values + self.extra_servo_values
-
-    def gecko_aliases(self):
-        aliases = self.aliases.copy()
-        aliases.update(self.extra_gecko_aliases)
-        return aliases
-
-    def values_for(self, product):
-        if product == "gecko":
-            return self.gecko_values()
-        elif product == "servo":
-            return self.servo_values()
+    def values_for(self, engine):
+        if engine == "gecko":
+            return self.values + self.extra_gecko_values
+        elif engine == "servo-2013":
+            return self.values + self.extra_servo_2013_values
+        elif engine == "servo-2020":
+            return self.values + self.extra_servo_2020_values
         else:
-            raise Exception("Bad product: " + product)
+            raise Exception("Bad engine: " + engine)
 
-    def aliases_for(self, product):
-        if product == "gecko":
-            return self.gecko_aliases()
-        elif product == "servo":
-            return self.aliases
+    def aliases_for(self, engine):
+        if engine == "gecko":
+            return self.gecko_aliases
+        elif engine == "servo-2013":
+            return self.servo_2013_aliases
+        elif engine == "servo-2020":
+            return self.servo_2020_aliases
         else:
-            raise Exception("Bad product: " + product)
+            raise Exception("Bad engine: " + engine)
 
     def gecko_constant(self, value):
         moz_stripped = (value.replace("-moz-", '')
@@ -172,7 +170,10 @@ def to_phys(name, logical, physical):
 
 class Longhand(object):
     def __init__(self, style_struct, name, spec=None, animation_value_type=None, keyword=None,
-                 predefined_type=None, servo_pref=None, gecko_pref=None,
+                 predefined_type=None,
+                 servo_2013_pref=None,
+                 servo_2020_pref=None,
+                 gecko_pref=None,
                  enabled_in="content", need_index=False,
                  gecko_ffi_name=None,
                  has_effect_on_gecko_scrollbars=None,
@@ -191,7 +192,8 @@ class Longhand(object):
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
         self.style_struct = style_struct
-        self.servo_pref = servo_pref
+        self.servo_2013_pref = servo_2013_pref
+        self.servo_2020_pref = servo_2020_pref
         self.gecko_pref = gecko_pref
         self.has_effect_on_gecko_scrollbars = has_effect_on_gecko_scrollbars
         assert (
@@ -270,10 +272,15 @@ class Longhand(object):
         return [to_phys(self.name, logical_side, physical_side)
                 for physical_side in physical]
 
-    def experimental(self, product):
-        if product == "gecko":
+    def experimental(self, engine):
+        if engine == "gecko":
             return bool(self.gecko_pref)
-        return bool(self.servo_pref)
+        elif engine == "servo-2013":
+            return bool(self.servo_2013_pref)
+        elif engine == "servo-2020":
+            return bool(self.servo_2020_pref)
+        else:
+            raise Exception("Bad engine: " + engine)
 
     # FIXME(emilio): Shorthand and Longhand should really share a base class.
     def explicitly_enabled_in_ua_sheets(self):
@@ -285,10 +292,15 @@ class Longhand(object):
     def enabled_in_content(self):
         return self.enabled_in == "content"
 
-    def may_be_disabled_in(self, shorthand, product):
-        if product == "gecko":
+    def may_be_disabled_in(self, shorthand, engine):
+        if engine == "gecko":
             return self.gecko_pref and self.gecko_pref != shorthand.gecko_pref
-        return self.servo_pref and self.servo_pref != shorthand.servo_pref
+        elif engine == "servo-2013":
+            return self.servo_2013_pref and self.servo_2013_pref != shorthand.servo_2013_pref
+        elif engine == "servo-2020":
+            return self.servo_2020_pref and self.servo_2020_pref != shorthand.servo_2020_pref
+        else:
+            raise Exception("Bad engine: " + engine)
 
     def base_type(self):
         if self.predefined_type and not self.is_vector:
@@ -394,7 +406,10 @@ class Longhand(object):
 
 
 class Shorthand(object):
-    def __init__(self, name, sub_properties, spec=None, servo_pref=None, gecko_pref=None,
+    def __init__(self, name, sub_properties, spec=None,
+                 servo_2013_pref=None,
+                 servo_2020_pref=None,
+                 gecko_pref=None,
                  enabled_in="content",
                  allowed_in_keyframe_block=True, alias=None, extra_prefixes=None,
                  allowed_in_page_rule=False, flags=None):
@@ -404,7 +419,8 @@ class Shorthand(object):
         self.spec = spec
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
-        self.servo_pref = servo_pref
+        self.servo_2013_pref = servo_2013_pref
+        self.servo_2020_pref = servo_2020_pref
         self.gecko_pref = gecko_pref
         self.sub_properties = sub_properties
         assert enabled_in in ["", "ua", "chrome", "content"]
@@ -442,10 +458,15 @@ class Shorthand(object):
     def type():
         return "shorthand"
 
-    def experimental(self, product):
-        if product == "gecko":
+    def experimental(self, engine):
+        if engine == "gecko":
             return bool(self.gecko_pref)
-        return bool(self.servo_pref)
+        elif engine == "servo-2013":
+            return bool(self.servo_2013_pref)
+        elif engine == "servo-2020":
+            return bool(self.servo_2020_pref)
+        else:
+            raise Exception("Bad engine: " + engine)
 
     # FIXME(emilio): Shorthand and Longhand should really share a base class.
     def explicitly_enabled_in_ua_sheets(self):
@@ -468,10 +489,11 @@ class Alias(object):
         self.camel_case = to_camel_case(self.ident)
         self.original = original
         self.enabled_in = original.enabled_in
-        self.servo_pref = original.servo_pref
         self.animatable = original.animatable
-        self.transitionable = original.transitionable
+        self.servo_2013_pref = original.servo_2013_pref
+        self.servo_2020_pref = original.servo_2020_pref
         self.gecko_pref = gecko_pref
+        self.transitionable = original.transitionable
         self.allowed_in_page_rule = original.allowed_in_page_rule
         self.allowed_in_keyframe_block = original.allowed_in_keyframe_block
 
@@ -479,10 +501,15 @@ class Alias(object):
     def type():
         return "alias"
 
-    def experimental(self, product):
-        if product == "gecko":
+    def experimental(self, engine):
+        if engine == "gecko":
             return bool(self.gecko_pref)
-        return bool(self.servo_pref)
+        elif engine == "servo-2013":
+            return bool(self.servo_2013_pref)
+        elif engine == "servo-2020":
+            return bool(self.servo_2020_pref)
+        else:
+            raise Exception("Bad engine: " + engine)
 
     def explicitly_enabled_in_ua_sheets(self):
         return self.enabled_in in ["ua", "chrome"]
@@ -536,8 +563,8 @@ class StyleStruct(object):
 
 
 class PropertiesData(object):
-    def __init__(self, product):
-        self.product = product
+    def __init__(self, engine):
+        self.engine = engine
         self.style_structs = []
         self.current_style_struct = None
         self.longhands = []
@@ -559,13 +586,13 @@ class PropertiesData(object):
     def add_prefixed_aliases(self, property):
         # FIXME Servo's DOM architecture doesn't support vendor-prefixed properties.
         #       See servo/servo#14941.
-        if self.product == "gecko":
+        if self.engine == "gecko":
             for (prefix, pref) in property.extra_prefixes:
                 property.alias.append(('-%s-%s' % (prefix, property.name), pref))
 
-    def declare_longhand(self, name, products="gecko servo", **kwargs):
-        products = products.split()
-        if self.product not in products:
+    def declare_longhand(self, name, engines=None, **kwargs):
+        engines = engines.split()
+        if self.engine not in engines:
             return
 
         longhand = Longhand(self.current_style_struct, name, **kwargs)
@@ -580,9 +607,9 @@ class PropertiesData(object):
 
         return longhand
 
-    def declare_shorthand(self, name, sub_properties, products="gecko servo", *args, **kwargs):
-        products = products.split()
-        if self.product not in products:
+    def declare_shorthand(self, name, sub_properties, engines, *args, **kwargs):
+        engines = engines.split()
+        if self.engine not in engines:
             return
 
         sub_properties = [self.longhands_by_name[s] for s in sub_properties]
@@ -605,7 +632,7 @@ def _add_logical_props(data, props):
     groups = set()
     for prop in props:
         if prop not in data.longhands_by_name:
-            assert data.product == "servo"
+            assert data.engine in ["servo-2013", "servo-2020"]
             continue
         prop = data.longhands_by_name[prop]
         if prop.logical_group:
@@ -616,8 +643,8 @@ def _add_logical_props(data, props):
 
 
 # These are probably Gecko bugs and should be supported per spec.
-def _remove_common_first_line_and_first_letter_properties(props, product):
-    if product == "gecko":
+def _remove_common_first_line_and_first_letter_properties(props, engine):
+    if engine == "gecko":
         props.remove("-moz-tab-size")
         props.remove("hyphens")
         props.remove("line-break")
@@ -644,6 +671,8 @@ class PropertyRestrictions:
 
     @staticmethod
     def shorthand(data, shorthand):
+        if shorthand not in data.shorthands_by_name:
+            return []
         return map(lambda p: p.name, data.shorthands_by_name[shorthand].sub_properties)
 
     @staticmethod
@@ -680,7 +709,7 @@ class PropertyRestrictions:
 
         _add_logical_props(data, props)
 
-        _remove_common_first_line_and_first_letter_properties(props, data.product)
+        _remove_common_first_line_and_first_letter_properties(props, data.engine)
         return props
 
     # https://drafts.csswg.org/css-pseudo/#first-line-styling
@@ -714,7 +743,7 @@ class PropertyRestrictions:
             props.remove(prop)
         props.remove("box-shadow")
 
-        _remove_common_first_line_and_first_letter_properties(props, data.product)
+        _remove_common_first_line_and_first_letter_properties(props, data.engine)
         return props
 
     # https://drafts.csswg.org/css-pseudo/#placeholder
