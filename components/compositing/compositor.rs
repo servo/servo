@@ -522,17 +522,26 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 Msg::WebDriverMouseButtonEvent(mouse_event_type, mouse_button, x, y),
                 ShutdownState::NotShuttingDown,
             ) => {
+                let dppx = self.device_pixels_per_page_px();
+                let point = dppx.transform_point(Point2D::new(x, y));
                 self.on_mouse_window_event_class(match mouse_event_type {
                     MouseEventType::Click => {
-                        MouseWindowEvent::Click(mouse_button, DevicePoint::new(x, y))
+                        MouseWindowEvent::Click(mouse_button, DevicePoint::new(point.x, point.y))
                     },
-                    MouseEventType::MouseDown => {
-                        MouseWindowEvent::MouseDown(mouse_button, DevicePoint::new(x, y))
-                    },
+                    MouseEventType::MouseDown => MouseWindowEvent::MouseDown(
+                        mouse_button,
+                        DevicePoint::new(point.x, point.y),
+                    ),
                     MouseEventType::MouseUp => {
-                        MouseWindowEvent::MouseUp(mouse_button, DevicePoint::new(x, y))
+                        MouseWindowEvent::MouseUp(mouse_button, DevicePoint::new(point.x, point.y))
                     },
                 });
+            },
+
+            (Msg::WebDriverMouseMoveEvent(x, y), ShutdownState::NotShuttingDown) => {
+                let dppx = self.device_pixels_per_page_px();
+                let point = dppx.transform_point(Point2D::new(x, y));
+                self.on_mouse_window_move_event_class(DevicePoint::new(point.x, point.y));
             },
 
             (Msg::PendingPaintMetric(pipeline_id, epoch), _) => {

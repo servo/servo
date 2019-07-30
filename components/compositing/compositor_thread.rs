@@ -108,6 +108,8 @@ pub enum Msg {
     LoadComplete(TopLevelBrowsingContextId),
     /// WebDriver mouse button event
     WebDriverMouseButtonEvent(MouseEventType, MouseButton, f32, f32),
+    /// WebDriver mouse move event
+    WebDriverMouseMoveEvent(f32, f32),
 
     /// Get Window Informations size and position.
     GetClientWindow(IpcSender<(DeviceIntSize, DeviceIntPoint)>),
@@ -135,6 +137,7 @@ impl Debug for Msg {
             Msg::PendingPaintMetric(..) => write!(f, "PendingPaintMetric"),
             Msg::LoadComplete(..) => write!(f, "LoadComplete"),
             Msg::WebDriverMouseButtonEvent(..) => write!(f, "WebDriverMouseButtonEvent"),
+            Msg::WebDriverMouseMoveEvent(..) => write!(f, "WebDriverMouseMoveEvent"),
             Msg::GetClientWindow(..) => write!(f, "GetClientWindow"),
             Msg::GetScreenSize(..) => write!(f, "GetScreenSize"),
             Msg::GetScreenAvailSize(..) => write!(f, "GetScreenAvailSize"),

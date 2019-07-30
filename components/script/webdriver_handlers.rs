@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
+use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
@@ -51,6 +52,7 @@ use script_traits::webdriver_msg::{
     WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue,
 };
 use servo_url::ServoUrl;
+use std::cmp;
 use webdriver::common::WebElement;
 
 fn find_node_by_unique_id(
@@ -268,6 +270,49 @@ pub fn handle_get_browsing_context_id(
     };
 
     reply.send(result).unwrap()
+}
+
+fn get_element_in_view_center_point(element: &Element) -> Option<Point2D<i64>> {
+    match element.GetClientRects().iter().next() {
+        Some(rectangle) => {
+            let x = rectangle.X().round() as i64;
+            let y = rectangle.Y().round() as i64;
+            let width = rectangle.Width().round() as i64;
+            let height = rectangle.Height().round() as i64;
+
+            let window = window_from_node(element.upcast::<Node>());
+            let innerWidth = window.InnerWidth() as i64;
+            let innerHeight = window.InnerHeight() as i64;
+
+            let left = cmp::max(0, cmp::min(x, x + width));
+            let right = cmp::min(innerWidth, cmp::max(x, x + width));
+            let top = cmp::max(0, cmp::min(y, y + height));
+            let bottom = cmp::min(innerHeight, cmp::max(y, y + height));
+            let x = (left + right).checked_div(2).unwrap();
+            let y = (top + bottom).checked_div(2).unwrap();
+
+            Some(Point2D::new(x, y))
+        },
+        _ => None,
+    }
+}
+
+pub fn handle_get_element_in_view_center_point(
+    documents: &Documents,
+    pipeline: PipelineId,
+    element_id: String,
+    reply: IpcSender<Result<Option<(i64, i64)>, ()>>,
+) {
+    reply
+        .send(
+            find_node_by_unique_id(documents, pipeline, element_id)
+                .ok_or(())
+                .map(|node| {
+                    get_element_in_view_center_point(node.downcast::<Element>().unwrap())
+                        .map(|point| (point.x, point.y))
+                }),
+        )
+        .unwrap();
 }
 
 pub fn handle_find_element_css(

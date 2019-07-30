@@ -47,6 +47,7 @@ pub enum WebDriverScriptCommand {
     GetElementRect(String, IpcSender<Result<Rect<f64>, ()>>),
     GetElementTagName(String, IpcSender<Result<String, ()>>),
     GetElementText(String, IpcSender<Result<String, ()>>),
+    GetElementInViewCenterPoint(String, IpcSender<Result<Option<(i64, i64)>, ()>>),
     GetBrowsingContextId(WebDriverFrameId, IpcSender<Result<BrowsingContextId, ()>>),
     GetUrl(IpcSender<ServoUrl>),
     GetPageSource(IpcSender<Result<String, ()>>),
