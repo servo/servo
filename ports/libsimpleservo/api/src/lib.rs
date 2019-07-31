@@ -48,6 +48,7 @@ pub struct InitOptions {
     pub coordinates: Coordinates,
     pub density: f32,
     pub vr_init: VRInitOptions,
+    pub xr_discovery: Option<Box<dyn webxr_api::Discovery>>,
     pub enable_subpixel_text_antialiasing: bool,
     pub gl_context_pointer: Option<*const c_void>,
     pub native_display_pointer: Option<*const c_void>,
@@ -198,6 +199,7 @@ pub fn init(
 
     let embedder_callbacks = Box::new(ServoEmbedderCallbacks {
         vr_init: init_opts.vr_init,
+        xr_discovery: init_opts.xr_discovery,
         waker,
     });
 
@@ -576,6 +578,7 @@ impl ServoGlue {
 
 struct ServoEmbedderCallbacks {
     waker: Box<dyn EventLoopWaker>,
+    xr_discovery: Option<Box<dyn webxr_api::Discovery>>,
     vr_init: VRInitOptions,
 }
 
@@ -604,6 +607,13 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
                 services.register(service);
                 heartbeats.push(heartbeat);
             },
+        }
+    }
+
+    fn register_webxr(&mut self, registry: &mut webxr_api::MainThreadRegistry) {
+        debug!("EmbedderMethods::register_xr");
+        if let Some(discovery) = self.xr_discovery.take() {
+            registry.register(discovery);
         }
     }
 

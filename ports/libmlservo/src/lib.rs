@@ -29,6 +29,7 @@ use std::rc::Rc;
 use std::thread;
 use std::time::Duration;
 use std::time::Instant;
+use webxr::magicleap::MagicLeapDiscovery;
 
 #[repr(u32)]
 pub enum MLLogLevel {
@@ -106,7 +107,7 @@ pub unsafe extern "C" fn init_servo(
     url_update: MLURLUpdate,
     keyboard: MLKeyboard,
     url: *const c_char,
-    args: *const c_char,
+    default_args: *const c_char,
     width: u32,
     height: u32,
     hidpi: f32,
@@ -117,7 +118,6 @@ pub unsafe extern "C" fn init_servo(
 
     let gl = gl_glue::egl::init().expect("EGL initialization failure");
 
-    let url = CStr::from_ptr(url).to_str().unwrap_or("about:blank");
     let coordinates = Coordinates::new(
         0,
         0,
@@ -126,34 +126,52 @@ pub unsafe extern "C" fn init_servo(
         width as i32,
         height as i32,
     );
-    let args = if args.is_null() {
-        vec![]
-    } else {
-        CStr::from_ptr(args)
+
+    let mut url = CStr::from_ptr(url).to_str().unwrap_or("about:blank");
+
+    // If the URL has a space in it, then treat everything before the space as arguments
+    let args = if let Some(i) = url.rfind(' ') {
+        let (front, back) = url.split_at(i);
+        url = back;
+        front.split(' ').map(|s| s.to_owned()).collect()
+    } else if !default_args.is_null() {
+        CStr::from_ptr(default_args)
             .to_str()
             .unwrap_or("")
             .split(' ')
             .map(|s| s.to_owned())
             .collect()
+    } else {
+        Vec::new()
     };
+
     info!("got args: {:?}", args);
 
-    let vr_init = if landscape {
-        VRInitOptions::None
-    } else {
+    let vr_init = if !landscape {
         let name = String::from("Magic Leap VR Display");
         let (service, heartbeat) = MagicLeapVRService::new(name, ctxt, gl.gl_wrapper.clone())
             .expect("Failed to create VR service");
         let service = Box::new(service);
         let heartbeat = Box::new(heartbeat);
         VRInitOptions::VRService(service, heartbeat)
+    } else {
+        VRInitOptions::None
     };
+
+    let xr_discovery: Option<Box<dyn webxr_api::Discovery>> = if !landscape {
+        let discovery = MagicLeapDiscovery::new(ctxt, gl.gl_wrapper.clone());
+        Some(Box::new(discovery))
+    } else {
+        None
+    };
+
     let opts = InitOptions {
         args,
         url: Some(url.to_string()),
         density: hidpi,
         enable_subpixel_text_antialiasing: false,
         vr_init,
+        xr_discovery,
         coordinates,
         gl_context_pointer: Some(gl.gl_context),
         native_display_pointer: Some(gl.display),
