@@ -1365,7 +1365,7 @@ impl Element {
             ScriptThread::enqueue_callback_reaction(self, reaction, None);
         }
 
-        assert!(attr.GetOwnerElement().deref() == Some(self));
+        assert!(attr.GetOwnerElement().as_deref() == Some(self));
         self.will_mutate_attr(attr);
         self.attrs.borrow_mut().push(Dom::from_ref(attr));
         if attr.namespace() == &ns!() {
@@ -1680,12 +1680,12 @@ impl Element {
                 }
             },
             AdjacentPosition::AfterBegin => {
-                Node::pre_insert(node, &self_node, self_node.GetFirstChild().deref()).map(Some)
+                Node::pre_insert(node, &self_node, self_node.GetFirstChild().as_deref()).map(Some)
             },
             AdjacentPosition::BeforeEnd => Node::pre_insert(node, &self_node, None).map(Some),
             AdjacentPosition::AfterEnd => {
                 if let Some(parent) = self_node.GetParentNode() {
-                    Node::pre_insert(node, &parent, self_node.GetNextSibling().deref()).map(Some)
+                    Node::pre_insert(node, &parent, self_node.GetNextSibling().as_deref()).map(Some)
                 } else {
                     Ok(None)
                 }
@@ -1725,7 +1725,7 @@ impl Element {
         }
 
         // Step 9
-        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2194,7 +2194,7 @@ impl ElementMethods for Element {
         }
 
         // Step 7
-        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2244,7 +2244,7 @@ impl ElementMethods for Element {
         }
 
         // Step 9
-        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2290,7 +2290,7 @@ impl ElementMethods for Element {
         }
 
         // Step 7
-        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2341,7 +2341,7 @@ impl ElementMethods for Element {
         }
 
         // Step 9
-        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2856,7 +2856,7 @@ impl VirtualMethods for Element {
         }
 
         let fullscreen = doc.GetFullscreenElement();
-        if fullscreen.deref() == Some(self) {
+        if fullscreen.as_deref() == Some(self) {
             doc.exit_fullscreen();
         }
         if let Some(ref value) = *self.id_attribute.borrow() {

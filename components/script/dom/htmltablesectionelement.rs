@@ -59,7 +59,7 @@ struct RowsFilter;
 impl CollectionFilter for RowsFilter {
     fn filter(&self, elem: &Element, root: &Node) -> bool {
         elem.is::<HTMLTableRowElement>() &&
-            elem.upcast::<Node>().GetParentNode().deref() == Some(root)
+            elem.upcast::<Node>().GetParentNode().as_deref() == Some(root)
     }
 }
 

@@ -192,7 +192,7 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
         };
 
         // Step 6
-        Node::pre_insert(node, &parent, reference_node.deref()).map(|_| ())
+        Node::pre_insert(node, &parent, reference_node.as_deref()).map(|_| ())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-remove

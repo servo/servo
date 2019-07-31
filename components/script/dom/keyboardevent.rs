@@ -111,7 +111,7 @@ impl KeyboardEvent {
             type_,
             init.parent.parent.parent.bubbles,
             init.parent.parent.parent.cancelable,
-            init.parent.parent.view.deref(),
+            init.parent.parent.view.as_deref(),
             init.parent.parent.detail,
             Key::Unidentified,
             init.code.clone(),

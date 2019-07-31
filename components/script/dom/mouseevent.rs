@@ -119,7 +119,7 @@ impl MouseEvent {
             type_,
             bubbles,
             cancelable,
-            init.parent.parent.view.deref(),
+            init.parent.parent.view.as_deref(),
             init.parent.parent.detail,
             init.screenX,
             init.screenY,
@@ -131,7 +131,7 @@ impl MouseEvent {
             init.parent.metaKey,
             init.button,
             0,
-            init.relatedTarget.deref(),
+            init.relatedTarget.as_deref(),
             None,
         );
         Ok(event)

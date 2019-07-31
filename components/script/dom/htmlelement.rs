@@ -694,7 +694,7 @@ impl HTMLElement {
             .take_while(|elem| !elem.is_labelable_element())
             .filter_map(DomRoot::downcast::<HTMLLabelElement>)
             .filter(|elem| !elem.upcast::<Element>().has_attribute(&local_name!("for")))
-            .filter(|elem| elem.first_labelable_descendant().deref() == Some(self))
+            .filter(|elem| elem.first_labelable_descendant().as_deref() == Some(self))
             .map(DomRoot::upcast::<Node>);
 
         let id = element.Id();

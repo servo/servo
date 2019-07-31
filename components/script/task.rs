@@ -32,7 +32,7 @@ macro_rules! task {
 pub trait TaskOnce: Send {
     #[allow(unsafe_code)]
     fn name(&self) -> &'static str {
-        unsafe { ::std::intrinsics::type_name::<Self>() }
+        ::std::any::type_name::<Self>()
     }
 
     fn run_once(self);

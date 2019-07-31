@@ -7301,9 +7301,9 @@ def process_arg(expr, arg):
         if arg.variadic or arg.type.isSequence():
             expr += ".r()"
         elif arg.type.nullable() and arg.optional and not arg.defaultValue:
-            expr += ".as_ref().map(Option::deref)"
+            expr += ".as_ref().map(Option::as_deref)"
         elif arg.type.nullable() or arg.optional and not arg.defaultValue:
-            expr += ".deref()"
+            expr += ".as_deref()"
         else:
             expr = "&" + expr
     elif isinstance(arg.type, IDLPromiseType):

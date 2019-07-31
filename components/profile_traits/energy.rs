@@ -60,5 +60,4 @@ mod energymon {
         init();
         unsafe { EM.map_or(0, |em| ((*em).interval_us() as f64 / 1000.0).ceil() as u32) }
     }
-
 }

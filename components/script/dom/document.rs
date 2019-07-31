@@ -612,7 +612,7 @@ impl Document {
                     .upcast::<Element>()
                     .has_attribute(&local_name!("href"))
             });
-        self.base_element.set(base.deref());
+        self.base_element.set(base.as_deref());
     }
 
     pub fn dom_count(&self) -> u32 {
@@ -757,7 +757,7 @@ impl Document {
         let target = self.find_fragment_node(fragment);
 
         // Step 1
-        self.set_target_element(target.deref());
+        self.set_target_element(target.as_deref());
 
         let point = target
             .as_ref()
@@ -798,7 +798,7 @@ impl Document {
                 y,
                 global_scope.pipeline_id().root_scroll_id(),
                 ScrollBehavior::Instant,
-                target.deref(),
+                target.as_deref(),
             );
         }
     }
@@ -862,7 +862,7 @@ impl Document {
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or none if no elements requested it.
     pub fn commit_focus_transaction(&self, focus_type: FocusType) {
-        if self.focused == self.possibly_focused.get().deref() {
+        if self.focused == self.possibly_focused.get().as_deref() {
             return;
         }
         if let Some(ref elem) = self.focused.get() {
@@ -877,7 +877,7 @@ impl Document {
             }
         }
 
-        self.focused.set(self.possibly_focused.get().deref());
+        self.focused.set(self.possibly_focused.get().as_deref());
 
         if let Some(ref elem) = self.focused.get() {
             elem.set_focus_state(true);
@@ -1224,7 +1224,7 @@ impl Document {
         }
 
         // Store the current mouse over target for next frame.
-        prev_mouse_over_target.set(maybe_new_target.deref());
+        prev_mouse_over_target.set(maybe_new_target.as_deref());
 
         self.window
             .reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
@@ -2892,7 +2892,7 @@ impl Document {
 
     fn create_node_list<F: Fn(&Node) -> bool>(&self, callback: F) -> DomRoot<NodeList> {
         let doc = self.GetDocumentElement();
-        let maybe_node = doc.deref().map(Castable::upcast::<Node>);
+        let maybe_node = doc.as_deref().map(Castable::upcast::<Node>);
         let iter = maybe_node
             .iter()
             .flat_map(|node| node.traverse_preorder(ShadowIncluding::No))
@@ -3900,7 +3900,7 @@ impl DocumentMethods for Document {
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent
-                        .InsertBefore(child, parent.GetFirstChild().deref())
+                        .InsertBefore(child, parent.GetFirstChild().as_deref())
                         .unwrap()
                 },
             }
@@ -3985,7 +3985,7 @@ impl DocumentMethods for Document {
 
         // Step 2.
         let old_body = self.GetBody();
-        if old_body.deref() == Some(new_body) {
+        if old_body.as_deref() == Some(new_body) {
             return Ok(());
         }
 

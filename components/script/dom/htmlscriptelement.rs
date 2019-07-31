@@ -625,7 +625,7 @@ impl HTMLScriptElement {
         self.run_a_classic_script(&script);
 
         // Step 6.
-        document.set_current_script(old_script.deref());
+        document.set_current_script(old_script.as_deref());
 
         // Step 7.
         if let Some(doc) = neutralized_doc {

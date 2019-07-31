@@ -73,7 +73,7 @@ impl UIEvent {
             type_,
             bubbles,
             cancelable,
-            init.view.deref(),
+            init.view.as_deref(),
             init.detail,
         );
         Ok(event)

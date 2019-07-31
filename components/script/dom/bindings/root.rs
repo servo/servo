@@ -332,7 +332,7 @@ unsafe impl<T: DomObject> JSTraceable for Dom<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         let trace_string;
         let trace_info = if cfg!(debug_assertions) {
-            trace_string = format!("for {} on heap", ::std::intrinsics::type_name::<T>());
+            trace_string = format!("for {} on heap", ::std::any::type_name::<T>());
             &trace_string[..]
         } else {
             "for DOM object on heap"
