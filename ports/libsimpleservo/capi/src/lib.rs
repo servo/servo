@@ -143,6 +143,7 @@ unsafe fn init(
         } else {
             VRInitOptions::VRExternal(opts.vr_pointer)
         },
+        xr_discovery: None,
         enable_subpixel_text_antialiasing: opts.enable_subpixel_text_antialiasing,
         gl_context_pointer: gl_context,
         native_display_pointer: display,

@@ -10,6 +10,7 @@ publish = false
 libservo = { path = "../../../components/servo" }
 log = "0.4"
 servo-media = { git = "https://github.com/servo/media" }
+webxr-api = { git = "https://github.com/servo/webxr" }
 
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 libc = "0.2"
