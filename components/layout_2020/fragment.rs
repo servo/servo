@@ -8,7 +8,7 @@ use crate::context::LayoutContext;
 use crate::display_list::items::OpaqueNode;
 use crate::ServoArc;
 use app_units::Au;
-use euclid::Rect;
+use euclid::default::Rect;
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutNode};
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use style::logical_geometry::{LogicalMargin, LogicalRect};

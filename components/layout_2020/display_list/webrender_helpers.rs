@@ -4,8 +4,8 @@
 
 use crate::display_list::items::DisplayList;
 use msg::constellation_msg::PipelineId;
+use webrender_api::units::LayoutSize;
 use webrender_api::{self, DisplayListBuilder};
-use webrender_api::units::{LayoutSize};
 
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&mut self, pipeline_id: PipelineId) -> DisplayListBuilder;

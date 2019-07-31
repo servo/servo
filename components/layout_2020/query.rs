@@ -10,7 +10,7 @@ use crate::display_list::IndexableText;
 use crate::fragment::{Fragment, FragmentBorderBoxIterator};
 use crate::opaque_node::OpaqueNodeMethods;
 use app_units::Au;
-use euclid::{Point2D, Rect, Size2D, Vector2D};
+use euclid::default::{Point2D, Rect, Size2D, Vector2D};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use script_layout_interface::rpc::TextIndexResponse;
@@ -358,15 +358,11 @@ impl FragmentBorderBoxIterator for MarginRetrievingFragmentBorderBoxIterator {
     }
 }
 
-pub fn process_content_box_request(
-    requested_node: OpaqueNode,
-) -> Option<Rect<Au>> {
+pub fn process_content_box_request(requested_node: OpaqueNode) -> Option<Rect<Au>> {
     UnioningFragmentBorderBoxIterator::new(requested_node).rect
 }
 
-pub fn process_content_boxes_request(
-    requested_node: OpaqueNode,
-) -> Vec<Rect<Au>> {
+pub fn process_content_boxes_request(requested_node: OpaqueNode) -> Vec<Rect<Au>> {
     // FIXME(pcwalton): This has not been updated to handle the stacking context relative
     // stuff. So the position is wrong in most cases.
     CollectingFragmentBorderBoxIterator::new(requested_node).rects
@@ -583,7 +579,6 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
                 //  2) Is static position *and* is a table or table cell
                 //  3) Is not static position
                 (true, _, _) |
-                (false, Position::Sticky, _) |
                 (false, Position::Absolute, _) |
                 (false, Position::Relative, _) |
                 (false, Position::Fixed, _) => true,
@@ -614,9 +609,7 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
     }
 }
 
-pub fn process_node_geometry_request(
-    requested_node: OpaqueNode,
-) -> Rect<i32> {
+pub fn process_node_geometry_request(requested_node: OpaqueNode) -> Rect<i32> {
     FragmentLocatingFragmentIterator::new(requested_node).client_rect
 }
 
@@ -629,9 +622,7 @@ pub fn process_node_scroll_id_request<N: LayoutNode>(
 }
 
 /// https://drafts.csswg.org/cssom-view/#scrolling-area
-pub fn process_node_scroll_area_request(
-    requested_node: OpaqueNode,
-) -> Rect<i32> {
+pub fn process_node_scroll_area_request(requested_node: OpaqueNode) -> Rect<i32> {
     let iterator = UnioningFragmentScrollAreaIterator::new(requested_node);
     match iterator.overflow_direction {
         OverflowDirection::RightAndDown => {
@@ -768,7 +759,7 @@ where
     };
 
     let positioned = match style.get_box().position {
-        Position::Relative | Position::Sticky | Position::Fixed | Position::Absolute => true,
+        Position::Relative | Position::Fixed | Position::Absolute => true,
         _ => false,
     };
 
@@ -855,9 +846,7 @@ where
     }
 }
 
-pub fn process_offset_parent_query(
-    requested_node: OpaqueNode,
-) -> OffsetParentResponse {
+pub fn process_offset_parent_query(requested_node: OpaqueNode) -> OffsetParentResponse {
     let iterator = ParentOffsetBorderBoxIterator::new(requested_node);
 
     let node_offset_box = iterator.node_offset_box;
@@ -999,17 +988,7 @@ fn inner_text_collection_steps<N: LayoutNode>(
         }
 
         match display {
-            Display::TableCell if !is_last_table_cell() => {
-                // Step 6.
-                items.push(InnerTextItem::Text(String::from("\u{0009}" /* tab */)));
-            },
-            Display::TableRow if !is_last_table_row() => {
-                // Step 7.
-                items.push(InnerTextItem::Text(String::from(
-                    "\u{000A}", /* line feed */
-                )));
-            },
-            Display::Block | Display::Flex | Display::TableCaption | Display::Table => {
+            Display::Block => {
                 // Step 9.
                 items.insert(0, InnerTextItem::RequiredLineBreakCount(1));
                 items.push(InnerTextItem::RequiredLineBreakCount(1));
@@ -1019,14 +998,4 @@ fn inner_text_collection_steps<N: LayoutNode>(
     }
 
     results.append(&mut items);
-}
-
-fn is_last_table_cell() -> bool {
-    // FIXME(ferjm) Implement this.
-    false
-}
-
-fn is_last_table_row() -> bool {
-    // FIXME(ferjm) Implement this.
-    false
 }

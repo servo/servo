@@ -10,7 +10,7 @@
 
 use crate::display_list::items::OpaqueNode;
 use app_units::Au;
-use euclid::Point2D;
+use euclid::default::Point2D;
 use fnv::FnvHashMap;
 use gfx::text::glyph::ByteIndex;
 use gfx::text::TextRun;

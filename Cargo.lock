@@ -2332,7 +2332,7 @@ name = "layout_2020"
 version = "0.0.1"
 dependencies = [
  "app_units 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.19.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx 0.0.1",
  "gfx_traits 0.0.1",

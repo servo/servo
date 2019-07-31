@@ -6,6 +6,7 @@ use euclid::Vector2D;
 use gfx_traits;
 use std::collections::HashMap;
 use std::f32;
+use webrender_api::units::LayoutPixel;
 use webrender_api::ExternalScrollId;
 
 pub use style::dom::OpaqueNode;
@@ -20,4 +21,4 @@ impl gfx_traits::DisplayList for DisplayList {
 }
 
 /// The type of the scroll offset list. This is only populated if WebRender is in use.
-pub type ScrollOffsetMap = HashMap<ExternalScrollId, Vector2D<f32>>;
+pub type ScrollOffsetMap = HashMap<ExternalScrollId, Vector2D<f32, LayoutPixel>>;

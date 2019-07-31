@@ -26,7 +26,7 @@ use crate::dom_wrapper::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNod
 use app_units::Au;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use embedder_traits::resources::{self, Resource};
-use euclid::{Point2D, Rect, Size2D, TypedScale, TypedSize2D};
+use euclid::{default::Size2D as UntypedSize2D, Point2D, Rect, Scale, Size2D};
 use fnv::FnvHashMap;
 use fxhash::FxHashMap;
 use gfx::font;
@@ -57,8 +57,8 @@ use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
 use msg::constellation_msg::{
     BackgroundHangMonitor, BackgroundHangMonitorRegister, HangAnnotation,
 };
-use msg::constellation_msg::{MonitoredComponentId, TopLevelBrowsingContextId};
 use msg::constellation_msg::{LayoutHangAnnotation, MonitoredComponentType, PipelineId};
+use msg::constellation_msg::{MonitoredComponentId, TopLevelBrowsingContextId};
 use net_traits::image_cache::ImageCache;
 use parking_lot::RwLock;
 use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
@@ -194,7 +194,7 @@ pub struct LayoutThread {
 
     /// The size of the viewport. This may be different from the size of the screen due to viewport
     /// constraints.
-    viewport_size: Size2D<Au>,
+    viewport_size: UntypedSize2D<Au>,
 
     /// A mutex to allow for fast, read-only RPC of layout's internal data
     /// structures, while still letting the LayoutThread modify them.
@@ -228,7 +228,7 @@ pub struct LayoutThread {
     load_webfonts_synchronously: bool,
 
     /// The initial request size of the window
-    initial_window_size: TypedSize2D<u32, DeviceIndependentPixel>,
+    initial_window_size: Size2D<u32, DeviceIndependentPixel>,
 
     /// The ratio of device pixels per px at the default scale.
     /// If unspecified, will use the platform default setting.
@@ -506,7 +506,7 @@ impl LayoutThread {
         paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,
         load_webfonts_synchronously: bool,
-        initial_window_size: TypedSize2D<u32, DeviceIndependentPixel>,
+        initial_window_size: Size2D<u32, DeviceIndependentPixel>,
         device_pixels_per_px: Option<f32>,
         dump_display_list: bool,
         dump_display_list_json: bool,
@@ -521,8 +521,8 @@ impl LayoutThread {
         // but it will be set correctly when the initial reflow takes place.
         let device = Device::new(
             MediaType::screen(),
-            initial_window_size.to_f32() * TypedScale::new(1.0),
-            TypedScale::new(device_pixels_per_px.unwrap_or(1.0)),
+            initial_window_size.to_f32() * Scale::new(1.0),
+            Scale::new(device_pixels_per_px.unwrap_or(1.0)),
         );
 
         // Create the channel on which new animations can be sent.
@@ -785,7 +785,7 @@ impl LayoutThread {
                 let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
                 let mut txn = webrender_api::Transaction::new();
                 txn.scroll_node_with_id(
-                    webrender_api::units::LayoutPoint::from_untyped(&point),
+                    webrender_api::units::LayoutPoint::from_untyped(point),
                     state.scroll_id,
                     webrender_api::ScrollClamping::ToContentBounds,
                 );
@@ -1035,7 +1035,7 @@ impl LayoutThread {
                 epoch.next();
                 self.epoch.set(epoch);
 
-                let viewport_size = webrender_api::units::LayoutSize::from_untyped(&viewport_size);
+                let viewport_size = webrender_api::units::LayoutSize::from_untyped(viewport_size);
 
                 // Observe notifications about rendered frames if needed right before
                 // sending the display list to WebRender in order to set time related
@@ -1372,11 +1372,7 @@ impl LayoutThread {
         }
 
         self.first_reflow.set(false);
-        self.respond_to_query_if_necessary(
-            &data.reflow_goal,
-            &mut *rw_data,
-            &mut layout_context,
-        );
+        self.respond_to_query_if_necessary(&data.reflow_goal, &mut *rw_data, &mut layout_context);
     }
 
     fn respond_to_query_if_necessary(
@@ -1405,8 +1401,7 @@ impl LayoutThread {
                     rw_data.client_rect_response = process_node_geometry_request(node);
                 },
                 &QueryMsg::NodeScrollGeometryQuery(node) => {
-                    rw_data.scroll_area_response =
-                        process_node_scroll_area_request(node);
+                    rw_data.scroll_area_response = process_node_scroll_area_request(node);
                 },
                 &QueryMsg::NodeScrollIdQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
@@ -1435,8 +1430,7 @@ impl LayoutThread {
                     // particular pipeline, so we need to tell WebRender about that.
                     flags.insert(webrender_api::HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
 
-                    let client_point =
-                        webrender_api::units::WorldPoint::from_untyped(&client_point);
+                    let client_point = webrender_api::units::WorldPoint::from_untyped(client_point);
                     let results = self.webrender_api.hit_test(
                         self.webrender_document,
                         Some(self.id.to_webrender()),
@@ -1534,12 +1528,7 @@ impl LayoutThread {
             || {},
         );
 
-        self.perform_post_main_layout_passes(
-            root_flow,
-            reflow_goal,
-            document,
-            rw_data,
-        );
+        self.perform_post_main_layout_passes(root_flow, reflow_goal, document, rw_data);
     }
 
     fn perform_post_main_layout_passes(
@@ -1708,8 +1697,8 @@ impl RegisteredSpeculativePainter for RegisteredPainterImpl {
 impl Painter for RegisteredPainterImpl {
     fn draw_a_paint_image(
         &self,
-        size: TypedSize2D<f32, CSSPixel>,
-        device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
+        size: Size2D<f32, CSSPixel>,
+        device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
         properties: Vec<(Atom, String)>,
         arguments: Vec<String>,
     ) -> Result<DrawAPaintImageResult, PaintWorkletError> {

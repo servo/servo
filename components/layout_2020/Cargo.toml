@@ -14,7 +14,7 @@ doctest = false
 
 [dependencies]
 app_units = "0.7"
-euclid = "0.19"
+euclid = "0.20"
 fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}

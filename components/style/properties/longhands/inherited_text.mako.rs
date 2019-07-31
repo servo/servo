@@ -196,7 +196,7 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-text/#propdef-white-space"
     servo_restyle_damage="rebuild_and_reflow"
 >
-    % if engine == "servo-2013":
+    % if engine in ["servo-2013", "servo-2020"]:
     impl SpecifiedValue {
         pub fn allow_wrap(&self) -> bool {
             match *self {
