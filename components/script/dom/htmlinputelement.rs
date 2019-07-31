@@ -903,7 +903,7 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>)
         }
     }
 
-    do_broadcast(doc.upcast(), broadcaster, owner.deref(), group)
+    do_broadcast(doc.upcast(), broadcaster, owner.as_deref(), group)
 }
 
 // https://html.spec.whatwg.org/multipage/#radio-button-group
@@ -914,7 +914,7 @@ fn in_same_group(
 ) -> bool {
     other.input_type() == InputType::Radio &&
     // TODO Both a and b are in the same home subtree.
-    other.form_owner().deref() == owner &&
+    other.form_owner().as_deref() == owner &&
     match (other.radio_group_name(), group) {
         (Some(ref s1), Some(s2)) => compatibility_caseless_match_str(s1, s2) && s2 != &atom!(""),
         _ => false
@@ -1647,8 +1647,10 @@ impl Activatable for HTMLInputElement {
                         .query_selector_iter(DOMString::from("input[type=radio]"))
                         .unwrap()
                         .filter_map(DomRoot::downcast::<HTMLInputElement>)
-                        .find(|r| in_same_group(&*r, owner.deref(), group.as_ref()) && r.Checked());
-                    cache.checked_radio = checked_member.deref().map(Dom::from_ref);
+                        .find(|r| {
+                            in_same_group(&*r, owner.as_deref(), group.as_ref()) && r.Checked()
+                        });
+                    cache.checked_radio = checked_member.as_deref().map(Dom::from_ref);
                     cache.checked_changed = self.checked_changed.get();
                     self.SetChecked(true);
                 },
@@ -1689,7 +1691,7 @@ impl Activatable for HTMLInputElement {
                         // we can check if the conditions for radio group siblings apply
                         if in_same_group(
                             &o,
-                            self.form_owner().deref(),
+                            self.form_owner().as_deref(),
                             self.radio_group_name().as_ref(),
                         ) {
                             o.SetChecked(true);

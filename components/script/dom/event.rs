@@ -485,7 +485,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&Eve
     // Step 6.
     for object in event_path.iter().rev() {
         invoke(
-            window.deref(),
+            window.as_deref(),
             object,
             event,
             Some(ListenerPhase::Capturing),
@@ -501,7 +501,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&Eve
     event.phase.set(EventPhase::AtTarget);
 
     // Step 8.
-    invoke(window.deref(), target, event, None);
+    invoke(window.as_deref(), target, event, None);
     if event.stop_propagation.get() {
         return;
     }
@@ -517,7 +517,12 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&Eve
 
     // Step 9.2.
     for object in event_path {
-        invoke(window.deref(), object, event, Some(ListenerPhase::Bubbling));
+        invoke(
+            window.as_deref(),
+            object,
+            event,
+            Some(ListenerPhase::Bubbling),
+        );
         if event.stop_propagation.get() {
             return;
         }

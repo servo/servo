@@ -72,9 +72,9 @@ impl FocusEvent {
             type_,
             bubbles,
             cancelable,
-            init.parent.view.deref(),
+            init.parent.view.as_deref(),
             init.parent.detail,
-            init.relatedTarget.deref(),
+            init.relatedTarget.as_deref(),
         );
         Ok(event)
     }

@@ -525,7 +525,7 @@ impl WindowProxy {
     }
 
     pub fn frame_element(&self) -> Option<&Element> {
-        self.frame_element.deref()
+        self.frame_element.as_deref()
     }
 
     pub fn document(&self) -> Option<DomRoot<Document>> {
@@ -535,7 +535,7 @@ impl WindowProxy {
     }
 
     pub fn parent(&self) -> Option<&WindowProxy> {
-        self.parent.deref()
+        self.parent.as_deref()
     }
 
     pub fn top(&self) -> &WindowProxy {

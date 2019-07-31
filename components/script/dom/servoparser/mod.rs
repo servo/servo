@@ -199,7 +199,7 @@ impl ServoParser {
 
         let fragment_context = FragmentContext {
             context_elem: context_node,
-            form_elem: form.deref(),
+            form_elem: form.as_deref(),
         };
 
         let parser = ServoParser::new(

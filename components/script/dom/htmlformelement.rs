@@ -1094,7 +1094,7 @@ pub trait FormControl: DomObject {
             if let Some(ref new_owner) = new_owner {
                 new_owner.add_control(self);
             }
-            self.set_form_owner(new_owner.deref());
+            self.set_form_owner(new_owner.as_deref());
         }
     }
 

@@ -971,7 +971,6 @@ mod gecko_leak_checking {
             NS_LogDtor(ptr as *mut c_void, s, size_of::<RuleNode>() as u32);
         }
     }
-
 }
 
 #[inline(always)]

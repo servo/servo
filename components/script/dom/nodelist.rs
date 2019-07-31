@@ -132,7 +132,7 @@ impl ChildrenList {
         let last_visited = node.GetFirstChild();
         ChildrenList {
             node: Dom::from_ref(node),
-            last_visited: MutNullableDom::new(last_visited.deref()),
+            last_visited: MutNullableDom::new(last_visited.as_deref()),
             last_index: Cell::new(0u32),
         }
     }
@@ -315,7 +315,7 @@ impl ChildrenList {
     }
 
     fn reset(&self) {
-        self.last_visited.set(self.node.GetFirstChild().deref());
+        self.last_visited.set(self.node.GetFirstChild().as_deref());
         self.last_index.set(0u32);
     }
 }

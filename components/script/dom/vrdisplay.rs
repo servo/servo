@@ -43,7 +43,6 @@ use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
 use std::cell::Cell;
 use std::mem;
-use std::ops::Deref;
 use std::rc::Rc;
 use std::thread;
 use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVRFrameData, WebVRPoseInformation};
@@ -136,7 +135,7 @@ impl VRDisplay {
                 display.capabilities.clone(),
                 &global,
             )),
-            stage_params: MutNullableDom::new(stage.as_ref().map(|v| v.deref())),
+            stage_params: MutNullableDom::new(stage.as_deref()),
             frame_data: DomRefCell::new(Default::default()),
             layer: DomRefCell::new(Default::default()),
             layer_ctx: MutNullableDom::default(),
@@ -279,7 +278,7 @@ impl VRDisplayMethods for VRDisplay {
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-depthnear
     fn SetDepthNear(&self, value: Finite<f64>) {
-        self.depth_near.set(*value.deref());
+        self.depth_near.set(*value);
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-depthfar
@@ -289,7 +288,7 @@ impl VRDisplayMethods for VRDisplay {
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-depthfar
     fn SetDepthFar(&self, value: Finite<f64>) {
-        self.depth_far.set(*value.deref());
+        self.depth_far.set(*value);
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-requestanimationframe
@@ -465,7 +464,7 @@ impl VRDisplay {
         if let Some(ref stage) = display.stage_parameters {
             if self.stage_params.get().is_none() {
                 let params = Some(VRStageParameters::new(stage.clone(), &self.global()));
-                self.stage_params.set(params.as_ref().map(|v| v.deref()));
+                self.stage_params.set(params.as_deref());
             } else {
                 self.stage_params.get().unwrap().update(&stage);
             }
@@ -510,7 +509,7 @@ impl VRDisplay {
                     match recv {
                         Ok(()) => {
                             *this.layer.borrow_mut() = layer_bounds;
-                            this.layer_ctx.set(ctx.as_ref().map(|c| &**c));
+                            this.layer_ctx.set(ctx.as_deref());
                             this.init_present();
                             promise.map(resolve);
                         },
@@ -808,7 +807,7 @@ fn parse_bounds(src: &Option<Vec<Finite<f32>>>, dst: &mut [f32; 4]) -> Result<()
                 );
             }
             for i in 0..4 {
-                dst[i] = *values[i].deref();
+                dst[i] = *values[i];
             }
             Ok(())
         },

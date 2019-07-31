@@ -996,7 +996,8 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.lines
             .iter()
             .fold(UTF16CodeUnits::zero(), |m, l| {
-                m + UTF16CodeUnits(l.chars().map(char::len_utf16).sum::<usize>() + 1) // + 1 for the '\n'
+                m + UTF16CodeUnits(l.chars().map(char::len_utf16).sum::<usize>() + 1)
+                // + 1 for the '\n'
             })
             .saturating_sub(UTF16CodeUnits::one())
     }

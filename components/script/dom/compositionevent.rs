@@ -53,7 +53,7 @@ impl CompositionEvent {
             type_,
             init.parent.parent.bubbles,
             init.parent.parent.cancelable,
-            init.parent.view.deref(),
+            init.parent.view.as_deref(),
             init.parent.detail,
             init.data.clone(),
         );

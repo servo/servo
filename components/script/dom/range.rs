@@ -756,7 +756,7 @@ impl RangeMethods for Range {
         };
 
         // Step 6.
-        Node::ensure_pre_insertion_validity(node, &parent, reference_node.deref())?;
+        Node::ensure_pre_insertion_validity(node, &parent, reference_node.as_deref())?;
 
         // Step 7.
         let split_text;
@@ -764,14 +764,14 @@ impl RangeMethods for Range {
             Some(text) => {
                 split_text = text.SplitText(start_offset)?;
                 let new_reference = DomRoot::upcast::<Node>(split_text);
-                assert!(new_reference.GetParentNode().deref() == Some(&parent));
+                assert!(new_reference.GetParentNode().as_deref() == Some(&parent));
                 Some(new_reference)
             },
             _ => reference_node,
         };
 
         // Step 8.
-        let reference_node = if Some(node) == reference_node.deref() {
+        let reference_node = if Some(node) == reference_node.as_deref() {
             node.GetNextSibling()
         } else {
             reference_node
@@ -794,7 +794,7 @@ impl RangeMethods for Range {
             };
 
         // Step 12.
-        Node::pre_insert(node, &parent, reference_node.deref())?;
+        Node::pre_insert(node, &parent, reference_node.as_deref())?;
 
         // Step 13.
         if self.Collapsed() {
@@ -989,7 +989,7 @@ impl RangeMethods for Range {
         };
 
         // Step 2.
-        let element = Element::fragment_parsing_context(&owner_doc, element.deref());
+        let element = Element::fragment_parsing_context(&owner_doc, element.as_deref());
 
         // Step 3.
         let fragment_node = element.parse_fragment(fragment)?;

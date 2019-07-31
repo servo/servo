@@ -116,7 +116,7 @@ macro_rules! impl_from_pref {
                         panic!(
                             format!("Cannot convert {:?} to {:?}",
                                 other,
-                                unsafe { std::intrinsics::type_name::<$t>() }
+                                std::any::type_name::<$t>()
                             )
                         );
                     }

@@ -91,7 +91,7 @@ impl StorageEvent {
         let oldValue = init.oldValue.clone();
         let newValue = init.newValue.clone();
         let url = init.url.clone();
-        let storageArea = init.storageArea.deref();
+        let storageArea = init.storageArea.as_deref();
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
         let event = StorageEvent::new(

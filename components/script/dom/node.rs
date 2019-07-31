@@ -244,11 +244,11 @@ impl Node {
         assert!(new_child.next_sibling.get().is_none());
         match before {
             Some(ref before) => {
-                assert!(before.parent_node.get().deref() == Some(self));
+                assert!(before.parent_node.get().as_deref() == Some(self));
                 let prev_sibling = before.GetPreviousSibling();
                 match prev_sibling {
                     None => {
-                        assert!(self.first_child.get().deref() == Some(*before));
+                        assert!(self.first_child.get().as_deref() == Some(*before));
                         self.first_child.set(Some(new_child));
                     },
                     Some(ref prev_sibling) => {
@@ -334,34 +334,34 @@ impl Node {
     ///
     /// Fails unless `child` is a child of this node.
     fn remove_child(&self, child: &Node, cached_index: Option<u32>) {
-        assert!(child.parent_node.get().deref() == Some(self));
+        assert!(child.parent_node.get().as_deref() == Some(self));
         let prev_sibling = child.GetPreviousSibling();
         match prev_sibling {
             None => {
-                self.first_child.set(child.next_sibling.get().deref());
+                self.first_child.set(child.next_sibling.get().as_deref());
             },
             Some(ref prev_sibling) => {
                 prev_sibling
                     .next_sibling
-                    .set(child.next_sibling.get().deref());
+                    .set(child.next_sibling.get().as_deref());
             },
         }
         let next_sibling = child.GetNextSibling();
         match next_sibling {
             None => {
-                self.last_child.set(child.prev_sibling.get().deref());
+                self.last_child.set(child.prev_sibling.get().as_deref());
             },
             Some(ref next_sibling) => {
                 next_sibling
                     .prev_sibling
-                    .set(child.prev_sibling.get().deref());
+                    .set(child.prev_sibling.get().as_deref());
             },
         }
 
         let context = UnbindContext::new(
             self,
-            prev_sibling.deref(),
-            next_sibling.deref(),
+            prev_sibling.as_deref(),
+            next_sibling.as_deref(),
             cached_index,
         );
 
@@ -759,7 +759,7 @@ impl Node {
             document != window.Document(),
             is_body_element,
             document.quirks_mode(),
-            html_element.deref() == self.downcast::<Element>(),
+            html_element.as_deref() == self.downcast::<Element>(),
         ) {
             // Step 2 && Step 5
             (true, _, _, _) | (_, false, QuirksMode::Quirks, true) => Rect::zero(),
@@ -806,7 +806,7 @@ impl Node {
         };
 
         // Step 6.
-        Node::pre_insert(&node, &parent, viable_previous_sibling.deref())?;
+        Node::pre_insert(&node, &parent, viable_previous_sibling.as_deref())?;
 
         Ok(())
     }
@@ -829,7 +829,7 @@ impl Node {
         let node = self.owner_doc().node_from_nodes_and_strings(nodes)?;
 
         // Step 5.
-        Node::pre_insert(&node, &parent, viable_next_sibling.deref())?;
+        Node::pre_insert(&node, &parent, viable_next_sibling.as_deref())?;
 
         Ok(())
     }
@@ -852,7 +852,7 @@ impl Node {
             parent.ReplaceChild(&node, self)?;
         } else {
             // Step 6.
-            Node::pre_insert(&node, &parent, viable_next_sibling.deref())?;
+            Node::pre_insert(&node, &parent, viable_next_sibling.as_deref())?;
         }
         Ok(())
     }
@@ -864,7 +864,7 @@ impl Node {
         let node = doc.node_from_nodes_and_strings(nodes)?;
         // Step 2.
         let first_child = self.first_child.get();
-        Node::pre_insert(&node, self, first_child.deref()).map(|_| ())
+        Node::pre_insert(&node, self, first_child.as_deref()).map(|_| ())
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-append
@@ -1072,7 +1072,7 @@ impl Node {
                     None => return Err(Error::IndexSize),
                     Some(node) => node,
                 };
-                self.InsertBefore(tr_node, node.deref())?;
+                self.InsertBefore(tr_node, node.as_deref())?;
             }
         }
 
@@ -1839,7 +1839,7 @@ impl Node {
         let reference_child = match child {
             Some(child) if child == node => {
                 reference_child_root = node.GetNextSibling();
-                reference_child_root.deref()
+                reference_child_root.as_deref()
             },
             _ => child,
         };
@@ -1869,7 +1869,8 @@ impl Node {
     ) {
         node.owner_doc().add_script_and_layout_blocker();
         debug_assert!(&*node.owner_doc() == &*parent.owner_doc());
-        debug_assert!(child.map_or(true, |child| Some(parent) == child.GetParentNode().deref()));
+        debug_assert!(child.map_or(true, |child| Some(parent) ==
+            child.GetParentNode().as_deref()));
 
         // Step 1.
         let count = if node.is::<DocumentFragment>() {
@@ -1944,7 +1945,7 @@ impl Node {
         }
         if let SuppressObserver::Unsuppressed = suppress_observers {
             vtable_for(&parent).children_changed(&ChildrenMutation::insert(
-                previous_sibling.deref(),
+                previous_sibling.as_deref(),
                 new_nodes,
                 child,
             ));
@@ -1952,7 +1953,7 @@ impl Node {
             let mutation = Mutation::ChildList {
                 added: Some(new_nodes),
                 removed: None,
-                prev: previous_sibling.deref(),
+                prev: previous_sibling.as_deref(),
                 next: child,
             };
             MutationObserver::queue_a_mutation_record(&parent, mutation);
@@ -2055,18 +2056,18 @@ impl Node {
         // Step 12.
         if let SuppressObserver::Unsuppressed = suppress_observers {
             vtable_for(&parent).children_changed(&ChildrenMutation::replace(
-                old_previous_sibling.deref(),
+                old_previous_sibling.as_deref(),
                 &Some(&node),
                 &[],
-                old_next_sibling.deref(),
+                old_next_sibling.as_deref(),
             ));
 
             let removed = [node];
             let mutation = Mutation::ChildList {
                 added: None,
                 removed: Some(&removed),
-                prev: old_previous_sibling.deref(),
-                next: old_next_sibling.deref(),
+                prev: old_previous_sibling.as_deref(),
+                next: old_next_sibling.as_deref(),
             };
             MutationObserver::queue_a_mutation_record(&parent, mutation);
         }
@@ -2402,7 +2403,7 @@ impl NodeMethods for Node {
                 };
 
                 // Step 3.
-                Node::replace_all(node.deref(), self);
+                Node::replace_all(node.as_deref(), self);
             },
             NodeTypeId::CharacterData(..) => {
                 let characterdata = self.downcast::<CharacterData>().unwrap();
@@ -2508,10 +2509,10 @@ impl NodeMethods for Node {
         // Step 7-8.
         let child_next_sibling = child.GetNextSibling();
         let node_next_sibling = node.GetNextSibling();
-        let reference_child = if child_next_sibling.deref() == Some(node) {
-            node_next_sibling.deref()
+        let reference_child = if child_next_sibling.as_deref() == Some(node) {
+            node_next_sibling.as_deref()
         } else {
-            child_next_sibling.deref()
+            child_next_sibling.as_deref()
         };
 
         // Step 9.
@@ -2546,7 +2547,7 @@ impl NodeMethods for Node {
 
         // Step 14.
         vtable_for(&self).children_changed(&ChildrenMutation::replace(
-            previous_sibling.deref(),
+            previous_sibling.as_deref(),
             &removed_child,
             nodes,
             reference_child,
@@ -2555,7 +2556,7 @@ impl NodeMethods for Node {
         let mutation = Mutation::ChildList {
             added: Some(nodes),
             removed: removed.as_ref().map(|r| &r[..]),
-            prev: previous_sibling.deref(),
+            prev: previous_sibling.as_deref(),
             next: reference_child,
         };
         MutationObserver::queue_a_mutation_record(&self, mutation);

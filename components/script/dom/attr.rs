@@ -194,7 +194,7 @@ impl Attr {
             ScriptThread::enqueue_callback_reaction(owner, reaction, None);
         }
 
-        assert_eq!(Some(owner), self.owner().deref());
+        assert_eq!(Some(owner), self.owner().as_deref());
         owner.will_mutate_attr(self);
         self.swap_value(&mut value);
         if self.identifier.namespace == ns!() {
@@ -227,7 +227,11 @@ impl Attr {
         match (self.owner(), owner) {
             (Some(old), None) => {
                 // Already gone from the list of attributes of old owner.
-                assert!(old.get_attribute(&ns, &self.identifier.local_name).deref() != Some(self))
+                assert!(
+                    old.get_attribute(&ns, &self.identifier.local_name)
+                        .as_deref() !=
+                        Some(self)
+                )
             },
             (Some(old), Some(new)) => assert_eq!(&*old, new),
             _ => {},

@@ -2997,7 +2997,7 @@ impl ScriptThread {
             global_to_clone,
             browsing_context_id,
             top_level_browsing_context_id,
-            parent.deref(),
+            parent.as_deref(),
             opener,
         );
         self.window_proxies
@@ -3043,8 +3043,8 @@ impl ScriptThread {
             &window,
             browsing_context_id,
             top_level_browsing_context_id,
-            iframe.deref().map(Castable::upcast),
-            parent.deref(),
+            iframe.as_deref().map(Castable::upcast),
+            parent.as_deref(),
             opener,
         );
         self.window_proxies
