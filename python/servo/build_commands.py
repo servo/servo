@@ -670,10 +670,9 @@ class MachCommands(CommandBase):
                     status = 1
 
                 # UWP app packaging already bundles all required DLLs for us.
-                if not uwp:
-                    print("Packaging MSVC DLLs")
-                    if not package_msvc_dlls(servo_exe_dir, target_triple, vcinstalldir, vs_version):
-                        status = 1
+                print("Packaging MSVC DLLs")
+                if not package_msvc_dlls(servo_exe_dir, target_triple, vcinstalldir, vs_version):
+                    status = 1
 
             elif sys.platform == "darwin":
                 # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
