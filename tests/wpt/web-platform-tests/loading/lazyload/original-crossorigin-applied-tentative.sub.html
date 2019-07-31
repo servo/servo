@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<head>
+  <title>Deferred images with loading='lazy' use the original crossorigin attribute specified at the parse time</title>
+  <link rel="author" title="Raj T" href="mailto:rajendrant@chromium.org">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
+</head>
+
+<!--
+Marked as tentative until https://github.com/whatwg/html/pull/3752 is landed.
+-->
+
+<script>
+  const crossorigin_img = new ElementLoadPromise("crossorigin_img");
+
+  // Set the crossorigin and scroll down to load the deferred image.
+  window.addEventListener("load", () => {
+    crossorigin_img.element().crossOrigin = 'anonymous';
+    crossorigin_img.element().scrollIntoView();
+  });
+
+  async_test(function(t) {
+    crossorigin_img.promise.then(t.step_func_done(() => {
+      // The image originally did not had crossOrigin property set, so CORS will
+      // not be involved in fetching that. So drawing the image in a canvas will
+      // make it tainted. Verify that the image did not load with CORS headers
+      // due to the updated crossOrigin property.
+      const img_element = crossorigin_img.element();
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.width = img_element.width;
+      canvas.height = img_element.height;
+      context.drawImage(img_element, 0, 0);
+      assert_throws('SecurityError', () => canvas.toDataURL());
+    })
+  ).catch(t.unreached_func("The image load should not fail, trying to load with CORS headers set."));
+  }, "Test that when deferred image is loaded, it uses the crossorigin attribute specified at parse time.");
+</script>
+
+<body>
+  <div style="height:10000px;"></div>
+  <img id="crossorigin_img" loading="lazy"
+       src='http://{{hosts[alt][www]}}:{{ports[http][0]}}/loading/lazyload/resources/image.png'
+       onload="crossorigin_img.resolve();" onerror="crossorigin_img.reject();">
+</body>

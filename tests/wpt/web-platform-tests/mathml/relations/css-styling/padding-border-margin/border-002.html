@@ -8,7 +8,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/mathml/support/mathml-fragments.js"></script>
-<script src="helper.js"></script>
+<script src="/mathml/support/box-comparison.js"></script>
 <script>
   var epsilon = 1;
 
@@ -22,12 +22,13 @@
             continue;
 
         var style = "border-left: 30px solid; border-right: 40px solid; border-top: 50px solid; border-bottom: 60px solid;";
+        var styleRTL = `direction: rtl; ${style}`;
 
         if (FragmentHelper.isEmpty(tag)) {
             test(function() {
                 var s = compareSizeWithAndWithoutStyle(tag, style);
-                assert_approx_equals(s.width_delta, 30 + 40, epsilon, "left/right border");
-                assert_approx_equals(s.height_delta, 50 + 60, epsilon, "top/bottom border");
+                assert_approx_equals(s.element_width_delta, 30 + 40, epsilon, "left/right border");
+                assert_approx_equals(s.element_height_delta, 50 + 60, epsilon, "top/bottom border");
             }, `Border properties on ${tag}`);
             continue;
         }
@@ -38,7 +39,19 @@
             assert_approx_equals(s.right_delta, 40, epsilon, "right border");
             assert_approx_equals(s.top_delta, 50, epsilon, "top border");
             assert_approx_equals(s.bottom_delta, 60, epsilon, "bottom border");
+            assert_approx_equals(s.element_width_delta, 30 + 40, epsilon, "element width");
+            assert_approx_equals(s.element_height_delta, 50 + 60, epsilon, "element height");
         }, `Border properties on ${tag}`);
+
+        test(function() {
+            var s = compareSpaceWithAndWithoutStyle(tag, styleRTL);
+            assert_approx_equals(s.left_delta, 30, epsilon, "left border");
+            assert_approx_equals(s.right_delta, 40, epsilon, "right border");
+            assert_approx_equals(s.top_delta, 50, epsilon, "top border");
+            assert_approx_equals(s.bottom_delta, 60, epsilon, "bottom border");
+            assert_approx_equals(s.element_width_delta, 30 + 40, epsilon, "element width");
+            assert_approx_equals(s.element_height_delta, 50 + 60, epsilon, "element height");
+        }, `Border properties on ${tag} (rtl)`);
     }
 
     done();

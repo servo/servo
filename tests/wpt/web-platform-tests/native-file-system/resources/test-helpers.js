@@ -84,6 +84,7 @@ async function createFileWithContents(test, name, contents, parent) {
     const handle = await createEmptyFile(test, name, parent);
     const writer = await handle.createWriter();
     await writer.write(0, new Blob([contents]));
+    await writer.close();
     return handle;
 }
 

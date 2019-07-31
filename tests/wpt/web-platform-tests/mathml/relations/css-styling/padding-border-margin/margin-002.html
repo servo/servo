@@ -8,7 +8,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/mathml/support/mathml-fragments.js"></script>
-<script src="helper.js"></script>
+<script src="/mathml/support/box-comparison.js"></script>
 <script>
   var epsilon = 1;
 
@@ -22,12 +22,15 @@
             continue;
 
         var style = "margin-left: 30px; margin-right: 40px;  margin-top: 50px; margin-bottom: 60px;";
+        var styleRTL = `direction: rtl; ${style}`;
 
         if (FragmentHelper.isEmpty(tag)) {
             test(function() {
                 var s = compareSizeWithAndWithoutStyle(tag, style);
                 assert_approx_equals(s.width_delta, 30 + 40, epsilon, "left/right margin");
                 assert_approx_equals(s.height_delta, 50 + 60, epsilon, "top/bottom margin");
+                assert_approx_equals(s.element_width_delta, 0, epsilon, "element width");
+                assert_approx_equals(s.element_height_delta, 0, epsilon, "element height");
             }, `Margin properties on ${tag}`);
             continue;
         }
@@ -38,7 +41,31 @@
             assert_approx_equals(s.right_delta, 40, epsilon, "right margin");
             assert_approx_equals(s.top_delta, 50, epsilon, "top margin");
             assert_approx_equals(s.bottom_delta, 60, epsilon, "bottom margin");
+            assert_approx_equals(s.element_width_delta, 0, epsilon, "element width");
+            assert_approx_equals(s.element_height_delta, 0, epsilon, "element height");
         }, `Margin properties on ${tag}`);
+
+        test(function() {
+            var s = compareSpaceWithAndWithoutStyle(tag, styleRTL);
+            assert_approx_equals(s.left_delta, 30, epsilon, "left margin");
+            assert_approx_equals(s.right_delta, 40, epsilon, "right margin");
+            assert_approx_equals(s.top_delta, 50, epsilon, "top margin");
+            assert_approx_equals(s.bottom_delta, 60, epsilon, "bottom margin");
+            assert_approx_equals(s.element_width_delta, 0, epsilon, "element width");
+            assert_approx_equals(s.element_height_delta, 0, epsilon, "element height");
+        }, `Margin properties on ${tag} (rtl)`);
+
+        test(function() {
+            // Apply the same margin style on the parent mrow.
+            // The margins are not collapsed so they should be added twice.
+            var s = compareSpaceWithAndWithoutStyle(tag, style, style);
+            assert_approx_equals(s.left_delta, 30 * 2, epsilon, "left margin");
+            assert_approx_equals(s.right_delta, 40 * 2, epsilon, "right margin");
+            assert_approx_equals(s.top_delta, 50 * 2, epsilon, "top margin");
+            assert_approx_equals(s.bottom_delta, 60 * 2, epsilon, "bottom margin");
+            assert_approx_equals(s.element_width_delta, 0, epsilon, "element width");
+            assert_approx_equals(s.element_height_delta, 0, epsilon, "element height");
+        }, `Margin properties on ${tag} (no margin-collapsing)`);
     }
 
     done();

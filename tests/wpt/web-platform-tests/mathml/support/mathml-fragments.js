@@ -55,18 +55,18 @@ var MathMLFragments = {
     "msqrt": "<msqrt class='element mathml-container'></msqrt>",
     "mstyle": "<mstyle class='element mathml-container'></mstyle>",
     "msub": "\
-<msub class='element mathml-container'>\
+<msub class='element'>\
   <mrow class='mathml-container'></mrow>\
   <mrow class='mathml-container'></mrow>\
 </msub>",
     "msubsup": "\
-<msubsup class='element mathml-container'>\
+<msubsup class='element'>\
   <mrow class='mathml-container'></mrow>\
   <mrow class='mathml-container'></mrow>\
   <mrow class='mathml-container'></mrow>\
 </msubsup>",
     "msup": "\
-<msup class='element mathml-container'>\
+<msup class='element'>\
   <mrow class='mathml-container'></mrow>\
   <mrow class='mathml-container'></mrow>\
 </msup>",

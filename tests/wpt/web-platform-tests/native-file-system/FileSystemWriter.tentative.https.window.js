@@ -136,3 +136,156 @@ promise_test(async t => {
     assert_equals(await getFileContents(handle), 'abc\0\0');
     assert_equals(await getFileSize(handle), 5);
 }, 'truncate() to grow a file');
+
+promise_test(async t => {
+  const root = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
+  const dir = await createDirectory(t, 'parent_dir', root);
+  const file_name = 'create_writer_fails_when_dir_removed.txt';
+  const handle = await createEmptyFile(t, file_name, dir);
+
+  await root.removeEntry('parent_dir', {recursive: true});
+  await promise_rejects(t, 'NotFoundError', handle.createWriter());
+}, 'createWriter() fails when parent directory is removed');
+
+promise_test(async t => {
+  const root = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
+  const dir = await createDirectory(t, 'parent_dir', root);
+  const file_name = 'write_fails_when_dir_removed.txt';
+  const handle = await createEmptyFile(t, file_name, dir);
+  const writer = await handle.createWriter();
+
+  await root.removeEntry('parent_dir', {recursive: true});
+  await promise_rejects(t, 'NotFoundError', writer.write(0, new Blob(['foo'])));
+}, 'write() fails when parent directory is removed');
+
+promise_test(async t => {
+  const root = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
+  const dir = await createDirectory(t, 'parent_dir', root);
+  const file_name = 'truncate_fails_when_dir_removed.txt';
+  const handle = await createEmptyFile(t, file_name, dir);
+  const writer = await handle.createWriter();
+
+  await root.removeEntry('parent_dir', {recursive: true});
+  await promise_rejects(t, 'NotFoundError', writer.truncate(0));
+}, 'truncate() fails when parent directory is removed');
+
+promise_test(async t => {
+  const root = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
+  const dir = await createDirectory(t, 'parent_dir', root);
+  const file_name = 'close_fails_when_dir_removed.txt';
+  const handle = await createEmptyFile(t, file_name, dir);
+  const writer = await handle.createWriter();
+  await writer.write(0, new Blob(['foo']));
+
+  await root.removeEntry('parent_dir', {recursive: true});
+  await promise_rejects(t, 'NotFoundError', writer.close());
+}, 'atomic writes: close() fails when parent directory is removed');
+
+promise_test(async t => {
+  const handle = await createEmptyFile(t, 'atomic_writes.txt');
+  const writer = await handle.createWriter();
+  await writer.write(0, new Blob(['foox']));
+
+  const writer2 = await handle.createWriter();
+  await writer2.write(0, new Blob(['bar']));
+
+  assert_equals(await getFileSize(handle), 0);
+
+  await writer2.close();
+  assert_equals(await getFileContents(handle), 'bar');
+  assert_equals(await getFileSize(handle), 3);
+
+  await writer.close();
+  assert_equals(await getFileContents(handle), 'foox');
+  assert_equals(await getFileSize(handle), 4);
+}, 'atomic writes: writers make atomic changes on close');
+
+promise_test(async t => {
+  const handle = await createEmptyFile(t, 'atomic_write_after_close.txt');
+  const writer = await handle.createWriter();
+  await writer.write(0, new Blob(['foo']));
+
+  await writer.close();
+  assert_equals(await getFileContents(handle), 'foo');
+  assert_equals(await getFileSize(handle), 3);
+
+  await promise_rejects(t, 'InvalidStateError', writer.write(0, new Blob(['abc'])));
+}, 'atomic writes: write() after close() fails');
+
+promise_test(async t => {
+  const handle = await createEmptyFile(t, 'atomic_truncate_after_close.txt');
+  const writer = await handle.createWriter();
+  await writer.write(0, new Blob(['foo']));
+
+  await writer.close();
+  assert_equals(await getFileContents(handle), 'foo');
+  assert_equals(await getFileSize(handle), 3);
+
+  await promise_rejects(t, 'InvalidStateError', writer.truncate(0));
+}, 'atomic writes: truncate() after close() fails');
+
+promise_test(async t => {
+  const handle = await createEmptyFile(t, 'atomic_close_after_close.txt');
+  const writer = await handle.createWriter();
+  await writer.write(0, new Blob(['foo']));
+
+  await writer.close();
+  assert_equals(await getFileContents(handle), 'foo');
+  assert_equals(await getFileSize(handle), 3);
+
+  await promise_rejects(t, 'InvalidStateError', writer.close());
+}, 'atomic writes: close() after close() fails');
+
+promise_test(async t => {
+  const handle = await createEmptyFile(t, 'there_can_be_only_one.txt');
+  const writer = await handle.createWriter();
+  await writer.write(0, new Blob(['foo']));
+
+  // This test might be flaky if there is a race condition allowing
+  // close() to be called multiple times.
+  let success_promises = [...Array(100)].map(() => writer
+                                             .close()
+                                             .then(() => 1)
+                                             .catch(() => 0));
+  let close_attempts = await Promise.all(success_promises);
+  let success_count = close_attempts.reduce((x,y) => x + y);
+  assert_equals(success_count, 1);
+}, 'atomic writes: only one close() operation may succeed');
+
+promise_test(async t => {
+  const handle = await createFileWithContents(t, 'atomic_file_is_copied.txt', 'fooks');
+  const writer = await handle.createWriter({keepExistingData: true});
+
+  await writer.write(0, new Blob(['bar']));
+  await writer.close();
+  assert_equals(await getFileContents(handle), 'barks');
+  assert_equals(await getFileSize(handle), 5);
+}, 'createWriter({keepExistingData: true}): atomic writer initialized with source contents');
+
+promise_test(async t => {
+  const handle = await createFileWithContents(t, 'atomic_file_is_not_copied.txt', 'very long string');
+  const writer = await handle.createWriter({keepExistingData: false});
+
+  await writer.write(0, new Blob(['bar']));
+  assert_equals(await getFileContents(handle), 'very long string');
+  await writer.close();
+  assert_equals(await getFileContents(handle), 'bar');
+  assert_equals(await getFileSize(handle), 3);
+}, 'createWriter({keepExistingData: false}): atomic writer initialized with empty file');
+
+promise_test(async t => {
+  const root = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
+  const dir = await createDirectory(t, 'parent_dir', root);
+  const file_name = 'atomic_writer_persists_removed.txt';
+  const handle = await createFileWithContents(t, file_name, 'foo', dir);
+
+  const writer = await handle.createWriter();
+  await writer.write(0, new Blob(['bar']));
+
+  await dir.removeEntry(file_name);
+  await promise_rejects(t, 'NotFoundError', getFileContents(handle));
+
+  await writer.close();
+  assert_equals(await getFileContents(handle), 'bar');
+  assert_equals(await getFileSize(handle), 3);
+}, 'atomic writes: writer persists file on close, even if file is removed');

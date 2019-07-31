@@ -15,6 +15,9 @@ def redirect_response(request, response, visited_count):
   ],
   '/* %s */' % str(visited_count))
 
+def not_found_response():
+  return 404, [('Content-Type', 'text/plain')], "Page not found"
+
 def ok_response(request, response, visited_count,
                 extra_body='', mime_type='application/javascript'):
   # |visited_count| is used as a unique id to differentiate responses
@@ -45,10 +48,13 @@ def main(request, response):
       return ok_response(request, response, visited_count)
     if mode == 'bad_mime_type':
       return ok_response(request, response, visited_count, mime_type='text/html')
+    if mode == 'not_found':
+      return not_found_response()
     if mode == 'redirect':
       return redirect_response(request, response, visited_count)
     if mode == 'syntax_error':
       return ok_response(request, response, visited_count, extra_body='badsyntax(isbad;')
     if mode == 'throw_install':
       return ok_response(request, response, visited_count, extra_body="addEventListener('install', function(e) { throw new Error('boom'); });")
+
   return ok_response(request, response, visited_count)

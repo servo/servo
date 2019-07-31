@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Test elementFromPoint for list-item</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+ul.inside {
+  list-style-position: inside;
+}
+</style>
+<body>
+  <ul>
+    <li>Outside 1</li>
+    <li>Outside 2</li>
+    <li>Outside 3</li>
+  </ul>
+  <ul class="inside">
+    <li>Inside 1</li>
+    <li>Inside 2</li>
+    <li>Inside 3</li>
+  </ul>
+<script>
+for (let li of document.getElementsByTagName('li')) {
+  test(() => {
+    let bounds = li.getBoundingClientRect();
+    let target = document.elementFromPoint(bounds.x + 1, bounds.y + 1);
+    assert_equals(target, li);
+  }, `<li>${li.textContent}</li>`);
+}
+</script>
+</body>

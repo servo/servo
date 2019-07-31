@@ -116,8 +116,8 @@ interface AudioBuffer {
   readonly attribute double duration;
   readonly attribute unsigned long numberOfChannels;
   Float32Array getChannelData (unsigned long channel);
-  void copyFromChannel (Float32Array destination, unsigned long channelNumber, optional unsigned long startInChannel = 0);
-  void copyToChannel (Float32Array source, unsigned long channelNumber, optional unsigned long startInChannel = 0);
+  void copyFromChannel (Float32Array destination, unsigned long channelNumber, optional unsigned long bufferOffset = 0);
+  void copyToChannel (Float32Array source, unsigned long channelNumber, optional unsigned long bufferOffset = 0);
 };
 
 dictionary AudioBufferOptions {
@@ -581,7 +581,7 @@ dictionary AudioWorkletNodeOptions : AudioNodeOptions {
   unsigned long numberOfOutputs = 1;
   sequence<unsigned long> outputChannelCount;
   record<DOMString, double> parameterData;
-  object? processorOptions = null;
+  object processorOptions;
 };
 
 [Exposed=AudioWorklet,

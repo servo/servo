@@ -8,16 +8,6 @@ partial namespace CSS {
     [SameObject] readonly attribute Worklet animationWorklet;
 };
 
-[Exposed=AnimationWorklet, Global=AnimationWorklet, Constructor (optional any options)]
-interface StatelessAnimator {
-};
-
-[Exposed=AnimationWorklet, Global=AnimationWorklet,
-Constructor (optional any options, optional any state)]
-interface StatefulAnimator {
-  any state();
-};
-
 [ Global=(Worklet,AnimationWorklet), Exposed=AnimationWorklet ]
 interface AnimationWorkletGlobalScope : WorkletGlobalScope {
     void registerAnimator(DOMString name, AnimatorInstanceConstructor animatorCtor);

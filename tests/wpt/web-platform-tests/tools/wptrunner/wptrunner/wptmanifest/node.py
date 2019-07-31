@@ -58,7 +58,8 @@ class DataNode(Node):
             while index > 0 and isinstance(self.children[index - 1], DataNode):
                 index -= 1
             for i in xrange(index):
-                assert other.data != self.children[i].data
+                if other.data == self.children[i].data:
+                    raise ValueError("Duplicate key %s" % self.children[i].data)
             self.children.insert(index, other)
 
 

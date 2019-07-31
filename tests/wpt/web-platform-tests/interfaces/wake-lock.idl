@@ -9,10 +9,10 @@ dictionary WakeLockPermissionDescriptor : PermissionDescriptor {
 
 enum WakeLockType { "screen", "system" };
 
-[SecureContext, Exposed=(DedicatedWorker,Window)]
+[SecureContext, Exposed=(DedicatedWorker, Window)]
 interface WakeLock {
   [Exposed=Window] static Promise<PermissionState> requestPermission(WakeLockType type);
-  static Promise<void> request(WakeLockType type, optional WakeLockRequestOptions options);
+  static Promise<void> request(WakeLockType type, optional WakeLockRequestOptions options = {});
 };
 
 dictionary WakeLockRequestOptions {

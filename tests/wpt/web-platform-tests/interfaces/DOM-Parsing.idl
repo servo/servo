@@ -17,7 +17,6 @@ enum SupportedType {
 };
 
 [Constructor, Exposed=Window]
-
 interface XMLSerializer {
   DOMString serializeToString(Node root);
 };

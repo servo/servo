@@ -137,7 +137,7 @@
         ;
         should(() => {
           buffer.copyFromChannel(x, 0, -1);
-        }, '5: buffer.copyFromChannel(x, 0, -1)').throw(DOMException, 'IndexSizeError');
+        }, '5: buffer.copyFromChannel(x, 0, -1)').notThrow();
         should(
             () => {
               buffer.copyFromChannel(x, 0, bufferLength);
@@ -192,7 +192,7 @@
             .throw(DOMException, 'IndexSizeError');
         should(() => {
           buffer.copyToChannel(x, 0, -1);
-        }, '4: buffer.copyToChannel(x, 0, -1)').throw(DOMException, 'IndexSizeError');
+        }, '4: buffer.copyToChannel(x, 0, -1)').notThrow();
         should(
             () => {
               buffer.copyToChannel(x, 0, bufferLength);
