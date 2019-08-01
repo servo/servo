@@ -3,8 +3,9 @@
 class ElementLoadPromise {
   constructor(element_id) {
     this.element_id = element_id;
-    this.promise = new Promise(resolve => {
+    this.promise = new Promise((resolve, reject) => {
       this.resolve = resolve
+      this.reject = reject
     });
   }
   element() {

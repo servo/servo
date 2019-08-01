@@ -31,6 +31,10 @@ let testFunction =
   }
 
   assert_not_equals(xrFramebuffer, null);
+
+  // The XR framebuffer is not bound to the GL context by default.
+  assert_not_equals(xrFramebuffer, gl.getParameter(gl.FRAMEBUFFER_BINDING));
+
   assert_greater_than(webglLayer.framebufferWidth, 0);
   assert_greater_than(webglLayer.framebufferHeight, 0);
 

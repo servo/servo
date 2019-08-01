@@ -95,11 +95,11 @@ enum RTCIceConnectionState {
 interface RTCPeerConnection : EventTarget {
   Promise<RTCSessionDescriptionInit> createOffer(optional RTCOfferOptions options);
   Promise<RTCSessionDescriptionInit> createAnswer(optional RTCAnswerOptions options);
-  Promise<void> setLocalDescription(RTCSessionDescriptionInit description);
+  Promise<void> setLocalDescription(optional RTCSessionDescriptionInit description);
   readonly attribute RTCSessionDescription? localDescription;
   readonly attribute RTCSessionDescription? currentLocalDescription;
   readonly attribute RTCSessionDescription? pendingLocalDescription;
-  Promise<void> setRemoteDescription(RTCSessionDescriptionInit description);
+  Promise<void> setRemoteDescription(optional RTCSessionDescriptionInit description);
   readonly attribute RTCSessionDescription? remoteDescription;
   readonly attribute RTCSessionDescription? currentRemoteDescription;
   readonly attribute RTCSessionDescription? pendingRemoteDescription;
@@ -127,12 +127,12 @@ partial interface RTCPeerConnection {
   Promise<void> createOffer(RTCSessionDescriptionCallback successCallback,
                             RTCPeerConnectionErrorCallback failureCallback,
                             optional RTCOfferOptions options);
-  Promise<void> setLocalDescription(RTCSessionDescriptionInit description,
+  Promise<void> setLocalDescription(optional RTCSessionDescriptionInit description,
                                     VoidFunction successCallback,
                                     RTCPeerConnectionErrorCallback failureCallback);
   Promise<void> createAnswer(RTCSessionDescriptionCallback successCallback,
                              RTCPeerConnectionErrorCallback failureCallback);
-  Promise<void> setRemoteDescription(RTCSessionDescriptionInit description,
+  Promise<void> setRemoteDescription(optional RTCSessionDescriptionInit description,
                                      VoidFunction successCallback,
                                      RTCPeerConnectionErrorCallback failureCallback);
   Promise<void> addIceCandidate(RTCIceCandidateInit candidate,
@@ -156,7 +156,7 @@ enum RTCSdpType {
   "rollback"
 };
 
-[Exposed=Window, Constructor(RTCSessionDescriptionInit descriptionInitDict)]
+[Exposed=Window, Constructor(optional RTCSessionDescriptionInit descriptionInitDict)]
 interface RTCSessionDescription {
   readonly attribute RTCSdpType type;
   readonly attribute DOMString sdp;
@@ -164,7 +164,7 @@ interface RTCSessionDescription {
 };
 
 dictionary RTCSessionDescriptionInit {
-  required RTCSdpType type;
+  RTCSdpType type;
   DOMString sdp = "";
 };
 

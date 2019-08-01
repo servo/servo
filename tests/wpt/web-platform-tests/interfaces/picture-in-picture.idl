@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into reffy-reports
 // (https://github.com/tidoust/reffy-reports)
-// Source: Picture-in-Picture (https://wicg.github.io/picture-in-picture/)
+// Source: Picture-in-Picture (https://w3c.github.io/picture-in-picture/)
 
 partial interface HTMLVideoElement {
   [NewObject] Promise<PictureInPictureWindow> requestPictureInPicture();

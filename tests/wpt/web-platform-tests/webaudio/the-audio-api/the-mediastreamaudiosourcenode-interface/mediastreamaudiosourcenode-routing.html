@@ -57,6 +57,8 @@
 
       const twoTrackSource = ac.createMediaStreamSource(twoTrackMediaStream);
       const analyser = ac.createAnalyser();
+      // Don't do smoothing so that the frequency data changes quickly
+      analyser.smoothingTimeConstant = 0;
 
       twoTrackSource.connect(analyser);
 

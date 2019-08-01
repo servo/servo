@@ -75,6 +75,8 @@ let testFunction = function(session, fakeDeviceController, t) {
       "Expect to get a cached_input_source, iteration: " + inputChangeEvents);
     assert_not_equals(cached_input_source.gamepad, null,
       "Expect to have a gamepad, iteration: " + inputChangeEvents);
+    assert_equals(cached_input_source.gamepad.index, -1,
+      "WebXR Gamepad.index must be -1, iteration: " + inputChangeEvents);
     assert_true(cached_input_source.gamepad.connected,
       "Expect the gamepad to be connected, iteration: " + inputChangeEvents);
   }
@@ -84,6 +86,8 @@ let testFunction = function(session, fakeDeviceController, t) {
       "Expect to have a cached_input_source, iteration: " + inputChangeEvents);
     assert_not_equals(cached_input_source.gamepad, null,
       "Expect to have a gamepad on cached_input_source, iteration: " + inputChangeEvents);
+    assert_equals(cached_input_source.gamepad.index, -1,
+      "WebXR Gamepad.index must be -1, iteration: " + inputChangeEvents);
     assert_false(cached_input_source.gamepad.connected,
       "Expect cached gamepad to be disconnected, iteration: " + inputChangeEvents);
   }

@@ -13,6 +13,7 @@ Marked as tentative until https://github.com/whatwg/html/pull/3752 is landed.
 
 <script>
   const below_viewport_iframe = new ElementLoadPromise("below_viewport_iframe");
+  const below_viewport_img = new ElementLoadPromise("below_viewport_img");
 
   // Change the base URL and scroll down to load the deferred elements.
   window.addEventListener("load", () => {
@@ -26,6 +27,15 @@ Marked as tentative until https://github.com/whatwg/html/pull/3752 is landed.
         assert_true(below_viewport_iframe.element().contentDocument.body.innerHTML.includes("<p>Subframe</p>"));
       }));
   }, "Test that when deferred iframe is loaded, it uses the base URL computed at parse time.");
+
+  async_test(function(t) {
+    below_viewport_img.promise.then(
+      t.step_func_done(function() {
+        assert_true(below_viewport_img.element().complete);
+        assert_greater_than(below_viewport_img.element().naturalWidth, 0);
+      })
+    ).catch(t.unreached_func("The image load should not fail, trying to load with invalid base URL."));
+  }, "Test that when deferred img is loaded, it uses the base URL computed at parse time.");
 </script>
 
 <body>
@@ -37,4 +47,6 @@ Marked as tentative until https://github.com/whatwg/html/pull/3752 is landed.
   </script>
   <iframe id="below_viewport_iframe" src="subframe.html" loading="lazy" width="200px" height="100px" onload="below_viewport_iframe.resolve();">
   </iframe>
+  <img id="below_viewport_img" src="image.png" loading="lazy" onload="below_viewport_img.resolve();"
+       onerror="below_viewport_img.reject();">
 </body>

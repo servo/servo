@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  html
+    {
+      writing-mode: sideways-lr;div
+    }
+
+  img
+    {
+      vertical-align: bottom;
+    }
+
+  div
+    {
+      margin-left: 1em;
+      margin-bottom: -8px;
+    }
+  </style>
+
+  <img src="support/swatch-teal.png" width="100" height="100" alt="Image download support must be enabled">
+  <p><img src="support/wm-propagation-body-035-exp-res.png" width="322" height="38" alt="Image download support must be enabled"></p>
+
+  <!--
+  The image says:
+  Test passes if there is a teal square in
+  the <strong>lower-left corner</strong> of the page.
+  -->
+
+  <div>This text must be written sideways: vertically, with letters rotated 90 degrees.</div>

@@ -520,11 +520,18 @@ class Parser(object):
         self.expr_builders = []
 
     def parse(self, input):
-        self.reset()
-        self.token_generator = self.tokenizer.tokenize(input)
-        self.consume()
-        self.manifest()
-        return self.tree.node
+        try:
+            self.reset()
+            self.token_generator = self.tokenizer.tokenize(input)
+            self.consume()
+            self.manifest()
+            return self.tree.node
+        except Exception as e:
+            if not isinstance(e, ParseError):
+                raise ParseError(self.tokenizer.filename,
+                                 self.tokenizer.line_number,
+                                 str(e))
+            raise
 
     def consume(self):
         self.token = self.token_generator.next()

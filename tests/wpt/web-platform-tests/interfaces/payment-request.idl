@@ -3,7 +3,7 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Payment Request API (https://w3c.github.io/payment-request/)
 
-[Constructor(sequence<PaymentMethodData> methodData, PaymentDetailsInit details, optional PaymentOptions options),
+[Constructor(sequence<PaymentMethodData> methodData, PaymentDetailsInit details, optional PaymentOptions options = {}),
 SecureContext, Exposed=Window]
 interface PaymentRequest : EventTarget {
   [NewObject]
@@ -138,7 +138,7 @@ enum PaymentComplete {
 };
 
 [SecureContext, Exposed=Window]
-interface PaymentResponse : EventTarget {
+interface PaymentResponse : EventTarget  {
   [Default] object toJSON();
 
   readonly attribute DOMString requestId;
@@ -153,7 +153,7 @@ interface PaymentResponse : EventTarget {
   [NewObject]
   Promise<void> complete(optional PaymentComplete result = "unknown");
   [NewObject]
-  Promise<void> retry(optional PaymentValidationErrors errorFields);
+  Promise<void> retry(optional PaymentValidationErrors errorFields = {});
 
   attribute EventHandler onpayerdetailchange;
 };
@@ -171,7 +171,7 @@ dictionary PayerErrors {
   DOMString phone;
 };
 
-[Constructor(DOMString type, optional MerchantValidationEventInit eventInitDict),
+[Constructor(DOMString type, optional MerchantValidationEventInit eventInitDict = {}),
 SecureContext, Exposed=Window]
 interface MerchantValidationEvent : Event {
   readonly attribute DOMString methodName;
@@ -184,7 +184,7 @@ dictionary MerchantValidationEventInit : EventInit {
   USVString validationURL = "";
 };
 
-[Constructor(DOMString type, optional PaymentMethodChangeEventInit eventInitDict), SecureContext, Exposed=Window]
+[Constructor(DOMString type, optional PaymentMethodChangeEventInit eventInitDict = {}), SecureContext, Exposed=Window]
 interface PaymentMethodChangeEvent : PaymentRequestUpdateEvent {
   readonly attribute DOMString methodName;
   readonly attribute object? methodDetails;
@@ -195,7 +195,7 @@ dictionary PaymentMethodChangeEventInit : PaymentRequestUpdateEventInit {
   object? methodDetails = null;
 };
 
-[Constructor(DOMString type, optional PaymentRequestUpdateEventInit eventInitDict), SecureContext, Exposed=Window]
+[Constructor(DOMString type, optional PaymentRequestUpdateEventInit eventInitDict = {}), SecureContext, Exposed=Window]
 interface PaymentRequestUpdateEvent : Event {
   void updateWith(Promise<PaymentDetailsUpdate> detailsPromise);
 };

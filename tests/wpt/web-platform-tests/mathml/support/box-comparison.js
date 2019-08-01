@@ -15,31 +15,36 @@ function measureSpaceAround(id) {
     return spaceBetween(childBox, parentBox);
 }
 
-function compareSpaceWithAndWithoutStyle(tag, style) {
+function compareSpaceWithAndWithoutStyle(tag, style, parentStyle) {
     if (!FragmentHelper.isValidChildOfMrow(tag) ||
         FragmentHelper.isEmpty(tag))
         throw `Invalid argument: ${tag}`;
 
     document.body.insertAdjacentHTML("beforeend", `<div>\
-<math>${MathMLFragments[tag]}</math>\
-<math>${MathMLFragments[tag]}</math>\
+<math><mrow>${MathMLFragments[tag]}</mrow></math>\
+<math><mrow>${MathMLFragments[tag]}</mrow></math>\
 </div>`);
     var div = document.body.lastElementChild;
 
     var styleMath = div.firstElementChild;
+    var styleParent = styleMath.firstElementChild;
+    if (parentStyle)
+        styleParent.setAttribute("style", parentStyle);
     var styleElement = FragmentHelper.element(styleMath);
     styleElement.setAttribute("style", style);
     var styleChild = FragmentHelper.forceNonEmptyElement(styleElement);
-    var styleBox = styleMath.getBoundingClientRect();
+    var styleMathBox = styleMath.getBoundingClientRect();
+    var styleElementBox = styleElement.getBoundingClientRect();
     var styleChildBox = styleChild.getBoundingClientRect();
-    var styleSpace = spaceBetween(styleChildBox, styleBox);
+    var styleSpace = spaceBetween(styleChildBox, styleMathBox);
 
     var noStyleMath = div.lastElementChild;
     var noStyleElement = FragmentHelper.element(noStyleMath);
     var noStyleChild = FragmentHelper.forceNonEmptyElement(noStyleElement);
-    var noStyleBox = noStyleMath.getBoundingClientRect();
+    var noStyleMathBox = noStyleMath.getBoundingClientRect();
+    var noStyleElementBox = noStyleElement.getBoundingClientRect();
     var noStyleChildBox = noStyleChild.getBoundingClientRect();
-    var noStyleSpace = spaceBetween(noStyleChildBox, noStyleBox);
+    var noStyleSpace = spaceBetween(noStyleChildBox, noStyleMathBox);
 
     div.style = "display: none;"; // Hide the div after measurement.
 
@@ -47,7 +52,9 @@ function compareSpaceWithAndWithoutStyle(tag, style) {
         left_delta: styleSpace.left - noStyleSpace.left,
         right_delta: styleSpace.right - noStyleSpace.right,
         top_delta: styleSpace.top - noStyleSpace.top,
-        bottom_delta: styleSpace.bottom - noStyleSpace.bottom
+        bottom_delta: styleSpace.bottom - noStyleSpace.bottom,
+        element_width_delta: styleElementBox.width - noStyleElementBox.width,
+        element_height_delta: styleElementBox.height - noStyleElementBox.height
     };
 }
 
@@ -64,16 +71,20 @@ function compareSizeWithAndWithoutStyle(tag, style) {
     var styleMath = div.firstElementChild;
     var styleElement = FragmentHelper.element(styleMath);
     styleElement.setAttribute("style", style);
-    var styleBox = styleMath.getBoundingClientRect();
+    var styleMathBox = styleMath.getBoundingClientRect();
+    var styleElementBox = styleElement.getBoundingClientRect();
 
     var noStyleMath = div.lastElementChild;
     var noStyleElement = FragmentHelper.element(noStyleMath);
-    var noStyleBox = noStyleMath.getBoundingClientRect();
+    var noStyleMathBox = noStyleMath.getBoundingClientRect();
+    var noStyleElementBox = noStyleElement.getBoundingClientRect();
 
     div.style = "display: none;"; // Hide the div after measurement.
 
     return {
-        width_delta: styleBox.width - noStyleBox.width,
-        height_delta: styleBox.height - noStyleBox.height
+        width_delta: styleMathBox.width - noStyleMathBox.width,
+        height_delta: styleMathBox.height - noStyleMathBox.height,
+        element_width_delta: styleElementBox.width - noStyleElementBox.width,
+        element_height_delta: styleElementBox.height - noStyleElementBox.height
     };
 };

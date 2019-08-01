@@ -74,6 +74,7 @@ function xr_session_promise_test(
                               let glLayer = new XRWebGLLayer(session, gl, {
                                 compositionDisabled: session.mode == 'inline'
                               });
+                              glLayer.context = gl;
                               // Session must have a baseLayer or frame requests
                               // will be ignored.
                               session.updateRenderState({
@@ -113,7 +114,6 @@ function forEachWebxrObject(callback) {
   callback(window.XRView, 'XRView');
   callback(window.XRViewport, 'XRViewport');
   callback(window.XRViewerPose, 'XRViewerPose');
-  callback(window.XRLayer, 'XRLayer');
   callback(window.XRWebGLLayer, 'XRWebGLLayer');
   callback(window.XRWebGLLayerInit, 'XRWebGLLayerInit');
   callback(window.XRCoordinateSystem, 'XRCoordinateSystem');
@@ -138,8 +138,8 @@ let loadChromiumResources = Promise.resolve().then(() => {
     '/gen/gpu/ipc/common/sync_token.mojom.js',
     '/gen/ui/display/mojom/display.mojom.js',
     '/gen/ui/gfx/geometry/mojom/geometry.mojom.js',
-    '/gen/ui/gfx/mojo/gpu_fence_handle.mojom.js',
-    '/gen/ui/gfx/mojo/transform.mojom.js',
+    '/gen/ui/gfx/mojom/gpu_fence_handle.mojom.js',
+    '/gen/ui/gfx/mojom/transform.mojom.js',
     '/gen/device/vr/public/mojom/vr_service.mojom.js',
     '/resources/chromium/webxr-test.js',
     '/resources/testdriver.js',

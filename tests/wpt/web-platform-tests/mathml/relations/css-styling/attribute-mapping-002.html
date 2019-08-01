@@ -22,9 +22,13 @@
           var style = window.getComputedStyle(element);
 
           test(function() {
-              assert_equals(style.getPropertyValue("text-transform"), "none", "no attribute");
+              assert_equals(style.getPropertyValue("text-transform"),
+                            tag === "mi" ? "math-auto" : "none",
+                            "no attribute");
               element.setAttribute("mathvariant", "fraktur");
               assert_equals(style.getPropertyValue("text-transform"), "math-fraktur", "attribute specified");
+              element.setAttribute("mathvariant", "DoUbLe-StRuCk");
+              assert_equals(style.getPropertyValue("text-transform"), "math-double-struck", "case insensitive");
           }, `mathvariant on the ${tag} element is mapped to CSS text-transform`)
 
           test(function() {
@@ -37,6 +41,8 @@
               assert_equals(style.getPropertyValue("math-style"), "inline", "no attribute");
               element.setAttribute("displaystyle", "true");
               assert_equals(style.getPropertyValue("math-style"), "display", "attribute specified");
+              element.setAttribute("displaystyle", "TrUe");
+              assert_equals(style.getPropertyValue("math-style"), "display", "case insensitive");
           }, `displaystyle on the ${tag} element is mapped to CSS math-style`);
       });
 

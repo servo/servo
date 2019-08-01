@@ -65,26 +65,26 @@ dictionary RTCReceivedRtpStreamStats : RTCRtpStreamStats {
 };
 
 dictionary RTCInboundRtpStreamStats : RTCReceivedRtpStreamStats {
-             DOMString trackId;
-             DOMString receiverId;
-             DOMString remoteId;
-             unsigned long framesDecoded;
-             unsigned long keyFramesDecoded;
-             unsigned long long qpSum;
-             double totalDecodeTime;
-             DOMHighResTimeStamp lastPacketReceivedTimestamp;
-             double averageRtcpInterval;
-             unsigned long fecPacketsReceived;
-             unsigned long fecPacketsDiscarded;
-             unsigned long long bytesReceived;
-             unsigned long packetsFailedDecryption;
-             unsigned long packetsDuplicated;
-             record<USVString, unsigned long> perDscpPacketsReceived;
-             unsigned long nackCount;
-             unsigned long firCount;
-             unsigned long pliCount;
-             unsigned long sliCount;
-            };
+ DOMString trackId;
+ DOMString receiverId;
+ DOMString remoteId;
+ unsigned long framesDecoded;
+ unsigned long keyFramesDecoded;
+ unsigned long long qpSum;
+ double totalDecodeTime;
+ DOMHighResTimeStamp lastPacketReceivedTimestamp;
+ double averageRtcpInterval;
+ unsigned long fecPacketsReceived;
+ unsigned long fecPacketsDiscarded;
+ unsigned long long bytesReceived;
+ unsigned long packetsFailedDecryption;
+ unsigned long packetsDuplicated;
+ record<USVString, unsigned long> perDscpPacketsReceived;
+ unsigned long nackCount;
+ unsigned long firCount;
+ unsigned long pliCount;
+ unsigned long sliCount;
+};
 
 dictionary RTCRemoteInboundRtpStreamStats : RTCReceivedRtpStreamStats {
              DOMString localId;
@@ -126,11 +126,11 @@ dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
 };
 
 enum RTCQualityLimitationReason {
-            "none",
-            "cpu",
-            "bandwidth",
-            "other",
-          };
+  "none",
+  "cpu",
+  "bandwidth",
+  "other",
+};
 
 dictionary RTCRemoteOutboundRtpStreamStats : RTCSentRtpStreamStats {
              DOMString localId;
@@ -277,7 +277,6 @@ dictionary RTCIceCandidateStats : RTCStats {
              long priority;
              DOMString url;
              DOMString relayProtocol;
-             boolean deleted = false;
 };
 
 enum RTCNetworkType {
@@ -336,24 +335,24 @@ dictionary RTCCertificateStats : RTCStats {
 };
 
 dictionary RTCStunServerConnectionStats : RTCStats {
-             DOMString url;
-             long port;
-             DOMString protocol;
-             RTCNetworkType networkType;
-             unsigned long totalRequestsSent;
-             unsigned long totalResponsesReceived;
-             double totalRoundTripTime;
-  };
+           DOMString url;
+           long port;
+           DOMString protocol;
+           RTCNetworkType networkType;
+           unsigned long totalRequestsSent;
+           unsigned long totalResponsesReceived;
+           double totalRoundTripTime;
+};
 
 partial dictionary RTCIceCandidateStats {
-           boolean isRemote;
-        };
+   boolean isRemote;
+};
 
 partial dictionary RTCIceCandidatePairStats {
-          double totalRtt;
-          double currentRtt;
-          unsigned long long priority;
-          };
+double totalRtt;
+double currentRtt;
+unsigned long long priority;
+};
 
 partial dictionary RTCRtpStreamStats {
              DOMString mediaType;

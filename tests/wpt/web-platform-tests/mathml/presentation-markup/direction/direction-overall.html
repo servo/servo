@@ -8,7 +8,6 @@
     <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-top-level-math-element">
     <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#horizontally-group-sub-expressions-mrow">
     <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#style-change-mstyle">
-    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#radicals-msqrt-mroot">
     <meta name="assert" content="Verify dir attribute on various containers.">
     <link rel="match" href="direction-overall-ref.html">
   </head>
@@ -45,20 +44,6 @@
           <mspace width="25px" height="25px" mathbackground="green"/>
           <mspace width="25px" height="25px" mathbackground="blue"/>
         </mstyle>
-      </math>
-    </p>
-
-    <!-- dir="rtl" on <msqrt> should be ignored. The rectangle
-         inside this element should be displayed left-to-right. -->
-
-    <p>
-      msqrt:
-      <math>
-        <msqrt dir="rtl">
-          <mspace width="25px" height="25px" mathbackground="red"/>
-          <mspace width="25px" height="25px" mathbackground="green"/>
-          <mspace width="25px" height="25px" mathbackground="blue"/>
-        </msqrt>
       </math>
     </p>
 

@@ -31,24 +31,44 @@
               assert_equals(style.getPropertyValue("direction"), "ltr", "no attribute");
               element.setAttribute("dir", "rtl");
               assert_equals(style.getPropertyValue("direction"), "rtl", "attribute specified");
+              element.setAttribute("dir", "RtL");
+              assert_equals(style.getPropertyValue("direction"), "rtl", "case insensitive");
           }, `dir on the ${tag} element is mapped to CSS direction`)
 
           test(function() {
-              assert_equals(style.getPropertyValue("color"), "rgb(0, 0, 255)", "no attribute");
+              assert_equals(style.getPropertyValue("color"),
+                            tag === "merror" ?
+                            "rgb(255, 0, 0)" : "rgb(0, 0, 255)",
+                            "no attribute");
               element.setAttribute("mathcolor", "black");
               assert_equals(style.getPropertyValue("color"), "rgb(0, 0, 0)", "attribute specified");
+              // The color names are case-insensitive.
+              // See https://www.w3.org/TR/css-color-3/#html4
+              element.setAttribute("mathcolor", "GrEeN");
+              assert_equals(style.getPropertyValue("color"), "rgb(0, 128, 0)", "case insensitive");
           }, `mathcolor on the ${tag} element is mapped to CSS color`);
 
           test(function() {
-              assert_equals(style.getPropertyValue("background-color"), "rgba(0, 0, 0, 0)", "no attribute");
+              assert_equals(style.getPropertyValue("background-color"),
+                            tag === "merror" ?
+                            "rgb(255, 255, 224)" : "rgba(0, 0, 0, 0)",
+                            "no attribute");
               element.setAttribute("mathbackground", "lightblue");
               assert_equals(style.getPropertyValue("background-color"), "rgb(173, 216, 230)", "attribute specified");
+              // The color names are case-insensitive.
+              // See https://www.w3.org/TR/css-color-3/#html4
+              element.setAttribute("mathbackground", "YeLlOw");
+              assert_equals(style.getPropertyValue("background-color"), "rgb(255, 255, 0)", "case insensitive");
           }, `mathbackground on the ${tag} element is mapped to CSS background-color`);
 
           test(function() {
               assert_equals(style.getPropertyValue("font-size"), "50px", "no attribute");
               element.setAttribute("mathsize", "20px");
               assert_equals(style.getPropertyValue("font-size"), "20px", "attribute specified");
+              // unit identifiers are ASCII case-insensitive.
+              // https://www.w3.org/TR/css-values-3/#typedef-dimension
+              element.setAttribute("mathsize", "30Px");
+              assert_equals(style.getPropertyValue("font-size"), "30px", "case insensitive");
           }, `mathsize on the ${tag} element is mapped to CSS font-size`);
       });
 
