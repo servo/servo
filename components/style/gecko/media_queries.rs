@@ -213,11 +213,11 @@ impl Device {
             None => return MediaType::screen(),
         };
 
-        // Gecko allows emulating random media with mMediaEmulated.
-        let medium_to_use = if !pc.mMediaEmulated.mRawPtr.is_null() {
-            pc.mMediaEmulated.mRawPtr
+        // Gecko allows emulating random media with mMediaEmulationData.mMedium.
+        let medium_to_use = if !pc.mMediaEmulationData.mMedium.mRawPtr.is_null() {
+            pc.mMediaEmulationData.mMedium.mRawPtr
         } else {
-            pc.mMedium as *const bindings::nsAtom as *mut _
+            pc.mMedium as *const structs::nsAtom as *mut _
         };
 
         MediaType(CustomIdent(unsafe { Atom::from_raw(medium_to_use) }))
@@ -252,9 +252,8 @@ impl Device {
             None => return Scale::new(1.),
         };
 
-        let override_dppx = pc.mOverrideDPPX;
-        if override_dppx > 0.0 {
-            return Scale::new(override_dppx);
+        if pc.mMediaEmulationData.mDPPX > 0.0 {
+            return Scale::new(pc.mMediaEmulationData.mDPPX);
         }
 
         let au_per_dpx = pc.mCurAppUnitsPerDevPixel as f32;
