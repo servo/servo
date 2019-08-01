@@ -288,7 +288,7 @@ impl<'a> StylesheetLoader<'a> {
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         }));
 
-        let (action_sender, action_receiver) = ipc::channel().unwrap();
+        let (action_sender, action_receiver) = ipc::channel().expect("StylesheetLoader chan");
         let (task_source, canceller) = document
             .window()
             .task_manager()
