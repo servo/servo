@@ -218,6 +218,7 @@ impl HTMLIFrameElement {
                     old_pipeline_id: old_pipeline_id,
                     sandbox: sandboxed,
                 };
+                println!("ScriptMsg::ScriptLoadedURLInIFrame");
                 global_scope
                     .script_to_constellation_chan()
                     .send(ScriptMsg::ScriptLoadedURLInIFrame(load_info))

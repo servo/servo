@@ -2730,7 +2730,7 @@ impl ScriptThread {
 
     /// Handles a request to exit a pipeline and shut down layout.
     fn handle_exit_pipeline_msg(&self, id: PipelineId, discard_bc: DiscardBrowsingContext) {
-        debug!("Exiting pipeline {}.", id);
+        println!("Exiting pipeline {}.", id);
 
         self.closed_pipelines.borrow_mut().insert(id);
 
@@ -2764,10 +2764,10 @@ impl ScriptThread {
         chan.send(message::Msg::PrepareToExit(response_chan)).ok();
         let _ = response_port.recv();
 
-        debug!("shutting down layout for page {}", id);
+        println!("shutting down layout for page {}", id);
         chan.send(message::Msg::ExitNow).ok();
         self.script_sender
-            .send((id, ScriptMsg::PipelineExited))
+            .send((id.clone(), ScriptMsg::PipelineExited))
             .ok();
 
         // Now that layout is shut down, it's OK to remove the document.
@@ -2786,6 +2786,14 @@ impl ScriptThread {
                 window.window_proxy().discard_browsing_context();
             }
             window.clear_js_runtime();
+        }
+
+        let num = self.documents.borrow().iter().count();
+        if num == 0 {
+            println!("Event loop empty");
+            let _ = self
+                .script_sender
+                .send((id.clone(), ScriptMsg::EventLoopEmpty));
         }
 
         debug!("Exited pipeline {}.", id);

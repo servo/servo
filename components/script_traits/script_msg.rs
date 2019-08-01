@@ -209,6 +209,8 @@ pub enum ScriptMsg {
     DiscardTopLevelBrowsingContext,
     /// Notifies the constellation that this pipeline has exited.
     PipelineExited,
+    /// Notifies the constellation an event-loop is not running anymore documents.
+    EventLoopEmpty,
     /// Send messages from postMessage calls from serviceworker
     /// to constellation for storing in service worker manager
     ForwardDOMMessage(DOMMessage, ServoUrl),
@@ -226,6 +228,7 @@ impl fmt::Debug for ScriptMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         use self::ScriptMsg::*;
         let variant = match *self {
+            EventLoopEmpty => "EventLoopEmpty",
             ForwardToEmbedder(..) => "ForwardToEmbedder",
             InitiateNavigateRequest(..) => "InitiateNavigateRequest",
             BroadcastStorageEvent(..) => "BroadcastStorageEvent",

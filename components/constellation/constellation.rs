@@ -808,6 +808,58 @@ where
         BrowsingContextGroupId(id)
     }
 
+    fn remove_event_loop(&mut self, pipeline: PipelineId) {
+        let pipeline = match self.pipelines.get(&pipeline) {
+            Some(pipeline) => pipeline,
+            None => return,
+        };
+        let host = match reg_host(&pipeline.url) {
+            Some(host) => host,
+            None => return,
+        };
+        println!("removing event loop");
+        let relevant_top_level = if let Some(opener) = pipeline.opener {
+            match self.browsing_contexts.get(&opener) {
+                Some(opener) => opener.top_level_id,
+                None => {
+                    warn!("Setting event-loop for an unknown auxiliary");
+                    return;
+                },
+            }
+        } else {
+            return;
+        };
+        let maybe_bc_group_id = self
+            .browsing_context_group_set
+            .iter()
+            .filter_map(|(id, bc_group)| {
+                if bc_group
+                    .top_level_browsing_context_set
+                    .contains(&pipeline.top_level_browsing_context_id)
+                {
+                    Some(id.clone())
+                } else {
+                    None
+                }
+            })
+            .last();
+        let bc_group_id = match maybe_bc_group_id {
+            Some(id) => id,
+            None => {
+                warn!("Trying to add an event-loop to an unknown BC group");
+                return;
+            },
+        };
+        if let Some(bc_group) = self.browsing_context_group_set.get_mut(&bc_group_id) {
+            if !bc_group.event_loops.remove(&host).is_some() {
+                warn!(
+                    "Removing an non-existing event-loop for {:?} at {:?}",
+                    host, relevant_top_level
+                );
+            }
+        }
+    }
+
     fn get_event_loop(
         &mut self,
         host: &Host,
@@ -1461,6 +1513,9 @@ where
             FromScriptMsg::ForwardToEmbedder(embedder_msg) => {
                 self.embedder_proxy
                     .send((Some(source_top_ctx_id), embedder_msg));
+            },
+            FromScriptMsg::EventLoopEmpty => {
+                self.remove_event_loop(source_pipeline_id);
             },
             FromScriptMsg::PipelineExited => {
                 self.handle_pipeline_exited(source_pipeline_id);
