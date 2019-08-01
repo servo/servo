@@ -22,6 +22,8 @@ namespace winrt::ServoApp::implementation {
 BrowserPage::BrowserPage() {
   log("BrowserPage::BrowserPage()");
   InitializeComponent();
+  InitializeConditionVariable(&mGLCondVar);
+  InitializeCriticalSection(&mGLLock);
   Loaded(std::bind(&BrowserPage::OnPageLoaded, this, _1, _2));
   Window::Current().CoreWindow().VisibilityChanged(
       std::bind(&BrowserPage::OnVisibilityChanged, this, _1, _2));
@@ -31,15 +33,13 @@ void BrowserPage::Shutdown() {
   log("BrowserPage::Shutdown()");
 
   if (mServo != nullptr) {
-    if (!IsLoopRunning()) {
+    if (!mLooping) {
       // FIXME: this should not happen. In that case, we can't send the
       // shutdown event to Servo.
     } else {
-      HANDLE hEvent = ::CreateEventA(nullptr, FALSE, FALSE, sShutdownEvent);
-      RunOnGLThread([=] {mServo->RequestShutdown();});
-      log("Waiting for Servo to shutdown");
-      ::WaitForSingleObject(hEvent, INFINITE);
-      StopRenderLoop();
+      RunOnGLThread([=] { mServo->RequestShutdown(); });
+      mLoopTask->wait();
+      mLoopTask.reset();
       mServo.reset();
     }
   }
@@ -63,10 +63,10 @@ void BrowserPage::OnVisibilityChanged(CoreWindow const &,
   // stopping the event loop, which we can't recover from yet (see comment in
   // Loop())
 
-  // if (visible && !IsLoopRunning()) {
+  // if (visible && !mLooping) {
   //  StartRenderLoop();
   //}
-  // if (!visible && IsLoopRunning()) {
+  // if (!visible && mLooping) {
   //  StopRenderLoop();
   //}
 }
@@ -92,14 +92,8 @@ void BrowserPage::RecoverFromLostDevice() {
 
 /**** GL THREAD LOOP ****/
 
-bool BrowserPage::IsLoopRunning() {
-  return mLoopTask != nullptr && !mLoopTask->is_done();
-}
-
-void BrowserPage::Loop(cancellation_token cancel) {
+void BrowserPage::Loop() {
   log("BrowserPage::Loop(). GL thread: %i", GetCurrentThreadId());
-
-  HANDLE hEvent = ::CreateEventA(nullptr, FALSE, FALSE, sWakeupEvent);
 
   mOpenGLES.MakeCurrent(mRenderSurface);
 
@@ -118,51 +112,49 @@ void BrowserPage::Loop(cancellation_token cancel) {
     throw winrt::hresult_error(E_FAIL, L"Recovering loop unimplemented");
   }
 
-  // mServo->SetBatchMode(true);
-  // FIXME: ^ this should be necessary as we call perform_update
-  // ourself. But enabling batch mode will make clicking a link
-  // not working because during the click, this thread is not
-  // waiting on the hEvent object. See the "wakeup" comment.
+  mServo->SetBatchMode(true);
 
-  log("Entering loop");
-  while (!cancel.is_canceled()) {
-    // Block until wakeup is called.
-    // Or run full speed if animating (see OnAnimatingChanged),
-    // it will endup blocking on Flush to limit rendering to 60FPS
-    if (!mAnimating) {
-      ::WaitForSingleObject(hEvent, INFINITE);
+  while (true) {
+    EnterCriticalSection(&mGLLock);
+    while (!mPendingWakeup && mTasks.size() == 0 && !mAnimating && mLooping) {
+      SleepConditionVariableCS(&mGLCondVar, &mGLLock, INFINITE);
     }
-    mTasksMutex.lock();
+    if (!mLooping) {
+      LeaveCriticalSection(&mGLLock);
+      break;
+    }
     for (auto &&task : mTasks) {
       task();
     }
     mTasks.clear();
-    mTasksMutex.unlock();
+    mPendingWakeup = false;
+    LeaveCriticalSection(&mGLLock);
     mServo->PerformUpdates();
   }
-  log("Leaving loop");
   mServo->DeInit();
   cancel_current_task();
 } // namespace winrt::ServoApp::implementation
 
 void BrowserPage::StartRenderLoop() {
-  if (IsLoopRunning()) {
+  if (mLooping) {
 #if defined _DEBUG
     throw winrt::hresult_error(E_FAIL, L"GL thread is already looping");
 #else
     return;
 #endif
   }
+  mLooping = true;
   log("BrowserPage::StartRenderLoop(). UI thread: %i", GetCurrentThreadId());
-  auto token = mLoopCancel.get_token();
-  mLoopTask = std::make_unique<Concurrency::task<void>>(
-      Concurrency::create_task([=] { Loop(token); }, token));
+  auto task = Concurrency::create_task([=] { Loop(); });
+  mLoopTask = std::make_unique<Concurrency::task<void>>(task);
 }
 
 void BrowserPage::StopRenderLoop() {
-  if (IsLoopRunning()) {
-    mLoopCancel.cancel();
-    WakeUp();
+  if (mLooping) {
+    EnterCriticalSection(&mGLLock);
+    mLooping = false;
+    LeaveCriticalSection(&mGLLock);
+    WakeConditionVariable(&mGLCondVar);
     mLoopTask->wait();
     mLoopTask.reset();
   }
@@ -192,9 +184,9 @@ void BrowserPage::OnHistoryChanged(bool back, bool forward) {
 }
 
 void BrowserPage::OnShutdownComplete() {
-  log("Servo notified ShutdownComplete");
-  HANDLE hEvent = ::OpenEventA(EVENT_ALL_ACCESS, FALSE, sShutdownEvent);
-  ::SetEvent(hEvent);
+  EnterCriticalSection(&mGLLock);
+  mLooping = false;
+  LeaveCriticalSection(&mGLLock);
 }
 
 void BrowserPage::OnAlert(std::wstring message) {
@@ -225,15 +217,20 @@ void BrowserPage::Flush() {
 void BrowserPage::MakeCurrent() { mOpenGLES.MakeCurrent(mRenderSurface); }
 
 void BrowserPage::WakeUp() {
-  // FIXME: this won't work if it's triggered while the thread is not
-  // waiting. We need a better looping logic.
-  HANDLE hEvent = ::OpenEventA(EVENT_ALL_ACCESS, FALSE, sWakeupEvent);
-  ::SetEvent(hEvent);
+  EnterCriticalSection(&mGLLock);
+  mPendingWakeup = true;
+  LeaveCriticalSection(&mGLLock);
+  WakeConditionVariable(&mGLCondVar);
 }
 
 bool BrowserPage::OnAllowNavigation(std::wstring) { return true; }
 
-void BrowserPage::OnAnimatingChanged(bool animating) { mAnimating = animating; }
+void BrowserPage::OnAnimatingChanged(bool animating) {
+  EnterCriticalSection(&mGLLock);
+  mAnimating = animating;
+  LeaveCriticalSection(&mGLLock);
+  WakeConditionVariable(&mGLCondVar);
+}
 
 template <typename Callable> void BrowserPage::RunOnUIThread(Callable cb) {
   swapChainPanel().Dispatcher().RunAsync(
@@ -300,10 +297,10 @@ void BrowserPage::OnSurfaceClicked(IInspectable const &,
 }
 
 void BrowserPage::RunOnGLThread(std::function<void()> task) {
-  mTasksMutex.lock();
+  EnterCriticalSection(&mGLLock);
   mTasks.push_back(task);
-  mTasksMutex.unlock();
-  WakeUp();
+  LeaveCriticalSection(&mGLLock);
+  WakeConditionVariable(&mGLCondVar);
 }
 
 } // namespace winrt::ServoApp::implementation
