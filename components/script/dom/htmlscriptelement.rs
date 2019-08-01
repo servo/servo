@@ -28,8 +28,8 @@ use crate::dom::node::{BindContext, ChildrenMutation, CloneChildrenFlag, Node};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
-use crate::script_module::{execute_module, fetch_inline_module_script, instantiate_module_tree};
-use crate::script_module::{fetch_module_script_graph, ModuleObject, ModuleOwner};
+use crate::script_module::fetch_inline_module_script;
+use crate::script_module::{fetch_external_module_script, ModuleOwner};
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix};
@@ -550,7 +550,7 @@ impl HTMLScriptElement {
                         }
                     }
 
-                    fetch_module_script_graph(
+                    fetch_external_module_script(
                         ModuleOwner::Window(Trusted::new(self)),
                         url.clone(),
                         Destination::Script,
@@ -757,24 +757,28 @@ impl HTMLScriptElement {
 
         let module_map = global.get_module_map().borrow();
 
-        if let Some(module_record) = module_map.get(&script.url) {
+        if let Some(module_tree) = module_map.get(&script.url) {
             // Step 7-1.
-            if let ModuleObject::Fetched(Some(record)) = module_record {
-                unsafe {
-                    // Step 7-2.
-                    let instantiated = instantiate_module_tree(global, record.handle());
+            let module_error = module_tree.get_error().borrow();
+            if let Some(_exception) = &*module_error {
+                return;
+            }
 
-                    if instantiated.is_err() {
-                        self.queue_error_event();
-                    }
+            let module_record = module_tree.get_record().borrow();
+            if let Some(record) = &*module_record {
+                // Step 7-2.
+                let instantiated = module_tree.instantiate_module_tree(global, record.handle());
 
-                    let evaluated = execute_module(global, record.handle());
+                if instantiated.is_err() {
+                    self.queue_error_event();
+                    return;
+                }
 
-                    if evaluated.is_err() {
-                        let _exception =
-                            DOMException::new(&global, DOMErrorName::QuotaExceededError);
-                        self.queue_error_event();
-                    }
+                let evaluated = module_tree.execute_module(global, record.handle());
+
+                if evaluated.is_err() {
+                    let _exception = DOMException::new(&global, DOMErrorName::QuotaExceededError);
+                    self.queue_error_event();
                 }
             }
         }
