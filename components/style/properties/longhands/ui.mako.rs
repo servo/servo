@@ -80,7 +80,6 @@ ${helpers.predefined_type(
     "Transform",
     "generics::transform::Transform::none()",
     engines="gecko",
-    flags="GETCS_NEEDS_LAYOUT_FLUSH",
     animation_value_type="ComputedValue",
     spec="None (Nonstandard internal property)",
     enabled_in="chrome",
@@ -94,7 +93,6 @@ ${helpers.predefined_type(
     animation_value_type="ComputedValue",
     gecko_ffi_name="mWindowTransformOrigin",
     boxed=True,
-    flags="GETCS_NEEDS_LAYOUT_FLUSH",
     spec="None (Nonstandard internal property)",
     enabled_in="chrome",
 )}

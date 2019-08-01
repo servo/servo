@@ -23,7 +23,6 @@ ${helpers.predefined_type(
     engines="gecko servo-2013 servo-2020",
     servo_2020_pref="layout.2020.unimplemented",
     animation_value_type="LineHeight",
-    flags="GETCS_NEEDS_LAYOUT_FLUSH",
     spec="https://drafts.csswg.org/css2/visudet.html#propdef-line-height",
     servo_restyle_damage="reflow"
 )}

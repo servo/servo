@@ -17,7 +17,6 @@
         engines="gecko servo-2013 servo-2020",
         servo_2020_pref="layout.2020.unimplemented",
         spec="https://www.w3.org/TR/CSS2/visuren.html#propdef-%s" % side,
-        flags="GETCS_NEEDS_LAYOUT_FLUSH",
         animation_value_type="ComputedValue",
         allow_quirks="Yes",
         servo_restyle_damage="reflow_out_of_flow",
@@ -33,7 +32,6 @@
         engines="gecko servo-2013 servo-2020",
         servo_2020_pref="layout.2020.unimplemented",
         spec="https://drafts.csswg.org/css-logical-props/#propdef-inset-%s" % side,
-        flags="GETCS_NEEDS_LAYOUT_FLUSH",
         alias="offset-%s:layout.css.offset-logical-properties.enabled" % side,
         animation_value_type="ComputedValue",
         logical=True,
@@ -285,7 +283,6 @@ ${helpers.predefined_type(
         allow_quirks="No" if logical else "Yes",
         spec=spec % size,
         animation_value_type="Size",
-        flags="GETCS_NEEDS_LAYOUT_FLUSH",
         servo_restyle_damage="reflow",
     )}
     // min-width, min-height, min-block-size, min-inline-size
@@ -379,7 +376,6 @@ ${helpers.predefined_type(
         engines="gecko",
         spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-%ss" % kind,
         boxed=True,
-        flags="GETCS_NEEDS_LAYOUT_FLUSH",
         animation_value_type="ComputedValue",
     )}
 
