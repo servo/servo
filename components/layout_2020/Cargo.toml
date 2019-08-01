@@ -7,9 +7,28 @@ edition = "2018"
 publish = false
 
 [lib]
+name = "layout"
 path = "lib.rs"
 test = false
 doctest = false
 
 [dependencies]
+app_units = "0.7"
+euclid = "0.20"
+fnv = "1.0"
+gfx = {path = "../gfx"}
+gfx_traits = {path = "../gfx_traits"}
+ipc-channel = "0.11"
+libc = "0.2"
+malloc_size_of = { path = "../malloc_size_of" }
+msg = {path = "../msg"}
+range = {path = "../range"}
+rayon = "1"
+script_layout_interface = {path = "../script_layout_interface"}
+script_traits = {path = "../script_traits"}
+serde = "1.0"
+servo_arc = {path = "../servo_arc"}
+servo_url = {path = "../url"}
 style = {path = "../style", features = ["servo", "servo-layout-2020"]}
+style_traits = {path = "../style_traits"}
+webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
