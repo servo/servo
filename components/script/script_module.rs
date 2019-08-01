@@ -6,19 +6,22 @@
 //! related to `type=module` for script thread or worker threads.
 
 use crate::document_loader::LoadType;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::conversions::jsstring_to_str;
-use crate::dom::bindings::error::report_pending_exception;
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptOrigin, ScriptType};
 use crate::dom::node::document_from_node;
 use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::dom::promise::Promise;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::network_listener::{self, NetworkListener};
 use crate::network_listener::{PreInvoke, ResourceTimingListener};
@@ -30,13 +33,13 @@ use js::jsapi::HandleObject;
 use js::jsapi::{GetModuleResolveHook, JSRuntime, SetModuleResolveHook};
 use js::jsapi::{GetRequestedModules, SetModuleMetadataHook};
 use js::jsapi::{Handle, JSAutoRealm, JSObject, JSString};
-use js::jsapi::{HandleValue, Heap, JSContext};
+use js::jsapi::HandleValue as RawHandleValue;
+use js::jsapi::{Heap, JSContext, JS_ClearPendingException};
 use js::jsapi::{ModuleEvaluate, ModuleInstantiate, SourceText};
 use js::jsapi::{SetModuleDynamicImportHook, SetScriptPrivateReferenceHooks};
-use js::jsval::UndefinedValue;
-use js::panic::maybe_resume_unwind;
-use js::rust::jsapi_wrapped::GetRequestedModuleSpecifier;
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::jsapi_wrapped::{CompileModule, JS_GetArrayLength, JS_GetElement};
+use js::rust::jsapi_wrapped::{GetRequestedModuleSpecifier, JS_GetPendingException};
 use js::rust::CompileOptionsWrapper;
 use js::rust::IntoHandle;
 use net_traits::request::{Destination, ParserMetadata, Referrer, RequestBuilder, RequestMode};
@@ -48,26 +51,360 @@ use std::collections::HashSet;
 use std::ffi;
 use std::marker::PhantomData;
 use std::ptr;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use url::ParseError as UrlParseError;
 
-// FIXME: Consider to create module fetch status
-//        and have a module tree linker struct
-
-#[derive(JSTraceable, PartialEq)]
-pub enum ModuleObject {
-    Fetching,
-    // FIXME: Change to `Result<T, E>` so that we can save `error` objects
-    Fetched(Option<Box<Heap<*mut JSObject>>>),
+pub fn get_source_text(source: Vec<u16>) -> SourceText<u16> {
+    SourceText {
+        units_: source.as_ptr() as *const _,
+        length_: source.len() as u32,
+        ownsUnits_: false,
+        _phantom_0: PhantomData,
+    }
 }
 
+#[derive(JSTraceable)]
+pub struct ModuleObject(Box<Heap<*mut JSObject>>);
+
 impl ModuleObject {
-    fn get_fetched_object(&self) -> Option<&Box<Heap<*mut JSObject>>> {
-        match self {
-            ModuleObject::Fetching | ModuleObject::Fetched(None) => None,
-            ModuleObject::Fetched(Some(module)) => Some(module),
+    #[allow(unsafe_code)]
+    pub fn handle(&self) -> HandleObject {
+        unsafe { self.0.handle() }
+    }
+}
+
+#[derive(JSTraceable)]
+pub struct ModuleException(RootedTraceableBox<Heap<JSVal>>);
+
+impl ModuleException {
+    #[allow(unsafe_code)]
+    pub fn handle(&self) -> Handle<JSVal> {
+        self.0.handle().into_handle()
+    }
+}
+
+#[derive(JSTraceable)]
+pub struct ModuleTree {
+    url: ServoUrl,
+    record: DomRefCell<Option<ModuleObject>>,
+    status: DomRefCell<ModuleStatus>,
+    descendant_urls: HashSet<ServoUrl>,
+    visited_urls: HashSet<ServoUrl>,
+    error: DomRefCell<Option<ModuleException>>,
+    promise: DomRefCell<Option<Rc<Promise>>>,
+}
+
+impl ModuleTree {
+    pub fn new(url: ServoUrl) -> Self {
+        ModuleTree {
+            url,
+            record: DomRefCell::new(None),
+            status: DomRefCell::new(ModuleStatus::Initial),
+            descendant_urls: HashSet::new(),
+            visited_urls: HashSet::new(),
+            error: DomRefCell::new(None),
+            promise: DomRefCell::new(None),
         }
     }
+
+    pub fn set_promise(&self, promise: Rc<Promise>) {
+        *self.promise.borrow_mut() = Some(promise);
+    }
+
+    pub fn get_status(&self) -> ModuleStatus {
+        self.status.borrow().clone()
+    }
+
+    pub fn set_status(&self, status: ModuleStatus) {
+        *self.status.borrow_mut() = status;
+    }
+
+    pub fn get_record(&self) -> &DomRefCell<Option<ModuleObject>> {
+        &self.record
+    }
+
+    pub fn set_record(&self, record: ModuleObject) {
+        *self.record.borrow_mut() = Some(record);
+    }
+
+    pub fn get_error(&self) -> &DomRefCell<Option<ModuleException>> {
+        &self.error
+    }
+
+    pub fn set_error(&self, error: ModuleException) {
+        *self.error.borrow_mut() = Some(error);
+    }
+}
+
+#[derive(Copy, Clone, Debug, JSTraceable, PartialEq, PartialOrd)]
+pub enum ModuleStatus {
+    Initial,
+    Fetching,
+    FetchingDescendants,
+    Finished,
+}
+
+impl ModuleTree {
+    #[allow(unsafe_code)]
+    /// https://html.spec.whatwg.org/multipage/#creating-a-javascript-module-script
+    /// Step 7-11.
+    fn compile_module_script(
+        &self,
+        module_script_text: DOMString,
+        url: ServoUrl,
+        global: &GlobalScope,
+    ) -> Result<ModuleObject, ModuleException> {
+        let module: Vec<u16> = module_script_text.encode_utf16().collect();
+
+        let url_cstr = ffi::CString::new(url.as_str().as_bytes()).unwrap();
+
+        let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
+
+        let compile_options = CompileOptionsWrapper::new(*global.get_cx(), url_cstr.as_ptr(), 1);
+
+        rooted!(in(*global.get_cx()) let mut module_script = ptr::null_mut::<JSObject>());
+
+        let mut source = get_source_text(module);
+
+        unsafe {
+            if !CompileModule(
+                *global.get_cx(),
+                compile_options.ptr,
+                &mut source,
+                &mut module_script.handle_mut(),
+            ) {
+                println!("fail to compile module script of {}", url);
+
+                rooted!(in(*global.get_cx()) let mut exception = UndefinedValue());
+                assert!(JS_GetPendingException(
+                    *global.get_cx(),
+                    &mut exception.handle_mut()
+                ));
+                JS_ClearPendingException(*global.get_cx());
+
+                return Err(ModuleException(RootedTraceableBox::from_box(Heap::boxed(
+                    exception.get(),
+                ))));
+            }
+        }
+
+        println!("module script of {} compile done", url);
+
+        if self
+            .resolve_requested_module_specifiers(
+                &global,
+                module_script.handle().into_handle(),
+                global.api_base_url().clone(),
+            )
+            .is_err()
+        {
+            unsafe {
+                rooted!(in(*global.get_cx()) let mut thrown = UndefinedValue());
+                Error::Type("Wrong module specifier".to_owned()).to_jsval(
+                    *global.get_cx(),
+                    &global,
+                    thrown.handle_mut(),
+                );
+
+                return Err(ModuleException(RootedTraceableBox::from_box(Heap::boxed(
+                    thrown.get(),
+                ))));
+            }
+        }
+
+        Ok(ModuleObject(Heap::boxed(*module_script)))
+    }
+
+    #[allow(unsafe_code)]
+    pub fn instantiate_module_tree(
+        &self,
+        global: &GlobalScope,
+        module_record: HandleObject,
+    ) -> Result<(), ModuleException> {
+        let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
+
+        unsafe {
+            if !ModuleInstantiate(*global.get_cx(), module_record) {
+                println!("fail to instantiate module");
+
+                rooted!(in(*global.get_cx()) let mut exception = UndefinedValue());
+                assert!(JS_GetPendingException(
+                    *global.get_cx(),
+                    &mut exception.handle_mut()
+                ));
+                JS_ClearPendingException(*global.get_cx());
+
+                Err(ModuleException(RootedTraceableBox::from_box(Heap::boxed(
+                    exception.get(),
+                ))))
+            } else {
+                println!("module instantiated successfully");
+
+                Ok(())
+            }
+        }
+    }
+
+    #[allow(unsafe_code)]
+    pub fn execute_module(
+        &self,
+        global: &GlobalScope,
+        module_record: HandleObject,
+    ) -> Result<(), ModuleException> {
+        let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
+
+        unsafe {
+            if !ModuleEvaluate(*global.get_cx(), module_record) {
+                println!("fail to evaluate module");
+
+                rooted!(in(*global.get_cx()) let mut exception = UndefinedValue());
+                assert!(JS_GetPendingException(
+                    *global.get_cx(),
+                    &mut exception.handle_mut()
+                ));
+                JS_ClearPendingException(*global.get_cx());
+
+                Err(ModuleException(RootedTraceableBox::from_box(Heap::boxed(
+                    exception.get(),
+                ))))
+            } else {
+                println!("module evaluated successfully");
+                Ok(())
+            }
+        }
+    }
+
+    pub fn resolve_requested_modules(
+        global: &GlobalScope,
+        parent_module_url: ServoUrl,
+        visited: &mut HashSet<ServoUrl>,
+    ) -> Result<HashSet<ServoUrl>, ()> {
+        let module_map = global.get_module_map().borrow();
+
+        let module_tree = module_map.get(&parent_module_url);
+
+        if let Some(module_tree) = module_tree {
+            assert_ne!(module_tree.get_status(), ModuleStatus::Initial);
+            assert_ne!(module_tree.get_status(), ModuleStatus::Fetching);
+
+            let mut requested_urls: HashSet<ServoUrl> = HashSet::new();
+
+            let record = module_tree.get_record().borrow();
+
+            if let Some(raw_record) = &*record {
+                let valid_specifier_urls = module_tree.resolve_requested_module_specifiers(
+                    &global,
+                    raw_record.handle(),
+                    parent_module_url.clone(),
+                );
+
+                if valid_specifier_urls.is_err() {
+                    return Err(());
+                }
+
+                for parsed_url in valid_specifier_urls.unwrap().iter() {
+                    if !visited.contains(&parsed_url) {
+                        requested_urls.insert(parsed_url.clone());
+
+                        visited.insert(parsed_url.clone());
+                    }
+                }
+
+                return Ok(requested_urls);
+            }
+        }
+
+        Err(())
+    }
+
+    #[allow(unsafe_code)]
+    fn resolve_requested_module_specifiers(
+        &self,
+        global: &GlobalScope,
+        module_object: HandleObject,
+        base_url: ServoUrl,
+    ) -> Result<HashSet<ServoUrl>, ()> {
+        let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
+
+        let mut specifier_urls = HashSet::new();
+
+        unsafe {
+            rooted!(in(*global.get_cx()) let requested_modules = GetRequestedModules(*global.get_cx(), module_object));
+
+            let mut length = 0;
+
+            if !JS_GetArrayLength(*global.get_cx(), requested_modules.handle(), &mut length) {
+                println!("Wrong length of requested modules");
+                return Err(());
+            }
+
+            for index in 0..length {
+                rooted!(in(*global.get_cx()) let mut element = UndefinedValue());
+
+                if !JS_GetElement(
+                    *global.get_cx(),
+                    requested_modules.handle(),
+                    index,
+                    &mut element.handle_mut(),
+                ) {
+                    return Err(());
+                }
+
+                rooted!(in(*global.get_cx()) let specifier = GetRequestedModuleSpecifier(*global.get_cx(), element.handle()));
+
+                let url = ModuleTree::resolve_module_specifier(
+                    *global.get_cx(),
+                    &base_url,
+                    specifier.handle().into_handle(),
+                );
+
+                if url.is_err() {
+                    return Err(());
+                }
+
+                specifier_urls.insert(url.unwrap());
+            }
+        }
+
+        Ok(specifier_urls)
+    }
+
+    /// The following module specifiers are allowed by the spec:
+    ///  - a valid absolute URL
+    ///  - a valid relative URL that starts with "/", "./" or "../"
+    ///
+    /// Bareword module specifiers are currently disallowed as these may be given
+    /// special meanings in the future.
+    /// https://html.spec.whatwg.org/multipage/#resolve-a-module-specifier
+    #[allow(unsafe_code)]
+    fn resolve_module_specifier(
+        cx: *mut JSContext,
+        url: &ServoUrl,
+        specifier: Handle<*mut JSString>,
+    ) -> Result<ServoUrl, UrlParseError> {
+        let specifier_str = unsafe { jsstring_to_str(cx, *specifier) };
+
+        // Step 1.
+        if let Ok(specifier_url) = ServoUrl::parse(&specifier_str) {
+            return Ok(specifier_url);
+        }
+
+        // Step 2.
+        if !specifier_str.starts_with("/") &&
+            !specifier_str.starts_with("./") &&
+            !specifier_str.starts_with("../")
+        {
+            return Err(UrlParseError::InvalidDomainCharacter);
+        }
+
+        // Step 3.
+        return ServoUrl::parse_with_base(Some(url), &specifier_str.clone());
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#creating-a-javascript-module-script
+    #[allow(unused)]
+    fn create_javascript_module_script() {}
 }
 
 /// The owner of the module
@@ -98,8 +435,6 @@ struct ModuleContext {
     metadata: Option<Metadata>,
     /// The initial URL requested.
     url: ServoUrl,
-    /// Descendant module urls
-    descendant_urls: HashSet<ServoUrl>,
     /// Destination of current module context
     destination: Destination,
     /// Indicates whether the request failed, and why
@@ -170,72 +505,81 @@ impl FetchResponseListener for ModuleContext {
         });
 
         if load.is_err() {
-            // https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script
             // Step 9.
-            global.set_module_map(self.url.clone(), ModuleObject::Fetched(None));
+            let module_tree = ModuleTree::new(self.url.clone());
+            module_tree.set_status(ModuleStatus::Finished);
+
+            global.set_module_map(self.url.clone(), module_tree);
+
             return;
         }
 
-        // TODO: HANDLE MIME TYPE CHECKING
+        // TODO: Step 12 & 13. HANDLE MIME TYPE CHECKING
 
+        // Step 14.
         if let Ok(ref resp_mod_script) = load {
-            let compiled_module =
-                compile_module_script(resp_mod_script.text(), self.url.clone(), &global);
+            let module_map = global.get_module_map().borrow();
+            let module_tree = module_map.get(&self.url.clone()).unwrap();
 
-            let compiled = compiled_module.ok().map(|compiled| Heap::boxed(compiled));
+            let compiled_module = module_tree.compile_module_script(
+                resp_mod_script.text(),
+                self.url.clone(),
+                &global,
+            );
 
-            if compiled.is_none() {
-                global.set_module_map(self.url.clone(), ModuleObject::Fetched(None));
-                return;
-            }
+            match compiled_module {
+                Err(exception) => {
+                    module_tree.set_error(exception);
 
-            if let Some(record) = compiled {
-                global.set_module_map(self.url.clone(), ModuleObject::Fetched(Some(record)));
+                    return;
+                },
+                Ok(record) => {
+                    module_tree.set_record(record);
 
-                let mut visited = HashSet::new();
-                visited.insert(self.url.clone());
+                    let mut visited = HashSet::new();
+                    visited.insert(self.url.clone());
 
-                let _descendant_result = fetch_module_descendants(
-                    &self.owner,
-                    &global,
-                    self.url.clone(),
-                    self.destination.clone(),
-                    visited,
-                );
+                    let _descendant_result = fetch_module_descendants(
+                        &self.owner,
+                        self.url.clone(),
+                        self.destination.clone(),
+                        visited,
+                    );
 
-                match &self.owner {
-                    ModuleOwner::Worker(_) => unimplemented!(),
-                    ModuleOwner::Window(script) => {
-                        let document = document_from_node(&*script.root());
+                    match &self.owner {
+                        ModuleOwner::Worker(_) => unimplemented!(),
+                        ModuleOwner::Window(script) => {
+                            let document = document_from_node(&*script.root());
 
-                        let base_url = document.base_url();
+                            let base_url = document.base_url();
 
-                        let r#async = script
-                            .root()
-                            .upcast::<Element>()
-                            .has_attribute(&local_name!("async"));
+                            let r#async = script
+                                .root()
+                                .upcast::<Element>()
+                                .has_attribute(&local_name!("async"));
 
-                        if let Some(script_src) = script
-                            .root()
-                            .upcast::<Element>()
-                            .get_attribute(&ns!(), &local_name!("src"))
-                            .map(|attr| base_url.join(&attr.value()).ok())
-                            .unwrap_or(None)
-                        {
-                            if self.url.clone() == script_src {
-                                if !r#async && (&*script.root()).get_parser_inserted() {
-                                    document.deferred_script_loaded(&*script.root(), load);
-                                } else if !r#async && !(&*script.root()).get_non_blocking() {
-                                    document.asap_in_order_script_loaded(&*script.root(), load);
-                                } else {
-                                    document.asap_script_loaded(&*script.root(), load);
-                                };
+                            if let Some(script_src) = script
+                                .root()
+                                .upcast::<Element>()
+                                .get_attribute(&ns!(), &local_name!("src"))
+                                .map(|attr| base_url.join(&attr.value()).ok())
+                                .unwrap_or(None)
+                            {
+                                if self.url.clone() == script_src {
+                                    if !r#async && (&*script.root()).get_parser_inserted() {
+                                        document.deferred_script_loaded(&*script.root(), load);
+                                    } else if !r#async && !(&*script.root()).get_non_blocking() {
+                                        document.asap_in_order_script_loaded(&*script.root(), load);
+                                    } else {
+                                        document.asap_script_loaded(&*script.root(), load);
+                                    };
 
-                                document.finish_load(LoadType::Script(self.url.clone()));
+                                    document.finish_load(LoadType::Script(self.url.clone()));
+                                }
                             }
-                        }
-                    },
-                }
+                        },
+                    }
+                },
             }
         }
     }
@@ -266,15 +610,6 @@ impl ResourceTimingListener for ModuleContext {
 
 impl PreInvoke for ModuleContext {}
 
-pub fn get_source_text(source: Vec<u16>) -> SourceText<u16> {
-    SourceText {
-        units_: source.as_ptr() as *const _,
-        length_: source.len() as u32,
-        ownsUnits_: false,
-        _phantom_0: PhantomData,
-    }
-}
-
 #[allow(unsafe_code)]
 pub unsafe fn EnsureModuleHooksInitialized(rt: *mut JSRuntime) {
     if GetModuleResolveHook(rt).is_some() {
@@ -288,30 +623,55 @@ pub unsafe fn EnsureModuleHooksInitialized(rt: *mut JSRuntime) {
     SetModuleDynamicImportHook(rt, None);
 }
 
+#[allow(unsafe_code)]
+/// https://tc39.github.io/ecma262/#sec-hostresolveimportedmodule
+/// https://html.spec.whatwg.org/multipage/#hostresolveimportedmodule(referencingscriptormodule%2C-specifier)
+unsafe extern "C" fn HostResolveImportedModule(
+    cx: *mut JSContext,
+    _reference_private: RawHandleValue,
+    specifier: Handle<*mut JSString>,
+) -> *mut JSObject {
+    let global_scope = GlobalScope::from_context(cx);
+
+    // Step 2.
+    let base_url = global_scope.api_base_url();
+
+    // Step 5.
+    let url = ModuleTree::resolve_module_specifier(*global_scope.get_cx(), &base_url, specifier);
+
+    // Step 6.
+    assert!(url.is_ok());
+
+    let parsed_url = url.unwrap();
+
+    // Step 4 & 7.
+    let module_map = global_scope.get_module_map().borrow();
+
+    let module_tree = module_map.get(&parsed_url);
+
+    // Step 9.
+    assert!(module_tree.is_some());
+
+    let fetched_module_object = module_tree.unwrap().get_record().borrow();
+
+    // Step 8.
+    assert!(fetched_module_object.is_some());
+
+    // Step 10.
+    if let Some(record) = &*fetched_module_object {
+        return record.handle().get();
+    }
+
+    unreachable!()
+}
+
 /// https://html.spec.whatwg.org/multipage/#fetch-a-module-script-tree
-pub fn fetch_module_script_graph(
-    owner: ModuleOwner,
-    url: ServoUrl,
-    // fetch_client_settings,
-    destination: Destination,
-    // options
-) {
+pub fn fetch_external_module_script(owner: ModuleOwner, url: ServoUrl, destination: Destination) {
     // Step 1.
-    let mut visited: HashSet<ServoUrl> = HashSet::new();
-    visited.insert(url.clone());
-
-    let global_scope = owner.global();
-
-    // Step 2-3.
-    create_module_script(
+    fetch_single_module_script(
         owner,
         url,
-        // fetch_client_settings,
-        &global_scope,
         destination,
-        // options,
-        // module map settings
-        visited,
         Referrer::Client,
         ParserMetadata::NotParserInserted,
         true,
@@ -319,14 +679,10 @@ pub fn fetch_module_script_graph(
 }
 
 /// https://html.spec.whatwg.org/multipage/#internal-module-script-graph-fetching-procedure
-pub fn create_module_script(
+pub fn perform_internal_module_script_fetch(
     owner: ModuleOwner,
     url: ServoUrl,
-    // fetch_client_settings,
-    global_scope: &GlobalScope,
     destination: Destination,
-    // options,
-    // module map settings
     visited: HashSet<ServoUrl>,
     referrer: Referrer,
     parser_metadata: ParserMetadata,
@@ -339,11 +695,7 @@ pub fn create_module_script(
     fetch_single_module_script(
         owner,
         url,
-        // fetch_client_settings
-        global_scope,
         destination,
-        // options,
-        // module_map_settings,
         referrer,
         parser_metadata,
         top_level_module_fetch,
@@ -354,34 +706,45 @@ pub fn create_module_script(
 pub fn fetch_single_module_script(
     owner: ModuleOwner,
     url: ServoUrl,
-    // fetch_client_settings,
-    global_scope: &GlobalScope,
     destination: Destination,
-    // options,
-    // module_map_settings,
     referrer: Referrer,
     parser_metadata: ParserMetadata,
     top_level_module_fetch: bool,
 ) {
+// ) -> Rc<Promise> {
     {
         // Step 1.
-        let module_map = global_scope.get_module_map().borrow();
-        let module_object = module_map.get(&url.clone());
+        let global = owner.global();
+        let module_map = global.get_module_map().borrow();
 
-        // Step 2.
-        if let Some(ModuleObject::Fetching) = module_object {
-            return;
-        }
+        if let Some(module_tree) = module_map.get(&url.clone()) {
+            let status = module_tree.get_status();
 
-        // Step 3.
-        if let Some(ModuleObject::Fetched(Some(_))) = module_object {
-            return;
+            // Step 2.
+            if status == ModuleStatus::Fetching || status == ModuleStatus::FetchingDescendants {
+                // TODO: queue a network task ?
+                return;
+            }
+
+            // Step 3.
+            if status == ModuleStatus::Finished {
+                //  asynchronously complete this algorithm with moduleMap[url], and abort these steps
+                return;
+            }
         }
     }
 
-    // Step 4.
     let global = owner.global();
-    global.set_module_map(url.clone(), ModuleObject::Fetching);
+
+    let module_tree = ModuleTree::new(url.clone());
+    module_tree.set_status(ModuleStatus::Fetching);
+
+    let p = Promise::new(&global);
+
+    module_tree.set_promise(p);
+
+    // Step 4.
+    global.set_module_map(url.clone(), module_tree);
 
     // Step 5-6.
     let mode = match destination.clone() {
@@ -408,7 +771,6 @@ pub fn fetch_single_module_script(
         data: vec![],
         metadata: None,
         url: url.clone(),
-        descendant_urls: HashSet::new(),
         destination: destination.clone(),
         status: Ok(()),
         resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
@@ -418,8 +780,8 @@ pub fn fetch_single_module_script(
 
     let listener = NetworkListener {
         context,
-        task_source: global_scope.networking_task_source(),
-        canceller: Some(global_scope.task_canceller(TaskSourceName::Networking)),
+        task_source: global.networking_task_source(),
+        canceller: Some(global.task_canceller(TaskSourceName::Networking)),
     };
 
     ROUTER.add_route(
@@ -443,147 +805,57 @@ pub fn fetch_inline_module_script(
 ) {
     let global = owner.global();
 
-    let compiled_module = compile_module_script(module_script_text, url.clone(), &global);
+    let module_tree = ModuleTree::new(url.clone());
 
-    let compiled = compiled_module.ok().map(|compiled| Heap::boxed(compiled));
+    let compiled_module =
+        module_tree.compile_module_script(module_script_text, url.clone(), &global);
 
-    if let Some(record) = compiled {
+    if let Ok(record) = compiled_module {
         let _descendant_result =
-            fetch_inline_module_descendants(&owner, &global, url.clone(), Destination::Script);
+            fetch_inline_module_descendants(&owner, url.clone(), Destination::Script);
 
-        unsafe {
-            let _instantiated = instantiate_module_tree(&global, record.handle());
-            let _evaluated = execute_module(&global, record.handle());
-        }
+        let _instantiated = module_tree.instantiate_module_tree(&global, record.handle());
+        let _evaluated = module_tree.execute_module(&global, record.handle());
 
         return;
     }
 }
 
-#[allow(unsafe_code)]
-/// https://html.spec.whatwg.org/multipage/#creating-a-javascript-module-script
-/// Step 7.
-fn compile_module_script(
-    module_script_text: DOMString,
-    url: ServoUrl,
-    global: &GlobalScope,
-) -> Result<*mut JSObject, ()> {
-    let module: Vec<u16> = module_script_text.encode_utf16().collect();
-
-    let url_cstr = ffi::CString::new(url.as_str().as_bytes()).unwrap();
-
-    let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
-
-    let compile_options = CompileOptionsWrapper::new(*global.get_cx(), url_cstr.as_ptr(), 1);
-
-    rooted!(in(*global.get_cx()) let mut module_script = ptr::null_mut::<JSObject>());
-
-    let mut source = get_source_text(module);
-
-    unsafe {
-        if !CompileModule(
-            *global.get_cx(),
-            compile_options.ptr,
-            &mut source,
-            &mut module_script.handle_mut(),
-        ) {
-            println!("fail to compile module script of {}", url);
-
-            report_pending_exception(*global.get_cx(), true);
-            maybe_resume_unwind();
-
-            Err(())
-        } else {
-            println!("module script of {} compile done", url);
-
-            Ok(*module_script)
-        }
-    }
-}
-
-#[allow(unsafe_code)]
-pub fn instantiate_module_tree(
-    global: &GlobalScope,
-    module_record: HandleObject,
-) -> Result<(), ()> {
-    let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
-
-    unsafe {
-        if !ModuleInstantiate(*global.get_cx(), module_record) {
-            println!("fail to instantiate module");
-
-            report_pending_exception(*global.get_cx(), true);
-            maybe_resume_unwind();
-
-            Err(())
-        } else {
-            println!("module instantiated successfully");
-
-            Ok(())
-        }
-    }
-}
-
-#[allow(unsafe_code)]
-pub fn execute_module(global: &GlobalScope, module_record: HandleObject) -> Result<(), ()> {
-    let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
-
-    unsafe {
-        if !ModuleEvaluate(*global.get_cx(), module_record) {
-            println!("fail to evaluate module");
-
-            report_pending_exception(*global.get_cx(), true);
-            maybe_resume_unwind();
-
-            Err(())
-        } else {
-            println!("module evaluated successfully");
-            Ok(())
-        }
-    }
-}
-
-// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script
+/// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script
 fn fetch_inline_module_descendants(
     owner: &ModuleOwner,
-    global: &GlobalScope,
     url: ServoUrl,
     destination: Destination,
 ) -> Result<(), ()> {
-    fetch_module_descendants(
-        owner,
-        global,
-        url,
-        destination,
-        HashSet::new()
-    )
+    fetch_module_descendants(owner, url, destination, HashSet::new())
 }
 
-// https://searchfox.org/mozilla-central/source/dom/script/ScriptLoader.cpp#726
-// void ScriptLoader::StartFetchingModuleDependencies
 #[allow(unsafe_code)]
-// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-a-module-script
+/// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-a-module-script
 fn fetch_module_descendants(
     owner: &ModuleOwner,
-    global: &GlobalScope,
     parent_module_url: ServoUrl,
     destination: Destination,
     mut visited: HashSet<ServoUrl>,
 ) -> Result<(), ()> {
-    println!("Start to load dependencies of {:?}", parent_module_url.clone());
-    // Step 1. (We can skip step 1 because we won't
-    // execute this function if we don't fetch valid module record)
+    println!(
+        "Start to load dependencies of {:?}",
+        parent_module_url.clone()
+    );
 
-    if let Ok(requested_urls) = resolve_requested_modules(
-        global,
-        parent_module_url.clone(),
-        &mut visited
-    ) {
+    let global = owner.global();
+
+    let module_map = global.get_module_map().borrow();
+    let module_tree = module_map.get(&parent_module_url.clone()).unwrap();
+    module_tree.set_status(ModuleStatus::FetchingDescendants);
+
+    if let Ok(requested_urls) =
+        ModuleTree::resolve_requested_modules(&global, parent_module_url.clone(), &mut visited)
+    {
         for url in requested_urls.iter() {
-            create_module_script(
+            perform_internal_module_script_fetch(
                 owner.clone(),
                 url.clone(),
-                &global,
                 destination.clone(),
                 visited.clone(),
                 Referrer::Client,
@@ -596,141 +868,4 @@ fn fetch_module_descendants(
     }
 
     Err(())
-}
-
-#[allow(unsafe_code)]
-fn resolve_requested_modules(
-    global: &GlobalScope,
-    parent_module_url: ServoUrl,
-    visited: &mut HashSet<ServoUrl>,
-) -> Result<HashSet<ServoUrl>, ()> {
-    let module_maps = global.get_module_map().borrow();
-
-    let module_record = module_maps.get(&parent_module_url);
-
-    assert!(module_record.is_some());
-
-    let mut requested_urls: HashSet<ServoUrl> = HashSet::new();
-
-    unsafe {
-        if let ModuleObject::Fetched(Some(record)) = module_record.unwrap() {
-            let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
-
-            rooted!(in(*global.get_cx()) let requested_modules = GetRequestedModules(*global.get_cx(), record.handle()));
-
-            let mut length = 0;
-
-            if !JS_GetArrayLength(*global.get_cx(), requested_modules.handle(), &mut length) {
-                println!("Wrong length of requested modules");
-                return Err(());
-            }
-
-            for index in 0..length {
-                rooted!(in(*global.get_cx()) let mut element = UndefinedValue());
-
-                if !JS_GetElement(
-                    *global.get_cx(),
-                    requested_modules.handle(),
-                    index,
-                    &mut element.handle_mut(),
-                ) {
-                    return Err(());
-                }
-
-                rooted!(in(*global.get_cx()) let specifier = GetRequestedModuleSpecifier(*global.get_cx(), element.handle()));
-
-                let base_url = global.api_base_url();
-
-                let url = resolve_module_specifier(
-                    *global.get_cx(),
-                    &base_url,
-                    specifier.handle().into_handle(),
-                );
-
-                assert!(url.is_ok());
-
-                let parsed_url = url.unwrap();
-
-                if !visited.contains(&parsed_url) {
-                    requested_urls.insert(parsed_url.clone());
-
-                    visited.insert(parsed_url.clone());
-                }
-            }
-
-            return Ok(requested_urls);
-        }
-    }
-
-    Err(())
-}
-
-#[allow(unsafe_code)]
-/// https://tc39.github.io/ecma262/#sec-hostresolveimportedmodule
-/// https://html.spec.whatwg.org/multipage/#hostresolveimportedmodule(referencingscriptormodule%2C-specifier)
-unsafe extern "C" fn HostResolveImportedModule(
-    cx: *mut JSContext,
-    _reference_private: HandleValue,
-    specifier: Handle<*mut JSString>,
-) -> *mut JSObject {
-    let global_scope = GlobalScope::from_context(cx);
-
-    // Step 2.
-    let base_url = global_scope.api_base_url();
-
-    // Step 5.
-    let url = resolve_module_specifier(*global_scope.get_cx(), &base_url, specifier);
-
-    // Step 6.
-    assert!(url.is_ok());
-
-    let parsed_url = url.unwrap();
-
-    // Step 4 & 7.
-    let module_map = global_scope.get_module_map().borrow();
-
-    let module = module_map.get(&parsed_url);
-
-    // Step 9.
-    assert!(module.is_some());
-
-    let fetched_module_object = module.unwrap().get_fetched_object();
-
-    // Step 8.
-    assert!(fetched_module_object.is_some());
-
-    // Step 10.
-    return fetched_module_object.unwrap().handle().get();
-}
-
-/// The following module specifiers are allowed by the spec:
-///  - a valid absolute URL
-///  - a valid relative URL that starts with "/", "./" or "../"
-///
-/// Bareword module specifiers are currently disallowed as these may be given
-/// special meanings in the future.
-/// https://html.spec.whatwg.org/multipage/#resolve-a-module-specifier
-#[allow(unsafe_code)]
-fn resolve_module_specifier(
-    cx: *mut JSContext,
-    url: &ServoUrl,
-    specifier: Handle<*mut JSString>,
-) -> Result<ServoUrl, UrlParseError> {
-    let specifier_str = unsafe { jsstring_to_str(cx, *specifier) };
-
-    // Step 1.
-    if let Ok(specifier_url) = ServoUrl::parse(&specifier_str) {
-        return Ok(specifier_url);
-    }
-
-    // Step 2.
-    if !specifier_str.starts_with("/") &&
-        !specifier_str.starts_with("./") &&
-        !specifier_str.starts_with("../")
-    {
-        return Err(UrlParseError::InvalidDomainCharacter);
-    }
-
-    // Step 3.
-    return ServoUrl::parse_with_base(Some(url), &specifier_str.clone());
 }
