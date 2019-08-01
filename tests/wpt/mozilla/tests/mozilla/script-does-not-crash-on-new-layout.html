@@ -14,6 +14,7 @@
 </div>
 <script>
 async_test(function(t) {
+    var reloaded = false;
     var host = get_host_info();
     var noteSameSiteURL = host.HTTP_NOTSAMESITE_ORIGIN + "/webmessaging/support/ChildWindowPostMessage.htm";
     var TARGET = document.querySelector("iframe").contentWindow;
