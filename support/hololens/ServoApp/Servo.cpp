@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Servo.h"
 
-// FIXME: rename mozilla to something else
 namespace servo {
 
 void on_load_started() { sServo->Delegate().OnLoadStarted(); }

@@ -14,12 +14,6 @@ namespace winrt::ServoApp::implementation {
 static char sWakeupEvent[] = "SIGNAL_WAKEUP";
 static char sShutdownEvent[] = "SIGNAL_SHUTDOWN";
 
-struct Event {
-  enum { CLICK, SCROLL, BACK, FORWARD, RELOAD, STOP, SHUTDOWN } type;
-  std::tuple<float, float> clickCoords;
-  std::tuple<float, float, float, float> scrollCoords;
-};
-
 struct BrowserPage : BrowserPageT<BrowserPage>,
                       public servo::ServoDelegate {
 public:
@@ -44,6 +38,7 @@ public:
       Windows::UI::Xaml::Input::ManipulationDeltaRoutedEventArgs const &e);
 
   template <typename Callable> void RunOnUIThread(Callable);
+  void RunOnGLThread(std::function<void()>);
   void Shutdown();
 
   virtual void WakeUp();
@@ -80,9 +75,8 @@ private:
   EGLSurface mRenderSurface{EGL_NO_SURFACE};
   std::unique_ptr<servo::Servo> mServo;
 
-  void BrowserPage::SendEventToServo(Event event);
-  std::vector<Event> mEvents;
-  std::mutex mEventsMutex;
+  std::vector<std::function<void()>> mTasks;
+  std::mutex mTasksMutex;
 
   OpenGLES mOpenGLES; // FIXME: shared pointer
 
