@@ -211,7 +211,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">false</DeploymentContent>
     </None>
-    <None Include="..\..\..\target\debug\msvcp140.dll" />
+    <None Include="..\..\..\target\debug\msvcp140.dll">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+    </None>
     <None Include="..\..\..\target\debug\simpleservo.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
@@ -226,7 +228,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">false</DeploymentContent>
     </None>
-    <None Include="..\..\..\target\debug\vcruntime140.dll" />
+    <None Include="..\..\..\target\debug\vcruntime140.dll">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+    </None>
     <None Include="..\..\..\target\release\api-ms-win-crt-runtime-l1-1-0.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
       </DeploymentContent>
