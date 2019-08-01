@@ -381,16 +381,20 @@ where
         // can't defer it after `create_constellation` has started.
         script::init();
 
+        if pref!(dom.webxr.enabled) && pref!(dom.webvr.enabled) {
+            panic!("We don't currently support running both WebVR and WebXR");
+        }
+
         // For the moment, we enable use both the webxr crate and the rust-webvr crate,
         // but we are migrating over to just using webxr.
         let mut webxr_main_thread = webxr_api::MainThreadRegistry::new(event_loop_waker)
             .expect("Failed to create WebXR device registry");
-        if pref!(dom.webvr.enabled) || pref!(dom.webxr.enabled) {
+        if pref!(dom.webxr.enabled) {
             embedder.register_webxr(&mut webxr_main_thread);
         }
 
         let mut webvr_heartbeats = Vec::new();
-        let webvr_services = if pref!(dom.webvr.enabled) || pref!(dom.webxr.enabled) {
+        let webvr_services = if pref!(dom.webvr.enabled) {
             let mut services = VRServiceManager::new();
             services.register_defaults();
             embedder.register_vr_services(&mut services, &mut webvr_heartbeats);
