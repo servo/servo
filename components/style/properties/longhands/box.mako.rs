@@ -427,7 +427,7 @@ ${helpers.predefined_type(
     "PositionOrAuto",
     "computed::PositionOrAuto::auto()",
     engines="gecko",
-    animation_value_type="none",
+    animation_value_type="ComputedValue",
     gecko_pref="layout.css.motion-path.enabled",
     spec="https://drafts.fxtf.org/motion-1/#offset-anchor-property",
     servo_restyle_damage="reflow_out_of_flow",

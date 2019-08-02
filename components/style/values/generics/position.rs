@@ -45,13 +45,16 @@ impl<H, V> Position<H, V> {
 /// This is used by <offset-anchor> for now.
 /// https://drafts.fxtf.org/motion-1/#offset-anchor-property
 #[derive(
+    Animate,
     Clone,
+    ComputeSquaredDistance,
     Copy,
     Debug,
     MallocSizeOf,
     Parse,
     PartialEq,
     SpecifiedValueInfo,
+    ToAnimatedZero,
     ToComputedValue,
     ToCss,
     ToResolvedValue,
