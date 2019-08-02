@@ -10,6 +10,7 @@ use crate::dom::bindings::root::Dom;
 use crate::dom::document::Document;
 use crate::fetch::FetchCanceller;
 use ipc_channel::ipc::IpcSender;
+use msg::constellation_msg::IpcHandle;
 use net_traits::request::RequestBuilder;
 use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseMsg};
 use net_traits::{IpcSend, ResourceThreads};
@@ -118,6 +119,35 @@ impl DocumentLoader {
     ) {
         self.add_blocking_load(load);
         self.fetch_async_background(request, fetch_target);
+    }
+
+    /// Initiate a new fetch.
+    pub fn fetch_async_with_handle(
+        &mut self,
+        load: LoadType,
+        request: RequestBuilder,
+        fetch_target: IpcHandle,
+    ) {
+        self.add_blocking_load(load);
+        self.fetch_async_background_with_handle(request, fetch_target);
+    }
+
+    /// Initiate a new fetch that does not block the document load event.
+    pub fn fetch_async_background_with_handle(
+        &mut self,
+        request: RequestBuilder,
+        fetch_target: IpcHandle,
+    ) {
+        let mut canceller = FetchCanceller::new();
+        let cancel_receiver = canceller.initialize();
+        self.cancellers.push(canceller);
+        self.resource_threads
+            .sender()
+            .send(CoreResourceMsg::Fetch(
+                request,
+                FetchChannels::ResponseHandle(fetch_target, Some(cancel_receiver)),
+            ))
+            .unwrap();
     }
 
     /// Initiate a new fetch that does not block the document load event.

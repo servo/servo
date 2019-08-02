@@ -31,7 +31,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
 use mime::Mime;
-use msg::constellation_msg::HistoryStateId;
+use msg::constellation_msg::{HistoryStateId, IpcHandle};
 use servo_url::ServoUrl;
 use std::error::Error;
 use time::precise_time_ns;
@@ -240,6 +240,34 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     }
 }
 
+impl FetchTaskTarget for IpcHandle {
+    fn process_request_body(&mut self, _: &Request) {
+        let _ = self.send(FetchResponseMsg::ProcessRequestBody);
+    }
+
+    fn process_request_eof(&mut self, _: &Request) {
+        let _ = self.send(FetchResponseMsg::ProcessRequestEOF);
+    }
+
+    fn process_response(&mut self, response: &Response) {
+        let _ = self.send(FetchResponseMsg::ProcessResponse(response.metadata()));
+    }
+
+    fn process_response_chunk(&mut self, chunk: Vec<u8>) {
+        let _ = self.send(FetchResponseMsg::ProcessResponseChunk(chunk));
+    }
+
+    fn process_response_eof(&mut self, response: &Response) {
+        if let Some(e) = response.get_network_error() {
+            let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Err(e.clone())));
+        } else {
+            let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Ok(response
+                .get_resource_timing()
+                .clone())));
+        }
+    }
+}
+
 pub trait Action<Listener> {
     fn process(self, listener: &mut Listener);
 }
@@ -363,6 +391,10 @@ pub enum WebSocketNetworkEvent {
 #[derive(Debug, Deserialize, Serialize)]
 /// IPC channels to communicate with the script thread about network or DOM events.
 pub enum FetchChannels {
+    ResponseHandle(
+        IpcHandle,
+        /* cancel_chan */ Option<IpcReceiver<()>>,
+    ),
     ResponseMsg(
         IpcSender<FetchResponseMsg>,
         /* cancel_chan */ Option<IpcReceiver<()>>,

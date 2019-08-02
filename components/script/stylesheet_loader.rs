@@ -19,8 +19,6 @@ use crate::dom::shadowroot::ShadowRoot;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use cssparser::SourceLocation;
 use encoding_rs::UTF_8;
-use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode,
@@ -288,7 +286,6 @@ impl<'a> StylesheetLoader<'a> {
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         }));
 
-        let (action_sender, action_receiver) = ipc::channel().unwrap();
         let (task_source, canceller) = document
             .window()
             .task_manager()
@@ -298,12 +295,12 @@ impl<'a> StylesheetLoader<'a> {
             task_source,
             canceller: Some(canceller),
         };
-        ROUTER.add_route(
-            action_receiver.to_opaque(),
-            Box::new(move |message| {
-                listener.notify_fetch(message.to().unwrap());
-            }),
-        );
+        let callback = Box::new(move |data: Vec<u8>| {
+            let msg = bincode::deserialize(&data[..]).unwrap();
+            listener.notify_fetch(msg);
+        });
+
+        let ipc_handle = document.global().add_ipc_callback(callback);
 
         let owner = self
             .elem
@@ -338,7 +335,7 @@ impl<'a> StylesheetLoader<'a> {
             .referrer_policy(referrer_policy)
             .integrity_metadata(integrity_metadata);
 
-        document.fetch_async(LoadType::Stylesheet(url), request, action_sender);
+        document.fetch_async_with_handle(LoadType::Stylesheet(url), request, ipc_handle);
     }
 }
 

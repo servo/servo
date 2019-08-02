@@ -22,6 +22,7 @@ use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use msg::constellation_msg::IpcHandle;
 use net_traits::request::{Destination, RequestBuilder};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
@@ -235,6 +236,10 @@ impl ResourceChannelManager {
                 FetchChannels::ResponseMsg(sender, cancel_chan) => {
                     self.resource_manager
                         .fetch(req_init, None, sender, http_state, cancel_chan)
+                },
+                FetchChannels::ResponseHandle(handle, cancel_chan) => {
+                    self.resource_manager
+                        .fetch_with_handle(req_init, None, handle, http_state, cancel_chan)
                 },
                 FetchChannels::WebSocket {
                     event_sender,
@@ -502,6 +507,57 @@ impl CoreResourceManager {
                     );
                 },
                 None => fetch(&mut request, &mut sender, &context),
+            };
+        });
+    }
+
+    fn fetch_with_handle(
+        &self,
+        request_builder: RequestBuilder,
+        res_init_: Option<ResponseInit>,
+        mut handle: IpcHandle,
+        http_state: &Arc<HttpState>,
+        cancel_chan: Option<IpcReceiver<()>>,
+    ) {
+        let http_state = http_state.clone();
+        let ua = self.user_agent.clone();
+        let dc = self.devtools_chan.clone();
+        let filemanager = self.filemanager.clone();
+
+        let timing_type = match request_builder.destination {
+            Destination::Document => ResourceTimingType::Navigation,
+            _ => ResourceTimingType::Resource,
+        };
+
+        self.fetch_pool.spawn(move || {
+            let mut request = request_builder.build();
+            // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
+            // todo load context / mimesniff in fetch
+            // todo referrer policy?
+            // todo service worker stuff
+            let context = FetchContext {
+                state: http_state,
+                user_agent: ua,
+                devtools_chan: dc,
+                filemanager: filemanager,
+                cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(cancel_chan))),
+                timing: Arc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
+            };
+
+            match res_init_ {
+                Some(res_init) => {
+                    let response = Response::from_init(res_init, timing_type);
+                    http_redirect_fetch(
+                        &mut request,
+                        &mut CorsCache::new(),
+                        response,
+                        true,
+                        &mut handle,
+                        &mut None,
+                        &context,
+                    );
+                },
+                None => fetch(&mut request, &mut handle, &context),
             };
         });
     }

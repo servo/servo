@@ -5,6 +5,9 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
+use bincode;
+use ipc_channel::ipc::IpcSender;
+use serde::{Deserialize, Serialize};
 use std::cell::Cell;
 use std::fmt;
 use std::mem;
@@ -72,6 +75,13 @@ impl PipelineNamespace {
         HistoryStateId {
             namespace_id: self.id,
             index: HistoryStateIndex(self.next_index()),
+        }
+    }
+
+    fn next_ipc_callback_id(&mut self) -> IpcCallbackId {
+        IpcCallbackId {
+            namespace_id: self.id,
+            index: IpcCallbackIndex(self.next_index()),
         }
     }
 }
@@ -242,6 +252,58 @@ impl fmt::Display for HistoryStateId {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let PipelineNamespaceId(namespace_id) = self.namespace_id;
         let HistoryStateIndex(index) = self.index;
+        write!(fmt, "({},{})", namespace_id, index.get())
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct IpcHandle {
+    pub callback_id: IpcCallbackId,
+    pub sender: IpcSender<IpcCallbackMsg>,
+}
+
+impl IpcHandle {
+    pub fn send<T: Serialize>(&self, msg: T) -> Result<(), bincode::Error> {
+        // TODO: use byte sender, impl to_opaque for IpcBytesSender
+        let mut bytes = Vec::with_capacity(4096);
+        bincode::serialize_into(&mut bytes, &msg)?;
+        self.sender.send(IpcCallbackMsg::Callback(self.callback_id.clone(), bytes))
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum IpcCallbackMsg {
+    AddCallback,
+    Callback(IpcCallbackId, Vec<u8>),
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct IpcCallbackIndex(pub NonZeroU32);
+malloc_size_of_is_0!(IpcCallbackIndex);
+
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
+pub struct IpcCallbackId {
+    pub namespace_id: PipelineNamespaceId,
+    pub index: IpcCallbackIndex,
+}
+
+impl IpcCallbackId {
+    pub fn new() -> IpcCallbackId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let next_history_state_id = namespace.next_ipc_callback_id();
+            tls.set(Some(namespace));
+            next_history_state_id
+        })
+    }
+}
+
+impl fmt::Display for IpcCallbackId {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let PipelineNamespaceId(namespace_id) = self.namespace_id;
+        let IpcCallbackIndex(index) = self.index;
         write!(fmt, "({},{})", namespace_id, index.get())
     }
 }
