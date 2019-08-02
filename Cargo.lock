@@ -2528,6 +2528,8 @@ dependencies = [
  "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "simpleservo 0.0.1",
  "smallvec 0.6.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webxr 0.0.1 (git+https://github.com/servo/webxr)",
+ "webxr-api 0.0.1 (git+https://github.com/servo/webxr)",
 ]
 
 [[package]]
@@ -4518,6 +4520,7 @@ dependencies = [
  "libservo 0.0.1",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-media 0.1.0 (git+https://github.com/servo/media)",
+ "webxr-api 0.0.1 (git+https://github.com/servo/webxr)",
  "winapi 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -5539,9 +5542,11 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#96c964c8939ca3ee8425fb8b29dd6fa6096a0bdd"
+source = "git+https://github.com/servo/webxr#f67b762424af7c75c0bbce817d0e55ff51baf4cc"
 dependencies = [
+ "bindgen 0.49.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gl_generator 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.6.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5551,11 +5556,12 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#96c964c8939ca3ee8425fb8b29dd6fa6096a0bdd"
+source = "git+https://github.com/servo/webxr#f67b762424af7c75c0bbce817d0e55ff51baf4cc"
 dependencies = [
  "euclid 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.6.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

@@ -745,6 +745,7 @@ fn get_options(env: &JNIEnv, opts: JObject) -> Result<(InitOptions, bool, Option
         } else {
             VRInitOptions::VRExternal(vr_pointer)
         },
+        xr_discovery: None,
         gl_context_pointer: None,
         native_display_pointer: None,
     };
