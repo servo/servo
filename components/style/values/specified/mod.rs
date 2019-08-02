@@ -69,7 +69,7 @@ pub use self::list::Quotes;
 pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
 pub use self::percentage::Percentage;
-pub use self::position::{GridAutoFlow, GridTemplateAreas, Position};
+pub use self::position::{GridAutoFlow, GridTemplateAreas, Position, PositionOrAuto};
 pub use self::position::{PositionComponent, ZIndex};
 pub use self::rect::NonNegativeLengthOrNumberRect;
 pub use self::resolution::Resolution;

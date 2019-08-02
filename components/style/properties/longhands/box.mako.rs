@@ -421,6 +421,19 @@ ${helpers.predefined_type(
     servo_restyle_damage="reflow_out_of_flow"
 )}
 
+// Motion Path Module Level 1
+${helpers.predefined_type(
+    "offset-anchor",
+    "PositionOrAuto",
+    "computed::PositionOrAuto::auto()",
+    engines="gecko",
+    animation_value_type="none",
+    gecko_pref="layout.css.motion-path.enabled",
+    spec="https://drafts.fxtf.org/motion-1/#offset-anchor-property",
+    servo_restyle_damage="reflow_out_of_flow",
+    boxed=True
+)}
+
 // CSSOM View Module
 // https://www.w3.org/TR/cssom-view-1/
 ${helpers.single_keyword(
