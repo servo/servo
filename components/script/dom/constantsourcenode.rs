@@ -1,0 +1,53 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use crate::dom::audionode::{AudioNode, UnwrappedAudioNodeOptions};
+use crate::dom::audioparam::AudioParam;
+use crate::dom::audioscheduledsourcenode::AudioScheduledSourceNode;
+use crate::dom::baseaudiocontext::BaseAudioContext;
+use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::root::Dom;
+use crate::dom::window::Window;
+use servo_media::audio::node::AudioNodeInit;
+use servo_media::audio::param::ParamType;
+
+#[dom_struct]
+pub struct ConstantSourceNode {
+    source_node: AudioScheduledSourceNode,
+    offset: Dom<AudioParam>,
+}
+
+impl ConstantSourceNode {
+    fn new_inherited(
+        window: &Window,
+        context: &BaseAudioContext,
+        options: &ConstantSourceOptions,
+    ) -> Fallible<ConstantSourceNode> {
+        let node_options = Default::default();
+        let source_node = AudioScheduledSourceNode::new_inherited(
+            AudioNodeInit::ConstantSourceNode(options.into()),
+            context,
+            node_options, /* 2, MAX, Speakers */
+            0, /* inputs */
+            1, /* outputs */
+        )?;
+        let node_id = source_node.node().node_id();
+        let offset = AudioParam::new(
+            window,
+            context,
+            node_id,
+            ParamType::Offset,
+            AutomationRate::A_rate,
+            *options.offset,
+            f32::MIN,
+            f32::MAX,
+        );
+
+        Ok(ConstantSourceNode {
+            source_node,
+            offset: Dom::from_ref(&offset),
+        })
+    }
+}
