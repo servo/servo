@@ -37,10 +37,8 @@ use histogram::Histogram;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::context::LayoutContext;
-use layout::display_list::items::{DisplayList, OpaqueNode};
-use layout::display_list::{IndexableText, WebRenderDisplayListConverter};
-use layout::flow::{Flow, GetBaseFlow};
-use layout::flow_ref::FlowRef;
+use layout::display_list::items::DisplayList;
+use layout::display_list::WebRenderDisplayListConverter;
 use layout::query::{
     process_content_box_request, process_content_boxes_request, LayoutRPCImpl, LayoutThreadData,
 };
@@ -48,6 +46,7 @@ use layout::query::{process_element_inner_text_query, process_node_geometry_requ
 use layout::query::{process_node_scroll_area_request, process_node_scroll_id_request};
 use layout::query::{
     process_offset_parent_query, process_resolved_style_request, process_style_query,
+    process_text_index_request,
 };
 use layout::traversal::RecalcStyleAndConstructFlows;
 use layout_traits::LayoutThreadFactory;
@@ -60,7 +59,6 @@ use msg::constellation_msg::{
 use msg::constellation_msg::{LayoutHangAnnotation, MonitoredComponentType, PipelineId};
 use msg::constellation_msg::{MonitoredComponentId, TopLevelBrowsingContextId};
 use net_traits::image_cache::ImageCache;
-use parking_lot::RwLock;
 use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, TimerMetadata};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
@@ -68,7 +66,6 @@ use script_layout_interface::message::{LayoutThreadInit, Msg, NodesFromPointQuer
 use script_layout_interface::message::{QueryMsg, ReflowComplete, ReflowGoal, ScriptReflow};
 use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::rpc::{LayoutRPC, OffsetParentResponse, StyleResponse};
-use script_layout_interface::wrapper_traits::LayoutNode;
 use script_traits::Painter;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{DrawAPaintImageResult, PaintWorkletError};
@@ -91,7 +88,7 @@ use std::time::Duration;
 use style::animation::Animation;
 use style::context::{QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters};
 use style::context::{SharedStyleContext, ThreadLocalStyleContextCreationInfo};
-use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TDocument, TElement, TNode};
+use style::dom::{ShowSubtree, TDocument, TElement, TNode};
 use style::driver;
 use style::error_reporting::RustLogReporter;
 use style::global_style_data::{GLOBAL_STYLE_DATA, STYLE_THREAD_POOL};
@@ -99,7 +96,6 @@ use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::PropertyId;
 use style::selector_parser::SnapshotMap;
-use style::servo::restyle_damage::ServoRestyleDamage;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{
     DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument, UserAgentStylesheets,
@@ -177,17 +173,8 @@ pub struct LayoutThread {
     /// The number of Web fonts that have been requested but not yet loaded.
     outstanding_web_fonts: Arc<AtomicUsize>,
 
-    /// The root of the flow tree.
-    root_flow: RefCell<Option<FlowRef>>,
-
     /// The document-specific shared lock used for author-origin stylesheets
     document_shared_lock: Option<SharedRwLock>,
-
-    /// The list of currently-running animations.
-    running_animations: ServoArc<RwLock<FxHashMap<OpaqueNode, Vec<Animation>>>>,
-
-    /// The list of animations that have expired since the last style recalculation.
-    expired_animations: ServoArc<RwLock<FxHashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// A counter for epoch messages
     epoch: Cell<Epoch>,
@@ -234,31 +221,8 @@ pub struct LayoutThread {
     /// If unspecified, will use the platform default setting.
     device_pixels_per_px: Option<f32>,
 
-    /// Dumps the display list form after a layout.
-    dump_display_list: bool,
-
-    /// Dumps the display list in JSON form after a layout.
-    dump_display_list_json: bool,
-
-    /// Dumps the DOM after restyle.
-    dump_style_tree: bool,
-
-    /// Dumps the flow tree after a layout.
-    dump_rule_tree: bool,
-
     /// Emits notifications when there is a relayout.
     relayout_event: bool,
-
-    /// True to turn off incremental layout.
-    nonincremental_layout: bool,
-
-    /// True if each step of layout is traced to an external JSON file
-    /// for debugging purposes. Setting this implies sequential layout
-    /// and paint.
-    trace_layout: bool,
-
-    /// Dumps the flow tree after a layout.
-    dump_flow_tree: bool,
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -287,14 +251,14 @@ impl LayoutThreadFactory for LayoutThread {
         load_webfonts_synchronously: bool,
         initial_window_size: Size2D<u32, DeviceIndependentPixel>,
         device_pixels_per_px: Option<f32>,
-        dump_display_list: bool,
-        dump_display_list_json: bool,
-        dump_style_tree: bool,
-        dump_rule_tree: bool,
+        _dump_display_list: bool,
+        _dump_display_list_json: bool,
+        _dump_style_tree: bool,
+        _dump_rule_tree: bool,
         relayout_event: bool,
-        nonincremental_layout: bool,
-        trace_layout: bool,
-        dump_flow_tree: bool,
+        _nonincremental_layout: bool,
+        _trace_layout: bool,
+        _dump_flow_tree: bool,
     ) {
         thread::Builder::new()
             .name(format!("LayoutThread {:?}", id))
@@ -335,14 +299,7 @@ impl LayoutThreadFactory for LayoutThread {
                         load_webfonts_synchronously,
                         initial_window_size,
                         device_pixels_per_px,
-                        dump_display_list,
-                        dump_display_list_json,
-                        dump_style_tree,
-                        dump_rule_tree,
                         relayout_event,
-                        nonincremental_layout,
-                        trace_layout,
-                        dump_flow_tree,
                     );
 
                     let reporter_name = format!("layout-reporter-{}", id);
@@ -508,14 +465,7 @@ impl LayoutThread {
         load_webfonts_synchronously: bool,
         initial_window_size: Size2D<u32, DeviceIndependentPixel>,
         device_pixels_per_px: Option<f32>,
-        dump_display_list: bool,
-        dump_display_list_json: bool,
-        dump_style_tree: bool,
-        dump_rule_tree: bool,
         relayout_event: bool,
-        nonincremental_layout: bool,
-        trace_layout: bool,
-        dump_flow_tree: bool,
     ) -> LayoutThread {
         // The device pixel ratio is incorrect (it does not have the hidpi value),
         // but it will be set correctly when the initial reflow takes place.
@@ -557,10 +507,7 @@ impl LayoutThread {
             new_animations_sender: new_animations_sender,
             _new_animations_receiver: new_animations_receiver,
             outstanding_web_fonts: Arc::new(AtomicUsize::new(0)),
-            root_flow: RefCell::new(None),
             document_shared_lock: None,
-            running_animations: ServoArc::new(RwLock::new(Default::default())),
-            expired_animations: ServoArc::new(RwLock::new(Default::default())),
             epoch: Cell::new(Epoch(0)),
             viewport_size: Size2D::new(Au(0), Au(0)),
             webrender_api: webrender_api_sender.create_api(),
@@ -569,7 +516,6 @@ impl LayoutThread {
             rw_data: Arc::new(Mutex::new(LayoutThreadData {
                 constellation_chan: constellation_chan,
                 display_list: None,
-                indexable_text: IndexableText::default(),
                 content_box_response: None,
                 content_boxes_response: Vec::new(),
                 client_rect_response: Rect::zero(),
@@ -594,14 +540,7 @@ impl LayoutThread {
             load_webfonts_synchronously,
             initial_window_size,
             device_pixels_per_px,
-            dump_display_list,
-            dump_display_list_json,
-            dump_style_tree,
-            dump_rule_tree,
             relayout_event,
-            nonincremental_layout,
-            trace_layout,
-            dump_flow_tree,
         }
     }
 
@@ -634,8 +573,8 @@ impl LayoutThread {
                 options: GLOBAL_STYLE_DATA.options.clone(),
                 guards,
                 visited_styles_enabled: false,
-                running_animations: self.running_animations.clone(),
-                expired_animations: self.expired_animations.clone(),
+                running_animations: Default::default(),
+                expired_animations: Default::default(),
                 registered_speculative_painters: &self.registered_painters,
                 local_context_creation_data: Mutex::new(thread_local_style_context_creation_data),
                 timer: self.timer.clone(),
@@ -829,7 +768,7 @@ impl LayoutThread {
                 self.paint_time_metrics.set_navigation_start(time);
             },
             Msg::GetRunningAnimations(sender) => {
-                let _ = sender.send(self.running_animations.read().len());
+                let _ = sender.send(0);
             },
         }
 
@@ -888,14 +827,14 @@ impl LayoutThread {
             self.load_webfonts_synchronously,
             self.initial_window_size,
             self.device_pixels_per_px,
-            self.dump_display_list,
-            self.dump_display_list_json,
-            self.dump_style_tree,
-            self.dump_rule_tree,
+            false, // dump_display_list
+            false, // dump_display_list_json
+            false, // dump_style_tree
+            false, // dump_rule_tree
             self.relayout_event,
-            self.nonincremental_layout,
-            self.trace_layout,
-            self.dump_flow_tree,
+            true,  // nonincremental_layout
+            false, // trace_layout
+            false, // dump_flow_tree
         );
     }
 
@@ -936,7 +875,6 @@ impl LayoutThread {
             waiting_time_min, waiting_time_max, waiting_time_mean, waiting_time_stddev
         );
 
-        self.root_flow.borrow_mut().take();
         self.background_hang_monitor.unregister();
     }
 
@@ -967,10 +905,6 @@ impl LayoutThread {
     /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
     fn handle_set_quirks_mode<'a, 'b>(&mut self, quirks_mode: QuirksMode) {
         self.stylist.set_quirks_mode(quirks_mode);
-    }
-
-    fn try_get_layout_root<N: LayoutNode>(&self, _node: N) -> Option<FlowRef> {
-        None
     }
 
     /// The high-level routine that performs layout threads.
@@ -1139,12 +1073,6 @@ impl LayoutThread {
             }
         }
 
-        if viewport_size_changed {
-            if let Some(mut flow) = self.try_get_layout_root(element.as_node()) {
-                LayoutThread::reflow_all_nodes(FlowRef::deref_mut(&mut flow));
-            }
-        }
-
         debug!(
             "Shadow roots in document {:?}",
             document.shadow_roots().len()
@@ -1248,9 +1176,6 @@ impl LayoutThread {
                 0,
                 0,
             );
-
-            // Retrieve the (possibly rebuilt) root flow.
-            *self.root_flow.borrow_mut() = self.try_get_layout_root(element.as_node());
         }
 
         for element in elements_with_snapshot {
@@ -1258,18 +1183,6 @@ impl LayoutThread {
         }
 
         layout_context = traversal.destroy();
-
-        if self.dump_style_tree {
-            println!("{:?}", ShowSubtreeDataAndPrimaryValues(element.as_node()));
-        }
-
-        if self.dump_rule_tree {
-            layout_context
-                .style_context
-                .stylist
-                .rule_tree()
-                .dump_stdout(&guards);
-        }
 
         // GC the rule tree if some heuristics are met.
         unsafe {
@@ -1302,8 +1215,7 @@ impl LayoutThread {
                         Au::from_f32_px(point_in_node.x),
                         Au::from_f32_px(point_in_node.y),
                     );
-                    rw_data.text_index_response =
-                        TextIndexResponse(rw_data.indexable_text.text_index(node, point_in_node));
+                    rw_data.text_index_response = process_text_index_request(node, point_in_node);
                 },
                 &QueryMsg::NodeGeometryQuery(node) => {
                     rw_data.client_rect_response = process_node_geometry_request(node);
@@ -1354,8 +1266,7 @@ impl LayoutThread {
                 },
                 &QueryMsg::ElementInnerTextQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
-                    rw_data.element_inner_text_response =
-                        process_element_inner_text_query(node, &rw_data.indexable_text);
+                    rw_data.element_inner_text_response = process_element_inner_text_query(node);
                 },
             },
             ReflowGoal::Full | ReflowGoal::TickAnimations => {},
@@ -1469,16 +1380,6 @@ impl LayoutThread {
             .send_transaction(self.webrender_document, txn);
 
         self.generation.set(self.generation.get() + 1);
-    }
-
-    fn reflow_all_nodes(flow: &mut dyn Flow) {
-        debug!("reflowing all nodes!");
-        flow.mut_base().restyle_damage.insert(
-            ServoRestyleDamage::REPAINT |
-                ServoRestyleDamage::STORE_OVERFLOW |
-                ServoRestyleDamage::REFLOW |
-                ServoRestyleDamage::REPOSITION,
-        );
     }
 
     /// Returns profiling information which is passed to the time profiler.

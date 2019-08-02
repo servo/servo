@@ -10,8 +10,6 @@ extern crate serde;
 pub mod context;
 pub mod data;
 pub mod display_list;
-pub mod flow;
-pub mod flow_ref;
 mod fragment;
 pub mod opaque_node;
 pub mod query;
@@ -21,6 +19,4 @@ pub mod wrapper;
 // For unit tests:
 pub use crate::fragment::Fragment;
 
-// We can't use servo_arc for everything in layout, because the Flow stuff uses
-// weak references.
 use servo_arc::Arc as ServoArc;
