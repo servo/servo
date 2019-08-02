@@ -89,7 +89,7 @@
   "media.testing.enabled": false,
   "network.http-cache.disabled": false,
   "network.mime.sniff": false,
-  "session-history.max-length": 20,
+  "session-history.max-length": 5,
   "shell.homepage": "https://servo.org",
   "shell.keep_screen_on.enabled": false,
   "shell.native-orientation": "both",
