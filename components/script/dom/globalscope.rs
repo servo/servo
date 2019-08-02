@@ -38,9 +38,11 @@ use crate::task_source::websocket::WebsocketTaskSource;
 use crate::task_source::TaskSourceName;
 use crate::timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
 use crate::timers::{OneshotTimers, TimerCallback};
+use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::JSObject;
 use js::jsapi::{CurrentGlobalOrNull, GetNonCCWObjectGlobal};
@@ -51,7 +53,7 @@ use js::rust::wrappers::EvaluateUtf8;
 use js::rust::{get_object_class, CompileOptionsWrapper, ParentRuntime, Runtime};
 use js::rust::{HandleValue, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{IpcCallbackId, IpcCallbackMsg, IpcHandle, PipelineId};
 use net_traits::image_cache::ImageCache;
 use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
 use profile_traits::{mem as profile_mem, time as profile_time};
@@ -68,6 +70,54 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use time::{get_time, Timespec};
 
+
+pub type IpcCallback = Box<dyn FnMut(Vec<u8>) + Send>;
+
+#[derive(Clone)]
+pub struct IpcScriptRouter {
+    ipc_sender: IpcSender<IpcCallbackMsg>,
+    sender: Sender<(IpcCallbackId, IpcCallback)>,
+
+}
+
+impl IpcScriptRouter {
+    fn new() -> Self {
+        let (callback_sender, callback_receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = unbounded();
+        let ipc_script_router = IpcScriptRouter {
+            sender: sender,
+            ipc_sender: callback_sender,
+        };
+        let mut callbacks: HashMap<IpcCallbackId, IpcCallback> = HashMap::new();
+        ROUTER.add_route(
+            callback_receiver.to_opaque(),
+            Box::new(move |message| {
+                match message.to().unwrap() {
+                    IpcCallbackMsg::AddCallback => {
+                        let (id, callback) = receiver.recv().unwrap();
+                        callbacks.insert(id, callback);
+                    },
+                    IpcCallbackMsg::Callback(id, data) => {
+                        let mut callback = callbacks.remove(&id).unwrap();
+                        callback(data);
+                    }
+                }
+            }),
+        );
+        ipc_script_router
+    }
+
+    fn add_callback(&self, callback: IpcCallback) -> IpcHandle {
+        let callback_id = IpcCallbackId::new();
+        let _ = self.sender.send((callback_id.clone(), callback));
+        let _ = self.ipc_sender.send(IpcCallbackMsg::AddCallback);
+        IpcHandle {
+            callback_id,
+            sender: self.ipc_sender.clone(),
+        }
+    }
+}
+
 #[derive(JSTraceable)]
 pub struct AutoCloseWorker(Arc<AtomicBool>);
 
@@ -77,11 +127,17 @@ impl Drop for AutoCloseWorker {
     }
 }
 
+unsafe_no_jsmanaged_fields!(IpcScriptRouter);
+
 #[dom_struct]
 pub struct GlobalScope {
     eventtarget: EventTarget,
     crypto: MutNullableDom<Crypto>,
     next_worker_id: Cell<WorkerId>,
+
+    /// A shared-router for script to handle ipc.
+    #[ignore_malloc_size_of = "channels are hard"]
+    ipc_script_router: IpcScriptRouter,
 
     /// Pipeline id associated with this global.
     pipeline_id: PipelineId,
@@ -182,6 +238,7 @@ impl GlobalScope {
         user_agent: Cow<'static, str>,
     ) -> Self {
         Self {
+            ipc_script_router: IpcScriptRouter::new(),
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
             next_worker_id: Cell::new(WorkerId(0)),
@@ -205,6 +262,10 @@ impl GlobalScope {
             is_headless,
             user_agent,
         }
+    }
+
+    pub fn add_ipc_callback(&self, callback: IpcCallback) -> IpcHandle {
+        self.ipc_script_router.add_callback(callback)
     }
 
     pub fn track_worker(&self, closing_worker: Arc<AtomicBool>) {

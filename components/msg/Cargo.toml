@@ -13,6 +13,7 @@ test = false
 doctest = false
 
 [dependencies]
+bincode = "1"
 lazy_static = "1"
 ipc-channel = "0.12"
 malloc_size_of = { path = "../malloc_size_of" }

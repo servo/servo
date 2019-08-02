@@ -125,7 +125,7 @@ use metrics::{
     ProgressiveWebMetric,
 };
 use mime::{self, Mime};
-use msg::constellation_msg::BrowsingContextId;
+use msg::constellation_msg::{BrowsingContextId, IpcHandle};
 use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestBuilder;
 use net_traits::response::HttpsState;
@@ -1729,6 +1729,16 @@ impl Document {
     ) {
         let mut loader = self.loader.borrow_mut();
         loader.fetch_async(load, request, fetch_target);
+    }
+
+    pub fn fetch_async_with_handle(
+        &self,
+        load: LoadType,
+        request: RequestBuilder,
+        fetch_target: IpcHandle,
+    ) {
+        let mut loader = self.loader.borrow_mut();
+        loader.fetch_async_with_handle(load, request, fetch_target);
     }
 
     // https://html.spec.whatwg.org/multipage/#the-end
