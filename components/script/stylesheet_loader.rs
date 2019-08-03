@@ -295,10 +295,9 @@ impl<'a> StylesheetLoader<'a> {
             task_source,
             canceller: Some(canceller),
         };
-        println!("Loading stylesheet");
         let callback = Box::new(move |data: Vec<u8>| {
-            let msg: FetchResponseMsg = bincode::deserialize(&data[..]).expect("Data to deserialize into a FetchResponseMsg");
-            println!("Executing stylesheet load callback with {:?}", msg);
+            let msg: FetchResponseMsg = bincode::deserialize(&data[..])
+                .expect("Data to deserialize into a FetchResponseMsg");
             listener.notify_fetch(msg);
         });
 
