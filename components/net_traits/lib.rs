@@ -265,6 +265,7 @@ impl FetchTaskTarget for IpcHandle {
                 .get_resource_timing()
                 .clone())));
         }
+        self.drop_callback();
     }
 }
 

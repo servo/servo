@@ -26,7 +26,7 @@ use net_traits::request::{
 use net_traits::{
     FetchMetadata, FetchResponseListener, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy,
 };
-use net_traits::{ResourceFetchTiming, ResourceTimingType};
+use net_traits::{FetchResponseMsg, ResourceFetchTiming, ResourceTimingType};
 use parking_lot::RwLock;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
@@ -295,8 +295,10 @@ impl<'a> StylesheetLoader<'a> {
             task_source,
             canceller: Some(canceller),
         };
+        println!("Loading stylesheet");
         let callback = Box::new(move |data: Vec<u8>| {
-            let msg = bincode::deserialize(&data[..]).unwrap();
+            let msg: FetchResponseMsg = bincode::deserialize(&data[..]).expect("Data to deserialize into a FetchResponseMsg");
+            println!("Executing stylesheet load callback with {:?}", msg);
             listener.notify_fetch(msg);
         });
 
