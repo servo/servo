@@ -25,8 +25,7 @@ let testFunction = (session, controller, t, sessionObjects) => new Promise((reso
   let gl = sessionObjects.gl;
 
   // Session must have a baseLayer or frame requests will be ignored.
-  let webglLayer = new XRWebGLLayer(session, gl, {
-      compositionDisabled: session.mode == 'inline' });
+  let webglLayer = new XRWebGLLayer(session, gl);
 
   function onEarlyFrame(time, vrFrame) {
     // We shouldn't be allowed to reach this callback with no baseLayer

@@ -1,22 +1,10 @@
-<!--
-addEventListener('connect', function(e) {
-  var passed;
-  switch (location.hash) {
-    case '#1': passed = name == ''; break;
-    case '#2': passed = name == 'a'; break;
-    case '#3': passed = name == '0'; break;
-  }
-  e.ports[0].postMessage(passed);
-}, false);
-/*
--->
 <!doctype html>
 <title>getting name</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <script>
-var tests = [['#1', ''], ['#2', 'a'], ['#3', -0]];
+var tests = [['getting.js#1', ''], ['getting.js#2', 'a'], ['getting.js#3', -0]];
 tests.forEach(function(t) {
   async_test(function() {
     var w = new SharedWorker(t[0], t[1]);
@@ -27,8 +15,3 @@ tests.forEach(function(t) {
   });
 });
 </script>
-<!--
-*/
-//-->
-
-

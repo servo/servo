@@ -1,17 +1,4 @@
-<!--
-onconnect = function(e) {
-try {
-  var port = e.ports[0]
-  EventSource.prototype.ReturnTrue = function() { return true }
-  var source = new EventSource("../resources/message.py")
-  port.postMessage([true, source.ReturnTrue(), 'EventSource' in self])
-  source.close()
-} catch(e) {
-  port.postMessage([false, String(e)])
-}
-}
-/*-->
-<!DoCtYpE hTMl>
+<!doctype html>
 <html>
   <heAd>
     <title>shared worker - EventSource: prototype et al</tiTle>
@@ -23,7 +10,7 @@ try {
     <sCript>
       var test = async_test();
       test.step(function() {
-        var worker = new SharedWorker('#')
+        var worker = new SharedWorker('eventsource-prototype.js')
         worker.port.onmessage = function(e) {
           test.step(function() {
             assert_true(e.data[0], e.data[1])
@@ -36,4 +23,3 @@ try {
     </scrIpt>
   </bOdy>
 </htMl>
-<!--*/ //-->

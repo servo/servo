@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Text Test: Chrome pre-line crash test</title>
+<link rel="help" href="https://crbug.com/989827">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  br { white-space: pre-line }
+</style>
+<script>
+  test(() => {
+    document.documentElement.remove();
+    const br = document.createElement("br");
+    br.appendChild(document.createTextNode(""));
+    document.appendChild(br);
+    br.offsetTop;
+    br.firstChild.data = " ";
+  }, "Modifying data of a text child of a root br element with pre-line should not crash.");
+</script>

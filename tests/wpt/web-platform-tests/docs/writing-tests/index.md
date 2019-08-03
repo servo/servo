@@ -18,6 +18,7 @@ There's also a load of [general guidelines](general-guidelines) that apply to al
    h2tests
    lint-tool
    manual
+   reftest-tutorial
    reftests
    rendering
    server-features

@@ -3,7 +3,9 @@
 Reftests are one of the primary tools for testing things relating to
 rendering; they are made up of the test and one or more other pages
 ("references") with assertions as to whether they render identically
-or not.
+or not. This page describes their aspects exhaustively; [the tutorial
+on writing a reftest](reftest-tutorial) offers a more limited but
+grounded guide to the process.
 
 ## How to Run Reftests
 
@@ -179,47 +181,6 @@ platform. However, once it's established that underlining an inline
 element works, it's possible to construct a reftest for underlining
 a block element, by constructing a reference using underlines on a
 ```<span>``` that wraps all the content inside the block.
-
-## Example Reftests
-
-This example follows the recommended approach in being a
-self-describing test as it has a simple statement on the page
-describing how it should render to pass the tests.
-
-### Test File
-
-This test verifies that a right-to-left rendering of **SAW** within a
-```<bdo>``` element displays as **WAS**.
-
-```html
-<!DOCTYPE html>
-<meta charset="utf-8">
-<title>BDO element dir=rtl</title>
-<link rel="help" href="https://html.spec.whatwg.org/#the-bdo-element">
-<meta name="assert" content="BDO element's DIR content attribute renders corrently given value of 'rtl'.">
-<link rel="match" href="test-bdo-001.html">
-<p>Pass if you see WAS displayed below.</p>
-<bdo dir="rtl">SAW</bdo>
-```
-
-### Reference File
-
-The reference file must look exactly like the test file,
-except that the code behind it is different.
-
-* All metadata is removed.
-* The ```title``` need not match.
-* The markup that created the actual test data is
-  different: here, the same effect is created with
-  very mundane, dependable technology.
-
-```html
-<!DOCTYPE html>
-<meta charset="utf-8">
-<title>HTML Reference File</title>
-<p>Pass if you see WAS displayed below.</p>
-<p>WAS</p>
-```
 
 [general guidelines]: general-guidelines
 [rendering]: rendering

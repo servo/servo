@@ -1,7 +1,3 @@
-<!--
-postMessage(navigator.language);
-/*
--->
 <!doctype html>
 <title>navigator.language</title>
 <script src="/resources/testharness.js"></script>
@@ -9,13 +5,10 @@ postMessage(navigator.language);
 <div id=log></div>
 <script>
 async_test(function() {
-  var worker = new Worker('#');
+  var worker = new Worker('language.js');
   worker.onmessage = this.step_func(function(e) {
     assert_equals(e.data, navigator.language);
     this.done();
   });
 });
 </script>
-<!--
-*/
-//-->

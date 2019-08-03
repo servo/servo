@@ -22,7 +22,7 @@
 
 test(function(){
   target.style = 'offset-position: calc(30px + 20%) calc(-200px + 8em + 100%);';
-  assert_equals(getComputedStyle(target).offsetPosition, 'calc(20% + 30px) calc(100% + -40px)');
+  assert_equals(getComputedStyle(target).offsetPosition, 'calc(20% + 30px) calc(100% - 40px)');
 }, 'offset-position supports calc');
 
 test(function(){
@@ -32,7 +32,7 @@ test(function(){
 
 test(function(){
   target.style = 'offset-distance: calc(-100px + 50%);';
-  assert_equals(getComputedStyle(target).offsetDistance, 'calc(50% + -100px)');
+  assert_equals(getComputedStyle(target).offsetDistance, 'calc(50% - 100px)');
 }, 'offset-distance supports calc');
 
 test(function(){
@@ -42,7 +42,7 @@ test(function(){
 
 test(function(){
   target.style = 'offset-anchor: calc(30px + 20%) calc(-200px + 8em + 100%);';
-  assert_equals(getComputedStyle(target).offsetAnchor, 'calc(20% + 30px) calc(100% + -40px)');
+  assert_equals(getComputedStyle(target).offsetAnchor, 'calc(20% + 30px) calc(100% - 40px)');
 }, 'offset-anchor supports calc');
 
 </script>

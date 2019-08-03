@@ -48,25 +48,6 @@ expectation: %(expectation)s
         self.spec_directory = os.path.abspath(
             os.path.join(script_directory, '..', '..'))
 
-    def handleDelivery(self, selection, spec):
-        delivery_type = selection['delivery_type']
-        delivery_value = selection['delivery_value']
-
-        meta = ''
-        headers = []
-
-        if delivery_value is not None:
-            if delivery_type == 'meta':
-                meta = '<meta http-equiv="Content-Security-Policy" ' + \
-                       'content="block-all-mixed-content">'
-            elif delivery_type == 'http-rp':
-                headers.append(
-                    "Content-Security-Policy: block-all-mixed-content")
-            else:
-                raise ValueError("Invalid delivery_type %s" % delivery_type)
-
-        return {"meta": meta, "headers": headers}
-
 
 if __name__ == '__main__':
     generate.main(MixedContentConfig())

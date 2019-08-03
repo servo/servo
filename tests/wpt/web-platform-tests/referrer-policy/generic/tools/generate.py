@@ -42,33 +42,6 @@ the target request is %(origin)s.'''
         self.spec_directory = os.path.abspath(
             os.path.join(script_directory, '..', '..'))
 
-    def handleDelivery(self, selection, spec):
-        delivery_type = selection['delivery_type']
-        delivery_value = selection['delivery_value']
-
-        meta = ''
-        headers = []
-        if delivery_value != None:
-            if delivery_type == 'meta':
-                meta = \
-                    '<meta name="referrer" content="%s">' % delivery_value
-            elif delivery_type == 'http-rp':
-                meta = \
-                    "<!-- No meta: Referrer policy delivered via HTTP headers. -->"
-                headers.append('Referrer-Policy: ' + '%s' % delivery_value)
-                # TODO(kristijanburnik): Limit to WPT origins.
-                headers.append('Access-Control-Allow-Origin: *')
-            elif delivery_type == 'attr':
-                # attr-referrer is supported by the JS test wrapper.
-                pass
-            elif delivery_type == 'rel-noref':
-                # rel=noreferrer is supported by the JS test wrapper.
-                pass
-            else:
-                raise ValueError('Not implemented delivery_type: ' \
-                                  + delivery_type)
-        return {"meta": meta, "headers": headers}
-
 
 if __name__ == '__main__':
     generate.main(ReferrerPolicyConfig())

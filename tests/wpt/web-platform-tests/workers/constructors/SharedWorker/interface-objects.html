@@ -1,19 +1,3 @@
-<!--
-var prt;
-function handleCall(e) {
-  var log = [];
-  for (var i = 0; i < e.data.length; ++i) {
-    if (!(e.data[i] in self))
-      log.push(e.data[i]);
-  }
-  prt.postMessage('These were missing: '+log.join(', '));
-}
-onconnect = function(e) {
-  prt = e.ports[0];
-  prt.onmessage = handleCall;
-};
-/*
--->
 <!doctype html>
 <title>expected interface objects/constructors</title>
 <script src="/resources/testharness.js"></script>
@@ -27,7 +11,7 @@ onconnect = function(e) {
   if (expected[i] in window)
      supported.push(expected[i]);
   }
-  var worker = new SharedWorker('#');
+  var worker = new SharedWorker('interface-objects.js');
   worker.port.start();
   worker.port.postMessage(supported);
   worker.port.addEventListener('message', this.step_func(function(e) {
@@ -36,6 +20,3 @@ onconnect = function(e) {
   }), false);
 });
 </script>
-<!--
-*/
-//-->

@@ -60,7 +60,8 @@ function testFunction(session, fakeDeviceController, t) {
     handedness: "right",
     targetRayMode: "tracked-pointer",
     pointerOrigin: LOCAL_POINTER_TRANSFORM,
-    gripOrigin: INITIAL_GRIP_TRANSFORM
+    gripOrigin: INITIAL_GRIP_TRANSFORM,
+    profiles: []
   });
 
   return new Promise((resolve, reject) => {

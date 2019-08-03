@@ -49,6 +49,7 @@ promise_test(async t => {
       assert_not_equals(found_device, undefined);
       assert_equals(found_device.kind, "videoinput");
       assert_equals(found_device.groupId, device.groupId);
+      stream.getTracks().forEach(t => t.stop());
     }, error => {
       assert_equals(error.name, "OverconstrainedError");
       assert_equals(error.constraint, "groupId");
@@ -71,6 +72,7 @@ promise_test(async t => {
       assert_not_equals(found_device, undefined);
       assert_equals(found_device.kind, "audioinput");
       assert_equals(found_device.groupId, device.groupId);
+      stream.getTracks().forEach(t => t.stop());
     }, error => {
       assert_equals(error.name, "OverconstrainedError");
       assert_equals(error.constraint, "groupId");

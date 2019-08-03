@@ -14,7 +14,7 @@ dictionary NDEFMessageInit {
   sequence<NDEFRecordInit> records;
 };
 
-typedef (DOMString or unrestricted double or ArrayBuffer or Dictionary) NDEFRecordData;
+typedef (DOMString or unrestricted double or ArrayBuffer or object) NDEFRecordData;
 
 [Constructor(NDEFRecordInit recordInit), Exposed=Window]
 interface NDEFRecord {

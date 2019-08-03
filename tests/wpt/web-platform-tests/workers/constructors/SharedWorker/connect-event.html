@@ -1,9 +1,3 @@
-<!--
-onconnect = function(e) {
-  e.ports[0].postMessage([e.data === '', e instanceof MessageEvent, e.ports.length == 1]);
-};
-/*
--->
 <!doctype html>
 <title>connect event</title>
 <script src="/resources/testharness.js"></script>
@@ -11,7 +5,7 @@ onconnect = function(e) {
 <div id="log"></div>
 <script>
 (async_test()).step(function() {
-  var worker = new SharedWorker('#');
+  var worker = new SharedWorker('connect-event.js');
   worker.port.addEventListener('message', this.step_func(function(e) {
     assert_true(e.data[0], "e.data === ''");
     assert_true(e.data[1], "e instanceof MessageEvent");
@@ -21,6 +15,3 @@ onconnect = function(e) {
   worker.port.start();
 });
 </script>
-<!--
-*/
-//-->

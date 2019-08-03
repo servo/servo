@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>writing mode</title>
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#layout-algorithms">
+<meta name="assert" content="Verify CSS writing mode (writing-mode and directionproperties) for mrow.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
+<script src="/mathml/support/layout-comparison.js"></script>
+<script>
+  var epsilon = 1;
+
+  setup({ explicit_done: true });
+  window.addEventListener("load", runTests);
+
+  function runTests() {
+      var reference = document.getElementById("horizontal-tb_ltr");
+
+      // These tests are kept in a separate tentative.html file until it is
+      // clear how to handle vertical math layout.
+      // See https://github.com/mathml-refresh/mathml/issues/18
+      ["vertical-lr_ltr",
+       "vertical-lr_rtl",
+       "vertical-rl_ltr",
+       "vertical-rl_rtl"].forEach(id => {
+           var element = document.getElementById(id);
+
+           test(function() {
+               var style = window.getComputedStyle(element);
+               var writingMode = id.split("_");
+               assert_equals(style.getPropertyValue("writing-mode"),
+                             writingMode[0], "writing-mode");
+               assert_equals(style.getPropertyValue("direction"),
+                             writingMode[1], "direction");
+           }, `Inheritance of CSS writing-mode and direction (id='${id}')`);
+
+           test(function() {
+              assert_true(MathMLFeatureDetection.has_mspace());
+              compareLayout(element, reference, epsilon);
+           }, `Layout of mrow (id='${id}')`);
+      });
+      done();
+  }
+</script>
+</head>
+<body>
+  <div id="log"></div>
+  <p>
+    <math>
+      <mrow id="horizontal-tb_ltr">
+        <mspace style="background: blue"
+                width="20px" height="30px" depth="40px"></mspace>
+        <mspace style="background: black"
+                width="50px" depth="60px"></mspace>
+        <mspace style="background: yellow"
+                width="70px" height="80px"></mspace>
+      </mrow>
+    </math>
+  </p>
+  <p>
+    <math style="writing-mode: vertical-lr;">
+      <mrow id="vertical-lr_ltr">
+        <mspace style="background: blue"
+                width="20px" height="30px" depth="40px"></mspace>
+        <mspace style="background: black"
+                width="50px" depth="60px"></mspace>
+        <mspace style="background: yellow"
+                width="70px" height="80px"></mspace>
+      </mrow>
+    </math>
+  </p>
+  <p>
+    <math style="writing-mode: vertical-lr; direction: rtl;">
+      <mrow id="vertical-lr_rtl">
+        <mspace style="background: blue"
+                width="20px" height="30px" depth="40px"></mspace>
+        <mspace style="background: black"
+                width="50px" depth="60px"></mspace>
+        <mspace style="background: yellow"
+                width="70px" height="80px"></mspace>
+      </mrow>
+    </math>
+  </p>
+  <p>
+    <math style="writing-mode: vertical-rl;">
+      <mrow id="vertical-rl_ltr">
+        <mspace style="background: blue"
+                width="20px" height="30px" depth="40px"></mspace>
+        <mspace style="background: black"
+                width="50px" depth="60px"></mspace>
+        <mspace style="background: yellow"
+                width="70px" height="80px"></mspace>
+      </mrow>
+    </math>
+  </p>
+  <p>
+    <math style="writing-mode: vertical-rl; direction: rtl;">
+      <mrow id="vertical-rl_rtl">
+        <mspace style="background: blue"
+                width="20px" height="30px" depth="40px"></mspace>
+        <mspace style="background: black"
+                width="50px" depth="60px"></mspace>
+        <mspace style="background: yellow"
+                width="70px" height="80px"></mspace>
+      </mrow>
+    </math>
+  </p>
+</body>
+</html>

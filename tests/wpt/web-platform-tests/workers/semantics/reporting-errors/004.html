@@ -1,13 +1,3 @@
-<!--
-var i = 0;
-onconnect = function (e) {
-  i++;
-  setTimeout(function() { e.ports[0].postMessage(i); }, 250);
-  y(); // will "report the error"
-}
-
-/*
--->
 <!doctype html>
 <title>shared worker in two documents and window.onerror</title>
 <script src="/resources/testharness.js"></script>
@@ -19,7 +9,7 @@ var t = async_test(function() {
   window.onerror = this.step_func(function(a) {
     assert_unreached('(outer) window.onerror invoked: ' + a);
   });
-  var worker = new SharedWorker('#', '');
+  var worker = new SharedWorker('004.js', '');
   worker.addEventListener('error', this.step_func(function(e) {
     assert_unreached('(outer) error on worker');
   }), false);
@@ -34,6 +24,3 @@ var t = async_test(function() {
   });
 });
 </script>
-<!--
-*/
-//-->

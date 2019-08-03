@@ -6,13 +6,10 @@ from .base import Step, StepRunner
 
 
 class GetUpdatePropertyList(Step):
-    provides = ["property_order", "boolean_properties"]
+    provides = ["update_properties"]
 
     def create(self, state):
-        property_order, boolean_properties = products.load_product_update(
-            state.config, state.product)
-        state.property_order = (property_order or []) + state.extra_properties
-        state.boolean_properties = boolean_properties
+        state.update_properties = products.load_product_update(state.config, state.product)
 
 
 class UpdateExpected(Step):
@@ -27,12 +24,13 @@ class UpdateExpected(Step):
         metadata.update_expected(state.paths,
                                  state.serve_root,
                                  state.run_log,
+                                 update_properties=state.update_properties,
                                  rev_old=None,
-                                 ignore_existing=state.ignore_existing,
+                                 full_update=state.full_update,
                                  sync_root=sync_root,
-                                 property_order=state.property_order,
-                                 boolean_properties=state.boolean_properties,
-                                 stability=state.stability)
+                                 disable_intermittent=state.disable_intermittent,
+                                 update_intermittent=state.update_intermittent,
+                                 remove_intermittent=state.remove_intermittent)
 
 
 class CreateMetadataPatch(Step):

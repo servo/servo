@@ -53,8 +53,8 @@
       }, 'input.capture is "user" when the capture attribute is user');
 
       test(function() {
-        assert_equals(document.querySelector('#present-invalid').capture, "invalid");
-      }, 'input.capture is "invalid" when the capture attribute is invalid value default');
+        assert_equals(document.querySelector('#present-invalid').capture, "");
+      }, 'input.capture is "" when the capture attribute is invalid value default');
 
       test(function() {
         assert_equals(document.querySelector('#present-environment').capture, "environment");

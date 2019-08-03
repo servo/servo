@@ -1,0 +1,6 @@
+{
+    "docker-run": {"path": "frontend.py", "script": "run", "parser": "parser_run", "help": "Run wpt docker image",
+                   "virtualenv": false},
+    "docker-build": {"path": "frontend.py", "script": "build", "help": "Build wpt docker image",
+                     "virtualenv": false}
+}

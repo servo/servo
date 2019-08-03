@@ -22,7 +22,6 @@
             continue;
 
         var style = "margin-left: 30px; margin-right: 40px;  margin-top: 50px; margin-bottom: 60px;";
-        var styleRTL = `direction: rtl; ${style}`;
 
         if (FragmentHelper.isEmpty(tag)) {
             test(function() {
@@ -46,7 +45,7 @@
         }, `Margin properties on ${tag}`);
 
         test(function() {
-            var s = compareSpaceWithAndWithoutStyle(tag, styleRTL);
+            var s = compareSpaceWithAndWithoutStyle(tag, style, null, "rtl");
             assert_approx_equals(s.left_delta, 30, epsilon, "left margin");
             assert_approx_equals(s.right_delta, 40, epsilon, "right margin");
             assert_approx_equals(s.top_delta, 50, epsilon, "top margin");

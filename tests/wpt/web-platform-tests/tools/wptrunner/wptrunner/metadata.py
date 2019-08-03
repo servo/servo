@@ -1,9 +1,6 @@
 from __future__ import print_function
 import array
 import os
-import shutil
-import tempfile
-import uuid
 from collections import defaultdict, namedtuple
 
 from mozlog import structuredlog
@@ -25,28 +22,56 @@ except ImportError:
     import json
 
 
+class RunInfo(object):
+    """A wrapper around RunInfo dicts so that they can be hashed by identity"""
+
+    def __init__(self, dict_value):
+        self.data = dict_value
+        self.canonical_repr = tuple(tuple(item) for item in sorted(dict_value.items()))
+
+    def __getitem__(self, key):
+        return self.data[key]
+
+    def __setitem__(self, key, value):
+        raise TypeError
+
+    def __hash__(self):
+        return hash(self.canonical_repr)
+
+    def __eq__(self, other):
+        return self.canonical_repr == other.canonical_repr
+
+    def iteritems(self):
+        for key, value in self.data.iteritems():
+            yield key, value
+
+    def items(self):
+        return list(self.iteritems())
+
+
 def update_expected(test_paths, serve_root, log_file_names,
-                    rev_old=None, rev_new="HEAD", ignore_existing=False,
-                    sync_root=None, property_order=None, boolean_properties=None,
-                    stability=None):
+                    update_properties, rev_old=None, rev_new="HEAD",
+                    full_update=False, sync_root=None, disable_intermittent=None,
+                    update_intermittent=False, remove_intermittent=False):
     """Update the metadata files for web-platform-tests based on
     the results obtained in a previous run or runs
 
-    If stability is not None, assume log_file_names refers to logs from repeated
+    If disable_intermittent is not None, assume log_file_names refers to logs from repeated
     test jobs, disable tests that don't behave as expected on all runs"""
     do_delayed_imports(serve_root)
 
     id_test_map = load_test_data(test_paths)
 
     for metadata_path, updated_ini in update_from_logs(id_test_map,
-                                                       *log_file_names,
-                                                       ignore_existing=ignore_existing,
-                                                       property_order=property_order,
-                                                       boolean_properties=boolean_properties,
-                                                       stability=stability):
+                                                       update_properties,
+                                                       disable_intermittent,
+                                                       update_intermittent,
+                                                       remove_intermittent,
+                                                       full_update,
+                                                       *log_file_names):
 
         write_new_expected(metadata_path, updated_ini)
-        if stability:
+        if disable_intermittent:
             for test in updated_ini.iterchildren():
                 for subtest in test.iterchildren():
                     if subtest.new_disabled:
@@ -113,7 +138,7 @@ def unexpected_changes(manifests, change_data, files_changed):
 #   for each conditional:
 #      If all the new values match (or there aren't any) retain that conditional
 #      If any new values mismatch:
-#           If stability and any repeated values don't match, disable the test
+#           If disable_intermittent and any repeated values don't match, disable the test
 #           else mark the test as needing human attention
 #   Check if all the RHS values are the same; if so collapse the conditionals
 
@@ -139,6 +164,9 @@ class InternedData(object):
         # Reserve 0 as a sentinal
         self._data = [None], {}
 
+    def clear(self):
+        self.__init__()
+
     def store(self, obj):
         if self.type_conv is not None:
             obj = self.type_conv(obj)
@@ -160,6 +188,10 @@ class InternedData(object):
             obj = self.rev_type_conv(obj)
         return obj
 
+    def __iter__(self):
+        for i in xrange(1, len(self._data[0])):
+            yield self.get(i)
+
 
 class RunInfoInterned(InternedData):
     def type_conv(self, value):
@@ -170,7 +202,7 @@ class RunInfoInterned(InternedData):
 
 
 prop_intern = InternedData(4)
-run_info_intern = RunInfoInterned()
+run_info_intern = InternedData(8)
 status_intern = InternedData(4)
 
 
@@ -185,25 +217,27 @@ def load_test_data(test_paths):
     return id_test_map
 
 
-def update_from_logs(id_test_map, *log_filenames, **kwargs):
-    ignore_existing = kwargs.get("ignore_existing", False)
-    property_order = kwargs.get("property_order")
-    boolean_properties = kwargs.get("boolean_properties")
-    stability = kwargs.get("stability")
+def update_from_logs(id_test_map, update_properties, disable_intermittent, update_intermittent,
+                     remove_intermittent, full_update, *log_filenames):
 
-    updater = ExpectedUpdater(id_test_map,
-                              ignore_existing=ignore_existing)
+    updater = ExpectedUpdater(id_test_map)
 
     for i, log_filename in enumerate(log_filenames):
         print("Processing log %d/%d" % (i + 1, len(log_filenames)))
         with open(log_filename) as f:
             updater.update_from_log(f)
 
-    for item in update_results(id_test_map, property_order, boolean_properties, stability):
+    for item in update_results(id_test_map, update_properties, full_update,
+                               disable_intermittent, update_intermittent, remove_intermittent):
         yield item
 
 
-def update_results(id_test_map, property_order, boolean_properties, stability):
+def update_results(id_test_map,
+                   update_properties,
+                   full_update,
+                   disable_intermittent,
+                   update_intermittent=False,
+                   remove_intermittent=False):
     test_file_items = set(id_test_map.itervalues())
 
     default_expected_by_type = {}
@@ -214,8 +248,9 @@ def update_results(id_test_map, property_order, boolean_properties, stability):
             default_expected_by_type[(test_type, True)] = test_cls.subtest_result_cls.default_expected
 
     for test_file in test_file_items:
-        updated_expected = test_file.update(property_order, boolean_properties, stability,
-                                            default_expected_by_type)
+        updated_expected = test_file.update(default_expected_by_type, update_properties,
+                                            full_update, disable_intermittent,
+                                            update_intermittent, remove_intermittent)
         if updated_expected is not None and updated_expected.modified:
             yield test_file.metadata_path, updated_expected
 
@@ -229,36 +264,12 @@ def directory_manifests(metadata_path):
     return rv
 
 
-def write_changes(metadata_path, expected):
-    # First write the new manifest files to a temporary directory
-    temp_path = tempfile.mkdtemp(dir=os.path.split(metadata_path)[0])
-    write_new_expected(temp_path, expected)
-
-    # Copy all files in the root to the temporary location since
-    # these cannot be ini files
-    keep_files = [item for item in os.listdir(metadata_path) if
-                  not os.path.isdir(os.path.join(metadata_path, item))]
-
-    for item in keep_files:
-        dest_dir = os.path.dirname(os.path.join(temp_path, item))
-        if not os.path.exists(dest_dir):
-            os.makedirs(dest_dir)
-        shutil.copyfile(os.path.join(metadata_path, item),
-                        os.path.join(temp_path, item))
-
-    # Then move the old manifest files to a new location
-    temp_path_2 = metadata_path + str(uuid.uuid4())
-    os.rename(metadata_path, temp_path_2)
-    # Move the new files to the destination location and remove the old files
-    os.rename(temp_path, metadata_path)
-    shutil.rmtree(temp_path_2)
-
-
 def write_new_expected(metadata_path, expected):
     # Serialize the data back to a file
     path = expected_path(metadata_path, expected.test_path)
     if not expected.is_empty:
-        manifest_str = wptmanifest.serialize(expected.node, skip_empty_data=True)
+        manifest_str = wptmanifest.serialize(expected.node,
+                                             skip_empty_data=True)
         assert manifest_str != ""
         dir = os.path.split(path)[0]
         if not os.path.exists(dir):
@@ -281,9 +292,8 @@ def write_new_expected(metadata_path, expected):
 
 
 class ExpectedUpdater(object):
-    def __init__(self, id_test_map, ignore_existing=False):
+    def __init__(self, id_test_map):
         self.id_test_map = id_test_map
-        self.ignore_existing = ignore_existing
         self.run_info = None
         self.action_map = {"suite_start": self.suite_start,
                            "test_start": self.test_start,
@@ -331,11 +341,11 @@ class ExpectedUpdater(object):
                                            "subtest": subtest["name"],
                                            "status": subtest["status"],
                                            "expected": subtest.get("expected"),
-                                           "known_intermittent": subtest.get("known_intermittent")})
+                                           "known_intermittent": subtest.get("known_intermittent", [])})
             action_map["test_end"]({"test": test["test"],
                                     "status": test["status"],
                                     "expected": test.get("expected"),
-                                    "known_intermittent": test.get("known_intermittent")})
+                                    "known_intermittent": test.get("known_intermittent", [])})
             if "asserts" in test:
                 asserts = test["asserts"]
                 action_map["assertion_count"]({"test": test["test"],
@@ -355,19 +365,16 @@ class ExpectedUpdater(object):
                     action_map[action](item_data)
 
     def suite_start(self, data):
-        self.run_info = run_info_intern.store(data["run_info"])
+        self.run_info = run_info_intern.store(RunInfo(data["run_info"]))
 
     def test_start(self, data):
         test_id = intern(data["test"].encode("utf8"))
         try:
-            test_data = self.id_test_map[test_id]
+            self.id_test_map[test_id]
         except KeyError:
             print("Test not found %s, skipping" % test_id)
             return
 
-        if self.ignore_existing:
-            test_data.set_requires_update()
-            test_data.clear.add("expected")
         self.tests_visited[test_id] = set()
 
     def test_status(self, data):
@@ -530,7 +537,7 @@ class PackedResultList(object):
 
 class TestFileData(object):
     __slots__ = ("url_base", "item_type", "test_path", "metadata_path", "tests",
-                 "_requires_update", "clear", "data")
+                 "_requires_update", "data")
 
     def __init__(self, url_base, item_type, metadata_path, test_path, tests):
         self.url_base = url_base
@@ -539,37 +546,75 @@ class TestFileData(object):
         self.metadata_path = metadata_path
         self.tests = {intern(item.id.encode("utf8")) for item in tests}
         self._requires_update = False
-        self.clear = set()
         self.data = defaultdict(lambda: defaultdict(PackedResultList))
 
     def set_requires_update(self):
         self._requires_update = True
+
+    @property
+    def requires_update(self):
+        return self._requires_update
 
     def set(self, test_id, subtest_id, prop, run_info, value):
         self.data[test_id][subtest_id].append(prop_intern.store(prop),
                                               run_info,
                                               value)
 
-    def expected(self, property_order, boolean_properties):
+    def expected(self, update_properties):
         expected_data = load_expected(self.url_base,
                                       self.metadata_path,
                                       self.test_path,
                                       self.tests,
-                                      property_order,
-                                      boolean_properties)
+                                      update_properties)
         if expected_data is None:
             expected_data = create_expected(self.url_base,
                                             self.test_path,
-                                            property_order,
-                                            boolean_properties)
+                                            update_properties)
         return expected_data
 
-    def update(self, property_order, boolean_properties, stability,
-               default_expected_by_type):
-        if not self._requires_update:
+    def is_disabled(self, test):
+        # This conservatively assumes that anything that was disabled remains disabled
+        # we could probably do better by checking if it's in the full set of run infos
+        return test.has_key("disabled")
+
+    def orphan_subtests(self, expected):
+        # Return subtest nodes present in the expected file, but missing from the data
+        rv = []
+
+        for test_id, subtests in self.data.iteritems():
+            test = expected.get_test(test_id.decode("utf8"))
+            if not test:
+                continue
+            seen_subtests = set(item.decode("utf8") for item in subtests.iterkeys() if item is not None)
+            missing_subtests = set(test.subtests.keys()) - seen_subtests
+            for item in missing_subtests:
+                expected_subtest = test.get_subtest(item)
+                if not self.is_disabled(expected_subtest):
+                    rv.append(expected_subtest)
+
+        return rv
+
+    def update(self, default_expected_by_type, update_properties,
+               full_update=False, disable_intermittent=None, update_intermittent=False,
+               remove_intermittent=False):
+        # If we are doing a full update, we may need to prune missing nodes
+        # even if the expectations didn't change
+        if not self.requires_update and not full_update:
             return
 
-        expected = self.expected(property_order, boolean_properties)
+        expected = self.expected(update_properties)
+
+        if full_update:
+            orphans = self.orphan_subtests(expected)
+
+            if not self.requires_update and not orphans:
+                return
+
+            if orphans:
+                expected.modified = True
+                for item in orphans:
+                    item.remove()
+
         expected_by_test = {}
 
         for test_id in self.tests:
@@ -577,10 +622,9 @@ class TestFileData(object):
                 expected.append(manifestupdate.TestNode.create(test_id))
             test_expected = expected.get_test(test_id)
             expected_by_test[test_id] = test_expected
-            for prop in self.clear:
-                test_expected.clear(prop)
 
         for test_id, test_data in self.data.iteritems():
+            test_id = test_id.decode("utf8")
             for subtest_id, results_list in test_data.iteritems():
                 for prop, run_info, value in results_list:
                     # Special case directory metadata
@@ -601,17 +645,28 @@ class TestFileData(object):
                     if subtest_id is None:
                         item_expected = test_expected
                     else:
+                        if isinstance(subtest_id, str):
+                            subtest_id = subtest_id.decode("utf8")
                         item_expected = test_expected.get_subtest(subtest_id)
                     if prop == "status":
                         item_expected.set_result(run_info, value)
                     elif prop == "asserts":
                         item_expected.set_asserts(run_info, value)
 
-        expected.coalesce_properties(stability=stability)
+        expected.update(full_update=full_update,
+                        disable_intermittent=disable_intermittent,
+                        update_intermittent=update_intermittent,
+                        remove_intermittent=remove_intermittent)
         for test in expected.iterchildren():
             for subtest in test.iterchildren():
-                subtest.coalesce_properties(stability=stability)
-            test.coalesce_properties(stability=stability)
+                subtest.update(full_update=full_update,
+                               disable_intermittent=disable_intermittent,
+                               update_intermittent=update_intermittent,
+                               remove_intermittent=remove_intermittent)
+            test.update(full_update=full_update,
+                        disable_intermittent=disable_intermittent,
+                        update_intermittent=update_intermittent,
+                        remove_intermittent=remove_intermittent)
 
         return expected
 
@@ -619,29 +674,17 @@ class TestFileData(object):
 Result = namedtuple("Result", ["status", "default_expected"])
 
 
-def create_expected(url_base, test_path, property_order=None,
-                    boolean_properties=None):
+def create_expected(url_base, test_path, run_info_properties):
     expected = manifestupdate.ExpectedManifest(None,
                                                test_path,
                                                url_base,
-                                               property_order=property_order,
-                                               boolean_properties=boolean_properties)
+                                               run_info_properties)
     return expected
 
 
-def load_expected(url_base, metadata_path, test_path, tests, property_order=None,
-                  boolean_properties=None):
+def load_expected(url_base, metadata_path, test_path, tests, run_info_properties):
     expected_manifest = manifestupdate.get_manifest(metadata_path,
                                                     test_path,
                                                     url_base,
-                                                    property_order=property_order,
-                                                    boolean_properties=boolean_properties)
-    if expected_manifest is None:
-        return
-
-    # Remove expected data for tests that no longer exist
-    for test in expected_manifest.iterchildren():
-        if test.id not in tests:
-            test.remove()
-
+                                                    run_info_properties)
     return expected_manifest

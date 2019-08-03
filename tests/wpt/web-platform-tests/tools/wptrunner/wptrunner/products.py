@@ -73,6 +73,6 @@ def load_product_update(config, product):
     data = module.__wptrunner__
 
     update_properties = (getattr(module, data["update_properties"])()
-                         if "update_properties" in data else (None, None))
+                         if "update_properties" in data else {})
 
     return update_properties

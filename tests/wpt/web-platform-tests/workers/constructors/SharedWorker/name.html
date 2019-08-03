@@ -1,9 +1,3 @@
-<!--
-onconnect = function(e) {
-  e.ports[0].postMessage(self.name);
-}
-/*
--->
 <!doctype html>
 <title>self.name</title>
 <script src="/resources/testharness.js"></script>
@@ -11,7 +5,7 @@ onconnect = function(e) {
 <div id="log"></div>
 <script>
 (async_test()).step(function() {
-  var worker = new SharedWorker('#', 'hello');
+  var worker = new SharedWorker('name.js', 'hello');
   worker.port.addEventListener('message', this.step_func(function(e) {
     assert_equals(e.data, 'hello');
     this.done();
@@ -19,6 +13,3 @@ onconnect = function(e) {
   worker.port.start();
 });
 </script>
-<!--
-*/
-//-->

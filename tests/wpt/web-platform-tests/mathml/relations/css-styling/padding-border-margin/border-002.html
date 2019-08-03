@@ -22,7 +22,6 @@
             continue;
 
         var style = "border-left: 30px solid; border-right: 40px solid; border-top: 50px solid; border-bottom: 60px solid;";
-        var styleRTL = `direction: rtl; ${style}`;
 
         if (FragmentHelper.isEmpty(tag)) {
             test(function() {
@@ -44,7 +43,7 @@
         }, `Border properties on ${tag}`);
 
         test(function() {
-            var s = compareSpaceWithAndWithoutStyle(tag, styleRTL);
+            var s = compareSpaceWithAndWithoutStyle(tag, style, null, "rtl");
             assert_approx_equals(s.left_delta, 30, epsilon, "left border");
             assert_approx_equals(s.right_delta, 40, epsilon, "right border");
             assert_approx_equals(s.top_delta, 50, epsilon, "top border");

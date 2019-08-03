@@ -158,7 +158,7 @@ promise_test(test_function, name, properties)
 ```
 
 `test_function` is a function that receives a test as an argument. It must
-return a promise. The test completes when the returned promise resolves. The
+return a promise. The test completes when the returned promise settles. The
 test fails if the returned promise rejects.
 
 E.g.:
@@ -184,7 +184,12 @@ Note that in the promise chain constructed in `test_function` assertions don't
 need to be wrapped in `step` or `step_func` calls.
 
 Unlike Asynchronous Tests, Promise Tests don't start running until after the
-previous Promise Test finishes.
+previous Promise Test finishes. [Under rare
+circumstances](https://github.com/web-platform-tests/wpt/pull/17924), the next
+test may begin to execute before the returned promise has settled. Use
+[add_cleanup](#cleanup) to register any necessary cleanup actions such as
+resetting global state that need to happen consistently before the next test
+starts.
 
 `promise_rejects` can be used to test Promises that need to reject:
 

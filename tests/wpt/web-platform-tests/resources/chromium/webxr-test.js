@@ -554,6 +554,7 @@ class MockXRInputSource {
     this.handedness_ = fakeInputSourceInit.handedness;
     this.target_ray_mode_ = fakeInputSourceInit.targetRayMode;
     this.setPointerOrigin(fakeInputSourceInit.pointerOrigin);
+    this.setProfiles(fakeInputSourceInit.profiles);
 
     this.primary_input_pressed_ = false;
     if (fakeInputSourceInit.selectionStarted != null) {
@@ -593,7 +594,8 @@ class MockXRInputSource {
   }
 
   setProfiles(profiles) {
-    // Profiles are not yet implemented by chromium
+    this.desc_dirty_ = true;
+    this.profiles_ = profiles;
   }
 
   setGripOrigin(transform, emulatedPosition = false) {
@@ -761,6 +763,8 @@ class MockXRInputSource {
       }
 
       input_desc.pointerOffset = this.pointer_offset_;
+
+      input_desc.profiles = this.profiles_;
 
       input_state.description = input_desc;
 

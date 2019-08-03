@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="800px">
+  <title>SVG Painting: getComputedStyle().marker</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#MarkerProperty"/>
+    <h:meta name="assert" content="marker computed value is as specified, with url values absolute."/>
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/computed-testcommon.js"/>
+  <script><![CDATA[
+
+test_computed_value("marker", "none");
+test_computed_value("marker", 'url("https://example.com/")');
+
+test(() => {
+  const target = document.getElementById('target');
+  target.style['marker'] = 'url("a.b#c")';
+  const result = getComputedStyle(target)['marker'];
+  const resolved = new URL("a.b#c", document.URL).href;
+  assert_equals(result, 'url("' + resolved + '")');
+}, 'url values are made absolute');
+
+  ]]></script>
+</svg>

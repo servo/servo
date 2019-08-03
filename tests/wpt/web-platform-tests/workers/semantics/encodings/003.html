@@ -1,12 +1,3 @@
-<!--
-var xhr = new XMLHttpRequest();
-xhr.open('GET', '003-1.py?x=å', false);
-xhr.send();
-var passed = xhr.responseText == 'PASS';
-postMessage(passed);
-
-/*
--->
 <!doctype html>
 <title>URL encoding, dedicated worker</title>
 <script src="/resources/testharness.js"></script>
@@ -14,13 +5,10 @@ postMessage(passed);
 <div id=log></div>
 <script>
 async_test(function() {
-  var worker = new Worker('#');
+  var worker = new Worker('003.js');
   worker.onmessage = this.step_func(function(e) {
     assert_true(e.data);
     this.done();
   });
 });
 </script>
-<!--
-*/
-//-->

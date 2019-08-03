@@ -1,11 +1,3 @@
-<!--
-for (;) // should cause onerror to be invoked, but onerror is null, so
-        // the error is "not handled". should fire an ErrorEvent on the
-        // worker.
-  break;
-postMessage(1); // shouldn't do anything since the script doesn't compile
-/*
--->
 <!doctype html>
 <title>AbstractWorker.onerror</title>
 <link rel=help href="https://html.spec.whatwg.org/multipage/#runtime-script-errors-2">
@@ -17,14 +9,14 @@ postMessage(1); // shouldn't do anything since the script doesn't compile
 <script>
 setup({allow_uncaught_exception:true});
 async_test(function() {
-  var worker = new Worker('#');
+  var worker = new Worker('AbstractWorker.onerror.js');
   var error;
   worker.onerror = this.step_func(function(a, b, c) {
     error = a;
     assert_equals('' + a, '[object ErrorEvent]');
     assert_true("message" in a, 'ErrorEvent.message');
     assert_equals(typeof a.message, "string", 'ErrorEvent.message');
-    assert_equals(a.filename, document.URL + '#', 'ErrorEvent.filename');
+    assert_equals(a.filename, document.URL.replace('.html', '.js'), 'ErrorEvent.filename');
     assert_true("lineno" in a, 'ErrorEvent.lineno');
     assert_equals(typeof a.lineno, "number", 'ErrorEvent.lineno');
     assert_equals(b, undefined, 'unexpected second argument to onerror');
@@ -43,6 +35,3 @@ async_test(function() {
   });
 });
 </script>
-<!--
-*/
-//-->

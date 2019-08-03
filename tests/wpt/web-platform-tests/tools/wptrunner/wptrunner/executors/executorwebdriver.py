@@ -86,6 +86,7 @@ class WebDriverTestharnessProtocolPart(TestharnessProtocolPart):
         self.parent.base.execute_script(self.runner_script % format_map)
 
     def close_old_windows(self):
+        self.webdriver.actions.release()
         handles = [item for item in self.webdriver.handles if item != self.runner_handle]
         for handle in handles:
             try:

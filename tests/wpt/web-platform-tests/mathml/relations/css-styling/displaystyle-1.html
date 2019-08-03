@@ -19,6 +19,7 @@
 </style>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/attribute-values.js"></script>
 <script>
   setup({ explicit_done: true });
   var emToPx = 10 / 1000; // font-size: 10px, font.em = 1000
@@ -36,60 +37,67 @@
   });
 
   function runTests() {
-    test(function() {
-      verify_displaystyle("math_default", false, "default");
-      verify_displaystyle("math_inline", false, "explicit display inline");
-      verify_displaystyle("math_block", true, "explicit display block");
-      verify_displaystyle("math_false", false, "explicit displaystyle false");
-      verify_displaystyle("math_true", true, "explicit displaystyle true");
-      verify_displaystyle("math_block_false", false, "explicit display block and displaystyle false");
-      verify_displaystyle("math_block_true", true, "explicit display block and displaystyle true");
-    }, "math element");
-    test(function() {
-      verify_displaystyle("mstyle_false", false, "explicit displaystyle false");
-      verify_displaystyle("mstyle_true", true, "explicit displaystyle true");
-    }, "mstyle element");
-    test(function() {
-      verify_displaystyle("mtable_default", false, "default");
-      verify_displaystyle("mtable_false", false, "explicit displaystyle false");
-      verify_displaystyle("mtable_true", true, "explicit displaystyle true");
-    }, "mtable element");
-    test(function() {
-      verify_displaystyle("mfrac_sibling", true, "sibling");
-      verify_displaystyle("mfrac_numerator", false, "numerator");
-      verify_displaystyle("mfrac_denominator", false, "denominator");
-    }, "mfrac element");
-    test(function() {
-      verify_displaystyle("mroot_base", true, "base");
-      verify_displaystyle("mroot_index", false, "index");
-    }, "mroot element");
-    test(function() {
-      verify_displaystyle("msub_base", true, "base");
-      verify_displaystyle("msub_subscript", false, "subscript");
-    }, "msub element");
-    test(function() {
-      verify_displaystyle("msup_base", true, "base");
-      verify_displaystyle("msup_supscript", false, "supscript");
-    }, "msup element");
-    test(function() {
-      verify_displaystyle("msubsup_base", true, "base");
-      verify_displaystyle("msubsup_subscript", false, "subscript");
-      verify_displaystyle("msubsup_supscript", false, "supscript");
-    }, "msubsup element");
-    test(function() {
-      verify_displaystyle("munder_base", true, "base");
-      verify_displaystyle("munder_underscript", false, "underscript");
-    }, "munder element");
-    test(function() {
-      verify_displaystyle("mover_base", true, "base");
-      verify_displaystyle("mover_overscript", false, "overscript");
-    }, "mover element");
-    test(function() {
-      verify_displaystyle("munderover_base", true, "base");
-      verify_displaystyle("munderover_underscript", false, "underscript");
-      verify_displaystyle("munderover_overscript", false, "overscript");
-    }, "munderover element");
-    done();
+      for (transform in AttributeValueTransforms) {
+          TransformAttributeValues(transform, ["display", "displaystyle"]);
+          test(function() {
+              verify_displaystyle("math_default", false, "default");
+              verify_displaystyle("math_false", false, "explicit displaystyle false");
+              verify_displaystyle("math_true", true, "explicit displaystyle true");
+          }, `math element (${transform})`);
+          test(function() {
+              verify_displaystyle("math_inline", false, "explicit display inline");
+              verify_displaystyle("math_block", true, "explicit display block");
+              verify_displaystyle("math_block_false", false, "explicit display block and displaystyle false");
+              verify_displaystyle("math_block_true", true, "explicit display block and displaystyle true");
+              verify_displaystyle("math_inline_false", false, "explicit display inline and displaystyle false");
+              verify_displaystyle("math_inline_true", true, "explicit display inline and displaystyle true");
+          }, `math element (explicit display, ${transform})`);
+          test(function() {
+              verify_displaystyle("mstyle_false", false, "explicit displaystyle false");
+              verify_displaystyle("mstyle_true", true, "explicit displaystyle true");
+          }, `mstyle element (${transform})`);
+          test(function() {
+              verify_displaystyle("mtable_default", false, "default");
+              verify_displaystyle("mtable_false", false, "explicit displaystyle false");
+              verify_displaystyle("mtable_true", true, "explicit displaystyle true");
+          }, `mtable element (${transform})`);
+          test(function() {
+              verify_displaystyle("mfrac_sibling", true, "sibling");
+              verify_displaystyle("mfrac_numerator", false, "numerator");
+              verify_displaystyle("mfrac_denominator", false, "denominator");
+          }, `mfrac element (${transform})`);
+          test(function() {
+              verify_displaystyle("mroot_base", true, "base");
+              verify_displaystyle("mroot_index", false, "index");
+          }, `mroot element (${transform})`);
+          test(function() {
+              verify_displaystyle("msub_base", true, "base");
+              verify_displaystyle("msub_subscript", false, "subscript");
+          }, `msub element (${transform})`);
+          test(function() {
+              verify_displaystyle("msup_base", true, "base");
+              verify_displaystyle("msup_supscript", false, "supscript");
+          }, `msup element (${transform})`);
+          test(function() {
+              verify_displaystyle("msubsup_base", true, "base");
+              verify_displaystyle("msubsup_subscript", false, "subscript");
+              verify_displaystyle("msubsup_supscript", false, "supscript");
+          }, `msubsup element (${transform})`);
+          test(function() {
+              verify_displaystyle("munder_base", true, "base");
+              verify_displaystyle("munder_underscript", false, "underscript");
+          }, `munder element (${transform})`);
+          test(function() {
+              verify_displaystyle("mover_base", true, "base");
+              verify_displaystyle("mover_overscript", false, "overscript");
+          }, `mover element (${transform})`);
+          test(function() {
+              verify_displaystyle("munderover_base", true, "base");
+              verify_displaystyle("munderover_underscript", false, "underscript");
+              verify_displaystyle("munderover_overscript", false, "overscript");
+          }, `munderover element (${transform})`);
+      }
+      done();
   }
 </script>
 </head>
@@ -105,6 +113,12 @@
   </math>
   <math display="block" displaystyle="true">
     <mo id="math_block_true">&#x2AFF;</mo>
+  </math>
+  <math display="inline" displaystyle="false">
+    <mo id="math_inline_false">&#x2AFF;</mo>
+  </math>
+  <math display="inline" displaystyle="true">
+    <mo id="math_inline_true">&#x2AFF;</mo>
   </math>
   <math><mstyle displaystyle="false"><mo id="mstyle_false">&#x2AFF;</mo></mstyle></math>
   <math><mstyle displaystyle="true"><mo id="mstyle_true">&#x2AFF;</mo></mstyle></math>
