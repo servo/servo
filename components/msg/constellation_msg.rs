@@ -346,9 +346,14 @@ pub struct IpcHandle {
 impl IpcHandle {
     pub fn send<T: Serialize>(&self, msg: T) -> Result<(), bincode::Error> {
         // TODO: use byte sender, impl to_opaque for IpcBytesSender
+        println!("Sending msg to {:?} on the ipc handle", self.callback_id);
         let mut bytes = Vec::with_capacity(4096);
         bincode::serialize_into(&mut bytes, &msg)?;
         self.sender.send(IpcCallbackMsg::Callback(self.callback_id.clone(), bytes))
+    }
+
+    pub fn drop_callback(&mut self) {
+        let _ = self.sender.send(IpcCallbackMsg::DropCallback(self.callback_id.clone()));
     }
 }
 
@@ -356,6 +361,7 @@ impl IpcHandle {
 pub enum IpcCallbackMsg {
     AddCallback,
     Callback(IpcCallbackId, Vec<u8>),
+    DropCallback(IpcCallbackId),
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]

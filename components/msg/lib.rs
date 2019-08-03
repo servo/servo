@@ -10,7 +10,5 @@ extern crate lazy_static;
 extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
-#[macro_use]
-extern crate serde;
 
 pub mod constellation_msg;
