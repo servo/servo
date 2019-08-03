@@ -264,7 +264,13 @@ pub struct IpcHandle {
 
 impl IpcHandle {
     pub fn send<T: Serialize>(&self, msg: T) -> Result<(), bincode::Error> {
-        let mut bytes = Vec::with_capacity(4096);
+        // TODO:: Use a IpcBytesSender/Receiver to avoid double serialization?
+        // Requires passing T to the callback, instead of a Vec<u8>.
+        //
+        // Note: attempt at creating a Vec smaller than the one allocated inside send.
+        // Basically (4096 - 64(for the Id)) - 64(for the IpcCallbackMsg::Callback).
+        // The 3968 left is then for the msg, and hopefully we don't need to re-allocate(twice?).
+        let mut bytes = Vec::with_capacity(3968);
         bincode::serialize_into(&mut bytes, &msg)?;
         self.sender
             .send(IpcCallbackMsg::Callback(self.callback_id.clone(), bytes))
