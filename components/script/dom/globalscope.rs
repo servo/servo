@@ -70,18 +70,17 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use time::{get_time, Timespec};
 
-
 pub type IpcCallback = Box<dyn FnMut(Vec<u8>) + Send>;
 
 pub struct IpcScriptRouter {
     ipc_sender: IpcSender<IpcCallbackMsg>,
     sender: Sender<(IpcCallbackId, IpcCallback)>,
-
 }
 
 impl IpcScriptRouter {
     fn new() -> Self {
-        let (callback_sender, callback_receiver) = ipc::channel().expect("IpcScriptRouter ipc chan");
+        let (callback_sender, callback_receiver) =
+            ipc::channel().expect("IpcScriptRouter ipc chan");
         let (sender, receiver) = unbounded();
         let ipc_script_router = IpcScriptRouter {
             sender: sender,
@@ -93,19 +92,21 @@ impl IpcScriptRouter {
             Box::new(move |message| {
                 match message.to().expect("IpcScriptRouter handle incoming msg") {
                     IpcCallbackMsg::AddCallback => {
-                        let (id, callback) = receiver.recv().expect("Callback message to be received");
-                        println!("Adding callback {:?}", id);
+                        let (id, callback) =
+                            receiver.recv().expect("Callback message to be received");
                         callbacks.insert(id, callback);
                     },
                     IpcCallbackMsg::DropCallback(id) => {
-                        println!("Removing callback {:?}", id);
-                        let _ = callbacks.remove(&id).expect("Callbackt to be removed to exists");
+                        let _ = callbacks
+                            .remove(&id)
+                            .expect("Callbackt to be removed to exists");
                     },
                     IpcCallbackMsg::Callback(id, data) => {
-                        println!("Executing callback {:?}", id);
-                        let callback = callbacks.get_mut(&id).expect("Callback to be called to exists");
+                        let callback = callbacks
+                            .get_mut(&id)
+                            .expect("Callback to be called to exists");
                         callback(data);
-                    }
+                    },
                 }
             }),
         );
@@ -115,11 +116,13 @@ impl IpcScriptRouter {
     fn add_callback(&self, callback: IpcCallback) -> IpcHandle {
         let callback_id = IpcCallbackId::new();
         if let Ok(_) = self.sender.send((callback_id.clone(), callback)) {
-            self.ipc_sender.send(IpcCallbackMsg::AddCallback).expect("The script ipc router to be available");
+            self.ipc_sender
+                .send(IpcCallbackMsg::AddCallback)
+                .expect("The script ipc router to be available");
             return IpcHandle {
                 callback_id,
                 sender: self.ipc_sender.clone(),
-            }
+            };
         }
         unreachable!("Adding an ipc callback failed");
     }

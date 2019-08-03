@@ -392,10 +392,7 @@ pub enum WebSocketNetworkEvent {
 #[derive(Debug, Deserialize, Serialize)]
 /// IPC channels to communicate with the script thread about network or DOM events.
 pub enum FetchChannels {
-    ResponseHandle(
-        IpcHandle,
-        /* cancel_chan */ Option<IpcReceiver<()>>,
-    ),
+    ResponseHandle(IpcHandle, /* cancel_chan */ Option<IpcReceiver<()>>),
     ResponseMsg(
         IpcSender<FetchResponseMsg>,
         /* cancel_chan */ Option<IpcReceiver<()>>,

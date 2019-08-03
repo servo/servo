@@ -237,10 +237,9 @@ impl ResourceChannelManager {
                     self.resource_manager
                         .fetch(req_init, None, sender, http_state, cancel_chan)
                 },
-                FetchChannels::ResponseHandle(handle, cancel_chan) => {
-                    self.resource_manager
-                        .fetch_with_handle(req_init, None, handle, http_state, cancel_chan)
-                },
+                FetchChannels::ResponseHandle(handle, cancel_chan) => self
+                    .resource_manager
+                    .fetch_with_handle(req_init, None, handle, http_state, cancel_chan),
                 FetchChannels::WebSocket {
                     event_sender,
                     action_receiver,
