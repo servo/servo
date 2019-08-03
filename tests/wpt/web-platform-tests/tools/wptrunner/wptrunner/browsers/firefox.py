@@ -179,8 +179,8 @@ def run_info_browser_version(binary):
 
 
 def update_properties():
-    return (["debug", "webrender", "e10s", "os", "version", "processor", "bits"],
-            {"debug", "e10s", "webrender"})
+    return (["os", "debug", "webrender", "e10s", "sw-e10s", "processor"],
+            {"os": ["version"], "processor": ["bits"]})
 
 
 class FirefoxBrowser(Browser):

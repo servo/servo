@@ -4,7 +4,9 @@ import json
 import pytest
 
 from ..manifest import Manifest
-from ..item import TestharnessTest, RefTest, item_types
+# Prevent pytest from treating TestharnessTest as a test class
+from ..item import TestharnessTest as HarnessTest
+from ..item import RefTest, item_types
 
 
 @pytest.mark.parametrize("path", [
@@ -18,7 +20,7 @@ from ..item import TestharnessTest, RefTest, item_types
     "a.b.serviceworker.c.d",
 ])
 def test_url_https(path):
-    m = TestharnessTest("/foo", "bar/" + path, "/", "bar/" + path)
+    m = HarnessTest("/foo", "bar/" + path, "/", "bar/" + path)
 
     assert m.https is True
 
@@ -40,7 +42,7 @@ def test_url_https(path):
     "a.serviceworkerb.c",
 ])
 def test_url_not_https(path):
-    m = TestharnessTest("/foo", "bar/" + path, "/", "bar/" + path)
+    m = HarnessTest("/foo", "bar/" + path, "/", "bar/" + path)
 
     assert m.https is False
 

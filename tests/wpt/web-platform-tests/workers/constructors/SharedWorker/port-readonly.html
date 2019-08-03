@@ -1,6 +1,3 @@
-<!--
-/*
--->
 <!doctype html>
 <title>setting worker.port</title>
 <link rel=help href="http://www.whatwg.org/html/#sharedworker">
@@ -10,12 +7,9 @@
 <div id="log"></div>
 <script>
 test(function() {
-  var worker = new SharedWorker('#', '');
+  var worker = new SharedWorker('empty.js', '');
   var x = worker.port;
   worker.port = 1;
   assert_equals(worker.port, x);
 });
 </script>
-<!--
-*/
-//-->

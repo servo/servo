@@ -1,15 +1,3 @@
-<!--
-var expected = 'self location close onerror importScripts navigator addEventListener removeEventListener dispatchEvent name onconnect setTimeout clearTimeout setInterval clearInterval'.split(' ');
-var log = '';
-for (var i = 0; i < expected.length; ++i) {
-  if (!(expected[i] in self))
-    log += expected[i] + ' did not exist\n';
-}
-onconnect = function(e) {
-  e.ports[0].postMessage(log);
-};
-/*
--->
 <!doctype html>
 <title>members of SharedWorkerGlobalScope</title>
 <script src="/resources/testharness.js"></script>
@@ -17,7 +5,7 @@ onconnect = function(e) {
 <div id="log"></div>
 <script>
 (async_test()).step(function() {
-  var worker = new SharedWorker('#');
+  var worker = new SharedWorker('global-members.js');
   worker.port.addEventListener('message', this.step_func(function(e) {
     assert_equals(e.data, '');
     this.done();
@@ -25,10 +13,3 @@ onconnect = function(e) {
   worker.port.start();
 });
 </script>
-<!--
-*/
-//-->
-
-
-
-

@@ -1,6 +1,3 @@
-<!--
-/*
--->
 <!doctype html>
 <title>worker.port</title>
 <link rel=help href="http://www.whatwg.org/html/#sharedworker">
@@ -10,7 +7,7 @@
 <div id="log"></div>
 <script>
 test(function() {
-  var worker = new SharedWorker('#', '');
+  var worker = new SharedWorker('empty.js', '');
   assert_true('port' in worker, "port");
   assert_true('postMessage' in worker.port, "postMessage");
   assert_true('start' in worker.port, "start");
@@ -21,6 +18,3 @@ test(function() {
   assert_true('dispatchEvent' in worker.port, "dispatchEvent");
 });
 </script>
-<!--
-*/
-//-->

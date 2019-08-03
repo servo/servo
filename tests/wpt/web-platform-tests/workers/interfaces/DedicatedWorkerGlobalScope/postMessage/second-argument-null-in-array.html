@@ -1,11 +1,3 @@
-<!--
-try {
-  postMessage(false, [null]);
-} catch(e) {
-  postMessage(e instanceof TypeError);
-}
-/*
--->
 <!doctype html>
 <title>Using [null] in postMessage's second argument</title>
 <script src="/resources/testharness.js"></script>
@@ -13,14 +5,10 @@ try {
 <div id="log"></div>
 <script>
 (async_test()).step(function() {
-  var worker = new Worker('#');
+  var worker = new Worker('second-argument-null-in-array.js');
   worker.onmessage = this.step_func(function(e) {
     assert_true(e.data);
     this.done();
   });
 });
 </script>
-<!--
-*/
-//-->
-

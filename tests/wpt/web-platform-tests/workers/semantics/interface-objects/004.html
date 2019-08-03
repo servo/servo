@@ -1,51 +1,3 @@
-<!--
-onconnect = function(e) {
-  var unexpected = [
-    // https://html.spec.whatwg.org/
-    "DedicatedWorkerGlobalScope",
-    "AbstractView",
-    "AbstractWorker",
-    "Location",
-    "Navigator",
-    "DOMImplementation",
-    "Audio",
-    "HTMLCanvasElement",
-    "Path",
-    "TextMetrics",
-    "CanvasProxy",
-    "CanvasRenderingContext2D",
-    "DrawingStyle",
-    "PopStateEvent",
-    "HashChangeEvent",
-    "PageTransitionEvent",
-    // https://streams.spec.whatwg.org/
-    "ReadableStreamDefaultReader",
-    "ReadableStreamBYOBReader",
-    "ReadableStreamDefaultController",
-    "ReadableByteStreamController",
-    "WritableStreamDefaultWriter",
-    "WritableStreamDefaultController",
-    // http://w3c.github.io/IndexedDB/
-    "IDBEnvironment",
-    // https://www.w3.org/TR/2010/NOTE-webdatabase-20101118/
-    "Database",
-    // https://w3c.github.io/uievents/
-    "UIEvent",
-    "FocusEvent",
-    "MouseEvent",
-    "WheelEvent",
-    "InputEvent",
-    "KeyboardEvent",
-    "CompositionEvent",
-  ];
-  var result = [];
-  for (var i = 0; i < unexpected.length; ++i) {
-    result.push([unexpected[i], unexpected[i] in self]);
-  }
-  e.ports[0].postMessage(result);
-}
-/*
--->
 <!doctype html>
 <title>unavailable interface objects in shared worker</title>
 <script src="/resources/testharness.js"></script>
@@ -53,7 +5,7 @@ onconnect = function(e) {
 <div id=log></div>
 <script>
 setup(function() {
-  window.worker = new SharedWorker('#');
+  window.worker = new SharedWorker('004.js');
   worker.port.onmessage = function(e) {
     var result = e.data;
     for (var i = 0; i < result.length; ++i) {
@@ -65,7 +17,3 @@ setup(function() {
   }
 }, {explicit_done: true});
 </script>
-<!--
-*/
-//-->
-

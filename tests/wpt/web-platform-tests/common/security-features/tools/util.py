@@ -39,3 +39,14 @@ def load_spec_json(path_to_spec):
                 print(read_nth_line(f, line_number).rstrip())
                 print(" " * (column - 1) + "^")
             sys.exit(1)
+
+
+class PolicyDelivery(object):
+    '''
+    See `@typedef PolicyDelivery` comments in `resources/common.js`.
+    '''
+
+    def __init__(self, delivery_type, key, value):
+        self.delivery_type = delivery_type
+        self.key = key
+        self.value = value

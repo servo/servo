@@ -16,7 +16,7 @@
   background: green;
   font-family: monospace;
   width: 1ch;
-  height: 20em;
+  height: 19em;
 }
 #test {
   width: 1ch;
@@ -25,9 +25,12 @@
   font-family: monospace;
   line-break: anywhere;
 }
+span {
+  background: red;
+}
 </style>
 
 <p>Test passes if there is a green rectangle below and no red.</p>
 <div id=green></div>
 <!-- with line breaks everywhere, none of the following characters should stick out from under the green div -->
-<div id=test>aa-a.a)a,a）a&nbsp;a&#xfeff;a&#x2060;a&#x200d;a･a</div>
+<div id=test>aa-a.a)a,a）a<span>&nbsp;</span>a&#xfeff;a&#x2060;a&#x200d;a･a</div>

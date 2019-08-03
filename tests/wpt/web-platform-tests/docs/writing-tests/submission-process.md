@@ -38,6 +38,27 @@ Hop on to the [mailing list][public-test-infra] or [IRC][]
 no need to announce your review request, as soon as you make a Pull Request
 GitHub will inform interested parties.
 
+## Previews
+
+The website [wpt-submissions.live](http://wpt-submissions.live) exists to help
+contributors demonstrate their proposed changes to others. If your pull request
+is open and has the GitHub label `pull-request-has-preview`, then it will be
+available at `http://wpt-submissions.live/{{pull request ID}}`, where "pull
+request ID" is the numeric identifier for the pull request.
+
+For example, a pull request at https://github.com/web-platform-tests/wpt/pull/3
+has a pull request ID `3`. Once that has been assigned the
+`pull-request-has-preview` label, then its contents can be viewed at
+http://wpt-submissions.live/3.
+
+If you are [a GitHub
+collaborator](https://help.github.com/en/articles/permission-levels-for-a-user-account-repository)
+on WPT, the label and the preview will be created automatically. Because the
+WPT server will execute Python code in the mirrored submissions, previews are
+not created automatically for non-collaborators. Collaborators are encouraged
+to enable the preview by adding the label, provided they trust the authors not
+to submit malicious code.
+
 [repo]: https://github.com/web-platform-tests/wpt/
 [github flow]: https://guides.github.com/introduction/flow/
 [public-test-infra]: https://lists.w3.org/Archives/Public/public-test-infra/

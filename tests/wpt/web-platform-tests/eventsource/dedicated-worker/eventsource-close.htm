@@ -1,15 +1,4 @@
-<!--
-try {
-  var source = new EventSource("../resources/message.py")
-  source.onopen = function(e) {
-    this.close()
-    postMessage([true, this.readyState])
-  }
-} catch(e) {
-  postMessage([false, String(e)])
-}
-/*-->
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <title>dedicated worker - EventSource: close()</title>
@@ -21,7 +10,7 @@ try {
     <script>
       var test = async_test();
       test.step(function() {
-        var worker = new Worker('#')
+        var worker = new Worker('eventsource-close.js')
         worker.onmessage = function(e) {
           test.step(function() {
             assert_true(e.data[0], e.data[1])
@@ -33,4 +22,3 @@ try {
     </script>
   </body>
 </html>
-<!--*/ //-->

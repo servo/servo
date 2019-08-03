@@ -16,7 +16,17 @@ xr_promise_test("Ensure that XRWebGLLayer's constructor throws appropriate error
   };
   let gl = webglCanvas.getContext('webgl', glAttributes);
   return navigator.xr.test.simulateDeviceConnection(TRACKED_IMMERSIVE_DEVICE)
-    .then((controller) => {
+    .then(() => {
+      return navigator.xr.requestSession('inline')
+        .then((session) => {
+          try {
+            let webglLayerIncompatible = new XRWebGLLayer(session, gl);
+          } catch (err) {
+            assert_unreached("Inline XRWebGLLayers should not fail when created with a context that is not XRCompatible");
+          }
+        });
+    })
+    .then(() => {
       return new Promise((resolve) => {
         navigator.xr.test.simulateUserActivation(() => {
           navigator.xr.requestSession('immersive-vr')

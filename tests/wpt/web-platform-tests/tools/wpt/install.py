@@ -6,6 +6,7 @@ import sys
 latest_channels = {
     'firefox': 'nightly',
     'chrome': 'dev',
+    'chrome_android': 'dev',
     'edgechromium': 'dev',
     'safari': 'preview',
     'servo': 'nightly'

@@ -15,14 +15,16 @@ function measureSpaceAround(id) {
     return spaceBetween(childBox, parentBox);
 }
 
-function compareSpaceWithAndWithoutStyle(tag, style, parentStyle) {
+function compareSpaceWithAndWithoutStyle(tag, style, parentStyle, direction) {
     if (!FragmentHelper.isValidChildOfMrow(tag) ||
         FragmentHelper.isEmpty(tag))
         throw `Invalid argument: ${tag}`;
 
+    if (!direction)
+      direction = "ltr";
     document.body.insertAdjacentHTML("beforeend", `<div>\
-<math><mrow>${MathMLFragments[tag]}</mrow></math>\
-<math><mrow>${MathMLFragments[tag]}</mrow></math>\
+<math><mrow dir="${direction}">${MathMLFragments[tag]}</mrow></math>\
+<math><mrow dir="${direction}">${MathMLFragments[tag]}</mrow></math>\
 </div>`);
     var div = document.body.lastElementChild;
 

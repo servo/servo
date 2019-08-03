@@ -5,6 +5,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
+<script src="../../resources/timing-override.js"></script>
 <body>
 <div id="log"></div>
 <script>
@@ -262,7 +263,7 @@ promise_test(async t => {
   // calculated using the new playback rate
   assert_times_equal(anim.startTime,
                      anim.timeline.currentTime - 25 * MS_PER_SEC);
-  assert_time_equals_literal(anim.currentTime, 50 * MS_PER_SEC);
+  assert_time_equals_literal(parseInt(anim.currentTime.toPrecision(5), 10), 50 * MS_PER_SEC);
 }, 'Setting the start time of a playing animation applies a pending playback rate');
 
 </script>

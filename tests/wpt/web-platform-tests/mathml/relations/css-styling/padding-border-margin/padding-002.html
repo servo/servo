@@ -22,7 +22,6 @@
             continue;
 
         var style = "padding-left: 30px; padding-right: 40px;  padding-top: 50px; padding-bottom: 60px;";
-        var styleRTL = `direction: rtl; ${style}`;
 
         if (FragmentHelper.isEmpty(tag)) {
             test(function() {
@@ -44,7 +43,7 @@
         }, `Padding properties on ${tag}`);
 
         test(function() {
-            var s = compareSpaceWithAndWithoutStyle(tag, styleRTL);
+            var s = compareSpaceWithAndWithoutStyle(tag, style, "rtl");
             assert_approx_equals(s.left_delta, 30, epsilon, "left padding");
             assert_approx_equals(s.right_delta, 40, epsilon, "right padding");
             assert_approx_equals(s.top_delta, 50, epsilon, "top padding");

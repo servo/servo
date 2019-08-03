@@ -55,7 +55,7 @@ def test_check_environ_fail(platform):
             with pytest.raises(run.WptrunError) as excinfo:
                 run.check_environ("foo")
 
-    assert "wpt make-hosts-file" in excinfo.value.message
+    assert "wpt make-hosts-file" in str(excinfo.value)
 
 
 @pytest.mark.parametrize("product", product_list)

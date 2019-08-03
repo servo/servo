@@ -23,7 +23,7 @@ let testFunction =
   assert_equals(gl.getError(), gl.NO_ERROR);
 
   if (session.mode == 'inline') {
-    // Creating a layer with compositionDisabled should return a framebuffer of
+    // Creating a layer with an inline session should return a framebuffer of
     // null, and as such most of these tests won't apply.
     assert_equals(xrFramebuffer, null);
     resolve();

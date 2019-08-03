@@ -144,8 +144,11 @@ var FragmentHelper = {
             return element.firstElementChild;
         if (element.classList.contains("mathml-container"))
             return element.appendChild(this.createElement("mrow"));
-        if (element.classList.contains("foreign-container"))
-            return element.appendChild(document.createElement("span"));
+        if (element.classList.contains("foreign-container")) {
+            var el = document.createElement("span");
+            el.textContent = "a";
+            return element.appendChild(el);
+        }
         throw "Cannot make the element nonempty";
     }
 }

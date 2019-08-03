@@ -1,18 +1,3 @@
-<!--
-onconnect = function(e) {
-  var xhr = new XMLHttpRequest();
-  var log = '';
-  xhr.open('GET', '001-1.xml', false);
-  xhr.send();
-  if (xhr.responseXML != null)
-    log += 'responseXML was not null. ';
-  if (xhr.responseText != '<x>foo</x>')
-    log += 'responseText was ' + xhr.responseText + ', expected <x>foo</x>. ';
-  e.ports[0].postMessage(log);
-}
-
-/*
--->
 <!doctype html>
 <title>sync XMLHttpRequest in shared worker</title>
 <script src="/resources/testharness.js"></script>
@@ -21,7 +6,7 @@ onconnect = function(e) {
 <script>
 var t = async_test();
 function runtest() {
-  var worker = new SharedWorker('#', '');
+  var worker = new SharedWorker('004.js', '');
   worker.port.onmessage = this.step_func(function(e) {
     assert_equals(e.data, '');
     this.done();
@@ -29,6 +14,3 @@ function runtest() {
 }
 </script>
 <iframe src=001-1.xml onload="t.step(runtest);"></iframe>
-<!--
-*/
-//-->

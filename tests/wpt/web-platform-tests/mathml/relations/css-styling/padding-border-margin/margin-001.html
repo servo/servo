@@ -73,8 +73,8 @@
           assert_true(MathMLFeatureDetection.has_mspace());
           assert_true(MathMLFeatureDetection.has_dir());
           var s = measureSpaceAround("mrow-margin-logical-rtl")
-          assert_approx_equals(s.left, 20, epsilon, "left margin");
-          assert_approx_equals(s.right, 30, epsilon, "right margin");
+          assert_approx_equals(s.left, 30, epsilon, "left margin");
+          assert_approx_equals(s.right, 20, epsilon, "right margin");
           assert_approx_equals(s.top, 40, epsilon, "top margin");
           assert_approx_equals(s.bottom, 50, epsilon, "bottom margin");
           var b = document.getElementById("mrow-margin-logical-rtl").

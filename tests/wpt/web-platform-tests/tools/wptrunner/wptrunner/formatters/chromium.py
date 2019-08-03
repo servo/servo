@@ -28,11 +28,15 @@ class ChromiumFormatter(base.BaseFormatter):
         # the subtest messages for this test.
         self.messages = defaultdict(str)
 
+        # List of tests that have failing subtests.
+        self.tests_with_subtest_fails = set()
+
     def _append_test_message(self, test, subtest, status, message):
         """
         Appends the message data for a test.
         :param str test: the name of the test
         :param str subtest: the name of the subtest with the message
+        :param str status: the subtest status
         :param str message: the string to append to the message for this test
         """
         if not message:
@@ -107,15 +111,25 @@ class ChromiumFormatter(base.BaseFormatter):
                                         else time.time())
 
     def test_status(self, data):
+        test_name = data["test"]
+        if data["status"] != "PASS" and test_name not in self.tests_with_subtest_fails:
+            self.tests_with_subtest_fails.add(test_name)
         if "message" in data:
-            self._append_test_message(data["test"], data["subtest"],
+            self._append_test_message(test_name, data["subtest"],
                                       data["status"], data["message"])
 
     def test_end(self, data):
-        actual_status = self._map_status_name(data["status"])
         expected_status = (self._map_status_name(data["expected"])
                            if "expected" in data else "PASS")
         test_name = data["test"]
+        actual_status = self._map_status_name(data["status"])
+        if actual_status == "PASS" and test_name in self.tests_with_subtest_fails:
+            # This test passed but it has failing subtests, so we flip the status
+            # to FAIL.
+            actual_status = "FAIL"
+            # Clean up the test list to avoid accumulating too many.
+            self.tests_with_subtest_fails.remove(test_name)
+
         if "message" in data:
             self._append_test_message(test_name, None, actual_status,
                                       data["message"])

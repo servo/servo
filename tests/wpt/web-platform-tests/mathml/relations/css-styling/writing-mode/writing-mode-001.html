@@ -18,11 +18,7 @@
   function runTests() {
       var reference = document.getElementById("horizontal-tb_ltr");
 
-      ["horizontal-tb_rtl",
-       "vertical-lr_ltr",
-       "vertical-lr_rtl",
-       "vertical-rl_ltr",
-       "vertical-rl_rtl"].forEach(id => {
+      ["horizontal-tb_rtl"].forEach(id => {
            var element = document.getElementById(id);
 
            test(function() {
@@ -60,54 +56,6 @@
   <p>
     <math style="direction: rtl;">
       <mrow id="horizontal-tb_rtl">
-        <mspace style="background: blue"
-                width="20px" height="30px" depth="40px"></mspace>
-        <mspace style="background: black"
-                width="50px" depth="60px"></mspace>
-        <mspace style="background: yellow"
-                width="70px" height="80px"></mspace>
-      </mrow>
-    </math>
-  </p>
-  <p>
-    <math style="writing-mode: vertical-lr;">
-      <mrow id="vertical-lr_ltr">
-        <mspace style="background: blue"
-                width="20px" height="30px" depth="40px"></mspace>
-        <mspace style="background: black"
-                width="50px" depth="60px"></mspace>
-        <mspace style="background: yellow"
-                width="70px" height="80px"></mspace>
-      </mrow>
-    </math>
-  </p>
-  <p>
-    <math style="writing-mode: vertical-lr; direction: rtl;">
-      <mrow id="vertical-lr_rtl">
-        <mspace style="background: blue"
-                width="20px" height="30px" depth="40px"></mspace>
-        <mspace style="background: black"
-                width="50px" depth="60px"></mspace>
-        <mspace style="background: yellow"
-                width="70px" height="80px"></mspace>
-      </mrow>
-    </math>
-  </p>
-  <p>
-    <math style="writing-mode: vertical-rl;">
-      <mrow id="vertical-rl_ltr">
-        <mspace style="background: blue"
-                width="20px" height="30px" depth="40px"></mspace>
-        <mspace style="background: black"
-                width="50px" depth="60px"></mspace>
-        <mspace style="background: yellow"
-                width="70px" height="80px"></mspace>
-      </mrow>
-    </math>
-  </p>
-  <p>
-    <math style="writing-mode: vertical-rl; direction: rtl;">
-      <mrow id="vertical-rl_rtl">
         <mspace style="background: blue"
                 width="20px" height="30px" depth="40px"></mspace>
         <mspace style="background: black"

@@ -21,11 +21,7 @@
           if (tag == "annotation" || tag == "annotation-xml")
               continue; // These tags have display: none.
 
-          ["horizontal-tb_rtl",
-           "vertical-lr_ltr",
-           "vertical-lr_rtl",
-           "vertical-rl_ltr",
-           "vertical-rl_rtl"].forEach(id => {
+          ["horizontal-tb_rtl"].forEach(id => {
                var writingMode = id.split("_");
                var writingModeString = `writing-mode: ${writingMode[0]}; direction: ${writingMode[1]};`;
 

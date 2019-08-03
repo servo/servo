@@ -230,3 +230,7 @@ class TokenizerTest(unittest.TestCase):
         self.compare("""foo:
   if a or b: [1, 2]
 """)
+
+    def test_if_string_0(self):
+        self.compare("""foo: "if bar"
+""")

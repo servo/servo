@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>Inheritance of CSS Fonts Level 3 properties</title>
 <link rel="help" href="https://www.w3.org/TR/css-fonts-3/#property-index">
-<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-stretch-prop">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#property-index">
 <meta name="assert" content="Properties inherit according to the spec.">
 <meta name="assert" content="Properties have initial values according to the spec.">
 <script src="/resources/testharness.js"></script>
@@ -40,6 +40,7 @@ assert_inherited('font-variant-east-asian', 'normal', 'ruby');
 assert_inherited('font-variant-ligatures', 'normal', 'none');
 assert_inherited('font-variant-numeric', 'normal', 'ordinal');
 assert_inherited('font-variant-position', 'normal', 'super');
+assert_inherited('font-variation-settings', 'normal', '"wght" 700');
 assert_inherited('font-weight', '400' /* normal */, '900');
 </script>
 </body>

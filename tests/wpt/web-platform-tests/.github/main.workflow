@@ -19,3 +19,14 @@ action "website-build-and-publish" {
   runs = ["/bin/bash", "tools/ci/website_build.sh"]
   secrets = ["DEPLOY_TOKEN"]
 }
+
+workflow "Synchronize the Pull Request Preview" {
+  on = "pull_request"
+  resolves = "update-pr-preview"
+}
+
+action "update-pr-preview" {
+  uses = "./tools/docker/github"
+  runs = ["python", "tools/ci/update_pr_preview.py", "https://api.github.com"]
+  secrets = ["GITHUB_TOKEN"]
+}

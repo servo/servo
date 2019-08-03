@@ -1,16 +1,18 @@
 import operator
 
-from ..node import NodeVisitor, DataNode, ConditionalNode, KeyValueNode, ListNode, ValueNode
+from ..node import NodeVisitor, DataNode, ConditionalNode, KeyValueNode, ListNode, ValueNode, BinaryExpressionNode, VariableNode
 from ..parser import parse
 
 
 class ConditionalValue(object):
     def __init__(self, node, condition_func):
         self.node = node
+        assert callable(condition_func)
         self.condition_func = condition_func
         if isinstance(node, ConditionalNode):
             assert len(node.children) == 2
             self.condition_node = self.node.children[0]
+            assert isinstance(node.children[1], (ValueNode, ListNode))
             self.value_node = self.node.children[1]
         else:
             assert isinstance(node, (ValueNode, ListNode))
@@ -58,6 +60,20 @@ class ConditionalValue(object):
         if len(self.node.parent.children) == 1:
             self.node.parent.remove()
         self.node.remove()
+
+    @property
+    def variables(self):
+        rv = set()
+        if self.condition_node is None:
+            return rv
+        stack = [self.condition_node]
+        while stack:
+            node = stack.pop()
+            if isinstance(node, VariableNode):
+                rv.add(node.data)
+            for child in reversed(node.children):
+                stack.append(child)
+        return rv
 
 
 class Compiler(NodeVisitor):
@@ -191,6 +207,7 @@ class Compiler(NodeVisitor):
         return {"not": operator.not_}[node.data]
 
     def visit_BinaryOperatorNode(self, node):
+        assert isinstance(node.parent, BinaryExpressionNode)
         return {"and": operator.and_,
                 "or": operator.or_,
                 "==": operator.eq,
@@ -215,6 +232,12 @@ class ManifestItem(object):
 
     def __contains__(self, key):
         return key in self._data
+
+    def __iter__(self):
+        yield self
+        for child in self.children:
+            for node in child:
+                yield node
 
     @property
     def is_empty(self):
@@ -282,9 +305,12 @@ class ManifestItem(object):
         else:
             value_node = ValueNode(unicode(value))
         if condition is not None:
-            conditional_node = ConditionalNode()
-            conditional_node.append(condition)
-            conditional_node.append(value_node)
+            if not isinstance(condition, ConditionalNode):
+                conditional_node = ConditionalNode()
+                conditional_node.append(condition)
+                conditional_node.append(value_node)
+            else:
+                conditional_node = condition
             node.append(conditional_node)
             cond_value = Compiler().compile_condition(conditional_node)
         else:
@@ -299,6 +325,21 @@ class ManifestItem(object):
             self._data[key].insert(len(self._data[key]) - 1, cond_value)
         else:
             self._data[key].append(cond_value)
+
+    def clear(self, key):
+        """Clear all the expected data for this node"""
+        if key in self._data:
+            for child in self.node.children:
+                if (isinstance(child, KeyValueNode) and
+                    child.data == key):
+                    child.remove()
+                    del self._data[key]
+                    break
+
+    def get_conditions(self, property_name):
+        if property_name in self._data:
+            return self._data[property_name]
+        return []
 
     def _add_key_value(self, node, values):
         """Called during construction to set a key-value node"""

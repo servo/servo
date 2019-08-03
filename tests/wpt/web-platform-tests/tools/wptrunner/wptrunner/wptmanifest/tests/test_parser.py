@@ -90,7 +90,7 @@ key:
         self.compare(
             """
 key:
-  if x == 1: if b: value""",
+  if x == 1: 'if b: value'""",
             ["DataNode", None,
              [["KeyValueNode", "key",
                [["ConditionalNode", None,
@@ -110,6 +110,10 @@ key:
     def test_atom_1(self):
         with self.assertRaises(parser.ParseError):
             self.parse("key: @true")
+
+    def test_if_1(self):
+        with self.assertRaises(parser.ParseError):
+            self.parse("key: if foo")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,3 @@
-<!--
-/*
--->
 <!doctype html>
 <title>creating a dummy shared worker with name "foo"</title>
 <link rel=help href="http://www.whatwg.org/html/#dom-sharedworker">
@@ -9,9 +6,6 @@
 <div id="log"></div>
 <script>
 test(function() {
-  var worker = new SharedWorker('#', 'foo');
+  var worker = new SharedWorker('empty.js', 'foo');
 });
 </script>
-<!--
-*/
-//-->

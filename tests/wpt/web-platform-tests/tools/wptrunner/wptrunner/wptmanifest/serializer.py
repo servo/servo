@@ -78,8 +78,10 @@ class ManifestSerializer(NodeVisitor):
             data = unicode(node.data)
         else:
             data = node.data
-        if "#" in data or (isinstance(node.parent, ListNode) and
-                           ("," in data or "]" in data)):
+        if ("#" in data or
+            data.startswith("if ") or
+            (isinstance(node.parent, ListNode) and
+             ("," in data or "]" in data))):
             if "\"" in data:
                 quote = "'"
             else:
