@@ -345,7 +345,6 @@ pub struct IpcHandle {
 
 impl IpcHandle {
     pub fn send<T: Serialize>(&self, msg: T) -> Result<(), bincode::Error> {
-        // TODO: use byte sender, impl to_opaque for IpcBytesSender
         let mut bytes = Vec::with_capacity(4096);
         bincode::serialize_into(&mut bytes, &msg)?;
         self.sender
