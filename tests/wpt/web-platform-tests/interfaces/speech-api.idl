@@ -102,9 +102,9 @@ interface SpeechGrammarList {
     readonly attribute unsigned long length;
     getter SpeechGrammar item(unsigned long index);
     void addFromURI(DOMString src,
-                    optional float weight);
+                    optional float weight = 1.0);
     void addFromString(DOMString string,
-                    optional float weight);
+                    optional float weight = 1.0);
 };
 
 [Exposed=Window]

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<title>MathMLElement GlobalEventHandlers</title>
+<link rel="author" title="Brian Kardell" href="mailto:bkardell@igalia.com" />
+<link
+  rel="help"
+  href="https://mathml-refresh.github.io/mathml-core/#dom-and-javascript"
+/>
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/multipage/#event-handler-idl-attributes"
+/>
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/multipage/#event-handler-content-attributes"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+
+<script>
+  "use strict";
+  setup({ explicit_done: true });
+
+  // basic pattern lifted from /html/webappapis/scripting/events/event-handler-all-global-events.html
+  fetch("/interfaces/html.idl")
+    .then(res => res.text())
+    .then(htmlIDL => {
+      const parsedHTMLIDL = WebIDL2.parse(htmlIDL);
+      const globalEventHandlers = parsedHTMLIDL.find(
+        idl => idl.name === "GlobalEventHandlers"
+      );
+
+      // onerror is too special
+      const names = globalEventHandlers.members
+        .map(member => member.name)
+        .filter(name => name !== "onerror");
+
+      for (const name of names) {
+        const withoutOn = name.substring(2);
+
+        test(() => {
+          const location = MathMLElement.prototype;
+          assert_true(
+            location.hasOwnProperty(name),
+            `${location.constructor.name} has an own property named "${name}"`
+          );
+
+          assert_false(
+            name in Element.prototype,
+            `Element.prototype must not contain a "${name}" property`
+          );
+        }, `${name}: must be on the appropriate locations for GlobalEventHandlers`);
+
+        test(() => {
+          const location = document.createElementNS(
+            "http://www.w3.org/1998/Math/MathML",
+            "math"
+          );
+
+          assert_equals(
+            location[name],
+            null,
+            `The default value of the property is null for a ${
+              location.constructor.name
+            } instance`
+          );
+        }, `${name}: the default value must be null`);
+
+        test(() => {
+          const el = document.createElementNS(
+            "http://www.w3.org/1998/Math/MathML",
+            "math"
+          );
+          el.setAttribute(name, `window.${name}Happened = true;`);
+          const compiledHandler = el[name];
+
+          assert_equals(
+            typeof compiledHandler,
+            "function",
+            `The ${name} property must be a function`
+          );
+          compiledHandler();
+          assert_true(
+            window[name + "Happened"],
+            "Calling the handler must run the code"
+          );
+        }, `${name}: the content attribute must be compiled into a function as the corresponding property`);
+
+        test(() => {
+          const element = document.createElementNS(
+            "http://www.w3.org/1998/Math/MathML",
+            "math"
+          );
+          element[name] = e => {
+            assert_equals(
+              e.currentTarget,
+              element,
+              "The event must be fired at the <math> element"
+            );
+          };
+
+          element.dispatchEvent(new Event(withoutOn));
+        }, `${name}: dispatching an Event at a <math> element must trigger element.${name}`);
+      }
+
+      done();
+    });
+</script>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>MathML 'HTMLOrForeignElement` Mixin Tests</title>
+    <link
+      rel="help"
+      href="https://mathml-refresh.github.io/mathml-core/#dom-and-javascript"
+    />
+    <style>
+      mi {
+        background-color: red;
+      }
+      :focus {
+        background-color: rgb(0, 255, 0);
+      }
+    </style>
+    <meta
+      name="assert"
+      content="MathMLElements incorporate a functional HTMLOrForeignElement interface"
+    />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body tabindex="-1">
+    <span tabindex="-1"
+      >This tests the presence and functionality of features of
+      `HTMLOrForeignElement` (currently `HTMLOrSVGElement`)</span
+    >
+    <math tabindex="-1">
+      <mi>E</mi>
+    </math>
+  </body>
+  <script>
+    // spot check the functionality of several interfaces
+    let el = document.querySelector("mi");
+    let mathEl = document.querySelector("math");
+
+    // this really belongs in
+    // https://github.com/web-platform-tests/wpt/blob/master/html/dom/elements/global-attributes/dataset.html
+    // it is here tentatively
+    test(function() {
+      var mathml = document.createElementNS(
+        "http://www.w3.org/1998/Math/MathML",
+        "math"
+      );
+      assert_true(mathml.dataset instanceof DOMStringMap);
+    }, "MathML elements should have a .dataset");
+
+    // exercise some basic tests on .dataset
+    test(function() {
+      assert_equals(
+        Object.keys(el.dataset).toString(),
+        "",
+        "The .dataset property should be present"
+      );
+
+      el.setAttribute("data-one", "x");
+      el.setAttribute("data-two", "y");
+
+      assert_equals(
+        el.dataset.one,
+        "x",
+        '.one should be "x" after setting the data-one attribute'
+      );
+      assert_equals(
+        el.dataset.two,
+        "y",
+        '.one should be "y" after setting the data-two attribute'
+      );
+
+      el.dataset.one = "o";
+      assert_equals(
+        el.getAttribute("data-one"),
+        "o",
+        'the data-one attribute should reflect a change to dataset.one and contain "o"'
+      );
+    }, "The dataset property should be present and be functional.");
+
+    test(function() {
+      assert_equals(mathEl.tabIndex, -1);
+    }, "MathML elements should have a tabIndex property");
+
+    promise_test(function() {
+      function focus() {
+        mathEl.focus();
+        return Promise.resolve();
+      }
+
+      return focus().then(() => {
+        assert_equals(
+          getComputedStyle(mathEl).backgroundColor,
+          "rgb(0, 255, 0)",
+          "MathML elements with tabindex=-1 should be programmatically focusable and apply :focus"
+        );
+      });
+    }, "MathML elements should work with focus predictably");
+
+    promise_test(function() {
+      function blur() {
+        mathEl.blur();
+        return Promise.resolve();
+      }
+
+      return blur().then(() => {
+        assert_equals(
+          getComputedStyle(mathEl).backgroundColor,
+          "rgba(0, 0, 0, 0)",
+          "MathML elements with tabindex=-1 be programmatically blur() able"
+        );
+      });
+    }, "MathML elements should work with blur predictably");
+  </script>
+</html>

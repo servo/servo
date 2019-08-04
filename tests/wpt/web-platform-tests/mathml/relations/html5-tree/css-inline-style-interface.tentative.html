@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>MathML 'ElementCSSInlineStyle` Mixin Tests</title>
+    <link
+      rel="help"
+      href="https://mathml-refresh.github.io/mathml-core/#dom-and-javascript"
+    />
+    <style>
+      math * {
+        background-color: red;
+      }
+    </style>
+    <meta
+      name="assert"
+      content="MathMLElements incorporate a functional ElementCSSInlineStyle interface"
+    />
+    <script src="/mathml/support/mathml-fragments.js"></script>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <span
+      >This tests the presence and functionality of features of the
+      `ElementCSSInlineStyle` interface for MathMLElements</span
+    >
+    <math></math>
+    <script>
+      let mathEl = document.querySelector("math");
+
+      test(function() {
+        mathEl.style.backgroundColor = "lime";
+        assert_equals(
+          getComputedStyle(mathEl).backgroundColor,
+          "rgb(0, 255, 0)",
+          "The applied background should be green."
+        );
+      }, `The <math> element style property should be present and be functional.`);
+
+      Object.keys(MathMLFragments).forEach(elName => {
+        mathEl.innerHTML = MathMLFragments[elName];
+
+        test(function() {
+          let el = FragmentHelper.element(mathEl);
+          el.style.backgroundColor = "blue";
+
+          assert_equals(
+            getComputedStyle(el).backgroundColor,
+            "rgb(0, 0, 255)",
+            "The applied background should be blue."
+          );
+        }, `The ${elName}'s style property should be present and be functional.`);
+      });
+    </script>
+  </body>
+</html>

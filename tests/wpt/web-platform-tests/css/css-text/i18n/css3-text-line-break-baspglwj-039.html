@@ -7,16 +7,13 @@
 <link rel='help' href='https://drafts.csswg.org/css-text-3/#line-breaking'>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<meta name='flags' content='dom'>
+<meta name='flags' content='should dom'>
 <meta name="assert" content="[Exploratory] The browser will break a line of text after any Unicode character with the BA historic word separator property.">
 <style type='text/css'>
-@font-face {
-    font-family: 'csstest_ascii';
-    src: url('support/csstest-ascii-webfont.woff') format('woff');
-    font-weight: normal;
-    font-style: normal;
-	}
-#breakable { font-family: csstest_ascii; font-size: 25px; width: 800px; line-height: 30px; }
+.test > div { font-family: monospace; font-size: 25px; width: 50ch; line-height: 30px; }
+#breakable2 { white-space: pre-line; }
+#breakable3 { white-space: pre-wrap; }
+#breakable4 { white-space: break-spaces; }
 </style>
 </head>
 <body>
@@ -24,8 +21,11 @@
 
 
 <div class="test">
-			<div id="breakable">aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&#x205E;bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb</div>
-			</div>
+  <div id="breakable">aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&#x205E;bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb</div>
+  <div id="breakable2">aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&#x205E;bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb</div>
+  <div id="breakable3">aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&#x205E;bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb</div>
+  <div id="breakable4">aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&#x205E;bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb</div>
+</div>
 
 
 <!--Notes:
@@ -35,8 +35,17 @@ Box height: <span id='debugresult'></span><script>document.getElementById('debug
 -->
 <script>
 test(function() {
-assert_true(document.getElementById('breakable').offsetHeight > 35);
-}, " ");
+  assert_true(document.getElementById('breakable').offsetHeight > 35);
+}, "white-space:normal");
+test(function() {
+  assert_true(document.getElementById('breakable2').offsetHeight > 35);
+}, "white-space:pre-line");
+test(function() {
+  assert_true(document.getElementById('breakable3').offsetHeight > 35);
+}, "white-space:pre-wrap");
+test(function() {
+  assert_true(document.getElementById('breakable4').offsetHeight > 35);
+}, "white-space:break-spaces");
 </script>
 
 <div id='log'></div>
