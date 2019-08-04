@@ -26,8 +26,6 @@ use dom_struct::dom_struct;
 use euclid::Length;
 use headers::ContentType;
 use http::header::{self, HeaderName, HeaderValue};
-use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use js::conversions::ToJSValConvertible;
 use js::jsval::UndefinedValue;
 use mime::{self, Mime};
@@ -83,7 +81,6 @@ struct EventSourceContext {
 
     event_source: Trusted<EventSource>,
     gen_id: GenerationId,
-    action_sender: ipc::IpcSender<FetchResponseMsg>,
 
     parser_state: ParserState,
     field: String,
@@ -137,7 +134,6 @@ impl EventSourceContext {
         }
 
         let trusted_event_source = self.event_source.clone();
-        let action_sender = self.action_sender.clone();
         let global = event_source.global();
         // FIXME(nox): Why are errors silenced here?
         let _ = global.remote_event_task_source().queue(
@@ -165,7 +161,6 @@ impl EventSourceContext {
                 let callback = OneshotTimerCallback::EventSourceTimeout(
                     EventSourceTimeoutCallback {
                         event_source: trusted_event_source,
-                        action_sender,
                     }
                 );
                 // FIXME(nox): Why are errors silenced here?
@@ -539,13 +534,11 @@ impl EventSource {
         // Step 12
         *ev.request.borrow_mut() = Some(request.clone());
         // Step 14
-        let (action_sender, action_receiver) = ipc::channel().unwrap();
         let context = EventSourceContext {
             incomplete_utf8: None,
 
             event_source: Trusted::new(&ev),
             gen_id: ev.generation_id.get(),
-            action_sender: action_sender.clone(),
 
             parser_state: ParserState::Eol,
             field: String::new(),
@@ -562,18 +555,17 @@ impl EventSource {
             task_source: global.networking_task_source(),
             canceller: Some(global.task_canceller(TaskSourceName::Networking)),
         };
-        ROUTER.add_route(
-            action_receiver.to_opaque(),
-            Box::new(move |message| {
-                listener.notify_fetch(message.to().unwrap());
-            }),
-        );
+        let handle = global.add_ipc_callback(Box::new(move |data: Vec<u8>| {
+            let msg: FetchResponseMsg =
+                bincode::deserialize(&data[..]).expect("Data to deserialize into a FetchResponseMsg");
+            listener.notify_fetch(msg);
+        }));
         let cancel_receiver = ev.canceller.borrow_mut().initialize();
         global
             .core_resource_thread()
             .send(CoreResourceMsg::Fetch(
                 request,
-                FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)),
+                FetchChannels::ResponseHandle(handle, Some(cancel_receiver)),
             ))
             .unwrap();
         // Step 13
@@ -628,8 +620,6 @@ impl EventSourceMethods for EventSource {
 pub struct EventSourceTimeoutCallback {
     #[ignore_malloc_size_of = "Because it is non-owning"]
     event_source: Trusted<EventSource>,
-    #[ignore_malloc_size_of = "Because it is non-owning"]
-    action_sender: ipc::IpcSender<FetchResponseMsg>,
 }
 
 impl EventSourceTimeoutCallback {
@@ -653,11 +643,38 @@ impl EventSourceTimeoutCallback {
             );
         }
         // Step 5.4
+        let context = EventSourceContext {
+            incomplete_utf8: None,
+
+            event_source: Trusted::new(&event_source),
+            gen_id: event_source.generation_id.get(),
+
+            parser_state: ParserState::Eol,
+            field: String::new(),
+            value: String::new(),
+            origin: String::new(),
+
+            event_type: String::new(),
+            data: String::new(),
+            last_event_id: String::new(),
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
+        };
+        let listener = NetworkListener {
+            context: Arc::new(Mutex::new(context)),
+            task_source: global.networking_task_source(),
+            canceller: Some(global.task_canceller(TaskSourceName::Networking)),
+        };
+        let handle = global.add_ipc_callback(Box::new(move |data: Vec<u8>| {
+            let msg: FetchResponseMsg =
+                bincode::deserialize(&data[..]).expect("Data to deserialize into a FetchResponseMsg");
+            listener.notify_fetch(msg);
+        }));
+        let cancel_receiver = event_source.canceller.borrow_mut().initialize();
         global
             .core_resource_thread()
             .send(CoreResourceMsg::Fetch(
                 request,
-                FetchChannels::ResponseMsg(self.action_sender, None),
+                FetchChannels::ResponseHandle(handle, Some(cancel_receiver)),
             ))
             .unwrap();
     }
