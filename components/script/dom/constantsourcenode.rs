@@ -6,9 +6,10 @@ use crate::dom::audionode::{AudioNode, UnwrappedAudioNodeOptions};
 use crate::dom::audioparam::AudioParam;
 use crate::dom::audioscheduledsourcenode::AudioScheduledSourceNode;
 use crate::dom::baseaudiocontext::BaseAudioContext;
+use crate::dom::bindings::codegen::Bindings::ConstantSourceNodeBinding;
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::root::Dom;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
 use servo_media::audio::node::AudioNodeInit;
 use servo_media::audio::param::ParamType;
@@ -49,5 +50,27 @@ impl ConstantSourceNode {
             source_node,
             offset: Dom::from_ref(&offset),
         })
+    }
+
+    #[allow(unrooted_must_root)]
+    pub fn new(
+        window: &Window,
+        context: &BaseAudioContext,
+        options: &ConstantSourceOptions,
+    ) -> Fallible<DomRoot<ConstantSourceNode>> {
+        let node = ConstantSourceNode::new_inherited(window, context, options)?;
+        Ok(reflect_dom_object(
+            Box::new(node),
+            window,
+            ConstantSourceNodeBinding::Wap,
+        ))
+    }
+
+    pub fn Constructor(
+        window: &Window,
+        context: &BaseAudioContext,
+        options: &ConstantSourceOptions,
+    ) -> Fallible<DomRoot<ConstantSourceNode>> {
+        ConstantSourceNode::new(window, context, options)
     }
 }
