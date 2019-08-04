@@ -57,6 +57,7 @@ use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
 use profile_traits::{mem as profile_mem, time as profile_time};
 use script_traits::{MsDuration, ScriptToConstellationChan, TimerEvent};
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
+use serde::ser::Serialize;
 use servo_url::{MutableOrigin, ServoUrl};
 use shared_ipc_router::{IpcCallback, IpcHandle, SharedIpcRouter};
 use std::borrow::Cow;
@@ -215,7 +216,7 @@ impl GlobalScope {
         }
     }
 
-    pub fn add_ipc_callback(&self, callback: IpcCallback) -> IpcHandle {
+    pub fn add_ipc_callback<T: Serialize>(&self, callback: IpcCallback) -> IpcHandle<T> {
         self.ipc_router.add_callback(callback)
     }
 

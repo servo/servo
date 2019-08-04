@@ -126,7 +126,7 @@ impl DocumentLoader {
         &mut self,
         load: LoadType,
         request: RequestBuilder,
-        fetch_target: IpcHandle,
+        fetch_target: IpcHandle<FetchResponseMsg>,
     ) {
         self.add_blocking_load(load);
         self.fetch_async_background_with_handle(request, fetch_target);
@@ -136,7 +136,7 @@ impl DocumentLoader {
     pub fn fetch_async_background_with_handle(
         &mut self,
         request: RequestBuilder,
-        fetch_target: IpcHandle,
+        fetch_target: IpcHandle<FetchResponseMsg>,
     ) {
         let mut canceller = FetchCanceller::new();
         let cancel_receiver = canceller.initialize();

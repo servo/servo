@@ -238,7 +238,7 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     }
 }
 
-impl FetchTaskTarget for IpcHandle {
+impl FetchTaskTarget for IpcHandle<FetchResponseMsg> {
     fn process_request_body(&mut self, _: &Request) {
         let _ = self.send(FetchResponseMsg::ProcessRequestBody);
     }
@@ -390,13 +390,16 @@ pub enum WebSocketNetworkEvent {
 #[derive(Debug, Deserialize, Serialize)]
 /// IPC channels to communicate with the script thread about network or DOM events.
 pub enum FetchChannels {
-    ResponseHandle(IpcHandle, /* cancel_chan */ Option<IpcReceiver<()>>),
+    ResponseHandle(
+        IpcHandle<FetchResponseMsg>,
+        /* cancel_chan */ Option<IpcReceiver<()>>,
+    ),
     ResponseMsg(
         IpcSender<FetchResponseMsg>,
         /* cancel_chan */ Option<IpcReceiver<()>>,
     ),
     WebSocket {
-        event_sender: IpcHandle,
+        event_sender: IpcHandle<WebSocketNetworkEvent>,
         action_receiver: IpcReceiver<WebSocketDomAction>,
     },
 }

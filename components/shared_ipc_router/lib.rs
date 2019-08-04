@@ -12,15 +12,21 @@ use msg::constellation_msg::IpcCallbackId;
 use profile_traits::ipc as ProfiledIpc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::marker::PhantomData;
+
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct IpcHandle {
+pub struct IpcHandle<T: Serialize> {
     pub callback_id: IpcCallbackId,
     pub sender: IpcSender<IpcCallbackMsg>,
+    pub send_type: PhantomData<T>,
 }
 
-impl IpcHandle {
-    pub fn send<T: Serialize>(&self, msg: T) -> Result<(), bincode::Error> {
+impl<T> IpcHandle<T>
+where
+    T: Serialize,
+{
+    pub fn send(&self, msg: T) -> Result<(), bincode::Error> {
         // TODO:: Use a IpcBytesSender/Receiver to avoid double serialization?
         // Requires passing T to the callback, instead of a Vec<u8>.
         //
@@ -104,7 +110,7 @@ impl SharedIpcRouter {
         ipc_script_router
     }
 
-    pub fn add_callback(&self, callback: IpcCallback) -> IpcHandle {
+    pub fn add_callback<T: Serialize>(&self, callback: IpcCallback) -> IpcHandle<T> {
         let callback_id = IpcCallbackId::new();
         if let Ok(_) = self.sender.send((callback_id.clone(), callback)) {
             self.ipc_sender
@@ -113,6 +119,7 @@ impl SharedIpcRouter {
             return IpcHandle {
                 callback_id,
                 sender: self.ipc_sender.clone(),
+                send_type: PhantomData,
             };
         }
         unreachable!("Adding an ipc callback failed");

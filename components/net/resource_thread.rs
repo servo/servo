@@ -27,8 +27,9 @@ use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::{CookieSource, CoreResourceMsg, CoreResourceThread};
 use net_traits::{CustomResponseMediator, FetchChannels};
-use net_traits::{FetchResponseMsg, ResourceThreads, WebSocketDomAction};
+use net_traits::{FetchResponseMsg, ResourceThreads};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
+use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use profile_traits::time::ProfilerChan;
@@ -513,7 +514,7 @@ impl CoreResourceManager {
         &self,
         request_builder: RequestBuilder,
         res_init_: Option<ResponseInit>,
-        mut handle: IpcHandle,
+        mut handle: IpcHandle<FetchResponseMsg>,
         http_state: &Arc<HttpState>,
         cancel_chan: Option<IpcReceiver<()>>,
     ) {
@@ -563,7 +564,7 @@ impl CoreResourceManager {
     fn websocket_connect(
         &self,
         request: RequestBuilder,
-        event_sender: IpcHandle,
+        event_sender: IpcHandle<WebSocketNetworkEvent>,
         action_receiver: IpcReceiver<WebSocketDomAction>,
         http_state: &Arc<HttpState>,
     ) {
