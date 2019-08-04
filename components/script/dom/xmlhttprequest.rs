@@ -52,7 +52,6 @@ use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use hyper::Method;
 use hyper_serde::Serde;
 use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
@@ -63,7 +62,7 @@ use net_traits::request::{CredentialsMode, Destination, Referrer, RequestBuilder
 use net_traits::trim_http_whitespace;
 use net_traits::CoreResourceMsg::Fetch;
 use net_traits::{FetchChannels, FetchMetadata, FilteredMetadata};
-use net_traits::{FetchResponseListener, NetworkError, ReferrerPolicy};
+use net_traits::{FetchResponseListener, FetchResponseMsg, NetworkError, ReferrerPolicy};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use script_traits::DocumentActivity;
 use servo_atoms::Atom;
@@ -299,24 +298,21 @@ impl XMLHttpRequest {
             }
         }
 
-        let (action_sender, action_receiver) = ipc::channel().unwrap();
-
         let listener = NetworkListener {
             context: context,
             task_source: task_source,
             canceller: Some(global.task_canceller(TaskSourceName::Networking)),
         };
-        ROUTER.add_route(
-            action_receiver.to_opaque(),
-            Box::new(move |message| {
-                listener.notify_fetch(message.to().unwrap());
-            }),
-        );
+        let handle = global.add_ipc_callback(Box::new(move |data: Vec<u8>| {
+            let msg: FetchResponseMsg = bincode::deserialize(&data[..])
+                .expect("Data to deserialize into a FetchResponseMsg");
+            listener.notify_fetch(msg);
+        }));
         global
             .core_resource_thread()
             .send(Fetch(
                 init,
-                FetchChannels::ResponseMsg(action_sender, Some(cancellation_chan)),
+                FetchChannels::ResponseHandle(handle, Some(cancellation_chan)),
             ))
             .unwrap();
     }
