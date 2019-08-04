@@ -1736,7 +1736,7 @@ impl Document {
         &self,
         load: LoadType,
         request: RequestBuilder,
-        fetch_target: IpcHandle,
+        fetch_target: IpcHandle<FetchResponseMsg>,
     ) {
         let mut loader = self.loader.borrow_mut();
         loader.fetch_async_with_handle(load, request, fetch_target);

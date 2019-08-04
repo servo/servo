@@ -38,7 +38,7 @@ struct Client<'a> {
     protocols: &'a [String],
     http_state: &'a Arc<HttpState>,
     resource_url: &'a ServoUrl,
-    event_sender: &'a IpcHandle,
+    event_sender: &'a IpcHandle<WebSocketNetworkEvent>,
     protocol_in_use: Option<String>,
     certificate_path: Option<String>,
 }
@@ -176,7 +176,7 @@ impl<'a> Handler for Client<'a> {
 
 pub fn init(
     req_builder: RequestBuilder,
-    resource_event_sender: IpcHandle,
+    resource_event_sender: IpcHandle<WebSocketNetworkEvent>,
     dom_action_receiver: IpcReceiver<WebSocketDomAction>,
     http_state: Arc<HttpState>,
     certificate_path: Option<String>,

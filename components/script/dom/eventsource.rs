@@ -556,8 +556,8 @@ impl EventSource {
             canceller: Some(global.task_canceller(TaskSourceName::Networking)),
         };
         let handle = global.add_ipc_callback(Box::new(move |data: Vec<u8>| {
-            let msg: FetchResponseMsg =
-                bincode::deserialize(&data[..]).expect("Data to deserialize into a FetchResponseMsg");
+            let msg: FetchResponseMsg = bincode::deserialize(&data[..])
+                .expect("Data to deserialize into a FetchResponseMsg");
             listener.notify_fetch(msg);
         }));
         let cancel_receiver = ev.canceller.borrow_mut().initialize();
@@ -665,8 +665,8 @@ impl EventSourceTimeoutCallback {
             canceller: Some(global.task_canceller(TaskSourceName::Networking)),
         };
         let handle = global.add_ipc_callback(Box::new(move |data: Vec<u8>| {
-            let msg: FetchResponseMsg =
-                bincode::deserialize(&data[..]).expect("Data to deserialize into a FetchResponseMsg");
+            let msg: FetchResponseMsg = bincode::deserialize(&data[..])
+                .expect("Data to deserialize into a FetchResponseMsg");
             listener.notify_fetch(msg);
         }));
         let cancel_receiver = event_source.canceller.borrow_mut().initialize();
