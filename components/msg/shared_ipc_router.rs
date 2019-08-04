@@ -5,25 +5,66 @@
 //! The script runtime contains common traits and structs commonly used by the
 //! script thread, the dom, and the worker threads.
 
+use crate::constellation_msg::IpcCallbackId;
+use bincode;
 use crossbeam_channel::{unbounded, Sender};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use msg::constellation_msg::{IpcCallbackId, IpcCallbackMsg, IpcHandle};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct IpcHandle {
+    pub callback_id: IpcCallbackId,
+    pub sender: IpcSender<IpcCallbackMsg>,
+}
+
+impl IpcHandle {
+    pub fn send<T: Serialize>(&self, msg: T) -> Result<(), bincode::Error> {
+        // TODO:: Use a IpcBytesSender/Receiver to avoid double serialization?
+        // Requires passing T to the callback, instead of a Vec<u8>.
+        //
+        // Note: attempt at creating a Vec smaller than the one allocated inside send.
+        // Basically (4096 - 64(for the Id)) - 64(for the IpcCallbackMsg::Callback).
+        // The 3968 left is then for the msg, and hopefully we don't need to re-allocate(twice?).
+        let mut bytes = Vec::with_capacity(3968);
+        bincode::serialize_into(&mut bytes, &msg)?;
+        self.sender
+            .send(IpcCallbackMsg::Callback(self.callback_id.clone(), bytes))
+    }
+
+    /// Drop the associated callback.
+    ///
+    /// This cannot be done inside Drop, since the handle will drop on each process hop.
+    /// Therefore, it is the responsability of the user of the handle to call drop_callback,
+    /// when it will not be used anymore.
+    pub fn drop_callback(&mut self) {
+        let _ = self
+            .sender
+            .send(IpcCallbackMsg::DropCallback(self.callback_id.clone()));
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum IpcCallbackMsg {
+    AddCallback,
+    Callback(IpcCallbackId, Vec<u8>),
+    DropCallback(IpcCallbackId),
+}
 
 pub type IpcCallback = Box<dyn FnMut(Vec<u8>) + Send>;
 
-pub struct ScriptIpcRouter {
+pub struct SharedIpcRouter {
     ipc_sender: IpcSender<IpcCallbackMsg>,
     sender: Sender<(IpcCallbackId, IpcCallback)>,
 }
 
-impl ScriptIpcRouter {
+impl SharedIpcRouter {
     pub fn new() -> Self {
         let (callback_sender, callback_receiver) =
             ipc::channel().expect("ScriptIpcRouter ipc chan");
         let (sender, receiver) = unbounded();
-        let ipc_script_router = ScriptIpcRouter {
+        let ipc_script_router = SharedIpcRouter {
             sender: sender,
             ipc_sender: callback_sender,
         };
