@@ -47,6 +47,7 @@ pub use script_traits;
 pub use servo_config;
 pub use servo_geometry;
 pub use servo_url;
+pub use shared_ipc_router;
 pub use style;
 pub use style_traits;
 pub use webrender_api;

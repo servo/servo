@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! The script runtime contains common traits and structs commonly used by the
-//! script thread, the dom, and the worker threads.
+#![deny(unsafe_code)]
 
-use crate::constellation_msg::IpcCallbackId;
 use bincode;
 use crossbeam_channel::{unbounded, Sender};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
+use msg::constellation_msg::IpcCallbackId;
+use profile_traits::ipc as ProfiledIpc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -60,9 +60,18 @@ pub struct SharedIpcRouter {
 }
 
 impl SharedIpcRouter {
-    pub fn new() -> Self {
-        let (callback_sender, callback_receiver) =
-            ipc::channel().expect("ScriptIpcRouter ipc chan");
+    pub fn new(profiler: Option<profile_traits::time::ProfilerChan>) -> Self {
+        let (callback_sender, callback_receiver) = match profiler {
+            Some(profiler) => {
+                let (sender, receiver) =
+                    ProfiledIpc::channel(profiler).expect("SharedIpcRouter profiled chan");
+                (sender, receiver.to_opaque())
+            },
+            None => {
+                let (sender, receiver) = ipc::channel().expect("SharedIpcRouter ipc chan");
+                (sender, receiver.to_opaque())
+            },
+        };
         let (sender, receiver) = unbounded();
         let ipc_script_router = SharedIpcRouter {
             sender: sender,
@@ -70,7 +79,7 @@ impl SharedIpcRouter {
         };
         let mut callbacks: HashMap<IpcCallbackId, IpcCallback> = HashMap::new();
         ROUTER.add_route(
-            callback_receiver.to_opaque(),
+            callback_receiver,
             Box::new(move |message| {
                 match message.to().expect("ScriptIpcRouter handle incoming msg") {
                     IpcCallbackMsg::AddCallback => {

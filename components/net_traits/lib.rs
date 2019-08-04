@@ -30,8 +30,8 @@ use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
 use mime::Mime;
 use msg::constellation_msg::HistoryStateId;
-use msg::shared_ipc_router::IpcHandle;
 use servo_url::ServoUrl;
+use shared_ipc_router::IpcHandle;
 use std::error::Error;
 use time::precise_time_ns;
 
