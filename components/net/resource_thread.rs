@@ -25,7 +25,6 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::request::{Destination, RequestBuilder};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
-use net_traits::WebSocketNetworkEvent;
 use net_traits::{CookieSource, CoreResourceMsg, CoreResourceThread};
 use net_traits::{CustomResponseMediator, FetchChannels};
 use net_traits::{FetchResponseMsg, ResourceThreads, WebSocketDomAction};
@@ -564,7 +563,7 @@ impl CoreResourceManager {
     fn websocket_connect(
         &self,
         request: RequestBuilder,
-        event_sender: IpcSender<WebSocketNetworkEvent>,
+        event_sender: IpcHandle,
         action_receiver: IpcReceiver<WebSocketDomAction>,
         http_state: &Arc<HttpState>,
     ) {

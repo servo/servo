@@ -399,7 +399,7 @@ pub enum FetchChannels {
         /* cancel_chan */ Option<IpcReceiver<()>>,
     ),
     WebSocket {
-        event_sender: IpcSender<WebSocketNetworkEvent>,
+        event_sender: IpcHandle,
         action_receiver: IpcReceiver<WebSocketDomAction>,
     },
 }

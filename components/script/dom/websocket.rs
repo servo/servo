@@ -27,7 +27,6 @@ use crate::task_source::websocket::WebsocketTaskSource;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use ipc_channel::router::ROUTER;
 use js::jsapi::{JSAutoRealm, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::CustomAutoRooterGuard;
@@ -36,7 +35,6 @@ use net_traits::request::{Referrer, RequestBuilder, RequestMode};
 use net_traits::MessageData;
 use net_traits::{CoreResourceMsg, FetchChannels};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
-use profile_traits::ipc as ProfiledIpc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -192,33 +190,16 @@ impl WebSocket {
             IpcSender<WebSocketDomAction>,
             IpcReceiver<WebSocketDomAction>,
         ) = ipc::channel().unwrap();
-        let (resource_event_sender, dom_event_receiver): (
-            IpcSender<WebSocketNetworkEvent>,
-            ProfiledIpc::IpcReceiver<WebSocketNetworkEvent>,
-        ) = ProfiledIpc::channel(global.time_profiler_chan().clone()).unwrap();
 
         let ws = WebSocket::new(global, url_record.clone(), dom_action_sender);
         let address = Trusted::new(&*ws);
 
-        // Step 8.
-        let request = RequestBuilder::new(url_record)
-            .origin(global.origin().immutable().clone())
-            .mode(RequestMode::WebSocket { protocols })
-            .referrer(Some(Referrer::NoReferrer));
-
-        let channels = FetchChannels::WebSocket {
-            event_sender: resource_event_sender,
-            action_receiver: resource_action_receiver,
-        };
-        let _ = global
-            .core_resource_thread()
-            .send(CoreResourceMsg::Fetch(request, channels));
-
         let task_source = global.websocket_task_source();
         let canceller = global.task_canceller(WebsocketTaskSource::NAME);
-        ROUTER.add_route(
-            dom_event_receiver.to_opaque(),
-            Box::new(move |message| match message.to().unwrap() {
+        let handle = global.add_ipc_callback(Box::new(move |data: Vec<u8>| {
+            let message: WebSocketNetworkEvent = bincode::deserialize(&data[..])
+                .expect("Data to deserialize into a WebSocketNetworkEvent");
+            match message {
                 WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use } => {
                     let open_thread = ConnectionEstablishedTask {
                         address: address.clone(),
@@ -249,8 +230,22 @@ impl WebSocket {
                         reason,
                     );
                 },
-            }),
-        );
+            }
+        }));
+
+        // Step 8.
+        let request = RequestBuilder::new(url_record)
+            .origin(global.origin().immutable().clone())
+            .mode(RequestMode::WebSocket { protocols })
+            .referrer(Some(Referrer::NoReferrer));
+
+        let channels = FetchChannels::WebSocket {
+            event_sender: handle,
+            action_receiver: resource_action_receiver,
+        };
+        let _ = global
+            .core_resource_thread()
+            .send(CoreResourceMsg::Fetch(request, channels));
 
         // Step 7.
         Ok(ws)

@@ -11,12 +11,13 @@ use embedder_traits::resources::{self, Resource};
 use headers::Host;
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use http::uri::Authority;
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::ipc::IpcReceiver;
 use net_traits::request::{RequestBuilder, RequestMode};
 use net_traits::{CookieSource, MessageData};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
 use openssl::ssl::SslStream;
 use servo_url::ServoUrl;
+use shared_ipc_router::IpcHandle;
 use std::fs;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -37,7 +38,7 @@ struct Client<'a> {
     protocols: &'a [String],
     http_state: &'a Arc<HttpState>,
     resource_url: &'a ServoUrl,
-    event_sender: &'a IpcSender<WebSocketNetworkEvent>,
+    event_sender: &'a IpcHandle,
     protocol_in_use: Option<String>,
     certificate_path: Option<String>,
 }
@@ -175,7 +176,7 @@ impl<'a> Handler for Client<'a> {
 
 pub fn init(
     req_builder: RequestBuilder,
-    resource_event_sender: IpcSender<WebSocketNetworkEvent>,
+    resource_event_sender: IpcHandle,
     dom_action_receiver: IpcReceiver<WebSocketDomAction>,
     http_state: Arc<HttpState>,
     certificate_path: Option<String>,
