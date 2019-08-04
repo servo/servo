@@ -295,13 +295,13 @@ impl<'a> StylesheetLoader<'a> {
             task_source,
             canceller: Some(canceller),
         };
-        let callback = Box::new(move |data: Vec<u8>| {
-            let msg: FetchResponseMsg = bincode::deserialize(&data[..])
-                .expect("Data to deserialize into a FetchResponseMsg");
-            listener.notify_fetch(msg);
-        });
-
-        let ipc_handle = document.global().add_ipc_callback(callback);
+        let ipc_handle = document
+            .global()
+            .add_ipc_callback(Box::new(move |data: Vec<u8>| {
+                let msg: FetchResponseMsg = bincode::deserialize(&data[..])
+                    .expect("Data to deserialize into a FetchResponseMsg");
+                listener.notify_fetch(msg);
+            }));
 
         let owner = self
             .elem
