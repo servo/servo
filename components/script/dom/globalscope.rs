@@ -26,7 +26,6 @@ use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::microtask::{Microtask, MicrotaskQueue};
-use crate::script_ipc_router::{ScriptIpcRouter, IpcCallback};
 use crate::script_runtime::{CommonScriptMsg, JSContext as SafeJSContext, ScriptChan, ScriptPort};
 use crate::script_thread::{MainThreadScriptChan, ScriptThread};
 use crate::task::TaskCanceller;
@@ -52,7 +51,8 @@ use js::rust::wrappers::EvaluateUtf8;
 use js::rust::{get_object_class, CompileOptionsWrapper, ParentRuntime, Runtime};
 use js::rust::{HandleValue, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
-use msg::constellation_msg::{IpcHandle, PipelineId};
+use msg::constellation_msg::PipelineId;
+use msg::shared_ipc_router::{IpcCallback, IpcHandle, SharedIpcRouter};
 use net_traits::image_cache::ImageCache;
 use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
 use profile_traits::{mem as profile_mem, time as profile_time};
@@ -78,7 +78,7 @@ impl Drop for AutoCloseWorker {
     }
 }
 
-unsafe_no_jsmanaged_fields!(ScriptIpcRouter);
+unsafe_no_jsmanaged_fields!(SharedIpcRouter);
 
 #[dom_struct]
 pub struct GlobalScope {
@@ -88,7 +88,7 @@ pub struct GlobalScope {
 
     /// A shared-router for script to handle ipc.
     #[ignore_malloc_size_of = "channels are hard"]
-    ipc_script_router: ScriptIpcRouter,
+    ipc_router: SharedIpcRouter,
 
     /// Pipeline id associated with this global.
     pipeline_id: PipelineId,
@@ -189,7 +189,7 @@ impl GlobalScope {
         user_agent: Cow<'static, str>,
     ) -> Self {
         Self {
-            ipc_script_router: ScriptIpcRouter::new(),
+            ipc_router: SharedIpcRouter::new(),
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
             next_worker_id: Cell::new(WorkerId(0)),
@@ -216,7 +216,7 @@ impl GlobalScope {
     }
 
     pub fn add_ipc_callback(&self, callback: IpcCallback) -> IpcHandle {
-        self.ipc_script_router.add_callback(callback)
+        self.ipc_router.add_callback(callback)
     }
 
     pub fn track_worker(&self, closing_worker: Arc<AtomicBool>) {

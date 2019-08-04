@@ -5,9 +5,9 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
+use bincode;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use parking_lot::Mutex;
-use bincode;
 use serde::{Deserialize, Serialize};
 use std::cell::Cell;
 use std::fmt;
@@ -335,45 +335,6 @@ impl fmt::Display for HistoryStateId {
         let HistoryStateIndex(index) = self.index;
         write!(fmt, "({},{})", namespace_id, index.get())
     }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct IpcHandle {
-    pub callback_id: IpcCallbackId,
-    pub sender: IpcSender<IpcCallbackMsg>,
-}
-
-impl IpcHandle {
-    pub fn send<T: Serialize>(&self, msg: T) -> Result<(), bincode::Error> {
-        // TODO:: Use a IpcBytesSender/Receiver to avoid double serialization?
-        // Requires passing T to the callback, instead of a Vec<u8>.
-        //
-        // Note: attempt at creating a Vec smaller than the one allocated inside send.
-        // Basically (4096 - 64(for the Id)) - 64(for the IpcCallbackMsg::Callback).
-        // The 3968 left is then for the msg, and hopefully we don't need to re-allocate(twice?).
-        let mut bytes = Vec::with_capacity(3968);
-        bincode::serialize_into(&mut bytes, &msg)?;
-        self.sender
-            .send(IpcCallbackMsg::Callback(self.callback_id.clone(), bytes))
-    }
-
-    /// Drop the associated callback.
-    ///
-    /// This cannot be done inside Drop, since the handle will drop on each process hop.
-    /// Therefore, it is the responsability of the user of the handle to call drop_callback,
-    /// when it will not be used anymore.
-    pub fn drop_callback(&mut self) {
-        let _ = self
-            .sender
-            .send(IpcCallbackMsg::DropCallback(self.callback_id.clone()));
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub enum IpcCallbackMsg {
-    AddCallback,
-    Callback(IpcCallbackId, Vec<u8>),
-    DropCallback(IpcCallbackId),
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]

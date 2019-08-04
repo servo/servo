@@ -125,7 +125,8 @@ use metrics::{
     ProgressiveWebMetric,
 };
 use mime::{self, Mime};
-use msg::constellation_msg::{BrowsingContextId, IpcHandle};
+use msg::constellation_msg::BrowsingContextId;
+use msg::shared_ipc_router::IpcHandle;
 use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestBuilder;
 use net_traits::response::HttpsState;
