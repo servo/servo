@@ -25,7 +25,6 @@ use crate::network_listener::{
 };
 use crate::task_source::TaskSourceName;
 use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use net_traits::request::RequestBuilder;
 use net_traits::request::{Request as NetTraitsRequest, ServiceWorkersMode};
 use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
@@ -162,7 +161,6 @@ pub fn Fetch(
     response.Headers().set_guard(Guard::Immutable);
 
     // Step 5
-    let (action_sender, action_receiver) = ipc::channel().unwrap();
     let fetch_context = Arc::new(Mutex::new(FetchContext {
         fetch_promise: Some(TrustedPromise::new(promise.clone())),
         response_object: Trusted::new(&*response),
@@ -175,16 +173,16 @@ pub fn Fetch(
         canceller: Some(global.task_canceller(TaskSourceName::Networking)),
     };
 
-    ROUTER.add_route(
-        action_receiver.to_opaque(),
-        Box::new(move |message| {
-            listener.notify_fetch(message.to().unwrap());
-        }),
-    );
+    let handle = global.add_ipc_callback(Box::new(move |data: Vec<u8>| {
+        let msg: FetchResponseMsg =
+            bincode::deserialize(&data[..]).expect("Data to deserialize into a FetchResponseMsg");
+        listener.notify_fetch(msg);
+    }));
+
     core_resource_thread
         .send(NetTraitsFetch(
             request_init,
-            FetchChannels::ResponseMsg(action_sender, None),
+            FetchChannels::ResponseHandle(handle, None),
         ))
         .unwrap();
 
