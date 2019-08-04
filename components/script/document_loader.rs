@@ -10,11 +10,11 @@ use crate::dom::bindings::root::Dom;
 use crate::dom::document::Document;
 use crate::fetch::FetchCanceller;
 use ipc_channel::ipc::IpcSender;
-use msg::shared_ipc_router::IpcHandle;
 use net_traits::request::RequestBuilder;
 use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseMsg};
 use net_traits::{IpcSend, ResourceThreads};
 use servo_url::ServoUrl;
+use shared_ipc_router::IpcHandle;
 
 #[derive(Clone, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum LoadType {

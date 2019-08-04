@@ -10,4 +10,3 @@ extern crate malloc_size_of;
 extern crate malloc_size_of_derive;
 
 pub mod constellation_msg;
-pub mod shared_ipc_router;

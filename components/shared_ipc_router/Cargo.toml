@@ -1,0 +1,21 @@
+[package]
+name = "shared_ipc_router"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+name = "shared_ipc_router"
+path = "lib.rs"
+test = false
+doctest = false
+
+[dependencies]
+bincode = "1"
+crossbeam-channel = "0.3"
+ipc-channel = "0.11"
+msg = {path = "../msg"}
+profile_traits = {path = "../profile_traits"}
+serde = "1.0.60"

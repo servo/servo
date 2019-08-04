@@ -34,6 +34,7 @@ serde = "1.0"
 servo_arc = {path = "../servo_arc"}
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
+shared_ipc_router = {path = "../shared_ipc_router"}
 time = "0.1"
 url = "1.2"
 uuid = {version = "0.7", features = ["v4", "serde"]}
