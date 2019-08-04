@@ -44,7 +44,7 @@ where
     /// This cannot be done inside Drop, since the handle will drop on each process hop.
     /// Therefore, it is the responsability of the user of the handle to call drop_callback,
     /// when it will not be used anymore.
-    pub fn drop_callback(&mut self) {
+    pub fn drop_callback(&self) {
         let _ = self
             .sender
             .send(IpcCallbackMsg::DropCallback(self.callback_id.clone()));
