@@ -20,6 +20,7 @@ typedef (DOMString or unrestricted double or ArrayBuffer or object) NDEFRecordDa
 interface NDEFRecord {
   readonly attribute NDEFRecordType recordType;
   readonly attribute USVString mediaType;
+
   USVString toText();
   [NewObject] ArrayBuffer toArrayBuffer();
   [NewObject] object toJSON();
@@ -28,6 +29,7 @@ interface NDEFRecord {
 dictionary NDEFRecordInit {
   NDEFRecordType recordType;
   USVString mediaType;
+
   NDEFRecordData data;
 };
 

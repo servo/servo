@@ -18,8 +18,7 @@ partial interface Navigator {
 
 enum XRSessionMode {
   "inline",
-  "immersive-vr",
-  "immersive-ar"
+  "immersive-vr"
 };
 
 dictionary XRSessionInit {
@@ -139,15 +138,6 @@ interface XRRigidTransform {
   [SameObject] readonly attribute XRRigidTransform inverse;
 };
 
-[SecureContext, Exposed=Window,
- Constructor(optional DOMPointInit origin, optional DOMPointInit direction),
- Constructor(XRRigidTransform transform)]
-interface XRRay {
-  [SameObject] readonly attribute DOMPointReadOnly origin;
-  [SameObject] readonly attribute DOMPointReadOnly direction;
-  readonly attribute Float32Array matrix;
-};
-
 [SecureContext, Exposed=Window] interface XRPose {
   [SameObject] readonly attribute XRRigidTransform transform;
   readonly attribute boolean emulatedPosition;
@@ -175,7 +165,6 @@ interface XRInputSource {
   readonly attribute XRTargetRayMode targetRayMode;
   [SameObject] readonly attribute XRSpace targetRaySpace;
   [SameObject] readonly attribute XRSpace? gripSpace;
-  [SameObject] readonly attribute Gamepad? gamepad;
   [SameObject] readonly attribute FrozenArray<DOMString> profiles;
 };
 
@@ -184,12 +173,6 @@ interface XRInputSourceArray {
   iterable<XRInputSource>;
   readonly attribute unsigned long length;
   getter XRInputSource(unsigned long index);
-};
-
-enum GamepadMappingType {
-  "",            // Defined in the Gamepad API
-  "standard",    // Defined in the Gamepad API
-  "xr-standard",
 };
 
 typedef (WebGLRenderingContext or

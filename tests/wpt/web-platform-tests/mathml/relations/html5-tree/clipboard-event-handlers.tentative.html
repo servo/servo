@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<title>DocumentAndElementEventHandlers / clipboard events for MathML</title>
+<link
+  rel="help"
+  href="https://mathml-refresh.github.io/mathml-core/#dom-and-javascript"
+/>
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/multipage/webappapis.html#documentandelementeventhandlers"
+/>
+<link
+  rel="help"
+  href="https://w3c.github.io/clipboard-apis/#clipboard-event-copy"
+/>
+<link
+  rel="help"
+  href="https://w3c.github.io/clipboard-apis/#clipboard-event-cut"
+/>
+<link
+  rel="help"
+  href="https://w3c.github.io/clipboard-apis/#clipboard-event-paste"
+/>
+<meta
+  name="assert"
+  content="MathMLElements incorporate a functional DocumentAndElementEventHandlers interface"
+/>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<math
+  oncopy="document.copyHappened = true"
+  oncut="document.cutHappened = true"
+  onpaste="document.pasteHappened = true"
+>
+  <mi>E</mi>
+</math>
+<script>
+  const EVENTS = ["copy", "cut", "paste"];
+  const el = document.querySelector("math");
+
+  function addEventListenerTest(name) {
+    async_test(test => {
+      el.addEventListener(
+        name,
+        test.step_func_done(e => {
+          assert_true(
+            true,
+            "MathML Elements should be able to receive ${name} events"
+          );
+        })
+      );
+      const event = new ClipboardEvent(name, {
+        bubbles: true,
+        cancellable: true
+      });
+      el.dispatchEvent(event);
+    }, `math.addEventListener for ${name}`);
+  }
+
+  function evaluatedHandlerTest(name) {
+    const handlerName = "on" + name;
+
+    test(() => {
+      const compiledHandler = el[handlerName];
+
+      assert_equals(
+        typeof compiledHandler,
+        "function",
+        `The ${handlerName} property must be a function`
+      );
+      compiledHandler();
+      assert_true(
+        window[name + "Happened"],
+        "Calling the handler must run the code"
+      );
+    }, `${handlerName}: the content attribute must be compiled into a function as the corresponding property`);
+  }
+
+  EVENTS.forEach(name => {
+    addEventListenerTest(name);
+    evaluatedHandlerTest(name);
+  });
+</script>

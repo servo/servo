@@ -1104,7 +1104,7 @@ self.invokeRequest = invokeRequest;
 */
 function invokeFromWorker(isDataUrl, workerOptions,
                           subresource, sourceContextList) {
-  const currentSourceContext = sourceContextList.shift();
+  const currentSourceContext = sourceContextList[0];
   let workerUrl =
     "/common/security-features/scope/worker.py?policyDeliveries=" +
     encodeURIComponent(JSON.stringify(
@@ -1128,7 +1128,7 @@ function invokeFromWorker(isDataUrl, workerOptions,
     .then(url => {
       const worker = new Worker(url, workerOptions);
       worker.postMessage({subresource: subresource,
-                          sourceContextList: sourceContextList});
+                          sourceContextList: sourceContextList.slice(1)});
       return bindEvents2(worker, "message", worker, "error", window, "error");
     })
     .then(event => {
@@ -1139,7 +1139,7 @@ function invokeFromWorker(isDataUrl, workerOptions,
 }
 
 function invokeFromIframe(subresource, sourceContextList) {
-  const currentSourceContext = sourceContextList.shift();
+  const currentSourceContext = sourceContextList[0];
   const frameUrl =
     "/common/security-features/scope/document.py?policyDeliveries=" +
     encodeURIComponent(JSON.stringify(
@@ -1165,7 +1165,7 @@ function invokeFromIframe(subresource, sourceContextList) {
                   window, "message", iframe, "error", window, "error");
               iframe.contentWindow.postMessage(
                   {subresource: subresource,
-                   sourceContextList: sourceContextList},
+                   sourceContextList: sourceContextList.slice(1)},
                   "*");
               return promise;
             })
