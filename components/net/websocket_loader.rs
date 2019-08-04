@@ -123,6 +123,7 @@ impl<'a> Handler for Client<'a> {
     fn on_error(&mut self, err: WebSocketError) {
         debug!("Error in WebSocket communication: {:?}", err);
         let _ = self.event_sender.send(WebSocketNetworkEvent::Fail);
+        self.event_sender.drop_callback();
     }
 
     fn on_response(&mut self, res: &WsResponse) -> WebSocketResult<()> {
@@ -147,6 +148,7 @@ impl<'a> Handler for Client<'a> {
             Some(code.into()),
             reason.to_owned(),
         ));
+        self.event_sender.drop_callback();
     }
 
     fn upgrade_ssl_client(
