@@ -29,14 +29,12 @@ use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingLi
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix};
-use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode,
 };
-use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
-use net_traits::{ResourceFetchTiming, ResourceTimingType};
+use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
+use net_traits::{Metadata, NetworkError, ResourceFetchTiming, ResourceTimingType};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -324,7 +322,6 @@ fn fetch_a_classic_script(
         resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
     }));
 
-    let (action_sender, action_receiver) = ipc::channel().unwrap();
     let (task_source, canceller) = doc
         .window()
         .task_manager()
@@ -335,13 +332,15 @@ fn fetch_a_classic_script(
         canceller: Some(canceller),
     };
 
-    ROUTER.add_route(
-        action_receiver.to_opaque(),
-        Box::new(move |message| {
-            listener.notify_fetch(message.to().unwrap());
-        }),
-    );
-    doc.fetch_async(LoadType::Script(url), request, action_sender);
+    let ipc_handle = doc
+        .global()
+        .add_ipc_callback(Box::new(move |data: Vec<u8>| {
+            let msg: FetchResponseMsg = bincode::deserialize(&data[..])
+                .expect("Data to deserialize into a FetchResponseMsg");
+            listener.notify_fetch(msg);
+        }));
+
+    doc.fetch_async_with_handle(LoadType::Script(url), request, ipc_handle);
 }
 
 impl HTMLScriptElement {
