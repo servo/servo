@@ -1,5 +1,5 @@
 // NOTE(edvardt):
-// This file is a slimmed down wrapper for the Chromium SVGAnimationTestCase.js,
+// This file is a slimmed down wrapper for the old SVGAnimationTestCase.js,
 // it has some convenience functions and should not be used for new tests.
 // New tests should not build on this API as it's just meant to keep things
 // working.
@@ -32,6 +32,7 @@ function createSVGElement(type) {
   return document.createElementNS("http://www.w3.org/2000/svg", type);
 }
 
+// Inspired by Layoutests/animations/animation-test-helpers.js
 function moveAnimationTimelineAndSample(index) {
     var animationId = expectedResults[index][0];
     var time = expectedResults[index][1];

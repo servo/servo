@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Test for SVGNumber animation on SVG DOM properties.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg>
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup test document
+var gradient = createSVGElement("linearGradient");
+gradient.setAttribute("id", "gradient");
+
+var stop1 = createSVGElement("stop");
+stop1.setAttribute("offset", "0");
+stop1.setAttribute("stop-color", "green");
+gradient.appendChild(stop1);
+
+var stop2 = createSVGElement("stop");
+stop2.setAttribute("offset", "1");
+stop2.setAttribute("stop-color", "red");
+gradient.appendChild(stop2);
+
+var defsElement = createSVGElement("defs");
+defsElement.appendChild(gradient);
+rootSVGElement.appendChild(defsElement);
+
+var rect = createSVGElement("rect");
+rect.setAttribute("id", "rect");
+rect.setAttribute("x", "0");
+rect.setAttribute("width", "100");
+rect.setAttribute("height", "100");
+rect.setAttribute("fill", "url(#gradient)");
+rect.setAttribute("onclick", "executeTest()");
+
+var animate = createSVGElement("animate");
+animate.setAttribute("id", "animation");
+animate.setAttribute("attributeType", "XML");
+animate.setAttribute("attributeName", "offset");
+animate.setAttribute("begin", "0s");
+animate.setAttribute("dur", "4s");
+animate.setAttribute("from", "0");
+animate.setAttribute("to", "1");
+animate.setAttribute("fill", "freeze");
+stop1.appendChild(animate);
+
+rootSVGElement.appendChild(rect);
+
+// Setup animation test
+function sample1() {
+    assert_approx_equals(stop1.offset.animVal, 0, epsilon);
+    assert_equals(stop1.offset.baseVal, 0);
+}
+
+function sample2() {
+    assert_approx_equals(stop1.offset.animVal, 0.5, epsilon);
+    assert_equals(stop1.offset.baseVal, 0);
+}
+
+function sample3() {
+    assert_approx_equals(stop1.offset.animVal, 1, epsilon);
+    assert_equals(stop1.offset.baseVal, 0);
+}
+
+smil_async_test((t) => {
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["animation", 0.0, sample1],
+        ["animation", 2.0, sample2],
+        ["animation", 4.0, sample3]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+</script>
