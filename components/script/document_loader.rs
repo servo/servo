@@ -138,14 +138,15 @@ impl DocumentLoader {
         request: RequestBuilder,
         fetch_target: IpcHandle<FetchResponseMsg>,
     ) {
-        let mut canceller = FetchCanceller::new();
-        let cancel_receiver = canceller.initialize();
-        self.cancellers.push(canceller);
+        // Disable due to internal call to ipc::channel
+        // let mut canceller = FetchCanceller::new();
+        // let cancel_receiver = canceller.initialize();
+        // self.cancellers.push(canceller);
         self.resource_threads
             .sender()
             .send(CoreResourceMsg::Fetch(
                 request,
-                FetchChannels::ResponseHandle(fetch_target, Some(cancel_receiver)),
+                FetchChannels::ResponseHandle(fetch_target, None),
             ))
             .unwrap();
     }
