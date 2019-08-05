@@ -14,7 +14,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::marker::PhantomData;
 
-
 #[derive(Debug, Deserialize, Serialize)]
 pub struct IpcHandle<T: Serialize> {
     pub callback_id: IpcCallbackId,
