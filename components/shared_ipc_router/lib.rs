@@ -8,7 +8,7 @@ use bincode;
 use crossbeam_channel::{unbounded, Sender};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use msg::constellation_msg::IpcCallbackId;
+use msg::constellation_msg::{IpcCallbackId, PipelineId};
 use profile_traits::ipc as ProfiledIpc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -16,8 +16,9 @@ use std::marker::PhantomData;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct IpcHandle<T: Serialize> {
+    pub pipeline_id: PipelineId,
     pub callback_id: IpcCallbackId,
-    pub sender: IpcSender<IpcCallbackMsg>,
+    pub sender: Option<IpcSender<IpcCallbackMsg>>,
     pub send_type: PhantomData<T>,
 }
 
@@ -34,8 +35,14 @@ where
         // The 3968 left is then for the msg, and hopefully we don't need to re-allocate(twice?).
         let mut bytes = Vec::with_capacity(3968);
         bincode::serialize_into(&mut bytes, &msg)?;
-        self.sender
-            .send(IpcCallbackMsg::Callback(self.callback_id.clone(), bytes))
+        if let Some(sender) = self.sender.as_ref() {
+            return sender.send(IpcCallbackMsg::Callback(self.callback_id.clone(), bytes));
+        }
+        unreachable!("IpcHandle should have a sender when send is called");
+    }
+
+    pub fn set_sender(&mut self, sender: IpcSender<IpcCallbackMsg>) {
+        self.sender = Some(sender);
     }
 
     /// Drop the associated callback.
@@ -44,9 +51,11 @@ where
     /// Therefore, it is the responsability of the user of the handle to call drop_callback,
     /// when it will not be used anymore.
     pub fn drop_callback(&self) {
-        let _ = self
-            .sender
-            .send(IpcCallbackMsg::DropCallback(self.callback_id.clone()));
+        if let Some(sender) = self.sender.as_ref() {
+            let _ = sender.send(IpcCallbackMsg::DropCallback(self.callback_id.clone()));
+            return;
+        }
+        unreachable!("IpcHandle should have a sender when drop_callback is called");
     }
 }
 
@@ -60,12 +69,16 @@ pub enum IpcCallbackMsg {
 pub type IpcCallback = Box<dyn FnMut(Vec<u8>) + Send>;
 
 pub struct SharedIpcRouter {
-    ipc_sender: IpcSender<IpcCallbackMsg>,
+    pipeline_id: PipelineId,
+    pub ipc_sender: IpcSender<IpcCallbackMsg>,
     sender: Sender<(IpcCallbackId, IpcCallback)>,
 }
 
 impl SharedIpcRouter {
-    pub fn new(profiler: Option<profile_traits::time::ProfilerChan>) -> Self {
+    pub fn new(
+        profiler: Option<profile_traits::time::ProfilerChan>,
+        pipeline_id: PipelineId,
+    ) -> Self {
         let (callback_sender, callback_receiver) = match profiler {
             Some(profiler) => {
                 let (sender, receiver) =
@@ -79,6 +92,7 @@ impl SharedIpcRouter {
         };
         let (sender, receiver) = unbounded();
         let ipc_script_router = SharedIpcRouter {
+            pipeline_id,
             sender: sender,
             ipc_sender: callback_sender,
         };
@@ -116,8 +130,9 @@ impl SharedIpcRouter {
                 .send(IpcCallbackMsg::AddCallback)
                 .expect("The script ipc router to be available");
             return IpcHandle {
+                pipeline_id: self.pipeline_id.clone(),
                 callback_id,
-                sender: self.ipc_sender.clone(),
+                sender: None,
                 send_type: PhantomData,
             };
         }
