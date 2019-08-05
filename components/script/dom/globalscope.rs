@@ -53,7 +53,7 @@ use js::rust::{HandleValue, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::ImageCache;
-use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
+use net_traits::{CoreResourceMsg, CoreResourceThread, IpcSend, ResourceThreads};
 use profile_traits::{mem as profile_mem, time as profile_time};
 use script_traits::{MsDuration, ScriptToConstellationChan, TimerEvent};
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
@@ -189,8 +189,14 @@ impl GlobalScope {
         is_headless: bool,
         user_agent: Cow<'static, str>,
     ) -> Self {
+        let ipc_router =
+            SharedIpcRouter::new(Some(time_profiler_chan.clone()), pipeline_id.clone());
+        let _ = resource_threads.sender().send(CoreResourceMsg::NewRouter(
+            pipeline_id.clone(),
+            ipc_router.ipc_sender.clone(),
+        ));
         Self {
-            ipc_router: SharedIpcRouter::new(Some(time_profiler_chan.clone())),
+            ipc_router,
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
             next_worker_id: Cell::new(WorkerId(0)),

@@ -22,6 +22,7 @@ use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use msg::constellation_msg::PipelineId;
 use net_traits::request::{Destination, RequestBuilder};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
@@ -35,7 +36,7 @@ use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use profile_traits::time::ProfilerChan;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
-use shared_ipc_router::IpcHandle;
+use shared_ipc_router::{IpcCallbackMsg, IpcHandle};
 use std::borrow::{Cow, ToOwned};
 use std::collections::HashMap;
 use std::error::Error;
@@ -101,6 +102,7 @@ pub fn new_core_resource_thread(
                 resource_manager,
                 config_dir,
                 certificate_path,
+                routers: HashMap::new(),
             };
 
             mem_profiler_chan.run_with_memory_reporting(
@@ -118,6 +120,7 @@ struct ResourceChannelManager {
     resource_manager: CoreResourceManager,
     config_dir: Option<PathBuf>,
     certificate_path: Option<String>,
+    routers: HashMap<PipelineId, IpcSender<IpcCallbackMsg>>,
 }
 
 fn create_http_states(
@@ -232,23 +235,44 @@ impl ResourceChannelManager {
     /// Returns false if the thread should exit.
     fn process_msg(&mut self, msg: CoreResourceMsg, http_state: &Arc<HttpState>) -> bool {
         match msg {
+            CoreResourceMsg::NewRouter(pipeline_id, sender) => {
+                self.routers.insert(pipeline_id, sender);
+            },
             CoreResourceMsg::Fetch(req_init, channels) => match channels {
                 FetchChannels::ResponseMsg(sender, cancel_chan) => {
                     self.resource_manager
                         .fetch(req_init, None, sender, http_state, cancel_chan)
                 },
-                FetchChannels::ResponseHandle(handle, cancel_chan) => self
-                    .resource_manager
-                    .fetch_with_handle(req_init, None, handle, http_state, cancel_chan),
+                FetchChannels::ResponseHandle(mut handle, cancel_chan) => {
+                    let sender = self
+                        .routers
+                        .get_mut(&handle.pipeline_id)
+                        .expect("Resource manager to have a router sender");
+                    handle.set_sender(sender.clone());
+                    self.resource_manager.fetch_with_handle(
+                        req_init,
+                        None,
+                        handle,
+                        http_state,
+                        cancel_chan,
+                    );
+                },
                 FetchChannels::WebSocket {
-                    event_sender,
+                    mut event_sender,
                     action_receiver,
-                } => self.resource_manager.websocket_connect(
-                    req_init,
-                    event_sender,
-                    action_receiver,
-                    http_state,
-                ),
+                } => {
+                    let sender = self
+                        .routers
+                        .get_mut(&event_sender.pipeline_id)
+                        .expect("Resource manager to have a router sender");
+                    event_sender.set_sender(sender.clone());
+                    self.resource_manager.websocket_connect(
+                        req_init,
+                        event_sender,
+                        action_receiver,
+                        http_state,
+                    );
+                },
             },
             CoreResourceMsg::DeleteCookies(request) => {
                 http_state
