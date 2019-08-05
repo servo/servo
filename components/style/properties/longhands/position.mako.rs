@@ -375,7 +375,6 @@ ${helpers.predefined_type(
         "specified::GenericGridTemplateComponent::None",
         engines="gecko",
         spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-%ss" % kind,
-        boxed=True,
         animation_value_type="ComputedValue",
     )}
 
