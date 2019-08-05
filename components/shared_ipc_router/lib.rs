@@ -34,6 +34,9 @@ where
         // Basically (4096 - 64(for the Id)) - 64(for the IpcCallbackMsg::Callback).
         // The 3968 left is then for the msg, and hopefully we don't need to re-allocate(twice?).
         let mut bytes = Vec::with_capacity(3968);
+        // TODO: support msg containing shared memory, for example messages from the image-cache.
+        // Doing the serialization outside of the call to "send"
+        // on the underlying ipc_sender breaks shared-memory.
         bincode::serialize_into(&mut bytes, &msg)?;
         if let Some(sender) = self.sender.as_ref() {
             return sender.send(IpcCallbackMsg::Callback(self.callback_id.clone(), bytes));
