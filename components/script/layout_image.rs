@@ -16,7 +16,6 @@ use crate::dom::node::{document_from_node, Node};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use net_traits::request::{Destination, RequestBuilder as FetchRequestInit};
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
@@ -93,7 +92,6 @@ pub fn fetch_image_for_layout(
 
     let document = document_from_node(node);
 
-    let (action_sender, action_receiver) = ipc::channel().unwrap();
     let (task_source, canceller) = document
         .window()
         .task_manager()
@@ -103,12 +101,14 @@ pub fn fetch_image_for_layout(
         task_source,
         canceller: Some(canceller),
     };
-    ROUTER.add_route(
-        action_receiver.to_opaque(),
-        Box::new(move |message| {
-            listener.notify_fetch(message.to().unwrap());
-        }),
-    );
+
+    let handle = document
+        .global()
+        .add_ipc_callback(Box::new(move |data: Vec<u8>| {
+            let msg: FetchResponseMsg = bincode::deserialize(&data[..])
+                .expect("Data to deserialize into a FetchResponseMsg");
+            listener.notify_fetch(msg);
+        }));
 
     let request = FetchRequestInit::new(url)
         .origin(document.origin().immutable().clone())
@@ -118,5 +118,5 @@ pub fn fetch_image_for_layout(
     // Layout image loads do not delay the document load event.
     document
         .loader_mut()
-        .fetch_async_background(request, action_sender);
+        .fetch_async_background_with_handle(request, handle);
 }
