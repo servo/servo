@@ -75,8 +75,8 @@ use media::{glplayer_channel, GLPlayerMsg, GLPlayerMsgForward};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageResponse;
 use net_traits::request::{CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode};
-use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata};
-use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
+use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, FetchResponseMsg};
+use net_traits::{Metadata, NetworkError, ResourceFetchTiming, ResourceTimingType};
 use script_layout_interface::HTMLMediaData;
 use servo_config::pref;
 use servo_media::player::frame::{Frame, FrameRenderer};
@@ -836,7 +836,7 @@ impl HTMLMediaElement {
             url.clone(),
             offset.unwrap_or(0),
         )));
-        let (action_sender, action_receiver) = ipc::channel().unwrap();
+
         let window = window_from_node(self);
         let (task_source, canceller) = window
             .task_manager()
@@ -846,18 +846,17 @@ impl HTMLMediaElement {
             task_source,
             canceller: Some(canceller),
         };
-        ROUTER.add_route(
-            action_receiver.to_opaque(),
-            Box::new(move |message| {
-                network_listener.notify_fetch(message.to().unwrap());
-            }),
-        );
         let global = self.global();
+        let handle = global.add_ipc_callback(Box::new(move |data: Vec<u8>| {
+            let msg: FetchResponseMsg = bincode::deserialize(&data[..])
+                .expect("Data to deserialize into a FetchResponseMsg");
+            network_listener.notify_fetch(msg);
+        }));
         global
             .core_resource_thread()
             .send(CoreResourceMsg::Fetch(
                 request,
-                FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)),
+                FetchChannels::ResponseHandle(handle, Some(cancel_receiver)),
             ))
             .unwrap();
     }
