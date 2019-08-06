@@ -25,7 +25,6 @@ use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingLi
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use net_traits::image_cache::UsePlaceholder;
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
 use net_traits::image_cache::{ImageResponse, ImageState, PendingImageId};
@@ -187,7 +186,6 @@ impl HTMLVideoElement {
             self, poster_url, id,
         )));
 
-        let (action_sender, action_receiver) = ipc::channel().unwrap();
         let (task_source, canceller) = window
             .task_manager()
             .networking_task_source_with_canceller();
@@ -196,18 +194,17 @@ impl HTMLVideoElement {
             task_source,
             canceller: Some(canceller),
         };
-        ROUTER.add_route(
-            action_receiver.to_opaque(),
-            Box::new(move |message| {
-                listener.notify_fetch(message.to().unwrap());
-            }),
-        );
         let global = self.global();
+        let handle = global.add_ipc_callback(Box::new(move |data: Vec<u8>| {
+            let msg: FetchResponseMsg = bincode::deserialize(&data[..])
+                .expect("Data to deserialize into a FetchResponseMsg");
+            listener.notify_fetch(msg);
+        }));
         global
             .core_resource_thread()
             .send(CoreResourceMsg::Fetch(
                 request,
-                FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)),
+                FetchChannels::ResponseHandle(handle, Some(cancel_receiver)),
             ))
             .unwrap();
     }
