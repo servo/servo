@@ -6,12 +6,12 @@
  * https://webaudio.github.io/web-audio-api/#ConstantSourceNode
  */
 
-dictionary ConstantSourceOptions {
+dictionary ConstantSourceOptions: AudioNodeOptions {
   float offset = 1;
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional ConstantSourceOptions options)]
+ Constructor (BaseAudioContext context, optional ConstantSourceOptions options = {})]
 interface ConstantSourceNode : AudioScheduledSourceNode {
   readonly attribute AudioParam offset;
 };
