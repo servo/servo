@@ -973,7 +973,7 @@ fn static_assert() {
 
 <% skip_position_longhands = " ".join(x.ident for x in SIDES) %>
 <%self:impl_trait style_struct_name="Position"
-                  skip_longhands="${skip_position_longhands} order
+                  skip_longhands="${skip_position_longhands}
                                   align-content justify-content align-self
                                   justify-self align-items justify-items
                                   grid-auto-flow">
@@ -1013,16 +1013,6 @@ fn static_assert() {
             specified: self.gecko.mSpecifiedJustifyItems.into(),
         }
     }
-
-    pub fn set_order(&mut self, v: longhands::order::computed_value::T) {
-        self.gecko.mOrder = v;
-    }
-
-    pub fn clone_order(&self) -> longhands::order::computed_value::T {
-        self.gecko.mOrder
-    }
-
-    ${impl_simple_copy('order', 'mOrder')}
 
     ${impl_simple_type_with_conversion("grid_auto_flow")}
 </%self:impl_trait>
