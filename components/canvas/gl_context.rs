@@ -14,7 +14,7 @@ use offscreen_gl_context::{
 };
 use offscreen_gl_context::{GLLimits as RawGLLimits, GLVersion};
 use offscreen_gl_context::{NativeGLContext, NativeGLContextHandle, NativeGLContextMethods};
-use offscreen_gl_context::{OSMesaContext, OSMesaContextHandle};
+use offscreen_gl_context::{OSMesaContext, OSMesaContextHandle, TextureBacking};
 use servo_config::opts;
 
 pub trait CloneableDispatcher: GLContextDispatcher {
@@ -209,61 +209,58 @@ impl GLContextWrapper {
         }
     }
 
-    pub fn get_info(&self) -> (Size2D<i32>, u32, Option<u32>, GLLimits) {
+    pub fn get_info(&self) -> (Size2D<i32>, TextureBacking, GLLimits) {
         match *self {
             GLContextWrapper::Native(ref ctx) => {
-                let (real_size, texture_id, io_surface_id) = {
+                let (real_size, texture_backing) = {
                     let draw_buffer = ctx.borrow_draw_buffer().unwrap();
                     (
                         draw_buffer.size(),
-                        draw_buffer.get_bound_texture_id().unwrap(),
-                        None,
+                        draw_buffer.get_complete_texture().unwrap(),
                     )
                 };
 
                 let limits = ctx.borrow_limits().clone();
 
-                (real_size, texture_id, io_surface_id, map_limits(limits))
+                (real_size, texture_backing, map_limits(limits))
             },
             GLContextWrapper::OSMesa(ref ctx) => {
-                let (real_size, texture_id, io_surface_id) = {
+                let (real_size, texture_backing) = {
                     let draw_buffer = ctx.borrow_draw_buffer().unwrap();
                     (
                         draw_buffer.size(),
-                        draw_buffer.get_bound_texture_id().unwrap(),
-                        None,
+                        draw_buffer.get_complete_texture().unwrap(),
                     )
                 };
 
                 let limits = ctx.borrow_limits().clone();
 
-                (real_size, texture_id, io_surface_id, map_limits(limits))
+                (real_size, texture_backing, map_limits(limits))
             },
             #[cfg(target_os = "macos")]
             GLContextWrapper::NativeWithIOSurface(ref ctx) => {
-                let (real_size, texture_id, io_surface_id) = {
+                let (real_size, texture_backing) = {
                     let draw_buffer = ctx.borrow_draw_buffer().unwrap();
                     (
                         draw_buffer.size(),
-                        draw_buffer.get_bound_texture_id().unwrap(),
-                        draw_buffer.get_active_io_surface_id(),
+                        draw_buffer.get_complete_texture().unwrap(),
+                        //draw_buffer.get_active_texture().unwrap(),
                     )
                 };
 
                 let limits = ctx.borrow_limits().clone();
 
-                (real_size, texture_id, io_surface_id, map_limits(limits))
+                (real_size, texture_backing, map_limits(limits))
             },
         }
     }
 
-    pub fn get_active_io_surface_id(&self) -> Option<u32> {
+    pub fn get_active_texture(&self) -> TextureBacking {
         match *self {
+            GLContextWrapper::Native(ref ctx) => ctx.borrow_draw_buffer().unwrap().get_active_texture().unwrap(),
+            GLContextWrapper::OSMesa(ref ctx) => ctx.borrow_draw_buffer().unwrap().get_active_texture().unwrap(),
             #[cfg(target_os = "macos")]
-            GLContextWrapper::NativeWithIOSurface(ref ctx) => {
-                ctx.borrow_draw_buffer().unwrap().get_active_io_surface_id()
-            },
-            _ => None,
+            GLContextWrapper::NativeWithIOSurface(ref ctx) => ctx.borrow_draw_buffer().unwrap().get_active_texture().unwrap(),
         }
     }
 
@@ -271,23 +268,23 @@ impl GLContextWrapper {
     /// now used for reading.
     pub fn swap_draw_buffer(
         &mut self,
-        _clear_color: (f32, f32, f32, f32),
-        _mask: u32,
-    ) -> Option<u32> {
+        clear_color: (f32, f32, f32, f32),
+        mask: u32,
+    ) -> TextureBacking {
         match *self {
+            GLContextWrapper::Native(ref mut ctx) => ctx.swap_draw_buffer(clear_color, mask).unwrap(),
+            GLContextWrapper::OSMesa(ref mut ctx) => ctx.swap_draw_buffer(clear_color, mask).unwrap(),
             #[cfg(target_os = "macos")]
-            GLContextWrapper::NativeWithIOSurface(ref mut ctx) => {
-                ctx.swap_draw_buffer(_clear_color, _mask)
-            },
-            _ => None,
+            GLContextWrapper::NativeWithIOSurface(ref mut ctx) => ctx.swap_draw_buffer(clear_color, mask).unwrap(),
         }
     }
 
-    pub fn handle_lock(&mut self) -> Option<u32> {
+    pub fn handle_lock(&mut self) -> TextureBacking {
         match *self {
+            GLContextWrapper::Native(ref mut ctx) => ctx.handle_lock().unwrap(),
+            GLContextWrapper::OSMesa(ref mut ctx) => ctx.handle_lock().unwrap(),
             #[cfg(target_os = "macos")]
-            GLContextWrapper::NativeWithIOSurface(ref mut ctx) => ctx.handle_lock(),
-            _ => None,
+            GLContextWrapper::NativeWithIOSurface(ref mut ctx) => ctx.handle_lock().unwrap(),
         }
     }
 

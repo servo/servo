@@ -13,6 +13,7 @@ use fnv::FnvHashMap;
 use gleam::gl;
 #[cfg(target_os = "macos")]
 use io_surface;
+use offscreen_gl_context::TextureBacking;
 use servo_config::pref;
 use std::default::Default;
 use std::rc::Rc;
@@ -196,9 +197,8 @@ impl Drop for WebGLExternalImages {
 impl WebrenderExternalImageApi for WebGLExternalImages {
     fn lock(&mut self, id: u64) -> (u32, Size2D<i32>) {
         let WebGLLockMessage {
-            texture_id,
+            texture_backing,
             size,
-            io_surface_id,
             gl_sync,
             alpha,
         } = self.sendable.lock_and_get_current_texture(id as usize);
@@ -206,10 +206,10 @@ impl WebrenderExternalImageApi for WebGLExternalImages {
         // If we have a new IOSurface bind it to a new texture on the WR thread,
         // or if it's already bound use that texture.
         // In the case of IOsurfaces we send these textures to WR.
-        let texture_id = match io_surface_id {
-            Some(_io_surface_id) => {
+        let texture_id = match texture_backing {
+            #[cfg(target_os = "macos")]
+            TextureBacking::IOSurface(_, _io_surface_id) => {
                 let gl = &self.webrender_gl;
-                #[cfg(target_os = "macos")]
                 let texture_id = *self.textures.entry(_io_surface_id).or_insert_with(|| {
                     let texture_id = gl.gen_textures(1)[0];
                     gl.bind_texture(gl::TEXTURE_RECTANGLE_ARB, texture_id);
@@ -219,7 +219,7 @@ impl WebrenderExternalImageApi for WebGLExternalImages {
                 });
                 texture_id
             },
-            None => {
+            TextureBacking::Texture(texture_id) => {
                 // The next glWaitSync call is run on the WR thread and it's used to synchronize the two
                 // flows of OpenGL commands in order to avoid WR using a semi-ready WebGL texture.
                 // glWaitSync doesn't block WR thread, it affects only internal OpenGL subsystem.

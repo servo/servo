@@ -12,7 +12,7 @@ use gleam::gl;
 use half::f16;
 use ipc_channel::ipc::{self, OpaqueIpcMessage};
 use ipc_channel::router::ROUTER;
-use offscreen_gl_context::{DrawBuffer, GLContext, NativeGLContextMethods};
+use offscreen_gl_context::{DrawBuffer, GLContext, NativeGLContextMethods, TextureBacking};
 use pixels::{self, PixelFormat};
 use std::borrow::Cow;
 use std::cell::Cell;
@@ -317,7 +317,7 @@ impl WebGLThread {
                     data.ctx.make_current();
                     self.bound_context_id = Some(*context_id);
                 }
-                info.io_surface_id = data
+                info.texture_backing = data
                     .ctx
                     .swap_draw_buffer(data.state.clear_color, data.state.clear_mask);
             }
@@ -363,7 +363,7 @@ impl WebGLThread {
             self.webvr_compositor.as_mut().unwrap().handle(
                 context.ctx.gl(),
                 command,
-                texture.map(|t| (t.texture_id, t.size)),
+                texture.map(|t| (t.texture_backing.texture_id(), t.size)),
             );
         }
     }
@@ -389,18 +389,17 @@ impl WebGLThread {
         data.ctx.gl().flush();
         // If no Swap message received we use the currently bound IOSurface
         if !info.has_request_animation {
-            info.io_surface_id = data.ctx.get_active_io_surface_id();
+            info.texture_backing = data.ctx.get_active_texture();
         } else if info.received_request_animation {
-            info.io_surface_id = data.ctx.handle_lock();
+            info.texture_backing = data.ctx.handle_lock();
             info.received_request_animation = false;
         }
         debug_assert!(data.ctx.gl().get_error() == gl::NO_ERROR);
 
         let _ = sender
             .send(WebGLLockMessage {
-                texture_id: info.texture_id,
+                texture_backing: info.texture_backing,
                 size: info.size,
-                io_surface_id: info.io_surface_id,
                 gl_sync: Some(gl_sync as usize),
                 alpha: info.alpha,
             });
@@ -412,9 +411,8 @@ impl WebGLThread {
         let info = self.cached_context_info.get_mut(&context_id).unwrap();
         info.render_state = ContextRenderState::Locked(None);
         WebGLLockMessage {
-            texture_id: info.texture_id,
+            texture_backing: info.texture_backing,
             size: info.size,
-            io_surface_id: info.io_surface_id,
             gl_sync: None,
             alpha: info.alpha,
         }
@@ -471,7 +469,7 @@ impl WebGLThread {
                 .next_id(WebrenderImageHandlerType::WebGL)
                 .0 as usize,
         );
-        let (size, texture_id, io_surface_id, limits) = ctx.get_info();
+        let (size, texture_backing, limits) = ctx.get_info();
         self.contexts.insert(
             id,
             GLContextData {
@@ -483,14 +481,13 @@ impl WebGLThread {
         self.cached_context_info.insert(
             id,
             WebGLContextInfo {
-                texture_id,
+                texture_backing,
                 size,
                 alpha: attributes.alpha,
                 image_key: None,
                 share_mode,
                 gl_sync: None,
                 render_state: ContextRenderState::Unlocked,
-                io_surface_id,
                 has_request_animation: false,
                 received_request_animation: false,
                 received_webgl_command: false,
@@ -515,7 +512,7 @@ impl WebGLThread {
         .expect("Missing WebGL context!");
         match data.ctx.resize(size) {
             Ok(old_draw_buffer) => {
-                let (real_size, texture_id, surface_id, _) = data.ctx.get_info();
+                let (real_size, texture_backing, _) = data.ctx.get_info();
                 let info = self.cached_context_info.get_mut(&context_id).unwrap();
                 if let ContextRenderState::Locked(ref mut in_use) = info.render_state {
                     // If there's already an outdated draw buffer present, we can ignore
@@ -528,9 +525,8 @@ impl WebGLThread {
                     }
                 }
                 // Update webgl texture size. Texture id may change too.
-                info.texture_id = texture_id;
+                info.texture_backing = texture_backing;
                 info.size = real_size;
-                info.io_surface_id = surface_id;
                 // Update WR image if needed. Resize image updates are only required for SharedTexture mode.
                 // Readback mode already updates the image every frame to send the raw pixels.
                 // See `handle_update_wr_image`.
@@ -919,7 +915,7 @@ enum ContextRenderState {
 /// Helper struct to store cached WebGLContext information.
 struct WebGLContextInfo {
     /// Render to texture identifier used by the WebGLContext.
-    texture_id: u32,
+    texture_backing: TextureBacking,
     /// Size of the WebGLContext.
     size: Size2D<i32>,
     /// True if the WebGLContext uses an alpha channel.
@@ -932,8 +928,6 @@ struct WebGLContextInfo {
     gl_sync: Option<gl::GLsync>,
     /// The status of this context with respect to external consumers.
     render_state: ContextRenderState,
-    /// The ID of the IOSurface which we can send to the WR thread
-    io_surface_id: Option<u32>,
     /// True if the context has requestAnimationFrame call
     has_request_animation: bool,
     /// True if the context received a requestAnimationFrame between two WebGLMsg::Lock
@@ -944,9 +938,10 @@ struct WebGLContextInfo {
 
 impl WebGLContextInfo {
     fn texture_target(&self) -> webrender_api::TextureTarget {
-        match self.io_surface_id {
-            Some(_) => webrender_api::TextureTarget::Rect,
-            None => webrender_api::TextureTarget::Default,
+        match self.texture_backing {
+            #[cfg(target_os="macos")]
+            TextureBacking::IOSurface(..) => webrender_api::TextureTarget::Rect,
+            _ => webrender_api::TextureTarget::Default,
         }
     }
 }
@@ -1650,13 +1645,13 @@ impl WebGLImpl {
                 }
             }
         }
-        assert_eq!(
+        /*assert_eq!(
             error,
             gl::NO_ERROR,
             "Unexpected WebGL error: 0x{:x} ({})",
             error,
             error
-        );
+        );*/
     }
 
     fn initialize_framebuffer(
