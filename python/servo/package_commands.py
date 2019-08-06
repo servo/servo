@@ -230,6 +230,11 @@ class PackageCommands(CommandBase):
                 raise Exception("Magic Leap builds need the MAGICLEAP_SDK environment variable")
             if not env.get("MLCERT"):
                 raise Exception("Magic Leap builds need the MLCERT environment variable")
+            # GStreamer configuration
+            env.setdefault("GSTREAMER_DIR", path.join(
+                self.get_target_dir(), "magicleap", target, "native", "gstreamer-1.16.0"
+            ))
+
             mabu = path.join(env.get("MAGICLEAP_SDK"), "mabu")
             packages = [
                 "./support/magicleap/Servo3D/Servo3D.package",
@@ -244,6 +249,7 @@ class PackageCommands(CommandBase):
                     mabu,
                     "-o", target_dir,
                     "-t", build_type,
+                    "GSTREAMER_DIR=" + env["GSTREAMER_DIR"],
                     package
                 ]
                 try:
