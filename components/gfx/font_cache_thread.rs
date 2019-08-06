@@ -462,7 +462,7 @@ impl FontCacheThread {
                 // TODO: Allow users to specify these.
                 let generic_fonts = populate_generic_fonts();
 
-                PipelineNamespace::install(PipelineNamespaceId(2));
+                PipelineNamespace::install(PipelineNamespaceId(1));
 
                 let ipc_router = SharedIpcRouter::new(None);
                 let _ = core_resource_thread.send(CoreResourceMsg::NewRouter(
