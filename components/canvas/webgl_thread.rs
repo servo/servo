@@ -368,14 +368,13 @@ impl WebGLThread {
         }
     }
     /// Handles a lock external callback received from webrender::ExternalImageHandler
-    fn handle_lock(
-        &mut self,
-        context_id: WebGLContextId,
-        sender: WebGLSender<WebGLLockMessage>,
-    ) {
-        let data =
-            Self::make_current_if_needed_mut(context_id, &mut self.contexts, &mut self.bound_context_id)
-                .expect("WebGLContext not found in a WebGLMsg::Lock message");
+    fn handle_lock(&mut self, context_id: WebGLContextId, sender: WebGLSender<WebGLLockMessage>) {
+        let data = Self::make_current_if_needed_mut(
+            context_id,
+            &mut self.contexts,
+            &mut self.bound_context_id,
+        )
+        .expect("WebGLContext not found in a WebGLMsg::Lock message");
         let info = self.cached_context_info.get_mut(&context_id).unwrap();
         info.render_state = ContextRenderState::Locked(None);
         // Insert a OpenGL Fence sync object that sends a signal when all the WebGL commands are finished.
@@ -396,13 +395,12 @@ impl WebGLThread {
         }
         debug_assert!(data.ctx.gl().get_error() == gl::NO_ERROR);
 
-        let _ = sender
-            .send(WebGLLockMessage {
-                texture_backing: info.texture_backing,
-                size: info.size,
-                gl_sync: Some(gl_sync as usize),
-                alpha: info.alpha,
-            });
+        let _ = sender.send(WebGLLockMessage {
+            texture_backing: info.texture_backing,
+            size: info.size,
+            gl_sync: Some(gl_sync as usize),
+            alpha: info.alpha,
+        });
     }
 
     /// A version of locking that doesn't return a GLsync object,
@@ -939,7 +937,7 @@ struct WebGLContextInfo {
 impl WebGLContextInfo {
     fn texture_target(&self) -> webrender_api::TextureTarget {
         match self.texture_backing {
-            #[cfg(target_os="macos")]
+            #[cfg(target_os = "macos")]
             TextureBacking::IOSurface(..) => webrender_api::TextureTarget::Rect,
             _ => webrender_api::TextureTarget::Default,
         }
