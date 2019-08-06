@@ -583,6 +583,11 @@ class MachCommands(CommandBase):
             env.setdefault("OPENSSL_VERSION", "1.0.2k")
             env.setdefault("OPENSSL_STATIC", "1")
 
+            # GStreamer configuration
+            env.setdefault("GSTREAMER_DIR", path.join(target_path, target, "native", "gstreamer-1.16.0"))
+            env.setdefault("GSTREAMER_URL", "https://servo-deps.s3.amazonaws.com/gstreamer/gstreamer-magicleap-1.16.0-20190808-110815.tgz")
+            env.setdefault("PKG_CONFIG_PATH", path.join(env["GSTREAMER_DIR"], "system", "lib64", "pkgconfig"))
+
             # Override the linker set in .cargo/config
             env.setdefault("CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER", path.join(ml_support, "fake-ld.sh"))
 
@@ -593,6 +598,28 @@ class MachCommands(CommandBase):
             status = call(path.join(ml_support, "openssl.sh"), env=env, verbose=verbose)
             if status:
                 return status
+
+            # Download prebuilt Gstreamer if necessary
+            if not os.path.exists(path.join(env["GSTREAMER_DIR"], "system")):
+                if not os.path.exists(env["GSTREAMER_DIR"] + ".tgz"):
+                    check_call([
+                        'curl',
+                        '-L',
+                        '-f',
+                        '-o', env["GSTREAMER_DIR"] + ".tgz",
+                        env["GSTREAMER_URL"],
+                    ])
+                check_call([
+                    'mkdir',
+                    '-p',
+                    env["GSTREAMER_DIR"],
+                ])
+                check_call([
+                    'tar',
+                    'xzf',
+                    env["GSTREAMER_DIR"] + ".tgz",
+                    '-C', env["GSTREAMER_DIR"],
+                ])
 
         if very_verbose:
             print (["Calling", "cargo", "build"] + opts)
