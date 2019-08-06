@@ -189,8 +189,7 @@ impl GlobalScope {
         is_headless: bool,
         user_agent: Cow<'static, str>,
     ) -> Self {
-        let ipc_router =
-            SharedIpcRouter::new(Some(time_profiler_chan.clone()));
+        let ipc_router = SharedIpcRouter::new(Some(time_profiler_chan.clone()));
         let _ = resource_threads.sender().send(CoreResourceMsg::NewRouter(
             ipc_router.router_id.clone(),
             ipc_router.ipc_sender.clone(),

@@ -247,7 +247,8 @@ impl FontCache {
                 let response_valid = Mutex::new(false);
                 debug!("Loading @font-face {} from {}", family_name, url);
                 let handle = self.ipc_router.add_callback(Box::new(move |data: Vec<u8>| {
-                    let response: FetchResponseMsg = bincode::deserialize(&data[..]).expect("Data to deserialize into a FetchResponseMsg");
+                    let response: FetchResponseMsg = bincode::deserialize(&data[..])
+                        .expect("Data to deserialize into a FetchResponseMsg");
                     match response {
                         FetchResponseMsg::ProcessRequestBody |
                         FetchResponseMsg::ProcessRequestEOF => (),
