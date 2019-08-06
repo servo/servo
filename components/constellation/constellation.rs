@@ -738,9 +738,10 @@ where
                     pipelines: HashMap::new(),
                     browsing_contexts: HashMap::new(),
                     pending_changes: vec![],
-                    // We initialize the namespace at 2, since we reserved
-                    // namespace 0 for the embedder, and 0 for the constellation
-                    next_pipeline_namespace_id: PipelineNamespaceId(2),
+                    // We initialize the namespace at 3, since we reserved
+                    // namespace 0 for the embedder, and 1 for the constellation
+                    // ans 2 for the font-cache.
+                    next_pipeline_namespace_id: PipelineNamespaceId(3),
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan,
                     window_size: WindowSizeData {
