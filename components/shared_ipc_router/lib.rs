@@ -78,9 +78,7 @@ pub struct SharedIpcRouter {
 }
 
 impl SharedIpcRouter {
-    pub fn new(
-        profiler: Option<profile_traits::time::ProfilerChan>,
-    ) -> Self {
+    pub fn new(profiler: Option<profile_traits::time::ProfilerChan>) -> Self {
         let (callback_sender, callback_receiver) = match profiler {
             Some(profiler) => {
                 let (sender, receiver) =
