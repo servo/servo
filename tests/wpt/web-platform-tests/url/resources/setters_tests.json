@@ -597,7 +597,7 @@
             }
         },
         {
-            "comment": "Cannot-be-a-base means no password",
+            "comment": "Cannot-be-a-base means no host",
             "href": "data:text/plain,Stuff",
             "new_value": "example.net",
             "expected": {
@@ -1074,7 +1074,7 @@
             }
         },
         {
-            "comment": "Cannot-be-a-base means no password",
+            "comment": "Cannot-be-a-base means no host",
             "href": "data:text/plain,Stuff",
             "new_value": "example.net",
             "expected": {
