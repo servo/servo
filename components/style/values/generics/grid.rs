@@ -290,16 +290,17 @@ impl<L> TrackSize<L> {
     }
 }
 
-impl<L> Default for TrackSize<L> {
-    fn default() -> Self {
-        TrackSize::Breadth(TrackBreadth::Auto)
+impl<L: PartialEq> TrackSize<L> {
+    /// Return true if it is `auto`.
+    #[inline]
+    pub fn is_auto(&self) -> bool {
+        *self == TrackSize::Breadth(TrackBreadth::Auto)
     }
 }
 
-impl<L: PartialEq> TrackSize<L> {
-    /// Returns true if current TrackSize is same as default.
-    pub fn is_default(&self) -> bool {
-        *self == TrackSize::default()
+impl<L> Default for TrackSize<L> {
+    fn default() -> Self {
+        TrackSize::Breadth(TrackBreadth::Auto)
     }
 }
 
@@ -331,6 +332,39 @@ impl<L: ToCss> ToCss for TrackSize<L> {
                 dest.write_str(")")
             },
         }
+    }
+}
+
+/// A `<track-size>+`.
+/// We use the empty slice as `auto`, and always parse `auto` as an empty slice.
+/// This means it's impossible to have a slice containing only one auto item.
+#[derive(
+    Clone,
+    Debug,
+    Default,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(transparent)]
+pub struct GenericImplicitGridTracks<T>(
+    #[css(if_empty = "auto", iterable)] pub crate::OwnedSlice<T>,
+);
+
+pub use self::GenericImplicitGridTracks as ImplicitGridTracks;
+
+impl<T: fmt::Debug + Default + PartialEq> ImplicitGridTracks<T> {
+    /// Returns true if current value is same as its initial value (i.e. auto).
+    pub fn is_initial(&self) -> bool {
+        debug_assert_ne!(
+            *self,
+            ImplicitGridTracks(crate::OwnedSlice::from(vec![Default::default()]))
+        );
+        self.0.is_empty()
     }
 }
 

@@ -7,6 +7,7 @@
 use self::transform::DirectionVector;
 use super::animated::ToAnimatedValue;
 use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
+use super::generics::grid::ImplicitGridTracks as GenericImplicitGridTracks;
 use super::generics::grid::{GenericGridLine, GenericTrackBreadth};
 use super::generics::grid::{GenericTrackSize, TrackList as GenericTrackList};
 use super::generics::transform::IsParallelTo;
@@ -695,6 +696,9 @@ pub type TrackBreadth = GenericTrackBreadth<LengthPercentage>;
 
 /// The computed value of a grid `<track-size>`
 pub type TrackSize = GenericTrackSize<LengthPercentage>;
+
+/// The computed value of a grid `<track-size>+`
+pub type ImplicitGridTracks = GenericImplicitGridTracks<TrackSize>;
 
 /// The computed value of a grid `<track-list>`
 /// (could also be `<auto-track-list>` or `<explicit-track-list>`)

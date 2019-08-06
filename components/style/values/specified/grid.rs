@@ -6,8 +6,8 @@
 //! [grids](https://drafts.csswg.org/css-grid/)
 
 use crate::parser::{Parse, ParserContext};
-use crate::values::generics::grid::{GridTemplateComponent, RepeatCount, TrackBreadth};
-use crate::values::generics::grid::{LineNameList, TrackRepeat, TrackSize};
+use crate::values::generics::grid::{GridTemplateComponent, ImplicitGridTracks, RepeatCount};
+use crate::values::generics::grid::{LineNameList, TrackBreadth, TrackRepeat, TrackSize};
 use crate::values::generics::grid::{TrackList, TrackListValue};
 use crate::values::specified::{Integer, LengthPercentage};
 use crate::values::{CSSFloat, CustomIdent};
@@ -92,6 +92,21 @@ impl Parse for TrackSize<LengthPercentage> {
         input.expect_function_matching("fit-content")?;
         let lp = input.parse_nested_block(|i| LengthPercentage::parse_non_negative(context, i))?;
         Ok(TrackSize::FitContent(TrackBreadth::Breadth(lp)))
+    }
+}
+
+impl Parse for ImplicitGridTracks<TrackSize<LengthPercentage>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        use style_traits::{Separator, Space};
+        let track_sizes = Space::parse(input, |i| TrackSize::parse(context, i))?;
+        if track_sizes.len() == 1 && track_sizes[0].is_auto() {
+            //`auto`, which is the initial value, is always represented by an empty slice.
+            return Ok(Default::default());
+        }
+        return Ok(ImplicitGridTracks(track_sizes.into()));
     }
 }
 

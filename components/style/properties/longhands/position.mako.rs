@@ -357,16 +357,13 @@ ${helpers.predefined_type(
         )}
     % endfor
 
-    // NOTE: According to the spec, this should handle multiple values of `<track-size>`,
-    // but gecko supports only a single value
     ${helpers.predefined_type(
         "grid-auto-%ss" % kind,
-        "TrackSize",
+        "ImplicitGridTracks",
         "Default::default()",
         engines="gecko",
         animation_value_type="discrete",
         spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-%ss" % kind,
-        boxed=True,
     )}
 
     ${helpers.predefined_type(

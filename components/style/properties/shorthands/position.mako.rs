@@ -496,7 +496,7 @@
     use crate::parser::Parse;
     use crate::properties::longhands::{grid_auto_columns, grid_auto_rows, grid_auto_flow};
     use crate::values::generics::grid::GridTemplateComponent;
-    use crate::values::specified::{GenericGridTemplateComponent, TrackSize};
+    use crate::values::specified::{GenericGridTemplateComponent, ImplicitGridTracks};
     use crate::values::specified::position::{AutoFlow, GridAutoFlow, GridTemplateAreas};
 
     pub fn parse_value<'i, 't>(
@@ -506,8 +506,8 @@
         let mut temp_rows = GridTemplateComponent::None;
         let mut temp_cols = GridTemplateComponent::None;
         let mut temp_areas = GridTemplateAreas::None;
-        let mut auto_rows = TrackSize::default();
-        let mut auto_cols = TrackSize::default();
+        let mut auto_rows = ImplicitGridTracks::default();
+        let mut auto_cols = ImplicitGridTracks::default();
         let mut flow = grid_auto_flow::get_initial_value();
 
         fn parse_auto_flow<'i, 't>(
@@ -568,8 +568,8 @@
         /// Returns true if other sub properties except template-{rows,columns} are initial.
         fn is_grid_template(&self) -> bool {
             *self.grid_template_areas == GridTemplateAreas::None &&
-            *self.grid_auto_rows == TrackSize::default() &&
-            *self.grid_auto_columns == TrackSize::default() &&
+            self.grid_auto_rows.is_initial() &&
+            self.grid_auto_columns.is_initial() &&
             *self.grid_auto_flow == grid_auto_flow::get_initial_value()
         }
     }
@@ -587,7 +587,7 @@
 
             if self.grid_auto_flow.autoflow == AutoFlow::Column {
                 // It should fail to serialize if other branch of the if condition's values are set.
-                if *self.grid_auto_rows != TrackSize::default() ||
+                if !self.grid_auto_rows.is_initial() ||
                    *self.grid_template_columns != GridTemplateComponent::None {
                     return Ok(());
                 }
@@ -605,13 +605,13 @@
                     dest.write_str(" dense")?;
                 }
 
-                if !self.grid_auto_columns.is_default() {
+                if !self.grid_auto_columns.is_initial() {
                     dest.write_str(" ")?;
                     self.grid_auto_columns.to_css(dest)?;
                 }
             } else {
                 // It should fail to serialize if other branch of the if condition's values are set.
-                if *self.grid_auto_columns != TrackSize::default() ||
+                if !self.grid_auto_columns.is_initial() ||
                    *self.grid_template_rows != GridTemplateComponent::None {
                     return Ok(());
                 }
@@ -628,7 +628,7 @@
                     dest.write_str(" dense")?;
                 }
 
-                if !self.grid_auto_rows.is_default() {
+                if !self.grid_auto_rows.is_initial() {
                     dest.write_str(" ")?;
                     self.grid_auto_rows.to_css(dest)?;
                 }
