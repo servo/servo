@@ -383,8 +383,8 @@ impl BaseAudioContextMethods for BaseAudioContext {
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createconstantsource
     fn CreateConstantSource(&self) -> Fallible<DomRoot<ConstantSourceNode>> {
         ConstantSourceNode::new(
-            &self.global().as_window(), 
-            &self, 
+            &self.global().as_window(),
+            &self,
             &ConstantSourceOptions::empty(),
         )
     }

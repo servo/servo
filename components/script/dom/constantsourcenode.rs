@@ -6,12 +6,12 @@ use crate::dom::audionode::{AudioNode, UnwrappedAudioNodeOptions};
 use crate::dom::audioparam::AudioParam;
 use crate::dom::audioscheduledsourcenode::AudioScheduledSourceNode;
 use crate::dom::baseaudiocontext::BaseAudioContext;
+use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use crate::dom::bindings::codegen::Bindings::ConstantSourceNodeBinding;
 use crate::dom::bindings::codegen::Bindings::ConstantSourceNodeBinding::ConstantSourceNodeMethods;
 use crate::dom::bindings::codegen::Bindings::ConstantSourceNodeBinding::{
     self, ConstantSourceOptions,
 };
-use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
@@ -36,8 +36,8 @@ impl ConstantSourceNode {
             AudioNodeInit::ConstantSourceNode(options.into()),
             context,
             node_options, /* 2, MAX, Speakers */
-            0, /* inputs */
-            1, /* outputs */
+            0,            /* inputs */
+            1,            /* outputs */
         )?;
         let node_id = source_node.node().node_id();
         let offset = AudioParam::new(
@@ -81,8 +81,9 @@ impl ConstantSourceNode {
 }
 
 impl ConstantSourceNodeMethods for ConstantSourceNode {
+    // https://webaudio.github.io/web-audio-api/#dom-constantsourcenode-offset
     fn Offset(&self) -> DomRoot<AudioParam> {
-       DomRoot::from_ref(&self.offset) 
+        DomRoot::from_ref(&self.offset)
     }
 }
 
