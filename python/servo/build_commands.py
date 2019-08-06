@@ -583,6 +583,17 @@ class MachCommands(CommandBase):
             env.setdefault("OPENSSL_VERSION", "1.0.2k")
             env.setdefault("OPENSSL_STATIC", "1")
 
+            # Iconv configuration
+            env.setdefault("ICONV_DIR", path.join(target_path, target, "native", "libiconv-1.16"))
+            env.setdefault("ICONV_URL", "https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.16.tar.gz")
+
+            # GStreamer configuration
+            env.setdefault("GSTREAMER_BUILD_REPO", "https://gitlab.freedesktop.org/xclaesse/gst-build.git")
+            env.setdefault("GSTREAMER_BUILD_DIR", path.join(target_path, target, "native", "gst-build"))
+            env.setdefault("GSTREAMER_CROSS_FILE", path.join(env["GSTREAMER_BUILD_DIR"], "magicleap.txt"))
+            env.setdefault("GSTREAMER_DIR", path.join(target_path, target, "native", "gstreamer"))
+            env.setdefault("PKG_CONFIG_PATH", path.join(env["GSTREAMER_DIR"], "system", "lib64", "pkgconfig"))
+
             # Override the linker set in .cargo/config
             env.setdefault("CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER", path.join(ml_support, "fake-ld.sh"))
 
@@ -593,6 +604,122 @@ class MachCommands(CommandBase):
             status = call(path.join(ml_support, "openssl.sh"), env=env, verbose=verbose)
             if status:
                 return status
+
+            # GStreamer requires iconv
+            # TODO: replace this with a Rust iconv dependency?
+            if not os.path.exists(env["ICONV_DIR"]):
+                # Download iconv if necessary
+                check_call([
+                    'curl',
+                    '-L',
+                    '-o', env["ICONV_DIR"] + ".tar.gz",
+                    env["ICONV_URL"],
+                ])
+                check_call([
+                    'tar',
+                    'xzf',
+                    env["ICONV_DIR"] + ".tar.gz",
+                    '-C', os.path.dirname(env["ICONV_DIR"]),
+                ])
+
+            if not os.path.exists(path.join(env["GSTREAMER_DIR"], "system", "lib64", "libiconv.so")):
+                # Build gstreamer's iconv
+                check_call([
+                    path.join(env["ICONV_DIR"], "configure"),
+                    '--host=' + target,
+                    '--with-sysroot=' + env["ANDROID_PLATFORM_DIR"],
+                    '--prefix', '/system',
+                    '--libdir', '/system/lib64',
+                ], cwd=env["ICONV_DIR"], env=env)
+
+                check_call([
+                    'make',
+                    '-C', env["ICONV_DIR"],
+                ], env=env)
+
+                check_call([
+                    'make',
+                    '-C', env["ICONV_DIR"],
+                    'install',
+                ], env={
+                    'DESTDIR': env["GSTREAMER_DIR"],
+                })
+
+            if not os.path.exists(env["GSTREAMER_BUILD_DIR"]):
+                # Download gstreamer if necessary
+                # For now, get this from xclasse's fork, but this isn't what we should be doing in the long run
+                check_call([
+                    'git',
+                    'clone',
+                    env["GSTREAMER_BUILD_REPO"],
+                    '--branch', 'magicleap',
+                    env["GSTREAMER_BUILD_DIR"],
+                ])
+
+            # Generate cross file by replacing the MLSDK location
+            if not os.path.exists(path.join(env["GSTREAMER_DIR"], "system", "lib64", "libgstreamer-1.0.so")):
+                cross_file_in = open(path.join(ml_support, "gstreamer.txt.in"), "r")
+                cross_file_out = open(env["GSTREAMER_CROSS_FILE"], "w+")
+                for line in cross_file_in:
+                    line = line.replace(
+                        "@MAGICLEAP_SDK@",
+                        env["MAGICLEAP_SDK"],
+                    ).replace(
+                        "@INSTALL_DIR@",
+                        env["GSTREAMER_DIR"],
+                    )
+                    cross_file_out.write(line)
+                cross_file_in.close()
+                cross_file_out.close()
+
+                check_call([
+                    'meson',
+                    '--cross-file', env["GSTREAMER_CROSS_FILE"],
+                    '--prefix', path.join(env["GSTREAMER_DIR"], "system"),
+                    '--libdir', 'lib64',
+                    '--libexecdir', 'bin',
+                    '--buildtype', 'release',
+                    '--strip',
+                    '-Db_pie=true',
+                    '-Dcpp_std=c++11',
+                    '-Dpython=disabled',
+                    '-Dlibav=disabled',
+                    '-Ddevtools=disabled',
+                    '-Dges=disabled',
+                    '-Drtsp_server=disabled',
+                    '-Domx=disabled',
+                    '-Dvaapi=disabled',
+                    '-Dsharp=disabled',
+                    '-Dexamples=disabled',
+                    '-Dgtk_doc=disabled',
+                    '-Dintrospection=disabled',
+                    '-Dnls=disabled',
+                    '-Dbad=enabled',
+                    '-Dgst-plugins-base:gl=enabled',
+                    '-Dgst-plugins-base:gl_platform=egl',
+                    '-Dgst-plugins-base:gl_winsys=android',
+                    '-Dgst-plugins-good:soup=enabled',
+                    '-Dgst-plugins-bad:gl=enabled',
+                    '-Dgst-plugins-bad:magicleap=enabled',
+                    '-Dgst-plugins-bad:dash=enabled',
+                    '-Dglib:iconv=gnu',
+                    '-Dlibsoup:gssapi=false',
+                    '-Dlibsoup:tls_check=false',
+                    '-Dlibsoup:vapi=false',
+                    env["GSTREAMER_BUILD_DIR"],
+                    env["GSTREAMER_DIR"],
+                ])
+
+                check_call([
+                    'ninja',
+                    '-C', env["GSTREAMER_DIR"],
+                ])
+
+                check_call([
+                    'meson',
+                    'install',
+                    '-C', env["GSTREAMER_DIR"],
+                ])
 
         if very_verbose:
             print (["Calling", "cargo", "build"] + opts)

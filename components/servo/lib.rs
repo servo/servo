@@ -127,10 +127,7 @@ pub use servo_url as url;
 
 #[cfg(all(
     not(target_os = "windows"),
-    any(
-        all(target_os = "android", target_arch = "arm"),
-        target_arch = "x86_64",
-    )
+    any(target_os = "android", target_arch = "x86_64",)
 ))]
 mod media_platform {
     use super::ServoMedia;
@@ -211,10 +208,7 @@ mod media_platform {
 
 #[cfg(not(all(
     not(target_os = "windows"),
-    any(
-        all(target_os = "android", target_arch = "arm"),
-        target_arch = "x86_64",
-    )
+    any(target_os = "android", target_arch = "x86_64",)
 )))]
 mod media_platform {
     use super::ServoMedia;
