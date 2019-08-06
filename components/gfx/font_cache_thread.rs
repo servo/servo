@@ -13,11 +13,12 @@ use crate::platform::font_list::SANS_SERIF_FONT_FAMILY;
 use crate::platform::font_template::FontTemplateData;
 use app_units::Au;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId};
 use net_traits::request::{Destination, RequestBuilder};
-use net_traits::{fetch_async, CoreResourceThread, FetchResponseMsg};
+use net_traits::{CoreResourceMsg, CoreResourceThread, FetchChannels, FetchResponseMsg};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
-use shared_ipc_router::{IpcCallback, IpcHandle, SharedIpcRouter};
+use shared_ipc_router::SharedIpcRouter;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -241,12 +242,12 @@ impl FontCache {
                 };
 
                 let request = RequestBuilder::new(url.clone()).destination(Destination::Font);
-
                 let channel_to_self = self.channel_to_self.clone();
                 let bytes = Mutex::new(Vec::new());
                 let response_valid = Mutex::new(false);
                 debug!("Loading @font-face {} from {}", family_name, url);
-                fetch_async(request, &self.core_resource_thread, move |response| {
+                let handle = self.ipc_router.add_callback(Box::new(move |data: Vec<u8>| {
+                    let response: FetchResponseMsg = bincode::deserialize(&data[..]).expect("Data to deserialize into a FetchResponseMsg");
                     match response {
                         FetchResponseMsg::ProcessRequestBody |
                         FetchResponseMsg::ProcessRequestEOF => (),
@@ -304,7 +305,13 @@ impl FontCache {
                             channel_to_self.send(command).unwrap();
                         },
                     }
-                });
+                }));
+                self.core_resource_thread
+                    .send(CoreResourceMsg::Fetch(
+                        request,
+                        FetchChannels::ResponseHandle(handle, None),
+                    ))
+                    .unwrap();
             },
             Source::Local(ref font) => {
                 let font_face_name = LowercaseString::new(&font.name);
@@ -454,7 +461,16 @@ impl FontCacheThread {
                 // TODO: Allow users to specify these.
                 let generic_fonts = populate_generic_fonts();
 
+                PipelineNamespace::install(PipelineNamespaceId(2));
+
+                let ipc_router = SharedIpcRouter::new(None);
+                let _ = core_resource_thread.send(CoreResourceMsg::NewRouter(
+                    ipc_router.router_id.clone(),
+                    ipc_router.ipc_sender.clone(),
+                ));
+
                 let mut cache = FontCache {
+                    ipc_router,
                     port: port,
                     channel_to_self,
                     generic_fonts,
