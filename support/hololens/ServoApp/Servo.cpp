@@ -1,31 +1,31 @@
 #include "pch.h"
 #include "Servo.h"
 
-namespace servo {
+namespace winrt::servo {
 
-void on_load_started() { sServo->Delegate().OnLoadStarted(); }
-void on_load_ended() { sServo->Delegate().OnLoadEnded(); }
+void on_load_started() { sServo->Delegate().OnServoLoadStarted(); }
+void on_load_ended() { sServo->Delegate().OnServoLoadEnded(); }
 void on_history_changed(bool back, bool forward) {
-  sServo->Delegate().OnHistoryChanged(back, forward);
+  sServo->Delegate().OnServoHistoryChanged(back, forward);
 }
-void on_shutdown_complete() { sServo->Delegate().OnShutdownComplete(); }
+void on_shutdown_complete() { sServo->Delegate().OnServoShutdownComplete(); }
 void on_alert(const char *message) {
-  sServo->Delegate().OnAlert(char2w(message));
+  sServo->Delegate().OnServoAlert(char2hstring(message));
 }
 void on_title_changed(const char *title) {
-  sServo->Delegate().OnTitleChanged(char2w(title));
+  sServo->Delegate().OnServoTitleChanged(char2hstring(title));
 }
 void on_url_changed(const char *url) {
-  sServo->Delegate().OnURLChanged(char2w(url));
+  sServo->Delegate().OnServoURLChanged(char2hstring(url));
 }
 void flush() { sServo->Delegate().Flush(); }
 void make_current() { sServo->Delegate().MakeCurrent(); }
 void wakeup() { sServo->Delegate().WakeUp(); }
 bool on_allow_navigation(const char *url) {
- return sServo->Delegate().OnAllowNavigation(char2w(url));
+ return sServo->Delegate().OnServoAllowNavigation(char2hstring(url));
 };
 void on_animating_changed(bool aAnimating) {
-  sServo->Delegate().OnAnimatingChanged(aAnimating);
+  sServo->Delegate().OnServoAnimatingChanged(aAnimating);
 }
 
 Servo::Servo(GLsizei width, GLsizei height, ServoDelegate &aDelegate)
@@ -60,14 +60,14 @@ Servo::Servo(GLsizei width, GLsizei height, ServoDelegate &aDelegate)
 
 Servo::~Servo() { sServo = nullptr; }
 
-std::wstring char2w(const char *c_str) {
+winrt::hstring char2hstring(const char *c_str) {
+  // FIXME: any better way of doing this?
   auto str = std::string(c_str);
-  int size_needed =
-      MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
+  int size_needed = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
   std::wstring str2(size_needed, 0);
-  MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &str2[0],
-                      size_needed);
-  return str2;
+  MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &str2[0], size_needed);
+  winrt::hstring str3 {str2};
+  return str3;
 }
 
 } // namespace servo

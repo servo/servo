@@ -160,12 +160,16 @@
       <DependentUpon>BrowserPage.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="Servo.h" />
+    <ClInclude Include="ServoControl.h" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Page Include="BrowserPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Themes\Generic.xaml">
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>
@@ -307,6 +311,7 @@
     <ClCompile Include="$(GeneratedFilesDir)module.g.cpp" />
     <ClCompile Include="logs.cpp" />
     <ClCompile Include="Servo.cpp" />
+    <ClCompile Include="ServoControl.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Midl Include="App.idl">
@@ -315,6 +320,7 @@
     <Midl Include="BrowserPage.idl">
       <DependentUpon>BrowserPage.xaml</DependentUpon>
     </Midl>
+    <Midl Include="ServoControl.idl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

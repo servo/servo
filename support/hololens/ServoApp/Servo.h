@@ -6,8 +6,9 @@
 
 #include "pch.h"
 #include "logs.h"
+#include <stdlib.h>
 
-namespace servo {
+namespace winrt::servo {
 
 namespace capi {
 extern "C" {
@@ -20,17 +21,17 @@ public:
   // Called from any thread
   virtual void WakeUp() = 0;
   // Called from GL thread
-  virtual void OnLoadStarted() = 0;
-  virtual void OnLoadEnded() = 0;
-  virtual void OnHistoryChanged(bool, bool) = 0;
-  virtual void OnShutdownComplete() = 0;
-  virtual void OnTitleChanged(std::wstring) = 0;
-  virtual void OnAlert(std::wstring) = 0;
-  virtual void OnURLChanged(std::wstring) = 0;
+  virtual void OnServoLoadStarted() = 0;
+  virtual void OnServoLoadEnded() = 0;
+  virtual void OnServoHistoryChanged(bool, bool) = 0;
+  virtual void OnServoShutdownComplete() = 0;
+  virtual void OnServoTitleChanged(hstring) = 0;
+  virtual void OnServoAlert(hstring) = 0;
+  virtual void OnServoURLChanged(hstring) = 0;
+  virtual bool OnServoAllowNavigation(hstring) = 0;
+  virtual void OnServoAnimatingChanged(bool) = 0;
   virtual void Flush() = 0;
   virtual void MakeCurrent() = 0;
-  virtual bool OnAllowNavigation(std::wstring) = 0;
-  virtual void OnAnimatingChanged(bool) = 0;
 
 protected:
   virtual ~ServoDelegate(){};
@@ -51,6 +52,14 @@ public:
   void Click(float x, float y) { capi::click(x, y); }
   void Reload() { capi::reload(); }
   void Stop() { capi::stop(); }
+  void LoadUri(hstring uri) {
+    const wchar_t* wc = uri.c_str();
+    size_t size = uri.size() + 1;
+    char* str = new char[size];
+    size_t converted = 0;
+    wcstombs_s(&converted, str, size, wc, uri.size());
+    capi::load_uri(str);
+  }
   void Scroll(float dx, float dy, float x, float y) {
     capi::scroll(dx, dy, x, y);
   }
@@ -73,6 +82,6 @@ private:
 // the Servo instance. See https://github.com/servo/servo/issues/22967
 static Servo *sServo = nullptr;
 
-std::wstring char2w(const char *c_str);
+hstring char2hstring(const char *c_str);
 
 } // namespace servo
