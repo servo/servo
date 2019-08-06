@@ -705,8 +705,8 @@ where
                 let swmanager_receiver =
                     route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(swmanager_receiver);
 
-                // Zero is reserved for the embedder.
-                PipelineNamespace::install(PipelineNamespaceId(1));
+                // Zero is reserved for the embedder, 1 for the font-cache.
+                PipelineNamespace::install(PipelineNamespaceId(2));
 
                 let mut constellation: Constellation<Message, LTF, STF> = Constellation {
                     script_sender: ipc_script_sender,
@@ -739,8 +739,9 @@ where
                     browsing_contexts: HashMap::new(),
                     pending_changes: vec![],
                     // We initialize the namespace at 3, since we reserved
-                    // namespace 0 for the embedder, and 1 for the constellation
-                    // ans 2 for the font-cache.
+                    // namespace 0 for the embedder,
+                    // and 1 for the font-cache,
+                    // and 2 for the constellation
                     next_pipeline_namespace_id: PipelineNamespaceId(3),
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan,
