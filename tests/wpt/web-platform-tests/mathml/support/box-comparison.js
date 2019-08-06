@@ -22,7 +22,7 @@ function compareSpaceWithAndWithoutStyle(tag, style, parentStyle, direction) {
 
     if (!direction)
       direction = "ltr";
-    document.body.insertAdjacentHTML("beforeend", `<div>\
+    document.body.insertAdjacentHTML("beforeend", `<div style="position: absolute;">\
 <math><mrow dir="${direction}">${MathMLFragments[tag]}</mrow></math>\
 <math><mrow dir="${direction}">${MathMLFragments[tag]}</mrow></math>\
 </div>`);
@@ -64,7 +64,7 @@ function compareSizeWithAndWithoutStyle(tag, style) {
     if (!FragmentHelper.isValidChildOfMrow(tag))
         throw `Invalid argument: ${tag}`;
 
-    document.body.insertAdjacentHTML("beforeend", `<div>\
+    document.body.insertAdjacentHTML("beforeend", `<div style="position: absolute;">\
 <math>${MathMLFragments[tag]}</math>\
 <math>${MathMLFragments[tag]}</math>\
 </div>`);
