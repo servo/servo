@@ -1290,11 +1290,12 @@ fn http_network_fetch(
         }
     }
 
+    let mut cloned_url = url.clone();
     let req_origin_in_timing_allow = res.headers()
         .get_all("Timing-Allow-Origin")
         .iter()
         .map(|header_value| ServoUrl::parse(header_value.to_str().unwrap()).unwrap().into_url())
-        .fold(false, |acc, header_url| acc || header_url.origin() == url.into_url().origin());
+        .fold(false, |acc, header_url| acc || header_url.origin() == cloned_url.as_mut_url().origin());
 
     if !req_origin_in_timing_allow {
         context.timing.lock().unwrap().set_attribute(ResourceAttribute::TimingCheckPassed);
