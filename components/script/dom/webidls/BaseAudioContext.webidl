@@ -31,7 +31,7 @@ interface BaseAudioContext : EventTarget {
                                        optional DecodeSuccessCallback successCallback,
                                        optional DecodeErrorCallback errorCallback);
   [Throws] AudioBufferSourceNode createBufferSource();
-  // ConstantSourceNode createConstantSource();
+  [Throws] ConstantSourceNode createConstantSource();
   // ScriptProcessorNode createScriptProcessor(optional unsigned long bufferSize = 0,
   //                                           optional unsigned long numberOfInputChannels = 2,
   //                                           optional unsigned long numberOfOutputChannels = 2);

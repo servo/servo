@@ -24,6 +24,7 @@ use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeSucc
 use crate::dom::bindings::codegen::Bindings::BiquadFilterNodeBinding::BiquadFilterOptions;
 use crate::dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::ChannelMergerOptions;
 use crate::dom::bindings::codegen::Bindings::ChannelSplitterNodeBinding::ChannelSplitterOptions;
+use crate::dom::bindings::codegen::Bindings::ConstantSourceNodeBinding::ConstantSourceOptions;
 use crate::dom::bindings::codegen::Bindings::GainNodeBinding::GainOptions;
 use crate::dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorOptions;
 use crate::dom::bindings::codegen::Bindings::PannerNodeBinding::PannerOptions;
@@ -37,6 +38,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::biquadfilternode::BiquadFilterNode;
 use crate::dom::channelmergernode::ChannelMergerNode;
 use crate::dom::channelsplitternode::ChannelSplitterNode;
+use crate::dom::constantsourcenode::ConstantSourceNode;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gainnode::GainNode;
@@ -375,6 +377,15 @@ impl BaseAudioContextMethods for BaseAudioContext {
             &self.global().as_window(),
             &self,
             &StereoPannerOptions::empty(),
+        )
+    }
+
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createconstantsource
+    fn CreateConstantSource(&self) -> Fallible<DomRoot<ConstantSourceNode>> {
+        ConstantSourceNode::new(
+            &self.global().as_window(), 
+            &self, 
+            &ConstantSourceOptions::empty(),
         )
     }
 

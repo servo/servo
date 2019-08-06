@@ -7,10 +7,15 @@ use crate::dom::audioparam::AudioParam;
 use crate::dom::audioscheduledsourcenode::AudioScheduledSourceNode;
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::ConstantSourceNodeBinding;
+use crate::dom::bindings::codegen::Bindings::ConstantSourceNodeBinding::ConstantSourceNodeMethods;
+use crate::dom::bindings::codegen::Bindings::ConstantSourceNodeBinding::{
+    self, ConstantSourceOptions,
+};
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
+use servo_media::audio::constant_source_node::ConstantSourceNodeOptions as ServoMediaConstantSourceOptions;
 use servo_media::audio::node::AudioNodeInit;
 use servo_media::audio::param::ParamType;
 
@@ -72,5 +77,19 @@ impl ConstantSourceNode {
         options: &ConstantSourceOptions,
     ) -> Fallible<DomRoot<ConstantSourceNode>> {
         ConstantSourceNode::new(window, context, options)
+    }
+}
+
+impl ConstantSourceNodeMethods for ConstantSourceNode {
+    fn Offset(&self) -> DomRoot<AudioParam> {
+       DomRoot::from_ref(&self.offset) 
+    }
+}
+
+impl<'a> From<&'a ConstantSourceOptions> for ServoMediaConstantSourceOptions {
+    fn from(options: &'a ConstantSourceOptions) -> Self {
+        Self {
+            offset: *options.offset,
+        }
     }
 }
