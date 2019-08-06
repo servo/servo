@@ -31,7 +31,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
 use mime::Mime;
-use msg::constellation_msg::{HistoryStateId, PipelineId};
+use msg::constellation_msg::{HistoryStateId, IpcRouterId};
 use servo_url::ServoUrl;
 use shared_ipc_router::{IpcCallbackMsg, IpcHandle};
 use std::error::Error;
@@ -410,7 +410,7 @@ pub enum FetchChannels {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum CoreResourceMsg {
     /// Register a new shared-ipc-router.
-    NewRouter(PipelineId, IpcSender<IpcCallbackMsg>),
+    NewRouter(IpcRouterId, IpcSender<IpcCallbackMsg>),
     Fetch(RequestBuilder, FetchChannels),
     /// Initiate a fetch in response to processing a redirection
     FetchRedirect(

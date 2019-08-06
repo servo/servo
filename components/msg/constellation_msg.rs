@@ -82,6 +82,13 @@ impl PipelineNamespace {
             index: IpcCallbackIndex(self.next_index()),
         }
     }
+
+    fn next_ipc_router_id(&mut self) -> IpcRouterId {
+        IpcRouterId {
+            namespace_id: self.id,
+            index: IpcRouterIndex(self.next_index()),
+        }
+    }
 }
 
 thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = Cell::new(None));
@@ -281,6 +288,37 @@ impl fmt::Display for IpcCallbackId {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let PipelineNamespaceId(namespace_id) = self.namespace_id;
         let IpcCallbackIndex(index) = self.index;
+        write!(fmt, "({},{})", namespace_id, index.get())
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct IpcRouterIndex(pub NonZeroU32);
+malloc_size_of_is_0!(IpcRouterIndex);
+
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
+pub struct IpcRouterId {
+    pub namespace_id: PipelineNamespaceId,
+    pub index: IpcRouterIndex,
+}
+
+impl IpcRouterId {
+    pub fn new() -> IpcRouterId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let next_history_state_id = namespace.next_ipc_router_id();
+            tls.set(Some(namespace));
+            next_history_state_id
+        })
+    }
+}
+
+impl fmt::Display for IpcRouterId {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let PipelineNamespaceId(namespace_id) = self.namespace_id;
+        let IpcRouterIndex(index) = self.index;
         write!(fmt, "({},{})", namespace_id, index.get())
     }
 }

@@ -8,7 +8,7 @@ use bincode;
 use crossbeam_channel::{unbounded, Sender};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use msg::constellation_msg::{IpcCallbackId, PipelineId};
+use msg::constellation_msg::{IpcCallbackId, IpcRouterId};
 use profile_traits::ipc as ProfiledIpc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -16,7 +16,7 @@ use std::marker::PhantomData;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct IpcHandle<T: Serialize> {
-    pub pipeline_id: PipelineId,
+    pub router_id: IpcRouterId,
     pub callback_id: IpcCallbackId,
     pub sender: Option<IpcSender<IpcCallbackMsg>>,
     pub send_type: PhantomData<T>,
@@ -72,7 +72,7 @@ pub enum IpcCallbackMsg {
 pub type IpcCallback = Box<dyn FnMut(Vec<u8>) + Send>;
 
 pub struct SharedIpcRouter {
-    pipeline_id: PipelineId,
+    pub router_id: IpcRouterId,
     pub ipc_sender: IpcSender<IpcCallbackMsg>,
     sender: Sender<(IpcCallbackId, IpcCallback)>,
 }
@@ -80,7 +80,6 @@ pub struct SharedIpcRouter {
 impl SharedIpcRouter {
     pub fn new(
         profiler: Option<profile_traits::time::ProfilerChan>,
-        pipeline_id: PipelineId,
     ) -> Self {
         let (callback_sender, callback_receiver) = match profiler {
             Some(profiler) => {
@@ -95,7 +94,7 @@ impl SharedIpcRouter {
         };
         let (sender, receiver) = unbounded();
         let ipc_script_router = SharedIpcRouter {
-            pipeline_id,
+            router_id: IpcRouterId::new(),
             sender: sender,
             ipc_sender: callback_sender,
         };
@@ -133,7 +132,7 @@ impl SharedIpcRouter {
                 .send(IpcCallbackMsg::AddCallback)
                 .expect("The script ipc router to be available");
             return IpcHandle {
-                pipeline_id: self.pipeline_id.clone(),
+                router_id: self.router_id.clone(),
                 callback_id,
                 sender: None,
                 send_type: PhantomData,

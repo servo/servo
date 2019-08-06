@@ -1431,6 +1431,7 @@ dependencies = [
  "servo_arc 0.1.1",
  "servo_atoms 0.0.1",
  "servo_url 0.0.1",
+ "shared_ipc_router 0.0.1",
  "smallvec 0.6.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "time 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",

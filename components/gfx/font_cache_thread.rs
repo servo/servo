@@ -17,6 +17,7 @@ use net_traits::request::{Destination, RequestBuilder};
 use net_traits::{fetch_async, CoreResourceThread, FetchResponseMsg};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
+use shared_ipc_router::{IpcCallback, IpcHandle, SharedIpcRouter};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -128,6 +129,7 @@ pub enum Reply {
 /// The font cache thread itself. It maintains a list of reference counted
 /// font templates that are currently in use.
 struct FontCache {
+    ipc_router: SharedIpcRouter,
     port: IpcReceiver<Command>,
     channel_to_self: IpcSender<Command>,
     generic_fonts: HashMap<FontFamilyName, LowercaseString>,

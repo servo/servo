@@ -22,7 +22,7 @@ use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::IpcRouterId;
 use net_traits::request::{Destination, RequestBuilder};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
@@ -120,7 +120,7 @@ struct ResourceChannelManager {
     resource_manager: CoreResourceManager,
     config_dir: Option<PathBuf>,
     certificate_path: Option<String>,
-    routers: HashMap<PipelineId, IpcSender<IpcCallbackMsg>>,
+    routers: HashMap<IpcRouterId, IpcSender<IpcCallbackMsg>>,
 }
 
 fn create_http_states(
@@ -235,8 +235,8 @@ impl ResourceChannelManager {
     /// Returns false if the thread should exit.
     fn process_msg(&mut self, msg: CoreResourceMsg, http_state: &Arc<HttpState>) -> bool {
         match msg {
-            CoreResourceMsg::NewRouter(pipeline_id, sender) => {
-                self.routers.insert(pipeline_id, sender);
+            CoreResourceMsg::NewRouter(router_id, sender) => {
+                self.routers.insert(router_id, sender);
             },
             CoreResourceMsg::Fetch(req_init, channels) => match channels {
                 FetchChannels::ResponseMsg(sender, cancel_chan) => {
@@ -246,7 +246,7 @@ impl ResourceChannelManager {
                 FetchChannels::ResponseHandle(mut handle, cancel_chan) => {
                     let sender = self
                         .routers
-                        .get_mut(&handle.pipeline_id)
+                        .get_mut(&handle.router_id)
                         .expect("Resource manager to have a router sender");
                     handle.set_sender(sender.clone());
                     self.resource_manager.fetch_with_handle(
@@ -263,7 +263,7 @@ impl ResourceChannelManager {
                 } => {
                     let sender = self
                         .routers
-                        .get_mut(&event_sender.pipeline_id)
+                        .get_mut(&event_sender.router_id)
                         .expect("Resource manager to have a router sender");
                     event_sender.set_sender(sender.clone());
                     self.resource_manager.websocket_connect(
