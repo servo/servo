@@ -508,7 +508,9 @@ impl ResourceFetchTiming {
     pub fn set_attribute(&mut self, attribute: ResourceAttribute) {
         if !self.timing_check_passed{
             match attribute {
-                ResourceAttribute::DomainLookupStart => self.domain_lookup_start = precise_time_ns(),
+                ResourceAttribute::DomainLookupStart => {
+                    self.domain_lookup_start = precise_time_ns()
+                },
                 ResourceAttribute::RedirectCount(count) => self.redirect_count = count,
                 ResourceAttribute::RequestStart => self.request_start = precise_time_ns(),
                 ResourceAttribute::ResponseStart => self.response_start = precise_time_ns(),
