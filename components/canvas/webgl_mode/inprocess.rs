@@ -224,7 +224,8 @@ impl WebrenderExternalImageApi for WebGLExternalImages {
                 // flows of OpenGL commands in order to avoid WR using a semi-ready WebGL texture.
                 // glWaitSync doesn't block WR thread, it affects only internal OpenGL subsystem.
                 if let Some(gl_sync) = gl_sync {
-                    self.webrender_gl.wait_sync(gl_sync as _, 0, gl::TIMEOUT_IGNORED);
+                    self.webrender_gl
+                        .wait_sync(gl_sync as _, 0, gl::TIMEOUT_IGNORED);
                 }
                 texture_id
             },

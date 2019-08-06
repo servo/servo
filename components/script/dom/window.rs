@@ -107,7 +107,6 @@ use script_traits::{ConstellationControlMsg, DocumentState, HistoryEntryReplacem
 use script_traits::{ScriptMsg, ScriptToConstellationChan, ScrollState, TimerEvent, TimerEventId};
 use script_traits::{TimerSchedulerMsg, WindowSizeData, WindowSizeType};
 use selectors::attr::CaseSensitivity;
-use servo_config::opts;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
 use servo_url::{Host, ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::borrow::Cow;
@@ -905,11 +904,7 @@ impl WindowMethods for Window {
         self.Document()
             .request_animation_frame(AnimationFrameCallback::FrameRequestCallback {
                 callback,
-                webgl_chan: if cfg!(target_os = "macos") && opts::get().with_io_surface {
-                    self.webgl_chan.as_ref().map(|chan| chan.clone())
-                } else {
-                    None
-                },
+                webgl_chan: self.webgl_chan.as_ref().map(|chan| chan.clone()),
             })
     }
 
