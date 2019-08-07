@@ -16,6 +16,7 @@ doctest = false
 bincode = "1"
 crossbeam-channel = "0.3"
 ipc-channel = "0.11"
+lazy_static = "1"
 msg = {path = "../msg"}
 profile_traits = {path = "../profile_traits"}
 serde = "1.0.60"

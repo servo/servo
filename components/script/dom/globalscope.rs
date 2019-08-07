@@ -189,11 +189,13 @@ impl GlobalScope {
         is_headless: bool,
         user_agent: Cow<'static, str>,
     ) -> Self {
-        let ipc_router = SharedIpcRouter::new(Some(time_profiler_chan.clone()));
-        let _ = resource_threads.sender().send(CoreResourceMsg::NewRouter(
-            ipc_router.router_id.clone(),
-            ipc_router.ipc_sender.clone(),
-        ));
+        let ipc_router = SharedIpcRouter::new();
+        if ipc_router.requires_setup_for_resource_manager() {
+            let _ = resource_threads.sender().send(CoreResourceMsg::NewRouter(
+                ipc_router.router_id.clone(),
+                ipc_router.ipc_sender.clone(),
+            ));
+        }
         Self {
             ipc_router,
             eventtarget: EventTarget::new_inherited(),

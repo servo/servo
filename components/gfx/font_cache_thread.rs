@@ -464,11 +464,13 @@ impl FontCacheThread {
 
                 PipelineNamespace::install(PipelineNamespaceId(1));
 
-                let ipc_router = SharedIpcRouter::new(None);
-                let _ = core_resource_thread.send(CoreResourceMsg::NewRouter(
-                    ipc_router.router_id.clone(),
-                    ipc_router.ipc_sender.clone(),
-                ));
+                let ipc_router = SharedIpcRouter::new();
+                if ipc_router.requires_setup_for_resource_manager() {
+                    let _ = core_resource_thread.send(CoreResourceMsg::NewRouter(
+                        ipc_router.router_id.clone(),
+                        ipc_router.ipc_sender.clone(),
+                    ));
+                }
 
                 let mut cache = FontCache {
                     ipc_router,

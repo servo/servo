@@ -4,15 +4,68 @@
 
 #![deny(unsafe_code)]
 
+#[macro_use]
+extern crate lazy_static;
+
 use bincode;
 use crossbeam_channel::{unbounded, Sender};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use msg::constellation_msg::{IpcCallbackId, IpcRouterId};
-use profile_traits::ipc as ProfiledIpc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::marker::PhantomData;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+
+lazy_static! {
+    /// Global object wrapping a `SharedRouter`.
+    static ref SHARED_ROUTER: SharedIpcRouterImpl = SharedIpcRouterImpl::new();
+}
+
+pub struct SharedIpcRouterImpl {
+    pub ipc_sender: Mutex<IpcSender<IpcCallbackMsg>>,
+    sender: Mutex<Sender<(IpcCallbackId, IpcCallback)>>,
+    setup_resource_manager: Arc<AtomicBool>,
+}
+
+impl SharedIpcRouterImpl {
+    pub fn new() -> Self {
+        let (callback_sender, callback_receiver) =
+            ipc::channel().expect("SharedIpcRouter ipc chan");
+        let (sender, receiver) = unbounded();
+        let ipc_script_router = SharedIpcRouterImpl {
+            sender: Mutex::new(sender),
+            ipc_sender: Mutex::new(callback_sender),
+            setup_resource_manager: Arc::new(AtomicBool::new(false)),
+        };
+        let mut callbacks: HashMap<IpcCallbackId, IpcCallback> = HashMap::new();
+        ROUTER.add_route(
+            callback_receiver.to_opaque(),
+            Box::new(move |message| {
+                match message.to().expect("ScriptIpcRouter handle incoming msg") {
+                    IpcCallbackMsg::AddCallback => {
+                        let (id, callback) =
+                            receiver.recv().expect("Callback message to be received");
+                        callbacks.insert(id, callback);
+                    },
+                    IpcCallbackMsg::DropCallback(id) => {
+                        let _ = callbacks
+                            .remove(&id)
+                            .expect("Callbackt to be removed to exists");
+                    },
+                    IpcCallbackMsg::Callback(id, data) => {
+                        let callback = callbacks
+                            .get_mut(&id)
+                            .expect("Callback to be called to exists");
+                        callback(data);
+                    },
+                }
+            }),
+        );
+        ipc_script_router
+    }
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct IpcHandle<T: Serialize> {
@@ -75,51 +128,18 @@ pub struct SharedIpcRouter {
     pub router_id: IpcRouterId,
     pub ipc_sender: IpcSender<IpcCallbackMsg>,
     sender: Sender<(IpcCallbackId, IpcCallback)>,
+    setup_resource_manager: Arc<AtomicBool>,
 }
 
 impl SharedIpcRouter {
-    pub fn new(profiler: Option<profile_traits::time::ProfilerChan>) -> Self {
-        let (callback_sender, callback_receiver) = match profiler {
-            Some(profiler) => {
-                let (sender, receiver) =
-                    ProfiledIpc::channel(profiler).expect("SharedIpcRouter profiled chan");
-                (sender, receiver.to_opaque())
-            },
-            None => {
-                let (sender, receiver) = ipc::channel().expect("SharedIpcRouter ipc chan");
-                (sender, receiver.to_opaque())
-            },
-        };
-        let (sender, receiver) = unbounded();
+    pub fn new() -> Self {
+        let shared_router = &SHARED_ROUTER;
         let ipc_script_router = SharedIpcRouter {
             router_id: IpcRouterId::new(),
-            sender: sender,
-            ipc_sender: callback_sender,
+            sender: shared_router.sender.lock().unwrap().clone(),
+            ipc_sender: shared_router.ipc_sender.lock().unwrap().clone(),
+            setup_resource_manager: shared_router.setup_resource_manager.clone(),
         };
-        let mut callbacks: HashMap<IpcCallbackId, IpcCallback> = HashMap::new();
-        ROUTER.add_route(
-            callback_receiver,
-            Box::new(move |message| {
-                match message.to().expect("ScriptIpcRouter handle incoming msg") {
-                    IpcCallbackMsg::AddCallback => {
-                        let (id, callback) =
-                            receiver.recv().expect("Callback message to be received");
-                        callbacks.insert(id, callback);
-                    },
-                    IpcCallbackMsg::DropCallback(id) => {
-                        let _ = callbacks
-                            .remove(&id)
-                            .expect("Callbackt to be removed to exists");
-                    },
-                    IpcCallbackMsg::Callback(id, data) => {
-                        let callback = callbacks
-                            .get_mut(&id)
-                            .expect("Callback to be called to exists");
-                        callback(data);
-                    },
-                }
-            }),
-        );
         ipc_script_router
     }
 
@@ -137,5 +157,10 @@ impl SharedIpcRouter {
             };
         }
         unreachable!("Adding an ipc callback failed");
+    }
+
+    pub fn requires_setup_for_resource_manager(&self) -> bool {
+        self.setup_resource_manager
+            .compare_and_swap(true, false, Ordering::SeqCst)
     }
 }
