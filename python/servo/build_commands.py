@@ -708,18 +708,18 @@ class MachCommands(CommandBase):
                     '-Dlibsoup:vapi=false',
                     env["GSTREAMER_BUILD_DIR"],
                     env["GSTREAMER_DIR"],
-                ])
+                ], env=env)
 
                 check_call([
                     'ninja',
                     '-C', env["GSTREAMER_DIR"],
-                ])
+                ], env=env)
 
                 check_call([
                     'meson',
                     'install',
                     '-C', env["GSTREAMER_DIR"],
-                ])
+                ], env=env)
 
         if very_verbose:
             print (["Calling", "cargo", "build"] + opts)
