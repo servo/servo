@@ -18,7 +18,9 @@ use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
-use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
+use msg::constellation_msg::{
+    BrowsingContextId, PipelineId, PipelineNamespaceId, TopLevelBrowsingContextId,
+};
 use msg::constellation_msg::{HistoryStateId, TraversalDirection};
 use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::StorageType;
@@ -51,6 +53,8 @@ pub struct IFrameSizeMsg {
 /// Messages from the layout to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum LayoutMsg {
+    /// Request a Pipeline namespace id.
+    GePipelineNameSpaceId(IpcSender<PipelineNamespaceId>),
     /// Indicates whether this pipeline is currently running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Inform the constellation of the size of the iframe's viewport.
@@ -66,6 +70,7 @@ impl fmt::Debug for LayoutMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         use self::LayoutMsg::*;
         let variant = match *self {
+            GePipelineNameSpaceId(..) => "GePipelineNameSpaceId",
             ChangeRunningAnimationsState(..) => "ChangeRunningAnimationsState",
             IFrameSizes(..) => "IFrameSizes",
             PendingPaintMetric(..) => "PendingPaintMetric",

@@ -72,7 +72,9 @@ use msg::constellation_msg::{
     BackgroundHangMonitor, BackgroundHangMonitorRegister, HangAnnotation,
 };
 use msg::constellation_msg::{BrowsingContextId, MonitoredComponentId, TopLevelBrowsingContextId};
-use msg::constellation_msg::{LayoutHangAnnotation, MonitoredComponentType, PipelineId};
+use msg::constellation_msg::{
+    LayoutHangAnnotation, MonitoredComponentType, PipelineId, PipelineNamespace,
+};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::RwLock;
 use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
@@ -329,6 +331,16 @@ impl LayoutThreadFactory for LayoutThread {
 
                 // In order to get accurate crash reports, we install the top-level bc id.
                 TopLevelBrowsingContextId::install(top_level_browsing_context_id);
+
+                // Get a pipeline namespace.
+                let (namespace_sender, namespace_receiver) =
+                    ipc::channel().expect("ipc channel failure");
+                let _ = constellation_chan
+                    .send(ConstellationMsg::GePipelineNameSpaceId(namespace_sender));
+                let pipeline_namespace_id = namespace_receiver
+                    .recv()
+                    .expect("The constellation to make a pipeline namespace id available");
+                PipelineNamespace::install(pipeline_namespace_id);
 
                 {
                     // Ensures layout thread is destroyed before we send shutdown message

@@ -541,6 +541,7 @@ impl FontCacheThread {
 
     pub fn initialize_router(&mut self, router: &SharedIpcRouter) {
         if router.requires_setup_for_font_cache() {
+            println!("Sending Command::NewRouter {:?}", router.router_id);
             let _ = self.chan.send(Command::NewRouter(
                 router.router_id.clone(),
                 router.ipc_sender.clone(),

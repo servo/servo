@@ -25,6 +25,7 @@ lazy_static! {
 
 /// The shared-router, shared on a per-process basis.
 pub struct SharedIpcRouterImpl {
+    pub router_id: Mutex<IpcRouterId>,
     pub ipc_sender: Mutex<IpcSender<IpcCallbackMsg>>,
     sender: Mutex<Sender<(IpcCallbackId, IpcCallback)>>,
     setup_resource_manager: Arc<AtomicBool>,
@@ -37,6 +38,7 @@ impl SharedIpcRouterImpl {
             ipc::channel().expect("SharedIpcRouter ipc chan");
         let (sender, receiver) = unbounded();
         let ipc_script_router = SharedIpcRouterImpl {
+            router_id: Mutex::new(IpcRouterId::new()),
             sender: Mutex::new(sender),
             ipc_sender: Mutex::new(callback_sender),
             setup_resource_manager: Arc::new(AtomicBool::new(false)),
@@ -142,7 +144,7 @@ impl SharedIpcRouter {
     pub fn new() -> Self {
         let shared_router = &SHARED_ROUTER;
         let ipc_script_router = SharedIpcRouter {
-            router_id: IpcRouterId::new(),
+            router_id: shared_router.router_id.lock().unwrap().clone(),
             sender: shared_router.sender.lock().unwrap().clone(),
             ipc_sender: shared_router.ipc_sender.lock().unwrap().clone(),
             setup_resource_manager: shared_router.setup_resource_manager.clone(),
@@ -189,12 +191,14 @@ impl SharedIpcRouter {
     }
 
     pub fn requires_setup_for_resource_manager(&self) -> bool {
-        self.setup_resource_manager
-            .compare_and_swap(true, false, Ordering::SeqCst)
+        !self
+            .setup_resource_manager
+            .compare_and_swap(false, true, Ordering::SeqCst)
     }
 
     pub fn requires_setup_for_font_cache(&self) -> bool {
-        self.setup_font_cache
-            .compare_and_swap(true, false, Ordering::SeqCst)
+        !self
+            .setup_font_cache
+            .compare_and_swap(false, true, Ordering::SeqCst)
     }
 }

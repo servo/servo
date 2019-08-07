@@ -1670,6 +1670,9 @@ where
     fn handle_request_from_layout(&mut self, message: FromLayoutMsg) {
         debug!("Constellation got {:?} message", message);
         match message {
+            FromLayoutMsg::GePipelineNameSpaceId(sender) => {
+                let _ = sender.send(self.next_pipeline_namespace_id());
+            },
             FromLayoutMsg::ChangeRunningAnimationsState(pipeline_id, animation_state) => {
                 self.handle_change_running_animations_state(pipeline_id, animation_state)
             },
