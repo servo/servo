@@ -48,6 +48,7 @@ servo_geometry = {path = "../geometry"}
 serde_json = "1.0"
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
+shared_ipc_router = {path = "../shared_ipc_router"}
 smallvec = { version = "0.6", features = ["std", "union"] }
 style = {path = "../style", features = ["servo", "servo-layout-2013"]}
 style_traits = {path = "../style_traits"}

@@ -13,6 +13,7 @@ use app_units::Au;
 use fnv::FnvHasher;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use servo_arc::Arc;
+use shared_ipc_router::SharedIpcRouter;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::default::Default;
@@ -33,12 +34,14 @@ pub trait FontSource {
         &mut self,
         key: webrender_api::FontKey,
         size: Au,
+        ipc_router: &SharedIpcRouter,
     ) -> webrender_api::FontInstanceKey;
 
     fn font_template(
         &mut self,
         template_descriptor: FontTemplateDescriptor,
         family_descriptor: FontFamilyDescriptor,
+        ipc_router: &SharedIpcRouter,
     ) -> Option<FontTemplateInfo>;
 }
 
@@ -50,6 +53,7 @@ pub trait FontSource {
 pub struct FontContext<S: FontSource> {
     platform_handle: FontContextHandle,
     font_source: S,
+    router: SharedIpcRouter,
 
     // TODO: The font context holds a strong ref to the cached fonts
     // so they will never be released. Find out a good time to drop them.
@@ -64,9 +68,10 @@ pub struct FontContext<S: FontSource> {
 }
 
 impl<S: FontSource> FontContext<S> {
-    pub fn new(font_source: S) -> FontContext<S> {
+    pub fn new(font_source: S, router: SharedIpcRouter) -> FontContext<S> {
         let handle = FontContextHandle::new();
         FontContext {
+            router,
             platform_handle: handle,
             font_source,
             font_cache: HashMap::new(),
@@ -162,6 +167,7 @@ impl<S: FontSource> FontContext<S> {
             let template_info = self.font_source.font_template(
                 template_descriptor.clone(),
                 family_descriptor.clone(),
+                &self.router,
             );
 
             self.font_template_cache.insert(cache_key, template_info.clone());
@@ -190,9 +196,9 @@ impl<S: FontSource> FontContext<S> {
             Some(actual_pt_size),
         )?;
 
-        let font_instance_key = self
-            .font_source
-            .get_font_instance(info.font_key, actual_pt_size);
+        let font_instance_key =
+            self.font_source
+                .get_font_instance(info.font_key, actual_pt_size, &self.router);
         Ok(Font::new(
             handle,
             descriptor,

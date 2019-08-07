@@ -13,12 +13,12 @@ use crate::platform::font_list::SANS_SERIF_FONT_FAMILY;
 use crate::platform::font_template::FontTemplateData;
 use app_units::Au;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId};
+use msg::constellation_msg::{IpcRouterId, PipelineNamespace, PipelineNamespaceId};
 use net_traits::request::{Destination, RequestBuilder};
 use net_traits::{CoreResourceMsg, CoreResourceThread, FetchChannels, FetchResponseMsg};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
-use shared_ipc_router::SharedIpcRouter;
+use shared_ipc_router::{IpcCallbackMsg, IpcHandle, SharedIpcRouter};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -105,15 +105,17 @@ impl FontTemplates {
 /// Commands that the FontContext sends to the font cache thread.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Command {
+    /// Register a new shared-ipc-router.
+    NewRouter(IpcRouterId, IpcSender<IpcCallbackMsg>),
     GetFontTemplate(
         FontTemplateDescriptor,
         FontFamilyDescriptor,
-        IpcSender<Reply>,
+        IpcHandle<Reply>,
     ),
     GetFontInstance(
         webrender_api::FontKey,
         Au,
-        IpcSender<webrender_api::FontInstanceKey>,
+        IpcHandle<webrender_api::FontInstanceKey>,
     ),
     AddWebFont(LowercaseString, EffectiveSources, IpcSender<()>),
     AddDownloadedWebFont(LowercaseString, ServoUrl, Vec<u8>, IpcSender<()>),
@@ -131,6 +133,7 @@ pub enum Reply {
 /// font templates that are currently in use.
 struct FontCache {
     ipc_router: SharedIpcRouter,
+    routers: HashMap<IpcRouterId, IpcSender<IpcCallbackMsg>>,
     port: IpcReceiver<Command>,
     channel_to_self: IpcSender<Command>,
     generic_fonts: HashMap<FontFamilyName, LowercaseString>,
@@ -176,12 +179,27 @@ impl FontCache {
             let msg = self.port.recv().unwrap();
 
             match msg {
-                Command::GetFontTemplate(template_descriptor, family_descriptor, result) => {
+                Command::NewRouter(router_id, sender) => {
+                    self.routers.insert(router_id, sender);
+                },
+                Command::GetFontTemplate(template_descriptor, family_descriptor, mut handle) => {
+                    let sender = self
+                        .routers
+                        .get_mut(&handle.router_id)
+                        .expect("Resource manager to have a router sender");
+                    handle.set_sender(sender.clone());
                     let maybe_font_template =
                         self.find_font_template(&template_descriptor, &family_descriptor);
-                    let _ = result.send(Reply::GetFontTemplateReply(maybe_font_template));
+                    let _ = handle.send(Reply::GetFontTemplateReply(maybe_font_template));
+                    handle.drop_callback();
                 },
-                Command::GetFontInstance(font_key, size, result) => {
+                Command::GetFontInstance(font_key, size, mut handle) => {
+                    let sender = self
+                        .routers
+                        .get_mut(&handle.router_id)
+                        .expect("Resource manager to have a router sender");
+                    handle.set_sender(sender.clone());
+
                     let webrender_api = &self.webrender_api;
 
                     let instance_key =
@@ -196,7 +214,8 @@ impl FontCache {
                                 key
                             });
 
-                    let _ = result.send(instance_key);
+                    let _ = handle.send(instance_key);
+                    handle.drop_callback();
                 },
                 Command::AddWebFont(family_name, sources, result) => {
                     self.handle_add_web_font(family_name, sources, result);
@@ -474,6 +493,7 @@ impl FontCacheThread {
 
                 let mut cache = FontCache {
                     ipc_router,
+                    routers: HashMap::new(),
                     port: port,
                     channel_to_self,
                     generic_fonts,
@@ -518,6 +538,15 @@ impl FontCacheThread {
             .recv()
             .expect("Couldn't receive FontCacheThread reply");
     }
+
+    pub fn initialize_router(&mut self, router: &SharedIpcRouter) {
+        if router.requires_setup_for_font_cache() {
+            let _ = self.chan.send(Command::NewRouter(
+                router.router_id.clone(),
+                router.ipc_sender.clone(),
+            ));
+        }
+    }
 }
 
 impl FontSource for FontCacheThread {
@@ -525,50 +554,41 @@ impl FontSource for FontCacheThread {
         &mut self,
         key: webrender_api::FontKey,
         size: Au,
+        ipc_router: &SharedIpcRouter,
     ) -> webrender_api::FontInstanceKey {
-        let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
+        let (handle, receiver) = ipc_router.add_blocking_call();
         self.chan
-            .send(Command::GetFontInstance(key, size, response_chan))
+            .send(Command::GetFontInstance(key, size, handle))
             .expect("failed to send message to font cache thread");
-
-        let instance_key = response_port.recv();
-        if instance_key.is_err() {
-            let font_thread_has_closed = self.chan.send(Command::Ping).is_err();
-            assert!(
-                font_thread_has_closed,
-                "Failed to receive a response from live font cache"
-            );
-            panic!("Font cache thread has already exited.");
-        }
-        instance_key.unwrap()
+        let data = receiver
+            .recv()
+            .expect("Font cache thread has already exited.");
+        let instance_key: webrender_api::FontInstanceKey =
+            bincode::deserialize(&data[..]).expect("Data to deserialize into a FontInstanceKey");
+        instance_key
     }
 
     fn font_template(
         &mut self,
         template_descriptor: FontTemplateDescriptor,
         family_descriptor: FontFamilyDescriptor,
+        ipc_router: &SharedIpcRouter,
     ) -> Option<FontTemplateInfo> {
-        let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
+        let (handle, receiver) = ipc_router.add_blocking_call();
         self.chan
             .send(Command::GetFontTemplate(
                 template_descriptor,
                 family_descriptor,
-                response_chan,
+                handle,
             ))
             .expect("failed to send message to font cache thread");
+        let data = receiver
+            .recv()
+            .expect("Font cache thread has already exited.");
+        let reply: Reply =
+            bincode::deserialize(&data[..]).expect("Data to deserialize into a Reply");
 
-        let reply = response_port.recv();
-
-        if reply.is_err() {
-            let font_thread_has_closed = self.chan.send(Command::Ping).is_err();
-            assert!(
-                font_thread_has_closed,
-                "Failed to receive a response from live font cache"
-            );
-            panic!("Font cache thread has already exited.");
-        }
-
-        match reply.unwrap() {
+        match reply {
             Reply::GetFontTemplateReply(data) => data,
         }
     }

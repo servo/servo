@@ -8,7 +8,7 @@
 extern crate lazy_static;
 
 use bincode;
-use crossbeam_channel::{unbounded, Sender};
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use msg::constellation_msg::{IpcCallbackId, IpcRouterId};
@@ -19,14 +19,16 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 lazy_static! {
-    /// Global object wrapping a `SharedRouter`.
+    /// Per-process shared-router.
     static ref SHARED_ROUTER: SharedIpcRouterImpl = SharedIpcRouterImpl::new();
 }
 
+/// The shared-router, shared on a per-process basis.
 pub struct SharedIpcRouterImpl {
     pub ipc_sender: Mutex<IpcSender<IpcCallbackMsg>>,
     sender: Mutex<Sender<(IpcCallbackId, IpcCallback)>>,
     setup_resource_manager: Arc<AtomicBool>,
+    setup_font_cache: Arc<AtomicBool>,
 }
 
 impl SharedIpcRouterImpl {
@@ -38,6 +40,7 @@ impl SharedIpcRouterImpl {
             sender: Mutex::new(sender),
             ipc_sender: Mutex::new(callback_sender),
             setup_resource_manager: Arc::new(AtomicBool::new(false)),
+            setup_font_cache: Arc::new(AtomicBool::new(false)),
         };
         let mut callbacks: HashMap<IpcCallbackId, IpcCallback> = HashMap::new();
         ROUTER.add_route(
@@ -68,6 +71,7 @@ impl SharedIpcRouterImpl {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+/// A handle to communicate back to a callback in another process.
 pub struct IpcHandle<T: Serialize> {
     pub router_id: IpcRouterId,
     pub callback_id: IpcCallbackId,
@@ -124,11 +128,14 @@ pub enum IpcCallbackMsg {
 
 pub type IpcCallback = Box<dyn FnMut(Vec<u8>) + Send>;
 
+#[derive(Debug)]
+/// A proxy to the per-process shared-router.
 pub struct SharedIpcRouter {
     pub router_id: IpcRouterId,
     pub ipc_sender: IpcSender<IpcCallbackMsg>,
     sender: Sender<(IpcCallbackId, IpcCallback)>,
     setup_resource_manager: Arc<AtomicBool>,
+    setup_font_cache: Arc<AtomicBool>,
 }
 
 impl SharedIpcRouter {
@@ -139,6 +146,7 @@ impl SharedIpcRouter {
             sender: shared_router.sender.lock().unwrap().clone(),
             ipc_sender: shared_router.ipc_sender.lock().unwrap().clone(),
             setup_resource_manager: shared_router.setup_resource_manager.clone(),
+            setup_font_cache: shared_router.setup_font_cache.clone(),
         };
         ipc_script_router
     }
@@ -159,8 +167,34 @@ impl SharedIpcRouter {
         unreachable!("Adding an ipc callback failed");
     }
 
+    pub fn add_blocking_call<T: Serialize>(&self) -> (IpcHandle<T>, Receiver<Vec<u8>>) {
+        let callback_id = IpcCallbackId::new();
+        let (result_sender, result_receiver) = unbounded();
+        let callback = Box::new(move |data: Vec<u8>| {
+            let _ = result_sender.send(data);
+        });
+        if let Ok(_) = self.sender.send((callback_id.clone(), callback)) {
+            self.ipc_sender
+                .send(IpcCallbackMsg::AddCallback)
+                .expect("The script ipc router to be available");
+            let handle = IpcHandle {
+                router_id: self.router_id.clone(),
+                callback_id,
+                sender: None,
+                send_type: PhantomData,
+            };
+            return (handle, result_receiver);
+        }
+        unreachable!("Adding an ipc callback failed");
+    }
+
     pub fn requires_setup_for_resource_manager(&self) -> bool {
         self.setup_resource_manager
+            .compare_and_swap(true, false, Ordering::SeqCst)
+    }
+
+    pub fn requires_setup_for_font_cache(&self) -> bool {
+        self.setup_font_cache
             .compare_and_swap(true, false, Ordering::SeqCst)
     }
 }

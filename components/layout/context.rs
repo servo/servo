@@ -19,6 +19,7 @@ use script_traits::Painter;
 use script_traits::UntrustedNodeAddress;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
+use shared_ipc_router::SharedIpcRouter;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
@@ -38,8 +39,10 @@ where
     FONT_CONTEXT_KEY.with(|k| {
         let mut font_context = k.borrow_mut();
         if font_context.is_none() {
-            let font_cache_thread = layout_context.font_cache_thread.lock().unwrap().clone();
-            *font_context = Some(FontContext::new(font_cache_thread));
+            let ipc_router = SharedIpcRouter::new();
+            let mut font_cache_thread = layout_context.font_cache_thread.lock().unwrap();
+            font_cache_thread.initialize_router(&ipc_router);
+            *font_context = Some(FontContext::new(font_cache_thread.clone(), ipc_router));
         }
         f(&mut RefMut::map(font_context, |x| x.as_mut().unwrap()))
     })
