@@ -74,6 +74,7 @@ ${helpers.predefined_type(
    "LengthOrAuto",
    "computed::LengthOrAuto::auto()",
    engines="gecko",
+   initial_specified_value="specified::LengthOrAuto::auto()",
    animation_value_type="ComputedValue",
    gecko_pref="layout.css.text-decoration-thickness.enabled",
    spec="https://drafts.csswg.org/css-text-decor-4/#text-decoration-width-property"

@@ -653,7 +653,6 @@ def _remove_common_first_line_and_first_letter_properties(props, engine):
         props.remove("text-emphasis-style")
         props.remove("text-emphasis-color")
         props.remove("text-decoration-skip-ink")
-        props.remove("text-decoration-thickness")
         props.remove("text-underline-offset")
 
     props.remove("overflow-wrap")

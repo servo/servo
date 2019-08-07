@@ -8,12 +8,13 @@
                     engines="gecko servo-2013"
                     flags="SHORTHAND_IN_GETCS"
                     sub_properties="text-decoration-line
-                    ${' text-decoration-style text-decoration-color' if engine == 'gecko' else ''}"
+                    ${' text-decoration-style text-decoration-color text-decoration-thickness' if engine == 'gecko' else ''}"
                     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration">
 
     % if engine == "gecko":
         use crate::values::specified;
-        use crate::properties::longhands::{text_decoration_style, text_decoration_color};
+        use crate::properties::longhands::{text_decoration_style, text_decoration_color, text_decoration_thickness};
+        use crate::properties::{PropertyId, LonghandId};
     % endif
     use crate::properties::longhands::text_decoration_line;
 
@@ -22,10 +23,13 @@
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
         % if engine == "gecko":
-            let (mut line, mut style, mut color, mut any) = (None, None, None, false);
+            let (mut line, mut style, mut color, mut thickness, mut any) = (None, None, None, None, false);
         % else:
             let (mut line, mut any) = (None, false);
         % endif
+
+        let text_decoration_thickness_enabled =
+            PropertyId::Longhand(LonghandId::TextDecorationThickness).enabled_for_all_content();
 
         loop {
             macro_rules! parse_component {
@@ -45,6 +49,9 @@
             % if engine == "gecko":
                 parse_component!(style, text_decoration_style);
                 parse_component!(color, text_decoration_color);
+                if text_decoration_thickness_enabled {
+                    parse_component!(thickness, text_decoration_thickness);
+                }
             % endif
 
             break;
@@ -60,6 +67,7 @@
             % if engine == "gecko":
                 text_decoration_style: unwrap_or_initial!(text_decoration_style, style),
                 text_decoration_color: unwrap_or_initial!(text_decoration_color, color),
+                text_decoration_thickness: unwrap_or_initial!(text_decoration_thickness, thickness),
             % endif
         })
     }
@@ -77,6 +85,13 @@
                 if *self.text_decoration_color != specified::Color::CurrentColor {
                     dest.write_str(" ")?;
                     self.text_decoration_color.to_css(dest)?;
+                }
+
+                if let Some(text_decoration_thickness) = self.text_decoration_thickness {
+                    if !text_decoration_thickness.is_auto() {
+                        dest.write_str(" ")?;
+                        self.text_decoration_thickness.to_css(dest)?;
+                    }
                 }
             % endif
 
