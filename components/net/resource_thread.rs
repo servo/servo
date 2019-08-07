@@ -20,7 +20,7 @@ use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
-use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
+use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender, IpcSharedMemory};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::IpcRouterId;
 use net_traits::request::{Destination, RequestBuilder};
@@ -489,7 +489,7 @@ impl CoreResourceManager {
         res_init_: Option<ResponseInit>,
         mut sender: IpcSender<FetchResponseMsg>,
         http_state: &Arc<HttpState>,
-        cancel_chan: Option<IpcReceiver<()>>,
+        cancelled: Option<IpcSharedMemory>,
     ) {
         let http_state = http_state.clone();
         let ua = self.user_agent.clone();
@@ -512,7 +512,7 @@ impl CoreResourceManager {
                 user_agent: ua,
                 devtools_chan: dc,
                 filemanager: filemanager,
-                cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(cancel_chan))),
+                cancellation_listener: CancellationListener::new(cancelled),
                 timing: Arc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
             };
 
@@ -540,7 +540,7 @@ impl CoreResourceManager {
         res_init_: Option<ResponseInit>,
         mut handle: IpcHandle<FetchResponseMsg>,
         http_state: &Arc<HttpState>,
-        cancel_chan: Option<IpcReceiver<()>>,
+        cancelled: Option<IpcSharedMemory>,
     ) {
         let http_state = http_state.clone();
         let ua = self.user_agent.clone();
@@ -563,7 +563,7 @@ impl CoreResourceManager {
                 user_agent: ua,
                 devtools_chan: dc,
                 filemanager: filemanager,
-                cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(cancel_chan))),
+                cancellation_listener: CancellationListener::new(cancelled),
                 timing: Arc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
             };
 

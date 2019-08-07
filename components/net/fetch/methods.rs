@@ -14,7 +14,7 @@ use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt, Range};
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use hyper::Method;
 use hyper::StatusCode;
-use ipc_channel::ipc::IpcReceiver;
+use ipc_channel::ipc::IpcSharedMemory;
 use mime::{self, Mime};
 use mime_guess::guess_mime_type;
 use net_traits::blob_url_store::{parse_blob_url, BlobURLStoreError};
@@ -52,36 +52,25 @@ pub struct FetchContext {
     pub user_agent: Cow<'static, str>,
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     pub filemanager: FileManager,
-    pub cancellation_listener: Arc<Mutex<CancellationListener>>,
+    pub cancellation_listener: CancellationListener,
     pub timing: Arc<Mutex<ResourceFetchTiming>>,
 }
 
+#[derive(Clone)]
 pub struct CancellationListener {
-    cancel_chan: Option<IpcReceiver<()>>,
-    cancelled: bool,
+    cancelled: Option<IpcSharedMemory>,
 }
 
 impl CancellationListener {
-    pub fn new(cancel_chan: Option<IpcReceiver<()>>) -> Self {
-        Self {
-            cancel_chan: cancel_chan,
-            cancelled: false,
-        }
+    pub fn new(cancelled: Option<IpcSharedMemory>) -> Self {
+        Self { cancelled }
     }
 
-    pub fn cancelled(&mut self) -> bool {
-        if let Some(ref cancel_chan) = self.cancel_chan {
-            if self.cancelled {
-                true
-            } else if cancel_chan.try_recv().is_ok() {
-                self.cancelled = true;
-                true
-            } else {
-                false
-            }
-        } else {
-            false
+    pub fn cancelled(&self) -> bool {
+        if let Some(cancelled) = self.cancelled.as_ref() {
+            return cancelled[0] == 1;
         }
+        false
     }
 }
 pub type DoneChannel = Option<(Sender<Data>, Receiver<Data>)>;

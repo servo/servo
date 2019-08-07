@@ -24,7 +24,7 @@ use crate::network_listener::{
     self, submit_timing_data, NetworkListener, PreInvoke, ResourceTimingListener,
 };
 use crate::task_source::TaskSourceName;
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self, IpcSharedMemory};
 use net_traits::request::RequestBuilder;
 use net_traits::request::{Request as NetTraitsRequest, ServiceWorkersMode};
 use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
@@ -45,14 +45,16 @@ struct FetchContext {
 }
 
 /// RAII fetch canceller object. By default initialized to not having a canceller
-/// in it, however you can ask it for a cancellation receiver to send to Fetch
-/// in which case it will store the sender. You can manually cancel it
+/// in it. You can manually cancel it
 /// or let it cancel on Drop in that case.
-#[derive(Default, JSTraceable, MallocSizeOf)]
+#[derive(Default, MallocSizeOf)]
 pub struct FetchCanceller {
-    #[ignore_malloc_size_of = "channels are hard"]
-    cancel_chan: Option<ipc::IpcSender<()>>,
+    #[ignore_malloc_size_of = "Shared memory is hard"]
+    cancelled: Option<IpcSharedMemory>,
+    ignore: bool,
 }
+
+unsafe_no_jsmanaged_fields!(FetchCanceller);
 
 impl FetchCanceller {
     /// Create an empty FetchCanceller
@@ -62,37 +64,40 @@ impl FetchCanceller {
 
     /// Obtain an IpcReceiver to send over to Fetch, and initialize
     /// the internal sender
-    pub fn initialize(&mut self) -> ipc::IpcReceiver<()> {
+    #[allow(unsafe_code)]
+    pub fn initialize(&mut self) -> IpcSharedMemory {
         // cancel previous fetch
         self.cancel();
-        let (rx, tx) = ipc::channel().unwrap();
-        self.cancel_chan = Some(rx);
-        tx
-    }
-
-    /// Cancel a fetch if it is ongoing
-    pub fn cancel(&mut self) {
-        if let Some(chan) = self.cancel_chan.take() {
-            // stop trying to make fetch happen
-            // it's not going to happen
-
-            // The receiver will be destroyed if the request has already completed;
-            // so we throw away the error. Cancellation is a courtesy call,
-            // we don't actually care if the other side heard.
-            let _ = chan.send(());
-        }
+        let flag: Vec<u8> = vec![0];
+        let ptr = flag.as_slice() as *const _;
+        let cancelled = unsafe { IpcSharedMemory::from_bytes(&*ptr) };
+        self.cancelled = Some(cancelled.clone());
+        cancelled
     }
 
     /// Use this if you don't want it to send a cancellation request
     /// on drop (e.g. if the fetch completes)
     pub fn ignore(&mut self) {
-        let _ = self.cancel_chan.take();
+        self.ignore = true;
+    }
+
+    /// Cancel a fetch
+    #[allow(unsafe_code)]
+    pub fn cancel(&mut self) {
+        if let Some(cancelled) = self.cancelled.as_ref() {
+            unsafe {
+                let ptr: *mut u8 = (*cancelled).as_ptr() as *mut _;
+                *ptr.add(0) += 1;
+            }
+        }
     }
 }
 
 impl Drop for FetchCanceller {
     fn drop(&mut self) {
-        self.cancel()
+        if !self.ignore {
+            self.cancel()
+        }
     }
 }
 

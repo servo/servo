@@ -43,7 +43,7 @@ impl NetworkListener {
         }
     }
 
-    pub fn initiate_fetch(&self, cancel_chan: Option<ipc::IpcReceiver<()>>) {
+    pub fn initiate_fetch(&self, cancel_chan: Option<ipc::IpcSharedMemory>) {
         let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
 
         let mut listener = NetworkListener {

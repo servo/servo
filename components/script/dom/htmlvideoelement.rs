@@ -157,7 +157,7 @@ impl HTMLVideoElement {
         &self,
         poster_url: ServoUrl,
         id: PendingImageId,
-        cancel_receiver: ipc::IpcReceiver<()>,
+        cancel_receiver: ipc::IpcSharedMemory,
     ) {
         // Continuation of step 4.
         let document = document_from_node(self);
