@@ -17,7 +17,7 @@ use embedder_traits::EmbedderMsg;
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
 use gfx_traits::Epoch;
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use msg::constellation_msg::{HistoryStateId, TraversalDirection};
 use net_traits::request::RequestBuilder;
@@ -113,7 +113,7 @@ pub enum ScriptMsg {
     ForwardToEmbedder(EmbedderMsg),
     /// Requests are sent to constellation and fetches are checked manually
     /// for cross-origin loads
-    InitiateNavigateRequest(RequestBuilder, /* cancellation_chan */ IpcReceiver<()>),
+    InitiateNavigateRequest(RequestBuilder, IpcSharedMemory),
     /// Broadcast a storage event to every same-origin pipeline.
     /// The strings are key, old value and new value.
     BroadcastStorageEvent(

@@ -106,7 +106,7 @@ impl FileManager {
     pub fn fetch_file(
         &self,
         done_sender: &Sender<Data>,
-        cancellation_listener: Arc<Mutex<CancellationListener>>,
+        cancellation_listener: CancellationListener,
         id: Uuid,
         check_url_validity: bool,
         origin: FileOrigin,
@@ -513,7 +513,7 @@ impl FileManagerStore {
     fn fetch_blob_buf(
         &self,
         done_sender: &Sender<Data>,
-        cancellation_listener: Arc<Mutex<CancellationListener>>,
+        cancellation_listener: CancellationListener,
         id: &Uuid,
         origin_in: &FileOrigin,
         range: RangeRequestBounds,
@@ -767,14 +767,14 @@ pub fn fetch_file_in_chunks(
     done_sender: Sender<Data>,
     mut reader: BufReader<File>,
     res_body: ServoArc<Mutex<ResponseBody>>,
-    cancellation_listener: Arc<Mutex<CancellationListener>>,
+    cancellation_listener: CancellationListener,
     range: RelativePos,
 ) {
     thread::Builder::new()
         .name("fetch file worker thread".to_string())
         .spawn(move || {
             loop {
-                if cancellation_listener.lock().unwrap().cancelled() {
+                if cancellation_listener.cancelled() {
                     *res_body.lock().unwrap() = ResponseBody::Done(vec![]);
                     let _ = done_sender.send(Data::Cancelled);
                     return;

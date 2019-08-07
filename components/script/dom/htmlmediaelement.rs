@@ -75,7 +75,9 @@ use media::{glplayer_channel, GLPlayerMsg, GLPlayerMsgForward};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageResponse;
 use net_traits::request::{CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode};
-use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, FetchResponseMsg};
+use net_traits::{
+    CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, FetchResponseMsg,
+};
 use net_traits::{Metadata, NetworkError, ResourceFetchTiming, ResourceTimingType};
 use script_layout_interface::HTMLMediaData;
 use servo_config::pref;
@@ -2404,16 +2406,16 @@ pub struct HTMLMediaElementFetchContext {
 }
 
 impl HTMLMediaElementFetchContext {
-    fn new() -> (HTMLMediaElementFetchContext, ipc::IpcReceiver<()>) {
+    fn new() -> (HTMLMediaElementFetchContext, ipc::IpcSharedMemory) {
         let mut fetch_canceller = FetchCanceller::new();
-        let cancel_receiver = fetch_canceller.initialize();
+        let shared_mem = fetch_canceller.initialize();
         (
             HTMLMediaElementFetchContext {
                 cancel_reason: None,
                 is_seekable: false,
-                fetch_canceller,
+                fetch_canceller: fetch_canceller,
             },
-            cancel_receiver,
+            shared_mem,
         )
     }
 

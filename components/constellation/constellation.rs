@@ -116,7 +116,7 @@ use embedder_traits::{Cursor, EmbedderMsg, EmbedderProxy, EventLoopWaker};
 use euclid::{default::Size2D as UntypedSize2D, Scale, Size2D};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
@@ -2200,7 +2200,7 @@ where
         &self,
         id: PipelineId,
         request_builder: RequestBuilder,
-        cancel_chan: IpcReceiver<()>,
+        cancel_chan: IpcSharedMemory,
     ) {
         let listener = NetworkListener::new(
             request_builder,

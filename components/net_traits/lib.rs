@@ -25,7 +25,7 @@ use http::{Error as HttpError, HeaderMap};
 use hyper::Error as HyperError;
 use hyper::StatusCode;
 use hyper_serde::Serde;
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
 use mime::Mime;
@@ -390,14 +390,8 @@ pub enum WebSocketNetworkEvent {
 #[derive(Debug, Deserialize, Serialize)]
 /// IPC channels to communicate with the script thread about network or DOM events.
 pub enum FetchChannels {
-    ResponseHandle(
-        IpcHandle<FetchResponseMsg>,
-        /* cancel_chan */ Option<IpcReceiver<()>>,
-    ),
-    ResponseMsg(
-        IpcSender<FetchResponseMsg>,
-        /* cancel_chan */ Option<IpcReceiver<()>>,
-    ),
+    ResponseHandle(IpcHandle<FetchResponseMsg>, Option<IpcSharedMemory>),
+    ResponseMsg(IpcSender<FetchResponseMsg>, Option<IpcSharedMemory>),
     WebSocket {
         event_sender: IpcHandle<WebSocketNetworkEvent>,
         action_receiver: IpcReceiver<WebSocketDomAction>,
@@ -414,7 +408,7 @@ pub enum CoreResourceMsg {
         RequestBuilder,
         ResponseInit,
         IpcSender<FetchResponseMsg>,
-        /* cancel_chan */ Option<IpcReceiver<()>>,
+        /* cancel_chan */ Option<IpcSharedMemory>,
     ),
     /// Store a cookie for a given originating URL
     SetCookieForUrl(ServoUrl, Serde<Cookie<'static>>, CookieSource),

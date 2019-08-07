@@ -235,7 +235,7 @@ impl XMLHttpRequest {
         task_source: NetworkingTaskSource,
         global: &GlobalScope,
         init: RequestBuilder,
-        cancellation_chan: ipc::IpcReceiver<()>,
+        cancellation_chan: ipc::IpcSharedMemory,
     ) {
         impl FetchResponseListener for XHRContext {
             fn process_request_body(&mut self) {

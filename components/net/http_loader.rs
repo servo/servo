@@ -1321,7 +1321,7 @@ fn http_network_fetch(
     let meta_status = meta.status;
     let meta_headers = meta.headers;
     let cancellation_listener = context.cancellation_listener.clone();
-    if cancellation_listener.lock().unwrap().cancelled() {
+    if cancellation_listener.cancelled() {
         return Response::network_error(NetworkError::Internal("Fetch aborted".into()));
     }
 
@@ -1354,7 +1354,7 @@ fn http_network_fetch(
         res.into_body()
             .map_err(|_| ())
             .fold(res_body, move |res_body, chunk| {
-                if cancellation_listener.lock().unwrap().cancelled() {
+                if cancellation_listener.cancelled() {
                     *res_body.lock().unwrap() = ResponseBody::Done(vec![]);
                     let _ = done_sender.send(Data::Cancelled);
                     return future::failed(());
