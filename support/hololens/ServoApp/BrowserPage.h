@@ -11,9 +11,6 @@
 
 namespace winrt::ServoApp::implementation {
 
-static char sWakeupEvent[] = "SIGNAL_WAKEUP";
-static char sShutdownEvent[] = "SIGNAL_SHUTDOWN";
-
 struct BrowserPage : BrowserPageT<BrowserPage>,
                       public servo::ServoDelegate {
 public:
@@ -66,21 +63,22 @@ private:
 
   void StartRenderLoop();
   void StopRenderLoop();
-  void Loop(Concurrency::cancellation_token);
-  bool IsLoopRunning();
+  void Loop();
 
-  Concurrency::cancellation_token_source mLoopCancel;
   std::unique_ptr<Concurrency::task<void>> mLoopTask;
   winrt::ServoApp::ImmersiveViewSource mImmersiveViewSource;
   EGLSurface mRenderSurface{EGL_NO_SURFACE};
   std::unique_ptr<servo::Servo> mServo;
 
   std::vector<std::function<void()>> mTasks;
-  std::mutex mTasksMutex;
+
+  CRITICAL_SECTION mGLLock;
+  CONDITION_VARIABLE mGLCondVar;
+
+  bool mAnimating = false;
+  bool mLooping = false;
 
   OpenGLES mOpenGLES; // FIXME: shared pointer
-
-  bool mAnimating;
 };
 } // namespace winrt::ServoApp::implementation
 

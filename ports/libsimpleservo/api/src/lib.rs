@@ -490,7 +490,8 @@ impl ServoGlue {
                             .host_callbacks
                             .on_allow_navigation(url.to_string());
                         let window_event = WindowEvent::AllowNavigationResponse(pipeline_id, data);
-                        let _ = self.process_event(window_event);
+                        self.events.push(window_event);
+                        let _ = self.perform_updates();
                     }
                 },
                 EmbedderMsg::HistoryChanged(entries, current) => {
