@@ -37,36 +37,46 @@ function compareSize(element, reference, epsilon) {
     }
 }
 
-function compareLayout(element, reference, epsilon) {
-    if (element.children.length != reference.children.length)
-        throw "Reference should have the same number of children."
+function participateToParentLayout(child) {
+    var style = window.getComputedStyle(child);
+    return style.getPropertyValue("display") !== "none" &&
+        style.getPropertyValue("position") !== "absolute" &&
+        style.getPropertyValue("position") !== "fixed";
+}
 
+function childrenParticipatingToLayout(element) {
+    var children = [];
+    Array.from(element.children).forEach(child => {
+        if (participateToParentLayout(child))
+            children.push(child);
+    })
+    return children;
+}
+
+function compareLayout(element, reference, epsilon) {
     // Compare sizes of elements and children.
     var param = getWritingMode(element, reference);
 
     compareSize(element, reference, epsilon);
     var elementBox = element.getBoundingClientRect();
     var referenceBox = reference.getBoundingClientRect();
-    for (var i = 0; i < element.children.length; i++) {
-        var childDisplay = window.
-            getComputedStyle(element.children[i]).getPropertyValue("display");
-        var referenceChildDisplay = window.
-            getComputedStyle(reference.children[i]).getPropertyValue("display");
-        if (referenceChildDisplay !== childDisplay)
-            throw "compareLayout: children of reference should have the same display values.";
-        if (childDisplay === "none")
-            continue;
 
-        compareSize(element.children[i], reference.children[i], epsilon);
+    var elementChildren = childrenParticipatingToLayout(element);
+    var referenceChildren = childrenParticipatingToLayout(reference);
+    if (elementChildren.length != referenceChildren.length)
+        throw "Reference should have the same number of children participating to layout."
 
-        var childBox = element.children[i].getBoundingClientRect();
-        var referenceChildBox = reference.children[i].getBoundingClientRect();
+    for (var i = 0; i < elementChildren.length; i++) {
+        compareSize(elementChildren[i], referenceChildren[i], epsilon);
+
+        var childBox = elementChildren[i].getBoundingClientRect();
+        var referenceChildBox = referenceChildren[i].getBoundingClientRect();
 
         switch(param.mode) {
         case "horizontal-tb":
-            if (!param.rtl)
-                throw "compareLayout: unexpected writing-mode value";
-            assert_approx_equals(elementBox.right - childBox.right,
+            assert_approx_equals(param.rtl ?
+                                 elementBox.right - childBox.right :
+                                 childBox.left - elementBox.left,
                                  referenceChildBox.left - referenceBox.left,
                                  epsilon,
                                  `inline position (child ${i})`);

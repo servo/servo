@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>This checks the effect on multiple animations on one target</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Tiny//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-tiny.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+
+<rect x='0' y='0' width='50' height='50' fill='green'>
+    <animate id="an1" attributeName='x' from='0' to='100' begin='0s' dur='2s' fill='freeze'/>
+    <animate id="an2" attributeName='x' from='150' to='250' begin='4s' dur='2s' fill='freeze'/>
+</rect>
+
+<rect x='0' y='100' width='50' height='50' fill='green'>
+    <animate id="an3" attributeName='x' from='0' to='100' begin='0s' dur='2s' fill='remove'/>
+    <animate id="an4" attributeName='x' from='150' to='250' begin='4s' dur='2s' fill='freeze'/>
+</rect>
+
+<rect x='0' y='200' width='50' height='50' fill='green'>
+    <animate id="an5" attributeName='x' from='0' to='100' begin='0s' dur='2s' fill='freeze'/>
+    <animate id="an6" attributeName='x' from='150' to='250' begin='4s' dur='2s' fill='remove'/>
+</rect>
+
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup animation test
+function sample1() {
+    assert_approx_equals(rect1.x.animVal.value, 0, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 0, epsilon);
+    assert_equals(rect2.x.baseVal.value, 0);
+
+    assert_approx_equals(rect3.x.animVal.value, 0, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+}
+
+function sample2() {
+    assert_approx_equals(rect1.x.animVal.value, 50, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 50, epsilon);
+    assert_equals(rect2.x.baseVal.value, 0);
+
+    assert_approx_equals(rect3.x.animVal.value, 50, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+}
+
+function sample3() {
+    assert_approx_equals(rect1.x.animVal.value, 100, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 100, epsilon);
+    assert_equals(rect2.x.baseVal.value, 0);
+
+    assert_approx_equals(rect3.x.animVal.value, 100, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+}
+
+function sample4() {
+    assert_approx_equals(rect1.x.animVal.value, 100, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 0, epsilon);
+    assert_equals(rect2.x.baseVal.value, 0);
+
+    assert_approx_equals(rect3.x.animVal.value, 100, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+}
+
+function sample5() {
+    assert_approx_equals(rect1.x.animVal.value, 150, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 150, epsilon);
+    assert_equals(rect2.x.baseVal.value, 0);
+
+    assert_approx_equals(rect3.x.animVal.value, 150, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+}
+
+function sample6() {
+    assert_approx_equals(rect1.x.animVal.value, 200, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 200, epsilon);
+    assert_equals(rect2.x.baseVal.value, 0);
+
+    assert_approx_equals(rect3.x.animVal.value, 200, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+}
+
+function sample7() {
+    assert_approx_equals(rect1.x.animVal.value, 250, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 250, epsilon);
+    assert_equals(rect2.x.baseVal.value, 0);
+
+    assert_approx_equals(rect3.x.animVal.value, 250, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+}
+
+function sample8() {
+    assert_equals(rect1.x.animVal.value, 250);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_equals(rect2.x.animVal.value, 250);
+    assert_equals(rect2.x.baseVal.value, 0);
+
+    assert_equals(rect3.x.animVal.value, 100);
+    assert_equals(rect3.x.baseVal.value, 0);
+}
+
+smil_async_test((t) => {
+    var rects = rootSVGElement.ownerDocument.getElementsByTagName("rect");
+    rect1 = rects[0];
+    rect2 = rects[1];
+    rect3 = rects[2];
+
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["an1", 0.0,   sample1],
+        ["an1", 1.0,   sample2],
+        ["an1", 1.999, sample3],
+        ["an1", 2.001, sample4],
+        ["an1", 3.0,   sample4],
+        ["an1", 3.999, sample4],
+        ["an1", 4.0,   sample5],
+        ["an1", 5.0,   sample6],
+        ["an1", 5.999, sample7],
+        ["an1", 6.001, sample8],
+        ["an1", 60.0,  sample8]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+window.animationStartsImmediately = true;
+
+</script>
