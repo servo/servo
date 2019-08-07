@@ -305,8 +305,7 @@ impl Parse for TrackList<LengthPercentage, Integer> {
 #[cfg(feature = "gecko")]
 #[inline]
 fn allow_grid_template_subgrids() -> bool {
-    use crate::gecko_bindings::structs::mozilla;
-    unsafe { mozilla::StaticPrefs::sVarCache_layout_css_grid_template_subgrid_value_enabled }
+    static_prefs::pref!("layout.css.grid-template-subgrid-value.enabled")
 }
 
 #[cfg(feature = "servo")]

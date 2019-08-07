@@ -268,8 +268,7 @@ impl Device {
         if doc.mIsBeingUsedAsImage() {
             return true;
         }
-        let document_color_use =
-            unsafe { structs::StaticPrefs::sVarCache_browser_display_document_color_use };
+        let document_color_use = static_prefs::pref!("browser.display.document_color_use");
         let prefs = self.pref_sheet_prefs();
         match document_color_use {
             1 => true,

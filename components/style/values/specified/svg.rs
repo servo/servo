@@ -32,8 +32,7 @@ pub type SVGStrokeDashArray = generic::SVGStrokeDashArray<NonNegativeLengthPerce
 /// Whether the `context-value` value is enabled.
 #[cfg(feature = "gecko")]
 pub fn is_context_value_enabled() -> bool {
-    use crate::gecko_bindings::structs::mozilla;
-    unsafe { mozilla::StaticPrefs::sVarCache_gfx_font_rendering_opentype_svg_enabled }
+    static_prefs::pref!("gfx.font_rendering.opentype_svg.enabled")
 }
 
 /// Whether the `context-value` value is enabled.

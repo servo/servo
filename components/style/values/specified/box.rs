@@ -23,18 +23,14 @@ use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
 #[cfg(feature = "gecko")]
 fn moz_display_values_enabled(context: &ParserContext) -> bool {
-    use crate::gecko_bindings::structs;
     context.in_ua_or_chrome_sheet() ||
-        unsafe { structs::StaticPrefs::sVarCache_layout_css_xul_display_values_content_enabled }
+        static_prefs::pref!("layout.css.xul-display-values.content.enabled")
 }
 
 #[cfg(feature = "gecko")]
 fn moz_box_display_values_enabled(context: &ParserContext) -> bool {
-    use crate::gecko_bindings::structs;
     context.in_ua_or_chrome_sheet() ||
-        unsafe {
-            structs::StaticPrefs::sVarCache_layout_css_xul_box_display_values_content_enabled
-        }
+        static_prefs::pref!("layout.css.xul-box-display-values.content.enabled")
 }
 
 #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]

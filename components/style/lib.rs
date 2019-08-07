@@ -91,6 +91,7 @@ extern crate servo_config;
 extern crate servo_url;
 extern crate smallbitvec;
 extern crate smallvec;
+extern crate static_prefs;
 #[cfg(feature = "servo")]
 extern crate string_cache;
 #[macro_use]
