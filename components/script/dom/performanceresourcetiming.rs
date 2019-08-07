@@ -129,8 +129,7 @@ impl PerformanceResourceTiming {
             domain_lookup_end: 0.,
             connect_start: resource_timing.connect_start as f64,
             connect_end: resource_timing.connect_end as f64,
-            // TODO (#21271)
-            secure_connection_start: 0.,
+            secure_connection_start: resource_timing.secure_connection_start as f64,
             request_start: resource_timing.request_start as f64,
             response_start: resource_timing.response_start as f64,
             response_end: resource_timing.response_end as f64,
