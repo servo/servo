@@ -876,6 +876,8 @@ def magicleap_build_task(name, build_type):
         .with_early_script("""
             export MAGICLEAP_SDK="$PWD/magicleap/v0.20.0+ndk19c"
             export MLCERT="$PWD/magicleap/TempSharedCert.cert"
+            # gstreamer requires the homebrew bison rather than the system bison
+            export PATH="/usr/local/opt/bison/bin:$PATH"
         """)
         .with_script("""
             unset OPENSSL_INCLUDE_DIR

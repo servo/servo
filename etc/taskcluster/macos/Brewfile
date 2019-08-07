@@ -1,5 +1,6 @@
 brew "autoconf@2.13"
 brew "automake"
+brew "bison"
 brew "cmake"
 brew "openssl"
 brew "pkg-config"
