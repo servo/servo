@@ -35,8 +35,8 @@ mathfont.save(f)
 
 v1 = 6 * mathfont.em
 v2 = 1 * mathfont.em
-f = mathfont.create("fraction-denominatordisplaystyleshiftdown%d-rulethickness%d" % (v1, v2))
-f.math.AxisHeight = 0
+f = mathfont.create("fraction-denominatordisplaystyleshiftdown%d-axisheight%d-rulethickness%d" % (v1, v2, v2))
+f.math.AxisHeight = v2
 f.math.FractionDenominatorDisplayStyleGapMin = 0
 f.math.FractionDenominatorDisplayStyleShiftDown = v1
 f.math.FractionDenominatorGapMin = 0
@@ -65,8 +65,8 @@ mathfont.save(f)
 
 v1 = 3 * mathfont.em
 v2 = 1 * mathfont.em
-f = mathfont.create("fraction-denominatorshiftdown%d-rulethickness%d" % (v1, v2))
-f.math.AxisHeight = 0
+f = mathfont.create("fraction-denominatorshiftdown%d-axisheight%d-rulethickness%d" % (v1, v2, v2))
+f.math.AxisHeight = v2
 f.math.FractionDenominatorDisplayStyleGapMin = 0
 f.math.FractionDenominatorDisplayStyleShiftDown = 0
 f.math.FractionDenominatorGapMin = 0
@@ -95,8 +95,8 @@ mathfont.save(f)
 
 v1 = 2 * mathfont.em
 v2 = 1 * mathfont.em
-f = mathfont.create("fraction-numeratordisplaystyleshiftup%d-rulethickness%d" % (v1, v2))
-f.math.AxisHeight = 0
+f = mathfont.create("fraction-numeratordisplaystyleshiftup%d-axisheight%d-rulethickness%d" % (v1, v2, v2))
+f.math.AxisHeight = v2
 f.math.FractionDenominatorDisplayStyleGapMin = 0
 f.math.FractionDenominatorDisplayStyleShiftDown = 0
 f.math.FractionDenominatorGapMin = 0
@@ -125,8 +125,8 @@ mathfont.save(f)
 
 v1 = 11 * mathfont.em
 v2 = 1 * mathfont.em
-f = mathfont.create("fraction-numeratorshiftup%d-rulethickness%d" % (v1, v2))
-f.math.AxisHeight = 0
+f = mathfont.create("fraction-numeratorshiftup%d-axisheight%d-rulethickness%d" % (v1, v2, v2))
+f.math.AxisHeight = v2
 f.math.FractionDenominatorDisplayStyleGapMin = 0
 f.math.FractionDenominatorDisplayStyleShiftDown = 0
 f.math.FractionDenominatorGapMin = 0

@@ -89,6 +89,11 @@ After your `hosts` file is configured, the servers will be locally accessible at
 http://web-platform.test:8000/<br>
 https://web-platform.test:8443/ *
 
+To use the web-based runner point your browser to:
+
+http://web-platform.test:8000/tools/runner/index.html <br>
+https://web-platform.test:8443/tools/runner/index.html *
+
 \**See [Trusting Root CA](#trusting-root-ca)*
 
 Running Tests Automatically

@@ -38,15 +38,23 @@
         </style>
         <script>
             var expectedPointerId = NaN;
-            var startSummation = false;
-            var lastScreenX = 0;
-            var lastScreenY = 0;
+            var lastScreenX = null;
+            var lastScreenY = null;
 
             function resetTestState() {
-                startSummation = false;
-                lastScreenX = 0;
-                lastScreenY = 0;
+                lastScreenX = null;
+                lastScreenY = null;
             }
+
+            var nonPointermoveEventList = [
+                  "pointerover",
+                  "pointerenter",
+                  "pointerdown",
+                  "pointerup",
+                  "pointerout",
+                  "pointerleave",
+                  "gotpointercapture",
+                  "lostpointercapture"];
 
             function injectInput(pointerType) {
                 var pointerId = pointerType + "Pointer1";
@@ -55,7 +63,9 @@
                                      .pointerMove(0, 0, {origin: box1})
                                      .pointerDown()
                                      .pointerMove(20, 30, {origin: box1})
-                                     .pointerMove(60, 40, {origin: box1})
+                                     .pointerMove(50, 40, {origin: box1})
+                                     .pointerMove(80, 30, {origin: box1})
+                                     .pointerMove(110, 20, {origin: box1})
                                      .pointerMove(0, 0, {origin: box2})
                                      .pointerUp()
                                      .send();
@@ -65,15 +75,31 @@
                 var test_pointerEvent = setup_pointerevent_test("pointerevent attributes", ALL_POINTERS);
 
                 [document, document.getElementById('innerFrame').contentDocument].forEach(function(element) {
+                  nonPointermoveEventList.forEach(function(eventName) {
+                    on_event(element, eventName, function (event) {
+                      if (lastScreenX && lastScreenY) {
+                        test_pointerEvent.step(function() {
+                          assert_equals(event.movementX, 0, "movementX should be 0 for event other than pointermove.");
+                          assert_equals(event.movementY, 0, "movementY should be 0 for event other than pointermove.");
+                        });
+                        // Reset when entering the new frame.
+                        if (event.type == "pointerenter") {
+                          lastScreenX = null;
+                          lastScreenY = null;
+                        }
+                      }
+                    });
+                  });
+
                   on_event(element, 'pointermove', function (event) {
-                    if (startSummation) {
-                      test_pointerEvent.step(function() {
+                    test_pointerEvent.step(function() {
+                      if (lastScreenX && lastScreenY) {
                         assert_equals(event.movementX, event.screenX - lastScreenX, "movementX should be the delta between current event's and last event's screenX");
                         assert_equals(event.movementY, event.screenY - lastScreenY, "movementY should be the delta between current event's and last event's screenY");
-                      });
-                      lastScreenX = event.screenX;
-                      lastScreenY = event.screenY;
-                    }
+                      }
+                    });
+                    lastScreenX = event.screenX;
+                    lastScreenY = event.screenY;
                   });
                 });
                 on_event(document.querySelector('#box1'), 'pointerdown', function(event) {
@@ -81,12 +107,10 @@
                   test_pointerEvent.step(function() {
                       assert_equals(event.pointerType, expectedPointerType, "Use the instructed pointer type.");
                   });
-                  startSummation = true;
                   lastScreenX = event.screenX;
                   lastScreenY = event.screenY;
                 });
                 on_event(document.querySelector('#box2'), 'pointerup', function(event) {
-                  startSummation = false;
                   test_pointerEvent.done();
                 });
 

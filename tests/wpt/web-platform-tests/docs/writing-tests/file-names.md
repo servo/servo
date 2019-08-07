@@ -58,6 +58,8 @@ themselves precede any test type flag, but are otherwise unordered.
    context why the test is tentative and what needs to be resolved to make it
    non-tentative.
 
+It's preferable that `.window`, `.worker`, and `.any` are immediately followed
+by their final `.js` extension.
 
 [server-side substitution]: https://wptserve.readthedocs.io/en/latest/pipes.html#sub
 [RFC 2119]: https://tools.ietf.org/html/rfc2119

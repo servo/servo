@@ -149,22 +149,20 @@
           buffer.copyFromChannel(x, 3);
         }, '7: buffer.copyFromChannel(x, 3)').throw(DOMException, 'IndexSizeError');
 
-        if (window.SharedArrayBuffer) {
-          let shared_buffer = new Float32Array(new SharedArrayBuffer(32));
-          should(
-              () => {
-                buffer.copyFromChannel(shared_buffer, 0);
-              },
-              '8: buffer.copyFromChannel(SharedArrayBuffer view, 0)')
-              .throw(TypeError);
+        let shared_buffer = new Float32Array(new SharedArrayBuffer(32));
+        should(
+            () => {
+              buffer.copyFromChannel(shared_buffer, 0);
+            },
+            '8: buffer.copyFromChannel(SharedArrayBuffer view, 0)')
+            .throw(TypeError);
 
-          should(
-              () => {
-                buffer.copyFromChannel(shared_buffer, 0, 0);
-              },
-              '9: buffer.copyFromChannel(SharedArrayBuffer view, 0, 0)')
-              .throw(TypeError);
-        }
+        should(
+            () => {
+              buffer.copyFromChannel(shared_buffer, 0, 0);
+            },
+            '9: buffer.copyFromChannel(SharedArrayBuffer view, 0, 0)')
+            .throw(TypeError);
 
         task.done();
       });
@@ -204,22 +202,20 @@
           buffer.copyToChannel(x, 3);
         }, '6: buffer.copyToChannel(x, 3)').throw(DOMException, 'IndexSizeError');
 
-        if (window.SharedArrayBuffer) {
-          let shared_buffer = new Float32Array(new SharedArrayBuffer(32));
-          should(
-              () => {
-                buffer.copyToChannel(shared_buffer, 0);
-              },
-              '7: buffer.copyToChannel(SharedArrayBuffer view, 0)')
-              .throw(TypeError);
+        let shared_buffer = new Float32Array(new SharedArrayBuffer(32));
+        should(
+            () => {
+              buffer.copyToChannel(shared_buffer, 0);
+            },
+            '7: buffer.copyToChannel(SharedArrayBuffer view, 0)')
+            .throw(TypeError);
 
-          should(
-              () => {
-                buffer.copyToChannel(shared_buffer, 0, 0);
-              },
-              '8: buffer.copyToChannel(SharedArrayBuffer view, 0, 0)')
-              .throw(TypeError);
-        }
+        should(
+            () => {
+              buffer.copyToChannel(shared_buffer, 0, 0);
+            },
+            '8: buffer.copyToChannel(SharedArrayBuffer view, 0, 0)')
+            .throw(TypeError);
 
         task.done();
       });

@@ -138,17 +138,25 @@ var FragmentHelper = {
         return fragment.getElementsByClassName('element')[0];
     },
 
-    forceNonEmptyElement: function(fragment) {
+    appendChild: function(fragment, allowInvalid) {
         var element = this.element(fragment) || fragment;
-        if (element.firstElementChild)
-            return element.firstElementChild;
-        if (element.classList.contains("mathml-container"))
-            return element.appendChild(this.createElement("mrow"));
         if (element.classList.contains("foreign-container")) {
             var el = document.createElement("span");
             el.textContent = "a";
             return element.appendChild(el);
         }
-        throw "Cannot make the element nonempty";
+        if (element.classList.contains("mathml-container") || allowInvalid) {
+            var el = this.createElement("mi");
+            el.textContent = "a";
+            return element.appendChild(el);
+        }
+        throw "Cannot append child to the element";
+    },
+
+    forceNonEmptyElement: function(fragment) {
+        var element = this.element(fragment) || fragment;
+        if (element.firstElementChild)
+            return element.firstElementChild;
+        return this.appendChild(fragment);
     }
 }
