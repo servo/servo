@@ -317,7 +317,7 @@ pub enum Color {
     #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::Color),
     #[cfg(feature = "canvas2d-raqote")]
-    Raqote(()),
+    Raqote(raqote::SolidSource),
 }
 
 #[derive(Clone)]

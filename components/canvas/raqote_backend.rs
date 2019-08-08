@@ -20,8 +20,8 @@ impl Backend for RaqoteBackend {
         unimplemented!()
     }
 
-    fn need_to_draw_shadow(&self, _color: &Color) -> bool {
-        unimplemented!()
+    fn need_to_draw_shadow(&self, color: &Color) -> bool {
+        color.as_raqote().a != 0
     }
 
     fn size_from_pattern(&self, _rect: &Rect<f32>, _pattern: &Pattern) -> Option<Size2D<f32>> {
@@ -84,7 +84,7 @@ impl<'a> CanvasPaintState<'a> {
             shadow_offset_x: 0.0,
             shadow_offset_y: 0.0,
             shadow_blur: 0.0,
-            shadow_color: Color::Raqote(()),
+            shadow_color: Color::Raqote(raqote::SolidSource { r: 0, g: 0, b: 0, a: 0 }),
         }
     }
 }
@@ -447,6 +447,14 @@ impl<'a> ToRaqoteSource<'a> for FillOrStrokeStyle {
             LinearGradient(_) => unimplemented!(),
             RadialGradient(_) => unimplemented!(),
             Surface(_) => unimplemented!(),
+        }
+    }
+}
+
+impl Color {
+    fn as_raqote(&self) -> &raqote::SolidSource {
+        match self {
+            Color::Raqote(s) => s,
         }
     }
 }
