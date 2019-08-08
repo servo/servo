@@ -5,7 +5,6 @@
 #include <Servo2D.h>
 #include <ml_lifecycle.h>
 #include <ml_logging.h>
-#include <gst/gst.h>
 
 int main(int argc, char **argv)
 {
