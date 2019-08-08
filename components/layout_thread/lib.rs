@@ -1095,8 +1095,17 @@ impl LayoutThread {
         time_profiler_chan: profile_time::ProfilerChan,
         layout_context: &LayoutContext,
     ) {
-        let _scope = layout_debug_scope!("solve_constraints");
-        sequential::reflow(layout_root, layout_context, RelayoutMode::Incremental);
+        let _scope = layout_debug_scope!("solve_constraints_parallel");
+
+        // NOTE: this currently computes borders, so any pruning should separate that
+        // operation out.
+        parallel::reflow(
+            layout_root,
+            profiler_metadata,
+            time_profiler_chan,
+            layout_context,
+            traversal,
+        );
     }
 
     /// Computes the stacking-relative positions of all flows and, if the painting is dirty and the
