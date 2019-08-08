@@ -591,7 +591,7 @@ impl LayoutThread {
             first_reflow: Cell::new(true),
             font_cache_receiver: font_cache_receiver,
             font_cache_sender: ipc_font_cache_sender,
-            parallel_flag: true,
+            parallel_flag: false,
             generation: Cell::new(0),
             new_animations_sender: new_animations_sender,
             new_animations_receiver: new_animations_receiver,
@@ -1290,7 +1290,7 @@ impl LayoutThread {
 
         // Parallelize if there's more than 750 objects based on rzambre's suggestion
         // https://github.com/servo/servo/issues/10110
-        self.parallel_flag = data.dom_count > 750;
+        //self.parallel_flag = data.dom_count > 750;
         debug!("layout: received layout request for: {}", self.url);
         debug!("Number of objects in DOM: {}", data.dom_count);
         debug!("layout: parallel? {}", self.parallel_flag);
@@ -1517,6 +1517,8 @@ impl LayoutThread {
         } else {
             (None, 1)
         };
+
+        println!("Layout threadpool {:?}", thread_pool);
 
         let traversal = RecalcStyleAndConstructFlows::new(layout_context);
         let token = {
@@ -1876,6 +1878,8 @@ impl LayoutThread {
                     } else {
                         None
                     };
+
+                    println!("Layout threadpool {:?}", thread_pool);
 
                     if let Some(pool) = thread_pool {
                         // Parallel mode.
