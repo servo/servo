@@ -305,7 +305,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         unimplemented!();
     }
     fn get_size(&self) -> Size2D<i32> {
-        unimplemented!();
+        Size2D::new(self.width(), self.height())
     }
     fn get_transform(&self) -> Transform2D<f32> {
         *self.get_transform()
