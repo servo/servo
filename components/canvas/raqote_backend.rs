@@ -373,8 +373,15 @@ impl GenericDrawTarget for raqote::DrawTarget {
             )
         })
     }
+    #[allow(unsafe_code)]
     fn snapshot_data_owned(&self) -> Vec<u8> {
-        unimplemented!();
+        let v = self.get_data();
+        unsafe {
+            std::slice::from_raw_parts(
+                v.as_ptr() as *const u8,
+                v.len() * std::mem::size_of::<u32>(),
+            ).into()
+        }
     }
 }
 
