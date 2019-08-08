@@ -232,7 +232,7 @@ class PackageCommands(CommandBase):
                 raise Exception("Magic Leap builds need the MLCERT environment variable")
             # GStreamer configuration
             env.setdefault("GSTREAMER_DIR", path.join(
-                self.get_target_dir(), "magicleap", target, "native", "gstreamer"
+                self.get_target_dir(), "magicleap", target, "native", "gstreamer-1.16.0"
             ))
 
             mabu = path.join(env.get("MAGICLEAP_SDK"), "mabu")
