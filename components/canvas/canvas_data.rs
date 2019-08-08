@@ -214,7 +214,7 @@ impl<'a> PathBuilderRef<'a> {
 // This defines required methods for DrawTarget of azure and raqote
 // The prototypes are derived from azure's methods.
 pub trait GenericDrawTarget {
-    fn clear_rect(&self, rect: &Rect<f32>);
+    fn clear_rect(&mut self, rect: &Rect<f32>);
     fn copy_surface(
         &mut self,
         surface: SourceSurface,
@@ -527,7 +527,7 @@ impl<'a> CanvasData<'a> {
         }
     }
 
-    pub fn clear_rect(&self, rect: &Rect<f32>) {
+    pub fn clear_rect(&mut self, rect: &Rect<f32>) {
         self.drawtarget.clear_rect(rect);
     }
 
