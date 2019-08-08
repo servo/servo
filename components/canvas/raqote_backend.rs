@@ -26,15 +26,11 @@ impl Backend for RaqoteBackend {
 
     fn size_from_pattern(&self, rect: &Rect<f32>, pattern: &Pattern) -> Option<Size2D<f32>> {
         match pattern {
-            Pattern::Raqote(raqote::Source::Image(image, extend, ..)) => {
-                match extend {
-                    raqote::ExtendMode::Repeat => {
-                        Some(rect.size)
-                    },
-                    _ => Some(Size2D::new(image.width as f32, image.height as f32))
-                }
+            Pattern::Raqote(raqote::Source::Image(image, extend, ..)) => match extend {
+                raqote::ExtendMode::Repeat => Some(rect.size),
+                _ => Some(Size2D::new(image.width as f32, image.height as f32)),
             },
-            _ => None
+            _ => None,
         }
     }
 
@@ -84,7 +80,12 @@ impl Backend for RaqoteBackend {
 
 impl<'a> CanvasPaintState<'a> {
     pub fn new(_antialias: AntialiasMode) -> CanvasPaintState<'a> {
-        let solid_src = raqote::SolidSource { r: 0, g: 0, b: 0, a: 255 };
+        let solid_src = raqote::SolidSource {
+            r: 0,
+            g: 0,
+            b: 0,
+            a: 255,
+        };
         CanvasPaintState {
             draw_options: DrawOptions::Raqote(raqote::DrawOptions::new()),
             fill_style: Pattern::Raqote(raqote::Source::Solid(solid_src)),
@@ -94,7 +95,12 @@ impl<'a> CanvasPaintState<'a> {
             shadow_offset_x: 0.0,
             shadow_offset_y: 0.0,
             shadow_blur: 0.0,
-            shadow_color: Color::Raqote(raqote::SolidSource { r: 0, g: 0, b: 0, a: 0 }),
+            shadow_color: Color::Raqote(raqote::SolidSource {
+                r: 0,
+                g: 0,
+                b: 0,
+                a: 0,
+            }),
         }
     }
 }
@@ -106,10 +112,10 @@ impl Pattern<'_> {
                 use raqote::Source::*;
 
                 match p {
-                    LinearGradient(g, ..) | RadialGradient(g, ..) | TwoCircleRadialGradient(g, ..) => {
-                        g.stops.is_empty()
-                    },
-                    _ => false
+                    LinearGradient(g, ..) |
+                    RadialGradient(g, ..) |
+                    TwoCircleRadialGradient(g, ..) => g.stops.is_empty(),
+                    _ => false,
                 }
             },
         }
@@ -244,7 +250,11 @@ impl GenericDrawTarget for raqote::DrawTarget {
         unimplemented!();
     }
     fn fill(&mut self, path: &Path, pattern: Pattern, draw_options: &DrawOptions) {
-        self.fill(path.as_raqote(), pattern.as_raqote(), draw_options.as_raqote());
+        self.fill(
+            path.as_raqote(),
+            pattern.as_raqote(),
+            draw_options.as_raqote(),
+        );
     }
     fn fill_rect(
         &mut self,
@@ -299,7 +309,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
             pattern.as_raqote(),
             stroke_options.as_raqote(),
             draw_options.as_raqote(),
-            );
+        );
     }
     fn stroke_line(
         &mut self,
@@ -352,7 +362,10 @@ impl GenericPathBuilder for PathBuilder {
         end_angle: f32,
         _anticlockwise: bool,
     ) {
-        self.0.as_mut().unwrap().arc(origin.x, origin.y, radius, start_angle, end_angle);
+        self.0
+            .as_mut()
+            .unwrap()
+            .arc(origin.x, origin.y, radius, start_angle, end_angle);
     }
     fn bezier_curve_to(
         &mut self,
@@ -394,7 +407,12 @@ impl GenericPathBuilder for PathBuilder {
         self.0.as_mut().unwrap().move_to(point.x, point.y);
     }
     fn quadratic_curve_to(&mut self, control_point: &Point2D<f32>, end_point: &Point2D<f32>) {
-        self.0.as_mut().unwrap().quad_to(control_point.x, control_point.y, end_point.x, end_point.y);
+        self.0.as_mut().unwrap().quad_to(
+            control_point.x,
+            control_point.y,
+            end_point.x,
+            end_point.y,
+        );
     }
     fn finish(&mut self) -> Path {
         Path::Raqote(self.0.take().unwrap().finish())
