@@ -191,7 +191,7 @@ impl GlobalScope {
     ) -> Self {
         let ipc_router = SharedIpcRouter::new();
         if ipc_router.requires_setup_for_resource_manager() {
-            let _ = resource_threads.sender().send(CoreResourceMsg::NewRouter(
+            let _ = resource_threads.sender().send(CoreResourceMsg::NewDispatcher(
                 ipc_router.router_id.clone(),
                 ipc_router.ipc_sender.clone(),
             ));

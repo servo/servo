@@ -401,7 +401,7 @@ pub enum FetchChannels {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum CoreResourceMsg {
     /// Register a new shared-ipc-router.
-    NewRouter(IpcRouterId, IpcSender<IpcCallbackMsg>),
+    NewDispatcher(IpcRouterId, IpcSender<IpcCallbackMsg>),
     Fetch(RequestBuilder, FetchChannels),
     /// Initiate a fetch in response to processing a redirection
     FetchRedirect(

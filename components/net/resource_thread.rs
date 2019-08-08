@@ -102,7 +102,7 @@ pub fn new_core_resource_thread(
                 resource_manager,
                 config_dir,
                 certificate_path,
-                routers: HashMap::new(),
+                dispatchers: HashMap::new(),
             };
 
             mem_profiler_chan.run_with_memory_reporting(
@@ -120,7 +120,7 @@ struct ResourceChannelManager {
     resource_manager: CoreResourceManager,
     config_dir: Option<PathBuf>,
     certificate_path: Option<String>,
-    routers: HashMap<IpcRouterId, IpcSender<IpcCallbackMsg>>,
+    dispatchers: HashMap<IpcRouterId, IpcSender<IpcCallbackMsg>>,
 }
 
 fn create_http_states(
@@ -235,8 +235,8 @@ impl ResourceChannelManager {
     /// Returns false if the thread should exit.
     fn process_msg(&mut self, msg: CoreResourceMsg, http_state: &Arc<HttpState>) -> bool {
         match msg {
-            CoreResourceMsg::NewRouter(router_id, sender) => {
-                self.routers.insert(router_id, sender);
+            CoreResourceMsg::NewDispatcher(router_id, sender) => {
+                self.dispatchers.insert(router_id, sender);
             },
             CoreResourceMsg::Fetch(req_init, channels) => match channels {
                 FetchChannels::ResponseMsg(sender, cancel_chan) => {
@@ -245,7 +245,7 @@ impl ResourceChannelManager {
                 },
                 FetchChannels::ResponseHandle(mut handle, cancel_chan) => {
                     let sender = self
-                        .routers
+                        .dispatchers
                         .get_mut(&handle.router_id)
                         .expect("Resource manager to have a router sender");
                     handle.set_sender(sender.clone());
@@ -262,7 +262,7 @@ impl ResourceChannelManager {
                     action_receiver,
                 } => {
                     let sender = self
-                        .routers
+                        .dispatchers
                         .get_mut(&event_sender.router_id)
                         .expect("Resource manager to have a router sender");
                     event_sender.set_sender(sender.clone());

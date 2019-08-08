@@ -106,7 +106,7 @@ impl FontTemplates {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Command {
     /// Register a new shared-ipc-router.
-    NewRouter(IpcRouterId, IpcSender<IpcCallbackMsg>),
+    NewDispatcher(IpcRouterId, IpcSender<IpcCallbackMsg>),
     GetFontTemplate(
         FontTemplateDescriptor,
         FontFamilyDescriptor,
@@ -133,7 +133,7 @@ pub enum Reply {
 /// font templates that are currently in use.
 struct FontCache {
     ipc_router: SharedIpcRouter,
-    routers: HashMap<IpcRouterId, IpcSender<IpcCallbackMsg>>,
+    dispatchers: HashMap<IpcRouterId, IpcSender<IpcCallbackMsg>>,
     port: IpcReceiver<Command>,
     channel_to_self: IpcSender<Command>,
     generic_fonts: HashMap<FontFamilyName, LowercaseString>,
@@ -179,12 +179,12 @@ impl FontCache {
             let msg = self.port.recv().unwrap();
 
             match msg {
-                Command::NewRouter(router_id, sender) => {
-                    self.routers.insert(router_id, sender);
+                Command::NewDispatcher(router_id, sender) => {
+                    self.dispatchers.insert(router_id, sender);
                 },
                 Command::GetFontTemplate(template_descriptor, family_descriptor, mut handle) => {
                     let sender = self
-                        .routers
+                        .dispatchers
                         .get_mut(&handle.router_id)
                         .expect("Resource manager to have a router sender");
                     handle.set_sender(sender.clone());
@@ -195,7 +195,7 @@ impl FontCache {
                 },
                 Command::GetFontInstance(font_key, size, mut handle) => {
                     let sender = self
-                        .routers
+                        .dispatchers
                         .get_mut(&handle.router_id)
                         .expect("Resource manager to have a router sender");
                     handle.set_sender(sender.clone());
@@ -485,7 +485,7 @@ impl FontCacheThread {
 
                 let ipc_router = SharedIpcRouter::new();
                 if ipc_router.requires_setup_for_resource_manager() {
-                    let _ = core_resource_thread.send(CoreResourceMsg::NewRouter(
+                    let _ = core_resource_thread.send(CoreResourceMsg::NewDispatcher(
                         ipc_router.router_id.clone(),
                         ipc_router.ipc_sender.clone(),
                     ));
@@ -493,7 +493,7 @@ impl FontCacheThread {
 
                 let mut cache = FontCache {
                     ipc_router,
-                    routers: HashMap::new(),
+                    dispatchers: HashMap::new(),
                     port: port,
                     channel_to_self,
                     generic_fonts,
@@ -541,8 +541,8 @@ impl FontCacheThread {
 
     pub fn initialize_router(&mut self, router: &SharedIpcRouter) {
         if router.requires_setup_for_font_cache() {
-            println!("Sending Command::NewRouter {:?}", router.router_id);
-            let _ = self.chan.send(Command::NewRouter(
+            println!("Sending Command::NewDispatcher {:?}", router.router_id);
+            let _ = self.chan.send(Command::NewDispatcher(
                 router.router_id.clone(),
                 router.ipc_sender.clone(),
             ));
