@@ -238,11 +238,23 @@ impl GenericDrawTarget for raqote::DrawTarget {
     }
     fn fill_rect(
         &mut self,
-        _rect: &Rect<f32>,
-        _pattern: Pattern,
+        rect: &Rect<f32>,
+        pattern: Pattern,
         _draw_options: Option<&DrawOptions>,
     ) {
-        unimplemented!();
+        let mut pb = raqote::PathBuilder::new();
+        pb.rect(
+            rect.origin.x,
+            rect.origin.y,
+            rect.size.width,
+            rect.size.height,
+        );
+        raqote::DrawTarget::fill(
+            self,
+            &pb.finish(),
+            pattern.as_raqote(),
+            &raqote::DrawOptions::new(),
+        );
     }
     fn get_format(&self) -> SurfaceFormat {
         unimplemented!();
