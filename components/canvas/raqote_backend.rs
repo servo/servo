@@ -349,11 +349,17 @@ impl GenericDrawTarget for raqote::DrawTarget {
         let mut pb = raqote::PathBuilder::new();
         pb.move_to(start.x, start.y);
         pb.line_to(end.x, end.y);
+        let mut stroke_options = stroke_options.as_raqote().clone();
+        let cap = match stroke_options.join {
+            raqote::LineJoin::Round => raqote::LineCap::Round,
+            _ => raqote::LineCap::Butt,
+        };
+        stroke_options.cap = cap;
 
         self.stroke(
             &pb.finish(),
             pattern.as_raqote(),
-            stroke_options.as_raqote(),
+            &stroke_options,
             draw_options.as_raqote());
     }
     fn stroke_rect(
