@@ -232,9 +232,7 @@ unsafe extern "C" fn write_transfer_callback(
 
         *tag = StructuredCloneTags::MessagePort as u32;
         *ownership = TransferableOwnership::SCTAG_TMO_CUSTOM;
-        if port.transfer(closure, content, extra_data) {
-            return true;
-        }
+        return port.transfer(closure, content, extra_data);
     }
     false
 }
