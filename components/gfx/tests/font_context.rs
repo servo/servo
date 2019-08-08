@@ -9,8 +9,10 @@ use gfx::font::{
 use gfx::font_cache_thread::{FontTemplateInfo, FontTemplates};
 use gfx::font_context::{FontContext, FontContextHandle, FontSource};
 use gfx::font_template::FontTemplateDescriptor;
+use msg::constellation_msg::{PipelineNamespace, TEST_NAMESPACE};
 use servo_arc::Arc;
 use servo_atoms::Atom;
+use shared_ipc_router::SharedIpcRouter;
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::fs::File;
@@ -33,6 +35,9 @@ struct TestFontSource {
 
 impl TestFontSource {
     fn new() -> TestFontSource {
+        if !PipelineNamespace::installed() {
+            PipelineNamespace::install(TEST_NAMESPACE);
+        }
         let mut csstest_ascii = FontTemplates::new();
         Self::add_face(&mut csstest_ascii, "csstest-ascii", None);
 
@@ -72,6 +77,7 @@ impl FontSource for TestFontSource {
         &mut self,
         _key: webrender_api::FontKey,
         _size: Au,
+        _ipc_router: &SharedIpcRouter,
     ) -> webrender_api::FontInstanceKey {
         webrender_api::FontInstanceKey(webrender_api::IdNamespace(0), 0)
     }
@@ -80,6 +86,7 @@ impl FontSource for TestFontSource {
         &mut self,
         template_descriptor: FontTemplateDescriptor,
         family_descriptor: FontFamilyDescriptor,
+        _ipc_router: &SharedIpcRouter,
     ) -> Option<FontTemplateInfo> {
         let handle = &self.handle;
 
@@ -128,7 +135,7 @@ fn font_family(names: Vec<&str>) -> FontFamily {
 #[test]
 fn test_font_group_is_cached_by_style() {
     let source = TestFontSource::new();
-    let mut context = FontContext::new(source);
+    let mut context = FontContext::new(source, SharedIpcRouter::new());
 
     let style1 = style();
 
@@ -152,7 +159,7 @@ fn test_font_group_is_cached_by_style() {
 fn test_font_group_find_by_codepoint() {
     let source = TestFontSource::new();
     let count = source.find_font_count.clone();
-    let mut context = FontContext::new(source);
+    let mut context = FontContext::new(source, SharedIpcRouter::new());
 
     let mut style = style();
     style.set_font_family(font_family(vec!["CSSTest ASCII", "CSSTest Basic"]));
@@ -192,7 +199,7 @@ fn test_font_group_find_by_codepoint() {
 #[test]
 fn test_font_fallback() {
     let source = TestFontSource::new();
-    let mut context = FontContext::new(source);
+    let mut context = FontContext::new(source, SharedIpcRouter::new());
 
     let mut style = style();
     style.set_font_family(font_family(vec!["CSSTest ASCII"]));
@@ -224,7 +231,7 @@ fn test_font_fallback() {
 fn test_font_template_is_cached() {
     let source = TestFontSource::new();
     let count = source.find_font_count.clone();
-    let mut context = FontContext::new(source);
+    let mut context = FontContext::new(source, SharedIpcRouter::new());
 
     let mut font_descriptor = FontDescriptor {
         template_descriptor: FontTemplateDescriptor {
