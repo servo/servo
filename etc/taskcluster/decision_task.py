@@ -885,9 +885,6 @@ def magicleap_build_task(name, build_type):
             export HOST_CC=$(brew --prefix llvm)/bin/clang
             export HOST_CXX=$(brew --prefix llvm)/bin/clang++
         """)
-        .with_artifacts(
-            "/repo/target/magicleap/aarch64-linux-android/native/gstreamer/meson-logs/meson-log.txt",
-        )
     )
 
 
