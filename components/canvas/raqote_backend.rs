@@ -51,11 +51,13 @@ impl Backend for RaqoteBackend {
 
     fn set_stroke_style<'a>(
         &mut self,
-        _style: FillOrStrokeStyle,
-        _state: &mut CanvasPaintState<'a>,
+        style: FillOrStrokeStyle,
+        state: &mut CanvasPaintState<'a>,
         _drawtarget: &dyn GenericDrawTarget,
     ) {
-        unimplemented!()
+        if let Some(pattern) = style.to_raqote_source() {
+            state.stroke_style = Pattern::Raqote(pattern)
+        }
     }
 
     fn set_global_composition<'a>(
@@ -330,13 +332,21 @@ impl GenericDrawTarget for raqote::DrawTarget {
     }
     fn stroke_line(
         &mut self,
-        _start: Point2D<f32>,
-        _end: Point2D<f32>,
-        _pattern: Pattern,
-        _stroke_options: &StrokeOptions,
-        _draw_options: &DrawOptions,
+        start: Point2D<f32>,
+        end: Point2D<f32>,
+        pattern: Pattern,
+        stroke_options: &StrokeOptions,
+        draw_options: &DrawOptions,
     ) {
-        unimplemented!();
+        let mut pb = raqote::PathBuilder::new();
+        pb.move_to(start.x, start.y);
+        pb.line_to(end.x, end.y);
+
+        self.stroke(
+            &pb.finish(),
+            pattern.as_raqote(),
+            stroke_options.as_raqote(),
+            draw_options.as_raqote());
     }
     fn stroke_rect(
         &mut self,
