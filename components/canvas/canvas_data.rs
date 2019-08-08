@@ -546,11 +546,13 @@ impl<'a> CanvasData<'a> {
                 );
             });
         } else if rect.size.width == 0. || rect.size.height == 0. {
+            let mut stroke_opts = self.state.stroke_opts.clone();
+            stroke_opts.set_line_cap(LineCapStyle::Butt);
             self.drawtarget.stroke_line(
                 rect.origin,
                 rect.bottom_right(),
                 self.state.stroke_style.clone(),
-                &self.state.stroke_opts,
+                &stroke_opts,
                 &self.state.draw_options,
             );
         } else {
