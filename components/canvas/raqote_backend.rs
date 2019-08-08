@@ -279,7 +279,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         &mut self,
         rect: &Rect<f32>,
         pattern: Pattern,
-        _draw_options: Option<&DrawOptions>,
+        draw_options: Option<&DrawOptions>,
     ) {
         let mut pb = raqote::PathBuilder::new();
         pb.rect(
@@ -288,11 +288,17 @@ impl GenericDrawTarget for raqote::DrawTarget {
             rect.size.width,
             rect.size.height,
         );
+        let draw_options = if let Some(options) = draw_options {
+            *options.as_raqote()
+        } else {
+            raqote::DrawOptions::new()
+        };
+
         raqote::DrawTarget::fill(
             self,
             &pb.finish(),
             pattern.as_raqote(),
-            &raqote::DrawOptions::new(),
+            &draw_options,
         );
     }
     fn get_format(&self) -> SurfaceFormat {
