@@ -24,8 +24,18 @@ impl Backend for RaqoteBackend {
         color.as_raqote().a != 0
     }
 
-    fn size_from_pattern(&self, _rect: &Rect<f32>, _pattern: &Pattern) -> Option<Size2D<f32>> {
-        unimplemented!()
+    fn size_from_pattern(&self, rect: &Rect<f32>, pattern: &Pattern) -> Option<Size2D<f32>> {
+        match pattern {
+            Pattern::Raqote(raqote::Source::Image(image, extend, ..)) => {
+                match extend {
+                    raqote::ExtendMode::Repeat => {
+                        Some(rect.size)
+                    },
+                    _ => Some(Size2D::new(image.width as f32, image.height as f32))
+                }
+            },
+            _ => None
+        }
     }
 
     fn set_shadow_color<'a>(&mut self, _color: RGBA, _state: &mut CanvasPaintState<'a>) {
