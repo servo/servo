@@ -202,6 +202,8 @@ impl GenericDrawTarget for raqote::DrawTarget {
             rect.size.width,
             rect.size.height,
         );
+        let mut options = raqote::DrawOptions::new();
+        options.blend_mode = raqote::BlendMode::Clear;
         raqote::DrawTarget::fill(
             self,
             &pb.finish(),
@@ -211,7 +213,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
                 b: 0,
                 a: 0,
             }),
-            &raqote::DrawOptions::new(),
+            &options,
         );
     }
     fn copy_surface(
