@@ -142,7 +142,11 @@ pub trait ScriptPort {
 unsafe extern "C" fn get_incumbent_global(_: *const c_void, _: *mut RawJSContext) -> *mut JSObject {
     wrap_panic(
         AssertUnwindSafe(|| {
-            GlobalScope::incumbent()
+            let incumbent_global = GlobalScope::incumbent();
+
+            assert!(incumbent_global.is_some());
+
+            incumbent_global
                 .map(|g| g.reflector().get_jsobject().get())
                 .unwrap_or(ptr::null_mut())
         }),
