@@ -91,8 +91,17 @@ impl<'a> CanvasPaintState<'a> {
 
 impl Pattern<'_> {
     pub fn is_zero_size_gradient(&self) -> bool {
-        match *self {
-            Pattern::Raqote(_) => unimplemented!(),
+        match self {
+            Pattern::Raqote(p) => {
+                use raqote::Source::*;
+
+                match p {
+                    LinearGradient(g, ..) | RadialGradient(g, ..) | TwoCircleRadialGradient(g, ..) => {
+                        g.stops.is_empty()
+                    },
+                    _ => false
+                }
+            },
         }
     }
     pub fn as_raqote(&self) -> &raqote::Source {
