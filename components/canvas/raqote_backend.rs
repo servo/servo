@@ -34,8 +34,8 @@ impl Backend for RaqoteBackend {
         }
     }
 
-    fn set_shadow_color<'a>(&mut self, _color: RGBA, _state: &mut CanvasPaintState<'a>) {
-        unimplemented!()
+    fn set_shadow_color<'a>(&mut self, color: RGBA, state: &mut CanvasPaintState<'a>) {
+        state.shadow_color = Color::Raqote(color.to_raqote_style());
     }
 
     fn set_fill_style<'a>(
@@ -62,10 +62,10 @@ impl Backend for RaqoteBackend {
 
     fn set_global_composition<'a>(
         &mut self,
-        _op: CompositionOrBlending,
-        _state: &mut CanvasPaintState<'a>,
+        op: CompositionOrBlending,
+        state: &mut CanvasPaintState<'a>,
     ) {
-        unimplemented!()
+        state.draw_options.as_raqote_mut().blend_mode = op.to_raqote_style();
     }
 
     fn create_drawtarget(&self, size: Size2D<u64>) -> Box<dyn GenericDrawTarget> {
@@ -164,6 +164,11 @@ impl DrawOptions {
         }
     }
     pub fn as_raqote(&self) -> &raqote::DrawOptions {
+        match self {
+            DrawOptions::Raqote(options) => options,
+        }
+    }
+    fn as_raqote_mut(&mut self) -> &mut raqote::DrawOptions {
         match self {
             DrawOptions::Raqote(options) => options,
         }
@@ -364,12 +369,24 @@ impl GenericDrawTarget for raqote::DrawTarget {
     }
     fn stroke_rect(
         &mut self,
-        _rect: &Rect<f32>,
-        _pattern: Pattern,
-        _stroke_options: &StrokeOptions,
-        _draw_options: &DrawOptions,
+        rect: &Rect<f32>,
+        pattern: Pattern,
+        stroke_options: &StrokeOptions,
+        draw_options: &DrawOptions,
     ) {
-        unimplemented!();
+        let mut pb = raqote::PathBuilder::new();
+        pb.rect(
+            rect.origin.x,
+            rect.origin.y,
+            rect.size.width,
+            rect.size.height,
+        );
+
+        self.stroke(&pb.finish(),
+        pattern.as_raqote(),
+        stroke_options.as_raqote(),
+        draw_options.as_raqote(),
+        );
     }
     #[allow(unsafe_code)]
     fn snapshot_data(&self, f: &dyn Fn(&[u8]) -> Vec<u8>) -> Vec<u8> {
@@ -531,6 +548,74 @@ impl Color {
     fn as_raqote(&self) -> &raqote::SolidSource {
         match self {
             Color::Raqote(s) => s,
+        }
+    }
+}
+
+impl ToRaqoteStyle for RGBA {
+    type Target = raqote::SolidSource;
+
+    fn to_raqote_style(self) -> Self::Target {
+        raqote::SolidSource {
+            r: self.red,
+            g: self.green,
+            b: self.blue,
+            a: self.alpha,
+        }
+    }
+}
+
+impl ToRaqoteStyle for CompositionOrBlending {
+    type Target = raqote::BlendMode;
+
+    fn to_raqote_style(self) -> Self::Target {
+        match self {
+            CompositionOrBlending::Composition(op) => op.to_raqote_style(),
+            CompositionOrBlending::Blending(op) => op.to_raqote_style(),
+        }
+    }
+}
+
+impl ToRaqoteStyle for BlendingStyle {
+    type Target = raqote::BlendMode;
+
+    fn to_raqote_style(self) -> Self::Target {
+        match self {
+            BlendingStyle::Multiply => raqote::BlendMode::Multiply,
+            BlendingStyle::Screen => raqote::BlendMode::Screen,
+            BlendingStyle::Overlay => raqote::BlendMode::Overlay,
+            BlendingStyle::Darken => raqote::BlendMode::Darken,
+            BlendingStyle::Lighten => raqote::BlendMode::Lighten,
+            BlendingStyle::ColorDodge => raqote::BlendMode::ColorDodge,
+            BlendingStyle::HardLight => raqote::BlendMode::HardLight,
+            BlendingStyle::SoftLight => raqote::BlendMode::SoftLight,
+            BlendingStyle::Difference => raqote::BlendMode::Difference,
+            BlendingStyle::Exclusion => raqote::BlendMode::Exclusion,
+            BlendingStyle::Hue => raqote::BlendMode::Hue,
+            BlendingStyle::Saturation => raqote::BlendMode::Saturation,
+            BlendingStyle::Color => raqote::BlendMode::Color,
+            BlendingStyle::Luminosity => raqote::BlendMode::Luminosity,
+            BlendingStyle::ColorBurn => unimplemented!("raqote doesn't support colorburn"),
+        }
+    }
+}
+
+impl ToRaqoteStyle for CompositionStyle {
+    type Target = raqote::BlendMode;
+
+    fn to_raqote_style(self) -> Self::Target {
+        match self {
+            CompositionStyle::SrcIn => raqote::BlendMode::SrcIn,
+            CompositionStyle::SrcOut => raqote::BlendMode::SrcOut,
+            CompositionStyle::SrcOver => raqote::BlendMode::SrcOver,
+            CompositionStyle::SrcAtop => raqote::BlendMode::SrcAtop,
+            CompositionStyle::DestIn => raqote::BlendMode::DstIn,
+            CompositionStyle::DestOut => raqote::BlendMode::DstOut,
+            CompositionStyle::DestOver => raqote::BlendMode::DstOver,
+            CompositionStyle::DestAtop => raqote::BlendMode::DstAtop,
+            CompositionStyle::Copy => raqote::BlendMode::Src,
+            CompositionStyle::Lighter => raqote::BlendMode::Add,
+            CompositionStyle::Xor => raqote::BlendMode::Xor,
         }
     }
 }
