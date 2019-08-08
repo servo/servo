@@ -398,3 +398,25 @@ impl Clone for Pattern<'_> {
         unimplemented!();
     }
 }
+
+pub trait ToRaqoteSource<'a> {
+    fn to_raqote_source(self) -> Option<raqote::Source<'a>>;
+}
+
+impl<'a> ToRaqoteSource<'a> for FillOrStrokeStyle {
+    fn to_raqote_source(self) -> Option<raqote::Source<'a>> {
+        use canvas_traits::canvas::FillOrStrokeStyle::*;
+
+        match self {
+            Color(rgba) => Some(raqote::Source::Solid(raqote::SolidSource {
+                r: rgba.red,
+                g: rgba.green,
+                b: rgba.blue,
+                a: rgba.alpha,
+            })),
+            LinearGradient(_) => unimplemented!(),
+            RadialGradient(_) => unimplemented!(),
+            Surface(_) => unimplemented!(),
+        }
+    }
+}
