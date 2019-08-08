@@ -487,7 +487,7 @@ impl ResourceFetchTiming {
     pub fn new(timing_type: ResourceTimingType) -> ResourceFetchTiming {
         ResourceFetchTiming {
             timing_type: timing_type,
-            timing_check_passed: false,
+            timing_check_passed: true,
             domain_lookup_start: 0,
             redirect_count: 0,
             request_start: 0,
@@ -503,7 +503,7 @@ impl ResourceFetchTiming {
     // TODO currently this is being set with precise time ns when it should be time since
     // time origin (as described in Performance::now)
     pub fn set_attribute(&mut self, attribute: ResourceAttribute) {
-        if !self.timing_check_passed {
+        if self.timing_check_passed {
             match attribute {
                 ResourceAttribute::DomainLookupStart => {
                     self.domain_lookup_start = precise_time_ns()
@@ -519,13 +519,27 @@ impl ResourceFetchTiming {
                         }
                     },
                 },
-                ResourceAttribute::TimingCheckPassed => self.timing_check_passed = true,
+                ResourceAttribute::TimingCheckPassed => self.mark_timing_check_failed(),
                 ResourceAttribute::FetchStart => self.fetch_start = precise_time_ns(),
                 ResourceAttribute::ConnectStart(val) => self.connect_start = val,
                 ResourceAttribute::ConnectEnd(val) => self.connect_end = val,
                 ResourceAttribute::ResponseEnd => self.response_end = precise_time_ns(),
             }
         }
+    }
+
+
+    fn mark_timing_check_failed(&mut self){
+        self.timing_check_passed = false;
+        self.domain_lookup_start = 0;
+        self.redirect_count = 0;
+        self.request_start = 0;
+        self.response_start = 0;
+        self.fetch_start = 0;
+        self.redirect_start = 0;
+        self.connect_start = 0;
+        self.connect_end = 0;
+        self.response_end = 0;
     }
 }
 
