@@ -1136,28 +1136,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn send_viewport_rects(&self) {
-        let mut scroll_states_per_pipeline = HashMap::new();
-        for scroll_layer_state in self
-            .webrender_api
-            .get_scroll_node_state(self.webrender_document)
-        {
-            let scroll_state = ScrollState {
-                scroll_id: scroll_layer_state.id,
-                scroll_offset: scroll_layer_state.scroll_offset,
-            };
-
-            scroll_states_per_pipeline
-                .entry(scroll_layer_state.id.pipeline_id())
-                .or_insert(vec![])
-                .push(scroll_state);
-        }
-
-        for (pipeline_id, scroll_states) in scroll_states_per_pipeline {
-            if let Some(pipeline) = self.pipeline(pipeline_id.from_webrender()) {
-                let msg = LayoutControlMsg::SetScrollStates(scroll_states);
-                let _ = pipeline.layout_chan.send(msg);
-            }
-        }
+        // Turn-off to see if it helps
     }
 
     // Check if any pipelines currently have active animations or animation callbacks.
