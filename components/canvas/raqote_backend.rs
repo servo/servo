@@ -34,11 +34,13 @@ impl Backend for RaqoteBackend {
 
     fn set_fill_style<'a>(
         &mut self,
-        _style: FillOrStrokeStyle,
-        _state: &mut CanvasPaintState<'a>,
+        style: FillOrStrokeStyle,
+        state: &mut CanvasPaintState<'a>,
         _drawtarget: &dyn GenericDrawTarget,
     ) {
-        unimplemented!()
+        if let Some(source) = style.to_raqote_source() {
+            state.fill_style = Pattern::Raqote(source);
+        }
     }
 
     fn set_stroke_style<'a>(
