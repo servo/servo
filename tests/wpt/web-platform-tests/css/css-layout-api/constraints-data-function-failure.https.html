@@ -29,18 +29,17 @@
 
 <script id="code" type="text/worklet">
 registerLayout('parent', class {
-  *intrinsicSizes() {}
-  *layout() {}
-  *layout([child], edges, constraints, styleMap) {
+  async intrinsicSizes() {}
+  async layout([child], edges, constraints, styleMap) {
     let childFragment = null;
 
     try {
-      childFragment = yield child.layoutNextFragment({
+      childFragment = await child.layoutNextFragment({
         data: { fn: function() {} }
       });
     } catch(e) {
       // Success! The structured cloning algorithm should have thrown an error.
-      childFragment = yield child.layoutNextFragment({});
+      childFragment = await child.layoutNextFragment({});
       return {autoBlockSize: 100, childFragments: [childFragment]};
     }
 
@@ -49,9 +48,8 @@ registerLayout('parent', class {
 });
 
 registerLayout('child', class {
-  *intrinsicSizes() {}
-  *layout() {}
-  *layout() {
+  async intrinsicSizes() {}
+  async layout() {
     return {autoBlockSize: 0};
   }
 });

@@ -31,7 +31,7 @@ on, e.g. `git checkout -b topic-name`
   request will be automatically merged.
 
 For detailed guidelines on setup and each of these steps, please refer to the
-[Github Test Submission](../appendix/github-intro) documentation.
+[Github Test Submission](../writing-tests/github-intro) documentation.
 
 Hop on to the [mailing list][public-test-infra] or [IRC][]
 ([webclient][web irc], join channel `#testing`) if you have an issue.  There is

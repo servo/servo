@@ -9,13 +9,14 @@
 'use strict';
 
 (async () => {
-  const scope = 'scope';
+  // Not using an explicit scope here in order for script URL to be in scope,
+  // to cover implicit subscription URL construction.
 
-  let registration = await navigator.serviceWorker.getRegistration(scope);
+  let registration = await navigator.serviceWorker.getRegistration();
   if (registration)
     await registration.unregister();
   registration = await navigator.serviceWorker.register(
-      'serviceworker_cookieStore_subscriptions.js', {scope});
+      'serviceworker_cookieStore_subscriptions.js');
 
   fetch_tests_from_worker(registration.installing);
 })();

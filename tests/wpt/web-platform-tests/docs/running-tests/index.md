@@ -6,6 +6,7 @@
    from-web
    from-local-system
    custom-runner
+   ../tools/certs/README.md
 ```
 
 The simplest way to run the tests is via the public website. More detail on

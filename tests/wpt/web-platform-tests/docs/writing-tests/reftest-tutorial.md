@@ -19,7 +19,7 @@ You'll need to [configure your system to use WPT's
 tools](../running-tests/from-local-system), but you won't need them until
 towards the end of this tutorial. Although it includes some very brief
 instructions on using git, you can find more guidance in [the tutorial for git
-and GitHub](../appendix/github-intro).
+and GitHub](../writing-tests/github-intro).
 
 WPT's reftests are great for testing web-platform features that have some
 visual effect. [The reftests reference page](reftests) describes them in the
@@ -264,7 +264,7 @@ And now we can push the commit to our fork of WPT:
 The last step is to submit the test for review. WPT doesn't actually need the
 test we wrote in this tutorial, but if we wanted to submit it for inclusion in
 the repository, we would create a pull request on GitHub. [The guide on git and
-GitHub](../appendix/github-intro) has all the details on how to do that.
+GitHub](../writing-tests/github-intro) has all the details on how to do that.
 
 ## More practice
 

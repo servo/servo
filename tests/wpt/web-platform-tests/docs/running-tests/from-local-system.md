@@ -104,7 +104,7 @@ https://web-platform.test:8443/tools/runner/index.html *
 This server has all the capabilities of the publicly-deployed version--see
 [Running the Tests from the Web](from-web).
 
-\**See [Trusting Root CA](https://github.com/web-platform-tests/wpt/blob/master/README.md#trusting-root-ca)*
+\**See [Trusting Root CA](../tools/certs/README.md)*
 
 ## Via the command line
 

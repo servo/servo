@@ -20,9 +20,9 @@ registerLayout('test', class {
     ];
   }
 
-  *intrinsicSizes() {}
-  *layout(children, edges, constraints, styleMap) {
-    const childFragments = yield children.map((child) => {
+  async intrinsicSizes() {}
+  async layout(children, edges, constraints, styleMap) {
+    const childFragments = await Promise.all(children.map((child) => {
       const childConstraints = {};
       const availableInlineSize = parseNumber(child.styleMap.get('--available-inline-size'));
       const availableBlockSize = parseNumber(child.styleMap.get('--available-block-size'));
@@ -38,7 +38,7 @@ registerLayout('test', class {
         percentageInlineSize,
         percentageBlockSize,
       });
-    });
+    }));
 
     const actual = childFragments.map((childFragment) => {
       return {

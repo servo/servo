@@ -33,8 +33,8 @@ registerLayout('test', class {
     return [ '--bar', '--foo', 'empty-cells', 'margin-left'];
   }
 
-  *intrinsicSizes() {}
-  *layout(children, edges, constraints, styleMap) {
+  async intrinsicSizes() {}
+  async layout(children, edges, constraints, styleMap) {
     const expected = [
       {property: '--bar', value: '[CSSUnparsedValue=]'},
       {property: '--foo', value: '[CSSUnparsedValue= bar]'},

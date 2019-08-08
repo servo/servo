@@ -22,6 +22,13 @@
       "application/dash+xml", // video format
       "image/gif;HI=THERE",
 
+      // Non-image MIME-types that in practice get used for images on the web.
+      //
+      // https://bugzilla.mozilla.org/show_bug.cgi?id=1302539
+      "application/octet-stream",
+      // https://crbug.com/990853
+      "application/x-www-form-urlencoded",
+
       // MIME types that may seem to be JSON or XML, but really aren't - i.e.
       // these MIME types are not covered by:
       // - https://mimesniff.spec.whatwg.org/#json-mime-type

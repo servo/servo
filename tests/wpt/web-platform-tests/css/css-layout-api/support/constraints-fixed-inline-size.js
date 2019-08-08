@@ -1,6 +1,6 @@
 registerLayout('test', class {
-  *intrinsicSizes() {}
-  *layout(children, edges, constraints, styleMap) {
+  async intrinsicSizes() {}
+  async layout(children, edges, constraints, styleMap) {
     if (constraints.fixedInlineSize !== 100)
       return {autoBlockSize: 0};
 

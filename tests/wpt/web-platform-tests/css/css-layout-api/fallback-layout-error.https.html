@@ -39,8 +39,8 @@
 
 <script id="code" type="text/worklet">
 registerLayout('throwing-layout', class {
-  *intrinsicSizes() {}
-  *layout() { throw Error('fail!'); }
+  async intrinsicSizes() {}
+  async layout() { throw Error('fail!'); }
 });
 </script>
 

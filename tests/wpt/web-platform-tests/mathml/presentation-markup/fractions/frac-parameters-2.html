@@ -13,10 +13,6 @@
     font-size: 10px;
   }
   @font-face {
-    font-family: axisheight7000;
-    src: url("/fonts/math/stack-axisheight7000.woff");
-  }
-  @font-face {
     font-family: bottomdisplaystyleshiftdown5000-axisheight1000;
     src: url("/fonts/math/stack-bottomdisplaystyleshiftdown5000-axisheight1000.woff");
   }
@@ -56,13 +52,6 @@
   });
 
   function runTests() {
-    test(function() {
-      assert_true(MathMLFeatureDetection.has_mspace());
-
-      var v = 7000 * emToPx;
-      assert_approx_equals(getBox("ref0001").top - getBox("num0001").bottom,
-                           v, epsilon, "mfrac: axis height");
-    }, "AxisHeight");
 
     test(function() {
       assert_true(MathMLFeatureDetection.has_mspace());
@@ -118,16 +107,6 @@
 </head>
 <body>
   <div id="log"></div>
-  <p>
-    <math style="font-family: axisheight7000;">
-      <mspace id="ref0001" depth="1em" width="3em" style="background: green"/>
-      <mfrac linethickness="0px">
-        <mspace width="3em" height="1em" id="num0001" style="background: blue"/>
-        <mspace width="3em"/>
-      </mfrac>
-    </math>
-  </p>
-  <hr/>
   <p>
     <math display="block" style="font-family: bottomdisplaystyleshiftdown5000-axisheight1000;">
       <mspace id="ref0002" width="3em" height="1em" style="background: green"/>

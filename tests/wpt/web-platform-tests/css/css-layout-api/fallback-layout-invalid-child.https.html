@@ -32,15 +32,15 @@
 registerLayout('bad-child-layout', class {
   static get inputProperties() { return ['--fail']; }
 
-  *intrinsicSizes() {}
-  *layout(children, _, __, styleMap) {
+  async intrinsicSizes() {}
+  async layout(children, _, __, styleMap) {
     if (styleMap.get('--fail').toString() !== 'true') {
       this.child = children[0];
     }
 
     // Try to perform layout on the child. If its invalid (we skipped the if
     // statement above) we should fallback to block layout.
-    const fragment = yield this.child.layoutNextFragment({});
+    const fragment = await this.child.layoutNextFragment({});
 
     return {autoBlockSize: 0, childFragments: [fragment]};
   }

@@ -3,8 +3,8 @@ registerLayout('test', class {
     return ['--expected-block-size'];
   }
 
-  *intrinsicSizes() {}
-  *layout([child], edges, constraints, styleMap) {
+  async intrinsicSizes() {}
+  async layout([child], edges, constraints, styleMap) {
     let childFixedInlineSize = 0;
     let childFixedBlockSize = 0;
     if (constraints.fixedBlockSize === JSON.parse(styleMap.get('--expected-block-size'))) {
@@ -12,7 +12,7 @@ registerLayout('test', class {
       childFixedBlockSize = 100;
     }
 
-    const childFragments = [yield child.layoutNextFragment({
+    const childFragments = [await child.layoutNextFragment({
       fixedInlineSize: childFixedInlineSize,
       fixedBlockSize: childFixedBlockSize,
     })];

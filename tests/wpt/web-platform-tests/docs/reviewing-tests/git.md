@@ -76,8 +76,8 @@ If you do not expect work with more PRs from the same author,
 you may also discard your connection to their repo:
 `git remote remove <author-id>`
 
-[clone]: ../appendix/github-intro.html#clone
-[commit]: ../appendix/github-intro.html#commit
-[configure]: ../appendix/github-intro.html#configure-remote-upstream
-[fork]: ../appendix/github-intro.html#fork-the-test-repository
-[submit]: ../appendix/github-intro.html#submit
+[clone]: ../writing-tests/github-intro.html#clone
+[commit]: ../writing-tests/github-intro.html#commit
+[configure]: ../writing-tests/github-intro.html#configure-remote-upstream
+[fork]: ../writing-tests/github-intro.html#fork-the-test-repository
+[submit]: ../writing-tests/github-intro.html#submit

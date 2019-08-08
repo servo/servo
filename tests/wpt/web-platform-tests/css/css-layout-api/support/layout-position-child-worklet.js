@@ -6,11 +6,9 @@ registerLayout('test', class {
     ];
   }
 
-  *intrinsicSizes() {}
-  *layout(children, edges, constraints, styleMap) {
-    const childFragments = yield children.map((child) => {
-      return child.layoutNextFragment({});
-    });
+  async intrinsicSizes() {}
+  async layout(children, edges, constraints, styleMap) {
+    const childFragments = await Promise.all(children.map((child) => child.layoutNextFragment({})));
 
     for (let i = 0; i < children.length; i++) {
       childFragments[i].inlineOffset = parseInt(children[i].styleMap.get('--inline-offset').toString());

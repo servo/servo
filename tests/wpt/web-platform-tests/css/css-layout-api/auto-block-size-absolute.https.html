@@ -60,8 +60,8 @@
 
 <script id="code" type="text/worklet">
 registerLayout('block-size-100', class {
-  *intrinsicSizes() {}
-  *layout() {
+  async intrinsicSizes() {}
+  async layout() {
     return {autoBlockSize: 100};
   }
 });

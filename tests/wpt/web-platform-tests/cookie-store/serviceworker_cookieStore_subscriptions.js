@@ -11,7 +11,7 @@ self.addEventListener('install', (event) => {
     // cookie change logic that this test aims to cover.
     try {
       await cookieStore.subscribeToChanges([
-        { name: 'cookie-name1', matchType: 'equals', url: '/scope/path1' }]);
+        { name: 'cookie-name1', matchType: 'equals', url: '/cookie-store/path1' }]);
       await cookieStore.subscribeToChanges([
         { },  // Test the default values for subscription properties.
         { name: 'cookie-prefix', matchType: 'starts-with' },

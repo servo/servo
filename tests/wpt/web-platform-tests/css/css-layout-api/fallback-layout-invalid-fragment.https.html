@@ -32,10 +32,10 @@
 registerLayout('bad-request', class {
   static get inputProperties() { return ['--fail']; }
 
-  *intrinsicSizes() {}
-  *layout(children, _, __, styleMap) {
+  async intrinsicSizes() {}
+  async layout(children, _, __, styleMap) {
     if (styleMap.get('--fail').toString() !== 'true') {
-      this.fragment = yield children[0].layoutNextFragment({});
+      this.fragment = await children[0].layoutNextFragment({});
     }
 
     // Return, if the fragment is invalid (we skipped the if statement above)
