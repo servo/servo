@@ -192,8 +192,25 @@ impl Path {
 }
 
 impl GenericDrawTarget for raqote::DrawTarget {
-    fn clear_rect(&self, _rect: &Rect<f32>) {
-        unimplemented!();
+    fn clear_rect(&mut self, rect: &Rect<f32>) {
+        let mut pb = raqote::PathBuilder::new();
+        pb.rect(
+            rect.origin.x,
+            rect.origin.y,
+            rect.size.width,
+            rect.size.height,
+        );
+        raqote::DrawTarget::fill(
+            self,
+            &pb.finish(),
+            &raqote::Source::Solid(raqote::SolidSource {
+                r: 0,
+                g: 0,
+                b: 0,
+                a: 0,
+            }),
+            &raqote::DrawOptions::new(),
+        );
     }
     fn copy_surface(
         &mut self,
