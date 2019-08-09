@@ -198,7 +198,6 @@ impl HTMLIFrameElement {
                     opener: None,
                     load_data: load_data,
                     pipeline_port: pipeline_receiver,
-                    content_process_shutdown_chan: None,
                     window_size: WindowSizeData {
                         initial_viewport: {
                             let rect = self.upcast::<Node>().bounding_content_box_or_zero();

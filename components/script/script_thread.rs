@@ -612,7 +612,7 @@ pub struct ScriptThread {
     timer_event_chan: Sender<TimerEvent>,
     timer_event_port: Receiver<TimerEvent>,
 
-    content_process_shutdown_chan: IpcSender<()>,
+    content_process_shutdown_chan: Sender<()>,
 
     /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
     microtask_queue: Rc<MicrotaskQueue>,
@@ -2276,7 +2276,6 @@ impl ScriptThread {
             load_data,
             window_size,
             pipeline_port,
-            content_process_shutdown_chan,
         } = new_layout_info;
 
         let layout_pair = unbounded();
@@ -2294,7 +2293,6 @@ impl ScriptThread {
             constellation_chan: self.layout_to_constellation_chan.clone(),
             script_chan: self.control_chan.clone(),
             image_cache: self.image_cache.clone(),
-            content_process_shutdown_chan: content_process_shutdown_chan,
             paint_time_metrics: PaintTimeMetrics::new(
                 new_pipeline_id,
                 self.time_profiler_chan.clone(),

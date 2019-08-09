@@ -219,8 +219,6 @@ pub struct NewLayoutInfo {
     pub window_size: WindowSizeData,
     /// A port on which layout can receive messages from the pipeline.
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
-    /// A shutdown channel so that layout can tell the content process to shut down when it's done.
-    pub content_process_shutdown_chan: Option<IpcSender<()>>,
 }
 
 /// When a pipeline is closed, should its browsing context be discarded too?
@@ -651,7 +649,7 @@ pub struct InitialScriptState {
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
     /// A ping will be sent on this channel once the script thread shuts down.
-    pub content_process_shutdown_chan: IpcSender<()>,
+    pub content_process_shutdown_chan: Sender<()>,
     /// A channel to the WebGL thread used in this pipeline.
     pub webgl_chan: Option<WebGLPipeline>,
     /// A channel to the webvr thread, if available.
