@@ -2,13 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#include <Servo2D.h>
+#include <Servo2D/Servo2D.h>
 #include <lumin/node/RootNode.h>
-#include <lumin/node/QuadNode.h>
 #include <lumin/ui/Cursor.h>
 #include <ml_logging.h>
-#include <scenesGen.h>
-#include <SceneDescriptor.h>
+#include <scenes.h>
+#include <PrismSceneManager.h>
+
+#include <Servo2D.h>
+#include <lumin/node/QuadNode.h>
 #include <lumin/ui/Keyboard.h>
 #include <EGL/egl.h>
 #include <GLES/gl.h>
@@ -90,30 +92,26 @@ Servo2D::~Servo2D() {
   ML_LOG(Debug, "Servo2D Destructor.");
 }
 
-// The prism dimensions
-const glm::vec3 Servo2D::getInitialPrismExtents() const {
+const glm::vec3 Servo2D::getInitialPrismSize() const {
   return glm::vec3(PRISM_W, PRISM_H, PRISM_D);
 }
 
-// Create the prism for Servo
-int Servo2D::createInitialPrism() {
-  prism_ = requestNewPrism(getInitialPrismExtents());
+void Servo2D::createInitialPrism() {
+  prism_ = requestNewPrism(getInitialPrismSize());
   if (!prism_) {
     ML_LOG(Error, "Servo2D Error creating default prism.");
-    return 1;
+    abort();
   }
-  return 0;
+  prismSceneManager_ = new PrismSceneManager(prism_);
 }
 
-// Initialize a Servo instance
 int Servo2D::init() {
 
   ML_LOG(Debug, "Servo2D Initializing.");
 
-  // Set up the prism
   createInitialPrism();
   lumin::ui::Cursor::SetScale(prism_, 0.03f);
-  instanceInitialScenes();
+  spawnInitialScenes();
 
   // Check privileges
   if (checkPrivilege(lumin::PrivilegeId::kInternet) != lumin::PrivilegeResult::kGranted) {
@@ -135,7 +133,7 @@ int Servo2D::init() {
     return 1;
   }
 
-  std::string content_node_id = Servo2D_exportedNodes::content;
+  std::string content_node_id = scenes::Servo2D::externalNodes::content;
   content_node_ = lumin::QuadNode::CastFrom(prism_->findNode(content_node_id, root_node));
   if (!content_node_) {
     ML_LOG(Error, "Servo2D Failed to get content node");
@@ -144,7 +142,9 @@ int Servo2D::init() {
   }
   content_node_->setTriggerable(true);
 
-  content_panel_ = lumin::ui::UiPanel::CastFrom(prism_->findNode(Servo2D_exportedNodes::contentPanel, root_node));
+  content_panel_ = lumin::ui::UiPanel::CastFrom(
+    prism_->findNode(scenes::Servo2D::externalNodes::contentPanel, root_node)
+  );
   if (!content_panel_) {
     ML_LOG(Error, "Servo2D Failed to get content panel");
     abort();
@@ -193,7 +193,7 @@ int Servo2D::init() {
   }
 
   // Add a callback to the back button
-  std::string back_button_id = Servo2D_exportedNodes::backButton;
+  std::string back_button_id = scenes::Servo2D::externalNodes::backButton;
   back_button_ = lumin::ui::UiButton::CastFrom(prism_->findNode(back_button_id, root_node));
   if (!back_button_) {
     ML_LOG(Error, "Servo2D Failed to get back button");
@@ -203,7 +203,7 @@ int Servo2D::init() {
   back_button_->onActivateSub(std::bind(traverse_servo, servo_, -1));
 
   // Add a callback to the forward button
-  std::string fwd_button_id = Servo2D_exportedNodes::fwdButton;
+  std::string fwd_button_id = scenes::Servo2D::externalNodes::fwdButton;
   fwd_button_ = lumin::ui::UiButton::CastFrom(prism_->findNode(fwd_button_id, root_node));
   if (!fwd_button_) {
     ML_LOG(Error, "Servo2D Failed to get forward button");
@@ -213,7 +213,7 @@ int Servo2D::init() {
   fwd_button_->onActivateSub(std::bind(traverse_servo, servo_, +1));
 
   // Add a callback to the URL bar
-  std::string url_bar_id = Servo2D_exportedNodes::urlBar;
+  std::string url_bar_id = scenes::Servo2D::externalNodes::urlBar;
   url_bar_ = lumin::ui::UiTextEdit::CastFrom(prism_->findNode(url_bar_id, root_node));
   if (!url_bar_) {
     ML_LOG(Error, "Servo2D Failed to get URL bar");
@@ -227,7 +227,7 @@ int Servo2D::init() {
   url_bar_->onFocusLostSub(std::bind(&Servo2D::urlBarEventListener, this));
 
   // Add the laser pointer
-  laser_ = lumin::LineNode::CastFrom(prism_->findNode(Servo2D_exportedNodes::laser, root_node));
+  laser_ = lumin::LineNode::CastFrom(prism_->findNode(scenes::Servo2D::externalNodes::laser, root_node));
   if (!laser_) {
     ML_LOG(Error, "Servo2D Failed to get laser");
     abort();
@@ -244,39 +244,21 @@ int Servo2D::deInit() {
   return 0;
 }
 
-lumin::Node* Servo2D::instanceScene(const SceneDescriptor& scene) {
-  // Load resources.
-  if (!prism_->loadResourceModel(scene.getResourceModelPath())) {
-    ML_LOG(Info, "No resource model loaded");
-  }
+void Servo2D::spawnInitialScenes() {
 
-  // Load a scene file.
-  std::string editorObjectModelName;
-  if (!prism_->loadObjectModel(scene.getSceneGraphPath(), editorObjectModelName)) {
-    ML_LOG(Error, "Servo2D Failed to load object model");
-    abort();
-    return nullptr;
-  }
-
-  // Add scene to this prism.
-  lumin::Node* newTree = prism_->createAll(editorObjectModelName);
-  if (!prism_->getRootNode()->addChild(newTree)) {
-    ML_LOG(Error, "Servo2D Failed to add newTree to the prism root node");
-    abort();
-    return nullptr;
-  }
-
-  return newTree;
-}
-
-void Servo2D::instanceInitialScenes() {
   // Iterate over all the exported scenes
-  for (auto& exportedSceneEntry : scenes::exportedScenes ) {
+  for (auto& exportedSceneEntry : scenes::externalScenes ) {
 
     // If this scene was marked to be instanced at app initialization, do it
     const SceneDescriptor &sd = exportedSceneEntry.second;
-    if (sd.getInitiallyInstanced()) {
-      instanceScene(sd);
+    if (sd.getInitiallySpawned()) {
+      lumin::Node* const spawnedRoot = prismSceneManager_->spawn(sd);
+      if (spawnedRoot) {
+        if (!prism_->getRootNode()->addChild(spawnedRoot)) {
+          ML_LOG(Error, "Servo2D Failed to add spawnedRoot to the prism root node");
+          abort();
+        }
+      }
     }
   }
 }

@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="ASCII"?>
-<design:rootNode xmlns:design="http://www.magicleap.com/uidesigner/rcp/document/design" name="root" nodeTypeId="lumin.root" modelId="lumin" version="1.8.0">
+<design:rootNode xmlns:design="http://www.magicleap.com/uidesigner/rcp/document/design" name="root" nodeTypeId="lumin.root" modelId="lumin" version="1.11.1">
   <property id="name" value="root"/>
+  <property id="sceneName" value="Servo2D"/>
   <node name="contentPanel" nodeTypeId="lumin.ui.panel">
     <property id="cursorInitialPosition"/>
     <property id="edgeConstraint"/>
-    <property id="externalName" value="contentPanel"/>
+    <property id="external" value="true"/>
     <property id="gravityWellProperties">
       <property id="boundaryShape">
         <property id="size"/>
@@ -25,7 +26,7 @@
     <property id="rotation"/>
     <property id="scale"/>
     <node name="content" nodeTypeId="lumin.quad">
-      <property id="externalName" value="content"/>
+      <property id="external" value="true"/>
       <property id="name" value="content"/>
       <property id="position">
         <property id="x" value="-0.25"/>
@@ -84,7 +85,7 @@
       <property id="y" value="0.05"/>
     </property>
     <node name="backButton" nodeTypeId="lumin.ui.button">
-      <property id="externalName" value="backButton"/>
+      <property id="external" value="true"/>
       <property id="gravityWellProperties">
         <property id="boundaryShape">
           <property id="size"/>
@@ -105,7 +106,7 @@
       <property id="width" value="0.1"/>
     </node>
     <node name="fwdButton" nodeTypeId="lumin.ui.button">
-      <property id="externalName" value="fwdButton"/>
+      <property id="external" value="true"/>
       <property id="gravityWellProperties">
         <property id="boundaryShape">
           <property id="size"/>
@@ -127,7 +128,7 @@
       <property id="alignment">
         <property id="verticalAlignment" value="Center"/>
       </property>
-      <property id="externalName" value="urlBar"/>
+      <property id="external" value="true"/>
       <property id="gravityWellProperties">
         <property id="boundaryShape">
           <property id="size"/>
@@ -153,7 +154,7 @@
   </node>
   <node name="laser" nodeTypeId="lumin.line">
     <property id="color" value="0 0 0 0"/>
-    <property id="externalName" value="laser"/>
+    <property id="external" value="true"/>
     <property id="name" value="laser"/>
     <property id="opaque" value="false"/>
     <property id="points">
