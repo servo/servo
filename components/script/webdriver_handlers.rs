@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
+use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
@@ -771,6 +772,30 @@ pub fn handle_get_rect(
                     },
                     None => Err(ErrorStatus::UnknownError),
                 }
+            }),
+        )
+        .unwrap();
+}
+
+pub fn handle_get_bounding_client_rect(
+    documents: &Documents,
+    pipeline: PipelineId,
+    element_id: String,
+    reply: IpcSender<Result<Rect<f32>, ErrorStatus>>,
+) {
+    reply
+        .send(
+            find_node_by_unique_id(documents, pipeline, element_id).and_then(|node| match node
+                .downcast::<Element>(
+            ) {
+                Some(element) => {
+                    let rect = element.GetBoundingClientRect();
+                    Ok(Rect::new(
+                        Point2D::new(rect.X() as f32, rect.Y() as f32),
+                        Size2D::new(rect.Width() as f32, rect.Height() as f32),
+                    ))
+                },
+                None => Err(ErrorStatus::UnknownError),
             }),
         )
         .unwrap();
