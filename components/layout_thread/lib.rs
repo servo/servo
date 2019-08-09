@@ -1518,8 +1518,6 @@ impl LayoutThread {
             (None, 1)
         };
 
-        println!("Layout threadpool {:?}", thread_pool);
-
         let traversal = RecalcStyleAndConstructFlows::new(layout_context);
         let token = {
             let shared =
@@ -1878,8 +1876,6 @@ impl LayoutThread {
                     } else {
                         None
                     };
-
-                    println!("Layout threadpool {:?}", thread_pool);
 
                     if let Some(pool) = thread_pool {
                         // Parallel mode.

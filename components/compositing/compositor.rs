@@ -28,9 +28,7 @@ use pixels::PixelFormat;
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent, WheelEvent};
 use script_traits::{AnimationState, AnimationTickType, ConstellationMsg, LayoutControlMsg};
-use script_traits::{
-    MouseButton, MouseEventType, TouchEventType, TouchId, WheelDelta,
-};
+use script_traits::{MouseButton, MouseEventType, TouchEventType, TouchId, WheelDelta};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use servo_geometry::{DeviceIndependentPixel, FramebufferUintLength};
 use std::collections::HashMap;

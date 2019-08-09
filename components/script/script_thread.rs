@@ -747,6 +747,7 @@ impl ScriptThreadFactory for ScriptThread {
                 thread_state::initialize(ThreadState::SCRIPT);
                 PipelineNamespace::install(state.pipeline_namespace_id);
                 TopLevelBrowsingContextId::install(state.top_level_browsing_context_id);
+
                 let roots = RootCollection::new();
                 let _stack_roots = ThreadLocalStackRoots::new(&roots);
                 let id = state.id;
@@ -798,7 +799,6 @@ impl ScriptThreadFactory for ScriptThread {
                 mem_profiler_chan.run_with_memory_reporting(
                     || {
                         script_thread.start();
-                        let _ = script_thread.content_process_shutdown_chan.send(());
                     },
                     reporter_name,
                     script_chan,
