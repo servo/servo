@@ -302,7 +302,6 @@ impl WindowProxy {
                 opener: Some(self.browsing_context_id),
                 load_data: load_data,
                 pipeline_port: pipeline_receiver,
-                content_process_shutdown_chan: None,
                 window_size: window.window_size(),
             };
             let constellation_msg = ScriptMsg::ScriptNewAuxiliary(load_info, pipeline_sender);

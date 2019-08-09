@@ -612,7 +612,7 @@ pub struct ScriptThread {
     timer_event_chan: Sender<TimerEvent>,
     timer_event_port: Receiver<TimerEvent>,
 
-    content_process_shutdown_chan: IpcSender<()>,
+    content_process_shutdown_chan: Sender<()>,
 
     /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
     microtask_queue: Rc<MicrotaskQueue>,
@@ -744,6 +744,7 @@ impl ScriptThreadFactory for ScriptThread {
                 thread_state::initialize(ThreadState::SCRIPT);
                 PipelineNamespace::install(state.pipeline_namespace_id);
                 TopLevelBrowsingContextId::install(state.top_level_browsing_context_id);
+
                 let roots = RootCollection::new();
                 let _stack_roots = ThreadLocalStackRoots::new(&roots);
                 let id = state.id;
@@ -795,7 +796,6 @@ impl ScriptThreadFactory for ScriptThread {
                 mem_profiler_chan.run_with_memory_reporting(
                     || {
                         script_thread.start();
-                        let _ = script_thread.content_process_shutdown_chan.send(());
                     },
                     reporter_name,
                     script_chan,
@@ -2279,7 +2279,6 @@ impl ScriptThread {
             load_data,
             window_size,
             pipeline_port,
-            content_process_shutdown_chan,
         } = new_layout_info;
 
         let layout_pair = unbounded();
@@ -2297,7 +2296,6 @@ impl ScriptThread {
             constellation_chan: self.layout_to_constellation_chan.clone(),
             script_chan: self.control_chan.clone(),
             image_cache: self.image_cache.clone(),
-            content_process_shutdown_chan: content_process_shutdown_chan,
             paint_time_metrics: PaintTimeMetrics::new(
                 new_pipeline_id,
                 self.time_profiler_chan.clone(),

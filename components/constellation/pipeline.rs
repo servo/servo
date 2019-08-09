@@ -9,7 +9,7 @@ use canvas_traits::webgl::WebGLPipeline;
 use compositing::compositor_thread::Msg as CompositorMsg;
 use compositing::CompositionPipeline;
 use compositing::CompositorProxy;
-use crossbeam_channel::Sender;
+use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use embedder_traits::EventLoopWaker;
 use euclid::{Scale, Size2D};
@@ -218,9 +218,6 @@ impl Pipeline {
         // probably requires a general low-memory strategy.
         let (pipeline_chan, pipeline_port) = ipc::channel().expect("Pipeline main chan");
 
-        let (layout_content_process_shutdown_chan, layout_content_process_shutdown_port) =
-            ipc::channel().expect("Pipeline layout content shutdown chan");
-
         let window_size = WindowSizeData {
             initial_viewport: state.window_size,
             device_pixel_ratio: state.device_pixel_ratio,
@@ -237,7 +234,6 @@ impl Pipeline {
                     load_data: state.load_data.clone(),
                     window_size: window_size,
                     pipeline_port: pipeline_port,
-                    content_process_shutdown_chan: Some(layout_content_process_shutdown_chan),
                 };
 
                 if let Err(e) =
@@ -275,9 +271,6 @@ impl Pipeline {
                     script_to_devtools_chan
                 });
 
-                let (script_content_process_shutdown_chan, script_content_process_shutdown_port) =
-                    ipc::channel().expect("Pipeline script content process shutdown chan");
-
                 let mut unprivileged_pipeline_content = UnprivilegedPipelineContent {
                     id: state.id,
                     browsing_context_id: state.browsing_context_id,
@@ -306,10 +299,6 @@ impl Pipeline {
                     prefs: prefs::pref_map().iter().collect(),
                     pipeline_port: pipeline_port,
                     pipeline_namespace_id: state.pipeline_namespace_id,
-                    layout_content_process_shutdown_chan: layout_content_process_shutdown_chan,
-                    layout_content_process_shutdown_port: layout_content_process_shutdown_port,
-                    script_content_process_shutdown_chan: script_content_process_shutdown_chan,
-                    script_content_process_shutdown_port: script_content_process_shutdown_port,
                     webrender_api_sender: state.webrender_api_sender,
                     webrender_document: state.webrender_document,
                     webgl_chan: state.webgl_chan,
@@ -515,10 +504,6 @@ pub struct UnprivilegedPipelineContent {
     prefs: HashMap<String, PrefValue>,
     pipeline_port: IpcReceiver<LayoutControlMsg>,
     pipeline_namespace_id: PipelineNamespaceId,
-    layout_content_process_shutdown_chan: IpcSender<()>,
-    layout_content_process_shutdown_port: IpcReceiver<()>,
-    script_content_process_shutdown_chan: IpcSender<()>,
-    script_content_process_shutdown_port: IpcReceiver<()>,
     webrender_api_sender: webrender_api::RenderApiSender,
     webrender_document: webrender_api::DocumentId,
     webgl_chan: Option<WebGLPipeline>,
@@ -545,6 +530,7 @@ impl UnprivilegedPipelineContent {
             self.script_chan.clone(),
             self.load_data.url.clone(),
         );
+        let (content_process_shutdown_chan, content_process_shutdown_port) = unbounded();
         let layout_thread_busy_flag = Arc::new(AtomicBool::new(false));
         let layout_pair = STF::create(
             InitialScriptState {
@@ -567,7 +553,7 @@ impl UnprivilegedPipelineContent {
                 devtools_chan: self.devtools_chan,
                 window_size: self.window_size,
                 pipeline_namespace_id: self.pipeline_namespace_id,
-                content_process_shutdown_chan: self.script_content_process_shutdown_chan,
+                content_process_shutdown_chan: content_process_shutdown_chan,
                 webgl_chan: self.webgl_chan,
                 webvr_chan: self.webvr_chan,
                 webxr_registry: self.webxr_registry,
@@ -605,7 +591,6 @@ impl UnprivilegedPipelineContent {
             self.font_cache_thread,
             self.time_profiler_chan,
             self.mem_profiler_chan,
-            Some(self.layout_content_process_shutdown_chan),
             self.webrender_api_sender,
             self.webrender_document,
             paint_time_metrics,
@@ -624,8 +609,10 @@ impl UnprivilegedPipelineContent {
         );
 
         if wait_for_completion {
-            let _ = self.script_content_process_shutdown_port.recv();
-            let _ = self.layout_content_process_shutdown_port.recv();
+            let signal = content_process_shutdown_port.recv();
+            // When the script-thread drops the sender,
+            // we expect to receive an Err(_).
+            assert!(signal.is_err());
         }
     }
 

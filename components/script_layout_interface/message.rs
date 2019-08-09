@@ -225,7 +225,6 @@ pub struct LayoutThreadInit {
     pub constellation_chan: IpcSender<ConstellationMsg>,
     pub script_chan: IpcSender<ConstellationControlMsg>,
     pub image_cache: Arc<dyn ImageCache>,
-    pub content_process_shutdown_chan: Option<IpcSender<()>>,
     pub paint_time_metrics: PaintTimeMetrics,
     pub layout_is_busy: Arc<AtomicBool>,
 }
