@@ -8,6 +8,7 @@ use crate::compositor::CompositingReason;
 use crate::SendableFrameTree;
 use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::EventLoopWaker;
+use euclid::Rect;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
@@ -17,6 +18,7 @@ use profile_traits::time;
 use script_traits::{AnimationState, ConstellationMsg, EventResult};
 use std::fmt::{Debug, Error, Formatter};
 use style_traits::viewport::ViewportConstraints;
+use style_traits::CSSPixel;
 use webrender_api;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use webvr_traits::WebVRMainThreadHeartbeat;
@@ -80,7 +82,7 @@ pub enum Msg {
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(EventResult),
     /// Composite to a PNG file and return the Image over a passed channel.
-    CreatePng(IpcSender<Option<Image>>),
+    CreatePng(Option<Rect<f32, CSSPixel>>, IpcSender<Option<Image>>),
     /// Alerts the compositor that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
     /// A reply to the compositor asking if the output image is stable.

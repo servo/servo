@@ -18,7 +18,7 @@ mod capabilities;
 use base64;
 use capabilities::ServoCapabilities;
 use crossbeam_channel::Sender;
-use euclid::Size2D;
+use euclid::{Rect, Size2D};
 use hyper::Method;
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -42,6 +42,7 @@ use std::fmt;
 use std::net::{SocketAddr, SocketAddrV4};
 use std::thread;
 use std::time::Duration;
+use style_traits::CSSPixel;
 use uuid::Uuid;
 use webdriver::capabilities::{Capabilities, CapabilitiesMatching};
 use webdriver::command::SwitchToWindowParameters;
@@ -1438,16 +1439,20 @@ impl Handler {
         Ok(WebDriverResponse::Void)
     }
 
-    fn handle_take_screenshot(&self) -> WebDriverResult<WebDriverResponse> {
+    fn take_screenshot(&self, rect: Option<Rect<f32, CSSPixel>>) -> WebDriverResult<String> {
         let mut img = None;
-        let top_level_id = self.session()?.top_level_browsing_context_id;
 
         let interval = 1000;
-        let iterations = 30_000 / interval;
+        let iterations = 30000 / interval;
 
         for _ in 0..iterations {
             let (sender, receiver) = ipc::channel().unwrap();
-            let cmd_msg = WebDriverCommandMsg::TakeScreenshot(top_level_id, sender);
+
+            let cmd_msg = WebDriverCommandMsg::TakeScreenshot(
+                self.session()?.top_level_browsing_context_id,
+                rect,
+                sender,
+            );
             self.constellation_chan
                 .send(ConstellationMsg::WebDriverCommand(cmd_msg))
                 .unwrap();
@@ -1457,7 +1462,7 @@ impl Handler {
                 break;
             };
 
-            thread::sleep(Duration::from_millis(interval))
+            thread::sleep(Duration::from_millis(interval));
         }
 
         let img = match img {
@@ -1476,17 +1481,48 @@ impl Handler {
             PixelFormat::RGB8,
             "Unexpected screenshot pixel format"
         );
-        let rgb = RgbImage::from_raw(img.width, img.height, img.bytes.to_vec()).unwrap();
 
+        let rgb = RgbImage::from_raw(img.width, img.height, img.bytes.to_vec()).unwrap();
         let mut png_data = Vec::new();
         DynamicImage::ImageRgb8(rgb)
             .write_to(&mut png_data, ImageFormat::PNG)
             .unwrap();
 
-        let encoded = base64::encode(&png_data);
+        Ok(base64::encode(&png_data))
+    }
+
+    fn handle_take_screenshot(&self) -> WebDriverResult<WebDriverResponse> {
+        let encoded = self.take_screenshot(None)?;
+
         Ok(WebDriverResponse::Generic(ValueResponse(
             serde_json::to_value(encoded)?,
         )))
+    }
+
+    fn handle_take_element_screenshot(
+        &self,
+        element: &WebElement,
+    ) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        let command = WebDriverScriptCommand::GetBoundingClientRect(element.id.clone(), sender);
+        self.browsing_context_script_command(command)?;
+
+        match receiver.recv().unwrap() {
+            Ok(rect) => {
+                let encoded = self.take_screenshot(Some(Rect::from_untyped(&rect)))?;
+
+                Ok(WebDriverResponse::Generic(ValueResponse(
+                    serde_json::to_value(encoded)?,
+                )))
+            },
+            Err(_) => {
+                return Err(WebDriverError::new(
+                    ErrorStatus::StaleElementReference,
+                    "Element not found",
+                ));
+            },
+        }
     }
 
     fn handle_get_prefs(
@@ -1626,6 +1662,9 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::GetTimeouts => self.handle_get_timeouts(),
             WebDriverCommand::SetTimeouts(ref x) => self.handle_set_timeouts(x),
             WebDriverCommand::TakeScreenshot => self.handle_take_screenshot(),
+            WebDriverCommand::TakeElementScreenshot(ref x) => {
+                self.handle_take_element_screenshot(x)
+            },
             WebDriverCommand::Extension(ref extension) => match *extension {
                 ServoExtensionCommand::GetPrefs(ref x) => self.handle_get_prefs(x),
                 ServoExtensionCommand::SetPrefs(ref x) => self.handle_set_prefs(x),

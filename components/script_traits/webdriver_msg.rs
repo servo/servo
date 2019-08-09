@@ -44,6 +44,7 @@ pub enum WebDriverScriptCommand {
     GetElementProperty(String, String, IpcSender<Result<WebDriverJSValue, ()>>),
     GetElementCSS(String, String, IpcSender<Result<String, ()>>),
     GetElementRect(String, IpcSender<Result<Rect<f64>, ()>>),
+    GetBoundingClientRect(String, IpcSender<Result<Rect<f32>, ()>>),
     GetElementTagName(String, IpcSender<Result<String, ()>>),
     GetElementText(String, IpcSender<Result<String, ()>>),
     GetBrowsingContextId(WebDriverFrameId, IpcSender<Result<BrowsingContextId, ()>>),

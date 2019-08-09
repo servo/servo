@@ -2174,6 +2174,14 @@ impl ScriptThread {
             WebDriverScriptCommand::GetElementRect(node_id, reply) => {
                 webdriver_handlers::handle_get_rect(&*documents, pipeline_id, node_id, reply)
             },
+            WebDriverScriptCommand::GetBoundingClientRect(node_id, reply) => {
+                webdriver_handlers::handle_get_bounding_client_rect(
+                    &*documents,
+                    pipeline_id,
+                    node_id,
+                    reply,
+                )
+            },
             WebDriverScriptCommand::GetElementText(node_id, reply) => {
                 webdriver_handlers::handle_get_text(&*documents, pipeline_id, node_id, reply)
             },

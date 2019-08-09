@@ -14,7 +14,7 @@ use crate::CompositionPipeline;
 use crate::SendableFrameTree;
 use crossbeam_channel::Sender;
 use embedder_traits::Cursor;
-use euclid::{Point2D, Scale, Vector2D};
+use euclid::{Point2D, Rect, Scale, Vector2D};
 use gfx_traits::Epoch;
 #[cfg(feature = "gl")]
 use image::{DynamicImage, ImageFormat};
@@ -442,8 +442,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 self.touch_handler.on_event_processed(result);
             },
 
-            (Msg::CreatePng(reply), ShutdownState::NotShuttingDown) => {
-                let res = self.composite_specific_target(CompositeTarget::WindowAndPng);
+            (Msg::CreatePng(rect, reply), ShutdownState::NotShuttingDown) => {
+                let res = self.composite_specific_target(CompositeTarget::WindowAndPng, rect);
                 if let Err(ref e) = res {
                     info!("Error retrieving PNG: {:?}", e);
                 }
@@ -1212,7 +1212,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     pub fn composite(&mut self) {
         let target = self.composite_target;
-        match self.composite_specific_target(target) {
+        match self.composite_specific_target(target, None) {
             Ok(_) => {
                 if self.output_file.is_some() || self.exit_after_load {
                     println!("Shutting down the Constellation after generating an output file or exit flag specified");
@@ -1239,6 +1239,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     fn composite_specific_target(
         &mut self,
         target: CompositeTarget,
+        rect: Option<Rect<f32, CSSPixel>>,
     ) -> Result<Option<Image>, UnableToComposite> {
         let size = self.embedder_coordinates.framebuffer.to_u32();
 
@@ -1330,6 +1331,20 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             }
         }
 
+        let (x, y, width, height) = match rect {
+            Some(rect) => {
+                let rect = self.device_pixels_per_page_px().transform_rect(&rect);
+
+                let x = rect.origin.x as i32;
+                let y = (size.height as f32 - rect.origin.y - rect.size.height) as i32;
+                let w = rect.size.width as u32;
+                let h = rect.size.height as u32;
+
+                (x, y, w, h)
+            },
+            None => (0, 0, size.width, size.height),
+        };
+
         let rv = match target {
             CompositeTarget::Window => None,
             #[cfg(feature = "gl")]
@@ -1337,8 +1352,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let img = gl::draw_img(
                     &*self.window.gl(),
                     rt_info,
-                    FramebufferUintLength::new(size.width),
-                    FramebufferUintLength::new(size.height),
+                    x,
+                    y,
+                    FramebufferUintLength::new(width),
+                    FramebufferUintLength::new(height),
                 );
                 Some(Image {
                     width: img.width(),
@@ -1361,8 +1378,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                                 let img = gl::draw_img(
                                     gl,
                                     rt_info,
-                                    FramebufferUintLength::new(size.width),
-                                    FramebufferUintLength::new(size.height),
+                                    x,
+                                    y,
+                                    FramebufferUintLength::new(width),
+                                    FramebufferUintLength::new(height),
                                 );
                                 let dynamic_image = DynamicImage::ImageRgb8(img);
                                 if let Err(e) = dynamic_image.write_to(&mut file, ImageFormat::PNG)

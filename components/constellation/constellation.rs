@@ -3468,9 +3468,9 @@ where
                     }
                 }
             },
-            WebDriverCommandMsg::TakeScreenshot(_, reply) => {
+            WebDriverCommandMsg::TakeScreenshot(_, rect, reply) => {
                 self.compositor_proxy
-                    .send(ToCompositorMsg::CreatePng(reply));
+                    .send(ToCompositorMsg::CreatePng(rect, reply));
             },
         }
     }
