@@ -25,7 +25,6 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use keyboard_types::webdriver::send_keys;
 use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, TraversalDirection};
 use pixels::PixelFormat;
-use regex::Captures;
 use script_traits::webdriver_msg::{LoadStatus, WebDriverCookieError, WebDriverFrameId};
 use script_traits::webdriver_msg::{
     WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverScriptCommand,
@@ -54,7 +53,7 @@ use webdriver::command::{
 use webdriver::command::{
     WebDriverCommand, WebDriverExtensionCommand, WebDriverMessage, WindowRectParameters,
 };
-use webdriver::common::{Cookie, Date, LocatorStrategy, WebElement};
+use webdriver::common::{Cookie, Date, LocatorStrategy, Parameters, WebElement};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::httpapi::WebDriverExtensionRoute;
 use webdriver::response::{CookieResponse, CookiesResponse};
@@ -92,7 +91,7 @@ fn cookie_msg_to_cookie(cookie: cookie::Cookie) -> Cookie {
             .expires()
             .map(|time| Date(time.to_timespec().sec as u64)),
         secure: cookie.secure().unwrap_or(false),
-        httpOnly: cookie.http_only().unwrap_or(false),
+        http_only: cookie.http_only().unwrap_or(false),
     }
 }
 
@@ -102,7 +101,7 @@ pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
         .name("WebdriverHttpServer".to_owned())
         .spawn(move || {
             let address = SocketAddrV4::new("0.0.0.0".parse().unwrap(), port);
-            match server::start(SocketAddr::V4(address), handler, &extension_routes()) {
+            match server::start(SocketAddr::V4(address), handler, extension_routes()) {
                 Ok(listening) => info!("WebDriver server listening on {}", listening.socket),
                 Err(_) => panic!("Unable to start WebDriver HTTPD server"),
             }
@@ -173,7 +172,7 @@ impl WebDriverExtensionRoute for ServoExtensionRoute {
 
     fn command(
         &self,
-        _captures: &Captures,
+        _parameters: &Parameters,
         body_data: &Value,
     ) -> WebDriverResult<WebDriverCommand<ServoExtensionCommand>> {
         let command = match *self {
@@ -707,7 +706,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
 
         self.top_level_script_command(WebDriverScriptCommand::IsEnabled(
-            element.id.clone(),
+            element.to_string(),
             sender,
         ))?;
 
@@ -726,7 +725,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
 
         self.top_level_script_command(WebDriverScriptCommand::IsSelected(
-            element.id.clone(),
+            element.to_string(),
             sender,
         ))?;
 
@@ -836,7 +835,7 @@ impl Handler {
         match receiver.recv().unwrap() {
             Ok(value) => {
                 let value_resp = serde_json::to_value(
-                    value.map(|x| serde_json::to_value(WebElement::new(x)).unwrap()),
+                    value.map(|x| serde_json::to_value(WebElement(x)).unwrap()),
                 )?;
                 Ok(WebDriverResponse::Generic(ValueResponse(value_resp)))
             },
@@ -860,7 +859,7 @@ impl Handler {
                 return Ok(WebDriverResponse::Void);
             },
             Some(FrameId::Short(ref x)) => WebDriverFrameId::Short(*x),
-            Some(FrameId::Element(ref x)) => WebDriverFrameId::Element(x.id.clone()),
+            Some(FrameId::Element(ref x)) => WebDriverFrameId::Element(x.to_string()),
         };
 
         self.switch_to_frame(frame_id)
@@ -948,7 +947,7 @@ impl Handler {
             Ok(value) => {
                 let resp_value: Vec<Value> = value
                     .into_iter()
-                    .map(|x| serde_json::to_value(WebElement::new(x)).unwrap())
+                    .map(|x| serde_json::to_value(WebElement(x)).unwrap())
                     .collect();
                 Ok(WebDriverResponse::Generic(ValueResponse(
                     serde_json::to_value(resp_value)?,
@@ -973,7 +972,7 @@ impl Handler {
             LocatorStrategy::CSSSelector => {
                 let cmd = WebDriverScriptCommand::FindElementElementCSS(
                     parameters.value.clone(),
-                    element.id.clone(),
+                    element.to_string(),
                     sender,
                 );
                 self.browsing_context_script_command(cmd)?;
@@ -981,7 +980,7 @@ impl Handler {
             LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
                 let cmd = WebDriverScriptCommand::FindElementElementLinkText(
                     parameters.value.clone(),
-                    element.id.clone(),
+                    element.to_string(),
                     parameters.using == LocatorStrategy::PartialLinkText,
                     sender,
                 );
@@ -990,7 +989,7 @@ impl Handler {
             LocatorStrategy::TagName => {
                 let cmd = WebDriverScriptCommand::FindElementElementTagName(
                     parameters.value.clone(),
-                    element.id.clone(),
+                    element.to_string(),
                     sender,
                 );
                 self.browsing_context_script_command(cmd)?;
@@ -1006,7 +1005,7 @@ impl Handler {
         match receiver.recv().unwrap() {
             Ok(value) => {
                 let value_resp = serde_json::to_value(
-                    value.map(|x| serde_json::to_value(WebElement::new(x)).unwrap()),
+                    value.map(|x| serde_json::to_value(WebElement(x)).unwrap()),
                 )?;
                 Ok(WebDriverResponse::Generic(ValueResponse(value_resp)))
             },
@@ -1029,7 +1028,7 @@ impl Handler {
             LocatorStrategy::CSSSelector => {
                 let cmd = WebDriverScriptCommand::FindElementElementsCSS(
                     parameters.value.clone(),
-                    element.id.clone(),
+                    element.to_string(),
                     sender,
                 );
                 self.browsing_context_script_command(cmd)?;
@@ -1037,7 +1036,7 @@ impl Handler {
             LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
                 let cmd = WebDriverScriptCommand::FindElementElementsLinkText(
                     parameters.value.clone(),
-                    element.id.clone(),
+                    element.to_string(),
                     parameters.using == LocatorStrategy::PartialLinkText,
                     sender,
                 );
@@ -1046,7 +1045,7 @@ impl Handler {
             LocatorStrategy::TagName => {
                 let cmd = WebDriverScriptCommand::FindElementElementsTagName(
                     parameters.value.clone(),
-                    element.id.clone(),
+                    element.to_string(),
                     sender,
                 );
                 self.browsing_context_script_command(cmd)?;
@@ -1063,7 +1062,7 @@ impl Handler {
             Ok(value) => {
                 let resp_value: Vec<Value> = value
                     .into_iter()
-                    .map(|x| serde_json::to_value(WebElement::new(x)).unwrap())
+                    .map(|x| serde_json::to_value(WebElement(x)).unwrap())
                     .collect();
                 Ok(WebDriverResponse::Generic(ValueResponse(
                     serde_json::to_value(resp_value)?,
@@ -1079,7 +1078,7 @@ impl Handler {
     // https://w3c.github.io/webdriver/webdriver-spec.html#get-element-rect
     fn handle_element_rect(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd = WebDriverScriptCommand::GetElementRect(element.id.clone(), sender);
+        let cmd = WebDriverScriptCommand::GetElementRect(element.to_string(), sender);
         self.browsing_context_script_command(cmd)?;
         match receiver.recv().unwrap() {
             Ok(rect) => {
@@ -1100,7 +1099,7 @@ impl Handler {
 
     fn handle_element_text(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd = WebDriverScriptCommand::GetElementText(element.id.clone(), sender);
+        let cmd = WebDriverScriptCommand::GetElementText(element.to_string(), sender);
         self.browsing_context_script_command(cmd)?;
         match receiver.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
@@ -1120,7 +1119,7 @@ impl Handler {
         let value = receiver
             .recv()
             .unwrap()
-            .map(|x| serde_json::to_value(WebElement::new(x)).unwrap());
+            .map(|x| serde_json::to_value(WebElement(x)).unwrap());
         Ok(WebDriverResponse::Generic(ValueResponse(
             serde_json::to_value(value)?,
         )))
@@ -1128,7 +1127,7 @@ impl Handler {
 
     fn handle_element_tag_name(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd = WebDriverScriptCommand::GetElementTagName(element.id.clone(), sender);
+        let cmd = WebDriverScriptCommand::GetElementTagName(element.to_string(), sender);
         self.browsing_context_script_command(cmd)?;
         match receiver.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
@@ -1148,7 +1147,7 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementAttribute(
-            element.id.clone(),
+            element.to_string(),
             name.to_owned(),
             sender,
         );
@@ -1171,8 +1170,11 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let cmd =
-            WebDriverScriptCommand::GetElementProperty(element.id.clone(), name.to_owned(), sender);
+        let cmd = WebDriverScriptCommand::GetElementProperty(
+            element.to_string(),
+            name.to_owned(),
+            sender,
+        );
         self.browsing_context_script_command(cmd)?;
 
         match receiver.recv().unwrap() {
@@ -1193,7 +1195,7 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd =
-            WebDriverScriptCommand::GetElementCSS(element.id.clone(), name.to_owned(), sender);
+            WebDriverScriptCommand::GetElementCSS(element.to_string(), name.to_owned(), sender);
         self.browsing_context_script_command(cmd)?;
         match receiver.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
@@ -1411,7 +1413,7 @@ impl Handler {
 
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let cmd = WebDriverScriptCommand::FocusElement(element.id.clone(), sender);
+        let cmd = WebDriverScriptCommand::FocusElement(element.to_string(), sender);
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd);
         self.constellation_chan
             .send(ConstellationMsg::WebDriverCommand(cmd_msg))
