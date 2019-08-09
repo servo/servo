@@ -3,17 +3,6 @@
 from utils import mathfont
 import fontforge
 
-v = 7 * mathfont.em
-f = mathfont.create("stack-axisheight%d" % v)
-f.math.AxisHeight = v
-f.math.StackBottomDisplayStyleShiftDown = 0
-f.math.StackBottomShiftDown = 0
-f.math.StackDisplayStyleGapMin = 0
-f.math.StackGapMin = 0
-f.math.StackTopDisplayStyleShiftUp = 0
-f.math.StackTopShiftUp = 0
-mathfont.save(f)
-
 v1 = 5 * mathfont.em
 v2 = 1 * mathfont.em
 f = mathfont.create("stack-bottomdisplaystyleshiftdown%d-axisheight%d" % (v1, v2))

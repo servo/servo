@@ -10,6 +10,7 @@ suites, test contributions must be reviewed by a peer.
    checklist
    email
    git
+   reverting
 ```
 
 ## Test Review Policy

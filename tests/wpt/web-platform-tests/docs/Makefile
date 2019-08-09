@@ -13,11 +13,12 @@ help:
 
 .PHONY: help Makefile
 
-tools/wptserve:
+tools/%:
 	mkdir -p $(shell dirname $@)
-	ln -s ../../tools/wptserve $@
+	test -d ../$@
+	ln -s ../../$@ $@
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
-%: Makefile tools/wptserve
+%: Makefile tools/wptserve tools/certs
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)

@@ -39,8 +39,8 @@
 
 <script id="code" type="text/worklet">
 registerLayout('bad-return', class {
-  *intrinsicSizes() {}
-  *layout() { return 42; }
+  async intrinsicSizes() {}
+  async layout() { return 42; }
 });
 </script>
 

@@ -12,6 +12,7 @@ const ResourceType = {
   IMAGE: "image",
   FRAME: "frame",
   WORKER: "worker",
+  SHARED_WORKER: "shared-worker",
   WORKLET: "worklet",
   WEBSOCKET: "websocket",
   FETCH: "fetch",
@@ -36,6 +37,8 @@ function generateURL(host, protocol, resourceType) {
     url.pathname = "echo";
   } else if (resourceType == ResourceType.WORKER) {
     url.pathname += "worker.py";
+  } else if (resourceType == ResourceType.SHARED_WORKER) {
+    url.pathname += "shared-worker.py";
   } else if (resourceType == ResourceType.WORKLET) {
     url.pathname += "worker.py";
   } else if (resourceType == ResourceType.FETCH) {
@@ -183,6 +186,10 @@ const testMap = {
         () => requestViaDedicatedWorker(dedicatedWorkerUrlThatFetches(test.url),
                                         {}),
         test.name),
+
+  "shared-worker":
+    test => promise_test(
+        () => requestViaSharedWorker(test.url), test.name),
 
   "audio-worklet":
     test => promise_test(

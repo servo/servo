@@ -53,10 +53,9 @@ free to add yourself to the META.yml file!
    writing-tests/index
    reviewing-tests/index
    admin/index
-   appendix/index
 ```
 
 [public-test-infra]: https://lists.w3.org/Archives/Public/public-test-infra/
 [IRC]: irc://irc.w3.org:6667/testing
 [web irc]: http://irc.w3.org
-[github-intro]: appendix/github-intro
+[github-intro]: writing-tests/github-intro

@@ -33,13 +33,7 @@ dictionary NDEFRecordInit {
   NDEFRecordData data;
 };
 
-enum NDEFRecordType {
-  "empty",
-  "text",
-  "url",
-  "json",
-  "opaque"
-};
+typedef DOMString NDEFRecordType;
 
 typedef (DOMString or ArrayBuffer or NDEFMessageInit) NDEFMessageSource;
 

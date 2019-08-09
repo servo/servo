@@ -40,8 +40,8 @@
 <script id="code" type="text/worklet">
 registerLayout('throwing-ctor', class {
   constructor() { throw Error('fail!'); }
-  *intrinsicSizes() {}
-  *layout() {}
+  async intrinsicSizes() {}
+  async layout() {}
 });
 </script>
 

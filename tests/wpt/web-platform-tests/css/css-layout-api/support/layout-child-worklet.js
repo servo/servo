@@ -9,14 +9,14 @@ registerLayout('test', class {
     return [ '--child' ];
   }
 
-  *intrinsicSizes() {}
-  *layout(children, edges, constraints, styleMap) {
+  async intrinsicSizes() {}
+  async layout(children, edges, constraints, styleMap) {
     const expected = JSON.parse(styleMap.get('--child-expected').toString());
     const actual = children.map((child) => {
       return child.styleMap.get('--child').toString().trim();
     });
 
-    const childFragments = yield children.map((child) => { return child.layoutNextFragment({}); });
+    const childFragments = await Promise.all(children.map(child => child.layoutNextFragment({})));
 
     if (!areArraysEqual(expected, actual))
       return {autoBlockSize: 0, childFragments};

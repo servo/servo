@@ -40,11 +40,19 @@ for name, resourceType in [
   ('worker', 'WORKER'),
   ('module-worker', 'WORKER'),
   ('worker-subresource-xhr', 'FETCH'),
-  ('worker-subresource-fetch', 'FETCH')]:
-  sameOriginOnly = 'true' if resourceType == 'WORKER' else 'false'
+  ('worker-subresource-fetch', 'FETCH'),
+  ('shared-worker', 'SHARED_WORKER')]:
+  # TODO(https://crbug.com/989399): Add tests for subresource requests on shared
+  # workers, and main/subresource requests on service workers.
+
+  sameOriginOnly = 'false'
+  if resourceType == 'WORKER' or resourceType == 'SHARED_WORKER':
+    sameOriginOnly = 'true'
+
   types = [('', 'generateTests'), ('-redirect', 'generateRedirectTests')]
   if name == 'module-worker' or resourceType == 'WORKLET':
     types.append(('-import', 'generateModuleImportTests'))
+
   for typeName, generatorName in types:
     filename = '%s%s-upgrade.https.html' % (name, typeName)
     with open(filename, 'w') as html_file:

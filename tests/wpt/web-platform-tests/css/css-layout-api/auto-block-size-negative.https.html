@@ -38,8 +38,8 @@
 
 <script id="code" type="text/worklet">
 registerLayout('block-size-negative', class {
-  *intrinsicSizes() {}
-  *layout() {
+  async intrinsicSizes() {}
+  async layout() {
     return {autoBlockSize: -100};
   }
 });

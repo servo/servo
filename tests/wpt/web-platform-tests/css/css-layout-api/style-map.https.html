@@ -40,8 +40,8 @@ const tmpl = (test, idx) => {
     registerLayout('test-${idx}', class {
       static get inputProperties() { return ['${test.property}']; }
 
-      *intrinsicSizes() {}
-      *layout(children, edges, constraints, styleMap) {
+      async intrinsicSizes() {}
+      async layout(children, edges, constraints, styleMap) {
         const value = styleMap.get('${test.property}');
         const result = '[' + value.constructor.name + '=' + value.toString() + ']';
         if (result != '${test.expected}')

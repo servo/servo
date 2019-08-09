@@ -1,1 +1,1 @@
-Set-Cookie: foo=bar; Expires=Fri 07 Aug 2019 08:04:19 GMT, baz=qux
+Set-Cookie: foo=bar; Expires=Fri 01 Jan 2038 00:00:00 GMT, baz=qux

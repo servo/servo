@@ -180,76 +180,6 @@ Please make sure git and your text editor do not automatically convert
 line endings, as it will cause lint errors. For git, please set
 `git config core.autocrlf false` in your working tree.
 
-Certificates
-============
-
-By default pre-generated certificates for the web-platform.test domain
-are provided in [`tools/certs`](tools/certs). If you wish to generate new
-certificates for any reason it's possible to use OpenSSL when starting
-the server, or starting a test run, by providing the
-`--ssl-type=openssl` argument to the `wpt serve` or `wpt run`
-commands.
-
-If you installed OpenSSL in such a way that running `openssl` at a
-command line doesn't work, you also need to adjust the path to the
-OpenSSL binary. This can be done by adding a section to `config.json`
-like:
-
-```
-"ssl": {"openssl": {"binary": "/path/to/openssl"}}
-```
-
-On Windows using OpenSSL typically requires installing an OpenSSL distribution.
-[Shining Light](https://slproweb.com/products/Win32OpenSSL.html)
-provide a convenient installer that is known to work, but requires a
-little extra setup, i.e.:
-
-Run the installer for Win32_OpenSSL_v1.1.0b (30MB). During installation,
-change the default location for where to Copy OpenSSL Dlls from the
-System directory to the /bin directory.
-
-After installation, ensure that the path to OpenSSL (typically,
-this will be `C:\OpenSSL-Win32\bin`) is in your `%Path%`
-[Environment Variable](http://www.computerhope.com/issues/ch000549.htm).
-If you forget to do this part, you will most likely see a 'File Not Found'
-error when you start wptserve.
-
-Finally, set the path value in the server configuration file to the
-default OpenSSL configuration file location. To do this create a file
-called `config.json`.  Then add the OpenSSL configuration below,
-ensuring that the key `ssl/openssl/base_conf_path` has a value that is
-the path to the OpenSSL config file (typically this will be
-`C:\\OpenSSL-Win32\\bin\\openssl.cfg`):
-
-```
-{
-  "ssl": {
-    "type": "openssl",
-    "encrypt_after_connect": false,
-    "openssl": {
-      "openssl_binary": "openssl",
-      "base_path: "_certs",
-      "force_regenerate": false,
-      "base_conf_path": "C:\\OpenSSL-Win32\\bin\\openssl.cfg"
-    },
-  },
-}
-```
-
-### Trusting Root CA
-
-To prevent browser SSL warnings when running HTTPS tests locally, the
-web-platform-tests Root CA file `cacert.pem` in [tools/certs](tools/certs)
-must be added as a trusted certificate in your OS/browser.
-
-**NOTE**: The CA should not be installed in any browser profile used
-outside of tests, since it may be used to generate fake
-certificates. For browsers that use the OS certificate store, tests
-should therefore not be run manually outside a dedicated OS instance
-(e.g. a VM). To avoid this problem when running tests in Chrome or
-Firefox use `wpt run`, which disables certificate checks and therefore
-doesn't require the root CA to be trusted.
-
 Publication
 ===========
 
@@ -338,36 +268,6 @@ web-platform-tests root directory to suppress the error reports.
 For more details, see the [lint-tool documentation][lint-tool].
 
 [lint-tool]: https://web-platform-tests.org/writing-tests/lint-tool.html
-
-Adding command-line scripts ("tools" subdirs)
----------------------------------------------
-
-Sometimes you may want to add a script to the repository that's meant
-to be used from the command line, not from a browser (e.g., a script
-for generating test files). If you want to ensure (e.g., for security
-reasons) that such scripts won't be handled by the HTTP server, but
-will instead only be usable from the command line, then place them in
-either:
-
-* the `tools` subdir at the root of the repository, or
-
-* the `tools` subdir at the root of any top-level directory in the
-  repository which contains the tests the script is meant to be used
-  with
-
-Any files in those `tools` directories won't be handled by the HTTP
-server; instead the server will return a 404 if a user navigates to
-the URL for a file within them.
-
-If you want to add a script for use with a particular set of tests but
-there isn't yet any `tools` subdir at the root of a top-level
-directory in the repository containing those tests, you can create a
-`tools` subdir at the root of that top-level directory and place your
-scripts there.
-
-For example, if you wanted to add a script for use with tests in the
-`notifications` directory, create the `notifications/tools` subdir and
-put your script there.
 
 Test Review
 ===========
