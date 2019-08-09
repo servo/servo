@@ -173,6 +173,15 @@ int Servo2D::init() {
   EGLSurface surf = plane_->getEGLSurface();
   EGLDisplay dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
 
+  // Set up gstreamer
+  auto tmpdir = getTempPath();
+  auto bindir = getPackagePath() + "bin";
+  auto registry = getWritablePath() + "gstreamer-registry.bin";
+  setenv("GIO_MODULE_DIR", bindir.c_str(), 1);
+  setenv("GST_PLUGIN_SYSTEM_PATH", bindir.c_str(), 1);
+  setenv("GST_REGISTRY", registry.c_str(), 1);
+  setenv("XDG_CACHE_HOME", tmpdir.c_str(), 1);
+
   // Hook into servo
   servo_ = init_servo(ctx, surf, dpy, true,
                       this, logger, history, url, keyboard, uri_, args_,
