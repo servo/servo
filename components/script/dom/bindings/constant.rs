@@ -4,8 +4,9 @@
 
 //! WebIDL constants.
 
+use crate::script_runtime::JSContext;
 use js::jsapi::JSPROP_READONLY;
-use js::jsapi::{JSContext, JSPROP_ENUMERATE, JSPROP_PERMANENT};
+use js::jsapi::{JSPROP_ENUMERATE, JSPROP_PERMANENT};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UInt32Value};
 use js::rust::wrappers::JS_DefineProperty;
 use js::rust::HandleObject;
@@ -50,15 +51,17 @@ impl ConstantSpec {
 
 /// Defines constants on `obj`.
 /// Fails on JSAPI failure.
-pub unsafe fn define_constants(cx: *mut JSContext, obj: HandleObject, constants: &[ConstantSpec]) {
+pub fn define_constants(cx: JSContext, obj: HandleObject, constants: &[ConstantSpec]) {
     for spec in constants {
-        rooted!(in(cx) let value = spec.get_value());
-        assert!(JS_DefineProperty(
-            cx,
-            obj,
-            spec.name.as_ptr() as *const libc::c_char,
-            value.handle(),
-            (JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT) as u32
-        ));
+        rooted!(in(*cx) let value = spec.get_value());
+        unsafe {
+            assert!(JS_DefineProperty(
+                *cx,
+                obj,
+                spec.name.as_ptr() as *const libc::c_char,
+                value.handle(),
+                (JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT) as u32
+            ));
+        }
     }
 }

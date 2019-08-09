@@ -13,10 +13,10 @@ use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript}
 use crate::dom::bindings::utils::AsCCharPtrPtr;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::JSContext;
 use js::jsapi::Heap;
 use js::jsapi::JSAutoRealm;
-use js::jsapi::{AddRawValueRoot, IsCallable, JSContext, JSObject};
+use js::jsapi::{AddRawValueRoot, IsCallable, JSObject};
 use js::jsapi::{EnterRealm, LeaveRealm, Realm, RemoveRawValueRoot};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{JS_GetProperty, JS_WrapObject};
@@ -82,11 +82,11 @@ impl CallbackObject {
     }
 
     #[allow(unsafe_code)]
-    unsafe fn init(&mut self, cx: *mut JSContext, callback: *mut JSObject) {
+    unsafe fn init(&mut self, cx: JSContext, callback: *mut JSObject) {
         self.callback.set(callback);
         self.permanent_js_root.set(ObjectValue(callback));
         assert!(AddRawValueRoot(
-            cx,
+            *cx,
             self.permanent_js_root.get_unsafe(),
             b"CallbackObject::root\n".as_c_char_ptr()
         ));
@@ -113,7 +113,7 @@ impl PartialEq for CallbackObject {
 /// callback interface types.
 pub trait CallbackContainer {
     /// Create a new CallbackContainer object for the given `JSObject`.
-    unsafe fn new(cx: SafeJSContext, callback: *mut JSObject) -> Rc<Self>;
+    unsafe fn new(cx: JSContext, callback: *mut JSObject) -> Rc<Self>;
     /// Returns the underlying `CallbackObject`.
     fn callback_holder(&self) -> &CallbackObject;
     /// Returns the underlying `JSObject`.
@@ -152,8 +152,8 @@ impl CallbackFunction {
 
     /// Initialize the callback function with a value.
     /// Should be called once this object is done moving.
-    pub unsafe fn init(&mut self, cx: SafeJSContext, callback: *mut JSObject) {
-        self.object.init(*cx, callback);
+    pub unsafe fn init(&mut self, cx: JSContext, callback: *mut JSObject) {
+        self.object.init(cx, callback);
     }
 }
 
@@ -179,18 +179,18 @@ impl CallbackInterface {
 
     /// Initialize the callback function with a value.
     /// Should be called once this object is done moving.
-    pub unsafe fn init(&mut self, cx: SafeJSContext, callback: *mut JSObject) {
-        self.object.init(*cx, callback);
+    pub unsafe fn init(&mut self, cx: JSContext, callback: *mut JSObject) {
+        self.object.init(cx, callback);
     }
 
     /// Returns the property with the given `name`, if it is a callable object,
     /// or an error otherwise.
-    pub fn get_callable_property(&self, cx: *mut JSContext, name: &str) -> Fallible<JSVal> {
-        rooted!(in(cx) let mut callable = UndefinedValue());
-        rooted!(in(cx) let obj = self.callback_holder().get());
+    pub fn get_callable_property(&self, cx: JSContext, name: &str) -> Fallible<JSVal> {
+        rooted!(in(*cx) let mut callable = UndefinedValue());
+        rooted!(in(*cx) let obj = self.callback_holder().get());
         unsafe {
             let c_name = CString::new(name).unwrap();
-            if !JS_GetProperty(cx, obj.handle(), c_name.as_ptr(), callable.handle_mut()) {
+            if !JS_GetProperty(*cx, obj.handle(), c_name.as_ptr(), callable.handle_mut()) {
                 return Err(Error::JSFailed);
             }
 
@@ -206,16 +206,12 @@ impl CallbackInterface {
 }
 
 /// Wraps the reflector for `p` into the compartment of `cx`.
-pub fn wrap_call_this_object<T: DomObject>(
-    cx: *mut JSContext,
-    p: &T,
-    mut rval: MutableHandleObject,
-) {
+pub fn wrap_call_this_object<T: DomObject>(cx: JSContext, p: &T, mut rval: MutableHandleObject) {
     rval.set(p.reflector().get_jsobject().get());
     assert!(!rval.get().is_null());
 
     unsafe {
-        if !JS_WrapObject(cx, rval) {
+        if !JS_WrapObject(*cx, rval) {
             rval.set(ptr::null_mut());
         }
     }
@@ -228,7 +224,7 @@ pub struct CallSetup {
     /// (possibly wrapped) callback object.
     exception_global: DomRoot<GlobalScope>,
     /// The `JSContext` used for the call.
-    cx: *mut JSContext,
+    cx: JSContext,
     /// The compartment we were in before the call.
     old_realm: *mut Realm,
     /// The exception handling used for the call.
@@ -255,7 +251,7 @@ impl CallSetup {
         let ais = callback.incumbent().map(AutoIncumbentScript::new);
         CallSetup {
             exception_global: global,
-            cx: *cx,
+            cx: cx,
             old_realm: unsafe { EnterRealm(*cx, callback.callback()) },
             handling: handling,
             entry_script: Some(aes),
@@ -264,7 +260,7 @@ impl CallSetup {
     }
 
     /// Returns the `JSContext` used for the call.
-    pub fn get_context(&self) -> *mut JSContext {
+    pub fn get_context(&self) -> JSContext {
         self.cx
     }
 }
@@ -272,13 +268,13 @@ impl CallSetup {
 impl Drop for CallSetup {
     fn drop(&mut self) {
         unsafe {
-            LeaveRealm(self.cx, self.old_realm);
+            LeaveRealm(*self.cx, self.old_realm);
             if self.handling == ExceptionHandling::Report {
                 let _ac = JSAutoRealm::new(
-                    self.cx,
+                    *self.cx,
                     self.exception_global.reflector().get_jsobject().get(),
                 );
-                report_pending_exception(self.cx, true);
+                report_pending_exception(*self.cx, true);
             }
             drop(self.incumbent_script.take());
             drop(self.entry_script.take().unwrap());

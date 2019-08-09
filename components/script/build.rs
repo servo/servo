@@ -50,7 +50,7 @@ fn main() {
     let mut phf = File::create(&phf).unwrap();
     write!(
         &mut phf,
-        "pub static MAP: phf::Map<&'static [u8], unsafe fn(JSContext, HandleObject)> = "
+        "pub static MAP: phf::Map<&'static [u8], fn(JSContext, HandleObject)> = "
     )
     .unwrap();
     map.build(&mut phf).unwrap();

@@ -76,13 +76,13 @@ use crate::dom::customelementregistry::{ConstructionStackEntry, CustomElementSta
 use crate::dom::element::{Element, ElementCreator};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::window::Window;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::JSContext;
 use crate::script_thread::ScriptThread;
 use html5ever::interface::QualName;
 use html5ever::LocalName;
 use js::glue::UnwrapObjectStatic;
 use js::jsapi::{CallArgs, CurrentGlobalOrNull};
-use js::jsapi::{JSAutoRealm, JSContext, JSObject};
+use js::jsapi::{JSAutoRealm, JSObject};
 use js::rust::HandleObject;
 use js::rust::MutableHandleObject;
 use std::ptr;
@@ -134,7 +134,7 @@ where
             // Step 5
             get_constructor_object_from_local_name(
                 definition.local_name.clone(),
-                *window.get_cx(),
+                window.get_cx(),
                 global_object.handle(),
                 constructor.handle_mut(),
             );
@@ -196,13 +196,13 @@ where
 /// This list should only include elements marked with the [HTMLConstructor] extended attribute.
 pub fn get_constructor_object_from_local_name(
     name: LocalName,
-    cx: *mut JSContext,
+    cx: JSContext,
     global: HandleObject,
     rval: MutableHandleObject,
 ) -> bool {
     macro_rules! get_constructor(
         ($binding:ident) => ({
-            unsafe { $binding::GetConstructorObject(SafeJSContext::from_ptr(cx), global, rval); }
+            $binding::GetConstructorObject(cx, global, rval);
             true
         })
     );

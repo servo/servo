@@ -31,14 +31,14 @@ use crate::dom::node::{document_from_node, window_from_node, Node, ShadowIncludi
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::microtask::Microtask;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::JSContext;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix};
 use js::conversions::ToJSValConvertible;
 use js::glue::UnwrapObjectStatic;
 use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor};
-use js::jsapi::{JSAutoRealm, JSContext, JSObject};
+use js::jsapi::{JSAutoRealm, JSObject};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{Construct1, JS_GetProperty, SameValue};
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
@@ -171,14 +171,10 @@ impl CustomElementRegistry {
 
         // Step 4
         Ok(LifecycleCallbacks {
-            connected_callback: get_callback(*cx, prototype, b"connectedCallback\0")?,
-            disconnected_callback: get_callback(*cx, prototype, b"disconnectedCallback\0")?,
-            adopted_callback: get_callback(*cx, prototype, b"adoptedCallback\0")?,
-            attribute_changed_callback: get_callback(
-                *cx,
-                prototype,
-                b"attributeChangedCallback\0",
-            )?,
+            connected_callback: get_callback(cx, prototype, b"connectedCallback\0")?,
+            disconnected_callback: get_callback(cx, prototype, b"disconnectedCallback\0")?,
+            adopted_callback: get_callback(cx, prototype, b"adoptedCallback\0")?,
+            attribute_changed_callback: get_callback(cx, prototype, b"attributeChangedCallback\0")?,
         })
     }
 
@@ -221,34 +217,32 @@ impl CustomElementRegistry {
 /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
 /// Step 10.4
 #[allow(unsafe_code)]
-unsafe fn get_callback(
-    cx: *mut JSContext,
+fn get_callback(
+    cx: JSContext,
     prototype: HandleObject,
     name: &[u8],
 ) -> Fallible<Option<Rc<Function>>> {
-    rooted!(in(cx) let mut callback = UndefinedValue());
-
-    // Step 10.4.1
-    if !JS_GetProperty(
-        cx,
-        prototype,
-        name.as_ptr() as *const _,
-        callback.handle_mut(),
-    ) {
-        return Err(Error::JSFailed);
-    }
-
-    // Step 10.4.2
-    if !callback.is_undefined() {
-        if !callback.is_object() || !IsCallable(callback.to_object()) {
-            return Err(Error::Type("Lifecycle callback is not callable".to_owned()));
+    rooted!(in(*cx) let mut callback = UndefinedValue());
+    unsafe {
+        // Step 10.4.1
+        if !JS_GetProperty(
+            *cx,
+            prototype,
+            name.as_ptr() as *const _,
+            callback.handle_mut(),
+        ) {
+            return Err(Error::JSFailed);
         }
-        Ok(Some(Function::new(
-            SafeJSContext::from_ptr(cx),
-            callback.to_object(),
-        )))
-    } else {
-        Ok(None)
+
+        // Step 10.4.2
+        if !callback.is_undefined() {
+            if !callback.is_object() || !IsCallable(callback.to_object()) {
+                return Err(Error::Type("Lifecycle callback is not callable".to_owned()));
+            }
+            Ok(Some(Function::new(cx, callback.to_object())))
+        } else {
+            Ok(None)
+        }
     }
 }
 
@@ -409,7 +403,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-get>
     #[allow(unsafe_code)]
-    fn Get(&self, cx: SafeJSContext, name: DOMString) -> JSVal {
+    fn Get(&self, cx: JSContext, name: DOMString) -> JSVal {
         match self.definitions.borrow().get(&LocalName::from(&*name)) {
             Some(definition) => unsafe {
                 rooted!(in(*cx) let mut constructor = UndefinedValue());
@@ -631,7 +625,7 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
         let global = GlobalScope::current().expect("No current global");
         let cx = global.get_cx();
         unsafe {
-            throw_dom_exception(*cx, &global, error);
+            throw_dom_exception(cx, &global, error);
             report_pending_exception(*cx, true);
         }
         return;

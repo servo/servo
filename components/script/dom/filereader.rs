@@ -22,7 +22,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::progressevent::ProgressEvent;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::JSContext;
 use crate::task::TaskCanceller;
 use crate::task_source::file_reading::{FileReadingTask, FileReadingTaskSource};
 use crate::task_source::{TaskSource, TaskSourceName};
@@ -30,7 +30,6 @@ use base64;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use js::jsapi::Heap;
-use js::jsapi::JSContext;
 use js::jsapi::JSObject;
 use js::jsval::{self, JSVal};
 use js::typedarray::{ArrayBuffer, CreateWith};
@@ -233,7 +232,6 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    #[allow(unsafe_code)]
     pub fn process_read_eof(
         filereader: TrustedFileReader,
         gen_id: GenerationId,
@@ -266,7 +264,7 @@ impl FileReader {
                 let _ac = enter_realm(&*fr);
                 FileReader::perform_readasarraybuffer(
                     &fr.result,
-                    *fr.global().get_cx(),
+                    fr.global().get_cx(),
                     data,
                     &blob_contents,
                 )
@@ -313,14 +311,14 @@ impl FileReader {
     #[allow(unsafe_code)]
     fn perform_readasarraybuffer(
         result: &DomRefCell<Option<FileReaderResult>>,
-        cx: *mut JSContext,
+        cx: JSContext,
         _: ReadMetaData,
         bytes: &[u8],
     ) {
         unsafe {
-            rooted!(in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+            rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
             assert!(
-                ArrayBuffer::create(cx, CreateWith::Slice(bytes), array_buffer.handle_mut())
+                ArrayBuffer::create(*cx, CreateWith::Slice(bytes), array_buffer.handle_mut())
                     .is_ok()
             );
 
@@ -392,7 +390,7 @@ impl FileReaderMethods for FileReader {
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/FileAPI/#dfn-result
-    fn GetResult(&self, _: SafeJSContext) -> Option<StringOrObject> {
+    fn GetResult(&self, _: JSContext) -> Option<StringOrObject> {
         self.result.borrow().as_ref().map(|r| match *r {
             FileReaderResult::String(ref string) => StringOrObject::String(string.clone()),
             FileReaderResult::ArrayBuffer(ref arr_buffer) => {

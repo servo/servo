@@ -158,7 +158,7 @@ fn create_html_element(
                             unsafe {
                                 let _ac =
                                     JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
-                                throw_dom_exception(*cx, &global, error);
+                                throw_dom_exception(cx, &global, error);
                                 report_pending_exception(*cx, true);
                             }
 

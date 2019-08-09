@@ -18,6 +18,7 @@ use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
 use crate::dom::bindings::utils::AsCCharPtrPtr;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::PromiseNativeHandler;
+use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{AddRawValueRoot, CallArgs, GetFunctionNativeReserved};
@@ -49,20 +50,21 @@ pub struct Promise {
 
 /// Private helper to enable adding new methods to Rc<Promise>.
 trait PromiseHelper {
-    #[allow(unsafe_code)]
-    unsafe fn initialize(&self, cx: *mut JSContext);
+    fn initialize(&self, cx: SafeJSContext);
 }
 
 impl PromiseHelper for Rc<Promise> {
     #[allow(unsafe_code)]
-    unsafe fn initialize(&self, cx: *mut JSContext) {
+    fn initialize(&self, cx: SafeJSContext) {
         let obj = self.reflector().get_jsobject();
         self.permanent_js_root.set(ObjectValue(*obj));
-        assert!(AddRawValueRoot(
-            cx,
-            self.permanent_js_root.get_unsafe(),
-            b"Promise::root\0".as_c_char_ptr()
-        ));
+        unsafe {
+            assert!(AddRawValueRoot(
+                *cx,
+                self.permanent_js_root.get_unsafe(),
+                b"Promise::root\0".as_c_char_ptr()
+            ));
+        }
     }
 }
 
@@ -86,75 +88,72 @@ impl Promise {
         Promise::new_in_current_compartment(global, comp)
     }
 
-    #[allow(unsafe_code)]
     pub fn new_in_current_compartment(global: &GlobalScope, _comp: InCompartment) -> Rc<Promise> {
         let cx = global.get_cx();
         rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
-        unsafe {
-            Promise::create_js_promise(*cx, HandleObject::null(), obj.handle_mut());
-            Promise::new_with_js_promise(obj.handle(), *cx)
-        }
+        Promise::create_js_promise(cx, HandleObject::null(), obj.handle_mut());
+        Promise::new_with_js_promise(obj.handle(), cx)
     }
 
     #[allow(unsafe_code)]
     pub fn duplicate(&self) -> Rc<Promise> {
         let cx = self.global().get_cx();
-        unsafe { Promise::new_with_js_promise(self.reflector().get_jsobject(), *cx) }
+        Promise::new_with_js_promise(self.reflector().get_jsobject(), cx)
     }
 
     #[allow(unsafe_code, unrooted_must_root)]
-    pub unsafe fn new_with_js_promise(obj: HandleObject, cx: *mut JSContext) -> Rc<Promise> {
-        assert!(IsPromiseObject(obj));
-        let promise = Promise {
-            reflector: Reflector::new(),
-            permanent_js_root: Heap::default(),
-        };
-        let mut promise = Rc::new(promise);
-        Rc::get_mut(&mut promise).unwrap().init_reflector(obj.get());
-        promise.initialize(cx);
-        promise
+    pub fn new_with_js_promise(obj: HandleObject, cx: SafeJSContext) -> Rc<Promise> {
+        unsafe {
+            assert!(IsPromiseObject(obj));
+            let promise = Promise {
+                reflector: Reflector::new(),
+                permanent_js_root: Heap::default(),
+            };
+            let mut promise = Rc::new(promise);
+            Rc::get_mut(&mut promise).unwrap().init_reflector(obj.get());
+            promise.initialize(cx);
+            promise
+        }
     }
 
     #[allow(unsafe_code)]
-    unsafe fn create_js_promise(
-        cx: *mut JSContext,
-        proto: HandleObject,
-        mut obj: MutableHandleObject,
-    ) {
-        let do_nothing_func = JS_NewFunction(
-            cx,
-            Some(do_nothing_promise_executor),
-            /* nargs = */ 2,
-            /* flags = */ 0,
-            ptr::null(),
-        );
-        assert!(!do_nothing_func.is_null());
-        rooted!(in(cx) let do_nothing_obj = JS_GetFunctionObject(do_nothing_func));
-        assert!(!do_nothing_obj.is_null());
-        obj.set(NewPromiseObject(cx, do_nothing_obj.handle(), proto));
-        assert!(!obj.is_null());
+    fn create_js_promise(cx: SafeJSContext, proto: HandleObject, mut obj: MutableHandleObject) {
+        unsafe {
+            let do_nothing_func = JS_NewFunction(
+                *cx,
+                Some(do_nothing_promise_executor),
+                /* nargs = */ 2,
+                /* flags = */ 0,
+                ptr::null(),
+            );
+            assert!(!do_nothing_func.is_null());
+            rooted!(in(*cx) let do_nothing_obj = JS_GetFunctionObject(do_nothing_func));
+            assert!(!do_nothing_obj.is_null());
+            obj.set(NewPromiseObject(*cx, do_nothing_obj.handle(), proto));
+            assert!(!obj.is_null());
+        }
     }
 
     #[allow(unrooted_must_root, unsafe_code)]
-    pub unsafe fn new_resolved(
+    pub fn new_resolved(
         global: &GlobalScope,
-        cx: *mut JSContext,
+        cx: SafeJSContext,
         value: HandleValue,
     ) -> Fallible<Rc<Promise>> {
-        let _ac = JSAutoRealm::new(cx, global.reflector().get_jsobject().get());
-        rooted!(in(cx) let p = CallOriginalPromiseResolve(cx, value));
+        let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
+        rooted!(in(*cx) let p = unsafe { CallOriginalPromiseResolve(*cx, value) });
         assert!(!p.handle().is_null());
         Ok(Promise::new_with_js_promise(p.handle(), cx))
     }
 
     #[allow(unrooted_must_root, unsafe_code)]
-    pub unsafe fn new_rejected(
+    pub fn new_rejected(
         global: &GlobalScope,
-        cx: *mut JSContext,
+        cx: SafeJSContext,
         value: HandleValue,
     ) -> Fallible<Rc<Promise>> {
-        let _ac = JSAutoRealm::new(cx, global.reflector().get_jsobject().get());
-        rooted!(in(cx) let p = CallOriginalPromiseReject(cx, value));
+        let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
+        rooted!(in(*cx) let p = unsafe { CallOriginalPromiseReject(*cx, value) });
         assert!(!p.handle().is_null());
         Ok(Promise::new_with_js_promise(p.handle(), cx))
     }
@@ -169,14 +168,16 @@ impl Promise {
         rooted!(in(*cx) let mut v = UndefinedValue());
         unsafe {
             val.to_jsval(*cx, v.handle_mut());
-            self.resolve(*cx, v.handle());
         }
+        self.resolve(cx, v.handle());
     }
 
     #[allow(unrooted_must_root, unsafe_code)]
-    pub unsafe fn resolve(&self, cx: *mut JSContext, value: HandleValue) {
-        if !ResolvePromise(cx, self.promise_obj(), value) {
-            JS_ClearPendingException(cx);
+    pub fn resolve(&self, cx: SafeJSContext, value: HandleValue) {
+        unsafe {
+            if !ResolvePromise(*cx, self.promise_obj(), value) {
+                JS_ClearPendingException(*cx);
+            }
         }
     }
 
@@ -190,8 +191,8 @@ impl Promise {
         rooted!(in(*cx) let mut v = UndefinedValue());
         unsafe {
             val.to_jsval(*cx, v.handle_mut());
-            self.reject(*cx, v.handle());
         }
+        self.reject(cx, v.handle());
     }
 
     #[allow(unsafe_code)]
@@ -201,14 +202,16 @@ impl Promise {
         rooted!(in(*cx) let mut v = UndefinedValue());
         unsafe {
             error.to_jsval(*cx, &self.global(), v.handle_mut());
-            self.reject(*cx, v.handle());
         }
+        self.reject(cx, v.handle());
     }
 
     #[allow(unrooted_must_root, unsafe_code)]
-    pub unsafe fn reject(&self, cx: *mut JSContext, value: HandleValue) {
-        if !RejectPromise(cx, self.promise_obj(), value) {
-            JS_ClearPendingException(cx);
+    pub fn reject(&self, cx: SafeJSContext, value: HandleValue) {
+        unsafe {
+            if !RejectPromise(*cx, self.promise_obj(), value) {
+                JS_ClearPendingException(*cx);
+            }
         }
     }
 

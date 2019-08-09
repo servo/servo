@@ -12,6 +12,7 @@ use crate::dom::bindings::guard::Guard;
 use crate::dom::bindings::utils::{
     get_proto_or_iface_array, ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT,
 };
+use crate::script_runtime::JSContext as SafeJSContext;
 use js::error::throw_type_error;
 use js::glue::UncheckedUnwrapObject;
 use js::jsapi::HandleObject as RawHandleObject;
@@ -129,7 +130,7 @@ pub type TraceHook = unsafe extern "C" fn(trc: *mut JSTracer, obj: *mut JSObject
 
 /// Create a global object with the given class.
 pub unsafe fn create_global_object(
-    cx: *mut JSContext,
+    cx: SafeJSContext,
     class: &'static JSClass,
     private: *const libc::c_void,
     trace: TraceHook,
@@ -142,7 +143,7 @@ pub unsafe fn create_global_object(
     options.creationOptions_.sharedMemoryAndAtomics_ = true;
 
     rval.set(JS_NewGlobalObject(
-        cx,
+        *cx,
         class,
         ptr::null_mut(),
         OnNewGlobalHookOption::DontFireOnNewGlobalHook,
@@ -159,20 +160,22 @@ pub unsafe fn create_global_object(
     let val = PrivateValue(Box::into_raw(proto_array) as *const libc::c_void);
     JS_SetReservedSlot(rval.get(), DOM_PROTOTYPE_SLOT, &val);
 
-    let _ac = JSAutoRealm::new(cx, rval.get());
-    JS_FireOnNewGlobalObject(cx, rval.handle());
+    let _ac = JSAutoRealm::new(*cx, rval.get());
+    JS_FireOnNewGlobalObject(*cx, rval.handle());
 }
 
 /// Create and define the interface object of a callback interface.
-pub unsafe fn create_callback_interface_object(
-    cx: *mut JSContext,
+pub fn create_callback_interface_object(
+    cx: SafeJSContext,
     global: HandleObject,
     constants: &[Guard<&[ConstantSpec]>],
     name: &[u8],
     mut rval: MutableHandleObject,
 ) {
     assert!(!constants.is_empty());
-    rval.set(JS_NewObject(cx, ptr::null()));
+    unsafe {
+        rval.set(JS_NewObject(*cx, ptr::null()));
+    }
     assert!(!rval.is_null());
     define_guarded_constants(cx, rval.handle(), constants, global);
     define_name(cx, rval.handle(), name);
@@ -180,8 +183,8 @@ pub unsafe fn create_callback_interface_object(
 }
 
 /// Create the interface prototype object of a non-callback interface.
-pub unsafe fn create_interface_prototype_object(
-    cx: *mut JSContext,
+pub fn create_interface_prototype_object(
+    cx: SafeJSContext,
     global: HandleObject,
     proto: HandleObject,
     class: &'static JSClass,
@@ -203,27 +206,29 @@ pub unsafe fn create_interface_prototype_object(
     );
 
     if !unscopable_names.is_empty() {
-        rooted!(in(cx) let mut unscopable_obj = ptr::null_mut::<JSObject>());
+        rooted!(in(*cx) let mut unscopable_obj = ptr::null_mut::<JSObject>());
         create_unscopable_object(cx, unscopable_names, unscopable_obj.handle_mut());
+        unsafe {
+            let unscopable_symbol = GetWellKnownSymbol(*cx, SymbolCode::unscopables);
+            assert!(!unscopable_symbol.is_null());
 
-        let unscopable_symbol = GetWellKnownSymbol(cx, SymbolCode::unscopables);
-        assert!(!unscopable_symbol.is_null());
+            rooted!(in(*cx) let mut unscopable_id: jsid);
+            RUST_SYMBOL_TO_JSID(unscopable_symbol, unscopable_id.handle_mut());
 
-        rooted!(in(cx) let mut unscopable_id: jsid);
-        RUST_SYMBOL_TO_JSID(unscopable_symbol, unscopable_id.handle_mut());
-        assert!(JS_DefinePropertyById5(
-            cx,
-            rval.handle(),
-            unscopable_id.handle(),
-            unscopable_obj.handle(),
-            JSPROP_READONLY as u32
-        ))
+            assert!(JS_DefinePropertyById5(
+                *cx,
+                rval.handle(),
+                unscopable_id.handle(),
+                unscopable_obj.handle(),
+                JSPROP_READONLY as u32
+            ))
+        }
     }
 }
 
 /// Create and define the interface object of a non-callback interface.
-pub unsafe fn create_noncallback_interface_object(
-    cx: *mut JSContext,
+pub fn create_noncallback_interface_object(
+    cx: SafeJSContext,
     global: HandleObject,
     proto: HandleObject,
     class: &'static NonCallbackInterfaceObjectClass,
@@ -245,54 +250,58 @@ pub unsafe fn create_noncallback_interface_object(
         constants,
         rval,
     );
-    assert!(JS_LinkConstructorAndPrototype(
-        cx,
-        rval.handle(),
-        interface_prototype_object
-    ));
+    unsafe {
+        assert!(JS_LinkConstructorAndPrototype(
+            *cx,
+            rval.handle(),
+            interface_prototype_object
+        ));
+    }
     define_name(cx, rval.handle(), name);
     define_length(cx, rval.handle(), i32::try_from(length).expect("overflow"));
     define_on_global_object(cx, global, name, rval.handle());
 }
 
 /// Create and define the named constructors of a non-callback interface.
-pub unsafe fn create_named_constructors(
-    cx: *mut JSContext,
+pub fn create_named_constructors(
+    cx: SafeJSContext,
     global: HandleObject,
     named_constructors: &[(ConstructorClassHook, &[u8], u32)],
     interface_prototype_object: HandleObject,
 ) {
-    rooted!(in(cx) let mut constructor = ptr::null_mut::<JSObject>());
+    rooted!(in(*cx) let mut constructor = ptr::null_mut::<JSObject>());
 
     for &(native, name, arity) in named_constructors {
         assert_eq!(*name.last().unwrap(), b'\0');
 
-        let fun = JS_NewFunction(
-            cx,
-            Some(native),
-            arity,
-            JSFUN_CONSTRUCTOR,
-            name.as_ptr() as *const libc::c_char,
-        );
-        assert!(!fun.is_null());
-        constructor.set(JS_GetFunctionObject(fun));
-        assert!(!constructor.is_null());
+        unsafe {
+            let fun = JS_NewFunction(
+                *cx,
+                Some(native),
+                arity,
+                JSFUN_CONSTRUCTOR,
+                name.as_ptr() as *const libc::c_char,
+            );
+            assert!(!fun.is_null());
+            constructor.set(JS_GetFunctionObject(fun));
+            assert!(!constructor.is_null());
 
-        assert!(JS_DefineProperty3(
-            cx,
-            constructor.handle(),
-            b"prototype\0".as_ptr() as *const libc::c_char,
-            interface_prototype_object,
-            (JSPROP_PERMANENT | JSPROP_READONLY) as u32
-        ));
+            assert!(JS_DefineProperty3(
+                *cx,
+                constructor.handle(),
+                b"prototype\0".as_ptr() as *const libc::c_char,
+                interface_prototype_object,
+                (JSPROP_PERMANENT | JSPROP_READONLY) as u32
+            ));
+        }
 
         define_on_global_object(cx, global, name, constructor.handle());
     }
 }
 
 /// Create a new object with a unique type.
-pub unsafe fn create_object(
-    cx: *mut JSContext,
+pub fn create_object(
+    cx: SafeJSContext,
     global: HandleObject,
     proto: HandleObject,
     class: &'static JSClass,
@@ -301,7 +310,9 @@ pub unsafe fn create_object(
     constants: &[Guard<&[ConstantSpec]>],
     mut rval: MutableHandleObject,
 ) {
-    rval.set(JS_NewObjectWithUniqueType(cx, class, proto));
+    unsafe {
+        rval.set(JS_NewObjectWithUniqueType(*cx, class, proto));
+    }
     assert!(!rval.is_null());
     define_guarded_methods(cx, rval.handle(), methods, global);
     define_guarded_properties(cx, rval.handle(), properties, global);
@@ -309,8 +320,8 @@ pub unsafe fn create_object(
 }
 
 /// Conditionally define constants on an object.
-pub unsafe fn define_guarded_constants(
-    cx: *mut JSContext,
+pub fn define_guarded_constants(
+    cx: SafeJSContext,
     obj: HandleObject,
     constants: &[Guard<&[ConstantSpec]>],
     global: HandleObject,
@@ -323,57 +334,65 @@ pub unsafe fn define_guarded_constants(
 }
 
 /// Conditionally define methods on an object.
-pub unsafe fn define_guarded_methods(
-    cx: *mut JSContext,
+pub fn define_guarded_methods(
+    cx: SafeJSContext,
     obj: HandleObject,
     methods: &[Guard<&'static [JSFunctionSpec]>],
     global: HandleObject,
 ) {
     for guard in methods {
         if let Some(specs) = guard.expose(cx, obj, global) {
-            define_methods(cx, obj, specs).unwrap();
+            unsafe {
+                define_methods(*cx, obj, specs).unwrap();
+            }
         }
     }
 }
 
 /// Conditionally define properties on an object.
-pub unsafe fn define_guarded_properties(
-    cx: *mut JSContext,
+pub fn define_guarded_properties(
+    cx: SafeJSContext,
     obj: HandleObject,
     properties: &[Guard<&'static [JSPropertySpec]>],
     global: HandleObject,
 ) {
     for guard in properties {
         if let Some(specs) = guard.expose(cx, obj, global) {
-            define_properties(cx, obj, specs).unwrap();
+            unsafe {
+                define_properties(*cx, obj, specs).unwrap();
+            }
         }
     }
 }
 
 /// Returns whether an interface with exposure set given by `globals` should
 /// be exposed in the global object `obj`.
-pub unsafe fn is_exposed_in(object: HandleObject, globals: Globals) -> bool {
-    let unwrapped = UncheckedUnwrapObject(object.get(), /* stopAtWindowProxy = */ 0);
-    let dom_class = get_dom_class(unwrapped).unwrap();
-    globals.contains(dom_class.global)
+pub fn is_exposed_in(object: HandleObject, globals: Globals) -> bool {
+    unsafe {
+        let unwrapped = UncheckedUnwrapObject(object.get(), /* stopAtWindowProxy = */ 0);
+        let dom_class = get_dom_class(unwrapped).unwrap();
+        globals.contains(dom_class.global)
+    }
 }
 
 /// Define a property with a given name on the global object. Should be called
 /// through the resolve hook.
-pub unsafe fn define_on_global_object(
-    cx: *mut JSContext,
+pub fn define_on_global_object(
+    cx: SafeJSContext,
     global: HandleObject,
     name: &[u8],
     obj: HandleObject,
 ) {
     assert_eq!(*name.last().unwrap(), b'\0');
-    assert!(JS_DefineProperty3(
-        cx,
-        global,
-        name.as_ptr() as *const libc::c_char,
-        obj,
-        JSPROP_RESOLVING
-    ));
+    unsafe {
+        assert!(JS_DefineProperty3(
+            *cx,
+            global,
+            name.as_ptr() as *const libc::c_char,
+            obj,
+            JSPROP_RESOLVING
+        ));
+    }
 }
 
 const OBJECT_OPS: ObjectOps = ObjectOps {
@@ -409,6 +428,7 @@ unsafe extern "C" fn has_instance_hook(
     value: RawMutableHandleValue,
     rval: *mut bool,
 ) -> bool {
+    let cx = SafeJSContext::from_ptr(cx);
     let obj_raw = HandleObject::from_raw(obj);
     let val_raw = HandleValue::from_raw(value.handle());
     match has_instance(cx, obj_raw, val_raw) {
@@ -422,8 +442,8 @@ unsafe extern "C" fn has_instance_hook(
 
 /// Return whether a value is an instance of a given prototype.
 /// <http://heycam.github.io/webidl/#es-interface-hasinstance>
-unsafe fn has_instance(
-    cx: *mut JSContext,
+fn has_instance(
+    cx: SafeJSContext,
     interface_object: HandleObject,
     value: HandleValue,
 ) -> Result<bool, ()> {
@@ -432,86 +452,91 @@ unsafe fn has_instance(
         return Ok(false);
     }
 
-    rooted!(in(cx) let mut value_out = value.to_object());
-    rooted!(in(cx) let mut value = value.to_object());
+    rooted!(in(*cx) let mut value_out = value.to_object());
+    rooted!(in(*cx) let mut value = value.to_object());
 
-    let js_class = get_object_class(interface_object.get());
-    let object_class = &*(js_class as *const NonCallbackInterfaceObjectClass);
+    unsafe {
+        let js_class = get_object_class(interface_object.get());
+        let object_class = &*(js_class as *const NonCallbackInterfaceObjectClass);
 
-    if let Ok(dom_class) = get_dom_class(UncheckedUnwrapObject(
-        value.get(),
-        /* stopAtWindowProxy = */ 0,
-    )) {
-        if dom_class.interface_chain[object_class.proto_depth as usize] == object_class.proto_id {
-            // Step 4.
-            return Ok(true);
+        if let Ok(dom_class) = get_dom_class(UncheckedUnwrapObject(
+            value.get(),
+            /* stopAtWindowProxy = */ 0,
+        )) {
+            if dom_class.interface_chain[object_class.proto_depth as usize] == object_class.proto_id
+            {
+                // Step 4.
+                return Ok(true);
+            }
         }
-    }
 
-    // Step 2.
-    let global = GetNonCCWObjectGlobal(interface_object.get());
-    assert!(!global.is_null());
-    let proto_or_iface_array = get_proto_or_iface_array(global);
-    rooted!(in(cx) let prototype = (*proto_or_iface_array)[object_class.proto_id as usize]);
-    assert!(!prototype.is_null());
-    // Step 3 only concern legacy callback interface objects (i.e. NodeFilter).
+        // Step 2.
+        let global = GetNonCCWObjectGlobal(interface_object.get());
+        assert!(!global.is_null());
+        let proto_or_iface_array = get_proto_or_iface_array(global);
+        rooted!(in(*cx) let prototype = (*proto_or_iface_array)[object_class.proto_id as usize]);
+        assert!(!prototype.is_null());
+        // Step 3 only concern legacy callback interface objects (i.e. NodeFilter).
 
-    while JS_GetPrototype(cx, value.handle(), value_out.handle_mut()) {
-        *value = *value_out;
-        if value.is_null() {
-            // Step 5.2.
-            return Ok(false);
-        } else if value.get() as *const _ == prototype.get() {
-            // Step 5.3.
-            return Ok(true);
+        while JS_GetPrototype(*cx, value.handle(), value_out.handle_mut()) {
+            *value = *value_out;
+            if value.is_null() {
+                // Step 5.2.
+                return Ok(false);
+            } else if value.get() as *const _ == prototype.get() {
+                // Step 5.3.
+                return Ok(true);
+            }
         }
     }
     // JS_GetPrototype threw an exception.
     Err(())
 }
 
-unsafe fn create_unscopable_object(
-    cx: *mut JSContext,
-    names: &[&[u8]],
-    mut rval: MutableHandleObject,
-) {
+fn create_unscopable_object(cx: SafeJSContext, names: &[&[u8]], mut rval: MutableHandleObject) {
     assert!(!names.is_empty());
     assert!(rval.is_null());
-    rval.set(JS_NewPlainObject(cx));
-    assert!(!rval.is_null());
-    for &name in names {
-        assert_eq!(*name.last().unwrap(), b'\0');
-        assert!(JS_DefineProperty(
-            cx,
-            rval.handle(),
-            name.as_ptr() as *const libc::c_char,
-            HandleValue::from_raw(TrueHandleValue),
-            JSPROP_READONLY as u32,
+    unsafe {
+        rval.set(JS_NewPlainObject(*cx));
+        assert!(!rval.is_null());
+        for &name in names {
+            assert_eq!(*name.last().unwrap(), b'\0');
+            assert!(JS_DefineProperty(
+                *cx,
+                rval.handle(),
+                name.as_ptr() as *const libc::c_char,
+                HandleValue::from_raw(TrueHandleValue),
+                JSPROP_READONLY as u32,
+            ));
+        }
+    }
+}
+
+fn define_name(cx: SafeJSContext, obj: HandleObject, name: &[u8]) {
+    assert_eq!(*name.last().unwrap(), b'\0');
+    unsafe {
+        rooted!(in(*cx) let name = JS_AtomizeAndPinString(*cx, name.as_ptr() as *const libc::c_char));
+        assert!(!name.is_null());
+        assert!(JS_DefineProperty4(
+            *cx,
+            obj,
+            b"name\0".as_ptr() as *const libc::c_char,
+            name.handle().into(),
+            JSPROP_READONLY as u32
         ));
     }
 }
 
-unsafe fn define_name(cx: *mut JSContext, obj: HandleObject, name: &[u8]) {
-    assert_eq!(*name.last().unwrap(), b'\0');
-    rooted!(in(cx) let name = JS_AtomizeAndPinString(cx, name.as_ptr() as *const libc::c_char));
-    assert!(!name.is_null());
-    assert!(JS_DefineProperty4(
-        cx,
-        obj,
-        b"name\0".as_ptr() as *const libc::c_char,
-        name.handle().into(),
-        JSPROP_READONLY as u32
-    ));
-}
-
-unsafe fn define_length(cx: *mut JSContext, obj: HandleObject, length: i32) {
-    assert!(JS_DefineProperty5(
-        cx,
-        obj,
-        b"length\0".as_ptr() as *const libc::c_char,
-        length,
-        JSPROP_READONLY as u32
-    ));
+fn define_length(cx: SafeJSContext, obj: HandleObject, length: i32) {
+    unsafe {
+        assert!(JS_DefineProperty5(
+            *cx,
+            obj,
+            b"length\0".as_ptr() as *const libc::c_char,
+            length,
+            JSPROP_READONLY as u32
+        ));
+    }
 }
 
 unsafe extern "C" fn invalid_constructor(

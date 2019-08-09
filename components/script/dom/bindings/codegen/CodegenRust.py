@@ -810,10 +810,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                 if !JS_WrapValue(*cx, valueToResolve.handle_mut()) {
                 $*{exceptionCode}
                 }
-                match Promise::new_resolved(&promiseGlobal, *cx, valueToResolve.handle()) {
+                match Promise::new_resolved(&promiseGlobal, cx, valueToResolve.handle()) {
                     Ok(value) => value,
                     Err(error) => {
-                    throw_dom_exception(*cx, &promiseGlobal, error);
+                    throw_dom_exception(cx, &promiseGlobal, error);
                     $*{exceptionCode}
                     }
                 }
@@ -2588,8 +2588,7 @@ class CGConstructorEnabled(CGAbstractMethod):
         CGAbstractMethod.__init__(self, descriptor,
                                   'ConstructorEnabled', 'bool',
                                   [Argument("SafeJSContext", "aCx"),
-                                   Argument("HandleObject", "aObj")],
-                                  unsafe=True)
+                                   Argument("HandleObject", "aObj")])
 
     def definition_body(self):
         conditions = []
@@ -2651,8 +2650,8 @@ def InitUnforgeablePropertiesOnHolder(descriptor, properties):
     """
     unforgeables = []
 
-    defineUnforgeableAttrs = "define_guarded_properties(*cx, unforgeable_holder.handle(), %s, global);"
-    defineUnforgeableMethods = "define_guarded_methods(*cx, unforgeable_holder.handle(), %s, global);"
+    defineUnforgeableAttrs = "define_guarded_properties(cx, unforgeable_holder.handle(), %s, global);"
+    defineUnforgeableMethods = "define_guarded_methods(cx, unforgeable_holder.handle(), %s, global);"
 
     unforgeableMembers = [
         (defineUnforgeableAttrs, properties.unforgeable_attrs),
@@ -2762,7 +2761,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             ("define_guarded_methods", self.properties.methods),
             ("define_guarded_constants", self.properties.consts)
         ]
-        members = ["%s(*cx, obj.handle(), %s, obj.handle());" % (function, array.variableName())
+        members = ["%s(cx, obj.handle(), %s, obj.handle());" % (function, array.variableName())
                    for (function, array) in pairs if array.length() > 0]
         values["members"] = "\n".join(members)
 
@@ -2772,7 +2771,7 @@ let _rt = RootedTraceable::new(&*raw);
 
 rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
 create_global_object(
-    *cx,
+    cx,
     &Class.base,
     raw as *const libc::c_void,
     _trace,
@@ -2911,7 +2910,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 rooted!(in(*cx) let proto = %(proto)s);
 assert!(!proto.is_null());
 rooted!(in(*cx) let mut namespace = ptr::null_mut::<JSObject>());
-create_namespace_object(*cx, global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
+create_namespace_object(cx, global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
                         %(methods)s, %(name)s, namespace.handle_mut());
 assert!(!namespace.is_null());
 assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
@@ -2924,7 +2923,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
             assert not self.descriptor.interface.ctor() and self.descriptor.interface.hasConstants()
             return CGGeneric("""\
 rooted!(in(*cx) let mut interface = ptr::null_mut::<JSObject>());
-create_callback_interface_object(*cx, global, sConstants, %(name)s, interface.handle_mut());
+create_callback_interface_object(cx, global, sConstants, %(name)s, interface.handle_mut());
 assert!(!interface.is_null());
 assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
 (*cache)[PrototypeList::Constructor::%(id)s as usize] = interface.get();
@@ -2976,7 +2975,7 @@ assert!(!prototype_proto.is_null());""" % getPrototypeProto)]
 
         code.append(CGGeneric("""
 rooted!(in(*cx) let mut prototype = ptr::null_mut::<JSObject>());
-create_interface_prototype_object(*cx,
+create_interface_prototype_object(cx,
                                   global.into(),
                                   prototype_proto.handle().into(),
                                   &PrototypeClass,
@@ -3011,7 +3010,7 @@ assert!((*cache)[PrototypeList::ID::%(id)s as usize].is_null());
 assert!(!interface_proto.is_null());
 
 rooted!(in(*cx) let mut interface = ptr::null_mut::<JSObject>());
-create_noncallback_interface_object(*cx,
+create_noncallback_interface_object(cx,
                                     global.into(),
                                     interface_proto.handle(),
                                     &INTERFACE_OBJECT_CLASS,
@@ -3093,7 +3092,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                 specs.append(CGGeneric("(%s as ConstructorClassHook, %s, %d)" % (hook, name, length)))
             values = CGIndenter(CGList(specs, "\n"), 4)
             code.append(CGWrapper(values, pre="%s = [\n" % decl, post="\n];"))
-            code.append(CGGeneric("create_named_constructors(*cx, global, &named_constructors, prototype.handle());"))
+            code.append(CGGeneric("create_named_constructors(cx, global, &named_constructors, prototype.handle());"))
 
         if self.descriptor.hasUnforgeableMembers:
             # We want to use the same JSClass and prototype as the object we'll
@@ -3137,23 +3136,25 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
                 Argument('HandleObject', 'global'),
                 Argument('MutableHandleObject', 'mut rval')]
         CGAbstractMethod.__init__(self, descriptor, name,
-                                  'void', args, pub=pub, unsafe=True)
+                                  'void', args, pub=pub)
         self.id = idPrefix + "::" + MakeNativeName(self.descriptor.name)
 
     def definition_body(self):
         return CGGeneric("""
-assert!(((*get_object_class(global.get())).flags & JSCLASS_DOM_GLOBAL) != 0);
+unsafe {
+    assert!(((*get_object_class(global.get())).flags & JSCLASS_DOM_GLOBAL) != 0);
 
-/* Check to see whether the interface objects are already installed */
-let proto_or_iface_array = get_proto_or_iface_array(global.get());
-rval.set((*proto_or_iface_array)[%(id)s as usize]);
-if !rval.get().is_null() {
-    return;
+    /* Check to see whether the interface objects are already installed */
+    let proto_or_iface_array = get_proto_or_iface_array(global.get());
+    rval.set((*proto_or_iface_array)[%(id)s as usize]);
+    if !rval.get().is_null() {
+        return;
+    }
+
+    CreateInterfaceObjects(cx, global, proto_or_iface_array);
+    rval.set((*proto_or_iface_array)[%(id)s as usize]);
+    assert!(!rval.get().is_null());
 }
-
-CreateInterfaceObjects(cx, global, proto_or_iface_array);
-rval.set((*proto_or_iface_array)[%(id)s as usize]);
-assert!(!rval.get().is_null());
 """ % {"id": self.id})
 
 
@@ -3274,7 +3275,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
             Argument('HandleObject', 'global'),
         ]
         CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface',
-                                  'void', args, pub=True, unsafe=True)
+                                  'void', args, pub=True)
 
     def define(self):
         return CGAbstractMethod.define(self)
@@ -3335,7 +3336,7 @@ class CGCallGenerator(CGThing):
         if "cx" not in argsPre and needsCx:
             args.prepend(CGGeneric("cx"))
         if nativeMethodName in descriptor.inCompartmentMethods:
-            args.append(CGGeneric("InCompartment::in_compartment(&AlreadyInCompartment::assert_for_cx(*cx))"))
+            args.append(CGGeneric("InCompartment::in_compartment(&AlreadyInCompartment::assert_for_cx(cx))"))
 
         # Build up our actual call
         self.cgRoot = CGList([], "\n")
@@ -3371,7 +3372,7 @@ class CGCallGenerator(CGThing):
                 "let result = match result {\n"
                 "    Ok(result) => result,\n"
                 "    Err(e) => {\n"
-                "        throw_dom_exception(*cx, %s, e);\n"
+                "        throw_dom_exception(cx, %s, e);\n"
                 "        return%s;\n"
                 "    },\n"
                 "};" % (glob, errorResult)))
@@ -5555,12 +5556,12 @@ let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
 // so we can do the spec's object-identity checks.
 rooted!(in(*cx) let new_target = UnwrapObjectDynamic(args.new_target().to_object(), *cx, 1));
 if new_target.is_null() {
-    throw_dom_exception(*cx, global.upcast::<GlobalScope>(), Error::Type("new.target is null".to_owned()));
+    throw_dom_exception(cx, global.upcast::<GlobalScope>(), Error::Type("new.target is null".to_owned()));
     return false;
 }
 
 if args.callee() == new_target.get() {
-    throw_dom_exception(*cx, global.upcast::<GlobalScope>(),
+    throw_dom_exception(cx, global.upcast::<GlobalScope>(),
         Error::Type("new.target must not be the active function object".to_owned()));
     return false;
 }
@@ -5601,7 +5602,7 @@ let result: Result<DomRoot<%s>, Error> = html_constructor(&global, &args);
 let result = match result {
     Ok(result) => result,
     Err(e) => {
-        throw_dom_exception(*cx, global.upcast::<GlobalScope>(), e);
+        throw_dom_exception(cx, global.upcast::<GlobalScope>(), e);
         return false;
     },
 };
@@ -6355,21 +6356,23 @@ class CGDictionary(CGThing):
         return string.Template(
             "impl ${selfName} {\n"
             "${empty}\n"
-            "    pub unsafe fn new(cx: SafeJSContext, val: HandleValue) \n"
+            "    pub fn new(cx: SafeJSContext, val: HandleValue) \n"
             "                      -> Result<ConversionResult<${actualType}>, ()> {\n"
-            "        let object = if val.get().is_null_or_undefined() {\n"
-            "            ptr::null_mut()\n"
-            "        } else if val.get().is_object() {\n"
-            "            val.get().to_object()\n"
-            "        } else {\n"
-            "            return Ok(ConversionResult::Failure(\"Value is not an object.\".into()));\n"
-            "        };\n"
-            "        rooted!(in(*cx) let object = object);\n"
+            "        unsafe {\n"
+            "            let object = if val.get().is_null_or_undefined() {\n"
+            "                ptr::null_mut()\n"
+            "            } else if val.get().is_object() {\n"
+            "                val.get().to_object()\n"
+            "            } else {\n"
+            "                return Ok(ConversionResult::Failure(\"Value is not an object.\".into()));\n"
+            "            };\n"
+            "            rooted!(in(*cx) let object = object);\n"
             "${preInitial}"
             "${initParent}"
             "${initMembers}"
             "${postInitial}"
-            "        Ok(ConversionResult::Success(dictionary))\n"
+            "            Ok(ConversionResult::Success(dictionary))\n"
+            "        }\n"
             "    }\n"
             "}\n"
             "\n"
@@ -6391,11 +6394,11 @@ class CGDictionary(CGThing):
                 "selfName": selfName,
                 "actualType": actualType,
                 "empty": CGIndenter(CGGeneric(self.makeEmpty()), indentLevel=4).define(),
-                "initParent": CGIndenter(CGGeneric(initParent), indentLevel=12).define(),
-                "initMembers": CGIndenter(memberInits, indentLevel=12).define(),
+                "initParent": CGIndenter(CGGeneric(initParent), indentLevel=16).define(),
+                "initMembers": CGIndenter(memberInits, indentLevel=16).define(),
                 "insertMembers": CGIndenter(memberInserts, indentLevel=8).define(),
-                "preInitial": CGIndenter(CGGeneric(preInitial), indentLevel=12).define(),
-                "postInitial": CGIndenter(CGGeneric(postInitial), indentLevel=12).define(),
+                "preInitial": CGIndenter(CGGeneric(preInitial), indentLevel=16).define(),
+                "postInitial": CGIndenter(CGGeneric(postInitial), indentLevel=16).define(),
             })
 
     def membersNeedTracing(self):
@@ -6825,8 +6828,8 @@ class CGCallback(CGClass):
         # Record the names of all the arguments, so we can use them when we call
         # the private method.
         argnames = [arg.name for arg in args]
-        argnamesWithThis = ["SafeJSContext::from_ptr(s.get_context())", "thisObjJS.handle()"] + argnames
-        argnamesWithoutThis = ["SafeJSContext::from_ptr(s.get_context())", "thisObjJS.handle()"] + argnames
+        argnamesWithThis = ["s.get_context()", "thisObjJS.handle()"] + argnames
+        argnamesWithoutThis = ["s.get_context()", "thisObjJS.handle()"] + argnames
         # Now that we've recorded the argnames for our call to our private
         # method, insert our optional argument for deciding whether the
         # CallSetup should re-throw exceptions on aRv.
@@ -6846,7 +6849,7 @@ class CGCallback(CGClass):
 
         bodyWithThis = string.Template(
             setupCall +
-            "rooted!(in(s.get_context()) let mut thisObjJS = ptr::null_mut::<JSObject>());\n"
+            "rooted!(in(*s.get_context()) let mut thisObjJS = ptr::null_mut::<JSObject>());\n"
             "wrap_call_this_object(s.get_context(), thisObj, thisObjJS.handle_mut());\n"
             "if thisObjJS.is_null() {\n"
             "    return Err(JSFailed);\n"
@@ -6857,7 +6860,7 @@ class CGCallback(CGClass):
             })
         bodyWithoutThis = string.Template(
             setupCall +
-            "rooted!(in(s.get_context()) let thisObjJS = ptr::null_mut::<JSObject>());\n"
+            "rooted!(in(*s.get_context()) let thisObjJS = ptr::null_mut::<JSObject>());\n"
             "unsafe { ${methodName}(${callArgs}) }").substitute({
                 "callArgs": ", ".join(argnamesWithoutThis),
                 "methodName": 'self.' + method.name,
@@ -7115,7 +7118,7 @@ class CallbackMember(CGNativeMember):
             return ""
         return (
             "CallSetup s(CallbackPreserveColor(), aRv, aExceptionHandling);\n"
-            "JSContext* cx = s.get_context();\n"
+            "JSContext* cx = *s.get_context();\n"
             "if (!cx) {\n"
             "    return Err(JSFailed);\n"
             "}\n")
@@ -7216,7 +7219,7 @@ class CallbackOperationBase(CallbackMethod):
             "methodName": self.methodName
         }
         getCallableFromProp = string.Template(
-            'r#try!(self.parent.get_callable_property(*cx, "${methodName}"))'
+            'r#try!(self.parent.get_callable_property(cx, "${methodName}"))'
         ).substitute(replacements)
         if not self.singleOperation:
             return 'rooted!(in(*cx) let callable =\n' + getCallableFromProp + ');\n'

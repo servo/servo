@@ -172,6 +172,7 @@ unsafe extern "C" fn enqueue_promise_job(
     _allocation_site: HandleObject,
     incumbent_global: HandleObject,
 ) -> bool {
+    let cx = JSContext::from_ptr(cx);
     wrap_panic(
         AssertUnwindSafe(|| {
             let microtask_queue = &*(extra as *const MicrotaskQueue);
@@ -179,7 +180,7 @@ unsafe extern "C" fn enqueue_promise_job(
             let pipeline = global.pipeline_id();
             microtask_queue.enqueue(
                 Microtask::Promise(EnqueuedPromiseCallback {
-                    callback: PromiseJobCallback::new(JSContext::from_ptr(cx), job.get()),
+                    callback: PromiseJobCallback::new(cx, job.get()),
                     pipeline,
                 }),
                 cx,
@@ -201,7 +202,8 @@ unsafe extern "C" fn promise_rejection_tracker(
     // TODO: Step 2 - If script's muted errors is true, terminate these steps.
 
     // Step 3.
-    let global = GlobalScope::from_context(cx);
+    let cx = JSContext::from_ptr(cx);
+    let global = GlobalScope::from_context(*cx);
 
     wrap_panic(
         AssertUnwindSafe(|| {
@@ -281,7 +283,7 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
                 .iter()
                 .map(|promise| {
                     let promise =
-                        Promise::new_with_js_promise(Handle::from_raw(promise.handle()), *cx);
+                        Promise::new_with_js_promise(Handle::from_raw(promise.handle()), cx);
 
                     TrustedPromise::new(promise)
                 })

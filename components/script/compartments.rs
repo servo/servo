@@ -4,7 +4,8 @@
 
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::globalscope::GlobalScope;
-use js::jsapi::{GetCurrentRealmOrNull, JSAutoRealm, JSContext};
+use crate::script_runtime::JSContext;
+use js::jsapi::{GetCurrentRealmOrNull, JSAutoRealm};
 
 pub struct AlreadyInCompartment(());
 
@@ -17,9 +18,9 @@ impl AlreadyInCompartment {
         AlreadyInCompartment(())
     }
 
-    pub fn assert_for_cx(cx: *mut JSContext) -> AlreadyInCompartment {
+    pub fn assert_for_cx(cx: JSContext) -> AlreadyInCompartment {
         unsafe {
-            assert!(!GetCurrentRealmOrNull(cx).is_null());
+            assert!(!GetCurrentRealmOrNull(*cx).is_null());
         }
         AlreadyInCompartment(())
     }

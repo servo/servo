@@ -28,7 +28,7 @@ use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
 use crate::dom::webglrenderingcontext::{
     LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext,
 };
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::JSContext;
 use base64;
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
@@ -39,7 +39,6 @@ use image::png::PNGEncoder;
 use image::ColorType;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::error::throw_type_error;
-use js::jsapi::JSContext;
 use js::rust::HandleValue;
 use profile_traits::ipc;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
@@ -207,10 +206,9 @@ impl HTMLCanvasElement {
         Some(context)
     }
 
-    #[allow(unsafe_code)]
-    unsafe fn get_or_init_webgl_context(
+    fn get_or_init_webgl_context(
         &self,
-        cx: *mut JSContext,
+        cx: JSContext,
         options: HandleValue,
     ) -> Option<DomRoot<WebGLRenderingContext>> {
         if let Some(ctx) = self.context() {
@@ -227,10 +225,9 @@ impl HTMLCanvasElement {
         Some(context)
     }
 
-    #[allow(unsafe_code)]
-    unsafe fn get_or_init_webgl2_context(
+    fn get_or_init_webgl2_context(
         &self,
-        cx: *mut JSContext,
+        cx: JSContext,
         options: HandleValue,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
         if !pref!(dom.webgl2.enabled) {
@@ -260,20 +257,19 @@ impl HTMLCanvasElement {
     }
 
     #[allow(unsafe_code)]
-    unsafe fn get_gl_attributes(
-        cx: *mut JSContext,
-        options: HandleValue,
-    ) -> Option<GLContextAttributes> {
-        match WebGLContextAttributes::new(SafeJSContext::from_ptr(cx), options) {
-            Ok(ConversionResult::Success(ref attrs)) => Some(From::from(attrs)),
-            Ok(ConversionResult::Failure(ref error)) => {
-                throw_type_error(cx, &error);
-                None
-            },
-            _ => {
-                debug!("Unexpected error on conversion of WebGLContextAttributes");
-                None
-            },
+    fn get_gl_attributes(cx: JSContext, options: HandleValue) -> Option<GLContextAttributes> {
+        unsafe {
+            match WebGLContextAttributes::new(cx, options) {
+                Ok(ConversionResult::Success(ref attrs)) => Some(From::from(attrs)),
+                Ok(ConversionResult::Failure(ref error)) => {
+                    throw_type_error(*cx, &error);
+                    None
+                },
+                _ => {
+                    debug!("Unexpected error on conversion of WebGLContextAttributes");
+                    None
+                },
+            }
         }
     }
 
@@ -329,10 +325,9 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
     make_uint_setter!(SetHeight, "height", DEFAULT_HEIGHT);
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-getcontext
-    #[allow(unsafe_code)]
     fn GetContext(
         &self,
-        cx: SafeJSContext,
+        cx: JSContext,
         id: DOMString,
         options: HandleValue,
     ) -> Option<RenderingContext> {
@@ -340,14 +335,12 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
             "2d" => self
                 .get_or_init_2d_context()
                 .map(RenderingContext::CanvasRenderingContext2D),
-            "webgl" | "experimental-webgl" => unsafe {
-                self.get_or_init_webgl_context(*cx, options)
-                    .map(RenderingContext::WebGLRenderingContext)
-            },
-            "webgl2" | "experimental-webgl2" => unsafe {
-                self.get_or_init_webgl2_context(*cx, options)
-                    .map(RenderingContext::WebGL2RenderingContext)
-            },
+            "webgl" | "experimental-webgl" => self
+                .get_or_init_webgl_context(cx, options)
+                .map(RenderingContext::WebGLRenderingContext),
+            "webgl2" | "experimental-webgl2" => self
+                .get_or_init_webgl2_context(cx, options)
+                .map(RenderingContext::WebGL2RenderingContext),
             _ => None,
         }
     }
@@ -355,7 +348,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
     // https://html.spec.whatwg.org/multipage/#dom-canvas-todataurl
     fn ToDataURL(
         &self,
-        _context: SafeJSContext,
+        _context: JSContext,
         _mime_type: Option<DOMString>,
         _quality: HandleValue,
     ) -> Fallible<USVString> {

@@ -739,7 +739,7 @@ pub fn handle_get_property(
                         Err(_) => Ok(WebDriverJSValue::Undefined),
                     },
                     Err(error) => {
-                        unsafe { throw_dom_exception(*cx, &node.reflector().global(), error) };
+                        throw_dom_exception(cx, &node.reflector().global(), error);
                         Ok(WebDriverJSValue::Undefined)
                     },
                 }
