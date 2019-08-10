@@ -1,5 +1,6 @@
-
-USES =  "scenes"  "pipeline/cache/AssetManifest"
+USES = \
+    scenes \
+    pipeline/cache/AssetManifest
 
 DATAS = \
     fonts.xml : etc/fonts.xml

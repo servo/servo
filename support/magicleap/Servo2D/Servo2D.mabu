@@ -51,4 +51,4 @@ CXXFLAGS = \
 
 USES = \
     lumin_runtime \
-    code/srcsGen
+    code/srcs
