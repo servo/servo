@@ -225,6 +225,8 @@ impl Serialize for SendableWebDriverJSValue {
             WebDriverJSValue::Number(x) => serializer.serialize_f64(x),
             WebDriverJSValue::String(ref x) => serializer.serialize_str(&x),
             WebDriverJSValue::Element(ref x) => x.serialize(serializer),
+            WebDriverJSValue::Frame(ref x) => x.serialize(serializer),
+            WebDriverJSValue::Window(ref x) => x.serialize(serializer),
             WebDriverJSValue::ArrayLike(ref x) => x
                 .iter()
                 .map(|element| SendableWebDriverJSValue(element.clone()))
@@ -1398,18 +1400,22 @@ impl Handler {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(SendableWebDriverJSValue(value))?,
             ))),
-            Err(WebDriverJSError::Timeout) => Err(WebDriverError::new(ErrorStatus::Timeout, "")),
-            Err(WebDriverJSError::UnknownType) => Err(WebDriverError::new(
-                ErrorStatus::UnsupportedOperation,
-                "Unsupported return type",
+            Err(WebDriverJSError::BrowsingContextNotFound) => Err(WebDriverError::new(
+                ErrorStatus::JavascriptError,
+                "Pipeline id not found in browsing context",
             )),
             Err(WebDriverJSError::JSError) => Err(WebDriverError::new(
                 ErrorStatus::JavascriptError,
                 "JS evaluation raised an exception",
             )),
-            Err(WebDriverJSError::BrowsingContextNotFound) => Err(WebDriverError::new(
-                ErrorStatus::JavascriptError,
-                "Pipeline id not found in browsing context",
+            Err(WebDriverJSError::StaleElementReference) => Err(WebDriverError::new(
+                ErrorStatus::StaleElementReference,
+                "Stale element",
+            )),
+            Err(WebDriverJSError::Timeout) => Err(WebDriverError::new(ErrorStatus::Timeout, "")),
+            Err(WebDriverJSError::UnknownType) => Err(WebDriverError::new(
+                ErrorStatus::UnsupportedOperation,
+                "Unsupported return type",
             )),
         }
     }

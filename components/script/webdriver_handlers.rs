@@ -51,7 +51,7 @@ use script_traits::webdriver_msg::{
     WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue,
 };
 use servo_url::ServoUrl;
-use webdriver::common::WebElement;
+use webdriver::common::{WebElement, WebFrame, WebWindow};
 
 fn find_node_by_unique_id(
     documents: &Documents,
@@ -184,6 +184,21 @@ pub unsafe fn jsval_to_webdriver(
             Ok(WebDriverJSValue::Element(WebElement(
                 element.upcast::<Node>().unique_id(),
             )))
+        } else if let Ok(window) = root_from_object::<Window>(*object, cx) {
+            let window_proxy = window.window_proxy();
+            if window_proxy.is_browsing_context_discarded() {
+                Err(WebDriverJSError::StaleElementReference)
+            } else if window_proxy.browsing_context_id() ==
+                window_proxy.top_level_browsing_context_id()
+            {
+                Ok(WebDriverJSValue::Window(WebWindow(
+                    window.Document().upcast::<Node>().unique_id(),
+                )))
+            } else {
+                Ok(WebDriverJSValue::Frame(WebFrame(
+                    window.Document().upcast::<Node>().unique_id(),
+                )))
+            }
         } else {
             Err(WebDriverJSError::UnknownType)
         }
