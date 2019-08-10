@@ -24,7 +24,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
 use crate::dom::bindings::weakref::DOMTracker;
@@ -83,7 +83,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::JS_DefineProperty;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use media::WindowGLContext;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{StructuredSerializedData, PipelineId};
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
 use net_traits::storage_thread::StorageType;
@@ -920,7 +920,7 @@ impl WindowMethods for Window {
         };
 
         // Step 1-2, 6-8.
-        let data = StructuredCloneData::write(*cx, message, Some(transfer))?;
+        let data = structuredclone::write(*cx, message, Some(transfer))?;
 
         let source_origin = source.Document().origin().immutable().clone();
 
@@ -961,7 +961,7 @@ impl WindowMethods for Window {
         };
 
         // Step 1-2, 6-8.
-        let data = StructuredCloneData::write(*cx, message, Some(transfer))?;
+        let data = structuredclone::write(*cx, message, Some(transfer))?;
 
         let source_origin = source.Document().origin().immutable().clone();
 
@@ -2302,7 +2302,7 @@ impl Window {
         target_origin: Option<ImmutableOrigin>,
         source_origin: ImmutableOrigin,
         source: &WindowProxy,
-        serialize_with_transfer_result: StructuredCloneData,
+        data: StructuredSerializedData,
     ) {
         let this = Trusted::new(self);
         let source = Trusted::new(source);
@@ -2323,7 +2323,7 @@ impl Window {
             let obj = this.reflector().get_jsobject();
             let _ac = JSAutoRealm::new(*cx, obj.get());
             rooted!(in(*cx) let mut message_clone = UndefinedValue());
-            if let Ok(mut results) = serialize_with_transfer_result.read(this.upcast(), message_clone.handle_mut()) {
+            if let Ok(mut results) = structuredclone::read(this.upcast(), data, message_clone.handle_mut()) {
                 // Step 7.6.
                 let new_ports = results.message_ports.drain(0..).collect();
 

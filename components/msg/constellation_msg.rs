@@ -7,7 +7,7 @@
 
 use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use std::mem;
 use std::num::NonZeroU32;
@@ -228,10 +228,17 @@ impl PartialEq<BrowsingContextId> for TopLevelBrowsingContextId {
     }
 }
 
+/// A buffer for a structured clone.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct StructuredSerializedData {
+    pub js: Vec<u8>,
+    pub ports: Option<HashMap<MessagePortId, Vec<u8>>>,
+}
+
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct PortMessageTask {
     pub origin: String,
-    pub data: Vec<u8>,
+    pub data: StructuredSerializedData,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

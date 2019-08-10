@@ -4,8 +4,8 @@
 
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::structuredclone::StructuredCloneData;
 use crate::script_runtime::CommonScriptMsg;
+use msg::constellation_msg::StructuredSerializedData;
 
 /// Messages used to control the worker event loops
 pub enum WorkerScriptMsg {
@@ -14,7 +14,7 @@ pub enum WorkerScriptMsg {
     /// Message sent through Worker.postMessage
     DOMMessage {
         origin: String,
-        data: StructuredCloneData,
+        data: StructuredSerializedData,
     },
 }
 

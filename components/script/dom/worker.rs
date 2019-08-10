@@ -14,7 +14,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
-use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerGlobalScope, DedicatedWorkerScriptMsg,
@@ -32,6 +32,7 @@ use ipc_channel::ipc;
 use js::jsapi::{Heap, JSObject, JS_RequestInterruptCallback};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use msg::constellation_msg::StructuredSerializedData;
 use script_traits::WorkerScriptLoadOrigin;
 use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -142,7 +143,7 @@ impl Worker {
     pub fn handle_message(
         address: TrustedWorkerAddress,
         origin: String,
-        data: StructuredCloneData,
+        data: StructuredSerializedData,
     ) {
         let worker = address.root();
 
@@ -154,7 +155,7 @@ impl Worker {
         let target = worker.upcast();
         let _ac = enter_realm(target);
         rooted!(in(*global.get_cx()) let mut message = UndefinedValue());
-        if let Ok(mut results) = data.read(&global, message.handle_mut()) {
+        if let Ok(mut results) = structuredclone::read(&global, data, message.handle_mut()) {
             let new_ports = results.message_ports.drain(0..).collect();
             MessageEvent::dispatch_jsval(
                 target,
@@ -180,7 +181,7 @@ impl Worker {
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
-        let data = StructuredCloneData::write(*cx, message, Some(transfer))?;
+        let data = structuredclone::write(*cx, message, Some(transfer))?;
         let address = Trusted::new(self);
 
         // NOTE: step 9 of https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage

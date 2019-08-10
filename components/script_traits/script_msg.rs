@@ -22,7 +22,7 @@ use msg::constellation_msg::{
     BrowsingContextId, MessagePortId, PipelineId, PortMessageTask, TopLevelBrowsingContextId,
 };
 use msg::constellation_msg::{
-    HistoryStateId, MessagePortMsg, PipelineNamespaceId, TraversalDirection,
+    HistoryStateId, MessagePortMsg, PipelineNamespaceId, StructuredSerializedData, TraversalDirection,
 };
 use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::StorageType;
@@ -192,7 +192,7 @@ pub enum ScriptMsg {
         /// https://html.spec.whatwg.org/multipage/#dom-messageevent-origin
         source_origin: ImmutableOrigin,
         /// The data to be posted.
-        data: Vec<u8>,
+        data: StructuredSerializedData,
     },
     /// Inform the constellation that a fragment was navigated to and whether or not it was a replacement navigation.
     NavigatedToFragment(ServoUrl, HistoryEntryReplacement),
@@ -319,7 +319,7 @@ pub struct DOMMessage {
     /// The origin of the message
     pub origin: String,
     /// The payload of the message
-    pub data: Vec<u8>,
+    pub data: StructuredSerializedData,
 }
 
 /// Channels to allow service worker manager to communicate with constellation and resource thread

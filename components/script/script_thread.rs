@@ -38,7 +38,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::ThreadLocalStackRoots;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootCollection};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::bindings::utils::WRAP_CALLBACKS;
 use crate::dom::customelementregistry::{
@@ -115,7 +115,7 @@ use msg::constellation_msg::{
 };
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
 use msg::constellation_msg::{HangAnnotation, MonitoredComponentId, MonitoredComponentType};
-use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId};
+use msg::constellation_msg::{PipelineNamespace, StructuredSerializedData, TopLevelBrowsingContextId};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
 use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestBuilder};
 use net_traits::storage_thread::StorageType;
@@ -2456,7 +2456,7 @@ impl ScriptThread {
         source_browsing_context: TopLevelBrowsingContextId,
         origin: Option<ImmutableOrigin>,
         source_origin: ImmutableOrigin,
-        data: Vec<u8>,
+        data: StructuredSerializedData,
     ) {
         match { self.documents.borrow().find_window(pipeline_id) } {
             None => return warn!("postMessage after target pipeline {} closed.", pipeline_id),
@@ -2478,12 +2478,7 @@ impl ScriptThread {
                     Some(source) => source,
                 };
                 // FIXME(#22512): enqueues a task; unnecessary delay.
-                window.post_message(
-                    origin,
-                    source_origin,
-                    &*source,
-                    StructuredCloneData::Vector(data),
-                )
+                window.post_message(origin, source_origin, &*source, data)
             },
         }
     }

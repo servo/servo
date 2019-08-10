@@ -11,7 +11,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::bindings::structuredclone;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -115,11 +115,10 @@ impl History {
         };
 
         match serialized_data {
-            Some(serialized_data) => {
+            Some(data) => {
                 let global_scope = self.window.upcast::<GlobalScope>();
                 rooted!(in(*global_scope.get_cx()) let mut state = UndefinedValue());
-                let _ = StructuredCloneData::Vector(serialized_data)
-                    .read(&global_scope, state.handle_mut());
+                let _ = structuredclone::read(&global_scope, data, state.handle_mut());
                 self.state.set(state.get());
             },
             None => {
@@ -185,7 +184,7 @@ impl History {
         // TODO: Step 4
 
         // Step 5
-        let serialized_data = StructuredCloneData::write(*cx, data, None)?.move_to_arraybuffer();
+        let serialized_data = structuredclone::write(*cx, data, None)?;
 
         let new_url: ServoUrl = match url {
             // Step 6
@@ -267,7 +266,7 @@ impl History {
         let global_scope = self.window.upcast::<GlobalScope>();
         rooted!(in(*cx) let mut state = UndefinedValue());
         let _ =
-            StructuredCloneData::Vector(serialized_data).read(&global_scope, state.handle_mut());
+            structuredclone::read(&global_scope, serialized_data, state.handle_mut());
 
         // Step 12
         self.state.set(state.get());

@@ -126,7 +126,7 @@ use log::{Level, LevelFilter, Log, Metadata, Record};
 use media::{GLPlayerThreads, WindowGLContext};
 use msg::constellation_msg::{BackgroundHangMonitorRegister, HangMonitorAlert, SamplerControlMsg};
 use msg::constellation_msg::{
-    BrowsingContextGroupId, BrowsingContextId, HistoryStateId, PipelineId,
+    BrowsingContextGroupId, BrowsingContextId, HistoryStateId, PipelineId, StructuredSerializedData,
     TopLevelBrowsingContextId,
 };
 use msg::constellation_msg::{
@@ -3455,7 +3455,7 @@ where
         source_pipeline: PipelineId,
         origin: Option<ImmutableOrigin>,
         source_origin: ImmutableOrigin,
-        data: Vec<u8>,
+        data: StructuredSerializedData,
     ) {
         let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
             None => {

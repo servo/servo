@@ -17,7 +17,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, RootCollection, ThreadLocalStackRoots};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
@@ -482,7 +482,7 @@ impl DedicatedWorkerGlobalScope {
                 let target = self.upcast();
                 let _ac = enter_realm(self);
                 rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
-                if let Ok(mut results) = data.read(scope.upcast(), message.handle_mut()) {
+                if let Ok(mut results) = structuredclone::read(scope.upcast(), data, message.handle_mut()) {
                     let new_ports = results.message_ports.drain(0..).collect();
                     MessageEvent::dispatch_jsval(
                         target,
@@ -580,7 +580,7 @@ impl DedicatedWorkerGlobalScope {
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
-        let data = StructuredCloneData::write(*cx, message, Some(transfer))?;
+        let data = structuredclone::write(*cx, message, Some(transfer))?;
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         let pipeline_id = self.global().pipeline_id();
         let origin = self.global().origin().immutable().ascii_serialization();

@@ -14,7 +14,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::{entry_global, incumbent_global, AutoEntryScript};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
 use crate::dom::crypto::Crypto;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
@@ -355,36 +355,26 @@ impl GlobalScope {
     }
 
     /// Handle the transfer of a port in the current task.
-    pub fn mark_port_as_transferred(&self, port_id: MessagePortId) {
+    pub fn mark_port_as_transferred(&self, port_id: &MessagePortId) -> Result<Vec<u8>, bincode::Error> {
         // Keep track of ports we transferred, for potential re-routing.
         self.message_ports_transferred
             .borrow_mut()
             .insert(port_id.clone());
 
         // Remove port, and let a locally tracked entangled port know.
-        let entangled_id = self
-            .message_ports
-            .borrow_mut()
-            .remove(&port_id)
-            .and_then(|port| {
-                let (incoming, outgoing) = port.message_buffers();
-                let _ = self
-                    .script_to_constellation_chan()
-                    .send(ScriptMsg::MessagePortShipped(
-                        port_id.clone(),
-                        port.entangled_port_id().clone(),
-                        incoming,
-                        outgoing,
-                    ));
-                port.entangled_port_id()
-            });
-        let entangled_id = match entangled_id {
-            Some(id) => id,
-            None => return,
-        };
-        if let Some(entangled) = self.message_ports.borrow().get(&entangled_id) {
-            entangled.set_has_been_shipped()
-        }
+        let port = self.message_ports.borrow_mut().remove(port_id).expect("Transferred port to be known");
+        let (incoming, outgoing) = port.message_buffers();
+        let _ = self
+            .script_to_constellation_chan()
+            .send(ScriptMsg::MessagePortShipped(
+                port_id.clone(),
+                port.entangled_port_id().clone(),
+                incoming,
+                outgoing,
+            ));
+        let mut bytes = vec![];
+        bincode::serialize_into(&mut bytes, &port)?;
+        Ok(bytes)
     }
 
     /// Enable a port.
@@ -447,8 +437,7 @@ impl GlobalScope {
 
             // Substep 3-4
             rooted!(in(*self.get_cx()) let mut message_clone = UndefinedValue());
-            if let Ok(deserialize_result) =
-                StructuredCloneData::Vector(data).read(self, message_clone.handle_mut())
+            if let Ok(deserialize_result) = structuredclone::read(self, data, message_clone.handle_mut())
             {
                 // Substep 6
                 // Dispatch the event, using the dom message-port.

@@ -293,9 +293,9 @@ impl ResourceChannelManager {
                     .send(history_states.get(&history_state_id).cloned())
                     .unwrap();
             },
-            CoreResourceMsg::SetHistoryState(history_state_id, history_state) => {
+            CoreResourceMsg::SetHistoryState(history_state_id, structured_data) => {
                 let mut history_states = http_state.history_states.write().unwrap();
-                history_states.insert(history_state_id, history_state);
+                history_states.insert(history_state_id, structured_data);
             },
             CoreResourceMsg::RemoveHistoryStates(states_to_remove) => {
                 let mut history_states = http_state.history_states.write().unwrap();

@@ -13,7 +13,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
-use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::bindings::structuredclone;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
@@ -104,10 +104,10 @@ impl ServiceWorkerMethods for ServiceWorker {
             return Err(Error::InvalidState);
         }
         // Step 7
-        let data = StructuredCloneData::write(*cx, message, Some(transfer))?;
+        let data = structuredclone::write(*cx, message, Some(transfer))?;
         let msg_vec = DOMMessage {
             origin: self.global().origin().immutable().ascii_serialization(),
-            data: data.move_to_arraybuffer(),
+            data,
         };
         let _ = self
             .global()

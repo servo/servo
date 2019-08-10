@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowPostMessageOpt
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::dissimilaroriginlocation::DissimilarOriginLocation;
 use crate::dom::globalscope::GlobalScope;
@@ -19,7 +19,7 @@ use ipc_channel::ipc;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{PipelineId, StructuredSerializedData};
 use script_traits::ScriptMsg;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
@@ -159,7 +159,7 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
         };
 
         // Step 1-2, 6-8.
-        let data = StructuredCloneData::write(*cx, message, Some(transfer))?;
+        let data = structuredclone::write(*cx, message, Some(transfer))?;
 
         // Step 9.
         self.post_message(origin, data);
@@ -200,7 +200,7 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
             .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get());
         let mut rooted = CustomAutoRooter::new(transfer.collect());
         let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
-        let data = StructuredCloneData::write(*cx, message, Some(guard))?;
+        let data = structuredclone::write(*cx, message, Some(guard))?;
 
         // Step 9.
         self.post_message(origin, data);
@@ -236,7 +236,7 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 }
 
 impl DissimilarOriginWindow {
-    pub fn post_message(&self, origin: Option<ImmutableOrigin>, data: StructuredCloneData) {
+    pub fn post_message(&self, origin: Option<ImmutableOrigin>, data: StructuredSerializedData) {
         let incumbent = match GlobalScope::incumbent() {
             None => return warn!("postMessage called with no incumbent global"),
             Some(incumbent) => incumbent,
@@ -246,7 +246,7 @@ impl DissimilarOriginWindow {
             source: incumbent.pipeline_id(),
             source_origin: incumbent.origin().immutable().clone(),
             target_origin: origin,
-            data: data.move_to_arraybuffer(),
+            data: data,
         };
         let _ = incumbent.script_to_constellation_chan().send(msg);
     }

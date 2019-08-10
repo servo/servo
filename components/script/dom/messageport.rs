@@ -12,7 +12,7 @@ use crate::dom::bindings::inheritance::{Castable, HasParent};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::structuredclone::{StructuredCloneData, StructuredCloneHolder};
+use crate::dom::bindings::structuredclone::{self, StructuredCloneHolder};
 use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::eventtarget::EventTarget;
@@ -25,6 +25,7 @@ use js::jsapi::{JSContext, JSObject, JSStructuredCloneReader, JSTracer, MutableH
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use msg::constellation_msg::{
     MessagePortId, MessagePortIndex, MessagePortMsg, PipelineNamespaceId, PortMessageTask,
+    StructuredSerializedData,
 };
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
@@ -142,7 +143,7 @@ impl MessagePort {
         }
 
         // Step 5
-        let data = StructuredCloneData::write(*cx, message, Some(transfer))?.move_to_arraybuffer();
+        let data = structuredclone::write(*cx, message, Some(transfer))?;
 
         if doomed {
             // TODO: The spec says to optionally report such a case to a dev console.
@@ -177,7 +178,7 @@ impl HasParent for MessagePort {
     }
 }
 
-#[derive(DenyPublicFields, MallocSizeOf)]
+#[derive(Debug, DenyPublicFields, Deserialize, MallocSizeOf, Serialize)]
 /// The data and logic backing the DOM managed MessagePort.
 pub struct MessagePortImpl {
     detached: Cell<bool>,
@@ -408,29 +409,34 @@ impl Transferable for MessagePort {
     #[allow(unsafe_code)]
     fn transfer(
         &self,
-        _closure: *mut raw::c_void,
-        _content: *mut *mut raw::c_void,
+        closure: *mut raw::c_void,
+        content: *mut *mut raw::c_void,
         extra_data: *mut u64,
     ) -> bool {
-        self.global()
-            .mark_port_as_transferred(self.message_port_id().clone());
-
         self.detached.set(true);
+        let sc_holder = unsafe { &mut *(closure as *mut StructuredCloneHolder) };
+        let port = self
+            .global()
+            .mark_port_as_transferred(self.message_port_id());
 
-        let PipelineNamespaceId(name_space) = self.message_port_id().clone().namespace_id;
-        let MessagePortIndex(index) = self.message_port_id().clone().index;
-        let index = index.get();
+        let id = self.message_port_id();
+        if let Ok(port) = self.global().mark_port_as_transferred(id) {
+            sc_holder.ports_impl.insert(id.clone(), port);
 
-        let mut big: [u8; 8] = [0; 8];
-        let name_space = name_space.to_ne_bytes();
-        let index = index.to_ne_bytes();
+            let PipelineNamespaceId(name_space) = id.clone().namespace_id;
+            let MessagePortIndex(index) = id.clone().index;
+            let index = index.get();
 
-        let (left, right) = big.split_at_mut(4);
-        left.copy_from_slice(&name_space);
-        right.copy_from_slice(&index);
+            let mut big: [u8; 8] = [0; 8];
+            let name_space = name_space.to_ne_bytes();
+            let index = index.to_ne_bytes();
 
-        unsafe { *extra_data = u64::from_ne_bytes(big) };
+            let (left, right) = big.split_at_mut(4);
+            left.copy_from_slice(&name_space);
+            right.copy_from_slice(&index);
 
+            unsafe { *extra_data = u64::from_ne_bytes(big) };
+        }
         true
     }
 
@@ -440,11 +446,11 @@ impl Transferable for MessagePort {
         cx: *mut JSContext,
         _r: *mut JSStructuredCloneReader,
         closure: *mut raw::c_void,
-        _content: *mut raw::c_void,
+        content: *mut raw::c_void,
         extra_data: u64,
         return_object: MutableHandleObject,
     ) -> bool {
-        let sc_holder = unsafe { &mut *(closure as *mut StructuredCloneHolder) };
+        let mut sc_holder = unsafe { &mut *(closure as *mut StructuredCloneHolder) };
         let owner = unsafe { GlobalScope::from_context(cx) };
 
         let big: [u8; 8] = extra_data.to_ne_bytes();
@@ -466,13 +472,21 @@ impl Transferable for MessagePort {
             index,
         };
 
+        let port_impl_data = sc_holder
+            .ports_impl
+            .remove(&id)
+            .expect("Transferred port to be stored");
+        let port_impl: MessagePortImpl = bincode::deserialize(&port_impl_data[..])
+            .expect("MessagePortImpl to be desirealizeable");
+        println!("Received: {:?}", port_impl);
+
         let transferred_port = MessagePort::new_transferred(id.clone());
         let value = reflect_dom_object(Box::new(transferred_port), &*owner, Wrap);
         owner.track_message_port(&value, true);
 
         return_object.set(value.reflector().rootable().get());
 
-        sc_holder.message_ports.push_back(value);
+        sc_holder.message_ports.push(value);
 
         true
     }
