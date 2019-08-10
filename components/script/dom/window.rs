@@ -17,7 +17,6 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use crate::dom::bindings::codegen::UnionTypes::RequestOrUSVString;
-use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -82,7 +81,7 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::{GCReason, Heap, JSAutoRealm, JSObject, JSPROP_ENUMERATE, JS_GC};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::JS_DefineProperty;
-use js::rust::{CustomAutoRooterGuard, HandleValue};
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use media::WindowGLContext;
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
@@ -905,7 +904,7 @@ impl WindowMethods for Window {
         cx: JSContext,
         message: HandleValue,
         origin: USVString,
-        transfer: CustomAutoRooterGuard<Option<Vec<*mut JSObject>>>,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
         let source_global = GlobalScope::incumbent().expect("no incumbent global??");
         let source = source_global.as_window();
@@ -921,15 +920,7 @@ impl WindowMethods for Window {
         };
 
         // Step 1-2, 6-8.
-        rooted!(in(*cx) let mut val = UndefinedValue());
-        unsafe {
-            (*transfer)
-                .as_ref()
-                .unwrap_or(&Vec::new())
-                .to_jsval(*cx, val.handle_mut());
-        }
-
-        let data = StructuredCloneData::write(*cx, message, val.handle())?;
+        let data = StructuredCloneData::write(*cx, message, Some(transfer))?;
 
         let source_origin = source.Document().origin().immutable().clone();
 
@@ -949,11 +940,13 @@ impl WindowMethods for Window {
         let source_global = GlobalScope::incumbent().expect("no incumbent global??");
         let source = source_global.as_window();
 
-        let transfer: Vec<*mut JSObject> = options
+        let transfer = options
             .transfer
             .iter()
-            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
-            .collect();
+            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get());
+        let mut rooted = CustomAutoRooter::new(transfer.collect());
+        let transfer = CustomAutoRooterGuard::new(*cx, &mut rooted);
+
         // Step 3-5.
         let origin = match &options.targetOrigin {
             Some(origin) => match origin.0[..].as_ref() {
@@ -968,10 +961,7 @@ impl WindowMethods for Window {
         };
 
         // Step 1-2, 6-8.
-        rooted!(in(*cx) let mut val = UndefinedValue());
-        unsafe { transfer.to_jsval(*cx, val.handle_mut()) };
-
-        let data = StructuredCloneData::write(*cx, message, val.handle())?;
+        let data = StructuredCloneData::write(*cx, message, Some(transfer))?;
 
         let source_origin = source.Document().origin().immutable().clone();
 

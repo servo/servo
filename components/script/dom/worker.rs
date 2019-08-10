@@ -8,7 +8,6 @@ use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::PostMessageOptions;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::{WorkerMethods, WorkerOptions};
-use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -32,7 +31,7 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use js::jsapi::{Heap, JSObject, JS_RequestInterruptCallback};
 use js::jsval::UndefinedValue;
-use js::rust::{CustomAutoRooterGuard, HandleValue};
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use script_traits::WorkerScriptLoadOrigin;
 use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -179,11 +178,9 @@ impl Worker {
         &self,
         cx: JSContext,
         message: HandleValue,
-        transfer: Vec<*mut JSObject>,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
-        rooted!(in(*cx) let mut val = UndefinedValue());
-        unsafe { (*transfer).to_jsval(*cx, val.handle_mut()) };
-        let data = StructuredCloneData::write(*cx, message, val.handle())?;
+        let data = StructuredCloneData::write(*cx, message, Some(transfer))?;
         let address = Trusted::new(self);
 
         // NOTE: step 9 of https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage
@@ -207,7 +204,7 @@ impl WorkerMethods for Worker {
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
-        self.post_message_impl(cx, message, transfer.to_vec())
+        self.post_message_impl(cx, message, transfer)
     }
 
     /// https://html.spec.whatwg.org/multipage/#dom-worker-postmessage
@@ -217,12 +214,13 @@ impl WorkerMethods for Worker {
         message: HandleValue,
         options: RootedTraceableBox<PostMessageOptions>,
     ) -> ErrorResult {
-        let transfer: Vec<*mut JSObject> = options
+        let transfer = options
             .transfer
             .iter()
-            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
-            .collect();
-        self.post_message_impl(cx, message, transfer)
+            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get());
+        let mut rooted = CustomAutoRooter::new(transfer.collect());
+        let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
+        self.post_message_impl(cx, message, guard)
     }
 
     #[allow(unsafe_code)]

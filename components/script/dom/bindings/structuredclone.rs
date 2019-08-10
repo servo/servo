@@ -6,7 +6,7 @@
 //! (https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
 
 use crate::compartments::enter_realm;
-use crate::dom::bindings::conversions::root_from_handleobject;
+use crate::dom::bindings::conversions::{root_from_handleobject, ToJSValConvertible};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
@@ -30,8 +30,9 @@ use js::jsapi::{JSObject, JS_ClearPendingException};
 use js::jsapi::{JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter};
 use js::jsapi::{JS_ReadBytes, JS_WriteBytes};
 use js::jsapi::{JS_ReadUint32Pair, JS_WriteUint32Pair};
+use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
-use js::rust::{Handle, HandleValue, MutableHandleValue};
+use js::rust::{CustomAutoRooterGuard, Handle, HandleValue, MutableHandleValue};
 use libc::size_t;
 use std::collections::VecDeque;
 use std::os::raw;
@@ -288,9 +289,14 @@ impl StructuredCloneData {
     pub fn write(
         cx: *mut JSContext,
         message: HandleValue,
-        transfer: HandleValue,
+        transfer: Option<CustomAutoRooterGuard<Vec<*mut JSObject>>>,
     ) -> Fallible<StructuredCloneData> {
         unsafe {
+            rooted!(in(cx) let mut val = UndefinedValue());
+            if let Some(transfer) = transfer {
+                transfer.to_jsval(cx, val.handle_mut());
+            }
+
             let scbuf = NewJSAutoStructuredCloneBuffer(
                 StructuredCloneScope::DifferentProcess,
                 &STRUCTURED_CLONE_CALLBACKS,
@@ -308,7 +314,7 @@ impl StructuredCloneData {
                 policy,
                 &STRUCTURED_CLONE_CALLBACKS,
                 ptr::null_mut(),
-                transfer,
+                val.handle(),
             );
             if !result {
                 JS_ClearPendingException(cx);

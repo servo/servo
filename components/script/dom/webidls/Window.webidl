@@ -64,7 +64,7 @@
   void cancelAnimationFrame(unsigned long handle);
 
   [Throws]
-  void postMessage(any message, USVString targetOrigin, optional sequence<object> transfer /*= []*/);
+  void postMessage(any message, USVString targetOrigin, sequence<object> transfer /*= []*/);
   [Throws]
   void postMessage(any message, optional WindowPostMessageOptions options = {});
 

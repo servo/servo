@@ -5,8 +5,6 @@
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowPostMessageOptions;
-
-use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
@@ -20,7 +18,7 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::{CustomAutoRooterGuard, HandleValue};
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use msg::constellation_msg::PipelineId;
 use script_traits::ScriptMsg;
 use servo_url::ImmutableOrigin;
@@ -145,7 +143,7 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
         cx: JSContext,
         message: HandleValue,
         origin: DOMString,
-        transfer: CustomAutoRooterGuard<Option<Vec<*mut JSObject>>>,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
         // Step 3-5.
         let origin = match &origin[..] {
@@ -161,15 +159,7 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
         };
 
         // Step 1-2, 6-8.
-        // TODO(#12717): Should implement the `transfer` argument.
-        rooted!(in(*cx) let mut val = UndefinedValue());
-        unsafe {
-            (*transfer)
-                .as_ref()
-                .unwrap_or(&Vec::new())
-                .to_jsval(*cx, val.handle_mut());
-        }
-        let data = StructuredCloneData::write(*cx, message, val.handle())?;
+        let data = StructuredCloneData::write(*cx, message, Some(transfer))?;
 
         // Step 9.
         self.post_message(origin, data);
@@ -184,11 +174,6 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
         message: HandleValue,
         options: RootedTraceableBox<WindowPostMessageOptions>,
     ) -> ErrorResult {
-        let transfer: Vec<*mut JSObject> = options
-            .transfer
-            .iter()
-            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
-            .collect();
         // Step 3-5.
         let origin = match &options.targetOrigin {
             Some(origin) => {
@@ -209,9 +194,13 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
         };
 
         // Step 1-2, 6-8.
-        rooted!(in(*cx) let mut val = UndefinedValue());
-        unsafe { transfer.to_jsval(*cx, val.handle_mut()) };
-        let data = StructuredCloneData::write(*cx, message, val.handle())?;
+        let transfer = options
+            .transfer
+            .iter()
+            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get());
+        let mut rooted = CustomAutoRooter::new(transfer.collect());
+        let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
+        let data = StructuredCloneData::write(*cx, message, Some(guard))?;
 
         // Step 9.
         self.post_message(origin, data);

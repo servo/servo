@@ -6,7 +6,7 @@ use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNo
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{
     MessagePortMethods, PostMessageOptions, Wrap,
 };
-use crate::dom::bindings::conversions::{root_from_object, ToJSValConvertible};
+use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::{Castable, HasParent};
 use crate::dom::bindings::refcounted::Trusted;
@@ -22,8 +22,7 @@ use crate::task_source::TaskSource;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::Heap;
 use js::jsapi::{JSContext, JSObject, JSStructuredCloneReader, JSTracer, MutableHandleObject};
-use js::jsval::UndefinedValue;
-use js::rust::{CustomAutoRooterGuard, HandleValue};
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use msg::constellation_msg::{
     MessagePortId, MessagePortIndex, MessagePortMsg, PipelineNamespaceId, PortMessageTask,
 };
@@ -112,7 +111,7 @@ impl MessagePort {
         &self,
         cx: SafeJSContext,
         message: HandleValue,
-        transfer: Vec<*mut JSObject>,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
         if self.detached.get() {
             return Ok(());
@@ -125,7 +124,6 @@ impl MessagePort {
         // Step 3
         let mut doomed = false;
 
-        rooted!(in(*cx) let mut val = UndefinedValue());
         let ports = transfer
             .iter()
             .filter_map(|&obj| root_from_object::<MessagePort>(obj, *cx).ok());
@@ -143,10 +141,8 @@ impl MessagePort {
             }
         }
 
-        unsafe { transfer.to_jsval(*cx, val.handle_mut()) };
-
         // Step 5
-        let data = StructuredCloneData::write(*cx, message, val.handle())?.move_to_arraybuffer();
+        let data = StructuredCloneData::write(*cx, message, Some(transfer))?.move_to_arraybuffer();
 
         if doomed {
             // TODO: The spec says to optionally report such a case to a dev console.
@@ -493,7 +489,7 @@ impl MessagePortMethods for MessagePort {
         if self.detached.get() {
             return Ok(());
         }
-        self.post_message_impl(cx, message, transfer.to_vec())
+        self.post_message_impl(cx, message, transfer)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
@@ -506,12 +502,13 @@ impl MessagePortMethods for MessagePort {
         if self.detached.get() {
             return Ok(());
         }
-        let transfer: Vec<*mut JSObject> = options
+        let transfer = options
             .transfer
             .iter()
-            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
-            .collect();
-        self.post_message_impl(cx, message, transfer)
+            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get());
+        let mut rooted = CustomAutoRooter::new(transfer.collect());
+        let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
+        self.post_message_impl(cx, message, guard)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-start>
