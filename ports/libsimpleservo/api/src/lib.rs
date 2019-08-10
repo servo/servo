@@ -15,7 +15,7 @@ use servo::compositing::windowing::{
 };
 use servo::embedder_traits::resources::{self, Resource, ResourceReaderMethods};
 use servo::embedder_traits::EmbedderMsg;
-use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
+use servo::euclid::{default::Size2D as UntypedSize2D, Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::script_traits::{TouchEventType, TouchId};
@@ -129,6 +129,12 @@ pub trait HostTrait {
     fn get_clipboard_contents(&self) -> Option<String>;
     /// Sets system clipboard contents
     fn set_clipboard_contents(&self, contents: String);
+    /// FIXME
+    fn to_immersive_mode(&self);
+    /// FIXME
+    fn flush_xr(&self);
+    /// FIXME
+    fn make_current_xr(&self);
 }
 
 pub struct ServoGlue {
@@ -188,9 +194,11 @@ pub fn init(
     gl.clear(gl::COLOR_BUFFER_BIT);
     gl.finish();
 
+    let host_callbacks = Rc::new(callbacks);
+
     let window_callbacks = Rc::new(ServoWindowCallbacks {
+        host_callbacks,
         gl: gl.clone(),
-        host_callbacks: callbacks,
         coordinates: RefCell::new(init_opts.coordinates),
         density: init_opts.density,
         gl_context_pointer: init_opts.gl_context_pointer,
@@ -201,6 +209,7 @@ pub fn init(
         vr_init: init_opts.vr_init,
         xr_discovery: init_opts.xr_discovery,
         waker,
+        gl: gl.clone(),
     });
 
     let servo = Servo::new(embedder_callbacks, window_callbacks.clone());
@@ -581,11 +590,12 @@ struct ServoEmbedderCallbacks {
     waker: Box<dyn EventLoopWaker>,
     xr_discovery: Option<Box<dyn webxr_api::Discovery>>,
     vr_init: VRInitOptions,
+    gl: Rc<dyn gl::Gl>,
 }
 
 struct ServoWindowCallbacks {
     gl: Rc<dyn gl::Gl>,
-    host_callbacks: Box<dyn HostTrait>,
+    host_callbacks: Rc<Box<dyn HostTrait>>,
     coordinates: RefCell<Coordinates>,
     density: f32,
     gl_context_pointer: Option<*const c_void>,
@@ -611,6 +621,19 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
         }
     }
 
+    #[cfg(feature = "uwp")]
+    fn register_webxr(&mut self, registry: &mut webxr_api::MainThreadRegistry) {
+        debug!("EmbedderMethods::register_xr");
+        assert!(
+            self.xr_discovery.is_none(),
+            "UWP builds should not be initialized with a WebXR Discovery object"
+        );
+        let gl = self.gl.clone();
+        let discovery = webxr::openxr::OpenXrDiscovery::new(gl);
+        registry.register(discovery);
+    }
+
+    #[cfg(not(feature = "uwp"))]
     fn register_webxr(&mut self, registry: &mut webxr_api::MainThreadRegistry) {
         debug!("EmbedderMethods::register_xr");
         if let Some(discovery) = self.xr_discovery.take() {

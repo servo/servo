@@ -168,6 +168,8 @@ where
 pub struct CHostCallbacks {
     pub flush: extern "C" fn(),
     pub make_current: extern "C" fn(),
+    pub flush_xr: extern "C" fn(),
+    pub make_current_xr: extern "C" fn(),
     pub on_alert: extern "C" fn(message: *const c_char),
     pub on_load_started: extern "C" fn(),
     pub on_load_ended: extern "C" fn(),
@@ -180,6 +182,7 @@ pub struct CHostCallbacks {
     pub on_ime_state_changed: extern "C" fn(show: bool),
     pub get_clipboard_contents: extern "C" fn() -> *const c_char,
     pub set_clipboard_contents: extern "C" fn(contents: *const c_char),
+    pub to_immersive_mode: extern "C" fn(),
 }
 
 /// Servo options
@@ -529,6 +532,16 @@ impl HostTrait for HostCallbacks {
         (self.0.make_current)();
     }
 
+    fn flush_xr(&self) {
+        debug!("flush_xr");
+        (self.0.flush_xr)();
+    }
+
+    fn make_current_xr(&self) {
+        debug!("make_current_xr");
+        (self.0.make_current_xr)();
+    }
+
     fn on_alert(&self, message: String) {
         debug!("on_alert");
         let message = CString::new(message).expect("Can't create string");
@@ -608,5 +621,10 @@ impl HostTrait for HostCallbacks {
         let contents_ptr = contents.as_ptr();
         mem::forget(contents);
         (self.0.set_clipboard_contents)(contents_ptr);
+    }
+
+    fn to_immersive_mode(&self) {
+        debug!("to_immersive_mode");
+        (self.0.to_immersive_mode)();
     }
 }
