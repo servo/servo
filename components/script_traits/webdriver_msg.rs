@@ -10,7 +10,8 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::BrowsingContextId;
 use servo_url::ServoUrl;
-use webdriver::common::WebElement;
+use std::collections::HashMap;
+use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -100,17 +101,21 @@ pub enum WebDriverJSValue {
     Number(f64),
     String(String),
     Element(WebElement),
+    Frame(WebFrame),
+    Window(WebWindow),
     ArrayLike(Vec<WebDriverJSValue>),
+    Object(HashMap<String, WebDriverJSValue>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverJSError {
-    Timeout,
-    UnknownType,
-    JSError,
     /// Occurs when handler received an event message for a layout channel that is not
     /// associated with the current script thread
     BrowsingContextNotFound,
+    JSError,
+    StaleElementReference,
+    Timeout,
+    UnknownType,
 }
 
 pub type WebDriverJSResult = Result<WebDriverJSValue, WebDriverJSError>;
