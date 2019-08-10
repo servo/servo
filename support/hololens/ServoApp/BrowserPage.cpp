@@ -279,7 +279,7 @@ void BrowserPage::OnSurfaceManipulationDelta(
   auto y = e.Position().Y;
   auto dx = e.Delta().Translation.X;
   auto dy = e.Delta().Translation.Y;
-  RunOnGLThread([=] { mServo->Scroll(x, y, dx, dy); });
+  RunOnGLThread([=] { mServo->Scroll(dx, dy, x, y); });
   e.Handled(true);
 }
 

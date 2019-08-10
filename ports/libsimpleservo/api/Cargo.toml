@@ -10,7 +10,9 @@ publish = false
 libservo = { path = "../../../components/servo" }
 log = "0.4"
 servo-media = { git = "https://github.com/servo/media" }
-webxr-api = { git = "https://github.com/servo/webxr" }
+
+webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
+webxr = { git = "https://github.com/servo/webxr" , optional = true}
 
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 libc = "0.2"
@@ -44,5 +46,5 @@ no_static_freetype = ["libservo/no_static_freetype"]
 no_wgl = ["libservo/no_wgl"]
 oculusvr = ["libservo/oculusvr"]
 webdriver = ["libservo/webdriver"]
-uwp = ["libservo/uwp"]
+uwp = ["libservo/uwp", "webxr", "webxr/openxr-api"]
 webgl_backtrace = ["libservo/webgl_backtrace"]
