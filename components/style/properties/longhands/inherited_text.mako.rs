@@ -249,7 +249,6 @@ ${helpers.predefined_type(
     None,
     engines="gecko",
     initial_specified_value="SpecifiedValue::None",
-    boxed=True,
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-style",
 )}

@@ -2602,12 +2602,13 @@ fn static_assert() {
         self.clear_text_emphasis_style_if_string();
         let (te, s) = match v {
             TextEmphasisStyle::None => (structs::NS_STYLE_TEXT_EMPHASIS_STYLE_NONE, ""),
-            TextEmphasisStyle::Keyword(ref keyword) => {
-                let fill = match keyword.fill {
+            TextEmphasisStyle::Keyword { fill, shape } => {
+                let gecko_fill = match fill {
                     TextEmphasisFillMode::Filled => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_FILLED,
                     TextEmphasisFillMode::Open => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_OPEN,
                 };
-                let shape = match keyword.shape {
+
+                let gecko_shape = match shape {
                     TextEmphasisShapeKeyword::Dot => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_DOT,
                     TextEmphasisShapeKeyword::Circle => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_CIRCLE,
                     TextEmphasisShapeKeyword::DoubleCircle => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_DOUBLE_CIRCLE,
@@ -2615,7 +2616,7 @@ fn static_assert() {
                     TextEmphasisShapeKeyword::Sesame => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_SESAME,
                 };
 
-                (shape | fill, keyword.shape.char(keyword.fill))
+                (gecko_shape | gecko_fill, shape.char(fill))
             },
             TextEmphasisStyle::String(ref s) => {
                 (structs::NS_STYLE_TEXT_EMPHASIS_STYLE_STRING, &**s)
@@ -2640,7 +2641,6 @@ fn static_assert() {
 
     pub fn clone_text_emphasis_style(&self) -> values::computed::TextEmphasisStyle {
         use crate::values::computed::TextEmphasisStyle;
-        use crate::values::computed::text::TextEmphasisKeywordValue;
         use crate::values::specified::text::{TextEmphasisFillMode, TextEmphasisShapeKeyword};
 
         if self.gecko.mTextEmphasisStyle == structs::NS_STYLE_TEXT_EMPHASIS_STYLE_NONE as u8 {
@@ -2648,7 +2648,7 @@ fn static_assert() {
         }
 
         if self.gecko.mTextEmphasisStyle == structs::NS_STYLE_TEXT_EMPHASIS_STYLE_STRING as u8 {
-            return TextEmphasisStyle::String(self.gecko.mTextEmphasisStyleString.to_string());
+            return TextEmphasisStyle::String(self.gecko.mTextEmphasisStyleString.to_string().into());
         }
 
         let fill =
@@ -2666,7 +2666,7 @@ fn static_assert() {
                 _ => panic!("Unexpected value in style struct for text-emphasis-style property")
             };
 
-        TextEmphasisStyle::Keyword(TextEmphasisKeywordValue { fill, shape })
+        TextEmphasisStyle::Keyword { fill, shape }
     }
 
     ${impl_non_negative_length('_webkit_text_stroke_width',

@@ -7,7 +7,6 @@
 use crate::parser::{Parse, ParserContext};
 use crate::properties::longhands::writing_mode::computed_value::T as SpecifiedWritingMode;
 use crate::values::computed::text::LineHeight as ComputedLineHeight;
-use crate::values::computed::text::TextEmphasisKeywordValue as ComputedTextEmphasisKeywordValue;
 use crate::values::computed::text::TextEmphasisStyle as ComputedTextEmphasisStyle;
 use crate::values::computed::text::TextOverflow as ComputedTextOverflow;
 use crate::values::computed::{Context, ToComputedValue};
@@ -645,44 +644,29 @@ impl ToComputedValue for TextAlign {
     }
 }
 
+fn fill_mode_is_default_and_shape_exists(
+    fill: &TextEmphasisFillMode,
+    shape: &Option<TextEmphasisShapeKeyword>,
+) -> bool {
+    shape.is_some() && fill.is_filled()
+}
+
 /// Specified value of text-emphasis-style property.
+///
+/// https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-style
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[allow(missing_docs)]
 pub enum TextEmphasisStyle {
-    /// <fill> <shape>
-    Keyword(TextEmphasisKeywordValue),
+    /// [ <fill> || <shape> ]
+    Keyword {
+        #[css(contextual_skip_if = "fill_mode_is_default_and_shape_exists")]
+        fill: TextEmphasisFillMode,
+        shape: Option<TextEmphasisShapeKeyword>,
+    },
     /// `none`
     None,
-    /// String (will be used only first grapheme cluster) for the text-emphasis-style property
-    String(String),
-}
-
-/// Keyword value for the text-emphasis-style property
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
-pub enum TextEmphasisKeywordValue {
-    /// <fill>
-    Fill(TextEmphasisFillMode),
-    /// <shape>
-    Shape(TextEmphasisShapeKeyword),
-    /// <fill> <shape>
-    FillAndShape(TextEmphasisFillMode, TextEmphasisShapeKeyword),
-}
-
-impl TextEmphasisKeywordValue {
-    fn fill(&self) -> Option<TextEmphasisFillMode> {
-        match *self {
-            TextEmphasisKeywordValue::Fill(fill) |
-            TextEmphasisKeywordValue::FillAndShape(fill, _) => Some(fill),
-            _ => None,
-        }
-    }
-
-    fn shape(&self) -> Option<TextEmphasisShapeKeyword> {
-        match *self {
-            TextEmphasisKeywordValue::Shape(shape) |
-            TextEmphasisKeywordValue::FillAndShape(_, shape) => Some(shape),
-            _ => None,
-        }
-    }
+    /// `<string>` (of which only the first grapheme cluster will be used).
+    String(crate::OwnedStr),
 }
 
 /// Fill mode for the text-emphasis-style property
@@ -692,6 +676,14 @@ pub enum TextEmphasisFillMode {
     Filled,
     /// `open`
     Open,
+}
+
+impl TextEmphasisFillMode {
+    /// Whether the value is `filled`.
+    #[inline]
+    pub fn is_filled(&self) -> bool {
+        matches!(*self, TextEmphasisFillMode::Filled)
+    }
 }
 
 /// Shape keyword for the text-emphasis-style property
@@ -713,7 +705,7 @@ pub enum TextEmphasisShapeKeyword {
 
 impl TextEmphasisShapeKeyword {
     /// converts fill mode to a unicode char
-    pub fn char(&self, fill: TextEmphasisFillMode) -> &str {
+    pub fn char(&self, fill: TextEmphasisFillMode) -> &'static str {
         let fill = fill == TextEmphasisFillMode::Filled;
         match *self {
             TextEmphasisShapeKeyword::Dot => {
@@ -761,27 +753,33 @@ impl ToComputedValue for TextEmphasisStyle {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
-            TextEmphasisStyle::Keyword(ref keyword) => {
-                // FIXME(emilio): This should set the rule_cache_conditions
-                // properly.
-                let default_shape = if context.style().get_inherited_box().clone_writing_mode() ==
-                    SpecifiedWritingMode::HorizontalTb
-                {
-                    TextEmphasisShapeKeyword::Circle
-                } else {
-                    TextEmphasisShapeKeyword::Sesame
-                };
-                ComputedTextEmphasisStyle::Keyword(ComputedTextEmphasisKeywordValue {
-                    fill: keyword.fill().unwrap_or(TextEmphasisFillMode::Filled),
-                    shape: keyword.shape().unwrap_or(default_shape),
-                })
+            TextEmphasisStyle::Keyword { fill, shape } => {
+                let shape = shape.unwrap_or_else(|| {
+                    // FIXME(emilio, bug 1572958): This should set the
+                    // rule_cache_conditions properly.
+                    //
+                    // Also should probably use WritingMode::is_vertical rather
+                    // than the computed value of the `writing-mode` property.
+                    if context.style().get_inherited_box().clone_writing_mode() ==
+                        SpecifiedWritingMode::HorizontalTb
+                    {
+                        TextEmphasisShapeKeyword::Circle
+                    } else {
+                        TextEmphasisShapeKeyword::Sesame
+                    }
+                });
+                ComputedTextEmphasisStyle::Keyword { fill, shape }
             },
             TextEmphasisStyle::None => ComputedTextEmphasisStyle::None,
             TextEmphasisStyle::String(ref s) => {
                 // Passing `true` to iterate over extended grapheme clusters, following
                 // recommendation at http://www.unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries
-                let string = s.graphemes(true).next().unwrap_or("").to_string();
-                ComputedTextEmphasisStyle::String(string)
+                //
+                // FIXME(emilio): Doing this at computed value time seems wrong.
+                // The spec doesn't say that this should be a computed-value
+                // time operation. This is observable from getComputedStyle().
+                let s = s.graphemes(true).next().unwrap_or("").to_string();
+                ComputedTextEmphasisStyle::String(s.into())
             },
         }
     }
@@ -789,9 +787,10 @@ impl ToComputedValue for TextEmphasisStyle {
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         match *computed {
-            ComputedTextEmphasisStyle::Keyword(ref keyword) => TextEmphasisStyle::Keyword(
-                TextEmphasisKeywordValue::FillAndShape(keyword.fill, keyword.shape),
-            ),
+            ComputedTextEmphasisStyle::Keyword { fill, shape } => TextEmphasisStyle::Keyword {
+                fill,
+                shape: Some(shape),
+            },
             ComputedTextEmphasisStyle::None => TextEmphasisStyle::None,
             ComputedTextEmphasisStyle::String(ref string) => {
                 TextEmphasisStyle::String(string.clone())
@@ -814,7 +813,7 @@ impl Parse for TextEmphasisStyle {
 
         if let Ok(s) = input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned())) {
             // Handle <string>
-            return Ok(TextEmphasisStyle::String(s));
+            return Ok(TextEmphasisStyle::String(s.into()));
         }
 
         // Handle a pair of keywords
@@ -824,14 +823,17 @@ impl Parse for TextEmphasisStyle {
             shape = input.try(TextEmphasisShapeKeyword::parse).ok();
         }
 
-        // At least one of shape or fill must be handled
-        let keyword_value = match (fill, shape) {
-            (Some(fill), Some(shape)) => TextEmphasisKeywordValue::FillAndShape(fill, shape),
-            (Some(fill), None) => TextEmphasisKeywordValue::Fill(fill),
-            (None, Some(shape)) => TextEmphasisKeywordValue::Shape(shape),
-            _ => return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
-        };
-        Ok(TextEmphasisStyle::Keyword(keyword_value))
+        if shape.is_none() && fill.is_none() {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+
+        // If a shape keyword is specified but neither of filled nor open is
+        // specified, filled is assumed.
+        let fill = fill.unwrap_or(TextEmphasisFillMode::Filled);
+
+        // We cannot do the same because the default `<shape>` depends on the
+        // computed writing-mode.
+        Ok(TextEmphasisStyle::Keyword { fill, shape })
     }
 }
 
