@@ -17,7 +17,7 @@ use crate::dom::bindings::conversions::{
 use crate::dom::bindings::conversions::{
     ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
 };
-use crate::dom::bindings::error::throw_dom_exception;
+use crate::dom::bindings::error::{throw_dom_exception, Error};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
@@ -38,9 +38,10 @@ use cookie::Cookie;
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{JSAutoRealm, JSContext};
+use js::jsapi::{self, JS_CallFunctionName, JS_GetProperty, JS_HasOwnProperty, JS_TypeOfValue};
+use js::jsapi::{JSAutoRealm, JSContext, JSType, JS_IsExceptionPending};
 use js::jsval::UndefinedValue;
-use js::rust::HandleValue;
+use js::rust::{Handle, HandleValue};
 use msg::constellation_msg::BrowsingContextId;
 use msg::constellation_msg::PipelineId;
 use net_traits::CookieSource::{NonHTTP, HTTP};
@@ -51,6 +52,7 @@ use script_traits::webdriver_msg::{
     WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue,
 };
 use servo_url::ServoUrl;
+use std::ffi::CString;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
 
 fn find_node_by_unique_id(
@@ -108,6 +110,31 @@ fn first_matching_link(
         .query_selector_all(DOMString::from("a"))
         .map_err(|_| ())
         .map(|nodes| matching_links(&nodes, link_text, partial).take(1).next())
+}
+
+#[allow(unsafe_code)]
+unsafe fn object_has_to_json_property(
+    cx: *mut JSContext,
+    global_scope: &GlobalScope,
+    object: jsapi::HandleObject,
+) -> bool {
+    let name = CString::new("toJSON").unwrap();
+    let mut found = false;
+    if JS_HasOwnProperty(cx, object, name.as_ptr(), &mut found) && found {
+        let mut value = UndefinedValue();
+        JS_GetProperty(
+            cx,
+            object,
+            name.as_ptr(),
+            jsapi::MutableHandle::from_marked_location(&mut value),
+        ) && JS_TypeOfValue(cx, jsapi::Handle::from_marked_location(&value)) ==
+            JSType::JSTYPE_FUNCTION
+    } else if JS_IsExceptionPending(cx) {
+        throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, Error::JSFailed);
+        false
+    } else {
+        false
+    }
 }
 
 #[allow(unsafe_code)]
@@ -198,6 +225,24 @@ pub unsafe fn jsval_to_webdriver(
                 Ok(WebDriverJSValue::Frame(WebFrame(
                     window.Document().upcast::<Node>().unique_id(),
                 )))
+            }
+        } else if object_has_to_json_property(
+            cx,
+            global_scope,
+            jsapi::HandleObject::from_marked_location(&*object),
+        ) {
+            let name = CString::new("toJSON").unwrap();
+            let mut value = UndefinedValue();
+            if JS_CallFunctionName(
+                cx,
+                jsapi::Handle::from_marked_location(&*object),
+                name.as_ptr(),
+                &mut jsapi::HandleValueArray::new(),
+                jsapi::MutableHandle::from_marked_location(&mut value),
+            ) {
+                jsval_to_webdriver(cx, global_scope, Handle::new(&value))
+            } else {
+                Err(WebDriverJSError::UnknownType)
             }
         } else {
             Err(WebDriverJSError::UnknownType)
