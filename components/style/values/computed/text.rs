@@ -203,7 +203,6 @@ impl TextDecorationsInEffect {
 pub enum TextEmphasisStyle {
     /// [ <fill> || <shape> ]
     Keyword {
-        #[css(skip_if = "TextEmphasisFillMode::is_filled")]
         fill: TextEmphasisFillMode,
         shape: TextEmphasisShapeKeyword,
     },
