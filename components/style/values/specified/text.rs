@@ -671,6 +671,7 @@ pub enum TextEmphasisStyle {
 
 /// Fill mode for the text-emphasis-style property
 #[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[repr(u8)]
 pub enum TextEmphasisFillMode {
     /// `filled`
     Filled,
@@ -690,6 +691,7 @@ impl TextEmphasisFillMode {
 #[derive(
     Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem,
 )]
+#[repr(u8)]
 pub enum TextEmphasisShapeKeyword {
     /// `dot`
     Dot,
@@ -701,50 +703,6 @@ pub enum TextEmphasisShapeKeyword {
     Triangle,
     /// `sesame`
     Sesame,
-}
-
-impl TextEmphasisShapeKeyword {
-    /// converts fill mode to a unicode char
-    pub fn char(&self, fill: TextEmphasisFillMode) -> &'static str {
-        let fill = fill == TextEmphasisFillMode::Filled;
-        match *self {
-            TextEmphasisShapeKeyword::Dot => {
-                if fill {
-                    "\u{2022}"
-                } else {
-                    "\u{25e6}"
-                }
-            },
-            TextEmphasisShapeKeyword::Circle => {
-                if fill {
-                    "\u{25cf}"
-                } else {
-                    "\u{25cb}"
-                }
-            },
-            TextEmphasisShapeKeyword::DoubleCircle => {
-                if fill {
-                    "\u{25c9}"
-                } else {
-                    "\u{25ce}"
-                }
-            },
-            TextEmphasisShapeKeyword::Triangle => {
-                if fill {
-                    "\u{25b2}"
-                } else {
-                    "\u{25b3}"
-                }
-            },
-            TextEmphasisShapeKeyword::Sesame => {
-                if fill {
-                    "\u{fe45}"
-                } else {
-                    "\u{fe46}"
-                }
-            },
-        }
-    }
 }
 
 impl ToComputedValue for TextEmphasisStyle {

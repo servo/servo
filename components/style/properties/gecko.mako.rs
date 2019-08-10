@@ -2578,96 +2578,14 @@ fn static_assert() {
 
 
 <%self:impl_trait style_struct_name="InheritedText"
-                  skip_longhands="text-align text-emphasis-style
-                                  -webkit-text-stroke-width text-emphasis-position">
+                  skip_longhands="text-align -webkit-text-stroke-width text-emphasis-position">
 
     <% text_align_keyword = Keyword("text-align",
                                     "start end left right center justify -moz-center -moz-left -moz-right char",
                                     gecko_strip_moz_prefix=False) %>
     ${impl_keyword('text_align', 'mTextAlign', text_align_keyword)}
 
-    fn clear_text_emphasis_style_if_string(&mut self) {
-        if self.gecko.mTextEmphasisStyle == structs::NS_STYLE_TEXT_EMPHASIS_STYLE_STRING as u8 {
-            self.gecko.mTextEmphasisStyleString.truncate();
-            self.gecko.mTextEmphasisStyle = structs::NS_STYLE_TEXT_EMPHASIS_STYLE_NONE as u8;
-        }
-    }
-
     ${impl_simple_type_with_conversion("text_emphasis_position")}
-
-    pub fn set_text_emphasis_style(&mut self, v: values::computed::TextEmphasisStyle) {
-        use crate::values::computed::TextEmphasisStyle;
-        use crate::values::specified::text::{TextEmphasisFillMode, TextEmphasisShapeKeyword};
-
-        self.clear_text_emphasis_style_if_string();
-        let (te, s) = match v {
-            TextEmphasisStyle::None => (structs::NS_STYLE_TEXT_EMPHASIS_STYLE_NONE, ""),
-            TextEmphasisStyle::Keyword { fill, shape } => {
-                let gecko_fill = match fill {
-                    TextEmphasisFillMode::Filled => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_FILLED,
-                    TextEmphasisFillMode::Open => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_OPEN,
-                };
-
-                let gecko_shape = match shape {
-                    TextEmphasisShapeKeyword::Dot => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_DOT,
-                    TextEmphasisShapeKeyword::Circle => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_CIRCLE,
-                    TextEmphasisShapeKeyword::DoubleCircle => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_DOUBLE_CIRCLE,
-                    TextEmphasisShapeKeyword::Triangle => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_TRIANGLE,
-                    TextEmphasisShapeKeyword::Sesame => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_SESAME,
-                };
-
-                (gecko_shape | gecko_fill, shape.char(fill))
-            },
-            TextEmphasisStyle::String(ref s) => {
-                (structs::NS_STYLE_TEXT_EMPHASIS_STYLE_STRING, &**s)
-            },
-        };
-        self.gecko.mTextEmphasisStyleString.assign_str(s);
-        self.gecko.mTextEmphasisStyle = te as u8;
-    }
-
-    pub fn copy_text_emphasis_style_from(&mut self, other: &Self) {
-        self.clear_text_emphasis_style_if_string();
-        if other.gecko.mTextEmphasisStyle == structs::NS_STYLE_TEXT_EMPHASIS_STYLE_STRING as u8 {
-            self.gecko.mTextEmphasisStyleString
-                      .assign(&*other.gecko.mTextEmphasisStyleString)
-        }
-        self.gecko.mTextEmphasisStyle = other.gecko.mTextEmphasisStyle;
-    }
-
-    pub fn reset_text_emphasis_style(&mut self, other: &Self) {
-        self.copy_text_emphasis_style_from(other)
-    }
-
-    pub fn clone_text_emphasis_style(&self) -> values::computed::TextEmphasisStyle {
-        use crate::values::computed::TextEmphasisStyle;
-        use crate::values::specified::text::{TextEmphasisFillMode, TextEmphasisShapeKeyword};
-
-        if self.gecko.mTextEmphasisStyle == structs::NS_STYLE_TEXT_EMPHASIS_STYLE_NONE as u8 {
-            return TextEmphasisStyle::None;
-        }
-
-        if self.gecko.mTextEmphasisStyle == structs::NS_STYLE_TEXT_EMPHASIS_STYLE_STRING as u8 {
-            return TextEmphasisStyle::String(self.gecko.mTextEmphasisStyleString.to_string().into());
-        }
-
-        let fill =
-            self.gecko.mTextEmphasisStyle & structs::NS_STYLE_TEXT_EMPHASIS_STYLE_OPEN as u8 == 0;
-
-        let fill = if fill { TextEmphasisFillMode::Filled } else { TextEmphasisFillMode::Open };
-
-        let shape =
-            match self.gecko.mTextEmphasisStyle as u32 & !structs::NS_STYLE_TEXT_EMPHASIS_STYLE_OPEN {
-                structs::NS_STYLE_TEXT_EMPHASIS_STYLE_DOT => TextEmphasisShapeKeyword::Dot,
-                structs::NS_STYLE_TEXT_EMPHASIS_STYLE_CIRCLE => TextEmphasisShapeKeyword::Circle,
-                structs::NS_STYLE_TEXT_EMPHASIS_STYLE_DOUBLE_CIRCLE => TextEmphasisShapeKeyword::DoubleCircle,
-                structs::NS_STYLE_TEXT_EMPHASIS_STYLE_TRIANGLE => TextEmphasisShapeKeyword::Triangle,
-                structs::NS_STYLE_TEXT_EMPHASIS_STYLE_SESAME => TextEmphasisShapeKeyword::Sesame,
-                _ => panic!("Unexpected value in style struct for text-emphasis-style property")
-            };
-
-        TextEmphasisStyle::Keyword { fill, shape }
-    }
 
     ${impl_non_negative_length('_webkit_text_stroke_width',
                                'mWebkitTextStrokeWidth')}
