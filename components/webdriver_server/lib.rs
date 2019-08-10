@@ -36,7 +36,7 @@ use serde_json::{json, Value};
 use servo_config::{prefs, prefs::PrefValue};
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::net::{SocketAddr, SocketAddrV4};
 use std::thread;
@@ -231,6 +231,11 @@ impl Serialize for SendableWebDriverJSValue {
                 .iter()
                 .map(|element| SendableWebDriverJSValue(element.clone()))
                 .collect::<Vec<SendableWebDriverJSValue>>()
+                .serialize(serializer),
+            WebDriverJSValue::Object(ref x) => x
+                .iter()
+                .map(|(k, v)| (k.clone(), SendableWebDriverJSValue(v.clone())))
+                .collect::<HashMap<String, SendableWebDriverJSValue>>()
                 .serialize(serializer),
         }
     }

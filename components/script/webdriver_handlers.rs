@@ -52,6 +52,7 @@ use script_traits::webdriver_msg::{
     WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue,
 };
 use servo_url::ServoUrl;
+use std::collections::HashMap;
 use std::ffi::CString;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
 
@@ -245,7 +246,22 @@ pub unsafe fn jsval_to_webdriver(
                 Err(WebDriverJSError::UnknownType)
             }
         } else {
-            Err(WebDriverJSError::UnknownType)
+            let mut result = HashMap::new();
+
+            let common_properties = vec!["x", "y", "width", "height", "key"];
+            for property in common_properties.iter() {
+                rooted!(in(cx) let mut item = UndefinedValue());
+                if let Ok(_) = get_property_jsval(cx, object.handle(), property, item.handle_mut())
+                {
+                    if !item.is_undefined() {
+                        if let Ok(value) = jsval_to_webdriver(cx, global_scope, item.handle()) {
+                            result.insert(property.to_string(), value);
+                        }
+                    }
+                }
+            }
+
+            Ok(WebDriverJSValue::Object(result))
         }
     } else {
         Err(WebDriverJSError::UnknownType)

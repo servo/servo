@@ -10,6 +10,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::BrowsingContextId;
 use servo_url::ServoUrl;
+use std::collections::HashMap;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -72,6 +73,7 @@ pub enum WebDriverJSValue {
     Frame(WebFrame),
     Window(WebWindow),
     ArrayLike(Vec<WebDriverJSValue>),
+    Object(HashMap<String, WebDriverJSValue>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
