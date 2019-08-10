@@ -255,7 +255,7 @@ pub enum KeywordSize {
     XXLarge,
     // This is not a real font keyword and will not parse
     // HTML font-size 7 corresponds to this value
-    #[css(skip)]
+    #[css(keyword = "xxx-large")]
     XXXLarge,
 }
 
