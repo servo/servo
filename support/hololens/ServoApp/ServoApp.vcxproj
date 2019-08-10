@@ -173,6 +173,9 @@
     <AppxManifest Include="Package.appxmanifest">
       <SubType>Designer</SubType>
     </AppxManifest>
+    <None Include="C:\Users\manis\dev\dlls\openxr_loader.dll">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</DeploymentContent>
+    </None>
     <None Include="..\..\..\target\aarch64-pc-windows-msvc\debug\libcrypto.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</DeploymentContent>
     </None>

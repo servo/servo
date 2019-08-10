@@ -189,8 +189,8 @@ pub fn init(
     gl.finish();
 
     let window_callbacks = Rc::new(ServoWindowCallbacks {
-        gl: gl.clone(),
         host_callbacks: callbacks,
+        gl: gl.clone(),
         coordinates: RefCell::new(init_opts.coordinates),
         density: init_opts.density,
         gl_context_pointer: init_opts.gl_context_pointer,
@@ -201,6 +201,7 @@ pub fn init(
         vr_init: init_opts.vr_init,
         xr_discovery: init_opts.xr_discovery,
         waker,
+        gl: gl.clone(),
     });
 
     let servo = Servo::new(embedder_callbacks, window_callbacks.clone());
@@ -581,6 +582,8 @@ struct ServoEmbedderCallbacks {
     waker: Box<dyn EventLoopWaker>,
     xr_discovery: Option<Box<dyn webxr_api::Discovery>>,
     vr_init: VRInitOptions,
+    #[allow(unused)]
+    gl: Rc<dyn gl::Gl>,
 }
 
 struct ServoWindowCallbacks {
@@ -611,6 +614,19 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
         }
     }
 
+    #[cfg(feature = "uwp")]
+    fn register_webxr(&mut self, registry: &mut webxr_api::MainThreadRegistry) {
+        debug!("EmbedderMethods::register_xr");
+        assert!(
+            self.xr_discovery.is_none(),
+            "UWP builds should not be initialized with a WebXR Discovery object"
+        );
+        let gl = self.gl.clone();
+        let discovery = webxr::openxr::OpenXrDiscovery::new(gl);
+        registry.register(discovery);
+    }
+
+    #[cfg(not(feature = "uwp"))]
     fn register_webxr(&mut self, registry: &mut webxr_api::MainThreadRegistry) {
         debug!("EmbedderMethods::register_xr");
         if let Some(discovery) = self.xr_discovery.take() {
