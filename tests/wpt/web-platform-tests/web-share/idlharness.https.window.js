@@ -1,7 +1,7 @@
 // META: script=/resources/WebIDLParser.js
 // META: script=/resources/idlharness.js
 
-// https://wicg.github.io/web-share/
+// https://w3c.github.io/web-share/
 
 'use strict';
 

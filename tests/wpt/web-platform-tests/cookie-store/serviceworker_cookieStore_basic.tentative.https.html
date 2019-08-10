@@ -11,11 +11,11 @@
 (async () => {
   const scope = 'does/not/exist';
 
-  let registration = await navigator.serviceWorker.getRegistration(scope);
-  if (registration)
-    await registration.unregister();
-  registration = await navigator.serviceWorker.register(
+  const registration = await navigator.serviceWorker.register(
       'serviceworker_cookieStore_basic.js', {scope});
+  add_completion_callback(() => {
+    registration.unregister();
+  });
 
   fetch_tests_from_worker(registration.installing);
 })();

@@ -3,7 +3,7 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Accelerometer (https://w3c.github.io/accelerometer/)
 
-[Constructor(optional AccelerometerSensorOptions options), SecureContext,
+[Constructor(optional AccelerometerSensorOptions options = {}), SecureContext,
   Exposed=Window]
 interface Accelerometer : Sensor {
   readonly attribute double? x;
@@ -17,12 +17,12 @@ dictionary AccelerometerSensorOptions : SensorOptions {
   AccelerometerLocalCoordinateSystem referenceFrame = "device";
 };
 
-[Constructor(optional AccelerometerSensorOptions options), SecureContext,
+[Constructor(optional AccelerometerSensorOptions options = {}), SecureContext,
   Exposed=Window]
 interface LinearAccelerationSensor : Accelerometer {
 };
 
-[Constructor(optional AccelerometerSensorOptions options), SecureContext,
+[Constructor(optional AccelerometerSensorOptions options = {}), SecureContext,
   Exposed=Window]
 interface GravitySensor : Accelerometer {
 };
