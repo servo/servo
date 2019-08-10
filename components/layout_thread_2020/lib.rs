@@ -37,7 +37,7 @@ use histogram::Histogram;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::context::LayoutContext;
-use layout::display_list::items::OpaqueNode;
+use layout::display_list::items::{DisplayList, OpaqueNode};
 use layout::display_list::{IndexableText, WebRenderDisplayListConverter};
 use layout::flow::{Flow, GetBaseFlow};
 use layout::flow_ref::FlowRef;
@@ -772,7 +772,7 @@ impl LayoutThread {
                     || self.handle_reflow(&mut data, possibly_locked_rw_data),
                 );
             },
-            Msg::TickAnimations => self.tick_all_animations(possibly_locked_rw_data),
+            Msg::TickAnimations => self.tick_all_animations(),
             Msg::SetScrollStates(new_scroll_states) => {
                 self.set_scroll_states(new_scroll_states, possibly_locked_rw_data);
             },
@@ -803,7 +803,7 @@ impl LayoutThread {
                 sender.send(self.epoch.get()).unwrap();
             },
             Msg::AdvanceClockMs(how_many, do_tick) => {
-                self.handle_advance_clock_ms(how_many, possibly_locked_rw_data, do_tick);
+                self.handle_advance_clock_ms(how_many, do_tick);
             },
             Msg::GetWebFontLoadState(sender) => {
                 let _rw_data = possibly_locked_rw_data.lock();
@@ -957,15 +957,10 @@ impl LayoutThread {
     }
 
     /// Advances the animation clock of the document.
-    fn handle_advance_clock_ms<'a, 'b>(
-        &mut self,
-        how_many_ms: i32,
-        possibly_locked_rw_data: &mut RwData<'a, 'b>,
-        tick_animations: bool,
-    ) {
+    fn handle_advance_clock_ms<'a, 'b>(&mut self, how_many_ms: i32, tick_animations: bool) {
         self.timer.increment(how_many_ms as f64 / 1000.0);
         if tick_animations {
-            self.tick_all_animations(possibly_locked_rw_data);
+            self.tick_all_animations();
         }
     }
 
@@ -976,86 +971,6 @@ impl LayoutThread {
 
     fn try_get_layout_root<N: LayoutNode>(&self, _node: N) -> Option<FlowRef> {
         None
-    }
-
-    /// Computes the stacking-relative positions of all flows and, if the painting is dirty and the
-    /// reflow type need it, builds the display list.
-    fn compute_abs_pos_and_build_display_list(
-        &self,
-        reflow_goal: &ReflowGoal,
-        document: Option<&ServoLayoutDocument>,
-        layout_root: &mut dyn Flow,
-        rw_data: &mut LayoutThreadData,
-    ) {
-        let (metadata, sender) = (self.profiler_metadata(), self.time_profiler_chan.clone());
-        profile(
-            profile_time::ProfilerCategory::LayoutDispListBuild,
-            metadata.clone(),
-            sender.clone(),
-            || {
-                if layout_root
-                    .base()
-                    .restyle_damage
-                    .contains(ServoRestyleDamage::REPAINT) ||
-                    rw_data.display_list.is_none()
-                {
-                    layout_root
-                        .mut_base()
-                        .restyle_damage
-                        .remove(ServoRestyleDamage::REPAINT);
-                }
-
-                if !reflow_goal.needs_display() {
-                    // Defer the paint step until the next ForDisplay.
-                    //
-                    // We need to tell the document about this so it doesn't
-                    // incorrectly suppress reflows. See #13131.
-                    document
-                        .expect("No document in a non-display reflow?")
-                        .needs_paint_from_layout();
-                    return;
-                }
-                if let Some(document) = document {
-                    document.will_paint();
-                }
-
-                let display_list = rw_data.display_list.as_mut().unwrap();
-
-                debug!("Layout done!");
-
-                // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
-                let builder = display_list.convert_to_webrender(self.id);
-
-                let viewport_size = Size2D::new(
-                    self.viewport_size.width.to_f32_px(),
-                    self.viewport_size.height.to_f32_px(),
-                );
-
-                let mut epoch = self.epoch.get();
-                epoch.next();
-                self.epoch.set(epoch);
-
-                let viewport_size = webrender_api::units::LayoutSize::from_untyped(viewport_size);
-
-                // Observe notifications about rendered frames if needed right before
-                // sending the display list to WebRender in order to set time related
-                // Progressive Web Metrics.
-                self.paint_time_metrics
-                    .maybe_observe_paint_time(self, epoch, &*display_list);
-
-                let mut txn = webrender_api::Transaction::new();
-                txn.set_display_list(
-                    webrender_api::Epoch(epoch.0),
-                    None,
-                    viewport_size,
-                    builder.finalize(),
-                    true,
-                );
-                txn.generate_frame();
-                self.webrender_api
-                    .send_transaction(self.webrender_document, txn);
-            },
-        );
     }
 
     /// The high-level routine that performs layout threads.
@@ -1362,14 +1277,7 @@ impl LayoutThread {
         }
 
         // Perform post-style recalculation layout passes.
-        if let Some(mut root_flow) = self.root_flow.borrow().clone() {
-            self.perform_post_style_recalc_layout_passes(
-                &mut root_flow,
-                &data.reflow_goal,
-                Some(&document),
-                &mut rw_data,
-            );
-        }
+        self.perform_post_style_recalc_layout_passes(&data.reflow_goal, Some(&document));
 
         self.first_reflow.set(false);
         self.respond_to_query_if_necessary(&data.reflow_goal, &mut *rw_data, &mut layout_context);
@@ -1481,12 +1389,11 @@ impl LayoutThread {
         rw_data.scroll_offsets = layout_scroll_states
     }
 
-    fn tick_all_animations<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
-        let mut rw_data = possibly_locked_rw_data.lock();
-        self.tick_animations(&mut rw_data);
+    fn tick_all_animations<'a, 'b>(&mut self) {
+        self.tick_animations();
     }
 
-    fn tick_animations(&mut self, rw_data: &mut LayoutThreadData) {
+    fn tick_animations(&mut self) {
         if self.relayout_event {
             println!(
                 "**** pipeline={}\tForDisplay\tSpecial\tAnimationTick",
@@ -1494,10 +1401,7 @@ impl LayoutThread {
             );
         }
 
-        if let Some(mut root_flow) = self.root_flow.borrow().clone() {
-            // Unwrap here should not panic since self.root_flow is only ever set to Some(_)
-            // in handle_reflow() where self.document_shared_lock is as well.
-            let author_shared_lock = self.document_shared_lock.clone().unwrap();
+        if let Some(author_shared_lock) = self.document_shared_lock.clone() {
             let author_guard = author_shared_lock.read();
             let ua_or_user_guard = UA_STYLESHEETS.shared_lock.read();
             let _guards = StylesheetGuards {
@@ -1505,46 +1409,64 @@ impl LayoutThread {
                 ua_or_user: &ua_or_user_guard,
             };
 
-            self.perform_post_style_recalc_layout_passes(
-                &mut root_flow,
-                &ReflowGoal::TickAnimations,
-                None,
-                &mut *rw_data,
-            );
+            self.perform_post_style_recalc_layout_passes(&ReflowGoal::TickAnimations, None);
         }
     }
 
     fn perform_post_style_recalc_layout_passes(
         &self,
-        root_flow: &mut FlowRef,
         reflow_goal: &ReflowGoal,
         document: Option<&ServoLayoutDocument>,
-        rw_data: &mut LayoutThreadData,
     ) {
-        profile(
-            profile_time::ProfilerCategory::LayoutRestyleDamagePropagation,
-            self.profiler_metadata(),
-            self.time_profiler_chan.clone(),
-            || {},
+        if !reflow_goal.needs_display() {
+            // Defer the paint step until the next ForDisplay.
+            //
+            // We need to tell the document about this so it doesn't
+            // incorrectly suppress reflows. See #13131.
+            document
+                .expect("No document in a non-display reflow?")
+                .needs_paint_from_layout();
+            return;
+        }
+        if let Some(document) = document {
+            document.will_paint();
+        }
+
+        let mut display_list = DisplayList {};
+
+        debug!("Layout done!");
+
+        // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
+        let builder = display_list.convert_to_webrender(self.id);
+
+        let viewport_size = Size2D::new(
+            self.viewport_size.width.to_f32_px(),
+            self.viewport_size.height.to_f32_px(),
         );
 
-        self.perform_post_main_layout_passes(root_flow, reflow_goal, document, rw_data);
-    }
+        let mut epoch = self.epoch.get();
+        epoch.next();
+        self.epoch.set(epoch);
 
-    fn perform_post_main_layout_passes(
-        &self,
-        mut root_flow: &mut FlowRef,
-        reflow_goal: &ReflowGoal,
-        document: Option<&ServoLayoutDocument>,
-        rw_data: &mut LayoutThreadData,
-    ) {
-        // Build the display list if necessary, and send it to the painter.
-        self.compute_abs_pos_and_build_display_list(
-            reflow_goal,
-            document,
-            FlowRef::deref_mut(&mut root_flow),
-            rw_data,
+        let viewport_size = webrender_api::units::LayoutSize::from_untyped(viewport_size);
+
+        // Observe notifications about rendered frames if needed right before
+        // sending the display list to WebRender in order to set time related
+        // Progressive Web Metrics.
+        self.paint_time_metrics
+            .maybe_observe_paint_time(self, epoch, &display_list);
+
+        let mut txn = webrender_api::Transaction::new();
+        txn.set_display_list(
+            webrender_api::Epoch(epoch.0),
+            None,
+            viewport_size,
+            builder.finalize(),
+            true,
         );
+        txn.generate_frame();
+        self.webrender_api
+            .send_transaction(self.webrender_document, txn);
 
         self.generation.set(self.generation.get() + 1);
     }
