@@ -696,6 +696,12 @@ class MachCommands(CommandBase):
                 if not package_gstreamer_dlls(env, servo_exe_dir, target_triple, uwp):
                     status = 1
 
+                if uwp:
+                    # copy needed openxr DLLs in to servo.exe dir
+                    print("Packaging openxr DLLs")
+                    if not self.package_openxr_dlls(env, servo_exe_dir, target_triple):
+                        status = 1
+
                 # UWP app packaging already bundles all required DLLs for us.
                 print("Packaging MSVC DLLs")
                 if not package_msvc_dlls(servo_exe_dir, target_triple, vcinstalldir, vs_version):
@@ -745,6 +751,29 @@ class MachCommands(CommandBase):
             opts += ["-v"]
         opts += params
         return check_call(["cargo", "clean"] + opts, env=self.build_env(), verbose=verbose)
+
+    def package_openxr_dlls(self, env, servo_exe_dir, target):
+        target_arch = target.split('-')[0]
+        if target_arch == "aarch64":
+            arch = "arm64"
+        elif target_arch == "x64":
+            arch = "x64"
+        else:
+            print("ERROR: We do not have openxr_loader DLLs for %s" % target_arch)
+            return False
+
+        # The package on S3 contains both debug and release DLLs, but
+        # by default we only use release DLLs. If you need to debug OpenXR itself,
+        # change this to Debug.
+        dll_path = os.path.join(self.msvc_package_dir("openxr-loader-uwp"), arch, "Release", "openxr_loader.dll")
+
+        try:
+            shutil.copy(dll_path, servo_exe_dir)
+        except:
+            print("ERROR: Could not find %s" % dll_path)
+            return False
+
+        return True
 
 
 def gstreamer_root(target, env):
