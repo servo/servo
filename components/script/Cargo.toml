@@ -111,6 +111,7 @@ url = "1.6"
 utf-8 = "0.7"
 uuid = {version = "0.7", features = ["v4"]}
 xml5ever = {version = "0.14"}
+webdriver = "0.40"
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr_traits = {path = "../webvr_traits"}
 webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
