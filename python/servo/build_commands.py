@@ -33,7 +33,6 @@ from mach_bootstrap import _get_exec_path
 from servo.command_base import CommandBase, cd, call, check_call, BIN_SUFFIX, append_to_path_env
 from servo.util import host_triple
 
-
 def format_duration(seconds):
     return str(datetime.timedelta(seconds=int(seconds)))
 
@@ -696,6 +695,12 @@ class MachCommands(CommandBase):
                 if not package_gstreamer_dlls(env, servo_exe_dir, target_triple, uwp):
                     status = 1
 
+                if uwp:
+                    # copy needed openxr DLLs in to servo.exe dir
+                    print("Packaging openxr DLLs")
+                    if not self.package_openxr_dlls(env, servo_exe_dir, target_triple):
+                        status = 1
+
                 # UWP app packaging already bundles all required DLLs for us.
                 print("Packaging MSVC DLLs")
                 if not package_msvc_dlls(servo_exe_dir, target_triple, vcinstalldir, vs_version):
@@ -745,6 +750,26 @@ class MachCommands(CommandBase):
             opts += ["-v"]
         opts += params
         return check_call(["cargo", "clean"] + opts, env=self.build_env(), verbose=verbose)
+
+    def package_openxr_dlls(self, env, servo_exe_dir, target):
+        target_arch = target.split('-')[0]
+        if target_arch == "aarch64":
+            arch = "arm64"
+        elif target_arch == "x64":
+            arch = "x64"
+        else:
+            print("ERROR: We do not have openxr_loader DLLs for %s" % target_arch)
+            return False
+
+        dll_path = os.path.join(self.msvc_package_dir("openxr-loader-uwp"), arch, "Release", "openxr_loader.dll")
+
+        try:
+            shutil.copy(dll_path, servo_exe_dir)
+        except:
+            print("ERROR: Could not find %s" % dll_path)
+            return False
+
+        return True
 
 
 def gstreamer_root(target, env):
@@ -903,7 +928,6 @@ def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
     for gst_lib in missing:
         print("ERROR: could not find required GStreamer DLL: " + gst_lib)
     return not missing
-
 
 def package_msvc_dlls(servo_exe_dir, target, vcinstalldir, vs_version):
     # copy some MSVC DLLs to servo.exe dir
