@@ -125,6 +125,8 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
         options["prefs"] = {
             "network.dns.localDomains": ",".join(server_config.domains_set)
         }
+        for pref, value in kwargs["extra_prefs"]:
+            options["prefs"].update({pref: Preferences.cast(value)})
         capabilities["moz:firefoxOptions"] = options
     if kwargs["certutil_binary"] is None:
         capabilities["acceptInsecureCerts"] = True

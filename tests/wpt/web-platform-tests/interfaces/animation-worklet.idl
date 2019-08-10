@@ -15,6 +15,13 @@ interface AnimationWorkletGlobalScope : WorkletGlobalScope {
 
 callback AnimatorInstanceConstructor = any (any options, optional any state);
 
+[ Exposed=AnimationWorklet ]
+interface WorkletAnimationEffect {
+    EffectTiming         getTiming();
+    ComputedEffectTiming getComputedTiming();
+    attribute double? localTime;
+};
+
 [Exposed=Window,
  Constructor (DOMString animatorName,
               optional (AnimationEffect or sequence<AnimationEffect>)? effects = null,
@@ -26,11 +33,5 @@ interface WorkletAnimation : Animation {
 
 [Exposed=AnimationWorklet]
 interface WorkletGroupEffect {
-  sequence<AnimationEffect> getChildren();
-};
-
-[Exposed=AnimationWorklet]
-partial interface AnimationEffect {
-    // Intended for use inside Animation Worklet scope to drive the effect.
-    attribute double localTime;
+  sequence<WorkletAnimationEffect> getChildren();
 };

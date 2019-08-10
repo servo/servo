@@ -52,7 +52,11 @@ let testFunction = function(session, fakeDeviceController, t) {
   function assertSameObjects() {
     assert_equals(session.inputSources[0], cached_input_source);
     assert_equals(cached_input_source.gamepad, cached_gamepad);
+
+    // Also make sure that WebXR gamepads have the index and id values required
+    // by the spec.
     assert_equals(cached_gamepad.index, -1);
+    assert_equals(cached_gamepad.id, "");
   }
 
   // Input events and gamepad state changes (button presses, axis movements)
@@ -74,6 +78,7 @@ let testFunction = function(session, fakeDeviceController, t) {
       cached_gamepad = cached_input_source.gamepad;
       t.step(() => {
         assert_equals(cached_gamepad.index, -1);
+        assert_equals(cached_gamepad.id, "");
         assert_equals(cached_gamepad.buttons.length, 3);
         assert_equals(cached_gamepad.axes.length, 2);
         // Initially, the button should not be pressed and the axes values should

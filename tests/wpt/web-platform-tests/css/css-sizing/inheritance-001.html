@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Inheritance of CSS Intrinsic & Extrinsic Sizing properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#property-index">
+<meta name="assert" content="Properties do not inherit.">
+<meta name="assert" content="Properties have initial values according to the spec.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+</head>
+<body>
+<div id="container">
+<div id="target"></div>
+</div>
+<style>
+  #container {
+    display: grid;
+  }
+</style>
+<script>
+assert_not_inherited('box-sizing', 'content-box', 'border-box');
+assert_not_inherited('max-height', 'none', '10px');
+assert_not_inherited('max-width', 'none', '10px');
+assert_not_inherited('min-height', 'auto', '10px');
+assert_not_inherited('min-width', 'auto', '10px');
+</script>
+</body>
+</html>
