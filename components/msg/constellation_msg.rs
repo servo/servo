@@ -246,8 +246,6 @@ pub enum MessagePortMsg {
     ),
     EntangledPortShipped(MessagePortId),
     RemoveMessagePort(MessagePortId),
-    PotentialGC(MessagePortId),
-    ComfirmGC(MessagePortId),
     NewTask(MessagePortId, PortMessageTask),
 }
 

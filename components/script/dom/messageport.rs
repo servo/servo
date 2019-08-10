@@ -187,7 +187,6 @@ pub struct MessagePortImpl {
     detached: Cell<bool>,
     transferred: Cell<bool>,
     enabled: Cell<bool>,
-    possibly_unreachable: Cell<bool>,
     awaiting_transfer: Cell<bool>,
     entangled_port: RefCell<Option<MessagePortId>>,
     #[ignore_malloc_size_of = "Channels are hard"]
@@ -204,7 +203,6 @@ impl MessagePortImpl {
             detached: Cell::new(false),
             transferred: Cell::new(false),
             enabled: Cell::new(false),
-            possibly_unreachable: Cell::new(true),
             awaiting_transfer: Cell::new(false),
             entangled_port: RefCell::new(None),
             entangled_sender: RefCell::new(None),
@@ -234,8 +232,8 @@ impl MessagePortImpl {
         self.entangled_port.borrow().clone()
     }
 
-    pub fn is_entangled(&self) -> bool {
-        self.entangled_port.borrow().is_some() || self.awaiting_transfer.get()
+    pub fn entangle(&self, other_id: MessagePortId) {
+        *self.entangled_port.borrow_mut() = Some(other_id);
     }
 
     pub fn message_buffers(&self) -> (VecDeque<PortMessageTask>, VecDeque<PortMessageTask>) {
@@ -270,41 +268,6 @@ impl MessagePortImpl {
 
     pub fn enabled(&self) -> bool {
         self.enabled.get()
-    }
-
-    /// Each time we receive a message, we become possible unreachable if we don't send a reply back.
-    /// Since if the port object is not stored somewhere by JS,
-    /// it's only the onmessage handler that could be called, which requires us to send a reply,
-    /// since the other-side is faced with the mirror of this situation.
-    pub fn possibly_unreachable(&self) -> bool {
-        self.possibly_unreachable.get()
-    }
-
-    /// Send a message to the entangled port, letting it know we could GC.
-    pub fn send_potential_gc_msg(&self) {
-        if let Some(sender) = &*self.entangled_sender.borrow() {
-            let entangled = self
-                .entangled_port
-                .borrow()
-                .expect("A port with a sender to be entangled");
-            let _ = sender.send(MessagePortMsg::PotentialGC(entangled.clone()));
-        }
-    }
-
-    /// In response to receiving a PotentialGC, we comfirm the opportunity for GC to the other port.
-    pub fn comfirm_gc(&self) {
-        if let Some(sender) = &*self.entangled_sender.borrow() {
-            let entangled = self
-                .entangled_port
-                .borrow()
-                .expect("A port with a sender to be entangled");
-            let _ = sender.send(MessagePortMsg::ComfirmGC(entangled.clone()));
-        }
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#entangle>
-    pub fn entangle(&self, other_id: MessagePortId) {
-        *self.entangled_port.borrow_mut() = Some(other_id);
     }
 
     pub fn set_has_been_shipped(&self) {
@@ -363,11 +326,6 @@ impl MessagePortImpl {
             return false;
         }
 
-        // Each message received means we could be unreachable
-        // (from JS, unless the event target is stored somewhere from the onmessage handler),
-        // unless we send a message back.
-        self.possibly_unreachable.set(true);
-
         if self.enabled.get() {
             true
         } else {
@@ -395,10 +353,6 @@ impl MessagePortImpl {
             Some(port_id) => port_id.clone(),
             None => return,
         };
-
-        // We're sending a message, this means we are still "reachable" from an onmessage handler,
-        // since the entangled port could respond.
-        self.possibly_unreachable.set(false);
 
         if self.has_been_shipped.get() {
             if let Some(sender) = &*self.entangled_sender.borrow() {
@@ -565,7 +519,6 @@ impl MessagePortMethods for MessagePort {
         if self.detached.get() {
             return;
         }
-        // Have the global proxy the call to the corresponding MessagePortImpl.
         self.global().start_message_port(self.message_port_id());
     }
 
@@ -575,7 +528,6 @@ impl MessagePortMethods for MessagePort {
             return;
         }
         self.detached.set(true);
-        // Have the global proxy the call to the corresponding MessagePortImpl.
         self.global().close_message_port(self.message_port_id());
     }
 
@@ -584,9 +536,8 @@ impl MessagePortMethods for MessagePort {
         if self.detached.get() {
             return None;
         }
-        // Have the global proxy the call to the corresponding MessagePortImpl.
-        self.global()
-            .get_message_port_onmessage(self.message_port_id())
+        let eventtarget = self.upcast::<EventTarget>();
+        eventtarget.get_event_handler_common("message")
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
@@ -594,8 +545,7 @@ impl MessagePortMethods for MessagePort {
         if self.detached.get() {
             return;
         }
-        // Have the global proxy the call to the corresponding MessagePortImpl.
-        self.global()
-            .set_message_port_onmessage(self.message_port_id(), listener);
+        self.set_onmessage(listener);
+        self.global().start_message_port(self.message_port_id());
     }
 }
