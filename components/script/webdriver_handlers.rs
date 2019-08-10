@@ -146,20 +146,15 @@ pub unsafe fn jsval_to_webdriver(
         });
         let _ac = JSAutoRealm::new(cx, *object);
 
-        if let Ok(element) = root_from_object::<HTMLElement>(*object, cx) {
-            return Ok(WebDriverJSValue::Element(WebElement(
-                element.upcast::<Node>().unique_id(),
-            )));
-        }
+        if is_array_like(cx, val) {
+            let mut result: Vec<WebDriverJSValue> = Vec::new();
 
-        if !is_array_like(cx, val) {
-            return Err(WebDriverJSError::UnknownType);
-        }
-
-        let mut result: Vec<WebDriverJSValue> = Vec::new();
-
-        let length =
-            match get_property::<u32>(cx, object.handle(), "length", ConversionBehavior::Default) {
+            let length = match get_property::<u32>(
+                cx,
+                object.handle(),
+                "length",
+                ConversionBehavior::Default,
+            ) {
                 Ok(length) => match length {
                     Some(length) => length,
                     _ => return Err(WebDriverJSError::UnknownType),
@@ -170,21 +165,28 @@ pub unsafe fn jsval_to_webdriver(
                 },
             };
 
-        for i in 0..length {
-            rooted!(in(cx) let mut item = UndefinedValue());
-            match get_property_jsval(cx, object.handle(), &i.to_string(), item.handle_mut()) {
-                Ok(_) => match jsval_to_webdriver(cx, global_scope, item.handle()) {
-                    Ok(converted_item) => result.push(converted_item),
-                    err @ Err(_) => return err,
-                },
-                Err(error) => {
-                    throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, error);
-                    return Err(WebDriverJSError::JSError);
-                },
+            for i in 0..length {
+                rooted!(in(cx) let mut item = UndefinedValue());
+                match get_property_jsval(cx, object.handle(), &i.to_string(), item.handle_mut()) {
+                    Ok(_) => match jsval_to_webdriver(cx, global_scope, item.handle()) {
+                        Ok(converted_item) => result.push(converted_item),
+                        err @ Err(_) => return err,
+                    },
+                    Err(error) => {
+                        throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, error);
+                        return Err(WebDriverJSError::JSError);
+                    },
+                }
             }
-        }
 
-        Ok(WebDriverJSValue::ArrayLike(result))
+            Ok(WebDriverJSValue::ArrayLike(result))
+        } else if let Ok(element) = root_from_object::<Element>(*object, cx) {
+            Ok(WebDriverJSValue::Element(WebElement(
+                element.upcast::<Node>().unique_id(),
+            )))
+        } else {
+            Err(WebDriverJSError::UnknownType)
+        }
     } else {
         Err(WebDriverJSError::UnknownType)
     }
