@@ -785,7 +785,7 @@ impl Parse for TextEmphasisStyle {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
-        // If a shape keyword is specified but neither of filled nor open is
+        // If a shape keyword is specified but neither filled nor open is
         // specified, filled is assumed.
         let fill = fill.unwrap_or(TextEmphasisFillMode::Filled);
 
