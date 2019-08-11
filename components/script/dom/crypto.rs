@@ -15,7 +15,7 @@ use js::jsapi::JSObject;
 use js::jsapi::Type;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBufferView;
-use servo_rand::{Rng, ServoRng};
+use servo_rand::{RngCore, ServoRng};
 use std::ptr::NonNull;
 
 unsafe_no_jsmanaged_fields!(ServoRng);
