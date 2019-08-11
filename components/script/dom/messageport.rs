@@ -97,8 +97,9 @@ impl MessagePort {
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
     pub fn set_onmessage(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+        println!("Set onmessage for {:?}", self.message_port_id);
         let eventtarget = self.upcast::<EventTarget>();
-        eventtarget.set_event_handler_common("message", listener)
+        eventtarget.set_event_handler_common("message", listener);
     }
 
     pub fn detached(&self) -> bool {
@@ -246,7 +247,7 @@ impl MessagePortImpl {
             return false;
         }
 
-        if self.enabled.get() || !self.awaiting_transfer.get() {
+        if self.enabled.get() && !self.awaiting_transfer.get() {
             true
         } else {
             self.message_buffer.borrow_mut().push_back(task.clone());
@@ -282,6 +283,7 @@ impl MessagePortImpl {
         if self.awaiting_transfer.get() {
             return;
         }
+        println!("Port {:?} start", self.message_port_id());
         let port_id = self.message_port_id().clone();
         for task in self.message_buffer.borrow_mut().drain(0..) {
             let this = Trusted::new(&*owner);
@@ -397,11 +399,13 @@ impl MessagePortMethods for MessagePort {
         if self.detached.get() {
             return Ok(());
         }
-        let transfer = options
+        let mut rooted = CustomAutoRooter::new(options
             .transfer
+            .as_ref()
+            .unwrap_or(&Vec::new())
             .iter()
-            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get());
-        let mut rooted = CustomAutoRooter::new(transfer.collect());
+            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+            .collect());
         let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
         self.post_message_impl(cx, message, guard)
     }

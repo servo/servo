@@ -367,6 +367,7 @@ impl GlobalScope {
         if !self.message_ports.borrow().contains_key(&port_id) {
             // If we don't know about the port,
             // send the message to the constellation for routing.
+            println!("Re-routing task for messageport {:?}", port_id);
             let _ = self
                 .script_to_constellation_chan()
                 .send(ScriptMsg::RerouteMessagePort(port_id.clone(), task));
@@ -382,6 +383,7 @@ impl GlobalScope {
             .map_or(false, |port| port.handle_incoming(&task));
 
         if should_dispatch {
+            println!("Dispatching task for messageport {:?}", port_id);
             // Get a corresponding DOM message-port object.
             // Any existing event-listeners will be set on it.
             let dom_port = self.get_dom_message_port(&port_id);
@@ -403,6 +405,8 @@ impl GlobalScope {
                     None,
                     deserialize_result.message_ports.into_iter().collect(),
                 );
+            } else {
+                println!("Error deserializing");
             }
         }
     }
@@ -412,6 +416,7 @@ impl GlobalScope {
     pub fn maybe_add_pending_ports(&self) {
         for port_id in self.pending_message_ports.borrow_mut().drain() {
             if self.message_ports.borrow().contains_key(&port_id) {
+                 println!("Adding messageport {:?}", port_id);
                 let _ = self
                     .script_to_constellation_chan()
                     .send(ScriptMsg::NewMessagePort(port_id.clone()));
@@ -492,7 +497,7 @@ impl GlobalScope {
             self.message_ports_route_setup.set(true);
             let _ = self
                 .script_to_constellation_chan()
-                .send(ScriptMsg::NewMessagePortRouter(port_control_sender.clone()));
+                .send(ScriptMsg::NewMessagePortRouter(port_control_sender));
         }
 
         let port_impl = if let Some(port_impl) = port_impl {

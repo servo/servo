@@ -904,7 +904,7 @@ impl WindowMethods for Window {
         cx: JSContext,
         message: HandleValue,
         origin: USVString,
-        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
+        mut transfer: CustomAutoRooterGuard<Option<Vec<*mut JSObject>>>,
     ) -> ErrorResult {
         let source_global = GlobalScope::incumbent().expect("no incumbent global??");
         let source = source_global.as_window();
@@ -920,7 +920,14 @@ impl WindowMethods for Window {
         };
 
         // Step 1-2, 6-8.
-        let data = structuredclone::write(*cx, message, Some(transfer))?;
+        let data = if transfer.is_some() {
+            let mut rooted = CustomAutoRooter::new(transfer.take().unwrap());
+            let res = structuredclone::write(*cx, message, Some(CustomAutoRooterGuard::new(*cx, &mut rooted)))?;
+            res
+        } else {
+           let res = structuredclone::write(*cx, message, None)?;
+           res
+        };
 
         let source_origin = source.Document().origin().immutable().clone();
 
@@ -940,11 +947,13 @@ impl WindowMethods for Window {
         let source_global = GlobalScope::incumbent().expect("no incumbent global??");
         let source = source_global.as_window();
 
-        let transfer = options
+        let mut rooted = CustomAutoRooter::new(options
             .transfer
+            .as_ref()
+            .unwrap_or(&Vec::new())
             .iter()
-            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get());
-        let mut rooted = CustomAutoRooter::new(transfer.collect());
+            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+            .collect());
         let transfer = CustomAutoRooterGuard::new(*cx, &mut rooted);
 
         // Step 3-5.

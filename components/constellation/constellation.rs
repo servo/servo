@@ -1696,8 +1696,10 @@ where
     }
 
     fn handle_reroute_messageport(&mut self, port_id: MessagePortId, task: PortMessageTask) {
+        println!("Got REROUTE messageport {:?} ", port_id);
         if let Some(info) = self.message_ports.get_mut(&port_id) {
             if info.is_being_transferred {
+                println!("BUFFERING REROUTE messageport {:?}", port_id);
                 match &mut info.message_queue {
                     Some(queue) => {
                         queue.push_back(task);
@@ -1710,6 +1712,7 @@ where
                 }
             } else {
                 if let Some(sender) = self.message_port_routers.get(&info.pipeline) {
+                     println!("REROUTing messageport {:?} ", port_id);
                     let _ = sender.send(MessagePortMsg::NewTask(port_id, task));
                 } else {
                     warn!("No message-port sender for {:?}", info.pipeline);
@@ -1723,6 +1726,7 @@ where
         source_pipeline_id: PipelineId,
         port_id: MessagePortId,
     ) {
+        println!("Got SHIPPED messageport {:?} in {:?}", port_id, source_pipeline_id);
         if let Some(info) = self.message_ports.get_mut(&port_id) {
             if source_pipeline_id != info.pipeline {
                 warn!(
@@ -1739,11 +1743,13 @@ where
         source_pipeline_id: PipelineId,
         control_sender: IpcSender<MessagePortMsg>,
     ) {
+        println!("Got ROUTER messageport for {:?}", source_pipeline_id);
         self.message_port_routers
             .insert(source_pipeline_id, control_sender);
     }
 
     fn handle_new_messageport(&mut self, source_pipeline_id: PipelineId, port_id: MessagePortId) {
+        println!("Got new messageport {:?} in {:?}", port_id, source_pipeline_id);
         // A new message-port was either created in, or transferred to, a script process.
         // We handle this differently based on whether the port is entangled or not.
         let info = match self.message_ports.get_mut(&port_id) {
@@ -1753,6 +1759,7 @@ where
                 info.is_being_transferred = false;
                 // Forward the buffered message-queue.
                 if let Some(sender) = self.message_port_routers.get(&info.pipeline) {
+                    println!("Completing transfer for {:?}", port_id);
                     let _ = sender.send(MessagePortMsg::CompleteTransfer(
                         port_id.clone(),
                         info.message_queue.take(),
@@ -1774,6 +1781,7 @@ where
             },
         };
         if let Some(info) = info {
+            println!("Constellation tracking new port: {:?}", port_id);
             self.message_ports.insert(port_id, info);
         }
     }
@@ -1783,6 +1791,7 @@ where
         source_pipeline_id: PipelineId,
         port_id: MessagePortId,
     ) {
+        println!("Got REMOVE messageport {:?} in {:?}", port_id, source_pipeline_id);
         let entangled = match self.message_ports.remove(&port_id) {
             Some(info) => {
                 if source_pipeline_id != info.pipeline {
@@ -1812,6 +1821,7 @@ where
         port1: MessagePortId,
         port2: MessagePortId,
     ) {
+        println!("Got ENTANGLE messageport {:?} {:?} in {:?}", port1, port2, source_pipeline_id);
         if let Some(info) = self.message_ports.get_mut(&port1) {
             if source_pipeline_id != info.pipeline {
                 warn!(

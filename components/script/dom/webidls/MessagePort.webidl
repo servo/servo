@@ -18,5 +18,5 @@ interface MessagePort : EventTarget {
 };
 
 dictionary PostMessageOptions {
-  sequence<object> transfer = [];
+  sequence<object> transfer;
 };

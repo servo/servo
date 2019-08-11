@@ -290,7 +290,6 @@ pub fn write(
     unsafe {
         rooted!(in(cx) let mut val = UndefinedValue());
         if let Some(transfer) = transfer {
-            println!("Transferred: {:?}", transfer.len());
             transfer.to_jsval(cx, val.handle_mut());
         }
 
@@ -336,8 +335,6 @@ pub fn write(
             0 => None,
             _ => Some(sc_holder.ports_impl),
         };
-
-        println!("Transferred ports: {:?}", ports);
 
         let data = StructuredSerializedData {
             js: data,
