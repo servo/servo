@@ -16,8 +16,8 @@ use std::marker::PhantomData;
 pub struct RaqoteBackend;
 
 impl Backend for RaqoteBackend {
-    fn get_composition_op(&self, _opts: &DrawOptions) -> CompositionOp {
-        unimplemented!()
+    fn get_composition_op(&self, opts: &DrawOptions) -> CompositionOp {
+        CompositionOp::Raqote(opts.as_raqote().blend_mode)
     }
 
     fn need_to_draw_shadow(&self, color: &Color) -> bool {
