@@ -1257,27 +1257,20 @@ fn http_network_fetch(
     }
 
     let mut cloned_url = url.clone();
-    let header_strings = res
+    let header_strings: Vec<&str> = res
         .headers()
         .get_all("Timing-Allow-Origin")
         .iter()
-        .map(|header_value| {
-            header_value.to_str().unwrap()
-        }).collect();
+        .map(|header_value| header_value.to_str().unwrap())
+        .collect();
     let wildcard_present = header_strings
-        .fold(false, |acc, header_str| {
-            acc || header_str == "*"
-        });
+        .iter()
+        .fold(false, |acc, header_str| acc || *header_str == "*");
     let req_origin_in_timing_allow = header_strings
-        .map(|header_string| {
-            ServoUrl::parse(header_string)
-        })
-        .filter(|header_url| {
-            header_url.is_some();
-        })
-        .map(|header_url| {
-            header_url.unwrap().into_url()
-        })
+        .iter()
+        .map(|header_string| ServoUrl::parse(header_string))
+        .filter(|header_url| header_url.is_ok())
+        .map(|header_url| header_url.unwrap().into_url())
         .fold(false, |acc, header_url| {
             acc || header_url.origin() == cloned_url.as_mut_url().origin()
         });
