@@ -69,13 +69,21 @@ impl MessagePort {
 
     /// Create a new port for an incoming transfer-received one.
     /// Using an existing Id and setting transferred to true.
-    fn new_transferred(owner: &GlobalScope, transferred_port: MessagePortId, entangled_port: Option<MessagePortId>) -> DomRoot<MessagePort> {
-        reflect_dom_object(Box::new(MessagePort {
-            message_port_id: transferred_port,
-            eventtarget: EventTarget::new_inherited(),
-            detached: Cell::new(false),
-            entangled_port: RefCell::new(entangled_port),
-        }), owner, Wrap)
+    fn new_transferred(
+        owner: &GlobalScope,
+        transferred_port: MessagePortId,
+        entangled_port: Option<MessagePortId>,
+    ) -> DomRoot<MessagePort> {
+        reflect_dom_object(
+            Box::new(MessagePort {
+                message_port_id: transferred_port,
+                eventtarget: EventTarget::new_inherited(),
+                detached: Cell::new(false),
+                entangled_port: RefCell::new(entangled_port),
+            }),
+            owner,
+            Wrap,
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#entangle>
@@ -296,10 +304,7 @@ impl MessagePortImpl {
 
 impl Transferable for MessagePort {
     /// <https://html.spec.whatwg.org/multipage/#message-ports:transfer-steps>
-    fn transfer(
-        &self,
-        sc_holder: &mut StructuredCloneHolder,
-    ) -> Result<u64, ()> {
+    fn transfer(&self, sc_holder: &mut StructuredCloneHolder) -> Result<u64, ()> {
         self.detached.set(true);
         let id = self.message_port_id();
         if let Ok(port) = self.global().mark_port_as_transferred(id) {
@@ -336,9 +341,12 @@ impl Transferable for MessagePort {
                 .try_into()
                 .expect("name_space to be a slice of four."),
         ));
-        let index = MessagePortIndex(NonZeroU32::new(u32::from_ne_bytes(
+        let index = MessagePortIndex(
+            NonZeroU32::new(u32::from_ne_bytes(
                 index.try_into().expect("index to be a slice of four."),
-            )).expect("Index to be non-zero"));
+            ))
+            .expect("Index to be non-zero"),
+        );
 
         let id = MessagePortId {
             namespace_id,
@@ -353,7 +361,8 @@ impl Transferable for MessagePort {
             .expect("MessagePortImpl to be desirealizeable");
         println!("Received: {:?}", port_impl);
 
-        let transferred_port = MessagePort::new_transferred(&**owner, id.clone(), port_impl.entangled_port_id());
+        let transferred_port =
+            MessagePort::new_transferred(&**owner, id.clone(), port_impl.entangled_port_id());
         owner.track_message_port(&transferred_port, Some(port_impl));
 
         return_object.set(transferred_port.reflector().rootable().get());

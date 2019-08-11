@@ -227,19 +227,24 @@ impl PartialEq<BrowsingContextId> for TopLevelBrowsingContextId {
     }
 }
 
-/// A buffer for a structured clone.
+/// Data-holder for https://html.spec.whatwg.org/multipage/#transferable-objects
+/// and https://html.spec.whatwg.org/multipage/#serializable-objects
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct StructuredSerializedData {
+    /// Serialized data.
     pub js: Vec<u8>,
+    /// Transferred objects.
     pub ports: Option<HashMap<MessagePortId, Vec<u8>>>,
 }
 
+/// A task on the https://html.spec.whatwg.org/multipage/#port-message-queue
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct PortMessageTask {
     pub origin: String,
     pub data: StructuredSerializedData,
 }
 
+/// Messages for communication between the constellation and a global managing ports.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum MessagePortMsg {
     /// Enables a port to catch-up on messages that were sent while the transfer was ongoing.

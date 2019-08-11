@@ -11,10 +11,7 @@ use crate::dom::globalscope::GlobalScope;
 use js::jsapi::MutableHandleObject;
 
 pub trait Transferable: DomObject {
-    fn transfer(
-        &self,
-        sc_holder: &mut StructuredCloneHolder,
-    ) -> Result<u64, ()>;
+    fn transfer(&self, sc_holder: &mut StructuredCloneHolder) -> Result<u64, ()>;
     fn transfer_receive(
         owner: &DomRoot<GlobalScope>,
         sc_holder: &mut StructuredCloneHolder,

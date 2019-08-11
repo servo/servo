@@ -2046,8 +2046,7 @@ where
         for entangled in entangled_to_notify {
             if let Some(info) = self.message_ports.get(&entangled) {
                 if let Some(sender) = self.message_port_routers.remove(&info.pipeline) {
-                    let _ = sender
-                        .send(MessagePortMsg::RemoveMessagePort(entangled.clone()));
+                    let _ = sender.send(MessagePortMsg::RemoveMessagePort(entangled.clone()));
                 } else {
                     warn!("No message-port sender for {:?}", info.pipeline);
                 }

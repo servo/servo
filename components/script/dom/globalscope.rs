@@ -321,7 +321,11 @@ impl GlobalScope {
 
     /// Handle the transfer of a port in the current task.
     pub fn mark_port_as_transferred(&self, port_id: &MessagePortId) -> Result<Vec<u8>, ()> {
-        let port = self.message_ports.borrow_mut().remove(port_id).expect("Transferred port to be known");
+        let port = self
+            .message_ports
+            .borrow_mut()
+            .remove(port_id)
+            .expect("Transferred port to be known");
         port.set_has_been_shipped();
         let _ = self
             .script_to_constellation_chan()
@@ -488,9 +492,7 @@ impl GlobalScope {
             self.message_ports_route_setup.set(true);
             let _ = self
                 .script_to_constellation_chan()
-                .send(ScriptMsg::NewMessagePortRouter(
-                    port_control_sender.clone(),
-                ));
+                .send(ScriptMsg::NewMessagePortRouter(port_control_sender.clone()));
         }
 
         let port_impl = if let Some(port_impl) = port_impl {

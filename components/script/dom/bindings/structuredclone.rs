@@ -210,7 +210,7 @@ unsafe extern "C" fn read_transfer_callback(
             extra_data,
             return_object,
         ) {
-            return true
+            return true;
         }
     }
     false
@@ -234,7 +234,7 @@ unsafe extern "C" fn write_transfer_callback(
         *tag = StructuredCloneTags::MessagePort as u32;
         *ownership = TransferableOwnership::SCTAG_TMO_CUSTOM;
         let mut sc_holder = &mut *(closure as *mut StructuredCloneHolder);
-        if let Ok(data) =  port.transfer(&mut sc_holder) {
+        if let Ok(data) = port.transfer(&mut sc_holder) {
             *extra_data = data;
             return true;
         }
