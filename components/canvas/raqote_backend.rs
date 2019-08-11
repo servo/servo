@@ -301,12 +301,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
             raqote::DrawOptions::new()
         };
 
-        raqote::DrawTarget::fill(
-            self,
-            &pb.finish(),
-            pattern.as_raqote(),
-            &draw_options,
-        );
+        raqote::DrawTarget::fill(self, &pb.finish(), pattern.as_raqote(), &draw_options);
     }
     fn get_format(&self) -> SurfaceFormat {
         unimplemented!();
@@ -365,7 +360,8 @@ impl GenericDrawTarget for raqote::DrawTarget {
             &pb.finish(),
             pattern.as_raqote(),
             &stroke_options,
-            draw_options.as_raqote());
+            draw_options.as_raqote(),
+        );
     }
     fn stroke_rect(
         &mut self,
@@ -382,10 +378,11 @@ impl GenericDrawTarget for raqote::DrawTarget {
             rect.size.height,
         );
 
-        self.stroke(&pb.finish(),
-        pattern.as_raqote(),
-        stroke_options.as_raqote(),
-        draw_options.as_raqote(),
+        self.stroke(
+            &pb.finish(),
+            pattern.as_raqote(),
+            stroke_options.as_raqote(),
+            draw_options.as_raqote(),
         );
     }
     #[allow(unsafe_code)]
@@ -405,7 +402,8 @@ impl GenericDrawTarget for raqote::DrawTarget {
             std::slice::from_raw_parts(
                 v.as_ptr() as *const u8,
                 v.len() * std::mem::size_of::<u32>(),
-            ).into()
+            )
+            .into()
         }
     }
 }
