@@ -155,7 +155,7 @@ use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WebDriver
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
 use servo_geometry::DeviceIndependentPixel;
-use servo_rand::{random, Rng, SeedableRng, ServoRng};
+use servo_rand::{random, Rng, ServoRng, SliceRandom};
 use servo_remutex::ReentrantMutex;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
@@ -757,7 +757,7 @@ where
                     handled_warnings: VecDeque::new(),
                     random_pipeline_closure: random_pipeline_closure_probability.map(|prob| {
                         let seed = random_pipeline_closure_seed.unwrap_or_else(random);
-                        let rng = ServoRng::from_seed(&[seed]);
+                        let rng = ServoRng::new_manually_reseeded(seed as u64);
                         warn!("Randomly closing pipelines.");
                         info!("Using seed {} for random pipeline closure.", seed);
                         (rng, prob)
@@ -4369,7 +4369,7 @@ where
         let mut pipeline_ids: Vec<&PipelineId> = self.pipelines.keys().collect();
         pipeline_ids.sort();
         if let Some((ref mut rng, probability)) = self.random_pipeline_closure {
-            if let Some(pipeline_id) = rng.choose(&*pipeline_ids) {
+            if let Some(pipeline_id) = pipeline_ids.choose(rng) {
                 if let Some(pipeline) = self.pipelines.get(pipeline_id) {
                     if self
                         .pending_changes
