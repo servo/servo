@@ -28,8 +28,8 @@ impl MessageChannel {
         // Step 2
         let port2 = MessagePort::new(&incumbent);
 
-        incumbent.track_message_port(&port1, false);
-        incumbent.track_message_port(&port2, false);
+        incumbent.track_message_port(&port1, None);
+        incumbent.track_message_port(&port2, None);
 
         // Step 3
         incumbent.entangle_ports(

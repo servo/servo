@@ -5,7 +5,6 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
-use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 use std::fmt;
@@ -243,16 +242,11 @@ pub struct PortMessageTask {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum MessagePortMsg {
-    NewEntangledSender(MessagePortId, IpcSender<MessagePortMsg>),
-    CompleteTransfer(
-        MessagePortId,
-        Option<VecDeque<PortMessageTask>>,
-        Option<VecDeque<PortMessageTask>>,
-        Option<MessagePortId>,
-        Option<IpcSender<MessagePortMsg>>,
-    ),
-    EntangledPortShipped(MessagePortId),
+    /// Enables a port to catch-up on messages that were sent while the transfer was ongoing.
+    CompleteTransfer(MessagePortId, Option<VecDeque<PortMessageTask>>),
+    /// Remove a port, the entangled one doesn't exists anymore.
     RemoveMessagePort(MessagePortId),
+    /// Handle a new port-message-task.
     NewTask(MessagePortId, PortMessageTask),
 }
 

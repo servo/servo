@@ -13,7 +13,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::blob::{Blob, BlobImpl};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::messageport::{MessagePort, MessagePortImpl};
+use crate::dom::messageport::MessagePort;
 use js::glue::CopyJSStructuredCloneData;
 use js::glue::DeleteJSAutoStructuredCloneBuffer;
 use js::glue::GetLengthOfJSStructuredCloneData;
@@ -33,12 +33,10 @@ use js::jsapi::{JS_ReadUint32Pair, JS_WriteUint32Pair};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::rust::{CustomAutoRooterGuard, Handle, HandleValue, MutableHandleValue};
-use libc::size_t;
 use msg::constellation_msg::{MessagePortId, StructuredSerializedData};
 use std::collections::HashMap;
 use std::os::raw;
 use std::ptr;
-use std::slice;
 
 // TODO: Should we add Min and Max const to https://github.com/servo/rust-mozjs/blob/master/src/consts.rs?
 // TODO: Determine for sure which value Min and Max should have.
@@ -196,25 +194,26 @@ unsafe extern "C" fn write_callback(
 
 unsafe extern "C" fn read_transfer_callback(
     cx: *mut JSContext,
-    r: *mut JSStructuredCloneReader,
+    _r: *mut JSStructuredCloneReader,
     tag: u32,
-    content: *mut raw::c_void,
+    _content: *mut raw::c_void,
     extra_data: u64,
     closure: *mut raw::c_void,
     return_object: RawMutableHandleObject,
 ) -> bool {
     if tag == StructuredCloneTags::MessagePort as u32 {
-        <MessagePort as Transferable>::transfer_receive(
-            cx,
-            r,
-            closure,
-            content,
+        let mut sc_holder = &mut *(closure as *mut StructuredCloneHolder);
+        let owner = GlobalScope::from_context(cx);
+        if let Ok(_) = <MessagePort as Transferable>::transfer_receive(
+            &owner,
+            &mut sc_holder,
             extra_data,
             return_object,
-        )
-    } else {
-        false
+        ) {
+            return true
+        }
     }
+    false
 }
 
 /// <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
@@ -224,7 +223,7 @@ unsafe extern "C" fn write_transfer_callback(
     closure: *mut raw::c_void,
     tag: *mut u32,
     ownership: *mut TransferableOwnership,
-    content: *mut *mut raw::c_void,
+    _content: *mut *mut raw::c_void,
     extra_data: *mut u64,
 ) -> bool {
     if let Ok(port) = root_from_handleobject::<MessagePort>(Handle::from_raw(obj), cx) {
@@ -234,7 +233,11 @@ unsafe extern "C" fn write_transfer_callback(
 
         *tag = StructuredCloneTags::MessagePort as u32;
         *ownership = TransferableOwnership::SCTAG_TMO_CUSTOM;
-        return port.transfer(closure, content, extra_data);
+        let mut sc_holder = &mut *(closure as *mut StructuredCloneHolder);
+        if let Ok(data) =  port.transfer(&mut sc_holder) {
+            *extra_data = data;
+            return true;
+        }
     }
     false
 }
@@ -287,6 +290,7 @@ pub fn write(
     unsafe {
         rooted!(in(cx) let mut val = UndefinedValue());
         if let Some(transfer) = transfer {
+            println!("Transferred: {:?}", transfer.len());
             transfer.to_jsval(cx, val.handle_mut());
         }
 
@@ -330,8 +334,10 @@ pub fn write(
 
         let ports = match sc_holder.ports_impl.len() {
             0 => None,
-            _ => Some(sc_holder.ports_impl)
+            _ => Some(sc_holder.ports_impl),
         };
+
+        println!("Transferred ports: {:?}", ports);
 
         let data = StructuredSerializedData {
             js: data,
@@ -352,7 +358,7 @@ pub fn read(
     let _ac = enter_realm(&*global);
     let ports = match data.ports.take() {
         Some(ports) => ports,
-        None => HashMap::new()
+        None => HashMap::new(),
     };
     let mut sc_holder = StructuredCloneHolder {
         blob: None,

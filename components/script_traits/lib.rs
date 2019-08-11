@@ -40,7 +40,9 @@ use libc::c_void;
 use media::WindowGLContext;
 use msg::constellation_msg::BackgroundHangMonitorRegister;
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
-use msg::constellation_msg::{PipelineNamespaceId, StructuredSerializedData, TopLevelBrowsingContextId, TraversalDirection};
+use msg::constellation_msg::{
+    PipelineNamespaceId, StructuredSerializedData, TopLevelBrowsingContextId, TraversalDirection,
+};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageCache;
 use net_traits::request::Referrer;

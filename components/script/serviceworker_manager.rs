@@ -8,7 +8,6 @@
 //! active_workers map
 
 use crate::dom::abstractworker::WorkerScriptMsg;
-use crate::dom::bindings::structuredclone;
 use crate::dom::serviceworkerglobalscope::{ServiceWorkerGlobalScope, ServiceWorkerScriptMsg};
 use crate::dom::serviceworkerregistration::longest_prefix_match;
 use crossbeam_channel::{unbounded, Receiver, RecvError, Sender};

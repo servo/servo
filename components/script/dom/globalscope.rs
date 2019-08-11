@@ -94,21 +94,17 @@ pub struct GlobalScope {
     crypto: MutNullableDom<Crypto>,
     next_worker_id: Cell<WorkerId>,
 
+    /// The sender for the message-ports manageds by this global.
+    message_ports_route_setup: Cell<bool>,
+
     /// The message-ports know to this global.
     message_ports: DomRefCell<HashMap<MessagePortId, MessagePortImpl>>,
 
     /// Message-ports we know about, but whose transfer is pending.
     pending_message_ports: DomRefCell<HashSet<MessagePortId>>,
 
-    #[ignore_malloc_size_of = "Channels are hard"]
-    /// Senders to port we know about, that are currently pending to be managed by this global.
-    port_senders: DomRefCell<HashMap<MessagePortId, IpcSender<MessagePortMsg>>>,
-
     /// The DOM messageport objects.
     message_port_tracker: DomRefCell<HashMap<MessagePortId, WeakRef<MessagePort>>>,
-
-    /// The message-ports that have been transferred out of this global.
-    message_ports_transferred: DomRefCell<HashSet<MessagePortId>>,
 
     /// Pipeline id associated with this global.
     pipeline_id: PipelineId,
@@ -206,46 +202,16 @@ impl MessageListener {
     /// and we can only access the root from the event-loop.
     fn notify(&self, msg: MessagePortMsg) {
         match msg {
-            MessagePortMsg::CompleteTransfer(
-                port_id,
-                tasks,
-                outgoing_msgs,
-                entangled_with,
-                entangled_sender,
-            ) => {
+            MessagePortMsg::CompleteTransfer(port_id, tasks) => {
                 let context = self.context.clone();
                 let _ = self.task_source.queue_with_canceller(
                     task!(process_new_entangled_sender: move || {
                         let global = context.root();
                         if let Some(port) = global.message_ports.borrow_mut().get_mut(&port_id) {
-                            port.complete_transfer(tasks, outgoing_msgs, entangled_with, entangled_sender);
+                            port.complete_transfer(tasks);
                             if port.enabled() {
                                 port.start(&global);
                             }
-                        };
-                    }),
-                    &self.canceller,
-                );
-            },
-            MessagePortMsg::NewEntangledSender(port_id, ipc_sender) => {
-                let context = self.context.clone();
-                let _ = self.task_source.queue_with_canceller(
-                    task!(process_new_entangled_sender: move || {
-                        let global = context.root();
-                        if let Some(port) = global.message_ports.borrow_mut().get_mut(&port_id) {
-                            port.set_entangled_sender(ipc_sender);
-                        };
-                    }),
-                    &self.canceller,
-                );
-            },
-            MessagePortMsg::EntangledPortShipped(port_id) => {
-                let context = self.context.clone();
-                let _ = self.task_source.queue_with_canceller(
-                    task!(process_entangled_port_shipped: move || {
-                        let global = context.root();
-                        if let Some(port) = global.message_ports.borrow_mut().get_mut(&port_id) {
-                            port.set_has_been_shipped();
                         };
                     }),
                     &self.canceller,
@@ -291,11 +257,10 @@ impl GlobalScope {
         user_agent: Cow<'static, str>,
     ) -> Self {
         Self {
+            message_ports_route_setup: Cell::new(false),
             message_ports: DomRefCell::new(HashMap::new()),
             pending_message_ports: DomRefCell::new(HashSet::new()),
             message_port_tracker: DomRefCell::new(HashMap::new()),
-            message_ports_transferred: DomRefCell::new(HashSet::new()),
-            port_senders: DomRefCell::new(HashMap::new()),
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
             next_worker_id: Cell::new(WorkerId(0)),
@@ -355,25 +320,14 @@ impl GlobalScope {
     }
 
     /// Handle the transfer of a port in the current task.
-    pub fn mark_port_as_transferred(&self, port_id: &MessagePortId) -> Result<Vec<u8>, bincode::Error> {
-        // Keep track of ports we transferred, for potential re-routing.
-        self.message_ports_transferred
-            .borrow_mut()
-            .insert(port_id.clone());
-
-        // Remove port, and let a locally tracked entangled port know.
+    pub fn mark_port_as_transferred(&self, port_id: &MessagePortId) -> Result<Vec<u8>, ()> {
         let port = self.message_ports.borrow_mut().remove(port_id).expect("Transferred port to be known");
-        let (incoming, outgoing) = port.message_buffers();
+        port.set_has_been_shipped();
         let _ = self
             .script_to_constellation_chan()
-            .send(ScriptMsg::MessagePortShipped(
-                port_id.clone(),
-                port.entangled_port_id().clone(),
-                incoming,
-                outgoing,
-            ));
+            .send(ScriptMsg::MessagePortShipped(port_id.clone()));
         let mut bytes = vec![];
-        bincode::serialize_into(&mut bytes, &port)?;
+        bincode::serialize_into(&mut bytes, &port).expect("MessagePortImpl so serialize");
         Ok(bytes)
     }
 
@@ -406,14 +360,9 @@ impl GlobalScope {
 
     /// Route the task to be handled by the relevant port.
     pub fn route_task_to_port(&self, port_id: MessagePortId, task: PortMessageTask) {
-        if self
-            .message_ports_transferred
-            .borrow_mut()
-            .contains(&port_id)
-        {
-            // If the port has already been transferred before this message arrived, re-route it.
-            // This should only happen initially, when the entangled ports sends a message
-            // and hasn't been updated about the transfer yet.
+        if !self.message_ports.borrow().contains_key(&port_id) {
+            // If we don't know about the port,
+            // send the message to the constellation for routing.
             let _ = self
                 .script_to_constellation_chan()
                 .send(ScriptMsg::RerouteMessagePort(port_id.clone(), task));
@@ -437,7 +386,8 @@ impl GlobalScope {
 
             // Substep 3-4
             rooted!(in(*self.get_cx()) let mut message_clone = UndefinedValue());
-            if let Ok(deserialize_result) = structuredclone::read(self, data, message_clone.handle_mut())
+            if let Ok(deserialize_result) =
+                structuredclone::read(self, data, message_clone.handle_mut())
             {
                 // Substep 6
                 // Dispatch the event, using the dom message-port.
@@ -457,15 +407,10 @@ impl GlobalScope {
     /// and complete their transfer if they haven't been re-transferred.
     pub fn maybe_add_pending_ports(&self) {
         for port_id in self.pending_message_ports.borrow_mut().drain() {
-            let control_sender = self
-                .port_senders
-                .borrow_mut()
-                .remove(&port_id)
-                .expect("This global to have stored a sender for this pending port");
-            if !self.message_ports_transferred.borrow().contains(&port_id) {
+            if self.message_ports.borrow().contains_key(&port_id) {
                 let _ = self
                     .script_to_constellation_chan()
-                    .send(ScriptMsg::NewMessagePort(port_id.clone(), control_sender));
+                    .send(ScriptMsg::NewMessagePort(port_id.clone()));
             }
         }
     }
@@ -478,6 +423,7 @@ impl GlobalScope {
                 None => false,
             };
             if !alive_js {
+                println!("Port not alive: {:?}", id);
                 self.remove_message_port(id);
                 // Let the constellation know to drop this port and the one it is entangled with,
                 // and to forward this message to the script-process where the entangled is found.
@@ -501,7 +447,11 @@ impl GlobalScope {
     }
 
     /// Start tracking a message-port
-    pub fn track_message_port(&self, dom_port: &DomRoot<MessagePort>, transfer_received: bool) {
+    pub fn track_message_port(
+        &self,
+        dom_port: &DomRoot<MessagePort>,
+        port_impl: Option<MessagePortImpl>,
+    ) {
         let message_port_id = dom_port.message_port_id().clone();
 
         // Store the DOM object.
@@ -509,30 +459,47 @@ impl GlobalScope {
             .borrow_mut()
             .insert(message_port_id.clone(), WeakRef::new(dom_port));
 
-        let port = MessagePortImpl::new(message_port_id.clone(), transfer_received);
+        println!("Tracking {:?}", message_port_id);
 
-        // If the port was transferred back into here,
-        // remove it from the transferred ports.
-        self.message_ports_transferred
-            .borrow_mut()
-            .remove(&message_port_id);
+        if !self.message_ports_route_setup.get() {
+            // Setup a route for IPC, for messages from the constellation to our ports.
+            let (port_control_sender, port_control_receiver) =
+                ipc::channel().expect("ipc channel failure");
+            let context = Trusted::new(self);
+            let (task_source, canceller) = (
+                self.port_message_queue(),
+                self.task_canceller(TaskSourceName::PortMessage),
+            );
+            let listener = MessageListener {
+                canceller,
+                task_source,
+                context,
+            };
+            ROUTER.add_route(
+                port_control_receiver.to_opaque(),
+                Box::new(move |message| {
+                    let msg = message.to();
+                    match msg {
+                        Ok(msg) => listener.notify(msg),
+                        Err(err) => warn!("Error receiving a MessagePortMsg: {:?}", err),
+                    }
+                }),
+            );
+            self.message_ports_route_setup.set(true);
+            let _ = self
+                .script_to_constellation_chan()
+                .send(ScriptMsg::NewMessagePortRouter(
+                    port_control_sender.clone(),
+                ));
+        }
 
-        let (port_control_sender, port_control_receiver) =
-            ipc::channel().expect("ipc channel failure");
-
-        if transfer_received {
+        let port_impl = if let Some(port_impl) = port_impl {
             // We keep transfer-received ports as "pending",
             // and only ask the constellation to complete the tranfer
             // if they're not re-shipped in the current task.
             self.pending_message_ports
                 .borrow_mut()
                 .insert(message_port_id.clone());
-
-            // Keep the control_sender, to send later to the constellation,
-            // if we request the transfer to be completed.
-            self.port_senders
-                .borrow_mut()
-                .insert(message_port_id.clone(), port_control_sender);
 
             // Queue a task to complete the transfer,
             // unless the port is re-transferred in the current task.
@@ -544,42 +511,19 @@ impl GlobalScope {
                 }),
                 &self,
             );
+            port_impl
         } else {
             // If this is a newly-created port, let the constellation immediately know.
             let _ = self
                 .script_to_constellation_chan()
-                .send(ScriptMsg::NewMessagePort(
-                    message_port_id.clone(),
-                    port_control_sender.clone(),
-                ));
-        }
+                .send(ScriptMsg::NewMessagePort(message_port_id.clone()));
+            MessagePortImpl::new(message_port_id.clone())
+        };
 
         // Store the MessagePortImpl.
         self.message_ports
             .borrow_mut()
-            .insert(message_port_id.clone(), port);
-
-        // Setup a route for IPC, for messages from the constellation and our entangled port.
-        let context = Trusted::new(self);
-        let (task_source, canceller) = (
-            self.port_message_queue(),
-            self.task_canceller(TaskSourceName::PortMessage),
-        );
-        let listener = MessageListener {
-            canceller,
-            task_source,
-            context,
-        };
-        ROUTER.add_route(
-            port_control_receiver.to_opaque(),
-            Box::new(move |message| {
-                let msg = message.to();
-                match msg {
-                    Ok(msg) => listener.notify(msg),
-                    Err(err) => warn!("Error receiving a MessagePortMsg: {:?}", err),
-                }
-            }),
-        );
+            .insert(message_port_id.clone(), port_impl);
     }
 
     pub fn track_worker(&self, closing_worker: Arc<AtomicBool>) {

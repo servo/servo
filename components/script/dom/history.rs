@@ -265,8 +265,7 @@ impl History {
         // Step 11
         let global_scope = self.window.upcast::<GlobalScope>();
         rooted!(in(*cx) let mut state = UndefinedValue());
-        let _ =
-            structuredclone::read(&global_scope, serialized_data, state.handle_mut());
+        let _ = structuredclone::read(&global_scope, serialized_data, state.handle_mut());
 
         // Step 12
         self.state.set(state.get());

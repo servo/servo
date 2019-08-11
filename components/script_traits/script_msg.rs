@@ -22,14 +22,14 @@ use msg::constellation_msg::{
     BrowsingContextId, MessagePortId, PipelineId, PortMessageTask, TopLevelBrowsingContextId,
 };
 use msg::constellation_msg::{
-    HistoryStateId, MessagePortMsg, PipelineNamespaceId, StructuredSerializedData, TraversalDirection,
+    HistoryStateId, MessagePortMsg, PipelineNamespaceId, StructuredSerializedData,
+    TraversalDirection,
 };
 use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::StorageType;
 use net_traits::CoreResourceMsg;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
-use std::collections::VecDeque;
 use std::fmt;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
@@ -117,16 +117,13 @@ pub enum ScriptMsg {
     /// Request a Pipeline namespace id.
     GePipelineNameSpaceId(IpcSender<PipelineNamespaceId>),
     /// A new message-port was created or transferred, with corresponding control-sender.
-    NewMessagePort(MessagePortId, IpcSender<MessagePortMsg>),
+    NewMessagePort(MessagePortId),
+    /// A global has started managing message-ports
+    NewMessagePortRouter(IpcSender<MessagePortMsg>),
     /// A task requires re-routing to an already shipped message-port.
     RerouteMessagePort(MessagePortId, PortMessageTask),
     /// A message-port was shipped, let the entangled port know.
-    MessagePortShipped(
-        MessagePortId,
-        Option<MessagePortId>,
-        VecDeque<PortMessageTask>,
-        VecDeque<PortMessageTask>,
-    ),
+    MessagePortShipped(MessagePortId),
     /// A message-port has been discarded by script.
     RemoveMessagePort(MessagePortId),
     /// Entangle two message-ports.
@@ -252,6 +249,7 @@ impl fmt::Debug for ScriptMsg {
         use self::ScriptMsg::*;
         let variant = match *self {
             GePipelineNameSpaceId(..) => "GePipelineNameSpaceId",
+            NewMessagePortRouter(..) => "NewMessagePortRouter",
             NewMessagePort(..) => "NewMessagePort",
             RerouteMessagePort(..) => "RerouteMessagePort",
             RemoveMessagePort(..) => "RemoveMessagePort",

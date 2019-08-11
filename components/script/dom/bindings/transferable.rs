@@ -5,22 +5,20 @@
 //! Trait representing the concept of [transferable objects]
 //! (https://html.spec.whatwg.org/multipage/#transferable-objects).
 use crate::dom::bindings::reflector::DomObject;
-use js::jsapi::{JSContext, JSStructuredCloneReader, MutableHandleObject};
-use std::os::raw;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::structuredclone::StructuredCloneHolder;
+use crate::dom::globalscope::GlobalScope;
+use js::jsapi::MutableHandleObject;
 
 pub trait Transferable: DomObject {
     fn transfer(
         &self,
-        closure: *mut raw::c_void,
-        content: *mut *mut raw::c_void,
-        extra_data: *mut u64,
-    ) -> bool;
+        sc_holder: &mut StructuredCloneHolder,
+    ) -> Result<u64, ()>;
     fn transfer_receive(
-        cx: *mut JSContext,
-        r: *mut JSStructuredCloneReader,
-        closure: *mut raw::c_void,
-        content: *mut raw::c_void,
+        owner: &DomRoot<GlobalScope>,
+        sc_holder: &mut StructuredCloneHolder,
         extra_data: u64,
         return_object: MutableHandleObject,
-    ) -> bool;
+    ) -> Result<(), ()>;
 }

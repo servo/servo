@@ -83,7 +83,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::JS_DefineProperty;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use media::WindowGLContext;
-use msg::constellation_msg::{StructuredSerializedData, PipelineId};
+use msg::constellation_msg::{PipelineId, StructuredSerializedData};
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
 use net_traits::storage_thread::StorageType;
