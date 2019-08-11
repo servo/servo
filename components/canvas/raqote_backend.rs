@@ -241,10 +241,10 @@ impl GenericDrawTarget for raqote::DrawTarget {
     }
     fn create_similar_draw_target(
         &self,
-        _size: &Size2D<i32>,
+        size: &Size2D<i32>,
         _format: SurfaceFormat,
     ) -> Box<dyn GenericDrawTarget> {
-        unimplemented!();
+        Box::new(raqote::DrawTarget::new(size.width, size.height))
     }
     fn create_source_surface_from_data(
         &self,
