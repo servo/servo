@@ -354,7 +354,7 @@ pub enum Path {
 #[derive(Clone)]
 pub enum Pattern<'a> {
     #[cfg(feature = "canvas2d-azure")]
-    Azure(azure::azure_hl::Pattern),
+    Azure(azure::azure_hl::Pattern, PhantomData<&'a ()>),
     #[cfg(feature = "canvas2d-raqote")]
     Raqote(raqote::Source<'a>),
 }
