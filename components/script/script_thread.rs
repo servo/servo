@@ -687,6 +687,9 @@ pub struct ScriptThread {
 
     /// A mechanism to force the compositor's event loop to process events.
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
+
+    /// A set of all nodes ever created in this script thread
+    node_ids: DomRefCell<HashSet<String>>,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -1183,6 +1186,25 @@ impl ScriptThread {
         })
     }
 
+    pub fn save_node_id(node_id: String) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            if let Some(script_thread) = root.get() {
+                let script_thread = unsafe { &*script_thread };
+                script_thread.node_ids.borrow_mut().insert(node_id);
+            }
+        })
+    }
+
+    pub fn has_node_id(node_id: &str) -> bool {
+        SCRIPT_THREAD_ROOT.with(|root| match root.get() {
+            Some(script_thread) => {
+                let script_thread = unsafe { &*script_thread };
+                script_thread.node_ids.borrow().contains(node_id)
+            },
+            None => false,
+        })
+    }
+
     /// Creates a new script thread.
     pub fn new(
         state: InitialScriptState,
@@ -1315,6 +1337,8 @@ impl ScriptThread {
             user_agent,
             player_context: state.player_context,
             event_loop_waker: state.event_loop_waker,
+
+            node_ids: Default::default(),
         }
     }
 
