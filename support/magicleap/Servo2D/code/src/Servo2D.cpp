@@ -18,22 +18,22 @@
 #include <string.h>
 
 // The viewport dimensions (in px).
-const int VIEWPORT_W = 500;
-const int VIEWPORT_H = 500;
+const int VIEWPORT_W = 1280;
+const int VIEWPORT_H = 720;
 
 // The hidpi factor.
 const float HIDPI = 1.0;
 
 // The prism dimensions (in m).
-const float PRISM_W = 0.75;
-const float PRISM_H = 0.75;
+const float PRISM_W = 1.50;
+const float PRISM_H = 1;
 const float PRISM_D = 0.05;
 
 // The length of the laser pointer (in m).
 const float LASER_LENGTH = 10.0;
 
 // The width of the keyboard
-const float KEYBOARD_W = 0.666;
+const float KEYBOARD_W = 1.333;
 
 // The home page
 const char* HOME_PAGE = "https://servo.org/ml-home";
@@ -152,7 +152,7 @@ int Servo2D::init() {
   }
   lumin::ui::UiPanel::RequestFocus(content_panel_);
 
-  lumin::ResourceIDType plane_id = prism_->createPlanarEGLResourceId();
+  lumin::ResourceIDType plane_id = prism_->createPlanarEGLResourceId(VIEWPORT_W, VIEWPORT_H);
   if (!plane_id) {
     ML_LOG(Error, "Servo2D Failed to create EGL resource");
     abort();
