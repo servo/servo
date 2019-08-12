@@ -629,13 +629,15 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
         message: HandleValue,
         options: RootedTraceableBox<PostMessageOptions>,
     ) -> ErrorResult {
-        let mut rooted = CustomAutoRooter::new(options
-            .transfer
-            .as_ref()
-            .unwrap_or(&Vec::new())
-            .iter()
-            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
-            .collect());
+        let mut rooted = CustomAutoRooter::new(
+            options
+                .transfer
+                .as_ref()
+                .unwrap_or(&Vec::new())
+                .iter()
+                .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+                .collect(),
+        );
         let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
         self.post_message_impl(cx, message, guard)
     }

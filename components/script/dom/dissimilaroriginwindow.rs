@@ -161,11 +161,15 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
         // Step 1-2, 6-8.
         let data = if transfer.is_some() {
             let mut rooted = CustomAutoRooter::new(transfer.take().unwrap());
-            let res = structuredclone::write(*cx, message, Some(CustomAutoRooterGuard::new(*cx, &mut rooted)))?;
+            let res = structuredclone::write(
+                *cx,
+                message,
+                Some(CustomAutoRooterGuard::new(*cx, &mut rooted)),
+            )?;
             res
         } else {
-           let res = structuredclone::write(*cx, message, None)?;
-           res
+            let res = structuredclone::write(*cx, message, None)?;
+            res
         };
 
         // Step 9.
@@ -201,13 +205,15 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
         };
 
         // Step 1-2, 6-8.
-        let mut rooted = CustomAutoRooter::new(options
-            .transfer
-            .as_ref()
-            .unwrap_or(&Vec::new())
-            .iter()
-            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
-            .collect());
+        let mut rooted = CustomAutoRooter::new(
+            options
+                .transfer
+                .as_ref()
+                .unwrap_or(&Vec::new())
+                .iter()
+                .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+                .collect(),
+        );
         let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
         let data = structuredclone::write(*cx, message, Some(guard))?;
 

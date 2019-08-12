@@ -922,11 +922,15 @@ impl WindowMethods for Window {
         // Step 1-2, 6-8.
         let data = if transfer.is_some() {
             let mut rooted = CustomAutoRooter::new(transfer.take().unwrap());
-            let res = structuredclone::write(*cx, message, Some(CustomAutoRooterGuard::new(*cx, &mut rooted)))?;
+            let res = structuredclone::write(
+                *cx,
+                message,
+                Some(CustomAutoRooterGuard::new(*cx, &mut rooted)),
+            )?;
             res
         } else {
-           let res = structuredclone::write(*cx, message, None)?;
-           res
+            let res = structuredclone::write(*cx, message, None)?;
+            res
         };
 
         let source_origin = source.Document().origin().immutable().clone();
@@ -947,13 +951,15 @@ impl WindowMethods for Window {
         let source_global = GlobalScope::incumbent().expect("no incumbent global??");
         let source = source_global.as_window();
 
-        let mut rooted = CustomAutoRooter::new(options
-            .transfer
-            .as_ref()
-            .unwrap_or(&Vec::new())
-            .iter()
-            .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
-            .collect());
+        let mut rooted = CustomAutoRooter::new(
+            options
+                .transfer
+                .as_ref()
+                .unwrap_or(&Vec::new())
+                .iter()
+                .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+                .collect(),
+        );
         let transfer = CustomAutoRooterGuard::new(*cx, &mut rooted);
 
         // Step 3-5.
