@@ -58,7 +58,6 @@ use crate::dom::url::URL;
 use crate::dom::videotrack::VideoTrack;
 use crate::dom::videotracklist::VideoTrackList;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::fetch::FetchCanceller;
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::script_thread::ScriptThread;
@@ -831,7 +830,7 @@ impl HTMLMediaElement {
         if let Some(ref mut current_fetch_context) = *current_fetch_context {
             current_fetch_context.cancel(CancelReason::Overridden);
         }
-        let (fetch_context, cancel_receiver) = HTMLMediaElementFetchContext::new();
+        let fetch_context = HTMLMediaElementFetchContext::new();
         *current_fetch_context = Some(fetch_context);
         let fetch_listener = Arc::new(Mutex::new(HTMLMediaElementFetchListener::new(
             self,
@@ -859,7 +858,7 @@ impl HTMLMediaElement {
             .core_resource_thread()
             .send(CoreResourceMsg::Fetch(
                 request,
-                FetchChannels::ResponseHandle(handle, Some(cancel_receiver)),
+                FetchChannels::ResponseHandle(handle, None),
             ))
             .unwrap();
     }
@@ -2400,23 +2399,14 @@ pub struct HTMLMediaElementFetchContext {
     cancel_reason: Option<CancelReason>,
     /// Indicates whether the fetched stream is seekable.
     is_seekable: bool,
-    /// Fetch canceller. Allows cancelling the current fetch request by
-    /// manually calling its .cancel() method or automatically on Drop.
-    fetch_canceller: FetchCanceller,
 }
 
 impl HTMLMediaElementFetchContext {
-    fn new() -> (HTMLMediaElementFetchContext, ipc::IpcSharedMemory) {
-        let mut fetch_canceller = FetchCanceller::new();
-        let shared_mem = fetch_canceller.initialize();
-        (
-            HTMLMediaElementFetchContext {
-                cancel_reason: None,
-                is_seekable: false,
-                fetch_canceller: fetch_canceller,
-            },
-            shared_mem,
-        )
+    fn new() -> HTMLMediaElementFetchContext {
+        HTMLMediaElementFetchContext {
+            cancel_reason: None,
+            is_seekable: false,
+        }
     }
 
     fn is_seekable(&self) -> bool {
@@ -2432,7 +2422,6 @@ impl HTMLMediaElementFetchContext {
             return;
         }
         self.cancel_reason = Some(reason);
-        self.fetch_canceller.cancel();
     }
 
     fn cancel_reason(&self) -> &Option<CancelReason> {

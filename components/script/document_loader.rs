@@ -138,14 +138,14 @@ impl DocumentLoader {
         request: RequestBuilder,
         fetch_target: IpcHandle<FetchResponseMsg>,
     ) {
-        let mut canceller = FetchCanceller::new();
-        let shared_mem = canceller.initialize();
-        self.cancellers.push(canceller);
+        //let mut canceller = FetchCanceller::new();
+        //let shared_mem = canceller.initialize();
+        //self.cancellers.push(canceller);
         self.resource_threads
             .sender()
             .send(CoreResourceMsg::Fetch(
                 request,
-                FetchChannels::ResponseHandle(fetch_target, Some(shared_mem)),
+                FetchChannels::ResponseHandle(fetch_target, None),
             ))
             .unwrap();
     }
@@ -156,14 +156,14 @@ impl DocumentLoader {
         request: RequestBuilder,
         fetch_target: IpcSender<FetchResponseMsg>,
     ) {
-        let mut canceller = FetchCanceller::new();
-        let shared_mem = canceller.initialize();
-        self.cancellers.push(canceller);
+        //let mut canceller = FetchCanceller::new();
+        //let shared_mem = canceller.initialize();
+        //self.cancellers.push(canceller);
         self.resource_threads
             .sender()
             .send(CoreResourceMsg::Fetch(
                 request,
-                FetchChannels::ResponseMsg(fetch_target, Some(shared_mem)),
+                FetchChannels::ResponseMsg(fetch_target, None),
             ))
             .unwrap();
     }
