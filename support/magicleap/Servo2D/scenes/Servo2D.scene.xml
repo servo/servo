@@ -1,6 +1,6 @@
 <ObjectModel name="Servo2D" version="1">
     <TransformNode/>
-    <UiPanel bottomEdgeConstraint="0.000000" gravityWellRoundness="0.000000" gravityWellSize="0.000000, 0.000000" gravityWellSnap="ClosestEdge" leftEdgeConstraint="0.000000" name="contentPanel" pos="0,0.06,0" rightEdgeConstraint="0.000000" shape="[size:[0.5,0.44], roundness: 0, offset:[0,0,0]]" topEdgeConstraint="0.000000">
+    <UiPanel bottomEdgeConstraint="0.000000" cursorVisible="false" gravityWellRoundness="0.000000" gravityWellSize="0.000000, 0.000000" gravityWellSnap="ClosestEdge" leftEdgeConstraint="0.000000" name="contentPanel" pos="0,0.06,0" rightEdgeConstraint="0.000000" shape="[size:[0.5,0.44], roundness: 0, offset:[0,0,0]]" topEdgeConstraint="0.000000">
         <QuadNode castShadow="false" name="content" pos="-0.25,-0.22,-0" receiveShadow="false" shader="MAX" size="0.500000, 0.500000"/>
     </UiPanel>
     <UiLinearLayout alignment="Top, Center" gravityWellRoundness="0.000000" gravityWellSize="0.000000, 0.000000" gravityWellSnap="ClosestEdge" itemAlignment="Center, Left" itemPadding="0.000000, 0.010000, 0.000000, 0.010000" name="uiLinearLayout1" orientation="Horizontal" pos="0,-0.2,0" size="0.500000, 0.050000">
@@ -14,6 +14,5 @@
             <UiTextEdit alignment="Center, Left" font="DefaultRes_Font_LominoUI_Rg" gravityWellRoundness="0.000000" gravityWellSize="0.000000, 0.000000" gravityWellSnap="ClosestEdge" name="urlBar" scrollSpeed="0.500000" size="0.600000, 0.050000" textSize="0.050000"/>
         </Content>
     </UiLinearLayout>
-    <LineNode castShadow="false" color="0,0,0,0" name="laser" opaque="false" points="0.000000, 0.000000, 0.000000, 1.000000, 1.000000, 1.000000" receiveShadow="false" shader="Line"/>
     <QuadNode castShadow="false" color="0.1572062,0.09219654,0.4817875,1" name="bevel" pos="-0.26,-0.17,-0.01" receiveShadow="false" shader="MAX" size="0.520000, 0.520000"/>
 </ObjectModel>

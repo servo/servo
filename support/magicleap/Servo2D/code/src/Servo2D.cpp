@@ -25,9 +25,9 @@ const int VIEWPORT_H = 500;
 const float HIDPI = 1.0;
 
 // The prism dimensions (in m).
-const float PRISM_W = 2.0;
+const float PRISM_W = 0.75;
 const float PRISM_H = 0.75;
-const float PRISM_D = 2.0;
+const float PRISM_D = 0.05;
 
 // The length of the laser pointer (in m).
 const float LASER_LENGTH = 10.0;
@@ -226,14 +226,6 @@ int Servo2D::init() {
   url_bar_->setKeyboardProperties(keyboard_properties);
   url_bar_->onFocusLostSub(std::bind(&Servo2D::urlBarEventListener, this));
 
-  // Add the laser pointer
-  laser_ = lumin::LineNode::CastFrom(prism_->findNode(scenes::Servo2D::externalNodes::laser, root_node));
-  if (!laser_) {
-    ML_LOG(Error, "Servo2D Failed to get laser");
-    abort();
-    return 1;
-  }
-
   return 0;
 }
 
@@ -264,7 +256,7 @@ void Servo2D::spawnInitialScenes() {
 }
 
 bool Servo2D::updateLoop(float fDelta) {
-  glm::vec2 pos = redrawLaser();
+  glm::vec2 pos = laserPosition();
   move_servo(servo_, pos.x, pos.y);
   heartbeat_servo(servo_);
   return true;
@@ -311,7 +303,7 @@ bool Servo2D::pose6DofEventListener(lumin::ControlPose6DofInputEventData* event)
   return false;
 }
 
-glm::vec2 Servo2D::redrawLaser() {
+glm::vec2 Servo2D::laserPosition() {
   // Return (-1, -1) if the laser doesn't intersect z=0
   glm::vec2 result = glm::vec2(-1.0, -1.0);
 
@@ -333,18 +325,9 @@ glm::vec2 Servo2D::redrawLaser() {
     float ratio = 1.0 / (1.0 - (endpoint.z / position.z));
     // The intersection point
     glm::vec3 intersection = ((1 - ratio) * position) + (ratio * endpoint);
-    // Is the intersection inside the viewport?
     result = viewportPosition(intersection);
-    if (pointInsideViewport(result)) {
-      color = glm::vec4(0.0, 1.0, 0.0, 1.0);
-      endpoint = intersection;
-    }
   }
 
-  laser_->clearPoints();
-  laser_->addPoints(position);
-  laser_->addPoints(endpoint);
-  laser_->setColor(color);
   return result;
 }
 
@@ -356,7 +339,7 @@ bool Servo2D::gestureEventListener(lumin::GestureInputEventData* event) {
   }
 
   // Only respond to trigger down if the laser is currently in the viewport
-  glm::vec2 pos = redrawLaser();
+  glm::vec2 pos = laserPosition();
   if ((typ == lumin::input::GestureType::TriggerDown) && !pointInsideViewport(pos)) {
     return false;
   }

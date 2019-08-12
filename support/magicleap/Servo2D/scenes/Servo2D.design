@@ -4,6 +4,7 @@
   <property id="sceneName" value="Servo2D"/>
   <node name="contentPanel" nodeTypeId="lumin.ui.panel">
     <property id="cursorInitialPosition"/>
+    <property id="cursorVisible" value="false"/>
     <property id="edgeConstraint"/>
     <property id="external" value="true"/>
     <property id="gravityWellProperties">
@@ -151,23 +152,6 @@
       <property id="textSize" value="0.05"/>
       <property id="width" value="0.6"/>
     </node>
-  </node>
-  <node name="laser" nodeTypeId="lumin.line">
-    <property id="color" value="0 0 0 0"/>
-    <property id="external" value="true"/>
-    <property id="name" value="laser"/>
-    <property id="opaque" value="false"/>
-    <property id="points">
-      <property id="0"/>
-      <property id="1">
-        <property id="x" value="1.0"/>
-        <property id="y" value="1.0"/>
-        <property id="z" value="1.0"/>
-      </property>
-    </property>
-    <property id="position"/>
-    <property id="rotation"/>
-    <property id="scale"/>
   </node>
   <node name="bevel" nodeTypeId="lumin.quad">
     <property id="color" value="0.4 0.302 0.702 1"/>

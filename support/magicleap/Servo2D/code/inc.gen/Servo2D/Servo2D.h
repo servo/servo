@@ -24,7 +24,6 @@
 #include <SpawnedSceneBase.h>
 #include <SpawnedSceneHandlers.h>
 
-#include <lumin/node/LineNode.h>
 #include <lumin/node/QuadNode.h>
 #include <lumin/ui/node/UiButton.h>
 #include <lumin/ui/node/UiPanel.h>
@@ -40,7 +39,6 @@ namespace scenes {
       extern const std::string backButton;
       extern const std::string fwdButton;
       extern const std::string urlBar;
-      extern const std::string laser;
     } 
 
     struct SpawnedScene : public SpawnedSceneBase {
@@ -51,7 +49,6 @@ namespace scenes {
       lumin::ui::UiButton* backButton;
       lumin::ui::UiButton* fwdButton;
       lumin::ui::UiTextEdit* urlBar;
-      lumin::LineNode* laser;
     };  
 
     SpawnedSceneBase* createSpawnedScene(const SceneDescriptor& sceneDescriptor, lumin::Node* root);

@@ -34,7 +34,6 @@ namespace scenes {
       backButton = lumin::ui::UiButton::CastFrom(root->findChild(externalNodes::backButton));
       fwdButton = lumin::ui::UiButton::CastFrom(root->findChild(externalNodes::fwdButton));
       urlBar = lumin::ui::UiTextEdit::CastFrom(root->findChild(externalNodes::urlBar));
-      laser = lumin::LineNode::CastFrom(root->findChild(externalNodes::laser));
     }
 
     SpawnedScene::~SpawnedScene() {
@@ -73,10 +72,6 @@ namespace scenes {
         urlBarHandlers(SpawnedScene& ss);
       };
       urlBarHandlers urlBarHandlers_;
-      struct laserHandlers {
-        laserHandlers(SpawnedScene& ss);
-      };
-      laserHandlers laserHandlers_;
     };
     
     Handlers::contentPanelHandlers::contentPanelHandlers(SpawnedScene& ss)
@@ -94,9 +89,6 @@ namespace scenes {
     Handlers::urlBarHandlers::urlBarHandlers(SpawnedScene& ss)
       {
     }
-    Handlers::laserHandlers::laserHandlers(SpawnedScene& ss)
-      {
-    }
     
     Handlers::Handlers(SpawnedScene& ss)
     : SpawnedSceneHandlers(ss),
@@ -104,8 +96,7 @@ namespace scenes {
       contentHandlers_(ss),
       backButtonHandlers_(ss),
       fwdButtonHandlers_(ss),
-      urlBarHandlers_(ss),
-      laserHandlers_(ss)
+      urlBarHandlers_(ss)
       {
     }
     
