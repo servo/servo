@@ -1,0 +1,14 @@
+on: push
+name: Build & Publish Documentation Website
+jobs:
+  website-build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: website-build-and-publish
+      uses: ./tools/docker/documentation
+      env:
+        DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+      with:
+        entrypoint: /bin/bash
+        args: tools/ci/website_build.sh

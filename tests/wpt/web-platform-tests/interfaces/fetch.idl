@@ -27,7 +27,7 @@ interface mixin Body {
 };
 typedef (Request or USVString) RequestInfo;
 
-[Constructor(RequestInfo input, optional RequestInit init),
+[Constructor(RequestInfo input, optional RequestInit init = {}),
  Exposed=(Window,Worker)]
 interface Request {
   readonly attribute ByteString method;
@@ -72,7 +72,7 @@ enum RequestMode { "navigate", "same-origin", "no-cors", "cors" };
 enum RequestCredentials { "omit", "same-origin", "include" };
 enum RequestCache { "default", "no-store", "reload", "no-cache", "force-cache", "only-if-cached" };
 enum RequestRedirect { "follow", "error", "manual" };
-[Constructor(optional BodyInit? body = null, optional ResponseInit init), Exposed=(Window,Worker)]
+[Constructor(optional BodyInit? body = null, optional ResponseInit init = {}), Exposed=(Window,Worker)]
 interface Response {
   [NewObject] static Response error();
   [NewObject] static Response redirect(USVString url, optional unsigned short status = 302);
