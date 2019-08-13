@@ -23,7 +23,9 @@ use metrics::PaintTimeMetrics;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use msg::constellation_msg::{BackgroundHangMonitorRegister, HangMonitorAlert, SamplerControlMsg};
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId};
-use msg::constellation_msg::{PipelineId, PipelineNamespace, PipelineNamespaceRequest};
+use msg::constellation_msg::{
+    PipelineId, PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest,
+};
 use net::image_cache::ImageCacheImpl;
 use net_traits::image_cache::ImageCache;
 use net_traits::{IpcSend, ResourceThreads};
@@ -168,6 +170,9 @@ pub struct InitialPipelineState {
     /// Information about the device pixel ratio.
     pub device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
 
+    /// The ID of the pipeline namespace for this script thread.
+    pub pipeline_namespace_id: PipelineNamespaceId,
+
     /// The event loop to run in, if applicable.
     pub event_loop: Option<Rc<EventLoop>>,
 
@@ -307,6 +312,7 @@ impl Pipeline {
                     opts: (*opts::get()).clone(),
                     prefs: prefs::pref_map().iter().collect(),
                     pipeline_port: pipeline_port,
+                    pipeline_namespace_id: state.pipeline_namespace_id,
                     layout_content_process_shutdown_chan: layout_content_process_shutdown_chan,
                     layout_content_process_shutdown_port: layout_content_process_shutdown_port,
                     script_content_process_shutdown_chan: script_content_process_shutdown_chan,
@@ -510,6 +516,7 @@ pub struct UnprivilegedPipelineContent {
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: profile_mem::ProfilerChan,
     window_size: WindowSizeData,
+    pipeline_namespace_id: PipelineNamespaceId,
     script_chan: IpcSender<ConstellationControlMsg>,
     load_data: LoadData,
     script_port: IpcReceiver<ConstellationControlMsg>,
@@ -571,6 +578,7 @@ impl UnprivilegedPipelineContent {
                 mem_profiler_chan: self.mem_profiler_chan.clone(),
                 devtools_chan: self.devtools_chan,
                 window_size: self.window_size,
+                pipeline_namespace_id: self.pipeline_namespace_id,
                 content_process_shutdown_chan: self.script_content_process_shutdown_chan,
                 webgl_chan: self.webgl_chan,
                 webvr_chan: self.webvr_chan,

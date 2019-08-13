@@ -1004,6 +1004,7 @@ where
                 pipeline_id: pipeline_id,
             },
             namespace_request_sender: self.namespace_sender.clone(),
+            pipeline_namespace_id: self.next_pipeline_namespace_id(),
             background_monitor_register: self.background_monitor_register.clone(),
             background_hang_monitor_to_constellation_chan: self
                 .background_hang_monitor_sender
