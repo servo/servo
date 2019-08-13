@@ -122,3 +122,33 @@ impl<N, L> LineHeight<N, L> {
         LineHeight::Normal
     }
 }
+
+/// Implements type for text-underline-offset and text-decoration-thickness
+/// which take the grammar of auto | from-font | <length>
+///
+/// https://drafts.csswg.org/css-text-decor-4/
+#[repr(C, u8)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(
+    Animate,
+    Clone,
+    Copy,
+    ComputeSquaredDistance,
+    ToAnimatedZero,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[allow(missing_docs)]
+pub enum GenericTextDecorationLength<L> {
+    Length(L),
+    Auto,
+    FromFont,
+}

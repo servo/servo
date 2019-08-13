@@ -10,7 +10,7 @@ use crate::values::computed::length::{Length, LengthPercentage};
 use crate::values::computed::{Context, NonNegativeLength, NonNegativeNumber, ToComputedValue};
 use crate::values::generics::text::InitialLetter as GenericInitialLetter;
 use crate::values::generics::text::LineHeight as GenericLineHeight;
-use crate::values::generics::text::Spacing;
+use crate::values::generics::text::{Spacing, GenericTextDecorationLength};
 use crate::values::specified::text::{self as specified, TextOverflowSide};
 use crate::values::specified::text::{TextEmphasisFillMode, TextEmphasisShapeKeyword};
 use crate::values::{CSSFloat, CSSInteger};
@@ -25,6 +25,9 @@ pub use crate::values::specified::{TextDecorationSkipInk, TextTransform};
 
 /// A computed value for the `initial-letter` property.
 pub type InitialLetter = GenericInitialLetter<CSSFloat, CSSInteger>;
+
+/// Implements type for `text-underline-offset` and `text-decoration-thickness` properties
+pub type TextDecorationLength = GenericTextDecorationLength<Length>;
 
 /// A computed value for the `letter-spacing` property.
 #[repr(transparent)]

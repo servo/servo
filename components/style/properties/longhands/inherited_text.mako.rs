@@ -382,8 +382,8 @@ ${helpers.single_keyword(
 // text underline offset
 ${helpers.predefined_type(
     "text-underline-offset",
-    "LengthOrAuto",
-    "computed::LengthOrAuto::auto()",
+    "TextDecorationLength",
+    "generics::text::GenericTextDecorationLength::Auto",
     engines="gecko",
     animation_value_type="ComputedValue",
     gecko_pref="layout.css.text-underline-offset.enabled",

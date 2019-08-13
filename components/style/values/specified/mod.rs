@@ -82,7 +82,7 @@ pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineBreak, LineHeight, TextAlign};
 pub use self::text::{OverflowWrap, TextEmphasisPosition, TextEmphasisStyle, WordBreak};
 pub use self::text::{TextAlignKeyword, TextDecorationLine, TextOverflow, WordSpacing};
-pub use self::text::{TextDecorationSkipInk, TextTransform};
+pub use self::text::{TextDecorationLength, TextDecorationSkipInk, TextTransform};
 pub use self::time::Time;
 pub use self::transform::{Rotate, Scale, Transform};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};

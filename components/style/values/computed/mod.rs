@@ -76,7 +76,7 @@ pub use self::svg::MozContextProperties;
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind};
 pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
 pub use self::table::XSpan;
-pub use self::text::TextDecorationSkipInk;
+pub use self::text::{TextDecorationLength, TextDecorationSkipInk};
 pub use self::text::{InitialLetter, LetterSpacing, LineBreak, LineHeight};
 pub use self::text::{OverflowWrap, TextOverflow, WordBreak, WordSpacing};
 pub use self::text::{TextAlign, TextEmphasisPosition, TextEmphasisStyle};
