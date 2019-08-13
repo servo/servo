@@ -18,8 +18,8 @@
 #include <string.h>
 
 // The viewport dimensions (in px).
-const int VIEWPORT_W = 1280;
-const int VIEWPORT_H = 720;
+const int VIEWPORT_W = 852;
+const int VIEWPORT_H = 480;
 
 // The hidpi factor.
 const float HIDPI = 1.0;
