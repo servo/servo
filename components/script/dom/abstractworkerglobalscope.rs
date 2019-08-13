@@ -13,6 +13,7 @@ use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use crate::task_queue::{QueuedTaskConversion, TaskQueue};
 use crossbeam_channel::{Receiver, Sender};
 use devtools_traits::DevtoolScriptControlMsg;
+use msg::constellation_msg::PipelineNamespace;
 
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
 /// common event loop messages. While this SendableWorkerScriptChan is alive, the associated
@@ -105,6 +106,7 @@ pub fn run_worker_event_loop<T, TimerMsg, WorkerMsg, Event>(
         + DerivedFrom<GlobalScope>
         + DomObject,
 {
+    PipelineNamespace::auto_install();
     let scope = worker_scope.upcast::<WorkerGlobalScope>();
     let timer_event_port = worker_scope.timer_event_port();
     let devtools_port = match scope.from_devtools_sender() {

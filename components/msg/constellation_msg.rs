@@ -44,7 +44,8 @@ impl PipelineNamespaceInstaller {
         }
     }
 
-    /// Provide a request sender to send requests to the constellation.
+    /// Provide a request sender to send requests to the constellation,
+    /// as well as an initial buffer of pre-generated Ids.
     pub fn initialize(
         &mut self,
         sender: IpcSender<PipelineNamespaceRequest>,
@@ -54,7 +55,7 @@ impl PipelineNamespaceInstaller {
         self.pipeline_namespace_id_buffer.append(&mut buffer);
     }
 
-    /// Install a namespace, requesting a new Id from the constellation.
+    /// Install a namespace, requesting a new batch of Id from the constellation if necessary.
     pub fn install_namespace(&mut self) {
         let namespace_id = match (
             self.request_sender.as_ref(),
