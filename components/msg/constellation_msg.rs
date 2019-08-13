@@ -22,13 +22,14 @@ pub enum TraversalDirection {
 
 #[derive(Debug, Deserialize, Serialize)]
 /// Request a pipeline-namespace id from the constellation.
-pub struct PipelineNamespaceRequest(pub IpcSender<PipelineNamespaceId>);
+pub struct PipelineNamespaceRequest(pub IpcSender<(PipelineNamespaceId, Vec<PipelineNamespaceId>)>);
 
 /// A per-process installer of pipeline-namespaces.
 pub struct PipelineNamespaceInstaller {
     request_sender: Option<IpcSender<PipelineNamespaceRequest>>,
-    namespace_sender: IpcSender<PipelineNamespaceId>,
-    namespace_receiver: IpcReceiver<PipelineNamespaceId>,
+    namespace_sender: IpcSender<(PipelineNamespaceId, Vec<PipelineNamespaceId>)>,
+    namespace_receiver: IpcReceiver<(PipelineNamespaceId, Vec<PipelineNamespaceId>)>,
+    pipeline_namespace_id_buffer: Vec<PipelineNamespaceId>,
 }
 
 impl PipelineNamespaceInstaller {
@@ -39,27 +40,41 @@ impl PipelineNamespaceInstaller {
             request_sender: None,
             namespace_sender: namespace_sender,
             namespace_receiver: namespace_receiver,
+            pipeline_namespace_id_buffer: Vec::with_capacity(12),
         }
     }
 
     /// Provide a request sender to send requests to the constellation.
-    pub fn set_sender(&mut self, sender: IpcSender<PipelineNamespaceRequest>) {
+    pub fn initialize(
+        &mut self,
+        sender: IpcSender<PipelineNamespaceRequest>,
+        mut buffer: Vec<PipelineNamespaceId>,
+    ) {
         self.request_sender = Some(sender);
+        self.pipeline_namespace_id_buffer.append(&mut buffer);
     }
 
     /// Install a namespace, requesting a new Id from the constellation.
-    pub fn install_namespace(&self) {
-        match self.request_sender.as_ref() {
-            Some(sender) => {
+    pub fn install_namespace(&mut self) {
+        let namespace_id = match (
+            self.request_sender.as_ref(),
+            self.pipeline_namespace_id_buffer.pop(),
+        ) {
+            (Some(sender), None) => {
                 let _ = sender.send(PipelineNamespaceRequest(self.namespace_sender.clone()));
-                let namespace_id = self
+                let (namespace_id, mut buffer) = self
                     .namespace_receiver
                     .recv()
                     .expect("The constellation to make a pipeline namespace id available");
-                PipelineNamespace::install(namespace_id);
+                self.pipeline_namespace_id_buffer.append(&mut buffer);
+                namespace_id
             },
-            None => unreachable!("PipelineNamespaceInstaller should have a request_sender setup"),
-        }
+            (Some(_sender), Some(namespace_id)) => namespace_id,
+            (None, _) => {
+                unreachable!("PipelineNamespaceInstaller should have a request_sender setup")
+            },
+        };
+        PipelineNamespace::install(namespace_id);
     }
 }
 
@@ -67,10 +82,10 @@ lazy_static! {
     /// A per-process unique pipeline-namespace-installer.
     /// Accessible via PipelineNamespace.
     ///
-    /// Use PipelineNamespace::set_installer_sender to initiate with a sender to the constellation,
-    /// when a new process has been created.
+    /// Use PipelineNamespace::initialize_installer to initialize it with a sender to the constellation,
+    /// and an initial buffer of ids, when a new process has been created.
     ///
-    /// Use PipelineNamespace::fetch_install to install a unique pipeline-namespace from the calling thread.
+    /// Use PipelineNamespace::auto_install to install a unique pipeline-namespace from the calling thread.
     static ref PIPELINE_NAMESPACE_INSTALLER: Arc<Mutex<PipelineNamespaceInstaller>> =
         Arc::new(Mutex::new(PipelineNamespaceInstaller::new()));
 }
@@ -114,13 +129,18 @@ impl PipelineNamespace {
 
     /// Setup the pipeline-namespace-installer, by providing it with a sender to the constellation.
     /// Idempotent in single-process mode.
-    pub fn set_installer_sender(sender: IpcSender<PipelineNamespaceRequest>) {
-        PIPELINE_NAMESPACE_INSTALLER.lock().set_sender(sender);
+    pub fn initialize_installer(
+        sender: IpcSender<PipelineNamespaceRequest>,
+        buffer: Vec<PipelineNamespaceId>,
+    ) {
+        PIPELINE_NAMESPACE_INSTALLER
+            .lock()
+            .initialize(sender, buffer);
     }
 
     /// Install a namespace in the current thread, without requiring having a namespace Id ready.
     /// Panics if called more than once per thread.
-    pub fn fetch_install() {
+    pub fn auto_install() {
         // Note that holding the lock for the duration of the call is irrelevant to performance,
         // since a thread would have to block on the ipc-response from the constellation,
         // with the constellation already acting as a global lock on namespace ids,

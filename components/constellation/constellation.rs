@@ -818,6 +818,18 @@ where
         namespace_id
     }
 
+    /// Pre-generate a buffer of namespace ids, so content, or other, processes,
+    /// do not require to ipc for them initially.
+    fn next_pipeline_namespace_id_buffer(&mut self) -> Vec<PipelineNamespaceId> {
+        let mut buffer = Vec::with_capacity(12);
+        for _i in 0..11 {
+            buffer.push(self.next_pipeline_namespace_id());
+        }
+        // Reverse so that the smaller ids are used first, for easier debugging.
+        buffer.reverse();
+        buffer
+    }
+
     fn next_browsing_context_group_id(&mut self) -> BrowsingContextGroupId {
         let id = self.browsing_context_group_next_id;
         self.browsing_context_group_next_id += 1;
@@ -1004,7 +1016,7 @@ where
                 pipeline_id: pipeline_id,
             },
             namespace_request_sender: self.namespace_sender.clone(),
-            pipeline_namespace_id: self.next_pipeline_namespace_id(),
+            pipeline_namespace_id_buffer: self.next_pipeline_namespace_id_buffer(),
             background_monitor_register: self.background_monitor_register.clone(),
             background_hang_monitor_to_constellation_chan: self
                 .background_hang_monitor_sender
@@ -1248,7 +1260,10 @@ where
 
     fn handle_request_for_pipeline_namespace(&mut self, request: PipelineNamespaceRequest) {
         let PipelineNamespaceRequest(sender) = request;
-        let _ = sender.send(self.next_pipeline_namespace_id());
+        let _ = sender.send((
+            self.next_pipeline_namespace_id(),
+            self.next_pipeline_namespace_id_buffer(),
+        ));
     }
 
     fn handle_request_from_background_hang_monitor(&self, message: HangMonitorAlert) {

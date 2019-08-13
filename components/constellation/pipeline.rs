@@ -170,8 +170,8 @@ pub struct InitialPipelineState {
     /// Information about the device pixel ratio.
     pub device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
 
-    /// The ID of the pipeline namespace for this script thread.
-    pub pipeline_namespace_id: PipelineNamespaceId,
+    /// The buffer of pipeline namespace ids for this content process.
+    pub pipeline_namespace_id_buffer: Vec<PipelineNamespaceId>,
 
     /// The event loop to run in, if applicable.
     pub event_loop: Option<Rc<EventLoop>>,
@@ -312,7 +312,7 @@ impl Pipeline {
                     opts: (*opts::get()).clone(),
                     prefs: prefs::pref_map().iter().collect(),
                     pipeline_port: pipeline_port,
-                    pipeline_namespace_id: state.pipeline_namespace_id,
+                    pipeline_namespace_id_buffer: state.pipeline_namespace_id_buffer,
                     layout_content_process_shutdown_chan: layout_content_process_shutdown_chan,
                     layout_content_process_shutdown_port: layout_content_process_shutdown_port,
                     script_content_process_shutdown_chan: script_content_process_shutdown_chan,
@@ -516,7 +516,7 @@ pub struct UnprivilegedPipelineContent {
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: profile_mem::ProfilerChan,
     window_size: WindowSizeData,
-    pipeline_namespace_id: PipelineNamespaceId,
+    pipeline_namespace_id_buffer: Vec<PipelineNamespaceId>,
     script_chan: IpcSender<ConstellationControlMsg>,
     load_data: LoadData,
     script_port: IpcReceiver<ConstellationControlMsg>,
@@ -547,7 +547,10 @@ impl UnprivilegedPipelineContent {
     {
         // Setup pipeline-namespace-installing for all threads in this process.
         // Idempotent in single-process mode.
-        PipelineNamespace::set_installer_sender(self.namespace_request_sender);
+        PipelineNamespace::initialize_installer(
+            self.namespace_request_sender,
+            self.pipeline_namespace_id_buffer,
+        );
 
         let image_cache = Arc::new(ImageCacheImpl::new(self.webrender_api_sender.create_api()));
         let paint_time_metrics = PaintTimeMetrics::new(
@@ -578,7 +581,6 @@ impl UnprivilegedPipelineContent {
                 mem_profiler_chan: self.mem_profiler_chan.clone(),
                 devtools_chan: self.devtools_chan,
                 window_size: self.window_size,
-                pipeline_namespace_id: self.pipeline_namespace_id,
                 content_process_shutdown_chan: self.script_content_process_shutdown_chan,
                 webgl_chan: self.webgl_chan,
                 webvr_chan: self.webvr_chan,
