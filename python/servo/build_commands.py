@@ -291,14 +291,10 @@ class MachCommands(CommandBase):
 
             # Ensure that the NuGet ANGLE package containing libEGL is accessible
             # to the Rust linker.
-            append_to_path_env(
-                path.join(
-                    os.getcwd(), "support", "hololens", "packages",
-                    "ANGLE.WindowsStore.Servo.2.1.13", "bin", "UAP", arch['angle']
-                ),
-                env,
-                "LIB"
-            )
+            append_to_path_env(angle_root(self, target_triple),
+                               env,
+                               "LIB"
+                               )
 
             # Don't want to mix non-UWP libraries with vendored UWP libraries.
             if "gstreamer" in env['LIB']:
@@ -701,6 +697,11 @@ class MachCommands(CommandBase):
                 if not package_msvc_dlls(servo_exe_dir, target_triple, vcinstalldir, vs_version):
                     status = 1
 
+                # UWP build hololens
+                if uwp:
+                    if build_uwp_hololens(target_triple, dev):
+                        status = 1
+
             elif sys.platform == "darwin":
                 # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
                 # like Instruments.app.
@@ -762,6 +763,33 @@ def gstreamer_root(target, env):
         return gst_default_path
     else:
         return None
+
+
+def angle_root(self, target):
+    arch = {
+
+        "aarch64": "arm64",
+        "x86_64": "x64",
+    }
+    angle_arch = arch[target.split('-')[0]]
+    print("angle_x64 Architecture = {}".format(angle_arch))
+
+    angle_default_path = path.join(os.getcwd(), "support", "hololens", "packages",
+                                   "ANGLE.WindowsStore.Servo.2.1.13", "bin", "UAP", angle_arch)
+
+    # Nuget executable command
+    nuget_exe = path.join(self.msvc_package_dir('nuget'), 'nuget.exe ')
+    nuget_action = "restore "
+    nuget_app = path.join(os.getcwd(), "support", "hololens", "ServoApp.sln")
+    nuget_command = nuget_exe + nuget_action + nuget_app
+
+    if os.path.exists(angle_default_path):
+        print("Angle Found...")
+    else:
+        print("Angle not found.  Performing nuget to restore Angle package")
+        check_call(nuget_command)
+
+    return angle_default_path
 
 
 def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
@@ -903,6 +931,34 @@ def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
     for gst_lib in missing:
         print("ERROR: could not find required GStreamer DLL: " + gst_lib)
     return not missing
+
+
+def build_uwp_hololens(target, dev):
+    # determine Visual studio Build Configuration (Debug/Release) and
+    # Build Platform (x64 vs arm64)
+    vs_platforms = {
+        "x86_64": "x64",
+        "i686": "x86",
+        "aarch64": "arm64",
+    }
+    target_arch = target.split('-')[0]
+    vs_platform = vs_platforms[target_arch]
+
+    if dev:
+        Configuration = "Debug"
+    else:
+        Configuration = "Release"
+
+    print("Building Build type = {} and Platform = {}".format(Configuration, vs_platform))
+    # execute msbuild
+    # Note: /m implies to use as many CPU cores as possible while building.
+    # msbuild /m /p:project=ServoApp .\support\hololens\servoapp.sln /p:SolutionDir=.\support\hololens
+    # /p:Configuration="Debug" /p:Platform="x64" /property:AppxBundle=Always;AppxBundlePlatforms="x64"
+
+    msbuild_cmd = "msbuild /m /p:project=ServoApp .\support\hololens\servoapp.sln /p:SolutionDir=.\support\hololens "
+    msbuild_conf = "/p:Configuration=" + Configuration + " /p:Platform=" + vs_platform + \
+        " /p:AppxBundle=Always;AppxBundlePlatforms=" + vs_platform
+    check_call(msbuild_cmd + msbuild_conf)
 
 
 def package_msvc_dlls(servo_exe_dir, target, vcinstalldir, vs_version):
