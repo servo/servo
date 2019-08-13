@@ -248,18 +248,31 @@ class MachCommands(CommandBase):
                 env['CXXFLAGS'] = ''
             env["CXXFLAGS"] += "-mmacosx-version-min=10.10"
 
-        vcinstalldir = None
-        vs_version = None
+        if 'windows' in host:
+            vcinstalldir = None
+            msbuildinstalldir = None
+            vs_version = "15.0"
+            editions = ["Enterprise", "Professional", "Community", "BuildTools"]
+            prog_files = os.environ.get("ProgramFiles(x86)")
+            base_vs_path = os.path.join(prog_files, "Microsoft Visual Studio", "2017")
+
+            for edition in editions:
+                # C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\MSBuild\15.0\Bin
+                # C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\MSBuild\15.0\Bin\amd64
+                msbuildinstalldir = os.path.join(base_vs_path, edition, "MSBuild", vs_version, "Bin")
+                if os.path.exists(msbuildinstalldir):
+                    break
+            else:
+                print("Can't find MSBuild.exe installation at %s." % base_vs_path)
+                sys.exit(1)
+
         if host != target_triple and 'windows' in target_triple:
             if os.environ.get('VisualStudioVersion'):
                 print("Can't cross-compile for Windows inside of a Visual Studio shell.\n"
                       "Please run `python mach build [arguments]` to bypass automatic "
                       "Visual Studio shell.")
                 sys.exit(1)
-            editions = ["Enterprise", "Professional", "Community", "BuildTools"]
-            prog_files = os.environ.get("ProgramFiles(x86)")
-            base_vs_path = os.path.join(prog_files, "Microsoft Visual Studio", "2017")
-            vs_version = "15.0"
+
             for edition in editions:
                 vcinstalldir = os.path.join(base_vs_path, edition, "VC")
                 if os.path.exists(vcinstalldir):
@@ -291,14 +304,7 @@ class MachCommands(CommandBase):
 
             # Ensure that the NuGet ANGLE package containing libEGL is accessible
             # to the Rust linker.
-            append_to_path_env(
-                path.join(
-                    os.getcwd(), "support", "hololens", "packages",
-                    "ANGLE.WindowsStore.Servo.2.1.13", "bin", "UAP", arch['angle']
-                ),
-                env,
-                "LIB"
-            )
+            append_to_path_env(angle_root(target_triple, env), env, "LIB")
 
             # Don't want to mix non-UWP libraries with vendored UWP libraries.
             if "gstreamer" in env['LIB']:
@@ -707,6 +713,10 @@ class MachCommands(CommandBase):
                 if not package_msvc_dlls(servo_exe_dir, target_triple, vcinstalldir, vs_version):
                     status = 1
 
+                # UWP build hololens
+                if uwp:
+                    build_uwp_hololens(target_triple, dev, msbuildinstalldir)
+
             elif sys.platform == "darwin":
                 # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
                 # like Instruments.app.
@@ -774,6 +784,24 @@ class MachCommands(CommandBase):
             return False
 
         return True
+
+
+def angle_root(target, nuget_env):
+    arch = {
+
+        "aarch64": "arm64",
+        "x86_64": "x64",
+    }
+    angle_arch = arch[target.split('-')[0]]
+    angle_default_path = path.join(os.getcwd(), "support", "hololens", "packages",
+                                   "ANGLE.WindowsStore.Servo.2.1.13", "bin", "UAP", angle_arch)
+
+    # Nuget executable command
+    nuget_app = path.join(os.getcwd(), "support", "hololens", "ServoApp.sln")
+    if not os.path.exists(angle_default_path):
+        check_call(['nuget.exe', 'restore', nuget_app], env=nuget_env)
+
+    return angle_default_path
 
 
 def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
@@ -915,6 +943,33 @@ def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
     for gst_lib in missing:
         print("ERROR: could not find required GStreamer DLL: " + gst_lib)
     return not missing
+
+
+def build_uwp_hololens(target, dev, msbuild_dir):
+    # determine Visual studio Build Configuration (Debug/Release) and
+    # Build Platform (x64 vs arm64)
+    vs_platforms = {
+        "x86_64": "x64",
+        "i686": "x86",
+        "aarch64": "arm64",
+    }
+    target_arch = target.split('-')[0]
+    vs_platform = vs_platforms[target_arch]
+
+    if dev:
+        Configuration = "Debug"
+    else:
+        Configuration = "Release"
+
+    # execute msbuild
+    # Note: /m implies to use as many CPU cores as possible while building.
+    # msbuild /m /p:project=ServoApp .\support\hololens\servoapp.sln /p:SolutionDir=.\support\hololens
+    # /p:Configuration="Debug" /p:Platform="x64" /property:AppxBundle=Always;AppxBundlePlatforms="x64"
+    check_call([msbuild_dir + "\msbuild.exe", "/m", "/p:project=ServoApp", ".\support\hololens\ServoApp.sln",
+                "/p:SolutionDir=.\support\hololens",
+                "/p:Configuration=" + Configuration,
+                "/p:Platform=" + vs_platform,
+                "/p:AppxBundle=Always;AppxBundlePlatforms=" + vs_platform])
 
 
 def package_msvc_dlls(servo_exe_dir, target, vcinstalldir, vs_version):

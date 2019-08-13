@@ -7,6 +7,7 @@ WINDOWS_MSVC = {
     "llvm": "8.0.0",
     "moztools": "3.2",
     "ninja": "1.7.1",
+    "nuget": "08-08-2019",
     "openssl": "111.3.0+1.1.1c-vs2017",
     "gstreamer-uwp": "1.16.0.3",
     "openxr-loader-uwp": "1.0",
