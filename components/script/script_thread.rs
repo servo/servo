@@ -742,7 +742,7 @@ impl ScriptThreadFactory for ScriptThread {
             .name(format!("ScriptThread {:?}", state.id))
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT);
-                PipelineNamespace::install(state.pipeline_namespace_id);
+                PipelineNamespace::fetch_install();
                 TopLevelBrowsingContextId::install(state.top_level_browsing_context_id);
                 let roots = RootCollection::new();
                 let _stack_roots = ThreadLocalStackRoots::new(&roots);

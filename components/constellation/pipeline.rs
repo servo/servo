@@ -22,7 +22,8 @@ use media::WindowGLContext;
 use metrics::PaintTimeMetrics;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use msg::constellation_msg::{BackgroundHangMonitorRegister, HangMonitorAlert, SamplerControlMsg};
-use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId};
+use msg::constellation_msg::{BrowsingContextId, HistoryStateId};
+use msg::constellation_msg::{PipelineId, PipelineNamespace, PipelineNamespaceRequest};
 use net::image_cache::ImageCacheImpl;
 use net_traits::image_cache::ImageCache;
 use net_traits::{IpcSend, ResourceThreads};
@@ -121,6 +122,9 @@ pub struct InitialPipelineState {
     /// A channel to the associated constellation.
     pub script_to_constellation_chan: ScriptToConstellationChan,
 
+    /// A sender to request pipeline namespace ids.
+    pub namespace_request_sender: IpcSender<PipelineNamespaceRequest>,
+
     /// A handle to register components for hang monitoring.
     /// None when in multiprocess mode.
     pub background_monitor_register: Option<Box<dyn BackgroundHangMonitorRegister>>,
@@ -169,9 +173,6 @@ pub struct InitialPipelineState {
 
     /// Information about the page to load.
     pub load_data: LoadData,
-
-    /// The ID of the pipeline namespace for this script thread.
-    pub pipeline_namespace_id: PipelineNamespaceId,
 
     /// Whether the browsing context in which pipeline is embedded is visible
     /// for the purposes of scheduling and resource management. This field is
@@ -285,6 +286,7 @@ impl Pipeline {
                     parent_pipeline_id: state.parent_pipeline_id,
                     opener: state.opener,
                     script_to_constellation_chan: state.script_to_constellation_chan.clone(),
+                    namespace_request_sender: state.namespace_request_sender,
                     background_hang_monitor_to_constellation_chan: state
                         .background_hang_monitor_to_constellation_chan
                         .clone(),
@@ -305,7 +307,6 @@ impl Pipeline {
                     opts: (*opts::get()).clone(),
                     prefs: prefs::pref_map().iter().collect(),
                     pipeline_port: pipeline_port,
-                    pipeline_namespace_id: state.pipeline_namespace_id,
                     layout_content_process_shutdown_chan: layout_content_process_shutdown_chan,
                     layout_content_process_shutdown_port: layout_content_process_shutdown_port,
                     script_content_process_shutdown_chan: script_content_process_shutdown_chan,
@@ -495,6 +496,7 @@ pub struct UnprivilegedPipelineContent {
     browsing_context_id: BrowsingContextId,
     parent_pipeline_id: Option<PipelineId>,
     opener: Option<BrowsingContextId>,
+    namespace_request_sender: IpcSender<PipelineNamespaceRequest>,
     script_to_constellation_chan: ScriptToConstellationChan,
     background_hang_monitor_to_constellation_chan: IpcSender<HangMonitorAlert>,
     sampling_profiler_port: Option<IpcReceiver<SamplerControlMsg>>,
@@ -514,7 +516,6 @@ pub struct UnprivilegedPipelineContent {
     opts: Opts,
     prefs: HashMap<String, PrefValue>,
     pipeline_port: IpcReceiver<LayoutControlMsg>,
-    pipeline_namespace_id: PipelineNamespaceId,
     layout_content_process_shutdown_chan: IpcSender<()>,
     layout_content_process_shutdown_port: IpcReceiver<()>,
     script_content_process_shutdown_chan: IpcSender<()>,
@@ -537,6 +538,10 @@ impl UnprivilegedPipelineContent {
         LTF: LayoutThreadFactory<Message = Message>,
         STF: ScriptThreadFactory<Message = Message>,
     {
+        // Setup pipeline-namespace-installing for all threads in this process.
+        // Idempotent in single-process mode.
+        PipelineNamespace::set_installer_sender(self.namespace_request_sender);
+
         let image_cache = Arc::new(ImageCacheImpl::new(self.webrender_api_sender.create_api()));
         let paint_time_metrics = PaintTimeMetrics::new(
             self.id,
@@ -566,7 +571,6 @@ impl UnprivilegedPipelineContent {
                 mem_profiler_chan: self.mem_profiler_chan.clone(),
                 devtools_chan: self.devtools_chan,
                 window_size: self.window_size,
-                pipeline_namespace_id: self.pipeline_namespace_id,
                 content_process_shutdown_chan: self.script_content_process_shutdown_chan,
                 webgl_chan: self.webgl_chan,
                 webvr_chan: self.webvr_chan,

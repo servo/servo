@@ -2924,8 +2924,11 @@ dependencies = [
 name = "msg"
 version = "0.0.1"
 dependencies = [
+ "ipc-channel 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "malloc_size_of 0.0.1",
  "malloc_size_of_derive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parking_lot 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
  "size_of_test 0.0.1",
  "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
