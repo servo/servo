@@ -9,4 +9,5 @@ WINDOWS_MSVC = {
     "ninja": "1.7.1",
     "openssl": "111.3.0+1.1.1c-vs2017",
     "gstreamer-uwp": "1.16.0.3",
+    "openxr-loader-uwp": "1.0",
 }
