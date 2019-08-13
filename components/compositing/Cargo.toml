@@ -44,4 +44,4 @@ webvr = {path = "../webvr"}
 webxr-api = {git = "https://github.com/servo/webxr"}
 
 [build-dependencies]
-toml = "0.4.5"
+toml = "0.5"
