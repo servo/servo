@@ -10,15 +10,15 @@ and should be easy to run in any browser.
 
 ## Test Layout
 
-Each top level directory in the repository corresponds to tests for a
-single specification, with the exception of `css/` which contains
-test suites for CSS WG specifications. For W3C specs, these directories
-are typically named after the shortname of the spec (i.e. the name
-used for snapshot publications under `/TR/`); for WHATWG specs, they
-are typically named after the subdomain of the spec (i.e. trimming
-`.spec.whatwg.org` from the URL); for other specs, something deemed
-sensible is used. In any case, there are occasional exceptions for
-historic reasons.
+Most of the repository's top-level directories hold tests for specific web
+standards. For [W3C specs](https://www.w3.org/standards/), these directories
+are typically named after the shortname of the spec (i.e. the name used for
+snapshot publications under `/TR/`); for [WHATWG
+specs](https://spec.whatwg.org/), they are typically named after the subdomain
+of the spec (i.e. trimming `.spec.whatwg.org` from the URL); for other specs,
+something deemed sensible is used. The `css/` directory contains test suites
+for [the CSS Working Group
+specifications](https://www.w3.org/Style/CSS/current-work).
 
 Within the specification-specific directory there are two common ways
 of laying out tests: the first is a flat structure which is sometimes
@@ -28,6 +28,12 @@ in the specification. The latter provides some implicit metadata about
 the part of a specification being tested according to its location in
 the filesystem, and is preferred for larger specifications.
 
+For example, tests in HTML for ["The History
+interface"](https://html.spec.whatwg.org/multipage/history.html#the-history-interface)
+are located in `html/browsers/history/the-history-interface/`.
+
+Various resources that tests depend on are in `common`, `images`, `fonts`,
+`media`, and `resources`.
 
 ## Test Types
 

@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>This verifies several attributeTypes combiniations</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Tiny//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-tiny.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+
+<!-- 'width' is a XML attribute, attributeType is set to "auto": this animation runs. -->
+<rect width="10" height="100" fill="green">
+    <animate id="an1" attributeType="auto" attributeName="width" fill="freeze" from="10" to="100" begin="0s" dur="4s"/>
+</rect>
+
+<!-- 'width' is a XML attribute, attributeType is set to "CSS". 'width' is not a presentation attribute, so this animation won't run. -->
+<rect x="150" width="10" height="100" fill="green">
+    <animate id="an2" attributeType="CSS" attributeName="width" fill="freeze" from="10" to="100" begin="0s" dur="4s"/>
+</rect>
+
+<!-- 'fill' is a presentation attribute, mapped to CSS, attributeType is set to "auto": this animation runs. -->
+<rect y="150" width="100" height="100" fill="red">
+    <animate id="an3" attributeType="auto" attributeName="fill" fill="freeze" from="red" to="green" begin="0s" dur="4s"/>
+</rect>
+
+<!-- 'fill' is a presentation attribute, mapped to CSS, attributeType is set to "XML": this animation runs. -->
+<rect x="150" y="150" width="100" height="100" fill="red">
+    <animate id="an4" attributeType="XML" attributeName="fill" fill="freeze" from="red" to="green" begin="0s" dur="4s"/>
+</rect>
+
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup animation test
+function sample1() {
+    assert_approx_equals(rect1.width.animVal.value, 10, epsilon);
+    assert_equals(rect1.width.baseVal.value, 10);
+    expectFillColor(rect1, 0, 128, 0);
+
+    assert_equals(rect2.width.animVal.value, 10);
+    assert_equals(rect2.width.baseVal.value, 10);
+    expectFillColor(rect2, 0, 128, 0);
+
+    assert_equals(rect3.width.animVal.value, 100);
+    assert_equals(rect3.width.baseVal.value, 100);
+    expectFillColor(rect3, 255, 0, 0);
+    assert_equals(rect3.getAttribute('fill'), "red");
+
+    assert_equals(rect4.width.animVal.value, 100);
+    assert_equals(rect4.width.baseVal.value, 100);
+    expectFillColor(rect4, 255, 0, 0);
+    assert_equals(rect4.getAttribute('fill'), "red");
+}
+
+function sample2() {
+    assert_approx_equals(rect1.width.animVal.value, 55, epsilon);
+    assert_equals(rect1.width.baseVal.value, 10);
+    expectFillColor(rect1, 0, 128, 0);
+
+    assert_equals(rect2.width.animVal.value, 55);
+    assert_equals(rect2.width.baseVal.value, 10);
+    expectFillColor(rect2, 0, 128, 0);
+
+    assert_equals(rect3.width.animVal.value, 100);
+    assert_equals(rect3.width.baseVal.value, 100);
+    expectFillColor(rect3, 128, 64, 0);
+    assert_equals(rect3.getAttribute('fill'), "red");
+
+    assert_equals(rect4.width.animVal.value, 100);
+    assert_equals(rect4.width.baseVal.value, 100);
+    expectFillColor(rect4, 128, 64, 0);
+    assert_equals(rect4.getAttribute('fill'), "red");
+}
+
+function sample3() {
+    assert_approx_equals(rect1.width.animVal.value, 100, epsilon);
+    assert_equals(rect1.width.baseVal.value, 10);
+    expectFillColor(rect1, 0, 128, 0);
+
+    assert_equals(rect2.width.animVal.value, 100);
+    assert_equals(rect2.width.baseVal.value, 10);
+    expectFillColor(rect2, 0, 128, 0);
+
+    assert_equals(rect3.width.animVal.value, 100);
+    assert_equals(rect3.width.baseVal.value, 100);
+    expectFillColor(rect3, 0, 128, 0);
+    assert_equals(rect3.getAttribute('fill'), "red");
+
+    assert_equals(rect4.width.animVal.value, 100);
+    assert_equals(rect4.width.baseVal.value, 100);
+    expectFillColor(rect4, 0, 128, 0);
+    assert_equals(rect4.getAttribute('fill'), "red");
+}
+
+smil_async_test((t) => {
+    rects = rootSVGElement.ownerDocument.getElementsByTagName("rect");
+    rect1 = rects[0];
+    rect2 = rects[1];
+    rect3 = rects[2];
+    rect4 = rects[3];
+
+    // All animations in the test file use the same duration, so it's not needed to list all sample points individually for an5/an6/an7/an8.
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["an1", 0.0,  sample1],
+        ["an1", 2.0,  sample2],
+        ["an1", 4.0,  sample3],
+        ["an1", 60.0, sample3],
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+window.animationStartsImmediately = true;
+
+</script>

@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: observe element with background image in its first letter</title>
+<body>
+<style>
+#target::first-letter {
+  background-image: url('/images/black-rectangle.png');
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+  let beforeRender = performance.now();
+  async_test(function (t) {
+    if (!window.PerformanceElementTiming) {
+      assert_unreached("PerformanceElementTiming is not implemented");
+    }
+    const div = document.getElementById('target');
+    let textObserved = false;
+    let imageObserved = false;
+    const observer = new PerformanceObserver(
+      t.step_func(function(entryList) {
+        entryList.getEntries().forEach(entry => {
+          if (entry.name === 'text-paint') {
+            checkTextElement(entry, 'my_div', 'target', beforeRender, div);
+            textObserved = true;
+          }
+          else {
+            assert_equals(entry.name, 'image-paint');
+            const pathname = window.location.origin + '/images/black-rectangle.png';
+            checkElement(entry, pathname, 'my_div', 'target', beforeRender, div);
+            checkNaturalSize(entry, 100, 50);
+            imageObserved = true;
+          }
+        });
+        if (textObserved && imageObserved)
+          t.done();
+      })
+    );
+    observer.observe({entryTypes: ['element']});
+  }, 'Element with elementtiming attribute and background image in first-letter is observable.');
+</script>
+<div id='target' elementtiming='my_div'>A</div>
+</body>

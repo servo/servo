@@ -2,7 +2,7 @@
 <meta charset="utf-8">
 <meta name="timeout" content="long">
 <meta name="variant" content="">
-<meta name="variant" content="?samesite-by-default-cookies.tentative">
+<meta name="variant" content="?legacy-samesite">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/cookies/resources/cookie-helper.sub.js"></script>
@@ -23,12 +23,12 @@
       // a new random value on each run, so on each run we are overwriting and
       // checking for a cookie with a different random value.
       let value = "" + Math.random();
-      let url_from = ORIGIN + "/cookies/samesite/resources/navigate.html";
+      let url_from = SECURE_ORIGIN + "/cookies/samesite/resources/navigate.html";
       let url_to = origin_to + "/cookies/resources/setSameSite.py?" + value;
       var w = window.open(url_from);
-      await wait_for_message('READY', ORIGIN);
-      assert_equals(ORIGIN, window.origin);
-      assert_equals(ORIGIN, w.origin);
+      await wait_for_message('READY', SECURE_ORIGIN);
+      assert_equals(SECURE_ORIGIN, window.origin);
+      assert_equals(SECURE_ORIGIN, w.origin);
       let command = (method === "POST") ? "post-form" : "navigate";
       w.postMessage({ type: command, url: url_to }, "*");
       let message = await wait_for_message('COOKIES_SET', origin_to);
@@ -37,8 +37,8 @@
     }, title);
   }
 
-  navigate_test("GET", ORIGIN, "Same-site top-level navigation should be able to set SameSite=* cookies.");
-  navigate_test("GET", CROSS_SITE_ORIGIN, "Cross-site top-level navigation should be able to set SameSite=* cookies.");
-  navigate_test("POST", ORIGIN, "Same-site top-level POST should be able to set SameSite=* cookies.");
-  navigate_test("POST", CROSS_SITE_ORIGIN, "Cross-site top-level POST should be able to set SameSite=* cookies.");
+  navigate_test("GET", SECURE_ORIGIN, "Same-site top-level navigation should be able to set SameSite=* cookies.");
+  navigate_test("GET", SECURE_CROSS_SITE_ORIGIN, "Cross-site top-level navigation should be able to set SameSite=* cookies.");
+  navigate_test("POST", SECURE_ORIGIN, "Same-site top-level POST should be able to set SameSite=* cookies.");
+  navigate_test("POST", SECURE_CROSS_SITE_ORIGIN, "Cross-site top-level POST should be able to set SameSite=* cookies.");
 </script>

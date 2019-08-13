@@ -191,23 +191,6 @@ that modify sensitive resources (such as `.py`). The latter require
 someone with merge access to comment with "LGTM" or "w3c-test:mirror" to
 indicate the pull request has been checked.
 
-Finding Things
-==============
-
-Each top-level directory matches the shortname used by a standard, with
-some exceptions. (Typically the shortname is from the standard's
-corresponding GitHub repository.)
-
-For some of the specifications, the tree under the top-level directory
-represents the sections of the respective documents, using the section
-IDs for directory names, with a maximum of three levels deep.
-
-So if you're looking for tests in HTML for "The History interface",
-they will be under `html/browsers/history/the-history-interface/`.
-
-Various resources that tests depend on are in `common`, `images`, and
-`fonts`.
-
 Branches
 ========
 
@@ -268,31 +251,6 @@ web-platform-tests root directory to suppress the error reports.
 For more details, see the [lint-tool documentation][lint-tool].
 
 [lint-tool]: https://web-platform-tests.org/writing-tests/lint-tool.html
-
-Test Review
-===========
-
-We can sometimes take a little while to go through pull requests
-because we have to go through all the tests and ensure that they match
-the specification correctly. But we look at all of them, and take
-everything that we can.
-
-META.yml files are used only to indicate who should be notified of pull
-requests.  If you are interested in receiving notifications of proposed
-changes to tests in a given directory, feel free to add yourself to the
-META.yml file. Anyone with expertise in the specification under test can
-approve a pull request.  In particular, if a test change has already
-been adequately reviewed "upstream" in another repository, it can be
-pushed here without any further review by supplying a link to the
-upstream review.
-
-Search filters to find things to review:
-
-* [Open PRs (excluding vendor exports)](https://github.com/web-platform-tests/wpt/pulls?utf8=%E2%9C%93&q=is%3Apr+is%3Aopen+-label%3A%22mozilla%3Agecko-sync%22+-label%3A%22chromium-export%22+-label%3A%22webkit-export%22+-label%3A%22servo-export%22+-label%3Avendor-imports)
-* [Reviewed but still open PRs (excluding vendor exports)](https://github.com/web-platform-tests/wpt/pulls?utf8=%E2%9C%93&q=is%3Apr+is%3Aopen+-label%3Amozilla%3Agecko-sync+-label%3Achromium-export+-label%3Awebkit-export+-label%3Aservo-export+-label%3Avendor-imports+review%3Aapproved+-label%3A%22do+not+merge+yet%22+-label%3A%22status%3Aneeds-spec-decision%22) (Merge? Something left to fix? Ping other reviewer?)
-* [Open PRs without reviewers](https://github.com/web-platform-tests/wpt/pulls?q=is%3Apr+is%3Aopen+label%3Astatus%3Aneeds-reviewers)
-* [Open PRs with label `infra` (excluding vendor exports)](https://github.com/web-platform-tests/wpt/pulls?utf8=%E2%9C%93&q=is%3Apr+is%3Aopen+label%3Ainfra+-label%3A%22mozilla%3Agecko-sync%22+-label%3A%22chromium-export%22+-label%3A%22webkit-export%22+-label%3A%22servo-export%22+-label%3Avendor-imports)
-* [Open PRs with label `docs` (excluding vendor exports)](https://github.com/web-platform-tests/wpt/pulls?utf8=%E2%9C%93&q=is%3Apr+is%3Aopen+label%3Adocs+-label%3A%22mozilla%3Agecko-sync%22+-label%3A%22chromium-export%22+-label%3A%22webkit-export%22+-label%3A%22servo-export%22+-label%3Avendor-imports)
 
 Getting Involved
 ================

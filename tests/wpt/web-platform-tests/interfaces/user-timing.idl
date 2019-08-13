@@ -23,7 +23,7 @@ partial interface Performance {
 };
 
 [Exposed=(Window,Worker),
- Constructor(DOMString markName, optional PerformanceMarkOptions markOptions)]
+ Constructor(DOMString markName, optional PerformanceMarkOptions markOptions = {})]
 interface PerformanceMark : PerformanceEntry {
   readonly attribute any detail;
 };

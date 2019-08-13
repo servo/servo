@@ -82,4 +82,33 @@ for (const composite of ['accumulate', 'add']) {
       + ` ${composite} of the effect`);
 }
 
+test(t => {
+  const div = createDiv(t);
+  const anims = [];
+  anims.push(div.animate({ marginLeft: ['10px', '20px'],
+                           composite: 'replace' },
+                         100));
+  anims.push(div.animate({ marginLeft: ['0px', '10px'],
+                           composite: 'add' },
+                         100));
+  // This should fully replace the previous effects.
+  anims.push(div.animate({ marginLeft: ['20px', '30px'],
+                           composite: 'replace' },
+                         100));
+  anims.push(div.animate({ marginLeft: ['30px', '40px'],
+                           composite: 'add' },
+                         100));
+
+  for (const anim of anims) {
+    anim.currentTime = 50;
+  }
+
+  // The result of applying the above effect stack is:
+  //  underlying = 0.5 * 20 + 0.5 * 30 = 25
+  //  result = 0.5 * (underlying + 30px) + 0.5 * (underlying + 40px)
+  //         = 60
+  assert_equals(getComputedStyle(div).marginLeft, '60px',
+    'Animated style at 50%');
+}, 'Composite replace fully replaces the underlying animation value');
+
 </script>

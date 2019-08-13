@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Trivial animVal testcase, to see wheter we support it at all. Should result in a 200x200 rect and only PASS messages</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg>
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup test document
+var rect = createSVGElement("rect");
+rect.setAttribute("id", "rect");
+rect.setAttribute("width", "200");
+rect.setAttribute("height", "200");
+rect.setAttribute("fill", "green");
+rect.setAttribute("onclick", "executeTest()");
+
+var animate = createSVGElement("animate");
+animate.setAttribute("id", "animation");
+animate.setAttribute("attributeName", "width");
+animate.setAttribute("from", "200");
+animate.setAttribute("to", "100");
+animate.setAttribute("begin", "0s");
+animate.setAttribute("dur", "4s");
+rect.appendChild(animate);
+rootSVGElement.appendChild(rect);
+
+// Setup animation test
+function sample1() {
+    // Check initial/end conditions
+    assert_approx_equals(rect.width.animVal.value, 200, epsilon);
+    assert_equals(rect.width.baseVal.value, 200);
+}
+
+function sample2() {
+    // Check half-time conditions
+    assert_approx_equals(rect.width.animVal.value, 150, epsilon);
+    assert_equals(rect.width.baseVal.value, 200);
+}
+
+function sample3() {
+    // Check just before-end conditions
+    assert_approx_equals(rect.width.animVal.value, 100, epsilon);
+    assert_equals(rect.width.baseVal.value, 200);
+}
+
+smil_async_test((t) => {
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["animation", 0.0,   sample1],
+        ["animation", 2.0,   sample2],
+        ["animation", 3.999, sample3],
+        ["animation", 4.001, sample1]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+</script>

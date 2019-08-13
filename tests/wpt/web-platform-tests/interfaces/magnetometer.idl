@@ -3,7 +3,7 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Magnetometer (https://w3c.github.io/magnetometer/)
 
-[Constructor(optional MagnetometerSensorOptions sensorOptions), SecureContext,
+[Constructor(optional MagnetometerSensorOptions sensorOptions = {}), SecureContext,
   Exposed=Window]
 interface Magnetometer : Sensor {
   readonly attribute double? x;
@@ -17,7 +17,7 @@ dictionary MagnetometerSensorOptions : SensorOptions {
   MagnetometerLocalCoordinateSystem referenceFrame = "device";
 };
 
-[Constructor(optional MagnetometerSensorOptions sensorOptions), SecureContext,
+[Constructor(optional MagnetometerSensorOptions sensorOptions = {}), SecureContext,
   Exposed=Window]
 interface UncalibratedMagnetometer : Sensor {
   readonly attribute double? x;
