@@ -635,6 +635,7 @@ version = "0.0.1"
 dependencies = [
  "background_hang_monitor 0.0.1",
  "backtrace 0.3.26 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bincode 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bluetooth_traits 0.0.1",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
@@ -666,6 +667,7 @@ dependencies = [
  "servo_rand 0.0.1",
  "servo_remutex 0.0.1",
  "servo_url 0.0.1",
+ "shared_ipc_router 0.0.1",
  "style_traits 0.0.1",
  "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "webvr_traits 0.0.1",

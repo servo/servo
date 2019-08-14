@@ -284,7 +284,7 @@ impl ResourceChannelManager {
             },
             CoreResourceMsg::FetchRedirect(req_init, res_init, sender, cancel_chan) => self
                 .resource_manager
-                .fetch(req_init, Some(res_init), sender, http_state, cancel_chan),
+                .fetch_with_handle(req_init, Some(res_init), sender, http_state, cancel_chan),
             CoreResourceMsg::SetCookieForUrl(request, cookie, source) => self
                 .resource_manager
                 .set_cookie_for_url(&request, cookie.into_inner(), source, http_state),

@@ -407,7 +407,7 @@ pub enum CoreResourceMsg {
     FetchRedirect(
         RequestBuilder,
         ResponseInit,
-        IpcSender<FetchResponseMsg>,
+        IpcHandle<FetchResponseMsg>,
         /* cancel_chan */ Option<IpcSharedMemory>,
     ),
     /// Store a cookie for a given originating URL

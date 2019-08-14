@@ -6,16 +6,17 @@
 //! Any redirects that are encountered are followed. Whenever a non-redirect
 //! response is received, it is forwarded to the appropriate script thread.
 
+use bincode;
 use crossbeam_channel::Sender;
 use http::header::LOCATION;
 use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use msg::constellation_msg::PipelineId;
 use net::http_loader::{set_default_accept, set_default_accept_language};
 use net_traits::request::{Destination, Referrer, RequestBuilder};
 use net_traits::response::ResponseInit;
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseMsg};
 use net_traits::{IpcSend, NetworkError, ResourceThreads};
+use shared_ipc_router::SharedIpcRouter;
 
 pub struct NetworkListener {
     res_init: Option<ResponseInit>,
@@ -44,7 +45,20 @@ impl NetworkListener {
     }
 
     pub fn initiate_fetch(&self, cancel_chan: Option<ipc::IpcSharedMemory>) {
-        let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+        // Note: this doesn't actually create a new router each time,
+        // although it does clone the handle to the router.
+        // It would be better to store it somewhere, and that is made harder
+        // by initiate_fetch being called itself from inside a the message handler.
+        let ipc_router = SharedIpcRouter::new();
+        if ipc_router.requires_setup_for_resource_manager() {
+            let _ = self
+                .resource_threads
+                .sender()
+                .send(CoreResourceMsg::NewDispatcher(
+                    ipc_router.router_id.clone(),
+                    ipc_router.ipc_sender.clone(),
+                ));
+        }
 
         let mut listener = NetworkListener {
             res_init: self.res_init.clone(),
@@ -55,35 +69,36 @@ impl NetworkListener {
             should_send: false,
         };
 
+        if self.res_init.is_none() {
+            set_default_accept(Destination::Document, &mut listener.request_builder.headers);
+            set_default_accept_language(&mut listener.request_builder.headers);
+        }
+
+        let request_builder = listener.request_builder.clone();
+
+        let handle = ipc_router.add_callback(Box::new(move |data: Vec<u8>| {
+            let response: Result<FetchResponseMsg, bincode::Error> = bincode::deserialize(&data[..]);
+            match response {
+                Ok(FetchResponseMsg::ProcessResponse(res)) => listener.check_redirect(res),
+                Ok(msg_) => listener.send(msg_),
+                Err(e) => warn!("Error while receiving network listener message: {}", e),
+            };
+        }));
+
         let msg = match self.res_init {
             Some(ref res_init_) => CoreResourceMsg::FetchRedirect(
                 self.request_builder.clone(),
                 res_init_.clone(),
-                ipc_sender,
+                handle,
                 None,
             ),
             None => {
-                set_default_accept(Destination::Document, &mut listener.request_builder.headers);
-                set_default_accept_language(&mut listener.request_builder.headers);
-
                 CoreResourceMsg::Fetch(
-                    listener.request_builder.clone(),
-                    FetchChannels::ResponseMsg(ipc_sender, cancel_chan),
+                    request_builder,
+                    FetchChannels::ResponseHandle(handle, cancel_chan),
                 )
             },
         };
-
-        ROUTER.add_route(
-            ipc_receiver.to_opaque(),
-            Box::new(move |message| {
-                let msg = message.to();
-                match msg {
-                    Ok(FetchResponseMsg::ProcessResponse(res)) => listener.check_redirect(res),
-                    Ok(msg_) => listener.send(msg_),
-                    Err(e) => warn!("Error while receiving network listener message: {}", e),
-                };
-            }),
-        );
 
         if let Err(e) = self.resource_threads.sender().send(msg) {
             warn!("Resource thread unavailable ({})", e);

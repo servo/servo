@@ -18,6 +18,7 @@ no_wgl = ["canvas/no_wgl"]
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor"}
 backtrace = "0.3"
+bincode = "1"
 bluetooth_traits = { path = "../bluetooth_traits" }
 canvas = {path = "../canvas", default-features = false}
 clipboard = "0.5"
@@ -49,6 +50,7 @@ servo_geometry = {path = "../geometry"}
 servo_rand = {path = "../rand"}
 servo_remutex = {path = "../remutex"}
 servo_url = {path = "../url"}
+shared_ipc_router = {path = "../shared_ipc_router"}
 webvr_traits = {path = "../webvr_traits"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
