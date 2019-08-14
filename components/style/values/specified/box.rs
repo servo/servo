@@ -393,55 +393,66 @@ impl Display {
 
     /// Convert this display into an equivalent block display.
     ///
-    /// Also used for style adjustments.
+    /// Also used for :root style adjustments.
     pub fn equivalent_block_display(&self, _is_root_element: bool) -> Self {
+        #[cfg(feature = "gecko")]
+        {
+            // Special handling for `contents` and `list-item`s on the root element.
+            if _is_root_element && (*self == Display::Contents || self.is_list_item()) {
+                return Display::Block;
+            }
+            match self.outside() {
+                DisplayOutside::Inline => {
+                    let inside =  match self.inside() {
+                        DisplayInside::Inline | DisplayInside::FlowRoot => DisplayInside::Block,
+                        // FIXME: we don't handle `block ruby` in layout yet, remove this when we do:
+                        DisplayInside::Ruby => DisplayInside::Block,
+                        inside => inside,
+                    };
+                    Display::from3(DisplayOutside::Block, inside, self.is_list_item())
+                },
+                DisplayOutside::Block | DisplayOutside::None => *self,
+                _ => Display::Block,
+            }
+        }
+        #[cfg(not(feature = "gecko"))]
         match *self {
             // Values that have a corresponding block-outside version.
-            #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
+            #[cfg(feature = "servo-layout-2013")]
             Display::InlineTable => Display::Table,
-            #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
+            #[cfg(feature = "servo-layout-2013")]
             Display::InlineFlex => Display::Flex,
-
-            #[cfg(feature = "gecko")]
-            Display::InlineGrid => Display::Grid,
-            #[cfg(feature = "gecko")]
-            Display::WebkitInlineBox => Display::WebkitBox,
-
-            // Special handling for contents and list-item on the root
-            // element for Gecko.
-            #[cfg(feature = "gecko")]
-            Display::Contents | Display::ListItem if _is_root_element => Display::Block,
 
             // These are not changed by blockification.
             Display::None | Display::Block => *self,
-            #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
+            #[cfg(feature = "servo-layout-2013")]
             Display::Flex | Display::ListItem | Display::Table => *self,
-
-            #[cfg(feature = "gecko")]
-            Display::Contents | Display::FlowRoot | Display::Grid | Display::WebkitBox => *self,
 
             // Everything else becomes block.
             _ => Display::Block,
         }
     }
 
-    /// Convert this display into an inline-outside display.
-    ///
-    /// Ideally it should implement spec: https://drafts.csswg.org/css-display/#inlinify
-    /// but the spec isn't stable enough, so we copy what Gecko does for now.
+    /// Convert this display into an equivalent inline-outside display.
+    /// https://drafts.csswg.org/css-display/#inlinify
     #[cfg(feature = "gecko")]
     pub fn inlinify(&self) -> Self {
-        match *self {
-            Display::Block | Display::FlowRoot => Display::InlineBlock,
-            Display::Table => Display::InlineTable,
-            Display::Flex => Display::InlineFlex,
-            Display::Grid => Display::InlineGrid,
-            // XXX bug 1105868 this should probably be InlineListItem:
-            Display::ListItem => Display::Inline,
-            Display::MozBox => Display::MozInlineBox,
-            Display::MozStack => Display::MozInlineStack,
-            Display::WebkitBox => Display::WebkitInlineBox,
-            other => other,
+        match self.outside() {
+            DisplayOutside::Block => {
+                let inside = match self.inside() {
+                    DisplayInside::Block => DisplayInside::FlowRoot,
+                    inside => inside,
+                };
+                Display::from3(DisplayOutside::Inline, inside, self.is_list_item())
+            },
+            DisplayOutside::XUL => {
+                match self.inside() {
+                    DisplayInside::MozBox => Display::MozInlineBox,
+                    DisplayInside::MozStack => Display::MozInlineStack,
+                    _ => *self,
+                }
+            },
+            _ => *self,
         }
     }
 
@@ -496,8 +507,15 @@ impl ToCss for Display {
                 }
                 (_, inside) => {
                     if self.is_list_item() {
-                        debug_assert_eq!(inside, DisplayInside::FlowRoot);
-                        dest.write_str("flow-root list-item")
+                        if outside != DisplayOutside::Block {
+                            outside.to_css(dest)?;
+                            dest.write_str(" ")?;
+                        }
+                        if inside != DisplayInside::Flow {
+                            inside.to_css(dest)?;
+                            dest.write_str(" ")?;
+                        }
+                        dest.write_str("list-item")
                     } else {
                         inside.to_css(dest)
                     }
@@ -547,34 +565,9 @@ fn parse_display_outside<'i, 't>(
     Ok(try_match_ident_ignore_ascii_case! { input,
         "block" => DisplayOutside::Block,
         "inline" => DisplayOutside::Inline,
-        // FIXME: not supported in layout yet:
-        //"run-in" => DisplayOutside::RunIn,
-    })
-}
-
-/// FIXME: this can be replaced with parse_display_outside once we
-/// support all its values for list items.
-#[cfg(feature = "gecko")]
-fn parse_display_outside_for_list_item<'i, 't>(
-    input: &mut Parser<'i, 't>,
-) -> Result<DisplayOutside, ParseError<'i>> {
-    Ok(try_match_ident_ignore_ascii_case! { input,
-        "block" => DisplayOutside::Block,
-        // FIXME(bug 1105868): not supported in layout yet:
-        //"inline" => DisplayOutside::Inline,
         // FIXME(bug 2056): not supported in layout yet:
         //"run-in" => DisplayOutside::RunIn,
     })
-}
-/// Test a <display-outside> Result for same values as above.
-#[cfg(feature = "gecko")]
-fn is_valid_outside_for_list_item<'i>(
-    outside: &Result<DisplayOutside, ParseError<'i>>,
-) -> bool {
-    match outside {
-        Ok(DisplayOutside::Block) => true,
-        _ => false,
-    }
 }
 
 /// FIXME: this can be replaced with parse_display_outside once we
@@ -637,31 +630,28 @@ impl Parse for Display {
         if !got_list_item && is_valid_inside_for_list_item(&inside) {
             got_list_item = input.try(parse_list_item).is_ok();
         }
-        let outside = if got_list_item {
-            input.try(parse_display_outside_for_list_item)
-        } else {
-            match inside {
-                Ok(DisplayInside::Ruby) => input.try(parse_display_outside_for_ruby),
-                _ => input.try(parse_display_outside),
-            }
+        let outside = match inside {
+            // FIXME we don't handle `block ruby` in layout yet.
+            Ok(DisplayInside::Ruby) => input.try(parse_display_outside_for_ruby),
+            _ => input.try(parse_display_outside),
         };
-        if !got_list_item && is_valid_outside_for_list_item(&outside) {
-            got_list_item = input.try(parse_list_item).is_ok();
-        }
-        if outside.is_ok() && inside.is_err(){
-            inside = if got_list_item {
-                input.try(parse_display_inside_for_list_item)
-            } else {
-                match outside {
-                    // FIXME we don't handle `block ruby` in layout yet.
-                    Ok(DisplayOutside::Block) => input.try(parse_display_inside_for_block),
-                    _ => input.try(parse_display_inside),
-                }
-            };
-            if !got_list_item &&
-                is_valid_outside_for_list_item(&outside) &&
-                is_valid_inside_for_list_item(&inside) {
+        if outside.is_ok() {
+            if !got_list_item && (inside.is_err() || is_valid_inside_for_list_item(&inside)) {
                 got_list_item = input.try(parse_list_item).is_ok();
+            }
+            if inside.is_err() {
+                inside = if got_list_item {
+                    input.try(parse_display_inside_for_list_item)
+                } else {
+                    match outside {
+                        // FIXME we don't handle `block ruby` in layout yet.
+                        Ok(DisplayOutside::Block) => input.try(parse_display_inside_for_block),
+                        _ => input.try(parse_display_inside),
+                    }
+                };
+                if !got_list_item && is_valid_inside_for_list_item(&inside) {
+                    got_list_item = input.try(parse_list_item).is_ok();
+                }
             }
         }
         if got_list_item || inside.is_ok() || outside.is_ok() {
@@ -730,6 +720,8 @@ impl SpecifiedValueInfo for Display {
           "inline-flex",
           "inline-grid",
           "inline-table",
+          "inline list-item",
+          "inline flow-root list-item",
           "list-item",
           "none",
           "ruby",
