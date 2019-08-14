@@ -8,7 +8,6 @@ use crate::context::LayoutContext;
 use crate::display_list::items::OpaqueNode;
 use crate::ServoArc;
 use app_units::Au;
-use euclid::default::Rect;
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutNode};
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use style::logical_geometry::{LogicalMargin, LogicalRect};
@@ -97,14 +96,4 @@ impl Fragment {
     pub fn is_primary_fragment(&self) -> bool {
         true
     }
-}
-
-/// A top-down fragment border box iteration handler.
-pub trait FragmentBorderBoxIterator {
-    /// The operation to perform.
-    fn process(&mut self, fragment: &Fragment, level: i32, overflow: &Rect<Au>);
-
-    /// Returns true if this fragment must be processed in-order. If this returns false,
-    /// we skip the operation for this fragment, but continue processing siblings.
-    fn should_process(&mut self, fragment: &Fragment) -> bool;
 }
