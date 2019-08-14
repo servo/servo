@@ -603,12 +603,23 @@ impl WindowProxy {
     }
 
     pub fn set_currently_active(&self, window: &Window) {
-        let globalscope = window.upcast();
+        let globalscope = window.upcast::<GlobalScope>();
+        let dest_pipeline_id = globalscope.pipeline_id();
+        if let Some(pipeline_id) = self.currently_active() {
+            if pipeline_id == dest_pipeline_id {
+                return debug!(
+                    "Attempt to set the currently active window to the currently active window."
+                );
+            }
+        }
         self.set_window(&*globalscope, &PROXY_HANDLER);
         self.currently_active.set(Some(globalscope.pipeline_id()));
     }
 
     pub fn unset_currently_active(&self) {
+        if self.currently_active().is_none() {
+            return debug!("Attempt to unset the currently active window on a windowproxy that does not have one.");
+        }
         let globalscope = self.global();
         let window = DissimilarOriginWindow::new(&*globalscope, self);
         self.set_window(&*window.upcast(), &XORIGIN_PROXY_HANDLER);
