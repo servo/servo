@@ -37,6 +37,7 @@ packages = [
   "crossbeam-deque",
   "euclid", # https://github.com/servo/rust-webvr/pull/89
   "gl_generator", # https://github.com/servo/servo/pull/23288#issuecomment-494687746
+  "idna", # https://github.com/servo/servo/pull/23838
   "lock_api",
   "log",
   "mime",
@@ -44,9 +45,11 @@ packages = [
   "nix", # https://github.com/servo/servo/issues/23189#issuecomment-487512605
   "parking_lot",
   "parking_lot_core",
+  "percent-encoding", # https://github.com/servo/servo/pull/23838
   "rand_core",
   "scopeguard",
   "unicase",
+  "url", # https://github.com/servo/servo/pull/23838
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [

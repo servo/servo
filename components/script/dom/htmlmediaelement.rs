@@ -80,7 +80,7 @@ use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
 use script_layout_interface::HTMLMediaData;
 use servo_config::pref;
 use servo_media::player::frame::{Frame, FrameRenderer};
-use servo_media::player::{PlaybackState, Player, PlayerError, PlayerEvent, StreamType};
+use servo_media::player::{PlaybackState, Player, PlayerError, PlayerEvent, SeekLock, StreamType};
 use servo_media::{ClientContextId, ServoMedia, SupportsMediaType};
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -787,7 +787,7 @@ impl HTMLMediaElement {
         }
     }
 
-    fn fetch_request(&self, offset: Option<u64>) {
+    fn fetch_request(&self, offset: Option<u64>, seek_lock: Option<SeekLock>) {
         if self.resource_url.borrow().is_none() && self.blob_url.borrow().is_none() {
             eprintln!("Missing request url");
             self.queue_dedicated_media_source_failure_steps();
@@ -835,6 +835,7 @@ impl HTMLMediaElement {
             self,
             url.clone(),
             offset.unwrap_or(0),
+            seek_lock,
         )));
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         let window = window_from_node(self);
@@ -918,7 +919,7 @@ impl HTMLMediaElement {
 
                 // Step 4.remote.2.
                 *self.resource_url.borrow_mut() = Some(url);
-                self.fetch_request(None);
+                self.fetch_request(None, None);
             },
             Resource::Object => {
                 if let Some(ref src_object) = *self.src_object.borrow() {
@@ -927,7 +928,7 @@ impl HTMLMediaElement {
                             let blob_url = URL::CreateObjectURL(&self.global(), &*blob);
                             *self.blob_url.borrow_mut() =
                                 Some(ServoUrl::parse(&blob_url).expect("infallible"));
-                            self.fetch_request(None);
+                            self.fetch_request(None, None);
                         },
                         SrcObject::MediaStream(ref stream) => {
                             let tracks = &*stream.get_tracks();
@@ -1728,8 +1729,8 @@ impl HTMLMediaElement {
                 self.playback_position.set(position);
                 self.time_marches_on();
             },
-            PlayerEvent::SeekData(p) => {
-                self.fetch_request(Some(p));
+            PlayerEvent::SeekData(p, ref seek_lock) => {
+                self.fetch_request(Some(p), Some(seek_lock.clone()));
             },
             PlayerEvent::SeekDone(_) => {
                 // Continuation of
@@ -2469,6 +2470,10 @@ struct HTMLMediaElementFetchListener {
     /// EnoughData event uses this value to restart the download from
     /// the last fetched position.
     latest_fetched_content: u64,
+    /// The media player discards all data pushes until the seek block
+    /// is released right before pushing the data from the offset requested
+    /// by a seek request.
+    seek_lock: Option<SeekLock>,
 }
 
 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
@@ -2565,6 +2570,10 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
         let payload_len = payload.len() as u64;
 
+        if let Some(seek_lock) = self.seek_lock.take() {
+            seek_lock.unlock(/* successful seek */ true);
+        }
+
         // Push input data into the player.
         if let Err(e) = elem
             .player
@@ -2609,6 +2618,10 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
     // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
     fn process_response_eof(&mut self, status: Result<ResourceFetchTiming, NetworkError>) {
+        if let Some(seek_lock) = self.seek_lock.take() {
+            seek_lock.unlock(/* successful seek */ false);
+        }
+
         let elem = self.elem.root();
 
         if elem.player.borrow().is_none() {
@@ -2718,7 +2731,12 @@ impl PreInvoke for HTMLMediaElementFetchListener {
 }
 
 impl HTMLMediaElementFetchListener {
-    fn new(elem: &HTMLMediaElement, url: ServoUrl, offset: u64) -> Self {
+    fn new(
+        elem: &HTMLMediaElement,
+        url: ServoUrl,
+        offset: u64,
+        seek_lock: Option<SeekLock>,
+    ) -> Self {
         Self {
             elem: Trusted::new(elem),
             metadata: None,
@@ -2728,6 +2746,7 @@ impl HTMLMediaElementFetchListener {
             url,
             expected_content_length: None,
             latest_fetched_content: offset,
+            seek_lock,
         }
     }
 }
