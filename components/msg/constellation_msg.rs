@@ -5,6 +5,7 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
+use servo_url::ImmutableOrigin;
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 use std::fmt;
@@ -240,7 +241,7 @@ pub struct StructuredSerializedData {
 /// A task on the https://html.spec.whatwg.org/multipage/#port-message-queue
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct PortMessageTask {
-    pub origin: String,
+    pub origin: ImmutableOrigin,
     pub data: StructuredSerializedData,
 }
 

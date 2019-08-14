@@ -315,7 +315,7 @@ pub struct ScopeThings {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct DOMMessage {
     /// The origin of the message
-    pub origin: String,
+    pub origin: ImmutableOrigin,
     /// The payload of the message
     pub data: StructuredSerializedData,
 }

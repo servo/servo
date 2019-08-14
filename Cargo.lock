@@ -2923,6 +2923,7 @@ dependencies = [
  "malloc_size_of 0.0.1",
  "malloc_size_of_derive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo_url 0.0.1",
  "size_of_test 0.0.1",
  "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
 ]
@@ -3895,7 +3896,6 @@ dependencies = [
  "servo_config 0.0.1",
  "servo_geometry 0.0.1",
  "servo_rand 0.0.1",
- "servo_remutex 0.0.1",
  "servo_url 0.0.1",
  "smallvec 0.6.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",

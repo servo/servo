@@ -85,9 +85,6 @@ impl Drop for AutoCloseWorker {
     }
 }
 
-unsafe_no_jsmanaged_fields!(MessagePortImpl);
-unsafe_no_jsmanaged_fields!(MessagePortId);
-
 #[dom_struct]
 pub struct GlobalScope {
     eventtarget: EventTarget,
@@ -97,7 +94,7 @@ pub struct GlobalScope {
     /// The sender for the message-ports manageds by this global.
     message_ports_route_setup: Cell<bool>,
 
-    /// The message-ports know to this global.
+    /// The message-ports known to this global.
     message_ports: DomRefCell<HashMap<MessagePortId, MessagePortImpl>>,
 
     /// Message-ports we know about, but whose transfer is pending.
@@ -205,14 +202,16 @@ impl MessageListener {
             MessagePortMsg::CompleteTransfer(port_id, tasks) => {
                 let context = self.context.clone();
                 let _ = self.task_source.queue_with_canceller(
-                    task!(process_new_entangled_sender: move || {
+                    task!(process_complete_transfer: move || {
                         let global = context.root();
                         if let Some(port) = global.message_ports.borrow_mut().get_mut(&port_id) {
                             port.complete_transfer(tasks);
                             if port.enabled() {
                                 port.start(&global);
                             }
+                            return;
                         };
+                        warn!("CompleteTransfer msg received in a global not managing the port.");
                     }),
                     &self.canceller,
                 );
@@ -399,7 +398,7 @@ impl GlobalScope {
                     &dom_port.upcast(),
                     self,
                     message_clone.handle(),
-                    Some(&origin),
+                    Some(&origin.ascii_serialization()),
                     None,
                     deserialize_result.message_ports.into_iter().collect(),
                 );

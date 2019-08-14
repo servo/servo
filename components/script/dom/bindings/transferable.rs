@@ -4,6 +4,7 @@
 
 //! Trait representing the concept of [transferable objects]
 //! (https://html.spec.whatwg.org/multipage/#transferable-objects).
+
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone::StructuredCloneHolder;

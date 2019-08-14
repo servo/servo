@@ -6,6 +6,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::script_runtime::CommonScriptMsg;
 use msg::constellation_msg::StructuredSerializedData;
+use servo_url::ImmutableOrigin;
 
 /// Messages used to control the worker event loops
 pub enum WorkerScriptMsg {
@@ -13,7 +14,7 @@ pub enum WorkerScriptMsg {
     Common(CommonScriptMsg),
     /// Message sent through Worker.postMessage
     DOMMessage {
-        origin: String,
+        origin: ImmutableOrigin,
         data: StructuredSerializedData,
     },
 }

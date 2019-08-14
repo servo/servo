@@ -1725,7 +1725,7 @@ where
     ) {
         if let Some(info) = self.message_ports.get_mut(&port_id) {
             if source_pipeline_id != info.pipeline {
-                warn!(
+                return warn!(
                     "Got messageport_shipped message from {:?} while port is in {:?}",
                     source_pipeline_id, info.pipeline
                 );
@@ -1784,8 +1784,8 @@ where
         let entangled = match self.message_ports.remove(&port_id) {
             Some(info) => {
                 if source_pipeline_id != info.pipeline {
-                    warn!(
-                        "Got messageport_shipped message from {:?} while port is in {:?}",
+                     return warn!(
+                        "Got remove_messageport message from {:?} while port is in {:?}",
                         source_pipeline_id, info.pipeline
                     );
                 }
@@ -1812,8 +1812,8 @@ where
     ) {
         if let Some(info) = self.message_ports.get_mut(&port1) {
             if source_pipeline_id != info.pipeline {
-                warn!(
-                    "Got messageport_shipped message from {:?} while port is in {:?}",
+                return warn!(
+                    "Got entangle ports message from {:?} while port is in {:?}",
                     source_pipeline_id, info.pipeline
                 );
             }
@@ -1821,8 +1821,8 @@ where
         }
         if let Some(info) = self.message_ports.get_mut(&port2) {
             if source_pipeline_id != info.pipeline {
-                warn!(
-                    "Got messageport_shipped message from {:?} while port is in {:?}",
+                return warn!(
+                    "Got entangle ports message from {:?} while port is in {:?}",
                     source_pipeline_id, info.pipeline
                 );
             }
@@ -2050,6 +2050,11 @@ where
                 }
             }
         }
+        // Note this will not work for dedicated workers,
+        // since we will never receive an exit message for them.
+        //
+        // TODO: find a way to let the constellation know
+        // that the router for a closed dedicated worker can be dropped.
         let _ = self.message_port_routers.remove(&pipeline_id);
     }
 

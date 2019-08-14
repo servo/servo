@@ -106,7 +106,7 @@ impl ServiceWorkerMethods for ServiceWorker {
         // Step 7
         let data = structuredclone::write(*cx, message, Some(transfer))?;
         let msg_vec = DOMMessage {
-            origin: self.global().origin().immutable().ascii_serialization(),
+            origin: self.global().origin().immutable().clone(),
             data,
         };
         let _ = self

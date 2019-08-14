@@ -189,7 +189,7 @@ impl Worker {
         let _ = self.sender.send(DedicatedWorkerScriptMsg::CommonWorker(
             address,
             WorkerScriptMsg::DOMMessage {
-                origin: self.global().origin().immutable().ascii_serialization(),
+                origin: self.global().origin().immutable().clone(),
                 data,
             },
         ));

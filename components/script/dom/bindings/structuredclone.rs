@@ -6,7 +6,7 @@
 //! (https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
 
 use crate::compartments::enter_realm;
-use crate::dom::bindings::conversions::{root_from_handleobject, ToJSValConvertible};
+use crate::dom::bindings::conversions::{root_from_object, ToJSValConvertible};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
@@ -32,7 +32,7 @@ use js::jsapi::{JS_ReadBytes, JS_WriteBytes};
 use js::jsapi::{JS_ReadUint32Pair, JS_WriteUint32Pair};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
-use js::rust::{CustomAutoRooterGuard, Handle, HandleValue, MutableHandleValue};
+use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
 use msg::constellation_msg::{MessagePortId, StructuredSerializedData};
 use std::collections::HashMap;
 use std::os::raw;
@@ -186,7 +186,7 @@ unsafe extern "C" fn write_callback(
     obj: RawHandleObject,
     _closure: *mut raw::c_void,
 ) -> bool {
-    if let Ok(blob) = root_from_handleobject::<Blob>(Handle::from_raw(obj), cx) {
+    if let Ok(blob) = root_from_object::<Blob>(*obj, cx) {
         return write_blob(blob, w).is_ok();
     }
     return false;
@@ -226,7 +226,7 @@ unsafe extern "C" fn write_transfer_callback(
     _content: *mut *mut raw::c_void,
     extra_data: *mut u64,
 ) -> bool {
-    if let Ok(port) = root_from_handleobject::<MessagePort>(Handle::from_raw(obj), cx) {
+    if let Ok(port) = root_from_object::<MessagePort>(*obj, cx) {
         if port.detached() {
             return false;
         }
@@ -256,7 +256,7 @@ unsafe extern "C" fn can_transfer_callback(
     obj: RawHandleObject,
     _closure: *mut raw::c_void,
 ) -> bool {
-    if let Ok(_port) = root_from_handleobject::<MessagePort>(Handle::from_raw(obj), cx) {
+    if let Ok(_port) = root_from_object::<MessagePort>(*obj, cx) {
         return true;
     }
     false
@@ -345,7 +345,8 @@ pub fn write(
     }
 }
 
-/// Thunk for the actual `read_clone` method. Resolves proper variant for read_clone.
+/// Read structured serialized data, possibly containing transferred objects.
+/// Returns a holder of transferred object, or an error.
 pub fn read(
     global: &GlobalScope,
     mut data: StructuredSerializedData,

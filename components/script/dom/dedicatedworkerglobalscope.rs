@@ -490,7 +490,7 @@ impl DedicatedWorkerGlobalScope {
                         target,
                         scope.upcast(),
                         message.handle(),
-                        Some(&origin),
+                        Some(&origin.ascii_serialization()),
                         None,
                         new_ports,
                     );
@@ -584,8 +584,9 @@ impl DedicatedWorkerGlobalScope {
     ) -> ErrorResult {
         let data = structuredclone::write(*cx, message, Some(transfer))?;
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        let pipeline_id = self.global().pipeline_id();
-        let origin = self.global().origin().immutable().ascii_serialization();
+        let global_scope = self.upcast::<GlobalScope>();
+        let pipeline_id = global_scope.pipeline_id();
+        let origin = global_scope.origin().immutable().ascii_serialization();
         let task = Box::new(task!(post_worker_message: move || {
             Worker::handle_message(worker, origin, data);
         }));

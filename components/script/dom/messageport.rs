@@ -153,7 +153,7 @@ impl MessagePort {
 
         // Step 7
         let task = PortMessageTask {
-            origin: self.global().origin().immutable().ascii_serialization(),
+            origin: self.global().origin().immutable().clone(),
             data,
         };
 
