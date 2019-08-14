@@ -33,7 +33,6 @@ namespace scenes {
       extern const std::string backButton = "backButton";
       extern const std::string fwdButton = "fwdButton";
       extern const std::string urlBar = "urlBar";
-      extern const std::string laser = "laser";
     }
 
     const SceneDescriptor::ExternalNodeReferences externalNodesMap = {
@@ -41,8 +40,7 @@ namespace scenes {
       {"content", externalNodes::content},
       {"backButton", externalNodes::backButton},
       {"fwdButton", externalNodes::fwdButton},
-      {"urlBar", externalNodes::urlBar},
-      {"laser", externalNodes::laser}
+      {"urlBar", externalNodes::urlBar}
     };
 
     const SceneDescriptor descriptor(

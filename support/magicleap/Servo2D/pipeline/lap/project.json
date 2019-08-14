@@ -22,7 +22,7 @@
       "lap/types/file/png"
     ]
   },
-  "checkpoint-hash": "b1a5b4c3dfe7a6c0a3068dd837adfa07364f5016ddef9e6698090ba3544ccf921abba715182f372e25d65a9b6b13fdf11f12e436482cc3bace76f56876bd2251",
+  "checkpoint-hash": "ac0d99c246211709c735b6ff2a02e2f4a2450bdb04c0db28409c4990e45211b922511c68c5874869ee26898c1a95c40a812b85d4c3fa397703606f436fd84b51",
   "templates": [
     "lap/template/passthru_material_from_kmat",
     "lap/template/passthru_model_from_fbx",

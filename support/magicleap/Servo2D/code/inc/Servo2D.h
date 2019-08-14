@@ -124,9 +124,10 @@ protected:
   bool pointInsideViewport(glm::vec2 pt);
 
   /**
-   * Redraw the laser. Returns the laser endpoint, in viewport coordinates.
+   * Returns the intersection of the laser and the viewport, in viewport coordinates.
+   * Returns (-1, -1) if the laser does not intersect the viewport.
    */
-  glm::vec2 redrawLaser();
+  glm::vec2 laserPosition();
 
 private:
   lumin::Prism* prism_ = nullptr;  // represents the bounded space where the App renders.
