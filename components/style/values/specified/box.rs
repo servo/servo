@@ -748,19 +748,6 @@ impl SpecifiedValueInfo for Display {
           "table-row-group",
           "-webkit-box",
           "-webkit-inline-box",
-          "-webkit-flex",
-          "-webkit-inline-flex",
-          "-moz-box",
-          "-moz-inline-box",
-          "-moz-grid",
-          "-moz-inline-grid",
-          "-moz-grid-group",
-          "-moz-grid-line",
-          "-moz-stack",
-          "-moz-inline-stack",
-          "-moz-deck",
-          "-moz-popup",
-          "-moz-groupbox",
       ]);
     }
 }
