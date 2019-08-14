@@ -266,12 +266,12 @@ impl Display {
     /// Returns whether this `display` value is one of the types for ruby.
     pub fn is_ruby_type(&self) -> bool {
         matches!(
-            *self,
-            Display::Ruby |
-                Display::RubyBase |
-                Display::RubyText |
-                Display::RubyBaseContainer |
-                Display::RubyTextContainer
+            self.inside(),
+            DisplayInside::Ruby |
+                DisplayInside::RubyBase |
+                DisplayInside::RubyText |
+                DisplayInside::RubyBaseContainer |
+                DisplayInside::RubyTextContainer
         )
     }
 }
@@ -405,8 +405,6 @@ impl Display {
                 DisplayOutside::Inline => {
                     let inside =  match self.inside() {
                         DisplayInside::Inline | DisplayInside::FlowRoot => DisplayInside::Block,
-                        // FIXME: we don't handle `block ruby` in layout yet, remove this when we do:
-                        DisplayInside::Ruby => DisplayInside::Block,
                         inside => inside,
                     };
                     Display::from3(DisplayOutside::Block, inside, self.is_list_item())
@@ -541,21 +539,6 @@ fn parse_display_inside<'i, 't>(
     })
 }
 
-/// FIXME: this can be replaced with parse_display_inside once we
-/// support `block ruby`.
-#[cfg(feature = "gecko")]
-fn parse_display_inside_for_block<'i, 't>(
-    input: &mut Parser<'i, 't>,
-) -> Result<DisplayInside, ParseError<'i>> {
-    Ok(try_match_ident_ignore_ascii_case! { input,
-        "flow" => DisplayInside::Flow,
-        "flow-root" => DisplayInside::FlowRoot,
-        "table" => DisplayInside::Table,
-        "flex" => DisplayInside::Flex,
-        "grid" => DisplayInside::Grid,
-    })
-}
-
 /// <display-outside> = block | inline | run-in
 /// https://drafts.csswg.org/css-display/#typedef-display-outside
 #[cfg(feature = "gecko")]
@@ -566,20 +549,6 @@ fn parse_display_outside<'i, 't>(
         "block" => DisplayOutside::Block,
         "inline" => DisplayOutside::Inline,
         // FIXME(bug 2056): not supported in layout yet:
-        //"run-in" => DisplayOutside::RunIn,
-    })
-}
-
-/// FIXME: this can be replaced with parse_display_outside once we
-/// support all its values for `ruby`.
-#[cfg(feature = "gecko")]
-fn parse_display_outside_for_ruby<'i, 't>(
-    input: &mut Parser<'i, 't>,
-) -> Result<DisplayOutside, ParseError<'i>> {
-    Ok(try_match_ident_ignore_ascii_case! { input,
-        "inline" => DisplayOutside::Inline,
-        // FIXME: not supported in layout yet:
-        //"block" => DisplayOutside::Block,
         //"run-in" => DisplayOutside::RunIn,
     })
 }
@@ -630,11 +599,7 @@ impl Parse for Display {
         if !got_list_item && is_valid_inside_for_list_item(&inside) {
             got_list_item = input.try(parse_list_item).is_ok();
         }
-        let outside = match inside {
-            // FIXME we don't handle `block ruby` in layout yet.
-            Ok(DisplayInside::Ruby) => input.try(parse_display_outside_for_ruby),
-            _ => input.try(parse_display_outside),
-        };
+        let outside = input.try(parse_display_outside);
         if outside.is_ok() {
             if !got_list_item && (inside.is_err() || is_valid_inside_for_list_item(&inside)) {
                 got_list_item = input.try(parse_list_item).is_ok();
@@ -643,11 +608,7 @@ impl Parse for Display {
                 inside = if got_list_item {
                     input.try(parse_display_inside_for_list_item)
                 } else {
-                    match outside {
-                        // FIXME we don't handle `block ruby` in layout yet.
-                        Ok(DisplayOutside::Block) => input.try(parse_display_inside_for_block),
-                        _ => input.try(parse_display_inside),
-                    }
+                    input.try(parse_display_inside)
                 };
                 if !got_list_item && is_valid_inside_for_list_item(&inside) {
                     got_list_item = input.try(parse_list_item).is_ok();
@@ -724,6 +685,7 @@ impl SpecifiedValueInfo for Display {
           "inline flow-root list-item",
           "list-item",
           "none",
+          "block ruby",
           "ruby",
           "ruby-base",
           "ruby-base-container",
