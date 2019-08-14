@@ -33,7 +33,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JSContext, JS_AddInterruptCallback};
 use js::jsval::UndefinedValue;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{PipelineId, PipelineNamespace};
 use net_traits::request::{CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder};
 use net_traits::{CustomResponseMediator, IpcSend};
 use script_traits::{
@@ -278,6 +278,7 @@ impl ServiceWorkerGlobalScope {
             .name(format!("ServiceWorker for {}", serialized_worker_url))
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
+                PipelineNamespace::auto_install();
                 let roots = RootCollection::new();
                 let _stack_roots = ThreadLocalStackRoots::new(&roots);
 
