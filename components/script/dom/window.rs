@@ -1955,9 +1955,6 @@ impl Window {
         // Resume timer events.
         self.upcast::<GlobalScope>().resume();
 
-        // Set the window proxy to be this object.
-        self.window_proxy().set_currently_active(self);
-
         // Push the document title to the compositor since we are
         // activating this document due to a navigation.
         self.Document().title_changed();

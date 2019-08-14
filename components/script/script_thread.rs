@@ -2446,6 +2446,12 @@ impl ScriptThread {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
             document.set_activity(activity);
+            if activity == DocumentActivity::FullyActive {
+                // Note: set_activity above already asserts the doc has a browsing-context.
+                if let Some(window_proxy) = document.browsing_context() {
+                    window_proxy.set_currently_active(document.window());
+                }
+            }
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
