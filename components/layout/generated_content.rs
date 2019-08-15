@@ -19,7 +19,6 @@ use crate::traversal::InorderFlowTraversal;
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use smallvec::SmallVec;
 use std::collections::{HashMap, LinkedList};
-use style::computed_values::display::T as Display;
 use style::computed_values::list_style_type::T as ListStyleType;
 use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
@@ -175,7 +174,7 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
         }
 
         let mut list_style_type = fragment.style().get_list().list_style_type;
-        if fragment.style().get_box().display != Display::ListItem {
+        if !fragment.style().get_box().display.is_list_item() {
             list_style_type = ListStyleType::None
         }
 
@@ -291,7 +290,7 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
 
     fn reset_and_increment_counters_as_necessary(&mut self, fragment: &mut Fragment) {
         let mut list_style_type = fragment.style().get_list().list_style_type;
-        if !self.is_block || fragment.style().get_box().display != Display::ListItem {
+        if !self.is_block || !fragment.style().get_box().display.is_list_item() {
             list_style_type = ListStyleType::None
         }
 

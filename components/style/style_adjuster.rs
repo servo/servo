@@ -12,7 +12,6 @@ use crate::properties::longhands::float::computed_value::T as Float;
 use crate::properties::longhands::overflow_x::computed_value::T as Overflow;
 use crate::properties::longhands::position::computed_value::T as Position;
 use crate::properties::{self, ComputedValues, StyleBuilder};
-#[cfg(feature = "gecko")]
 use crate::values::specified::box_::DisplayInside;
 use app_units::Au;
 
@@ -206,7 +205,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         blockify_if!(self.style.floated());
         blockify_if!(self.style.out_of_flow_positioned());
-        #[cfg(feature = "gecko")]
         blockify_if!(
             self.style.pseudo.map_or(false, |p| p.is_marker()) &&
                 self.style.get_parent_list().clone_list_style_position() ==

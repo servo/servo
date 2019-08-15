@@ -34,25 +34,11 @@ fn moz_box_display_values_enabled(context: &ParserContext) -> bool {
         static_prefs::pref!("layout.css.xul-box-display-values.content.enabled")
 }
 
-#[cfg(feature = "servo-layout-2013")]
-fn parse_unimplemented_in_servo_2020(_context: &ParserContext) -> bool {
-    true
-}
-
-#[cfg(feature = "servo-layout-2020")]
-fn parse_unimplemented_in_servo_2020(_context: &ParserContext) -> bool {
-    servo_config::prefs::pref_map()
-        .get("layout.2020.unimplemented")
-        .as_bool()
-        .unwrap_or(false)
-}
-
 /// Defines an element’s display type, which consists of
 /// the two basic qualities of how an element generates boxes
 /// <https://drafts.csswg.org/css-display/#propdef-display>
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, MallocSizeOf, PartialEq, ToCss, ToShmem)]
-#[cfg(feature = "gecko")]
 #[repr(u8)]
 pub enum DisplayOutside {
     None = 0,
@@ -60,21 +46,24 @@ pub enum DisplayOutside {
     Block,
     TableCaption,
     InternalTable,
+    #[cfg(feature = "gecko")]
     InternalRuby,
+    #[cfg(feature = "gecko")]
     XUL,
 }
 
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, MallocSizeOf, PartialEq, ToCss, ToShmem)]
-#[cfg(feature = "gecko")]
 #[repr(u8)]
 pub enum DisplayInside {
     None = 0,
+    #[cfg(feature = "gecko")]
     Contents,
     Block,
     FlowRoot,
     Inline,
     Flex,
+    #[cfg(feature = "gecko")]
     Grid,
     Table,
     TableRowGroup,
@@ -84,22 +73,39 @@ pub enum DisplayInside {
     TableFooterGroup,
     TableRow,
     TableCell,
+    #[cfg(feature = "gecko")]
     Ruby,
+    #[cfg(feature = "gecko")]
     RubyBase,
+    #[cfg(feature = "gecko")]
     RubyBaseContainer,
+    #[cfg(feature = "gecko")]
     RubyText,
+    #[cfg(feature = "gecko")]
     RubyTextContainer,
+    #[cfg(feature = "gecko")]
     WebkitBox,
+    #[cfg(feature = "gecko")]
     MozBox,
+    #[cfg(feature = "gecko")]
     MozInlineBox,
+    #[cfg(feature = "gecko")]
     MozGrid,
+    #[cfg(feature = "gecko")]
     MozInlineGrid,
+    #[cfg(feature = "gecko")]
     MozGridGroup,
+    #[cfg(feature = "gecko")]
     MozGridLine,
+    #[cfg(feature = "gecko")]
     MozStack,
+    #[cfg(feature = "gecko")]
     MozInlineStack,
+    #[cfg(feature = "gecko")]
     MozDeck,
+    #[cfg(feature = "gecko")]
     MozGroupbox,
+    #[cfg(feature = "gecko")]
     MozPopup,
     Flow, // only used for parsing, not computed value
 }
@@ -118,14 +124,12 @@ pub enum DisplayInside {
     ToResolvedValue,
     ToShmem,
 )]
-#[cfg(feature = "gecko")]
 #[repr(transparent)]
 pub struct Display(u16);
 
 /// Gecko-only impl block for Display (shared stuff later in this file):
 #[allow(missing_docs)]
 #[allow(non_upper_case_globals)]
-#[cfg(feature = "gecko")]
 impl Display {
     // Our u16 bits are used as follows:    LOOOOOOOIIIIIIII
     const LIST_ITEM_BIT: u16 = 0x8000; //^
@@ -134,23 +138,28 @@ impl Display {
 
     /// https://drafts.csswg.org/css-display/#the-display-properties
     pub const None: Self = Self::new(DisplayOutside::None, DisplayInside::None);
+    #[cfg(feature = "gecko")]
     pub const Contents: Self = Self::new(DisplayOutside::None, DisplayInside::Contents);
     pub const Inline: Self = Self::new(DisplayOutside::Inline, DisplayInside::Inline);
     pub const InlineBlock: Self = Self::new(DisplayOutside::Inline, DisplayInside::FlowRoot);
     pub const Block: Self = Self::new(DisplayOutside::Block, DisplayInside::Block);
+    #[cfg(feature = "gecko")]
     pub const FlowRoot: Self = Self::new(DisplayOutside::Block, DisplayInside::FlowRoot);
     pub const Flex: Self = Self::new(DisplayOutside::Block, DisplayInside::Flex);
     pub const InlineFlex: Self = Self::new(DisplayOutside::Inline, DisplayInside::Flex);
+    #[cfg(feature = "gecko")]
     pub const Grid: Self = Self::new(DisplayOutside::Block, DisplayInside::Grid);
+    #[cfg(feature = "gecko")]
     pub const InlineGrid: Self = Self::new(DisplayOutside::Inline, DisplayInside::Grid);
     pub const Table: Self = Self::new(DisplayOutside::Block, DisplayInside::Table);
     pub const InlineTable: Self = Self::new(DisplayOutside::Inline, DisplayInside::Table);
     pub const TableCaption: Self = Self::new(DisplayOutside::TableCaption, DisplayInside::Block);
+    #[cfg(feature = "gecko")]
     pub const Ruby: Self = Self::new(DisplayOutside::Inline, DisplayInside::Ruby);
+    #[cfg(feature = "gecko")]
     pub const WebkitBox: Self = Self::new(DisplayOutside::Block, DisplayInside::WebkitBox);
+    #[cfg(feature = "gecko")]
     pub const WebkitInlineBox: Self = Self::new(DisplayOutside::Inline, DisplayInside::WebkitBox);
-    pub const ListItem: Self = Self::new_list_item(DisplayOutside::Block, DisplayInside::Block);
-
     /// Internal table boxes.
     pub const TableRowGroup: Self =
         Self::new(DisplayOutside::InternalTable, DisplayInside::TableRowGroup);
@@ -169,31 +178,47 @@ impl Display {
         DisplayInside::TableColumnGroup,
     );
     pub const TableRow: Self = Self::new(DisplayOutside::InternalTable, DisplayInside::TableRow);
+
     pub const TableCell: Self = Self::new(DisplayOutside::InternalTable, DisplayInside::TableCell);
 
     /// Internal ruby boxes.
+    #[cfg(feature = "gecko")]
     pub const RubyBase: Self = Self::new(DisplayOutside::InternalRuby, DisplayInside::RubyBase);
+    #[cfg(feature = "gecko")]
     pub const RubyBaseContainer: Self = Self::new(
         DisplayOutside::InternalRuby,
         DisplayInside::RubyBaseContainer,
     );
+    #[cfg(feature = "gecko")]
     pub const RubyText: Self = Self::new(DisplayOutside::InternalRuby, DisplayInside::RubyText);
+    #[cfg(feature = "gecko")]
     pub const RubyTextContainer: Self = Self::new(
         DisplayOutside::InternalRuby,
         DisplayInside::RubyTextContainer,
     );
 
     /// XUL boxes.
+    #[cfg(feature = "gecko")]
     pub const MozBox: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozBox);
+    #[cfg(feature = "gecko")]
     pub const MozInlineBox: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozInlineBox);
+    #[cfg(feature = "gecko")]
     pub const MozGrid: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGrid);
+    #[cfg(feature = "gecko")]
     pub const MozInlineGrid: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozInlineGrid);
+    #[cfg(feature = "gecko")]
     pub const MozGridGroup: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGridGroup);
+    #[cfg(feature = "gecko")]
     pub const MozGridLine: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGridLine);
+    #[cfg(feature = "gecko")]
     pub const MozStack: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozStack);
+    #[cfg(feature = "gecko")]
     pub const MozInlineStack: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozInlineStack);
+    #[cfg(feature = "gecko")]
     pub const MozDeck: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozDeck);
+    #[cfg(feature = "gecko")]
     pub const MozGroupbox: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGroupbox);
+    #[cfg(feature = "gecko")]
     pub const MozPopup: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozPopup);
 
     /// Make a raw display value from <display-outside> and <display-inside> values.
@@ -202,13 +227,6 @@ impl Display {
         let o: u16 = ((outside as u8) as u16) << Self::DISPLAY_INSIDE_BITS;
         let i: u16 = (inside as u8) as u16;
         Self(o | i)
-    }
-
-    /// Make a list-item display value from <display-outside> and <display-inside>.
-    #[inline]
-    const fn new_list_item(outside: DisplayOutside, inside: DisplayInside) -> Self {
-        let v = Self::new(outside, inside);
-        Self(v.0 | Self::LIST_ITEM_BIT)
     }
 
     /// Make a display enum value from <display-outside> and <display-inside> values.
@@ -253,86 +271,28 @@ impl Display {
 
     /// Returns whether this `display` value is a ruby level container.
     pub fn is_ruby_level_container(&self) -> bool {
-        matches!(
-            *self,
-            Display::RubyBaseContainer | Display::RubyTextContainer
-        )
+        match *self {
+            #[cfg(feature = "gecko")]
+            Display::RubyBaseContainer | Display::RubyTextContainer => true,
+            _ => false,
+        }
     }
 
     /// Returns whether this `display` value is one of the types for ruby.
     pub fn is_ruby_type(&self) -> bool {
-        matches!(
-            self.inside(),
+        match self.inside() {
+            #[cfg(feature = "gecko")]
             DisplayInside::Ruby |
-                DisplayInside::RubyBase |
-                DisplayInside::RubyText |
-                DisplayInside::RubyBaseContainer |
-                DisplayInside::RubyTextContainer
-        )
+            DisplayInside::RubyBase |
+            DisplayInside::RubyText |
+            DisplayInside::RubyBaseContainer |
+            DisplayInside::RubyTextContainer => true,
+            _ => false,
+        }
     }
 }
 
-/// Servo version of Display only contains single-keyword values, and isn't
-/// using outside/inside values at all.
-#[allow(missing_docs)]
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Deserialize,
-    Eq,
-    FromPrimitive,
-    Hash,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    Serialize,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
-)]
-#[cfg(not(feature = "gecko"))]
-#[repr(u8)]
-pub enum Display {
-    None = 0,
-    Block,
-    Inline,
-    #[parse(condition = "parse_unimplemented_in_servo_2020")]
-    InlineBlock,
-    #[cfg(feature = "servo-layout-2013")]
-    ListItem,
-    #[cfg(feature = "servo-layout-2013")]
-    Table,
-    #[cfg(feature = "servo-layout-2013")]
-    InlineTable,
-    #[cfg(feature = "servo-layout-2013")]
-    TableRowGroup,
-    #[cfg(feature = "servo-layout-2013")]
-    TableColumn,
-    #[cfg(feature = "servo-layout-2013")]
-    TableColumnGroup,
-    #[cfg(feature = "servo-layout-2013")]
-    TableHeaderGroup,
-    #[cfg(feature = "servo-layout-2013")]
-    TableFooterGroup,
-    #[cfg(feature = "servo-layout-2013")]
-    TableRow,
-    #[cfg(feature = "servo-layout-2013")]
-    TableCell,
-    #[cfg(feature = "servo-layout-2013")]
-    TableCaption,
-    #[cfg(feature = "servo-layout-2013")]
-    #[parse(aliases = "-webkit-flex")]
-    Flex,
-    #[cfg(feature = "servo-layout-2013")]
-    #[parse(aliases = "-webkit-inline-flex")]
-    InlineFlex,
-}
-
 /// Shared Display impl for both Gecko and Servo.
-#[allow(missing_docs)]
 #[allow(non_upper_case_globals)]
 impl Display {
     /// The initial display value.
@@ -347,7 +307,6 @@ impl Display {
     pub fn is_atomic_inline_level(&self) -> bool {
         match *self {
             Display::InlineBlock => true,
-            #[cfg(feature = "servo-layout-2013")]
             Display::InlineFlex | Display::InlineTable => true,
             _ => false,
         }
@@ -358,20 +317,11 @@ impl Display {
     ///
     /// This is used to implement various style fixups.
     pub fn is_item_container(&self) -> bool {
-        #[cfg(feature = "gecko")]
-        {
-            match self.inside() {
-                DisplayInside::Flex | DisplayInside::Grid => true,
-                _ => false,
-            }
-        }
-        #[cfg(not(feature = "gecko"))]
-        {
-            match *self {
-                #[cfg(feature = "servo-layout-2013")]
-                Display::Flex | Display::InlineFlex => true,
-                _ => false,
-            }
+        match self.inside() {
+            DisplayInside::Flex => true,
+            #[cfg(feature = "gecko")]
+            DisplayInside::Grid => true,
+            _ => false,
         }
     }
 
@@ -394,35 +344,20 @@ impl Display {
         #[cfg(feature = "gecko")]
         {
             // Special handling for `contents` and `list-item`s on the root element.
-            if _is_root_element && (*self == Display::Contents || self.is_list_item()) {
+            if _is_root_element && (self.is_contents() || self.is_list_item()) {
                 return Display::Block;
             }
-            match self.outside() {
-                DisplayOutside::Inline => {
-                    let inside = match self.inside() {
-                        DisplayInside::Inline | DisplayInside::FlowRoot => DisplayInside::Block,
-                        inside => inside,
-                    };
-                    Display::from3(DisplayOutside::Block, inside, self.is_list_item())
-                },
-                DisplayOutside::Block | DisplayOutside::None => *self,
-                _ => Display::Block,
-            }
         }
-        #[cfg(not(feature = "gecko"))]
-        match *self {
-            // Values that have a corresponding block-outside version.
-            #[cfg(feature = "servo-layout-2013")]
-            Display::InlineTable => Display::Table,
-            #[cfg(feature = "servo-layout-2013")]
-            Display::InlineFlex => Display::Flex,
 
-            // These are not changed by blockification.
-            Display::None | Display::Block => *self,
-            #[cfg(feature = "servo-layout-2013")]
-            Display::Flex | Display::ListItem | Display::Table => *self,
-
-            // Everything else becomes block.
+        match self.outside() {
+            DisplayOutside::Inline => {
+                let inside = match self.inside() {
+                    DisplayInside::Inline | DisplayInside::FlowRoot => DisplayInside::Block,
+                    inside => inside,
+                };
+                Display::from3(DisplayOutside::Block, inside, self.is_list_item())
+            },
+            DisplayOutside::Block | DisplayOutside::None => *self,
             _ => Display::Block,
         }
     }
@@ -439,6 +374,7 @@ impl Display {
                 };
                 Display::from3(DisplayOutside::Inline, inside, self.is_list_item())
             },
+            #[cfg(feature = "gecko")]
             DisplayOutside::XUL => match self.inside() {
                 DisplayInside::MozBox => Display::MozInlineBox,
                 DisplayInside::MozStack => Display::MozInlineStack,
@@ -465,7 +401,6 @@ impl Display {
     }
 }
 
-#[cfg(feature = "gecko")]
 impl ToCss for Display {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
@@ -484,19 +419,24 @@ impl ToCss for Display {
         match *self {
             Display::Block | Display::Inline => outside.to_css(dest),
             Display::InlineBlock => dest.write_str("inline-block"),
+            #[cfg(feature = "gecko")]
             Display::WebkitInlineBox => dest.write_str("-webkit-inline-box"),
+            #[cfg(feature = "gecko")]
             Display::MozInlineBox => dest.write_str("-moz-inline-box"),
+            #[cfg(feature = "gecko")]
             Display::MozInlineGrid => dest.write_str("-moz-inline-grid"),
+            #[cfg(feature = "gecko")]
             Display::MozInlineStack => dest.write_str("-moz-inline-stack"),
             Display::TableCaption => dest.write_str("table-caption"),
-            Display::ListItem => dest.write_str("list-item"),
             _ => match (outside, inside) {
+                #[cfg(feature = "gecko")]
+                (DisplayOutside::Inline, DisplayInside::Grid) => dest.write_str("inline-grid"),
                 (DisplayOutside::Inline, DisplayInside::Flex) |
-                (DisplayOutside::Inline, DisplayInside::Grid) |
                 (DisplayOutside::Inline, DisplayInside::Table) => {
                     dest.write_str("inline-")?;
                     inside.to_css(dest)
                 },
+                #[cfg(feature = "gecko")]
                 (DisplayOutside::Block, DisplayInside::Ruby) => dest.write_str("block ruby"),
                 (_, inside) => {
                     if self.is_list_item() {
@@ -520,23 +460,24 @@ impl ToCss for Display {
 
 /// <display-inside> = flow | flow-root | table | flex | grid | ruby
 /// https://drafts.csswg.org/css-display/#typedef-display-inside
-#[cfg(feature = "gecko")]
 fn parse_display_inside<'i, 't>(
     input: &mut Parser<'i, 't>,
 ) -> Result<DisplayInside, ParseError<'i>> {
     Ok(try_match_ident_ignore_ascii_case! { input,
         "flow" => DisplayInside::Flow,
+        #[cfg(feature = "gecko")]
         "flow-root" => DisplayInside::FlowRoot,
         "table" => DisplayInside::Table,
         "flex" => DisplayInside::Flex,
+        #[cfg(feature = "gecko")]
         "grid" => DisplayInside::Grid,
+        #[cfg(feature = "gecko")]
         "ruby" => DisplayInside::Ruby,
     })
 }
 
 /// <display-outside> = block | inline | run-in
 /// https://drafts.csswg.org/css-display/#typedef-display-outside
-#[cfg(feature = "gecko")]
 fn parse_display_outside<'i, 't>(
     input: &mut Parser<'i, 't>,
 ) -> Result<DisplayOutside, ParseError<'i>> {
@@ -549,34 +490,34 @@ fn parse_display_outside<'i, 't>(
 }
 
 /// (flow | flow-root)?
-#[cfg(feature = "gecko")]
 fn parse_display_inside_for_list_item<'i, 't>(
     input: &mut Parser<'i, 't>,
 ) -> Result<DisplayInside, ParseError<'i>> {
     Ok(try_match_ident_ignore_ascii_case! { input,
         "flow" => DisplayInside::Flow,
+        #[cfg(feature = "gecko")]
         "flow-root" => DisplayInside::FlowRoot,
     })
 }
 /// Test a <display-inside> Result for same values as above.
-#[cfg(feature = "gecko")]
 fn is_valid_inside_for_list_item<'i>(inside: &Result<DisplayInside, ParseError<'i>>) -> bool {
-    matches!(
-        inside,
-        Ok(DisplayInside::Flow) | Ok(DisplayInside::FlowRoot)
-    )
+    match inside {
+        Ok(DisplayInside::Flow) => true,
+        #[cfg(feature = "gecko")]
+        Ok(DisplayInside::FlowRoot) => true,
+        _ => false,
+    }
 }
 
 /// Parse `list-item`.
-#[cfg(feature = "gecko")]
 fn parse_list_item<'i, 't>(input: &mut Parser<'i, 't>) -> Result<(), ParseError<'i>> {
     Ok(try_match_ident_ignore_ascii_case! { input,
         "list-item" => (),
     })
 }
 
-#[cfg(feature = "gecko")]
 impl Parse for Display {
+    #[allow(unused)] // `context` isn't used for servo-2020 for now
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
@@ -615,6 +556,7 @@ impl Parse for Display {
                 // "If <display-outside> is omitted, the element’s outside display type
                 // defaults to block — except for ruby, which defaults to inline."
                 // https://drafts.csswg.org/css-display/#inside-model
+                #[cfg(feature = "gecko")]
                 DisplayInside::Ruby => DisplayOutside::Inline,
                 _ => DisplayOutside::Block,
             });
@@ -624,12 +566,13 @@ impl Parse for Display {
         // Now parse the single-keyword `display` values.
         Ok(try_match_ident_ignore_ascii_case! { input,
             "none" => Display::None,
+            #[cfg(feature = "gecko")]
             "contents" => Display::Contents,
             "inline-block" => Display::InlineBlock,
             "inline-table" => Display::InlineTable,
-            "inline-flex" => Display::InlineFlex,
             "-webkit-flex" => Display::Flex,
-            "-webkit-inline-flex" => Display::InlineFlex,
+            "inline-flex" | "-webkit-inline-flex" => Display::InlineFlex,
+            #[cfg(feature = "gecko")]
             "inline-grid" => Display::InlineGrid,
             "table-caption" => Display::TableCaption,
             "table-row-group" => Display::TableRowGroup,
@@ -639,28 +582,44 @@ impl Parse for Display {
             "table-column-group" => Display::TableColumnGroup,
             "table-row" => Display::TableRow,
             "table-cell" => Display::TableCell,
+            #[cfg(feature = "gecko")]
             "ruby-base" => Display::RubyBase,
+            #[cfg(feature = "gecko")]
             "ruby-base-container" => Display::RubyBaseContainer,
+            #[cfg(feature = "gecko")]
             "ruby-text" => Display::RubyText,
+            #[cfg(feature = "gecko")]
             "ruby-text-container" => Display::RubyTextContainer,
+            #[cfg(feature = "gecko")]
             "-webkit-box" => Display::WebkitBox,
+            #[cfg(feature = "gecko")]
             "-webkit-inline-box" => Display::WebkitInlineBox,
+            #[cfg(feature = "gecko")]
             "-moz-box" if moz_box_display_values_enabled(context) => Display::MozBox,
+            #[cfg(feature = "gecko")]
             "-moz-inline-box" if moz_box_display_values_enabled(context) => Display::MozInlineBox,
+            #[cfg(feature = "gecko")]
             "-moz-grid" if moz_display_values_enabled(context) => Display::MozGrid,
+            #[cfg(feature = "gecko")]
             "-moz-inline-grid" if moz_display_values_enabled(context) => Display::MozInlineGrid,
+            #[cfg(feature = "gecko")]
             "-moz-grid-group" if moz_display_values_enabled(context) => Display::MozGridGroup,
+            #[cfg(feature = "gecko")]
             "-moz-grid-line" if moz_display_values_enabled(context) => Display::MozGridLine,
+            #[cfg(feature = "gecko")]
             "-moz-stack" if moz_display_values_enabled(context) => Display::MozStack,
+            #[cfg(feature = "gecko")]
             "-moz-inline-stack" if moz_display_values_enabled(context) => Display::MozInlineStack,
+            #[cfg(feature = "gecko")]
             "-moz-deck" if moz_display_values_enabled(context) => Display::MozDeck,
+            #[cfg(feature = "gecko")]
             "-moz-groupbox" if moz_display_values_enabled(context) => Display::MozGroupbox,
+            #[cfg(feature = "gecko")]
             "-moz-popup" if moz_display_values_enabled(context) => Display::MozPopup,
         })
     }
 }
 
-#[cfg(feature = "gecko")]
 impl SpecifiedValueInfo for Display {
     fn collect_completion_keywords(f: KeywordsCollectFn) {
         f(&[

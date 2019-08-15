@@ -23,13 +23,13 @@
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
         % if engine == "gecko":
+            let text_decoration_thickness_enabled =
+                PropertyId::Longhand(LonghandId::TextDecorationThickness).enabled_for_all_content();
+
             let (mut line, mut style, mut color, mut thickness, mut any) = (None, None, None, None, false);
         % else:
             let (mut line, mut any) = (None, false);
         % endif
-
-        let text_decoration_thickness_enabled =
-            PropertyId::Longhand(LonghandId::TextDecorationThickness).enabled_for_all_content();
 
         loop {
             macro_rules! parse_component {

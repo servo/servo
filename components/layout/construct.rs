@@ -1847,6 +1847,10 @@ where
             node.type_id()
         );
 
+        // FIXME(emilio): This should look at display-outside and
+        // display-inside, but there's so much stuff that goes through the
+        // generic "block" codepath (wrongly).
+        //
         // Switch on display and floatedness.
         match (display, float, positioning) {
             // `display: none` contributes no flow construction result.
@@ -1868,12 +1872,6 @@ where
             // below.
             (Display::Block, _, Position::Absolute) | (Display::Block, _, Position::Fixed) => {
                 let construction_result = self.build_flow_for_block(node, None);
-                self.set_flow_construction_result(node, construction_result)
-            },
-
-            // List items contribute their own special flows.
-            (Display::ListItem, float_value, _) => {
-                let construction_result = self.build_flow_for_list_item(node, float_value);
                 self.set_flow_construction_result(node, construction_result)
             },
 
@@ -1958,7 +1956,12 @@ where
             // properties separately.
             (_, float_value, _) => {
                 let float_kind = FloatKind::from_property(float_value);
-                let construction_result = self.build_flow_for_block(node, float_kind);
+                // List items contribute their own special flows.
+                let construction_result = if display.is_list_item() {
+                    self.build_flow_for_list_item(node, float_value)
+                } else {
+                    self.build_flow_for_block(node, float_kind)
+                };
                 self.set_flow_construction_result(node, construction_result)
             },
         }
