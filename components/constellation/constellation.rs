@@ -3468,6 +3468,28 @@ where
                     }
                 }
             },
+            WebDriverCommandMsg::KeyboardAction(browsing_context_id, event) => {
+                let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
+                    Some(browsing_context) => browsing_context.pipeline_id,
+                    None => {
+                        return warn!(
+                            "Browsing context {} KeyboardAction after closure.",
+                            browsing_context_id
+                        );
+                    },
+                };
+                let event_loop = match self.pipelines.get(&pipeline_id) {
+                    Some(pipeline) => pipeline.event_loop.clone(),
+                    None => return warn!("Pipeline {} KeyboardAction after closure.", pipeline_id),
+                };
+                let control_msg = ConstellationControlMsg::SendEvent(
+                    pipeline_id,
+                    CompositorEvent::KeyboardEvent(event),
+                );
+                if let Err(e) = event_loop.send(control_msg) {
+                    return self.handle_send_error(pipeline_id, e);
+                }
+            },
             WebDriverCommandMsg::TakeScreenshot(_, reply) => {
                 self.compositor_proxy
                     .send(ToCompositorMsg::CreatePng(reply));
