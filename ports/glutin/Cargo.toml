@@ -64,7 +64,7 @@ webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless"] }
 
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
-image = "0.21"
+image = "0.22"
 
 [target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
 osmesa-sys = "0.1.2"

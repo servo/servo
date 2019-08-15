@@ -230,6 +230,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         raster_space: RasterSpace::Screen,
                         // TODO(pcwalton): Enable picture caching?
                         cache_tiles: false,
+                        is_backdrop_root: false,
                     },
                 };
 
