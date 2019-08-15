@@ -10,7 +10,7 @@ use crate::values::computed::length::{Length, LengthPercentage};
 use crate::values::computed::{Context, NonNegativeLength, NonNegativeNumber, ToComputedValue};
 use crate::values::generics::text::InitialLetter as GenericInitialLetter;
 use crate::values::generics::text::LineHeight as GenericLineHeight;
-use crate::values::generics::text::{Spacing, GenericTextDecorationLength};
+use crate::values::generics::text::{GenericTextDecorationLength, Spacing};
 use crate::values::specified::text::{self as specified, TextOverflowSide};
 use crate::values::specified::text::{TextEmphasisFillMode, TextEmphasisShapeKeyword};
 use crate::values::{CSSFloat, CSSInteger};

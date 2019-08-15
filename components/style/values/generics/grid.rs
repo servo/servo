@@ -419,7 +419,7 @@ impl Parse for RepeatCount<specified::Integer> {
             if i.value() > MAX_GRID_LINE {
                 i = specified::Integer::new(MAX_GRID_LINE);
             }
-            return Ok(RepeatCount::Number(i))
+            return Ok(RepeatCount::Number(i));
         }
         try_match_ident_ignore_ascii_case! { input,
             "auto-fill" => Ok(RepeatCount::AutoFill),
@@ -527,7 +527,16 @@ impl<L, I> TrackListValue<L, I> {
 /// A grid `<track-list>` type.
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-list>
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
 #[repr(C)]
 pub struct GenericTrackList<LengthPercentage, Integer> {
     /// The index in `values` where our `<auto-repeat>` value is, if in bounds.

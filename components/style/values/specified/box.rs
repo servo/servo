@@ -51,18 +51,7 @@ fn parse_unimplemented_in_servo_2020(_context: &ParserContext) -> bool {
 /// the two basic qualities of how an element generates boxes
 /// <https://drafts.csswg.org/css-display/#propdef-display>
 #[allow(missing_docs)]
-#[derive(
-    MallocSizeOf,
-    ToShmem,
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    FromPrimitive,
-    Hash,
-    PartialEq,
-    ToCss,
-)]
+#[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, MallocSizeOf, PartialEq, ToCss, ToShmem)]
 #[cfg(feature = "gecko")]
 #[repr(u8)]
 pub enum DisplayOutside {
@@ -76,18 +65,7 @@ pub enum DisplayOutside {
 }
 
 #[allow(missing_docs)]
-#[derive(
-    MallocSizeOf,
-    ToShmem,
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    FromPrimitive,
-    Hash,
-    PartialEq,
-    ToCss,
-)]
+#[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, MallocSizeOf, PartialEq, ToCss, ToShmem)]
 #[cfg(feature = "gecko")]
 #[repr(u8)]
 pub enum DisplayInside {
@@ -150,68 +128,85 @@ pub struct Display(u16);
 #[cfg(feature = "gecko")]
 impl Display {
     // Our u16 bits are used as follows:    LOOOOOOOIIIIIIII
-    const LIST_ITEM_BIT : u16 = 0x8000;   //^
-    const DISPLAY_OUTSIDE_BITS : u16 = 7; // ^^^^^^^
-    const DISPLAY_INSIDE_BITS : u16 = 8;  //        ^^^^^^^^
+    const LIST_ITEM_BIT: u16 = 0x8000; //^
+    const DISPLAY_OUTSIDE_BITS: u16 = 7; // ^^^^^^^
+    const DISPLAY_INSIDE_BITS: u16 = 8; //        ^^^^^^^^
 
     /// https://drafts.csswg.org/css-display/#the-display-properties
-    pub const None : Self = Self::new(DisplayOutside::None, DisplayInside::None);
-    pub const Contents : Self = Self::new(DisplayOutside::None, DisplayInside::Contents);
-    pub const Inline : Self = Self::new(DisplayOutside::Inline, DisplayInside::Inline);
-    pub const InlineBlock : Self = Self::new(DisplayOutside::Inline, DisplayInside::FlowRoot);
-    pub const Block : Self = Self::new(DisplayOutside::Block, DisplayInside::Block);
-    pub const FlowRoot : Self = Self::new(DisplayOutside::Block, DisplayInside::FlowRoot);
-    pub const Flex : Self = Self::new(DisplayOutside::Block, DisplayInside::Flex);
-    pub const InlineFlex : Self = Self::new(DisplayOutside::Inline, DisplayInside::Flex);
-    pub const Grid : Self = Self::new(DisplayOutside::Block, DisplayInside::Grid);
-    pub const InlineGrid : Self = Self::new(DisplayOutside::Inline, DisplayInside::Grid);
-    pub const Table : Self = Self::new(DisplayOutside::Block, DisplayInside::Table);
-    pub const InlineTable : Self = Self::new(DisplayOutside::Inline, DisplayInside::Table);
-    pub const TableCaption : Self = Self::new(DisplayOutside::TableCaption, DisplayInside::Block);
-    pub const Ruby : Self = Self::new(DisplayOutside::Inline, DisplayInside::Ruby);
-    pub const WebkitBox : Self = Self::new(DisplayOutside::Block, DisplayInside::WebkitBox);
-    pub const WebkitInlineBox : Self = Self::new(DisplayOutside::Inline, DisplayInside::WebkitBox);
-    pub const ListItem : Self = Self::new_list_item(DisplayOutside::Block, DisplayInside::Block);
+    pub const None: Self = Self::new(DisplayOutside::None, DisplayInside::None);
+    pub const Contents: Self = Self::new(DisplayOutside::None, DisplayInside::Contents);
+    pub const Inline: Self = Self::new(DisplayOutside::Inline, DisplayInside::Inline);
+    pub const InlineBlock: Self = Self::new(DisplayOutside::Inline, DisplayInside::FlowRoot);
+    pub const Block: Self = Self::new(DisplayOutside::Block, DisplayInside::Block);
+    pub const FlowRoot: Self = Self::new(DisplayOutside::Block, DisplayInside::FlowRoot);
+    pub const Flex: Self = Self::new(DisplayOutside::Block, DisplayInside::Flex);
+    pub const InlineFlex: Self = Self::new(DisplayOutside::Inline, DisplayInside::Flex);
+    pub const Grid: Self = Self::new(DisplayOutside::Block, DisplayInside::Grid);
+    pub const InlineGrid: Self = Self::new(DisplayOutside::Inline, DisplayInside::Grid);
+    pub const Table: Self = Self::new(DisplayOutside::Block, DisplayInside::Table);
+    pub const InlineTable: Self = Self::new(DisplayOutside::Inline, DisplayInside::Table);
+    pub const TableCaption: Self = Self::new(DisplayOutside::TableCaption, DisplayInside::Block);
+    pub const Ruby: Self = Self::new(DisplayOutside::Inline, DisplayInside::Ruby);
+    pub const WebkitBox: Self = Self::new(DisplayOutside::Block, DisplayInside::WebkitBox);
+    pub const WebkitInlineBox: Self = Self::new(DisplayOutside::Inline, DisplayInside::WebkitBox);
+    pub const ListItem: Self = Self::new_list_item(DisplayOutside::Block, DisplayInside::Block);
 
     /// Internal table boxes.
-    pub const TableRowGroup : Self = Self::new(DisplayOutside::InternalTable, DisplayInside::TableRowGroup);
-    pub const TableHeaderGroup : Self = Self::new(DisplayOutside::InternalTable, DisplayInside::TableHeaderGroup);
-    pub const TableFooterGroup : Self = Self::new(DisplayOutside::InternalTable, DisplayInside::TableFooterGroup);
-    pub const TableColumn : Self = Self::new(DisplayOutside::InternalTable, DisplayInside::TableColumn);
-    pub const TableColumnGroup : Self = Self::new(DisplayOutside::InternalTable, DisplayInside::TableColumnGroup);
-    pub const TableRow : Self = Self::new(DisplayOutside::InternalTable, DisplayInside::TableRow);
-    pub const TableCell : Self = Self::new(DisplayOutside::InternalTable, DisplayInside::TableCell);
+    pub const TableRowGroup: Self =
+        Self::new(DisplayOutside::InternalTable, DisplayInside::TableRowGroup);
+    pub const TableHeaderGroup: Self = Self::new(
+        DisplayOutside::InternalTable,
+        DisplayInside::TableHeaderGroup,
+    );
+    pub const TableFooterGroup: Self = Self::new(
+        DisplayOutside::InternalTable,
+        DisplayInside::TableFooterGroup,
+    );
+    pub const TableColumn: Self =
+        Self::new(DisplayOutside::InternalTable, DisplayInside::TableColumn);
+    pub const TableColumnGroup: Self = Self::new(
+        DisplayOutside::InternalTable,
+        DisplayInside::TableColumnGroup,
+    );
+    pub const TableRow: Self = Self::new(DisplayOutside::InternalTable, DisplayInside::TableRow);
+    pub const TableCell: Self = Self::new(DisplayOutside::InternalTable, DisplayInside::TableCell);
 
     /// Internal ruby boxes.
-    pub const RubyBase : Self = Self::new(DisplayOutside::InternalRuby, DisplayInside::RubyBase);
-    pub const RubyBaseContainer : Self = Self::new(DisplayOutside::InternalRuby, DisplayInside::RubyBaseContainer);
-    pub const RubyText : Self = Self::new(DisplayOutside::InternalRuby, DisplayInside::RubyText);
-    pub const RubyTextContainer : Self = Self::new(DisplayOutside::InternalRuby, DisplayInside::RubyTextContainer);
+    pub const RubyBase: Self = Self::new(DisplayOutside::InternalRuby, DisplayInside::RubyBase);
+    pub const RubyBaseContainer: Self = Self::new(
+        DisplayOutside::InternalRuby,
+        DisplayInside::RubyBaseContainer,
+    );
+    pub const RubyText: Self = Self::new(DisplayOutside::InternalRuby, DisplayInside::RubyText);
+    pub const RubyTextContainer: Self = Self::new(
+        DisplayOutside::InternalRuby,
+        DisplayInside::RubyTextContainer,
+    );
 
     /// XUL boxes.
-    pub const MozBox : Self = Self::new(DisplayOutside::XUL, DisplayInside::MozBox);
-    pub const MozInlineBox : Self = Self::new(DisplayOutside::XUL, DisplayInside::MozInlineBox);
-    pub const MozGrid : Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGrid);
-    pub const MozInlineGrid : Self = Self::new(DisplayOutside::XUL, DisplayInside::MozInlineGrid);
-    pub const MozGridGroup : Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGridGroup);
-    pub const MozGridLine : Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGridLine);
-    pub const MozStack : Self = Self::new(DisplayOutside::XUL, DisplayInside::MozStack);
-    pub const MozInlineStack : Self = Self::new(DisplayOutside::XUL, DisplayInside::MozInlineStack);
-    pub const MozDeck : Self = Self::new(DisplayOutside::XUL, DisplayInside::MozDeck);
-    pub const MozGroupbox : Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGroupbox);
-    pub const MozPopup : Self = Self::new(DisplayOutside::XUL, DisplayInside::MozPopup);
+    pub const MozBox: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozBox);
+    pub const MozInlineBox: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozInlineBox);
+    pub const MozGrid: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGrid);
+    pub const MozInlineGrid: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozInlineGrid);
+    pub const MozGridGroup: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGridGroup);
+    pub const MozGridLine: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGridLine);
+    pub const MozStack: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozStack);
+    pub const MozInlineStack: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozInlineStack);
+    pub const MozDeck: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozDeck);
+    pub const MozGroupbox: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGroupbox);
+    pub const MozPopup: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozPopup);
 
     /// Make a raw display value from <display-outside> and <display-inside> values.
     #[inline]
-    const fn new(outside:DisplayOutside, inside:DisplayInside) -> Self {
-        let o : u16 = ((outside as u8) as u16) << Self::DISPLAY_INSIDE_BITS;
-        let i : u16 = (inside as u8) as u16;
+    const fn new(outside: DisplayOutside, inside: DisplayInside) -> Self {
+        let o: u16 = ((outside as u8) as u16) << Self::DISPLAY_INSIDE_BITS;
+        let i: u16 = (inside as u8) as u16;
         Self(o | i)
     }
 
     /// Make a list-item display value from <display-outside> and <display-inside>.
     #[inline]
-    const fn new_list_item(outside:DisplayOutside, inside:DisplayInside) -> Self {
+    const fn new_list_item(outside: DisplayOutside, inside: DisplayInside) -> Self {
         let v = Self::new(outside, inside);
         Self(v.0 | Self::LIST_ITEM_BIT)
     }
@@ -220,7 +215,7 @@ impl Display {
     /// We store `flow` as a synthetic `block` or `inline` inside-value to simplify
     /// our layout code.
     #[inline]
-    fn from3(outside:DisplayOutside, inside:DisplayInside, list_item:bool) -> Self {
+    fn from3(outside: DisplayOutside, inside: DisplayInside, list_item: bool) -> Self {
         let inside = match inside {
             DisplayInside::Flow => match outside {
                 DisplayOutside::Inline => DisplayInside::Inline,
@@ -245,8 +240,9 @@ impl Display {
     #[inline]
     pub fn outside(&self) -> DisplayOutside {
         DisplayOutside::from_u16(
-            (self.0 >> Self::DISPLAY_INSIDE_BITS) & ((1 << Self::DISPLAY_OUTSIDE_BITS) - 1)
-        ).unwrap()
+            (self.0 >> Self::DISPLAY_INSIDE_BITS) & ((1 << Self::DISPLAY_OUTSIDE_BITS) - 1),
+        )
+        .unwrap()
     }
 
     /// Returns whether this `display` value is some kind of list-item.
@@ -403,7 +399,7 @@ impl Display {
             }
             match self.outside() {
                 DisplayOutside::Inline => {
-                    let inside =  match self.inside() {
+                    let inside = match self.inside() {
                         DisplayInside::Inline | DisplayInside::FlowRoot => DisplayInside::Block,
                         inside => inside,
                     };
@@ -443,12 +439,10 @@ impl Display {
                 };
                 Display::from3(DisplayOutside::Inline, inside, self.is_list_item())
             },
-            DisplayOutside::XUL => {
-                match self.inside() {
-                    DisplayInside::MozBox => Display::MozInlineBox,
-                    DisplayInside::MozStack => Display::MozInlineStack,
-                    _ => *self,
-                }
+            DisplayOutside::XUL => match self.inside() {
+                DisplayInside::MozBox => Display::MozInlineBox,
+                DisplayInside::MozStack => Display::MozInlineStack,
+                _ => *self,
             },
             _ => *self,
         }
@@ -477,8 +471,11 @@ impl ToCss for Display {
     where
         W: fmt::Write,
     {
-        debug_assert_ne!(self.inside(), DisplayInside::Flow,
-                         "`flow` never appears in `display` computed value");
+        debug_assert_ne!(
+            self.inside(),
+            DisplayInside::Flow,
+            "`flow` never appears in `display` computed value"
+        );
         let outside = self.outside();
         let inside = match self.inside() {
             DisplayInside::Block | DisplayInside::Inline => DisplayInside::Flow,
@@ -499,10 +496,8 @@ impl ToCss for Display {
                 (DisplayOutside::Inline, DisplayInside::Table) => {
                     dest.write_str("inline-")?;
                     inside.to_css(dest)
-                }
-                (DisplayOutside::Block, DisplayInside::Ruby) => {
-                    dest.write_str("block ruby")
-                }
+                },
+                (DisplayOutside::Block, DisplayInside::Ruby) => dest.write_str("block ruby"),
                 (_, inside) => {
                     if self.is_list_item() {
                         if outside != DisplayOutside::Block {
@@ -517,8 +512,8 @@ impl ToCss for Display {
                     } else {
                         inside.to_css(dest)
                     }
-                }
-            }
+                },
+            },
         }
     }
 }
@@ -565,17 +560,16 @@ fn parse_display_inside_for_list_item<'i, 't>(
 }
 /// Test a <display-inside> Result for same values as above.
 #[cfg(feature = "gecko")]
-fn is_valid_inside_for_list_item<'i>(
-    inside: &Result<DisplayInside, ParseError<'i>>,
-) -> bool {
-    matches!(inside, Ok(DisplayInside::Flow) | Ok(DisplayInside::FlowRoot))
+fn is_valid_inside_for_list_item<'i>(inside: &Result<DisplayInside, ParseError<'i>>) -> bool {
+    matches!(
+        inside,
+        Ok(DisplayInside::Flow) | Ok(DisplayInside::FlowRoot)
+    )
 }
 
 /// Parse `list-item`.
 #[cfg(feature = "gecko")]
-fn parse_list_item<'i, 't>(
-    input: &mut Parser<'i, 't>,
-) -> Result<(), ParseError<'i>> {
+fn parse_list_item<'i, 't>(input: &mut Parser<'i, 't>) -> Result<(), ParseError<'i>> {
     Ok(try_match_ident_ignore_ascii_case! { input,
         "list-item" => (),
     })
@@ -617,15 +611,13 @@ impl Parse for Display {
         }
         if got_list_item || inside.is_ok() || outside.is_ok() {
             let inside = inside.unwrap_or(DisplayInside::Flow);
-            let outside = outside.unwrap_or(
-                match inside {
-                    // "If <display-outside> is omitted, the element’s outside display type
-                    // defaults to block — except for ruby, which defaults to inline."
-                    // https://drafts.csswg.org/css-display/#inside-model
-                    DisplayInside::Ruby => DisplayOutside::Inline,
-                    _ => DisplayOutside::Block,
-                }
-            );
+            let outside = outside.unwrap_or(match inside {
+                // "If <display-outside> is omitted, the element’s outside display type
+                // defaults to block — except for ruby, which defaults to inline."
+                // https://drafts.csswg.org/css-display/#inside-model
+                DisplayInside::Ruby => DisplayOutside::Inline,
+                _ => DisplayOutside::Block,
+            });
             return Ok(Display::from3(outside, inside, got_list_item));
         }
 
@@ -671,38 +663,39 @@ impl Parse for Display {
 #[cfg(feature = "gecko")]
 impl SpecifiedValueInfo for Display {
     fn collect_completion_keywords(f: KeywordsCollectFn) {
-      f(&["block",
-          "contents",
-          "flex",
-          "flow-root",
-          "grid",
-          "inline",
-          "inline-block",
-          "inline-flex",
-          "inline-grid",
-          "inline-table",
-          "inline list-item",
-          "inline flow-root list-item",
-          "list-item",
-          "none",
-          "block ruby",
-          "ruby",
-          "ruby-base",
-          "ruby-base-container",
-          "ruby-text",
-          "ruby-text-container",
-          "table",
-          "table-caption",
-          "table-cell",
-          "table-column",
-          "table-column-group",
-          "table-footer-group",
-          "table-header-group",
-          "table-row",
-          "table-row-group",
-          "-webkit-box",
-          "-webkit-inline-box",
-      ]);
+        f(&[
+            "block",
+            "contents",
+            "flex",
+            "flow-root",
+            "grid",
+            "inline",
+            "inline-block",
+            "inline-flex",
+            "inline-grid",
+            "inline-table",
+            "inline list-item",
+            "inline flow-root list-item",
+            "list-item",
+            "none",
+            "block ruby",
+            "ruby",
+            "ruby-base",
+            "ruby-base-container",
+            "ruby-text",
+            "ruby-text-container",
+            "table",
+            "table-caption",
+            "table-cell",
+            "table-column",
+            "table-column-group",
+            "table-footer-group",
+            "table-header-group",
+            "table-row",
+            "table-row-group",
+            "-webkit-box",
+            "-webkit-inline-box",
+        ]);
     }
 }
 

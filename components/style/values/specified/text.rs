@@ -12,7 +12,7 @@ use crate::values::computed::text::TextOverflow as ComputedTextOverflow;
 use crate::values::computed::{Context, ToComputedValue};
 use crate::values::generics::text::InitialLetter as GenericInitialLetter;
 use crate::values::generics::text::LineHeight as GenericLineHeight;
-use crate::values::generics::text::{Spacing, GenericTextDecorationLength};
+use crate::values::generics::text::{GenericTextDecorationLength, Spacing};
 use crate::values::specified::length::NonNegativeLengthPercentage;
 use crate::values::specified::length::{FontRelativeLength, Length};
 use crate::values::specified::length::{LengthPercentage, NoCalcLength};
@@ -1053,6 +1053,6 @@ impl TextDecorationLength {
     /// Whether this is the `Auto` value.
     #[inline]
     pub fn is_auto(&self) -> bool {
-        matches!(*self,  GenericTextDecorationLength::Auto)
+        matches!(*self, GenericTextDecorationLength::Auto)
     }
 }
