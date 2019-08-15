@@ -106,7 +106,6 @@ impl MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#message-port-post-message-steps>
-    #[allow(unsafe_code)]
     pub fn post_message_impl(
         &self,
         cx: SafeJSContext,

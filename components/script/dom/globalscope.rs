@@ -91,7 +91,7 @@ pub struct GlobalScope {
     crypto: MutNullableDom<Crypto>,
     next_worker_id: Cell<WorkerId>,
 
-    /// The sender for the message-ports manageds by this global.
+    /// A flag indicating whether a router for ports has been setup by this global.
     message_ports_route_setup: Cell<bool>,
 
     /// The message-ports known to this global.
@@ -330,7 +330,7 @@ impl GlobalScope {
             .script_to_constellation_chan()
             .send(ScriptMsg::MessagePortShipped(port_id.clone()));
         let mut bytes = vec![];
-        bincode::serialize_into(&mut bytes, &port).expect("MessagePortImpl so serialize");
+        bincode::serialize_into(&mut bytes, &port).expect("MessagePortImpl to serialize.");
         Ok(bytes)
     }
 
@@ -382,7 +382,6 @@ impl GlobalScope {
 
         if should_dispatch {
             // Get a corresponding DOM message-port object.
-            // Any existing event-listeners will be set on it.
             let dom_port = self.get_dom_message_port(&port_id);
 
             let PortMessageTask { origin, data } = task;

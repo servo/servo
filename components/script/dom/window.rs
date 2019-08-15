@@ -898,7 +898,6 @@ impl WindowMethods for Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
-    #[allow(unsafe_code)]
     fn PostMessage(
         &self,
         cx: JSContext,
@@ -920,7 +919,6 @@ impl WindowMethods for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
-    #[allow(unsafe_code)]
     fn PostMessage_(
         &self,
         cx: JSContext,

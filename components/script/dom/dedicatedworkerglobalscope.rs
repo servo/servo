@@ -577,7 +577,6 @@ impl DedicatedWorkerGlobalScope {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
-    #[allow(unsafe_code)]
     fn post_message_impl(
         &self,
         cx: SafeJSContext,
