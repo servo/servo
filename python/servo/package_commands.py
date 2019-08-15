@@ -57,8 +57,7 @@ PACKAGES = {
         'target/release/brew/servo.tar.gz',
     ],
     'magicleap': [
-        'target/magicleap/aarch64-linux-android/release/Servo2D.mpk',
-        'target/magicleap/aarch64-linux-android/release/Servo3D.mpk',
+        'target/magicleap/aarch64-linux-android/release/Servo.mpk',
     ],
     'maven': [
         'target/android/gradle/servoview/maven/org/mozilla/servoview/servoview-armv7/',
@@ -237,8 +236,7 @@ class PackageCommands(CommandBase):
 
             mabu = path.join(env.get("MAGICLEAP_SDK"), "mabu")
             packages = [
-                "./support/magicleap/Servo3D/Servo3D.package",
-                "./support/magicleap/Servo2D/Servo2D.package",
+                "./support/magicleap/Servo.package",
             ]
             if dev:
                 build_type = "lumin_debug"
@@ -249,6 +247,7 @@ class PackageCommands(CommandBase):
                     mabu,
                     "-o", target_dir,
                     "-t", build_type,
+                    "-r",
                     "GSTREAMER_DIR=" + env["GSTREAMER_DIR"],
                     package
                 ]

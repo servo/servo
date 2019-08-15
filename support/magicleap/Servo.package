@@ -1,11 +1,6 @@
-USES = \
-    scenes \
-    pipeline/cache/AssetManifest
-
-DATAS = \
-    fonts.xml : etc/fonts.xml
-
-REFS = Servo2D
+REFS = \
+    Servo2D/Servo2D \
+    Servo3D/Servo3D
 
 # Servo SEGVs if we don't set the debuggable flag in the mpk's taildata
 # https://github.com/servo/servo/issues/22188
