@@ -178,9 +178,13 @@ type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, HistoryEntryRep
 
 #[derive(Debug)]
 struct MessagePortInfo {
+    /// Whether the port is currently being transferred.
     is_being_transferred: bool,
+    /// The pipeline where the port is currently found.
     pipeline: PipelineId,
+    /// The id of the entangled port.
     entangled_with: Option<MessagePortId>,
+    /// A buffer for messages sent to a port while is_being_transferred is true.
     message_queue: Option<VecDeque<PortMessageTask>>,
 }
 
@@ -1469,7 +1473,7 @@ where
         };
 
         match content {
-            FromScriptMsg::GePipelineNameSpaceId(sender) => {
+            FromScriptMsg::GetPipelineNameSpaceId(sender) => {
                 let _ = sender.send(self.next_pipeline_namespace_id());
             },
             FromScriptMsg::RerouteMessagePort(port_id, task) => {
@@ -1784,7 +1788,7 @@ where
         let entangled = match self.message_ports.remove(&port_id) {
             Some(info) => {
                 if source_pipeline_id != info.pipeline {
-                     return warn!(
+                    return warn!(
                         "Got remove_messageport message from {:?} while port is in {:?}",
                         source_pipeline_id, info.pipeline
                     );

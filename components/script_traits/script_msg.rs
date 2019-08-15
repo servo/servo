@@ -115,7 +115,7 @@ pub enum HistoryEntryReplacement {
 #[derive(Deserialize, Serialize)]
 pub enum ScriptMsg {
     /// Request a Pipeline namespace id.
-    GePipelineNameSpaceId(IpcSender<PipelineNamespaceId>),
+    GetPipelineNameSpaceId(IpcSender<PipelineNamespaceId>),
     /// A new message-port was created or transferred, with corresponding control-sender.
     NewMessagePort(MessagePortId),
     /// A global has started managing message-ports
@@ -248,7 +248,7 @@ impl fmt::Debug for ScriptMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         use self::ScriptMsg::*;
         let variant = match *self {
-            GePipelineNameSpaceId(..) => "GePipelineNameSpaceId",
+            GetPipelineNameSpaceId(..) => "GetPipelineNameSpaceId",
             NewMessagePortRouter(..) => "NewMessagePortRouter",
             NewMessagePort(..) => "NewMessagePort",
             RerouteMessagePort(..) => "RerouteMessagePort",

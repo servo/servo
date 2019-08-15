@@ -165,6 +165,8 @@ impl Worker {
                 None,
                 new_ports,
             );
+        } else {
+            warn!("Error reading structuredclone data");
         }
     }
 

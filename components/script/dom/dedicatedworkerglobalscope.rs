@@ -390,7 +390,7 @@ impl DedicatedWorkerGlobalScope {
                     ipc::channel().expect("ipc channel failure");
                 let _ = global_scope
                     .script_to_constellation_chan()
-                    .send(ScriptMsg::GePipelineNameSpaceId(namespace_sender));
+                    .send(ScriptMsg::GetPipelineNameSpaceId(namespace_sender));
                 let pipeline_namespace_id = namespace_receiver
                     .recv()
                     .expect("The constellation to make a pipeline namespace id available");
@@ -494,6 +494,8 @@ impl DedicatedWorkerGlobalScope {
                         None,
                         new_ports,
                     );
+                } else {
+                    warn!("Error reading structuredclone data");
                 }
             },
             WorkerScriptMsg::Common(msg) => {

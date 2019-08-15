@@ -906,38 +906,17 @@ impl WindowMethods for Window {
         origin: USVString,
         mut transfer: CustomAutoRooterGuard<Option<Vec<*mut JSObject>>>,
     ) -> ErrorResult {
-        let source_global = GlobalScope::incumbent().expect("no incumbent global??");
-        let source = source_global.as_window();
-
-        // Step 3-5.
-        let origin = match &origin.0[..] {
-            "*" => None,
-            "/" => Some(source.Document().origin().immutable().clone()),
-            url => match ServoUrl::parse(&url) {
-                Ok(url) => Some(url.origin().clone()),
-                Err(_) => return Err(Error::Syntax),
-            },
-        };
-
-        // Step 1-2, 6-8.
-        let data = if transfer.is_some() {
-            let mut rooted = CustomAutoRooter::new(transfer.take().unwrap());
-            let res = structuredclone::write(
-                *cx,
-                message,
-                Some(CustomAutoRooterGuard::new(*cx, &mut rooted)),
-            )?;
-            res
-        } else {
-            let res = structuredclone::write(*cx, message, None)?;
-            res
-        };
-
+        let incumbent = GlobalScope::incumbent().expect("no incumbent global?");
+        let source = incumbent.as_window();
         let source_origin = source.Document().origin().immutable().clone();
 
-        // Step 9.
-        self.post_message(origin, source_origin, &*source.window_proxy(), data);
-        Ok(())
+        if transfer.is_some() {
+            let mut rooted = CustomAutoRooter::new(transfer.take().unwrap());
+            let transfer = Some(CustomAutoRooterGuard::new(*cx, &mut rooted));
+            self.post_message_impl(&Some(origin), source_origin, source, cx, message, transfer)
+        } else {
+            self.post_message_impl(&Some(origin), source_origin, source, cx, message, None)
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
@@ -948,9 +927,6 @@ impl WindowMethods for Window {
         message: HandleValue,
         options: RootedTraceableBox<WindowPostMessageOptions>,
     ) -> ErrorResult {
-        let source_global = GlobalScope::incumbent().expect("no incumbent global??");
-        let source = source_global.as_window();
-
         let mut rooted = CustomAutoRooter::new(
             options
                 .transfer
@@ -960,29 +936,21 @@ impl WindowMethods for Window {
                 .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
                 .collect(),
         );
-        let transfer = CustomAutoRooterGuard::new(*cx, &mut rooted);
+        let transfer = Some(CustomAutoRooterGuard::new(*cx, &mut rooted));
 
-        // Step 3-5.
-        let origin = match &options.targetOrigin {
-            Some(origin) => match origin.0[..].as_ref() {
-                "*" => None,
-                "/" => Some(source.Document().origin().immutable().clone()),
-                url => match ServoUrl::parse(&url) {
-                    Ok(url) => Some(url.origin().clone()),
-                    Err(_) => return Err(Error::Syntax),
-                },
-            },
-            None => Some(source.Document().origin().immutable().clone()),
-        };
-
-        // Step 1-2, 6-8.
-        let data = structuredclone::write(*cx, message, Some(transfer))?;
+        let incumbent = GlobalScope::incumbent().expect("no incumbent global?");
+        let source = incumbent.as_window();
 
         let source_origin = source.Document().origin().immutable().clone();
 
-        // Step 9.
-        self.post_message(origin, source_origin, &*source.window_proxy(), data);
-        Ok(())
+        self.post_message_impl(
+            &options.targetOrigin,
+            source_origin,
+            source,
+            cx,
+            message,
+            transfer,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-captureevents
@@ -1280,6 +1248,36 @@ impl WindowMethods for Window {
 }
 
 impl Window {
+    fn post_message_impl(
+        &self,
+        target_origin: &Option<USVString>,
+        source_origin: ImmutableOrigin,
+        source: &Window,
+        cx: JSContext,
+        message: HandleValue,
+        transfer: Option<CustomAutoRooterGuard<Vec<*mut JSObject>>>,
+    ) -> ErrorResult {
+        // Step 1-2, 6-8.
+        let data = structuredclone::write(*cx, message, transfer)?;
+
+        // Step 3-5.
+        let target_origin = match &target_origin {
+            Some(origin) => match origin.0[..].as_ref() {
+                "*" => None,
+                "/" => Some(source_origin.clone()),
+                url => match ServoUrl::parse(&url) {
+                    Ok(url) => Some(url.origin().clone()),
+                    Err(_) => return Err(Error::Syntax),
+                },
+            },
+            None => Some(source_origin.clone()),
+        };
+
+        // Step 9.
+        self.post_message(target_origin, source_origin, &*source.window_proxy(), data);
+        Ok(())
+    }
+
     // https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
     pub fn paint_worklet(&self) -> DomRoot<Worklet> {
         self.paint_worklet.or_init(|| self.new_paint_worklet())
@@ -2352,6 +2350,8 @@ impl Window {
                     Some(&*source),
                     new_ports,
                 );
+            } else {
+                warn!("Error reading structuredclone data");
             }
         });
         // FIXME(nox): Why are errors silenced here?

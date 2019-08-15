@@ -3,7 +3,7 @@
 async_test(function(t) {
   var channel1 = new MessageChannel();
   var host = get_host_info();
-  var noteSameSiteURL = host.HTTP_NOTSAMESITE_ORIGIN + "/webmessaging/support/ChildWindowPostMessage.htm";
+  var notSameSiteURL = host.HTTP_NOTSAMESITE_ORIGIN + "/webmessaging/support/ChildWindowPostMessage.htm";
   let iframe = document.createElement('iframe');
   iframe.src = noteSameSiteURL;
   document.body.appendChild(iframe);

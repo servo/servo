@@ -402,6 +402,8 @@ impl GlobalScope {
                     None,
                     deserialize_result.message_ports.into_iter().collect(),
                 );
+            } else {
+                warn!("Error reading structuredclone data");
             }
         }
     }

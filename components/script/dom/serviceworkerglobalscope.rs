@@ -343,7 +343,7 @@ impl ServiceWorkerGlobalScope {
                 let _ = global
                     .upcast::<GlobalScope>()
                     .script_to_constellation_chan()
-                    .send(ScriptMsg::GePipelineNameSpaceId(namespace_sender));
+                    .send(ScriptMsg::GetPipelineNameSpaceId(namespace_sender));
 
                 let pipeline_namespace_id = namespace_receiver
                     .recv()

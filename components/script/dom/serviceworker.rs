@@ -105,8 +105,9 @@ impl ServiceWorkerMethods for ServiceWorker {
         }
         // Step 7
         let data = structuredclone::write(*cx, message, Some(transfer))?;
+        let incumbent = GlobalScope::incumbent().expect("no incumbent global?");
         let msg_vec = DOMMessage {
-            origin: self.global().origin().immutable().clone(),
+            origin: incumbent.origin().immutable().clone(),
             data,
         };
         let _ = self
