@@ -23,6 +23,7 @@ LDFLAGS.device = \
     -L$(MLSDK)/lumin/stl/libc++/lib
 
 DATAS = \
+    fonts.xml : etc/fonts.xml \
     $(GSTREAMER_DIR)/system/lib64/*.so : bin/ \
     $(GSTREAMER_DIR)/system/lib64/gstreamer-1.0/*.so : bin/
 
@@ -51,4 +52,6 @@ CXXFLAGS = \
 
 USES = \
     lumin_runtime \
+    scenes \
+    pipeline/cache/AssetManifest \
     code/srcs
