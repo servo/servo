@@ -59,7 +59,9 @@ use js::rust::wrappers::EvaluateUtf8;
 use js::rust::{get_object_class, CompileOptionsWrapper, ParentRuntime, Runtime};
 use js::rust::{HandleValue, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
-use msg::constellation_msg::{MessagePortId, MessagePortMsg, PipelineId, PortMessageTask};
+use msg::constellation_msg::{
+    MessagePortId, MessagePortMsg, MessagePortRouterId, PipelineId, PortMessageTask,
+};
 use net_traits::image_cache::ImageCache;
 use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
 use profile_traits::{mem as profile_mem, time as profile_time};
@@ -91,8 +93,8 @@ pub struct GlobalScope {
     crypto: MutNullableDom<Crypto>,
     next_worker_id: Cell<WorkerId>,
 
-    /// A flag indicating whether a router for ports has been setup by this global.
-    message_ports_route_setup: Cell<bool>,
+    /// The message-port router id for this global, if it is managing ports.
+    message_ports_router_id: DomRefCell<Option<MessagePortRouterId>>,
 
     /// The message-ports known to this global.
     message_ports: DomRefCell<HashMap<MessagePortId, MessagePortImpl>>,
@@ -256,7 +258,7 @@ impl GlobalScope {
         user_agent: Cow<'static, str>,
     ) -> Self {
         Self {
-            message_ports_route_setup: Cell::new(false),
+            message_ports_router_id: DomRefCell::new(None),
             message_ports: DomRefCell::new(HashMap::new()),
             pending_message_ports: DomRefCell::new(HashSet::new()),
             message_port_tracker: DomRefCell::new(HashMap::new()),
@@ -316,6 +318,7 @@ impl GlobalScope {
     pub fn remove_message_port(&self, port_id: &MessagePortId) {
         self.message_ports.borrow_mut().remove(port_id);
         self.message_port_tracker.borrow_mut().remove(port_id);
+        // TODO: tell constellaton to drop ref to our router if message-ports is empty.
     }
 
     /// Handle the transfer of a port in the current task.
@@ -423,7 +426,10 @@ impl GlobalScope {
             if self.message_ports.borrow().contains_key(&port_id) {
                 let _ = self
                     .script_to_constellation_chan()
-                    .send(ScriptMsg::NewMessagePort(port_id.clone()));
+                    .send(ScriptMsg::NewMessagePort(
+                        self.message_port_router_id(),
+                        port_id.clone(),
+                    ));
             }
         }
     }
@@ -462,6 +468,13 @@ impl GlobalScope {
         }
     }
 
+    fn message_port_router_id(&self) -> MessagePortRouterId {
+        self.message_ports_router_id
+            .borrow()
+            .clone()
+            .expect("MessagePort router id to be setup")
+    }
+
     /// Start tracking a message-port
     pub fn track_message_port(
         &self,
@@ -475,7 +488,7 @@ impl GlobalScope {
             .borrow_mut()
             .insert(message_port_id.clone(), WeakRef::new(dom_port));
 
-        if !self.message_ports_route_setup.get() {
+        if self.message_ports_router_id.borrow().is_none() {
             // Setup a route for IPC, for messages from the constellation to our ports.
             let (port_control_sender, port_control_receiver) =
                 ipc::channel().expect("ipc channel failure");
@@ -499,10 +512,14 @@ impl GlobalScope {
                     }
                 }),
             );
-            self.message_ports_route_setup.set(true);
+            let router_id = MessagePortRouterId::new();
+            *self.message_ports_router_id.borrow_mut() = Some(router_id);
             let _ = self
                 .script_to_constellation_chan()
-                .send(ScriptMsg::NewMessagePortRouter(port_control_sender));
+                .send(ScriptMsg::NewMessagePortRouter(
+                    self.message_port_router_id(),
+                    port_control_sender,
+                ));
         }
 
         let port_impl = if let Some(port_impl) = port_impl {
@@ -528,7 +545,10 @@ impl GlobalScope {
             // If this is a newly-created port, let the constellation immediately know.
             let _ = self
                 .script_to_constellation_chan()
-                .send(ScriptMsg::NewMessagePort(message_port_id.clone()));
+                .send(ScriptMsg::NewMessagePort(
+                    self.message_port_router_id(),
+                    message_port_id.clone(),
+                ));
             MessagePortImpl::new(message_port_id.clone())
         };
 

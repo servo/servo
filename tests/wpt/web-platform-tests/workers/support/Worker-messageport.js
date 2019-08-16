@@ -1,5 +1,4 @@
 onmessage = function(evt) {
-    console.log(evt.data, evt.ports)
     if (evt.data == "port") {
         if (evt.ports) {
             postMessage("PASS: Received message port");
@@ -34,7 +33,6 @@ function pingBack(evt) {
     // Make sure we got the expected data and send a return message over
     // the port.
     if (evt.data == "ping") {
-        console.log("Got ping")
         evt.target.postMessage("pong");
     } else {
         postMessage("FAIL: unknown message: " + evt.data);

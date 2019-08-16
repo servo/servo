@@ -19,7 +19,8 @@ use euclid::Size2D;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::{
-    BrowsingContextId, MessagePortId, PipelineId, PortMessageTask, TopLevelBrowsingContextId,
+    BrowsingContextId, MessagePortId, MessagePortRouterId, PipelineId, PortMessageTask,
+    TopLevelBrowsingContextId,
 };
 use msg::constellation_msg::{
     HistoryStateId, MessagePortMsg, PipelineNamespaceId, StructuredSerializedData,
@@ -117,9 +118,9 @@ pub enum ScriptMsg {
     /// Request a Pipeline namespace id.
     GetPipelineNameSpaceId(IpcSender<PipelineNamespaceId>),
     /// A new message-port was created or transferred, with corresponding control-sender.
-    NewMessagePort(MessagePortId),
+    NewMessagePort(MessagePortRouterId, MessagePortId),
     /// A global has started managing message-ports
-    NewMessagePortRouter(IpcSender<MessagePortMsg>),
+    NewMessagePortRouter(MessagePortRouterId, IpcSender<MessagePortMsg>),
     /// A task requires re-routing to an already shipped message-port.
     RerouteMessagePort(MessagePortId, PortMessageTask),
     /// A message-port was shipped, let the entangled port know.

@@ -75,7 +75,8 @@ use media::WindowGLContext;
 use metrics::{InteractiveMetrics, InteractiveWindow};
 use mime::Mime;
 use msg::constellation_msg::{
-    BrowsingContextId, HistoryStateId, MessagePortId, PipelineId, TopLevelBrowsingContextId,
+    BrowsingContextId, HistoryStateId, MessagePortId, MessagePortRouterId, PipelineId,
+    TopLevelBrowsingContextId,
 };
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::image::base::{Image, ImageMetadata};
@@ -149,6 +150,7 @@ pub unsafe trait JSTraceable {
 
 unsafe_no_jsmanaged_fields!(MessagePortImpl);
 unsafe_no_jsmanaged_fields!(MessagePortId);
+unsafe_no_jsmanaged_fields!(MessagePortRouterId);
 
 unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>);
 

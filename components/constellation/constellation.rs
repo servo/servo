@@ -130,8 +130,8 @@ use msg::constellation_msg::{
     StructuredSerializedData, TopLevelBrowsingContextId,
 };
 use msg::constellation_msg::{
-    MessagePortId, MessagePortMsg, PipelineNamespace, PipelineNamespaceId, PortMessageTask,
-    TraversalDirection,
+    MessagePortId, MessagePortMsg, MessagePortRouterId, PipelineNamespace, PipelineNamespaceId,
+    PortMessageTask, TraversalDirection,
 };
 use net_traits::pub_domains::reg_host;
 use net_traits::request::RequestBuilder;
@@ -180,8 +180,8 @@ type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, HistoryEntryRep
 struct MessagePortInfo {
     /// Whether the port is currently being transferred.
     is_being_transferred: bool,
-    /// The pipeline where the port is currently found.
-    pipeline: PipelineId,
+    /// The router currently managing the port.
+    router: MessagePortRouterId,
     /// The id of the entangled port.
     entangled_with: Option<MessagePortId>,
     /// A buffer for messages sent to a port while is_being_transferred is true.
@@ -351,7 +351,7 @@ pub struct Constellation<Message, LTF, STF> {
     message_ports: HashMap<MessagePortId, MessagePortInfo>,
 
     /// A map of pipeline-id to ipc-sender, to route messages to ports.
-    message_port_routers: HashMap<PipelineId, IpcSender<MessagePortMsg>>,
+    message_port_routers: HashMap<MessagePortRouterId, IpcSender<MessagePortMsg>>,
 
     /// The set of all the pipelines in the browser.  (See the `pipeline` module
     /// for more details.)
@@ -1480,19 +1480,19 @@ where
                 self.handle_reroute_messageport(port_id, task);
             },
             FromScriptMsg::MessagePortShipped(port_id) => {
-                self.handle_messageport_shipped(source_pipeline_id, port_id);
+                self.handle_messageport_shipped(port_id);
             },
-            FromScriptMsg::NewMessagePortRouter(ipc_sender) => {
-                self.handle_new_messageport_router(source_pipeline_id, ipc_sender);
+            FromScriptMsg::NewMessagePortRouter(router_id, ipc_sender) => {
+                self.handle_new_messageport_router(router_id, ipc_sender);
             },
-            FromScriptMsg::NewMessagePort(port_id) => {
-                self.handle_new_messageport(source_pipeline_id, port_id);
+            FromScriptMsg::NewMessagePort(router_id, port_id) => {
+                self.handle_new_messageport(router_id, port_id);
             },
             FromScriptMsg::RemoveMessagePort(port_id) => {
-                self.handle_remove_messageport(source_pipeline_id, port_id);
+                self.handle_remove_messageport(port_id);
             },
             FromScriptMsg::EntanglePorts(port1, port2) => {
-                self.handle_entangle_messageports(source_pipeline_id, port1, port2);
+                self.handle_entangle_messageports(port1, port2);
             },
             FromScriptMsg::ForwardToEmbedder(embedder_msg) => {
                 self.embedder_proxy
@@ -1713,54 +1713,43 @@ where
                     },
                 }
             } else {
-                if let Some(sender) = self.message_port_routers.get(&info.pipeline) {
+                if let Some(sender) = self.message_port_routers.get(&info.router) {
                     let _ = sender.send(MessagePortMsg::NewTask(port_id, task));
                 } else {
-                    warn!("No message-port sender for {:?}", info.pipeline);
+                    warn!("No message-port sender for {:?}", info.router);
                 }
             }
         }
     }
 
-    fn handle_messageport_shipped(
-        &mut self,
-        source_pipeline_id: PipelineId,
-        port_id: MessagePortId,
-    ) {
+    fn handle_messageport_shipped(&mut self, port_id: MessagePortId) {
         if let Some(info) = self.message_ports.get_mut(&port_id) {
-            if source_pipeline_id != info.pipeline {
-                return warn!(
-                    "Got messageport_shipped message from {:?} while port is in {:?}",
-                    source_pipeline_id, info.pipeline
-                );
-            }
             info.is_being_transferred = true;
         }
     }
 
     fn handle_new_messageport_router(
         &mut self,
-        source_pipeline_id: PipelineId,
+        router_id: MessagePortRouterId,
         control_sender: IpcSender<MessagePortMsg>,
     ) {
-        self.message_port_routers
-            .insert(source_pipeline_id, control_sender);
+        self.message_port_routers.insert(router_id, control_sender);
     }
 
-    fn handle_new_messageport(&mut self, source_pipeline_id: PipelineId, port_id: MessagePortId) {
+    fn handle_new_messageport(&mut self, router_id: MessagePortRouterId, port_id: MessagePortId) {
         let info = match self.message_ports.get_mut(&port_id) {
             // If we know about this port, it means it was transferred.
             Some(info) => {
-                info.pipeline = source_pipeline_id;
+                info.router = router_id;
                 info.is_being_transferred = false;
                 // Forward the buffered message-queue.
-                if let Some(sender) = self.message_port_routers.get(&info.pipeline) {
+                if let Some(sender) = self.message_port_routers.get(&info.router) {
                     let _ = sender.send(MessagePortMsg::CompleteTransfer(
                         port_id.clone(),
                         info.message_queue.take(),
                     ));
                 } else {
-                    warn!("No message-port sender for {:?}", info.pipeline);
+                    warn!("No message-port sender for {:?}", info.router);
                 }
                 None
             },
@@ -1768,7 +1757,7 @@ where
             None => {
                 let info = MessagePortInfo {
                     is_being_transferred: false,
-                    pipeline: source_pipeline_id,
+                    router: router_id,
                     entangled_with: None,
                     message_queue: None,
                 };
@@ -1780,56 +1769,27 @@ where
         }
     }
 
-    fn handle_remove_messageport(
-        &mut self,
-        source_pipeline_id: PipelineId,
-        port_id: MessagePortId,
-    ) {
+    fn handle_remove_messageport(&mut self, port_id: MessagePortId) {
         let entangled = match self.message_ports.remove(&port_id) {
-            Some(info) => {
-                if source_pipeline_id != info.pipeline {
-                    return warn!(
-                        "Got remove_messageport message from {:?} while port is in {:?}",
-                        source_pipeline_id, info.pipeline
-                    );
-                }
-                info.entangled_with
-            },
+            Some(info) => info.entangled_with,
             None => return,
         };
         if let Some(id) = entangled {
             if let Some(info) = self.message_ports.get_mut(&id) {
-                if let Some(sender) = self.message_port_routers.get(&info.pipeline) {
+                if let Some(sender) = self.message_port_routers.get(&info.router) {
                     let _ = sender.send(MessagePortMsg::RemoveMessagePort(id));
                 } else {
-                    warn!("No message-port sender for {:?}", info.pipeline);
+                    warn!("No message-port sender for {:?}", info.router);
                 }
             }
         }
     }
 
-    fn handle_entangle_messageports(
-        &mut self,
-        source_pipeline_id: PipelineId,
-        port1: MessagePortId,
-        port2: MessagePortId,
-    ) {
+    fn handle_entangle_messageports(&mut self, port1: MessagePortId, port2: MessagePortId) {
         if let Some(info) = self.message_ports.get_mut(&port1) {
-            if source_pipeline_id != info.pipeline {
-                return warn!(
-                    "Got entangle ports message from {:?} while port is in {:?}",
-                    source_pipeline_id, info.pipeline
-                );
-            }
             info.entangled_with = Some(port2);
         }
         if let Some(info) = self.message_ports.get_mut(&port2) {
-            if source_pipeline_id != info.pipeline {
-                return warn!(
-                    "Got entangle ports message from {:?} while port is in {:?}",
-                    source_pipeline_id, info.pipeline
-                );
-            }
             info.entangled_with = Some(port1);
         }
     }
@@ -2032,34 +1992,6 @@ where
     fn handle_pipeline_exited(&mut self, pipeline_id: PipelineId) {
         debug!("Pipeline {:?} exited.", pipeline_id);
         self.pipelines.remove(&pipeline_id);
-
-        // Drop message-ports infos from this pipeline,
-        // and notify script to drop the entangled ports.
-        let mut entangled_to_notify = HashSet::new();
-        self.message_ports.retain(|_id, info| {
-            let should_retain = info.pipeline != pipeline_id;
-            if let Some(entangled) = info.entangled_with {
-                if !should_retain {
-                    entangled_to_notify.insert(entangled.clone());
-                }
-            }
-            should_retain
-        });
-        for entangled in entangled_to_notify {
-            if let Some(info) = self.message_ports.get(&entangled) {
-                if let Some(sender) = self.message_port_routers.remove(&info.pipeline) {
-                    let _ = sender.send(MessagePortMsg::RemoveMessagePort(entangled.clone()));
-                } else {
-                    warn!("No message-port sender for {:?}", info.pipeline);
-                }
-            }
-        }
-        // Note this will not work for dedicated workers,
-        // since we will never receive an exit message for them.
-        //
-        // TODO: find a way to let the constellation know
-        // that the router for a closed dedicated worker can be dropped.
-        let _ = self.message_port_routers.remove(&pipeline_id);
     }
 
     fn handle_send_error(&mut self, pipeline_id: PipelineId, err: IpcError) {
