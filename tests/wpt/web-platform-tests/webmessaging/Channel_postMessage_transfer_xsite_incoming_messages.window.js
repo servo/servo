@@ -3,9 +3,8 @@
 async_test(function(t) {
   var channel1 = new MessageChannel();
   var host = get_host_info();
-  var notSameSiteURL = host.HTTP_NOTSAMESITE_ORIGIN + "/webmessaging/support/ChildWindowPostMessage.htm";
   let iframe = document.createElement('iframe');
-  iframe.src = noteSameSiteURL;
+  iframe.src = host.HTTP_NOTSAMESITE_ORIGIN + "/webmessaging/support/ChildWindowPostMessage.htm";
   document.body.appendChild(iframe);
   var TARGET = document.querySelector("iframe").contentWindow;
   iframe.onload = t.step_func(function() {
