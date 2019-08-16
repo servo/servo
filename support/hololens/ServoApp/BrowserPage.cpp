@@ -6,12 +6,10 @@
 #include "logs.h"
 #include "BrowserPage.h"
 #include "BrowserPage.g.cpp"
-#include "ImmersiveView.h"
 
 using namespace winrt::Windows::UI::Xaml;
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::UI::ViewManagement;
-using namespace winrt::Windows::Graphics::Holographic;
 using namespace winrt::Windows::ApplicationModel::Core;
 
 namespace winrt::ServoApp::implementation {
@@ -71,22 +69,6 @@ void BrowserPage::OnURLEdited(IInspectable const &sender,
     auto input = urlTextbox().Text();
     auto uri = servoControl().LoadURIOrSearch(input);
     urlTextbox().Text(uri.ToString());
-  }
-}
-
-void BrowserPage::OnImmersiveButtonClicked(IInspectable const &,
-                                           RoutedEventArgs const &) {
-  if (HolographicSpace::IsAvailable()) {
-    log("Holographic space available");
-    auto v = CoreApplication::CreateNewView(mImmersiveViewSource);
-    auto parentId = ApplicationView::GetForCurrentView().Id();
-    v.Dispatcher().RunAsync(CoreDispatcherPriority::Normal, [=] {
-      auto winId = ApplicationView::GetForCurrentView().Id();
-      ApplicationViewSwitcher::SwitchAsync(winId, parentId);
-      log("Immersive view started");
-    });
-  } else {
-    log("Holographic space not available");
   }
 }
 
