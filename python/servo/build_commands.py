@@ -756,7 +756,7 @@ class MachCommands(CommandBase):
         target_arch = target.split('-')[0]
         if target_arch == "aarch64":
             arch = "arm64"
-        elif target_arch == "x64":
+        elif target_arch == "x86_64":
             arch = "x64"
         else:
             print("ERROR: We do not have openxr_loader DLLs for %s" % target_arch)
