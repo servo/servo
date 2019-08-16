@@ -10,6 +10,12 @@
 <script>
 'use strict';
 
+function singleFrame() {
+  return new Promise((resolve, reject) => {
+    requestAnimationFrame(resolve);
+  });
+}
+
 test(t => {
   const div = addDiv(t);
   div.style.left = '0px';
@@ -86,6 +92,38 @@ promise_test(async t => {
 
   assert_equals(getComputedStyle(div).left, '0px');
 }, 'After setting a transition\'s effect to null, a new transition can be started');
+
+// This is a regression test for https://crbug.com/992668, where Chromium would
+// crash if the running transition's effect was set to null and the transition
+// was interrupted before it could finish due to the null effect.
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.left = '0px';
+
+  div.style.transition = 'left 100s';
+  getComputedStyle(div).left;
+  div.style.left = '100px';
+
+  assert_equals(div.getAnimations().length, 1);
+
+  const transition = div.getAnimations()[0];
+  await transition.ready;
+
+  // The transition needs to have a non-zero currentTime for the interruption
+  // reversal logic to apply.
+  await singleFrame();
+  assert_not_equals(transition.currentTime, 0);
+  assert_not_equals(getComputedStyle(div).left, '0px');
+
+  // Without yielding to the rendering loop, set the current transition's
+  // effect to null and interrupt the transition. This should work correctly.
+  transition.effect = null;
+  div.style.left = '0px';
+
+  // Yield to the rendering loop. This should not crash.
+  await singleFrame();
+}, 'After setting a transition\'s effect to null, it should be possible to '
+    + 'interrupt that transition');
 
 promise_test(async t => {
   const div = addDiv(t);

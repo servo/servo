@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: inline flow-root list-item</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-lists-3/#declaring-a-list-item">
+  <link rel="help" href="https://drafts.csswg.org/css-display/#propdef-display">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1105868">
+  <link rel="match" href="inline-block-list-ref.html">
+<style>
+html,body {
+  color:black; background-color:white; font:14px/1 monospace; padding:0; margin:0;
+}
+ol,ul,li { margin:0; padding:0; }
+body { margin-left: 40px; }
+
+li { border: 1px solid; display: inline flow-root list-item; }
+.wrap { width: 22ch; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<li>A A A A A A A A A A A A A A A A A A A A </li>
+<li>B</li>
+
+<ol>
+<li>A A A A A A A A A A A A A A A A A A A A </li>
+<li>B</li>
+<li>C</li>
+</ol>
+
+<ol style="display:inline">
+<li>A A A A A A A A A A A A A A A A A A A A </li>
+<li>B</li>
+<li>C</li>
+</ol>
+
+<ol style="display:inline">
+<li>A A A A A A A A A A A A A A A A A A A A </li>
+<li>B<ol>
+<li>a a a a a a a a a a a a a a a a a a a a </li>
+<li>b</li>
+</ol></li>
+<li>C</li>
+</ol>
+
+<ul>
+<li>A A A A A A A A A A A A A A A A A A A A </li>
+<li>B<ol style="display:inline">
+<li>a a a a a a a a a a a a a a a a a a a a </li>
+<li>b</li>
+</ol></li>
+<li>C</li>
+</ul>
+</div>
+
+</body>

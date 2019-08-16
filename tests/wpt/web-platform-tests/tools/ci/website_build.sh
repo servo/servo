@@ -2,7 +2,7 @@
 
 set -ex
 
-neutral_status=78
+neutral_status=0
 source_revision=$(git rev-parse HEAD)
 # The token available in the `GITHUB_TOKEN` variable may be used to push to the
 # repository, but GitHub Pages will not rebuild the website in response to such

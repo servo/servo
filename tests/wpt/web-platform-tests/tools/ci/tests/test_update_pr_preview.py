@@ -66,7 +66,7 @@ def assert_success(returncode):
 
 
 def assert_neutral(returncode):
-    assert returncode == 78
+    assert returncode == 0
 
 
 def assert_fail(returncode):

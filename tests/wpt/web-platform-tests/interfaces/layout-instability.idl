@@ -7,4 +7,5 @@ interface LayoutShift : PerformanceEntry {
   readonly attribute long value;
   readonly attribute boolean hadRecentInput;
   readonly attribute DOMHighResTimeStamp lastInputTime;
+  [Default] object toJSON();
 };

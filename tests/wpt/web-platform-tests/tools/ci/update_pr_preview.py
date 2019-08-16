@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 class Status(object):
     SUCCESS = 0
     FAIL = 1
-    NEUTRAL = 78
+    NEUTRAL = 0
 
 
 def request(url, method_name, data=None, json_data=None, ignore_body=False):

@@ -5,10 +5,7 @@
 <link rel="help" href="https://w3c.github.io/web-nfc/"/>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="resources/nfc_help.js"></script>
-
-<div id="log"></div>
-
+<script src="resources/nfc-helpers.js"></script>
 <script>
 
 "use strict";
@@ -84,105 +81,139 @@ const invalid_signals = [
   self
 ];
 
-promise_test(t => {
+promise_test(async t => {
   const writer = new NFCWriter();
   const promises = [];
   invalid_type_messages.forEach(message => {
     promises.push(
       promise_rejects(t, new TypeError(), writer.push(message)));
   });
-  return Promise.all(promises);
+  await Promise.all(promises);
 }, "Test that promise is rejected with TypeError if NDEFMessageSource is invalid.");
 
-promise_test(t => {
+promise_test(async t => {
   const writer = new NFCWriter();
   const promises = [];
   invalid_syntax_messages.forEach(message => {
     promises.push(
       promise_rejects(t, 'SyntaxError', writer.push(message)));
   });
-  return Promise.all(promises);
-}, "'Test that promise is rejected with SyntaxError if NDEFMessageSource contains invalid records.");
+  await Promise.all(promises);
+}, "Test that promise is rejected with SyntaxError if NDEFMessageSource contains\
+ invalid records.");
 
-promise_test(async t => {
+nfc_test(async (t, mockNFC) => {
   const writer = new NFCWriter();
   const controller = new AbortController();
-  const p = writer.push(test_text_data, { signal: controller.signal });
+
+  //Make sure push is pending
+  mockNFC.setPendingPushCompleted(false);
+  const p = writer.push(test_text_data,
+      { signal: controller.signal, timeout: 100 });
   const rejected = promise_rejects(t, 'AbortError', p);
   let callback_called = false;
-  t.step_timeout(() => {
-    callback_called = true;
-    controller.abort();
-  }, 10);
+  await new Promise(resolve => {
+    t.step_timeout(() => {
+      callback_called = true;
+      controller.abort();
+      resolve();
+    }, 10);
+  });
   await rejected;
   assert_true(callback_called, 'timeout should have caused the abort');
 }, "NFCWriter.push should fail if abort push request before push happends.");
 
-promise_test(t => {
+promise_test(async t => {
   const writer = new NFCWriter();
   const controller = new AbortController();
   assert_false(controller.signal.aborted);
   controller.abort();
   assert_true(controller.signal.aborted);
-  return promise_rejects(t, 'AbortError', writer.push(test_text_data, { signal: controller.signal }));
+  await promise_rejects(t, 'AbortError',
+      writer.push(test_text_data, { signal: controller.signal }));
 }, "NFCWriter.push should fail if signal's aborted flag is set.");
 
-promise_test(t => {
+promise_test(async t => {
   const writer = new NFCWriter();
   const promises = [];
   invalid_signals.forEach(invalid_signal => {
-    promises.push(
-      promise_rejects(t, new TypeError(), writer.push(test_text_data, { signal: invalid_signal })));
+    promises.push(promise_rejects(t, new TypeError(),
+        writer.push(test_text_data, { signal: invalid_signal })));
   });
-  return Promise.all(promises);
+  await Promise.all(promises);
 }, "NFCWriter.push should fail if signal is not an AbortSignal.");
 
-promise_test(t => {
+nfc_test(async (t, mockNFC) => {
   const writer = new NFCWriter();
-  return promise_rejects(t, new TypeError(), writer.push(test_text_data, { timeout: "invalid"}));
-}, "NFCWriter.push should fail with TypeError when invalid timeout is provided.");
+  mockNFC.setHWStatus(NFCHWStatus.DISABLED);
+  await promise_rejects(t, 'NotReadableError', writer.push(test_text_data));
+}, "NFCWriter.push should fail when NFC HW is disabled.");
 
-promise_test(t => {
+nfc_test(async (t, mockNFC) => {
   const writer = new NFCWriter();
-  return promise_rejects(t, new TypeError(), writer.push(test_text_data, { timeout: -1 }));
-}, "NFCWriter.push should fail with TypeError when invalid negative timeout value is provided.");
+  mockNFC.setHWStatus(NFCHWStatus.NOT_SUPPORTED);
+  await promise_rejects(t, 'NotSupportedError', writer.push(test_text_data));
+}, "NFCWriter.push should fail when NFC HW is not supported.");
 
-promise_test(t => {
+promise_test(async t => {
   const writer = new NFCWriter();
-  return promise_rejects(t, 'TimeoutError', writer.push(test_text_data, { timeout: 1 }));
+  await promise_rejects(
+    t, new TypeError(), writer.push(test_text_data, { timeout: "invalid"}));
+}, "NFCWriter.push should fail with TypeError when invalid timeout is \
+provided.");
+
+promise_test(async t => {
+  const writer = new NFCWriter();
+  await promise_rejects(
+    t, new TypeError(), writer.push(test_text_data, { timeout: -1 }));
+}, "NFCWriter.push should fail with TypeError when invalid negative timeout \
+value is provided.");
+
+nfc_test(async (t, mockNFC) => {
+  const writer = new NFCWriter();
+  mockNFC.setPendingPushCompleted(false);
+  const p = writer.push(test_text_data, { timeout: 1 });
+  mockNFC.setPushShouldTimeout(true);
+  await promise_rejects(t, 'TimeoutError', p);
 }, "NFCWriter.push should fail with TimeoutError when timer expires.");
 
-promise_test(t => {
+promise_test(async t => {
   const writer = new NFCWriter();
-  return promise_rejects(t, 'NotSupportedError', writer.push(new ArrayBuffer(32 * 1024 + 1)));
+  await promise_rejects(
+    t, 'NotSupportedError', writer.push(new ArrayBuffer(32 * 1024 + 1)));
 }, "Reject promise with NotSupportedError if NFC message size exceeds 32KB.");
 
-promise_test(t => {
+promise_test(async t => {
   const writer = new NFCWriter();
   const message = createMessage([createTextRecord(test_text_data)]);
   message.url = '%00/invalid/ path';
-  return promise_rejects(t, 'SyntaxError', writer.push(message));
-}, "Reject promise with SyntaxError if WebNFC Id cannot be created from provided URL.");
+  await promise_rejects(t, 'SyntaxError', writer.push(message));
+}, "Reject promise with SyntaxError if WebNFC Id cannot be created from \
+provided URL.");
 
-promise_test(t => {
+promise_test(async t => {
   const writer = new NFCWriter();
   const message = createMessage([createRecord('json','application/json',
       { get x(){ return this; } })]);
-  return promise_rejects(t, 'SyntaxError', writer.push(message));
+  await promise_rejects(t, 'SyntaxError', writer.push(message));
 }, "Reject promise with SyntaxError if 'json' record cannot be serialized.");
 
-promise_test(t => {
+promise_test(async t => {
   const writer = new NFCWriter();
-  return promise_rejects(t, new TypeError(), writer.push(test_text_data, {target: "invalid"}));
-}, "NFCWriter.push should fail with TypeError when invalid target value is provided.");
+  await promise_rejects(
+    t, new TypeError(), writer.push(test_text_data, {target: "invalid"}));
+}, "NFCWriter.push should fail with TypeError when invalid target value is \
+provided.");
 
-promise_test(() => {
-  return new Promise((resolve,reject) => {
+promise_test(async () => {
+  await new Promise((resolve,reject) => {
     const iframe = document.createElement('iframe');
     iframe.srcdoc = `<script>
                       window.onmessage = message => {
                         if (message.data === "Ready") {
-                          const onSuccess = () => { parent.postMessage("Failure", "*"); };
+                          const onSuccess = () => {
+                            parent.postMessage("Failure", "*");
+                          };
                           const onError = error => {
                             if (error.name == "NotAllowedError") {
                               parent.postMessage("Success", "*");
@@ -210,5 +241,71 @@ promise_test(() => {
     }
   });
 }, 'Test that WebNFC API is not accessible from iframe context.');
+
+nfc_test(async () => {
+  const writer = new NFCWriter();
+  await writer.push(test_text_data, { timeout: 1 });
+}, 'NFCWriter.push should succeed when NFC HW is enabled');
+
+nfc_test(async (t, mockNFC) => {
+  const writer = new NFCWriter();
+  let message = createMessage([createTextRecord(test_text_data),
+                               createJsonRecord(test_json_data),
+                               createOpaqueRecord(test_buffer_data),
+                               createTextRecord(test_number_data),
+                               createUrlRecord(test_url_data)],
+                               test_message_origin);
+  await writer.push(message);
+  assertNDEFMessagesEqual(message, mockNFC.pushedMessage());
+}, "NFCWriter.push NDEFMessage containing text, json, opaque and url records \
+with default NFCPushOptions.");
+
+nfc_test(async (t, mockNFC) => {
+  const writer = new NFCWriter();
+  await writer.push(test_text_data);
+  assertNDEFMessagesEqual(test_text_data, mockNFC.pushedMessage());
+}, "Test that NFCWriter.push succeeds when message is DOMString.");
+
+nfc_test(async (t, mockNFC) => {
+  const writer = new NFCWriter();
+  await writer.push(test_buffer_data);
+  assertNDEFMessagesEqual(test_buffer_data, mockNFC.pushedMessage());
+}, "Test that NFCWriter.push succeeds when message is ArrayBuffer.");
+
+nfc_test(async () => {
+  const writer = new NFCWriter();
+  await writer.push(createMessage([createRecord('empty')]));
+}, "NFCWriter.push with 'empty' record should succeed.");
+
+nfc_test(async (t, mockNFC) => {
+  const writer = new NFCWriter();
+  await writer.push(test_text_data);
+  assertNFCPushOptionsEqual(createNFCPushOptions('any', Infinity, true),
+                            mockNFC.pushOptions());
+}, "Check that default NFCPushOptions values are correctly set.");
+
+nfc_test(async (t, mockNFC) => {
+  const writer = new NFCWriter();
+  let nfcPushOptions = createNFCPushOptions('tag', 1, false);
+  await writer.push(test_text_data, nfcPushOptions);
+  assertNFCPushOptionsEqual(nfcPushOptions, mockNFC.pushOptions());
+}, "Check that provided NFCPushOptions values are correctly converted.");
+
+nfc_test(async (t, mockNFC) => {
+  const writer1 = new NFCWriter();
+  const writer2 = new NFCWriter();
+  const controller = new AbortController();
+  mockNFC.setPendingPushCompleted(false);
+  const p1 = writer1.push(test_text_data,
+      { signal: controller.signal, timeout: 100 });
+
+  // Even though push request is grantable,
+  // this abort should be processed synchronously.
+  controller.abort();
+  await promise_rejects(t, 'AbortError', p1);
+
+  await writer2.push(test_text_data);
+  assertNDEFMessagesEqual(test_text_data, mockNFC.pushedMessage());
+}, "Synchronously signaled abort.");
 
 </script>

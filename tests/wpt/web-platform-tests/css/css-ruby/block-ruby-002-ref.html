@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+  -->
+<html lang="ja">
+<meta charset="utf-8">
+<title>Reference: blockification/inlinification of 'display:ruby/block ruby'.</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+div,span { background: lightblue; }
+ruby { display: ruby; }
+rbb { display: ruby; background: lightblue; }
+grid { display: grid; }
+.mbp {
+  margin: 1px 3px 5px 7px;
+  padding: 3px 5px 7px 1px;
+  border-width: 3px 1px 7px 5px;
+  border-style: solid;
+}
+rbc {
+  display: ruby-base-container;
+  unicode-bidi: isolate;
+}
+rtc {
+  display: ruby-text-container;
+  unicode-bidi: isolate;
+}
+</style>
+<grid>A<div><ruby>べ<rt>る</rt></ruby></div>B</grid>
+<grid>A<div class=mbp><ruby>べ<rt>る</rt></ruby></div>B</grid>
+<grid>A
+    <div><ruby>べ<rt>る</rt></ruby></div>
+    <div><ruby><rbc>一</rbc><rbc>二</rbc><rbc>三</rbc><rbc>四</rbc><rbc>五</rbc><rbc>六</rbc><rbc>七</rbc><rbc>八</rbc></ruby></div>
+B
+</grid>
+<span><ruby>べ<rt><rbb>る</rbb></rt></ruby></span>
+<span><ruby>べ<rbc><rbb>る</rbb></rbc></ruby></span>
+<span><ruby>べ<rtc><rbb>る</rbb></rtc></ruby></span>
+<span><ruby>べ<rbb>る</rbb></ruby></span>
+
+<pre>block ruby, block ruby, block ruby, block ruby, ruby, ruby, ruby, ruby, ruby, ruby, ruby, ruby, </pre>
+</html>
