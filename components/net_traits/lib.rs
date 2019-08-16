@@ -467,12 +467,6 @@ pub enum RedirectEndValue {
     ResponseEnd,
 }
 
-pub enum SecureConnectionStartValue {
-    Zero,
-    FetchStart,
-    Value,
-}
-
 pub enum ResourceAttribute {
     RedirectCount(u16),
     DomainLookupStart,
@@ -483,7 +477,7 @@ pub enum ResourceAttribute {
     FetchStart,
     ConnectStart(u64),
     ConnectEnd(u64),
-    SecureConnectionStart(SecureConnectionStartValue),
+    SecureConnectionStart(u64),
     ResponseEnd,
 }
 
@@ -536,11 +530,7 @@ impl ResourceFetchTiming {
             ResourceAttribute::FetchStart => self.fetch_start = precise_time_ns(),
             ResourceAttribute::ConnectStart(val) => self.connect_start = val,
             ResourceAttribute::ConnectEnd(val) => self.connect_end = val,
-            ResourceAttribute::SecureConnectionStart(val) => match val {
-                SecureConnectionStartValue::Zero => self.secure_connection_start = 0,
-                SecureConnectionStartValue::FetchStart => self.secure_connection_start = self.fetch_start,
-                SecureConnectionStartValue::Value => self.secure_connection_start = precise_time_ns(),
-            },
+            ResourceAttribute::SecureConnectionStart(val) => self.secure_connection_start = val,
             ResourceAttribute::ResponseEnd => self.response_end = precise_time_ns(),
         }
     }
