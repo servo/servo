@@ -429,11 +429,22 @@ impl ServiceWorkerGlobalScope {
                 let target = self.upcast();
                 let _ac = enter_realm(&*scope);
                 rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
-                if let Ok(result) = structuredclone::read(scope.upcast(), data, message.handle_mut()) {
-                    ExtendableMessageEvent::dispatch_jsval(target, scope.upcast(), message.handle(), result.message_ports);
+                if let Ok(result) =
+                    structuredclone::read(scope.upcast(), data, message.handle_mut())
+                {
+                    ExtendableMessageEvent::dispatch_jsval(
+                        target,
+                        scope.upcast(),
+                        message.handle(),
+                        result.message_ports,
+                    );
                 } else {
                     rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
-                    ExtendableMessageEvent::dispatch_error(target, scope.upcast(), message.handle());
+                    ExtendableMessageEvent::dispatch_error(
+                        target,
+                        scope.upcast(),
+                        message.handle(),
+                    );
                 }
             },
             CommonWorker(WorkerScriptMsg::Common(msg)) => {

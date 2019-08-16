@@ -82,7 +82,12 @@ impl ExtendableMessageEvent {
 }
 
 impl ExtendableMessageEvent {
-    pub fn dispatch_jsval(target: &EventTarget, scope: &GlobalScope, message: HandleValue, ports: Vec<DomRoot<MessagePort>>,) {
+    pub fn dispatch_jsval(
+        target: &EventTarget,
+        scope: &GlobalScope,
+        message: HandleValue,
+        ports: Vec<DomRoot<MessagePort>>,
+    ) {
         let Extendablemessageevent = ExtendableMessageEvent::new(
             scope,
             atom!("message"),
@@ -105,7 +110,7 @@ impl ExtendableMessageEvent {
             message,
             DOMString::new(),
             DOMString::new(),
-            vec![]
+            vec![],
         );
         Extendablemessageevent.upcast::<Event>().fire(target);
     }
