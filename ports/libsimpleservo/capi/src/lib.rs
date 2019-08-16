@@ -3,11 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #[macro_use]
+extern crate lazy_static;
+
+#[macro_use]
 extern crate log;
 
 #[cfg(target_os = "windows")]
 mod vslogger;
 
+use backtrace::Backtrace;
 #[cfg(not(target_os = "windows"))]
 use env_logger;
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
@@ -15,11 +19,39 @@ use simpleservo::{Coordinates, EventLoopWaker, HostTrait, InitOptions, VRInitOpt
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::os::raw::{c_char, c_void};
-use std::panic::{self, AssertUnwindSafe, UnwindSafe};
+use std::panic::{self, UnwindSafe};
+use std::sync::RwLock;
+
+extern "C" fn default_panic_handler(msg: *const c_char) {
+    let c_str: &CStr = unsafe { CStr::from_ptr(msg) };
+    error!("{}", c_str.to_str().unwrap());
+}
+
+lazy_static! {
+    static ref ON_PANIC: RwLock<extern "C" fn(*const c_char)> = RwLock::new(default_panic_handler);
+}
+
+#[no_mangle]
+pub extern "C" fn register_panic_handler(on_panic: extern "C" fn(*const c_char)) {
+    *ON_PANIC.write().unwrap() = on_panic;
+}
 
 /// Catch any panic function used by extern "C" functions.
-fn catch_any_panic<F: FnOnce() + UnwindSafe>(function: F) -> bool {
-    panic::catch_unwind(function).is_ok()
+fn catch_any_panic<T, F: FnOnce() -> T + UnwindSafe>(function: F) -> T {
+    match panic::catch_unwind(function) {
+        Err(_) => {
+            let thread = std::thread::current()
+                .name()
+                .map(|n| format!(" for thread \"{}\"", n))
+                .unwrap_or("".to_owned());
+            let message = format!("Stack trace{}\n{:?}", thread, Backtrace::new());
+            let error = CString::new(message).expect("Can't create string");
+            (ON_PANIC.read().unwrap())(error.as_ptr());
+            // At that point the embedder is supposed to have panicked
+            panic!("Uncaught Rust panic");
+        },
+        Ok(r) => r
+    }
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -150,17 +182,14 @@ fn call<F>(f: F)
 where
     F: Fn(&mut ServoGlue) -> Result<(), &'static str>,
 {
-    SERVO.with(|s| {
-        if let Err(error) = match s.borrow_mut().as_mut() {
+    if let Err(e) = SERVO.with(|s| {
+        match s.borrow_mut().as_mut() {
             Some(ref mut s) => (f)(s),
             None => Err("Servo not available in this thread"),
-        } {
-            // FIXME: All C calls should have a have generic Result-like
-            // return type. For now, we just panic instead of notifying
-            // the embedder.
-            panic!(error);
         }
-    });
+    }) {
+        panic!(e);
+    };
 }
 
 /// Callback used by Servo internals
@@ -197,18 +226,13 @@ pub struct CInitOptions {
 /// The returned string is not freed. This will leak.
 #[no_mangle]
 pub extern "C" fn servo_version() -> *const c_char {
-    let result = panic::catch_unwind(AssertUnwindSafe(|| {
+    catch_any_panic(|| {
         let v = simpleservo::servo_version();
         let text = CString::new(v).expect("Can't create string");
         let ptr: *const c_char = text.as_ptr();
         mem::forget(text);
         ptr
-    }));
-
-    match result {
-        Ok(ptr) => ptr,
-        Err(_) => std::ptr::null(),
-    }
+    })
 }
 
 #[cfg(target_os = "windows")]
@@ -289,7 +313,7 @@ pub extern "C" fn init_with_egl(
     opts: CInitOptions,
     wakeup: extern "C" fn(),
     callbacks: CHostCallbacks,
-) -> bool {
+) {
     catch_any_panic(|| {
         init_logger();
         let gl = gl_glue::egl::init().unwrap();
@@ -303,7 +327,7 @@ pub extern "C" fn init_with_egl(
                 callbacks,
             )
         }
-    })
+    });
 }
 
 #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
@@ -312,101 +336,109 @@ pub extern "C" fn init_with_gl(
     opts: CInitOptions,
     wakeup: extern "C" fn(),
     callbacks: CHostCallbacks,
-) -> bool {
+) {
     catch_any_panic(|| {
         init_logger();
         let gl = gl_glue::gl::init().unwrap();
         unsafe { init(opts, gl, None, None, wakeup, callbacks) }
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn deinit() {
-    debug!("deinit");
-    simpleservo::deinit();
-}
-
-#[no_mangle]
-pub extern "C" fn request_shutdown() {
-    debug!("request_shutdown");
-    call(|s| s.request_shutdown());
-}
-
-#[no_mangle]
-pub extern "C" fn set_batch_mode(batch: bool) {
-    debug!("set_batch_mode");
-    call(|s| s.set_batch_mode(batch));
-}
-
-#[no_mangle]
-pub extern "C" fn resize(width: i32, height: i32) {
-    debug!("resize {}/{}", width, height);
-    call(|s| {
-        let coordinates = Coordinates::new(0, 0, width, height, width, height);
-        s.resize(coordinates)
     });
 }
 
 #[no_mangle]
-pub extern "C" fn perform_updates() -> bool {
+pub extern "C" fn deinit() {
     catch_any_panic(|| {
-        debug!("perform_updates");
-        call(|s| s.perform_updates());
-    })
+        debug!("deinit");
+        simpleservo::deinit();
+    });
 }
 
 #[no_mangle]
-pub extern "C" fn load_uri(url: *const c_char) -> bool {
+pub extern "C" fn request_shutdown() {
+    catch_any_panic(|| {
+        debug!("request_shutdown");
+        call(|s| s.request_shutdown());
+    });
+}
+
+#[no_mangle]
+pub extern "C" fn set_batch_mode(batch: bool) {
+    catch_any_panic(|| {
+        debug!("set_batch_mode");
+        call(|s| s.set_batch_mode(batch));
+    });
+}
+
+#[no_mangle]
+pub extern "C" fn resize(width: i32, height: i32) {
+    catch_any_panic(|| {
+        debug!("resize {}/{}", width, height);
+        call(|s| {
+            let coordinates = Coordinates::new(0, 0, width, height, width, height);
+            s.resize(coordinates)
+        });
+    });
+}
+
+#[no_mangle]
+pub extern "C" fn perform_updates() {
+    catch_any_panic(|| {
+        debug!("perform_updates");
+        call(|s| s.perform_updates());
+    });
+}
+
+#[no_mangle]
+pub extern "C" fn load_uri(url: *const c_char) {
     catch_any_panic(|| {
         debug!("load_url");
         let url = unsafe { CStr::from_ptr(url) };
         let url = url.to_str().expect("Can't read string");
         call(|s| s.load_uri(url));
-    })
+    });
 }
 
 #[no_mangle]
-pub extern "C" fn reload() -> bool {
+pub extern "C" fn reload() {
     catch_any_panic(|| {
         debug!("reload");
         call(|s| s.reload());
-    })
+    });
 }
 
 #[no_mangle]
-pub extern "C" fn stop() -> bool {
+pub extern "C" fn stop() {
     catch_any_panic(|| {
         debug!("stop");
         call(|s| s.stop());
-    })
+    });
 }
 
 #[no_mangle]
-pub extern "C" fn refresh() -> bool {
+pub extern "C" fn refresh() {
     catch_any_panic(|| {
         debug!("refresh");
         call(|s| s.refresh());
-    })
+    });
 }
 
 #[no_mangle]
-pub extern "C" fn go_back() -> bool {
+pub extern "C" fn go_back() {
     catch_any_panic(|| {
         debug!("go_back");
         call(|s| s.go_back());
-    })
+    });
 }
 
 #[no_mangle]
-pub extern "C" fn go_forward() -> bool {
+pub extern "C" fn go_forward() {
     catch_any_panic(|| {
         debug!("go_forward");
         call(|s| s.go_forward());
-    })
+    });
 }
 
 #[no_mangle]
-pub extern "C" fn scroll_start(dx: i32, dy: i32, x: i32, y: i32) -> bool {
+pub extern "C" fn scroll_start(dx: i32, dy: i32, x: i32, y: i32) {
     catch_any_panic(|| {
         debug!("scroll_start");
         call(|s| s.scroll_start(dx as f32, dy as f32, x, y));
@@ -414,83 +446,83 @@ pub extern "C" fn scroll_start(dx: i32, dy: i32, x: i32, y: i32) -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn scroll_end(dx: i32, dy: i32, x: i32, y: i32) -> bool {
+pub extern "C" fn scroll_end(dx: i32, dy: i32, x: i32, y: i32) {
     catch_any_panic(|| {
         debug!("scroll_end");
         call(|s| s.scroll_end(dx as f32, dy as f32, x, y));
-    })
+    });
 }
 
 #[no_mangle]
-pub extern "C" fn scroll(dx: i32, dy: i32, x: i32, y: i32) -> bool {
+pub extern "C" fn scroll(dx: i32, dy: i32, x: i32, y: i32) {
     catch_any_panic(|| {
         debug!("scroll");
         call(|s| s.scroll(dx as f32, dy as f32, x, y));
-    })
+    });
 }
 
 #[no_mangle]
-pub extern "C" fn touch_down(x: f32, y: f32, pointer_id: i32) -> bool {
+pub extern "C" fn touch_down(x: f32, y: f32, pointer_id: i32) {
     catch_any_panic(|| {
         debug!("touch down");
         call(|s| s.touch_down(x, y, pointer_id));
-    })
+    });
 }
 
 #[no_mangle]
-pub extern "C" fn touch_up(x: f32, y: f32, pointer_id: i32) -> bool {
+pub extern "C" fn touch_up(x: f32, y: f32, pointer_id: i32) {
     catch_any_panic(|| {
         debug!("touch up");
         call(|s| s.touch_up(x, y, pointer_id));
-    })
+    });
 }
 
 #[no_mangle]
-pub extern "C" fn touch_move(x: f32, y: f32, pointer_id: i32) -> bool {
+pub extern "C" fn touch_move(x: f32, y: f32, pointer_id: i32) {
     catch_any_panic(|| {
         debug!("touch move");
         call(|s| s.touch_move(x, y, pointer_id));
-    })
+    });
 }
 
 #[no_mangle]
-pub extern "C" fn touch_cancel(x: f32, y: f32, pointer_id: i32) -> bool {
+pub extern "C" fn touch_cancel(x: f32, y: f32, pointer_id: i32) {
     catch_any_panic(|| {
         debug!("touch cancel");
         call(|s| s.touch_cancel(x, y, pointer_id));
-    })
+    });
 }
 
 #[no_mangle]
-pub extern "C" fn pinchzoom_start(factor: f32, x: i32, y: i32) -> bool {
+pub extern "C" fn pinchzoom_start(factor: f32, x: i32, y: i32) {
     catch_any_panic(|| {
         debug!("pinchzoom_start");
         call(|s| s.pinchzoom_start(factor, x as u32, y as u32));
-    })
+    });
 }
 
 #[no_mangle]
-pub extern "C" fn pinchzoom(factor: f32, x: i32, y: i32) -> bool {
+pub extern "C" fn pinchzoom(factor: f32, x: i32, y: i32) {
     catch_any_panic(|| {
         debug!("pinchzoom");
         call(|s| s.pinchzoom(factor, x as u32, y as u32));
-    })
+    });
 }
 
 #[no_mangle]
-pub extern "C" fn pinchzoom_end(factor: f32, x: i32, y: i32) -> bool {
+pub extern "C" fn pinchzoom_end(factor: f32, x: i32, y: i32) {
     catch_any_panic(|| {
         debug!("pinchzoom_end");
         call(|s| s.pinchzoom_end(factor, x as u32, y as u32));
-    })
+    });
 }
 
 #[no_mangle]
-pub extern "C" fn click(x: i32, y: i32) -> bool {
+pub extern "C" fn click(x: i32, y: i32) {
     catch_any_panic(|| {
         debug!("click");
         call(|s| s.click(x as f32, y as f32));
-    })
+    });
 }
 
 pub struct WakeupCallback(extern "C" fn());
