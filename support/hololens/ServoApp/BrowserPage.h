@@ -6,7 +6,7 @@
 
 #include "BrowserPage.g.h"
 #include "ImmersiveView.h"
-#include "ServoControl.h"
+#include "ServoControl\ServoControl.h"
 
 
 namespace winrt::ServoApp::implementation {

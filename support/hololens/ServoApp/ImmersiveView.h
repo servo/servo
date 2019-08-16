@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include "OpenGLES.h"
 #include "Common/DeviceResources.h"
 #include "ImmersiveMain.h"
 

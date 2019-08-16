@@ -3,7 +3,7 @@
   <ItemGroup>
     <Midl Include="BrowserPage.idl" />
     <Midl Include="App.idl" />
-    <Midl Include="ServoControl.idl">
+    <Midl Include="ServoControl\ServoControl.idl">
       <Filter>ServoControl</Filter>
     </Midl>
   </ItemGroup>
@@ -27,13 +27,13 @@
       <Filter>Content</Filter>
     </ClCompile>
     <ClCompile Include="ImmersiveMain.cpp" />
-    <ClCompile Include="ServoControl.cpp">
+    <ClCompile Include="ServoControl\OpenGLES.cpp">
       <Filter>ServoControl</Filter>
     </ClCompile>
-    <ClCompile Include="Servo.cpp">
+    <ClCompile Include="ServoControl\Servo.cpp">
       <Filter>ServoControl</Filter>
     </ClCompile>
-    <ClCompile Include="OpenGLES.cpp">
+    <ClCompile Include="ServoControl\ServoControl.cpp">
       <Filter>ServoControl</Filter>
     </ClCompile>
   </ItemGroup>
@@ -65,13 +65,13 @@
       <Filter>Content</Filter>
     </ClInclude>
     <ClInclude Include="ImmersiveMain.h" />
-    <ClInclude Include="ServoControl.h">
+    <ClInclude Include="ServoControl\OpenGLES.h">
       <Filter>ServoControl</Filter>
     </ClInclude>
-    <ClInclude Include="Servo.h">
+    <ClInclude Include="ServoControl\Servo.h">
       <Filter>ServoControl</Filter>
     </ClInclude>
-    <ClInclude Include="OpenGLES.h">
+    <ClInclude Include="ServoControl\ServoControl.h">
       <Filter>ServoControl</Filter>
     </ClInclude>
   </ItemGroup>
