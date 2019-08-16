@@ -339,8 +339,7 @@ ${helpers.predefined_type(
     servo_2020_pref="layout.2020.unimplemented",
     extra_prefixes=transform_extra_prefixes,
     animation_value_type="ComputedValue",
-    flags="CREATES_STACKING_CONTEXT FIXPOS_CB \
-           GETCS_NEEDS_LAYOUT_FLUSH CAN_ANIMATE_ON_COMPOSITOR",
+    flags="CREATES_STACKING_CONTEXT FIXPOS_CB CAN_ANIMATE_ON_COMPOSITOR",
     spec="https://drafts.csswg.org/css-transforms/#propdef-transform",
     servo_restyle_damage="reflow_out_of_flow",
 )}
@@ -419,6 +418,19 @@ ${helpers.predefined_type(
     gecko_pref="layout.css.motion-path.enabled",
     spec="https://drafts.fxtf.org/motion-1/#offset-rotate-property",
     servo_restyle_damage="reflow_out_of_flow"
+)}
+
+// Motion Path Module Level 1
+${helpers.predefined_type(
+    "offset-anchor",
+    "PositionOrAuto",
+    "computed::PositionOrAuto::auto()",
+    engines="gecko",
+    animation_value_type="ComputedValue",
+    gecko_pref="layout.css.motion-path.enabled",
+    spec="https://drafts.fxtf.org/motion-1/#offset-anchor-property",
+    servo_restyle_damage="reflow_out_of_flow",
+    boxed=True
 )}
 
 // CSSOM View Module
@@ -539,7 +551,6 @@ ${helpers.predefined_type(
     boxed=True,
     extra_prefixes=transform_extra_prefixes,
     spec="https://drafts.csswg.org/css-transforms-2/#perspective-origin-property",
-    flags="GETCS_NEEDS_LAYOUT_FLUSH",
     animation_value_type="ComputedValue",
     servo_restyle_damage="reflow_out_of_flow"
 )}
@@ -587,7 +598,6 @@ ${helpers.predefined_type(
     extra_prefixes=transform_extra_prefixes,
     gecko_ffi_name="mTransformOrigin",
     boxed=True,
-    flags="GETCS_NEEDS_LAYOUT_FLUSH",
     spec="https://drafts.csswg.org/css-transforms/#transform-origin-property",
     servo_restyle_damage="reflow_out_of_flow",
 )}

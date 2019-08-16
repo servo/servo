@@ -673,7 +673,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
     #[inline]
     #[cfg(feature = "gecko")]
     fn recompute_default_font_family_type_if_needed(&mut self) {
-        use crate::gecko_bindings::{bindings, structs};
+        use crate::gecko_bindings::bindings;
         use crate::values::computed::font::GenericFontFamily;
 
         if !self.seen.contains(LonghandId::XLang) &&
@@ -681,7 +681,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             return;
         }
 
-        let use_document_fonts = unsafe { structs::StaticPrefs::sVarCache_browser_display_use_document_fonts != 0 };
+        let use_document_fonts = static_prefs::pref!("browser.display.use_document_fonts") != 0;
         let builder = &mut self.context.builder;
         let (default_font_type, prioritize_user_fonts) = {
             let font = builder.get_font().gecko();

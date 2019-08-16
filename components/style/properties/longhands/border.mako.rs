@@ -58,7 +58,6 @@
         animation_value_type="NonNegativeLength",
         logical=is_logical,
         logical_group="border-width",
-        flags="GETCS_NEEDS_LAYOUT_FLUSH",
         allow_quirks="No" if is_logical else "Yes",
         servo_restyle_damage="reflow rebuild_and_reflow_inline"
     )}

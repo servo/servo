@@ -56,6 +56,7 @@ files = [
   "./components/net/tests/parsable_mime/text",
   # Mako does not lend itself easily to splitting long lines
   "./components/style/properties/helpers/animated_properties.mako.rs",
+  "./components/style/properties/shorthands/text.mako.rs",
   # Long regexes are long.
   "./components/style/gecko/regen_atoms.py",
   # Helper macro where actually a pseudo-element per line makes sense.

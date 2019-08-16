@@ -9,6 +9,7 @@
 
 use crate::values::computed::{Integer, LengthPercentage, Percentage};
 use crate::values::generics::position::Position as GenericPosition;
+use crate::values::generics::position::PositionOrAuto as GenericPositionOrAuto;
 use crate::values::generics::position::ZIndex as GenericZIndex;
 pub use crate::values::specified::position::{GridAutoFlow, GridTemplateAreas};
 use crate::Zero;
@@ -17,6 +18,9 @@ use style_traits::{CssWriter, ToCss};
 
 /// The computed value of a CSS `<position>`
 pub type Position = GenericPosition<HorizontalPosition, VerticalPosition>;
+
+/// The computed value of an `auto | <position>`
+pub type PositionOrAuto = GenericPositionOrAuto<Position>;
 
 /// The computed value of a CSS horizontal position.
 pub type HorizontalPosition = LengthPercentage;

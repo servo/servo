@@ -23,7 +23,6 @@
         logical=side[1],
         logical_group="padding",
         spec=spec,
-        flags="GETCS_NEEDS_LAYOUT_FLUSH",
         allow_quirks="No" if side[1] else "Yes",
         servo_restyle_damage="reflow rebuild_and_reflow_inline"
     )}

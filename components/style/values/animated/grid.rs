@@ -101,7 +101,7 @@ impl Animate for generics::TrackRepeat<LengthPercentage, Integer> {
         Ok(generics::TrackRepeat {
             count,
             line_names,
-            track_sizes,
+            track_sizes: track_sizes.into(),
         })
     }
 }
@@ -117,20 +117,19 @@ impl Animate for TrackList {
             return Err(());
         }
 
-        if self.list_type != other.list_type {
+        if self.is_explicit() != other.is_explicit() {
             return Err(());
         }
 
-        // For now, repeat(auto-fill/auto-fit, ...) is not animatable. TrackRepeat will
-        // return Err(()) if we use keywords. Therefore, we can early return here to avoid
-        // traversing |values| in <auto-track-list>. This may be updated in the future.
+        // For now, repeat(auto-fill/auto-fit, ...) is not animatable.
+        // TrackRepeat will return Err(()) if we use keywords. Therefore, we can
+        // early return here to avoid traversing |values| in <auto-track-list>.
+        // This may be updated in the future.
         // https://github.com/w3c/csswg-drafts/issues/3503
-        if let generics::TrackListType::Auto(_) = self.list_type {
+        if self.has_auto_repeat() || other.has_auto_repeat() {
             return Err(());
         }
 
-        let list_type = self.list_type;
-        let auto_repeat = self.auto_repeat.animate(&other.auto_repeat, procedure)?;
         let values = self
             .values
             .iter()
@@ -142,10 +141,9 @@ impl Animate for TrackList {
         let line_names = discrete(&self.line_names, &other.line_names, procedure)?;
 
         Ok(TrackList {
-            list_type,
-            values,
+            values: values.into(),
             line_names,
-            auto_repeat,
+            auto_repeat_index: self.auto_repeat_index,
         })
     }
 }

@@ -72,11 +72,8 @@ impl<Value> Spacing<Value> {
 
 #[cfg(feature = "gecko")]
 fn line_height_moz_block_height_enabled(context: &ParserContext) -> bool {
-    use crate::gecko_bindings::structs;
     context.in_ua_sheet() ||
-        unsafe {
-            structs::StaticPrefs::sVarCache_layout_css_line_height_moz_block_height_content_enabled
-        }
+        static_prefs::pref!("layout.css.line-height-moz-block-height.content.enabled")
 }
 
 /// A generic value for the `line-height` property.
@@ -124,4 +121,34 @@ impl<N, L> LineHeight<N, L> {
     pub fn normal() -> Self {
         LineHeight::Normal
     }
+}
+
+/// Implements type for text-underline-offset and text-decoration-thickness
+/// which take the grammar of auto | from-font | <length>
+///
+/// https://drafts.csswg.org/css-text-decor-4/
+#[repr(C, u8)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(
+    Animate,
+    Clone,
+    Copy,
+    ComputeSquaredDistance,
+    ToAnimatedZero,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[allow(missing_docs)]
+pub enum GenericTextDecorationLength<L> {
+    Length(L),
+    Auto,
+    FromFont,
 }

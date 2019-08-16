@@ -23,7 +23,6 @@ ${helpers.predefined_type(
     engines="gecko servo-2013 servo-2020",
     servo_2020_pref="layout.2020.unimplemented",
     animation_value_type="LineHeight",
-    flags="GETCS_NEEDS_LAYOUT_FLUSH",
     spec="https://drafts.csswg.org/css2/visudet.html#propdef-line-height",
     servo_restyle_damage="reflow"
 )}
@@ -250,7 +249,6 @@ ${helpers.predefined_type(
     None,
     engines="gecko",
     initial_specified_value="SpecifiedValue::None",
-    boxed=True,
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-style",
 )}
@@ -384,8 +382,8 @@ ${helpers.single_keyword(
 // text underline offset
 ${helpers.predefined_type(
     "text-underline-offset",
-    "LengthOrAuto",
-    "computed::LengthOrAuto::auto()",
+    "TextDecorationLength",
+    "generics::text::GenericTextDecorationLength::Auto",
     engines="gecko",
     animation_value_type="ComputedValue",
     gecko_pref="layout.css.text-underline-offset.enabled",

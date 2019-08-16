@@ -12,6 +12,7 @@ use crate::properties::longhands::float::computed_value::T as Float;
 use crate::properties::longhands::overflow_x::computed_value::T as Overflow;
 use crate::properties::longhands::position::computed_value::T as Position;
 use crate::properties::{self, ComputedValues, StyleBuilder};
+use crate::values::specified::box_::DisplayInside;
 use app_units::Au;
 
 /// A struct that implements all the adjustment methods.
@@ -175,7 +176,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// Apply the blockification rules based on the table in CSS 2.2 section 9.7.
     /// <https://drafts.csswg.org/css2/visuren.html#dis-pos-flo>
     /// A ::marker pseudo-element with 'list-style-position:outside' needs to
-    /// have its 'display' blockified.
+    /// have its 'display' blockified, unless the ::marker is for an inline
+    /// list-item (for which 'list-style-position:outside' behaves as 'inside').
+    /// https://drafts.csswg.org/css-lists-3/#list-style-position-property
     fn blockify_if_necessary<E>(&mut self, layout_parent_style: &ComputedValues, element: Option<E>)
     where
         E: TElement,
@@ -194,10 +197,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         let is_root = self.style.pseudo.is_none() && element.map_or(false, |e| e.is_root());
         blockify_if!(is_root);
         if !self.skip_item_display_fixup(element) {
-            blockify_if!(layout_parent_style
-                .get_box()
-                .clone_display()
-                .is_item_container());
+            let parent_display = layout_parent_style.get_box().clone_display();
+            blockify_if!(parent_display.is_item_container());
         }
 
         let is_item_or_root = blockify;
@@ -207,7 +208,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         blockify_if!(
             self.style.pseudo.map_or(false, |p| p.is_marker()) &&
                 self.style.get_parent_list().clone_list_style_position() ==
-                    ListStylePosition::Outside
+                    ListStylePosition::Outside &&
+                layout_parent_style.get_box().clone_display().inside() != DisplayInside::Inline
         );
 
         if !blockify {

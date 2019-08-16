@@ -10,7 +10,7 @@ use crate::values::computed::length::{Length, LengthPercentage};
 use crate::values::computed::{Context, NonNegativeLength, NonNegativeNumber, ToComputedValue};
 use crate::values::generics::text::InitialLetter as GenericInitialLetter;
 use crate::values::generics::text::LineHeight as GenericLineHeight;
-use crate::values::generics::text::Spacing;
+use crate::values::generics::text::{GenericTextDecorationLength, Spacing};
 use crate::values::specified::text::{self as specified, TextOverflowSide};
 use crate::values::specified::text::{TextEmphasisFillMode, TextEmphasisShapeKeyword};
 use crate::values::{CSSFloat, CSSInteger};
@@ -25,6 +25,9 @@ pub use crate::values::specified::{TextDecorationSkipInk, TextTransform};
 
 /// A computed value for the `initial-letter` property.
 pub type InitialLetter = GenericInitialLetter<CSSFloat, CSSInteger>;
+
+/// Implements type for `text-underline-offset` and `text-decoration-thickness` properties
+pub type TextDecorationLength = GenericTextDecorationLength<Length>;
 
 /// A computed value for the `letter-spacing` property.
 #[repr(transparent)]
@@ -194,22 +197,21 @@ impl TextDecorationsInEffect {
     }
 }
 
-/// computed value for the text-emphasis-style property
+/// Computed value for the text-emphasis-style property
+///
+/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss, ToResolvedValue)]
+#[allow(missing_docs)]
+#[repr(C, u8)]
 pub enum TextEmphasisStyle {
-    /// Keyword value for the text-emphasis-style property (`filled` `open`)
-    Keyword(TextEmphasisKeywordValue),
+    /// [ <fill> || <shape> ]
+    Keyword {
+        #[css(skip_if = "TextEmphasisFillMode::is_filled")]
+        fill: TextEmphasisFillMode,
+        shape: TextEmphasisShapeKeyword,
+    },
     /// `none`
     None,
-    /// String (will be used only first grapheme cluster) for the text-emphasis-style property
-    String(String),
-}
-
-/// Keyword value for the text-emphasis-style property
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss, ToResolvedValue)]
-pub struct TextEmphasisKeywordValue {
-    /// fill for the text-emphasis-style property
-    pub fill: TextEmphasisFillMode,
-    /// shape for the text-emphasis-style property
-    pub shape: TextEmphasisShapeKeyword,
+    /// `<string>` (of which only the first grapheme cluster will be used).
+    String(crate::OwnedStr),
 }

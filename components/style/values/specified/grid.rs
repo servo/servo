@@ -6,10 +6,9 @@
 //! [grids](https://drafts.csswg.org/css-grid/)
 
 use crate::parser::{Parse, ParserContext};
-use crate::values::computed::{self, Context, ToComputedValue};
-use crate::values::generics::grid::{GridTemplateComponent, RepeatCount, TrackBreadth};
-use crate::values::generics::grid::{LineNameList, TrackRepeat, TrackSize};
-use crate::values::generics::grid::{TrackList, TrackListType, TrackListValue};
+use crate::values::generics::grid::{GridTemplateComponent, ImplicitGridTracks, RepeatCount};
+use crate::values::generics::grid::{LineNameList, TrackBreadth, TrackRepeat, TrackSize};
+use crate::values::generics::grid::{TrackList, TrackListValue};
 use crate::values::specified::{Integer, LengthPercentage};
 use crate::values::{CSSFloat, CustomIdent};
 use cssparser::{ParseError as CssParseError, Parser, Token};
@@ -96,12 +95,27 @@ impl Parse for TrackSize<LengthPercentage> {
     }
 }
 
+impl Parse for ImplicitGridTracks<TrackSize<LengthPercentage>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        use style_traits::{Separator, Space};
+        let track_sizes = Space::parse(input, |i| TrackSize::parse(context, i))?;
+        if track_sizes.len() == 1 && track_sizes[0].is_auto() {
+            //`auto`, which is the initial value, is always represented by an empty slice.
+            return Ok(Default::default());
+        }
+        return Ok(ImplicitGridTracks(track_sizes.into()));
+    }
+}
+
 /// Parse the grid line names into a vector of owned strings.
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-line-names>
 pub fn parse_line_names<'i, 't>(
     input: &mut Parser<'i, 't>,
-) -> Result<Box<[CustomIdent]>, ParseError<'i>> {
+) -> Result<crate::OwnedSlice<CustomIdent>, ParseError<'i>> {
     input.expect_square_bracket_block()?;
     input.parse_nested_block(|input| {
         let mut values = vec![];
@@ -112,7 +126,7 @@ pub fn parse_line_names<'i, 't>(
             values.push(ident);
         }
 
-        Ok(values.into_boxed_slice())
+        Ok(values.into())
     })
 }
 
@@ -155,9 +169,7 @@ impl TrackRepeat<LengthPercentage, Integer> {
                     let mut current_names;
 
                     loop {
-                        current_names = input
-                            .try(parse_line_names)
-                            .unwrap_or(vec![].into_boxed_slice());
+                        current_names = input.try(parse_line_names).unwrap_or_default();
                         if let Ok(track_size) = input.try(|i| TrackSize::parse(context, i)) {
                             if !track_size.is_fixed() {
                                 if is_auto {
@@ -180,11 +192,7 @@ impl TrackRepeat<LengthPercentage, Integer> {
                                 // one `TrackSize`. But in current version of the spec, this is deprecated
                                 // but we are adding this for gecko parity. We should remove this when
                                 // gecko implements new spec.
-                                names.push(
-                                    input
-                                        .try(parse_line_names)
-                                        .unwrap_or(vec![].into_boxed_slice()),
-                                );
+                                names.push(input.try(parse_line_names).unwrap_or_default());
                                 break;
                             }
                         } else {
@@ -201,9 +209,9 @@ impl TrackRepeat<LengthPercentage, Integer> {
                     }
 
                     let repeat = TrackRepeat {
-                        count: count,
-                        track_sizes: values,
-                        line_names: names.into_boxed_slice(),
+                        count,
+                        track_sizes: values.into(),
+                        line_names: names.into(),
                     };
 
                     Ok((repeat, repeat_type))
@@ -221,47 +229,31 @@ impl Parse for TrackList<LengthPercentage, Integer> {
         let mut names = vec![];
         let mut values = vec![];
 
-        // assume it's the simplest case.
-        let mut list_type = TrackListType::Explicit;
-        // holds <auto-repeat> value. It can only be only one in a TrackList.
-        let mut auto_repeat = None;
-        // if there is any <auto-repeat> the list will be of type TrackListType::Auto(idx)
-        // where idx points to the position of the <auto-repeat> in the track list. If there
-        // is any repeat before <auto-repeat>, we need to take the number of repetitions into
-        // account to set the position of <auto-repeat> so it remains the same while computing
-        // values.
-        let mut auto_offset = 0;
+        // Whether we've parsed an `<auto-repeat>` value.
+        let mut auto_repeat_index = None;
         // assume that everything is <fixed-size>. This flag is useful when we encounter <auto-repeat>
-        let mut atleast_one_not_fixed = false;
+        let mut at_least_one_not_fixed = false;
         loop {
-            current_names.extend_from_slice(
-                &mut input
-                    .try(parse_line_names)
-                    .unwrap_or(vec![].into_boxed_slice()),
-            );
+            current_names.extend_from_slice(&mut input.try(parse_line_names).unwrap_or_default());
             if let Ok(track_size) = input.try(|i| TrackSize::parse(context, i)) {
                 if !track_size.is_fixed() {
-                    atleast_one_not_fixed = true;
-                    if auto_repeat.is_some() {
+                    at_least_one_not_fixed = true;
+                    if auto_repeat_index.is_some() {
                         // <auto-track-list> only accepts <fixed-size> and <fixed-repeat>
                         return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                     }
                 }
 
                 let vec = mem::replace(&mut current_names, vec![]);
-                names.push(vec.into_boxed_slice());
+                names.push(vec.into());
                 values.push(TrackListValue::TrackSize(track_size));
             } else if let Ok((repeat, type_)) =
                 input.try(|i| TrackRepeat::parse_with_repeat_type(context, i))
             {
-                if list_type == TrackListType::Explicit {
-                    list_type = TrackListType::Normal; // <explicit-track-list> doesn't contain repeat()
-                }
-
                 match type_ {
                     RepeatType::Normal => {
-                        atleast_one_not_fixed = true;
-                        if auto_repeat.is_some() {
+                        at_least_one_not_fixed = true;
+                        if auto_repeat_index.is_some() {
                             // only <fixed-repeat>
                             return Err(
                                 input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
@@ -269,137 +261,42 @@ impl Parse for TrackList<LengthPercentage, Integer> {
                         }
                     },
                     RepeatType::Auto => {
-                        if auto_repeat.is_some() || atleast_one_not_fixed {
+                        if auto_repeat_index.is_some() || at_least_one_not_fixed {
                             // We've either seen <auto-repeat> earlier, or there's at least one non-fixed value
                             return Err(
                                 input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
                             );
                         }
-
-                        list_type = TrackListType::Auto(values.len() as u16 + auto_offset);
-                        auto_repeat = Some(repeat);
-                        let vec = mem::replace(&mut current_names, vec![]);
-                        names.push(vec.into_boxed_slice());
-                        continue;
+                        auto_repeat_index = Some(values.len());
                     },
-                    RepeatType::Fixed => (),
+                    RepeatType::Fixed => {},
                 }
 
                 let vec = mem::replace(&mut current_names, vec![]);
-                names.push(vec.into_boxed_slice());
-                if let RepeatCount::Number(num) = repeat.count {
-                    auto_offset += (num.value() - 1) as u16;
-                }
+                names.push(vec.into());
                 values.push(TrackListValue::TrackRepeat(repeat));
             } else {
-                if values.is_empty() && auto_repeat.is_none() {
+                if values.is_empty() && auto_repeat_index.is_none() {
                     return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
 
-                names.push(current_names.into_boxed_slice());
+                names.push(current_names.into());
                 break;
             }
         }
 
         Ok(TrackList {
-            list_type: list_type,
-            values: values,
-            line_names: names.into_boxed_slice(),
-            auto_repeat: auto_repeat,
+            auto_repeat_index: auto_repeat_index.unwrap_or(std::usize::MAX),
+            values: values.into(),
+            line_names: names.into(),
         })
-    }
-}
-
-impl ToComputedValue for TrackList<LengthPercentage, Integer> {
-    type ComputedValue = TrackList<computed::LengthPercentage, computed::Integer>;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        // Merge the line names while computing values. The resulting values will
-        // all be bunch of `<track-size>` and one <auto-repeat>.
-        //
-        // For example,
-        // `[a b] 100px [c d] repeat(1, 30px [g]) [h]` will be merged as `[a b] 100px [c d] 30px [g h]`
-        //  whereas, `[a b] repeat(2, [c] 50px [d]) [e f] repeat(auto-fill, [g] 12px) 10px [h]` will be merged as
-        // `[a b c] 50px [d c] 50px [d e f] repeat(auto-fill, [g] 12px) 10px [h]`, with the `<auto-repeat>` value
-        // set in the `auto_repeat` field, and the `idx` in TrackListType::Auto pointing to the values after
-        // `<auto-repeat>` (in this case, `10px [h]`).
-        let mut prev_names = vec![];
-        let mut line_names = Vec::with_capacity(self.line_names.len() + 1);
-        let mut values = Vec::with_capacity(self.values.len() + 1);
-        for (pos, names) in self.line_names.iter().enumerate() {
-            prev_names.extend_from_slice(&names);
-            if pos >= self.values.len() {
-                let vec = mem::replace(&mut prev_names, vec![]);
-                line_names.push(vec.into_boxed_slice());
-                continue;
-            }
-
-            match self.values[pos] {
-                TrackListValue::TrackSize(ref size) => {
-                    let vec = mem::replace(&mut prev_names, vec![]);
-                    line_names.push(vec.into_boxed_slice());
-                    values.push(TrackListValue::TrackSize(size.to_computed_value(context)));
-                },
-                TrackListValue::TrackRepeat(ref repeat) => {
-                    // If the repeat count is numeric, we expand and merge the values.
-                    let mut repeat = repeat.expand();
-                    let mut repeat_names_iter = repeat.line_names.iter();
-                    for (size, repeat_names) in
-                        repeat.track_sizes.drain(..).zip(&mut repeat_names_iter)
-                    {
-                        prev_names.extend_from_slice(&repeat_names);
-                        let vec = mem::replace(&mut prev_names, vec![]);
-                        line_names.push(vec.into_boxed_slice());
-                        values.push(TrackListValue::TrackSize(size.to_computed_value(context)));
-                    }
-
-                    if let Some(names) = repeat_names_iter.next() {
-                        prev_names.extend_from_slice(&names);
-                    }
-                },
-            }
-        }
-
-        TrackList {
-            list_type: self.list_type.to_computed_value(context),
-            values: values,
-            line_names: line_names.into_boxed_slice(),
-            auto_repeat: self
-                .auto_repeat
-                .clone()
-                .map(|repeat| repeat.to_computed_value(context)),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        let mut values = Vec::with_capacity(computed.values.len() + 1);
-        for value in computed
-            .values
-            .iter()
-            .map(ToComputedValue::from_computed_value)
-        {
-            values.push(value);
-        }
-
-        TrackList {
-            list_type: computed.list_type,
-            values: values,
-            line_names: computed.line_names.clone(),
-            auto_repeat: computed
-                .auto_repeat
-                .clone()
-                .map(|ref repeat| TrackRepeat::from_computed_value(repeat)),
-        }
     }
 }
 
 #[cfg(feature = "gecko")]
 #[inline]
 fn allow_grid_template_subgrids() -> bool {
-    use crate::gecko_bindings::structs::mozilla;
-    unsafe { mozilla::StaticPrefs::sVarCache_layout_css_grid_template_subgrid_value_enabled }
+    static_prefs::pref!("layout.css.grid-template-subgrid-value.enabled")
 }
 
 #[cfg(feature = "servo")]
@@ -409,7 +306,6 @@ fn allow_grid_template_subgrids() -> bool {
 }
 
 impl Parse for GridTemplateComponent<LengthPercentage, Integer> {
-    // FIXME: Derive Parse (probably with None_)
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
@@ -430,10 +326,11 @@ impl GridTemplateComponent<LengthPercentage, Integer> {
     ) -> Result<Self, ParseError<'i>> {
         if allow_grid_template_subgrids() {
             if let Ok(t) = input.try(|i| LineNameList::parse(context, i)) {
-                return Ok(GridTemplateComponent::Subgrid(t));
+                return Ok(GridTemplateComponent::Subgrid(Box::new(t)));
             }
         }
 
-        TrackList::parse(context, input).map(GridTemplateComponent::TrackList)
+        let track_list = TrackList::parse(context, input)?;
+        Ok(GridTemplateComponent::TrackList(Box::new(track_list)))
     }
 }
