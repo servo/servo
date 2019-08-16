@@ -32,7 +32,7 @@ Servo::Servo(GLsizei width, GLsizei height, ServoDelegate &aDelegate)
     : mWindowHeight(height), mWindowWidth(width), mDelegate(aDelegate) {
 
   capi::CInitOptions o;
-  o.args = NULL;
+  o.args = "--pref dom.webxr.enabled";
   o.url = "https://servo.org";
   o.width = mWindowWidth;
   o.height = mWindowHeight;
