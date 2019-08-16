@@ -239,7 +239,7 @@ pub trait GenericDrawTarget {
         stride: i32,
     ) -> Option<SourceSurface>;
     fn draw_surface(
-        &self,
+        &mut self,
         surface: SourceSurface,
         dest: Rect<f64>,
         source: Rect<f64>,
@@ -340,7 +340,7 @@ pub enum SourceSurface {
     #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::SourceSurface),
     #[cfg(feature = "canvas2d-raqote")]
-    Raqote(()),
+    Raqote(Vec<u8>), // TODO: See if we can avoid the alloc (probably?)
 }
 
 #[derive(Clone)]
@@ -1133,7 +1133,7 @@ pub struct CanvasPaintState<'a> {
 /// dest_rect: Area of the destination target where the pixels will be copied
 /// smoothing_enabled: It determines if smoothing is applied to the image result
 fn write_image(
-    draw_target: &dyn GenericDrawTarget,
+    draw_target: &mut dyn GenericDrawTarget,
     image_data: Vec<u8>,
     image_size: Size2D<f64>,
     dest_rect: Rect<f64>,

@@ -188,7 +188,7 @@ impl Path {
     }
 
     pub fn copy_to_builder(&self) -> Box<dyn GenericPathBuilder> {
-        unimplemented!()
+        Box::new(PathBuilder(Some(raqote::PathBuilder::from(self.as_raqote().clone()))))
     }
 
     pub fn as_raqote(&self) -> &raqote::Path {
@@ -221,13 +221,23 @@ impl GenericDrawTarget for raqote::DrawTarget {
             &options,
         );
     }
+    #[allow(unsafe_code)]
     fn copy_surface(
         &mut self,
-        _surface: SourceSurface,
-        _source: Rect<i32>,
-        _destination: Point2D<i32>,
+        surface: SourceSurface,
+        source: Rect<i32>,
+        destination: Point2D<i32>,
     ) {
-        unimplemented!();
+        let mut dt = raqote::DrawTarget::new(source.size.width, source.size.height);
+        let data = surface.as_raqote();
+        let s = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u32, data.len() / 4) };
+        dt.get_data_mut().copy_from_slice(s);
+        raqote::DrawTarget::copy_surface(
+            self,
+            &dt,
+            source.to_box2d(),
+            destination
+        );
     }
     fn create_gradient_stops(
         &self,
@@ -248,21 +258,40 @@ impl GenericDrawTarget for raqote::DrawTarget {
     }
     fn create_source_surface_from_data(
         &self,
-        _data: &[u8],
+        data: &[u8],
         _size: Size2D<i32>,
         _stride: i32,
     ) -> Option<SourceSurface> {
-        unimplemented!();
+        Some(SourceSurface::Raqote(data.to_vec()))
     }
+    #[allow(unsafe_code)]
     fn draw_surface(
-        &self,
-        _surface: SourceSurface,
-        _dest: Rect<f64>,
-        _source: Rect<f64>,
+        &mut self,
+        surface: SourceSurface,
+        dest: Rect<f64>,
+        source: Rect<f64>,
         _filter: Filter,
-        _draw_options: &DrawOptions,
+        draw_options: &DrawOptions,
     ) {
-        unimplemented!();
+        let v = surface.as_raqote();
+        let image = raqote::Image {
+            width: source.size.width as i32,
+            height: source.size.height as i32,
+            data: unsafe {
+            std::slice::from_raw_parts(
+                v.as_ptr() as *const u32,
+                v.len() * std::mem::size_of::<u8>(),
+            ) },
+        };
+        raqote::DrawTarget::draw_image_with_size_at(
+            self,
+            dest.size.width as f32,
+            dest.size.height as f32,
+            dest.origin.x as f32,
+            dest.origin.y as f32,
+            &image,
+            draw_options.as_raqote(),
+        );
     }
     fn draw_surface_with_shadow(
         &self,
@@ -614,6 +643,14 @@ impl ToRaqoteStyle for CompositionStyle {
             CompositionStyle::Copy => raqote::BlendMode::Src,
             CompositionStyle::Lighter => raqote::BlendMode::Add,
             CompositionStyle::Xor => raqote::BlendMode::Xor,
+        }
+    }
+}
+
+impl SourceSurface {
+    fn as_raqote(&self) -> &Vec<u8> {
+        match self {
+            SourceSurface::Raqote(s) => s,
         }
     }
 }
