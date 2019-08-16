@@ -92,7 +92,6 @@ impl ServiceWorkerMethods for ServiceWorker {
     }
 
     // https://w3c.github.io/ServiceWorker/#service-worker-postmessage
-    #[allow(unsafe_code)]
     fn PostMessage(
         &self,
         cx: JSContext,

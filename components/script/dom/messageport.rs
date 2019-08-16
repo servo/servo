@@ -237,7 +237,7 @@ impl MessagePortImpl {
         }
     }
 
-    /// A message was received from our entangled port over ipc.
+    /// A message was received from our entangled port.
     pub fn handle_incoming(&self, task: &PortMessageTask) -> bool {
         if self.detached.get() {
             return false;
@@ -265,6 +265,8 @@ impl MessagePortImpl {
         let _ = owner.port_message_queue().queue(
             task!(post_message: move || {
                 let global = this.root();
+                // Note: we do this in a task, as this will ensure the global and constellation
+                // are aware of any transfer that might still take place in the current task.
                 global.upcast::<GlobalScope>().route_task_to_port(target_port_id, task);
             }),
             owner,
@@ -360,7 +362,7 @@ impl Transferable for MessagePort {
             .remove(&id)
             .expect("Transferred port to be stored");
 
-        // 3. Deserialize the object that is to be transfer in to this realm.
+        // 3. Deserialize the object that is to be transfered in to this realm.
         let port_impl: MessagePortImpl = bincode::deserialize(&port_impl_data[..])
             .expect("MessagePortImpl to be desirealizeable");
 
