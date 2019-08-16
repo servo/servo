@@ -18,8 +18,9 @@ use crate::dom::messageport::MessagePort;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::jsapi::Heap;
-use js::jsval::JSVal;
+use js::conversions::ToJSValConvertible;
+use js::jsapi::{JS_FreezeObject, HandleObject as RawHandleObject, Heap};
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue;
 use servo_atoms::Atom;
 
@@ -135,5 +136,16 @@ impl ExtendableMessageEventMethods for ExtendableMessageEvent {
     // https://dom.spec.whatwg.org/#dom-event-istrusted
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
+    }
+
+    /// https://w3c.github.io/ServiceWorker/#extendablemessage-event-ports
+    #[allow(unsafe_code)]
+    fn Ports(&self, cx: JSContext) -> JSVal {
+        rooted!(in(*cx) let mut ports = UndefinedValue());
+        unsafe { self.ports.to_jsval(*cx, ports.handle_mut()) };
+
+        rooted!(in(*cx) let obj = ports.to_object());
+        unsafe { JS_FreezeObject(*cx, RawHandleObject::from(obj.handle())) };
+        *ports
     }
 }

@@ -101,6 +101,12 @@ impl MessagePort {
         eventtarget.set_event_handler_common("message", listener);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessageerror>
+    pub fn set_onmessageerror(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+        let eventtarget = self.upcast::<EventTarget>();
+        eventtarget.set_event_handler_common("messageerror", listener);
+    }
+
     pub fn detached(&self) -> bool {
         self.detached.get()
     }
@@ -448,5 +454,22 @@ impl MessagePortMethods for MessagePort {
         }
         self.set_onmessage(listener);
         self.global().start_message_port(self.message_port_id());
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessageerror>
+    fn GetOnmessageerror(&self) -> Option<Rc<EventHandlerNonNull>> {
+        if self.detached.get() {
+            return None;
+        }
+        let eventtarget = self.upcast::<EventTarget>();
+        eventtarget.get_event_handler_common("messageerror")
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessageerror>
+    fn SetOnmessageerror(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+        if self.detached.get() {
+            return;
+        }
+        self.set_onmessageerror(listener);
     }
 }
