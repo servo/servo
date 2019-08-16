@@ -402,7 +402,16 @@ impl GlobalScope {
                     deserialize_result.message_ports.into_iter().collect(),
                 );
             } else {
-                warn!("Error reading structuredclone data");
+                // Step 4, fire messageerror event.
+                rooted!(in(*self.get_cx()) let mut message_clone = UndefinedValue());
+                MessageEvent::dispatch_error(
+                    &dom_port.upcast(),
+                    self,
+                    message_clone.handle(),
+                    Some(&origin.ascii_serialization()),
+                    None,
+                    vec![],
+                );
             }
         }
     }

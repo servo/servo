@@ -2349,7 +2349,16 @@ impl Window {
                     new_ports,
                 );
             } else {
-                warn!("Error reading structuredclone data");
+                // Step 4, fire messageerror.
+                rooted!(in(*cx) let mut message_clone = UndefinedValue());
+                MessageEvent::dispatch_error(
+                    this.upcast(),
+                    this.upcast(),
+                    message_clone.handle(),
+                    Some(&source_origin.ascii_serialization()),
+                    Some(&*source),
+                    vec![],
+                );
             }
         });
         // FIXME(nox): Why are errors silenced here?

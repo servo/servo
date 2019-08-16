@@ -136,6 +136,28 @@ impl MessageEvent {
         );
         messageevent.upcast::<Event>().fire(target);
     }
+
+    pub fn dispatch_error(
+        target: &EventTarget,
+        scope: &GlobalScope,
+        message: HandleValue,
+        origin: Option<&str>,
+        source: Option<&WindowProxy>,
+        ports: Vec<DomRoot<MessagePort>>,
+    ) {
+        let messageevent = MessageEvent::new(
+            scope,
+            atom!("messageerror"),
+            false,
+            false,
+            message,
+            DOMString::from(origin.unwrap_or("")),
+            source,
+            DOMString::new(),
+            ports,
+        );
+        messageevent.upcast::<Event>().fire(target);
+    }
 }
 
 impl MessageEventMethods for MessageEvent {

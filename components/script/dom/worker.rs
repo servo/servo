@@ -166,7 +166,16 @@ impl Worker {
                 new_ports,
             );
         } else {
-            warn!("Error reading structuredclone data");
+            // Step 4 of the "port post message steps" of the implicit messageport, fire messageerror.
+            rooted!(in(*global.get_cx()) let mut message = UndefinedValue());
+            MessageEvent::dispatch_error(
+                target,
+                &global,
+                message.handle(),
+                Some(&origin),
+                None,
+                vec![],
+            );
         }
     }
 

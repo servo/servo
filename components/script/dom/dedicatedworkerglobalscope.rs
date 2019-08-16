@@ -495,7 +495,15 @@ impl DedicatedWorkerGlobalScope {
                         new_ports,
                     );
                 } else {
-                    warn!("Error reading structuredclone data");
+                    rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
+                    MessageEvent::dispatch_error(
+                        target,
+                        scope.upcast(),
+                        message.handle(),
+                        Some(&origin.ascii_serialization()),
+                        None,
+                        vec![],
+                    );
                 }
             },
             WorkerScriptMsg::Common(msg) => {
