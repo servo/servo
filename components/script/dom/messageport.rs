@@ -226,7 +226,7 @@ impl MessagePortImpl {
         self.awaiting_transfer.set(false);
 
         if let Some(mut tasks) = tasks {
-            // Note: these are the tasks that were buffered after the transfer,
+            // Note: these are the tasks that were buffered while the transfer was ongoing,
             // hence they need to execute first.
             // The global will call `start` if we are enabled,
             // which will add tasks on the event-loop to dispatch incoming messages.
