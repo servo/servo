@@ -7,7 +7,6 @@
 #include "BrowserPage.h"
 #include "BrowserPage.g.cpp"
 #include "ImmersiveView.h"
-#include "OpenGLES.h"
 
 using namespace winrt::Windows::UI::Xaml;
 using namespace winrt::Windows::UI::Core;
