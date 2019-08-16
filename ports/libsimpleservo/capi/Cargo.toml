@@ -22,7 +22,7 @@ libc = "0.2"
 winapi = {version = "0.3", features = ["wingdi", "winuser", "winnt", "winbase", "processenv", "namedpipeapi", "ntdef", "minwindef", "handleapi", "debugapi"]}
 
 [build-dependencies]
-cbindgen = "0.8"
+cbindgen = "0.9"
 
 [features]
 canvas2d-azure = ["simpleservo/canvas2d-azure"]
