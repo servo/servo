@@ -19,7 +19,7 @@ use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{JS_FreezeObject, HandleObject as RawHandleObject, Heap};
+use js::jsapi::{HandleObject as RawHandleObject, Heap, JS_FreezeObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue;
 use servo_atoms::Atom;

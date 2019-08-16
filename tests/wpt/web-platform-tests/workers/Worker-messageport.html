@@ -40,6 +40,7 @@ async_test(function(t) {
     assert_equals(evt.data, "port");
     assert_equals(String(evt.ports), "[object MessagePort]");
     assert_equals(evt.ports.length, 1);
+    console.log("Got port")
     evt.ports[0].postMessage("ping");
     evt.ports[0].onmessage = t.step_func_done(evt => {
       assert_equals(evt.data, "pong");
@@ -56,8 +57,10 @@ async_test(function(t) {
   worker.postMessage("spam", [channel.port2]);
 
   function gotSpam(port) {
+      console.log("GotSpam")
     var spamCount = 0;
     port.onmessage = t.step_func(evt => {
+        console.log("Spam")
       assert_equals(evt.data, spamCount);
       spamCount++;
       if (spamCount == 1000) {

@@ -430,19 +430,23 @@ impl GlobalScope {
 
     /// https://html.spec.whatwg.org/multipage/#ports-and-garbage-collection
     pub fn perform_a_message_port_garbage_collection_checkpoint(&self) {
+        let mut to_be_removed = vec![];
         for (id, _port) in self.message_ports.borrow().iter() {
             let alive_js = match self.message_port_tracker.borrow().get(&id) {
                 Some(weak) => weak.root().is_some(),
                 None => false,
             };
             if !alive_js {
-                self.remove_message_port(id);
+                to_be_removed.push(id.clone());
                 // Let the constellation know to drop this port and the one it is entangled with,
                 // and to forward this message to the script-process where the entangled is found.
                 let _ = self
                     .script_to_constellation_chan()
                     .send(ScriptMsg::RemoveMessagePort(id.clone()));
             }
+        }
+        for id in to_be_removed {
+            self.remove_message_port(&id);
         }
     }
 
