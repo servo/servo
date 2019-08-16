@@ -333,7 +333,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         raqote::DrawTarget::fill(self, &pb.finish(), pattern.as_raqote(), &draw_options);
     }
     fn get_format(&self) -> SurfaceFormat {
-        unimplemented!();
+        SurfaceFormat::Raqote(())
     }
     fn get_size(&self) -> Size2D<i32> {
         Size2D::new(self.width(), self.height())
