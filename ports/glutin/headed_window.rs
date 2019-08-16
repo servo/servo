@@ -671,7 +671,7 @@ fn winit_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
 fn load_icon(icon_bytes: &[u8]) -> Icon {
     let (icon_rgba, icon_width, icon_height) = {
         use image::{GenericImageView, Pixel};
-        let image = image::load_from_memory(icon_bytes).expect("Failed to load icon");;
+        let image = image::load_from_memory(icon_bytes).expect("Failed to load icon");
         let (width, height) = image.dimensions();
         let mut rgba = Vec::with_capacity((width * height) as usize * 4);
         for (_, _, pixel) in image.pixels() {

@@ -6384,7 +6384,7 @@ class CGDictionary(CGThing):
         d = self.dictionary
         if d.parent:
             initParent = ("{\n"
-                          "    match r#try!(%s::%s::new(cx, val)) {\n"
+                          "    match %s::%s::new(cx, val)? {\n"
                           "        ConversionResult::Success(v) => v,\n"
                           "        ConversionResult::Failure(error) => {\n"
                           "            throw_type_error(*cx, &error);\n"
@@ -6532,7 +6532,7 @@ class CGDictionary(CGThing):
         conversion = (
             "{\n"
             "    rooted!(in(*cx) let mut rval = UndefinedValue());\n"
-            "    if r#try!(get_dictionary_property(*cx, object.handle(), \"%s\", rval.handle_mut()))"
+            "    if get_dictionary_property(*cx, object.handle(), \"%s\", rval.handle_mut())?"
             " && !rval.is_undefined() {\n"
             "%s\n"
             "    } else {\n"
@@ -7304,7 +7304,7 @@ class CallbackOperationBase(CallbackMethod):
             "methodName": self.methodName
         }
         getCallableFromProp = string.Template(
-            'r#try!(self.parent.get_callable_property(cx, "${methodName}"))'
+            'self.parent.get_callable_property(cx, "${methodName}")?'
         ).substitute(replacements)
         if not self.singleOperation:
             return 'rooted!(in(*cx) let callable =\n' + getCallableFromProp + ');\n'
