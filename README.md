@@ -223,7 +223,7 @@ pip install virtualenv
 ```
  If this does not work, you may need to reboot for the changed PATH settings (by the python installer) to take effect.
 
-3. Install the most recent [GStreamer](https://gstreamer.freedesktop.org/data/pkg/windows/) development package following [these instructions](https://github.com/sdroege/gstreamer-rs#gstreamer-binaries-1). You will also need to add `C:\gstreamer\1.0\x86_64\lib` to your `LIB` environment variable.
+3. Install the most recent [GStreamer](https://gstreamer.freedesktop.org/data/pkg/windows/) MSVC development package following [these instructions](https://github.com/sdroege/gstreamer-rs#gstreamer-binaries-1). Note that the MinGW binaries will not work, so make sure that you install the MSVC the ones.
 
 Note that you should ensure that _all_ components are installed from gstreamer, as we require many of the optional libraries that are not installed by default.
 
