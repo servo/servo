@@ -2334,19 +2334,15 @@ impl Window {
             let obj = this.reflector().get_jsobject();
             let _ac = JSAutoRealm::new(*cx, obj.get());
             rooted!(in(*cx) let mut message_clone = UndefinedValue());
-            if let Ok(mut results) = structuredclone::read(this.upcast(), data, message_clone.handle_mut()) {
-                // Step 7.6.
-                let new_ports = results.message_ports.drain(0..).collect();
-
-                // Step 7.7.
-                // TODO(#12719): Set the other attributes.
+            if let Ok(results) = structuredclone::read(this.upcast(), data, message_clone.handle_mut()) {
+                // Step 7.6, 7.7
                 MessageEvent::dispatch_jsval(
                     this.upcast(),
                     this.upcast(),
                     message_clone.handle(),
                     Some(&source_origin.ascii_serialization()),
                     Some(&*source),
-                    new_ports,
+                    results.message_ports,
                 );
             } else {
                 // Step 4, fire messageerror.

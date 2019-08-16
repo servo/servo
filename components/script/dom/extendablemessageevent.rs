@@ -14,6 +14,7 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::extendableevent::ExtendableEvent;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::messageport::MessagePort;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
@@ -29,6 +30,7 @@ pub struct ExtendableMessageEvent {
     data: Heap<JSVal>,
     origin: DOMString,
     lastEventId: DOMString,
+    ports: Vec<DomRoot<MessagePort>>,
 }
 
 impl ExtendableMessageEvent {
@@ -40,12 +42,14 @@ impl ExtendableMessageEvent {
         data: HandleValue,
         origin: DOMString,
         lastEventId: DOMString,
+        ports: Vec<DomRoot<MessagePort>>,
     ) -> DomRoot<ExtendableMessageEvent> {
         let ev = Box::new(ExtendableMessageEvent {
             event: ExtendableEvent::new_inherited(),
             data: Heap::default(),
-            origin: origin,
-            lastEventId: lastEventId,
+            origin,
+            lastEventId,
+            ports,
         });
         let ev = reflect_dom_object(ev, global, ExtendableMessageEventBinding::Wrap);
         {
@@ -71,13 +75,14 @@ impl ExtendableMessageEvent {
             init.data.handle(),
             init.origin.clone().unwrap(),
             init.lastEventId.clone().unwrap(),
+            vec![],
         );
         Ok(ev)
     }
 }
 
 impl ExtendableMessageEvent {
-    pub fn dispatch_jsval(target: &EventTarget, scope: &GlobalScope, message: HandleValue) {
+    pub fn dispatch_jsval(target: &EventTarget, scope: &GlobalScope, message: HandleValue, ports: Vec<DomRoot<MessagePort>>,) {
         let Extendablemessageevent = ExtendableMessageEvent::new(
             scope,
             atom!("message"),
@@ -86,6 +91,21 @@ impl ExtendableMessageEvent {
             message,
             DOMString::new(),
             DOMString::new(),
+            ports,
+        );
+        Extendablemessageevent.upcast::<Event>().fire(target);
+    }
+
+    pub fn dispatch_error(target: &EventTarget, scope: &GlobalScope, message: HandleValue) {
+        let Extendablemessageevent = ExtendableMessageEvent::new(
+            scope,
+            atom!("messageerror"),
+            false,
+            false,
+            message,
+            DOMString::new(),
+            DOMString::new(),
+            vec![]
         );
         Extendablemessageevent.upcast::<Event>().fire(target);
     }

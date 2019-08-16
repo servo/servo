@@ -399,7 +399,7 @@ impl GlobalScope {
                     message_clone.handle(),
                     Some(&origin.ascii_serialization()),
                     None,
-                    deserialize_result.message_ports.into_iter().collect(),
+                    deserialize_result.message_ports,
                 );
             } else {
                 // Step 4, fire messageerror event.

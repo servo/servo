@@ -155,15 +155,14 @@ impl Worker {
         let target = worker.upcast();
         let _ac = enter_realm(target);
         rooted!(in(*global.get_cx()) let mut message = UndefinedValue());
-        if let Ok(mut results) = structuredclone::read(&global, data, message.handle_mut()) {
-            let new_ports = results.message_ports.drain(0..).collect();
+        if let Ok(results) = structuredclone::read(&global, data, message.handle_mut()) {
             MessageEvent::dispatch_jsval(
                 target,
                 &global,
                 message.handle(),
                 Some(&origin),
                 None,
-                new_ports,
+                results.message_ports,
             );
         } else {
             // Step 4 of the "port post message steps" of the implicit messageport, fire messageerror.
