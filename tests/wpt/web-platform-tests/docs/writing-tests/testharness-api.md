@@ -297,6 +297,11 @@ only takes `actual` and `description` as arguments.
 The description parameter is used to present more useful error messages when
 a test fails.
 
+When assertions are violated, they throw a runtime exception. This interrupts
+test execution, so subsequent statements are not evaluated. A given test can
+only fail due to one such violation, so if you would like to assert multiple
+behaviors independently, you should use multiple tests.
+
 NOTE: All asserts must be located in a `test()` or a step of an
 `async_test()`, unless the test is a single page test. Asserts outside
 these places won't be detected correctly by the harness and may cause
@@ -801,6 +806,24 @@ asserts that one `assert_func(actual, expected_array_N, extra_arg1, ..., extra_a
   with multiple allowed pass conditions are bad practice unless the spec specifically
   allows multiple behaviours. Test authors should not use this method simply to hide
   UA bugs.
+
+## Formatting ##
+
+When many JavaScript Object values are coerced to a String, the resulting value
+will be `"[object Object]"`. This obscures helpful information, making the
+coerced value unsuitable for use in assertion messages, test names, and
+debugging statements.
+
+testharness.js provides a global function named `format_value` which produces
+more distinctive string representations of many kinds of objects, including
+arrays and the more important DOM Node types. It also translates String values
+containing control characters to include human-readable representations.
+
+```js
+format_value(document); // "Document node with 2 children"
+format_value("foo\uffffbar"); // "\"foo\\uffffbar\""
+format_value([-0, Infinity]); // "[-0, Infinity]"
+```
 
 ## Metadata ##
 

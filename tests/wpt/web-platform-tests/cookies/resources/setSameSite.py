@@ -13,7 +13,8 @@ def main(request, response):
     headers.append(("Content-Type", "text/html; charset=utf-8"))
     headers.append(makeCookieHeader("samesite_strict", value, {"SameSite":"Strict","path":"/"}))
     headers.append(makeCookieHeader("samesite_lax", value, {"SameSite":"Lax","path":"/"}))
-    headers.append(makeCookieHeader("samesite_none", value, {"SameSite":"None", "path":"/"}))
+    # SameSite=None cookies must be Secure.
+    headers.append(makeCookieHeader("samesite_none", value, {"SameSite":"None", "path":"/", "Secure": ""}))
     headers.append(makeCookieHeader("samesite_unspecified", value, {"path":"/"}))
 
     document = """

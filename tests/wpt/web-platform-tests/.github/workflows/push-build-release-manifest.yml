@@ -1,0 +1,14 @@
+on: push
+name: Build & Release Manifest
+jobs:
+  manifest-build-and-tag:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: manifest-build-and-tag
+      uses: ./tools/docker/github
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        entrypoint: python
+        args: tools/ci/manifest_build.py

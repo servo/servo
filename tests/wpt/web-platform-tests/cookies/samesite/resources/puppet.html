@@ -2,9 +2,9 @@
 <script src="/cookies/resources/cookie-helper.sub.js"></script>
 <script>
   // Helper to either set or clear some cookies on its own origin, or
-  // (potentially) cross-site on ORIGIN.
+  // (potentially) cross-site on SECURE_ORIGIN.
   window.onmessage = e => {
-    var originToUse = ORIGIN;
+    var originToUse = SECURE_ORIGIN;
     if (e.data.useOwnOrigin)
       originToUse = self.origin;
 

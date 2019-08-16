@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Check that sandboxed iframe can not navigate their ancestors</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  var t = async_test();
+  var pop_state_count = 0;
+  onpopstate = t.step_func((e) => {
+    pop_state_count++;
+    if (pop_state_count == 1) {
+      // Should not generate a pop state
+      frames[0].postMessage('forward', '*');
+      t.step_timeout(() => {
+        t.done();
+      }, 1000);
+    } else if (pop_state_count > 1) {
+      assert_unreached('no pop state');
+    }
+  });
+
+  function doNavigation() {
+    history.pushState( {state: "one past"}, 'page 2', '');
+    // Should generate a pop state
+    history.back();
+  }
+</script>
+<iframe id="child_frame" sandbox="allow-scripts" src="support/iframe-tried-to-be-navigated-by-history.html" onload="doNavigation();"></iframe>

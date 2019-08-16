@@ -2,21 +2,15 @@
 (_ => {
   var HOST = "{{host}}";
   var SECURE_PORT = ":{{ports[https][0]}}";
-  var PORT = ":{{ports[http][0]}}";
   var CROSS_ORIGIN_HOST = "{{hosts[alt][]}}";
-  var SECURE_CROSS_ORIGIN_HOST = "{{hosts[alt][]}}";
 
   //For secure cookie verification
   window.SECURE_ORIGIN = "https://" + HOST + SECURE_PORT;
-  window.INSECURE_ORIGIN = "http://" + HOST + PORT;
 
   //standard references
-  window.ORIGIN = "http://" + HOST + PORT;
-  window.WWW_ORIGIN = "http://{{domains[www]}}" + PORT;
-  window.SUBDOMAIN_ORIGIN = "http://{{domains[www1]}}" + PORT;
-  window.CROSS_SITE_ORIGIN = "http://" + CROSS_ORIGIN_HOST + PORT;
-  window.SECURE_CROSS_SITE_ORIGIN = "https://" + SECURE_CROSS_ORIGIN_HOST + SECURE_PORT;
-  window.CROSS_SITE_HOST = SECURE_CROSS_ORIGIN_HOST;
+  window.SECURE_SUBDOMAIN_ORIGIN = "https://{{domains[www1]}}" + SECURE_PORT;
+  window.SECURE_CROSS_SITE_ORIGIN = "https://" + CROSS_ORIGIN_HOST + SECURE_PORT;
+  window.CROSS_SITE_HOST = CROSS_ORIGIN_HOST;
 
   // Set the global cookie name.
   window.HTTP_COOKIE = "cookie_via_http";
@@ -159,8 +153,9 @@ async function resetSameSiteCookies(origin, value) {
 }
 
 // Given an |expectedStatus| and |expectedValue|, assert the |cookies| contains the
-// proper set of cookie names and values.
-function verifySameSiteCookieState(expectedStatus, expectedValue, cookies) {
+// proper set of cookie names and values, according to the legacy behavior where
+// unspecified SameSite attribute defaults to SameSite=None behavior.
+function verifySameSiteCookieStateLegacy(expectedStatus, expectedValue, cookies) {
     assert_equals(cookies["samesite_none"], expectedValue, "SameSite=None cookies are always sent.");
     assert_equals(cookies["samesite_unspecified"], expectedValue, "Unspecified-SameSite cookies are always sent.");
     if (expectedStatus == SameSiteStatus.CROSS_SITE) {
@@ -195,10 +190,14 @@ function verifySameSiteCookieStateWithSameSiteByDefault(expectedStatus, expected
     }
 }
 
+function isLegacySameSite() {
+  return location.search === "?legacy-samesite";
+}
+
 // Get the proper verifier based on the test's variant type.
 function getSameSiteVerifier() {
-  return (location.search && location.search === "?samesite-by-default-cookies.tentative") ?
-      verifySameSiteCookieStateWithSameSiteByDefault : verifySameSiteCookieState;
+  return isLegacySameSite() ?
+      verifySameSiteCookieStateLegacy : verifySameSiteCookieStateWithSameSiteByDefault;
 }
 
 //

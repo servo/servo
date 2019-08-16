@@ -31,21 +31,40 @@ let testFunction = function(session, fakeDeviceController, t) {
         assert_not_equals(cached_input_source, null);
         assert_equals(cached_input_source.handedness, "none");
         assert_equals(cached_input_source.targetRayMode, "gaze");
+        assertProfilesEqual(cached_input_source.profiles, ["a", "b"]);
       } else if (inputChangeEvents == 2) {
         // The second event should be replacing the controller with one that has
         // the updated target ray mode.
-        validateInputSourceChange(event, "none", "tracked-pointer");
+        validateInputSourceChange(event, "none", "tracked-pointer", ["a", "b"]);
         cached_input_source = getInputSources()[0];
       } else if (inputChangeEvents == 3) {
         // The third event should be replacing the controller with one that has
         // the updated handedness.
-        validateInputSourceChange(event, "left", "tracked-pointer");
+        validateInputSourceChange(event, "left", "tracked-pointer", ["a", "b"]);
+        cached_input_source = getInputSources()[0];
+      } else if (inputChangeEvents == 4) {
+        // The fourth event should be updating the second value in the profiles
+        // array.
+        validateInputSourceChange(event, "left", "tracked-pointer", ["a", "c"]);
+        cached_input_source = getInputSources()[0];
+      } else if (inputChangeEvents == 5) {
+        // The fifth event should be removing the second value from the profiles
+        // array.
+        validateInputSourceChange(event, "left", "tracked-pointer", ["a"]);
         session.dispatchEvent(watcherDone);
       }
     });
   }
 
-  function validateInputSourceChange(event, expected_hand, expected_mode) {
+  function assertProfilesEqual(profiles, expected_profiles) {
+    assert_equals(profiles.length, expected_profiles.length);
+    for (let i = 0; i < profiles.length; ++i) {
+      assert_equals(profiles[i], expected_profiles[i]);
+    }
+  }
+
+  function validateInputSourceChange(
+      event, expected_hand, expected_mode, expected_profiles) {
     validateAdded(event.added, 1);
     validateRemoved(event.removed, 1);
     assert_true(event.removed.includes(cached_input_source));
@@ -53,6 +72,7 @@ let testFunction = function(session, fakeDeviceController, t) {
     let source = event.added[0];
     assert_equals(source.handedness, expected_hand);
     assert_equals(source.targetRayMode, expected_mode);
+    assertProfilesEqual(source.profiles, expected_profiles);
   }
 
   function validateAdded(added, length) {
@@ -95,17 +115,24 @@ let testFunction = function(session, fakeDeviceController, t) {
     handedness: "none",
     targetRayMode: "gaze",
     pointerOrigin: VALID_POINTER_TRANSFORM,
-    profiles: []
+    profiles: ["a", "b"]
   });
 
-  // Make our input source change after one frame, and wait an additional
-  // frame for that change to propogate.
-  // Two changes made in total.
+  // Make our first input source change after one frame, and wait an additional
+  // frame for that change to propogate. Then make additional changes, waiting
+  // one frame after each one to verify that they fired an inputsourceschanged
+  // event.
   session.requestAnimationFrame((time, xrFrame) => {
     input_source.setTargetRayMode("tracked-pointer");
     session.requestAnimationFrame((time, xrFrame) => {
       input_source.setHandedness("left");
-      session.requestAnimationFrame((time, xrFrame) => {});
+      session.requestAnimationFrame((time, xrFrame) => {
+        input_source.setProfiles(["a", "c"]);
+        session.requestAnimationFrame((time, xrFrame) => {
+          input_source.setProfiles(["a"]);
+          session.requestAnimationFrame((time, xrFrame) => {});
+        });
+      });
     });
   });
 

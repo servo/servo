@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8"/>
 <meta name="variant" content="">
-<meta name="variant" content="?samesite-by-default-cookies.tentative">
+<meta name="variant" content="?legacy-samesite">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/cookies/resources/cookie-helper.sub.js"></script>
@@ -15,8 +15,18 @@
             var f = document.createElement('form');
             f.action = target + "/cookies/resources/postToParent.py";
             f.target = "_blank";
-            f.method = "POST";
+            f.method = "GET";
 
+            // If |target| contains a `redir` parameter, extract it, and add it
+            // to the form so it doesn't get dropped in the submission.
+            var url = new URL(f.action);
+            if (url.pathname = "/cookies/rfc6265/resources/redirectWithCORSHeaders.py") {
+              var i = document.createElement("input");
+              i.name = "location";
+              i.value = url.searchParams.get("location");
+              i.type = "hidden";
+              f.appendChild(i);
+            }
             var reloaded = false;
             var msgHandler = e => {
               try {
@@ -35,15 +45,15 @@
               }
             };
             window.addEventListener("message", msgHandler);
-
             document.body.appendChild(f);
+
             f.submit();
           });
         });
     }, title);
   }
 
-  create_test(ORIGIN, ORIGIN, SameSiteStatus.STRICT, "Reloaded same-host top-level form POSTs are strictly same-site");
-  create_test(SUBDOMAIN_ORIGIN, SUBDOMAIN_ORIGIN, SameSiteStatus.STRICT, "Reloaded subdomain top-level form POSTs are strictly same-site");
-  create_test(CROSS_SITE_ORIGIN, CROSS_SITE_ORIGIN, SameSiteStatus.CROSS_SITE, "Reloaded cross-site top-level form POSTs are not same-site");
+  create_test(SECURE_ORIGIN, SECURE_ORIGIN, SameSiteStatus.STRICT, "Reloaded same-host top-level form GETs are strictly same-site");
+  create_test(SECURE_SUBDOMAIN_ORIGIN, SECURE_SUBDOMAIN_ORIGIN, SameSiteStatus.STRICT, "Reloaded subdomain top-level form GETs are strictly same-site");
+  create_test(SECURE_CROSS_SITE_ORIGIN, SECURE_CROSS_SITE_ORIGIN, SameSiteStatus.LAX, "Reloaded cross-site top-level form GETs are laxly same-site");
 </script>

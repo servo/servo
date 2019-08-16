@@ -17,11 +17,11 @@ dictionary OrientationSensorOptions : SensorOptions {
   OrientationSensorLocalCoordinateSystem referenceFrame = "device";
 };
 
-[Constructor(optional OrientationSensorOptions sensorOptions), SecureContext, Exposed=Window]
+[Constructor(optional OrientationSensorOptions sensorOptions = {}), SecureContext, Exposed=Window]
 interface AbsoluteOrientationSensor : OrientationSensor {
 };
 
-[Constructor(optional OrientationSensorOptions sensorOptions), SecureContext, Exposed=Window]
+[Constructor(optional OrientationSensorOptions sensorOptions = {}), SecureContext, Exposed=Window]
 interface RelativeOrientationSensor : OrientationSensor {
 };
 

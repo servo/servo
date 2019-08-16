@@ -359,7 +359,7 @@ interface Element : Node {
   [CEReactions] Attr? setAttributeNodeNS(Attr attr);
   [CEReactions] Attr removeAttributeNode(Attr attr);
 
-  ShadowRoot attachShadow(optional ShadowRootInit init = {});
+  ShadowRoot attachShadow(ShadowRootInit init);
   readonly attribute ShadowRoot? shadowRoot;
 
   Element? closest(DOMString selectors);

@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <meta charset="utf-8"/>
 <meta name="variant" content="">
-<meta name="variant" content="?samesite-by-default-cookies.tentative">
+<meta name="variant" content="?legacy-samesite">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/cookies/resources/cookie-helper.sub.js"></script>
 <script>
   promise_test(async function(t) {
-    let w = window.open(ORIGIN + "/cookies/samesite/resources/puppet.html");
-    await wait_for_message("READY", ORIGIN);
+    let w = window.open(SECURE_ORIGIN + "/cookies/samesite/resources/puppet.html");
+    await wait_for_message("READY", SECURE_ORIGIN);
     let random = "" + Math.random();
     w.postMessage({type: "set", value: random}, "*");
-    let e = await wait_for_message("set-complete", ORIGIN)
+    let e = await wait_for_message("set-complete", SECURE_ORIGIN)
     assert_dom_cookie("samesite_strict", e.data.value, true);
     assert_dom_cookie("samesite_lax", e.data.value, true);
     assert_dom_cookie("samesite_none", e.data.value, true);
@@ -20,16 +20,15 @@
   }, "Same-site window should be able to set `SameSite=Lax` or `SameSite=Strict` cookies.");
 
   promise_test(async function(t) {
-    let w = window.open(CROSS_SITE_ORIGIN + "/cookies/samesite/resources/puppet.html");
-    await wait_for_message("READY", CROSS_SITE_ORIGIN);
+    let w = window.open(SECURE_CROSS_SITE_ORIGIN + "/cookies/samesite/resources/puppet.html");
+    await wait_for_message("READY", SECURE_CROSS_SITE_ORIGIN);
     let random = "" + Math.random();
     w.postMessage({type: "set", value: random}, "*");
-    let e = await wait_for_message("set-complete", CROSS_SITE_ORIGIN);
+    let e = await wait_for_message("set-complete", SECURE_CROSS_SITE_ORIGIN);
     assert_dom_cookie("samesite_strict", e.data.value, false);
     assert_dom_cookie("samesite_lax", e.data.value, false);
     assert_dom_cookie("samesite_none", e.data.value, true);
-    assert_dom_cookie("samesite_unspecified", e.data.value,
-      location.search !== "?samesite-by-default-cookies.tentative");
+    assert_dom_cookie("samesite_unspecified", e.data.value, isLegacySameSite());
     w.close();
   }, "Cross-site window shouldn't be able to set `SameSite=Lax` or `SameSite=Strict` cookies.");
 </script>
