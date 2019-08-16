@@ -281,6 +281,8 @@ class MachCommands(CommandBase):
                 print("Can't find Visual Studio 2017 installation at %s." % base_vs_path)
                 sys.exit(1)
 
+            env['PKG_CONFIG_ALLOW_CROSS'] = "1"
+
         if uwp:
             # Don't try and build a desktop port.
             libsimpleservo = True
