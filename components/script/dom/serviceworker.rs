@@ -4,6 +4,7 @@
 
 use crate::dom::abstractworker::SimpleWorkerErrorHandler;
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::MessagePortBinding::PostMessageOptions;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerBinding::{
     ServiceWorkerMethods, ServiceWorkerState, Wrap,
 };
@@ -14,13 +15,14 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::structuredclone;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 use crate::task::TaskOnce;
 use dom_struct::dom_struct;
-use js::jsapi::JSObject;
-use js::rust::{CustomAutoRooterGuard, HandleValue};
+use js::jsapi::{Heap, JSObject};
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use script_traits::{DOMMessage, ScriptMsg};
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -78,21 +80,9 @@ impl ServiceWorker {
     pub fn get_script_url(&self) -> ServoUrl {
         ServoUrl::parse(&self.script_url.borrow().clone()).unwrap()
     }
-}
 
-impl ServiceWorkerMethods for ServiceWorker {
-    // https://w3c.github.io/ServiceWorker/#service-worker-state-attribute
-    fn State(&self) -> ServiceWorkerState {
-        self.state.get()
-    }
-
-    // https://w3c.github.io/ServiceWorker/#service-worker-url-attribute
-    fn ScriptURL(&self) -> USVString {
-        USVString(self.script_url.borrow().clone())
-    }
-
-    // https://w3c.github.io/ServiceWorker/#service-worker-postmessage
-    fn PostMessage(
+    /// https://w3c.github.io/ServiceWorker/#service-worker-postmessage
+    fn post_message_impl(
         &self,
         cx: JSContext,
         message: HandleValue,
@@ -117,6 +107,48 @@ impl ServiceWorkerMethods for ServiceWorker {
                 self.scope_url.clone(),
             ));
         Ok(())
+    }
+}
+
+impl ServiceWorkerMethods for ServiceWorker {
+    // https://w3c.github.io/ServiceWorker/#service-worker-state-attribute
+    fn State(&self) -> ServiceWorkerState {
+        self.state.get()
+    }
+
+    // https://w3c.github.io/ServiceWorker/#service-worker-url-attribute
+    fn ScriptURL(&self) -> USVString {
+        USVString(self.script_url.borrow().clone())
+    }
+
+    /// https://w3c.github.io/ServiceWorker/#service-worker-postmessage
+    fn PostMessage(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
+    ) -> ErrorResult {
+        self.post_message_impl(cx, message, transfer)
+    }
+
+    /// https://w3c.github.io/ServiceWorker/#service-worker-postmessage
+    fn PostMessage_(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        options: RootedTraceableBox<PostMessageOptions>,
+    ) -> ErrorResult {
+        let mut rooted = CustomAutoRooter::new(
+            options
+                .transfer
+                .as_ref()
+                .unwrap_or(&Vec::new())
+                .iter()
+                .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+                .collect(),
+        );
+        let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
+        self.post_message_impl(cx, message, guard)
     }
 
     // https://w3c.github.io/ServiceWorker/#service-worker-container-onerror-attribute
