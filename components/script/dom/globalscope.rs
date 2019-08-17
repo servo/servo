@@ -242,6 +242,16 @@ impl MessageListener {
     }
 }
 
+impl Drop for GlobalScope {
+    fn drop(&mut self) {
+        if let Some(router_id) = *self.message_ports_router_id.borrow_mut() {
+            let _ = self
+                .script_to_constellation_chan()
+                .send(ScriptMsg::RemoveMessagePortRouter(router_id));
+        }
+    }
+}
+
 impl GlobalScope {
     pub fn new_inherited(
         pipeline_id: PipelineId,
@@ -316,9 +326,21 @@ impl GlobalScope {
 
     /// Remove all referrences to a port.
     pub fn remove_message_port(&self, port_id: &MessagePortId) {
-        self.message_ports.borrow_mut().remove(port_id);
+        let mut ports = self.message_ports.borrow_mut();
+        ports.remove(port_id);
         self.message_port_tracker.borrow_mut().remove(port_id);
-        // TODO: tell constellaton to drop ref to our router if message-ports is empty.
+        if ports.is_empty() {
+            // Remove our port router,
+            // it will have to be setup again if we start managing port once again.
+            let router_id = self
+                .message_ports_router_id
+                .borrow_mut()
+                .take()
+                .expect("Router Id to have been setup.");
+            let _ = self
+                .script_to_constellation_chan()
+                .send(ScriptMsg::RemoveMessagePortRouter(router_id));
+        }
     }
 
     /// Handle the transfer of a port in the current task.
@@ -427,7 +449,7 @@ impl GlobalScope {
                 let _ = self
                     .script_to_constellation_chan()
                     .send(ScriptMsg::NewMessagePort(
-                        self.message_port_router_id(),
+                        self.message_ports_router_id(),
                         port_id.clone(),
                     ));
             }
@@ -468,7 +490,7 @@ impl GlobalScope {
         }
     }
 
-    fn message_port_router_id(&self) -> MessagePortRouterId {
+    fn message_ports_router_id(&self) -> MessagePortRouterId {
         self.message_ports_router_id
             .borrow()
             .clone()
@@ -517,7 +539,7 @@ impl GlobalScope {
             let _ = self
                 .script_to_constellation_chan()
                 .send(ScriptMsg::NewMessagePortRouter(
-                    self.message_port_router_id(),
+                    self.message_ports_router_id(),
                     port_control_sender,
                 ));
         }
@@ -546,7 +568,7 @@ impl GlobalScope {
             let _ = self
                 .script_to_constellation_chan()
                 .send(ScriptMsg::NewMessagePort(
-                    self.message_port_router_id(),
+                    self.message_ports_router_id(),
                     message_port_id.clone(),
                 ));
             MessagePortImpl::new(message_port_id.clone())

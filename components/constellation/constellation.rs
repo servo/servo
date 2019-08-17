@@ -1485,6 +1485,9 @@ where
             FromScriptMsg::NewMessagePortRouter(router_id, ipc_sender) => {
                 self.handle_new_messageport_router(router_id, ipc_sender);
             },
+            FromScriptMsg::RemoveMessagePortRouter(router_id) => {
+                self.handle_remove_messageport_router(router_id);
+            },
             FromScriptMsg::NewMessagePort(router_id, port_id) => {
                 self.handle_new_messageport(router_id, port_id);
             },
@@ -1734,6 +1737,10 @@ where
         control_sender: IpcSender<MessagePortMsg>,
     ) {
         self.message_port_routers.insert(router_id, control_sender);
+    }
+
+    fn handle_remove_messageport_router(&mut self, router_id: MessagePortRouterId) {
+        self.message_port_routers.remove(&router_id);
     }
 
     fn handle_new_messageport(&mut self, router_id: MessagePortRouterId, port_id: MessagePortId) {

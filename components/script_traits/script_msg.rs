@@ -121,6 +121,8 @@ pub enum ScriptMsg {
     NewMessagePort(MessagePortRouterId, MessagePortId),
     /// A global has started managing message-ports
     NewMessagePortRouter(MessagePortRouterId, IpcSender<MessagePortMsg>),
+    /// A global has stopped managing message-ports
+    RemoveMessagePortRouter(MessagePortRouterId),
     /// A task requires re-routing to an already shipped message-port.
     RerouteMessagePort(MessagePortId, PortMessageTask),
     /// A message-port was shipped, let the entangled port know.
@@ -251,6 +253,7 @@ impl fmt::Debug for ScriptMsg {
         let variant = match *self {
             GetPipelineNameSpaceId(..) => "GetPipelineNameSpaceId",
             NewMessagePortRouter(..) => "NewMessagePortRouter",
+            RemoveMessagePortRouter(..) => "RemoveMessagePortRouter",
             NewMessagePort(..) => "NewMessagePort",
             RerouteMessagePort(..) => "RerouteMessagePort",
             RemoveMessagePort(..) => "RemoveMessagePort",
