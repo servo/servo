@@ -8,7 +8,7 @@ async_test(function (t) {
 async_test(function (t) {
   self.performance.clearMeasures();
   const measure = self.performance.measure("measure2",
-      { startTime: 12, endTime:23 });
+      { start: 12, end: 23 });
   assert_true(measure instanceof PerformanceMeasure);
   t.done();
 }, "L3: performance.measure(name, param1) should return an entry.");

@@ -3,7 +3,7 @@
 <link rel="help" href="https://w3c.github.io/web-nfc/#dom-nfcreadingevent">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="resources/nfc_help.js"></script>
+<script src="resources/nfc-helpers.js"></script>
 <script>
 
   test(() => {
@@ -34,7 +34,7 @@
     const event = new NFCReadingEvent('type', {serialNumber: '', message: message});
     assert_equals(event.type, 'type', 'type');
     assert_equals(event.serialNumber, '', 'serialNumber');
-    assertWebNDEFMessagesEqual(event.message, new NDEFMessage(message), 'message');
+    assertWebNDEFMessagesEqual(event.message, message);
   }, 'NFCReadingEvent constructor with valid parameters');
 
 </script>

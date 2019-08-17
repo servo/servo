@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset=utf-8>
+<script>
+const channelName = new URL(location).searchParams.get("channel");
+const bc = new BroadcastChannel(channelName);
+window.addEventListener("message", event => {
+  bc.postMessage(event.data);
+  window.parent.close();
+});
+</script>

@@ -11,57 +11,63 @@
   }
 </style>
 <div id="log"></div>
-<iframe></iframe>
 <script>
   'use strict';
 
-  // The test does the following navigation steps for iframe
-  // 1. load page-with-fragment.html#fragment
-  // 2. load blank1
-  // 3. go back to page-with-fragment.html
-  async_test(function(t) {
-    var iframe = document.querySelector('iframe');
-    var hostInfo = get_host_info();
-    var basePath = location.pathname.substring(0, location.pathname.lastIndexOf('/'));
-    var localURL = hostInfo.HTTP_ORIGIN + basePath + '/resources/page-with-fragment.html#fragment';
-    var remoteURL = hostInfo.HTTP_REMOTE_ORIGIN + basePath + "/resources/blank1.html"
+  var next;
+  function frameOnload() {
+    if (next) {
+      next();
+      dump("next \n");
+    } else {
+      dump("no next \n");
+      // The test does the following navigation steps for iframe
+      // 1. load page-with-fragment.html#fragment
+      // 2. load blank1
+      // 3. go back to page-with-fragment.html
+      async_test(function(t) {
+        var iframe = document.querySelector('iframe');
+        var hostInfo = get_host_info();
+        var basePath = location.pathname.substring(0, location.pathname.lastIndexOf('/'));
+        var localURL = hostInfo.HTTP_ORIGIN + basePath + '/resources/page-with-fragment.html#fragment';
+        var remoteURL = hostInfo.HTTP_REMOTE_ORIGIN + basePath + "/resources/blank1.html"
 
-    var steps = [
-      function() {
-        iframe.src = 'resources/page-with-fragment.html#fragment';
-      }, function() {
-        assert_equals(iframe.contentWindow.location.href, localURL, 'should be on page-with-fragment page');
-        // wait one animation frame to ensure layout is run and fragment scrolling is complete
-        iframe.contentWindow.requestAnimationFrame(function() {
-          assert_equals(iframe.contentWindow.scrollY, 800, 'should scroll to fragment');
+        var steps = [
+          function() {
+            assert_equals(iframe.contentWindow.location.href, localURL, 'should be on page-with-fragment page');
+            // wait one animation frame to ensure layout is run and fragment scrolling is complete
+            iframe.contentWindow.requestAnimationFrame(function() {
+              assert_approx_equals(iframe.contentWindow.scrollY, 800, 5, 'should scroll to fragment');
 
-          iframe.contentWindow.history.scrollRestoration = 'manual';
-          assert_equals(iframe.contentWindow.history.scrollRestoration, 'manual');
-          setTimeout(next, 0);
+              iframe.contentWindow.history.scrollRestoration = 'manual';
+              assert_equals(iframe.contentWindow.history.scrollRestoration, 'manual');
+              setTimeout(next, 0);
+            });
+          }, function() {
+            // navigate to a new page from a different origin
+            iframe.src = remoteURL;
+          }, function() {
+            // going back causes the iframe to traverse back
+            history.back();
+          }, function() {
+            // coming back from history, scrollRestoration should be set to manual and respected
+            assert_equals(iframe.contentWindow.location.href, localURL, 'should be back on page-with-fragment page');
+            iframe.contentWindow.requestAnimationFrame(t.step_func_done(function() {
+              assert_equals(iframe.contentWindow.history.scrollRestoration, 'manual', 'navigating back should retain scrollRestoration value');
+              assert_equals(iframe.contentWindow.scrollX, 0, 'should not scroll to fragment');
+              assert_equals(iframe.contentWindow.scrollY, 0, 'should not scroll to fragment');
+            }));
+          }
+        ];
+
+        var stepCount = 0;
+        next = t.step_func(function() {
+          steps[stepCount++]();
         });
-      }, function() {
-        // navigate to a new page from a different origin
-        iframe.src = remoteURL;
-      }, function() {
-        // going back causes the iframe to traverse back
-        history.back();
-      }, function() {
-        // coming back from history, scrollRestoration should be set to manual and respected
-        assert_equals(iframe.contentWindow.location.href, localURL, 'should be back on page-with-fragment page');
-        iframe.contentWindow.requestAnimationFrame(t.step_func_done(function() {
-          assert_equals(iframe.contentWindow.history.scrollRestoration, 'manual', 'navigating back should retain scrollRestoration value');
-          assert_equals(iframe.contentWindow.scrollX, 0, 'should not scroll to fragment');
-          assert_equals(iframe.contentWindow.scrollY, 0, 'should not scroll to fragment');
-        }));
-      }
-    ];
-
-    var stepCount = 0;
-    var next = t.step_func(function() {
-      steps[stepCount++]();
-    });
-
-    iframe.onload = next;
-    next();
-  }, 'Manual scroll restoration should take precedent over scrolling to fragment in cross origin navigation');
+        next();
+      }, 'Manual scroll restoration should take precedent over scrolling to fragment in cross origin navigation');
+    }
+  }
 </script>
+<iframe src="resources/page-with-fragment.html#fragment" onload="frameOnload()"></iframe>
+

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>RTL ms lquote="X" rquote="p"</title>
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#attributes-common-to-html-and-mathml-elements">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#string-literal-ms">
+    <meta name="assert" content="Verify that a RTL ms element renders the same as if its left and right quotes were switched.">
+    <link rel="match" href="direction-009-ref.html">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+      math {
+          font: 25px/1 Ahem;
+      }
+    </style>
+  </head>
+  <body>
+
+    <p>
+      <math dir="rtl">
+        <ms lquote="X" rquote="p">É</ms>
+      </math>
+    </p>
+
+  </body>
+</html>

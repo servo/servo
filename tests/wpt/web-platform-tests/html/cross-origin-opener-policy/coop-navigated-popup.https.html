@@ -1,0 +1,29 @@
+<!doctype html>
+<title>Cross-Origin-Opener-Policy: a navigated popup</title>
+<!-- In particular this is different from coep-navigate-popup.https.html as this document initiates
+     the navigation (and uses unsafe-allow-outgoing and no COEP as without that it cannot be
+     observed). COOP should work identically, but implementations might have used the wrong
+     authority. -->
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/utils.js"></script> <!-- Use token() to allow running tests in parallel -->
+<script>
+async_test(t => {
+  const noCOOP = "/common/blank.html";
+  const popupName = token();
+  const popup = window.open(noCOOP, popupName);
+  t.add_cleanup(() => popup.close());
+  popup.onload = t.step_func(() => {
+    assert_equals(popup.name, popupName);
+    assert_equals(new URL(popup.document.URL).pathname, noCOOP);
+    const channel = new BroadcastChannel(token());
+    channel.onmessage = t.step_func_done(event => {
+      const payload = event.data;
+      assert_equals(payload.name, "");
+      assert_false(payload.opener);
+    });
+    const coop = `resources/coop-coep.py?coop=same-origin&coep=&channel=${channel.name}`;
+    popup.location = coop;
+  });
+}, "Open a popup to a document without COOP, then navigate it to a document with");
+</script>

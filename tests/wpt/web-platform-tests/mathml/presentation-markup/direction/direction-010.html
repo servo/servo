@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>dir="rtl" VS direction: rtl on math/mrow/mstyle</title>
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#attributes-common-to-html-and-mathml-elements">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#horizontally-group-sub-expressions-mrow">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#style-change-mstyle">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-top-level-math-element">
+    <meta name="assert" content="Verify that math, mrow and mstyle with a dir=rtl attribute render the same as CSS direction right-to-left.">
+    <link rel="match" href="direction-010-ref.html">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+      math {
+          font: 25px/1 Ahem;
+      }
+    </style>
+  </head>
+  <body>
+
+    <p>
+      <math dir="rtl">
+        <mtext>X</mtext>
+        <mtext>p</mtext>
+        <mtext>É</mtext>
+      </math>
+    </p>
+
+    <p>
+      <math>
+        <mrow dir="rtl">
+          <mtext>X</mtext>
+          <mtext>p</mtext>
+          <mtext>É</mtext>
+        </mrow>
+      </math>
+    </p>
+
+    <p>
+      <math>
+        <mstyle mathcolor="blue" dir="rtl">
+          <mtext>X</mtext>
+          <mtext>p</mtext>
+          <mtext>É</mtext>
+        </mstyle>
+      </math>
+    </p>
+
+  </body>
+</html>

@@ -13,6 +13,7 @@ interface PerformanceElementTiming : PerformanceEntry {
     readonly attribute DOMString id;
     readonly attribute Element? element;
     readonly attribute DOMString url;
+    [Default] object toJSON();
 };
 
 partial interface Element {

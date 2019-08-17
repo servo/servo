@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Web NFC: NFCReader option tests</title>
+<link rel="author" title="Intel" href="http://www.intel.com"/>
+<link rel="help" href="https://w3c.github.io/web-nfc/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/nfc-helpers.js"></script>
+<script>
+
+'use strict';
+
+const NFCReaderOptionTests =
+  [
+    {
+      desc: "Test that reading data succeed when NFCReaderOptions'" +
+            " recordType is set to 'empty'.",
+      readOptions: {recordType: "empty"},
+      unmatchedReadOptions: {recordType: "json"},
+      message: createMessage([createRecord('empty', '')])
+    },
+    {
+      desc: "Test that reading data succeed when NFCReaderOptions'" +
+            " recordType is set to 'json'.",
+      readOptions: {recordType: "json"},
+      unmatchedReadOptions: {recordType: "url"},
+      message: createMessage([createJsonRecord(test_json_data)])
+    },
+    {
+      desc: "Test that reading data succeed when NFCReaderOptions'" +
+            " recordType is set to 'opaque'.",
+      readOptions: {recordType: "opaque"},
+      unmatchedReadOptions: {recordType: "json"},
+      message: createMessage([createOpaqueRecord(test_buffer_data)])
+    },
+    {
+      desc: "Test that reading data succeed when NFCReaderOptions'" +
+            " recordType is set to 'text'.",
+      readOptions: {recordType: "text"},
+      unmatchedReadOptions: {recordType: "json"},
+      message: createMessage([createTextRecord(test_text_data)])
+    },
+    {
+      desc: "Test that reading data succeed when NFCReaderOptions'" +
+            " recordType is set to 'url'.",
+      readOptions: {recordType: "url"},
+      unmatchedReadOptions: {recordType: "json"},
+      message: createMessage([createUrlRecord(test_url_data)])
+    },
+    {
+      desc: "Test that the url of NFCReaderOptions filters relevant data" +
+            " sources correctly.",
+      readOptions: {url: `${location.origin}/custom/path`},
+      unmatchedReadOptions: {url: `${location.origin}/custom/invalid`},
+      message: {url: `${location.origin}/custom/path/update`,
+          records: [createTextRecord(test_text_data)]}
+    },
+    {
+      desc: "Test that the mediaType of NFCReaderOptions filters relevant data" +
+            " sources correctly.",
+      readOptions: {mediaType: "application/octet-stream"},
+      unmatchedReadOptions: {mediaType: "application/json"},
+      message: createMessage([createOpaqueRecord(test_buffer_data)])
+    },
+    {
+      desc: "Test that the compatibility of NFCReaderOptions filters relevant data" +
+            " sources correctly.",
+      readOptions: {compatibility: "vendor"},
+      unmatchedReadOptions: {compatibility: "nfc-forum"},
+      message: createMessage([createTextRecord(test_text_data)]),
+    }
+  ];
+
+const ReadMultiMessagesTests =
+  [
+    {
+      desc: "Test that filtering 'empty' record from different messages" +
+            " correctly with NFCReaderOptions' recordType is set to 'empty'.",
+      readOptions: {recordType: "empty"},
+      message: createMessage([createRecord('empty', '')]),
+      unmatchedMessage: createMessage([createJsonRecord(test_json_data)]),
+    },
+    {
+      desc: "Test that filtering 'json' record from different messages" +
+            " correctly with NFCReaderOptions' recordType is set to 'json'.",
+      readOptions: {recordType: "json"},
+      message: createMessage([createJsonRecord(test_json_data)]),
+      unmatchedMessage: createMessage([createUrlRecord(test_url_data)])
+    },
+    {
+      desc: "Test that filtering 'opaque' record from different messages" +
+            " correctly with NFCReaderOptions' recordType is set to 'opaque'.",
+      readOptions: {recordType: "opaque"},
+      message: createMessage([createOpaqueRecord(test_buffer_data)]),
+      unmatchedMessage: createMessage([createJsonRecord(test_json_data)])
+    },
+    {
+      desc: "Test that filtering 'text' record from different messages" +
+            " correctly with NFCReaderOptions' recordType is set to 'text'.",
+      readOptions: {recordType: "text"},
+      message: createMessage([createTextRecord(test_text_data)]),
+      unmatchedMessage: createMessage([createUrlRecord(test_url_data)])
+    },
+    {
+      desc: "Test that filtering 'url' record from different messages" +
+            " correctly with NFCReaderOptions' recordType is set to 'url'.",
+      readOptions: {recordType: "url"},
+      message: createMessage([createUrlRecord(test_url_data)]),
+      unmatchedMessage: createMessage([createTextRecord(test_text_data)])
+    },
+    {
+      desc: "Test that filtering 'text' record from different messages" +
+            " correctly with NFCReaderOptions' url set.",
+      readOptions: {url: `${location.origin}/custom/path`},
+      message: {url: `${location.origin}/custom/path/update`,
+          records: [createTextRecord(test_text_data)]},
+      unmatchedMessage: {url: `${location.origin}/custom/invalid`,
+          records: [createUrlRecord(test_url_data)]}
+    },
+    {
+      desc: "Test that filtering 'opaque' record from different messages" +
+            " correctly with NFCReaderOptions' mediaType set.",
+      readOptions: {mediaType: "application/octet-stream"},
+      message: createMessage([createOpaqueRecord(test_buffer_data)]),
+      unmatchedMessage: createMessage([createJsonRecord(test_json_data)])
+    },
+    {
+      desc: "Test that filtering 'text' record from different messages" +
+            " correctly with NFCReaderOptions' compatibility set.",
+      readOptions: {compatibility: "nfc-forum"},
+      message: createMessage([createTextRecord(test_text_data)]),
+      unmatchedMessage: createMessage([createJsonRecord(test_json_data)]),
+      unmatchedCompatibility: "vendor"
+    }
+  ];
+
+for (let NFCReaderOptionTest of NFCReaderOptionTests) {
+  testNFCReaderOptions(
+    NFCReaderOptionTest.message,
+    NFCReaderOptionTest.readOptions,
+    NFCReaderOptionTest.unmatchedReadOptions,
+    NFCReaderOptionTest.desc
+  );
+}
+
+for (let readMultiMessagesTest of ReadMultiMessagesTests) {
+  // Sets default message's associated compatibility
+  let unmatchedCompatibility = "nfc-forum";
+  if(readMultiMessagesTest.unmatchedCompatibility)
+    unmatchedCompatibility = readMultiMessagesTest.unmatchedCompatibility;
+
+  testReadingMultiMessages(
+    readMultiMessagesTest.message,
+    readMultiMessagesTest.readOptions,
+    readMultiMessagesTest.unmatchedMessage,
+    unmatchedCompatibility,
+    readMultiMessagesTest.desc
+  );
+}
+</script>

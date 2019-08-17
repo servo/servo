@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Rhythmic Sizing: getComputedStyle().lineHeightStep</title>
+<link rel="help" href="https://drafts.csswg.org/css-rhythm/#propdef-line-height-step">
+<meta name="assert" content="line-height-step computed value is an absolute length.">
+<meta name="assert" content="line-height-step is not negative.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #target {
+    font-size: 40px;
+  }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("line-height-step", "calc(10px + 0.5em)", "30px");
+test_computed_value("line-height-step", "calc(10px - 0.5em)", "0px");
+</script>
+</body>
+</html>

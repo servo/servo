@@ -19,23 +19,25 @@ self.addEventListener('install', (event) => {
 });
 
 // Resolves when the service worker receives the 'activate' event.
-const kServiceWorkerActivatedPromise = new Promise(resolve => {
+const kServiceWorkerActivatedPromise = new Promise((resolve) => {
   self.addEventListener('activate', event => { resolve(); });
+});
+
+const kCookieChangeReceivedPromise = new Promise((resolve) => {
+  self.addEventListener('cookiechange', (event) => {
+    resolve(event);
+  });
 });
 
 promise_test(async testCase => {
   await kServiceWorkerActivatedPromise;
-
-  const cookie_change_received_promise = new Promise((resolve) => {
-    self.oncookiechange = (event) => { resolve(event); };
-  });
 
   await cookieStore.set('cookie-name', 'cookie-value');
   testCase.add_cleanup(async () => {
     await cookieStore.delete('cookie-name');
   });
 
-  const event = await cookie_change_received_promise;
+  const event = await kCookieChangeReceivedPromise;
   assert_equals(event.type, 'cookiechange');
   assert_equals(event.changed.length, 1);
   assert_equals(event.changed[0].name, 'cookie-name');
