@@ -243,7 +243,6 @@ impl LayoutThreadFactory for LayoutThread {
         font_cache_thread: FontCacheThread,
         time_profiler_chan: profile_time::ProfilerChan,
         mem_profiler_chan: profile_mem::ProfilerChan,
-        content_process_shutdown_chan: Option<IpcSender<()>>,
         webrender_api_sender: webrender_api::RenderApiSender,
         webrender_document: webrender_api::DocumentId,
         paint_time_metrics: PaintTimeMetrics,
@@ -311,9 +310,6 @@ impl LayoutThreadFactory for LayoutThread {
                         sender,
                         Msg::CollectReports,
                     );
-                }
-                if let Some(content_process_shutdown_chan) = content_process_shutdown_chan {
-                    let _ = content_process_shutdown_chan.send(());
                 }
             })
             .expect("Thread spawning failed");
@@ -819,7 +815,6 @@ impl LayoutThread {
             self.font_cache_thread.clone(),
             self.time_profiler_chan.clone(),
             self.mem_profiler_chan.clone(),
-            info.content_process_shutdown_chan,
             self.webrender_api.clone_sender(),
             self.webrender_document,
             info.paint_time_metrics,
