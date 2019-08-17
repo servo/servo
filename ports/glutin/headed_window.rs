@@ -675,7 +675,7 @@ fn load_icon(icon_bytes: &[u8]) -> Icon {
         let (width, height) = image.dimensions();
         let mut rgba = Vec::with_capacity((width * height) as usize * 4);
         for (_, _, pixel) in image.pixels() {
-            rgba.extend_from_slice(&pixel.to_rgba().data);
+            rgba.extend_from_slice(&pixel.to_rgba().0);
         }
         (rgba, width, height)
     };
