@@ -350,7 +350,7 @@ pub struct Constellation<Message, LTF, STF> {
     /// A map of message-port Id to info.
     message_ports: HashMap<MessagePortId, MessagePortInfo>,
 
-    /// A map of pipeline-id to ipc-sender, to route messages to ports.
+    /// A map of router-id to ipc-sender, to route messages to ports.
     message_port_routers: HashMap<MessagePortRouterId, IpcSender<MessagePortMsg>>,
 
     /// The set of all the pipelines in the browser.  (See the `pipeline` module
