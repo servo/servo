@@ -63,8 +63,6 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
-use url::form_urlencoded::Serializer;
-use url::UrlQuery;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
@@ -463,13 +461,12 @@ impl HTMLFormElement {
     ) {
         let charset = encoding.name();
 
-        self.set_encoding_override(load_data.url.as_mut_url().query_pairs_mut())
-            .clear()
-            .extend_pairs(
-                form_data
-                    .into_iter()
-                    .map(|field| (field.name.clone(), field.replace_value(charset))),
-            );
+        self.set_url_query_pairs(
+            &mut load_data.url,
+            form_data
+                .iter()
+                .map(|field| (&*field.name, field.replace_value(charset))),
+        );
 
         self.plan_to_navigate(load_data, target);
     }
@@ -492,13 +489,12 @@ impl HTMLFormElement {
                     .typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
 
                 let mut url = load_data.url.clone();
-                self.set_encoding_override(url.as_mut_url().query_pairs_mut())
-                    .clear()
-                    .extend_pairs(
-                        form_data
-                            .into_iter()
-                            .map(|field| (field.name.clone(), field.replace_value(charset))),
-                    );
+                self.set_url_query_pairs(
+                    &mut url,
+                    form_data
+                        .iter()
+                        .map(|field| (&*field.name, field.replace_value(charset))),
+                );
 
                 url.query().unwrap_or("").to_string().into_bytes()
             },
@@ -521,13 +517,17 @@ impl HTMLFormElement {
         self.plan_to_navigate(load_data, target);
     }
 
-    fn set_encoding_override<'a>(
+    fn set_url_query_pairs<'a>(
         &self,
-        mut serializer: Serializer<UrlQuery<'a>>,
-    ) -> Serializer<UrlQuery<'a>> {
+        url: &mut servo_url::ServoUrl,
+        pairs: impl Iterator<Item = (&'a str, String)>,
+    ) {
         let encoding = self.pick_encoding();
-        serializer.custom_encoding_override(move |s| encoding.encode(s).0);
-        serializer
+        url.as_mut_url()
+            .query_pairs_mut()
+            .encoding_override(Some(&|s| encoding.encode(s).0))
+            .clear()
+            .extend_pairs(pairs);
     }
 
     /// [Planned navigation](https://html.spec.whatwg.org/multipage/#planned-navigation)

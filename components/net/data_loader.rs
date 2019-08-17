@@ -4,8 +4,8 @@
 
 use base64;
 use mime::Mime;
+use percent_encoding::percent_decode;
 use servo_url::ServoUrl;
-use url::percent_encoding::percent_decode;
 use url::Position;
 
 pub enum DecodeError {

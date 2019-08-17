@@ -30,7 +30,7 @@ use url::{Position, Url};
 
 pub use url::Host;
 
-#[derive(Clone, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct ServoUrl(#[ignore_malloc_size_of = "Arc"] Arc<Url>);
 
 impl ToShmem for ServoUrl {
@@ -220,23 +220,5 @@ impl Index<Range<Position>> for ServoUrl {
 impl From<Url> for ServoUrl {
     fn from(url: Url) -> Self {
         ServoUrl::from_url(url)
-    }
-}
-
-impl serde::Serialize for ServoUrl {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        url_serde::serialize(&*self.0, serializer)
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for ServoUrl {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        url_serde::deserialize(deserializer).map(Self::from_url)
     }
 }

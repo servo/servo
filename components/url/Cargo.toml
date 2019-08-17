@@ -17,6 +17,5 @@ to_shmem = { path = "../to_shmem" }
 to_shmem_derive = { path = "../to_shmem_derive" }
 serde = {version = "1.0", features = ["derive"]}
 servo_rand = {path = "../rand"}
-url = "1.2"
-url_serde = {version = "0.2"}
+url = {version = "2.0", features = ["serde"]}
 uuid = {version = "0.7", features = ["v4", "serde"]}
