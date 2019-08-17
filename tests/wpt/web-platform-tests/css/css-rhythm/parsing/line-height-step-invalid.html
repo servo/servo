@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Rhythmic Sizing: parsing line-height-step with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-rhythm/#propdef-line-height-step">
+<meta name="assert" content="line-height-step supports only the grammar '<length>'.">
+<meta name="assert" content="line-height-step rejects negative lengths.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("line-height-step", "auto");
+test_invalid_value("line-height-step", "normal");
+
+test_invalid_value("line-height-step", "10");
+test_invalid_value("line-height-step", "10px 20px");
+test_invalid_value("line-height-step", "-1px");
+test_invalid_value("line-height-step", "4%");
+</script>
+</body>
+</html>

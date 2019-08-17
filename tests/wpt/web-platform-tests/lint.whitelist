@@ -309,6 +309,8 @@ SET TIMEOUT: css/css-fonts/font-display/font-display-feature-policy-01.tentative
 SET TIMEOUT: css/css-fonts/font-display/font-display-feature-policy-02.tentative.html
 SET TIMEOUT: css/css-fonts/font-display/font-display-preload.html
 SET TIMEOUT: html/browsers/windows/auxiliary-browsing-contexts/resources/close-opener.html
+SET TIMEOUT: html/cross-origin-embedder-policy/resources/navigate-none.sub.html
+SET TIMEOUT: html/cross-origin-embedder-policy/resources/navigate-require-corp.sub.html
 SET TIMEOUT: html/dom/documents/dom-tree-accessors/Document.currentScript.html
 SET TIMEOUT: html/webappapis/timers/*
 SET TIMEOUT: resources/chromium/*
@@ -808,7 +810,7 @@ MISSING-LINK: css/filter-effects/*.any.js
 
 # Tests that use WebKit/Blink testing APIs
 LAYOUTTESTS APIS: css/css-regions/interactivity/*
-LAYOUTTESTS APIS: import-maps/resolving.tentative.html
+LAYOUTTESTS APIS: import-maps/resources/jest-test-helper.js
 LAYOUTTESTS APIS: permissions/test-background-fetch-permission.html
 LAYOUTTESTS APIS: resources/chromium/generic_sensor_mocks.js
 LAYOUTTESTS APIS: resources/chromium/webxr-test.js

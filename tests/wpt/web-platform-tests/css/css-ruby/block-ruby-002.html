@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+  -->
+<html lang="ja">
+<meta charset="utf-8">
+<title>CSS Ruby Test: blockification/inlinification of 'display:ruby/block ruby'.</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-display/#propdef-display">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#box-fixup">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#inlinify">
+<link rel="match" href="block-ruby-002-ref.html">
+<style>
+ruby { display: ruby; background: lightblue; }
+rbb { display: block ruby; background: lightblue; }
+grid { display: grid; }
+.mbp {
+  margin: 1px 3px 5px 7px;
+  padding: 3px 5px 7px 1px;
+  border-width: 3px 1px 7px 5px;
+  border-style: solid;
+}
+rbc {
+  display: ruby-base-container;
+  unicode-bidi: isolate;
+}
+rtc {
+  display: ruby-text-container;
+  unicode-bidi: isolate;
+}
+</style>
+<grid>A<ruby>べ<rt>る</rt></ruby>B</grid>
+<grid>A<ruby class=mbp>べ<rt>る</rt></ruby>B</grid>
+<grid>A
+    <ruby>べ<rt>る</rt></ruby>
+    <ruby><rbc>一</rbc><rbc>二</rbc><rbc>三</rbc><rbc>四</rbc><rbc>五</rbc><rbc>六</rbc><rbc>七</rbc><rbc>八</rbc></ruby>
+B
+</grid>
+<ruby>べ<rt><rbb>る</rbb></rt></ruby>
+<ruby>べ<rbc><rbb>る</rbb></rbc></ruby>
+<ruby>べ<rtc><rbb>る</rbb></rtc></ruby>
+<ruby>べ<rbb>る</rbb></ruby>
+
+<pre></pre>
+<script>
+let ruby = Array.prototype.slice.call(document.querySelectorAll('ruby,rbb'));
+let result = ruby.map(e => window.getComputedStyle(e).display + ', ').reduce((s, t) => s + t, "");
+document.querySelector('pre').appendChild(document.createTextNode(result));
+</script>
+</html>

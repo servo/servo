@@ -27,6 +27,8 @@ test_method_throw_exception('performance.measure("Exception4", "NonExistMark1", 
 test_method_throw_exception('performance.measure("Exception5", "ExistMark", "NonExistMark1")', 'SYNTAX_ERR');
 test_method_throw_exception('performance.measure("Exception6", "NonExistMark1", "NonExistMark2")', 'SYNTAX_ERR');
 test_method_throw_exception('performance.measure("Exception7", "redirectStart")', 'INVALID_ACCESS_ERR');
+test_method_throw_exception('performance.measure("Exception8", {"detail": "non-empty"})', TypeError());
+test_method_throw_exception('performance.measure("Exception9", {"start": 1, "duration": 2, "end": 3})', TypeError());
 </script>
 </body>
 </html>

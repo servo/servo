@@ -14,6 +14,9 @@ addEventListener('install', event => {
 });
 
 addEventListener('message', event => {
+  let resolveWaitUntil;
+  event.waitUntil(new Promise(resolve => { resolveWaitUntil = resolve; }));
+
   // Use a dedicated MessageChannel for every request so senders can wait for
   // individual requests to finish, and concurrent requests (to different
   // workers) don't cause race conditions.
@@ -23,13 +26,13 @@ addEventListener('message', event => {
       case 'awaitInstallEvent':
         installEventFired.then(() => {
             port.postMessage('installEventFired');
-        });
+        }).finally(resolveWaitUntil);
         break;
 
       case 'finishInstall':
         installFinished.then(() => {
             port.postMessage('installFinished');
-        });
+        }).finally(resolveWaitUntil);
         finishInstall();
         break;
 
@@ -44,13 +47,14 @@ addEventListener('message', event => {
                 success: false,
                 exception: exception.name,
             });
-        });
+        }).finally(resolveWaitUntil);
         port.postMessage(channel.port1, [channel.port1]);
         break;
       }
 
       default:
         port.postMessage('Unexpected command ' + event.data);
+        resolveWaitUntil();
         break;
     }
   };

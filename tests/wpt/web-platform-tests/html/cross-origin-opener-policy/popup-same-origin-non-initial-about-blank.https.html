@@ -1,0 +1,15 @@
+<!doctype html>
+<title>Cross-Origin-Opener-Policy: about:blank</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+async_test(t => {
+  const popup = window.open("resources/coop-coep.py?coop=same-origin&coep=&navigate=about:blank");
+  assert_equals(window, popup.opener);
+  t.step_timeout(() => {
+    assert_equals(popup.location.href, "about:blank");
+    popup.close();
+    t.done();
+  }, 500);
+}, "Navigating a popup to about:blank");
+</script>

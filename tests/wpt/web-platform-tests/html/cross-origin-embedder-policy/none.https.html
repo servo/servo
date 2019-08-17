@@ -1,0 +1,79 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<title>Cross-Origin-Embedder-Policy header and nested navigable resource without such header</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/utils.js></script> <!-- Use token() to allow running tests in parallel -->
+<div id=log></div>
+<script>
+async_test(t => {
+  const frame = document.createElement("iframe");
+  t.add_cleanup(() => frame.remove());
+  frame.onload = t.step_func_done(() => {
+    assert_not_equals(frame.contentDocument, null);
+  });
+  frame.src = "/common/blank.html";
+  document.body.append(frame);
+  assert_equals(frame.contentDocument.body.localName, "body");
+}, `"none" top-level: navigating a frame to "none" should succeed`);
+
+async_test(t => {
+  const frame = document.createElement("iframe");
+  t.add_cleanup(() => frame.remove());
+  const blank = "/common/blank.html";
+  let firstNavOk = false;
+  frame.onload = t.step_func(() => {
+    if (!firstNavOk) {
+      assert_not_equals(frame.contentDocument, null);
+      firstNavOk = true;
+    } else {
+      assert_not_equals(frame.contentDocument, null);
+      assert_equals(frame.contentWindow.location.pathname, blank);
+      t.done();
+    }
+  });
+  frame.src = `resources/navigate-require-corp.sub.html?to=${blank}`;
+  document.body.append(frame);
+  assert_equals(frame.contentDocument.body.localName, "body");
+}, `"none" top-level: navigating a frame from "require-corp" to "none" should succeed`);
+
+async_test(t => {
+  const w = window.open(`resources/navigate-none.sub.html?to=navigate-require-corp.sub.html`, "window_name");
+  t.add_cleanup(() => w.close());
+
+  t.step_timeout(() => {
+    w.history.back();
+    t.step_timeout(() => {
+      assert_not_equals(w.document, null);
+      t.done();
+    }, 500);
+  }, 500);
+}, `"none" top-level: navigating a frame back from "require-corp" should succeed`);
+
+async_test(t => {
+  let pageLoaded = false;
+  const bc = new BroadcastChannel(token());
+  let finished = false;
+  bc.onmessage = t.step_func((event) => {
+    pageLoaded = true;
+    let payload = event.data;
+    assert_equals(payload, "loaded");
+  });
+
+  const bc2 = new BroadcastChannel(token());
+  bc2.onmessage = t.step_func((event) => {
+    finished = true;
+    let payload = event.data;
+    assert_equals(payload, "loaded");
+  });
+
+  const win = window.open(`resources/navigate-require-corp.sub.html?channelName=${bc.name}&to=navigate-none.sub.html?channelName=${bc2.name}`, "_blank", "noopener");
+  assert_equals(win, null);
+
+  t.step_timeout(() => {
+    assert_true(pageLoaded);
+    assert_true(finished);
+    t.done();
+  }, 500);
+}, `"require-corp" top-level noopener popup: navigating to "none" should succeed`);
+</script>

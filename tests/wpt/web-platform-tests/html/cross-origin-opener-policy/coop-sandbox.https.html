@@ -1,0 +1,22 @@
+<!doctype html>
+<title>Sandboxed Cross-Origin-Opener-Policy popup should result in a network error</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/utils.js"></script> <!-- Use token() to allow running tests in parallel -->
+<div id=log>
+<script>
+async_test(t => {
+  const frame = document.createElement("iframe");
+  const channel = new BroadcastChannel(token());
+  channel.onmessage = t.unreached_func("A COOP popup was created from a sandboxed frame");
+  t.add_cleanup(() => frame.remove());
+  frame.sandbox = "allow-popups allow-scripts allow-same-origin";
+  frame.srcdoc = `<script>
+const popup = window.open("resources/coop-coep.py?coop=same-origin&coep=&channel=${channel.name}");
+<\/script>`;
+  document.body.append(frame);
+  t.step_timeout(() => {
+    t.done()
+  }, 500);
+});
+</script>

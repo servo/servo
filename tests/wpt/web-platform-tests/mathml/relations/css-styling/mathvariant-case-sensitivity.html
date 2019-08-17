@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>mathvariant case sensitivity</title>
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-mathvariant-attribute">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#new-text-transform-values">
+<link rel="match" href="mathvariant-case-sensitivity-ref.html"/>
+<meta name="assert" content="Verify that mathvariant value is case insensitive">
+<style>
+  @font-face {
+      font-family: mathvariant-bold-fraktur;
+      src: url("/fonts/math/mathvariant-bold-fraktur.woff");
+  }
+  @font-face {
+      font-family: mathvariant-bold;
+      src: url("/fonts/math/mathvariant-bold.woff");
+  }
+  @font-face {
+      font-family: mathvariant-bold-italic;
+      src: url("/fonts/math/mathvariant-bold-italic.woff");
+  }
+  @font-face {
+      font-family: mathvariant-bold-sans-serif;
+      src: url("/fonts/math/mathvariant-bold-sans-serif.woff");
+  }
+  @font-face {
+      font-family: mathvariant-bold-script;
+      src: url("/fonts/math/mathvariant-bold-script.woff");
+  }
+  @font-face {
+      font-family: mathvariant-double-struck;
+      src: url("/fonts/math/mathvariant-double-struck.woff");
+  }
+  @font-face {
+      font-family: mathvariant-fraktur;
+      src: url("/fonts/math/mathvariant-fraktur.woff");
+  }
+  @font-face {
+      font-family: mathvariant-initial;
+      src: url("/fonts/math/mathvariant-initial.woff");
+  }
+  @font-face {
+      font-family: mathvariant-italic;
+      src: url("/fonts/math/mathvariant-italic.woff");
+  }
+  @font-face {
+      font-family: mathvariant-looped;
+      src: url("/fonts/math/mathvariant-looped.woff");
+  }
+  @font-face {
+      font-family: mathvariant-monospace;
+      src: url("/fonts/math/mathvariant-monospace.woff");
+  }
+  @font-face {
+      font-family: mathvariant-sans-serif-bold-italic;
+      src: url("/fonts/math/mathvariant-sans-serif-bold-italic.woff");
+  }
+  @font-face {
+      font-family: mathvariant-sans-serif;
+      src: url("/fonts/math/mathvariant-sans-serif.woff");
+  }
+  @font-face {
+      font-family: mathvariant-sans-serif-italic;
+      src: url("/fonts/math/mathvariant-sans-serif-italic.woff");
+  }
+  @font-face {
+      font-family: mathvariant-script;
+      src: url("/fonts/math/mathvariant-script.woff");
+  }
+  @font-face {
+      font-family: mathvariant-stretched;
+      src: url("/fonts/math/mathvariant-stretched.woff");
+  }
+  @font-face {
+      font-family: mathvariant-tailed;
+      src: url("/fonts/math/mathvariant-tailed.woff");
+  }
+</style>
+<body>
+  <p>
+    <math style="font-family: mathvariant-bold-fraktur">
+      <mtext mathvariant="BoLd-fRaKtUr">&#x41;</mtext>
+    </math>
+  </p>
+  <p>
+    <math style="font-family: mathvariant-bold">
+      <mtext mathvariant="BoLd">&#x41;</mtext>
+    </math>
+  </p>
+  <p>
+    <math style="font-family: mathvariant-bold-italic">
+      <mtext mathvariant="BoLd-iTaLiC">&#x41;</mtext>
+    </math>
+  </p>
+  <p>
+    <math style="font-family: mathvariant-bold-sans-serif">
+      <mtext mathvariant="BoLd-sAnS-SeRiF">&#x41;</mtext>
+    </math>
+  </p>
+  <p>
+    <math style="font-family: mathvariant-bold-script">
+      <mtext mathvariant="BoLd-sCrIpT">&#x41;</mtext>
+    </math>
+  </p>
+  <p>
+    <math style="font-family: mathvariant-double-struck">
+      <mtext mathvariant="DoUbLe-sTrUcK">&#x41;</mtext>
+    </math>
+  </p>
+  <p>
+    <math style="font-family: mathvariant-fraktur">
+      <mtext mathvariant="FrAkTuR">&#x41;</mtext>
+    </math>
+  </p>
+  <p>
+    <math style="font-family: mathvariant-initial">
+      <mtext mathvariant="InItIaL">&#x641;</mtext>
+    </math>
+  </p>
+  <p>
+    <math style="font-family: mathvariant-italic">
+      <mtext mathvariant="ItAlIc">&#x41;</mtext>
+    </math>
+  </p>
+  <p>
+    <math style="font-family: mathvariant-looped">
+      <mtext mathvariant="LoOpEd">&#x641;</mtext>
+    </math>
+  </p>
+  <p>
+    <math style="font-family: mathvariant-monospace">
+      <mtext mathvariant="MoNoSpAcE">&#x41;</mtext>
+    </math>
+  </p>
+  <p>
+    <math style="font-family: mathvariant-sans-serif-bold-italic">
+      <mtext mathvariant="SaNs-sErIf-bOlD-ItAlIc">&#x41;</mtext>
+    </math>
+  </p>
+  <p>
+    <math style="font-family: mathvariant-sans-serif">
+      <mtext mathvariant="SaNs-sErIf">&#x41;</mtext>
+    </math>
+  </p>
+  <p>
+    <math style="font-family: mathvariant-sans-serif-italic">
+      <mtext mathvariant="SaNs-sErIf-iTaLiC">&#x41;</mtext>
+    </math>
+  </p>
+  <p>
+    <math style="font-family: mathvariant-script">
+      <mtext mathvariant="ScRiPt">&#x41;</mtext>
+    </math>
+  </p>
+  <p>
+    <math style="font-family: mathvariant-stretched">
+      <mtext mathvariant="StReTcHeD">&#x641;</mtext>
+    </math>
+  </p>
+  <p>
+    <math style="font-family: mathvariant-tailed">
+      <mtext mathvariant="TaIlEd">&#x642;</mtext>
+    </math>
+  </p>
+</body>
+</html>

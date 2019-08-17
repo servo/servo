@@ -1,6 +1,7 @@
 # This is the configuration file for Azure Pipelines, used to run tests on
 # macOS. Documentation to help understand this setup:
 # https://docs.microsoft.com/en-us/azure/devops/pipelines/yaml-schema
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/build/triggers
 # https://docs.microsoft.com/en-us/azure/devops/pipelines/process/multiple-phases
 # https://docs.microsoft.com/en-us/azure/devops/pipelines/process/templates
 # https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables
@@ -10,12 +11,19 @@
 # project is required:
 #  - The "Build pull requests from forks of this repository" setting must be
 #    enabled: https://docs.microsoft.com/en-us/azure/devops/pipelines/repos/github#validate-contributions-from-forks
-#  - A scheduled build needs to be set up for one of the epochs/* branches.
 #  - Self-hosted agents for Windows 10 are used:
 #    - 'Hosted Windows Client' is the latest Windows 10
 #    - 'Hosted Windows Client Next' is Windows 10 Insider Preview
 #    Documention for the setup of these agents:
 #    https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/v2-windows
+
+schedules:
+- cron: "15 */6 * * *"
+  displayName: Every six hours
+  branches:
+    include:
+    - epochs/six_hourly
+  always: true
 
 jobs:
 # The affected tests jobs are unconditional for speed, as most PRs have one or
@@ -234,11 +242,11 @@ jobs:
 
 # All `./wpt run` tests are run from epochs/* branches on a schedule. See
 # documentation at the top of this file for required setup.
-- job: results_edge
+- job: results_edge_dev
   displayName: 'all tests: Edge Dev'
   condition: |
     or(eq(variables['Build.Reason'], 'Schedule'),
-       and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge']))
+       and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge_dev']))
   # There are 12 agents in the pool, but use more jobs so that each takes <1h.
   strategy:
     parallel: 20
@@ -263,18 +271,18 @@ jobs:
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
     inputs:
-      artifactName: 'edge-results'
+      artifactName: 'edge-dev-results'
   - template: tools/ci/azure/cleanup_win10.yml
 - template: tools/ci/azure/fyi_hook.yml
   parameters:
-    dependsOn: results_edge
-    artifactName: edge-results
+    dependsOn: results_edge_dev
+    artifactName: edge-dev-results
 
 - job: results_edge_canary
   displayName: 'all tests: Edge Canary'
   condition: |
     or(eq(variables['Build.Reason'], 'Schedule'),
-       and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge']))
+       and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge_canary']))
   # There are 12 agents in the pool, but use more jobs so that each takes <1h.
   strategy:
     parallel: 20

@@ -1,0 +1,48 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Largest Contentful Paint: observe element with background image in its first letter</title>
+<body>
+<style>
+#target::first-letter {
+  background-image: url('/images/black-rectangle.png');
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+  let beforeRender = performance.now();
+  async_test(function (t) {
+    if (!window.LargestContentfulPaint) {
+      assert_unreached("LargestContentfulPaint is not implemented");
+    }
+    const observer = new PerformanceObserver(
+      t.step_func(function(entryList) {
+        entryList.getEntries().forEach(entry => {
+          // If we happen to get a text entry due to text happening before the image, return.
+          if (entry.url === '')
+            return;
+          assert_equals(entry.entryType, 'largest-contentful-paint');
+          assert_greater_than_equal(entry.renderTime, beforeRender,
+            'The rendering timestamp should occur after script starts running.');
+          assert_greater_than_equal(performance.now(), entry.renderTime,
+            'The rendering timestamp should occur before the entry is dispatched to the observer.');
+          assert_equals(entry.startTime, entry.renderTime, 'startTime should equal renderTime');
+          assert_equals(entry.duration, 0);
+          assert_greater_than_equal(entry.size, 0);
+          assert_equals(entry.id, 'target');
+          const pathname = window.location.origin + '/images/black-rectangle.png';
+          assert_equals(entry.url, pathname);
+          assert_greater_than(entry.loadTime, beforeRender,
+            'The load timestamp should occur after script starts running.');
+          assert_less_than(entry.loadTime, entry.renderTime,
+            'The load timestamp should occur before the render timestamp.')
+          assert_equals(entry.element, document.getElementById('target'));
+          t.done();
+      })
+    }));
+    observer.observe({entryTypes: ['largest-contentful-paint']});
+  }, 'Largest Contentful Paint: first-letter is observable.');
+</script>
+<div id='target'>A</div>
+</body>

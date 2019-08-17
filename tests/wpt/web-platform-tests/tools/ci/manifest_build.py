@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class Status(object):
     SUCCESS = 0
     FAIL = 1
-    NEUTRAL = 78
+    NEUTRAL = 0
 
 
 def run(cmd, return_stdout=False, **kwargs):

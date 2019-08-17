@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>RTL mtable and mtable with frame</title>
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#attributes-common-to-html-and-mathml-elements">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#tabular-math">
+    <meta name="assert" content="Verify RTL math table renders the same as the column mirrored.">
+    <link rel="match" href="direction-006-ref.html">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+      math, math * {
+          font: 25px Ahem;
+      }
+    </style>
+  </head>
+  <body>
+
+    <p>
+      <math dir="rtl">
+        <mtable>
+          <mtr>
+            <mtd>
+              <mtext>X</mtext>
+            </mtd>
+            <mtd>
+              <mtext>p</mtext>
+            </mtd>
+            <mtd>
+              <mtext>É</mtext>
+            </mtd>
+          </mtr>
+          <mtr>
+            <mtd>
+              <mtext>Xp</mtext>
+            </mtd>
+            <mtd>
+              <mtext>XÉ</mtext>
+            </mtd>
+            <mtd>
+              <mtext>pÉ</mtext>
+            </mtd>
+          </mtr>
+        </mtable>
+      </math>
+    </p>
+
+    <p>
+      <math dir="rtl">
+        <mtable frame="solid">
+          <mtr>
+            <mtd>
+              <mtext>X</mtext>
+            </mtd>
+            <mtd>
+              <mtext>p</mtext>
+            </mtd>
+            <mtd>
+              <mtext>É</mtext>
+            </mtd>
+          </mtr>
+          <mtr>
+            <mtd>
+              <mtext>Xp</mtext>
+            </mtd>
+            <mtd>
+              <mtext>XÉ</mtext>
+            </mtd>
+            <mtd>
+              <mtext>pÉ</mtext>
+            </mtd>
+          </mtr>
+        </mtable>
+      </math>
+    </p>
+
+  </body>
+</html>

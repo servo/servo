@@ -13,6 +13,9 @@ var check_report_format = (reports, observer) => {
   assert_equals(report.url, document.location.href);
   assert_equals(report.body.featureId, "unoptimized-lossy-images");
   assert_equals(report.body.disposition, "enforce");
+  assert_equals(report.body.sourceFile, document.getElementsByTagName('img')[0].src);
+  assert_equals(report.body.lineNumber, null);
+  assert_equals(report.body.columnNumber, null);
 };
 
 async_test(t => {

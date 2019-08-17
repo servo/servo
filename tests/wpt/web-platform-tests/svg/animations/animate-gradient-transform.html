@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Tests if gradientTransform of a gradient is animateable.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg>
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup test document
+var gradient = createSVGElement("linearGradient");
+gradient.setAttribute("id", "gradient");
+gradient.setAttribute("gradientUnits", "userSpaceOnUse");
+gradient.setAttribute("x1", "0");
+gradient.setAttribute("x2", "200");
+gradient.setAttribute("gradientTransform", "translate(0)");
+
+var stop1 = createSVGElement("stop");
+stop1.setAttribute("offset", "0");
+stop1.setAttribute("stop-color", "green");
+
+var stop2 = createSVGElement("stop");
+stop2.setAttribute("offset", "1");
+stop2.setAttribute("stop-color", "red");
+
+var animate = createSVGElement("animateTransform");
+animate.setAttribute("id", "animation");
+animate.setAttribute("attributeName", "gradientTransform");
+animate.setAttribute("type", "translate");
+animate.setAttribute("from", "0");
+animate.setAttribute("to", "200");
+animate.setAttribute("begin", "0s");
+animate.setAttribute("dur", "4s");
+animate.setAttribute("fill", "freeze");
+
+var rect = createSVGElement("rect");
+rect.setAttribute("id", "rect");
+rect.setAttribute("fill", "url(#gradient)");
+rect.setAttribute("width", "200");
+rect.setAttribute("height", "200");
+rect.setAttribute("onclick", "executeTest()");
+
+gradient.appendChild(stop1);
+gradient.appendChild(stop2);
+gradient.appendChild(animate);
+
+rootSVGElement.appendChild(gradient);
+rootSVGElement.appendChild(rect);
+
+// Setup animation test
+function sample1() {
+    // Check initial conditions
+    shouldThrow("gradient.gradientTransform.animVal.consolidate()");
+    assert_equals(gradient.gradientTransform.animVal.numberOfItems, 1);
+    assert_approx_equals(gradient.gradientTransform.animVal.getItem(0).matrix.e, 0, epsilon);
+    assert_equals(gradient.gradientTransform.animVal.getItem(0).type, SVGTransform.SVG_TRANSFORM_TRANSLATE);
+
+    assert_equals(gradient.gradientTransform.baseVal.numberOfItems, 1);
+    assert_equals(gradient.gradientTransform.baseVal.getItem(0).type, SVGTransform.SVG_TRANSFORM_TRANSLATE);
+    assert_equals(gradient.gradientTransform.baseVal.getItem(0).matrix.e, 0);
+}
+
+function sample2() {
+    // Check half-time conditions
+    assert_equals(gradient.gradientTransform.animVal.numberOfItems, 1);
+    assert_equals(gradient.gradientTransform.animVal.getItem(0).type, SVGTransform.SVG_TRANSFORM_TRANSLATE);
+    assert_approx_equals(gradient.gradientTransform.animVal.getItem(0).matrix.e, 100, epsilon);
+
+    assert_equals(gradient.gradientTransform.baseVal.numberOfItems, 1);
+    assert_equals(gradient.gradientTransform.baseVal.getItem(0).type, SVGTransform.SVG_TRANSFORM_TRANSLATE);
+    assert_equals(gradient.gradientTransform.baseVal.getItem(0).matrix.e, 0);
+}
+
+function sample3() {
+    // Check end conditions
+    assert_equals(gradient.gradientTransform.animVal.numberOfItems, 1);
+    assert_equals(gradient.gradientTransform.animVal.getItem(0).type, SVGTransform.SVG_TRANSFORM_TRANSLATE);
+    assert_approx_equals(gradient.gradientTransform.animVal.getItem(0).matrix.e, 200, epsilon);
+
+    assert_equals(gradient.gradientTransform.baseVal.numberOfItems, 1);
+    assert_equals(gradient.gradientTransform.baseVal.getItem(0).type, SVGTransform.SVG_TRANSFORM_TRANSLATE);
+    assert_equals(gradient.gradientTransform.baseVal.getItem(0).matrix.e, 0);
+}
+
+smil_async_test((t) => {
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["animation", 0.0, sample1],
+        ["animation", 2.0, sample2],
+        ["animation", 3.999, sample3],
+        ["animation", 4.001, sample3]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+</script>
