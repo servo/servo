@@ -14,7 +14,7 @@ use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
 use net_traits::image::base::Image;
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{AnimationState, ConstellationMsg, EventResult};
+use script_traits::{AnimationState, ConstellationMsg, EventResult, MouseButton, MouseEventType};
 use std::fmt::{Debug, Error, Formatter};
 use style_traits::viewport::ViewportConstraints;
 use webrender_api;
@@ -106,6 +106,8 @@ pub enum Msg {
     PendingPaintMetric(PipelineId, Epoch),
     /// The load of a page has completed
     LoadComplete(TopLevelBrowsingContextId),
+    /// WebDriver mouse button event
+    WebDriverMouseButtonEvent(MouseEventType, MouseButton, f32, f32),
 
     /// Get Window Informations size and position.
     GetClientWindow(IpcSender<(DeviceIntSize, DeviceIntPoint)>),
@@ -132,6 +134,7 @@ impl Debug for Msg {
             Msg::Dispatch(..) => write!(f, "Dispatch"),
             Msg::PendingPaintMetric(..) => write!(f, "PendingPaintMetric"),
             Msg::LoadComplete(..) => write!(f, "LoadComplete"),
+            Msg::WebDriverMouseButtonEvent(..) => write!(f, "WebDriverMouseButtonEvent"),
             Msg::GetClientWindow(..) => write!(f, "GetClientWindow"),
             Msg::GetScreenSize(..) => write!(f, "GetScreenSize"),
             Msg::GetScreenAvailSize(..) => write!(f, "GetScreenAvailSize"),

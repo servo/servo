@@ -3490,6 +3490,15 @@ where
                     return self.handle_send_error(pipeline_id, e);
                 }
             },
+            WebDriverCommandMsg::MouseButtonAction(mouse_event_type, mouse_button, x, y) => {
+                self.compositor_proxy
+                    .send(ToCompositorMsg::WebDriverMouseButtonEvent(
+                        mouse_event_type,
+                        mouse_button,
+                        x,
+                        y,
+                    ));
+            },
             WebDriverCommandMsg::TakeScreenshot(_, reply) => {
                 self.compositor_proxy
                     .send(ToCompositorMsg::CreatePng(reply));

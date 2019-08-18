@@ -518,6 +518,23 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 }
             },
 
+            (
+                Msg::WebDriverMouseButtonEvent(mouse_event_type, mouse_button, x, y),
+                ShutdownState::NotShuttingDown,
+            ) => {
+                self.on_mouse_window_event_class(match mouse_event_type {
+                    MouseEventType::Click => {
+                        MouseWindowEvent::Click(mouse_button, DevicePoint::new(x, y))
+                    },
+                    MouseEventType::MouseDown => {
+                        MouseWindowEvent::MouseDown(mouse_button, DevicePoint::new(x, y))
+                    },
+                    MouseEventType::MouseUp => {
+                        MouseWindowEvent::MouseUp(mouse_button, DevicePoint::new(x, y))
+                    },
+                });
+            },
+
             (Msg::PendingPaintMetric(pipeline_id, epoch), _) => {
                 self.pending_paint_metrics.insert(pipeline_id, epoch);
             },
