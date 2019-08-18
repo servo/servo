@@ -40,7 +40,7 @@ use js::jsapi::JSContext;
 use js::jsapi::JS_AddInterruptCallback;
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
-use msg::constellation_msg::{PipelineId, PipelineNamespace, TopLevelBrowsingContextId};
+use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
 use net_traits::image_cache::ImageCache;
 use net_traits::request::{CredentialsMode, Destination, ParserMetadata};
 use net_traits::request::{Referrer, RequestBuilder, RequestMode};
@@ -315,7 +315,6 @@ impl DedicatedWorkerGlobalScope {
             .name(name)
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
-                PipelineNamespace::auto_install();
 
                 if let Some(top_level_browsing_context_id) = top_level_browsing_context_id {
                     TopLevelBrowsingContextId::install(top_level_browsing_context_id);
