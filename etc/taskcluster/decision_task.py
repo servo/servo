@@ -907,7 +907,7 @@ def magicleap_nightly():
             env -u DYLD_LIBRARY_PATH ./mach package --magicleap --release
             ./mach upload-nightly magicleap --secret-from-taskcluster
         """)
-        .with_artifacts("repo/target/magicleap/aarch64-linux-android/release/Servo2D.mpk")
+        .with_artifacts("repo/target/magicleap/aarch64-linux-android/release/Servo.mpk")
         .find_or_create("build.magicleap_nightly." + CONFIG.task_id())
     )
 
