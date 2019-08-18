@@ -16,6 +16,7 @@ use log::Level;
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
 use simpleservo::{Coordinates, EventLoopWaker, HostTrait, InitOptions, VRInitOptions};
 use std::os::raw::{c_char, c_int, c_void};
+use std::ptr::{null, null_mut};
 use std::sync::Arc;
 use std::thread;
 
@@ -508,19 +509,51 @@ fn initialize_android_glue(env: &JNIEnv, activity: JObject) {
 
     // From jni-rs to android_injected_glue
 
-    let mut app: ffi::android_app = unsafe { std::mem::zeroed() };
-    let mut native_activity: ffi::ANativeActivity = unsafe { std::mem::zeroed() };
+    let clazz = Box::leak(Box::new(env.new_global_ref(activity).unwrap()));
 
-    let clazz = Box::into_raw(Box::new(env.new_global_ref(activity).unwrap()));
-    native_activity.clazz = unsafe { (*clazz).as_obj().into_inner() as *mut c_void };
+    let activity = Box::into_raw(Box::new(ffi::ANativeActivity {
+        clazz: clazz.as_obj().into_inner() as *mut c_void,
+        vm: env.get_java_vm().unwrap().get_java_vm_pointer() as *mut ffi::_JavaVM,
 
-    let vm = env.get_java_vm().unwrap().get_java_vm_pointer();
-    native_activity.vm = vm as *mut ffi::_JavaVM;
+        callbacks: null_mut(),
+        env: null_mut(),
+        internalDataPath: null(),
+        externalDataPath: null(),
+        sdkVersion: 0,
+        instance: null_mut(),
+        assetManager: null_mut(),
+        obbPath: null(),
+    }));
 
-    app.activity = Box::into_raw(Box::new(native_activity));
+    extern "C" fn on_app_cmd(_: *mut ffi::android_app, _: i32) {}
+    extern "C" fn on_input_event(_: *mut ffi::android_app, _: *const c_void) -> i32 {
+        0
+    }
+
+    let app = Box::into_raw(Box::new(ffi::android_app {
+        activity,
+        onAppCmd: on_app_cmd,
+        onInputEvent: on_input_event,
+
+        userData: null_mut(),
+        config: null(),
+        savedState: null_mut(),
+        savedStateSize: 0,
+        looper: null_mut(),
+        inputQueue: null(),
+        window: null_mut(),
+        contentRect: ffi::ARect {
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+        },
+        activityState: 0,
+        destroyRequested: 0,
+    }));
 
     unsafe {
-        ANDROID_APP = Box::into_raw(Box::new(app));
+        ANDROID_APP = app;
     }
 }
 
