@@ -16,7 +16,6 @@ use hyper::Method;
 use hyper::StatusCode;
 use ipc_channel::ipc::IpcReceiver;
 use mime::{self, Mime};
-use mime_guess::guess_mime_type;
 use net_traits::blob_url_store::{parse_blob_url, BlobURLStoreError};
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::request::{CredentialsMode, Destination, Referrer, Request, RequestMode};
@@ -654,7 +653,7 @@ fn scheme_fetch(
                     }
 
                     // Set Content-Type header.
-                    let mime = guess_mime_type(file_path);
+                    let mime = mime_guess::from_path(file_path).first_or_octet_stream();
                     response.headers.typed_insert(ContentType::from(mime));
 
                     // Setup channel to receive cross-thread messages about the file fetch

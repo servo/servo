@@ -9,7 +9,6 @@ use headers::{ContentLength, ContentType, HeaderMap, HeaderMapExt};
 use http::header::{self, HeaderValue};
 use ipc_channel::ipc::{self, IpcSender};
 use mime::{self, Mime};
-use mime_guess::guess_mime_type_opt;
 use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
 use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg, FileOrigin};
 use net_traits::filemanager_thread::{
@@ -408,7 +407,7 @@ impl FileManagerStore {
         );
 
         let filename_path = Path::new(file_name);
-        let type_string = match guess_mime_type_opt(filename_path) {
+        let type_string = match mime_guess::from_path(filename_path).first() {
             Some(x) => format!("{}", x),
             None => "".to_string(),
         };
@@ -459,7 +458,7 @@ impl FileManagerStore {
                     .and_then(|osstr| osstr.to_str())
                     .map(|s| s.to_string());
 
-                let mime = guess_mime_type_opt(metadata.path.clone());
+                let mime = mime_guess::from_path(metadata.path.clone()).first();
                 let range = rel_pos.to_abs_range(metadata.size as usize);
 
                 let mut file = File::open(&metadata.path)
@@ -582,7 +581,9 @@ impl FileManagerStore {
                 set_headers(
                     &mut response.headers,
                     metadata.size,
-                    guess_mime_type_opt(metadata.path).unwrap_or(mime::TEXT_PLAIN),
+                    mime_guess::from_path(metadata.path)
+                        .first()
+                        .unwrap_or(mime::TEXT_PLAIN),
                     filename,
                 );
 
