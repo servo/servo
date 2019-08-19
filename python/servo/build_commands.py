@@ -30,7 +30,7 @@ from mach.decorators import (
 from mach.registrar import Registrar
 
 from mach_bootstrap import _get_exec_path
-from servo.command_base import CommandBase, cd, call, check_call, BIN_SUFFIX, append_to_path_env
+from servo.command_base import CommandBase, cd, call, check_call, BIN_SUFFIX, append_to_path_env, gstreamer_root
 from servo.util import host_triple
 
 
@@ -774,23 +774,6 @@ class MachCommands(CommandBase):
             return False
 
         return True
-
-
-def gstreamer_root(target, env):
-    arch = {
-        "x86_64": "X86_64",
-        "x86": "X86",
-        "aarch64": "ARM64",
-    }
-    gst_x64 = arch[target.split('-')[0]]
-    gst_default_path = path.join("C:\\gstreamer\\1.0", gst_x64)
-    gst_env = "GSTREAMER_1_0_ROOT_" + gst_x64
-    if env.get(gst_env) is not None:
-        return env.get(gst_env)
-    elif os.path.exists(path.join(gst_default_path, "bin", "ffi-7.dll")):
-        return gst_default_path
-    else:
-        return None
 
 
 def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
