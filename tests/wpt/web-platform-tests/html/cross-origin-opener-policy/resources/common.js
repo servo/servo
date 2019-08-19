@@ -29,7 +29,7 @@ function run_coop_tests(documentCOOPValueTitle, testArray) {
   for (const test of tests) {
     async_test(t => {
       coop_test(t, test[0], test[1],
-                `${mainTest}_to_${test[0].name}_${test[1].replace(/ /g,"-")}`,
+                `${documentCOOPValueTitle}_to_${test[0].name}_${test[1].replace(/ /g,"-")}`,
                 test[2]);
     }, `${documentCOOPValueTitle} document opening popup to ${test[0].origin} with COOP: "${test[1]}"`);
   }

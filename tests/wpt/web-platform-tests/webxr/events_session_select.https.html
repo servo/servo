@@ -38,6 +38,7 @@ let testFunction = function(session, fakeDeviceController, t) {
       let input_sources = session.inputSources;
       assert_equals(event.frame.session, session);
       assert_equals(event.inputSource, input_sources[0]);
+      validateSameObject(event);
       tryCallingFrameMethods(event.frame);
     });
   }
@@ -47,6 +48,7 @@ let testFunction = function(session, fakeDeviceController, t) {
       let input_sources = session.inputSources;
       assert_equals(event.frame.session, session);
       assert_equals(event.inputSource, input_sources[0]);
+      validateSameObject(event);
       tryCallingFrameMethods(event.frame);
     });
     session.dispatchEvent(watcherDone);
@@ -57,7 +59,21 @@ let testFunction = function(session, fakeDeviceController, t) {
       let input_sources = session.inputSources;
       assert_equals(event.frame.session, session);
       assert_equals(event.inputSource, input_sources[0]);
+      validateSameObject(event);
       tryCallingFrameMethods(event.frame);
+    });
+  }
+
+  // Verifies that the same object is returned each time attributes are accessed
+  // on an XRInputSoruceEvent, as required by the spec.
+  function validateSameObject(event) {
+    let frame = event.frame;
+    let source = event.inputSource;
+    t.step(() => {
+      assert_equals(frame, event.frame,
+        "XRInputSourceEvent.frame returns the same object.");
+      assert_equals(source, event.inputSource,
+        "XRInputSourceEvent.inputSource returns the same object.");
     });
   }
 

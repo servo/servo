@@ -15,13 +15,23 @@ div > *|* {
   border: thin solid;
   margin: 1em;
 }
-div > *|*:first-of-type {
+.first-of-type > *|*:first-of-type {
+  background: lime;
+}
+.nth-of-type > *|*:nth-of-type(1) {
   background: lime;
 }
 </style>
 </head>
 <body>
-<div>
+<div class="first-of-type">
+<p>This line should have a green background.</p>
+<p>This line should have a yellow background.</p>
+<html:p>This line should have a yellow background.</html:p>
+<p xmlns="http://www.example.com/ns">This line should have a green background.</p>
+<p xmlns="">This line should have a green background.</p>
+</div>
+<div class="nth-of-type">
 <p>This line should have a green background.</p>
 <p>This line should have a yellow background.</p>
 <html:p>This line should have a yellow background.</html:p>

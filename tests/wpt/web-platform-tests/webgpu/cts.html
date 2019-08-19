@@ -1,0 +1,34 @@
+<!--
+    This test suite is built from the TypeScript sources at:
+    https://github.com/gpuweb/cts
+-->
+<!doctype html>
+<title>WebGPU CTS</title>
+<meta charset=utf-8>
+<link rel="help" href="https://gpuweb.github.io/gpuweb/">
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+#results {
+    font-family: monospace;
+    width: 100%;
+    height: 15em;
+}
+</style>
+
+<textarea id=results></textarea>
+<script type=module src="runtime/wpt.js"></script>
+
+<meta name="variant" content="?q=cts:buffers/create_mapped:">
+<meta name="variant" content="?q=cts:buffers/map:">
+<meta name="variant" content="?q=cts:buffers/map_detach:">
+<meta name="variant" content="?q=cts:buffers/map_oom:">
+<meta name="variant" content="?q=cts:canvas/context_creation:">
+<meta name="variant" content="?q=cts:command_buffer/basic:">
+<meta name="variant" content="?q=cts:command_buffer/compute/basic:">
+<meta name="variant" content="?q=cts:command_buffer/copies:">
+<meta name="variant" content="?q=cts:command_buffer/render/basic:">
+<meta name="variant" content="?q=cts:command_buffer/render/rendering:">
+<meta name="variant" content="?q=cts:examples:">
+<meta name="variant" content="?q=cts:fences:">

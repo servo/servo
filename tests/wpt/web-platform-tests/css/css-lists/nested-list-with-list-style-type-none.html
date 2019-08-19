@@ -1,0 +1,24 @@
+<meta charset="utf-8">
+<title>CSS Lists: test the margin collapse of marker</title>
+<link rel=help href="https://www.w3.org/TR/CSS22/generate.html#lists">
+<link rel="help" href="http://crbug.com/985298">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+li {
+  list-style-type:none;
+  list-style-image:url(images/white.gif);
+}
+</style>
+<body>
+  <p>PASS if no crash or DCHECK failure in quirks mode.</p>
+  <ul>
+    <li>
+      <ul></ul>
+    </li>
+  </ul>
+  <script type="text/javascript">
+    done();
+  </script>
+</body>

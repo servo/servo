@@ -68,7 +68,7 @@
     };
 
     xr_session_promise_test(nonImmersiveTestName, testFunction,
-      fakeDeviceInitParams, 'inline');
+      fakeDeviceInitParams, 'inline', { 'requiredFeatures': ['local'] });
     xr_session_promise_test(immersiveTestName, testFunction,
       fakeDeviceInitParams, 'immersive-vr');
 

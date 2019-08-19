@@ -7,14 +7,14 @@
 <body>
 <script>
 
+// ========== Worker main resource interception tests ==========
+
 async function setup_service_worker(t, service_worker_url, scope) {
   const r = await service_worker_unregister_and_register(
       t, service_worker_url, scope);
   t.add_cleanup(() => service_worker_unregister(t, scope));
   await wait_for_state(t, r.installing, 'activated');
 }
-
-// ========== Worker main resource interception tests ==========
 
 promise_test(async t => {
   const worker_url = 'resources/dummy-synthesized-worker.js?dedicated';
@@ -126,6 +126,15 @@ promise_test(async t => {
 
 // ========== Worker subresource interception tests ==========
 
+const scope_for_subresource_interception = 'resources/load_worker.js';
+
+promise_test(async t => {
+  const service_worker_url = 'resources/worker-load-interceptor.js';
+  const r = await service_worker_unregister_and_register(
+      t, service_worker_url, scope_for_subresource_interception);
+  await wait_for_state(t, r.installing, 'activated');
+}, 'Register a service worker for worker subresource interception tests.');
+
 // Do not call this function multiple times without waiting for the promise
 // resolution because this sets new event handlers on |worker|.
 // TODO(nhiroki): To isolate multiple function calls, use MessagePort instead of
@@ -147,58 +156,33 @@ async function request_on_worker(worker, resource_type) {
   assert_equals(data, 'This load was successfully intercepted.');
 }
 
-// TODO(nhiroki): For optimization, register a service worker just once in an
-// initial promise test.
-
-function dedicated_worker_subresource_test(worker_url, scope, description) {
-  promise_test(async t => {
-    const service_worker_url = 'resources/worker-load-interceptor.js';
-    await setup_service_worker(t, service_worker_url, scope);
-    const worker = new Worker(worker_url);
-
-    await request_on_worker(worker, 'xhr');
-    await request_on_worker(worker, 'fetch');
-    await request_on_worker(worker, 'importScripts');
-  }, description);
+async function subresource_test(worker) {
+  await request_on_worker(worker, 'xhr');
+  await request_on_worker(worker, 'fetch');
+  await request_on_worker(worker, 'importScripts');
 }
 
-function shared_worker_subresource_test(worker_url, scope, description) {
-  promise_test(async t => {
-    const service_worker_url = 'resources/worker-load-interceptor.js';
-    await setup_service_worker(t, service_worker_url, scope);
-    const worker = new SharedWorker(worker_url);
+promise_test(async t => {
+  await subresource_test(new Worker('resources/load_worker.js'));
+}, 'Requests on a dedicated worker controlled by a service worker.');
 
-    await request_on_worker(worker, 'xhr');
-    await request_on_worker(worker, 'fetch');
-    await request_on_worker(worker, 'importScripts');
-  }, description);
-}
+promise_test(async t => {
+  await subresource_test(new SharedWorker('resources/load_worker.js'));
+}, 'Requests on a shared worker controlled by a service worker.');
 
-dedicated_worker_subresource_test(
-    'resources/load_worker.js?dedicated',
-    'resources/load_worker.js?dedicated',
-    'Requests on a dedicated worker controlled by a service worker.');
+promise_test(async t => {
+  await subresource_test(new Worker('resources/nested_load_worker.js'));
+}, 'Requests on a dedicated worker nested in a dedicated worker and ' +
+       'controlled by a service worker');
 
-shared_worker_subresource_test(
-    'resources/load_worker.js?shared',
-    'resources/load_worker.js?shared',
-    'Requests on a shared worker controlled by a service worker.');
+promise_test(async t => {
+  await subresource_test(new SharedWorker('resources/nested_load_worker.js'));
+}, 'Requests on a dedicated worker nested in a shared worker and controlled ' +
+       'by a service worker');
 
-dedicated_worker_subresource_test(
-    'resources/nested_load_worker.js?dedicated',
-    // TODO(nhiroki): This scope is wrong. This should be
-    // 'resources/load_worker.js?dedicated'.
-    'resources/nested_load_worker.js?dedicated',
-    'Requests on a dedicated worker nested in a dedicated worker and ' +
-        'controlled by a service worker');
-
-shared_worker_subresource_test(
-    'resources/nested_load_worker.js?shared',
-    // TODO(nhiroki): This scope is wrong. This should be
-    // 'resources/load_worker.js?shared'.
-    'resources/nested_load_worker.js?shared',
-    'Requests on a dedicated worker nested in a shared worker and controlled ' +
-        'by a service worker');
+promise_test(async t => {
+  await service_worker_unregister(t, scope_for_subresource_interception);
+}, 'Unregister a service worker for subresource interception tests.');
 
 </script>
 </body>

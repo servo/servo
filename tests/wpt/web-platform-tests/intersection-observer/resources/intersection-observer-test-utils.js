@@ -178,6 +178,7 @@ function checkJsonEntry(actual, expected) {
     assert_equals(expected.rootBounds, 'null', 'rootBounds is null');
   else
     checkRect(actual.rootBounds, expected.rootBounds, 'entry.rootBounds');
+  assert_equals(actual.isIntersecting, expected.isIntersecting);
   assert_equals(actual.target, expected.target);
 }
 

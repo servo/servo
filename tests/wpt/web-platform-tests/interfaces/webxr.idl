@@ -22,14 +22,8 @@ enum XRSessionMode {
 };
 
 dictionary XRSessionInit {
-  sequence<DOMString> requiredFeatures;
-  sequence<DOMString> optionalFeatures;
-};
-
-enum XREnvironmentBlendMode {
-  "opaque",
-  "additive",
-  "alpha-blend",
+  sequence<any> requiredFeatures;
+  sequence<any> optionalFeatures;
 };
 
 enum XRVisibilityState {
@@ -40,7 +34,6 @@ enum XRVisibilityState {
 
 [SecureContext, Exposed=Window] interface XRSession : EventTarget {
   // Attributes
-  readonly attribute XREnvironmentBlendMode environmentBlendMode;
   readonly attribute XRVisibilityState visibilityState;
   [SameObject] readonly attribute XRRenderState renderState;
   [SameObject] readonly attribute XRInputSourceArray inputSources;

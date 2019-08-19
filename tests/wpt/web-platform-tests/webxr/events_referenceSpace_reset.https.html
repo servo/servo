@@ -21,7 +21,19 @@ let testFunction = function(session, fakeDeviceController, t) {
     let eventWatcher = new EventWatcher(
         t, refSpace, ["reset", "watcherdone"]);
     refSpace.addEventListener("reset", (event) => {
-      assert_equals(event.referenceSpace, refSpace);
+      t.step(() => {
+        assert_equals(event.referenceSpace, refSpace);
+
+        // Also make sure the same objects are returned each time these
+        // attributes are accessed.
+        let eventRefSpace = event.referenceSpace;
+        let transform = event.transform;
+        assert_equals(eventRefSpace, event.referenceSpace,
+          "XRReferenceSpaceEvent.referenceSpace returns the same object.");
+        assert_equals(transform, event.transform,
+          "XRReferenceSpaceEvent.transform returns the same object.");
+      });
+
       refSpace.dispatchEvent(watcherDone);
     }, false);
     return eventWatcher.wait_for(["reset", "watcherdone"]);
@@ -38,6 +50,8 @@ let testFunction = function(session, fakeDeviceController, t) {
 xr_session_promise_test(
   immersiveTestName, testFunction, fakeDeviceInitParams, 'immersive-vr');
 xr_session_promise_test(
-  nonImmersiveTestName, testFunction, fakeDeviceInitParams, 'inline');
+  nonImmersiveTestName, testFunction, fakeDeviceInitParams, 'inline', {
+    requiredFeatures: ['local'],
+  });
 
 </script>

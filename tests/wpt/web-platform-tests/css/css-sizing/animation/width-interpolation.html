@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>width interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#propdef-width">
+<meta name="assert" content="width supports animation by computed style.">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  width: 100px;
+  overflow: visible;
+}
+.target {
+  background-color: black;
+  width: 10px;
+  height: 10px;
+}
+.expected {
+  background-color: green;
+}
+</style>
+
+<body>
+  <template id="target-template">
+    <div class="container">
+      <div class="target"></div>
+    </div>
+  </template>
+</body>
+
+<script>
+test_interpolation({
+  property: 'width',
+  from: neutralKeyframe,
+  to: '40px',
+}, [
+  {at: -0.3, expect: '1px'},
+  {at: 0, expect: '10px'},
+  {at: 0.3, expect: '19px'},
+  {at: 0.6, expect: '28px'},
+  {at: 1, expect: '40px'},
+  {at: 1.5, expect: '55px'},
+]);
+
+test_no_interpolation({
+  property: 'width',
+  from: 'initial',
+  to: '40px',
+});
+
+test_interpolation({
+  property: 'width',
+  from: 'inherit',
+  to: '40px',
+}, [
+  {at: -0.3, expect: '118px'},
+  {at: 0, expect: '100px'},
+  {at: 0.3, expect: '82px'},
+  {at: 0.6, expect: '64px'},
+  {at: 1, expect: '40px'},
+  {at: 1.5, expect: '10px'},
+]);
+
+test_no_interpolation({
+  property: 'width',
+  from: 'unset',
+  to: '40px',
+});
+
+test_interpolation({
+  property: 'width',
+  from: '0px',
+  to: '100px',
+}, [
+  {at: -0.3, expect: '0px'}, // CSS width can't be negative.
+  {at: 0, expect: '0px'},
+  {at: 0.3, expect: '30px'},
+  {at: 0.6, expect: '60px'},
+  {at: 1, expect: '100px'},
+  {at: 1.5, expect: '150px'}
+]);
+
+test_interpolation({
+  property: 'width',
+  from: '10px',
+  to: '100%'
+}, [
+  {at: -0.3, expect: '0px'}, // CSS width can't be negative.
+  {at: 0, expect: '10px'},
+  {at: 0.3, expect: '37px'},
+  {at: 0.6, expect: '64px'},
+  {at: 1, expect: '100px'},
+  {at: 1.5, expect: '145px'}
+]);
+</script>
+</body>

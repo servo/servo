@@ -19,6 +19,11 @@
       function onSessionEnd(event) {
         t.step( () => {
           assert_equals(event.session, session);
+
+          let eventSession = event.session;
+          assert_equals(eventSession, event.session,
+            "XRSessionEvent.session returns the same object.");
+
           session.dispatchEvent(watcherDone);
         });
       }
