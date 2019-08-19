@@ -1855,16 +1855,6 @@ impl Drop for HTMLMediaElement {
             }
         });
 
-        if let Some(ref player) = *self.player.borrow() {
-            let browsing_context_id = window.window_proxy().top_level_browsing_context_id().0;
-            let client_context_id = ClientContextId::build(
-                browsing_context_id.namespace_id.0,
-                browsing_context_id.index.0.get(),
-            );
-            ServoMedia::get()
-                .unwrap()
-                .shutdown_player(&client_context_id, player.clone());
-        }
         self.remove_controls();
     }
 }
