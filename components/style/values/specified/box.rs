@@ -105,15 +105,11 @@ pub enum DisplayInside {
     #[cfg(feature = "gecko")]
     MozGrid,
     #[cfg(feature = "gecko")]
-    MozInlineGrid,
-    #[cfg(feature = "gecko")]
     MozGridGroup,
     #[cfg(feature = "gecko")]
     MozGridLine,
     #[cfg(feature = "gecko")]
     MozStack,
-    #[cfg(feature = "gecko")]
-    MozInlineStack,
     #[cfg(feature = "gecko")]
     MozDeck,
     #[cfg(feature = "gecko")]
@@ -243,15 +239,11 @@ impl Display {
     #[cfg(feature = "gecko")]
     pub const MozGrid: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGrid);
     #[cfg(feature = "gecko")]
-    pub const MozInlineGrid: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozInlineGrid);
-    #[cfg(feature = "gecko")]
     pub const MozGridGroup: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGridGroup);
     #[cfg(feature = "gecko")]
     pub const MozGridLine: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGridLine);
     #[cfg(feature = "gecko")]
     pub const MozStack: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozStack);
-    #[cfg(feature = "gecko")]
-    pub const MozInlineStack: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozInlineStack);
     #[cfg(feature = "gecko")]
     pub const MozDeck: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozDeck);
     #[cfg(feature = "gecko")]
@@ -422,7 +414,6 @@ impl Display {
             #[cfg(feature = "gecko")]
             DisplayOutside::XUL => match self.inside() {
                 DisplayInside::MozBox => Display::MozInlineBox,
-                DisplayInside::MozStack => Display::MozInlineStack,
                 _ => *self,
             },
             _ => *self,
@@ -469,10 +460,6 @@ impl ToCss for Display {
             Display::WebkitInlineBox => dest.write_str("-webkit-inline-box"),
             #[cfg(feature = "gecko")]
             Display::MozInlineBox => dest.write_str("-moz-inline-box"),
-            #[cfg(feature = "gecko")]
-            Display::MozInlineGrid => dest.write_str("-moz-inline-grid"),
-            #[cfg(feature = "gecko")]
-            Display::MozInlineStack => dest.write_str("-moz-inline-stack"),
             #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             Display::TableCaption => dest.write_str("table-caption"),
             _ => match (outside, inside) {
@@ -662,15 +649,11 @@ impl Parse for Display {
             #[cfg(feature = "gecko")]
             "-moz-grid" if moz_display_values_enabled(context) => Display::MozGrid,
             #[cfg(feature = "gecko")]
-            "-moz-inline-grid" if moz_display_values_enabled(context) => Display::MozInlineGrid,
-            #[cfg(feature = "gecko")]
             "-moz-grid-group" if moz_display_values_enabled(context) => Display::MozGridGroup,
             #[cfg(feature = "gecko")]
             "-moz-grid-line" if moz_display_values_enabled(context) => Display::MozGridLine,
             #[cfg(feature = "gecko")]
             "-moz-stack" if moz_display_values_enabled(context) => Display::MozStack,
-            #[cfg(feature = "gecko")]
-            "-moz-inline-stack" if moz_display_values_enabled(context) => Display::MozInlineStack,
             #[cfg(feature = "gecko")]
             "-moz-deck" if moz_display_values_enabled(context) => Display::MozDeck,
             #[cfg(feature = "gecko")]
