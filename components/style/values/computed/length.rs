@@ -297,7 +297,7 @@ impl specified::CalcLengthPercentage {
     ) -> LengthPercentage {
         self.to_computed_value_with_zoom(
             context,
-            |abs| context.maybe_zoom_text(abs.into()).0,
+            |abs| context.maybe_zoom_text(abs.into()),
             base_size,
         )
     }
@@ -360,8 +360,8 @@ impl LengthPercentage {
         self.unclamped_length().px() == 0.0 && self.percentage.0 == 0.0
     }
 
-    // CSSFloat doesn't implement Hash, so does CSSPixelLength. Therefore, we still use Au as the
-    // hash key.
+    // CSSFloat doesn't implement Hash, so does CSSPixelLength. Therefore, we
+    // still use Au as the hash key.
     #[allow(missing_docs)]
     pub fn to_hash_key(&self) -> (Au, NotNan<f32>) {
         (
@@ -839,14 +839,6 @@ impl NonNegativeLength {
         } else {
             self
         }
-    }
-
-    /// Scale this NonNegativeLength.
-    /// We scale NonNegativeLength by zero if the factor is negative because it doesn't
-    /// make sense to scale a negative factor on a non-negative length.
-    #[inline]
-    pub fn scale_by(&self, factor: f32) -> Self {
-        Self::new(self.0.px() * factor.max(0.))
     }
 }
 

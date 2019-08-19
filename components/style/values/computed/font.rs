@@ -9,11 +9,11 @@ use crate::gecko_bindings::sugar::refptr::RefPtr;
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::{bindings, structs};
 use crate::values::animated::{ToAnimatedValue, ToAnimatedZero};
-use crate::values::computed::{Angle, Context, Integer, NonNegativeLength, NonNegativePercentage};
+use crate::values::computed::{Angle, Context, Integer, Length, NonNegativeLength, NonNegativePercentage};
 use crate::values::computed::{Number, Percentage, ToComputedValue};
-use crate::values::generics::font as generics;
+use crate::values::generics::{font as generics, NonNegative};
 use crate::values::generics::font::{FeatureTagValue, FontSettings, VariationValue};
-use crate::values::specified::font::{self as specified, MAX_FONT_WEIGHT, MIN_FONT_WEIGHT};
+use crate::values::specified::font::{self as specified, KeywordInfo, MAX_FONT_WEIGHT, MIN_FONT_WEIGHT};
 use crate::values::specified::length::{FontBaseSize, NoCalcLength};
 use crate::values::CSSFloat;
 use crate::Atom;
@@ -88,9 +88,6 @@ pub struct FontSize {
     pub keyword_info: Option<KeywordInfo>,
 }
 
-/// Additional information for computed keyword-derived font sizes.
-pub type KeywordInfo = generics::KeywordInfo<NonNegativeLength>;
-
 impl FontWeight {
     /// Value for normal
     pub fn normal() -> Self {
@@ -162,17 +159,17 @@ impl FontSize {
 }
 
 impl ToAnimatedValue for FontSize {
-    type AnimatedValue = NonNegativeLength;
+    type AnimatedValue = Length;
 
     #[inline]
     fn to_animated_value(self) -> Self::AnimatedValue {
-        self.size
+        self.size.0
     }
 
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         FontSize {
-            size: animated.clamp(),
+            size: NonNegative(animated.clamp_to_non_negative()),
             keyword_info: None,
         }
     }

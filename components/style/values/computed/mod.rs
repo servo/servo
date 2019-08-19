@@ -230,7 +230,7 @@ impl<'a> Context<'a> {
 
     /// Apply text-zoom if enabled.
     #[cfg(feature = "gecko")]
-    pub fn maybe_zoom_text(&self, size: NonNegativeLength) -> NonNegativeLength {
+    pub fn maybe_zoom_text(&self, size: CSSPixelLength) -> CSSPixelLength {
         // We disable zoom for <svg:text> by unsetting the
         // -x-text-zoom property, which leads to a false value
         // in mAllowZoom
@@ -243,7 +243,7 @@ impl<'a> Context<'a> {
 
     /// (Servo doesn't do text-zoom)
     #[cfg(feature = "servo")]
-    pub fn maybe_zoom_text(&self, size: NonNegativeLength) -> NonNegativeLength {
+    pub fn maybe_zoom_text(&self, size: CSSPixelLength) -> CSSPixelLength {
         size
     }
 }

@@ -401,7 +401,7 @@ ${helpers.predefined_type(
                         is_system_font: true,
                     },
                     font_size: FontSize {
-                        size: cx.maybe_zoom_text(Au(system.size).into()),
+                        size: NonNegative(cx.maybe_zoom_text(Au(system.size).into())),
                         keyword_info: None
                     },
                     font_weight,
