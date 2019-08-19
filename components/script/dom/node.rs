@@ -1654,7 +1654,7 @@ impl Node {
 
     #[allow(unrooted_must_root)]
     fn new_(flags: NodeFlags, doc: Option<&Document>) -> Node {
-        Node {
+        let node = Node {
             eventtarget: EventTarget::new_inherited(),
 
             parent_node: Default::default(),
@@ -1673,7 +1673,11 @@ impl Node {
             style_and_layout_data: Cell::new(None),
 
             unique_id: UniqueId::new(),
-        }
+        };
+
+        ScriptThread::save_node_id(node.unique_id());
+
+        node
     }
 
     // https://dom.spec.whatwg.org/#concept-node-adopt

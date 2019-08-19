@@ -735,10 +735,7 @@ impl Handler {
             Ok(is_enabled) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(is_enabled)?,
             ))),
-            Err(_) => Err(WebDriverError::new(
-                ErrorStatus::StaleElementReference,
-                "Element not found",
-            )),
+            Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
@@ -754,10 +751,7 @@ impl Handler {
             Ok(is_selected) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(is_selected)?,
             ))),
-            Err(_) => Err(WebDriverError::new(
-                ErrorStatus::StaleElementReference,
-                "Element not found",
-            )),
+            Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
@@ -860,10 +854,7 @@ impl Handler {
                 )?;
                 Ok(WebDriverResponse::Generic(ValueResponse(value_resp)))
             },
-            Err(_) => Err(WebDriverError::new(
-                ErrorStatus::InvalidSelector,
-                "Invalid selector",
-            )),
+            Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
@@ -922,13 +913,13 @@ impl Handler {
         let cmd = WebDriverScriptCommand::GetBrowsingContextId(frame_id, sender);
         self.browsing_context_script_command(cmd)?;
 
-        let browsing_context_id = receiver.recv().unwrap().or(Err(WebDriverError::new(
-            ErrorStatus::NoSuchFrame,
-            "Frame does not exist",
-        )))?;
-
-        self.session_mut()?.browsing_context_id = browsing_context_id;
-        Ok(WebDriverResponse::Void)
+        match receiver.recv().unwrap() {
+            Ok(browsing_context_id) => {
+                self.session_mut()?.browsing_context_id = browsing_context_id;
+                Ok(WebDriverResponse::Void)
+            },
+            Err(error) => Err(WebDriverError::new(error, "")),
+        }
     }
 
     // https://w3c.github.io/webdriver/#find-elements
@@ -974,10 +965,7 @@ impl Handler {
                     serde_json::to_value(resp_value)?,
                 )))
             },
-            Err(_) => Err(WebDriverError::new(
-                ErrorStatus::InvalidSelector,
-                "Invalid selector",
-            )),
+            Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
@@ -1030,10 +1018,7 @@ impl Handler {
                 )?;
                 Ok(WebDriverResponse::Generic(ValueResponse(value_resp)))
             },
-            Err(_) => Err(WebDriverError::new(
-                ErrorStatus::InvalidSelector,
-                "Invalid selector",
-            )),
+            Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
@@ -1089,10 +1074,7 @@ impl Handler {
                     serde_json::to_value(resp_value)?,
                 )))
             },
-            Err(_) => Err(WebDriverError::new(
-                ErrorStatus::InvalidSelector,
-                "Invalid selector",
-            )),
+            Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
@@ -1111,10 +1093,7 @@ impl Handler {
                 };
                 Ok(WebDriverResponse::ElementRect(response))
             },
-            Err(_) => Err(WebDriverError::new(
-                ErrorStatus::StaleElementReference,
-                "Unable to find element in document",
-            )),
+            Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
@@ -1126,10 +1105,7 @@ impl Handler {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(value)?,
             ))),
-            Err(_) => Err(WebDriverError::new(
-                ErrorStatus::StaleElementReference,
-                "Unable to find element in document",
-            )),
+            Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
@@ -1154,10 +1130,7 @@ impl Handler {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(value)?,
             ))),
-            Err(_) => Err(WebDriverError::new(
-                ErrorStatus::StaleElementReference,
-                "Unable to find element in document",
-            )),
+            Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
@@ -1177,10 +1150,7 @@ impl Handler {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(value)?,
             ))),
-            Err(_) => Err(WebDriverError::new(
-                ErrorStatus::StaleElementReference,
-                "Unable to find element in document",
-            )),
+            Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
@@ -1202,10 +1172,7 @@ impl Handler {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(SendableWebDriverJSValue(value))?,
             ))),
-            Err(_) => Err(WebDriverError::new(
-                ErrorStatus::StaleElementReference,
-                "Unable to find element in document",
-            )),
+            Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
@@ -1222,10 +1189,7 @@ impl Handler {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(value)?,
             ))),
-            Err(_) => Err(WebDriverError::new(
-                ErrorStatus::StaleElementReference,
-                "Unable to find element in document",
-            )),
+            Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
@@ -1295,10 +1259,7 @@ impl Handler {
         self.browsing_context_script_command(cmd)?;
         match receiver.recv().unwrap() {
             Ok(_) => Ok(WebDriverResponse::Void),
-            Err(_) => Err(WebDriverError::new(
-                ErrorStatus::NoSuchWindow,
-                "No such window found.",
-            )),
+            Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
@@ -1355,10 +1316,7 @@ impl Handler {
             Ok(source) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(source)?,
             ))),
-            Err(_) => Err(WebDriverError::new(
-                ErrorStatus::UnknownError,
-                "Unknown error",
-            )),
+            Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
@@ -1469,12 +1427,10 @@ impl Handler {
             .unwrap();
 
         // TODO: distinguish the not found and not focusable cases
-        receiver.recv().unwrap().or_else(|_| {
-            Err(WebDriverError::new(
-                ErrorStatus::StaleElementReference,
-                "Element not found or not focusable",
-            ))
-        })?;
+        receiver
+            .recv()
+            .unwrap()
+            .or_else(|error| Err(WebDriverError::new(error, "")))?;
 
         let input_events = send_keys(&keys.text);
 
