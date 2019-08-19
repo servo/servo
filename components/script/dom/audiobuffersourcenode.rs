@@ -226,6 +226,16 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
         }
 
         self.source_node
+            .node()
+            .message(AudioNodeMessage::AudioBufferSourceNode(
+                AudioBufferSourceNodeMessage::Start(
+                    *when,
+                    offset.map(|f| *f),
+                    duration.map(|f| *f),
+                ),
+            ));
+
+        self.source_node
             .upcast::<AudioScheduledSourceNode>()
             .Start(when)
     }
