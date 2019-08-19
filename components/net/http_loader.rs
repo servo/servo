@@ -1290,7 +1290,6 @@ fn http_network_fetch(
         }
     }
 
-    let mut cloned_url = url.clone();
     let header_strings: Vec<&str> = res
         .headers()
         .get_all("Timing-Allow-Origin")
@@ -1299,15 +1298,11 @@ fn http_network_fetch(
         .collect();
     let wildcard_present = header_strings
         .iter()
-        .fold(false, |acc, header_str| acc || *header_str == "*");
+        .any(|header_str| *header_str == "*");
     let req_origin_in_timing_allow = header_strings
         .iter()
-        .map(|header_string| ServoUrl::parse(header_string))
-        .filter(|header_url| header_url.is_ok())
-        .map(|header_url| header_url.unwrap().into_url())
-        .fold(false, |acc, header_url| {
-            acc || header_url.origin() == cloned_url.as_mut_url().origin()
-        });
+        .filter_map(|header| ServoUrl::parse(header).ok().map(|u| u.into_url()))
+        .any(|header_url| header_url.origin() == url.as_url().origin());
 
     if !req_origin_in_timing_allow && !wildcard_present {
         context

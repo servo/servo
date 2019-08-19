@@ -506,31 +506,32 @@ impl ResourceFetchTiming {
     // TODO currently this is being set with precise time ns when it should be time since
     // time origin (as described in Performance::now)
     pub fn set_attribute(&mut self, attribute: ResourceAttribute) {
-        if !self.timing_check_passed {
-            match attribute {
-                ResourceAttribute::DomainLookupStart => {
-                    self.domain_lookup_start = precise_time_ns()
+        if !self.timing_check_passed{
+            return;
+        }
+        match attribute {
+            ResourceAttribute::DomainLookupStart => {
+                self.domain_lookup_start = precise_time_ns()
+            },
+            ResourceAttribute::RedirectCount(count) => self.redirect_count = count,
+            ResourceAttribute::RequestStart => self.request_start = precise_time_ns(),
+            ResourceAttribute::ResponseStart => self.response_start = precise_time_ns(),
+            ResourceAttribute::RedirectStart(val) => match val {
+                RedirectStartValue::Zero => self.redirect_start = 0,
+                RedirectStartValue::FetchStart => {
+                    if self.redirect_start == 0 {
+                        self.redirect_start = self.fetch_start
+                    }
                 },
-                ResourceAttribute::RedirectCount(count) => self.redirect_count = count,
-                ResourceAttribute::RequestStart => self.request_start = precise_time_ns(),
-                ResourceAttribute::ResponseStart => self.response_start = precise_time_ns(),
-                ResourceAttribute::RedirectStart(val) => match val {
-                    RedirectStartValue::Zero => self.redirect_start = 0,
-                    RedirectStartValue::FetchStart => {
-                        if self.redirect_start == 0 {
-                            self.redirect_start = self.fetch_start
-                        }
-                    },
-                },
-                ResourceAttribute::RedirectEnd(val) => match val {
-                    RedirectEndValue::Zero => self.redirect_end = 0,
-                    RedirectEndValue::ResponseEnd => self.redirect_end = self.response_end,
-                },
-                ResourceAttribute::FetchStart => self.fetch_start = precise_time_ns(),
-                ResourceAttribute::ConnectStart(val) => self.connect_start = val,
-                ResourceAttribute::ConnectEnd(val) => self.connect_end = val,
-                ResourceAttribute::ResponseEnd => self.response_end = precise_time_ns(),
-            }
+            },
+            ResourceAttribute::RedirectEnd(val) => match val {
+                RedirectEndValue::Zero => self.redirect_end = 0,
+                RedirectEndValue::ResponseEnd => self.redirect_end = self.response_end,
+            },
+            ResourceAttribute::FetchStart => self.fetch_start = precise_time_ns(),
+            ResourceAttribute::ConnectStart(val) => self.connect_start = val,
+            ResourceAttribute::ConnectEnd(val) => self.connect_end = val,
+            ResourceAttribute::ResponseEnd => self.response_end = precise_time_ns(),
         }
     }
 
