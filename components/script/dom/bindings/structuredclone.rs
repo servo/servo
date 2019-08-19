@@ -230,7 +230,6 @@ unsafe extern "C" fn write_transfer_callback(
         if port.detached() {
             return false;
         }
-
         *tag = StructuredCloneTags::MessagePort as u32;
         *ownership = TransferableOwnership::SCTAG_TMO_CUSTOM;
         let mut sc_holder = &mut *(closure as *mut StructuredCloneHolder);

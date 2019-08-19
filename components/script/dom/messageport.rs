@@ -2,25 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{
     MessagePortMethods, PostMessageOptions, Wrap,
 };
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, ErrorResult};
-use crate::dom::bindings::inheritance::{Castable, HasParent};
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone::{self, StructuredCloneHolder};
-use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
 use crate::script_runtime::JSContext as SafeJSContext;
 use crate::task_source::TaskSource;
 use js::jsapi::Heap;
-use js::jsapi::{JSObject, JSTracer, MutableHandleObject};
+use js::jsapi::{JSObject, MutableHandleObject};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use msg::constellation_msg::{
     MessagePortId, MessagePortIndex, PipelineNamespaceId, PortMessageTask,
@@ -29,26 +29,14 @@ use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::convert::TryInto;
 use std::num::NonZeroU32;
-use std::rc::Rc;
 
-#[derive(DenyPublicFields, DomObject, MallocSizeOf)]
-#[must_root]
-#[repr(C)]
+#[dom_struct]
 /// The MessagePort used in the DOM.
 pub struct MessagePort {
     eventtarget: EventTarget,
     message_port_id: MessagePortId,
     entangled_port: RefCell<Option<MessagePortId>>,
     detached: Cell<bool>,
-}
-
-#[allow(unsafe_code)]
-unsafe impl JSTraceable for MessagePort {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
-        if !self.detached.get() {
-            self.eventtarget.trace(trc);
-        }
-    }
 }
 
 impl MessagePort {
@@ -68,7 +56,6 @@ impl MessagePort {
     }
 
     /// Create a new port for an incoming transfer-received one.
-    /// Using an existing Id and setting transferred to true.
     fn new_transferred(
         owner: &GlobalScope,
         transferred_port: MessagePortId,
@@ -95,24 +82,12 @@ impl MessagePort {
         &self.message_port_id
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
-    pub fn set_onmessage(&self, listener: Option<Rc<EventHandlerNonNull>>) {
-        let eventtarget = self.upcast::<EventTarget>();
-        eventtarget.set_event_handler_common("message", listener);
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessageerror>
-    pub fn set_onmessageerror(&self, listener: Option<Rc<EventHandlerNonNull>>) {
-        let eventtarget = self.upcast::<EventTarget>();
-        eventtarget.set_event_handler_common("messageerror", listener);
-    }
-
     pub fn detached(&self) -> bool {
         self.detached.get()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#message-port-post-message-steps>
-    pub fn post_message_impl(
+    fn post_message_impl(
         &self,
         cx: SafeJSContext,
         message: HandleValue,
@@ -156,24 +131,21 @@ impl MessagePort {
 
         // Step 6, done in MessagePortImpl.
 
+        let incumbent = match GlobalScope::incumbent() {
+            None => unreachable!("postMessage called with no incumbent global"),
+            Some(incumbent) => incumbent,
+        };
+
         // Step 7
         let task = PortMessageTask {
-            origin: self.global().origin().immutable().clone(),
+            origin: incumbent.origin().immutable().clone(),
             data,
         };
 
         // Have the global proxy this call to the corresponding MessagePortImpl.
-        self.global()
+        incumbent
             .post_messageport_msg(self.message_port_id().clone(), task);
         Ok(())
-    }
-}
-
-impl HasParent for MessagePort {
-    type Parent = EventTarget;
-
-    fn as_parent(&self) -> &EventTarget {
-        &self.eventtarget
     }
 }
 
@@ -439,37 +411,8 @@ impl MessagePortMethods for MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
-    fn GetOnmessage(&self) -> Option<Rc<EventHandlerNonNull>> {
-        if self.detached.get() {
-            return None;
-        }
-        let eventtarget = self.upcast::<EventTarget>();
-        eventtarget.get_event_handler_common("message")
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
-    fn SetOnmessage(&self, listener: Option<Rc<EventHandlerNonNull>>) {
-        if self.detached.get() {
-            return;
-        }
-        self.set_onmessage(listener);
-        self.global().start_message_port(self.message_port_id());
-    }
+    event_handler!(message, GetOnmessage, SetOnmessage);
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessageerror>
-    fn GetOnmessageerror(&self) -> Option<Rc<EventHandlerNonNull>> {
-        if self.detached.get() {
-            return None;
-        }
-        let eventtarget = self.upcast::<EventTarget>();
-        eventtarget.get_event_handler_common("messageerror")
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessageerror>
-    fn SetOnmessageerror(&self, listener: Option<Rc<EventHandlerNonNull>>) {
-        if self.detached.get() {
-            return;
-        }
-        self.set_onmessageerror(listener);
-    }
+    event_handler!(messageerror, GetOnmessageerror, SetOnmessageerror);
 }

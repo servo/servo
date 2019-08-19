@@ -153,6 +153,7 @@ unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>, Box<dyn EventLoopWaker>);
 
 unsafe_no_jsmanaged_fields!(MessagePortImpl);
 unsafe_no_jsmanaged_fields!(MessagePortId);
+unsafe_no_jsmanaged_fields!(RefCell<Option<MessagePortId>>);
 unsafe_no_jsmanaged_fields!(MessagePortRouterId);
 
 unsafe_no_jsmanaged_fields!(CSSError);
