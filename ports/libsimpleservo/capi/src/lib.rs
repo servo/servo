@@ -17,6 +17,7 @@ use env_logger;
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
 use simpleservo::{Coordinates, EventLoopWaker, HostTrait, InitOptions, VRInitOptions};
 use std::ffi::{CStr, CString};
+#[cfg(target_os = "windows")]
 use std::mem;
 use std::os::raw::{c_char, c_void};
 use std::panic::{self, UnwindSafe};
@@ -29,6 +30,8 @@ extern "C" fn default_panic_handler(msg: *const c_char) {
 
 lazy_static! {
     static ref ON_PANIC: RwLock<extern "C" fn(*const c_char)> = RwLock::new(default_panic_handler);
+    static ref SERVO_VERSION: CString =
+        { CString::new(simpleservo::servo_version()).expect("Can't create string") };
 }
 
 #[no_mangle]
@@ -224,13 +227,7 @@ pub struct CInitOptions {
 /// The returned string is not freed. This will leak.
 #[no_mangle]
 pub extern "C" fn servo_version() -> *const c_char {
-    catch_any_panic(|| {
-        let v = simpleservo::servo_version();
-        let text = CString::new(v).expect("Can't create string");
-        let ptr: *const c_char = text.as_ptr();
-        mem::forget(text);
-        ptr
-    })
+    SERVO_VERSION.as_ptr()
 }
 
 #[cfg(target_os = "windows")]
@@ -562,9 +559,7 @@ impl HostTrait for HostCallbacks {
     fn on_alert(&self, message: String) {
         debug!("on_alert");
         let message = CString::new(message).expect("Can't create string");
-        let msg_ptr = message.as_ptr();
-        mem::forget(message);
-        (self.0.on_alert)(msg_ptr);
+        (self.0.on_alert)(message.as_ptr());
     }
 
     fn on_load_started(&self) {
@@ -580,25 +575,19 @@ impl HostTrait for HostCallbacks {
     fn on_title_changed(&self, title: String) {
         debug!("on_title_changed");
         let title = CString::new(title).expect("Can't create string");
-        let title_ptr = title.as_ptr();
-        mem::forget(title);
-        (self.0.on_title_changed)(title_ptr);
+        (self.0.on_title_changed)(title.as_ptr());
     }
 
     fn on_allow_navigation(&self, url: String) -> bool {
         debug!("on_allow_navigation");
         let url = CString::new(url).expect("Can't create string");
-        let url_ptr = url.as_ptr();
-        mem::forget(url);
-        (self.0.on_allow_navigation)(url_ptr)
+        (self.0.on_allow_navigation)(url.as_ptr())
     }
 
     fn on_url_changed(&self, url: String) {
         debug!("on_url_changed");
         let url = CString::new(url).expect("Can't create string");
-        let url_ptr = url.as_ptr();
-        mem::forget(url);
-        (self.0.on_url_changed)(url_ptr);
+        (self.0.on_url_changed)(url.as_ptr());
     }
 
     fn on_history_changed(&self, can_go_back: bool, can_go_forward: bool) {
@@ -635,8 +624,6 @@ impl HostTrait for HostCallbacks {
     fn set_clipboard_contents(&self, contents: String) {
         debug!("set_clipboard_contents");
         let contents = CString::new(contents).expect("Can't create string");
-        let contents_ptr = contents.as_ptr();
-        mem::forget(contents);
-        (self.0.set_clipboard_contents)(contents_ptr);
+        (self.0.set_clipboard_contents)(contents.as_ptr());
     }
 }
