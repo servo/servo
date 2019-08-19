@@ -25,10 +25,7 @@ use canvas_traits::webgl::WebGLPipeline;
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{Cursor, EventLoopWaker};
-use euclid::{
-    default::{Point2D, Rect},
-    Length, Scale, Size2D, Vector2D,
-};
+use euclid::{default::Point2D, Length, Rect, Scale, Size2D, UnknownUnit, Vector2D};
 use gfx_traits::Epoch;
 use http::HeaderMap;
 use hyper::Method;
@@ -294,7 +291,7 @@ pub enum ConstellationControlMsg {
     /// Sends a DOM event.
     SendEvent(PipelineId, CompositorEvent),
     /// Notifies script of the viewport.
-    Viewport(PipelineId, Rect<f32>),
+    Viewport(PipelineId, Rect<f32, UnknownUnit>),
     /// Notifies script of a new set of scroll offsets.
     SetScrollState(
         PipelineId,
@@ -807,7 +804,11 @@ pub enum WebDriverCommandMsg {
         IpcSender<WindowSizeData>,
     ),
     /// Take a screenshot of the window.
-    TakeScreenshot(TopLevelBrowsingContextId, IpcSender<Option<Image>>),
+    TakeScreenshot(
+        TopLevelBrowsingContextId,
+        Option<Rect<f32, CSSPixel>>,
+        IpcSender<Option<Image>>,
+    ),
 }
 
 /// Messages to the constellation.

@@ -74,6 +74,7 @@ pub enum WebDriverScriptCommand {
     GetElementRect(String, IpcSender<Result<Rect<f64>, ErrorStatus>>),
     GetElementTagName(String, IpcSender<Result<String, ErrorStatus>>),
     GetElementText(String, IpcSender<Result<String, ErrorStatus>>),
+    GetBoundingClientRect(String, IpcSender<Result<Rect<f32>, ErrorStatus>>),
     GetBrowsingContextId(
         WebDriverFrameId,
         IpcSender<Result<BrowsingContextId, ErrorStatus>>,

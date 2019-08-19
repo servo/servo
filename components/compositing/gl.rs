@@ -82,6 +82,8 @@ pub fn initialize_png(
 pub fn draw_img(
     gl: &dyn gl::Gl,
     render_target_info: RenderTargetInfo,
+    x: i32,
+    y: i32,
     width: FramebufferUintLength,
     height: FramebufferUintLength,
 ) -> RgbImage {
@@ -96,8 +98,8 @@ pub fn draw_img(
     gl.bind_vertex_array(0);
 
     let mut pixels = gl.read_pixels(
-        0,
-        0,
+        x,
+        y,
         width as gl::GLsizei,
         height as gl::GLsizei,
         gl::RGB,
