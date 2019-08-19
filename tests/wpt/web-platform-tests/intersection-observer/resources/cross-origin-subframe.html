@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <div style="height: 200px; width: 100px;"></div>
 <div id="target" style="background-color: green; width:100px; height:100px"></div>
+<div id="empty-target" style="width: 100px"></div>
 <div style="height: 200px; width: 100px;"></div>
 
 <script>
 var port;
 var entries = [];
-var target = document.getElementById('target');
+var target = document.getElementById("target");
+var emptyTarget = document.getElementById("empty-target");
 var scroller = document.scrollingElement;
 var nextStep;
 
@@ -26,16 +28,8 @@ function entryToJson(entry) {
     boundingClientRect: clientRectToJson(entry.boundingClientRect),
     intersectionRect: clientRectToJson(entry.intersectionRect),
     rootBounds: clientRectToJson(entry.rootBounds),
+    isIntersecting: entry.isIntersecting,
     target: entry.target.id
-  };
-}
-
-function coordinatesToClientRectJson(top, right, bottom, left) {
-  return {
-    top: top,
-    right: right,
-    bottom: bottom,
-    left: left
   };
 }
 
@@ -48,15 +42,23 @@ var observer = new IntersectionObserver(function(changes) {
     entries = entries.concat(changes)
 }, { rootMargin: "7px" });
 observer.observe(target);
+observer.observe(emptyTarget);
 
 function step0() {
   entries = entries.concat(observer.takeRecords());
   nextStep = step1;
   var expected = [{
-    boundingClientRect: coordinatesToClientRectJson(8, 208, 108, 308),
-    intersectionRect: coordinatesToClientRectJson(0, 0, 0, 0),
+    boundingClientRect: [8, 108, 208, 308],
+    intersectionRect: [0, 0, 0, 0],
     rootBounds: "null",
+    isIntersecting: false,
     target: target.id
+  }, {
+    boundingClientRect: [8, 108, 308, 308],
+    intersectionRect: [0, 0, 0, 0],
+    rootBounds: "null",
+    isIntersecting: false,
+    target: emptyTarget.id
   }];
   port.postMessage({
     actual: entries.map(entryToJson),
@@ -83,10 +85,17 @@ function step1() {
 function step2() {
   entries = entries.concat(observer.takeRecords());
   var expected = [{
-    boundingClientRect: coordinatesToClientRectJson(-42, 108, 58, 8),
-    intersectionRect: coordinatesToClientRectJson(0, 108, 58, 8),
+    boundingClientRect: [8, 108, -42, 58],
+    intersectionRect: [8, 108, 0, 58],
     rootBounds: "null",
+    isIntersecting: true,
     target: target.id
+  }, {
+    boundingClientRect: [8, 108, 58, 58],
+    intersectionRect: [8, 108, 58, 58],
+    rootBounds: "null",
+    isIntersecting: true,
+    target: emptyTarget.id
   }];
   port.postMessage({
     actual: entries.map(entryToJson),
@@ -101,10 +110,17 @@ function step2() {
 function step3() {
   entries = entries.concat(observer.takeRecords());
   var expected = [{
-    boundingClientRect: coordinatesToClientRectJson(-42, 108, 58, 8),
-    intersectionRect: coordinatesToClientRectJson(0, 0, 0, 0),
+    boundingClientRect: [8, 108, -42, 58],
+    intersectionRect: [0, 0, 0, 0],
     rootBounds: "null",
+    isIntersecting: false,
     target: target.id
+  }, {
+    boundingClientRect: [8, 108, 58, 58],
+    intersectionRect: [0, 0, 0, 0],
+    rootBounds: "null",
+    isIntersecting: false,
+    target: emptyTarget.id
   }];
   port.postMessage({
     actual: entries.map(entryToJson),

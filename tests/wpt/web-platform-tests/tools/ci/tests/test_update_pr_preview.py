@@ -6,11 +6,8 @@ except ImportError:
 import json
 import os
 import subprocess
-import sys
 import tempfile
 import threading
-
-import pytest
 
 subject = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), '..', 'update_pr_preview.py'
@@ -74,7 +71,12 @@ def assert_fail(returncode):
 
 
 def run(event_data, responses=None):
-    event_data_file = tempfile.mkstemp()[1]
+    fd, event_data_file = tempfile.mkstemp(text=True)
+    handle = os.fdopen(fd, 'w')
+    try:
+        json.dump(event_data, handle)
+    finally:
+        handle.close()
     env = {
         'GITHUB_EVENT_PATH': event_data_file,
         'GITHUB_REPOSITORY': 'test-org/test-repo'
@@ -85,9 +87,6 @@ def run(event_data, responses=None):
     threading.Thread(target=lambda: server.serve_forever()).start()
 
     try:
-        with open(event_data_file, 'w') as handle:
-            json.dump(event_data, handle)
-
         child = subprocess.Popen(
             ['python', subject, 'http://{}:{}'.format(test_host, test_port)],
             env=env
@@ -174,8 +173,6 @@ def default_data(action):
     }
 
 
-@pytest.mark.xfail(sys.platform == "win32",
-                   reason="https://github.com/web-platform-tests/wpt/issues/18255")
 def test_close_active_with_label():
     event_data = default_data('closed')
     event_data['pull_request']['closed_at'] = '2019-07-05'
@@ -191,8 +188,6 @@ def test_close_active_with_label():
     assert Requests.delete_ref_labeled not in requests
 
 
-@pytest.mark.xfail(sys.platform == "win32",
-                   reason="https://github.com/web-platform-tests/wpt/issues/18255")
 def test_close_active_with_label_error():
     event_data = default_data('closed')
     event_data['pull_request']['closed_at'] = '2019-07-05'
@@ -208,8 +203,6 @@ def test_close_active_with_label_error():
     assert_fail(returncode)
 
 
-@pytest.mark.xfail(sys.platform == "win32",
-                   reason="https://github.com/web-platform-tests/wpt/issues/18255")
 def test_close_active_without_label():
     event_data = default_data('closed')
     event_data['pull_request']['closed_at'] = '2019-07-05'
@@ -220,8 +213,6 @@ def test_close_active_without_label():
     assert [Requests.delete_ref_open] == requests
 
 
-@pytest.mark.xfail(sys.platform == "win32",
-                   reason="https://github.com/web-platform-tests/wpt/issues/18255")
 def test_open_with_label():
     event_data = default_data('opened')
     event_data['pull_request']['labels'].append(
@@ -235,8 +226,6 @@ def test_open_with_label():
     assert Requests.update_ref_labeled in requests
 
 
-@pytest.mark.xfail(sys.platform == "win32",
-                   reason="https://github.com/web-platform-tests/wpt/issues/18255")
 def test_open_without_label_for_collaborator():
     event_data = default_data('opened')
     responses = {
@@ -253,8 +242,6 @@ def test_open_without_label_for_collaborator():
     assert Requests.create_ref_labeled in requests
 
 
-@pytest.mark.xfail(sys.platform == "win32",
-                   reason="https://github.com/web-platform-tests/wpt/issues/18255")
 def test_open_without_label_for_non_collaborator():
     event_data = default_data('opened')
     responses = {
@@ -267,8 +254,6 @@ def test_open_without_label_for_non_collaborator():
     assert [Requests.read_collaborator] == requests
 
 
-@pytest.mark.xfail(sys.platform == "win32",
-                   reason="https://github.com/web-platform-tests/wpt/issues/18255")
 def test_add_unrelated_label():
     event_data = default_data('labeled')
     event_data['label'] = {'name': 'foobar'}
@@ -280,8 +265,6 @@ def test_add_unrelated_label():
     assert len(requests) == 0
 
 
-@pytest.mark.xfail(sys.platform == "win32",
-                   reason="https://github.com/web-platform-tests/wpt/issues/18255")
 def test_add_active_label():
     event_data = default_data('labeled')
     event_data['label'] = {'name': 'pull-request-has-preview'}
@@ -300,8 +283,6 @@ def test_add_active_label():
     assert Requests.create_ref_labeled in requests
 
 
-@pytest.mark.xfail(sys.platform == "win32",
-                   reason="https://github.com/web-platform-tests/wpt/issues/18255")
 def test_add_active_label_to_closed():
     event_data = default_data('labeled')
     event_data['pull_request']['closed_at'] = '2019-07-05'
@@ -321,8 +302,6 @@ def test_add_active_label_to_closed():
     assert Requests.create_ref_labeled in requests
 
 
-@pytest.mark.xfail(sys.platform == "win32",
-                   reason="https://github.com/web-platform-tests/wpt/issues/18255")
 def test_remove_unrelated_label():
     event_data = default_data('unlabeled')
     event_data['label'] = {'name': 'foobar'}
@@ -333,8 +312,6 @@ def test_remove_unrelated_label():
     assert len(requests) == 0
 
 
-@pytest.mark.xfail(sys.platform == "win32",
-                   reason="https://github.com/web-platform-tests/wpt/issues/18255")
 def test_remove_active_label():
     event_data = default_data('unlabeled')
     event_data['label'] = {'name': 'pull-request-has-preview'}
@@ -349,8 +326,6 @@ def test_remove_active_label():
     assert Requests.delete_ref_open not in requests
 
 
-@pytest.mark.xfail(sys.platform == "win32",
-                   reason="https://github.com/web-platform-tests/wpt/issues/18255")
 def test_remove_active_label_from_closed():
     event_data = default_data('unlabeled')
     event_data['pull_request']['closed_at'] = '2019-07-05'
@@ -366,8 +341,6 @@ def test_remove_active_label_from_closed():
     assert Requests.delete_ref_open not in requests
 
 
-@pytest.mark.xfail(sys.platform == "win32",
-                   reason="https://github.com/web-platform-tests/wpt/issues/18255")
 def test_synchronize_without_label():
     event_data = default_data('synchronize')
 
@@ -377,8 +350,6 @@ def test_synchronize_without_label():
     assert len(requests) == 0
 
 
-@pytest.mark.xfail(sys.platform == "win32",
-                   reason="https://github.com/web-platform-tests/wpt/issues/18255")
 def test_synchronize_with_label():
     event_data = default_data('synchronize')
     event_data['pull_request']['labels'].append(
@@ -392,8 +363,6 @@ def test_synchronize_with_label():
     assert Requests.update_ref_labeled in requests
 
 
-@pytest.mark.xfail(sys.platform == "win32",
-                   reason="https://github.com/web-platform-tests/wpt/issues/18255")
 def test_unrecognized_action():
     event_data = default_data('assigned')
 

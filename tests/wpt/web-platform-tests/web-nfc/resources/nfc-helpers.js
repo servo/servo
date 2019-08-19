@@ -136,27 +136,39 @@ function assertNDEFMessagesEqual(providedMessage, receivedMessage) {
     compareNDEFRecords(provided.records[i], receivedMessage.data[i]);
 }
 
-// Used to compare two WebNFC messages, one that is provided to mock NFC
-// service and another that is received from NFCWriter.onreading() EventHandler.
-function assertWebNDEFMessagesEqual(a, b) {
-  if (b.url) assert_equals(a.url, b.url);
-  assert_equals(a.records.length, b.records.length);
-  for(let i in a.records) {
-    let recordA = a.records[i];
-    let recordB = b.records[i];
-    assert_equals(recordA.recordType, recordB.recordType);
-    assert_equals(recordA.mediaType, recordB.mediaType);
-    if (recordA.data() == null) {
-      assert_true(recordB.data == null);
-    } else if (recordA.data() instanceof ArrayBuffer) {
-      assert_array_equals(new Uint8Array(recordA.data()),
-          new Uint8Array(recordB.data));
-    } else if (typeof recordA.data() === 'object') {
-      assert_object_equals(recordA.data(), recordB.data);
-    } else if (typeof recordA.data() === 'number'
-        || typeof recordA.data() === 'string') {
-      assert_true(recordA.data() == recordB.data);
+// Used to compare two NDEFMessage, one that is received from
+// NFCWriter.onreading() EventHandler and another that is provided to mock NFC
+// service.
+function assertWebNDEFMessagesEqual(message, expectedMessage) {
+  if (expectedMessage.url)
+    assert_equals(message.url, expectedMessage.url);
+
+  assert_equals(message.records.length, expectedMessage.records.length);
+
+  for(let i in message.records) {
+    let record = message.records[i];
+    let expectedRecord = expectedMessage.records[i];
+    assert_equals(record.recordType, expectedRecord.recordType);
+    assert_equals(record.mediaType, expectedRecord.mediaType);
+
+    // Compares record data
+    assert_equals(record.toText(), expectedRecord.toText());
+    assert_array_equals(new Uint8Array(record.toArrayBuffer()),
+          new Uint8Array(expectedRecord.toArrayBuffer()));
+    let json;
+    try {
+      json = record.toJSON();
+    } catch (e) {
     }
+    let expectedJson;
+    try {
+      expectedJson = expectedRecord.toJSON();
+    } catch (e) {
+    }
+    if (json === undefined)
+      assert_equals(expectedJson, undefined);
+    else
+      assert_object_equals(json, expectedJson);
   }
 }
 
@@ -176,7 +188,7 @@ function testNFCReaderOptions(message, readOptions, unmatchedReadOptions, desc) 
     const promise = readerWatcher.wait_for("reading").then(event => {
       reader1.stop();
       reader2.stop();
-      assertWebNDEFMessagesEqual(event.message, message);
+      assertWebNDEFMessagesEqual(event.message, new NDEFMessage(message));
     });
     // NFCReader#start() asynchronously dispatches the onreading event.
     reader2.start();
@@ -192,7 +204,7 @@ function testReadingMultiMessages(message, readOptions, unmatchedMessage,
 
     const promise = readerWatcher.wait_for("reading").then(event => {
       reader.stop();
-      assertWebNDEFMessagesEqual(event.message, message);
+      assertWebNDEFMessagesEqual(event.message, new NDEFMessage(message));
     });
     // NFCReader#start() asynchronously dispatches the onreading event.
     reader.start();

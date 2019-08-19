@@ -23,9 +23,13 @@
     assert_equals(message.records.length, 1, 'one text record');
     assert_equals(message.records[0].recordType, 'text', 'messageType');
     assert_equals(message.records[0].mediaType, 'text/plain', 'mediaType');
-    assert_true(typeof message.records[0].data() === 'string');
-    assert_equals(message.records[0].data(), test_text_data,
-        'data() contains the same text content');
+    assert_true(typeof message.records[0].toText() === 'string');
+    assert_equals(message.records[0].toText(), test_text_data,
+        'toText() contains the same text content');
+    assert_equals(message.records[0].toArrayBuffer(), null,
+        'toArrayBuffer() returns null');
+    assert_equals(message.records[0].toJSON(), undefined,
+        'toJSON() returns undefined');
   }, 'NDEFMessage constructor with a text record');
 
 </script>

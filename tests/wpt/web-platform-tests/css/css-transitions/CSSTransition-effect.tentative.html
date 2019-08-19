@@ -111,9 +111,10 @@ promise_test(async t => {
 
   // The transition needs to have a non-zero currentTime for the interruption
   // reversal logic to apply.
-  await singleFrame();
+  while (getComputedStyle(div).left == '0px') {
+    await singleFrame();
+  }
   assert_not_equals(transition.currentTime, 0);
-  assert_not_equals(getComputedStyle(div).left, '0px');
 
   // Without yielding to the rendering loop, set the current transition's
   // effect to null and interrupt the transition. This should work correctly.

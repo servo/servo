@@ -15,7 +15,7 @@ let nonImmersiveTestName = "XRFrame getViewerPose updates on the next frame for 
 let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
 
 let testFunction = function(session, fakeDeviceController, t) {
-  return session.requestReferenceSpace('local')
+  return session.requestReferenceSpace('viewer')
     .then((referenceSpace) => new Promise((resolve, reject) => {
       let counter = 0;
       let windowFrameTime = 0;

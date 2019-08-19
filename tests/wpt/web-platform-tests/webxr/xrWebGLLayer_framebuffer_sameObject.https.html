@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<canvas />
+
+<script>
+
+let testName = "XRWebGLLayer.framebuffer meets [SameObject] requirement";
+
+let testFunction =
+  (session, fakeDeviceController, t, sessionObjects) => new Promise((resolve, reject) => {
+  let layer = new XRWebGLLayer(session, sessionObjects.gl, {});
+  let framebuffer = layer.framebuffer;
+  t.step(() => {
+    assert_equals(framebuffer, layer.framebuffer,
+      "XRWebGLLayer.framebuffer returns the same object.");
+  });
+  resolve();
+});
+
+xr_session_promise_test(
+  testName, testFunction, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr');
+
+</script>

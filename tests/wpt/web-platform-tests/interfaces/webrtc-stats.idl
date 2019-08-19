@@ -40,7 +40,6 @@ dictionary RTCCodecStats : RTCStats {
              unsigned long clockRate;
              unsigned long channels;
              DOMString sdpFmtpLine;
-             DOMString implementation;
 };
 
 enum RTCCodecType {
@@ -104,6 +103,7 @@ dictionary RTCInboundRtpStreamStats : RTCReceivedRtpStreamStats {
  unsigned long framesDropped;
  unsigned long partialFramesLost;
  unsigned long fullFramesLost;
+ DOMString decoderImplementation;
 };
 
 dictionary RTCRemoteInboundRtpStreamStats : RTCReceivedRtpStreamStats {
@@ -150,6 +150,7 @@ dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
              unsigned long firCount;
              unsigned long pliCount;
              unsigned long sliCount;
+             DOMString encoderImplementation;
 };
 
 enum RTCQualityLimitationReason {
@@ -341,6 +342,10 @@ dictionary RTCStunServerConnectionStats : RTCStats {
            unsigned long totalRequestsSent;
            unsigned long totalResponsesReceived;
            double totalRoundTripTime;
+};
+
+partial dictionary RTCCodecStats {
+   DOMString implementation;
 };
 
 partial dictionary RTCIceCandidateStats {

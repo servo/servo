@@ -34,7 +34,7 @@
     const event = new NFCReadingEvent('type', {serialNumber: '', message: message});
     assert_equals(event.type, 'type', 'type');
     assert_equals(event.serialNumber, '', 'serialNumber');
-    assertWebNDEFMessagesEqual(event.message, message);
+    assertWebNDEFMessagesEqual(event.message, new NDEFMessage(message));
   }, 'NFCReadingEvent constructor with valid parameters');
 
 </script>

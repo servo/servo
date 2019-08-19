@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#propdef-right">
+<meta name="test" content="right supports animation as a length or percentage">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  margin-left: 40px;
+  right: 30px;
+}
+.target {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  background-color: black;
+  right: 10px;
+}
+.expected {
+  background-color: green;
+}
+</style>
+
+<body></body>
+
+<script>
+test_interpolation({
+  property: 'right',
+  from: neutralKeyframe,
+  to: '20px',
+}, [
+  {at: -0.3, expect: '7px'},
+  {at: 0, expect: '10px'},
+  {at: 0.5, expect: '15px'},
+  {at: 1, expect: '20px'},
+  {at: 1.5, expect: '25px'},
+]);
+
+test_no_interpolation({
+  property: 'right',
+  from: 'initial',
+  to: '20px',
+});
+
+test_interpolation({
+  property: 'right',
+  from: 'inherit',
+  to: '20px',
+}, [
+  {at: -0.3, expect: '33px'},
+  {at: 0, expect: '30px'},
+  {at: 0.5, expect: '25px'},
+  {at: 1, expect: '20px'},
+  {at: 1.5, expect: '15px'},
+]);
+
+test_no_interpolation({
+  property: 'right',
+  from: 'unset',
+  to: '20px',
+});
+
+test_interpolation({
+  property: 'right',
+  from: '-10px',
+  to: '10px'
+}, [
+  {at: -0.3, expect: '-16px'},
+  {at: 0, expect: '-10px'},
+  {at: 0.5, expect: '0px'},
+  {at: 1, expect: '10px'},
+  {at: 1.5, expect: '20px'}
+]);
+</script>
