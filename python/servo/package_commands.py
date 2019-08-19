@@ -487,6 +487,10 @@ class PackageCommands(CommandBase):
     @CommandArgument('--android',
                      action='store_true',
                      help='Install on Android')
+    @CommandArgument('--magicleap',
+                     default=None,
+                     action='store_true',
+                     help='Install on Magic Leap')
     @CommandArgument('--emulator',
                      action='store_true',
                      help='For Android, install to the only emulated device')
@@ -496,29 +500,44 @@ class PackageCommands(CommandBase):
     @CommandArgument('--target', '-t',
                      default=None,
                      help='Install the given target platform')
-    def install(self, release=False, dev=False, android=False, emulator=False, usb=False, target=None):
-        env = self.build_env()
+    def install(self, release=False, dev=False, android=False, magicleap=False, emulator=False, usb=False, target=None):
         if target and android:
             print("Please specify either --target or --android.")
             sys.exit(1)
         if not android:
             android = self.handle_android_target(target)
+        if target and magicleap:
+            print("Please specify either --target or --magicleap.")
+            sys.exit(1)
+        if magicleap:
+            target = "aarch64-linux-android"
+        env = self.build_env(target=target)
         try:
-            binary_path = self.get_binary_path(release, dev, android=android)
+            binary_path = self.get_binary_path(release, dev, android=android, magicleap=magicleap)
         except BuildNotFound:
             print("Servo build not found. Building servo...")
             result = Registrar.dispatch(
-                "build", context=self.context, release=release, dev=dev, android=android
+                "build", context=self.context, release=release, dev=dev, android=android, magicleap=magicleap,
             )
             if result:
                 return result
             try:
-                binary_path = self.get_binary_path(release, dev, android=android)
+                binary_path = self.get_binary_path(release, dev, android=android, magicleap=magicleap)
             except BuildNotFound:
                 print("Rebuilding Servo did not solve the missing build problem.")
                 return 1
 
-        if android:
+        if magicleap:
+            if not env.get("MAGICLEAP_SDK"):
+                raise Exception("Magic Leap installs need the MAGICLEAP_SDK environment variable")
+            mldb = path.join(env.get("MAGICLEAP_SDK"), "tools", "mldb", "mldb")
+            pkg_path = path.join(path.dirname(binary_path), "Servo.mpk")
+            exec_command = [
+                mldb,
+                "install", "-u",
+                pkg_path,
+            ]
+        elif android:
             pkg_path = self.get_apk_path(release)
             exec_command = [self.android_adb_path(env)]
             if emulator and usb:
@@ -534,8 +553,9 @@ class PackageCommands(CommandBase):
             exec_command = ["msiexec", "/i", pkg_path]
 
         if not path.exists(pkg_path):
+            print("Servo package not found. Packaging servo...")
             result = Registrar.dispatch(
-                "package", context=self.context, release=release, dev=dev, android=android
+                "package", context=self.context, release=release, dev=dev, android=android, magicleap=magicleap,
             )
             if result != 0:
                 return result
