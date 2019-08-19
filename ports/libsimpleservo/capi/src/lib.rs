@@ -564,9 +564,7 @@ impl HostTrait for HostCallbacks {
     fn on_alert(&self, message: String) {
         debug!("on_alert");
         let message = CString::new(message).expect("Can't create string");
-        let msg_ptr = message.as_ptr();
-        mem::forget(message);
-        (self.0.on_alert)(msg_ptr);
+        (self.0.on_alert)(message.as_ptr());
     }
 
     fn on_load_started(&self) {
@@ -582,25 +580,19 @@ impl HostTrait for HostCallbacks {
     fn on_title_changed(&self, title: String) {
         debug!("on_title_changed");
         let title = CString::new(title).expect("Can't create string");
-        let title_ptr = title.as_ptr();
-        mem::forget(title);
-        (self.0.on_title_changed)(title_ptr);
+        (self.0.on_title_changed)(title.as_ptr());
     }
 
     fn on_allow_navigation(&self, url: String) -> bool {
         debug!("on_allow_navigation");
         let url = CString::new(url).expect("Can't create string");
-        let url_ptr = url.as_ptr();
-        mem::forget(url);
-        (self.0.on_allow_navigation)(url_ptr)
+        (self.0.on_allow_navigation)(url.as_ptr())
     }
 
     fn on_url_changed(&self, url: String) {
         debug!("on_url_changed");
         let url = CString::new(url).expect("Can't create string");
-        let url_ptr = url.as_ptr();
-        mem::forget(url);
-        (self.0.on_url_changed)(url_ptr);
+        (self.0.on_url_changed)(url.as_ptr());
     }
 
     fn on_history_changed(&self, can_go_back: bool, can_go_forward: bool) {
@@ -637,8 +629,6 @@ impl HostTrait for HostCallbacks {
     fn set_clipboard_contents(&self, contents: String) {
         debug!("set_clipboard_contents");
         let contents = CString::new(contents).expect("Can't create string");
-        let contents_ptr = contents.as_ptr();
-        mem::forget(contents);
-        (self.0.set_clipboard_contents)(contents_ptr);
+        (self.0.set_clipboard_contents)(contents.as_ptr());
     }
 }
