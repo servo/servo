@@ -83,7 +83,6 @@ pub struct BaseAudioContext {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "servo_media"]
     audio_context_impl: Arc<Mutex<AudioContext>>,
-    browsing_context_id: BrowsingContextId,
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
     destination: MutNullableDom<AudioDestinationNode>,
     listener: MutNullableDom<AudioListener>,
@@ -128,7 +127,6 @@ impl BaseAudioContext {
             audio_context_impl: ServoMedia::get()
                 .unwrap()
                 .create_audio_context(&client_context_id, options.into()),
-            browsing_context_id,
             destination: Default::default(),
             listener: Default::default(),
             in_flight_resume_promises_queue: Default::default(),
@@ -552,18 +550,6 @@ impl BaseAudioContextMethods for BaseAudioContext {
 
         // Step 4.
         promise
-    }
-}
-
-impl Drop for BaseAudioContext {
-    fn drop(&mut self) {
-        let client_context_id = ClientContextId::build(
-            self.browsing_context_id.namespace_id.0,
-            self.browsing_context_id.index.0.get(),
-        );
-        ServoMedia::get()
-            .unwrap()
-            .shutdown_audio_context(&client_context_id, self.audio_context_impl.clone());
     }
 }
 
