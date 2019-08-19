@@ -7,6 +7,8 @@
 #![deny(unsafe_code)]
 
 #[macro_use]
+extern crate crossbeam_channel;
+#[macro_use]
 extern crate log;
 #[macro_use]
 extern crate serde;
@@ -19,11 +21,12 @@ mod capabilities;
 use crate::actions::InputSourceState;
 use base64;
 use capabilities::ServoCapabilities;
-use crossbeam_channel::Sender;
+use crossbeam_channel::{after, unbounded, Receiver, Sender};
 use euclid::Size2D;
 use hyper::Method;
 use image::{DynamicImage, ImageFormat, RgbImage};
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
 use keyboard_types::webdriver::send_keys;
 use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, TraversalDirection};
 use pixels::PixelFormat;
@@ -170,6 +173,8 @@ impl WebDriverSession {
 }
 
 struct Handler {
+    load_status_receiver: Receiver<LoadStatus>,
+    load_status_sender: IpcSender<LoadStatus>,
     session: Option<WebDriverSession>,
     constellation_chan: Sender<ConstellationMsg>,
     resize_timeout: u32,
@@ -370,7 +375,12 @@ impl<'de> Visitor<'de> for TupleVecMapVisitor {
 
 impl Handler {
     pub fn new(constellation_chan: Sender<ConstellationMsg>) -> Handler {
+        let (load_status_sender, receiver) = ipc::channel().unwrap();
+        let (sender, load_status_receiver) = unbounded();
+        ROUTER.route_ipc_receiver_to_crossbeam_sender(receiver, sender);
         Handler {
+            load_status_sender,
+            load_status_receiver,
             session: None,
             constellation_chan: constellation_chan,
             resize_timeout: 500,
@@ -612,35 +622,26 @@ impl Handler {
 
         let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
 
-        let (sender, receiver) = ipc::channel().unwrap();
-
         let load_data = LoadData::new(LoadOrigin::WebDriver, url, None, None, None);
-        let cmd_msg =
-            WebDriverCommandMsg::LoadUrl(top_level_browsing_context_id, load_data, sender.clone());
+        let cmd_msg = WebDriverCommandMsg::LoadUrl(
+            top_level_browsing_context_id,
+            load_data,
+            self.load_status_sender.clone(),
+        );
         self.constellation_chan
             .send(ConstellationMsg::WebDriverCommand(cmd_msg))
             .unwrap();
 
-        self.wait_for_load(sender, receiver)
+        self.wait_for_load()
     }
 
-    fn wait_for_load(
-        &self,
-        sender: IpcSender<LoadStatus>,
-        receiver: IpcReceiver<LoadStatus>,
-    ) -> WebDriverResult<WebDriverResponse> {
+    fn wait_for_load(&self) -> WebDriverResult<WebDriverResponse> {
         let timeout = self.session()?.load_timeout;
-        thread::spawn(move || {
-            thread::sleep(Duration::from_millis(timeout));
-            let _ = sender.send(LoadStatus::LoadTimeout);
-        });
-
-        // wait to get a load event
-        match receiver.recv().unwrap() {
-            LoadStatus::LoadComplete => Ok(WebDriverResponse::Void),
-            LoadStatus::LoadTimeout => {
-                Err(WebDriverError::new(ErrorStatus::Timeout, "Load timed out"))
-            },
+        select! {
+            recv(self.load_status_receiver) -> _ => Ok(WebDriverResponse::Void),
+            recv(after(Duration::from_millis(timeout))) -> _ => Err(
+                WebDriverError::new(ErrorStatus::Timeout, "Load timed out")
+            ),
         }
     }
 
@@ -780,14 +781,15 @@ impl Handler {
     fn handle_refresh(&self) -> WebDriverResult<WebDriverResponse> {
         let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
 
-        let (sender, receiver) = ipc::channel().unwrap();
-
-        let cmd_msg = WebDriverCommandMsg::Refresh(top_level_browsing_context_id, sender.clone());
+        let cmd_msg = WebDriverCommandMsg::Refresh(
+            top_level_browsing_context_id,
+            self.load_status_sender.clone(),
+        );
         self.constellation_chan
             .send(ConstellationMsg::WebDriverCommand(cmd_msg))
             .unwrap();
 
-        self.wait_for_load(sender, receiver)
+        self.wait_for_load()
     }
 
     fn handle_title(&self) -> WebDriverResult<WebDriverResponse> {
