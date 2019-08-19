@@ -33,6 +33,7 @@ public:
   virtual void OnServoURLChanged(hstring) = 0;
   virtual bool OnServoAllowNavigation(hstring) = 0;
   virtual void OnServoAnimatingChanged(bool) = 0;
+  virtual void OnServoIMEStateChanged(bool) = 0;
   virtual void Flush() = 0;
   virtual void MakeCurrent() = 0;
 
