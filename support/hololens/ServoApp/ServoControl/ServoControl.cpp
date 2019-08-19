@@ -250,6 +250,10 @@ void ServoControl::OnServoAnimatingChanged(bool animating) {
   WakeConditionVariable(&mGLCondVar);
 }
 
+void ServoControl::OnServoIMEStateChanged(bool aShow) {
+  // FIXME: https://docs.microsoft.com/en-us/windows/win32/winauto/uiauto-implementingtextandtextrange
+}
+
 template <typename Callable> void ServoControl::RunOnUIThread(Callable cb) {
   Dispatcher().RunAsync(CoreDispatcherPriority::High, cb);
 }

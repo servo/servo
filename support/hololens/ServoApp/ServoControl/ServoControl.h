@@ -56,6 +56,7 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
   virtual void MakeCurrent();
   virtual bool OnServoAllowNavigation(winrt::hstring);
   virtual void OnServoAnimatingChanged(bool);
+  virtual void OnServoIMEStateChanged(bool);
 
 private:
   winrt::event<Windows::Foundation::EventHandler<hstring>> mOnURLChangedEvent;
