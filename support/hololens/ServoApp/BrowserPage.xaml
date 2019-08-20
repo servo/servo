@@ -25,7 +25,7 @@
         <Button x:Name="reloadButton" IsTabStop="true" IsEnabled="false" Content="reload" Click="OnReloadButtonClicked"/>
         <Button x:Name="stopButton" IsTabStop="true" IsEnabled="false" Content="stop" Click="OnStopButtonClicked"/>
       </StackPanel>
-      <TextBox Text="" IsTabStop="true" PlaceholderText="Type a URL" x:Name="urlTextbox" Grid.Column="1" KeyUp="OnURLEdited"/>
+      <TextBox Text="" IsTabStop="true" InputScope="Url" PlaceholderText="Type a URL" x:Name="urlTextbox" Grid.Column="1" KeyUp="OnURLEdited"/>
       <StackPanel Orientation="Horizontal" Grid.Column="2">
         <Button x:Name="immersiveButton" Click="OnImmersiveButtonClicked">Run Immersive</Button>
       </StackPanel>
