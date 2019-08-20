@@ -63,6 +63,7 @@ private:
   winrt::event<HistoryChangedDelegate> mOnHistoryChangedEvent;
   winrt::event<LoadStatusChangedDelegate> mOnLoadStartedEvent;
   winrt::event<LoadStatusChangedDelegate> mOnLoadEndedEvent;
+  hstring mInitialURL = L"https://servo.org";
 
   Windows::UI::Xaml::Controls::SwapChainPanel ServoControl::Panel();
   void CreateRenderSurface();

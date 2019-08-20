@@ -16,6 +16,9 @@ extern "C" {
 }
 } // namespace capi
 
+hstring char2hstring(const char *);
+const char *hstring2char(hstring);
+
 class ServoDelegate {
 public:
   // Called from any thread
@@ -39,7 +42,7 @@ protected:
 
 class Servo {
 public:
-  Servo(GLsizei, GLsizei, ServoDelegate &);
+  Servo(hstring, GLsizei, GLsizei, ServoDelegate &);
   ~Servo();
   ServoDelegate &Delegate() { return mDelegate; }
 
@@ -52,14 +55,7 @@ public:
   void Click(float x, float y) { capi::click((int32_t)x, (int32_t)y); }
   void Reload() { capi::reload(); }
   void Stop() { capi::stop(); }
-  void LoadUri(hstring uri) {
-    const wchar_t* wc = uri.c_str();
-    size_t size = uri.size() + 1;
-    char* str = new char[size];
-    size_t converted = 0;
-    wcstombs_s(&converted, str, size, wc, uri.size());
-    capi::load_uri(str);
-  }
+  void LoadUri(hstring uri) { capi::load_uri(hstring2char(uri)); }
   void Scroll(float dx, float dy, float x, float y) {
     capi::scroll((int32_t)dx, (int32_t)dy, (int32_t)x, (int32_t)y);
   }
@@ -82,6 +78,4 @@ private:
 // the Servo instance. See https://github.com/servo/servo/issues/22967
 static Servo *sServo = nullptr;
 
-hstring char2hstring(const char *c_str);
-
-} // namespace servo
+} // namespace winrt::servo

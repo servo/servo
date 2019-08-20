@@ -68,15 +68,23 @@ void App::OnActivated(IActivatedEventArgs const &args) {
     auto protocolActivatedEventArgs{args.as<
         Windows::ApplicationModel::Activation::ProtocolActivatedEventArgs>()};
 
+    Frame rootFrame{nullptr};
+
     auto content = Window::Current().Content();
-    Frame rootFrame = content.try_as<Frame>();
+    if (content == nullptr) {
+      rootFrame = Frame();
+      rootFrame.Navigate(xaml_typename<ServoApp::BrowserPage>());
+      Window::Current().Content(rootFrame);
+      Window::Current().Activate();
+    } else {
+      rootFrame = content.try_as<Frame>();
+    }
     auto page = rootFrame.Content().try_as<BrowserPage>();
     page->LoadServoURI(protocolActivatedEventArgs.Uri());
   }
 }
 
-void App::OnSuspending(IInspectable const &,
-                       SuspendingEventArgs const &) {
+void App::OnSuspending(IInspectable const &, SuspendingEventArgs const &) {
   auto content = Window::Current().Content();
   Frame rootFrame = content.try_as<Frame>();
   auto page = rootFrame.Content().try_as<BrowserPage>();

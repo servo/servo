@@ -22,18 +22,19 @@ void flush() { sServo->Delegate().Flush(); }
 void make_current() { sServo->Delegate().MakeCurrent(); }
 void wakeup() { sServo->Delegate().WakeUp(); }
 bool on_allow_navigation(const char *url) {
- return sServo->Delegate().OnServoAllowNavigation(char2hstring(url));
+  return sServo->Delegate().OnServoAllowNavigation(char2hstring(url));
 };
 void on_animating_changed(bool aAnimating) {
   sServo->Delegate().OnServoAnimatingChanged(aAnimating);
 }
 
-Servo::Servo(GLsizei width, GLsizei height, ServoDelegate &aDelegate)
+Servo::Servo(hstring url, GLsizei width, GLsizei height,
+             ServoDelegate &aDelegate)
     : mWindowHeight(height), mWindowWidth(width), mDelegate(aDelegate) {
 
   capi::CInitOptions o;
   o.args = "--pref dom.webxr.enabled";
-  o.url = "https://servo.org";
+  o.url = hstring2char(url);
   o.width = mWindowWidth;
   o.height = mWindowHeight;
   o.density = 1.0;
@@ -63,11 +64,22 @@ Servo::~Servo() { sServo = nullptr; }
 winrt::hstring char2hstring(const char *c_str) {
   // FIXME: any better way of doing this?
   auto str = std::string(c_str);
-  int size_needed = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
+  int size_needed =
+      MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
   std::wstring str2(size_needed, 0);
-  MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &str2[0], size_needed);
-  winrt::hstring str3 {str2};
+  MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &str2[0],
+                      size_needed);
+  winrt::hstring str3{str2};
   return str3;
 }
 
-} // namespace servo
+const char *hstring2char(hstring hstr) {
+  const wchar_t *wc = hstr.c_str();
+  size_t size = hstr.size() + 1;
+  char *str = new char[size];
+  size_t converted = 0;
+  wcstombs_s(&converted, str, size, wc, hstr.size());
+  return str;
+}
+
+} // namespace winrt::servo
