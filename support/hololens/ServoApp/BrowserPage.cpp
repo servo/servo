@@ -35,6 +35,12 @@ void BrowserPage::BindServoEvents() {
     reloadButton().IsEnabled(true);
     stopButton().IsEnabled(false);
   });
+  servoControl().OnCaptureGesturesStarted([=] {
+    servoControl().Focus(FocusState::Programmatic);
+    navigationBar().IsHitTestVisible(false);
+  });
+  servoControl().OnCaptureGesturesEnded(
+      [=] { navigationBar().IsHitTestVisible(true); });
 }
 
 void BrowserPage::LoadServoURI(Uri uri) {

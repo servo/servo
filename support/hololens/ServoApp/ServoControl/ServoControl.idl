@@ -1,6 +1,6 @@
 namespace ServoApp {
 
-  delegate void LoadStatusChangedDelegate();
+  delegate void EventDelegate();
   delegate void HistoryChangedDelegate(Boolean back, Boolean forward);
 
   runtimeclass ServoControl : Windows.UI.Xaml.Controls.Control {
@@ -11,8 +11,10 @@ namespace ServoApp {
       void Stop();
       Windows.Foundation.Uri LoadURIOrSearch(String url);
       void Shutdown();
-      event LoadStatusChangedDelegate OnLoadStarted;
-      event LoadStatusChangedDelegate OnLoadEnded;
+      event EventDelegate OnLoadStarted;
+      event EventDelegate OnLoadEnded;
+      event EventDelegate OnCaptureGesturesStarted;
+      event EventDelegate OnCaptureGesturesEnded;
       event HistoryChangedDelegate OnHistoryChanged;
       event Windows.Foundation.EventHandler<String> OnTitleChanged;
       event Windows.Foundation.EventHandler<String> OnURLChanged;

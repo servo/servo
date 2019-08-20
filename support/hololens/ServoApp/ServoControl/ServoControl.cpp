@@ -32,9 +32,22 @@ void ServoControl::Shutdown() {
 }
 
 void ServoControl::OnLoaded(IInspectable const &, RoutedEventArgs const &) {
-  Panel().PointerReleased(
+  auto panel = Panel();
+  panel.PointerReleased(
       std::bind(&ServoControl::OnSurfaceClicked, this, _1, _2));
-  Panel().ManipulationDelta(
+  panel.ManipulationStarted(
+      [=](IInspectable const &,
+         Input::ManipulationStartedRoutedEventArgs const &e) {
+        mOnCaptureGesturesStartedEvent();
+        e.Handled(true);
+      });
+  panel.ManipulationCompleted(
+      [=](IInspectable const &,
+         Input::ManipulationCompletedRoutedEventArgs const &e) {
+        mOnCaptureGesturesEndedEvent();
+        e.Handled(true);
+      });
+  panel.ManipulationDelta(
       std::bind(&ServoControl::OnSurfaceManipulationDelta, this, _1, _2));
   InitializeConditionVariable(&mGLCondVar);
   InitializeCriticalSection(&mGLLock);
