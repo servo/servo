@@ -11,22 +11,8 @@
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="$(GeneratedFilesDir)module.g.cpp" />
     <ClCompile Include="logs.cpp" />
-    <ClCompile Include="ImmersiveView.cpp" />
     <ClCompile Include="BrowserPage.cpp" />
     <ClCompile Include="App.cpp" />
-    <ClCompile Include="Common\CameraResources.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="Common\DeviceResources.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="Content\SpatialInputHandler.cpp">
-      <Filter>Content</Filter>
-    </ClCompile>
-    <ClCompile Include="Content\SpinningCubeRenderer.cpp">
-      <Filter>Content</Filter>
-    </ClCompile>
-    <ClCompile Include="ImmersiveMain.cpp" />
     <ClCompile Include="ServoControl\OpenGLES.cpp">
       <Filter>ServoControl</Filter>
     </ClCompile>
@@ -40,31 +26,8 @@
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="logs.h" />
-    <ClInclude Include="ImmersiveView.h" />
     <ClInclude Include="BrowserPage.h" />
     <ClInclude Include="App.h" />
-    <ClInclude Include="Common\CameraResources.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\DeviceResources.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\DirectXHelper.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\StepTimer.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Content\ShaderStructures.h">
-      <Filter>Content</Filter>
-    </ClInclude>
-    <ClInclude Include="Content\SpatialInputHandler.h">
-      <Filter>Content</Filter>
-    </ClInclude>
-    <ClInclude Include="Content\SpinningCubeRenderer.h">
-      <Filter>Content</Filter>
-    </ClInclude>
-    <ClInclude Include="ImmersiveMain.h" />
     <ClInclude Include="ServoControl\OpenGLES.h">
       <Filter>ServoControl</Filter>
     </ClInclude>
@@ -104,9 +67,6 @@
   <ItemGroup>
     <None Include="ServoApp_TemporaryKey.pfx" />
     <None Include="packages.config" />
-    <None Include="Content\VertexShaderShared.hlsl">
-      <Filter>Content</Filter>
-    </None>
     <None Include="..\..\..\target\debug\openxr_loader.dll">
       <Filter>DebugServoDLLs</Filter>
     </None>
@@ -196,12 +156,6 @@
     <Filter Include="ReleaseServoDLLs">
       <UniqueIdentifier>{663f48bc-21ec-4f00-9db5-cd0a5fa87983}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common">
-      <UniqueIdentifier>{e6c0d90c-587b-446e-a6a7-037217d03006}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Content">
-      <UniqueIdentifier>{83d6e7af-b929-4869-804e-571256af2969}</UniqueIdentifier>
-    </Filter>
     <Filter Include="DebugARM64ServoDLLs">
       <UniqueIdentifier>{e372e8ac-7cab-47de-80a5-020370a51fd4}</UniqueIdentifier>
     </Filter>
@@ -220,20 +174,6 @@
     <Page Include="Themes\Generic.xaml">
       <Filter>ServoControl</Filter>
     </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="Content\GeometryShader.hlsl">
-      <Filter>Content</Filter>
-    </FxCompile>
-    <FxCompile Include="Content\PixelShader.hlsl">
-      <Filter>Content</Filter>
-    </FxCompile>
-    <FxCompile Include="Content\VertexShader.hlsl">
-      <Filter>Content</Filter>
-    </FxCompile>
-    <FxCompile Include="Content\VPRTVertexShader.hlsl">
-      <Filter>Content</Filter>
-    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml" />

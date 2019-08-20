@@ -5,9 +5,7 @@
 #pragma once
 
 #include "BrowserPage.g.h"
-#include "ImmersiveView.h"
 #include "ServoControl\ServoControl.h"
-
 
 namespace winrt::ServoApp::implementation {
 
@@ -15,8 +13,6 @@ struct BrowserPage : BrowserPageT<BrowserPage> {
 public:
   BrowserPage();
 
-  void OnImmersiveButtonClicked(Windows::Foundation::IInspectable const &,
-                                Windows::UI::Xaml::RoutedEventArgs const &);
   void OnForwardButtonClicked(Windows::Foundation::IInspectable const &,
                               Windows::UI::Xaml::RoutedEventArgs const &);
   void OnBackButtonClicked(Windows::Foundation::IInspectable const &,
@@ -30,7 +26,6 @@ public:
   void Shutdown();
 
 private:
-  winrt::ServoApp::ImmersiveViewSource mImmersiveViewSource;
   void BindServoEvents();
 };
 } // namespace winrt::ServoApp::implementation
