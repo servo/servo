@@ -76,7 +76,7 @@ private:
   std::optional<Windows::Foundation::Uri> TryParseURI(hstring input) {
     try {
       return Windows::Foundation::Uri(input);
-    } catch (hresult_invalid_argument const &e) {
+    } catch (hresult_invalid_argument const &) {
       return {};
     }
   }

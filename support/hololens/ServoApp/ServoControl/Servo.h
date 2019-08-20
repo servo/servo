@@ -49,7 +49,7 @@ public:
   void SetBatchMode(bool mode) { capi::set_batch_mode(mode); }
   void GoForward() { capi::go_forward(); }
   void GoBack() { capi::go_back(); }
-  void Click(float x, float y) { capi::click(x, y); }
+  void Click(float x, float y) { capi::click((int32_t)x, (int32_t)y); }
   void Reload() { capi::reload(); }
   void Stop() { capi::stop(); }
   void LoadUri(hstring uri) {
@@ -61,7 +61,7 @@ public:
     capi::load_uri(str);
   }
   void Scroll(float dx, float dy, float x, float y) {
-    capi::scroll(dx, dy, x, y);
+    capi::scroll((int32_t)dx, (int32_t)dy, (int32_t)x, (int32_t)y);
   }
   void SetSize(GLsizei width, GLsizei height) {
     if (width != mWindowWidth || height != mWindowHeight) {

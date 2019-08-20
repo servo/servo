@@ -22,7 +22,7 @@ public:
   void OnBackButtonClicked(Windows::Foundation::IInspectable const &,
                            Windows::UI::Xaml::RoutedEventArgs const &);
   void OnReloadButtonClicked(Windows::Foundation::IInspectable const &,
-                              Windows::UI::Xaml::RoutedEventArgs const &);
+                             Windows::UI::Xaml::RoutedEventArgs const &);
   void OnStopButtonClicked(Windows::Foundation::IInspectable const &,
                            Windows::UI::Xaml::RoutedEventArgs const &);
   void OnURLEdited(Windows::Foundation::IInspectable const &,

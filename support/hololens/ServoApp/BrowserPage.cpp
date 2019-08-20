@@ -64,7 +64,7 @@ void BrowserPage::OnStopButtonClicked(IInspectable const &,
   servoControl().Stop();
 }
 
-void BrowserPage::OnURLEdited(IInspectable const &sender,
+void BrowserPage::OnURLEdited(IInspectable const &,
                               Input::KeyRoutedEventArgs const &e) {
   if (e.Key() == Windows::System::VirtualKey::Enter) {
     servoControl().Focus(FocusState::Programmatic);
