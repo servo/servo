@@ -9,8 +9,23 @@
     <script src="/resources/testharnessreport.js"></script>
     <script src="/css/support/interpolation-testcommon.js"></script>
     <style>
-      body {
-        color: blue;
+      .parent {
+        filter: hue-rotate(30deg);
+      }
+      .target {
+        display: inline-block;
+        width: 50px;
+        height: 50px;
+        background-color: green;
+        color: white;
+        margin-right: 2px;
+        filter: hue-rotate(10deg);
+      }
+      .expected {
+        margin-right: 20px;
+      }
+      .test {
+        padding-bottom: 10px;
       }
     </style>
   </head>
@@ -43,6 +58,58 @@
         {at: 0.5, expect: 'hue-rotate(85deg) blur(8mm)'},
         {at: 1, expect: 'hue-rotate(90deg) blur(10mm)'},
         {at: 1.5, expect: 'hue-rotate(95deg) blur(12mm)'}
+      ]);
+
+      test_interpolation({
+        property: 'filter',
+        from: neutralKeyframe,
+        to: 'hue-rotate(20deg)',
+      }, [
+        {at: -0.5, expect: 'hue-rotate(5deg)'},
+        {at: 0, expect: 'hue-rotate(10deg)'},
+        {at: 0.3, expect: 'hue-rotate(13deg)'},
+        {at: 0.6, expect: 'hue-rotate(16deg)'},
+        {at: 1, expect: 'hue-rotate(20deg)'},
+        {at: 1.5, expect: 'hue-rotate(25deg)'},
+      ]);
+
+      test_interpolation({
+        property: 'filter',
+        from: 'initial',
+        to: 'hue-rotate(20deg)',
+      }, [
+        {at: -0.5, expect: 'hue-rotate(-10deg)'},
+        {at: 0, expect: 'hue-rotate(0deg)'},
+        {at: 0.3, expect: 'hue-rotate(6deg)'},
+        {at: 0.6, expect: 'hue-rotate(12deg)'},
+        {at: 1, expect: 'hue-rotate(20deg)'},
+        {at: 1.5, expect: 'hue-rotate(30deg)'},
+      ]);
+
+      test_interpolation({
+        property: 'filter',
+        from: 'inherit',
+        to: 'hue-rotate(20deg)',
+      }, [
+        {at: -0.5, expect: 'hue-rotate(35deg)'},
+        {at: 0, expect: 'hue-rotate(30deg)'},
+        {at: 0.3, expect: 'hue-rotate(27deg)'},
+        {at: 0.6, expect: 'hue-rotate(24deg)'},
+        {at: 1, expect: 'hue-rotate(20deg)'},
+        {at: 1.5, expect: 'hue-rotate(15deg)'},
+      ]);
+
+      test_interpolation({
+        property: 'filter',
+        from: 'unset',
+        to: 'hue-rotate(20deg)',
+      }, [
+        {at: -0.5, expect: 'hue-rotate(-10deg)'},
+        {at: 0, expect: 'hue-rotate(0deg)'},
+        {at: 0.3, expect: 'hue-rotate(6deg)'},
+        {at: 0.6, expect: 'hue-rotate(12deg)'},
+        {at: 1, expect: 'hue-rotate(20deg)'},
+        {at: 1.5, expect: 'hue-rotate(30deg)'},
       ]);
     </script>
   </body>

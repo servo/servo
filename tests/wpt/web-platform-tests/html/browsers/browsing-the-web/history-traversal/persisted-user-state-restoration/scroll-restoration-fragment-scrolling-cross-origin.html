@@ -18,9 +18,7 @@
   function frameOnload() {
     if (next) {
       next();
-      dump("next \n");
     } else {
-      dump("no next \n");
       // The test does the following navigation steps for iframe
       // 1. load page-with-fragment.html#fragment
       // 2. load blank1
