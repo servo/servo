@@ -28,3 +28,7 @@ opt-level = 3
 # Those are here to dedupe winapi since mio is still using winapi 0.2.
 mio = { git = "https://github.com/servo/mio.git", branch = "servo" }
 iovec = { git = "https://github.com/servo/iovec.git", branch = "servo" }
+
+[patch."https://github.com/servo/webxr"]
+webxr = { path = "/home/manishearth/mozilla/Git/webxr/webxr" }
+webxr-api = { path = "/home/manishearth/mozilla/Git/webxr/webxr-api" }
