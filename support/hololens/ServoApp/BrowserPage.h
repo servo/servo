@@ -8,8 +8,10 @@
 #include "ImmersiveView.h"
 #include "ServoControl\ServoControl.h"
 
-
 namespace winrt::ServoApp::implementation {
+
+static const hstring SERVO_SCHEME = L"servo";
+static const hstring SERVO_SCHEME_SLASH_SLASH = L"servo://";
 
 struct BrowserPage : BrowserPageT<BrowserPage> {
 public:
@@ -28,6 +30,7 @@ public:
   void OnURLEdited(Windows::Foundation::IInspectable const &,
                    Windows::UI::Xaml::Input::KeyRoutedEventArgs const &);
   void Shutdown();
+  void LoadServoURI(Windows::Foundation::Uri uri);
 
 private:
   winrt::ServoApp::ImmersiveViewSource mImmersiveViewSource;

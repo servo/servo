@@ -8,6 +8,7 @@
 #include "BrowserPage.g.cpp"
 #include "ImmersiveView.h"
 
+using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::UI::Xaml;
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::UI::ViewManagement;
@@ -38,9 +39,19 @@ void BrowserPage::BindServoEvents() {
   });
 }
 
-void BrowserPage::Shutdown() {
-  servoControl().Shutdown();
+void BrowserPage::LoadServoURI(Uri uri) {
+  auto scheme = uri.SchemeName();
+
+  if (scheme != SERVO_SCHEME) {
+    log("Unexpected URL: ", uri.RawUri().c_str());
+    return;
+  }
+  std::wstring raw{uri.RawUri()};
+  auto raw2 = raw.substr(SERVO_SCHEME_SLASH_SLASH.size());
+  servoControl().LoadURIOrSearch(raw2);
 }
+
+void BrowserPage::Shutdown() { servoControl().Shutdown(); }
 
 /**** USER INTERACTIONS WITH UI ****/
 
