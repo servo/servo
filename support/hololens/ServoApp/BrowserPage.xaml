@@ -20,17 +20,16 @@
         <ColumnDefinition Width="auto"/>
       </Grid.ColumnDefinitions>
       <StackPanel Orientation="Horizontal" Grid.Column="0">
-        <Button x:Name="backButton" IsEnabled="false" Content="Back" Click="OnBackButtonClicked"/>
-        <Button x:Name="forwardButton" IsEnabled="false" Content="Forward" Click="OnForwardButtonClicked"/>
-        <Button x:Name="reloadButton" IsEnabled="false" Content="reload" Click="OnReloadButtonClicked"/>
-        <Button x:Name="stopButton" IsEnabled="false" Content="stop" Click="OnStopButtonClicked"/>
+        <Button x:Name="backButton" IsTabStop="true" IsEnabled="false" Content="Back" Click="OnBackButtonClicked"/>
+        <Button x:Name="forwardButton" IsTabStop="true" IsEnabled="false" Content="Forward" Click="OnForwardButtonClicked"/>
+        <Button x:Name="reloadButton" IsTabStop="true" IsEnabled="false" Content="reload" Click="OnReloadButtonClicked"/>
+        <Button x:Name="stopButton" IsTabStop="true" IsEnabled="false" Content="stop" Click="OnStopButtonClicked"/>
       </StackPanel>
-      <TextBox Text="" AcceptsReturn="True" PlaceholderText="Type a URL" x:Name="urlTextbox" Grid.Column="1" IsReadOnly="True"/>
+      <TextBox Text="" IsTabStop="true" InputScope="Url" PlaceholderText="Type a URL" x:Name="urlTextbox" Grid.Column="1" KeyUp="OnURLEdited"/>
       <StackPanel Orientation="Horizontal" Grid.Column="2">
         <Button x:Name="immersiveButton" Click="OnImmersiveButtonClicked">Run Immersive</Button>
       </StackPanel>
     </Grid>
-    <SwapChainPanel x:Name="swapChainPanel" MinHeight="200" MinWidth="200" Grid.Row="1" ManipulationMode="All">
-    </SwapChainPanel>
+    <local:ServoControl TabIndex="0" x:Name="servoControl" Grid.Row="1"/>
   </Grid>
 </Page>

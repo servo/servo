@@ -151,7 +151,6 @@
     <ClInclude Include="ImmersiveMain.h" />
     <ClInclude Include="ImmersiveView.h" />
     <ClInclude Include="logs.h" />
-    <ClInclude Include="OpenGLES.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="App.h">
       <DependentUpon>App.xaml</DependentUpon>
@@ -159,13 +158,18 @@
     <ClInclude Include="BrowserPage.h">
       <DependentUpon>BrowserPage.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Servo.h" />
+    <ClInclude Include="ServoControl\OpenGLES.h" />
+    <ClInclude Include="ServoControl\Servo.h" />
+    <ClInclude Include="ServoControl\ServoControl.h" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Page Include="BrowserPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Themes\Generic.xaml">
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>
@@ -294,7 +298,6 @@
     <ClCompile Include="Content\SpinningCubeRenderer.cpp" />
     <ClCompile Include="ImmersiveMain.cpp" />
     <ClCompile Include="ImmersiveView.cpp" />
-    <ClCompile Include="OpenGLES.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -306,7 +309,9 @@
     </ClCompile>
     <ClCompile Include="$(GeneratedFilesDir)module.g.cpp" />
     <ClCompile Include="logs.cpp" />
-    <ClCompile Include="Servo.cpp" />
+    <ClCompile Include="ServoControl\OpenGLES.cpp" />
+    <ClCompile Include="ServoControl\Servo.cpp" />
+    <ClCompile Include="ServoControl\ServoControl.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Midl Include="App.idl">
@@ -315,6 +320,7 @@
     <Midl Include="BrowserPage.idl">
       <DependentUpon>BrowserPage.xaml</DependentUpon>
     </Midl>
+    <Midl Include="ServoControl\ServoControl.idl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

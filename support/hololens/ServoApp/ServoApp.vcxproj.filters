@@ -3,6 +3,9 @@
   <ItemGroup>
     <Midl Include="BrowserPage.idl" />
     <Midl Include="App.idl" />
+    <Midl Include="ServoControl\ServoControl.idl">
+      <Filter>ServoControl</Filter>
+    </Midl>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -10,8 +13,6 @@
     <ClCompile Include="logs.cpp" />
     <ClCompile Include="ImmersiveView.cpp" />
     <ClCompile Include="BrowserPage.cpp" />
-    <ClCompile Include="Servo.cpp" />
-    <ClCompile Include="OpenGLES.cpp" />
     <ClCompile Include="App.cpp" />
     <ClCompile Include="Common\CameraResources.cpp">
       <Filter>Common</Filter>
@@ -26,14 +27,21 @@
       <Filter>Content</Filter>
     </ClCompile>
     <ClCompile Include="ImmersiveMain.cpp" />
+    <ClCompile Include="ServoControl\OpenGLES.cpp">
+      <Filter>ServoControl</Filter>
+    </ClCompile>
+    <ClCompile Include="ServoControl\Servo.cpp">
+      <Filter>ServoControl</Filter>
+    </ClCompile>
+    <ClCompile Include="ServoControl\ServoControl.cpp">
+      <Filter>ServoControl</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="logs.h" />
     <ClInclude Include="ImmersiveView.h" />
     <ClInclude Include="BrowserPage.h" />
-    <ClInclude Include="Servo.h" />
-    <ClInclude Include="OpenGLES.h" />
     <ClInclude Include="App.h" />
     <ClInclude Include="Common\CameraResources.h">
       <Filter>Common</Filter>
@@ -57,6 +65,15 @@
       <Filter>Content</Filter>
     </ClInclude>
     <ClInclude Include="ImmersiveMain.h" />
+    <ClInclude Include="ServoControl\OpenGLES.h">
+      <Filter>ServoControl</Filter>
+    </ClInclude>
+    <ClInclude Include="ServoControl\Servo.h">
+      <Filter>ServoControl</Filter>
+    </ClInclude>
+    <ClInclude Include="ServoControl\ServoControl.h">
+      <Filter>ServoControl</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
@@ -191,12 +208,18 @@
     <Filter Include="ReleaseARM64ServoDLLs">
       <UniqueIdentifier>{384b4019-d076-4301-994d-a891969a3036}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ServoControl">
+      <UniqueIdentifier>{d21a959c-19d1-4a54-b942-692c27e5b3a6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="PropertySheet.props" />
   </ItemGroup>
   <ItemGroup>
     <Page Include="BrowserPage.xaml" />
+    <Page Include="Themes\Generic.xaml">
+      <Filter>ServoControl</Filter>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Content\GeometryShader.hlsl">
