@@ -250,6 +250,8 @@ class Descriptor(DescriptorProvider):
             'Stringifier': None,
         }
 
+        self.hasDefaultToJSON = False
+
         def addOperation(operation, m):
             if not self.operations[operation]:
                 self.operations[operation] = m
@@ -259,6 +261,8 @@ class Descriptor(DescriptorProvider):
         for m in self.interface.members:
             if m.isMethod() and m.isStringifier():
                 addOperation('Stringifier', m)
+            if m.isMethod() and m.isDefaultToJSON():
+                self.hasDefaultToJSON = True
 
         if self.concrete:
             iface = self.interface

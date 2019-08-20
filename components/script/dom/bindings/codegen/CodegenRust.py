@@ -2881,6 +2881,42 @@ class PropertyArrays():
         return define
 
 
+class CGCollectJSONAttributesMethod(CGAbstractMethod):
+    """
+    Generate the CollectJSONAttributes method for an interface descriptor
+    """
+    def __init__(self, descriptor, toJSONMethod):
+        args = [Argument('SafeJSContext', 'cx'),
+                Argument('HandleObject', 'obj'),
+                Argument('*const %s' % descriptor.concreteType, 'this'),
+                Argument('&RootedGuard<*mut JSObject>', 'result')]
+        CGAbstractMethod.__init__(self, descriptor, 'CollectJSONAttributes',
+                                  'bool', args, pub=True, unsafe=True)
+        self.toJSONMethod = toJSONMethod
+
+    def definition_body(self):
+        ret = ''
+        interface = self.descriptor.interface
+        for m in interface.members:
+            if m.isAttr() and not m.isStatic() and m.type.isJSONType():
+                name = m.identifier.name
+                ret += fill(
+                    """
+                    rooted!(in(*cx) let mut temp = UndefinedValue());
+                    if !get_${name}(cx, obj, this, JSJitGetterCallArgs { _base: temp.handle_mut().into() }) {
+                      return false;
+                    }
+                    if !JS_DefineProperty(*cx, result.handle().into(),
+                                          ${nameAsArray} as *const u8 as *const libc::c_char,
+                                          temp.handle(), JSPROP_ENUMERATE as u32) {
+                      return false;
+                    }
+                    """,
+                    name=name, nameAsArray=str_to_const_array(name))
+        ret += 'return true;\n'
+        return CGGeneric(ret)
+
+
 class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
     """
     Generate the CreateInterfaceObjects method for an interface descriptor.
@@ -3617,6 +3653,42 @@ class CGSpecializedMethod(CGAbstractExternMethod):
         if nativeName == name:
             nativeName = descriptor.internalNameFor(name)
         return MakeNativeName(nativeName)
+
+
+class CGDefaultToJSONMethod(CGSpecializedMethod):
+    def __init__(self, descriptor, method):
+        assert method.isDefaultToJSON()
+        CGSpecializedMethod.__init__(self, descriptor, method)
+
+    def definition_body(self):
+        ret = dedent("""
+            rooted!(in(*cx) let result = JS_NewPlainObject(*cx));
+            if result.is_null() {
+              return false;
+            }
+            """)
+
+        jsonDescriptors = [self.descriptor]
+        interface = self.descriptor.interface.parent
+        while interface:
+            descriptor = self.descriptor.getDescriptor(interface.identifier.name)
+            if descriptor.hasDefaultToJSON:
+                jsonDescriptors.append(descriptor)
+            interface = interface.parent
+
+        form = """
+             if !${parentclass}CollectJSONAttributes(cx, _obj, this, &result) {
+                 return false;
+             }
+             """
+
+        # Iterate the array in reverse: oldest ancestor first
+        for descriptor in jsonDescriptors[:0:-1]:
+            ret += fill(form, parentclass=toBindingNamespace(descriptor.name) + "::")
+        ret += fill(form, parentclass="")
+        ret += ('(*args).rval().set(ObjectValue(*result));\n'
+                'return true;\n')
+        return CGGeneric(ret)
 
 
 class CGStaticMethod(CGAbstractStaticBindingMethod):
@@ -5665,7 +5737,8 @@ class CGInterfaceTrait(CGThing):
             for m in descriptor.interface.members:
                 if (m.isMethod() and not m.isStatic() and
                         not m.isMaplikeOrSetlikeOrIterableMethod() and
-                        (not m.isIdentifierLess() or m.isStringifier())):
+                        (not m.isIdentifierLess() or m.isStringifier()) and
+                        not m.isDefaultToJSON()):
                     name = CGSpecializedMethod.makeNativeName(descriptor, m)
                     infallible = 'infallible' in descriptor.getExtendedAttributes(m)
                     for idx, (rettype, arguments) in enumerate(m.signatures()):
@@ -5856,7 +5929,9 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JS_HasProperty',
         'js::jsapi::JS_HasPropertyById',
         'js::rust::wrappers::JS_InitializePropertiesFromCompatibleNativeObject',
+        'js::jsapi::JS_NewPlainObject',
         'js::jsapi::JS_NewObject',
+        'js::rust::RootedGuard',
         'js::rust::wrappers::JS_NewObjectWithGivenProto',
         'js::rust::wrappers::JS_NewObjectWithoutMetadata',
         'js::rust::wrappers::ObjectIsDate',
@@ -6055,6 +6130,7 @@ class CGDescriptor(CGThing):
 
         cgThings = []
 
+        defaultToJSONMethod = None
         unscopableNames = []
         for m in descriptor.interface.members:
             if (m.isMethod() and
@@ -6062,7 +6138,9 @@ class CGDescriptor(CGThing):
                 if m.getExtendedAttribute("Unscopable"):
                     assert not m.isStatic()
                     unscopableNames.append(m.identifier.name)
-                if m.isStatic():
+                if m.isDefaultToJSON():
+                    defaultToJSONMethod = m
+                elif m.isStatic():
                     assert descriptor.interface.hasInterfaceObject()
                     cgThings.append(CGStaticMethod(descriptor, m))
                 elif not descriptor.interface.isCallback():
@@ -6096,6 +6174,10 @@ class CGDescriptor(CGThing):
                 if (not m.isStatic() and not descriptor.interface.isCallback()):
                     cgThings.append(CGMemberJITInfo(descriptor, m))
 
+        if defaultToJSONMethod:
+            cgThings.append(CGDefaultToJSONMethod(descriptor, defaultToJSONMethod))
+            cgThings.append(CGMemberJITInfo(descriptor, defaultToJSONMethod))
+
         if descriptor.concrete:
             cgThings.append(CGClassFinalizeHook(descriptor))
             cgThings.append(CGClassTraceHook(descriptor))
@@ -6112,6 +6194,9 @@ class CGDescriptor(CGThing):
             cgThings.append(CGDefineProxyHandler(descriptor))
 
         properties = PropertyArrays(descriptor)
+
+        if defaultToJSONMethod:
+            cgThings.append(CGCollectJSONAttributesMethod(descriptor, defaultToJSONMethod))
 
         if descriptor.concrete:
             if descriptor.proxy:
