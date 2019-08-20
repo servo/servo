@@ -175,7 +175,7 @@ impl XRSession {
     }
 
     /// https://immersive-web.github.io/webxr/#xr-animation-frame
-    fn raf_callback(&self, (time, frame): (f64, Frame)) {
+    fn raf_callback(&self, (time, mut frame): (f64, Frame)) {
         // Step 1
         if let Some(pending) = self.pending_render_state.take() {
             // https://immersive-web.github.io/webxr/#apply-the-pending-render-state
@@ -198,6 +198,10 @@ impl XRSession {
                     }
                 }
             }
+        }
+
+        for event in frame.events.drain(..) {
+            self.session.borrow_mut().apply_event(event)
         }
 
         // Step 2
@@ -278,6 +282,10 @@ impl XRSessionMethods for XRSession {
         }
         if let Some(ref layer) = init.baseLayer {
             pending.set_layer(Some(&layer))
+        }
+
+        if init.depthFar.is_some() || init.depthNear.is_some() {
+            self.session.borrow_mut().update_clip_planes(*pending.DepthNear() as f32, *pending.DepthFar() as f32);
         }
         // XXXManishearth handle inlineVerticalFieldOfView
         Ok(())
