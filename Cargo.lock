@@ -2334,7 +2334,6 @@ dependencies = [
  "script_layout_interface 0.0.1",
  "script_traits 0.0.1",
  "serde 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo_arc 0.1.1",
  "servo_url 0.0.1",
  "style 0.0.1",
  "style_traits 0.0.1",

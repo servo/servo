@@ -6,13 +6,7 @@
 
 pub mod context;
 pub mod data;
-mod fragment;
 pub mod opaque_node;
 pub mod query;
 pub mod traversal;
 pub mod wrapper;
-
-// For unit tests:
-pub use crate::fragment::Fragment;
-
-use servo_arc::Arc as ServoArc;
