@@ -22,10 +22,14 @@ void flush() { sServo->Delegate().Flush(); }
 void make_current() { sServo->Delegate().MakeCurrent(); }
 void wakeup() { sServo->Delegate().WakeUp(); }
 bool on_allow_navigation(const char *url) {
- return sServo->Delegate().OnServoAllowNavigation(char2hstring(url));
+  return sServo->Delegate().OnServoAllowNavigation(char2hstring(url));
 };
 void on_animating_changed(bool aAnimating) {
   sServo->Delegate().OnServoAnimatingChanged(aAnimating);
+}
+
+void on_panic(const char *backtrace) {
+  throw hresult_error(E_FAIL, char2hstring(backtrace));
 }
 
 Servo::Servo(GLsizei width, GLsizei height, ServoDelegate &aDelegate)
@@ -55,7 +59,9 @@ Servo::Servo(GLsizei width, GLsizei height, ServoDelegate &aDelegate)
   c.on_shutdown_complete = &on_shutdown_complete;
   c.on_allow_navigation = &on_allow_navigation;
 
-  init_with_egl(o, &wakeup, c);
+  capi::register_panic_handler(&on_panic);
+
+  capi::init_with_egl(o, &wakeup, c);
 }
 
 Servo::~Servo() { sServo = nullptr; }
@@ -63,11 +69,13 @@ Servo::~Servo() { sServo = nullptr; }
 winrt::hstring char2hstring(const char *c_str) {
   // FIXME: any better way of doing this?
   auto str = std::string(c_str);
-  int size_needed = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
+  int size_needed =
+      MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
   std::wstring str2(size_needed, 0);
-  MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &str2[0], size_needed);
-  winrt::hstring str3 {str2};
+  MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &str2[0],
+                      size_needed);
+  winrt::hstring str3{str2};
   return str3;
 }
 
-} // namespace servo
+} // namespace winrt::servo
