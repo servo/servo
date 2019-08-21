@@ -44,7 +44,7 @@ use js::jsapi::JSAutoRealm;
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::rust::{HandleValue, ParentRuntime};
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{PipelineId, PipelineNamespace};
 use net_traits::request::{
     CredentialsMode, Destination, ParserMetadata, RequestBuilder as NetRequestInit,
 };
@@ -123,6 +123,8 @@ impl WorkerGlobalScope {
         timer_event_chan: IpcSender<TimerEvent>,
         closing: Option<Arc<AtomicBool>>,
     ) -> Self {
+        // Install a pipeline-namespace in the current thread.
+        PipelineNamespace::auto_install();
         Self {
             globalscope: GlobalScope::new_inherited(
                 init.pipeline_id,
