@@ -140,14 +140,14 @@ impl<'a> StrokeOptions<'a> {
             StrokeOptions::Raqote(options, _) => options.miter_limit = _val,
         }
     }
-    pub fn set_line_join(&mut self, _val: LineJoinStyle) {
+    pub fn set_line_join(&mut self, val: LineJoinStyle) {
         match self {
-            StrokeOptions::Raqote(options, _) => options.join = _val.to_raqote_style(),
+            StrokeOptions::Raqote(options, _) => options.join = val.to_raqote_style(),
         }
     }
-    pub fn set_line_cap(&mut self, _val: LineCapStyle) {
+    pub fn set_line_cap(&mut self, val: LineCapStyle) {
         match self {
-            StrokeOptions::Raqote(options, _) => options.cap = _val.to_raqote_style(),
+            StrokeOptions::Raqote(options, _) => options.cap = val.to_raqote_style(),
         }
     }
     pub fn as_raqote(&self) -> &raqote::StrokeStyle {
@@ -158,9 +158,9 @@ impl<'a> StrokeOptions<'a> {
 }
 
 impl DrawOptions {
-    pub fn set_alpha(&mut self, _val: f32) {
+    pub fn set_alpha(&mut self, val: f32) {
         match self {
-            DrawOptions::Raqote(draw_options) => draw_options.alpha = _val,
+            DrawOptions::Raqote(draw_options) => draw_options.alpha = val,
         }
     }
     pub fn as_raqote(&self) -> &raqote::DrawOptions {
@@ -188,7 +188,9 @@ impl Path {
     }
 
     pub fn copy_to_builder(&self) -> Box<dyn GenericPathBuilder> {
-        Box::new(PathBuilder(Some(raqote::PathBuilder::from(self.as_raqote().clone()))))
+        Box::new(PathBuilder(Some(raqote::PathBuilder::from(
+            self.as_raqote().clone(),
+        ))))
     }
 
     pub fn as_raqote(&self) -> &raqote::Path {
@@ -232,12 +234,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         let data = surface.as_raqote();
         let s = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u32, data.len() / 4) };
         dt.get_data_mut().copy_from_slice(s);
-        raqote::DrawTarget::copy_surface(
-            self,
-            &dt,
-            source.to_box2d(),
-            destination
-        );
+        raqote::DrawTarget::copy_surface(self, &dt, source.to_box2d(), destination);
     }
     fn create_gradient_stops(
         &self,
@@ -278,10 +275,11 @@ impl GenericDrawTarget for raqote::DrawTarget {
             width: source.size.width as i32,
             height: source.size.height as i32,
             data: unsafe {
-            std::slice::from_raw_parts(
-                v.as_ptr() as *const u32,
-                v.len() * std::mem::size_of::<u8>(),
-            ) },
+                std::slice::from_raw_parts(
+                    v.as_ptr() as *const u32,
+                    v.len() * std::mem::size_of::<u8>(),
+                )
+            },
         };
         raqote::DrawTarget::draw_image_with_size_at(
             self,
@@ -541,14 +539,6 @@ impl ToRaqoteStyle for LineCapStyle {
     }
 }
 
-// TODO(pylbrecht)
-#[cfg(feature = "raqote_backend")]
-impl Clone for Pattern<'_> {
-    fn clone(&self) -> Self {
-        unimplemented!();
-    }
-}
-
 pub trait ToRaqoteSource<'a> {
     fn to_raqote_source(self) -> Option<raqote::Source<'a>>;
 }
@@ -571,7 +561,9 @@ impl<'a> ToRaqoteSource<'a> for FillOrStrokeStyle {
                 let data = &surface.surface_data[..];
                 Some(raqote::Source::Image(
                     raqote::Image {
-                        data: unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u32, data.len() / 4) },
+                        data: unsafe {
+                            std::slice::from_raw_parts(data.as_ptr() as *const u32, data.len() / 4)
+                        },
                         width: surface.surface_size.width as i32,
                         height: surface.surface_size.height as i32,
                     },

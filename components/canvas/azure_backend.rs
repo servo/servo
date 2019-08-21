@@ -256,7 +256,7 @@ impl GenericDrawTarget for azure_hl::DrawTarget {
             .map(|s| SourceSurface::Azure(s))
     }
     fn draw_surface(
-        &self,
+        &mut self,
         surface: SourceSurface,
         dest: Rect<f64>,
         source: Rect<f64>,
@@ -269,7 +269,8 @@ impl GenericDrawTarget for azure_hl::DrawTarget {
             draw_options.as_azure().composition,
             azure_hl::AntialiasMode::None,
         );
-        self.draw_surface(
+        azure_hl::DrawTarget::draw_surface(
+            self,
             surface.into_azure(),
             dest.to_azure_style(),
             source.to_azure_style(),

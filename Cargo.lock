@@ -138,7 +138,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "azure"
 version = "0.36.1"
-source = "git+https://github.com/servo/rust-azure#37a57b3d862bcf345d1413c7ebb534ff69daab3b"
+source = "git+https://github.com/servo/rust-azure#5996612af3139cc3c5eafb019d8218f8ca1634de"
 dependencies = [
  "cmake 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2504,8 +2504,9 @@ version = "0.1.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "adler32 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "byteorder 1.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "crc32fast 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rle-decode-fast 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "take_mut 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3711,7 +3712,7 @@ dependencies = [
 [[package]]
 name = "raqote"
 version = "0.6.2-alpha.0"
-source = "git+https://github.com/jrmuizel/raqote#2d9a0fbb419d10e066fb49e121a45fce1e1f2abe"
+source = "git+https://github.com/jrmuizel/raqote#b3675e6cc1ac1d854605918f6613b64636d5e47b"
 dependencies = [
  "euclid 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "font-kit 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
