@@ -44,8 +44,7 @@ void ServoControl::OnLoaded(IInspectable const &, RoutedEventArgs const &) {
 
 Controls::SwapChainPanel ServoControl::Panel() {
   // FIXME: is there a better way of doing this?
-  return GetTemplateChild(L"swapChainPanel")
-      .as<Controls::SwapChainPanel>();
+  return GetTemplateChild(L"swapChainPanel").as<Controls::SwapChainPanel>();
 }
 
 void ServoControl::CreateRenderSurface() {
@@ -105,12 +104,17 @@ Uri ServoControl::LoadURIOrSearch(hstring input) {
     hstring input2 = L"https://" + input;
     uri = TryParseURI(input2);
     if (uri == std::nullopt || !has_dot) {
-      hstring input3 = L"https://duckduckgo.com/html/?q=" + Uri::EscapeComponent(input);
+      hstring input3 =
+          L"https://duckduckgo.com/html/?q=" + Uri::EscapeComponent(input);
       uri = TryParseURI(input3);
     }
   }
   auto finalUri = uri.value();
-  RunOnGLThread([=] { mServo->LoadUri(finalUri.ToString()); });
+  if (!mLooping) {
+    mInitialURL = finalUri.ToString();
+  } else {
+    RunOnGLThread([=] { mServo->LoadUri(finalUri.ToString()); });
+  }
   return finalUri;
 }
 
@@ -136,7 +140,7 @@ void ServoControl::Loop() {
   if (mServo == nullptr) {
     log("Entering loop");
     ServoDelegate *sd = static_cast<ServoDelegate *>(this);
-    mServo = std::make_unique<Servo>(panelWidth, panelHeight, *sd);
+    mServo = std::make_unique<Servo>(mInitialURL, panelWidth, panelHeight, *sd);
   } else {
     // FIXME: this will fail since create_task didn't pick the thread
     // where Servo was running initially.

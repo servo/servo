@@ -32,12 +32,13 @@ void on_panic(const char *backtrace) {
   throw hresult_error(E_FAIL, char2hstring(backtrace));
 }
 
-Servo::Servo(GLsizei width, GLsizei height, ServoDelegate &aDelegate)
+Servo::Servo(hstring url, GLsizei width, GLsizei height,
+             ServoDelegate &aDelegate)
     : mWindowHeight(height), mWindowWidth(width), mDelegate(aDelegate) {
 
   capi::CInitOptions o;
   o.args = "--pref dom.webxr.enabled";
-  o.url = "https://servo.org";
+  o.url = *hstring2char(url);
   o.width = mWindowWidth;
   o.height = mWindowHeight;
   o.density = 1.0;
@@ -76,6 +77,15 @@ winrt::hstring char2hstring(const char *c_str) {
                       size_needed);
   winrt::hstring str3{str2};
   return str3;
+}
+
+std::unique_ptr<char *> hstring2char(hstring hstr) {
+  const wchar_t *wc = hstr.c_str();
+  size_t size = hstr.size() + 1;
+  char *str = new char[size];
+  size_t converted = 0;
+  wcstombs_s(&converted, str, size, wc, hstr.size());
+  return std::make_unique<char*>(str);
 }
 
 } // namespace winrt::servo
