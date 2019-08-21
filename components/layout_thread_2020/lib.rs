@@ -29,11 +29,9 @@ use embedder_traits::resources::{self, Resource};
 use euclid::{default::Size2D as UntypedSize2D, Point2D, Rect, Scale, Size2D};
 use fnv::FnvHashMap;
 use fxhash::FxHashMap;
-use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
 use gfx_traits::{node_id_from_scroll_id, Epoch};
-use histogram::Histogram;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::context::LayoutContext;
@@ -86,10 +84,10 @@ use std::time::Duration;
 use style::animation::Animation;
 use style::context::{QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters};
 use style::context::{SharedStyleContext, ThreadLocalStyleContextCreationInfo};
-use style::dom::{ShowSubtree, TDocument, TElement, TNode};
+use style::dom::{TDocument, TElement, TNode};
 use style::driver;
 use style::error_reporting::RustLogReporter;
-use style::global_style_data::{GLOBAL_STYLE_DATA, STYLE_THREAD_POOL};
+use style::global_style_data::GLOBAL_STYLE_DATA;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::PropertyId;
@@ -154,9 +152,6 @@ pub struct LayoutThread {
     /// Is this the first reflow in this LayoutThread?
     first_reflow: Cell<bool>,
 
-    /// Flag to indicate whether to use parallel operations
-    parallel_flag: bool,
-
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
     generation: Cell<u32>,
@@ -202,9 +197,6 @@ pub struct LayoutThread {
 
     /// Paint time metrics.
     paint_time_metrics: PaintTimeMetrics,
-
-    /// The time a layout query has waited before serviced by layout thread.
-    layout_query_waiting_time: Histogram,
 
     /// Flag that indicates if LayoutThread is busy handling a request.
     busy: Arc<AtomicBool>,
@@ -496,7 +488,6 @@ impl LayoutThread {
             first_reflow: Cell::new(true),
             font_cache_receiver: font_cache_receiver,
             font_cache_sender: ipc_font_cache_sender,
-            parallel_flag: true,
             generation: Cell::new(0),
             new_animations_sender: new_animations_sender,
             _new_animations_receiver: new_animations_receiver,
@@ -529,7 +520,6 @@ impl LayoutThread {
                 Timer::new()
             },
             paint_time_metrics: paint_time_metrics,
-            layout_query_waiting_time: Histogram::new(),
             busy,
             load_webfonts_synchronously,
             initial_window_size,
@@ -853,21 +843,7 @@ impl LayoutThread {
         }
     }
 
-    /// Shuts down the layout thread now. If there are any DOM nodes left, layout will now (safely)
-    /// crash.
     fn exit_now(&mut self) {
-        // Drop the root flow explicitly to avoid holding style data, such as
-        // rule nodes.  The `Stylist` checks when it is dropped that all rule
-        // nodes have been GCed, so we want drop anyone who holds them first.
-        let waiting_time_min = self.layout_query_waiting_time.minimum().unwrap_or(0);
-        let waiting_time_max = self.layout_query_waiting_time.maximum().unwrap_or(0);
-        let waiting_time_mean = self.layout_query_waiting_time.mean().unwrap_or(0);
-        let waiting_time_stddev = self.layout_query_waiting_time.stddev().unwrap_or(0);
-        debug!(
-            "layout: query waiting time: min: {}, max: {}, mean: {}, standard_deviation: {}",
-            waiting_time_min, waiting_time_max, waiting_time_mean, waiting_time_stddev
-        );
-
         self.background_hang_monitor.unregister();
     }
 
@@ -909,22 +885,7 @@ impl LayoutThread {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
 
-        // Parallelize if there's more than 750 objects based on rzambre's suggestion
-        // https://github.com/servo/servo/issues/10110
-        self.parallel_flag = data.dom_count > 750;
-        debug!("layout: received layout request for: {}", self.url);
-        debug!("Number of objects in DOM: {}", data.dom_count);
-        debug!("layout: parallel? {}", self.parallel_flag);
-
         let mut rw_data = possibly_locked_rw_data.lock();
-
-        // Record the time that layout query has been waited.
-        let now = time::precise_time_ns();
-        if let ReflowGoal::LayoutQuery(_, timestamp) = data.reflow_goal {
-            self.layout_query_waiting_time
-                .increment(now - timestamp)
-                .expect("layout: wrong layout query timestamp");
-        };
 
         let element = match document.root_element() {
             None => {
@@ -973,12 +934,6 @@ impl LayoutThread {
             Some(x) => x,
         };
 
-        debug!(
-            "layout: processing reflow request for: {:?} ({}) (query={:?})",
-            element, self.url, data.reflow_goal
-        );
-        trace!("{:?}", ShowSubtree(element.as_node()));
-
         let initial_viewport = data.window_size.initial_viewport;
         let device_pixel_ratio = data.window_size.device_pixel_ratio;
         let old_viewport_size = self.viewport_size;
@@ -1010,9 +965,6 @@ impl LayoutThread {
             self.stylist
                 .viewport_constraints()
                 .map_or(current_screen_size, |constraints| {
-                    debug!("Viewport constraints: {:?}", constraints);
-
-                    // other rules are evaluated against the actual viewport
                     Size2D::new(
                         Au::from_f32_px(constraints.size.width),
                         Au::from_f32_px(constraints.size.height),
@@ -1038,38 +990,29 @@ impl LayoutThread {
             }
         }
 
-        {
-            if self.first_reflow.get() {
-                debug!("First reflow, rebuilding user and UA rules");
-                for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
-                    self.stylist
-                        .append_stylesheet(stylesheet.clone(), &ua_or_user_guard);
-                    self.handle_add_stylesheet(&stylesheet.0, &ua_or_user_guard);
-                }
-
-                if self.stylist.quirks_mode() != QuirksMode::NoQuirks {
-                    self.stylist.append_stylesheet(
-                        ua_stylesheets.quirks_mode_stylesheet.clone(),
-                        &ua_or_user_guard,
-                    );
-                    self.handle_add_stylesheet(
-                        &ua_stylesheets.quirks_mode_stylesheet.0,
-                        &ua_or_user_guard,
-                    );
-                }
+        if self.first_reflow.get() {
+            for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
+                self.stylist
+                    .append_stylesheet(stylesheet.clone(), &ua_or_user_guard);
+                self.handle_add_stylesheet(&stylesheet.0, &ua_or_user_guard);
             }
 
-            if data.stylesheets_changed {
-                debug!("Doc sheets changed, flushing author sheets too");
-                self.stylist
-                    .force_stylesheet_origins_dirty(Origin::Author.into());
+            if self.stylist.quirks_mode() != QuirksMode::NoQuirks {
+                self.stylist.append_stylesheet(
+                    ua_stylesheets.quirks_mode_stylesheet.clone(),
+                    &ua_or_user_guard,
+                );
+                self.handle_add_stylesheet(
+                    &ua_stylesheets.quirks_mode_stylesheet.0,
+                    &ua_or_user_guard,
+                );
             }
         }
 
-        debug!(
-            "Shadow roots in document {:?}",
-            document.shadow_roots().len()
-        );
+        if data.stylesheets_changed {
+            self.stylist
+                .force_stylesheet_origins_dirty(Origin::Author.into());
+        }
 
         // Flush shadow roots stylesheets if dirty.
         document.flush_shadow_roots_stylesheets(
@@ -1079,7 +1022,6 @@ impl LayoutThread {
         );
 
         let restyles = document.drain_pending_restyles();
-        debug!("Draining restyles: {}", restyles.len());
 
         let mut map = SnapshotMap::new();
         let elements_with_snapshot: Vec<_> = restyles
@@ -1124,15 +1066,6 @@ impl LayoutThread {
         // Create a layout context for use throughout the following passes.
         let mut layout_context = self.build_layout_context(guards.clone(), &map);
 
-        let (thread_pool, num_threads) = if self.parallel_flag {
-            (
-                STYLE_THREAD_POOL.style_thread_pool.as_ref(),
-                STYLE_THREAD_POOL.num_threads,
-            )
-        } else {
-            (None, 1)
-        };
-
         let traversal = RecalcStyleAndConstructFlows::new(layout_context);
         let token = {
             let shared =
@@ -1143,31 +1076,8 @@ impl LayoutThread {
         };
 
         if token.should_traverse() {
-            // Recalculate CSS styles and rebuild flows and fragments.
-            profile(
-                profile_time::ProfilerCategory::LayoutStyleRecalc,
-                self.profiler_metadata(),
-                self.time_profiler_chan.clone(),
-                || {
-                    // Perform CSS selector matching and flow construction.
-                    driver::traverse_dom::<ServoLayoutElement, RecalcStyleAndConstructFlows>(
-                        &traversal,
-                        token,
-                        thread_pool,
-                    );
-                },
-            );
-            // TODO(pcwalton): Measure energy usage of text shaping, perhaps?
-            let text_shaping_time =
-                font::get_and_reset_text_shaping_performance_counter() / num_threads;
-            profile_time::send_profile_data(
-                profile_time::ProfilerCategory::LayoutTextShaping,
-                self.profiler_metadata(),
-                &self.time_profiler_chan,
-                0,
-                text_shaping_time as u64,
-                0,
-                0,
+            driver::traverse_dom::<ServoLayoutElement, RecalcStyleAndConstructFlows>(
+                &traversal, token, None,
             );
         }
 
