@@ -868,8 +868,8 @@ def magicleap_build_task(name, build_type):
             path="magicleap"
         )
         .with_directory_mount(
-            "https://servo-deps.s3.amazonaws.com/magicleap/TempSharedCert.zip",
-            sha256="cdc2d26bc87ecf1cd8133df4e72c4eca5df7ddd815d0adf3045460253c1fe123",
+            "https://servo-deps.s3.amazonaws.com/magicleap/ServoCICert-expires-2020-08-21.zip",
+            sha256="7c8e163c9fa9af09563687707fdb82e69b6190a32445bd2af38a1b6baa92f4f1",
             path="magicleap"
         )
         # Early script in order to run with the initial $PWD
