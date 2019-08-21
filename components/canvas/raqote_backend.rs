@@ -554,6 +554,7 @@ pub trait ToRaqoteSource<'a> {
 }
 
 impl<'a> ToRaqoteSource<'a> for FillOrStrokeStyle {
+    #[allow(unsafe_code)]
     fn to_raqote_source(self) -> Option<raqote::Source<'a>> {
         use canvas_traits::canvas::FillOrStrokeStyle::*;
 
@@ -566,7 +567,19 @@ impl<'a> ToRaqoteSource<'a> for FillOrStrokeStyle {
             })),
             LinearGradient(_) => unimplemented!(),
             RadialGradient(_) => unimplemented!(),
-            Surface(_) => unimplemented!(),
+            Surface(ref surface) => {
+                let data = &surface.surface_data[..];
+                Some(raqote::Source::Image(
+                    raqote::Image {
+                        data: unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u32, data.len() / 4) },
+                        width: surface.surface_size.width as i32,
+                        height: surface.surface_size.height as i32,
+                    },
+                    raqote::ExtendMode::Repeat, // TODO: repeat-x, repeat-y ?
+                    raqote::FilterMode::Bilinear,
+                    raqote::Transform::identity(),
+                ))
+            },
         }
     }
 }
