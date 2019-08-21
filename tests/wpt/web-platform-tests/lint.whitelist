@@ -822,3 +822,11 @@ WEB-PLATFORM.TEST:signed-exchange/resources/generate-test-sxgs.sh
 
 SET TIMEOUT: inert/inert-retargeting.tentative.html
 SET TIMEOUT: inert/inert-retargeting-iframe.tentative.html
+
+# https://github.com/web-platform-tests/wpt/issues/16455
+MISSING DEPENDENCY: idle-detection/interceptor.https.html
+MISSING DEPENDENCY: sms/sms_provider.js
+MISSING DEPENDENCY: web-nfc/resources/nfc-helpers.js
+MISSING DEPENDENCY: shape-detection/resources/shapedetection-helpers.js
+MISSING DEPENDENCY: webxr/resources/webxr_util.js
+MISSING DEPENDENCY: contacts/resources/helpers.js

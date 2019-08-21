@@ -93,11 +93,14 @@
     return p;
   }, "Trusted Type violation report: creating a report-only-forbidden policy.");
 
+  // policy_one is set below, and used in several tests further down.
+  let policy_one = null;
+
   promise_test(t => {
     let p = Promise.resolve()
         .then(promise_violation("trusted-types two"))
         .then(promise_flush());
-    TrustedTypes.createPolicy("one", a_policy, {exposed: true});
+    policy_one = TrustedTypes.createPolicy("one", a_policy);
     flush();
     return p;
   }, "Trusted Type violation report: creating a forbidden-but-not-reported policy.");
@@ -114,25 +117,16 @@
     return p;
   }, "Trusted Type violation report: assign string to html");
 
-  // In the following tests, we rely on the previous tests to have successfully
-  // created an exposed, no-op policy "one". Let's briefly test that.
-  promise_test(t => {
-    assert_true(!!TrustedTypes.getExposedPolicy("one"));
-    return Promise.resolve();
-  }, "By now, the \"one\" policy should have been created.");
-
   promise_test(t => {
     let p = promise_flush()();
-    document.getElementById("anchor").href =
-        TrustedTypes.getExposedPolicy("one").createURL("#");
+    document.getElementById("anchor").href = policy_one.createURL("#");
     flush();
     return p;
   }, "Trusted Type violation report: assign trusted URL to url; no report");
 
   promise_test(t => {
     let p = promise_flush()();
-    document.getElementById("div").innerHTML =
-        TrustedTypes.getExposedPolicy("one").createHTML("abc");
+    document.getElementById("div").innerHTML = policy_one.createHTML("abc");
     flush();
     return p;
   }, "Trusted Type violation report: assign trusted HTML to html; no report");

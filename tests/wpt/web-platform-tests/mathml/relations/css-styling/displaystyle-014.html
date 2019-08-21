@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <title>displaystyle</title>
+    <meta charset="utf-8">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-displaystyle-and-scriptlevel-attributes">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#style-change-mstyle">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#underscripts-and-overscripts-munder-mover-munderover">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#legacy-mathml-style-attributes">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fractions-mfrac">
+    <link rel="match" href="displaystyle-014-ref.html"/>
+    <meta name="assert" content="Test dynamic change of mathbackground on an operator does not interfer with its displaystyle">
+    <script type="text/javascript">
+      function doTest() {
+        document.body.offsetTop; // Update layout
+        document.getElementById('mathOperator').
+                 setAttribute('mathbackground', 'red');
+        document.documentElement.removeAttribute("class");
+      }
+      window.addEventListener("load", doTest);
+    </script>
+    <link rel="stylesheet" href="/fonts/ahem.css">
+    <style>
+      math {
+          font: 25px Ahem;
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- See https://bugzilla.mozilla.org/show_bug.cgi?id=832800 -->
+    <math>
+      <mstyle displaystyle="true">
+        <mfrac>
+          <mrow>
+            <mn>X</mn>
+            <mo id="mathOperator">+</mo>
+            <mfrac>
+              <mrow><mn>X</mn></mrow>
+              <mrow><mn>X</mn></mrow>
+            </mfrac>
+          </mrow>
+          <mrow>
+            <mn>X</mn>
+          </mrow>
+        </mfrac>
+      </mstyle>
+    </math>
+
+  </body>
+</html>

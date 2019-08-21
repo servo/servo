@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js" ></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+<body>
+<script>
+  test(t => {
+    assert_equals(window.TrustedTypes.defaultPolicy, null);
+  }, "defaultPolicy with no default created is not an error");
+
+  test(t => {
+    let policy = window.TrustedTypes.createPolicy('default', { createHTML: s => s } );
+    assert_true(policy instanceof TrustedTypePolicy);
+    assert_equals(policy, window.TrustedTypes.defaultPolicy);
+  }, "defaultPolicy returns the correct default policy");
+
+  test(t => {
+    let foo_policy = window.TrustedTypes.createPolicy('foo', { createHTML: s => s } );
+    let default_policy = window.TrustedTypes.defaultPolicy;
+    window.TrustedTypes.defaultPolicy = foo_policy;
+    assert_equals(window.TrustedTypes.defaultPolicy, default_policy);
+    assert_not_equals(window.TrustedTypes.defaultPolicy, foo_policy);
+  }, "defaultPolicy is a read-only property");
+</script>

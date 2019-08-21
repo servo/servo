@@ -350,6 +350,13 @@ class LayoutTestsRegexp(Regexp):
     file_extensions = [".html", ".htm", ".js", ".xht", ".xhtml", ".svg"]
     description = "eventSender/testRunner/internals used; these are LayoutTests-specific APIs (WebKit/Blink)"
 
+class MissingDepsRegexp(Regexp):
+    pattern = br"[^\w]/gen/"
+    name = "MISSING DEPENDENCY"
+    file_extensions = [".html", ".htm", ".js", ".xht", ".xhtml", ".svg"]
+    description = "Chromium-specific content referenced"
+    to_fix = "Reimplement the test to use well-documented testing interfaces"
+
 class SpecialPowersRegexp(Regexp):
     pattern = b"SpecialPowers"
     name = "SPECIALPOWERS API"

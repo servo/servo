@@ -21,9 +21,9 @@ interface NDEFRecord {
   readonly attribute NDEFRecordType recordType;
   readonly attribute USVString mediaType;
 
-  USVString toText();
-  [NewObject] ArrayBuffer toArrayBuffer();
-  [NewObject] object toJSON();
+  USVString? toText();
+  [NewObject] ArrayBuffer? toArrayBuffer();
+  [NewObject] object? toJSON();
 };
 
 dictionary NDEFRecordInit {

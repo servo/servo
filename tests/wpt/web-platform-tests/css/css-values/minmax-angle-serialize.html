@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#angles">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-type-checking">
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/parsing-testcommon.js"></script>
+<script>
+function test_valid_angle(value, expected) {
+  test_valid_value('transform', `rotate(${value})`, `rotate(${expected})`);
+}
+
+test_valid_angle('min(1deg)', 'min(1deg)');
+test_valid_angle('min(1rad)', 'min(1rad)');
+test_valid_angle('min(1turn)', 'min(1turn)');
+test_valid_angle('min(1grad)', 'min(1grad)');
+test_valid_angle('max(1deg)', 'max(1deg)');
+test_valid_angle('max(1rad)', 'max(1rad)');
+test_valid_angle('max(1turn)', 'max(1turn)');
+test_valid_angle('max(1grad)', 'max(1grad)');
+
+// TODO(crbug.com/978682): Complete this test suite
+
+</script>
