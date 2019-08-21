@@ -33,7 +33,9 @@ use js::jsapi::{JS_ReadUint32Pair, JS_WriteUint32Pair};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
-use msg::constellation_msg::{MessagePortId, StructuredSerializedData};
+use msg::constellation_msg::MessagePortId;
+use script_traits::transferable::MessagePortImpl;
+use script_traits::StructuredSerializedData;
 use std::collections::HashMap;
 use std::os::raw;
 use std::ptr;
@@ -276,7 +278,7 @@ static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredClon
 pub struct StructuredCloneHolder {
     pub blob: Option<DomRoot<Blob>>,
     pub message_ports: Vec<DomRoot<MessagePort>>,
-    pub ports_impl: HashMap<MessagePortId, Vec<u8>>,
+    pub ports_impl: HashMap<MessagePortId, MessagePortImpl>,
 }
 
 // TODO: should this be unsafe?
@@ -336,7 +338,7 @@ pub fn write(
         };
 
         let data = StructuredSerializedData {
-            js: data,
+            serialized: data,
             ports: ports,
         };
 
@@ -370,7 +372,11 @@ pub fn read(
         );
         let scdata = &mut ((*scbuf).data_);
 
-        WriteBytesToJSStructuredCloneData(data.js.as_mut_ptr() as *const u8, data.js.len(), scdata);
+        WriteBytesToJSStructuredCloneData(
+            data.serialized.as_mut_ptr() as *const u8,
+            data.serialized.len(),
+            scdata,
+        );
 
         let result = JS_ReadStructuredClone(
             *cx,

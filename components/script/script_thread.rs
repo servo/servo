@@ -114,9 +114,7 @@ use msg::constellation_msg::{
 };
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
 use msg::constellation_msg::{HangAnnotation, MonitoredComponentId, MonitoredComponentType};
-use msg::constellation_msg::{
-    PipelineNamespace, StructuredSerializedData, TopLevelBrowsingContextId,
-};
+use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
 use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestBuilder};
 use net_traits::storage_thread::StorageType;
@@ -134,6 +132,7 @@ use script_traits::CompositorEvent::{
     CompositionEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent, TouchEvent,
     WheelEvent,
 };
+use script_traits::StructuredSerializedData;
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{
     DiscardBrowsingContext, DocumentActivity, EventResult, HistoryEntryReplacement,

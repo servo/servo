@@ -7,8 +7,6 @@ use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{
 };
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, ErrorResult};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone::{self, StructuredCloneHolder};
@@ -16,17 +14,14 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use dom_struct::dom_struct;
 use crate::script_runtime::JSContext as SafeJSContext;
-use crate::task_source::TaskSource;
+use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsapi::{JSObject, MutableHandleObject};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
-use msg::constellation_msg::{
-    MessagePortId, MessagePortIndex, PipelineNamespaceId, PortMessageTask,
-};
+use msg::constellation_msg::{MessagePortId, MessagePortIndex, PipelineNamespaceId};
+use script_traits::PortMessageTask;
 use std::cell::{Cell, RefCell};
-use std::collections::VecDeque;
 use std::convert::TryInto;
 use std::num::NonZeroU32;
 
@@ -143,137 +138,8 @@ impl MessagePort {
         };
 
         // Have the global proxy this call to the corresponding MessagePortImpl.
-        incumbent
-            .post_messageport_msg(self.message_port_id().clone(), task);
+        incumbent.post_messageport_msg(self.message_port_id().clone(), task);
         Ok(())
-    }
-}
-
-#[derive(Debug, DenyPublicFields, Deserialize, MallocSizeOf, Serialize)]
-/// The data and logic backing the DOM managed MessagePort.
-pub struct MessagePortImpl {
-    detached: Cell<bool>,
-    enabled: Cell<bool>,
-    awaiting_transfer: Cell<bool>,
-    entangled_port: RefCell<Option<MessagePortId>>,
-    message_buffer: RefCell<VecDeque<PortMessageTask>>,
-    has_been_shipped: Cell<bool>,
-    message_port_id: MessagePortId,
-}
-
-impl MessagePortImpl {
-    pub fn new(port_id: MessagePortId) -> MessagePortImpl {
-        MessagePortImpl {
-            detached: Cell::new(false),
-            enabled: Cell::new(false),
-            awaiting_transfer: Cell::new(false),
-            entangled_port: RefCell::new(None),
-            message_buffer: RefCell::new(VecDeque::new()),
-            has_been_shipped: Cell::new(false),
-            message_port_id: port_id,
-        }
-    }
-
-    pub fn message_port_id(&self) -> &MessagePortId {
-        &self.message_port_id
-    }
-
-    pub fn entangled_port_id(&self) -> Option<MessagePortId> {
-        self.entangled_port.borrow().clone()
-    }
-
-    pub fn entangle(&self, other_id: MessagePortId) {
-        *self.entangled_port.borrow_mut() = Some(other_id);
-    }
-
-    pub fn enabled(&self) -> bool {
-        self.enabled.get()
-    }
-
-    pub fn set_has_been_shipped(&self) {
-        self.has_been_shipped.set(true);
-        self.awaiting_transfer.set(true);
-    }
-
-    /// Handle the completion of the transfer,
-    /// this is data received from the constellation.
-    pub fn complete_transfer(&self, tasks: Option<VecDeque<PortMessageTask>>) {
-        if self.detached.get() {
-            return;
-        }
-        self.awaiting_transfer.set(false);
-
-        if let Some(mut tasks) = tasks {
-            // Note: these are the tasks that were buffered while the transfer was ongoing,
-            // hence they need to execute first.
-            // The global will call `start` if we are enabled,
-            // which will add tasks on the event-loop to dispatch incoming messages.
-            let mut incoming_buffer = self.message_buffer.borrow_mut();
-            while let Some(task) = tasks.pop_back() {
-                incoming_buffer.push_front(task);
-            }
-        }
-    }
-
-    /// A message was received from our entangled port.
-    pub fn handle_incoming(&self, task: &PortMessageTask) -> bool {
-        if self.detached.get() {
-            return false;
-        }
-
-        if self.enabled.get() && !self.awaiting_transfer.get() {
-            true
-        } else {
-            self.message_buffer.borrow_mut().push_back(task.clone());
-            false
-        }
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#message-port-post-message-steps>
-    // Steps 6 and 7
-    pub fn post_message(&self, owner: &GlobalScope, task: PortMessageTask) {
-        // Note: we do not assert here, as Step 6 simply returns in this case.
-        let target_port_id = match *self.entangled_port.borrow() {
-            Some(port_id) => port_id.clone(),
-            None => return,
-        };
-
-        // Step 7
-        let this = Trusted::new(&*owner);
-        let _ = owner.port_message_queue().queue(
-            task!(post_message: move || {
-                let global = this.root();
-                // Note: we do this in a task, as this will ensure the global and constellation
-                // are aware of any transfer that might still take place in the current task.
-                global.upcast::<GlobalScope>().route_task_to_port(target_port_id, task);
-            }),
-            owner,
-        );
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#dom-messageport-start>
-    pub fn start(&self, owner: &GlobalScope) {
-        self.enabled.set(true);
-        if self.awaiting_transfer.get() {
-            return;
-        }
-        let port_id = self.message_port_id().clone();
-        for task in self.message_buffer.borrow_mut().drain(0..) {
-            let this = Trusted::new(&*owner);
-            let _ = owner.port_message_queue().queue(
-                task!(process_pending_port_messages: move || {
-                    let target_global = this.root();
-                    target_global.upcast::<GlobalScope>().route_task_to_port(port_id, task);
-                }),
-                &owner,
-            );
-        }
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#dom-messageport-close>
-    pub fn close(&self) {
-        // Step 1
-        self.detached.set(true);
     }
 }
 
@@ -283,26 +149,25 @@ impl Transferable for MessagePort {
         self.detached.set(true);
         let id = self.message_port_id();
         // 1. Run local transfer logic, and return a serialized object for transfer.
-        if let Ok(port) = self.global().mark_port_as_transferred(id) {
-            // 2. Store the serialized object to be transferred,
-            // at a given key.
-            sc_holder.ports_impl.insert(id.clone(), port);
+        let transferred_port = self.global().mark_port_as_transferred(id);
 
-            let PipelineNamespaceId(name_space) = id.clone().namespace_id;
-            let MessagePortIndex(index) = id.clone().index;
-            let index = index.get();
+        // 2. Store the transferred object at a given key.
+        sc_holder.ports_impl.insert(id.clone(), transferred_port);
 
-            let mut big: [u8; 8] = [0; 8];
-            let name_space = name_space.to_ne_bytes();
-            let index = index.to_ne_bytes();
+        let PipelineNamespaceId(name_space) = id.clone().namespace_id;
+        let MessagePortIndex(index) = id.clone().index;
+        let index = index.get();
 
-            let (left, right) = big.split_at_mut(4);
-            left.copy_from_slice(&name_space);
-            right.copy_from_slice(&index);
-            // 3. Return a u64 representation of the key where the object is stored.
-            return Ok(u64::from_ne_bytes(big));
-        }
-        Err(())
+        let mut big: [u8; 8] = [0; 8];
+        let name_space = name_space.to_ne_bytes();
+        let index = index.to_ne_bytes();
+
+        let (left, right) = big.split_at_mut(4);
+        left.copy_from_slice(&name_space);
+        right.copy_from_slice(&index);
+
+        // 3. Return a u64 representation of the key where the object is stored.
+        Ok(u64::from_ne_bytes(big))
     }
 
     /// https://html.spec.whatwg.org/multipage/#message-ports:transfer-receiving-steps
@@ -335,14 +200,10 @@ impl Transferable for MessagePort {
         };
 
         // 2. Get the transferred object from it's storage, using the key.
-        let port_impl_data = sc_holder
+        let port_impl = sc_holder
             .ports_impl
             .remove(&id)
             .expect("Transferred port to be stored");
-
-        // 3. Deserialize the object that is to be transfered in to this realm.
-        let port_impl: MessagePortImpl = bincode::deserialize(&port_impl_data[..])
-            .expect("MessagePortImpl to be desirealizeable");
 
         let transferred_port =
             MessagePort::new_transferred(&**owner, id.clone(), port_impl.entangled_port_id());

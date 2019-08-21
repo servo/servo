@@ -84,7 +84,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::JS_DefineProperty;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use media::WindowGLContext;
-use msg::constellation_msg::{PipelineId, StructuredSerializedData};
+use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
 use net_traits::storage_thread::StorageType;
@@ -101,7 +101,10 @@ use script_layout_interface::rpc::{
 use script_layout_interface::{PendingImageState, TrustedNodeAddress};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{ConstellationControlMsg, DocumentState, HistoryEntryReplacement, LoadData};
-use script_traits::{ScriptMsg, ScriptToConstellationChan, ScrollState, TimerEvent, TimerEventId};
+use script_traits::{
+    ScriptMsg, ScriptToConstellationChan, ScrollState, StructuredSerializedData, TimerEvent,
+    TimerEventId,
+};
 use script_traits::{TimerSchedulerMsg, WindowSizeData, WindowSizeType};
 use selectors::attr::CaseSensitivity;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};

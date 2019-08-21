@@ -19,8 +19,8 @@ use ipc_channel::ipc;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
-use msg::constellation_msg::{PipelineId, StructuredSerializedData};
-use script_traits::ScriptMsg;
+use msg::constellation_msg::PipelineId;
+use script_traits::{ScriptMsg, StructuredSerializedData};
 use servo_url::ServoUrl;
 
 /// Represents a dissimilar-origin `Window` that exists in another script thread.

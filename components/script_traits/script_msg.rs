@@ -8,6 +8,9 @@ use crate::DocumentState;
 use crate::IFrameLoadInfoWithData;
 use crate::LayoutControlMsg;
 use crate::LoadData;
+use crate::MessagePortMsg;
+use crate::PortMessageTask;
+use crate::StructuredSerializedData;
 use crate::WindowSizeType;
 use crate::WorkerGlobalScopeInit;
 use crate::WorkerScriptLoadOrigin;
@@ -19,13 +22,9 @@ use euclid::Size2D;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::{
-    BrowsingContextId, MessagePortId, MessagePortRouterId, PipelineId, PortMessageTask,
-    TopLevelBrowsingContextId,
+    BrowsingContextId, MessagePortId, MessagePortRouterId, PipelineId, TopLevelBrowsingContextId,
 };
-use msg::constellation_msg::{
-    HistoryStateId, MessagePortMsg, PipelineNamespaceId, StructuredSerializedData,
-    TraversalDirection,
-};
+use msg::constellation_msg::{HistoryStateId, PipelineNamespaceId, TraversalDirection};
 use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::StorageType;
 use net_traits::CoreResourceMsg;
@@ -313,7 +312,7 @@ pub struct ScopeThings {
 }
 
 /// Message that gets passed to service worker scope on postMessage
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct DOMMessage {
     /// The origin of the message
     pub origin: ImmutableOrigin,

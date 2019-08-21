@@ -27,7 +27,7 @@ use msg::constellation_msg::{HistoryStateId, TraversalDirection};
 use net_traits::{CoreResourceMsg, IpcSend};
 use profile_traits::ipc;
 use profile_traits::ipc::channel;
-use script_traits::ScriptMsg;
+use script_traits::{ScriptMsg, StructuredSerializedData};
 use servo_url::ServoUrl;
 use std::cell::Cell;
 
@@ -116,6 +116,10 @@ impl History {
 
         match serialized_data {
             Some(data) => {
+                let data = StructuredSerializedData {
+                    serialized: data,
+                    ports: None,
+                };
                 let global_scope = self.window.upcast::<GlobalScope>();
                 rooted!(in(*global_scope.get_cx()) let mut state = UndefinedValue());
                 if let Err(_) = structuredclone::read(&global_scope, data, state.handle_mut()) {
@@ -255,7 +259,7 @@ impl History {
         };
 
         let _ = self.window.upcast::<GlobalScope>().resource_threads().send(
-            CoreResourceMsg::SetHistoryState(state_id, serialized_data.clone()),
+            CoreResourceMsg::SetHistoryState(state_id, serialized_data.serialized.clone()),
         );
 
         // TODO: Step 9 Update current entry to represent a GET request

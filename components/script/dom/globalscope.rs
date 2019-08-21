@@ -23,7 +23,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::messageevent::MessageEvent;
-use crate::dom::messageport::{MessagePort, MessagePortImpl};
+use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::Performance;
 use crate::dom::window::Window;
@@ -59,13 +59,14 @@ use js::rust::wrappers::EvaluateUtf8;
 use js::rust::{get_object_class, CompileOptionsWrapper, ParentRuntime, Runtime};
 use js::rust::{HandleValue, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
-use msg::constellation_msg::{
-    MessagePortId, MessagePortMsg, MessagePortRouterId, PipelineId, PortMessageTask,
-};
+use msg::constellation_msg::{MessagePortId, MessagePortRouterId, PipelineId};
 use net_traits::image_cache::ImageCache;
 use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
 use profile_traits::{mem as profile_mem, time as profile_time};
-use script_traits::{MsDuration, ScriptMsg, ScriptToConstellationChan, TimerEvent};
+use script_traits::transferable::MessagePortImpl;
+use script_traits::{
+    MessagePortMsg, MsDuration, PortMessageTask, ScriptMsg, ScriptToConstellationChan, TimerEvent,
+};
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
 use servo_url::{MutableOrigin, ServoUrl};
 use std::borrow::Cow;
@@ -209,7 +210,7 @@ impl MessageListener {
                         if let Some(port) = global.message_ports.borrow_mut().get_mut(&port_id) {
                             port.complete_transfer(tasks);
                             if port.enabled() {
-                                port.start(&global);
+                                global.start_message_port(&port_id);
                             }
                             return;
                         };
@@ -344,7 +345,7 @@ impl GlobalScope {
     }
 
     /// Handle the transfer of a port in the current task.
-    pub fn mark_port_as_transferred(&self, port_id: &MessagePortId) -> Result<Vec<u8>, ()> {
+    pub fn mark_port_as_transferred(&self, port_id: &MessagePortId) -> MessagePortImpl {
         let port = self
             .message_ports
             .borrow_mut()
@@ -354,21 +355,31 @@ impl GlobalScope {
         let _ = self
             .script_to_constellation_chan()
             .send(ScriptMsg::MessagePortShipped(port_id.clone()));
-        let mut bytes = vec![];
-        bincode::serialize_into(&mut bytes, &port).expect("MessagePortImpl to serialize.");
-        Ok(bytes)
+        port
     }
 
-    /// Enable a port.
+    /// <https://html.spec.whatwg.org/multipage/#dom-messageport-start>
     pub fn start_message_port(&self, port_id: &MessagePortId) {
         let message_ports = self.message_ports.borrow();
         let port = message_ports
             .get(port_id)
             .expect("Port whose start was called to exist");
-        port.start(self);
+        if let Some(message_buffer) = port.start() {
+            for task in message_buffer {
+                let port_id = port_id.clone();
+                let this = Trusted::new(&*self);
+                let _ = self.port_message_queue().queue(
+                    task!(process_pending_port_messages: move || {
+                        let target_global = this.root();
+                        target_global.upcast::<GlobalScope>().route_task_to_port(port_id, task);
+                    }),
+                    &self,
+                );
+            }
+        }
     }
 
-    /// Close a port.
+    /// <https://html.spec.whatwg.org/multipage/#dom-messageport-close>
     pub fn close_message_port(&self, port_id: &MessagePortId) {
         let message_ports = self.message_ports.borrow();
         let port = message_ports
@@ -377,13 +388,26 @@ impl GlobalScope {
         port.close();
     }
 
-    /// Post a message via a port.
+    /// <https://html.spec.whatwg.org/multipage/#message-port-post-message-steps>
+    // Steps 6 and 7
     pub fn post_messageport_msg(&self, port_id: MessagePortId, task: PortMessageTask) {
         let message_ports = self.message_ports.borrow();
         let port = message_ports
             .get(&port_id)
             .expect("Port whose postMessage was set to exist");
-        port.post_message(self, task);
+        if let Some(entangled_id) = port.entangled_port_id() {
+            // Step 7
+            let this = Trusted::new(&*self);
+            let _ = self.port_message_queue().queue(
+                task!(post_message: move || {
+                    let global = this.root();
+                    // Note: we do this in a task, as this will ensure the global and constellation
+                    // are aware of any transfer that might still take place in the current task.
+                    global.upcast::<GlobalScope>().route_task_to_port(entangled_id, task);
+                }),
+                self,
+            );
+        }
     }
 
     /// Route the task to be handled by the relevant port.
@@ -399,17 +423,17 @@ impl GlobalScope {
 
         // If the port is not enabled yet, or if it is awaiting the completion of it's transfer,
         // the task will be buffered and dispatched upon enablement or completion of the transfer.
-        let should_dispatch = self
+        let task_to_dispatch = self
             .message_ports
             .borrow_mut()
             .get_mut(&port_id)
-            .map_or(false, |port| port.handle_incoming(&task));
+            .map_or(None, |port| port.handle_incoming(task));
 
-        if should_dispatch {
+        if let Some(task_to_dispatch) = task_to_dispatch {
             // Get a corresponding DOM message-port object.
             let dom_port = self.get_dom_message_port(&port_id);
 
-            let PortMessageTask { origin, data } = task;
+            let PortMessageTask { origin, data } = task_to_dispatch;
 
             // Substep 3-4
             rooted!(in(*self.get_cx()) let mut message_clone = UndefinedValue());

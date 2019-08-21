@@ -35,7 +35,7 @@ use http::uri::Authority;
 use http::{HeaderMap, Request as HyperRequest};
 use hyper::{Body, Client, Method, Response as HyperResponse, StatusCode};
 use hyper_serde::Serde;
-use msg::constellation_msg::{HistoryStateId, PipelineId, StructuredSerializedData};
+use msg::constellation_msg::{HistoryStateId, PipelineId};
 use net_traits::quality::{quality_to_value, Quality, QualityItem};
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
@@ -66,7 +66,7 @@ pub struct HttpState {
     pub cookie_jar: RwLock<CookieStorage>,
     pub http_cache: RwLock<HttpCache>,
     pub auth_cache: RwLock<AuthCache>,
-    pub history_states: RwLock<HashMap<HistoryStateId, StructuredSerializedData>>,
+    pub history_states: RwLock<HashMap<HistoryStateId, Vec<u8>>>,
     pub client: Client<Connector, Body>,
 }
 

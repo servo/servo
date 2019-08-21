@@ -127,11 +127,10 @@ use media::{GLPlayerThreads, WindowGLContext};
 use msg::constellation_msg::{BackgroundHangMonitorRegister, HangMonitorAlert, SamplerControlMsg};
 use msg::constellation_msg::{
     BrowsingContextGroupId, BrowsingContextId, HistoryStateId, PipelineId,
-    StructuredSerializedData, TopLevelBrowsingContextId,
+    TopLevelBrowsingContextId,
 };
 use msg::constellation_msg::{
-    MessagePortId, MessagePortMsg, MessagePortRouterId, PipelineNamespace, PipelineNamespaceId,
-    PortMessageTask,  PipelineNamespaceRequest, TraversalDirection,
+    MessagePortId, MessagePortRouterId, PipelineNamespace, PipelineNamespaceRequest, PipelineNamespaceId, TraversalDirection,
 };
 use net_traits::pub_domains::reg_host;
 use net_traits::request::RequestBuilder;
@@ -154,6 +153,7 @@ use script_traits::{
     IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerSchedulerMsg,
 };
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
+use script_traits::{MessagePortMsg, PortMessageTask, StructuredSerializedData};
 use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WebDriverCommandMsg};
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};

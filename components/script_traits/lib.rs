@@ -17,8 +17,10 @@ extern crate malloc_size_of_derive;
 extern crate serde;
 
 mod script_msg;
+pub mod transferable;
 pub mod webdriver_msg;
 
+use crate::transferable::MessagePortImpl;
 use crate::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
@@ -36,10 +38,8 @@ use keyboard_types::{CompositionEvent, KeyboardEvent};
 use libc::c_void;
 use media::WindowGLContext;
 use msg::constellation_msg::BackgroundHangMonitorRegister;
-use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
-use msg::constellation_msg::{
-    PipelineNamespaceId, StructuredSerializedData, TopLevelBrowsingContextId, TraversalDirection,
-};
+use msg::constellation_msg::{BrowsingContextId, HistoryStateId, MessagePortId, PipelineId};
+use msg::constellation_msg::{PipelineNamespaceId, TopLevelBrowsingContextId, TraversalDirection};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageCache;
 use net_traits::request::Referrer;
@@ -53,7 +53,7 @@ use servo_atoms::Atom;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
@@ -1015,4 +1015,34 @@ impl ScriptToConstellationChan {
     pub fn send(&self, msg: ScriptMsg) -> Result<(), IpcError> {
         self.sender.send((self.pipeline_id, msg))
     }
+}
+
+/// A data-holder for serialized data and transferred objects.
+/// <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct StructuredSerializedData {
+    /// Serialized data.
+    pub serialized: Vec<u8>,
+    /// Transferred objects.
+    pub ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
+}
+
+/// A task on the https://html.spec.whatwg.org/multipage/#port-message-queue
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct PortMessageTask {
+    /// The origin of this task.
+    pub origin: ImmutableOrigin,
+    /// A data-holder for serialized data and transferred objects.
+    pub data: StructuredSerializedData,
+}
+
+/// Messages for communication between the constellation and a global managing ports.
+#[derive(Debug, Deserialize, Serialize)]
+pub enum MessagePortMsg {
+    /// Enables a port to catch-up on messages that were sent while the transfer was ongoing.
+    CompleteTransfer(MessagePortId, Option<VecDeque<PortMessageTask>>),
+    /// Remove a port, the entangled one doesn't exists anymore.
+    RemoveMessagePort(MessagePortId),
+    /// Handle a new port-message-task.
+    NewTask(MessagePortId, PortMessageTask),
 }
