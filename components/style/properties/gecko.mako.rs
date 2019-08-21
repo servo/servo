@@ -2296,20 +2296,7 @@ fn static_assert() {
 
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Table" skip_longhands="-x-span">
-    #[allow(non_snake_case)]
-    pub fn set__x_span(&mut self, v: longhands::_x_span::computed_value::T) {
-        self.gecko.mSpan = v.0
-    }
-
-    #[allow(non_snake_case)]
-    pub fn clone__x_span(&self) -> longhands::_x_span::computed_value::T {
-        longhands::_x_span::computed_value::T(
-            self.gecko.mSpan
-        )
-    }
-
-    ${impl_simple_copy('_x_span', 'mSpan')}
+<%self:impl_trait style_struct_name="Table">
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Effects" skip_longhands="clip">
