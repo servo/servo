@@ -1089,17 +1089,20 @@ bitflags! {
 #[derive(
     Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToResolvedValue, ToShmem,
 )]
+#[repr(C, u8)]
 /// Set of variant alternates
+///
+/// cbindgen:derive-tagged-enum-copy-constructor=true
 pub enum VariantAlternates {
     /// Enables display of stylistic alternates
     #[css(function)]
     Stylistic(CustomIdent),
     /// Enables display with stylistic sets
     #[css(comma, function)]
-    Styleset(#[css(iterable)] Box<[CustomIdent]>),
+    Styleset(#[css(iterable)] crate::OwnedSlice<CustomIdent>),
     /// Enables display of specific character variants
     #[css(comma, function)]
-    CharacterVariant(#[css(iterable)] Box<[CustomIdent]>),
+    CharacterVariant(#[css(iterable)] crate::OwnedSlice<CustomIdent>),
     /// Enables display of swash glyphs
     #[css(function)]
     Swash(CustomIdent),
@@ -1114,11 +1117,12 @@ pub enum VariantAlternates {
 }
 
 #[derive(
-    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToResolvedValue, ToShmem,
+    Clone, Debug, Default, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToResolvedValue, ToShmem,
 )]
+#[repr(transparent)]
 /// List of Variant Alternates
 pub struct VariantAlternatesList(
-    #[css(if_empty = "normal", iterable)] pub Box<[VariantAlternates]>,
+    #[css(if_empty = "normal", iterable)] crate::OwnedSlice<VariantAlternates>,
 );
 
 impl VariantAlternatesList {
@@ -1150,7 +1154,7 @@ impl FontVariantAlternates {
     #[inline]
     /// Get initial specified value with VariantAlternatesList
     pub fn get_initial_specified_value() -> Self {
-        FontVariantAlternates::Value(VariantAlternatesList(vec![].into_boxed_slice()))
+        FontVariantAlternates::Value(Default::default())
     }
 
     system_font_methods!(FontVariantAlternates, font_variant_alternates);
@@ -1184,16 +1188,14 @@ impl Parse for FontVariantAlternates {
         _: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<FontVariantAlternates, ParseError<'i>> {
-        let mut alternates = Vec::new();
         if input
             .try(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
-            return Ok(FontVariantAlternates::Value(VariantAlternatesList(
-                alternates.into_boxed_slice(),
-            )));
+            return Ok(FontVariantAlternates::Value(Default::default()))
         }
 
+        let mut alternates = Vec::new();
         let mut parsed_alternates = VariantAlternatesParsingFlags::empty();
         macro_rules! check_if_parsed(
             ($input:expr, $flag:path) => (
@@ -1247,7 +1249,7 @@ impl Parse for FontVariantAlternates {
                                 let location = i.current_source_location();
                                 CustomIdent::from_ident(location, i.expect_ident()?, &[])
                             })?;
-                            alternates.push(VariantAlternates::Styleset(idents.into_boxed_slice()));
+                            alternates.push(VariantAlternates::Styleset(idents.into()));
                             Ok(())
                         },
                         "character-variant" => {
@@ -1256,7 +1258,7 @@ impl Parse for FontVariantAlternates {
                                 let location = i.current_source_location();
                                 CustomIdent::from_ident(location, i.expect_ident()?, &[])
                             })?;
-                            alternates.push(VariantAlternates::CharacterVariant(idents.into_boxed_slice()));
+                            alternates.push(VariantAlternates::CharacterVariant(idents.into()));
                             Ok(())
                         },
                         _ => return Err(i.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
@@ -1270,7 +1272,7 @@ impl Parse for FontVariantAlternates {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
         Ok(FontVariantAlternates::Value(VariantAlternatesList(
-            alternates.into_boxed_slice(),
+            alternates.into(),
         )))
     }
 }

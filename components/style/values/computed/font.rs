@@ -644,10 +644,10 @@ impl ToAnimatedValue for FontSizeAdjust {
 pub type FontVariantAlternates = specified::VariantAlternatesList;
 
 impl FontVariantAlternates {
-    #[inline]
     /// Get initial value with VariantAlternatesList
+    #[inline]
     pub fn get_initial_value() -> Self {
-        specified::VariantAlternatesList(vec![].into_boxed_slice())
+        Self::default()
     }
 }
 
