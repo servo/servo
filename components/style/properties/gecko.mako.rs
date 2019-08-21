@@ -2599,18 +2599,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedSVG"
-                  skip_longhands="paint-order stroke-dasharray">
-    pub fn set_paint_order(&mut self, v: longhands::paint_order::computed_value::T) {
-        self.gecko.mPaintOrder = v.0;
-    }
-
-    ${impl_simple_copy('paint_order', 'mPaintOrder')}
-
-    pub fn clone_paint_order(&self) -> longhands::paint_order::computed_value::T {
-        use crate::properties::longhands::paint_order::computed_value::T;
-        T(self.gecko.mPaintOrder)
-    }
-
+                  skip_longhands="stroke-dasharray">
     pub fn set_stroke_dasharray(&mut self, v: longhands::stroke_dasharray::computed_value::T) {
         use crate::gecko_bindings::structs::nsStyleSVG_STROKE_DASHARRAY_CONTEXT as CONTEXT_VALUE;
         use crate::values::generics::svg::SVGStrokeDashArray;
