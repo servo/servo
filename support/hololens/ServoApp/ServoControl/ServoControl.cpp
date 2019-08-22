@@ -51,6 +51,8 @@ void ServoControl::OnLoaded(IInspectable const &, RoutedEventArgs const &) {
       });
   panel.ManipulationDelta(
       std::bind(&ServoControl::OnSurfaceManipulationDelta, this, _1, _2));
+  Panel().SizeChanged(
+      std::bind(&ServoControl::OnSurfaceResized, this, _1, _2));
   InitializeConditionVariable(&mGLCondVar);
   InitializeCriticalSection(&mGLLock);
   CreateRenderSurface();
@@ -98,6 +100,14 @@ void ServoControl::OnSurfaceClicked(IInspectable const &,
   auto y = coords.Position().Y * mDPI;
   RunOnGLThread([=] { mServo->Click(x, y); });
   e.Handled(true);
+}
+
+void ServoControl::OnSurfaceResized(IInspectable const &,
+                                    SizeChangedEventArgs const &e) {
+  auto size = e.NewSize();
+  auto w = size.Width * mDPI;
+  auto h = size.Height * mDPI;
+  RunOnGLThread([=] { mServo->SetSize(w, h); });
 }
 
 void ServoControl::GoBack() {
