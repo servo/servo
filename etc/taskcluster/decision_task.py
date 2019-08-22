@@ -377,14 +377,6 @@ def windows_arm64():
     return (
         windows_build_task("UWP dev build", arch="arm64", package=False)
         .with_treeherder("Windows arm64")
-        .with_file_mount(
-            "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe",
-            path="nuget.exe"
-        )
-        .with_script(
-            "%HOMEDRIVE%%HOMEPATH%\\nuget.exe install ANGLE.WindowsStore.Servo \
-              -Version 2.1.13 -o %HOMEDRIVE%%HOMEPATH%\\repo\\support\\hololens\\packages",
-        )
         .with_script("python mach build --dev --uwp --win-arm64")
         .find_or_create("build.windows_uwp_arm64_dev." + CONFIG.task_id())
     )
@@ -394,14 +386,6 @@ def windows_uwp_x64():
     return (
         windows_build_task("UWP dev build", package=False)
         .with_treeherder("Windows x64")
-        .with_file_mount(
-            "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe",
-            path="nuget.exe"
-        )
-        .with_script(
-            "%HOMEDRIVE%%HOMEPATH%\\nuget.exe install ANGLE.WindowsStore.Servo \
-              -Version 2.1.13 -o %HOMEDRIVE%%HOMEPATH%\\repo\\support\\hololens\\packages",
-        )
         .with_script("mach build --dev --uwp")
         .find_or_create("build.windows_uwp_x64_dev." + CONFIG.task_id())
     )
