@@ -44,7 +44,7 @@ use layout::query::{
     process_offset_parent_query, process_resolved_style_request, process_style_query,
     process_text_index_request,
 };
-use layout::traversal::RecalcStyleAndConstructFlows;
+use layout::traversal::RecalcStyle;
 use layout_traits::LayoutThreadFactory;
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -1066,19 +1066,14 @@ impl LayoutThread {
         // Create a layout context for use throughout the following passes.
         let mut layout_context = self.build_layout_context(guards.clone(), &map);
 
-        let traversal = RecalcStyleAndConstructFlows::new(layout_context);
+        let traversal = RecalcStyle::new(layout_context);
         let token = {
-            let shared =
-                <RecalcStyleAndConstructFlows as DomTraversal<ServoLayoutElement>>::shared_context(
-                    &traversal,
-                );
-            RecalcStyleAndConstructFlows::pre_traverse(element, shared)
+            let shared = DomTraversal::<ServoLayoutElement>::shared_context(&traversal);
+            RecalcStyle::pre_traverse(element, shared)
         };
 
         if token.should_traverse() {
-            driver::traverse_dom::<ServoLayoutElement, RecalcStyleAndConstructFlows>(
-                &traversal, token, None,
-            );
+            driver::traverse_dom(&traversal, token, None);
         }
 
         for element in elements_with_snapshot {
