@@ -5,6 +5,7 @@
 //! A struct to encapsulate all the style fixups and flags propagations
 //! a computed style needs in order for it to adhere to the CSS spec.
 
+use crate::computed_values::_servo_top_layer::T as InTopLayer;
 use crate::dom::TElement;
 use crate::properties::computed_value_flags::ComputedValueFlags;
 use crate::properties::longhands::display::computed_value::T as Display;
@@ -219,9 +220,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         let display = self.style.get_box().clone_display();
         let blockified_display = display.equivalent_block_display(is_root);
         if display != blockified_display {
+            let is_fullscreen = self.style.get_box()._servo_top_layer == InTopLayer::Top;
             self.style
                 .mutate_box()
-                .set_adjusted_display(blockified_display, is_item_or_root);
+                .set_adjusted_display(blockified_display, is_item_or_root || is_fullscreen);
         }
     }
 
