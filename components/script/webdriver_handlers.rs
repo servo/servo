@@ -18,7 +18,7 @@ use crate::dom::bindings::conversions::{
 use crate::dom::bindings::conversions::{
     ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
 };
-use crate::dom::bindings::error::throw_dom_exception;
+use crate::dom::bindings::error::{throw_dom_exception, Error};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
@@ -39,9 +39,10 @@ use cookie::Cookie;
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{JSAutoRealm, JSContext};
+use js::jsapi::{HandleValueArray, JSAutoRealm, JSContext, JSType, JS_IsExceptionPending};
 use js::jsval::UndefinedValue;
-use js::rust::HandleValue;
+use js::rust::wrappers::{JS_CallFunctionName, JS_GetProperty, JS_HasOwnProperty, JS_TypeOfValue};
+use js::rust::{Handle, HandleObject, HandleValue};
 use msg::constellation_msg::BrowsingContextId;
 use msg::constellation_msg::PipelineId;
 use net_traits::CookieSource::{NonHTTP, HTTP};
@@ -52,7 +53,9 @@ use script_traits::webdriver_msg::{
     WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue,
 };
 use servo_url::ServoUrl;
-use webdriver::common::WebElement;
+use std::collections::HashMap;
+use std::ffi::CString;
+use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
 
 fn find_node_by_unique_id(
@@ -122,6 +125,31 @@ fn first_matching_link(
 }
 
 #[allow(unsafe_code)]
+unsafe fn object_has_to_json_property(
+    cx: *mut JSContext,
+    global_scope: &GlobalScope,
+    object: HandleObject,
+) -> bool {
+    let name = CString::new("toJSON").unwrap();
+    let mut found = false;
+    if JS_HasOwnProperty(cx, object, name.as_ptr(), &mut found) && found {
+        rooted!(in(cx) let mut value = UndefinedValue());
+        let result = JS_GetProperty(cx, object, name.as_ptr(), value.handle_mut());
+        if !result {
+            throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, Error::JSFailed);
+            false
+        } else {
+            result && JS_TypeOfValue(cx, value.handle()) == JSType::JSTYPE_FUNCTION
+        }
+    } else if JS_IsExceptionPending(cx) {
+        throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, Error::JSFailed);
+        false
+    } else {
+        false
+    }
+}
+
+#[allow(unsafe_code)]
 pub unsafe fn jsval_to_webdriver(
     cx: *mut JSContext,
     global_scope: &GlobalScope,
@@ -157,20 +185,15 @@ pub unsafe fn jsval_to_webdriver(
         });
         let _ac = JSAutoRealm::new(cx, *object);
 
-        if let Ok(element) = root_from_object::<HTMLElement>(*object, cx) {
-            return Ok(WebDriverJSValue::Element(WebElement(
-                element.upcast::<Node>().unique_id(),
-            )));
-        }
+        if is_array_like(cx, val) {
+            let mut result: Vec<WebDriverJSValue> = Vec::new();
 
-        if !is_array_like(cx, val) {
-            return Err(WebDriverJSError::UnknownType);
-        }
-
-        let mut result: Vec<WebDriverJSValue> = Vec::new();
-
-        let length =
-            match get_property::<u32>(cx, object.handle(), "length", ConversionBehavior::Default) {
+            let length = match get_property::<u32>(
+                cx,
+                object.handle(),
+                "length",
+                ConversionBehavior::Default,
+            ) {
                 Ok(length) => match length {
                     Some(length) => length,
                     _ => return Err(WebDriverJSError::UnknownType),
@@ -181,21 +204,76 @@ pub unsafe fn jsval_to_webdriver(
                 },
             };
 
-        for i in 0..length {
-            rooted!(in(cx) let mut item = UndefinedValue());
-            match get_property_jsval(cx, object.handle(), &i.to_string(), item.handle_mut()) {
-                Ok(_) => match jsval_to_webdriver(cx, global_scope, item.handle()) {
-                    Ok(converted_item) => result.push(converted_item),
-                    err @ Err(_) => return err,
-                },
-                Err(error) => {
-                    throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, error);
-                    return Err(WebDriverJSError::JSError);
-                },
+            for i in 0..length {
+                rooted!(in(cx) let mut item = UndefinedValue());
+                match get_property_jsval(cx, object.handle(), &i.to_string(), item.handle_mut()) {
+                    Ok(_) => match jsval_to_webdriver(cx, global_scope, item.handle()) {
+                        Ok(converted_item) => result.push(converted_item),
+                        err @ Err(_) => return err,
+                    },
+                    Err(error) => {
+                        throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, error);
+                        return Err(WebDriverJSError::JSError);
+                    },
+                }
             }
-        }
 
-        Ok(WebDriverJSValue::ArrayLike(result))
+            Ok(WebDriverJSValue::ArrayLike(result))
+        } else if let Ok(element) = root_from_object::<Element>(*object, cx) {
+            Ok(WebDriverJSValue::Element(WebElement(
+                element.upcast::<Node>().unique_id(),
+            )))
+        } else if let Ok(window) = root_from_object::<Window>(*object, cx) {
+            let window_proxy = window.window_proxy();
+            if window_proxy.is_browsing_context_discarded() {
+                Err(WebDriverJSError::StaleElementReference)
+            } else if window_proxy.browsing_context_id() ==
+                window_proxy.top_level_browsing_context_id()
+            {
+                Ok(WebDriverJSValue::Window(WebWindow(
+                    window.Document().upcast::<Node>().unique_id(),
+                )))
+            } else {
+                Ok(WebDriverJSValue::Frame(WebFrame(
+                    window.Document().upcast::<Node>().unique_id(),
+                )))
+            }
+        } else if object_has_to_json_property(cx, global_scope, object.handle()) {
+            let name = CString::new("toJSON").unwrap();
+            rooted!(in(cx) let mut value = UndefinedValue());
+            if JS_CallFunctionName(
+                cx,
+                object.handle(),
+                name.as_ptr(),
+                &mut HandleValueArray::new(),
+                value.handle_mut(),
+            ) {
+                jsval_to_webdriver(cx, global_scope, Handle::new(&value))
+            } else {
+                throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, Error::JSFailed);
+                Err(WebDriverJSError::JSError)
+            }
+        } else {
+            let mut result = HashMap::new();
+
+            let common_properties = vec!["x", "y", "width", "height", "key"];
+            for property in common_properties.iter() {
+                rooted!(in(cx) let mut item = UndefinedValue());
+                if let Ok(_) = get_property_jsval(cx, object.handle(), property, item.handle_mut())
+                {
+                    if !item.is_undefined() {
+                        if let Ok(value) = jsval_to_webdriver(cx, global_scope, item.handle()) {
+                            result.insert(property.to_string(), value);
+                        }
+                    }
+                } else {
+                    throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, Error::JSFailed);
+                    return Err(WebDriverJSError::JSError);
+                }
+            }
+
+            Ok(WebDriverJSValue::Object(result))
+        }
     } else {
         Err(WebDriverJSError::UnknownType)
     }
