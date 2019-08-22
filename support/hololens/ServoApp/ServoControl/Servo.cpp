@@ -56,7 +56,7 @@ const char* get_clipboard_contents() {
   return nullptr;
 }
 
-Servo::Servo(hstring url, GLsizei width, GLsizei height,
+Servo::Servo(hstring url, GLsizei width, GLsizei height, float dpi,
              ServoDelegate &aDelegate)
     : mWindowHeight(height), mWindowWidth(width), mDelegate(aDelegate) {
 
@@ -65,7 +65,7 @@ Servo::Servo(hstring url, GLsizei width, GLsizei height,
   o.url = *hstring2char(url);
   o.width = mWindowWidth;
   o.height = mWindowHeight;
-  o.density = 1.0;
+  o.density = dpi;
   o.enable_subpixel_text_antialiasing = false;
   o.vr_pointer = NULL;
 
