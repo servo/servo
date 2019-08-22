@@ -11,13 +11,13 @@ use style::dom::{NodeInfo, TElement, TNode};
 use style::traversal::PerLevelTraversalData;
 use style::traversal::{recalc_style_at, DomTraversal};
 
-pub struct RecalcStyleAndConstructFlows<'a> {
+pub struct RecalcStyle<'a> {
     context: LayoutContext<'a>,
 }
 
-impl<'a> RecalcStyleAndConstructFlows<'a> {
+impl<'a> RecalcStyle<'a> {
     pub fn new(context: LayoutContext<'a>) -> Self {
-        RecalcStyleAndConstructFlows { context: context }
+        RecalcStyle { context: context }
     }
 
     pub fn destroy(self) -> LayoutContext<'a> {
@@ -26,7 +26,7 @@ impl<'a> RecalcStyleAndConstructFlows<'a> {
 }
 
 #[allow(unsafe_code)]
-impl<'a, E> DomTraversal<E> for RecalcStyleAndConstructFlows<'a>
+impl<'a, E> DomTraversal<E> for RecalcStyle<'a>
 where
     E: TElement,
     E::ConcreteNode: LayoutNode,
