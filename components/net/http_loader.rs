@@ -1309,7 +1309,7 @@ fn http_network_fetch(
             .timing
             .lock()
             .unwrap()
-            .set_attribute(ResourceAttribute::TimingCheckPassed);
+            .mark_timing_check_failed();
     }
 
     let timing = context.timing.lock().unwrap().clone();

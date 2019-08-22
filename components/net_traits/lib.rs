@@ -535,7 +535,7 @@ impl ResourceFetchTiming {
         }
     }
 
-    fn mark_timing_check_failed(&mut self) {
+    pub fn mark_timing_check_failed(&mut self) {
         self.timing_check_passed = false;
         self.domain_lookup_start = 0;
         self.redirect_count = 0;
