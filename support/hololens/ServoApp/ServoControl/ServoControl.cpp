@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 using namespace std::placeholders;
+using namespace winrt::Windows::Graphics::Display;
 using namespace winrt::Windows::UI::Xaml;
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::Foundation;
@@ -13,6 +14,7 @@ using namespace winrt::servo;
 namespace winrt::ServoApp::implementation {
 
 ServoControl::ServoControl() {
+  mDPI = (float)DisplayInformation::GetForCurrentView().ResolutionScale() / 100;
   DefaultStyleKey(winrt::box_value(L"ServoApp.ServoControl"));
   Loaded(std::bind(&ServoControl::OnLoaded, this, _1, _2));
 }
@@ -62,7 +64,7 @@ Controls::SwapChainPanel ServoControl::Panel() {
 
 void ServoControl::CreateRenderSurface() {
   if (mRenderSurface == EGL_NO_SURFACE) {
-    mRenderSurface = mOpenGLES.CreateSurface(Panel());
+    mRenderSurface = mOpenGLES.CreateSurface(Panel(), mDPI);
   }
 }
 
@@ -81,10 +83,10 @@ void ServoControl::RecoverFromLostDevice() {
 
 void ServoControl::OnSurfaceManipulationDelta(
     IInspectable const &, Input::ManipulationDeltaRoutedEventArgs const &e) {
-  auto x = e.Position().X;
-  auto y = e.Position().Y;
-  auto dx = e.Delta().Translation.X;
-  auto dy = e.Delta().Translation.Y;
+  auto x = e.Position().X * mDPI;
+  auto y = e.Position().Y * mDPI;
+  auto dx = e.Delta().Translation.X * mDPI;
+  auto dy = e.Delta().Translation.Y * mDPI;
   RunOnGLThread([=] { mServo->Scroll(dx, dy, x, y); });
   e.Handled(true);
 }
@@ -92,8 +94,8 @@ void ServoControl::OnSurfaceManipulationDelta(
 void ServoControl::OnSurfaceClicked(IInspectable const &,
                                     Input::PointerRoutedEventArgs const &e) {
   auto coords = e.GetCurrentPoint(Panel());
-  auto x = coords.Position().X;
-  auto y = coords.Position().Y;
+  auto x = coords.Position().X * mDPI;
+  auto y = coords.Position().Y * mDPI;
   RunOnGLThread([=] { mServo->Click(x, y); });
   e.Handled(true);
 }
@@ -153,7 +155,7 @@ void ServoControl::Loop() {
   if (mServo == nullptr) {
     log("Entering loop");
     ServoDelegate *sd = static_cast<ServoDelegate *>(this);
-    mServo = std::make_unique<Servo>(mInitialURL, panelWidth, panelHeight, *sd);
+    mServo = std::make_unique<Servo>(mInitialURL, panelWidth, panelHeight, mDPI, *sd);
   } else {
     // FIXME: this will fail since create_task didn't pick the thread
     // where Servo was running initially.
