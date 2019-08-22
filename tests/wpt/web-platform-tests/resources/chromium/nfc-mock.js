@@ -273,13 +273,11 @@ var WebNFCTest = (() => {
 
       this.watchers_.push({id: id, options: options});
       // Triggers onWatch if the new watcher matches existing messages
-      if (this.reading_messages_.length !== 0) {
-        for(let message of this.reading_messages_) {
-          if (matchesWatchOptions(message.message,
-              message.compatibility, options)) {
-            this.client_.onWatch([id], fake_tag_serial_number,
-                toMojoNDEFMessage(message.message));
-          }
+      for (let message of this.reading_messages_) {
+        if (matchesWatchOptions(
+                message.message, message.compatibility, options)) {
+          this.client_.onWatch(
+              [id], fake_tag_serial_number, toMojoNDEFMessage(message.message));
         }
       }
 
@@ -362,13 +360,12 @@ var WebNFCTest = (() => {
       this.reading_messages_.push({message: message,
           compatibility: toMojoNDEFCompatibility(compatibility)});
       // Triggers onWatch if the new message matches existing watchers
-      if (this.watchers_.length !== 0) {
-        for (let watcher of this.watchers_) {
-          if (matchesWatchOptions(message,
-              message.compatibility, watcher.options)) {
-            this.client_.onWatch([watcher.id], fake_tag_serial_number,
-                toMojoNDEFMessage(message.message));
-          }
+      for (let watcher of this.watchers_) {
+        if (matchesWatchOptions(
+                message, message.compatibility, watcher.options)) {
+          this.client_.onWatch(
+              [watcher.id], fake_tag_serial_number,
+              toMojoNDEFMessage(message.message));
         }
       }
     }

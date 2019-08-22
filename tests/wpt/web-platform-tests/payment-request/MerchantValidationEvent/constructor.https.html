@@ -80,6 +80,20 @@ test(() => {
 }, "Relative validationURLs use the document as the base.");
 
 test(() => {
+  const validationURL = "pass";
+  const base = document.createElement("base");
+  base.href = "https://pass.com";
+  document.head.append(base);
+  const event = new MerchantValidationEvent("test", { validationURL });
+  try {
+    assert_idl_attribute(event, "validationURL");
+    assert_equals(event.validationURL, "https://pass.com/pass");
+  } finally {
+    base.remove();
+  }
+}, "Relative validationURLs use the document.baseURI as the base.");
+
+test(() => {
   const methodName = "https://pass.com";
   const event = new MerchantValidationEvent("test", { methodName });
   assert_idl_attribute(event, "methodName");

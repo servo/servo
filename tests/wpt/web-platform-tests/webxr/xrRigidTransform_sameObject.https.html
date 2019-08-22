@@ -22,11 +22,14 @@ let testFunction =
 
   let position = transform.position;
   let orientation = transform.orientation;
+  let matrix = transform.matrix;
   t.step(() => {
     assert_equals(position, transform.position,
       "XRRigidTransform.position returns the same object.");
     assert_equals(orientation, transform.orientation,
       "XRRigidTransform.orientation returns the same object.");
+    assert_equals(matrix, transform.matrix,
+      "XRRigidTransform.matrix returns the same object.");
   });
 
   resolve();

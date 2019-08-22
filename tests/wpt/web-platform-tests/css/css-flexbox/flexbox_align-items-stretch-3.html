@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>flex base size and stretched items</title>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#definite-sizes" title="bullet #1">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="flags" content="" />
+<meta name="assert" content="Item's stretched size is used for laying out descendants when determining flex base size." />
+<style>
+x-flexbox {
+  display: flex;
+  height: 100px;
+}
+
+x-item {
+  background: green;
+  writing-mode: vertical-lr;
+}
+
+x-item > div {
+  padding-right: 70%;
+  width: 30px;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<x-flexbox>
+  <x-item>
+    <div></div>
+  </x-item>
+</x-flexbox>

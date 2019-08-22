@@ -5,7 +5,7 @@
 
 [Exposed=(Window,Worker),
  SecureContext,
- Constructor(optional FaceDetectorOptions faceDetectorOptions)]
+ Constructor(optional FaceDetectorOptions faceDetectorOptions = {})]
 interface FaceDetector {
   Promise<sequence<DetectedFace>> detect(ImageBitmapSource image);
 };
@@ -36,7 +36,7 @@ enum LandmarkType {
 
 [Exposed=(Window,Worker),
  SecureContext,
- Constructor(optional BarcodeDetectorOptions barcodeDetectorOptions)]
+ Constructor(optional BarcodeDetectorOptions barcodeDetectorOptions = {})]
 interface BarcodeDetector {
   static Promise<sequence<BarcodeFormat>> getSupportedFormats();
 

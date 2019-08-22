@@ -58,22 +58,22 @@ promise_test(async t => {
 
 promise_test(async t => {
     const dir = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
-    await promise_rejects(t, 'NotFoundError', dir.getDirectory("", { create: true }));
-    await promise_rejects(t, 'NotFoundError', dir.getDirectory("", { create: false }));
+    await promise_rejects(t, new TypeError(), dir.getDirectory("", { create: true }));
+    await promise_rejects(t, new TypeError(), dir.getDirectory("", { create: false }));
 }, 'getDirectory() with empty name');
 
 promise_test(async t => {
     const dir = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
-    await promise_rejects(t, 'SecurityError', dir.getDirectory(kCurrentDirectory));
-    await promise_rejects(t, 'SecurityError', dir.getDirectory(kCurrentDirectory, { create: true }));
+    await promise_rejects(t, new TypeError(), dir.getDirectory(kCurrentDirectory));
+    await promise_rejects(t, new TypeError(), dir.getDirectory(kCurrentDirectory, { create: true }));
 }, `getDirectory() with "${kCurrentDirectory}" name`);
 
 promise_test(async t => {
     const dir = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
     const subdir = await createDirectory(t, 'subdir-name', /*parent=*/dir);
 
-    await promise_rejects(t, 'SecurityError', subdir.getDirectory(kParentDirectory));
-    await promise_rejects(t, 'SecurityError', subdir.getDirectory(kParentDirectory, { create: true }));
+    await promise_rejects(t, new TypeError(), subdir.getDirectory(kParentDirectory));
+    await promise_rejects(t, new TypeError(), subdir.getDirectory(kParentDirectory, { create: true }));
 }, `getDirectory() with "${kParentDirectory}" name`);
 
 promise_test(async t => {
@@ -87,7 +87,7 @@ promise_test(async t => {
 
     for (let i = 0; i < kPathSeparators.length; ++i) {
         const path_with_separator = `${first_subdir_name}${kPathSeparators[i]}${second_subdir_name}`;
-        await promise_rejects(t, 'SecurityError', dir.getDirectory(path_with_separator),
+        await promise_rejects(t, new TypeError(), dir.getDirectory(path_with_separator),
             `getDirectory() must reject names containing "${kPathSeparators[i]}"`);
     }
 }, 'getDirectory(create=false) with a path separator when the directory exists');
@@ -100,7 +100,7 @@ promise_test(async t => {
 
     for (let i = 0; i < kPathSeparators.length; ++i) {
         const path_with_separator = `${subdir_name}${kPathSeparators[i]}file_name`;
-        await promise_rejects(t, 'SecurityError', dir.getDirectory(path_with_separator, { create: true }),
+        await promise_rejects(t, new TypeError(), dir.getDirectory(path_with_separator, { create: true }),
             `getDirectory(true) must reject names containing "${kPathSeparators[i]}"`);
     }
 }, 'getDirectory(create=true) with a path separator');

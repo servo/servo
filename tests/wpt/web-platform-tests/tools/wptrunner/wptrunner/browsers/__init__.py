@@ -22,7 +22,8 @@ All classes and functions named in the above dict must be imported into the
 module global scope.
 """
 
-product_list = ["chrome",
+product_list = ["android_webview",
+                "chrome",
                 "chrome_android",
                 "chrome_ios",
                 "edgechromium",
