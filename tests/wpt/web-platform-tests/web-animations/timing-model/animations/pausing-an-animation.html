@@ -66,7 +66,7 @@ promise_test(async t => {
   await animation.ready;
   // If the current time was updated using the new playback rate it will jump
   // back to 25s but if we correctly used the old playback rate the current time
-  // will be >50s.
+  // will be > 50s.
   assert_greater_than(animation.currentTime, 50 * MS_PER_SEC);
 }, 'A pause-pending animation maintains the current time when applying a'
    + ' pending playback rate');

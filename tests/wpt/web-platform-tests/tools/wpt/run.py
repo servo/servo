@@ -341,6 +341,29 @@ class ChromeiOS(BrowserSetup):
             raise WptrunError("Unable to locate or install chromedriver binary")
 
 
+class AndroidWebview(BrowserSetup):
+    name = "android_webview"
+    browser_cls = browser.AndroidWebview
+
+    def setup_kwargs(self, kwargs):
+        if kwargs["webdriver_binary"] is None:
+            webdriver_binary = self.browser.find_webdriver()
+
+            if webdriver_binary is None:
+                install = self.prompt_install("chromedriver")
+
+                if install:
+                    logger.info("Downloading chromedriver")
+                    webdriver_binary = self.browser.install_webdriver(dest=self.venv.bin_path)
+            else:
+                logger.info("Using webdriver binary %s" % webdriver_binary)
+
+            if webdriver_binary:
+                kwargs["webdriver_binary"] = webdriver_binary
+            else:
+                raise WptrunError("Unable to locate or install chromedriver binary")
+
+
 class Opera(BrowserSetup):
     name = "opera"
     browser_cls = browser.Opera
@@ -532,6 +555,7 @@ class Epiphany(BrowserSetup):
 
 
 product_setup = {
+    "android_webview": AndroidWebview,
     "firefox": Firefox,
     "firefox_android": FirefoxAndroid,
     "chrome": Chrome,

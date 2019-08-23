@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<body>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<canvas></canvas>
+<script>
+
+  let testName =
+    "Inline viewer support wtih no device";
+
+  // Purposefully not connecting a device to ensure that viewer is always
+  // supported if that is the only feature requested.
+  xr_promise_test(testName,
+    (t) => {
+    function session_resolves(sessionMode, sessionInit) {
+      return navigator.xr.requestSession(sessionMode, sessionInit)
+        .then((session) => {
+          return session.end();
+        });
+    }
+
+    // RequestSession with explicit request for the viewer space should succeed.
+    return session_resolves('inline', {
+      requiredFeatures: ['viewer']
+    })
+    .then(() => {
+      // RequestSession with no requirements should succeed.
+      return session_resolves('inline', {});
+    })
+    .then(() => {
+      // RequestSession with unsupported optional features should succeed.
+      return session_resolves('inline', {
+        requiredFeatures: ['viewer'],
+        optionalFeatures: ['local']
+      })
+    })
+    .then(() => {
+      // Request with unsupported required features should reject.
+      return promise_rejects(t, "NotSupportedError",
+        navigator.xr.requestSession('inline', {
+          requiredFeatures: ['local']
+        }));
+    });
+  });
+
+</script>
+</body>

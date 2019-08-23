@@ -4,7 +4,7 @@
 // Source: CSS Animations Level 1 (https://drafts.csswg.org/css-animations/)
 
 [Exposed=Window,
- Constructor(CSSOMString type, optional AnimationEventInit animationEventInitDict)]
+ Constructor(CSSOMString type, optional AnimationEventInit animationEventInitDict = {})]
 interface AnimationEvent : Event {
   readonly attribute CSSOMString animationName;
   readonly attribute double elapsedTime;

@@ -203,6 +203,36 @@ def test_internals():
                                1)]
 
 
+def test_missing_deps():
+    error_map = check_with_files(b"<script src='/gen/foo.js'></script>")
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind == "python":
+            assert errors == [("PARSE-FAILED", "Unable to parse file", filename, 1)]
+        else:
+            assert errors == [('MISSING DEPENDENCY',
+                               'Chromium-specific content referenced',
+                               filename,
+                               1)]
+
+
+def test_no_missing_deps():
+    error_map = check_with_files(b"""<head>
+<script src='/foo/gen/foo.js'></script>
+<script src='/gens/foo.js'></script>
+</head>""")
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind == "python":
+            assert errors == [("PARSE-FAILED", "Unable to parse file", filename, 1)]
+        else:
+            assert errors == []
+
+
 def test_meta_timeout():
     code = b"""
 <html xmlns="http://www.w3.org/1999/xhtml">

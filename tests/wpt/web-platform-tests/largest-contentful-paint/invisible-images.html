@@ -1,0 +1,46 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<head>
+<title>Largest Contentful Paint: invisible images are not observable</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .opacity0 {
+    opacity: 0;
+  }
+  .visibilityHidden {
+    visibility: hidden;
+  }
+  .displayNone {
+    display: none;
+  }
+</style>
+</head>
+<body>
+<script>
+  async_test(t => {
+    if (!window.LargestContentfulPaint) {
+      assert_unreached("LargestContentfulPaint is not implemented");
+    }
+    const observer = new PerformanceObserver(
+      t.step_func_done(entryList => {
+        // The images should not have caused an entry, so fail test.
+        assert_unreached('Should not have received an entry! Received one with id '
+            + entryList.getEntries()[0].id);
+      })
+    );
+    observer.observe({type: 'largest-contentful-paint', buffered: true});
+    // Images have been added but should not cause entries to be dispatched.
+    // Wait for 500ms and end test, ensuring no entry was created.
+    t.step_timeout(() => {
+      t.done();
+    }, 500);
+  }, 'Images with opacity: 0, visibility: hidden, or display: none are not observable by LargestContentfulPaint.');
+</script>
+<img src='/images/blue.png' class='opacity0' id='opacity0'/>
+<img src='/images/green.png' class='visibilityHidden' id='visibilityHidden'/>
+<img src='/images/red.png' class='displayNone' id='displayNone'/>
+<div class='opacity0'><img src='/images/yellow.png' id='divOpacity0'/></div>
+<div class='visibilityHidden'><img src='/images/yellow.png' id='divVisibilityHidden'/></div>
+<div class='displayNone'><img src='/images/yellow.png' id='divDisplayNone'/></div>
+</body>

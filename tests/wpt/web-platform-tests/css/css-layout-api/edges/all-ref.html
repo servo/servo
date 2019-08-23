@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<style>
+td { text-align: center; }
+
+.parent {
+  box-sizing: border-box;
+  width: 60px;
+  height: 60px;
+  border: solid;
+  border-width: 1px 2px 3px 4px;
+  padding: 0px 4px 8px 12px;
+  position: relative;
+}
+
+.child {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: green;
+}
+
+.top-left {
+  top: 0;
+  left: 12px;
+}
+
+.top-right {
+  top: 0;
+  right: 4px;
+}
+
+.bottom-left {
+  bottom: 8px;
+  left: 12px;
+}
+
+.bottom-right {
+  bottom: 8px;
+  right: 4px;
+}
+</style>
+
+<table>
+  <tr>
+    <td></td>
+    <td colspan=2>LTR</td>
+    <td colspan=2>RTL</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Y</td>
+    <td>X</td>
+    <td>Y</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td>HTB</td>
+    <td>
+      <div class="parent" style="writing-mode: horizontal-tb; direction: ltr; overflow-y: scroll;">
+        <div class="child top-left"></div>
+        <div class="child top-right"></div>
+        <div class="child bottom-left"></div>
+        <div class="child bottom-right"></div>
+      </div>
+    </td>
+    <td>
+      <div class="parent" style="writing-mode: horizontal-tb; direction: ltr; overflow-x: scroll;">
+        <div class="child top-left"></div>
+        <div class="child top-right"></div>
+        <div class="child bottom-left"></div>
+        <div class="child bottom-right"></div>
+      </div>
+    </td>
+    <td>
+      <div class="parent" style="writing-mode: horizontal-tb; direction: rtl; overflow-y: scroll;">
+        <div class="child top-left"></div>
+        <div class="child top-right"></div>
+        <div class="child bottom-left"></div>
+        <div class="child bottom-right"></div>
+      </div>
+    </td>
+    <td>
+      <div class="parent" style="writing-mode: horizontal-tb; direction: rtl; overflow-x: scroll;">
+        <div class="child top-left"></div>
+        <div class="child top-right"></div>
+        <div class="child bottom-left"></div>
+        <div class="child bottom-right"></div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>VRL</td>
+    <td>
+      <div class="parent" style="writing-mode: vertical-rl; direction: ltr; overflow-y: scroll;">
+        <div class="child top-left"></div>
+        <div class="child top-right"></div>
+        <div class="child bottom-left"></div>
+        <div class="child bottom-right"></div>
+      </div>
+    </td>
+    <td>
+      <div class="parent" style="writing-mode: vertical-rl; direction: ltr; overflow-x: scroll;">
+        <div class="child top-left"></div>
+        <div class="child top-right"></div>
+        <div class="child bottom-left"></div>
+        <div class="child bottom-right"></div>
+      </div>
+    </td>
+    <td>
+      <div class="parent" style="writing-mode: vertical-rl; direction: rtl; overflow-y: scroll;">
+        <div class="child top-left"></div>
+        <div class="child top-right"></div>
+        <div class="child bottom-left"></div>
+        <div class="child bottom-right"></div>
+      </div>
+    </td>
+    <td>
+      <div class="parent" style="writing-mode: vertical-rl; direction: rtl; overflow-x: scroll;">
+        <div class="child top-left"></div>
+        <div class="child top-right"></div>
+        <div class="child bottom-left"></div>
+        <div class="child bottom-right"></div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>VLR</td>
+    <td>
+      <div class="parent" style="writing-mode: vertical-lr; direction: ltr; overflow-y: scroll;">
+        <div class="child top-left"></div>
+        <div class="child top-right"></div>
+        <div class="child bottom-left"></div>
+        <div class="child bottom-right"></div>
+      </div>
+    </td>
+    <td>
+      <div class="parent" style="writing-mode: vertical-lr; direction: ltr; overflow-x: scroll;">
+        <div class="child top-left"></div>
+        <div class="child top-right"></div>
+        <div class="child bottom-left"></div>
+        <div class="child bottom-right"></div>
+      </div>
+    </td>
+    <td>
+      <div class="parent" style="writing-mode: vertical-lr; direction: rtl; overflow-y: scroll;">
+        <div class="child top-left"></div>
+        <div class="child top-right"></div>
+        <div class="child bottom-left"></div>
+        <div class="child bottom-right"></div>
+      </div>
+    </td>
+    <td>
+      <div class="parent" style="writing-mode: vertical-lr; direction: rtl; overflow-x: scroll;">
+        <div class="child top-left"></div>
+        <div class="child top-right"></div>
+        <div class="child bottom-left"></div>
+        <div class="child bottom-right"></div>
+      </div>
+    </td>
+  </tr>
+</table>

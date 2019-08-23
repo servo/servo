@@ -165,8 +165,8 @@ function assertWebNDEFMessagesEqual(message, expectedMessage) {
       expectedJson = expectedRecord.toJSON();
     } catch (e) {
     }
-    if (json === undefined)
-      assert_equals(expectedJson, undefined);
+    if (json === undefined || json === null)
+      assert_equals(json, expectedJson);
     else
       assert_object_equals(json, expectedJson);
   }

@@ -3,7 +3,7 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Web App Manifest (https://w3c.github.io/manifest/)
 
-[Constructor(DOMString type, optional EventInit eventInitDict),
+[Constructor(DOMString type, optional EventInit eventInitDict = {}),
  Exposed=Window]
 interface BeforeInstallPromptEvent : Event {
     Promise<PromptResponseObject> prompt();

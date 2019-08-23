@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: tabIndex getter return value for frames</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#dom-tabindex">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- <frame> elements are harder to test than the rest so they get their own file -->
+
+<body>
+
+<script>
+"use strict";
+test(() => {
+  const frame = document.createElement("frame");
+  assert_equals(frame.tabIndex, 0);
+}, "disconnected frame element .tabIndex should return 0 by default");
+
+for (const setValue of [-1, 0, 1]) {
+  test(() => {
+    const frame = document.createElement("frame");
+    frame.setAttribute("tabindex", setValue);
+    assert_equals(frame.tabIndex, setValue);
+  }, `disconnected frame element .tabIndex should return ${setValue} when set to ${setValue}`);
+}
+
+promise_test(async t => {
+  const frame = await getFrame(t);
+  assert_equals(frame.tabIndex, 0);
+}, "connected frame element inside frameset .tabIndex should return 0 by default");
+
+for (const setValue of [-1, 0, 1]) {
+  promise_test(async t => {
+    const frame = await getFrame(t);
+    frame.setAttribute("tabindex", setValue);
+    assert_equals(frame.tabIndex, setValue);
+  }, `connected frame element inside frameset .tabIndex should return ${setValue} when set to ${setValue}`);
+}
+
+
+function getFrame(t) {
+  return new Promise((resolve, reject) => {
+    const iframe = document.createElement("iframe");
+    t.add_cleanup(() => iframe.remove());
+
+    iframe.src = "resources/frameset-using-page.html";
+    iframe.onload = () => {
+      resolve(iframe.contentDocument.querySelector("frame"));
+    };
+    iframe.onerror = () => reject(new Error("Could not load frameset page"));
+
+    document.body.append(iframe);
+  });
+}
+</script>
