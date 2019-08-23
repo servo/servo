@@ -174,12 +174,12 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
     fn check_variant(&mut self, cx: &LateContext, var: &hir::Variant, _gen: &hir::Generics) {
         let ref map = cx.tcx.hir();
         if map
-            .expect_item(map.get_parent_item(var.node.id))
+            .expect_item(map.get_parent_item(var.id))
             .attrs
             .iter()
             .all(|a| !a.check_name(self.symbols.must_root))
         {
-            match var.node.data {
+            match var.data {
                 hir::VariantData::Tuple(ref fields, ..) => {
                     for ref field in fields {
                         let def_id = cx.tcx.hir().local_def_id(field.hir_id);

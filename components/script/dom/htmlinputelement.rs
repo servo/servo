@@ -1640,7 +1640,7 @@ impl Activatable for HTMLInputElement {
                     let owner = self.form_owner();
                     let doc = document_from_node(self);
                     let doc_node = doc.upcast::<Node>();
-                    let group = self.radio_group_name();;
+                    let group = self.radio_group_name();
 
                     // Safe since we only manipulate the DOM tree after finding an element
                     let checked_member = doc_node

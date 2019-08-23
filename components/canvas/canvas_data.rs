@@ -421,7 +421,7 @@ impl<'a> CanvasData<'a> {
         canvas_id: CanvasId,
     ) -> CanvasData<'a> {
         let backend = create_backend();
-        let draw_target = backend.create_drawtarget(size);;
+        let draw_target = backend.create_drawtarget(size);
         let webrender_api = webrender_api_sender.create_api();
         CanvasData {
             backend,
