@@ -100,6 +100,7 @@ This happens here in the same file:
 ```javascript
     let pending_resolve = null;
     let pending_reject = null;
+    let result = null;
     window.addEventListener("message", function(event) {
         const data = event.data;
 
@@ -112,7 +113,8 @@ This happens here in the same file:
         }
 
         if (data.status === "success") {
-            pending_resolve();
+            result = JSON.parse(data.message).result
+            pending_resolve(result);
         } else {
             pending_reject();
         }
@@ -315,5 +317,35 @@ run instead of testdriver-extra.js in browser-specific test environments. For ex
 
 ### What if I need to return a value from my testdriver API?
 
-We currently don't have this capability, but it is coming soon and will be documented. The bug is [here](https://github.com/web-platform-tests/wpt/issues/10716)
+You can return values from testdriver by just making your Action and Protocol classes use return statements. The data being returned will be serialized into JSON and passed
+back to the test on the resolving promise. The test can then deserialize the JSON to access the return values. Here is an example of a theoretical GetWindowRect API:
+
+```python
+class GetWindowRectAction(object):
+    def __call__(self, payload):
+        return self.protocol.get_window_rect.get_window_rect()
+```
+
+The WebDriver command will return a [WindowRect object](https://www.w3.org/TR/webdriver1/#dfn-window-rect), which is a dictionary with keys `x`, `y`, `width`, and `height`.
+```python
+class WebDriverGetWindowRectProtocolPart(GetWindowRectProtocolPart):
+    def get_window_rect(self):
+        return self.webdriver.get_window_rect()
+```
+
+Then a test can access the return value as follows:
+```html
+<script>
+async_test(t => {
+  test_driver.get_window_rect()
+  .then((result) => {
+    assert_equals(result.x, 0)
+    assert_equals(result.y, 10)
+    assert_equals(result.width, 800)
+    assert_equals(result.height, 600)
+    t.done();
+  })
+});
+</script>
+```
 

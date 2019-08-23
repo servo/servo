@@ -48,6 +48,12 @@ test_valid_value("transform", "skewY(0)", "skewY(0deg)");
 test_valid_value("transform", "skewY(-90deg)");
 
 test_valid_value("transform", "translate(1px, 2%) scale(3, 4) rotate(-90deg)");
+
+// Regression test for crbug.com/995038
+test_valid_value("transform", "translateX(2e80px)", "translateX(3.40282e+38px)");
+test_valid_value("transform", "rotate(2e80deg)", "rotate(3.40282e+38deg)");
+test_valid_value("transform", "scaleX(2e80)", "scaleX(3.40282e+38)");
+test_valid_value("transform", "skewX(2e80deg)", "skewX(3.40282e+38deg)");
 </script>
 </body>
 </html>

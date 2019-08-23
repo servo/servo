@@ -247,9 +247,8 @@ jobs:
   condition: |
     or(eq(variables['Build.Reason'], 'Schedule'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge_dev']))
-  # There are 12 agents in the pool, but use more jobs so that each takes <1h.
   strategy:
-    parallel: 20
+    parallel: 10 # chosen to make runtime ~2h
   timeoutInMinutes: 360
   pool:
     name: 'Hosted Windows Client'
@@ -283,9 +282,8 @@ jobs:
   condition: |
     or(eq(variables['Build.Reason'], 'Schedule'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge_canary']))
-  # There are 12 agents in the pool, but use more jobs so that each takes <1h.
   strategy:
-    parallel: 20
+    parallel: 10 # chosen to make runtime ~2h
   timeoutInMinutes: 360
   pool:
     name: 'Hosted Windows Client'
@@ -336,10 +334,8 @@ jobs:
       channel: stable
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
-  - script: |
-      # TODO: drop this when `safaridriver --version` is supported.
-      SAFARI_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' /Applications/Safari.app/Contents/Info.plist) ($(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' /Applications/Safari.app/Contents/Info.plist))"
-      no_proxy='*' ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --this-chunk=$(System.JobPositionInPhase) --total-chunks=$(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-tbpl - --log-tbpl-level info --browser-version "$SAFARI_VERSION" safari
+  # --exclude is a workaround for https://github.com/web-platform-tests/wpt/issues/16229
+  - script: no_proxy='*' ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --this-chunk=$(System.JobPositionInPhase) --total-chunks=$(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-tbpl - --log-tbpl-level info safari --exclude /inert/inert-retargeting.tentative.html --exclude /inert/inert-retargeting-iframe.tentative.html
     displayName: 'Run tests'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
@@ -370,7 +366,8 @@ jobs:
   - template: tools/ci/azure/install_safari.yml
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
-  - script: no_proxy='*' ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --this-chunk=$(System.JobPositionInPhase) --total-chunks=$(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-tbpl - --log-tbpl-level info --channel preview safari
+  # --exclude is a workaround for https://github.com/web-platform-tests/wpt/issues/16229
+  - script: no_proxy='*' ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --this-chunk=$(System.JobPositionInPhase) --total-chunks=$(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-tbpl - --log-tbpl-level info --channel preview safari --exclude /inert/inert-retargeting.tentative.html --exclude /inert/inert-retargeting-iframe.tentative.html --exclude /payment-request/
     displayName: 'Run tests'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'

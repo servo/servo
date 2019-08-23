@@ -1,0 +1,22 @@
+<!doctype html>
+<title>Navigating to a text fragment anchor</title>
+<script>
+function checkScroll() {
+  let bc = new BroadcastChannel('scroll-to-text-fragment');
+  bc.postMessage({ didScrollToTarget: window.scrollY > 0 });
+  bc.close();
+  window.close();
+}
+</script>
+<style>
+  body {
+    height: 3200px;
+  }
+  p {
+    position: absolute;
+    top: 3000px;
+  }
+</style>
+<body onload="checkScroll()">
+  <p id="text">This is a test page</p>
+</body>

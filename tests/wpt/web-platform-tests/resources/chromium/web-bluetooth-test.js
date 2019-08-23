@@ -82,6 +82,7 @@ class FakeBluetooth {
     this.fake_bluetooth_ptr_ = new bluetooth.mojom.FakeBluetoothPtr();
     Mojo.bindInterface(bluetooth.mojom.FakeBluetooth.name,
         mojo.makeRequest(this.fake_bluetooth_ptr_).handle, 'process');
+    this.fake_central_ = null;
   }
 
   // Set it to indicate whether the platform supports BLE. For example,
@@ -105,12 +106,16 @@ class FakeBluetooth {
   // See Bluetooth 4.2 Vol 3 Part C 2.2.2 "Roles when Operating over an
   // LE Physical Transport".
   async simulateCentral({state}) {
+    if (this.fake_central_)
+      throw 'simulateCentral() should only be called once';
+
     await this.setLESupported(true);
 
     let {fakeCentral: fake_central_ptr} =
       await this.fake_bluetooth_ptr_.simulateCentral(
         toMojoCentralState(state));
-    return new FakeCentral(fake_central_ptr);
+    this.fake_central_ = new FakeCentral(fake_central_ptr);
+    return this.fake_central_;
   }
 
   // Returns true if there are no pending responses.
@@ -200,6 +205,16 @@ class FakeCentral {
         new bluetooth.mojom.ScanResult(scanResult));
 
     return this.fetchOrCreatePeripheral_(scanResult.deviceAddress);
+  }
+
+  // Simulates a change in the central device described by |state|. For example,
+  // setState('powered-off') can be used to simulate the central device powering
+  // off.
+  //
+  // This method should be used for any central state changes after
+  // simulateCentral() has been called to create a FakeCentral object.
+  async setState(state) {
+    await this.fake_central_ptr_.setState(toMojoCentralState(state));
   }
 
   // Create a fake_peripheral object from the given address.

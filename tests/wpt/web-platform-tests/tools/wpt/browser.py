@@ -581,25 +581,25 @@ class Chrome(Browser):
         return m.group(1)
 
 
-class ChromeAndroid(Browser):
-    """Chrome-specific interface for Android.
+class ChromeAndroidBase(Browser):
+    """A base class for ChromeAndroid and AndroidWebView.
 
+    On Android, WebView is based on Chromium open source project, and on some
+    versions of Android we share the library with Chrome. Therefore, we have
+    a very similar WPT runner implementation.
     Includes webdriver installation.
     """
-
-    product = "chrome_android"
-    requirements = "requirements_chrome_android.txt"
+    __metaclass__ = ABCMeta  # This is an abstract class.
 
     def __init__(self, logger):
-        super(ChromeAndroid, self).__init__(logger)
+        super(ChromeAndroidBase, self).__init__(logger)
 
     def install(self, dest=None, channel=None):
         raise NotImplementedError
 
+    @abstractmethod
     def find_binary(self, venv_path=None, channel=None):
-        if channel in ("beta", "dev", "canary"):
-            return "com.chrome." + channel
-        return "com.android.chrome"
+        raise NotImplementedError
 
     def find_webdriver(self, channel=None):
         return find_executable("chromedriver")
@@ -627,6 +627,49 @@ class ChromeAndroid(Browser):
             self.logger.warning("Failed to find versionName")
             return None
         return match.group(1)
+
+
+class ChromeAndroid(ChromeAndroidBase):
+    """Chrome-specific interface for Android.
+    """
+
+    product = "chrome_android"
+    requirements = "requirements_chrome_android.txt"
+
+    def find_binary(self, venv_path=None, channel=None):
+        if channel in ("beta", "dev", "canary"):
+            return "com.chrome." + channel
+        return "com.android.chrome"
+
+
+class AndroidWebview(ChromeAndroidBase):
+    """Webview-specific interface for Android.
+
+    Design doc:
+    https://docs.google.com/document/d/19cGz31lzCBdpbtSC92svXlhlhn68hrsVwSB7cfZt54o/view
+    """
+
+    product = "android_webview"
+    requirements = "requirements_android_webview.txt"
+
+    def find_binary(self, venv_path=None, channel=None):
+        # Just get the current package name of the WebView provider.
+        # For WebView, it is not trivial to change the WebView provider, so
+        # we will just grab whatever is available.
+        # https://chromium.googlesource.com/chromium/src/+/HEAD/android_webview/docs/channels.md
+        command = ['adb', 'shell', 'dumpsys', 'webviewupdate']
+        try:
+            output = call(*command)
+        except (subprocess.CalledProcessError, OSError):
+            self.logger.warning("Failed to call %s" % " ".join(command))
+            return None
+        m = re.search(r'^\s*Current WebView package \(name, version\): \((.*), ([0-9.]*)\)$',
+                      output, re.M)
+        if m is None:
+            self.logger.warning("Unable to find current WebView package in dumpsys output")
+            return None
+        self.logger.warning("Final package name: " + m.group(1))
+        return m.group(1)
 
 
 class ChromeiOS(Browser):

@@ -4,7 +4,7 @@
 // Source: CSS Transitions (https://drafts.csswg.org/css-transitions/)
 
 [Exposed=Window,
- Constructor(CSSOMString type, optional TransitionEventInit transitionEventInitDict)]
+ Constructor(CSSOMString type, optional TransitionEventInit transitionEventInitDict = {})]
 interface TransitionEvent : Event {
   readonly attribute CSSOMString propertyName;
   readonly attribute double elapsedTime;

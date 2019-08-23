@@ -302,7 +302,7 @@ interface CSSPerspective : CSSTransformComponent {
 };
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(DOMMatrixReadOnly matrix, optional CSSMatrixComponentOptions options)]
+ Constructor(DOMMatrixReadOnly matrix, optional CSSMatrixComponentOptions options = {})]
 interface CSSMatrixComponent : CSSTransformComponent {
     attribute DOMMatrix matrix;
 };

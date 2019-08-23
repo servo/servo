@@ -1,0 +1,11 @@
+<script>
+const channel = new URLSearchParams(location.search).get("channel");
+const bc = new BroadcastChannel(channel);
+bc.onmessageerror = e => {
+  bc.postMessage("Got failure as expected.");
+}
+bc.onmessage = e => {
+  bc.postMessage("Got message, expected failure.");
+}
+bc.postMessage("Initialize");
+</script>

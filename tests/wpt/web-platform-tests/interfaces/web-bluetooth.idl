@@ -29,7 +29,7 @@ interface Bluetooth : EventTarget {
   attribute EventHandler onavailabilitychanged;
   [SameObject]
   readonly attribute BluetoothDevice? referringDevice;
-  Promise<BluetoothDevice> requestDevice(optional RequestDeviceOptions options);
+  Promise<BluetoothDevice> requestDevice(optional RequestDeviceOptions options = {});
 };
 Bluetooth includes BluetoothDeviceEventHandlers;
 Bluetooth includes CharacteristicEventHandlers;
@@ -60,7 +60,7 @@ interface BluetoothPermissionResult : PermissionStatus {
 
 [
   Exposed=Window,
-  Constructor(DOMString type, optional ValueEventInit initDict),
+  Constructor(DOMString type, optional ValueEventInit initDict = {}),
   SecureContext
 ]
 interface ValueEvent : Event {

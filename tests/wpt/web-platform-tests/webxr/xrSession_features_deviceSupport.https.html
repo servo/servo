@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<body>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<canvas></canvas>
+<script>
+
+  let testName =
+    "Immersive XRSession requests with no supported device should reject";
+
+  let fakeDeviceInitParams = {
+    supportsImmersive: true,
+    views: VALID_VIEWS,
+    viewerOrigin: IDENTITY_TRANSFORM,
+    supportedFeatures: [
+    "viewer",
+    "local",
+    "local-floor"]
+  };
+
+  xr_promise_test(testName,
+    (t) => {
+    function session_resolves(sessionMode, sessionInit) {
+      return navigator.xr.requestSession(sessionMode, sessionInit)
+        .then((session) => {
+          return session.end();
+        });
+    }
+
+    return navigator.xr.test.simulateDeviceConnection(fakeDeviceInitParams)
+      .then((controller) => new Promise((resolve, reject) => {
+        navigator.xr.test.simulateUserActivation(() => {
+          // Attempting to request required features that aren't supported by
+          // the device should reject.
+          promise_rejects(t, "NotSupportedError",
+            navigator.xr.requestSession("immersive-vr", {
+              requiredFeatures: ['bounded-floor']
+            }))
+          .then(() => {
+            // Attempting to request with an unsupported feature as optional
+            // should succeed
+            return session_resolves("immersive-vr", {
+              optionalFeatures: ['bounded-floor']
+            });
+          })
+          .then(() => {
+            // Attempting to request with supported features only should succeed.
+            return session_resolves("immersive-vr", {
+              requiredFeatures: ['local', 'local-floor']
+            })
+          .then(() => {
+            resolve();
+          }).catch((err) => {
+            reject(err);
+          });;
+          });
+        });
+      }));
+  });
+
+</script>
+</body>

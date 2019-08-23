@@ -60,47 +60,48 @@
         xtd.parentNode.replaceChild(td,xtd);
     }
 
-    generate_tests(assert_equals, [
-        [
-            "Control test for table-cell padding and border-spacing, etc (width)",
-            document.querySelector("x-table:nth-of-type(1)").offsetWidth,
-            100
-        ],
-        [
-            "Control test for table-cell padding and border-spacing (height)",
-            document.querySelector("x-table:nth-of-type(1)").offsetHeight,
-            100
-        ],
-        [
-            "Anonymous consecutive columns spanned by the same set of cells are merged",
-            document.querySelector("x-table:nth-of-type(2)").offsetWidth,
-            100
-        ],
-        [
-            "Anonymous consecutive rows spanned by the same set of cells are merged",
-            document.querySelector("x-table:nth-of-type(2)").offsetHeight,
-            100
-        ],
-        [
-            "Explicitely-defined consecutive columns spanned by the same set of cells are not merged",
-            document.querySelector("x-table:nth-of-type(3)").offsetWidth,
-            75
-        ],
-        [
-            "Explicitely-defined consecutive rows spanned by the same set of cells are not merged",
-            document.querySelector("x-table:nth-of-type(3)").offsetHeight,
-            75
-        ],
-        [
-            "Explicitely-defined consecutive columns spanned by the same set of cells are not merged, and cells span across border-spacing",
-            document.querySelector("x-table:nth-of-type(4) x-col").getBoundingClientRect().width,
-            12.5
-        ],
-        [
-            "Explicitely-defined consecutive rows spanned by the same set of cells are not merged, and cells span across border-spacing",
-            document.querySelector("x-table:nth-of-type(4) x-tr").getBoundingClientRect().height,
-            12.5
-        ],
-    ])
-
+    document.body.onload = () => {
+        generate_tests(assert_equals, [
+            [
+                "Control test for table-cell padding and border-spacing, etc (width)",
+                document.querySelector("x-table:nth-of-type(1)").offsetWidth,
+                100
+            ],
+            [
+                "Control test for table-cell padding and border-spacing (height)",
+                document.querySelector("x-table:nth-of-type(1)").offsetHeight,
+                100
+            ],
+            [
+                "Anonymous consecutive columns spanned by the same set of cells are merged",
+                document.querySelector("x-table:nth-of-type(2)").offsetWidth,
+                100
+            ],
+            [
+                "Anonymous consecutive rows spanned by the same set of cells are merged",
+                document.querySelector("x-table:nth-of-type(2)").offsetHeight,
+                100
+            ],
+            [
+                "Explicitely-defined consecutive columns spanned by the same set of cells are not merged",
+                document.querySelector("x-table:nth-of-type(3)").offsetWidth,
+                75
+            ],
+            [
+                "Explicitely-defined consecutive rows spanned by the same set of cells are not merged",
+                document.querySelector("x-table:nth-of-type(3)").offsetHeight,
+                75
+            ],
+            [
+                "Explicitely-defined consecutive columns spanned by the same set of cells are not merged, and cells span across border-spacing",
+                document.querySelector("x-table:nth-of-type(4) x-col").getBoundingClientRect().width,
+                12.5
+            ],
+            [
+                "Explicitely-defined consecutive rows spanned by the same set of cells are not merged, and cells span across border-spacing",
+                document.querySelector("x-table:nth-of-type(4) x-tr").getBoundingClientRect().height,
+                12.5
+            ],
+        ])
+    }
 </script>

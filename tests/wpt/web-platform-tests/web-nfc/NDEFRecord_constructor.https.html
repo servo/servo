@@ -15,9 +15,9 @@
     const record = new NDEFRecord(null);
     assert_equals(record.recordType.length, 0, 'empty recordType');
     assert_equals(record.mediaType.length, 0, 'empty mediaType');
-    assert_equals(record.toText().length, 0, 'toText() gets an empty string');
+    assert_equals(record.toText(), null, 'toText() returns null');
     assert_equals(record.toArrayBuffer(), null, 'toArrayBuffer() returns null');
-    assert_equals(record.toJSON(), undefined, 'toJSON() returns undefined');
+    assert_equals(record.toJSON(), null, 'toJSON() returns null');
   }, 'NDEFRecord constructor with null init dict');
 
   test(() => {
