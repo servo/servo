@@ -15,34 +15,59 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
   void Shutdown();
   Windows::Foundation::Uri LoadURIOrSearch(hstring);
 
-  void OnLoaded(IInspectable const &, Windows::UI::Xaml::RoutedEventArgs const &);
+  void OnLoaded(IInspectable const &,
+                Windows::UI::Xaml::RoutedEventArgs const &);
 
   winrt::event_token
-  OnURLChanged(Windows::Foundation::EventHandler<hstring> const &handler){
+  OnURLChanged(Windows::Foundation::EventHandler<hstring> const &handler) {
     return mOnURLChangedEvent.add(handler);
   };
-  void OnURLChanged(winrt::event_token const& token) noexcept { mOnURLChangedEvent.remove(token); }
+  void OnURLChanged(winrt::event_token const &token) noexcept {
+    mOnURLChangedEvent.remove(token);
+  }
 
   winrt::event_token
-  OnTitleChanged(Windows::Foundation::EventHandler<hstring> const &handler){
+  OnTitleChanged(Windows::Foundation::EventHandler<hstring> const &handler) {
     return mOnTitleChangedEvent.add(handler);
   };
-  void OnTitleChanged(winrt::event_token const& token) noexcept { mOnTitleChangedEvent.remove(token); }
+  void OnTitleChanged(winrt::event_token const &token) noexcept {
+    mOnTitleChangedEvent.remove(token);
+  }
 
-  winrt::event_token OnHistoryChanged(HistoryChangedDelegate const &handler){
+  winrt::event_token OnHistoryChanged(HistoryChangedDelegate const &handler) {
     return mOnHistoryChangedEvent.add(handler);
   };
-  void OnHistoryChanged(winrt::event_token const& token) noexcept { mOnHistoryChangedEvent.remove(token); }
+  void OnHistoryChanged(winrt::event_token const &token) noexcept {
+    mOnHistoryChangedEvent.remove(token);
+  }
 
-  winrt::event_token OnLoadStarted(LoadStatusChangedDelegate const &handler){
+  winrt::event_token OnLoadStarted(EventDelegate const &handler) {
     return mOnLoadStartedEvent.add(handler);
   };
-  void OnLoadStarted(winrt::event_token const& token) noexcept { mOnLoadStartedEvent.remove(token); }
+  void OnLoadStarted(winrt::event_token const &token) noexcept {
+    mOnLoadStartedEvent.remove(token);
+  }
 
-  winrt::event_token OnLoadEnded(LoadStatusChangedDelegate const &handler){
+  winrt::event_token OnLoadEnded(EventDelegate const &handler) {
     return mOnLoadEndedEvent.add(handler);
   };
-  void OnLoadEnded(winrt::event_token const& token) noexcept { mOnLoadEndedEvent.remove(token); }
+  void OnLoadEnded(winrt::event_token const &token) noexcept {
+    mOnLoadEndedEvent.remove(token);
+  }
+
+  winrt::event_token OnCaptureGesturesStarted(EventDelegate const &handler) {
+    return mOnCaptureGesturesStartedEvent.add(handler);
+  };
+  void OnCaptureGesturesStarted(winrt::event_token const &token) noexcept {
+    mOnCaptureGesturesStartedEvent.remove(token);
+  }
+
+    winrt::event_token OnCaptureGesturesEnded(EventDelegate const &handler) {
+    return mOnCaptureGesturesEndedEvent.add(handler);
+  };
+  void OnCaptureGesturesEnded(winrt::event_token const &token) noexcept {
+    mOnCaptureGesturesEndedEvent.remove(token);
+  }
 
   virtual void WakeUp();
   virtual void OnServoLoadStarted();
@@ -62,8 +87,11 @@ private:
   winrt::event<Windows::Foundation::EventHandler<hstring>> mOnURLChangedEvent;
   winrt::event<Windows::Foundation::EventHandler<hstring>> mOnTitleChangedEvent;
   winrt::event<HistoryChangedDelegate> mOnHistoryChangedEvent;
-  winrt::event<LoadStatusChangedDelegate> mOnLoadStartedEvent;
-  winrt::event<LoadStatusChangedDelegate> mOnLoadEndedEvent;
+  winrt::event<EventDelegate> mOnLoadStartedEvent;
+  winrt::event<EventDelegate> mOnLoadEndedEvent;
+  winrt::event<EventDelegate> mOnCaptureGesturesStartedEvent;
+  winrt::event<EventDelegate> mOnCaptureGesturesEndedEvent;
+
   hstring mInitialURL = L"https://servo.org";
 
   Windows::UI::Xaml::Controls::SwapChainPanel ServoControl::Panel();
