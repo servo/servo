@@ -62,7 +62,7 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
     mOnCaptureGesturesStartedEvent.remove(token);
   }
 
-    winrt::event_token OnCaptureGesturesEnded(EventDelegate const &handler) {
+  winrt::event_token OnCaptureGesturesEnded(EventDelegate const &handler) {
     return mOnCaptureGesturesEndedEvent.add(handler);
   };
   void OnCaptureGesturesEnded(winrt::event_token const &token) noexcept {
@@ -92,6 +92,7 @@ private:
   winrt::event<EventDelegate> mOnCaptureGesturesStartedEvent;
   winrt::event<EventDelegate> mOnCaptureGesturesEndedEvent;
 
+  float mDPI = 1;
   hstring mInitialURL = L"https://servo.org";
 
   Windows::UI::Xaml::Controls::SwapChainPanel ServoControl::Panel();
@@ -117,7 +118,10 @@ private:
 
   void OnSurfaceManipulationDelta(
       IInspectable const &,
-      Windows::UI::Xaml::Input::ManipulationDeltaRoutedEventArgs const &e);
+      Windows::UI::Xaml::Input::ManipulationDeltaRoutedEventArgs const &);
+
+  void OnSurfaceResized(IInspectable const &,
+                        Windows::UI::Xaml::SizeChangedEventArgs const &);
 
   template <typename Callable> void RunOnUIThread(Callable);
   void RunOnGLThread(std::function<void()>);

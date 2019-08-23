@@ -191,36 +191,7 @@ void OpenGLES::Reset() {
   Initialize();
 }
 
-// FIXME: simplify this. Duplicating code with CreateSurface(SwapChainPanel)
-EGLSurface
-OpenGLES::CreateSurface(winrt::Windows::UI::Core::CoreWindow const &cwin) {
-  EGLSurface surface = EGL_NO_SURFACE;
-
-  const EGLint surfaceAttributes[] = {EGL_ANGLE_SURFACE_RENDER_TO_BACK_BUFFER,
-                                      EGL_TRUE, EGL_NONE};
-
-  PropertySet surfaceCreationProperties;
-
-  surfaceCreationProperties.Insert(EGLNativeWindowTypeProperty, cwin);
-  // How to set size and or scale:
-  // Insert(EGLRenderSurfaceSizeProperty),
-  // PropertyValue::CreateSize(*renderSurfaceSize));
-  // Insert(EGLRenderResolutionScaleProperty),
-  // PropertyValue::CreateSingle(*resolutionScale));
-
-  EGLNativeWindowType win = static_cast<EGLNativeWindowType>(
-      winrt::get_abi(surfaceCreationProperties));
-  surface =
-      eglCreateWindowSurface(mEglDisplay, mEglConfig, win, surfaceAttributes);
-
-  if (surface == EGL_NO_SURFACE) {
-    throw winrt::hresult_error(E_FAIL, L"Failed to create EGL surface");
-  }
-
-  return surface;
-}
-
-EGLSurface OpenGLES::CreateSurface(SwapChainPanel const &panel) {
+EGLSurface OpenGLES::CreateSurface(SwapChainPanel const &panel, float dpi) {
   EGLSurface surface = EGL_NO_SURFACE;
 
   const EGLint surfaceAttributes[] = {EGL_ANGLE_SURFACE_RENDER_TO_BACK_BUFFER,
@@ -232,8 +203,8 @@ EGLSurface OpenGLES::CreateSurface(SwapChainPanel const &panel) {
   // How to set size and or scale:
   // Insert(EGLRenderSurfaceSizeProperty),
   // PropertyValue::CreateSize(*renderSurfaceSize));
-  // Insert(EGLRenderResolutionScaleProperty),
-  // PropertyValue::CreateSingle(*resolutionScale));
+  surfaceCreationProperties.Insert(EGLRenderResolutionScaleProperty,
+                                   PropertyValue::CreateSingle(dpi));
 
   EGLNativeWindowType win = static_cast<EGLNativeWindowType>(
       winrt::get_abi(surfaceCreationProperties));
