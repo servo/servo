@@ -21,17 +21,12 @@
 #[cfg(feature = "unrooted_must_root_lint")]
 #[macro_use]
 extern crate rustc;
-
-// Work around TLS failure: https://github.com/rust-lang/rust/issues/62717#issuecomment-511876555
-#[allow(unused)]
 extern crate rustc_driver;
-
-extern crate rustc_plugin;
 extern crate syntax;
 
 extern crate weedle;
 
-use rustc_plugin::Registry;
+use rustc_driver::plugin::Registry;
 use syntax::feature_gate::AttributeType::Whitelisted;
 use syntax::symbol::Symbol;
 
