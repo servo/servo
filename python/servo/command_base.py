@@ -240,7 +240,7 @@ def set_osmesa_env(bin_path, env):
 
 
 def gstreamer_root(target, env, topdir=None):
-    if is_windows:
+    if is_windows():
         arch = {
             "x86_64": "X86_64",
             "x86": "X86",
@@ -570,7 +570,7 @@ class CommandBase(object):
         if "x86_64" not in effective_target or "android" in effective_target:
             # We don't build gstreamer for non-x86_64 / android yet
             return False
-        if sys.platform == "linux2" or is_windows:
+        if sys.platform == "linux2" or is_windows():
             if path.isdir(gstreamer_root(effective_target, env, self.get_top_dir)):
                 return True
             else:
