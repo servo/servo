@@ -10,14 +10,11 @@
     <script src="/resources/testharnessreport.js"></script>
     <script src="/css/support/interpolation-testcommon.js"></script>
     <style>
-      body {
-        width: 500px;
-        height: 500px;
-        transform: rotate(0deg);
+      .parent {
+        offset-position: 30px 10px;
       }
-      div {
-        width: 10px;
-        height: 10px;
+      .target {
+        offset-position: 10px 30px;
       }
     </style>
   </head>
@@ -66,6 +63,63 @@
         property: 'offset-position',
         from: 'right 10px top 20%',
         to: 'auto'
+      });
+
+      test_interpolation({
+        property: 'offset-position',
+        from: neutralKeyframe,
+        to: '20px 20px',
+      }, [
+        {at: -0.3, expect: '7px 33px'},
+        {at: 0, expect: '10px 30px'},
+        {at: 0.3, expect: '13px 27px'},
+        {at: 0.6, expect: '16px 24px'},
+        {at: 1, expect: '20px 20px'},
+        {at: 1.5, expect: '25px 15px'},
+      ]);
+
+      test_no_interpolation({
+        property: 'offset-position',
+        from: 'initial',
+        to: '20px 20px',
+      });
+
+      test_interpolation({
+        property: 'offset-position',
+        from: 'inherit',
+        to: '20px 20px',
+      }, [
+        {at: -0.3, expect: '33px 7px'},
+        {at: 0, expect: '30px 10px'},
+        {at: 0.3, expect: '27px 13px'},
+        {at: 0.6, expect: '24px 16px'},
+        {at: 1, expect: '20px 20px'},
+        {at: 1.5, expect: '15px 25px'},
+      ]);
+
+      test_no_interpolation({
+        property: 'offset-position',
+        from: 'unset',
+        to: '20px 20px',
+      });
+
+      test_interpolation({
+        property: 'offset-position',
+        from: '0% 50%',
+        to: '100% 150%'
+      }, [
+        {at: -0.3, expect: '-30% 20%'},
+        {at: 0, expect: '0% 50%'},
+        {at: 0.3, expect: '30% 80%'},
+        {at: 0.6, expect: '60% 110%'},
+        {at: 1, expect: '100% 150%'},
+        {at: 1.5, expect: '150% 200%'}
+      ]);
+
+      test_no_interpolation({
+        property: 'offset-position',
+        from: 'auto',
+        to: '20px 20px',
       });
     </script>
   </body>

@@ -20,10 +20,24 @@
 <body></body>
 
 <script>
+
+// Because font-variation-settings is specced as a map rather than a list
+// (https://github.com/w3c/csswg-drafts/issues/1959), browsers are allowed to
+// reorder the output as they see fit.
+function compareFontVariationSettings(actual, expected) {
+  // This is not perfect, but should serve as a reasonable comparison. We split
+  // the inputs into arrays and trim each characteristic, then sort the array
+  // and compare them.
+  const actual_arr = actual.split(',').map(x => x.trim()).sort();
+  const expected_arr = expected.split(',').map(x => x.trim()).sort();
+  assert_array_equals(actual_arr, expected_arr);
+}
+
 test_interpolation({
   property: 'font-variation-settings',
   from: neutralKeyframe,
   to: '"test" 20',
+  comparisonFunction: compareFontVariationSettings,
 }, [
   {at: -0.5, expect: "'test' 5"},
   {at: 0, expect: "'test' 10"},
@@ -43,6 +57,7 @@ test_interpolation({
   property: 'font-variation-settings',
   from: 'inherit',
   to: "'test' 20",
+  comparisonFunction: compareFontVariationSettings,
 }, [
   {at: -0.5, expect: "'test' 35"},
   {at: 0, expect: "'test' 30"},
@@ -56,6 +71,7 @@ test_interpolation({
   property: 'font-variation-settings',
   from: 'unset',
   to: "'test' 20",
+  comparisonFunction: compareFontVariationSettings,
 }, [
   {at: -0.5, expect: "'test' 35"},
   {at: 0, expect: "'test' 30"},
@@ -75,6 +91,7 @@ test_interpolation({
   property: 'font-variation-settings',
   from: "'test' 20",
   to: "'test' 30",
+  comparisonFunction: compareFontVariationSettings,
 }, [
   {at: -0.5, expect: "'test' 15"},
   {at: 0, expect: "'test' 20"},
@@ -88,6 +105,7 @@ test_interpolation({
   property: 'font-variation-settings',
   from: "'aaaa' 0, 'bbbb' 10, 'cccc' 20",
   to: "'aaaa' 10, 'bbbb' 20, 'cccc' 30",
+  comparisonFunction: compareFontVariationSettings,
 }, [
   {at: -0.5, expect: "'aaaa' -5, 'bbbb' 5, 'cccc' 15"},
   {at: 0, expect: "'aaaa' 0, 'bbbb' 10, 'cccc' 20"},
@@ -95,6 +113,21 @@ test_interpolation({
   {at: 0.7, expect: "'aaaa' 7, 'bbbb' 17, 'cccc' 27"},
   {at: 1, expect: "'aaaa' 10, 'bbbb' 20, 'cccc' 30"},
   {at: 1.5, expect: "'aaaa' 15, 'bbbb' 25, 'cccc' 35"},
+]);
+
+// font-variation-settings is a map, so any order works.
+test_interpolation({
+  property: 'font-variation-settings',
+  from: "'aaaa' 0, 'bbbb' 10, 'cccc' 20",
+  to: "'cccc' 10, 'bbbb' 20, 'aaaa' 30",
+  comparisonFunction: compareFontVariationSettings,
+}, [
+  {at: -0.5, expect: "'aaaa' -15, 'bbbb' 5, 'cccc' 25"},
+  {at: 0, expect: "'aaaa' 0, 'bbbb' 10, 'cccc' 20"},
+  {at: 0.3, expect: "'aaaa' 9, 'bbbb' 13, 'cccc' 17"},
+  {at: 0.7, expect: "'aaaa' 21, 'bbbb' 17, 'cccc' 13"},
+  {at: 1, expect: "'aaaa' 30, 'bbbb' 20, 'cccc' 10"},
+  {at: 1.5, expect: "'aaaa' 45, 'bbbb' 25, 'cccc' 5"},
 ]);
 
 test_no_interpolation({
@@ -112,12 +145,6 @@ test_no_interpolation({
 test_no_interpolation({
   property: 'font-variation-settings',
   from: "'aaaa' 0, 'bbbb' 10, 'cccc' 20",
-  to: "'cccc' 10, 'bbbb' 20, 'aaaa' 30",
-});
-
-test_no_interpolation({
-  property: 'font-variation-settings',
-  from: "'aaaa' 0, 'bbbb' 10, 'cccc' 20",
   to: "'dddd' 10, 'eeee' 20, 'ffff' 30",
 });
 
@@ -126,7 +153,9 @@ test_interpolation({
   property: 'font-variation-settings',
   from: "'aaaa' 30, 'bbbb' 20",
   to: "'aaaa' 20, 'bbbb' 30",
+  comparisonFunction: compareFontVariationSettings,
 }, [
   {at: 3.40282e+38, expect: "'aaaa' -3.40282e+38, 'bbbb' 3.40282e+38"},
 ]);
+
 </script>

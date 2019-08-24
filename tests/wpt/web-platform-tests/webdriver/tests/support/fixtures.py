@@ -168,10 +168,10 @@ def current_session():
 
 @pytest.fixture
 def url(server_config):
-    def inner(path, protocol="http", subdomain="", query="", fragment=""):
-        domain = server_config["domains"][""][subdomain]
+    def inner(path, protocol="http", domain="", subdomain="", query="", fragment=""):
+        domain = server_config["domains"][domain][subdomain]
         port = server_config["ports"][protocol][0]
-        host = "%s:%s" % (domain, port)
+        host = "{0}:{1}".format(domain, port)
         return urlparse.urlunsplit((protocol, host, path, query, fragment))
 
     inner.__name__ = "url"
