@@ -137,10 +137,15 @@ use webrender_api::{DocumentId, ExternalScrollId, RenderApiSender};
 use webvr_traits::WebVRMsg;
 
 /// Current state of the window object
-#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(JSTraceable, MallocSizeOf)]
+#[must_root]
 enum WindowState {
-    Alive,
-    Zombie, // Pipeline is closed, but the window hasn't been GCed yet.
+    /// A window with a browsing-context.
+    Alive(WindowStateData),
+    /// A window without a browsing-context,
+    /// keeping only it's associated document, since it should always be kept.
+    /// See https://html.spec.whatwg.org/multipage/#concept-document-window
+    Zombie(MutNullableDom<Document>),
 }
 
 /// Extra information concerning the reason for reflowing.
@@ -168,28 +173,72 @@ pub enum ReflowReason {
     ElementStateChanged,
 }
 
+/// The data representing the state of a running window.
+/// Any Dom managed value, for example something in a MutNullableDom,
+/// should be added here instead of on Window directly,
+/// so that these values can be reliably dropped as part of clear_js_runtime,
+/// and cyclical references to Window prevented.
+#[derive(JSTraceable, MallocSizeOf)]
+#[must_root]
+pub struct WindowStateData {
+    /// The JavaScript runtime.
+    #[ignore_malloc_size_of = "Rc<T> is hard"]
+    js_runtime: Option<Rc<Runtime>>,
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-window>
+    window_proxy: MutNullableDom<WindowProxy>,
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-2>
+    document: MutNullableDom<Document>,
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-location>
+    location: MutNullableDom<Location>,
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-history>
+    history: MutNullableDom<History>,
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-window-customelements>
+    custom_element_registry: MutNullableDom<CustomElementRegistry>,
+
+    /// <https://www.w3.org/TR/hr-time/#the-performance-attribute>
+    performance: MutNullableDom<Performance>,
+
+    /// https://drafts.csswg.org/cssom-view/#dom-window-screen
+    screen: MutNullableDom<Screen>,
+
+    /// Test worklets
+    test_worklet: MutNullableDom<Worklet>,
+    /// <https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet>
+    paint_worklet: MutNullableDom<Worklet>,
+
+    /// All of the elements that have an outstanding image request that was
+    /// initiated by layout during a reflow. They are stored in the script thread
+    /// to ensure that the element can be marked dirty when the image data becomes
+    /// available at some point in the future.
+    pending_layout_images: DomRefCell<HashMap<PendingImageId, Vec<Dom<Node>>>>,
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-sessionstorage>
+    session_storage: MutNullableDom<Storage>,
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-localstorage>
+    local_storage: MutNullableDom<Storage>,
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator>
+    navigator: MutNullableDom<Navigator>,
+}
+
 #[dom_struct]
 pub struct Window {
     globalscope: GlobalScope,
     #[ignore_malloc_size_of = "trait objects are hard"]
     script_chan: MainThreadScriptChan,
     task_manager: TaskManager,
-    navigator: MutNullableDom<Navigator>,
     #[ignore_malloc_size_of = "Arc"]
     image_cache: Arc<dyn ImageCache>,
     #[ignore_malloc_size_of = "channels are hard"]
     image_cache_chan: Sender<ImageCacheMsg>,
-    window_proxy: MutNullableDom<WindowProxy>,
-    document: MutNullableDom<Document>,
-    location: MutNullableDom<Location>,
-    history: MutNullableDom<History>,
-    custom_element_registry: MutNullableDom<CustomElementRegistry>,
-    performance: MutNullableDom<Performance>,
     navigation_start: Cell<u64>,
     navigation_start_precise: Cell<u64>,
-    screen: MutNullableDom<Screen>,
-    session_storage: MutNullableDom<Storage>,
-    local_storage: MutNullableDom<Storage>,
     status: DomRefCell<DOMString>,
 
     /// For sending timeline markers. Will be ignored if
@@ -206,10 +255,6 @@ pub struct Window {
 
     /// Global static data related to the DOM.
     dom_static: GlobalStaticData,
-
-    /// The JavaScript runtime.
-    #[ignore_malloc_size_of = "Rc<T> is hard"]
-    js_runtime: DomRefCell<Option<Rc<Runtime>>>,
 
     /// A handle for communicating messages to the layout thread.
     #[ignore_malloc_size_of = "channels are hard"]
@@ -245,7 +290,7 @@ pub struct Window {
     webdriver_script_chan: DomRefCell<Option<IpcSender<WebDriverJSResult>>>,
 
     /// The current state of the window object
-    current_state: Cell<WindowState>,
+    current_state: DomRefCell<WindowState>,
 
     current_viewport: Cell<UntypedRect<Au>>,
 
@@ -273,20 +318,10 @@ pub struct Window {
     /// A map for storing the previous permission state read results.
     permission_state_invocation_results: DomRefCell<HashMap<String, PermissionState>>,
 
-    /// All of the elements that have an outstanding image request that was
-    /// initiated by layout during a reflow. They are stored in the script thread
-    /// to ensure that the element can be marked dirty when the image data becomes
-    /// available at some point in the future.
-    pending_layout_images: DomRefCell<HashMap<PendingImageId, Vec<Dom<Node>>>>,
-
     /// Directory to store unminified scripts for this window if unminify-js
     /// opt is enabled.
     unminified_js_dir: DomRefCell<Option<String>>,
 
-    /// Worklets
-    test_worklet: MutNullableDom<Worklet>,
-    /// <https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet>
-    paint_worklet: MutNullableDom<Worklet>,
     /// The Webrender Document id associated with this window.
     #[ignore_malloc_size_of = "defined in webrender_api"]
     webrender_document: DocumentId,
@@ -346,14 +381,10 @@ impl Window {
         self.exists_mut_observer.set(true);
     }
 
-    #[allow(unsafe_code)]
     pub fn clear_js_runtime_for_script_deallocation(&self) {
-        unsafe {
-            *self.js_runtime.borrow_for_script_deallocation() = None;
-            self.window_proxy.set(None);
-            self.current_state.set(WindowState::Zombie);
-            self.ignore_all_events();
-        }
+        // Drop all DOM data, including the document.
+        *self.current_state.borrow_mut() = WindowState::Zombie(Default::default());
+        self.ignore_all_events();
     }
 
     fn ignore_all_events(&self) {
@@ -377,7 +408,12 @@ impl Window {
 
     #[allow(unsafe_code)]
     pub fn get_cx(&self) -> JSContext {
-        unsafe { JSContext::from_ptr(self.js_runtime.borrow().as_ref().unwrap().cx()) }
+        match &*self.current_state.borrow_mut() {
+            WindowState::Zombie(_) => unreachable!("Window should be alive when get_cx is called"),
+            WindowState::Alive(data) => unsafe {
+                JSContext::from_ptr(data.js_runtime.as_ref().unwrap().cx())
+            },
+        }
     }
 
     pub fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
@@ -399,19 +435,27 @@ impl Window {
 
     /// This can panic if it is called after the browsing context has been discarded
     pub fn window_proxy(&self) -> DomRoot<WindowProxy> {
-        self.window_proxy.get().unwrap()
+        match &*self.current_state.borrow() {
+            WindowState::Zombie(_) => {
+                unreachable!("Window should be alive when window_proxy is called")
+            },
+            WindowState::Alive(data) => data.window_proxy.get().unwrap(),
+        }
     }
 
     /// Returns the window proxy if it has not been discarded.
     /// <https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded>
     pub fn undiscarded_window_proxy(&self) -> Option<DomRoot<WindowProxy>> {
-        self.window_proxy.get().and_then(|window_proxy| {
-            if window_proxy.is_browsing_context_discarded() {
-                None
-            } else {
-                Some(window_proxy)
-            }
-        })
+        match &*self.current_state.borrow() {
+            WindowState::Zombie(_) => None,
+            WindowState::Alive(data) => data.window_proxy.get().and_then(|window_proxy| {
+                if window_proxy.is_browsing_context_discarded() {
+                    None
+                } else {
+                    Some(window_proxy)
+                }
+            }),
+        }
     }
 
     pub fn bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
@@ -466,24 +510,31 @@ impl Window {
         //XXXjdm could be more efficient to send the responses to the layout thread,
         //       rather than making the layout thread talk to the image cache to
         //       obtain the same data.
-        let mut images = self.pending_layout_images.borrow_mut();
-        let nodes = images.entry(response.id);
-        let nodes = match nodes {
-            Entry::Occupied(nodes) => nodes,
-            Entry::Vacant(_) => return,
-        };
-        for node in nodes.get() {
-            node.dirty(NodeDamage::OtherNodeDamage);
-        }
-        match response.response {
-            ImageResponse::MetadataLoaded(_) => {},
-            ImageResponse::Loaded(_, _) |
-            ImageResponse::PlaceholderLoaded(_, _) |
-            ImageResponse::None => {
-                nodes.remove();
+        match &*self.current_state.borrow() {
+            WindowState::Zombie(_) => {
+                unreachable!("Window should be alive when pending_image_notification is called")
+            },
+            WindowState::Alive(data) => {
+                let mut images = data.pending_layout_images.borrow_mut();
+                let nodes = images.entry(response.id);
+                let nodes = match nodes {
+                    Entry::Occupied(nodes) => nodes,
+                    Entry::Vacant(_) => return,
+                };
+                for node in nodes.get() {
+                    node.dirty(NodeDamage::OtherNodeDamage);
+                }
+                match response.response {
+                    ImageResponse::MetadataLoaded(_) => {},
+                    ImageResponse::Loaded(_, _) |
+                    ImageResponse::PlaceholderLoaded(_, _) |
+                    ImageResponse::None => {
+                        nodes.remove();
+                    },
+                }
+                self.add_pending_reflow();
             },
         }
-        self.add_pending_reflow();
     }
 
     pub fn get_webrender_api_sender(&self) -> RenderApiSender {
@@ -651,19 +702,23 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-window-closed
     fn Closed(&self) -> bool {
-        self.window_proxy
-            .get()
-            .map(|ref proxy| proxy.is_browsing_context_discarded())
-            .unwrap_or(true)
+        match &*self.current_state.borrow() {
+            WindowState::Zombie(_) => true,
+            WindowState::Alive(data) => data
+                .window_proxy
+                .get()
+                .map(|ref proxy| proxy.is_browsing_context_discarded())
+                .unwrap_or(true),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-close
     fn Close(&self) {
         let window_proxy = self.window_proxy();
+        let is_auxiliary = window_proxy.is_auxiliary();
         // Note: check the length of the "session history", as opposed to the joint session history?
         // see https://github.com/whatwg/html/issues/3734
         if let Ok(history_length) = self.History().GetLength() {
-            let is_auxiliary = window_proxy.is_auxiliary();
             // https://html.spec.whatwg.org/multipage/#script-closable
             let is_script_closable = (self.is_top_level() && history_length == 1) || is_auxiliary;
             if is_script_closable {
@@ -684,37 +739,76 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-2
     fn Document(&self) -> DomRoot<Document> {
-        self.document
-            .get()
-            .expect("Document accessed before initialization.")
+        match &*self.current_state.borrow() {
+            WindowState::Zombie(document) => document
+                .get()
+                .expect("Document accessed before initialization."),
+            WindowState::Alive(data) => data
+                .document
+                .get()
+                .expect("Document accessed before initialization."),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history
     fn History(&self) -> DomRoot<History> {
-        self.history.or_init(|| History::new(self))
+        match &*self.current_state.borrow() {
+            // In the Zombie case, create an object for script, but don't store it.
+            // Usage of the object should throw security errors,
+            // since there is no associated document or browsing-context.
+            WindowState::Zombie(_) => History::new(self),
+            WindowState::Alive(data) => data.history.or_init(|| History::new(self)),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-customelements
     fn CustomElements(&self) -> DomRoot<CustomElementRegistry> {
-        self.custom_element_registry
-            .or_init(|| CustomElementRegistry::new(self))
+        match &*self.current_state.borrow() {
+            // In the Zombie case, create an object for script, but don't store it.
+            // Usage of the object should throw security errors,
+            // since there is no associated document or browsing-context.
+            WindowState::Zombie(_) => CustomElementRegistry::new(self),
+            WindowState::Alive(data) => data
+                .custom_element_registry
+                .or_init(|| CustomElementRegistry::new(self)),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location
     fn Location(&self) -> DomRoot<Location> {
-        self.location.or_init(|| Location::new(self))
+        match &*self.current_state.borrow() {
+            // In the Zombie case, create an object for script, but don't store it.
+            // Usage of the object should throw security errors,
+            // since there is no associated document or browsing-context.
+            WindowState::Zombie(_) => Location::new(self),
+            WindowState::Alive(data) => data.location.or_init(|| Location::new(self)),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
     fn SessionStorage(&self) -> DomRoot<Storage> {
-        self.session_storage
-            .or_init(|| Storage::new(self, StorageType::Session))
+        match &*self.current_state.borrow() {
+            // In the Zombie case, create an object for script, but don't store it.
+            // Usage of the object should throw security errors,
+            // since there is no associated document or browsing-context.
+            WindowState::Zombie(_) => Storage::new(self, StorageType::Session),
+            WindowState::Alive(data) => data
+                .session_storage
+                .or_init(|| Storage::new(self, StorageType::Session)),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-localstorage
     fn LocalStorage(&self) -> DomRoot<Storage> {
-        self.local_storage
-            .or_init(|| Storage::new(self, StorageType::Local))
+        match &*self.current_state.borrow() {
+            // In the Zombie case, create an object for script, but don't store it.
+            // Usage of the object should throw security errors,
+            // since there is no associated document or browsing-context.
+            WindowState::Zombie(_) => Storage::new(self, StorageType::Local),
+            WindowState::Alive(data) => data
+                .local_storage
+                .or_init(|| Storage::new(self, StorageType::Local)),
+        }
     }
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
@@ -724,31 +818,41 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-frameelement
     fn GetFrameElement(&self) -> Option<DomRoot<Element>> {
-        // Steps 1-3.
-        let window_proxy = self.window_proxy.get()?;
+        match &*self.current_state.borrow() {
+            WindowState::Zombie(_) => None,
+            WindowState::Alive(data) => {
+                // Steps 1-3.
+                let window_proxy = data.window_proxy.get()?;
 
-        // Step 4-5.
-        let container = window_proxy.frame_element()?;
+                // Step 4-5.
+                let container = window_proxy.frame_element()?;
 
-        // Step 6.
-        let container_doc = document_from_node(container);
-        let current_doc = GlobalScope::current()
-            .expect("No current global object")
-            .as_window()
-            .Document();
-        if !current_doc
-            .origin()
-            .same_origin_domain(container_doc.origin())
-        {
-            return None;
+                // Step 6.
+                let container_doc = document_from_node(container);
+
+                let current_doc = GlobalScope::current()
+                    .expect("No current global object")
+                    .as_window()
+                    .Document();
+                if !current_doc
+                    .origin()
+                    .same_origin_domain(container_doc.origin())
+                {
+                    return None;
+                }
+                // Step 7.
+                Some(DomRoot::from_ref(container))
+            },
         }
-        // Step 7.
-        Some(DomRoot::from_ref(container))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator
     fn Navigator(&self) -> DomRoot<Navigator> {
-        self.navigator.or_init(|| Navigator::new(self))
+        match &*self.current_state.borrow() {
+            // In the Zombie case, create an object for script, but don't store it.
+            WindowState::Zombie(_) => Navigator::new(self),
+            WindowState::Alive(data) => data.navigator.or_init(|| Navigator::new(self)),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
@@ -869,13 +973,19 @@ impl WindowMethods for Window {
         Some(DomRoot::from_ref(window_proxy.top()))
     }
 
-    // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
-    // NavigationTiming/Overview.html#sec-window.performance-attribute
+    // https://www.w3.org/TR/hr-time/#the-performance-attribute
     fn Performance(&self) -> DomRoot<Performance> {
-        self.performance.or_init(|| {
-            let global_scope = self.upcast::<GlobalScope>();
-            Performance::new(global_scope, self.navigation_start_precise.get())
-        })
+        match &*self.current_state.borrow() {
+            // In the Zombie case, create an object for script, but don't store it.
+            WindowState::Zombie(_) => {
+                let global_scope = self.upcast::<GlobalScope>();
+                Performance::new(global_scope, self.navigation_start_precise.get())
+            },
+            WindowState::Alive(data) => data.performance.or_init(|| {
+                let global_scope = self.upcast::<GlobalScope>();
+                Performance::new(global_scope, self.navigation_start_precise.get())
+            }),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
@@ -884,9 +994,13 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#windoweventhandlers
     window_event_handlers!();
 
-    // https://developer.mozilla.org/en-US/docs/Web/API/Window/screen
+    // https://drafts.csswg.org/cssom-view/#dom-window-screen
     fn Screen(&self) -> DomRoot<Screen> {
-        self.screen.or_init(|| Screen::new(self))
+        match &*self.current_state.borrow() {
+            // In the Zombie case, create an object for script, but don't store it.
+            WindowState::Zombie(_) => Screen::new(self),
+            WindowState::Alive(data) => data.screen.or_init(|| Screen::new(self)),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa
@@ -1232,7 +1346,11 @@ impl WindowMethods for Window {
 impl Window {
     // https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
     pub fn paint_worklet(&self) -> DomRoot<Worklet> {
-        self.paint_worklet.or_init(|| self.new_paint_worklet())
+        match &*self.current_state.borrow() {
+            // In the Zombie case, create an object for script, but don't store it.
+            WindowState::Zombie(_) => self.new_paint_worklet(),
+            WindowState::Alive(data) => data.paint_worklet.or_init(|| self.new_paint_worklet()),
+        }
     }
 
     pub fn get_navigation_start(&self) -> u64 {
@@ -1240,7 +1358,10 @@ impl Window {
     }
 
     pub fn has_document(&self) -> bool {
-        self.document.get().is_some()
+        match &*self.current_state.borrow() {
+            WindowState::Zombie(document) => document.get().is_some(),
+            WindowState::Alive(data) => data.document.get().is_some(),
+        }
     }
 
     /// Cancels all the tasks associated with that window.
@@ -1278,9 +1399,23 @@ impl Window {
 
         // Clean up any active promises
         // https://github.com/servo/servo/issues/15318
-        if let Some(custom_elements) = self.custom_element_registry.get() {
-            custom_elements.teardown();
-        }
+        let document = match &*self.current_state.borrow() {
+            WindowState::Zombie(_) => {
+                unreachable!("Window should be alive when clear_js_runtime is called")
+            },
+            WindowState::Alive(data) => {
+                if let Some(custom_elements) = data.custom_element_registry.get() {
+                    custom_elements.teardown();
+                }
+                data.document
+                    .take()
+                    .expect("Window to have a document when the js runtime is cleared")
+            },
+        };
+
+        // Drop all DOM related data, keeping only the document.
+        *self.current_state.borrow_mut() =
+            WindowState::Zombie(MutNullableDom::new(Some(&*document)));
 
         // The above code may not catch all DOM objects (e.g. DOM
         // objects removed from the tree that haven't been collected
@@ -1296,9 +1431,7 @@ impl Window {
         // script.
         // TODO: ensure that this doesn't happen!
 
-        self.current_state.set(WindowState::Zombie);
-        *self.js_runtime.borrow_mut() = None;
-        self.window_proxy.set(None);
+        // Prevent any task to execute in the context of this window.
         self.ignore_all_events();
     }
 
@@ -1505,34 +1638,48 @@ impl Window {
 
         for image in complete.pending_images {
             let id = image.id;
-            let js_runtime = self.js_runtime.borrow();
-            let js_runtime = js_runtime.as_ref().unwrap();
-            let node = unsafe { from_untrusted_node_address(js_runtime.rt(), image.node) };
+            let node = match &*self.current_state.borrow_mut() {
+                WindowState::Zombie(_) => {
+                    unreachable!("Window should be alive when force_reflow is called")
+                },
+                WindowState::Alive(data) => {
+                    let js_runtime = data.js_runtime.as_ref().unwrap();
+                    unsafe { from_untrusted_node_address(js_runtime.rt(), image.node) }
+                },
+            };
 
             if let PendingImageState::Unrequested(ref url) = image.state {
                 fetch_image_for_layout(url.clone(), &*node, id, self.image_cache.clone());
             }
 
-            let mut images = self.pending_layout_images.borrow_mut();
-            let nodes = images.entry(id).or_insert(vec![]);
-            if nodes
-                .iter()
-                .find(|n| &***n as *const _ == &*node as *const _)
-                .is_none()
-            {
-                let (responder, responder_listener) =
-                    ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
-                let pipeline = self.upcast::<GlobalScope>().pipeline_id();
-                let image_cache_chan = self.image_cache_chan.clone();
-                ROUTER.add_route(
-                    responder_listener.to_opaque(),
-                    Box::new(move |message| {
-                        let _ = image_cache_chan.send((pipeline, message.to().unwrap()));
-                    }),
-                );
-                self.image_cache
-                    .add_listener(id, ImageResponder::new(responder, id));
-                nodes.push(Dom::from_ref(&*node));
+            match &*self.current_state.borrow_mut() {
+                WindowState::Zombie(_) => {
+                    unreachable!("Window should be alive when force_reflow is called")
+                },
+                WindowState::Alive(data) => {
+                    let mut images = data.pending_layout_images.borrow_mut();
+                    let nodes = images.entry(id).or_insert(vec![]);
+                    if nodes
+                        .iter()
+                        .find(|n| &***n as *const _ == &*node as *const _)
+                        .is_none()
+                    {
+                        let (responder, responder_listener) =
+                            ProfiledIpc::channel(self.global().time_profiler_chan().clone())
+                                .unwrap();
+                        let pipeline = self.upcast::<GlobalScope>().pipeline_id();
+                        let image_cache_chan = self.image_cache_chan.clone();
+                        ROUTER.add_route(
+                            responder_listener.to_opaque(),
+                            Box::new(move |message| {
+                                let _ = image_cache_chan.send((pipeline, message.to().unwrap()));
+                            }),
+                        );
+                        self.image_cache
+                            .add_listener(id, ImageResponder::new(responder, id));
+                        nodes.push(Dom::from_ref(&*node));
+                    }
+                },
             }
         }
 
@@ -1598,9 +1745,18 @@ impl Window {
 
             let has_sent_idle_message = self.has_sent_idle_message.get();
             let is_ready_state_complete = document.ReadyState() == DocumentReadyState::Complete;
-            let pending_images = self.pending_layout_images.borrow().is_empty();
 
-            if !has_sent_idle_message && is_ready_state_complete && !reftest_wait && pending_images
+            let has_pending_images = match &*self.current_state.borrow() {
+                WindowState::Zombie(_) => {
+                    unreachable!("Window should be alive when reflow is called")
+                },
+                WindowState::Alive(data) => data.pending_layout_images.borrow().is_empty(),
+            };
+
+            if !has_sent_idle_message &&
+                is_ready_state_complete &&
+                !reftest_wait &&
+                has_pending_images
             {
                 let event = ScriptMsg::SetDocumentState(DocumentState::Idle);
                 self.send_to_constellation(event);
@@ -1712,10 +1868,16 @@ impl Window {
         // FIXME(nox): Layout can reply with a garbage value which doesn't
         // actually correspond to an element, that's unsound.
         let response = self.layout_rpc.offset_parent();
-        let js_runtime = self.js_runtime.borrow();
-        let js_runtime = js_runtime.as_ref().unwrap();
         let element = response.node_address.and_then(|parent_node_address| {
-            let node = unsafe { from_untrusted_node_address(js_runtime.rt(), parent_node_address) };
+            let node = match &*self.current_state.borrow_mut() {
+                WindowState::Zombie(_) => {
+                    unreachable!("Window should be alive when offset_parent_query is called")
+                },
+                WindowState::Alive(data) => {
+                    let js_runtime = data.js_runtime.as_ref().unwrap();
+                    unsafe { from_untrusted_node_address(js_runtime.rt(), parent_node_address) }
+                },
+            };
             DomRoot::downcast(node)
         });
         (element, response.rect)
@@ -1741,15 +1903,29 @@ impl Window {
 
     #[allow(unsafe_code)]
     pub fn init_window_proxy(&self, window_proxy: &WindowProxy) {
-        assert!(self.window_proxy.get().is_none());
-        self.window_proxy.set(Some(&window_proxy));
+        match &*self.current_state.borrow_mut() {
+            WindowState::Zombie(_) => {
+                unreachable!("Window should be alive when init_window_proxy is called")
+            },
+            WindowState::Alive(data) => {
+                assert!(data.window_proxy.get().is_none());
+                data.window_proxy.set(Some(&window_proxy));
+            },
+        };
     }
 
     #[allow(unsafe_code)]
     pub fn init_document(&self, document: &Document) {
-        assert!(self.document.get().is_none());
+        assert!(!self.has_document());
         assert!(document.window() == self);
-        self.document.set(Some(&document));
+        match &*self.current_state.borrow_mut() {
+            WindowState::Zombie(_) => {
+                unreachable!("Window should be alive when init_document is called")
+            },
+            WindowState::Alive(data) => {
+                data.document.set(Some(&document));
+            },
+        };
         if !self.unminify_js {
             return;
         }
@@ -1990,7 +2166,10 @@ impl Window {
     }
 
     pub fn is_alive(&self) -> bool {
-        self.current_state.get() == WindowState::Alive
+        match *self.current_state.borrow() {
+            WindowState::Zombie(_) => false,
+            WindowState::Alive(_) => true,
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#top-level-browsing-context
@@ -2128,22 +2307,11 @@ impl Window {
             task_manager,
             image_cache_chan,
             image_cache,
-            navigator: Default::default(),
-            location: Default::default(),
-            history: Default::default(),
-            custom_element_registry: Default::default(),
-            window_proxy: Default::default(),
-            document: Default::default(),
-            performance: Default::default(),
             navigation_start: Cell::new(navigation_start),
             navigation_start_precise: Cell::new(navigation_start_precise),
-            screen: Default::default(),
-            session_storage: Default::default(),
-            local_storage: Default::default(),
             status: DomRefCell::new(DOMString::new()),
             parent_info,
             dom_static: GlobalStaticData::new(),
-            js_runtime: DomRefCell::new(Some(runtime.clone())),
             bluetooth_thread,
             bluetooth_extra_permission_data: BluetoothExtraPermissionData::new(),
             page_clip_rect: Cell::new(MaxRect::max_rect()),
@@ -2154,7 +2322,22 @@ impl Window {
             current_viewport: Cell::new(Rect::zero()),
             suppress_reflow: Cell::new(true),
             pending_reflow_count: Default::default(),
-            current_state: Cell::new(WindowState::Alive),
+            current_state: DomRefCell::new(WindowState::Alive(WindowStateData {
+                js_runtime: Some(runtime.clone()),
+                window_proxy: Default::default(),
+                document: Default::default(),
+                location: Default::default(),
+                history: Default::default(),
+                custom_element_registry: Default::default(),
+                performance: Default::default(),
+                screen: Default::default(),
+                test_worklet: Default::default(),
+                paint_worklet: Default::default(),
+                pending_layout_images: Default::default(),
+                session_storage: Default::default(),
+                local_storage: Default::default(),
+                navigator: Default::default(),
+            })),
             devtools_marker_sender: Default::default(),
             devtools_markers: Default::default(),
             webdriver_script_chan: Default::default(),
@@ -2166,10 +2349,7 @@ impl Window {
             webvr_chan,
             webxr_registry,
             permission_state_invocation_results: Default::default(),
-            pending_layout_images: Default::default(),
             unminified_js_dir: Default::default(),
-            test_worklet: Default::default(),
-            paint_worklet: Default::default(),
             webrender_document,
             exists_mut_observer: Cell::new(false),
             webrender_api_sender,
