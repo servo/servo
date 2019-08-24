@@ -411,13 +411,12 @@ fn obtain_response(
     // TODO: We currently don't know when the handhhake before the connection is done
     // so our best bet would be to set `secure_connection_start` here when we are currently
     // fetching on a HTTPS url.
-    if url.scheme == "https" {
-        let secure_connection_start = precise_time_ns();
+    if url.scheme() == "https" {
         context
             .timing
             .lock()
             .unwrap()
-            .set_attribute(ResourceAttribute::SecureConnectionStart(secure_connection_start));
+            .set_attribute(ResourceAttribute::SecureConnectionStart);
     }
 
     let mut request = match request {

@@ -497,7 +497,7 @@ pub enum ResourceAttribute {
     FetchStart,
     ConnectStart(u64),
     ConnectEnd(u64),
-    SecureConnectionStart(u64),
+    SecureConnectionStart,
     ResponseEnd,
 }
 
@@ -558,7 +558,7 @@ impl ResourceFetchTiming {
             ResourceAttribute::FetchStart => self.fetch_start = precise_time_ns(),
             ResourceAttribute::ConnectStart(val) => self.connect_start = val,
             ResourceAttribute::ConnectEnd(val) => self.connect_end = val,
-            ResourceAttribute::SecureConnectionStart(val) => self.secure_connection_start = val,
+            ResourceAttribute::SecureConnectionStart => self.secure_connection_start = precise_time_ns(),
             ResourceAttribute::ResponseEnd => self.response_end = precise_time_ns(),
         }
     }
