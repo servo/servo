@@ -18,7 +18,15 @@
                 navigator.xr.requestSession('immersive-vr',
                                             {requiredFeatures: ['undefined-unicorns']}),
                 "unexpected requestSession success"
-              ))
+              ).then(() => {
+                return promise_rejects(
+                  t,
+                  "NotSupportedError",
+                  navigator.xr.requestSession('immersive-vr',
+                                            {requiredFeatures: [{unicorns: "please"}]}),
+                  "unexpected requestSession success with unknown object"
+                );
+              }));
             });
           }));
       });

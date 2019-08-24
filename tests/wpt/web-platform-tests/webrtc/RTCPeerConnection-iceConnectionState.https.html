@@ -313,6 +313,54 @@ for (let bundle_policy of ['balanced', 'max-bundle', 'max-compat']) {
                     'PC.iceConnectionState:');
     }, 'iceConnectionState changes at the right time, with bundle policy ' +
                  bundle_policy);
+}
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  pc1.onicecandidate = async e => {
+    if (e.candidate) {
+      await pc2.addIceCandidate(e.candidate);
+    }
+  };
+  pc1.candidateBuffer = [];
+  pc2.onicecandidate = e => {
+    // Don't add candidate if candidate buffer is already used
+    if (e.candidate && pc1.candidateBuffer) {
+      pc1.candidateBuffer.push(e.candidate)
+    }
+  };
+  pc1.iceStates = [pc1.iceConnectionState];
+  pc2.iceStates = [pc2.iceConnectionState];
+  pc1.oniceconnectionstatechange = () => {
+    pc1.iceStates.push(pc1.iceConnectionState);
+  };
+  pc2.oniceconnectionstatechange = () => {
+    pc2.iceStates.push(pc2.iceConnectionState);
+  };
+
+  const localStream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
+  const localStream2 = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
+  const remoteStream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
+  for (const stream of [localStream, localStream2, remoteStream]) {
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
   }
+  localStream.getTracks().forEach(t => pc1.addTrack(t, localStream));
+  localStream2.getTracks().forEach(t => pc1.addTrack(t, localStream2));
+  remoteStream.getTracks().forEach(t => pc2.addTrack(t, remoteStream));
+  const offer = await pc1.createOffer();
+  await pc2.setRemoteDescription(offer);
+  await pc1.setLocalDescription(offer);
+  const answer = await pc2.createAnswer();
+  await pc2.setLocalDescription(answer);
+  await pc1.setRemoteDescription(answer);
+  pc1.candidateBuffer.forEach(c => pc1.addIceCandidate(c));
+  delete pc1.candidateBuffer;
+  await listenToIceConnected(pc1);
+  assert_array_equals(pc1.iceStates, ['new', 'checking', 'connected']);
+  assert_array_equals(pc2.iceStates, ['new', 'checking', 'connected']);
+}, 'Responder ICE connection state behaves as expected');
 
 </script>

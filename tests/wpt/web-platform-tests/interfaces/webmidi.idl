@@ -4,7 +4,7 @@
 // Source: Web MIDI API (http://webaudio.github.io/web-midi-api/)
 
 partial interface Navigator {
-  [SecureContext] Promise<MIDIAccess> requestMIDIAccess(optional MIDIOptions options);
+  [SecureContext] Promise <MIDIAccess> requestMIDIAccess(optional MIDIOptions options = {});
 };
 
 dictionary MIDIOptions {
@@ -12,22 +12,22 @@ dictionary MIDIOptions {
   boolean software;
 };
 
-[SecureContext] interface MIDIInputMap {
+[SecureContext, Exposed=Window] interface MIDIInputMap {
   readonly maplike<DOMString, MIDIInput>;
 };
 
-[SecureContext] interface MIDIOutputMap {
+[SecureContext, Exposed=Window] interface MIDIOutputMap {
   readonly maplike<DOMString, MIDIOutput>;
 };
 
-[SecureContext] interface MIDIAccess : EventTarget {
+[SecureContext, Exposed=Window] interface MIDIAccess : EventTarget {
   readonly attribute MIDIInputMap inputs;
   readonly attribute MIDIOutputMap outputs;
   attribute EventHandler onstatechange;
   readonly attribute boolean sysexEnabled;
 };
 
-[SecureContext] interface MIDIPort : EventTarget {
+[SecureContext, Exposed=Window] interface MIDIPort : EventTarget {
   readonly attribute DOMString id;
   readonly attribute DOMString? manufacturer;
   readonly attribute DOMString? name;
@@ -40,11 +40,11 @@ dictionary MIDIOptions {
   Promise<MIDIPort> close();
 };
 
-[SecureContext] interface MIDIInput : MIDIPort {
+[SecureContext, Exposed=Window] interface MIDIInput : MIDIPort {
   attribute EventHandler onmidimessage;
 };
 
-[SecureContext] interface MIDIOutput : MIDIPort {
+[SecureContext, Exposed=Window] interface MIDIOutput : MIDIPort {
   void send(sequence<octet> data, optional DOMHighResTimeStamp timestamp = 0);
   void clear();
 };
@@ -65,7 +65,7 @@ enum MIDIPortConnectionState {
   "pending",
 };
 
-[SecureContext, Constructor(DOMString type, optional MIDIMessageEventInit eventInitDict)]
+[SecureContext, Exposed=Window, Constructor(DOMString type, optional MIDIMessageEventInit eventInitDict = {})]
 interface MIDIMessageEvent : Event {
   readonly attribute Uint8Array data;
 };
@@ -74,7 +74,7 @@ dictionary MIDIMessageEventInit : EventInit {
   Uint8Array data;
 };
 
-[SecureContext, Constructor(DOMString type, optional MIDIConnectionEventInit eventInitDict)]
+[SecureContext, Exposed=Window, Constructor(DOMString type, optional MIDIConnectionEventInit eventInitDict = {})]
 interface MIDIConnectionEvent : Event {
   readonly attribute MIDIPort port;
 };

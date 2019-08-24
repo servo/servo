@@ -19,9 +19,15 @@
       }, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', {requiredFeatures: [], optionalFeatures: []});
 
     xr_session_promise_test(
-      "Tests requestSession ignores unknown optionalFeatures",
+      "Tests requestSession ignores unknown strings in optionalFeatures",
       (session) => {
         assert_not_equals(session, null);
       }, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', {optionalFeatures: ['unicorns']});
+
+    xr_session_promise_test(
+      "Tests requestSession ignores unknown objects in optionalFeatures",
+      (session) => {
+        assert_not_equals(session, null);
+      }, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', {optionalFeatures: [{ unicorns: "please" }]});
   </script>
 </body>
