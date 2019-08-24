@@ -4453,7 +4453,7 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-open-window
     fn Open_(
         &self,
-        url: DOMString,
+        url: USVString,
         target: DOMString,
         features: DOMString,
     ) -> Fallible<DomRoot<WindowProxy>> {
