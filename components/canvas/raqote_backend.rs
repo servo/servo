@@ -509,7 +509,19 @@ impl GenericPathBuilder for PathBuilder {
         unimplemented!();
     }
     fn get_current_point(&mut self) -> Point2D<f32> {
-        unimplemented!();
+        let path = self.finish();
+
+        for op in path.as_raqote().ops.iter().rev() {
+            match op {
+                PathOp::MoveTo(point) | PathOp::LineTo(point) => {
+                    return Point2D::new(point.x, point.y)
+                },
+                PathOp::CubicTo(_, _, point) => return Point2D::new(point.x, point.y),
+                PathOp::QuadTo(_, point) => return Point2D::new(point.x, point.y),
+                _ => {},
+            };
+        }
+        panic!("dead end");
     }
     fn line_to(&mut self, point: Point2D<f32>) {
         self.0.as_mut().unwrap().line_to(point.x, point.y);
