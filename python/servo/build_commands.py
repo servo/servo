@@ -249,22 +249,19 @@ class MachCommands(CommandBase):
             env["CXXFLAGS"] += "-mmacosx-version-min=10.10"
 
         if 'windows' in host:
-            vcinstalldir = None
-            msbuildinstalldir = None
-            vs_version = "15.0"
             editions = ["Enterprise", "Professional", "Community", "BuildTools"]
             prog_files = os.environ.get("ProgramFiles(x86)")
-            base_vs_path = os.path.join(prog_files, "Microsoft Visual Studio", "2017")
-
-            for edition in editions:
-                # C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\MSBuild\15.0\Bin
-                # C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\MSBuild\15.0\Bin\amd64
-                msbuildinstalldir = os.path.join(base_vs_path, edition, "MSBuild", vs_version, "Bin")
-                if os.path.exists(msbuildinstalldir):
-                    break
+            base_vs_path = os.path.join(prog_files, "Microsoft Visual Studio")
+            vsinstalldir = os.environ.get('VSINSTALLDIR')
+            vcinstalldir = None
+            vs_version = os.environ.get('VisualStudioVersion')
+            if (vsinstalldir and vs_version):
+                msbuild_version = get_msbuild_version(vs_version)
             else:
-                print("Can't find MSBuild.exe installation at %s." % base_vs_path)
-                sys.exit(1)
+                (vsinstalldir, vs_version, msbuild_version) = find_highest_msvc_version(editions, prog_files,
+                                                                                        base_vs_path)
+            msbuildinstalldir = os.path.join(vsinstalldir, "MSBuild",
+                                             msbuild_version, "Bin")
 
         if host != target_triple and 'windows' in target_triple:
             if os.environ.get('VisualStudioVersion'):
@@ -272,13 +269,9 @@ class MachCommands(CommandBase):
                       "Please run `python mach build [arguments]` to bypass automatic "
                       "Visual Studio shell.")
                 sys.exit(1)
-
-            for edition in editions:
-                vcinstalldir = os.path.join(base_vs_path, edition, "VC")
-                if os.path.exists(vcinstalldir):
-                    break
-            else:
-                print("Can't find Visual Studio 2017 installation at %s." % base_vs_path)
+            vcinstalldir = os.environ.get("VCINSTALLDIR", "") or os.path.join(vsinstalldir, "VC")
+            if not os.path.exists(vcinstalldir):
+                print("Can't find Visual C++ %s installation at %s." % vs_version % vcinstalldir)
                 sys.exit(1)
 
         if uwp:
@@ -989,7 +982,7 @@ def package_msvc_dlls(servo_exe_dir, target, vcinstalldir, vs_version):
         "msvcp140.dll",
         "vcruntime140.dll",
     ]
-    if target_arch != "aarch64":
+    if target_arch != "aarch64" and vs_version in ("14.0", "15.0"):
         msvc_deps += ["api-ms-win-crt-runtime-l1-1-0.dll"]
 
     # Check if it's Visual C++ Build Tools or Visual Studio 2015
@@ -1040,3 +1033,32 @@ def package_msvc_dlls(servo_exe_dir, target, vcinstalldir, vs_version):
     for msvc_dll in missing:
         print("DLL file `{}` not found!".format(msvc_dll))
     return not missing
+
+
+def get_msbuild_version(vs_version):
+    if vs_version in ("15.0", "14.0"):
+        msbuild_version = vs_version
+    else:
+        msbuild_version = "Current"
+    return msbuild_version
+
+
+def find_highest_msvc_version(editions, prog_files, base_vs_path):
+    vs_versions = ["2019", "2017"]
+    versions = {
+        ("2019", "vs"): "16.0",
+        ("2017", "vs"): "15.0",
+    }
+
+    for version in vs_versions:
+        for edition in editions:
+            # C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\MSBuild\15.0\Bin
+            # C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\MSBuild\15.0\Bin\amd64
+            vs_version = versions[version, "vs"]
+            msbuild_version = get_msbuild_version(vs_version)
+
+            vsinstalldir = os.path.join(base_vs_path, version, edition)
+            if os.path.exists(vsinstalldir):
+                return (vsinstalldir, vs_version, msbuild_version)
+    print("Can't find MSBuild.exe installation under %s." % base_vs_path)
+    sys.exit(1)
