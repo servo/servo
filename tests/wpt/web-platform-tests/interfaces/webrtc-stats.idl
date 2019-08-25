@@ -265,6 +265,7 @@ dictionary RTCTransportStats : RTCStats {
              DOMString dtlsCipher;
              DOMString srtpCipher;
              DOMString tlsGroup;
+             unsigned long selectedCandidatePairChanges;
 };
 
 dictionary RTCIceCandidateStats : RTCStats {
