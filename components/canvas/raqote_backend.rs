@@ -185,27 +185,14 @@ impl Path {
     }
 
     pub fn contains_point(&self, x: f64, y: f64, _path_transform: &Transform2D<f32>) -> bool {
-        for op in self.as_raqote().ops.iter() {
-            match op {
-                PathOp::MoveTo(point) | PathOp::LineTo(point) => {
-                    if point.x as f64 == x && point.y as f64 == y {
-                        return true;
-                    }
-                },
-                PathOp::QuadTo(_, point) => {
-                    if point.x as f64 == x && point.y as f64 == y {
-                        return true;
-                    }
-                },
-                PathOp::CubicTo(_, _, point) => {
-                    if point.x as f64 == x && point.y as f64 == y {
-                        return true;
-                    }
-                },
-                _ => {},
-            }
-        }
-        false
+        self.as_raqote().ops.iter().any(|op| match op {
+            PathOp::MoveTo(point) | PathOp::LineTo(point) => {
+                point.x as f64 == x && point.y as f64 == y
+            },
+            PathOp::QuadTo(_, point) => point.x as f64 == x && point.y as f64 == y,
+            PathOp::CubicTo(_, _, point) => point.x as f64 == x && point.y as f64 == y,
+            _ => false,
+        })
     }
 
     pub fn copy_to_builder(&self) -> Box<dyn GenericPathBuilder> {
