@@ -11,6 +11,7 @@ use crate::canvas_paint_thread::AntialiasMode;
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
+use raqote::PathOp;
 use std::marker::PhantomData;
 
 pub struct RaqoteBackend;
@@ -183,8 +184,28 @@ impl Path {
         unimplemented!()
     }
 
-    pub fn contains_point(&self, _x: f64, _y: f64, _path_transform: &Transform2D<f32>) -> bool {
-        unimplemented!()
+    pub fn contains_point(&self, x: f64, y: f64, _path_transform: &Transform2D<f32>) -> bool {
+        for op in self.as_raqote().ops.iter() {
+            match op {
+                PathOp::MoveTo(point) | PathOp::LineTo(point) => {
+                    if point.x as f64 == x && point.y as f64 == y {
+                        return true;
+                    }
+                },
+                PathOp::QuadTo(_, point) => {
+                    if point.x as f64 == x && point.y as f64 == y {
+                        return true;
+                    }
+                },
+                PathOp::CubicTo(_, _, point) => {
+                    if point.x as f64 == x && point.y as f64 == y {
+                        return true;
+                    }
+                },
+                _ => {},
+            }
+        }
+        false
     }
 
     pub fn copy_to_builder(&self) -> Box<dyn GenericPathBuilder> {
