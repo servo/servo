@@ -22,11 +22,11 @@ ar = "arm-linux-gnueabihf-ar"
 linker = "aarch64-linux-gnu-gcc"
 ar = "aarch64-linux-gnu-ar"
 
-[target.x86_64-pc-windows-msvc]
-linker = "lld-link.exe"
+#[target.x86_64-pc-windows-msvc]
+#linker = "lld-link.exe"
 
-[target.i686-pc-windows-msvc]
-linker = "lld-link.exe"
+#[target.i686-pc-windows-msvc]
+#linker = "lld-link.exe"
 
-[target.aarch64-pc-windows-msvc]
-linker = "lld-link.exe"
+#[target.aarch64-pc-windows-msvc]
+#linker = "lld-link.exe"
