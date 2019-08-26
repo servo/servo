@@ -1066,13 +1066,15 @@ impl WindowMethods for Window {
 
     #[allow(unsafe_code)]
     fn Gc(&self) {
-        match &*self.current_state.borrow() {
+       let js_context_available = match &*self.current_state.borrow() {
             WindowState::Zombie(_) => {
-                return warn!("Window Gc called on a zombie window");
+                warn!("Window Gc called on a zombie window");
+                false
             },
-            WindowState::Alive(_) => unsafe {
-                JS_GC(*self.get_cx(), GCReason::API);
-            },
+            WindowState::Alive(_) => true,
+        };
+        if js_context_available {
+            unsafe { JS_GC(*self.get_cx(), GCReason::API); }
         }
     }
 
