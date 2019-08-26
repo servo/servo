@@ -28,6 +28,7 @@
                 var s = compareSizeWithAndWithoutStyle(tag, style);
                 assert_approx_equals(s.element_width_delta, 30 + 40, epsilon, "left/right border");
                 assert_approx_equals(s.element_height_delta, 50 + 60, epsilon, "top/bottom border");
+                assert_approx_equals(s.preferred_width_delta, 30 + 40, epsilon, "preferred width");
             }, `Border properties on ${tag}`);
             continue;
         }
@@ -40,6 +41,7 @@
             assert_approx_equals(s.bottom_delta, 60, epsilon, "bottom border");
             assert_approx_equals(s.element_width_delta, 30 + 40, epsilon, "element width");
             assert_approx_equals(s.element_height_delta, 50 + 60, epsilon, "element height");
+            assert_approx_equals(s.preferred_width_delta, 30 + 40, epsilon, "element preferred width");
         }, `Border properties on ${tag}`);
 
         test(function() {
@@ -50,6 +52,7 @@
             assert_approx_equals(s.bottom_delta, 60, epsilon, "bottom border");
             assert_approx_equals(s.element_width_delta, 30 + 40, epsilon, "element width");
             assert_approx_equals(s.element_height_delta, 50 + 60, epsilon, "element height");
+            assert_approx_equals(s.preferred_width_delta, 30 + 40, epsilon, "element preferred width");
         }, `Border properties on ${tag} (rtl)`);
     }
 

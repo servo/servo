@@ -30,6 +30,7 @@
                 assert_approx_equals(s.height_delta, 50 + 60, epsilon, "top/bottom margin");
                 assert_approx_equals(s.element_width_delta, 0, epsilon, "element width");
                 assert_approx_equals(s.element_height_delta, 0, epsilon, "element height");
+                assert_approx_equals(s.preferred_width_delta, 30 + 40, epsilon, "preferred width");
             }, `Margin properties on ${tag}`);
             continue;
         }
@@ -42,6 +43,7 @@
             assert_approx_equals(s.bottom_delta, 60, epsilon, "bottom margin");
             assert_approx_equals(s.element_width_delta, 0, epsilon, "element width");
             assert_approx_equals(s.element_height_delta, 0, epsilon, "element height");
+            assert_approx_equals(s.preferred_width_delta, 30 + 40, epsilon, "preferred width");
         }, `Margin properties on ${tag}`);
 
         test(function() {
@@ -52,6 +54,7 @@
             assert_approx_equals(s.bottom_delta, 60, epsilon, "bottom margin");
             assert_approx_equals(s.element_width_delta, 0, epsilon, "element width");
             assert_approx_equals(s.element_height_delta, 0, epsilon, "element height");
+            assert_approx_equals(s.preferred_width_delta, 30 + 40, epsilon, "preferred width");
         }, `Margin properties on ${tag} (rtl)`);
 
         test(function() {
@@ -64,6 +67,7 @@
             assert_approx_equals(s.bottom_delta, 60 * 2, epsilon, "bottom margin");
             assert_approx_equals(s.element_width_delta, 0, epsilon, "element width");
             assert_approx_equals(s.element_height_delta, 0, epsilon, "element height");
+            assert_approx_equals(s.preferred_width_delta, (30 + 40) * 2, epsilon, "preferred width");
         }, `Margin properties on ${tag} (no margin-collapsing)`);
     }
 
