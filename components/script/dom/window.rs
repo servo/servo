@@ -616,7 +616,7 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-open
     fn Open(
         &self,
-        url: DOMString,
+        url: USVString,
         target: DOMString,
         features: DOMString,
     ) -> Option<DomRoot<WindowProxy>> {
