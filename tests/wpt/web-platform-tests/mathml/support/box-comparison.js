@@ -23,12 +23,13 @@ function compareSpaceWithAndWithoutStyle(tag, style, parentStyle, direction) {
     if (!direction)
       direction = "ltr";
     document.body.insertAdjacentHTML("beforeend", `<div style="position: absolute;">\
-<math><mrow dir="${direction}">${MathMLFragments[tag]}</mrow></math>\
-<math><mrow dir="${direction}">${MathMLFragments[tag]}</mrow></math>\
+<div style="display: inline-block"><math><mrow dir="${direction}">${MathMLFragments[tag]}</mrow></math></div>\
+<div style="display: inline-block"><math><mrow dir="${direction}">${MathMLFragments[tag]}</mrow></math></div>\
 </div>`);
     var div = document.body.lastElementChild;
 
-    var styleMath = div.firstElementChild;
+    var styleDiv = div.firstElementChild;
+    var styleMath = styleDiv.firstElementChild;
     var styleParent = styleMath.firstElementChild;
     if (parentStyle)
         styleParent.setAttribute("style", parentStyle);
@@ -40,7 +41,8 @@ function compareSpaceWithAndWithoutStyle(tag, style, parentStyle, direction) {
     var styleChildBox = styleChild.getBoundingClientRect();
     var styleSpace = spaceBetween(styleChildBox, styleMathBox);
 
-    var noStyleMath = div.lastElementChild;
+    var noStyleDiv = div.lastElementChild;
+    var noStyleMath = noStyleDiv.firstElementChild;
     var noStyleElement = FragmentHelper.element(noStyleMath);
     var noStyleChild = FragmentHelper.forceNonEmptyElement(noStyleElement);
     var noStyleMathBox = noStyleMath.getBoundingClientRect();
@@ -48,9 +50,14 @@ function compareSpaceWithAndWithoutStyle(tag, style, parentStyle, direction) {
     var noStyleChildBox = noStyleChild.getBoundingClientRect();
     var noStyleSpace = spaceBetween(noStyleChildBox, noStyleMathBox);
 
+    var preferredWidthDelta =
+        styleDiv.getBoundingClientRect().width -
+        noStyleDiv.getBoundingClientRect().width;
+
     div.style = "display: none;"; // Hide the div after measurement.
 
     return {
+        preferred_width_delta: preferredWidthDelta,
         left_delta: styleSpace.left - noStyleSpace.left,
         right_delta: styleSpace.right - noStyleSpace.right,
         top_delta: styleSpace.top - noStyleSpace.top,
@@ -65,25 +72,32 @@ function compareSizeWithAndWithoutStyle(tag, style) {
         throw `Invalid argument: ${tag}`;
 
     document.body.insertAdjacentHTML("beforeend", `<div style="position: absolute;">\
-<math>${MathMLFragments[tag]}</math>\
-<math>${MathMLFragments[tag]}</math>\
+<div style="display: inline-block"><math>${MathMLFragments[tag]}</math></div>\
+<div style="display: inline-block"><math>${MathMLFragments[tag]}</math></div>\
 </div>`);
     var div = document.body.lastElementChild;
 
-    var styleMath = div.firstElementChild;
+    var styleDiv = div.firstElementChild;
+    var styleMath = styleDiv.firstElementChild;
     var styleElement = FragmentHelper.element(styleMath);
     styleElement.setAttribute("style", style);
     var styleMathBox = styleMath.getBoundingClientRect();
     var styleElementBox = styleElement.getBoundingClientRect();
 
-    var noStyleMath = div.lastElementChild;
+    var noStyleDiv = div.lastElementChild;
+    var noStyleMath = noStyleDiv.firstElementChild;
     var noStyleElement = FragmentHelper.element(noStyleMath);
     var noStyleMathBox = noStyleMath.getBoundingClientRect();
     var noStyleElementBox = noStyleElement.getBoundingClientRect();
 
+    var preferredWidthDelta =
+        styleDiv.getBoundingClientRect().width -
+        noStyleDiv.getBoundingClientRect().width;
+
     div.style = "display: none;"; // Hide the div after measurement.
 
     return {
+        preferred_width_delta: preferredWidthDelta,
         width_delta: styleMathBox.width - noStyleMathBox.width,
         height_delta: styleMathBox.height - noStyleMathBox.height,
         element_width_delta: styleElementBox.width - noStyleElementBox.width,
