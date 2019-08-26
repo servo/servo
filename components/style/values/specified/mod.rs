@@ -13,7 +13,7 @@ use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as Generic
 use super::generics::grid::{TrackList as GenericTrackList, TrackSize as GenericTrackSize};
 use super::generics::transform::IsParallelTo;
 use super::generics::{self, GreaterThanOrEqualToOne, NonNegative};
-use super::{Auto, CSSFloat, CSSInteger, Either, None_};
+use super::{CSSFloat, CSSInteger, Either, None_};
 use crate::context::QuirksMode;
 use crate::parser::{Parse, ParserContext};
 use crate::values::serialize_atom_identifier;
@@ -639,7 +639,7 @@ pub type GridLine = GenericGridLine<Integer>;
 pub type GridTemplateComponent = GenericGridTemplateComponent<LengthPercentage, Integer>;
 
 /// rect(...)
-pub type ClipRect = generics::ClipRect<LengthOrAuto>;
+pub type ClipRect = generics::GenericClipRect<LengthOrAuto>;
 
 impl Parse for ClipRect {
     fn parse<'i, 't>(
@@ -652,7 +652,7 @@ impl Parse for ClipRect {
 
 impl ClipRect {
     /// Parses a rect(<top>, <left>, <bottom>, <right>), allowing quirks.
-    pub fn parse_quirky<'i, 't>(
+    fn parse_quirky<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
@@ -696,7 +696,7 @@ impl ClipRect {
 }
 
 /// rect(...) | auto
-pub type ClipRectOrAuto = Either<ClipRect, Auto>;
+pub type ClipRectOrAuto = generics::GenericClipRectOrAuto<ClipRect>;
 
 impl ClipRectOrAuto {
     /// Parses a ClipRect or Auto, allowing quirks.
@@ -706,10 +706,10 @@ impl ClipRectOrAuto {
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(v) = input.try(|i| ClipRect::parse_quirky(context, i, allow_quirks)) {
-            Ok(Either::First(v))
-        } else {
-            Auto::parse(context, input).map(Either::Second)
+            return Ok(generics::GenericClipRectOrAuto::Rect(v))
         }
+        input.expect_ident_matching("auto")?;
+        Ok(generics::GenericClipRectOrAuto::Auto)
     }
 }
 

@@ -272,9 +272,47 @@ pub struct ZeroToOne<T>(pub T);
     ToShmem,
 )]
 #[css(function = "rect", comma)]
-pub struct ClipRect<LengthOrAuto> {
+#[repr(C)]
+pub struct GenericClipRect<LengthOrAuto> {
     pub top: LengthOrAuto,
     pub right: LengthOrAuto,
     pub bottom: LengthOrAuto,
     pub left: LengthOrAuto,
+}
+
+pub use self::GenericClipRect as ClipRect;
+
+/// Either a clip-rect or `auto`.
+#[allow(missing_docs)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C, u8)]
+pub enum GenericClipRectOrAuto<R> {
+    Auto,
+    Rect(R),
+}
+
+pub use self::GenericClipRectOrAuto as ClipRectOrAuto;
+
+impl<L> ClipRectOrAuto<L> {
+    /// Returns the `auto` value.
+    #[inline]
+    pub fn auto() -> Self {
+        ClipRectOrAuto::Auto
+    }
 }
