@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1561450">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/#suppression-triggers">
+<style>
+  body { margin: 0 }
+  .content {
+    height: 45vh;
+    background: lightblue;
+  }
+</style>
+<div class="content"></div>
+<div id="hidden" style="display: none; height: 200px"></div>
+<div class="content"></div>
+<div class="content"></div>
+<div class="content"></div>
+<script>
+let first = true;
+const t = async_test("Scroll adjustments don't happen if triggered from scroll event listeners");
+onscroll = t.step_func(function() {
+  assert_true(first, "Should only get one event");
+  first = false;
+  hidden.style.display = "block";
+  hidden.offsetTop;
+  hidden.style.display = "none";
+  requestAnimationFrame(t.step_func(function() {
+    requestAnimationFrame(t.step_func(function() {
+      t.done();
+    }));
+  }));
+});
+window.onload = t.step_func(function() {
+  window.scrollTo(0, document.scrollingElement.scrollTopMax - 200);
+});
+</script>
