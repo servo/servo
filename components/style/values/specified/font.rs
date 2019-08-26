@@ -1091,8 +1091,6 @@ bitflags! {
 )]
 #[repr(C, u8)]
 /// Set of variant alternates
-///
-/// cbindgen:derive-tagged-enum-copy-constructor=true
 pub enum VariantAlternates {
     /// Enables display of stylistic alternates
     #[css(function)]

@@ -126,8 +126,6 @@ pub struct QuoteList(
 
 /// Specified and computed `quotes` property: `auto`, `none`, or a list
 /// of characters.
-///
-/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[derive(
     Clone,
     Debug,

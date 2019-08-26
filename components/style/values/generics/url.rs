@@ -5,8 +5,6 @@
 //! Generic types for url properties.
 
 /// An image url or none, used for example in list-style-image
-///
-/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[derive(
     Animate,
     Clone,

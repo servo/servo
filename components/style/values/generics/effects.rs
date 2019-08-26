@@ -34,8 +34,6 @@ pub struct GenericBoxShadow<Color, SizeLength, BlurShapeLength, ShapeLength> {
 pub use self::GenericBoxShadow as BoxShadow;
 
 /// A generic value for a single `filter`.
-///
-/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[animation(no_bound(U))]
 #[derive(
