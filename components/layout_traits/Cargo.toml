@@ -14,7 +14,7 @@ path = "lib.rs"
 crossbeam-channel = "0.3"
 euclid = "0.20"
 gfx = {path = "../gfx"}
-ipc-channel = "0.11"
+ipc-channel = "0.12"
 metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}

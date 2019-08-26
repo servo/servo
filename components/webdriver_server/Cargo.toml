@@ -17,7 +17,7 @@ crossbeam-channel = "0.3"
 euclid = "0.20"
 hyper = "0.12"
 image = "0.22"
-ipc-channel = "0.11"
+ipc-channel = "0.12"
 keyboard-types = "0.4.3"
 log = "0.4"
 msg = {path = "../msg"}

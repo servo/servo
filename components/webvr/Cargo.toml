@@ -19,11 +19,11 @@ canvas_traits = {path = "../canvas_traits"}
 crossbeam-channel = "0.3"
 euclid = "0.20"
 gleam = "0.6"
-ipc-channel = "0.11.2"
+ipc-channel = "0.12"
 log = "0.4"
 msg = {path = "../msg"}
-rust-webvr = {version = "0.13", features = ["mock", "openvr", "vrexternal"]}
-rust-webvr-api = "0.13"
+rust-webvr = { version = "0.14.2", features = ["mock", "openvr", "vrexternal"] }
+rust-webvr-api = "0.14"
 script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}
 webvr_traits = {path = "../webvr_traits" }

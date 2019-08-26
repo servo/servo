@@ -11,7 +11,7 @@ path = "lib.rs"
 doctest = false
 
 [dependencies]
-ipc-channel = "0.11"
+ipc-channel = "0.12"
 profile = {path = "../../../components/profile"}
 profile_traits = {path = "../../../components/profile_traits"}
 servo_config = {path = "../../../components/config"}
