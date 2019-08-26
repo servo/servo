@@ -130,7 +130,8 @@ use msg::constellation_msg::{
     TopLevelBrowsingContextId,
 };
 use msg::constellation_msg::{
-    MessagePortId, MessagePortRouterId, PipelineNamespace, PipelineNamespaceRequest, PipelineNamespaceId, TraversalDirection,
+    MessagePortId, MessagePortRouterId, PipelineNamespace, PipelineNamespaceId,
+    PipelineNamespaceRequest, TraversalDirection,
 };
 use net_traits::pub_domains::reg_host;
 use net_traits::request::RequestBuilder;
