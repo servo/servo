@@ -7,8 +7,8 @@ use rustc::hir::intravisit as visit;
 use rustc::hir::{self, ExprKind, HirId};
 use rustc::lint::{LateContext, LateLintPass, LintArray, LintContext, LintPass};
 use rustc::ty;
+use syntax::source_map;
 use syntax::symbol::sym;
-use syntax::{ast, source_map};
 
 declare_lint!(
     UNROOTED_MUST_ROOT,
@@ -143,23 +143,15 @@ impl LintPass for UnrootedPass {
 
 impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
     /// All structs containing #[must_root] types must be #[must_root] themselves
-    fn check_struct_def(
-        &mut self,
-        cx: &LateContext<'a, 'tcx>,
-        def: &'tcx hir::VariantData,
-        _n: ast::Name,
-        _gen: &'tcx hir::Generics,
-        id: HirId,
-    ) {
-        let item = match cx.tcx.hir().get(id) {
-            hir::Node::Item(item) => item,
-            _ => cx.tcx.hir().expect_item(cx.tcx.hir().get_parent_item(id)),
-        };
+    fn check_item(&mut self, cx: &LateContext<'a, 'tcx>, item: &'tcx hir::Item) {
         if item
             .attrs
             .iter()
-            .all(|a| !a.check_name(self.symbols.must_root))
+            .any(|a| a.check_name(self.symbols.must_root))
         {
+            return;
+        }
+        if let hir::ItemKind::Struct(def, ..) = &item.node {
             for ref field in def.fields() {
                 let def_id = cx.tcx.hir().local_def_id(field.hir_id);
                 if is_unrooted_ty(&self.symbols, cx, cx.tcx.type_of(def_id), false) {
@@ -171,7 +163,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
     }
 
     /// All enums containing #[must_root] types must be #[must_root] themselves
-    fn check_variant(&mut self, cx: &LateContext, var: &hir::Variant, _gen: &hir::Generics) {
+    fn check_variant(&mut self, cx: &LateContext, var: &hir::Variant) {
         let ref map = cx.tcx.hir();
         if map
             .expect_item(map.get_parent_item(var.id))

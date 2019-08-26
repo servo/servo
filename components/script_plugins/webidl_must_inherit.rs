@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use rustc::hir::{self, HirId};
+use rustc::hir;
 use rustc::lint::{LateContext, LateLintPass, LintArray, LintContext, LintPass};
 use rustc::ty;
 use std::boxed;
@@ -12,7 +12,6 @@ use std::fmt;
 use std::fs;
 use std::io;
 use std::path;
-use syntax::ast;
 use weedle;
 
 declare_lint!(
@@ -177,14 +176,12 @@ impl LintPass for WebIdlPass {
 }
 
 impl<'a, 'tcx> LateLintPass<'a, 'tcx> for WebIdlPass {
-    fn check_struct_def(
-        &mut self,
-        cx: &LateContext<'a, 'tcx>,
-        def: &'tcx hir::VariantData,
-        n: ast::Name,
-        _gen: &'tcx hir::Generics,
-        id: HirId,
-    ) {
+    fn check_item(&mut self, cx: &LateContext<'a, 'tcx>, item: &'tcx hir::Item) {
+        let def = match &item.node {
+            hir::ItemKind::Struct(def, ..) => def,
+            _ => return,
+        };
+        let id = item.hir_id;
         let def_id = cx.tcx.hir().local_def_id(id);
         if !is_webidl_ty(&self.symbols, cx, cx.tcx.type_of(def_id)) {
             return;
@@ -201,7 +198,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for WebIdlPass {
             get_ty_name(&ty).to_string()
         });
 
-        let struct_name = n.to_string();
+        let struct_name = item.ident.to_string();
         match check_webidl(&struct_name, &parent_name) {
             Ok(()) => {},
             Err(e) => {
