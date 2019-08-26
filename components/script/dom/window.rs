@@ -143,7 +143,7 @@ enum WindowState {
     /// A window with a browsing-context.
     Alive(WindowStateData),
     /// A window without a browsing-context,
-    /// keeping only it's associated document, since it should always be kept.
+    /// keeping only its associated document, since it should always be kept.
     /// See https://html.spec.whatwg.org/multipage/#concept-document-window
     Zombie(MutNullableDom<Document>),
 }
