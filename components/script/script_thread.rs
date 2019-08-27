@@ -2159,6 +2159,14 @@ impl ScriptThread {
                     reply,
                 )
             },
+            WebDriverScriptCommand::ElementClick(element_id, reply) => {
+                webdriver_handlers::handle_element_click(
+                    &*documents,
+                    pipeline_id,
+                    element_id,
+                    reply,
+                )
+            },
             WebDriverScriptCommand::GetActiveElement(reply) => {
                 webdriver_handlers::handle_get_active_element(&*documents, pipeline_id, reply)
             },
