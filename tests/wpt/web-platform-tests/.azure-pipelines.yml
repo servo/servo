@@ -17,14 +17,6 @@
 #    Documention for the setup of these agents:
 #    https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/v2-windows
 
-schedules:
-- cron: "15 */6 * * *"
-  displayName: Every six hours
-  branches:
-    include:
-    - epochs/six_hourly
-  always: true
-
 jobs:
 # The affected tests jobs are unconditional for speed, as most PRs have one or
 # more affected tests: https://github.com/web-platform-tests/wpt/issues/13936.
@@ -240,12 +232,10 @@ jobs:
     condition: always()
   - template: tools/ci/azure/cleanup_win10.yml
 
-# All `./wpt run` tests are run from epochs/* branches on a schedule. See
-# documentation at the top of this file for required setup.
 - job: results_edge_dev
   displayName: 'all tests: Edge Dev'
   condition: |
-    or(eq(variables['Build.Reason'], 'Schedule'),
+    or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/six_hourly'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge_dev']))
   strategy:
     parallel: 10 # chosen to make runtime ~2h
@@ -280,7 +270,7 @@ jobs:
 - job: results_edge_canary
   displayName: 'all tests: Edge Canary'
   condition: |
-    or(eq(variables['Build.Reason'], 'Schedule'),
+    or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/six_hourly'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge_canary']))
   strategy:
     parallel: 10 # chosen to make runtime ~2h
@@ -315,10 +305,10 @@ jobs:
 - job: results_safari
   displayName: 'all tests: Safari'
   condition: |
-    or(eq(variables['Build.Reason'], 'Schedule'),
+    or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/six_hourly'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_safari']))
   strategy:
-    parallel: 4 # chosen to make runtime ~2h
+    parallel: 5 # chosen to make runtime ~2h
   timeoutInMinutes: 360
   pool:
     vmImage: 'macOS-10.13'
@@ -349,10 +339,10 @@ jobs:
 - job: results_safari_preview
   displayName: 'all tests: Safari Technology Preview'
   condition: |
-    or(eq(variables['Build.Reason'], 'Schedule'),
+    or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/six_hourly'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_safari_preview']))
   strategy:
-    parallel: 4 # chosen to make runtime ~2h
+    parallel: 5 # chosen to make runtime ~2h
   timeoutInMinutes: 360
   pool:
     vmImage: 'macOS-10.13'
