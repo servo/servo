@@ -145,6 +145,7 @@ class MachCommands(CommandBase):
             ]
         if build:
             components += [
+                "platform-tools",
                 "platforms;android-18",
             ]
 
