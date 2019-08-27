@@ -797,6 +797,8 @@ pub enum WebDriverCommandMsg {
     KeyboardAction(BrowsingContextId, KeyboardEvent),
     /// Act as if the mouse was clicked in the browsing context with the given ID.
     MouseButtonAction(MouseEventType, MouseButton, f32, f32),
+    /// Act as if the mouse was moved in the browsing context with the given ID.
+    MouseMoveAction(f32, f32),
     /// Set the window size.
     SetWindowSize(
         TopLevelBrowsingContextId,

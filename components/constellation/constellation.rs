@@ -3528,6 +3528,10 @@ where
                         y,
                     ));
             },
+            WebDriverCommandMsg::MouseMoveAction(x, y) => {
+                self.compositor_proxy
+                    .send(ToCompositorMsg::WebDriverMouseMoveEvent(x, y));
+            },
             WebDriverCommandMsg::TakeScreenshot(_, rect, reply) => {
                 self.compositor_proxy
                     .send(ToCompositorMsg::CreatePng(rect, reply));

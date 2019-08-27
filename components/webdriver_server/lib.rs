@@ -1345,9 +1345,10 @@ impl Handler {
         &mut self,
         parameters: &ActionsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        self.dispatch_actions(&parameters.actions);
-
-        Ok(WebDriverResponse::Void)
+        match self.dispatch_actions(&parameters.actions) {
+            Ok(_) => Ok(WebDriverResponse::Void),
+            Err(error) => Err(WebDriverError::new(error, "")),
+        }
     }
 
     fn handle_release_actions(&mut self) -> WebDriverResult<WebDriverResponse> {
@@ -1356,7 +1357,10 @@ impl Handler {
             session.input_cancel_list.reverse();
             mem::replace(&mut session.input_cancel_list, Vec::new())
         };
-        self.dispatch_actions(&input_cancel_list);
+
+        if let Err(error) = self.dispatch_actions(&input_cancel_list) {
+            return Err(WebDriverError::new(error, ""));
+        }
 
         let session = self.session_mut()?;
         session.input_state_table = HashMap::new();
