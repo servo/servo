@@ -24,10 +24,11 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
-use crate::dom::htmlinputelement::HTMLInputElement;
+use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::node::{window_from_node, Node, ShadowIncluding};
 use crate::dom::nodelist::NodeList;
@@ -363,35 +364,38 @@ pub fn handle_get_browsing_context_id(
 
 // https://w3c.github.io/webdriver/#dfn-center-point
 fn get_element_in_view_center_point(element: &Element) -> Option<Point2D<i64>> {
-    element
-        .GetClientRects()
-        .iter()
-        // Step 1
-        .next()
-        .map(|rectangle| {
-            let x = rectangle.X().round() as i64;
-            let y = rectangle.Y().round() as i64;
-            let width = rectangle.Width().round() as i64;
-            let height = rectangle.Height().round() as i64;
+    window_from_node(element.upcast::<Node>())
+        .Document()
+        .GetBody()
+        .map(DomRoot::upcast::<Element>)
+        .and_then(|body| {
+            element
+                .GetClientRects()
+                .iter()
+                // Step 1
+                .next()
+                .map(|rectangle| {
+                    let x = rectangle.X().round() as i64;
+                    let y = rectangle.Y().round() as i64;
+                    let width = rectangle.Width().round() as i64;
+                    let height = rectangle.Height().round() as i64;
 
-            let window = window_from_node(element.upcast::<Node>());
-            let document = window.Document();
-            let document_element = document.upcast::<Node>().downcast::<Element>().unwrap();
-            let clientWidth = document_element.ClientWidth() as i64;
-            let clientHeight = document_element.ClientHeight() as i64;
+                    let clientWidth = body.ClientWidth() as i64;
+                    let clientHeight = body.ClientHeight() as i64;
 
-            // Steps 2 - 5
-            let left = cmp::max(0, cmp::min(x, x + width));
-            let right = cmp::min(clientWidth, cmp::max(x, x + width));
-            let top = cmp::max(0, cmp::min(y, y + height));
-            let bottom = cmp::min(clientHeight, cmp::max(y, y + height));
+                    // Steps 2 - 5
+                    let left = cmp::max(0, cmp::min(x, x + width));
+                    let right = cmp::min(clientWidth, cmp::max(x, x + width));
+                    let top = cmp::max(0, cmp::min(y, y + height));
+                    let bottom = cmp::min(clientHeight, cmp::max(y, y + height));
 
-            // Steps 6 - 7
-            let x = (left + right) / 2;
-            let y = (top + bottom) / 2;
+                    // Steps 6 - 7
+                    let x = (left + right) / 2;
+                    let y = (top + bottom) / 2;
 
-            // Step 8
-            Point2D::new(x, y)
+                    // Step 8
+                    Point2D::new(x, y)
+                })
         })
 }
 
@@ -1046,6 +1050,75 @@ pub fn handle_get_url(documents: &Documents, pipeline: PipelineId, reply: IpcSen
                 .find_document(pipeline)
                 .map(|document| document.url())
                 .unwrap_or_else(|| ServoUrl::parse("about:blank").expect("infallible")),
+        )
+        .unwrap();
+}
+
+// https://w3c.github.io/webdriver/#element-click
+pub fn handle_element_click(
+    documents: &Documents,
+    pipeline: PipelineId,
+    element_id: String,
+    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+) {
+    reply
+        .send(
+            // Step 3
+            find_node_by_unique_id(documents, pipeline, element_id).and_then(|node| {
+                // Step 4
+                if let Some(input_element) = node.downcast::<HTMLInputElement>() {
+                    if input_element.input_type() == InputType::File {
+                        return Err(ErrorStatus::InvalidArgument);
+                    }
+                }
+
+                // Step 5
+                // TODO: scroll into view
+
+                // Step 6
+                // TODO: return error if still not in view
+
+                // Step 7
+                // TODO: return error if obscured
+
+                // Step 8
+                match node.downcast::<HTMLOptionElement>() {
+                    Some(option_element) => {
+                        // Steps 8.1 - 8.4
+                        let event_target = option_element.upcast::<EventTarget>();
+                        event_target.fire_event(atom!("mouseover"));
+                        event_target.fire_event(atom!("mousemove"));
+                        event_target.fire_event(atom!("mousedown"));
+
+                        // Step 8.5
+                        option_element.upcast::<HTMLElement>().Focus();
+
+                        // Step 8.6
+                        if !option_element.Disabled() {
+                            // Step 8.6.1
+                            event_target.fire_event(atom!("input"));
+
+                            // Steps 8.6.2
+                            let previous_selectedness = option_element.Selected();
+
+                            // Step 8.6.3
+                            option_element.SetSelected(true);
+
+                            // Step 8.6.4
+                            if !previous_selectedness {
+                                event_target.fire_event(atom!("change"));
+                            }
+                        }
+
+                        // Steps 8.7 - 8.8
+                        event_target.fire_event(atom!("mouseup"));
+                        event_target.fire_event(atom!("click"));
+
+                        Ok(None)
+                    },
+                    None => Ok(Some(node.unique_id())),
+                }
+            }),
         )
         .unwrap();
 }
