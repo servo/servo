@@ -270,6 +270,8 @@ class MachCommands(CommandBase):
                 print("Can't find Visual C++ %s installation at %s." % (vs_version, vcinstalldir))
                 sys.exit(1)
 
+            env['PKG_CONFIG_ALLOW_CROSS'] = "1"
+
         if uwp:
             # Don't try and build a desktop port.
             libsimpleservo = True
