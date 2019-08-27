@@ -581,13 +581,13 @@ def macos_debugmozjs():
         wpt_task(macos_run_task, "WPT debugmozjs", "WPT debugmozjs", "macOS x64",
                  build_task, processes=4)
         .with_script("""
-            time ./mach test-wpt --release --binary-arg=--multiprocess \
-                --binary-arg="--pref js.gc.zeal.level=2" \
-                --binary-arg="--pref js.gc.zeal.frequency=1" \
+            time ./mach test-wpt --release \
+                --binary-arg="--pref=js.mem.gc.zeal.level=2" \
+                --binary-arg="--pref=js.mem.gc.zeal.frequency=1" \
                 --log-raw test-wpt.log \
                 --log-errorsummary wpt-errorsummary.log \
-                eventsource \
-                | cat
+                --log-mach - \
+                eventsource
         """)
         .with_artifacts("repo/test-wpt.log", "repo/wpt-errorsummary.log")
         .find_or_create("macOS_x64.wpt.debugmozjs." + CONFIG.task_id())
