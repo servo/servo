@@ -870,14 +870,14 @@ def magicleap_build_task(name, build_type):
             path="magicleap"
         )
         .with_directory_mount(
-            "https://servo-deps.s3.amazonaws.com/magicleap/TempSharedCert.zip",
-            sha256="cdc2d26bc87ecf1cd8133df4e72c4eca5df7ddd815d0adf3045460253c1fe123",
+            "https://servo-deps.s3.amazonaws.com/magicleap/ServoCICert-expires-2020-08-25.zip",
+            sha256="33f9d07b89c206e671f6a5020e52265b131e83aede8fa474be323a8e3345d760",
             path="magicleap"
         )
         # Early script in order to run with the initial $PWD
         .with_early_script("""
             export MAGICLEAP_SDK="$PWD/magicleap/v0.20.0+ndk19c"
-            export MLCERT="$PWD/magicleap/TempSharedCert.cert"
+            export MLCERT="$PWD/magicleap/servocimlcert.cert"
         """)
         .with_script("""
             unset OPENSSL_INCLUDE_DIR
