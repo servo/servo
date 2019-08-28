@@ -6,6 +6,7 @@
 package org.mozilla.servo;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -131,6 +132,10 @@ public class MainActivity extends Activity implements Servo.Client {
 
     @Override
     public void onAlert(String message) {
+      AlertDialog.Builder builder = new AlertDialog.Builder(this);
+      builder.setMessage(message);
+      AlertDialog alert = builder.create();
+      alert.show();
     }
 
     @Override
