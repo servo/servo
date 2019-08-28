@@ -144,6 +144,7 @@ Additional browser-specific documentation:
 
   chrome
   chrome_android
+  android_webview
   safari
 ```
 

@@ -8,6 +8,7 @@ idl_test(
   ["dom", "cssom", "touch-events", "uievents"],
   idlArray => {
     idlArray.add_objects({
+      WorkerLocation: ['self.location'],
       WorkerNavigator: ['self.navigator'],
       WebSocket: ['new WebSocket("ws://foo")'],
       CloseEvent: ['new CloseEvent("close")'],
