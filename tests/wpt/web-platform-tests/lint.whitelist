@@ -820,9 +820,6 @@ WEB-PLATFORM.TEST:signed-exchange/resources/*.sxg
 WEB-PLATFORM.TEST:signed-exchange/appcache/resources/*.sxg
 WEB-PLATFORM.TEST:signed-exchange/resources/generate-test-sxgs.sh
 
-SET TIMEOUT: inert/inert-retargeting.tentative.html
-SET TIMEOUT: inert/inert-retargeting-iframe.tentative.html
-
 # https://github.com/web-platform-tests/wpt/issues/16455
 MISSING DEPENDENCY: idle-detection/interceptor.https.html
 MISSING DEPENDENCY: sms/sms_provider.js

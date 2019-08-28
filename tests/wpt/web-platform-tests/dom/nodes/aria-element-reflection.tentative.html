@@ -1,0 +1,266 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Element Reflection for aria-activedescendant and aria-errormessage</title>
+    <link rel=help href="https://whatpr.org/html/3917/common-dom-interfaces.html#reflecting-content-attributes-in-idl-attributes:element">
+    <link rel="author" title="Meredith Lane" href="meredithl@chromium.org">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <div id="activedescendant" aria-activedescendant="x"></div>
+
+  <div id="parent-listbox" role="listbox" aria-activedescendant="i1">
+    <div role="option" id="i1">Item 1</div>
+    <div role="option" id="i2">Item 2</div>
+  </div>
+
+  <script>
+  test(function(t) {
+    const ancestor = document.getElementById("parent-listbox");
+    assert_equals(activedescendant.ariaActiveDescendantElement, null,
+                  "invalid ID for relationship returns null");
+
+    const descendant1 = document.getElementById("i1");
+    const descendant2 = document.getElementById("i2");
+
+    // Element reference should be set if the content attribute was included.
+    assert_equals(ancestor.getAttribute("aria-activedescendant"), "i1", "check content attribute after parsing.");
+    assert_equals(ancestor.ariaActiveDescendantElement, i1, "check idl attribute after parsing.");
+
+    // If we set the content attribute, the element reference should reflect this.
+    ancestor.setAttribute("aria-activedescendant", "i2");
+    assert_equals(ancestor.ariaActiveDescendantElement, descendant2, "setting the content attribute updates the element reference.");
+
+    // Setting the element reference should be reflected in the content attribute.
+    ancestor.ariaActiveDescendantElement = descendant1;
+    assert_equals(ancestor.ariaActiveDescendantElement, descendant1, "getter should return the right element reference.");
+    assert_equals(ancestor.getAttribute("aria-activedescendant"), "i1", "content attribute should reflect the element reference.");
+
+    // Both content and IDL attribute should be nullable.
+    ancestor.ariaActiveDescendantElement = null;
+    assert_equals(ancestor.ariaActiveDescendantElement, null);
+    assert_false(ancestor.hasAttribute("aria-activedescendant"));
+    assert_equals(ancestor.getAttribute("aria-activedescendant"), null, "nullifying the idl attribute removes the content attribute.");
+
+    // Setting content attribute to non-existent or non compatible element should nullify the IDL attribute.
+    // Reset the element to an existant one.
+    ancestor.setAttribute("aria-activedescendant", "i1");
+    assert_equals(ancestor.ariaActiveDescendantElement, i1, "reset attribute.");
+
+    ancestor.setAttribute("aria-activedescendant", "non-existent-element");
+    assert_equals(ancestor.getAttribute("aria-activedescendant"), "non-existent-element");
+    assert_equals(ancestor.ariaActiveDescendantElement, null,"non-DOM content attribute should null the element reference");
+  }, "aria-activedescendant element reflection");
+  </script>
+
+  <div id="parent-listbox-2" role="listbox" aria-activedescendant="option1">
+    <div role="option" id="option1">Item 1</div>
+    <div role="option" id="option2">Item 2</div>
+  </div>
+
+  <script>
+  test(function(t) {
+    const ancestor = document.getElementById("parent-listbox-2");
+    const option1 = document.getElementById("option1");
+    const option2 = document.getElementById("option2");
+    assert_equals(ancestor.ariaActiveDescendantElement, option1);
+
+    option1.removeAttribute("id");
+    option2.setAttribute("id", "option1");
+    const option2Duplicate = document.getElementById("option1");
+    assert_equals(option2, option2Duplicate);
+
+    assert_equals(ancestor.ariaActiveDescendantElement, option2);
+  }, "If the content attribute is set directly, the IDL attribute getter always returns the first element whose ID matches the content attribute.");
+  </script>
+
+  <div id="blank-id-parent" role="listbox">
+    <div role="option" id="multiple-id"></div>
+    <div role="option" id="multiple-id"></div>
+  </div>
+
+  <script>
+  test(function(t) {
+    const ancestor = document.getElementById("blank-id-parent");
+
+    // Get second child of parent. This violates the setting of a reflected element
+    // as it will not be the first child of the parent with that ID, which should
+    // result in an empty string for the content attribute.
+    ancestor.ariaActiveDescendantElement = ancestor.children[1];
+    assert_true(ancestor.hasAttribute("aria-activedescendant"));
+    assert_equals(ancestor.getAttribute("aria-activedescendant"), "");
+    assert_equals(ancestor.ariaActiveDescendantElement, ancestor.children[1]);
+  }, "Setting the IDL attribute to an element which is not the first element in DOM order with its ID causes the content attribute to be an empty string");
+  </script>
+
+  <div id="outer-container">
+    <p id="light-paragraph">Hello world!</p>
+    <span class="shadow-host">
+    </span>
+  </div>
+
+  <script>
+  test(function(t) {
+    const shadowElement = document.querySelector(".shadow-host");
+    const shadow = shadowElement.attachShadow({mode: "open"});
+    const link = document.createElement("a");
+    shadow.appendChild(link);
+
+    const lightPara = document.getElementById("light-paragraph");
+    assert_equals(lightPara.ariaActiveDescendantElement, null);
+
+    // The given element crosses a shadow dom boundary, so it cannot be
+    // set as an element reference.
+    lightPara.ariaActiveDescendantElement = link;
+    assert_equals(lightPara.ariaActiveDescendantElement, null);
+
+    // The given element crosses a shadow dom boundary (upwards), so
+    // can be used as an element reference, but the content attribute
+    // should reflect the empty string.
+    link.ariaActiveDescendantElement = lightPara;
+    assert_equals(link.ariaActiveDescendantElement, lightPara);
+    assert_equals(link.getAttribute("aria-activedescendant"), "");
+  }, "Setting an element reference that crosses into a shadow tree is disallowed, but setting one that is in a shadow inclusive ancestor is allowed.");
+  </script>
+
+  <input id="startTime" ></input>
+  <span id="errorMessage">Invalid Time</span>
+
+  <script>
+  test(function(t) {
+    const inputElement = document.getElementById("startTime");
+    const errorMessage = document.getElementById("errorMessage");
+
+    inputElement.ariaErrorMessageElement = errorMessage;
+    assert_equals(inputElement.getAttribute("aria-errormessage"), "errorMessage");
+
+    inputElement.ariaErrorMessageElement = null;
+    assert_equals(inputElement.ariaErrorMessageElement, null, "blah");
+    assert_false(inputElement.hasAttribute("aria-errormessage"));
+
+    inputElement.setAttribute("aria-errormessage", "errorMessage");
+    assert_equals(inputElement.ariaErrorMessageElement, errorMessage);
+
+  }, "aria-errormessage");
+
+  </script>
+
+  <label>
+    Password:
+    <input id="password-field" type="password" aria-details="pw">
+  </label>
+
+  <ul>
+    <li id="list-item-1">First description.</li>
+    <li id="list-item-2">Second description.</li>
+  </ul>
+
+  <script>
+
+  test(function(t) {
+    const inputElement = document.getElementById("password-field");
+    const ul1 = document.getElementById("list-item-1");
+    const ul2 = document.getElementById("list-item-2");
+
+    assert_equals(inputElement.ariaDetailsElement, null);
+    inputElement.ariaDetailsElement = ul1;
+    assert_equals(inputElement.getAttribute("aria-details"), "list-item-1");
+
+    inputElement.ariaDetailsElement = ul2;
+    assert_equals(inputElement.getAttribute("aria-details"), "list-item-2");
+  }, "aria-details");
+  </script>
+
+  <div id="old-parent" role="listbox" aria-activedescendant="content-attr-element">
+    <div role="option" id="content-attr-element">Item 1</div>
+    <div role="option" id="idl-attr-element">Item 2</div>
+  </div>
+
+  <script>
+
+  test(function(t) {
+    const deletionParent = document.getElementById("old-parent");
+
+    const descendant1 = document.getElementById("content-attr-element");
+    const descendant2 = document.getElementById("idl-attr-element");
+
+    // Deleting an element set via the content attribute.
+    assert_equals(deletionParent.getAttribute("aria-activedescendant"), "content-attr-element");
+    assert_equals(deletionParent.ariaActiveDescendantElement, descendant1);
+
+    deletionParent.removeChild(descendant1);
+    assert_equals(deletionParent.getAttribute("aria-activedescendant"), "content-attr-element");
+    assert_equals(deletionParent.ariaActiveDescendantElement, null);
+
+    // Deleting an element set via the IDL attribute.
+    deletionParent.ariaActiveDescendantElement = descendant2;
+    assert_equals(deletionParent.getAttribute("aria-activedescendant"), "idl-attr-element");
+
+    deletionParent.removeChild(descendant2);
+    assert_equals(deletionParent.ariaActiveDescendantElement, null);
+
+    // The content attribute will still reflect the id.
+    assert_equals(deletionParent.getAttribute("aria-activedescendant"), "idl-attr-element");
+  }, "Deleting a reflected element should return null for the IDL attribute and cause the content attribute to become stale.");
+  </script>
+
+  <div id="parent" role="listbox" aria-activedescendant="original">
+    <div role="option" id="original">Item 1</div>
+    <div role="option" id="element-with-persistant-id">Item 2</div>
+  </div>
+
+  <script>
+  test(function(t) {
+    const parentNode = document.getElementById("parent");
+    const changingIdElement = document.getElementById("original");
+    const persistantIDElement = document.getElementById("element-with-persistant-id");
+
+    assert_equals(parentNode.ariaActiveDescendantElement, changingIdElement);
+
+    // Modify the id attribute.
+    changingIdElement.setAttribute("id", "new-id");
+
+    // The content attribute still reflects the old id, and we expect the
+    // Element reference to be null as there is no DOM node with id "original"
+    assert_equals(parentNode.getAttribute("aria-activedescendant"), "original");
+    assert_equals(parentNode.ariaActiveDescendantElement, null, "Element set via content attribute with a changed id will return null on getting");
+
+    parentNode.ariaActiveDescendantElement = changingIdElement;
+    assert_equals(parentNode.getAttribute("aria-activedescendant"), "new-id");
+
+    // The explicitly set element takes precendance over the content attribute.
+    // This means that we still return the same element reference, but the
+    // content attribute reflects the old id.
+    changingIdElement.setAttribute("id", "newer-id");
+    assert_equals(parentNode.ariaActiveDescendantElement, changingIdElement, "explicitly set element is still present even after the id has been changed");
+    assert_equals(parentNode.getAttribute("aria-activedescendant"), "new-id", "content attribute reflects the id that was present upon explicitly setting the element reference.");
+  }, "Changing the ID of an element causes the content attribute to become out of sync.");
+  </script>
+
+  <div id="light-parent" role="listbox">
+    <div role="option" id="light-element">Hello world!</div>
+  </div>
+  <div id="shadowHost"></div>
+
+  <script>
+  test(function(t) {
+    const shadowElement = document.getElementById("shadowHost");
+    const shadowHost = shadowElement.attachShadow({mode: "open"});
+    const lightParent = document.getElementById("light-parent");
+    const optionElement = document.getElementById("light-element");
+
+    lightParent.ariaActiveDescendantElement = optionElement;
+    assert_equals(lightParent.ariaActiveDescendantElement, optionElement);
+
+    // Move the referenced element into shadow DOM.
+    shadowHost.appendChild(optionElement);
+    assert_equals(lightParent.ariaActiveDescendantElement, null);
+    assert_equals(lightParent.getAttribute("aria-activedescendant"), "light-element");
+
+    // Move the referenced element back into light DOM.
+    lightParent.appendChild(optionElement);
+    assert_equals(lightParent.ariaActiveDescendantElement, optionElement);
+  }, "Reparenting an element into a descendant shadow scope nullifies the element reference.");
+  </script>
+</html>

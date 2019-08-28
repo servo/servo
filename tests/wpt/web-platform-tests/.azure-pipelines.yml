@@ -305,7 +305,7 @@ jobs:
 - job: results_safari
   displayName: 'all tests: Safari'
   condition: |
-    or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/six_hourly'),
+    or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/daily'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_safari']))
   strategy:
     parallel: 5 # chosen to make runtime ~2h

@@ -14,6 +14,7 @@ function fakeWS() {
   return Object.setPrototypeOf({
     get locked() { return false; },
     abort() { return Promise.resolve(); },
+    close() { return Promise.resolve(); },
     getWriter() { return fakeWSDefaultWriter(); }
   }, WritableStream.prototype);
 }
@@ -63,6 +64,11 @@ promise_test(t => {
   return methodRejectsForAll(t, WritableStream.prototype, 'abort',
                              [fakeWS(), realWSDefaultWriter(), realWSDefaultController(), undefined, null]);
 }, 'WritableStream.prototype.abort enforces a brand check');
+
+promise_test(t => {
+  return methodRejectsForAll(t, WritableStream.prototype, 'close',
+                             [fakeWS(), realWSDefaultWriter(), realWSDefaultController(), undefined, null]);
+}, 'WritableStream.prototype.close enforces a brand check');
 
 test(() => {
   methodThrowsForAll(WritableStream.prototype, 'getWriter',

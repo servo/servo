@@ -1,4 +1,4 @@
-from tests.support.asserts import assert_error, assert_png, assert_success
+from tests.support.asserts import assert_error, assert_success
 from tests.support.image import png_dimensions
 from tests.support.inline import inline
 
@@ -35,7 +35,6 @@ def test_format_and_dimensions(session):
     rect = element_rect(session, element)
 
     response = take_element_screenshot(session, element.id)
-    value = assert_success(response)
+    screenshot = assert_success(response)
 
-    assert_png(value)
-    assert png_dimensions(value) == (rect["width"], rect["height"])
+    assert png_dimensions(screenshot) == (rect["width"], rect["height"])

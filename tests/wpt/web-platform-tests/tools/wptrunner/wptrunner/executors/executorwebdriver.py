@@ -1,6 +1,7 @@
 import json
 import os
 import socket
+import sys
 import threading
 import time
 import traceback
@@ -232,10 +233,14 @@ class WebDriverProtocol(Protocol):
     def teardown(self):
         self.logger.debug("Hanging up on WebDriver session")
         try:
-            self.webdriver.quit()
-        except Exception:
-            pass
-        del self.webdriver
+            self.webdriver.end()
+        except Exception as e:
+            message = str(getattr(e, "message", ""))
+            if message:
+                message += "\n"
+            message += traceback.format_exc(e)
+            self.logger.debug(message)
+        self.webdriver = None
 
     def is_alive(self):
         try:
@@ -277,7 +282,10 @@ class WebDriverRun(object):
                 # it can if self._run fails to set self.result due to raising
                 self.result = False, ("INTERNAL-ERROR", "self._run didn't set a result")
             else:
-                self.result = False, ("EXTERNAL-TIMEOUT", None)
+                message = "Waiting on browser:\n"
+                # get a traceback for the current stack of the executor thread
+                message += "".join(traceback.format_stack(sys._current_frames()[executor.ident]))
+                self.result = False, ("EXTERNAL-TIMEOUT", message)
 
         return self.result
 
