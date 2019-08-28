@@ -41,6 +41,7 @@ dictionary AudioConfiguration {
   DOMString channels;
   unsigned long long bitrate;
   unsigned long samplerate;
+  boolean spatialRendering;
 };
 
 dictionary MediaCapabilitiesKeySystemConfiguration {
@@ -80,6 +81,7 @@ interface MediaCapabilities {
   [NewObject] Promise<MediaCapabilitiesInfo> encodingInfo(MediaEncodingConfiguration configuration);
 };
 
+[Exposed=Window]
 interface ScreenLuminance {
   readonly attribute double min;
   readonly attribute double max;

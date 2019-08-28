@@ -79,7 +79,6 @@ partial interface Document {
 
   // user interaction
   readonly attribute WindowProxy? defaultView;
-  readonly attribute Element? activeElement;
   boolean hasFocus();
   [CEReactions] attribute DOMString designMode;
   [CEReactions] boolean execCommand(DOMString commandId, optional boolean showUI = false, optional DOMString value = "");
@@ -96,6 +95,10 @@ partial interface Document {
 };
 Document includes GlobalEventHandlers;
 Document includes DocumentAndElementEventHandlers;
+
+partial interface mixin DocumentOrShadowRoot {
+  readonly attribute Element? activeElement;
+};
 
 [Exposed=Window,
  HTMLConstructor]
@@ -1602,7 +1605,7 @@ interface Window : EventTarget {
   attribute any opener;
   [Replaceable] readonly attribute WindowProxy? parent;
   readonly attribute Element? frameElement;
-  WindowProxy? open(optional USVString url = "about:blank", optional DOMString target = "_blank", optional [TreatNullAs=EmptyString] DOMString features = "");
+  WindowProxy? open(optional USVString url = "", optional DOMString target = "_blank", optional [TreatNullAs=EmptyString] DOMString features = "");
   getter object (DOMString name);
   // Since this is the global object, the IDL named getter adds a NamedPropertiesObject exotic
   // object on the prototype chain. Indeed, this does not make the global object an exotic object.
@@ -1813,7 +1816,6 @@ interface mixin GlobalEventHandlers {
   attribute EventHandler onload;
   attribute EventHandler onloadeddata;
   attribute EventHandler onloadedmetadata;
-  attribute EventHandler onloadend;
   attribute EventHandler onloadstart;
   attribute EventHandler onmousedown;
   [LenientThis] attribute EventHandler onmouseenter;

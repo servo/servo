@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js" ></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="trusted-types *">
+<body>
+<div id="target"></div>
+<script>
+  test(t => {
+    assert_equals(TrustedTypes.getPropertyType("a", "href"), "TrustedURL");
+    assert_equals(TrustedTypes.getPropertyType("a", "id"), null);
+    assert_equals(TrustedTypes.getPropertyType("a", "b"), null);
+  }, "sanity check TrustedTypes.getPropertyType for the HTML a element.");
+
+  test(t => {
+    assert_equals(TrustedTypes.getAttributeType("img", "onerror"), "TrustedScript");
+    assert_equals(TrustedTypes.getAttributeType("img", "width"), null);
+    assert_equals(TrustedTypes.getAttributeType("img", "madeup"), null);
+  }, "sanity check TrustedTypes.getAttributeType.");
+
+  test(t => {
+    assert_true(!!TrustedTypes.getTypeMapping());
+  }, "sanity check TrustedTypes.getTypeMapping");
+
+
+  // getPropertyType tests adapted from WICG/trusted-types polyfill:
+  test(t => {
+    // returns the proper type for attribute-related properties
+    assert_equals(TrustedTypes.getPropertyType("script", "src"), "TrustedScriptURL");
+    assert_equals(TrustedTypes.getPropertyType("img", "src"), "TrustedURL");
+
+    // is case insensitive for tag names
+    assert_equals(TrustedTypes.getPropertyType("SCRIPT", "src"), "TrustedScriptURL");
+    assert_equals(TrustedTypes.getPropertyType("ImG", "src"), "TrustedURL");
+
+    // is case sensitive for property names
+    assert_equals(TrustedTypes.getPropertyType("script", "sRc"), null);
+    assert_equals(TrustedTypes.getPropertyType("div", "innerhtml"), null);
+
+    // returns the proper type for innerHTML
+    assert_equals(TrustedTypes.getPropertyType("div", "innerHTML"), "TrustedHTML");
+
+    // returns the proper type for outerHTML
+    assert_equals(TrustedTypes.getPropertyType("div", "outerHTML"), "TrustedHTML");
+
+    // returns the proper type for script.prop
+    ["text", "innerText", "textContent"].forEach((prop) => {
+      assert_equals(TrustedTypes.getPropertyType("script", prop), "TrustedScript");
+    });
+  }, "getPropertyType tests adapted from WICG/trusted-types polyfill");
+
+  test(t => {
+    // returns the proper type
+    assert_equals(TrustedTypes.getAttributeType('script', 'src'), 'TrustedScriptURL');
+    assert_equals(TrustedTypes.getAttributeType('img', 'src'), 'TrustedURL');
+
+    // ignores attributes from unknown namespaces
+    assert_equals(TrustedTypes.getAttributeType(
+          'a', 'href', '', 'http://foo.bar'), null);
+
+    // is case insensitive for element names
+    assert_equals(TrustedTypes.getAttributeType('SCRIPT', 'src'), 'TrustedScriptURL');
+    assert_equals(TrustedTypes.getAttributeType('imG', 'src'), 'TrustedURL');
+
+    // is case insensitive for the attribute names
+    assert_equals(TrustedTypes.getAttributeType('script', 'SRC'), 'TrustedScriptURL');
+    assert_equals(TrustedTypes.getAttributeType('imG', 'srC'), 'TrustedURL');
+
+    // supports the inline event handlers
+    assert_equals(TrustedTypes.getAttributeType('img', 'onerror'), 'TrustedScript');
+    assert_equals(TrustedTypes.getAttributeType('unknown', 'onerror'), 'TrustedScript');
+
+    // defaults to undefined
+    assert_equals(TrustedTypes.getAttributeType('unknown', 'src'), null);
+    assert_equals(TrustedTypes.getAttributeType('img', 'bar'), null);
+  }, "getAttributeType tests adapted from WICG/trusted-types polyfill");
+
+
+  test(t=> {
+    const map = TrustedTypes.getTypeMapping();
+
+    // Spot testing some values.
+    assert_equals(map["script"].attributes.src, "TrustedScriptURL");
+    assert_equals(map["img"].attributes.src, "TrustedURL");
+    assert_equals(map["*"].properties.innerHTML, "TrustedHTML");
+    assert_equals(map["foo"], undefined);
+
+    // getTypeMapping returns a 'clean' object, in case the return value has
+    // been modified.
+    map["*"].attributes["foo"] = "bar";
+    assert_equals(TrustedTypes.getTypeMapping()["*"].attributes["foo"], undefined);
+;
+    // Unknown namespaces:
+    assert_equals(TrustedTypes.getTypeMapping("http://foo/bar"), undefined);
+  }, "getTypeMapping tests adapted from WICG/trusted-types polyfill");
+
+  // Test case handling for both attributes and properties.
+  for (let attr of ["codeBase", "CODEBASE", "codebase"]) {
+    for (let elem of ["object", "OBJECT", "oBjEcT"]) {
+      test(t => {
+        // attributes are case-insensitive, so all variants should be defined.
+        assert_true(TrustedTypes.getAttributeType(elem, attr) != undefined);
+      }, `${elem}[${attr}] is defined`);
+      test(t => {
+        // properties are case-sensitive, so only the "correct" spelling
+        // should be defined.
+        assert_equals(TrustedTypes.getPropertyType(elem, attr) != undefined,
+                      attr == "codeBase");
+      }, `${elem}.${attr} is maybe defined`);
+    }
+  }
+</script>
+</body>
