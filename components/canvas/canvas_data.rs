@@ -302,14 +302,14 @@ pub enum GradientStop {
     #[cfg(feature = "canvas2d-azure")]
     Azure(azure::AzGradientStop),
     #[cfg(feature = "canvas2d-raqote")]
-    Raqote(()),
+    Raqote(raqote::GradientStop),
 }
 
 pub enum GradientStops {
     #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::GradientStops),
     #[cfg(feature = "canvas2d-raqote")]
-    Raqote(()),
+    Raqote(Vec<raqote::GradientStop>),
 }
 
 #[derive(Clone)]

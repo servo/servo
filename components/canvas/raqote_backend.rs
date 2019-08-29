@@ -246,10 +246,14 @@ impl GenericDrawTarget for raqote::DrawTarget {
     }
     fn create_gradient_stops(
         &self,
-        _gradient_stops: Vec<GradientStop>,
+        gradient_stops: Vec<GradientStop>,
         _extend_mode: ExtendMode,
     ) -> GradientStops {
-        unimplemented!();
+        let stops = gradient_stops
+            .into_iter()
+            .map(|item| item.as_raqote().clone())
+            .collect();
+        GradientStops::Raqote(stops)
     }
     fn create_path_builder(&self) -> Box<dyn GenericPathBuilder> {
         Box::new(PathBuilder::new())
@@ -676,6 +680,14 @@ impl SourceSurface {
     fn as_raqote(&self) -> &Vec<u8> {
         match self {
             SourceSurface::Raqote(s) => s,
+        }
+    }
+}
+
+impl GradientStop {
+    fn as_raqote(&self) -> &raqote::GradientStop {
+        match self {
+            GradientStop::Raqote(s) => s,
         }
     }
 }
