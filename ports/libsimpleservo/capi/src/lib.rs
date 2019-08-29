@@ -3,10 +3,27 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #[macro_use]
+extern crate lazy_static;
+
+#[macro_use]
 extern crate log;
 
 #[cfg(target_os = "windows")]
 mod vslogger;
+
+#[cfg(target_os = "windows")]
+use std::sync::{Arc, Mutex};
+
+#[cfg(target_os = "windows")]
+use vslogger::VsloggerModuleFilter;
+
+#[cfg(target_os = "windows")]
+lazy_static! {
+    static ref LOG_MODULE_FILTERS: Arc<Mutex<VsloggerModuleFilter>> =
+        Arc::new(Mutex::new(VsloggerModuleFilter {
+            vslogger_filter: vec![]
+        }));
+}
 
 #[cfg(not(target_os = "windows"))]
 use env_logger;
@@ -192,6 +209,41 @@ pub struct CInitOptions {
     pub density: f32,
     pub vr_pointer: *mut c_void,
     pub enable_subpixel_text_antialiasing: bool,
+    pub vslogger_mod_list: *mut *mut c_char,
+    pub vslogger_mod_size: i32,
+}
+impl Default for CInitOptions {
+    fn default() -> CInitOptions {
+        use std::ptr;
+        CInitOptions {
+            args: ptr::null(),
+            url: ptr::null(),
+            width: 0 as i32,
+            height: 0 as i32,
+            density: 0 as f32,
+            vr_pointer: ptr::null_mut(),
+            enable_subpixel_text_antialiasing: false,
+            vslogger_mod_list: ptr::null_mut(),
+            vslogger_mod_size: 0 as i32,
+        }
+    }
+}
+
+impl CInitOptions {
+    pub fn build_mod_list_vec(&self) -> Vec<String> {
+        let mut _mod_vec: Vec<String> = vec![];
+        let len = self.vslogger_mod_size - 1;
+
+        let _mod_vec = (0..len)
+            .map(|i| unsafe {
+                CStr::from_ptr(*self.vslogger_mod_list.offset(i as isize))
+                    .to_string_lossy()
+                    .into_owned()
+            })
+            .collect::<Vec<_>>();
+
+        return _mod_vec;
+    }
 }
 
 /// The returned string is not freed. This will leak.
@@ -212,13 +264,19 @@ pub extern "C" fn servo_version() -> *const c_char {
 }
 
 #[cfg(target_os = "windows")]
-fn init_logger() {
+fn init_logger(_opts: &CInitOptions) {
     use log::LevelFilter;
     use std::sync::Once;
     use vslogger::VSLogger;
 
     static LOGGER: VSLogger = VSLogger;
     static LOGGER_INIT: Once = Once::new();
+
+    if _opts.vslogger_mod_size > 0 {
+        LOG_MODULE_FILTERS.lock().unwrap().vslogger_filter =
+            LOGGER.add_module_to_filter(_opts.vslogger_mod_list, _opts.vslogger_mod_size);
+    }
+
     LOGGER_INIT.call_once(|| {
         log::set_logger(&LOGGER)
             .map(|_| log::set_max_level(LevelFilter::Debug))
@@ -239,7 +297,11 @@ unsafe fn init(
     wakeup: extern "C" fn(),
     callbacks: CHostCallbacks,
 ) {
-    init_logger();
+    if !opts.vslogger_mod_list.is_null() && opts.vslogger_mod_size > 0 {
+        opts.build_mod_list_vec();
+    }
+
+    init_logger(&opts);
 
     if let Err(reason) = redirect_stdout_stderr() {
         warn!("Error redirecting stdout/stderr: {}", reason);
@@ -291,7 +353,6 @@ pub extern "C" fn init_with_egl(
     callbacks: CHostCallbacks,
 ) -> bool {
     catch_any_panic(|| {
-        init_logger();
         let gl = gl_glue::egl::init().unwrap();
         unsafe {
             init(
@@ -314,7 +375,6 @@ pub extern "C" fn init_with_gl(
     callbacks: CHostCallbacks,
 ) -> bool {
     catch_any_panic(|| {
-        init_logger();
         let gl = gl_glue::gl::init().unwrap();
         unsafe { init(opts, gl, None, None, wakeup, callbacks) }
     })
