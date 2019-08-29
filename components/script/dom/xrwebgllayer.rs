@@ -129,12 +129,28 @@ impl XRWebGLLayer {
         );
 
         // Restore the WebGL state while complaining about global mutable state
+        let fb_status = context.CheckFramebufferStatus(constants::FRAMEBUFFER);
+        let gl_status = context.GetError();
         context.BindTexture(constants::TEXTURE_2D, old_texture.as_ref().map(|t| &**t));
         context.BindFramebuffer(constants::FRAMEBUFFER, old_fbo.as_ref().map(|f| &**f));
 
         // Step 8.4: "If layer’s resources were unable to be created for any reason,
         // throw an OperationError and abort these steps."
-        sc.or(Err(Error::Operation))?;
+        if let Err(err) = sc {
+            error!("TexImage2D error {:?} while creating XR context", err);
+            return Err(Error::Operation);
+        }
+        if fb_status != constants::FRAMEBUFFER_COMPLETE {
+            error!(
+                "Framebuffer error {:x} while creating XR context",
+                fb_status
+            );
+            return Err(Error::Operation);
+        }
+        if gl_status != constants::NO_ERROR {
+            error!("GL error {:x} while creating XR context", gl_status);
+            return Err(Error::Operation);
+        }
 
         // Step 9. "Return layer."
         Ok(XRWebGLLayer::new(
