@@ -39,6 +39,7 @@
 #include <winrt/Windows.Perception.Spatial.h>
 #include <winrt/Windows.Storage.h>
 #include <winrt/Windows.Storage.Streams.h>
+#include <winrt/windows.system.h>
 #include <winrt/Windows.UI.Core.h>
 #include <winrt/Windows.UI.Input.Spatial.h>
 #include <winrt/Windows.UI.Popups.h>

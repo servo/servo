@@ -28,6 +28,7 @@ public:
                    Windows::UI::Xaml::Input::KeyRoutedEventArgs const &);
   void Shutdown();
   void LoadServoURI(Windows::Foundation::Uri uri);
+  void SetTransientMode(bool);
 
 private:
   void BindServoEvents();

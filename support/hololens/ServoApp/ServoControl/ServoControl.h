@@ -69,6 +69,8 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
     mOnCaptureGesturesEndedEvent.remove(token);
   }
 
+  void SetTransientMode(bool transient) { mTransient = transient; }
+
   virtual void WakeUp();
   virtual void OnServoLoadStarted();
   virtual void OnServoLoadEnded();
@@ -94,6 +96,7 @@ private:
 
   float mDPI = 1;
   hstring mInitialURL = L"https://servo.org";
+  bool mTransient = false;
 
   Windows::UI::Xaml::Controls::SwapChainPanel ServoControl::Panel();
   void CreateRenderSurface();

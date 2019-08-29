@@ -8,6 +8,7 @@ using namespace winrt::Windows::Graphics::Display;
 using namespace winrt::Windows::UI::Xaml;
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::Foundation;
+using namespace winrt::Windows::System;
 using namespace concurrency;
 using namespace winrt::servo;
 
@@ -270,7 +271,14 @@ void ServoControl::WakeUp() {
   RunOnGLThread([=] {});
 }
 
-bool ServoControl::OnServoAllowNavigation(hstring) { return true; }
+bool ServoControl::OnServoAllowNavigation(hstring uri) {
+  if (mTransient) {
+    RunOnUIThread([=] {
+      Launcher::LaunchUriAsync(Uri{uri});
+    });
+  }
+  return !mTransient;
+}
 
 void ServoControl::OnServoAnimatingChanged(bool animating) {
   EnterCriticalSection(&mGLLock);

@@ -55,6 +55,12 @@ void BrowserPage::LoadServoURI(Uri uri) {
   servoControl().LoadURIOrSearch(raw2);
 }
 
+void BrowserPage::SetTransientMode(bool transient) {
+  servoControl().SetTransientMode(transient);
+  navigationBar().Visibility(transient ? Visibility::Collapsed
+                                       : Visibility::Visible);
+}
+
 void BrowserPage::Shutdown() { servoControl().Shutdown(); }
 
 /**** USER INTERACTIONS WITH UI ****/
