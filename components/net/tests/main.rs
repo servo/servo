@@ -43,6 +43,7 @@ use std::net::TcpListener as StdTcpListener;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
+use tokio::reactor::Handle;
 use tokio::runtime::Runtime;
 use tokio_openssl::SslAcceptorExt;
 
@@ -180,7 +181,7 @@ where
 {
     let handler = Arc::new(handler);
     let listener = StdTcpListener::bind("[::0]:0").unwrap();
-    let listener = TcpListener::from_std(listener, &HANDLE.lock().unwrap().reactor()).unwrap();
+    let listener = TcpListener::from_std(listener, &Handle::default()).unwrap();
     let url_string = format!("http://localhost:{}", listener.local_addr().unwrap().port());
     let url = ServoUrl::parse(&url_string).unwrap();
 
