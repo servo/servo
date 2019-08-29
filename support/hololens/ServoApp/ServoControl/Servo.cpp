@@ -40,6 +40,28 @@ Servo::Servo(GLsizei width, GLsizei height, ServoDelegate &aDelegate)
   o.enable_subpixel_text_antialiasing = false;
   o.vr_pointer = NULL;
 
+  // 7 filter modules.
+  /* Sample list of servo modules to filter.
+  static char *pfilters[] = {
+	  "servo",
+	  "simpleservo", 
+	  "simpleservo::jniapi",
+	  "simpleservo::gl_glue::egl",
+	  // Show JS errors by default.
+	  "script::dom::bindings::error",
+	  // Show GL errors by default.
+	  "canvas::webgl_thread",
+	  "compositing::compositor",
+	  "constellation::constellation",
+  };
+  */
+
+  // Example Call when *pfilters[] is used:
+  // o.vslogger_mod_list = pfilters; // servo log modules
+  // o.vslogger_mod_size = sizeof(pfilters) / sizeof(pfilters[0]) -1; // Important: Number of modules in pfilters
+  o.vslogger_mod_list = NULL;
+  o.vslogger_mod_size = 0;
+
   sServo = this; // FIXME;
 
   capi::CHostCallbacks c;
