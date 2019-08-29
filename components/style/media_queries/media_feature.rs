@@ -44,8 +44,8 @@ pub enum Evaluator {
     Integer(MediaFeatureEvaluator<u32>),
     Float(MediaFeatureEvaluator<f32>),
     BoolInteger(MediaFeatureEvaluator<bool>),
-    /// An integer ratio, such as the one from device-pixel-ratio.
-    IntRatio(MediaFeatureEvaluator<AspectRatio>),
+    /// A non-negative number ratio, such as the one from device-pixel-ratio.
+    NumberRatio(MediaFeatureEvaluator<AspectRatio>),
     /// A resolution.
     Resolution(MediaFeatureEvaluator<Resolution>),
     /// A keyword value.
