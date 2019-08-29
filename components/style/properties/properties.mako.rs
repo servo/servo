@@ -38,6 +38,7 @@ use style_traits::{CssWriter, KeywordsCollectFn, ParseError, ParsingMode};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use to_shmem::impl_trivial_to_shmem;
 use crate::stylesheets::{CssRuleType, Origin, UrlExtraData};
+use crate::use_counters::UseCounters;
 use crate::values::generics::text::LineHeight;
 use crate::values::{computed, resolved};
 use crate::values::computed::NonNegativeLength;
@@ -426,6 +427,9 @@ pub struct NonCustomPropertyId(usize);
 /// The length of all the non-custom properties.
 pub const NON_CUSTOM_PROPERTY_ID_COUNT: usize =
     ${len(data.longhands) + len(data.shorthands) + len(data.all_aliases())};
+
+/// The length of all counted unknown properties.
+pub const COUNTED_UNKNOWN_PROPERTY_COUNT: usize = ${len(data.counted_unknown_properties)};
 
 % if engine == "gecko":
 #[allow(dead_code)]
@@ -1788,6 +1792,45 @@ impl ToCss for PropertyId {
     }
 }
 
+/// The counted unknown property list which is used for css use counters.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[repr(u8)]
+pub enum CountedUnknownProperty {
+    % for prop in data.counted_unknown_properties:
+    /// ${prop.name}
+    ${prop.camel_case},
+    % endfor
+}
+
+impl CountedUnknownProperty {
+    /// Parse the counted unknown property.
+    pub fn parse_for_test(property_name: &str) -> Option<Self> {
+        ascii_case_insensitive_phf_map! {
+            unknown_id -> CountedUnknownProperty = {
+                % for property in data.counted_unknown_properties:
+                "${property.name}" => CountedUnknownProperty::${property.camel_case},
+                % endfor
+            }
+        }
+        unknown_id(property_name).cloned()
+    }
+
+    /// Returns the underlying index, used for use counter.
+    pub fn bit(self) -> usize {
+        self as usize
+    }
+}
+
+#[cfg(feature = "gecko")]
+fn is_counted_unknown_use_counters_enabled() -> bool {
+    static_prefs::pref!("layout.css.use-counters-unimplemented.enabled")
+}
+
+#[cfg(feature = "servo")]
+fn is_counted_unknown_use_counters_enabled() -> bool {
+    false
+}
+
 impl PropertyId {
     /// Return the longhand id that this property id represents.
     #[inline]
@@ -1801,16 +1844,30 @@ impl PropertyId {
 
     /// Returns a given property from the string `s`.
     ///
-    /// Returns Err(()) for unknown non-custom properties.
-    fn parse_unchecked(property_name: &str) -> Result<Self, ()> {
+    /// Returns Err(()) for unknown properties.
+    fn parse_unchecked(
+        property_name: &str,
+        use_counters: Option< &UseCounters>,
+    ) -> Result<Self, ()> {
+        // A special id for css use counters.
+        // ShorthandAlias is not used in the Servo build.
+        // That's why we need to allow dead_code.
+        #[allow(dead_code)]
+        pub enum StaticId {
+            Longhand(LonghandId),
+            Shorthand(ShorthandId),
+            LonghandAlias(LonghandId, AliasId),
+            ShorthandAlias(ShorthandId, AliasId),
+            CountedUnknown(CountedUnknownProperty),
+        }
         ascii_case_insensitive_phf_map! {
-            property_id -> PropertyId = {
+            static_id -> StaticId = {
                 % for (kind, properties) in [("Longhand", data.longhands), ("Shorthand", data.shorthands)]:
                 % for property in properties:
-                "${property.name}" => PropertyId::${kind}(${kind}Id::${property.camel_case}),
+                "${property.name}" => StaticId::${kind}(${kind}Id::${property.camel_case}),
                 % for alias in property.alias:
                 "${alias.name}" => {
-                    PropertyId::${kind}Alias(
+                    StaticId::${kind}Alias(
                         ${kind}Id::${property.camel_case},
                         AliasId::${alias.camel_case},
                     )
@@ -1818,11 +1875,31 @@ impl PropertyId {
                 % endfor
                 % endfor
                 % endfor
+                % for property in data.counted_unknown_properties:
+                "${property.name}" => {
+                    StaticId::CountedUnknown(CountedUnknownProperty::${property.camel_case})
+                },
+                % endfor
             }
         }
 
-        if let Some(id) = property_id(property_name) {
-            return Ok(id.clone())
+        if let Some(id) = static_id(property_name) {
+            return Ok(match *id {
+                StaticId::Longhand(id) => PropertyId::Longhand(id),
+                StaticId::Shorthand(id) => PropertyId::Shorthand(id),
+                StaticId::LonghandAlias(id, alias) => PropertyId::LonghandAlias(id, alias),
+                StaticId::ShorthandAlias(id, alias) => PropertyId::ShorthandAlias(id, alias),
+                StaticId::CountedUnknown(unknown_prop) => {
+                    if is_counted_unknown_use_counters_enabled() {
+                        if let Some(counters) = use_counters {
+                            counters.counted_unknown_properties.record(unknown_prop);
+                        }
+                    }
+
+                    // Always return Err(()) because these aren't valid custom property names.
+                    return Err(());
+                }
+            });
         }
 
         let name = crate::custom_properties::parse_name(property_name)?;
@@ -1833,7 +1910,7 @@ impl PropertyId {
     /// enabled for all content.
     #[inline]
     pub fn parse_enabled_for_all_content(name: &str) -> Result<Self, ()> {
-        let id = Self::parse_unchecked(name)?;
+        let id = Self::parse_unchecked(name, None)?;
 
         if !id.enabled_for_all_content() {
             return Err(());
@@ -1847,7 +1924,7 @@ impl PropertyId {
     /// allowed in this context.
     #[inline]
     pub fn parse(name: &str, context: &ParserContext) -> Result<Self, ()> {
-        let id = Self::parse_unchecked(name)?;
+        let id = Self::parse_unchecked(name, context.use_counters)?;
 
         if !id.allowed_in(context) {
             return Err(());
@@ -1865,7 +1942,7 @@ impl PropertyId {
         name: &str,
         context: &ParserContext,
     ) -> Result<Self, ()> {
-        let id = Self::parse_unchecked(name)?;
+        let id = Self::parse_unchecked(name, None)?;
 
         if !id.allowed_in_ignoring_rule_type(context) {
             return Err(());
