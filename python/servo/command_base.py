@@ -571,7 +571,7 @@ class CommandBase(object):
             # We don't build gstreamer for non-x86_64 / android yet
             return False
         if sys.platform == "linux2" or is_windows():
-            if path.isdir(gstreamer_root(effective_target, env, self.get_top_dir)):
+            if path.isdir(gstreamer_root(effective_target, env, self.get_top_dir())):
                 return True
             else:
                 raise Exception("Your system's gstreamer libraries are out of date \
@@ -586,7 +586,7 @@ install them, let us know by filing a bug!")
         """Some commands, like test-wpt, don't use a full build env,
            but may still need dynamic search paths. This command sets that up"""
         if not android and self.needs_gstreamer_env(None, os.environ):
-            gstpath = gstreamer_root(host_triple(), os.environ, self.get_top_dir)
+            gstpath = gstreamer_root(host_triple(), os.environ, self.get_top_dir())
             if gstpath is None:
                 return
             os.environ["LD_LIBRARY_PATH"] = path.join(gstpath, "lib")
