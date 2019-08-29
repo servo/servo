@@ -10,7 +10,7 @@ partial interface Navigator {
 [SecureContext, Exposed=Window] interface XR : EventTarget {
   // Methods
   Promise<void> supportsSession(XRSessionMode mode);
-  Promise<XRSession> requestSession(XRSessionMode mode, optional XRSessionInit options);
+  Promise<XRSession> requestSession(XRSessionMode mode, optional XRSessionInit options = {});
 
   // Events
   attribute EventHandler ondevicechange;
@@ -39,7 +39,7 @@ enum XRVisibilityState {
   [SameObject] readonly attribute XRInputSourceArray inputSources;
 
   // Methods
-  void updateRenderState(optional XRRenderStateInit state);
+  void updateRenderState(optional XRRenderStateInit state = {});
   Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceType type);
 
   long requestAnimationFrame(XRFrameRequestCallback callback);
@@ -123,7 +123,7 @@ enum XREye {
 };
 
 [SecureContext, Exposed=Window,
- Constructor(optional DOMPointInit position, optional DOMPointInit orientation)]
+ Constructor(optional DOMPointInit position = {}, optional DOMPointInit orientation = {})]
 interface XRRigidTransform {
   [SameObject] readonly attribute DOMPointReadOnly position;
   [SameObject] readonly attribute DOMPointReadOnly orientation;
@@ -182,7 +182,7 @@ dictionary XRWebGLLayerInit {
 
 [SecureContext, Exposed=Window, Constructor(XRSession session,
              XRWebGLRenderingContext context,
-             optional XRWebGLLayerInit layerInit)]
+             optional XRWebGLLayerInit layerInit = {})]
 interface XRWebGLLayer {
   // Attributes
   readonly attribute boolean antialias;

@@ -5,7 +5,7 @@
 <title>Attribute mapping</title>
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#legacy-mathml-style-attributes">
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#attributes-common-to-html-and-mathml-elements">
-<meta name="assert" content="Verify that dir, mathcolor, mathbackground and mathsize are mapped to CSS">
+<meta name="assert" content="Verify that dir, mathcolor, mathbackground and mathsize are mapped to CSS but that deprecated MathML3 attributes are not.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/mathml/support/mathml-fragments.js"></script>
@@ -70,6 +70,23 @@
               element.setAttribute("mathsize", "30Px");
               assert_equals(style.getPropertyValue("font-size"), "30px", "case insensitive");
           }, `mathsize on the ${tag} element is mapped to CSS font-size`);
+
+          test(function() {
+              var properties = ["background-color", "color", "fontfamily", "font-size", "font-style", "font-weight"];
+              var oldStyle = {};
+              properties.forEach(property => {
+                  oldStyle[property] = style.getPropertyValue(property);
+              });
+              element.setAttribute("background", "red");
+              element.setAttribute("color", "blue");
+              element.setAttribute("fontfamily", "monospace");
+              element.setAttribute("fontsize", "50px");
+              element.setAttribute("fontstyle", "italic");
+              element.setAttribute("fontweight", "bold");
+              properties.forEach(property => {
+                  assert_equals(style.getPropertyValue(property), oldStyle[property], `${property}`);
+              });
+          }, `deprecated MathML3 attributes on the ${tag} element are not mapped to CSS`);
       });
 
       done();
