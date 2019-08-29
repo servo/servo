@@ -71,7 +71,8 @@ void App::OnActivated(IActivatedEventArgs const &args) {
     Frame rootFrame{nullptr};
 
     auto content = Window::Current().Content();
-    if (content == nullptr) {
+    bool isRunning = content != nullptr;
+    if (!isRunning) {
       rootFrame = Frame();
       rootFrame.Navigate(xaml_typename<ServoApp::BrowserPage>());
       Window::Current().Content(rootFrame);
@@ -81,6 +82,9 @@ void App::OnActivated(IActivatedEventArgs const &args) {
     }
     auto page = rootFrame.Content().try_as<BrowserPage>();
     page->LoadServoURI(protocolActivatedEventArgs.Uri());
+    // If Servo was opened as a result of clicking on a servo:// URL,
+    // we activate transient mode.
+    page->SetTransientMode(!isRunning);
   }
 }
 
