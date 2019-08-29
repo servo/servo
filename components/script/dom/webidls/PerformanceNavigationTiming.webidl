@@ -25,7 +25,7 @@ interface PerformanceNavigationTiming : PerformanceResourceTiming {
     readonly attribute DOMHighResTimeStamp loadEventEnd;
     readonly attribute NavigationType      type;
     readonly attribute unsigned short      redirectCount;
-    // [Default] object toJSON();
+    [Default] object toJSON();
     /* Servo-only attribute for measuring when the top-level document (not iframes) is complete. */
     [Pref="dom.testperf.enabled"]
     readonly attribute DOMHighResTimeStamp topLevelDomComplete;

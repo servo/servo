@@ -2049,9 +2049,10 @@ class CGImports(CGWrapper):
                 if name != 'GlobalScope':
                     extras += [descriptor.path]
                 parentName = descriptor.getParentName()
-                if parentName:
+                while parentName:
                     descriptor = descriptorProvider.getDescriptor(parentName)
                     extras += [descriptor.path, descriptor.bindingPath]
+                    parentName = descriptor.getParentName()
             elif t.isType() and t.isRecord():
                 extras += ['crate::dom::bindings::mozmap::MozMap']
             elif isinstance(t, IDLPromiseType):
@@ -3662,6 +3663,7 @@ class CGDefaultToJSONMethod(CGSpecializedMethod):
 
     def definition_body(self):
         ret = dedent("""
+            use crate::dom::bindings::inheritance::HasParent;
             rooted!(in(*cx) let result = JS_NewPlainObject(*cx));
             if result.is_null() {
               return false;
@@ -3676,16 +3678,20 @@ class CGDefaultToJSONMethod(CGSpecializedMethod):
                 jsonDescriptors.append(descriptor)
             interface = interface.parent
 
+        # TODO: use .as_parent()
+        parents = len(jsonDescriptors) - 1
         form = """
-             if !${parentclass}CollectJSONAttributes(cx, _obj, this, &result) {
+             if !${parentclass}CollectJSONAttributes(cx, _obj, this${asparent}, &result) {
                  return false;
              }
              """
 
         # Iterate the array in reverse: oldest ancestor first
         for descriptor in jsonDescriptors[:0:-1]:
-            ret += fill(form, parentclass=toBindingNamespace(descriptor.name) + "::")
-        ret += fill(form, parentclass="")
+            ret += fill(form, parentclass=toBindingNamespace(descriptor.name) + "::",
+                        asparent=".as_ref().unwrap()" + ".as_parent()" * parents)
+            parents -= 1
+        ret += fill(form, parentclass="", asparent="")
         ret += ('(*args).rval().set(ObjectValue(*result));\n'
                 'return true;\n')
         return CGGeneric(ret)
