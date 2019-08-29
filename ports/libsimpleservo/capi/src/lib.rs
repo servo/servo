@@ -21,6 +21,7 @@ use std::ffi::{CStr, CString};
 use std::mem;
 use std::os::raw::{c_char, c_void};
 use std::panic::{self, UnwindSafe};
+use std::slice;
 use std::sync::RwLock;
 
 extern "C" fn default_panic_handler(msg: *const c_char) {
@@ -222,6 +223,8 @@ pub struct CInitOptions {
     pub density: f32,
     pub vr_pointer: *mut c_void,
     pub enable_subpixel_text_antialiasing: bool,
+    pub vslogger_mod_list: *const *const c_char,
+    pub vslogger_mod_size: u32,
 }
 
 /// The returned string is not freed. This will leak.
@@ -231,13 +234,22 @@ pub extern "C" fn servo_version() -> *const c_char {
 }
 
 #[cfg(target_os = "windows")]
-fn init_logger() {
+fn init_logger(modules: &[*const c_char]) {
+    use crate::vslogger::LOG_MODULE_FILTERS;
     use log::LevelFilter;
     use std::sync::Once;
     use vslogger::VSLogger;
 
     static LOGGER: VSLogger = VSLogger;
     static LOGGER_INIT: Once = Once::new();
+
+    if !modules.is_empty() {
+        *LOG_MODULE_FILTERS.lock().unwrap() = modules
+            .iter()
+            .map(|modules| unsafe { CStr::from_ptr(*modules).to_string_lossy().into_owned() })
+            .collect::<Vec<_>>();
+    }
+
     LOGGER_INIT.call_once(|| {
         log::set_logger(&LOGGER)
             .map(|_| log::set_max_level(LevelFilter::Debug))
@@ -246,7 +258,7 @@ fn init_logger() {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn init_logger() {
+fn init_logger(_modules: &[*const c_char]) {
     crate::env_logger::init();
 }
 
@@ -258,7 +270,13 @@ unsafe fn init(
     wakeup: extern "C" fn(),
     callbacks: CHostCallbacks,
 ) {
-    init_logger();
+    let logger_modules = if opts.vslogger_mod_list.is_null() {
+        &[]
+    } else {
+        slice::from_raw_parts(opts.vslogger_mod_list, opts.vslogger_mod_size as usize)
+    };
+
+    init_logger(logger_modules);
 
     if let Err(reason) = redirect_stdout_stderr() {
         warn!("Error redirecting stdout/stderr: {}", reason);
@@ -310,7 +328,6 @@ pub extern "C" fn init_with_egl(
     callbacks: CHostCallbacks,
 ) {
     catch_any_panic(|| {
-        init_logger();
         let gl = gl_glue::egl::init().unwrap();
         unsafe {
             init(
@@ -333,7 +350,6 @@ pub extern "C" fn init_with_gl(
     callbacks: CHostCallbacks,
 ) {
     catch_any_panic(|| {
-        init_logger();
         let gl = gl_glue::gl::init().unwrap();
         unsafe { init(opts, gl, None, None, wakeup, callbacks) }
     });
