@@ -54,7 +54,7 @@ def main(task_for):
             # The "try-*" keys match those in `servo_try_choosers` in Homu’s config:
             # https://github.com/servo/saltfs/blob/master/homu/map.jinja
 
-            "try-mac": [macos_unit, macos_debugmozjs],
+            "try-mac": [macos_debugmozjs],
             "try-linux": [linux_tidy_unit_docs, linux_release],
             "try-windows": [windows_unit, windows_arm64, windows_uwp_x64],
             "try-magicleap": [magicleap_dev],
