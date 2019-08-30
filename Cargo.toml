@@ -28,3 +28,4 @@ opt-level = 3
 # Those are here to dedupe winapi since mio is still using winapi 0.2.
 mio = { git = "https://github.com/servo/mio.git", branch = "servo" }
 iovec = { git = "https://github.com/servo/iovec.git", branch = "servo" }
+gleam = { git = "https://github.com/jdm/gleam.git", branch = "apple-vao" }
