@@ -158,15 +158,16 @@ impl GLContextWrapper {
     pub fn apply_command(
         &self,
         cmd: WebGLCommand,
+        use_apple_vertex_array: bool,
         backtrace: WebGLCommandBacktrace,
         state: &mut GLState,
     ) {
         match *self {
             GLContextWrapper::Native(ref ctx) => {
-                WebGLImpl::apply(ctx, state, cmd, backtrace);
+                WebGLImpl::apply(ctx, state, use_apple_vertex_array, cmd, backtrace);
             },
             GLContextWrapper::OSMesa(ref ctx) => {
-                WebGLImpl::apply(ctx, state, cmd, backtrace);
+                WebGLImpl::apply(ctx, state, false, cmd, backtrace);
             },
         }
     }

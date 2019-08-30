@@ -30,6 +30,15 @@ pub use crate::webgl_mode::{ThreadMode, WebGLThreads};
 struct GLContextData {
     ctx: GLContextWrapper,
     state: GLState,
+    use_apple_vertex_arrays: bool,
+}
+
+// rust-offscreen-rendering-context creates a legacy OpenGL context on macOS when
+// OpenGL 2 support is requested. Legacy contexts return GL errors for the vertex
+// array object functions, but support a set of APPLE extension functions that
+// provide VAO support instead.
+fn needs_apple_vertex_arrays(gl: &dyn gl::Gl, version: WebGLVersion) -> bool {
+    cfg!(target_os = "macos") && gl.get_type() == gl::GlType::Gl && version == WebGLVersion::WebGL1
 }
 
 pub struct GLState {
@@ -316,7 +325,12 @@ impl WebGLThread {
             &mut self.bound_context_id,
         );
         if let Some(data) = data {
-            data.ctx.apply_command(command, backtrace, &mut data.state);
+            data.ctx.apply_command(
+                command,
+                data.use_apple_vertex_arrays,
+                backtrace,
+                &mut data.state,
+            );
         }
     }
 
@@ -421,11 +435,13 @@ impl WebGLThread {
                 .0 as usize,
         );
         let (size, texture_id, limits) = ctx.get_info();
+        let use_apple_vertex_arrays = needs_apple_vertex_arrays(ctx.gl(), version);
         self.contexts.insert(
             id,
             GLContextData {
                 ctx,
                 state: Default::default(),
+                use_apple_vertex_arrays,
             },
         );
 
@@ -883,6 +899,7 @@ impl WebGLImpl {
     pub fn apply<Native: NativeGLContextMethods>(
         ctx: &GLContext<Native>,
         state: &mut GLState,
+        use_apple_vertex_array: bool,
         command: WebGLCommand,
         _backtrace: WebGLCommandBacktrace,
     ) {
@@ -1304,11 +1321,27 @@ impl WebGLImpl {
             WebGLCommand::Finish(ref sender) => Self::finish(ctx.gl(), sender),
             WebGLCommand::Flush => ctx.gl().flush(),
             WebGLCommand::GenerateMipmap(target) => ctx.gl().generate_mipmap(target),
-            WebGLCommand::CreateVertexArray(ref chan) => Self::create_vertex_array(ctx.gl(), chan),
-            WebGLCommand::DeleteVertexArray(id) => ctx.gl().delete_vertex_arrays(&[id.get()]),
-            WebGLCommand::BindVertexArray(id) => ctx
-                .gl()
-                .bind_vertex_array(id.map_or(0, WebGLVertexArrayId::get)),
+            WebGLCommand::CreateVertexArray(ref chan) => {
+                Self::create_vertex_array(ctx.gl(), use_apple_vertex_array, chan)
+            },
+            WebGLCommand::DeleteVertexArray(id) => {
+                let gl = ctx.gl();
+                let ids = [id.get()];
+                if use_apple_vertex_array {
+                    gl.delete_vertex_arrays_apple(&ids)
+                } else {
+                    gl.delete_vertex_arrays(&ids)
+                }
+            },
+            WebGLCommand::BindVertexArray(id) => {
+                let gl = ctx.gl();
+                let id = id.map_or(0, WebGLVertexArrayId::get);
+                if use_apple_vertex_array {
+                    gl.bind_vertex_array_apple(id)
+                } else {
+                    gl.bind_vertex_array(id)
+                }
+            },
             WebGLCommand::GetParameterBool(param, ref sender) => {
                 let mut value = [0];
                 unsafe {
@@ -1847,8 +1880,16 @@ impl WebGLImpl {
     }
 
     #[allow(unsafe_code)]
-    fn create_vertex_array(gl: &dyn gl::Gl, chan: &WebGLSender<Option<WebGLVertexArrayId>>) {
-        let vao = gl.gen_vertex_arrays(1)[0];
+    fn create_vertex_array(
+        gl: &dyn gl::Gl,
+        use_apple_ext: bool,
+        chan: &WebGLSender<Option<WebGLVertexArrayId>>,
+    ) {
+        let vao = if use_apple_ext {
+            gl.gen_vertex_arrays_apple(1)[0]
+        } else {
+            gl.gen_vertex_arrays(1)[0]
+        };
         let vao = if vao == 0 {
             None
         } else {
