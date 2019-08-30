@@ -10,47 +10,35 @@
 <body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/largest-contentful-paint-helpers.js"></script>
 <script>
   async_test(function (t) {
     if (!window.LargestContentfulPaint) {
       assert_unreached("LargestContentfulPaint is not implemented");
     }
-    const beforeFirstLoad = performance.now();
+    let beforeLoad = performance.now();
     let firstCallback = true;
-    const path = window.location.origin + '/images/black-rectangle.png';
-    let beforeSecondLoad;
+    const url = window.location.origin + '/images/black-rectangle.png';
     const observer = new PerformanceObserver(
       t.step_func(entryList => {
         assert_equals(entryList.getEntries().length, 1);
         const entry = entryList.getEntries()[0];
-        assert_equals(entry.entryType, 'largest-contentful-paint');
-        assert_equals(entry.startTime, entry.renderTime, 'startTime should equal renderTime');
-        assert_equals(entry.duration, 0);
-        assert_equals(entry.url, path);
-        assert_less_than(entry.renderTime, performance.now(),
-          'Image render time should be before the observer callback is executed.')
+
+        // First image is shrunk to be 10 x 10. The second image is added at its natural size: 100 x 50.
+        const size = firstCallback ? 10 * 10 : 100 * 50;
+        const id = firstCallback ? 'image_id' : 'second_id';
+        checkImage(entry, url, id, size, beforeLoad);
         if (firstCallback) {
-          assert_equals(entry.id, 'image_id');
-          assert_greater_than(entry.renderTime, entry.loadTime,
-            'The first image render time should occur after its load time.');
-          assert_greater_than(entry.loadTime, beforeFirstLoad,
-            'The first image load timestamp should occur after script starts running.');
-          // Image is shrunk to be 10 x 10.
-          assert_equals(entry.size, 100);
           const img = document.createElement('img');
           img.src = '/images/black-rectangle.png';
-          beforeSecondLoad = performance.now();
+          img.id = 'second_id';
+          beforeLoad = performance.now();
           document.getElementById('image_div').appendChild(img);
           firstCallback = false;
           return;
+        } else {
+          t.done();
         }
-        // The second image is added at its natural size: 100 x 50.
-        assert_equals(entry.size, 5000);
-        assert_greater_than(entry.loadTime, beforeSecondLoad,
-          'The second image load time should occur after adding it to the document body.');
-        assert_greater_than(entry.renderTime, entry.loadTime,
-          'The second image render time should occur after its load time.');
-        t.done();
       })
     );
     observer.observe({type: 'largest-contentful-paint', buffered: true});

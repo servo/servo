@@ -15,7 +15,7 @@ test(() => {
 <script type="importmap">
 {
   "imports": {
-    "std:kv-storage": [
+    "./resources/dummy-module.js": [
       "std:kv-storage",
       "./resources/dummy-module.js"
     ]
@@ -25,7 +25,7 @@ test(() => {
 
 <script type="module">
 promise_test(async () => {
-  const result = await import("std:kv-storage");
-  assert_equals(namespaceObj.myExport, "not the real KV storage");
+  const result = await import("./resources/dummy-module.js");
+  assert_equals(result.myExport, "not the real KV storage");
 });
 </script>

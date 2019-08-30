@@ -4,6 +4,7 @@
 <body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/largest-contentful-paint-helpers.js"></script>
 <script>
   async_test(function (t) {
     if (!window.LargestContentfulPaint) {
@@ -14,18 +15,10 @@
       t.step_func_done(function(entryList) {
         assert_equals(entryList.getEntries().length, 1);
         const entry = entryList.getEntries()[0];
-        assert_equals(entry.entryType, 'largest-contentful-paint');
-        assert_equals(entry.renderTime, 0, 'The renderTime value should be 0 for a cross origin image.');
-        assert_equals(entry.startTime, entry.loadTime, 'startTime should equal loadTime');
-        assert_equals(entry.duration, 0);
+        const url = 'http://{{domains[www]}}:{{ports[http][1]}}/images/blue.png';
         // blue.png is 133 x 106.
-        assert_equals(entry.size, 14098);
-        assert_equals(entry.id, 'image_id');
-        const pathname = 'http://{{domains[www]}}:{{ports[http][1]}}/images/blue.png';
-        assert_equals(entry.url, pathname);
-        assert_greater_than_equal(entry.loadTime, beforeLoad);
-        assert_less_than(entry.loadTime, performance.now());
-        assert_equals(entry.element, document.getElementById('image_id'));
+        const size = 133 * 106;
+        checkImage(entry, url, 'image_id', size, beforeLoad, ['renderTimeIs0']);
       })
     );
     observer.observe({type: 'largest-contentful-paint', buffered: true});

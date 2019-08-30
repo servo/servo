@@ -4,6 +4,7 @@
 <body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/largest-contentful-paint-helpers.js"></script>
 <!-- There is some text and some images. We care about blue.png being reported, as it is the largest. -->
 <p>This is some text! :)</p>
 <img src='/images/red.png' id='red'/>
@@ -15,7 +16,7 @@
     if (!window.LargestContentfulPaint) {
       assert_unreached("LargestContentfulPaint is not implemented");
     }
-    const beforeRender = performance.now();
+    const beforeLoad = performance.now();
     const observer = new PerformanceObserver(
       t.step_func(entryList => {
         entryList.getEntries().forEach(entry => {
@@ -23,22 +24,10 @@
           if (entry.id !== 'blue')
             return;
 
-          assert_equals(entry.entryType, 'largest-contentful-paint');
-          assert_greater_than_equal(entry.renderTime, beforeRender,
-            'The rendering timestamp should occur after script starts running.');
-          assert_greater_than_equal(performance.now(), entry.renderTime,
-            'The rendering timestamp should occur before the entry is dispatched to the observer.');
-          assert_equals(entry.startTime, entry.renderTime, 'startTime should equal renderTime');
-          assert_equals(entry.duration, 0);
-          // blue.png is 133 x 106.
-          assert_equals(entry.size, 133 * 106);
-          assert_equals(entry.id, 'blue');
-          assert_equals(entry.url, window.location.origin + '/images/blue.png');
-          assert_greater_than(entry.loadTime, beforeRender,
-            'The load timestamp should occur after script starts running.');
-          assert_less_than(entry.loadTime, entry.renderTime,
-            'The load timestamp should occur before the render timestamp.')
-          assert_equals(entry.element, document.getElementById('blue'));
+          const url = window.location.origin + '/images/blue.png';
+          // blue.png is 133 by 106.
+          const size = 133 * 106;
+          checkImage(entry, url, 'blue', size, beforeLoad);
           t.done();
         })
       })

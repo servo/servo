@@ -60,19 +60,17 @@ class ChromeXRTest {
   }
 
   simulateUserActivation(callback) {
-    return new Promise(resolve => {
-      let button = document.createElement('button');
-      button.textContent = 'click to continue test';
-      button.style.display = 'block';
-      button.style.fontSize = '20px';
-      button.style.padding = '10px';
-      button.onclick = () => {
-        resolve(callback());
-        document.body.removeChild(button);
-      };
-      document.body.appendChild(button);
-      test_driver.click(button);
-    });
+    let button = document.createElement('button');
+    button.textContent = 'click to continue test';
+    button.style.display = 'block';
+    button.style.fontSize = '20px';
+    button.style.padding = '10px';
+    button.onclick = () => {
+      callback();
+      document.body.removeChild(button);
+    };
+    document.body.appendChild(button);
+    test_driver.click(button);
   }
 }
 

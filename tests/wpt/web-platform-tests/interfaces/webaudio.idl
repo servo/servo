@@ -193,7 +193,7 @@ interface AudioScheduledSourceNode : AudioNode {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional AnalyserOptions options)]
+ Constructor (BaseAudioContext context, optional AnalyserOptions options = {})]
 interface AnalyserNode : AudioNode {
   void getFloatFrequencyData (Float32Array array);
   void getByteFrequencyData (Uint8Array array);
@@ -214,7 +214,7 @@ dictionary AnalyserOptions : AudioNodeOptions {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional AudioBufferSourceOptions options)]
+ Constructor (BaseAudioContext context, optional AudioBufferSourceOptions options = {})]
 interface AudioBufferSourceNode : AudioScheduledSourceNode {
   attribute AudioBuffer? buffer;
   readonly attribute AudioParam playbackRate;
@@ -282,7 +282,7 @@ enum BiquadFilterType {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional BiquadFilterOptions options)]
+ Constructor (BaseAudioContext context, optional BiquadFilterOptions options = {})]
 interface BiquadFilterNode : AudioNode {
   attribute BiquadFilterType type;
   readonly attribute AudioParam frequency;
@@ -301,7 +301,7 @@ dictionary BiquadFilterOptions : AudioNodeOptions {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional ChannelMergerOptions options)]
+ Constructor (BaseAudioContext context, optional ChannelMergerOptions options = {})]
 interface ChannelMergerNode : AudioNode {
 };
 
@@ -310,7 +310,7 @@ dictionary ChannelMergerOptions : AudioNodeOptions {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional ChannelSplitterOptions options)]
+ Constructor (BaseAudioContext context, optional ChannelSplitterOptions options = {})]
 interface ChannelSplitterNode : AudioNode {
 };
 
@@ -319,7 +319,7 @@ dictionary ChannelSplitterOptions : AudioNodeOptions {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional ConstantSourceOptions options)]
+ Constructor (BaseAudioContext context, optional ConstantSourceOptions options = {})]
 interface ConstantSourceNode : AudioScheduledSourceNode {
   readonly attribute AudioParam offset;
 };
@@ -329,7 +329,7 @@ dictionary ConstantSourceOptions {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional ConvolverOptions options)]
+ Constructor (BaseAudioContext context, optional ConvolverOptions options = {})]
 interface ConvolverNode : AudioNode {
   attribute AudioBuffer? buffer;
   attribute boolean normalize;
@@ -341,7 +341,7 @@ dictionary ConvolverOptions : AudioNodeOptions {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional DelayOptions options)]
+ Constructor (BaseAudioContext context, optional DelayOptions options = {})]
 interface DelayNode : AudioNode {
   readonly attribute AudioParam delayTime;
 };
@@ -352,7 +352,7 @@ dictionary DelayOptions : AudioNodeOptions {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional DynamicsCompressorOptions options)]
+ Constructor (BaseAudioContext context, optional DynamicsCompressorOptions options = {})]
 interface DynamicsCompressorNode : AudioNode {
   readonly attribute AudioParam threshold;
   readonly attribute AudioParam knee;
@@ -371,7 +371,7 @@ dictionary DynamicsCompressorOptions : AudioNodeOptions {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional GainOptions options)]
+ Constructor (BaseAudioContext context, optional GainOptions options = {})]
 interface GainNode : AudioNode {
   readonly attribute AudioParam gain;
 };
@@ -402,7 +402,7 @@ dictionary MediaElementAudioSourceOptions {
 };
 
 [Exposed=Window,
- Constructor (AudioContext context, optional AudioNodeOptions options)]
+ Constructor (AudioContext context, optional AudioNodeOptions options = {})]
 interface MediaStreamAudioDestinationNode : AudioNode {
   readonly attribute MediaStream stream;
 };
@@ -435,7 +435,7 @@ enum OscillatorType {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional OscillatorOptions options)]
+ Constructor (BaseAudioContext context, optional OscillatorOptions options = {})]
 interface OscillatorNode : AudioScheduledSourceNode {
   attribute OscillatorType type;
   readonly attribute AudioParam frequency;
@@ -462,7 +462,7 @@ enum DistanceModelType {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional PannerOptions options)]
+ Constructor (BaseAudioContext context, optional PannerOptions options = {})]
 interface PannerNode : AudioNode {
   attribute PanningModelType panningModel;
   readonly attribute AudioParam positionX;
@@ -500,7 +500,7 @@ dictionary PannerOptions : AudioNodeOptions {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional PeriodicWaveOptions options)]
+ Constructor (BaseAudioContext context, optional PeriodicWaveOptions options = {})]
 interface PeriodicWave {
 };
 
@@ -520,7 +520,7 @@ interface ScriptProcessorNode : AudioNode {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional StereoPannerOptions options)]
+ Constructor (BaseAudioContext context, optional StereoPannerOptions options = {})]
 interface StereoPannerNode : AudioNode {
   readonly attribute AudioParam pan;
 };
@@ -536,7 +536,7 @@ enum OverSampleType {
 };
 
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional WaveShaperOptions options)]
+ Constructor (BaseAudioContext context, optional WaveShaperOptions options = {})]
 interface WaveShaperNode : AudioNode {
   attribute Float32Array? curve;
   attribute OverSampleType oversample;
@@ -569,7 +569,7 @@ interface AudioParamMap {
 [Exposed=Window,
  SecureContext,
  Constructor (BaseAudioContext context, DOMString name,
-              optional AudioWorkletNodeOptions options)]
+              optional AudioWorkletNodeOptions options = {})]
 interface AudioWorkletNode : AudioNode {
   readonly attribute AudioParamMap parameters;
   readonly attribute MessagePort port;
@@ -585,7 +585,7 @@ dictionary AudioWorkletNodeOptions : AudioNodeOptions {
 };
 
 [Exposed=AudioWorklet,
-Constructor (optional AudioWorkletNodeOptions options)]
+Constructor (optional AudioWorkletNodeOptions options = {})]
 interface AudioWorkletProcessor {
   readonly attribute MessagePort port;
 };

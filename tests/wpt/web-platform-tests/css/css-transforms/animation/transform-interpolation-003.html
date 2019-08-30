@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>transform interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-transforms/#transform-property">
+<meta name="assert" content="transform supports animation as a transform list">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.target {
+  color: white;
+  width: 100px;
+  height: 100px;
+  background-color: black;
+  display: inline-block;
+  overflow: hidden;
+}
+.expected {
+  background-color: green;
+}
+.target > div {
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+  background: orange;
+  margin: 1px;
+}
+.test {
+  overflow: hidden;
+}
+</style>
+
+<body>
+<template id="target-template">
+<div></div>
+</template>
+</body>
+
+<script>
+test_interpolation({
+  property: 'transform',
+  from: 'skewX(10rad) scaleZ(1)',
+  to: 'skewX(20rad) scaleZ(2)'
+}, [
+  {at: -1, expect: 'skewX(0rad) scaleZ(0)'},
+  {at: 0, expect: 'skewX(10rad) scaleZ(1)'},
+  {at: 0.25, expect: 'skewX(12.5rad) scaleZ(1.25)'},
+  {at: 0.75, expect: 'skewX(17.5rad) scaleZ(1.75)'},
+  {at: 1, expect: 'skewX(20rad) scaleZ(2)'},
+  {at: 2, expect: 'skewX(30rad) scaleZ(3)'},
+]);
+test_interpolation({
+  property: 'transform',
+  from: 'skewX(10rad)',
+  to: 'skewX(20rad) scaleZ(2)'
+}, [
+  {at: -1, expect: 'skewX(0rad) scaleZ(0)'},
+  {at: 0, expect: 'skewX(10rad) scaleZ(1)'},
+  {at: 0.25, expect: 'skewX(12.5rad) scaleZ(1.25)'},
+  {at: 0.75, expect: 'skewX(17.5rad) scaleZ(1.75)'},
+  {at: 1, expect: 'skewX(20rad) scaleZ(2)'},
+  {at: 2, expect: 'skewX(30rad) scaleZ(3)'},
+]);
+test_interpolation({
+  property: 'transform',
+  from: 'scaleZ(3) perspective(400px)',
+  to: 'scaleZ(4) skewX(1rad) perspective(500px)'
+}, [
+  {at: -1, expect: 'scaleZ(2) matrix3d(1, 0, 0, 0, -1.55741, 1, 0, 0, 0, 0, 1, -0.003, 0, 0, 0, 1)'},
+  {at: 0, expect: 'scaleZ(3) matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -0.0025, 0, 0, 0, 1)'},
+  {at: 0.25, expect: 'scaleZ(3.25) matrix3d(1, 0, 0, 0, 0.389352, 1, 0, 0, 0, 0, 1, -0.002375, 0, 0, 0, 1)'},
+  {at: 0.75, expect: 'scaleZ(3.75) matrix3d(1, 0, 0, 0, 1.16806, 1, 0, 0, 0, 0, 1, -0.002125, 0, 0, 0, 1)'},
+  {at: 1, expect: 'scaleZ(4) matrix3d(1, 0, 0, 0, 1.55741, 1, 0, 0, 0, 0, 1, -0.002, 0, 0, 0, 1)'},
+  {at: 2, expect: 'scaleZ(5) matrix3d(1, 0, 0, 0, 3.11482, 1, 0, 0, 0, 0, 1, -0.0015, 0, 0, 0, 1)'},
+]);
+test_interpolation({
+  property: 'transform',
+  from: 'translateY(70%) scaleZ(1)',
+  to: 'translateY(90%) scaleZ(2)'
+}, [
+  {at: -1, expect: 'translateY(50%) scaleZ(0)'},
+  {at: 0, expect: 'translateY(70%) scaleZ(1)'},
+  {at: 0.25, expect: 'translateY(75%) scaleZ(1.25)'},
+  {at: 0.75, expect: 'translateY(85%) scaleZ(1.75)'},
+  {at: 1, expect: 'translateY(90%) scaleZ(2)'},
+  {at: 2, expect: 'translateY(110%) scaleZ(3)'},
+]);
+test_interpolation({
+  property: 'transform',
+  from: 'translateY(70%)',
+  to: 'translateY(90%) scaleZ(2)'
+}, [
+  {at: -1, expect: 'translateY(50%) scaleZ(0)'},
+  {at: 0, expect: 'translateY(70%)'},
+  {at: 0.25, expect: 'translateY(75%) scaleZ(1.25)'},
+  {at: 0.75, expect: 'translateY(85%) scaleZ(1.75)'},
+  {at: 1, expect: 'translateY(90%) scaleZ(2)'},
+  {at: 2, expect: 'translateY(110%) scaleZ(3)'},
+]);
+
+// Skew
+test_interpolation({
+  property: 'transform',
+  from: 'skewX(10rad)',
+  to: 'skewX(20rad)'
+}, [
+  {at: -1, expect: 'skewX(0rad)'},
+  {at: 0, expect: 'skewX(10rad)'},
+  {at: 0.25, expect: 'skewX(12.5rad)'},
+  {at: 0.75, expect: 'skewX(17.5rad)'},
+  {at: 1, expect: 'skewX(20rad)'},
+  {at: 2, expect: 'skewX(30rad)'},
+]);
+test_interpolation({
+  property: 'transform',
+  from: 'skewY(10rad)',
+  to: 'skewY(20rad)'
+}, [
+  {at: -1, expect: 'skewY(0rad)'},
+  {at: 0, expect: 'skewY(10rad)'},
+  {at: 0.25, expect: 'skewY(12.5rad)'},
+  {at: 0.75, expect: 'skewY(17.5rad)'},
+  {at: 1, expect: 'skewY(20rad)'},
+  {at: 2, expect: 'skewY(30rad)'},
+]);
+</script>
