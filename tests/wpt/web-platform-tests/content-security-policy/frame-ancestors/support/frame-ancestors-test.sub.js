@@ -26,7 +26,7 @@ window.addEventListener("message", function (e) {
         window.parent.postMessage(e.data, "*");
     else
         if (e.data.type === 'test_result')
-            endTest(e.data.failed, "Inner IFrame msg: " + e.data.msg);
+            endTest(e.data.failed, "Inner IFrame msg: " + e.data.message);
 });
 
 function injectNestedIframe(policy, parent, child, expectation, isSandboxed) {
@@ -67,6 +67,7 @@ function iframeLoaded(expectBlock) {
         var failed = true;
         var message = "";
         try {
+            ev.target.contentWindow.location.href;
             if (expectBlock) {
                 message = "The IFrame should have been blocked (or cross-origin). It wasn't.";
                 failed = true;

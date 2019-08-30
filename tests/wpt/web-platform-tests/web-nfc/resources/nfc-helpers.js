@@ -172,42 +172,46 @@ function assertWebNDEFMessagesEqual(message, expectedMessage) {
   }
 }
 
-function testNFCReaderOptions(message, readOptions, unmatchedReadOptions, desc) {
+function testNFCScanOptions(message, scanOptions, unmatchedScanOptions, desc) {
   nfc_test(async (t, mockNFC) => {
-    const reader1 = new NFCReader(unmatchedReadOptions);
-    const reader2 = new NFCReader(readOptions);
+    const reader1 = new NFCReader();
+    const reader2 = new NFCReader();
+    const controller = new AbortController();
 
-    mockNFC.setReadingMessage(message, readOptions.compatibility);
+    mockNFC.setReadingMessage(message, scanOptions.compatibility);
 
     // Reading from unmatched reader will not be triggered
     reader1.onreading = t.unreached_func("reading event should not be fired.");
-    reader1.start();
+    unmatchedScanOptions.signal = controller.signal;
+    reader1.scan(unmatchedScanOptions);
 
     const readerWatcher = new EventWatcher(t, reader2, ["reading", "error"]);
 
     const promise = readerWatcher.wait_for("reading").then(event => {
-      reader1.stop();
-      reader2.stop();
+      controller.abort();
       assertWebNDEFMessagesEqual(event.message, new NDEFMessage(message));
     });
-    // NFCReader#start() asynchronously dispatches the onreading event.
-    reader2.start();
+    // NFCReader#scan() asynchronously dispatches the onreading event.
+    scanOptions.signal = controller.signal;
+    reader2.scan(scanOptions);
     await promise;
   }, desc);
 }
 
-function testReadingMultiMessages(message, readOptions, unmatchedMessage,
+function testReadingMultiMessages(message, scanOptions, unmatchedMessage,
     unmatchedCompatibility, desc) {
   nfc_test(async (t, mockNFC) => {
-    const reader = new NFCReader(readOptions);
+    const reader = new NFCReader(scanOptions);
+    const controller = new AbortController();
     const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
 
     const promise = readerWatcher.wait_for("reading").then(event => {
-      reader.stop();
+      controller.abort();
       assertWebNDEFMessagesEqual(event.message, new NDEFMessage(message));
     });
-    // NFCReader#start() asynchronously dispatches the onreading event.
-    reader.start();
+    // NFCReader#scan() asynchronously dispatches the onreading event.
+    scanOptions.signal = controller.signal;
+    reader.scan(scanOptions);
 
     // Unmatched message will not be read
     mockNFC.setReadingMessage(unmatchedMessage, unmatchedCompatibility);

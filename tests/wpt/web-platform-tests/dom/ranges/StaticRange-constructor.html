@@ -1,0 +1,200 @@
+<!doctype html>
+<title>StaticRange constructor test</title>
+<link rel='author' title='Sanket Joshi' href='mailto:sajos@microsoft.com'>
+<div id='log'></div>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<div id='testDiv'>abc<span>def</span>ghi</div>
+<script>
+'use strict';
+
+const testDiv = document.getElementById('testDiv');
+const testTextNode = testDiv.firstChild;
+const testPINode = document.createProcessingInstruction('foo', 'abc');
+const testCommentNode =  document.createComment('abc');
+document.body.append(testPINode, testCommentNode);
+
+test(function() {
+    const staticRange = new StaticRange({startContainer: testDiv, startOffset: 1, endContainer: testDiv, endOffset: 2});
+    assert_equals(staticRange.startContainer, testDiv, 'valid startContainer');
+    assert_equals(staticRange.startOffset, 1, 'valid startOffset');
+    assert_equals(staticRange.endContainer, testDiv, 'valid endContainer');
+    assert_equals(staticRange.endOffset, 2, 'valid endOffset');
+    assert_false(staticRange.collapsed, 'not collapsed');
+}, 'Construct static range with Element container');
+
+test(function() {
+    const staticRange = new StaticRange({startContainer: testTextNode, startOffset: 1, endContainer: testTextNode, endOffset: 2});
+    assert_equals(staticRange.startContainer, testTextNode, 'valid startContainer');
+    assert_equals(staticRange.startOffset, 1, 'valid startOffset');
+    assert_equals(staticRange.endContainer, testTextNode, 'valid endContainer');
+    assert_equals(staticRange.endOffset, 2, 'valid endOffset');
+    assert_false(staticRange.collapsed, 'not collapsed');
+}, 'Construct static range with Text container');
+
+test(function() {
+    const staticRange = new StaticRange({startContainer: testDiv, startOffset: 0, endContainer: testTextNode, endOffset: 1});
+    assert_equals(staticRange.startContainer, testDiv, 'valid startContainer');
+    assert_equals(staticRange.startOffset, 0, 'valid startOffset');
+    assert_equals(staticRange.endContainer, testTextNode, 'valid endContainer');
+    assert_equals(staticRange.endOffset, 1, 'valid endOffset');
+    assert_false(staticRange.collapsed, 'not collapsed');
+}, 'Construct static range with Element startContainer and Text endContainer');
+
+test(function() {
+    const staticRange = new StaticRange({startContainer: testTextNode, startOffset: 0, endContainer: testDiv, endOffset: 3});
+    assert_equals(staticRange.startContainer, testTextNode, 'valid startContainer');
+    assert_equals(staticRange.startOffset, 0, 'valid startOffset');
+    assert_equals(staticRange.endContainer, testDiv, 'valid endContainer');
+    assert_equals(staticRange.endOffset, 3, 'valid endOffset');
+    assert_false(staticRange.collapsed, 'not collapsed');
+}, 'Construct static range with Text startContainer and Element endContainer');
+
+test(function() {
+    const staticRange = new StaticRange({startContainer: testPINode, startOffset: 1, endContainer: testPINode, endOffset: 2});
+    assert_equals(staticRange.startContainer, testPINode, 'valid startContainer');
+    assert_equals(staticRange.startOffset, 1, 'valid startOffset');
+    assert_equals(staticRange.endContainer, testPINode, 'valid endContainer');
+    assert_equals(staticRange.endOffset, 2, 'valid endOffset');
+    assert_false(staticRange.collapsed, 'not collapsed');
+}, 'Construct static range with ProcessingInstruction container');
+
+test(function() {
+    const staticRange = new StaticRange({startContainer: testCommentNode, startOffset: 1, endContainer: testCommentNode, endOffset: 2});
+    assert_equals(staticRange.startContainer, testCommentNode, 'valid startContainer');
+    assert_equals(staticRange.startOffset, 1, 'valid startOffset');
+    assert_equals(staticRange.endContainer, testCommentNode, 'valid endContainer');
+    assert_equals(staticRange.endOffset, 2, 'valid endOffset');
+    assert_false(staticRange.collapsed, 'not collapsed');
+}, 'Construct static range with Comment container');
+
+test(function() {
+    const xmlDoc = new DOMParser().parseFromString('<xml></xml>', 'application/xml');
+    const testCDATASection = xmlDoc.createCDATASection('abc');
+    const staticRange = new StaticRange({startContainer: testCDATASection, startOffset: 1, endContainer: testCDATASection, endOffset: 2});
+    assert_equals(staticRange.startContainer, testCDATASection, 'valid startContainer');
+    assert_equals(staticRange.startOffset, 1, 'valid startOffset');
+    assert_equals(staticRange.endContainer, testCDATASection, 'valid endContainer');
+    assert_equals(staticRange.endOffset, 2, 'valid endOffset');
+    assert_false(staticRange.collapsed, 'not collapsed');
+}, 'Construct static range with CDATASection container');
+
+test(function() {
+    const staticRange = new StaticRange({startContainer: document, startOffset: 0, endContainer: document, endOffset: 1});
+    assert_equals(staticRange.startContainer, document, 'valid startContainer');
+    assert_equals(staticRange.startOffset, 0, 'valid startOffset');
+    assert_equals(staticRange.endContainer, document, 'valid endContainer');
+    assert_equals(staticRange.endOffset, 1, 'valid endOffset');
+    assert_false(staticRange.collapsed, 'not collapsed');
+}, 'Construct static range with Document container');
+
+test(function() {
+    const testDocFrag = document.createDocumentFragment();
+    testDocFrag.append('a','b','c');
+    const staticRange = new StaticRange({startContainer: testDocFrag, startOffset: 0, endContainer: testDocFrag, endOffset: 1});
+    assert_equals(staticRange.startContainer, testDocFrag, 'valid startContainer');
+    assert_equals(staticRange.startOffset, 0, 'valid startOffset');
+    assert_equals(staticRange.endContainer, testDocFrag, 'valid endContainer');
+    assert_equals(staticRange.endOffset, 1, 'valid endOffset');
+    assert_false(staticRange.collapsed, 'not collapsed');
+}, 'Construct static range with DocumentFragment container');
+
+test(function() {
+    const staticRange = new StaticRange({startContainer: testDiv, startOffset: 0, endContainer: testDiv, endOffset: 0});
+    assert_equals(staticRange.startContainer, testDiv, 'valid startContainer');
+    assert_equals(staticRange.startOffset, 0, 'valid startOffset');
+    assert_equals(staticRange.endContainer, testDiv, 'valid endContainer');
+    assert_equals(staticRange.endOffset, 0, 'valid endOffset');
+    assert_true(staticRange.collapsed, 'collapsed');
+}, 'Construct collapsed static range');
+
+test(function() {
+    const staticRange = new StaticRange({startContainer: testDiv, startOffset: 1, endContainer: document.body, endOffset: 0});
+    assert_equals(staticRange.startContainer, testDiv, 'valid startContainer');
+    assert_equals(staticRange.startOffset, 1, 'valid startOffset');
+    assert_equals(staticRange.endContainer, document.body, 'valid endContainer');
+    assert_equals(staticRange.endOffset, 0, 'valid endOffset');
+    assert_false(staticRange.collapsed, 'not collapsed');
+}, 'Construct inverted static range');
+
+test(function() {
+    const staticRange = new StaticRange({startContainer: testDiv, startOffset: 0, endContainer: testDiv, endOffset: 15});
+    assert_equals(staticRange.startContainer, testDiv, 'valid startContainer');
+    assert_equals(staticRange.startOffset, 0, 'valid startOffset');
+    assert_equals(staticRange.endContainer, testDiv, 'valid endContainer');
+    assert_equals(staticRange.endOffset, 15, 'valid endOffset');
+    assert_false(staticRange.collapsed, 'not collapsed');
+}, 'Construct static range with offset greater than length');
+
+test(function() {
+    const testNode = document.createTextNode('abc');
+    const staticRange = new StaticRange({startContainer: testNode, startOffset: 1, endContainer: testNode, endOffset: 2});
+    assert_equals(staticRange.startContainer, testNode, 'valid startContainer');
+    assert_equals(staticRange.startOffset, 1, 'valid startOffset');
+    assert_equals(staticRange.endContainer, testNode, 'valid endContainer');
+    assert_equals(staticRange.endOffset, 2, 'valid endOffset');
+    assert_false(staticRange.collapsed, 'not collapsed');
+}, 'Construct static range with standalone Node container');
+
+test(function() {
+    const testRoot = document.createElement('div');
+    testRoot.append('a','b');
+    const staticRange = new StaticRange({startContainer: testDiv, startOffset: 1, endContainer: testRoot, endOffset: 2});
+    assert_equals(staticRange.startContainer, testDiv, 'valid startContainer');
+    assert_equals(staticRange.startOffset, 1, 'valid startOffset');
+    assert_equals(staticRange.endContainer, testRoot, 'valid endContainer');
+    assert_equals(staticRange.endOffset, 2, 'valid endOffset');
+    assert_false(staticRange.collapsed, 'not collapsed');
+}, 'Construct static range with endpoints in disconnected trees');
+
+test(function() {
+    const testDocNode = document.implementation.createDocument('about:blank', 'html', null);
+    const staticRange = new StaticRange({startContainer: document, startOffset: 0, endContainer: testDocNode.documentElement, endOffset: 0});
+    assert_equals(staticRange.startContainer, document, 'valid startContainer');
+    assert_equals(staticRange.startOffset, 0, 'valid startOffset');
+    assert_equals(staticRange.endContainer, testDocNode.documentElement, 'valid endContainer');
+    assert_equals(staticRange.endOffset, 0, 'valid endOffset');
+    assert_false(staticRange.collapsed, 'not collapsed');
+}, 'Construct static range with endpoints in disconnected documents');
+
+test(function() {
+    assert_throws('INVALID_NODE_TYPE_ERR', function() {
+        const staticRange = new StaticRange({startContainer: document.doctype, startOffset: 0, endContainer: document.doctype, endOffset: 0});
+    }, 'throw a InvalidNodeTypeError when a DocumentType is passed as a startContainer or endContainer');
+
+    assert_throws('INVALID_NODE_TYPE_ERR', function() {
+        const testAttrNode = testDiv.getAttributeNode('id');
+        const staticRange = new StaticRange({startContainer: testAttrNode, startOffset: 0, endContainer: testAttrNode, endOffset: 0});
+    }, 'throw a InvalidNodeTypeError when a Attr is passed as a startContainer or endContainer');
+}, 'Throw on DocumentType or Attr container');
+
+test(function () {
+    assert_throws({'name': 'TypeError'}, function () {
+        const staticRange = new StaticRange();
+    }, 'throw a TypeError when no argument is passed');
+
+    assert_throws({'name': 'TypeError'}, function () {
+        const staticRange = new StaticRange({startOffset: 0, endContainer: testDiv, endOffset: 0});
+    }, 'throw a TypeError when a startContainer is not passed');
+
+    assert_throws({'name': 'TypeError'}, function () {
+        const staticRange = new StaticRange({startContainer: testDiv, endContainer: testDiv, endOffset: 0});
+    }, 'throw a TypeError when a startOffset is not passed');
+
+    assert_throws({'name': 'TypeError'}, function () {
+        const staticRange = new StaticRange({startContainer: testDiv, startOffset: 0, endOffset: 0});
+    }, 'throw a TypeError when an endContainer is not passed');
+
+    assert_throws({'name': 'TypeError'}, function () {
+        const staticRange = new StaticRange({startContainer: testDiv, startOffset: 0, endContainer: testDiv});
+    }, 'throw a TypeError when an endOffset is not passed');
+
+    assert_throws({'name': 'TypeError'}, function () {
+        const staticRange = new StaticRange({startContainer: null, startOffset: 0, endContainer: testDiv, endOffset: 0});
+    }, 'throw a TypeError when a null startContainer is passed');
+
+    assert_throws({'name': 'TypeError'}, function () {
+        const staticRange = new StaticRange({startContainer: testDiv, startOffset: 0, endContainer: null, endOffset: 0});
+    }, 'throw a TypeError when a null endContainer is passed');
+}, 'Throw on missing or invalid arguments');
+</script>

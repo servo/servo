@@ -37,6 +37,13 @@
             var elementContainer = div.firstElementChild;
             var elementContainerWidth = elementContainer.getBoundingClientRect().width;
             var element = FragmentHelper.element(elementContainer);
+            if (style === "display: contents" &&
+                !element.classList.contains("mathml-container")) {
+                // A "display: contents" MathML child is not participating to
+                // parent layout because its computed style is "display: none".
+                // If we cannot append a MathML child then skip that test.
+                return;
+            }
             FragmentHelper.forceNonEmptyElement(element);
             var allowInvalid = true;
             var child = FragmentHelper.appendChild(element, allowInvalid);

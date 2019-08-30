@@ -23,7 +23,7 @@ interface NDEFRecord {
 
   USVString? toText();
   [NewObject] ArrayBuffer? toArrayBuffer();
-  [NewObject] object? toJSON();
+  [NewObject] any toJSON();
 };
 
 dictionary NDEFRecordInit {

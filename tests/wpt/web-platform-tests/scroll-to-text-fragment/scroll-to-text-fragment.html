@@ -18,6 +18,7 @@ let test_cases = [
   { fragment: '##targetText=this&targetText=test,page', expect_scroll: true },
   { fragment: '#pagestate##targetText=test', expect_scroll: true },
   { fragment: '#pagestate##targetText=nomatch', expect_scroll: false },
+  { fragment: '#element##targetText=nomatch', expect_scroll: true },
 ];
 
 for (const test_case of test_cases) {
