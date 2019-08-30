@@ -3678,7 +3678,6 @@ class CGDefaultToJSONMethod(CGSpecializedMethod):
                 jsonDescriptors.append(descriptor)
             interface = interface.parent
 
-        # TODO: use .as_parent()
         parents = len(jsonDescriptors) - 1
         form = """
              if !${parentclass}CollectJSONAttributes(cx, _obj, this${asparent}, &result) {
