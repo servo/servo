@@ -8,7 +8,7 @@
 
 use crate::counter_style::{Symbol, Symbols};
 use crate::gecko_bindings::structs::CounterStylePtr;
-use crate::values::generics::CounterStyleOrNone;
+use crate::values::generics::CounterStyle;
 use crate::values::Either;
 use crate::Atom;
 use app_units::Au;
@@ -49,19 +49,17 @@ pub fn round_border_to_device_pixels(width: Au, au_per_device_px: Au) -> Au {
     }
 }
 
-impl CounterStyleOrNone {
+impl CounterStyle {
     /// Convert this counter style to a Gecko CounterStylePtr.
     pub fn to_gecko_value(self, gecko_value: &mut CounterStylePtr) {
         use crate::gecko_bindings::bindings::Gecko_SetCounterStyleToName as set_name;
         use crate::gecko_bindings::bindings::Gecko_SetCounterStyleToSymbols as set_symbols;
         match self {
-            CounterStyleOrNone::None => unsafe {
-                set_name(gecko_value, atom!("none").into_addrefed());
-            },
-            CounterStyleOrNone::Name(name) => unsafe {
+            CounterStyle::Name(name) => unsafe {
+                debug_assert_ne!(name.0, atom!("none"));
                 set_name(gecko_value, name.0.into_addrefed());
             },
-            CounterStyleOrNone::Symbols(symbols_type, symbols) => {
+            CounterStyle::Symbols(symbols_type, symbols) => {
                 let symbols: Vec<_> = symbols
                     .0
                     .iter()
@@ -86,7 +84,7 @@ impl CounterStyleOrNone {
         }
     }
 
-    /// Convert Gecko CounterStylePtr to CounterStyleOrNone or String.
+    /// Convert Gecko CounterStylePtr to CounterStyle or String.
     pub fn from_gecko_value(gecko_value: &CounterStylePtr) -> Either<Self, String> {
         use crate::gecko_bindings::bindings;
         use crate::values::generics::SymbolsType;
@@ -95,11 +93,8 @@ impl CounterStyleOrNone {
         let name = unsafe { bindings::Gecko_CounterStyle_GetName(gecko_value) };
         if !name.is_null() {
             let name = unsafe { Atom::from_raw(name) };
-            if name == atom!("none") {
-                Either::First(CounterStyleOrNone::None)
-            } else {
-                Either::First(CounterStyleOrNone::Name(CustomIdent(name)))
-            }
+            debug_assert_ne!(name, atom!("none"));
+            Either::First(CounterStyle::Name(CustomIdent(name)))
         } else {
             let anonymous =
                 unsafe { bindings::Gecko_CounterStyle_GetAnonymous(gecko_value).as_ref() }.unwrap();
@@ -113,7 +108,7 @@ impl CounterStyleOrNone {
                     .iter()
                     .map(|gecko_symbol| Symbol::String(gecko_symbol.to_string().into()))
                     .collect();
-                Either::First(CounterStyleOrNone::Symbols(symbol_type, Symbols(symbols)))
+                Either::First(CounterStyle::Symbols(symbol_type, Symbols(symbols)))
             }
         }
     }

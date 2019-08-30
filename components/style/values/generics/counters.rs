@@ -7,7 +7,7 @@
 #[cfg(feature = "servo")]
 use crate::computed_values::list_style_type::T as ListStyleType;
 #[cfg(feature = "gecko")]
-use crate::values::generics::CounterStyleOrNone;
+use crate::values::generics::CounterStyle;
 #[cfg(feature = "gecko")]
 use crate::values::specified::Attr;
 use crate::values::CustomIdent;
@@ -127,7 +127,7 @@ impl<I> Counters<I> {
 type CounterStyleType = ListStyleType;
 
 #[cfg(feature = "gecko")]
-type CounterStyleType = CounterStyleOrNone;
+type CounterStyleType = CounterStyle;
 
 #[cfg(feature = "servo")]
 #[inline]
@@ -138,7 +138,7 @@ fn is_decimal(counter_type: &CounterStyleType) -> bool {
 #[cfg(feature = "gecko")]
 #[inline]
 fn is_decimal(counter_type: &CounterStyleType) -> bool {
-    *counter_type == CounterStyleOrNone::decimal()
+    *counter_type == CounterStyle::decimal()
 }
 
 /// The specified value for the `content` property.
