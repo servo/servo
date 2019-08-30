@@ -583,7 +583,7 @@ def macos_debugmozjs():
         .with_script("""
             time ./mach test-wpt --release \
                 --binary-arg="--pref=js.mem.gc.zeal.level=2" \
-                --binary-arg="--pref=js.mem.gc.zeal.frequency=1" \
+                --binary-arg="--pref=js.mem.gc.zeal.frequency=10" \
                 --timeout-multiplier=10 \
                 --log-raw test-wpt.log \
                 --log-errorsummary wpt-errorsummary.log \
