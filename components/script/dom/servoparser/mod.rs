@@ -375,7 +375,7 @@ impl ServoParser {
             .set_ready_state(DocumentReadyState::Interactive);
 
         // Step 3.
-        self.tokenizer.borrow_mut().as_mut().expect("should not be feeding").end();
+        self.use_tokenizer(&mut |tokenizer: &mut Tokenizer| tokenizer.end());
         self.document.set_current_parser(None);
 
         // Step 4.
@@ -508,6 +508,17 @@ impl ServoParser {
         }
     }
 
+    /// Make use of the tokenizer in an operation that could invoke arbitrary DOM code.
+    /// This avoids the risk of borrow panics if a JS GC occurs, while ensuring that
+    /// the tokenizer remains visible to the GC so there are no GC hazards.
+    fn use_tokenizer<R, F: FnMut(&mut Tokenizer) -> R>(&self, f: &mut F) -> R {
+        let cx = self.global().get_cx();
+        auto_root!(in(*cx) let mut tokenizer = self.tokenizer.borrow_mut().take());
+        let result = f(tokenizer.as_mut().expect("should have tokenizer"));
+        *self.tokenizer.borrow_mut() = tokenizer.take();
+        result
+    }
+
     fn tokenize<F>(&self, mut feed: F)
     where
         F: FnMut(&mut Tokenizer) -> Result<(), DomRoot<HTMLScriptElement>>,
@@ -517,11 +528,7 @@ impl ServoParser {
             assert!(!self.aborted.get());
 
             self.document.reflow_if_reflow_timer_expired();
-            let cx = self.global().get_cx();
-            auto_root!(in(*cx) let mut tokenizer = self.tokenizer.borrow_mut().take());
-            let feed_result = feed(tokenizer.as_mut().expect("should have tokenizer"));
-            *self.tokenizer.borrow_mut() = tokenizer.take();
-            let script = match feed_result {
+            let script = match self.use_tokenizer(&mut feed) {
                 Ok(()) => return,
                 Err(script) => script,
             };
@@ -555,7 +562,7 @@ impl ServoParser {
             .set_ready_state(DocumentReadyState::Interactive);
 
         // Step 2.
-        self.tokenizer.borrow_mut().as_mut().expect("should not be feeding").end();
+        self.use_tokenizer(&mut |tokenizer: &mut Tokenizer| tokenizer.end());
         self.document.set_current_parser(None);
 
         // Steps 3-12 are in another castle, namely finish_load.
