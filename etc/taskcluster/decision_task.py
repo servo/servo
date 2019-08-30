@@ -584,11 +584,11 @@ def macos_debugmozjs():
             time ./mach test-wpt --release \
                 --binary-arg="--pref=js.mem.gc.zeal.level=2" \
                 --binary-arg="--pref=js.mem.gc.zeal.frequency=10" \
-                --timeout-multiplier=20 \
+                --timeout-multiplier=30 \
                 --log-raw test-wpt.log \
                 --log-errorsummary wpt-errorsummary.log \
                 --log-mach - \
-                eventsource
+                eventsource \
                 xhr
         """)
         .with_artifacts("repo/test-wpt.log", "repo/wpt-errorsummary.log")
