@@ -17,9 +17,11 @@ extern crate malloc_size_of_derive;
 extern crate serde;
 
 mod script_msg;
+pub mod serializable;
 pub mod transferable;
 pub mod webdriver_msg;
 
+use crate::serializable::BlobImpl;
 use crate::transferable::MessagePortImpl;
 use crate::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use bluetooth_traits::BluetoothRequest;
@@ -38,7 +40,9 @@ use keyboard_types::{CompositionEvent, KeyboardEvent};
 use libc::c_void;
 use media::WindowGLContext;
 use msg::constellation_msg::BackgroundHangMonitorRegister;
-use msg::constellation_msg::{BrowsingContextId, HistoryStateId, MessagePortId, PipelineId};
+use msg::constellation_msg::{
+    BlobId, BrowsingContextId, HistoryStateId, MessagePortId, PipelineId,
+};
 use msg::constellation_msg::{PipelineNamespaceId, TopLevelBrowsingContextId, TraversalDirection};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageCache;
@@ -1021,8 +1025,10 @@ impl ScriptToConstellationChan {
 /// <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct StructuredSerializedData {
-    /// Serialized data.
+    /// Data serialized by SpiderMonkey
     pub serialized: Vec<u8>,
+    /// Serialized in a structured callback,
+    pub blobs: Option<HashMap<BlobId, BlobImpl>>,
     /// Transferred objects.
     pub ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
 }

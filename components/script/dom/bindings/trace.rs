@@ -75,7 +75,7 @@ use media::WindowGLContext;
 use metrics::{InteractiveMetrics, InteractiveWindow};
 use mime::Mime;
 use msg::constellation_msg::{
-    BrowsingContextId, HistoryStateId, MessagePortId, MessagePortRouterId, PipelineId,
+    BlobId, BrowsingContextId, HistoryStateId, MessagePortId, MessagePortRouterId, PipelineId,
     TopLevelBrowsingContextId,
 };
 use net_traits::filemanager_thread::RelativePos;
@@ -90,6 +90,7 @@ use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::rpc::LayoutRPC;
 use script_layout_interface::OpaqueStyleAndLayoutData;
+use script_traits::serializable::BlobImpl;
 use script_traits::transferable::MessagePortImpl;
 use script_traits::DrawAPaintImageResult;
 use script_traits::{DocumentActivity, ScriptToConstellationChan, TimerEventId, TimerSource};
@@ -155,6 +156,9 @@ unsafe_no_jsmanaged_fields!(MessagePortImpl);
 unsafe_no_jsmanaged_fields!(MessagePortId);
 unsafe_no_jsmanaged_fields!(RefCell<Option<MessagePortId>>);
 unsafe_no_jsmanaged_fields!(MessagePortRouterId);
+
+unsafe_no_jsmanaged_fields!(BlobId);
+unsafe_no_jsmanaged_fields!(BlobImpl);
 
 unsafe_no_jsmanaged_fields!(CSSError);
 

@@ -18,7 +18,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{is_token, ByteString, DOMString, USVString};
-use crate::dom::blob::{Blob, BlobImpl};
+use crate::dom::blob::Blob;
 use crate::dom::document::DocumentSource;
 use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -65,6 +65,7 @@ use net_traits::CoreResourceMsg::Fetch;
 use net_traits::{FetchChannels, FetchMetadata, FilteredMetadata};
 use net_traits::{FetchResponseListener, NetworkError, ReferrerPolicy};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
+use script_traits::serializable::BlobImpl;
 use script_traits::DocumentActivity;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -1269,7 +1270,7 @@ impl XMLHttpRequest {
 
         // Step 3, 4
         let bytes = self.response.borrow().to_vec();
-        let blob = Blob::new(&self.global(), BlobImpl::new_from_bytes(bytes), mime);
+        let blob = Blob::new(&self.global(), BlobImpl::new_from_bytes(bytes, mime));
         self.response_blob.set(Some(&blob));
         blob
     }

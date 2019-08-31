@@ -7,7 +7,9 @@
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use parking_lot::Mutex;
+use servo_url::ImmutableOrigin;
 use std::cell::Cell;
+use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use std::mem;
 use std::num::NonZeroU32;
@@ -168,6 +170,13 @@ impl PipelineNamespace {
         MessagePortRouterId {
             namespace_id: self.id,
             index: MessagePortRouterIndex(self.next_index()),
+        }
+    }
+
+    fn next_blob_id(&mut self) -> BlobId {
+        BlobId {
+            namespace_id: self.id,
+            index: BlobIndex(self.next_index()),
         }
     }
 }
@@ -397,6 +406,37 @@ impl fmt::Display for MessagePortRouterId {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let PipelineNamespaceId(namespace_id) = self.namespace_id;
         let MessagePortRouterIndex(index) = self.index;
+        write!(fmt, "({},{})", namespace_id, index.get())
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct BlobIndex(pub NonZeroU32);
+malloc_size_of_is_0!(BlobIndex);
+
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
+pub struct BlobId {
+    pub namespace_id: PipelineNamespaceId,
+    pub index: BlobIndex,
+}
+
+impl BlobId {
+    pub fn new() -> BlobId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let next_blob_id = namespace.next_blob_id();
+            tls.set(Some(namespace));
+            next_blob_id
+        })
+    }
+}
+
+impl fmt::Display for BlobId {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let PipelineNamespaceId(namespace_id) = self.namespace_id;
+        let BlobIndex(index) = self.index;
         write!(fmt, "({},{})", namespace_id, index.get())
     }
 }

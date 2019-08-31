@@ -1901,15 +1901,18 @@ impl Document {
                 }
             }
         }
+        let global_scope = self.window.upcast::<GlobalScope>();
+
         // Step 10, 14
+        // https://html.spec.whatwg.org/multipage/#unloading-document-cleanup-steps
         if !self.salvageable.get() {
-            // https://html.spec.whatwg.org/multipage/#unloading-document-cleanup-steps
-            let global_scope = self.window.upcast::<GlobalScope>();
             // Step 1 of clean-up steps.
             global_scope.close_event_sources();
             let msg = ScriptMsg::DiscardDocument;
             let _ = global_scope.script_to_constellation_chan().send(msg);
         }
+        global_scope.clean_up_all_file_resources();
+
         // Step 15, End
         self.decr_ignore_opens_during_unload_counter();
     }

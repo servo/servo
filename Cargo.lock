@@ -4084,6 +4084,7 @@ dependencies = [
  "style_traits 0.0.1",
  "time 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "uuid 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "webdriver 0.40.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "webvr_traits 0.0.1",
