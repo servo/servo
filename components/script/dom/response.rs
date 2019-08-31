@@ -415,7 +415,8 @@ impl Response {
     #[allow(unrooted_must_root)]
     pub fn finish(&self, body: Vec<u8>) {
         *self.body.borrow_mut() = NetTraitsResponseBody::Done(body);
-        if let Some((p, body_type)) = self.body_promise.borrow_mut().take() {
+        let body_promise = self.body_promise.borrow_mut().take();
+        if let Some((p, body_type)) = body_promise {
             consume_body_with_promise(self, body_type, &p);
         }
     }
