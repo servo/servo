@@ -466,7 +466,8 @@ impl Response {
         if let Some(body) = self.body_stream.get() {
             body.close_native();
         }
-        if let Some(stream_consumer) = self.stream_consumer.borrow_mut().take() {
+        let stream_consumer = self.stream_consumer.borrow_mut().take();
+        if let Some(stream_consumer) = stream_consumer {
             stream_consumer.stream_end();
         }
     }
