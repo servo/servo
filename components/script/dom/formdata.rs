@@ -12,12 +12,13 @@ use crate::dom::bindings::iterable::Iterable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::blob::{Blob, BlobImpl};
+use crate::dom::blob::Blob;
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::{FormDatum, FormDatumValue, HTMLFormElement};
 use dom_struct::dom_struct;
 use html5ever::LocalName;
+use script_traits::serializable::BlobImpl;
 
 #[dom_struct]
 pub struct FormData {
@@ -195,10 +196,9 @@ impl FormData {
 
         File::new(
             &self.global(),
-            BlobImpl::new_from_bytes(bytes),
+            BlobImpl::new_from_bytes(bytes, blob.type_string()),
             name,
             None,
-            &blob.type_string(),
         )
     }
 

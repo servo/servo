@@ -162,7 +162,7 @@ impl Transferable for MessagePort {
         }
 
         let port_impls = match sc_holder {
-            StructuredDataHolder::Write(port_impls) => port_impls,
+            StructuredDataHolder::Write { ports, .. } => ports,
             _ => panic!("Unexpected variant of StructuredDataHolder"),
         };
 

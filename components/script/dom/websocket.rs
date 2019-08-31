@@ -14,7 +14,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{is_token, DOMString, USVString};
-use crate::dom::blob::{Blob, BlobImpl};
+use crate::dom::blob::Blob;
 use crate::dom::closeevent::CloseEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -37,6 +37,7 @@ use net_traits::MessageData;
 use net_traits::{CoreResourceMsg, FetchChannels};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
 use profile_traits::ipc as ProfiledIpc;
+use script_traits::serializable::BlobImpl;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -576,7 +577,7 @@ impl TaskOnce for MessageReceivedTask {
                 MessageData::Binary(data) => match ws.binary_type.get() {
                     BinaryType::Blob => {
                         let blob =
-                            Blob::new(&global, BlobImpl::new_from_bytes(data), "".to_owned());
+                            Blob::new(&global, BlobImpl::new_from_bytes(data, "".to_owned()));
                         blob.to_jsval(*cx, message.handle_mut());
                     },
                     BinaryType::Arraybuffer => {

@@ -4612,6 +4612,7 @@ dependencies = [
  "style_traits",
  "time",
  "url",
+ "uuid",
  "webdriver",
  "webgpu",
  "webrender_api",

@@ -150,6 +150,7 @@ pub mod record;
 pub mod refcounted;
 pub mod reflector;
 pub mod root;
+pub mod serializable;
 pub mod settings_stack;
 pub mod str;
 pub mod structuredclone;
