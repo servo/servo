@@ -2932,7 +2932,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.12.0"
-source = "git+https://github.com/servo/rust-mozjs#ab48ca77aec7fc656b7d1fd36bc33e7bc1036a17"
+source = "git+https://github.com/servo/rust-mozjs#92136c0b9a1efba2eb18b4400669278705816027"
 dependencies = [
  "cc 1.0.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
