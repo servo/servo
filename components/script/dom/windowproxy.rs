@@ -644,6 +644,9 @@ impl WindowProxy {
             // because we want to replace the wrapper's `ProxyTraps`, but we
             // don't want to update its identity.
             rooted!(in(*cx) let new_js_proxy = handler.new_window_proxy(&cx, window_jsobject));
+            // Explicitly set this slot to a null pointer in case a GC occurs before we
+            // are ready to set it to a real value.
+            SetProxyReservedSlot(new_js_proxy.get(), 0, &PrivateValue(ptr::null_mut()));
             debug!(
                 "Transplanting proxy from {:p} to {:p}.",
                 old_js_proxy.get(),
