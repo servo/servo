@@ -37,8 +37,9 @@ use js::jsapi::{
 };
 use js::jsapi::{JSObject, PromiseRejectionHandlingState, SetPreserveWrapperCallback};
 use js::jsapi::{SetJobQueue, SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback};
+use js::jsval::UndefinedValue;
 use js::panic::wrap_panic;
-use js::rust::wrappers::{GetPromiseIsHandled, GetPromiseResult};
+use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
 use js::rust::Handle;
 use js::rust::IntoHandle;
 use js::rust::JSEngine;
@@ -251,7 +252,8 @@ unsafe extern "C" fn promise_rejection_tracker(
                         let cx = target.global().get_cx();
                         let root_promise = trusted_promise.root();
 
-                        rooted!(in(*cx) let reason = GetPromiseResult(root_promise.reflector().get_jsobject()));
+                        rooted!(in(*cx) let mut reason = UndefinedValue());
+                        JS_GetPromiseResult(root_promise.reflector().get_jsobject(), reason.handle_mut());
 
                         let event = PromiseRejectionEvent::new(
                             &target.global(),
@@ -314,7 +316,8 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
                         }
 
                         // Step 4-2.
-                        rooted!(in(*cx) let reason = GetPromiseResult(promise.reflector().get_jsobject()));
+                        rooted!(in(*cx) let mut reason = UndefinedValue());
+                        JS_GetPromiseResult(promise.reflector().get_jsobject(), reason.handle_mut());
 
                         let event = PromiseRejectionEvent::new(
                             &target.global(),
