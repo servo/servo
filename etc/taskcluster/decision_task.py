@@ -579,11 +579,11 @@ def macos_debugmozjs():
     )
     return (
         wpt_task(macos_run_task, "WPT debugmozjs", "WPT debugmozjs", "macOS x64",
-                 build_task, processes=4)
+                 build_task, processes=8)
         .with_script("""
             time ./mach test-wpt --release \
                 --binary-arg="--pref=js.mem.gc.zeal.level=2" \
-                --binary-arg="--pref=js.mem.gc.zeal.frequency=10" \
+                --binary-arg="--pref=js.mem.gc.zeal.frequency=20" \
                 --timeout-multiplier=30 \
                 --log-raw test-wpt.log \
                 --log-errorsummary wpt-errorsummary.log \
