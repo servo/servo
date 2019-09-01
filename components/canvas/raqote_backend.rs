@@ -503,7 +503,7 @@ impl GenericPathBuilder for PathBuilder {
                 },
                 PathOp::CubicTo(_, _, point) => return Point2D::new(point.x, point.y),
                 PathOp::QuadTo(_, point) => return Point2D::new(point.x, point.y),
-                _ => {},
+                PathOp::Close => {},
             };
         }
         panic!("dead end");
