@@ -541,15 +541,6 @@ impl HTMLScriptElement {
                     };
                 },
                 ScriptType::Module => {
-                    {
-                        let global = self.global();
-                        let module_maps = global.get_module_map().borrow();
-
-                        if module_maps.get(&url).is_some() {
-                            return;
-                        }
-                    }
-
                     fetch_external_module_script(
                         ModuleOwner::Window(Trusted::new(self)),
                         url.clone(),
