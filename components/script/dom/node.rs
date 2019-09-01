@@ -1012,8 +1012,8 @@ impl Node {
                 let uid = UniqueId::new();
                 self.unique_id = Some(uid);
                 uid
-            }
-        }
+            },
+        };
 
         let node_id_str = node_id.borrow().to_simple().to_string();
         ScriptThread::save_node_id(node_id_str);
