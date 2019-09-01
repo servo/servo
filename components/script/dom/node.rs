@@ -153,7 +153,7 @@ pub struct Node {
     /// node is finalized.
     style_and_layout_data: Cell<Option<OpaqueStyleAndLayoutData>>,
 
-    unique_id: UniqueId,
+    unique_id: Option<UniqueId>,
 }
 
 bitflags! {
@@ -1006,7 +1006,19 @@ impl Node {
     }
 
     pub fn unique_id(&self) -> String {
-        self.unique_id.borrow().to_simple().to_string()
+        let node_id = match self.unique_id {
+            Some(uid) => uid,
+            None => {
+                let uid = UniqueId::new();
+                self.unique_id = Some(uid);
+                uid
+            }
+        }
+
+        let node_id_str = node_id.borrow().to_simple().to_string();
+        ScriptThread::save_node_id(node_id_str);
+
+        node_id_str
     }
 
     pub fn summarize(&self) -> NodeInfo {
@@ -1654,7 +1666,7 @@ impl Node {
 
     #[allow(unrooted_must_root)]
     fn new_(flags: NodeFlags, doc: Option<&Document>) -> Node {
-        let node = Node {
+        Node {
             eventtarget: EventTarget::new_inherited(),
 
             parent_node: Default::default(),
@@ -1672,12 +1684,8 @@ impl Node {
 
             style_and_layout_data: Cell::new(None),
 
-            unique_id: UniqueId::new(),
-        };
-
-        ScriptThread::save_node_id(node.unique_id());
-
-        node
+            unique_id: None, // Lazily created in unique_id()
+        }
     }
 
     // https://dom.spec.whatwg.org/#concept-node-adopt
