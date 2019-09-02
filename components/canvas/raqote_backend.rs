@@ -11,6 +11,7 @@ use crate::canvas_paint_thread::AntialiasMode;
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
+use raqote::PathOp;
 use std::marker::PhantomData;
 
 pub struct RaqoteBackend;
@@ -183,8 +184,9 @@ impl Path {
         unimplemented!()
     }
 
-    pub fn contains_point(&self, _x: f64, _y: f64, _path_transform: &Transform2D<f32>) -> bool {
-        unimplemented!()
+    pub fn contains_point(&self, x: f64, y: f64, _path_transform: &Transform2D<f32>) -> bool {
+        let path = self.as_raqote();
+        path.contains_point(0.1, path.winding, x as f32, y as f32)
     }
 
     pub fn copy_to_builder(&self) -> Box<dyn GenericPathBuilder> {
@@ -238,10 +240,14 @@ impl GenericDrawTarget for raqote::DrawTarget {
     }
     fn create_gradient_stops(
         &self,
-        _gradient_stops: Vec<GradientStop>,
+        gradient_stops: Vec<GradientStop>,
         _extend_mode: ExtendMode,
     ) -> GradientStops {
-        unimplemented!();
+        let stops = gradient_stops
+            .into_iter()
+            .map(|item| item.as_raqote().clone())
+            .collect();
+        GradientStops::Raqote(stops)
     }
     fn create_path_builder(&self) -> Box<dyn GenericPathBuilder> {
         Box::new(PathBuilder::new())
@@ -488,7 +494,19 @@ impl GenericPathBuilder for PathBuilder {
         unimplemented!();
     }
     fn get_current_point(&mut self) -> Point2D<f32> {
-        unimplemented!();
+        let path = self.finish();
+
+        for op in path.as_raqote().ops.iter().rev() {
+            match op {
+                PathOp::MoveTo(point) | PathOp::LineTo(point) => {
+                    return Point2D::new(point.x, point.y)
+                },
+                PathOp::CubicTo(_, _, point) => return Point2D::new(point.x, point.y),
+                PathOp::QuadTo(_, point) => return Point2D::new(point.x, point.y),
+                PathOp::Close => {},
+            };
+        }
+        panic!("dead end");
     }
     fn line_to(&mut self, point: Point2D<f32>) {
         self.0.as_mut().unwrap().line_to(point.x, point.y);
@@ -656,6 +674,14 @@ impl SourceSurface {
     fn as_raqote(&self) -> &Vec<u8> {
         match self {
             SourceSurface::Raqote(s) => s,
+        }
+    }
+}
+
+impl GradientStop {
+    fn as_raqote(&self) -> &raqote::GradientStop {
+        match self {
+            GradientStop::Raqote(s) => s,
         }
     }
 }
