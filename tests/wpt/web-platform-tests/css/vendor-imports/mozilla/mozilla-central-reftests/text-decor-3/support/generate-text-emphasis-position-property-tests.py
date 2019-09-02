@@ -17,6 +17,8 @@ TEST_FILE = 'text-emphasis-position-property-{:03}{}.html'
 REF_FILE = 'text-emphasis-position-property-{:03}-ref.html'
 TEST_TEMPLATE = '''<!DOCTYPE html>
 <meta charset="utf-8">
+<!-- This file was generated automatically by the script
+     ./support/generate-text-emphasis-position-property-tests.py -->
 <title>CSS Test: text-emphasis-position: {value}, {title}</title>
 <link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
 <link rel="author" title="Mozilla" href="https://www.mozilla.org">
@@ -24,7 +26,7 @@ TEST_TEMPLATE = '''<!DOCTYPE html>
 <meta name="assert" content="'text-emphasis-position: {value}' with 'writing-mode: {wm}' puts emphasis marks {position} the text.">
 <link rel="match" href="text-emphasis-position-property-{index:03}-ref.html">
 <p>Pass if the emphasis marks are {position} the text below:</p>
-<div style="line-height: 5; text-emphasis: circle; writing-mode: {wm}; text-orientation: {orient}; text-emphasis-position: {value}">試験テスト</div>
+<div lang="ja" style="line-height: 5; text-emphasis: circle; writing-mode: {wm}; text-orientation: {orient}; text-emphasis-position: {value}">試験テスト</div>
 '''
 
 SUFFIXES = ['', 'a', 'b', 'c', 'd', 'e', 'f', 'g']

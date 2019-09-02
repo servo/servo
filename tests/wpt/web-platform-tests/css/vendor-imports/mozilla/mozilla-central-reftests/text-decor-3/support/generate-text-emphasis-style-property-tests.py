@@ -13,6 +13,8 @@ from __future__ import unicode_literals
 TEST_FILE = 'text-emphasis-style-property-{:03}{}.html'
 TEST_TEMPLATE = '''<!DOCTYPE html>
 <meta charset="utf-8">
+<!-- This file was generated automatically by the script
+     ./support/generate-text-emphasis-style-property-tests.py -->
 <title>CSS Test: text-emphasis-style: {title}</title>
 <link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
 <link rel="author" title="Mozilla" href="https://www.mozilla.org">
@@ -20,18 +22,20 @@ TEST_TEMPLATE = '''<!DOCTYPE html>
 <meta name="assert" content="'text-emphasis-style: {value}' produces {code} as emphasis marks.">
 <link rel="match" href="text-emphasis-style-property-{index:03}-ref.html">
 <p>Pass if there is a '{char}' above every character below:</p>
-<div style="line-height: 5; text-emphasis-style: {value}">試験テスト</div>
+<div lang="ja" style="line-height: 5; text-emphasis-style: {value}">試験テスト</div>
 '''
 
 REF_FILE = 'text-emphasis-style-property-{:03}-ref.html'
 REF_TEMPLATE = '''<!DOCTYPE html>
 <meta charset="utf-8">
+<!-- This file was generated automatically by the script
+     ./support/generate-text-emphasis-style-property-tests.py -->
 <title>CSS Reference: text-emphasis-style: {0}</title>
 <link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
 <link rel="author" title="Mozilla" href="https://www.mozilla.org">
 <style> rt {{ font-variant-east-asian: inherit; }} </style>
 <p>Pass if there is a '{1}' above every character below:</p>
-<div style="line-height: 5;"><ruby>試<rt>{1}</rt>験<rt>{1}</rt>テ<rt>{1}</rt>ス<rt>{1}</rt>ト<rt>{1}</rt></ruby></div>
+<div lang="ja" style="line-height: 5;"><ruby>試<rt>{1}</rt>験<rt>{1}</rt>テ<rt>{1}</rt>ス<rt>{1}</rt>ト<rt>{1}</rt></ruby></div>
 '''
 
 DATA_SET = [

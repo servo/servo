@@ -13,6 +13,8 @@ from __future__ import unicode_literals
 TEST_FILE = 'text-emphasis-line-height-{:03}{}.html'
 TEST_TEMPLATE = '''<!DOCTYPE html>
 <meta charset="utf-8">
+<!-- This file was generated automatically by the script
+     ./support/generate-text-emphasis-line-height-tests.py -->
 <title>CSS Test: text-emphasis line height, {pos}, {wm}, {tag}</title>
 <link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
 <link rel="author" title="Mozilla" href="https://www.mozilla.org">
@@ -26,12 +28,14 @@ TEST_TEMPLATE = '''<!DOCTYPE html>
 REF_FILE = 'text-emphasis-line-height-{:03}-ref.html'
 REF_TEMPLATE='''<!DOCTYPE html>
 <meta charset="utf-8">
+<!-- This file was generated automatically by the script
+     ./support/generate-text-emphasis-line-height-tests.py -->
 <title>CSS Reference: text-emphasis line height, {pos}</title>
 <link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
 <link rel="author" title="Mozilla" href="https://www.mozilla.org">
 <style> rt {{ font-variant-east-asian: inherit; }} </style>
 <p>Pass if the emphasis marks are {dir} the black line:</p>
-<div style="line-height: 1; border-{pos}: 1px solid black; writing-mode: {wm}; ruby-position: {posval}"><ruby>試<rt>&#x25CF;</rt>験<rt>&#x25CF;</rt>テ<rt>&#x25CF;</rt>ス<rt>&#x25CF;</rt>ト<rt>&#x25CF;</rt></ruby></div>
+<div lang="ja" style="line-height: 1; border-{pos}: 1px solid black; writing-mode: {wm}; ruby-position: {posval}"><ruby>試<rt>&#x25CF;</rt>験<rt>&#x25CF;</rt>テ<rt>&#x25CF;</rt>ス<rt>&#x25CF;</rt>ト<rt>&#x25CF;</rt></ruby></div>
 '''
 
 STYLE1 = 'line-height: 1; border-{pos}: 1px solid black; ' + \
@@ -40,8 +44,8 @@ STYLE2 = 'text-emphasis: circle;'
 
 TAGS = [
     # (tag, start, end)
-    ('div', '<div style="{style1}{style2}">', '</div>'),
-    ('span', '<div style="{style1}"><span style="{style2}">', '</span></div>'),
+    ('div', '<div lang="ja" style="{style1}{style2}">', '</div>'),
+    ('span', '<div lang="ja" style="{style1}"><span style="{style2}">', '</span></div>'),
     ]
 POSITIONS = [
     # pos, text-emphasis-position, ruby-position,

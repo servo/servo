@@ -22,6 +22,7 @@
             function run() {
                 var test_pointerEvent = setup_pointerevent_test("pointerevent attributes", ALL_POINTERS);
                 var target = document.getElementById("target0");
+                var actions_promise;
 
                 eventList.forEach(function(eventName) {
                 on_event(target, eventName, function (event) {
@@ -29,7 +30,10 @@
                         detected_pointertypes[event.pointerType] = true;
 
                         if (Object.keys(detected_eventTypes).length == eventList.length) {
-                            test_pointerEvent.done();
+                            // Make sure the test finishes after all the input actions are completed.
+                            actions_promise.then( () => {
+                                test_pointerEvent.done();
+                            });
                         }
                     });
                 });
@@ -38,7 +42,7 @@
                 });
 
                 // Inject touch inputs.
-                clickInTarget("mouse", target).then(function() {
+                actions_promise = clickInTarget("mouse", target).then(function() {
                     return new test_driver.Actions()
                         .addPointer("mousePointer1", "mouse")
                         .pointerMove(0, 0)
