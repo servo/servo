@@ -25,12 +25,14 @@ use std::ops::Deref;
     ToResolvedValue,
     ToShmem,
 )]
-pub struct CounterPair<Integer> {
+#[repr(C)]
+pub struct GenericCounterPair<Integer> {
     /// The name of the counter.
     pub name: CustomIdent,
     /// The value of the counter / increment / etc.
     pub value: Integer,
 }
+pub use self::GenericCounterPair as CounterPair;
 
 /// A generic value for the `counter-increment` property.
 #[derive(
@@ -45,13 +47,15 @@ pub struct CounterPair<Integer> {
     ToResolvedValue,
     ToShmem,
 )]
-pub struct CounterIncrement<I>(pub Counters<I>);
+#[repr(transparent)]
+pub struct GenericCounterIncrement<I>(pub GenericCounters<I>);
+pub use self::GenericCounterIncrement as CounterIncrement;
 
 impl<I> CounterIncrement<I> {
     /// Returns a new value for `counter-increment`.
     #[inline]
     pub fn new(counters: Vec<CounterPair<I>>) -> Self {
-        CounterIncrement(Counters(counters.into_boxed_slice()))
+        CounterIncrement(Counters(counters.into()))
     }
 }
 
@@ -77,13 +81,15 @@ impl<I> Deref for CounterIncrement<I> {
     ToResolvedValue,
     ToShmem,
 )]
-pub struct CounterSetOrReset<I>(pub Counters<I>);
+#[repr(transparent)]
+pub struct GenericCounterSetOrReset<I>(pub GenericCounters<I>);
+pub use self::GenericCounterSetOrReset as CounterSetOrReset;
 
 impl<I> CounterSetOrReset<I> {
     /// Returns a new value for `counter-set` / `counter-reset`.
     #[inline]
     pub fn new(counters: Vec<CounterPair<I>>) -> Self {
-        CounterSetOrReset(Counters(counters.into_boxed_slice()))
+        CounterSetOrReset(Counters(counters.into()))
     }
 }
 
@@ -111,17 +117,9 @@ impl<I> Deref for CounterSetOrReset<I> {
     ToResolvedValue,
     ToShmem,
 )]
-pub struct Counters<I>(#[css(iterable, if_empty = "none")] Box<[CounterPair<I>]>);
-
-impl<I> Counters<I> {
-    /// Move out the Box into a vector. This could just return the Box<>, but
-    /// Vec<> is a bit more convenient because Box<[T]> doesn't implement
-    /// IntoIter: https://github.com/rust-lang/rust/issues/59878
-    #[inline]
-    pub fn into_vec(self) -> Vec<CounterPair<I>> {
-        self.0.into_vec()
-    }
-}
+#[repr(transparent)]
+pub struct GenericCounters<I>(#[css(iterable, if_empty = "none")] crate::OwnedSlice<GenericCounterPair<I>>);
+pub use self::GenericCounters as Counters;
 
 #[cfg(feature = "servo")]
 type CounterStyleType = ListStyleType;

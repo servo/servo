@@ -2579,8 +2579,7 @@ clip-path
     ${impl_simple('column_rule_style', 'mColumnRuleStyle')}
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Counters"
-                  skip_longhands="content counter-increment counter-reset counter-set">
+<%self:impl_trait style_struct_name="Counters" skip_longhands="content">
     pub fn ineffective_content_property(&self) -> bool {
         self.gecko.mContents.is_empty()
     }
@@ -2811,51 +2810,6 @@ clip-path
             }).collect::<Vec<_>>().into_boxed_slice()
         )
     }
-
-    % for counter_property in ["Increment", "Reset", "Set"]:
-        pub fn set_counter_${counter_property.lower()}(
-            &mut self,
-            v: longhands::counter_${counter_property.lower()}::computed_value::T
-        ) {
-            unsafe {
-                bindings::Gecko_ClearAndResizeCounter${counter_property}s(&mut *self.gecko, v.len() as u32);
-                for (i, pair) in v.0.into_vec().into_iter().enumerate() {
-                    self.gecko.m${counter_property}s[i].mCounter.set_move(
-                        RefPtr::from_addrefed(pair.name.0.into_addrefed())
-                    );
-                    self.gecko.m${counter_property}s[i].mValue = pair.value;
-                }
-            }
-        }
-
-        pub fn copy_counter_${counter_property.lower()}_from(&mut self, other: &Self) {
-            unsafe {
-                bindings::Gecko_CopyCounter${counter_property}sFrom(&mut *self.gecko, &*other.gecko)
-            }
-        }
-
-        pub fn reset_counter_${counter_property.lower()}(&mut self, other: &Self) {
-            self.copy_counter_${counter_property.lower()}_from(other)
-        }
-
-        pub fn clone_counter_${counter_property.lower()}(
-            &self
-        ) -> longhands::counter_${counter_property.lower()}::computed_value::T {
-            use crate::values::generics::counters::CounterPair;
-            use crate::values::CustomIdent;
-
-            longhands::counter_${counter_property.lower()}::computed_value::T::new(
-                self.gecko.m${counter_property}s.iter().map(|ref gecko_counter| {
-                    CounterPair {
-                        name: CustomIdent(unsafe {
-                            Atom::from_raw(gecko_counter.mCounter.mRawPtr)
-                        }),
-                        value: gecko_counter.mValue,
-                    }
-                }).collect()
-            )
-        }
-    % endfor
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="UI" skip_longhands="-moz-force-broken-image-icon">
