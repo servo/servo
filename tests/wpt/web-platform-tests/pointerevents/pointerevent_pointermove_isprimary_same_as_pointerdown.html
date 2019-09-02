@@ -27,6 +27,7 @@
 
             function run() {
                 var target0 = document.getElementById("target0");
+                var actions_promise;
 
                 on_event(target0, "pointermove", function (event) {
                     if (pointerdown_event != null) {
@@ -47,11 +48,14 @@
                     test_pointerEvent.step(function () {
                         assert_not_equals(pointermove_event, null, "pointermove event was never received: ");
                     });
-                    test_pointerEvent.done(); // complete test
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        test_pointerEvent.done();
+                    });
                 });
 
                 // Dispatch a mouse drag in target0.
-                new test_driver.Actions()
+                actions_promise = new test_driver.Actions()
                     .pointerMove(0, 0, {origin: target0})
                     .pointerDown()
                     .pointerMove(3, 3, {origin: target0})

@@ -26,7 +26,6 @@
         </h4>
         <div id="target0" style="background:black"></div>
         <script>
-            var eventTested = false;
             var detected_pointertypes = {};
             var test_pointermove = async_test("pointermove events received for button state changes");
             add_completion_callback(showPointerTypes);
@@ -36,6 +35,7 @@
 
             function run() {
                 var target0 = document.getElementById("target0");
+                var actions_promise;
 
                 // When a pointer changes button state and the circumstances produce no other pointer event, the pointermove event must be dispatched.
                 // 5.2.6
@@ -64,13 +64,15 @@
                     detected_pointertypes[event.pointerType] = true;
                     test_pointermove.step(function() {assert_true(step === 3, "The pointerup event must be triggered after pressing and releasing the second button.");});
                     test_pointermove.step(function() {assert_true(event.buttons === 0, "The pointerup event must be triggered by releasing the last pressed button.");});
-                    test_pointermove.done();
-                    eventTested = true;
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        test_pointermove.done();
+                    });
                 });
 
                 // Click on both left and middle buttons.
                 var actions = new test_driver.Actions();
-                actions.pointerMove(0, 0, {origin: target0, button: actions.ButtonType.LEFT})
+                actions_promise = actions.pointerMove(0, 0, {origin: target0, button: actions.ButtonType.LEFT})
                     .pointerDown({button: actions.ButtonType.LEFT})
                     .pointerDown({button: actions.ButtonType.MIDDLE})
                     .pointerUp({button: actions.ButtonType.MIDDLE})

@@ -136,6 +136,7 @@ interface mixin HTMLOrSVGElement {
   [SameObject] readonly attribute DOMStringMap dataset;
   attribute DOMString nonce; // intentionally no [CEReactions]
 
+  [CEReactions] attribute boolean autofocus;
   [CEReactions] attribute long tabIndex;
   void focus(optional FocusOptions options = {});
   void blur();
@@ -820,7 +821,6 @@ interface HTMLInputElement : HTMLElement {
   [CEReactions] attribute DOMString accept;
   [CEReactions] attribute DOMString alt;
   [CEReactions] attribute DOMString autocomplete;
-  [CEReactions] attribute boolean autofocus;
   [CEReactions] attribute boolean defaultChecked;
   attribute boolean checked;
   [CEReactions] attribute DOMString dirName;
@@ -881,7 +881,6 @@ interface HTMLInputElement : HTMLElement {
 [Exposed=Window,
  HTMLConstructor]
 interface HTMLButtonElement : HTMLElement {
-  [CEReactions] attribute boolean autofocus;
   [CEReactions] attribute boolean disabled;
   readonly attribute HTMLFormElement? form;
   [CEReactions] attribute USVString formAction;
@@ -907,7 +906,6 @@ interface HTMLButtonElement : HTMLElement {
  HTMLConstructor]
 interface HTMLSelectElement : HTMLElement {
   [CEReactions] attribute DOMString autocomplete;
-  [CEReactions] attribute boolean autofocus;
   [CEReactions] attribute boolean disabled;
   readonly attribute HTMLFormElement? form;
   [CEReactions] attribute boolean multiple;
@@ -972,7 +970,6 @@ interface HTMLOptionElement : HTMLElement {
  HTMLConstructor]
 interface HTMLTextAreaElement : HTMLElement {
   [CEReactions] attribute DOMString autocomplete;
-  [CEReactions] attribute boolean autofocus;
   [CEReactions] attribute unsigned long cols;
   [CEReactions] attribute DOMString dirName;
   [CEReactions] attribute boolean disabled;
