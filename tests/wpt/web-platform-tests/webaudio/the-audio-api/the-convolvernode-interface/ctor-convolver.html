@@ -75,6 +75,19 @@
 
         task.done();
       });
+      audit.define('illegal sample-rate', (task, should) => {
+        let node;
+        let options = {buffer: context.createBuffer(1, 1, context.sampleRate / 2)};
+
+        should(
+            () => {
+              node = new ConvolverNode(context, options);
+            },
+            'node1 = new ConvolverNode(c, ' + JSON.stringify(options))
+            .throw(DOMException, 'NotSupportedError');
+
+        task.done();
+      });
 
       audit.define('construct with options', (task, should) => {
         let buf = context.createBuffer(1, 1, context.sampleRate);
