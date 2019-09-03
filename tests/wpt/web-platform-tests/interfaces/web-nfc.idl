@@ -70,18 +70,11 @@ dictionary NFCErrorEventInit : EventInit {
   required DOMException error;
 };
 
-enum NDEFCompatibility {
-  "nfc-forum",
-  "vendor",
-  "any"
-};
-
 dictionary NFCPushOptions {
   NFCPushTarget target = "any";
   unrestricted double timeout = Infinity;
   boolean ignoreRead = true;
   AbortSignal? signal;
-  NDEFCompatibility compatibility = "nfc-forum";
 };
 
 enum NFCPushTarget {
@@ -91,9 +84,8 @@ enum NFCPushTarget {
 };
 
 dictionary NFCScanOptions {
-  AbortSignal? signal;
   USVString url = "";
   NDEFRecordType recordType;
   USVString mediaType = "";
-  NDEFCompatibility compatibility = "nfc-forum";
+  AbortSignal? signal;
 };

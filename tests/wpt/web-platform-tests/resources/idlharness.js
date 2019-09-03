@@ -1507,6 +1507,17 @@ IdlInterface.prototype.test = function()
     this.test_members();
 };
 
+// This supports both Constructor extended attributes and constructor
+// operations until all idl fragments have been updated.
+IdlInterface.prototype.constructors = function()
+{
+    var extendedAttributes = this.extAttrs
+        .filter(function(attr) { return attr.name == "Constructor"; });
+    var operations = this.members
+        .filter(function(m) { return m.type == "constructor"; });
+    return extendedAttributes.concat(operations);
+}
+
 IdlInterface.prototype.test_self = function()
 {
     subsetTestByKey(this.name, test, function()
@@ -1594,7 +1605,7 @@ IdlInterface.prototype.test_self = function()
                           "prototype of self's property " + format_value(this.name) + " is not Function.prototype");
         }
 
-        if (!this.has_extended_attribute("Constructor")) {
+        if (!this.constructors().length) {
             // "The internal [[Call]] method of the interface object behaves as
             // follows . . .
             //
@@ -1629,8 +1640,7 @@ IdlInterface.prototype.test_self = function()
             assert_false(desc.enumerable, this.name + ".length should not be enumerable");
             assert_true(desc.configurable, this.name + ".length should be configurable");
 
-            var constructors = this.extAttrs
-                .filter(function(attr) { return attr.name == "Constructor"; });
+            var constructors = this.constructors();
             var expected_length = minOverloadLength(constructors);
             assert_equals(this.get_interface_object().length, expected_length, "wrong value for " + this.name + ".length");
         }.bind(this), this.name + " interface object length");
