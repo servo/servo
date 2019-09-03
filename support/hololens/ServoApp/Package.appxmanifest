@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" IgnorableNamespaces="uap mp">
-  <Identity Name="1d265729-8836-4bd3-9992-4cb111d1068b" Publisher="CN=paul" Version="1.0.0.0" />
+  <Identity Name="1d265729-8836-4bd3-9992-4cb111d1068b" Publisher="CN=Allizom" Version="1.0.0.0" />
   <mp:PhoneIdentity PhoneProductId="1d265729-8836-4bd3-9992-4cb111d1068b" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
   <Properties>
-    <DisplayName>ServoApp</DisplayName>
+    <DisplayName>Firefox Reality</DisplayName>
     <PublisherDisplayName>Mozilla</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -15,16 +15,21 @@
   </Resources>
   <Applications>
     <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="ServoApp.App">
-      <uap:VisualElements DisplayName="ServoApp" Description="A Servo-based browser." Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" BackgroundColor="transparent">
-        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png">
+      <uap:VisualElements DisplayName="Firefox Reality" Description="Firefox Reality brings the best and freshest content from the web that you know and love to Virtual Reality headsets. Our browser provides an open, accessible and secure way for everyone to explore the web. Experience sharp text, high quality videos, and a seamless transition from 2D to 3D immersive modes. Enjoy the best possible web browsing experience with Firefox Reality." Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" BackgroundColor="transparent">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" ShortName="Firefox Reality" Square310x310Logo="Assets\LargeTile.png" Square71x71Logo="Assets\SmallTile.png">
+          <uap:ShowNameOnTiles>
+            <uap:ShowOn Tile="square150x150Logo" />
+            <uap:ShowOn Tile="wide310x150Logo" />
+            <uap:ShowOn Tile="square310x310Logo" />
+          </uap:ShowNameOnTiles>
         </uap:DefaultTile>
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
       </uap:VisualElements>
       <Extensions>
         <uap:Extension Category="windows.protocol">
-          <uap:Protocol Name="servo">
+          <uap:Protocol Name="fxr">
             <uap:Logo>Assets\StoreLogo.png</uap:Logo>
-            <uap:DisplayName>Servo URL</uap:DisplayName>
+            <uap:DisplayName>Firefox Reality URL</uap:DisplayName>
           </uap:Protocol>
         </uap:Extension>
       </Extensions>
