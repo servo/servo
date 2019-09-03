@@ -243,16 +243,6 @@ impl MessageListener {
     }
 }
 
-impl Drop for GlobalScope {
-    fn drop(&mut self) {
-        if let Some(router_id) = *self.message_ports_router_id.borrow_mut() {
-            let _ = self
-                .script_to_constellation_chan()
-                .send(ScriptMsg::RemoveMessagePortRouter(router_id));
-        }
-    }
-}
-
 impl GlobalScope {
     pub fn new_inherited(
         pipeline_id: PipelineId,
@@ -295,6 +285,16 @@ impl GlobalScope {
             consumed_rejections: Default::default(),
             is_headless,
             user_agent,
+        }
+    }
+
+    /// Tell the constellation to drop the sender to our message-port router.
+    /// Performed as part of document unloading.
+    pub fn remove_message_ports_router(&mut self) {
+        if let Some(router_id) = *self.message_ports_router_id.borrow_mut() {
+            let _ = self
+                .script_to_constellation_chan()
+                .send(ScriptMsg::RemoveMessagePortRouter(router_id));
         }
     }
 
