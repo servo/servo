@@ -35,14 +35,10 @@ rand = [
 # Ignored packages with duplicated versions
 packages = [
   "gl_generator", # https://github.com/servo/servo/pull/23288#issuecomment-494687746
-  "lock_api",
   "nix", # https://github.com/servo/servo/issues/23189#issuecomment-487512605
-  "parking_lot",
-  "parking_lot_core",
   "proc-macro2",
   "quote",
   "rand_core",
-  "scopeguard",
   "syn",
   "unicode-xid",
 ]
