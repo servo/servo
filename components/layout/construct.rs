@@ -1878,6 +1878,7 @@ where
             // Inline items that are absolutely-positioned contribute inline fragment construction
             // results with a hypothetical fragment.
             (Display::Inline, _, Position::Absolute) |
+            (Display::Inline, _, Position::Fixed) |
             (Display::InlineBlock, _, Position::Absolute) => {
                 let construction_result =
                     self.build_fragment_for_absolutely_positioned_inline(node);
