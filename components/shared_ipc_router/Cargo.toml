@@ -15,7 +15,7 @@ doctest = false
 [dependencies]
 bincode = "1"
 crossbeam-channel = "0.3"
-ipc-channel = "0.11"
+ipc-channel = "0.12"
 lazy_static = "1"
 msg = {path = "../msg"}
 profile_traits = {path = "../profile_traits"}
