@@ -13,27 +13,14 @@ function printPerfTiming() {
   print("[PERF] perf block start")
   formatLine("testcase", window.location);
   formatLine("title", document.title.replace(/,/g, "&#44;"));
-  formatLine("navigationStart", performance.timing.navigationStart);
-  formatLine("unloadEventStart", performance.timing.unloadEventStart);
-  formatLine("unloadEventEnd", performance.timing.unloadEventEnd);
-  formatLine("redirectStart", performance.timing.redirectStart);
-  formatLine("redirectEnd", performance.timing.redirectEnd);
-  formatLine("fetchStart", performance.timing.fetchStart);
-  formatLine("domainLookupStart", performance.timing.domainLookupStart);
-  formatLine("domainLookupEnd", performance.timing.domainLookupEnd);
-  formatLine("connectStart", performance.timing.connectStart);
-  formatLine("connectEnd", performance.timing.connectEnd);
-  formatLine("secureConnectionStart", performance.timing.secureConnectionStart);
-  formatLine("requestStart", performance.timing.requestStart);
-  formatLine("responseStart", performance.timing.responseStart);
-  formatLine("responseEnd", performance.timing.responseEnd);
-  formatLine("domLoading", performance.timing.domLoading);
-  formatLine("domInteractive", performance.timing.domInteractive);
-  formatLine("domContentLoadedEventStart", performance.timing.domContentLoadedEventStart);
-  formatLine("domContentLoadedEventEnd", performance.timing.domContentLoadedEventEnd);
-  formatLine("domComplete", performance.timing.domComplete);
-  formatLine("loadEventStart", performance.timing.loadEventStart);
-  formatLine("loadEventEnd", performance.timing.loadEventEnd);
+  var entries = performance.getEntriesByName(window.location);
+  for (entry in entries) {
+    for (key in entries[entry]) {
+      if (typeof entries[entry][key] === "number") {
+	formatLine(key, entries[entry][key]);
+      }
+    }
+  }
   print("[PERF] perf block end")
 }
 
