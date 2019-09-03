@@ -59,17 +59,12 @@ const INVALID_ENTRY_NAMES: &'static [&'static str] = &[
 pub struct PerformanceEntryList {
     /// https://w3c.github.io/performance-timeline/#dfn-performance-entry-buffer
     entries: DOMPerformanceEntryList,
-    /// https://w3c.github.io/performance-timeline/#dfn-maxbuffersize
-    /// The max-size of the buffer, set to 0 once the pipeline exits.
-    /// TODO: have one max-size per entry type.
-    max_buffer_size: Cell<usize>,
 }
 
 impl PerformanceEntryList {
     pub fn new(entries: DOMPerformanceEntryList) -> Self {
         PerformanceEntryList {
             entries,
-            max_buffer_size: Cell::new(25),
         }
     }
 
@@ -149,6 +144,9 @@ pub struct Performance {
     observers: DomRefCell<Vec<PerformanceObserver>>,
     pending_notification_observers_task: Cell<bool>,
     navigation_start_precise: u64,
+    /// https://w3c.github.io/performance-timeline/#dfn-maxbuffersize
+    /// The max-size of the buffer, set to 0 once the pipeline exits.
+    /// TODO: have one max-size per entry type.
     resource_timing_buffer_size_limit: Cell<usize>,
     resource_timing_buffer_current_size: Cell<usize>,
     resource_timing_buffer_pending_full_event: Cell<bool>,
@@ -184,7 +182,7 @@ impl Performance {
     pub fn clear_and_disable_performance_entry_buffer(&self) {
         let mut buffer = self.buffer.borrow_mut();
         buffer.entries.clear();
-        buffer.max_buffer_size.set(0);
+        self.resource_timing_buffer_size_limit.set(0);
     }
 
     /// Add a PerformanceObserver to the list of observers with a set of
@@ -238,6 +236,7 @@ impl Performance {
     /// Also this algorithm has been extented according to :
     /// <https://w3c.github.io/resource-timing/#sec-extensions-performance-interface>
     pub fn queue_entry(&self, entry: &PerformanceEntry, add_to_performance_entries_buffer: bool) {
+        // https://w3c.github.io/performance-timeline/#dfn-determine-eligibility-for-adding-a-performance-entry
         if entry.entry_type() == "resource" && !self.should_queue_resource_entry(entry) {
             return;
         }
@@ -259,12 +258,10 @@ impl Performance {
         // If the "add to performance entry buffer flag" is set, add the
         // new entry to the buffer.
         if add_to_performance_entries_buffer {
-            let mut buffer = self.buffer.borrow_mut();
-            // https://w3c.github.io/performance-timeline/
-            // #dfn-determine-eligibility-for-adding-a-performance-entry
-            if buffer.entries.len() < buffer.max_buffer_size.get() {
-                buffer.entries.push(DomRoot::from_ref(entry));
-            }
+            self.entries
+                .borrow_mut()
+                .entries
+                .push(DomRoot::from_ref(entry));
         }
 
         // Step 5.
