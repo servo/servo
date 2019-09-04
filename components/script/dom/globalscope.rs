@@ -207,14 +207,16 @@ impl MessageListener {
                 let _ = self.task_source.queue_with_canceller(
                     task!(process_complete_transfer: move || {
                         let global = context.root();
-                        if let Some(port) = global.message_ports.borrow_mut().get_mut(&port_id) {
+                        let should_start = if let Some(port) = global.message_ports.borrow_mut().get_mut(&port_id) {
                             port.complete_transfer(tasks);
-                            if port.enabled() {
-                                global.start_message_port(&port_id);
-                            }
-                            return;
+                            port.enabled()
+                        } else {
+                             warn!("CompleteTransfer msg received in a global not managing the port.");
+                             false
                         };
-                        warn!("CompleteTransfer msg received in a global not managing the port.");
+                        if should_start {
+                            global.start_message_port(&port_id);
+                        }
                     }),
                     &self.canceller,
                 );
@@ -290,7 +292,7 @@ impl GlobalScope {
 
     /// Tell the constellation to drop the sender to our message-port router.
     /// Performed as part of document unloading.
-    pub fn remove_message_ports_router(&mut self) {
+    pub fn remove_message_ports_router(&self) {
         if let Some(router_id) = *self.message_ports_router_id.borrow_mut() {
             let _ = self
                 .script_to_constellation_chan()

@@ -24,7 +24,7 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::{
     BrowsingContextId, MessagePortId, MessagePortRouterId, PipelineId, TopLevelBrowsingContextId,
 };
-use msg::constellation_msg::{HistoryStateId, PipelineNamespaceId, TraversalDirection};
+use msg::constellation_msg::{HistoryStateId, TraversalDirection};
 use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::StorageType;
 use net_traits::CoreResourceMsg;

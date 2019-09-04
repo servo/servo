@@ -7,7 +7,9 @@
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use parking_lot::Mutex;
+use servo_url::ImmutableOrigin;
 use std::cell::Cell;
+use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use std::mem;
 use std::num::NonZeroU32;
