@@ -20,9 +20,9 @@ use std::ffi::{CStr, CString};
 #[cfg(target_os = "windows")]
 use std::mem;
 use std::os::raw::{c_char, c_void};
-use std::panic::{self, AssertUnwindSafe, UnwindSafe};
-use std::sync::RwLock;
+use std::panic::{self, UnwindSafe};
 use std::slice;
+use std::sync::RwLock;
 
 extern "C" fn default_panic_handler(msg: *const c_char) {
     let c_str: &CStr = unsafe { CStr::from_ptr(msg) };
