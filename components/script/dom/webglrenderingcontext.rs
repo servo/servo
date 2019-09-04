@@ -1102,6 +1102,10 @@ impl WebGLRenderingContext {
         self.bound_framebuffer.get()
     }
 
+    pub fn bound_renderbuffer(&self) -> Option<DomRoot<WebGLRenderbuffer>> {
+        self.bound_renderbuffer.get()
+    }
+
     pub fn extension_manager(&self) -> &WebGLExtensions {
         &self.extension_manager
     }
