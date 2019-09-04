@@ -699,7 +699,7 @@ class MachCommands(CommandBase):
                     status = 1
 
                 # UWP build hololens
-                if uwp:
+                if uwp and status == 0:
                     build_uwp_hololens(target_triple, dev, msbuildinstalldir)
 
             elif sys.platform == "darwin":
