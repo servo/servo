@@ -33,6 +33,7 @@ test_interfaces([
   "Headers",
   "History",
   "ImageData",
+  "MessageChannel",
   "MessageEvent",
   "MessagePort",
   "Performance",
