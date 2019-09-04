@@ -3,14 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::Handler;
-use crossbeam_channel::Sender;
 use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::{ConstellationMsg, MouseButton, MouseEventType, WebDriverCommandMsg};
 use std::cmp;
 use std::collections::HashSet;
-use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 use webdriver::actions::{ActionSequence, ActionsType, GeneralAction, NullActionItem};
@@ -28,7 +26,7 @@ static POINTERMOVE_INTERVAL: u64 = 17;
 pub(crate) enum InputSourceState {
     Null,
     Key(KeyInputState),
-    Pointer(Arc<Mutex<PointerInputState>>),
+    Pointer(PointerInputState),
 }
 
 // https://w3c.github.io/webdriver/#dfn-pointer-input-source
@@ -80,73 +78,6 @@ fn compute_tick_duration(tick_actions: &ActionSequence) -> u64 {
         ActionsType::Key { actions: _ } => (),
     }
     duration
-}
-
-// https://w3c.github.io/webdriver/#dfn-perform-a-pointer-move
-fn perform_pointer_move(
-    constellation_chan: Sender<ConstellationMsg>,
-    pointer_input_state: Arc<Mutex<PointerInputState>>,
-    duration: u64,
-    start_x: i64,
-    start_y: i64,
-    target_x: i64,
-    target_y: i64,
-    tick_start: Instant,
-) {
-    let mut pointer_input_state = pointer_input_state.lock().unwrap();
-
-    loop {
-        // Step 1
-        let time_delta = tick_start.elapsed().as_millis();
-
-        // Step 2
-        let duration_ratio = if duration > 0 {
-            time_delta as f64 / duration as f64
-        } else {
-            1.0
-        };
-
-        // Step 3
-        let last = if 1.0 - duration_ratio < 0.001 {
-            true
-        } else {
-            false
-        };
-
-        // Step 4
-        let (x, y) = if last {
-            (target_x, target_y)
-        } else {
-            (
-                (duration_ratio * (target_x - start_x) as f64) as i64 + start_x,
-                (duration_ratio * (target_y - start_y) as f64) as i64 + start_y,
-            )
-        };
-
-        // Steps 5 - 6
-        let current_x = pointer_input_state.x;
-        let current_y = pointer_input_state.y;
-
-        // Step 7
-        if x != current_x || y != current_y {
-            // Step 7.2
-            let cmd_msg = WebDriverCommandMsg::MouseMoveAction(x as f32, y as f32);
-            constellation_chan
-                .send(ConstellationMsg::WebDriverCommand(cmd_msg))
-                .unwrap();
-            // Step 7.3
-            pointer_input_state.x = x;
-            pointer_input_state.y = y;
-        }
-
-        // Step 8
-        if last {
-            return;
-        }
-
-        // Step 9
-        thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
-    }
 }
 
 fn u64_to_mouse_button(button: u64) -> Option<MouseButton> {
@@ -235,9 +166,9 @@ impl Handler {
                                 .unwrap()
                                 .input_state_table
                                 .entry(source_id.to_string())
-                                .or_insert(InputSourceState::Pointer(Arc::new(Mutex::new(
-                                    PointerInputState::new(&parameters.pointer_type),
-                                ))));
+                                .or_insert(InputSourceState::Pointer(PointerInputState::new(
+                                    &parameters.pointer_type,
+                                )));
                             match action {
                                 PointerAction::Cancel => (),
                                 PointerAction::Down(action) => {
@@ -319,13 +250,17 @@ impl Handler {
     }
 
     // https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerdown-action
-    fn dispatch_pointerdown_action(&mut self, source_id: &str, action: &PointerDownAction) {
+    pub(crate) fn dispatch_pointerdown_action(
+        &mut self,
+        source_id: &str,
+        action: &PointerDownAction,
+    ) {
         let session = self.session.as_mut().unwrap();
 
-        let mut pointer_input_state = match session.input_state_table.get(source_id).unwrap() {
+        let pointer_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Null => unreachable!(),
             InputSourceState::Key(_) => unreachable!(),
-            InputSourceState::Pointer(pointer_input_state) => pointer_input_state.lock().unwrap(),
+            InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
         };
 
         if pointer_input_state.pressed.contains(&action.button) {
@@ -365,13 +300,13 @@ impl Handler {
     }
 
     // https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerup-action
-    fn dispatch_pointerup_action(&mut self, source_id: &str, action: &PointerUpAction) {
+    pub(crate) fn dispatch_pointerup_action(&mut self, source_id: &str, action: &PointerUpAction) {
         let session = self.session.as_mut().unwrap();
 
-        let mut pointer_input_state = match session.input_state_table.get(source_id).unwrap() {
+        let pointer_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Null => unreachable!(),
             InputSourceState::Key(_) => unreachable!(),
-            InputSourceState::Pointer(pointer_input_state) => pointer_input_state.lock().unwrap(),
+            InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
         };
 
         if !pointer_input_state.pressed.contains(&action.button) {
@@ -411,7 +346,7 @@ impl Handler {
     }
 
     // https://w3c.github.io/webdriver/#dfn-dispatch-a-pointermove-action
-    fn dispatch_pointermove_action(
+    pub(crate) fn dispatch_pointermove_action(
         &mut self,
         source_id: &str,
         action: &PointerMoveAction,
@@ -435,7 +370,6 @@ impl Handler {
             InputSourceState::Null => unreachable!(),
             InputSourceState::Key(_) => unreachable!(),
             InputSourceState::Pointer(pointer_input_state) => {
-                let pointer_input_state = pointer_input_state.lock().unwrap();
                 (pointer_input_state.x, pointer_input_state.y)
             },
         };
@@ -488,12 +422,30 @@ impl Handler {
             thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
         }
 
+        // Step 11
+        self.perform_pointer_move(source_id, duration, start_x, start_y, x, y, tick_start);
+
+        // Step 12
+        Ok(())
+    }
+
+    // https://w3c.github.io/webdriver/#dfn-perform-a-pointer-move
+    fn perform_pointer_move(
+        &mut self,
+        source_id: &str,
+        duration: u64,
+        start_x: i64,
+        start_y: i64,
+        target_x: i64,
+        target_y: i64,
+        tick_start: Instant,
+    ) {
         let pointer_input_state = match self
             .session
-            .as_ref()
+            .as_mut()
             .unwrap()
             .input_state_table
-            .get(source_id)
+            .get_mut(source_id)
             .unwrap()
         {
             InputSourceState::Null => unreachable!(),
@@ -501,24 +453,57 @@ impl Handler {
             InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
         };
 
-        let constellation_chan = self.constellation_chan.clone();
-        let pointer_input_state = pointer_input_state.clone();
+        loop {
+            // Step 1
+            let time_delta = tick_start.elapsed().as_millis();
 
-        // Step 11
-        thread::spawn(move || {
-            perform_pointer_move(
-                constellation_chan,
-                pointer_input_state,
-                duration,
-                start_x,
-                start_y,
-                x,
-                y,
-                tick_start,
-            );
-        });
+            // Step 2
+            let duration_ratio = if duration > 0 {
+                time_delta as f64 / duration as f64
+            } else {
+                1.0
+            };
 
-        // Step 12
-        Ok(())
+            // Step 3
+            let last = if 1.0 - duration_ratio < 0.001 {
+                true
+            } else {
+                false
+            };
+
+            // Step 4
+            let (x, y) = if last {
+                (target_x, target_y)
+            } else {
+                (
+                    (duration_ratio * (target_x - start_x) as f64) as i64 + start_x,
+                    (duration_ratio * (target_y - start_y) as f64) as i64 + start_y,
+                )
+            };
+
+            // Steps 5 - 6
+            let current_x = pointer_input_state.x;
+            let current_y = pointer_input_state.y;
+
+            // Step 7
+            if x != current_x || y != current_y {
+                // Step 7.2
+                let cmd_msg = WebDriverCommandMsg::MouseMoveAction(x as f32, y as f32);
+                self.constellation_chan
+                    .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+                    .unwrap();
+                // Step 7.3
+                pointer_input_state.x = x;
+                pointer_input_state.y = y;
+            }
+
+            // Step 8
+            if last {
+                return;
+            }
+
+            // Step 9
+            thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
+        }
     }
 }
