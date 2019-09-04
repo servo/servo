@@ -100,13 +100,16 @@ impl MessagePortImpl {
 
     /// A message was received from our entangled port.
     pub fn handle_incoming(&self, task: PortMessageTask) -> Option<PortMessageTask> {
+        println!("Handling incoming task for {:?}", self.message_port_id);
         if self.detached.get() {
             return None;
         }
 
         if self.enabled.get() && !self.awaiting_transfer.get() {
+            println!("Dispatgchin incoming task for {:?}", self.message_port_id);
             Some(task)
         } else {
+            println!("Buffering incoming task for {:?}", self.message_port_id);
             self.message_buffer.borrow_mut().push_back(task);
             None
         }

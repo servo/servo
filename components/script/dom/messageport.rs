@@ -2,11 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{
     MessagePortMethods, PostMessageOptions, Wrap,
 };
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, ErrorResult};
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone::{self, StructuredCloneHolder};
@@ -24,6 +26,7 @@ use script_traits::PortMessageTask;
 use std::cell::{Cell, RefCell};
 use std::convert::TryInto;
 use std::num::NonZeroU32;
+use std::rc::Rc;
 
 #[dom_struct]
 /// The MessagePort used in the DOM.
@@ -79,6 +82,12 @@ impl MessagePort {
 
     pub fn detached(&self) -> bool {
         self.detached.get()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
+    fn set_onmessage(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+        let eventtarget = self.upcast::<EventTarget>();
+        eventtarget.set_event_handler_common("message", listener);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#message-port-post-message-steps>
@@ -272,7 +281,23 @@ impl MessagePortMethods for MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
-    event_handler!(message, GetOnmessage, SetOnmessage);
+    fn GetOnmessage(&self) -> Option<Rc<EventHandlerNonNull>> {
+        if self.detached.get() {
+            return None;
+        }
+        let eventtarget = self.upcast::<EventTarget>();
+        eventtarget.get_event_handler_common("message")
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
+    fn SetOnmessage(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+        if self.detached.get() {
+            return;
+        }
+        self.set_onmessage(listener);
+        // Note: we cannot use the event_handler macro, due to the need to start the port.
+        self.global().start_message_port(self.message_port_id());
+    }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessageerror>
     event_handler!(messageerror, GetOnmessageerror, SetOnmessageerror);

@@ -1795,6 +1795,7 @@ where
             },
             // A newly created port, create a new info and store it.
             None => {
+                println!("Constellation got new port: {:?} from {:?}", port_id, router_id);
                 let info = MessagePortInfo {
                     is_being_transferred: false,
                     router: router_id,
