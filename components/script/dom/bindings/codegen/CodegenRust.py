@@ -492,7 +492,7 @@ class CGMethodCall(CGThing):
             else:
                 # Just throw; we have no idea what we're supposed to
                 # do with this.
-                caseBody.append(CGGeneric("throw_internal_error(*cx, \"Could not convert JavaScript argument\");\n"
+                caseBody.append(CGGeneric("throw_type_error(*cx, \"Could not convert JavaScript argument\");\n"
                                           "return false;"))
 
             argCountCases.append(CGCase(str(argCount),
