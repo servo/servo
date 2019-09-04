@@ -30,7 +30,7 @@ interface AuthenticatorResponse {
 [SecureContext, Exposed=Window]
 interface AuthenticatorAttestationResponse : AuthenticatorResponse {
     [SameObject] readonly attribute ArrayBuffer      attestationObject;
-    sequence<AuthenticatorTransport>                 getTransports();
+    sequence<DOMString>                              getTransports();
 };
 
 [SecureContext, Exposed=Window]
@@ -135,14 +135,15 @@ enum PublicKeyCredentialType {
 dictionary PublicKeyCredentialDescriptor {
     required PublicKeyCredentialType      type;
     required BufferSource                 id;
-    sequence<AuthenticatorTransport>      transports;
+    sequence<DOMString>                   transports;
 };
 
 enum AuthenticatorTransport {
     "usb",
     "nfc",
     "ble",
-    "internal"
+    "internal",
+    "lightning"
 };
 
 typedef long COSEAlgorithmIdentifier;

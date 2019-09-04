@@ -171,6 +171,10 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loop
     fn SetLoop(&self, should_loop: bool) {
         self.loop_enabled.set(should_loop);
+        let msg = AudioNodeMessage::AudioBufferSourceNode(
+            AudioBufferSourceNodeMessage::SetLoopEnabled(should_loop),
+        );
+        self.source_node.node().message(msg);
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loopstart
@@ -181,6 +185,10 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loopstart
     fn SetLoopStart(&self, loop_start: Finite<f64>) {
         self.loop_start.set(*loop_start);
+        let msg = AudioNodeMessage::AudioBufferSourceNode(
+            AudioBufferSourceNodeMessage::SetLoopStart(*loop_start),
+        );
+        self.source_node.node().message(msg);
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loopend
@@ -190,7 +198,11 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
 
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loopend
     fn SetLoopEnd(&self, loop_end: Finite<f64>) {
-        self.loop_end.set(*loop_end)
+        self.loop_end.set(*loop_end);
+        let msg = AudioNodeMessage::AudioBufferSourceNode(
+            AudioBufferSourceNodeMessage::SetLoopEnd(*loop_end),
+        );
+        self.source_node.node().message(msg);
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-start
@@ -224,6 +236,17 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
                     ));
             }
         }
+
+        self.source_node
+            .node()
+            .message(AudioNodeMessage::AudioBufferSourceNode(
+                AudioBufferSourceNodeMessage::SetStartParams(
+                    *when,
+                    offset.map(|f| *f),
+                    duration.map(|f| *f),
+                ),
+            ));
+
         self.source_node
             .upcast::<AudioScheduledSourceNode>()
             .Start(when)

@@ -102,6 +102,10 @@ server: http://localhost:{0}""".format(self.server.port).encode("ascii")
         resp = self.request("/sub_url_base.sub.txt")
         self.assertEqual(resp.read().rstrip(), b"Before / After")
 
+    def test_sub_url_base_via_filename_with_query(self):
+        resp = self.request("/sub_url_base.sub.txt?pipe=slice(5,10)")
+        self.assertEqual(resp.read().rstrip(), b"e / A")
+
     def test_sub_uuid(self):
         resp = self.request("/sub_uuid.sub.txt")
         self.assertRegexpMatches(resp.read().rstrip(), b"Before [a-f0-9-]+ After")

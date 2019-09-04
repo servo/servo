@@ -10,7 +10,8 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::BrowsingContextId;
 use servo_url::ServoUrl;
-use webdriver::common::WebElement;
+use std::collections::HashMap;
+use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -57,6 +58,7 @@ pub enum WebDriverScriptCommand {
     ),
     FindElementElementsTagName(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FocusElement(String, IpcSender<Result<(), ErrorStatus>>),
+    ElementClick(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetActiveElement(IpcSender<Option<String>>),
     GetCookie(String, IpcSender<Vec<Serde<Cookie<'static>>>>),
     GetCookies(IpcSender<Vec<Serde<Cookie<'static>>>>),
@@ -74,6 +76,7 @@ pub enum WebDriverScriptCommand {
     GetElementRect(String, IpcSender<Result<Rect<f64>, ErrorStatus>>),
     GetElementTagName(String, IpcSender<Result<String, ErrorStatus>>),
     GetElementText(String, IpcSender<Result<String, ErrorStatus>>),
+    GetElementInViewCenterPoint(String, IpcSender<Result<Option<(i64, i64)>, ErrorStatus>>),
     GetBoundingClientRect(String, IpcSender<Result<Rect<f32>, ErrorStatus>>),
     GetBrowsingContextId(
         WebDriverFrameId,
@@ -100,17 +103,21 @@ pub enum WebDriverJSValue {
     Number(f64),
     String(String),
     Element(WebElement),
+    Frame(WebFrame),
+    Window(WebWindow),
     ArrayLike(Vec<WebDriverJSValue>),
+    Object(HashMap<String, WebDriverJSValue>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverJSError {
-    Timeout,
-    UnknownType,
-    JSError,
     /// Occurs when handler received an event message for a layout channel that is not
     /// associated with the current script thread
     BrowsingContextNotFound,
+    JSError,
+    StaleElementReference,
+    Timeout,
+    UnknownType,
 }
 
 pub type WebDriverJSResult = Result<WebDriverJSValue, WebDriverJSError>;

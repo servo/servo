@@ -291,15 +291,18 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for ViewportRuleParser<'a, 'b> {
     ) -> Result<Vec<ViewportDescriptorDeclaration>, ParseError<'i>> {
         macro_rules! declaration {
             ($declaration:ident($parse:expr)) => {
-                declaration!($declaration(value: try!($parse(input)),
-                                          important: input.try(parse_important).is_ok()))
+                declaration!($declaration {
+                    value: $parse(input)?,
+                    important: input.try(parse_important).is_ok(),
+                })
             };
-            ($declaration:ident(value: $value:expr, important: $important:expr)) => {
+            ($declaration:ident { value: $value:expr, important: $important:expr, }) => {
                 ViewportDescriptorDeclaration::new(
                     self.context.stylesheet_origin,
                     ViewportDescriptor::$declaration($value),
-                    $important)
-            }
+                    $important,
+                )
+            };
         }
 
         macro_rules! ok {
@@ -311,8 +314,14 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for ViewportRuleParser<'a, 'b> {
                 let important = input.try(parse_important).is_ok();
 
                 Ok(vec![
-                    declaration!($min(value: shorthand.0, important: important)),
-                    declaration!($max(value: shorthand.1, important: important)),
+                    declaration!($min {
+                        value: shorthand.0,
+                        important: important,
+                    }),
+                    declaration!($max {
+                        value: shorthand.1,
+                        important: important,
+                    }),
                 ])
             }};
         }

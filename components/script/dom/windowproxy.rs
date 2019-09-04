@@ -10,7 +10,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::proxyhandler::fill_property_descriptor;
 use crate::dom::bindings::reflector::{DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::bindings::utils::{get_array_index_from_id, AsVoidPtr, WindowProxyHandler};
 use crate::dom::dissimilaroriginwindow::DissimilarOriginWindow;
@@ -395,7 +395,7 @@ impl WindowProxy {
     // https://html.spec.whatwg.org/multipage/#window-open-steps
     pub fn open(
         &self,
-        url: DOMString,
+        url: USVString,
         target: DOMString,
         features: DOMString,
     ) -> Option<DomRoot<WindowProxy>> {

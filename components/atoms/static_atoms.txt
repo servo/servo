@@ -59,7 +59,10 @@ message
 message
 monospace
 month
+mousedown
+mousemove
 mouseover
+mouseup
 negotiationneeded
 none
 number

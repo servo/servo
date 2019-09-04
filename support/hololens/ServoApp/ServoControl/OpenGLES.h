@@ -10,8 +10,8 @@ public:
   ~OpenGLES();
 
   EGLSurface
-  CreateSurface(winrt::Windows::UI::Xaml::Controls::SwapChainPanel const &);
-  EGLSurface CreateSurface(winrt::Windows::UI::Core::CoreWindow const &);
+  CreateSurface(winrt::Windows::UI::Xaml::Controls::SwapChainPanel const &,
+                float dpi);
 
   void GetSurfaceDimensions(const EGLSurface surface, EGLint *width,
                             EGLint *height);

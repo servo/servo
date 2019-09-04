@@ -559,6 +559,12 @@ impl ServoGlue {
                 EmbedderMsg::Shutdown => {
                     self.callbacks.host_callbacks.on_shutdown_complete();
                 },
+                EmbedderMsg::ShowIME(..) => {
+                    self.callbacks.host_callbacks.on_ime_state_changed(true);
+                },
+                EmbedderMsg::HideIME => {
+                    self.callbacks.host_callbacks.on_ime_state_changed(false);
+                },
                 EmbedderMsg::Status(..) |
                 EmbedderMsg::SelectFiles(..) |
                 EmbedderMsg::MoveTo(..) |
@@ -568,8 +574,6 @@ impl ServoGlue {
                 EmbedderMsg::NewFavicon(..) |
                 EmbedderMsg::HeadParsed |
                 EmbedderMsg::SetFullscreenState(..) |
-                EmbedderMsg::ShowIME(..) |
-                EmbedderMsg::HideIME |
                 EmbedderMsg::Panic(..) |
                 EmbedderMsg::ReportProfile(..) => {},
             }

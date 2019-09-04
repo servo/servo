@@ -81,7 +81,6 @@ interface DOMMatrixReadOnly {
     DOMPoint            transformPoint(optional DOMPointInit point = {});
     Float32Array        toFloat32Array();
     Float64Array        toFloat64Array();
-//                      stringifier;
-//                      serializer = { attribute };
-
+//    [Exposed=Window] stringifier;
+    [Default] object toJSON();
 };

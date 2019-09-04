@@ -22,7 +22,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::Document;
 use crate::dom::element::{reflect_cross_origin_attribute, set_cross_origin_attribute};
 use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlareaelement::HTMLAreaElement;
@@ -37,7 +37,6 @@ use crate::dom::node::{
     document_from_node, window_from_node, BindContext, Node, NodeDamage, ShadowIncluding,
 };
 use crate::dom::performanceresourcetiming::InitiatorType;
-use crate::dom::progressevent::ProgressEvent;
 use crate::dom::values::UNSIGNED_LONG_MAX;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
@@ -809,26 +808,7 @@ impl HTMLImageElement {
                 return;
             },
         };
-        // Step 10.
-        let target = Trusted::new(self.upcast::<EventTarget>());
-        // FIXME(nox): Why are errors silenced here?
-        let _ = task_source.queue(
-            task!(fire_progress_event: move || {
-                let target = target.root();
 
-                let event = ProgressEvent::new(
-                    &target.global(),
-                    atom!("loadstart"),
-                    EventBubbles::DoesNotBubble,
-                    EventCancelable::NotCancelable,
-                    false,
-                    0,
-                    0,
-                );
-                event.upcast::<Event>().fire(&target);
-            }),
-            window.upcast(),
-        );
         // Step 11
         let base_url = document.base_url();
         let parsed_url = base_url.join(&src.0);
@@ -850,7 +830,6 @@ impl HTMLImageElement {
                             current_request.source_url = Some(USVString(src))
                         }
                         this.upcast::<EventTarget>().fire_event(atom!("error"));
-                        this.upcast::<EventTarget>().fire_event(atom!("loadend"));
 
                         // FIXME(nox): According to the spec, setting the current
                         // request to the broken state is done prior to queuing a

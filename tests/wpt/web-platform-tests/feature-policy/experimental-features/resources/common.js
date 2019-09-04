@@ -66,13 +66,15 @@ function wait_for_load(e) {
   });
 }
 
-window.reporting_observer_instance = new ReportingObserver((reports, observer) => {
-  if (window.reporting_observer_callback) {
-    reports.forEach(window.reporting_observer_callback);
-  }
-}, {types: ["feature-policy-violation"]});
-window.reporting_observer_instance.observe();
-window.reporting_observer_callback = null;
+setup(() => {
+  window.reporting_observer_instance = new ReportingObserver((reports, observer) => {
+    if (window.reporting_observer_callback) {
+      reports.forEach(window.reporting_observer_callback);
+    }
+  }, {types: ["feature-policy-violation"]});
+  window.reporting_observer_instance.observe();
+  window.reporting_observer_callback = null;
+});
 
 // Waits for a violation in |feature| and source file containing |file_name|.
 function wait_for_violation_in_file(feature, file_name) {

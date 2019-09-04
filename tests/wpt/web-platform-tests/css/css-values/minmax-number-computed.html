@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#numbers">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-type-checking">
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/computed-testcommon.js"></script>
+<div id="target"></div>
+<div id="reference"></div>
+<script>
+const property = 'opacity';
+
+function test_number_equals(value, expected) {
+  const reference = document.getElementById('reference');
+  reference.style[property] = '';
+  reference.style[property] = expected;
+  const computed = getComputedStyle(reference)[property];
+  test_computed_value(property, value, computed);
+}
+
+// Identity tests
+test_number_equals('min(1)', '1');
+test_number_equals('max(1)', '1');
+
+// Nestings
+test_number_equals('min(0.2, max(0.1, 0.15))', '0.15');
+test_number_equals('max(0.1, min(0.2, 0.15))', '0.15');
+
+// General calculations
+test_number_equals('calc(min(0.1, 0.2) + 0.05)', '0.15');
+test_number_equals('calc(min(0.1, 0.2) - 0.05)', '0.05');
+test_number_equals('calc(min(0.1, 0.2) * 2)', '0.2');
+test_number_equals('calc(min(0.1, 0.2) / 2)', '0.05');
+test_number_equals('calc(max(0.1, 0.2) + 0.05)', '0.25');
+test_number_equals('calc(max(0.1, 0.2) - 0.05)', '0.15');
+test_number_equals('calc(max(0.1, 0.2) * 2)', '0.4');
+test_number_equals('calc(max(0.1, 0.2) / 2)', '0.1');
+test_number_equals('calc(min(0.1, 0.2) + max(0.1, 0.05))', '0.2');
+test_number_equals('calc(min(0.1, 0.2) - max(0.1, 0.05))', '0');
+</script>

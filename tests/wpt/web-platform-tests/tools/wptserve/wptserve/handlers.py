@@ -105,17 +105,21 @@ class DirectoryHandler(object):
 
 def wrap_pipeline(path, request, response):
     query = parse_qs(request.url_parts.query)
+    pipe_string = ""
 
-    pipeline = None
-    if "pipe" in query:
-        pipeline = Pipeline(query["pipe"][-1])
-    elif ".sub." in path:
+    if ".sub." in path:
         ml_extensions = {".html", ".htm", ".xht", ".xhtml", ".xml", ".svg"}
         escape_type = "html" if os.path.splitext(path)[1] in ml_extensions else "none"
-        pipeline = Pipeline("sub(%s)" % escape_type)
+        pipe_string = "sub(%s)" % escape_type
 
-    if pipeline is not None:
-        response = pipeline(request, response)
+    if "pipe" in query:
+        if pipe_string:
+            pipe_string += "|"
+
+        pipe_string += query["pipe"][-1]
+
+    if pipe_string:
+        response = Pipeline(pipe_string)(request, response)
 
     return response
 

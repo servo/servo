@@ -44,19 +44,19 @@ promise_test(async t => {
 promise_test(async t => {
     const root = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
     const dir = await createDirectory(t, 'dir', root);
-    await promise_rejects(t, 'NotFoundError', dir.removeEntry(""));
+    await promise_rejects(t, new TypeError(), dir.removeEntry(""));
 }, 'removeEntry() with empty name should fail');
 
 promise_test(async t => {
     const root = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
     const dir = await createDirectory(t, 'dir', root);
-    await promise_rejects(t, 'SecurityError', dir.removeEntry(kCurrentDirectory));
+    await promise_rejects(t, new TypeError(), dir.removeEntry(kCurrentDirectory));
 }, `removeEntry() with "${kCurrentDirectory}" name should fail`);
 
 promise_test(async t => {
     const root = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
     const dir = await createDirectory(t, 'dir', root);
-    await promise_rejects(t, 'SecurityError', dir.removeEntry(kParentDirectory));
+    await promise_rejects(t, new TypeError(), dir.removeEntry(kParentDirectory));
 }, `removeEntry() with "${kParentDirectory}" name should fail`);
 
 promise_test(async t => {
@@ -70,7 +70,7 @@ promise_test(async t => {
 
     for (let i = 0; i < kPathSeparators.length; ++i) {
         const path_with_separator = `${dir_name}${kPathSeparators[i]}${file_name}`;
-        await promise_rejects(t, 'SecurityError', root.removeEntry(path_with_separator),
+        await promise_rejects(t, new TypeError(), root.removeEntry(path_with_separator),
             `removeEntry() must reject names containing "${kPathSeparators[i]}"`);
     }
 }, 'removeEntry() with a path separator should fail.');

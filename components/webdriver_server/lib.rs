@@ -7,6 +7,8 @@
 #![deny(unsafe_code)]
 
 #[macro_use]
+extern crate crossbeam_channel;
+#[macro_use]
 extern crate log;
 #[macro_use]
 extern crate serde;
@@ -16,14 +18,15 @@ extern crate serde_json;
 mod actions;
 mod capabilities;
 
-use crate::actions::InputSourceState;
+use crate::actions::{InputSourceState, PointerInputState};
 use base64;
 use capabilities::ServoCapabilities;
-use crossbeam_channel::Sender;
+use crossbeam_channel::{after, unbounded, Receiver, Sender};
 use euclid::{Rect, Size2D};
 use hyper::Method;
 use image::{DynamicImage, ImageFormat, RgbImage};
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
 use keyboard_types::webdriver::send_keys;
 use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, TraversalDirection};
 use pixels::PixelFormat;
@@ -46,7 +49,10 @@ use std::thread;
 use std::time::Duration;
 use style_traits::CSSPixel;
 use uuid::Uuid;
-use webdriver::actions::ActionSequence;
+use webdriver::actions::{
+    ActionSequence, PointerDownAction, PointerMoveAction, PointerOrigin, PointerType,
+    PointerUpAction,
+};
 use webdriver::capabilities::{Capabilities, CapabilitiesMatching};
 use webdriver::command::{ActionsParameters, SwitchToWindowParameters};
 use webdriver::command::{
@@ -171,6 +177,14 @@ impl WebDriverSession {
 }
 
 struct Handler {
+    /// The threaded receiver on which we can block for a load-status.
+    /// It will receive messages sent on the load_status_sender,
+    /// and forwarded by the IPC router.
+    load_status_receiver: Receiver<LoadStatus>,
+    /// The IPC sender which we can clone and pass along to the constellation,
+    /// for it to send us a load-status. Messages sent on it
+    /// will be forwarded to the load_status_receiver.
+    load_status_sender: IpcSender<LoadStatus>,
     session: Option<WebDriverSession>,
     constellation_chan: Sender<ConstellationMsg>,
     resize_timeout: u32,
@@ -241,10 +255,17 @@ impl Serialize for SendableWebDriverJSValue {
             WebDriverJSValue::Number(x) => serializer.serialize_f64(x),
             WebDriverJSValue::String(ref x) => serializer.serialize_str(&x),
             WebDriverJSValue::Element(ref x) => x.serialize(serializer),
+            WebDriverJSValue::Frame(ref x) => x.serialize(serializer),
+            WebDriverJSValue::Window(ref x) => x.serialize(serializer),
             WebDriverJSValue::ArrayLike(ref x) => x
                 .iter()
                 .map(|element| SendableWebDriverJSValue(element.clone()))
                 .collect::<Vec<SendableWebDriverJSValue>>()
+                .serialize(serializer),
+            WebDriverJSValue::Object(ref x) => x
+                .iter()
+                .map(|(k, v)| (k.clone(), SendableWebDriverJSValue(v.clone())))
+                .collect::<HashMap<String, SendableWebDriverJSValue>>()
                 .serialize(serializer),
         }
     }
@@ -371,7 +392,17 @@ impl<'de> Visitor<'de> for TupleVecMapVisitor {
 
 impl Handler {
     pub fn new(constellation_chan: Sender<ConstellationMsg>) -> Handler {
+        // Create a pair of both an IPC and a threaded channel,
+        // keep the IPC sender to clone and pass to the constellation for each load,
+        // and keep a threaded receiver to block on an incoming load-status.
+        // Pass the others to the IPC router so that IPC messages are forwarded to the threaded receiver.
+        // We need to use the router because IPC does not come with a timeout on receive/select.
+        let (load_status_sender, receiver) = ipc::channel().unwrap();
+        let (sender, load_status_receiver) = unbounded();
+        ROUTER.route_ipc_receiver_to_crossbeam_sender(receiver, sender);
         Handler {
+            load_status_sender,
+            load_status_receiver,
             session: None,
             constellation_chan: constellation_chan,
             resize_timeout: 500,
@@ -613,35 +644,26 @@ impl Handler {
 
         let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
 
-        let (sender, receiver) = ipc::channel().unwrap();
-
         let load_data = LoadData::new(LoadOrigin::WebDriver, url, None, None, None);
-        let cmd_msg =
-            WebDriverCommandMsg::LoadUrl(top_level_browsing_context_id, load_data, sender.clone());
+        let cmd_msg = WebDriverCommandMsg::LoadUrl(
+            top_level_browsing_context_id,
+            load_data,
+            self.load_status_sender.clone(),
+        );
         self.constellation_chan
             .send(ConstellationMsg::WebDriverCommand(cmd_msg))
             .unwrap();
 
-        self.wait_for_load(sender, receiver)
+        self.wait_for_load()
     }
 
-    fn wait_for_load(
-        &self,
-        sender: IpcSender<LoadStatus>,
-        receiver: IpcReceiver<LoadStatus>,
-    ) -> WebDriverResult<WebDriverResponse> {
+    fn wait_for_load(&self) -> WebDriverResult<WebDriverResponse> {
         let timeout = self.session()?.load_timeout;
-        thread::spawn(move || {
-            thread::sleep(Duration::from_millis(timeout));
-            let _ = sender.send(LoadStatus::LoadTimeout);
-        });
-
-        // wait to get a load event
-        match receiver.recv().unwrap() {
-            LoadStatus::LoadComplete => Ok(WebDriverResponse::Void),
-            LoadStatus::LoadTimeout => {
-                Err(WebDriverError::new(ErrorStatus::Timeout, "Load timed out"))
-            },
+        select! {
+            recv(self.load_status_receiver) -> _ => Ok(WebDriverResponse::Void),
+            recv(after(Duration::from_millis(timeout))) -> _ => Err(
+                WebDriverError::new(ErrorStatus::Timeout, "Load timed out")
+            ),
         }
     }
 
@@ -775,14 +797,15 @@ impl Handler {
     fn handle_refresh(&self) -> WebDriverResult<WebDriverResponse> {
         let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
 
-        let (sender, receiver) = ipc::channel().unwrap();
-
-        let cmd_msg = WebDriverCommandMsg::Refresh(top_level_browsing_context_id, sender.clone());
+        let cmd_msg = WebDriverCommandMsg::Refresh(
+            top_level_browsing_context_id,
+            self.load_status_sender.clone(),
+        );
         self.constellation_chan
             .send(ConstellationMsg::WebDriverCommand(cmd_msg))
             .unwrap();
 
-        self.wait_for_load(sender, receiver)
+        self.wait_for_load()
     }
 
     fn handle_title(&self) -> WebDriverResult<WebDriverResponse> {
@@ -1325,9 +1348,10 @@ impl Handler {
         &mut self,
         parameters: &ActionsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        self.dispatch_actions(&parameters.actions);
-
-        Ok(WebDriverResponse::Void)
+        match self.dispatch_actions(&parameters.actions) {
+            Ok(_) => Ok(WebDriverResponse::Void),
+            Err(error) => Err(WebDriverError::new(error, "")),
+        }
     }
 
     fn handle_release_actions(&mut self) -> WebDriverResult<WebDriverResponse> {
@@ -1336,7 +1360,10 @@ impl Handler {
             session.input_cancel_list.reverse();
             mem::replace(&mut session.input_cancel_list, Vec::new())
         };
-        self.dispatch_actions(&input_cancel_list);
+
+        if let Err(error) = self.dispatch_actions(&input_cancel_list) {
+            return Err(WebDriverError::new(error, ""));
+        }
 
         let session = self.session_mut()?;
         session.input_state_table = HashMap::new();
@@ -1396,18 +1423,22 @@ impl Handler {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(SendableWebDriverJSValue(value))?,
             ))),
-            Err(WebDriverJSError::Timeout) => Err(WebDriverError::new(ErrorStatus::Timeout, "")),
-            Err(WebDriverJSError::UnknownType) => Err(WebDriverError::new(
-                ErrorStatus::UnsupportedOperation,
-                "Unsupported return type",
+            Err(WebDriverJSError::BrowsingContextNotFound) => Err(WebDriverError::new(
+                ErrorStatus::JavascriptError,
+                "Pipeline id not found in browsing context",
             )),
             Err(WebDriverJSError::JSError) => Err(WebDriverError::new(
                 ErrorStatus::JavascriptError,
                 "JS evaluation raised an exception",
             )),
-            Err(WebDriverJSError::BrowsingContextNotFound) => Err(WebDriverError::new(
-                ErrorStatus::JavascriptError,
-                "Pipeline id not found in browsing context",
+            Err(WebDriverJSError::StaleElementReference) => Err(WebDriverError::new(
+                ErrorStatus::StaleElementReference,
+                "Stale element",
+            )),
+            Err(WebDriverJSError::Timeout) => Err(WebDriverError::new(ErrorStatus::Timeout, "")),
+            Err(WebDriverJSError::UnknownType) => Err(WebDriverError::new(
+                ErrorStatus::UnsupportedOperation,
+                "Unsupported return type",
             )),
         }
     }
@@ -1444,6 +1475,65 @@ impl Handler {
             .unwrap();
 
         Ok(WebDriverResponse::Void)
+    }
+
+    // https://w3c.github.io/webdriver/#element-click
+    fn handle_element_click(&mut self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        // Steps 1 - 7
+        let command = WebDriverScriptCommand::ElementClick(element.to_string(), sender);
+        self.browsing_context_script_command(command)?;
+
+        match receiver.recv().unwrap() {
+            Ok(element_id) => match element_id {
+                Some(element_id) => {
+                    let id = Uuid::new_v4().to_string();
+
+                    // Step 8.1
+                    self.session_mut()?.input_state_table.insert(
+                        id.clone(),
+                        InputSourceState::Pointer(PointerInputState::new(&PointerType::Mouse)),
+                    );
+
+                    // Steps 8.3 - 8.6
+                    let pointer_move_action = PointerMoveAction {
+                        duration: None,
+                        origin: PointerOrigin::Element(WebElement(element_id)),
+                        x: Some(0),
+                        y: Some(0),
+                    };
+
+                    // Steps 8.7 - 8.8
+                    let pointer_down_action = PointerDownAction { button: 1 };
+
+                    // Steps 8.9 - 8.10
+                    let pointer_up_action = PointerUpAction { button: 1 };
+
+                    // Step 8.11
+                    if let Err(error) =
+                        self.dispatch_pointermove_action(&id, &pointer_move_action, 0)
+                    {
+                        return Err(WebDriverError::new(error, ""));
+                    }
+
+                    // Steps 8.12
+                    self.dispatch_pointerdown_action(&id, &pointer_down_action);
+
+                    // Steps 8.13
+                    self.dispatch_pointerup_action(&id, &pointer_up_action);
+
+                    // Step 8.14
+                    self.session_mut()?.input_state_table.remove(&id);
+
+                    // Step 13
+                    Ok(WebDriverResponse::Void)
+                },
+                // Step 13
+                None => Ok(WebDriverResponse::Void),
+            },
+            Err(error) => Err(WebDriverError::new(error, "")),
+        }
     }
 
     fn take_screenshot(&self, rect: Option<Rect<f32, CSSPixel>>) -> WebDriverResult<String> {
@@ -1666,6 +1756,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::ElementSendKeys(ref element, ref keys) => {
                 self.handle_element_send_keys(element, keys)
             },
+            WebDriverCommand::ElementClick(ref element) => self.handle_element_click(element),
             WebDriverCommand::DismissAlert => self.handle_dismiss_alert(),
             WebDriverCommand::DeleteCookies => self.handle_delete_cookies(),
             WebDriverCommand::GetTimeouts => self.handle_get_timeouts(),

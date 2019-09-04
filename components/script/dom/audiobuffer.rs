@@ -115,8 +115,11 @@ impl AudioBuffer {
     // Initialize the underlying channels data with initial data provided by
     // the user or silence otherwise.
     fn set_initial_data(&self, initial_data: Option<&[Vec<f32>]>) {
-        let mut channels =
-            ServoMediaAudioBuffer::new(self.number_of_channels as u8, self.length as usize);
+        let mut channels = ServoMediaAudioBuffer::new(
+            self.number_of_channels as u8,
+            self.length as usize,
+            self.sample_rate,
+        );
         for channel in 0..self.number_of_channels {
             channels.buffers[channel as usize] = match initial_data {
                 Some(data) => data[channel as usize].clone(),
@@ -164,8 +167,11 @@ impl AudioBuffer {
     // https://webaudio.github.io/web-audio-api/#acquire-the-content
     #[allow(unsafe_code)]
     fn acquire_contents(&self) -> Option<ServoMediaAudioBuffer> {
-        let mut result =
-            ServoMediaAudioBuffer::new(self.number_of_channels as u8, self.length as usize);
+        let mut result = ServoMediaAudioBuffer::new(
+            self.number_of_channels as u8,
+            self.length as usize,
+            self.sample_rate,
+        );
         let cx = self.global().get_cx();
         for (i, channel) in self.js_channels.borrow_mut().iter().enumerate() {
             // Step 1.

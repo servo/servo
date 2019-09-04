@@ -31,7 +31,7 @@ embedder_traits = { path = "../embedder_traits" }
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 http = "0.1"
-ipc-channel = "0.11"
+ipc-channel = "0.12"
 layout_traits = {path = "../layout_traits"}
 keyboard-types = "0.4.3"
 log = "0.4"

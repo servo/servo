@@ -239,6 +239,25 @@ def set_osmesa_env(bin_path, env):
     return env
 
 
+def gstreamer_root(target, env, topdir=None):
+    if is_windows():
+        arch = {
+            "x86_64": "X86_64",
+            "x86": "X86",
+            "aarch64": "ARM64",
+        }
+        gst_x64 = arch[target.split('-')[0]]
+        gst_default_path = path.join("C:\\gstreamer\\1.0", gst_x64)
+        gst_env = "GSTREAMER_1_0_ROOT_" + gst_x64
+        if env.get(gst_env) is not None:
+            return env.get(gst_env)
+        elif os.path.exists(path.join(gst_default_path, "bin", "ffi-7.dll")):
+            return gst_default_path
+    elif sys.platform == "linux2":
+        return path.join(topdir, "support", "linux", "gstreamer", "gst")
+    return None
+
+
 class BuildNotFound(Exception):
     def __init__(self, message):
         self.message = message
@@ -364,9 +383,6 @@ class CommandBase(object):
         apk_name = "servoapp.apk"
         build_type = "release" if release else "debug"
         return path.join(base_path, build_type, apk_name)
-
-    def get_gstreamer_path(self):
-        return path.join(self.context.topdir, "support", "linux", "gstreamer", "gst")
 
     def get_binary_path(self, release, dev, target=None, android=False, magicleap=False, simpleservo=False):
         # TODO(autrilla): this function could still use work - it shouldn't
@@ -542,7 +558,7 @@ class CommandBase(object):
 
         return self.get_executable(destination_folder)
 
-    def needs_gstreamer_env(self, target):
+    def needs_gstreamer_env(self, target, env):
         try:
             if check_gstreamer_lib():
                 return False
@@ -554,8 +570,8 @@ class CommandBase(object):
         if "x86_64" not in effective_target or "android" in effective_target:
             # We don't build gstreamer for non-x86_64 / android yet
             return False
-        if sys.platform == "linux2":
-            if path.isdir(self.get_gstreamer_path()):
+        if sys.platform == "linux2" or is_windows():
+            if path.isdir(gstreamer_root(effective_target, env, self.get_top_dir())):
                 return True
             else:
                 raise Exception("Your system's gstreamer libraries are out of date \
@@ -569,8 +585,10 @@ install them, let us know by filing a bug!")
     def set_run_env(self, android=False):
         """Some commands, like test-wpt, don't use a full build env,
            but may still need dynamic search paths. This command sets that up"""
-        if not android and self.needs_gstreamer_env(None):
-            gstpath = self.get_gstreamer_path()
+        if not android and self.needs_gstreamer_env(None, os.environ):
+            gstpath = gstreamer_root(host_triple(), os.environ, self.get_top_dir())
+            if gstpath is None:
+                return
             os.environ["LD_LIBRARY_PATH"] = path.join(gstpath, "lib")
             os.environ["GST_PLUGIN_SYSTEM_PATH"] = path.join(gstpath, "lib", "gstreamer-1.0")
             os.environ["PKG_CONFIG_PATH"] = path.join(gstpath, "lib", "pkgconfig")
@@ -596,6 +614,7 @@ install them, let us know by filing a bug!")
             extra_path += [path.join(self.msvc_package_dir("cmake"), "bin")]
             extra_path += [path.join(self.msvc_package_dir("llvm"), "bin")]
             extra_path += [path.join(self.msvc_package_dir("ninja"), "bin")]
+            extra_path += [self.msvc_package_dir("nuget")]
 
             arch = (target or host_triple()).split('-')[0]
             vcpkg_arch = {
@@ -624,8 +643,8 @@ install them, let us know by filing a bug!")
             # Always build harfbuzz from source
             env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
-        if self.needs_gstreamer_env(target):
-            gstpath = self.get_gstreamer_path()
+        if self.needs_gstreamer_env(target or host_triple(), env):
+            gstpath = gstreamer_root(target or host_triple(), env, self.get_top_dir())
             extra_path += [path.join(gstpath, "bin")]
             libpath = path.join(gstpath, "lib")
             # we append in the reverse order so that system gstreamer libraries

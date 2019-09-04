@@ -1721,8 +1721,24 @@ impl WebGLImpl {
         chan.send(result).unwrap();
     }
 
+    #[allow(unsafe_code)]
     fn get_extensions(gl: &dyn gl::Gl, chan: &WebGLSender<String>) {
-        chan.send(gl.get_string(gl::EXTENSIONS)).unwrap();
+        let mut ext_count = [0];
+        unsafe {
+            gl.get_integer_v(gl::NUM_EXTENSIONS, &mut ext_count);
+        }
+        // Fall back to the depricated extensions API if that fails
+        if gl.get_error() != gl::NO_ERROR {
+            chan.send(gl.get_string(gl::EXTENSIONS)).unwrap();
+            return;
+        }
+        let ext_count = ext_count[0] as usize;
+        let mut extensions = Vec::with_capacity(ext_count);
+        for idx in 0..ext_count {
+            extensions.push(gl.get_string_i(gl::EXTENSIONS, idx as u32))
+        }
+        let extensions = extensions.join(" ");
+        chan.send(extensions).unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6

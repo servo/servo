@@ -13,7 +13,7 @@ dictionary DocumentTimelineOptions {
 };
 
 [Exposed=Window,
- Constructor(optional DocumentTimelineOptions options)]
+ Constructor(optional DocumentTimelineOptions options = {})]
 interface DocumentTimeline : AnimationTimeline {
 };
 
@@ -53,7 +53,7 @@ enum AnimationReplaceState { "active", "removed", "persisted" };
 interface AnimationEffect {
     EffectTiming         getTiming();
     ComputedEffectTiming getComputedTiming();
-    void                 updateTiming(optional OptionalEffectTiming timing);
+    void                 updateTiming(optional OptionalEffectTiming timing = {});
 };
 
 dictionary EffectTiming {
@@ -93,7 +93,7 @@ dictionary ComputedEffectTiming : EffectTiming {
 [Exposed=Window,
  Constructor((Element or CSSPseudoElement)? target,
              object? keyframes,
-             optional (unrestricted double or KeyframeEffectOptions) options),
+             optional (unrestricted double or KeyframeEffectOptions) options = {}),
  Constructor(KeyframeEffect source)]
 interface KeyframeEffect : AnimationEffect {
     attribute (Element or CSSPseudoElement)? target;
@@ -135,8 +135,8 @@ enum CompositeOperationOrAuto { "replace", "add", "accumulate", "auto" };
 
 interface mixin Animatable {
     Animation           animate(object? keyframes,
-                                optional (unrestricted double or KeyframeAnimationOptions) options);
-    sequence<Animation> getAnimations(optional GetAnimationsOptions options);
+                                optional (unrestricted double or KeyframeAnimationOptions) options = {});
+    sequence<Animation> getAnimations(optional GetAnimationsOptions options = {});
 };
 
 dictionary KeyframeAnimationOptions : KeyframeEffectOptions {
@@ -160,7 +160,7 @@ Element includes Animatable;
 CSSPseudoElement includes Animatable;
 
 [Exposed=Window,
- Constructor(DOMString type, optional AnimationPlaybackEventInit eventInitDict)]
+ Constructor(DOMString type, optional AnimationPlaybackEventInit eventInitDict = {})]
 interface AnimationPlaybackEvent : Event {
     readonly attribute double? currentTime;
     readonly attribute double? timelineTime;

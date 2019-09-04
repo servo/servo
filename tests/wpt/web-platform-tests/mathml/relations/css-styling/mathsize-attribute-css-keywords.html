@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>mathsize and css keywords</title>
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#legacy-mathml-style-attributes">
+    <meta name="assert" content="Verify that CSS font-size keywords are invalid for the mathsize attribute.">
+    <link rel="match" href="mathsize-attribute-css-keywords-ref.html">
+  </head>
+  <body>
+    <p>Test passes if you see ten "A" of equal size:</p>
+    <math>
+      <mtext>A</mtext>
+      <mtext mathsize="xx-small">A</mtext>
+      <mtext mathsize="x-small">A</mtext>
+      <mtext mathsize="small">A</mtext>
+      <mtext mathsize="medium">A</mtext>
+      <mtext mathsize="large">A</mtext>
+      <mtext mathsize="x-large">A</mtext>
+      <mtext mathsize="xx-large">A</mtext>
+      <mtext mathsize="larger">A</mtext>
+      <mtext mathsize="smaller">A</mtext>
+    </math>
+  </body>
+</html>

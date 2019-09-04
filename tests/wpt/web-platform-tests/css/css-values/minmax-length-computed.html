@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#lengths">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-type-checking">
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/computed-testcommon.js"></script>
+<div id="container" style="font-size: 20px">
+  <div id="target"></div>
+  <div id="reference"></div>
+</div>
+<script>
+const property = 'letter-spacing';
+
+function test_length_equals(value, expected) {
+  const reference = document.getElementById('reference');
+  reference.style[property] = '';
+  reference.style[property] = expected;
+  const computed = getComputedStyle(reference)[property];
+  test_computed_value(property, value, computed);
+}
+
+// Identity tests
+test_length_equals('min(1px)', '1px');
+test_length_equals('min(1cm)', '1cm');
+test_length_equals('min(1mm)', '1mm');
+test_length_equals('min(1Q)', '1Q');
+test_length_equals('min(1in)', '1in');
+test_length_equals('min(1pc)', '1pc');
+test_length_equals('min(1pt)', '1pt');
+test_length_equals('min(1em)', '1em');
+test_length_equals('min(1ex)', '1ex');
+test_length_equals('min(1ch)', '1ch');
+test_length_equals('min(1rem)', '1rem');
+test_length_equals('min(1vh)', '1vh');
+test_length_equals('min(1vw)', '1vw');
+test_length_equals('min(1vmin)', '1vmin');
+test_length_equals('min(1vmax)', '1vmax');
+test_length_equals('max(1px)', '1px');
+test_length_equals('max(1cm)', '1cm');
+test_length_equals('max(1mm)', '1mm');
+test_length_equals('max(1Q)', '1Q');
+test_length_equals('max(1in)', '1in');
+test_length_equals('max(1pc)', '1pc');
+test_length_equals('max(1pt)', '1pt');
+test_length_equals('max(1em)', '1em');
+test_length_equals('max(1ex)', '1ex');
+test_length_equals('max(1ch)', '1ch');
+test_length_equals('max(1rem)', '1rem');
+test_length_equals('max(1vh)', '1vh');
+test_length_equals('max(1vw)', '1vw');
+test_length_equals('max(1vmin)', '1vmin');
+test_length_equals('max(1vmax)', '1vmax');
+
+// Comparisons between same units
+test_length_equals('min(1px, 2px)', '1px');
+test_length_equals('min(1cm, 2cm)', '1cm');
+test_length_equals('min(1mm, 2mm)', '1mm');
+test_length_equals('min(1Q, 2Q)', '1Q');
+test_length_equals('min(1in, 2in)', '1in');
+test_length_equals('min(1pc, 2pc)', '1pc');
+test_length_equals('min(1pt, 2pt)', '1pt');
+test_length_equals('min(1em, 2em)', '1em');
+test_length_equals('min(1ex, 2ex)', '1ex');
+test_length_equals('min(1ch, 2ch)', '1ch');
+test_length_equals('min(1rem, 2rem)', '1rem');
+test_length_equals('min(1vh, 2vh)', '1vh');
+test_length_equals('min(1vw, 2vw)', '1vw');
+test_length_equals('min(1vmin, 2vmin)', '1vmin');
+test_length_equals('min(1vmax, 2vmax)', '1vmax');
+test_length_equals('max(1px, 2px)', '2px');
+test_length_equals('max(1cm, 2cm)', '2cm');
+test_length_equals('max(1mm, 2mm)', '2mm');
+test_length_equals('max(1Q, 2Q)', '2Q');
+test_length_equals('max(1in, 2in)', '2in');
+test_length_equals('max(1pc, 2pc)', '2pc');
+test_length_equals('max(1pt, 2pt)', '2pt');
+test_length_equals('max(1em, 2em)', '2em');
+test_length_equals('max(1ex, 2ex)', '2ex');
+test_length_equals('max(1ch, 2ch)', '2ch');
+test_length_equals('max(1rem, 2rem)', '2rem');
+test_length_equals('max(1vh, 2vh)', '2vh');
+test_length_equals('max(1vw, 2vw)', '2vw');
+test_length_equals('max(1vmin, 2vmin)', '2vmin');
+test_length_equals('max(1vmax, 2vmax)', '2vmax');
+
+// Comparisons between different absolute units
+test_length_equals('min(95px, 1in)', '95px');
+test_length_equals('max(95px, 1in)', '1in');
+
+// Comparisons between absolute and relative units
+test_length_equals('min(15px, 1em)', '15px');
+test_length_equals('min(25px, 1em)', '20px');
+test_length_equals('max(15px, 1em)', '20px');
+test_length_equals('max(25px, 1em)', '25px');
+
+document.getElementById('container').style.fontSize = '10px';
+test_length_equals('min(15px, 1em)', '10px');
+test_length_equals('max(15px, 2em)', '20px');
+
+document.getElementById('container').style.fontSize = '20px';
+
+// Nestings
+test_length_equals('min(25px, max(15px, 1em))', '20px');
+test_length_equals('max(15px, min(25px, 1em))', '20px');
+
+// General calculations
+test_length_equals('calc(min(1em, 21px) + 10px)', '30px');
+test_length_equals('calc(min(1em, 21px) - 10px)', '10px');
+test_length_equals('calc(min(1em, 21px) * 2', '40px');
+test_length_equals('calc(min(1em, 21px) / 2', '10px');
+test_length_equals('calc(max(1em, 19px) + 10px)', '30px');
+test_length_equals('calc(max(1em, 19px) - 10px)', '10px');
+test_length_equals('calc(max(1em, 19px) * 2', '40px');
+test_length_equals('calc(max(1em, 19px) / 2', '10px');
+test_length_equals('calc(min(1em, 21px) + max(0.9em, 20px))', '40px');
+test_length_equals('calc(min(1em, 21px) - max(0.9em, 20px))', '0px');
+</script>

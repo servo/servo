@@ -40,7 +40,7 @@
   // https://github.com/whatwg/html/issues/2115
   [Replaceable] readonly attribute WindowProxy? parent;
   readonly attribute Element? frameElement;
-  WindowProxy? open(optional DOMString url = "about:blank", optional DOMString target = "_blank",
+  WindowProxy? open(optional USVString url = "", optional DOMString target = "_blank",
                     optional DOMString features = "");
   //getter WindowProxy (unsigned long index);
 

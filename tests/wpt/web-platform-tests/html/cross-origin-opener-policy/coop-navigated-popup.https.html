@@ -19,7 +19,9 @@ async_test(t => {
     const channel = new BroadcastChannel(token());
     channel.onmessage = t.step_func_done(event => {
       const payload = event.data;
-      assert_equals(payload.name, "");
+      // The name should be empty, but we're checking the length rather than a
+      // string comparison to "" to keep the random token out of error messages.
+      assert_equals(payload.name.length, 0);
       assert_false(payload.opener);
     });
     const coop = `resources/coop-coep.py?coop=same-origin&coep=&channel=${channel.name}`;

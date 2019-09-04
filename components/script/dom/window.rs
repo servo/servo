@@ -616,7 +616,7 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-open
     fn Open(
         &self,
-        url: DOMString,
+        url: USVString,
         target: DOMString,
         features: DOMString,
     ) -> Option<DomRoot<WindowProxy>> {
@@ -872,10 +872,19 @@ impl WindowMethods for Window {
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#sec-window.performance-attribute
     fn Performance(&self) -> DomRoot<Performance> {
-        self.performance.or_init(|| {
-            let global_scope = self.upcast::<GlobalScope>();
-            Performance::new(global_scope, self.navigation_start_precise.get())
-        })
+        match self.current_state.get() {
+            WindowState::Alive => self.performance.or_init(|| {
+                let global_scope = self.upcast::<GlobalScope>();
+                Performance::new(global_scope, self.navigation_start_precise.get())
+            }),
+            WindowState::Zombie => {
+                // Don't store in Zombie state,
+                // as clear_js_runtime has already been called,
+                // and we won't have another opportunity to drop it.
+                let global_scope = self.upcast::<GlobalScope>();
+                Performance::new(global_scope, self.navigation_start_precise.get())
+            },
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
@@ -1299,6 +1308,7 @@ impl Window {
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
         self.window_proxy.set(None);
+        self.performance.set(None);
         self.ignore_all_events();
     }
 

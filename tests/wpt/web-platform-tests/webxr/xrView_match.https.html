@@ -26,7 +26,8 @@ const fakeViews = [{
 let fakeDeviceInitParams = {
     supportsImmersive: true,
     views: fakeViews,
-    viewerOrigin: IDENTITY_TRANSFORM
+    viewerOrigin: IDENTITY_TRANSFORM,
+    supportedFeatures: ALL_FEATURES
 };
 
 let testFunction = function(session, fakeDeviceController, t) {

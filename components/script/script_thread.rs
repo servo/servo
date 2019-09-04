@@ -2159,6 +2159,14 @@ impl ScriptThread {
                     reply,
                 )
             },
+            WebDriverScriptCommand::ElementClick(element_id, reply) => {
+                webdriver_handlers::handle_element_click(
+                    &*documents,
+                    pipeline_id,
+                    element_id,
+                    reply,
+                )
+            },
             WebDriverScriptCommand::GetActiveElement(reply) => {
                 webdriver_handlers::handle_get_active_element(&*documents, pipeline_id, reply)
             },
@@ -2208,6 +2216,14 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::GetElementText(node_id, reply) => {
                 webdriver_handlers::handle_get_text(&*documents, pipeline_id, node_id, reply)
+            },
+            WebDriverScriptCommand::GetElementInViewCenterPoint(node_id, reply) => {
+                webdriver_handlers::handle_get_element_in_view_center_point(
+                    &*documents,
+                    pipeline_id,
+                    node_id,
+                    reply,
+                )
             },
             WebDriverScriptCommand::GetBrowsingContextId(webdriver_frame_id, reply) => {
                 webdriver_handlers::handle_get_browsing_context_id(

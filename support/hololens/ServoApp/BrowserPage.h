@@ -5,32 +5,32 @@
 #pragma once
 
 #include "BrowserPage.g.h"
-#include "ImmersiveView.h"
 #include "ServoControl\ServoControl.h"
 
-
 namespace winrt::ServoApp::implementation {
+
+static const hstring SERVO_SCHEME = L"servo";
+static const hstring SERVO_SCHEME_SLASH_SLASH = L"servo://";
 
 struct BrowserPage : BrowserPageT<BrowserPage> {
 public:
   BrowserPage();
 
-  void OnImmersiveButtonClicked(Windows::Foundation::IInspectable const &,
-                                Windows::UI::Xaml::RoutedEventArgs const &);
   void OnForwardButtonClicked(Windows::Foundation::IInspectable const &,
                               Windows::UI::Xaml::RoutedEventArgs const &);
   void OnBackButtonClicked(Windows::Foundation::IInspectable const &,
                            Windows::UI::Xaml::RoutedEventArgs const &);
   void OnReloadButtonClicked(Windows::Foundation::IInspectable const &,
-                              Windows::UI::Xaml::RoutedEventArgs const &);
+                             Windows::UI::Xaml::RoutedEventArgs const &);
   void OnStopButtonClicked(Windows::Foundation::IInspectable const &,
                            Windows::UI::Xaml::RoutedEventArgs const &);
   void OnURLEdited(Windows::Foundation::IInspectable const &,
                    Windows::UI::Xaml::Input::KeyRoutedEventArgs const &);
   void Shutdown();
+  void LoadServoURI(Windows::Foundation::Uri uri);
+  void SetTransientMode(bool);
 
 private:
-  winrt::ServoApp::ImmersiveViewSource mImmersiveViewSource;
   void BindServoEvents();
 };
 } // namespace winrt::ServoApp::implementation

@@ -21,9 +21,9 @@ interface NDEFRecord {
   readonly attribute NDEFRecordType recordType;
   readonly attribute USVString mediaType;
 
-  USVString toText();
-  [NewObject] ArrayBuffer toArrayBuffer();
-  [NewObject] object toJSON();
+  USVString? toText();
+  [NewObject] ArrayBuffer? toArrayBuffer();
+  [NewObject] any toJSON();
 };
 
 dictionary NDEFRecordInit {
@@ -37,18 +37,17 @@ typedef DOMString NDEFRecordType;
 
 typedef (DOMString or ArrayBuffer or NDEFMessageInit) NDEFMessageSource;
 
-[Constructor(), SecureContext, Exposed=Window]
+[Constructor, SecureContext, Exposed=Window]
 interface NFCWriter {
   Promise<void> push(NDEFMessageSource message, optional NFCPushOptions options={});
 };
 
-[Constructor(optional NFCReaderOptions options={}), SecureContext, Exposed=Window]
+[Constructor, SecureContext, Exposed=Window]
 interface NFCReader : EventTarget {
   attribute EventHandler onreading;
   attribute EventHandler onerror;
 
-  void start();
-  void stop();
+  void scan(optional NFCScanOptions options={});
 };
 
 [Constructor(DOMString type, NFCReadingEventInit readingEventInitDict), SecureContext, Exposed=Window]
@@ -71,18 +70,11 @@ dictionary NFCErrorEventInit : EventInit {
   required DOMException error;
 };
 
-enum NDEFCompatibility {
-  "nfc-forum",
-  "vendor",
-  "any"
-};
-
 dictionary NFCPushOptions {
   NFCPushTarget target = "any";
   unrestricted double timeout = Infinity;
   boolean ignoreRead = true;
   AbortSignal? signal;
-  NDEFCompatibility compatibility = "nfc-forum";
 };
 
 enum NFCPushTarget {
@@ -91,9 +83,9 @@ enum NFCPushTarget {
   "any"
 };
 
-dictionary NFCReaderOptions {
+dictionary NFCScanOptions {
   USVString url = "";
   NDEFRecordType recordType;
   USVString mediaType = "";
-  NDEFCompatibility compatibility = "nfc-forum";
+  AbortSignal? signal;
 };

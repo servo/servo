@@ -32,11 +32,11 @@ partial interface Window {
     [Replaceable] readonly attribute double pageXOffset;
     [Replaceable] readonly attribute double scrollY;
     [Replaceable] readonly attribute double pageYOffset;
-    void scroll(optional ScrollToOptions options);
+    void scroll(optional ScrollToOptions options = {});
     void scroll(unrestricted double x, unrestricted double y);
-    void scrollTo(optional ScrollToOptions options);
+    void scrollTo(optional ScrollToOptions options = {});
     void scrollTo(unrestricted double x, unrestricted double y);
-    void scrollBy(optional ScrollToOptions options);
+    void scrollBy(optional ScrollToOptions options = {});
     void scrollBy(unrestricted double x, unrestricted double y);
 
     // client
@@ -59,7 +59,7 @@ interface MediaQueryList : EventTarget {
 };
 
 [Exposed=Window,
- Constructor(CSSOMString type, optional MediaQueryListEventInit eventInitDict)]
+ Constructor(CSSOMString type, optional MediaQueryListEventInit eventInitDict = {})]
 interface MediaQueryListEvent : Event {
   readonly attribute CSSOMString media;
   readonly attribute boolean matches;
@@ -103,12 +103,12 @@ dictionary ScrollIntoViewOptions : ScrollOptions {
 partial interface Element {
   DOMRectList getClientRects();
   [NewObject] DOMRect getBoundingClientRect();
-  void scrollIntoView(optional (boolean or ScrollIntoViewOptions) arg);
-  void scroll(optional ScrollToOptions options);
+  void scrollIntoView(optional (boolean or ScrollIntoViewOptions) arg = {});
+  void scroll(optional ScrollToOptions options = {});
   void scroll(unrestricted double x, unrestricted double y);
-  void scrollTo(optional ScrollToOptions options);
+  void scrollTo(optional ScrollToOptions options = {});
   void scrollTo(unrestricted double x, unrestricted double y);
-  void scrollBy(optional ScrollToOptions options);
+  void scrollBy(optional ScrollToOptions options = {});
   void scrollBy(unrestricted double x, unrestricted double y);
   attribute unrestricted double scrollTop;
   attribute unrestricted double scrollLeft;
@@ -170,10 +170,10 @@ dictionary ConvertCoordinateOptions {
 };
 
 interface mixin GeometryUtils {
-  sequence<DOMQuad> getBoxQuads(optional BoxQuadOptions options);
-  DOMQuad convertQuadFromNode(DOMQuadInit quad, GeometryNode from, optional ConvertCoordinateOptions options);
-  DOMQuad convertRectFromNode(DOMRectReadOnly rect, GeometryNode from, optional ConvertCoordinateOptions options);
-  DOMPoint convertPointFromNode(DOMPointInit point, GeometryNode from, optional ConvertCoordinateOptions options); // XXX z,w turns into 0
+  sequence<DOMQuad> getBoxQuads(optional BoxQuadOptions options = {});
+  DOMQuad convertQuadFromNode(DOMQuadInit quad, GeometryNode from, optional ConvertCoordinateOptions options = {});
+  DOMQuad convertRectFromNode(DOMRectReadOnly rect, GeometryNode from, optional ConvertCoordinateOptions options = {});
+  DOMPoint convertPointFromNode(DOMPointInit point, GeometryNode from, optional ConvertCoordinateOptions options = {}); // XXX z,w turns into 0
 };
 
 Text includes GeometryUtils; // like Range

@@ -3,6 +3,7 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Element Timing API (https://wicg.github.io/element-timing/)
 
+[Exposed=Window]
 interface PerformanceElementTiming : PerformanceEntry {
     readonly attribute DOMHighResTimeStamp renderTime;
     readonly attribute DOMHighResTimeStamp loadTime;

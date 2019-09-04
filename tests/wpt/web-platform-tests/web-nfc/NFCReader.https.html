@@ -10,122 +10,125 @@
 
 "use strict";
 
-function waitSyntaxErrorPromise(t, reader) {
+function waitSyntaxErrorPromise(t, scan_options) {
+  const reader = new NFCReader();
   const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
   const promise = readerWatcher.wait_for("error").then(event => {
     assert_equals(event.error.name, 'SyntaxError');
   });
-  // NFCReader#start() asynchronously dispatches the syntax error event.
-  reader.start();
+  // NFCReader#scan() asynchronously dispatches the syntax error event.
+  reader.scan(scan_options);
   return promise;
 }
 
 promise_test(async t => {
-  const reader = new NFCReader({url: "www.a.com"});
-  await waitSyntaxErrorPromise(t, reader);
-}, "Test that NFCReader.start fails if NFCReaderOptions.url is missing \
+  await waitSyntaxErrorPromise(t, {url: "www.a.com"});
+}, "Test that NFCReader.scan fails if NFCScanOptions.url is missing \
 components.");
 
 promise_test(async t => {
-  const reader = new NFCReader({url: "invalid"});
-  await waitSyntaxErrorPromise(t, reader);
-}, "Test that NFCReader.start fails if NFCReaderOptions.url is invalid.");
+  await waitSyntaxErrorPromise(t, {url: "invalid"});
+}, "Test that NFCReader.scan fails if NFCScanOptions.url is invalid.");
 
 promise_test(async t => {
-  const reader = new NFCReader({url: "http://a.com"});
-  await waitSyntaxErrorPromise(t, reader);
-}, "Test that NFCReader.start fails if NFCReaderOptions.url has wrong \
+  await waitSyntaxErrorPromise(t, {url: "http://a.com"});
+}, "Test that NFCReader.scan fails if NFCScanOptions.url has wrong \
 protocol.");
 
 nfc_test(async (t, mockNFC) => {
   const reader = new NFCReader();
   const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
-  reader.start();
+  reader.scan();
   mockNFC.setHWStatus(NFCHWStatus.DISABLED);
   const event = await readerWatcher.wait_for("error");
   assert_equals(event.error.name, 'NotReadableError');
-}, "NFCReader.start should fail if NFC HW is disabled.");
+}, "NFCReader.scan should fail if NFC HW is disabled.");
 
 nfc_test(async (t, mockNFC) => {
   const reader = new NFCReader();
   const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
-  reader.start();
+  reader.scan();
   mockNFC.setHWStatus(NFCHWStatus.NOT_SUPPORTED);
   const event = await readerWatcher.wait_for("error");
   assert_equals(event.error.name, 'NotSupportedError');
-}, "NFCReader.start should fail if NFC HW is not supported.");
+}, "NFCReader.scan should fail if NFC HW is not supported.");
 
 nfc_test(async (t, mockNFC) => {
   const reader = new NFCReader();
+  const controller = new AbortController();
   const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
 
   mockNFC.setReadingMessage(createMessage([createTextRecord(test_text_data)]));
   const promise = readerWatcher.wait_for("reading").then(event => {
     assert_true(event instanceof NFCReadingEvent);
-    reader.stop();
+    controller.abort();
   });
-  // NFCReader#start() asynchronously dispatches the reading event.
-  reader.start();
+  // NFCReader#scan() asynchronously dispatches the reading event.
+  reader.scan({signal : controller.signal});
   await promise;
 }, "Test that nfc watch success if NFC HW is enabled.");
 
 nfc_test(async (t, mockNFC) => {
-  const reader = new NFCReader({url: "https://a.com"});
+  const reader = new NFCReader();
+  const controller = new AbortController();
   const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
 
   mockNFC.setReadingMessage(createMessage([createTextRecord(test_text_data)]));
   const promise = readerWatcher.wait_for("reading").then(event => {
     assert_true(event instanceof NFCReadingEvent);
-    reader.stop();
+    controller.abort();
   });
-  // NFCReader#start() asynchronously dispatches the reading event.
-  reader.start();
+  // NFCReader#scan() asynchronously dispatches the reading event.
+  reader.scan({signal : controller.signal, url: "https://a.com"});
   await promise;
-}, "Test that NFCReader.start succeeds if NFCReaderOptions.url is valid URL.");
+}, "Test that NFCReader.scan succeeds if NFCScanOptions.url is valid URL.");
 
 nfc_test(async (t, mockNFC) => {
-  const reader = new NFCReader({url: "https://a.com/*"});
+  const reader = new NFCReader();
+  const controller = new AbortController();
   const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
 
   mockNFC.setReadingMessage(createMessage([createTextRecord(test_text_data)]));
   const promise = readerWatcher.wait_for("reading").then(event => {
     assert_true(event instanceof NFCReadingEvent);
-    reader.stop();
+    controller.abort();
   });
-  // NFCReader#start() asynchronously dispatches the reading event.
-  reader.start();
+  // NFCReader#scan() asynchronously dispatches the reading event.
+  reader.scan({signal : controller.signal, url: "https://a.com/*"});
   await promise;
-}, "Test that NFCReader.start succeeds if NFCReaderOptions.url is valid URL \
+}, "Test that NFCReader.scan succeeds if NFCScanOptions.url is valid URL \
 with '*' wildcard character in path.");
 
 nfc_test(async (t, mockNFC) => {
-  const reader = new NFCReader({url: "https://a.com/*/bar"});
+  const reader = new NFCReader();
+  const controller = new AbortController();
   const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
 
   mockNFC.setReadingMessage(createMessage([createTextRecord(test_text_data)]));
   const promise = readerWatcher.wait_for("reading").then(event => {
     assert_true(event instanceof NFCReadingEvent);
-    reader.stop();
+    controller.abort();
   });
-  // NFCReader#start() asynchronously dispatches the reading event.
-  reader.start();
+  // NFCReader#scan() asynchronously dispatches the reading event.
+  reader.scan({signal : controller.signal, url: "https://a.com/*/bar"});
   await promise;
-}, "Test that NFCReader.start succeeds if NFCReaderOptions.url is valid URL \
+}, "Test that NFCReader.scan succeeds if NFCScanOptions.url is valid URL \
 with '*' wildcard character in the beginning of path component followed by \
 subpath.");
 
 nfc_test(async (t, mockNFC) => {
   const reader = new NFCReader({url: ""});
+  const controller = new AbortController();
   const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
 
   mockNFC.setReadingMessage(createMessage([createTextRecord(test_text_data)]));
   const promise = readerWatcher.wait_for("reading").then(event => {
     assert_true(event instanceof NFCReadingEvent);
-    reader.stop();
+    controller.abort();
   });
-  // NFCReader#start() asynchronously dispatches the reading event.
-  reader.start();
+  // NFCReader#scan() asynchronously dispatches the reading event.
+  reader.scan({signal : controller.signal, url: ""});
   await promise;
-}, "Test that NFCReader.start succeeds if NFCReaderOptions.url is empty.");
+}, "Test that NFCReader.scan succeeds if NFCScanOptions.url is empty.");
 
 </script>

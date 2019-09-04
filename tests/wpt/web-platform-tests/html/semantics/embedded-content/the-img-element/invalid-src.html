@@ -9,41 +9,23 @@
 async_test(function(t) {
     var img = document.getElementById("brokenurl");
     img.src = "http://[";
-    var errorevent = false;
-    var loadendevent = false;
 
     // The errors should be queued in the event loop, so they should only trigger
     // after this block of code finishes, not during the img.src setter itself
     img.addEventListener('error', t.step_func(function() {
-        assert_false(loadendevent, "loadend should fire after error");
-        errorevent = true;
-        t.step_timeout(t.step_func_done(function() {
-            assert_true(loadendevent, "loadend event fired");
-        }), 0);
-    }));
-    img.addEventListener('loadend', t.step_func(function() {
-        assert_true(errorevent, "error event fired");
-        loadendevent = true;
+        t.step_timeout(t.step_func_done(), 0);
     }));
 }, 'src="http://["');
 
 async_test(function(t) {
     var img = document.getElementById("emptysrc");
     img.src = "";
-    var loadendevent = false;
 
     // Setting src to empty string triggers only error event.
     // The errors should be queued in the event loop, so they should only trigger
     // after this block of code finishes, not during the img.src setter itself
     img.addEventListener('error', t.step_func(function() {
-        // Queue this check in the event loop to check there is no loadend event
-        // fired.
-        t.step_timeout(t.step_func_done(function() {
-            assert_false(loadendevent, "loadend event should not be fired");
-        }), 0);
-    }));
-    img.addEventListener('loadend', t.step_func(function() {
-        loadendevent = true;
+        t.step_timeout(t.step_func_done(), 0);
     }));
 }, 'src=""');
 

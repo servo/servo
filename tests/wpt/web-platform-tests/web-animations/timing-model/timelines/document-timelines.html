@@ -9,10 +9,6 @@
 <script>
 'use strict';
 
-function matchUnconditionalClamping(timestamp) {
-  return parseFloat((Math.floor(timestamp / .02) * .02).toPrecision(8), 10);
-}
-
 async_test(t => {
   assert_greater_than_equal(document.timeline.currentTime, 0,
     'The current time is initially is positive or zero');
@@ -32,7 +28,7 @@ async_test(t => {
   // so we use requestAnimationFrame instead.
   window.requestAnimationFrame(rafTime => {
     t.step(() => {
-      assert_equals(document.timeline.currentTime, matchUnconditionalClamping(rafTime),
+      assert_equals(document.timeline.currentTime, rafTime,
                     'The current time matches requestAnimationFrame time');
     });
     t.done();

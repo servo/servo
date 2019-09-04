@@ -145,6 +145,7 @@ dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
              double averageRtcpInterval;
              RTCQualityLimitationReason qualityLimitationReason;
              record<DOMString, double> qualityLimitationDurations;
+             unsigned long qualityLimitationResolutionChanges;
              record<USVString, unsigned long> perDscpPacketsSent;
              unsigned long nackCount;
              unsigned long firCount;
@@ -265,6 +266,7 @@ dictionary RTCTransportStats : RTCStats {
              DOMString dtlsCipher;
              DOMString srtpCipher;
              DOMString tlsGroup;
+             unsigned long selectedCandidatePairChanges;
 };
 
 dictionary RTCIceCandidateStats : RTCStats {

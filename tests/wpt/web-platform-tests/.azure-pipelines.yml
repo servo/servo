@@ -17,14 +17,6 @@
 #    Documention for the setup of these agents:
 #    https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/v2-windows
 
-schedules:
-- cron: "15 */6 * * *"
-  displayName: Every six hours
-  branches:
-    include:
-    - epochs/six_hourly
-  always: true
-
 jobs:
 # The affected tests jobs are unconditional for speed, as most PRs have one or
 # more affected tests: https://github.com/web-platform-tests/wpt/issues/13936.
@@ -240,16 +232,13 @@ jobs:
     condition: always()
   - template: tools/ci/azure/cleanup_win10.yml
 
-# All `./wpt run` tests are run from epochs/* branches on a schedule. See
-# documentation at the top of this file for required setup.
 - job: results_edge_dev
   displayName: 'all tests: Edge Dev'
   condition: |
-    or(eq(variables['Build.Reason'], 'Schedule'),
+    or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/six_hourly'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge_dev']))
-  # There are 12 agents in the pool, but use more jobs so that each takes <1h.
   strategy:
-    parallel: 20
+    parallel: 10 # chosen to make runtime ~2h
   timeoutInMinutes: 360
   pool:
     name: 'Hosted Windows Client'
@@ -281,11 +270,10 @@ jobs:
 - job: results_edge_canary
   displayName: 'all tests: Edge Canary'
   condition: |
-    or(eq(variables['Build.Reason'], 'Schedule'),
+    or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/six_hourly'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge_canary']))
-  # There are 12 agents in the pool, but use more jobs so that each takes <1h.
   strategy:
-    parallel: 20
+    parallel: 10 # chosen to make runtime ~2h
   timeoutInMinutes: 360
   pool:
     name: 'Hosted Windows Client'
@@ -317,10 +305,10 @@ jobs:
 - job: results_safari
   displayName: 'all tests: Safari'
   condition: |
-    or(eq(variables['Build.Reason'], 'Schedule'),
+    or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/daily'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_safari']))
   strategy:
-    parallel: 4 # chosen to make runtime ~2h
+    parallel: 5 # chosen to make runtime ~2h
   timeoutInMinutes: 360
   pool:
     vmImage: 'macOS-10.13'
@@ -336,10 +324,8 @@ jobs:
       channel: stable
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
-  - script: |
-      # TODO: drop this when `safaridriver --version` is supported.
-      SAFARI_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' /Applications/Safari.app/Contents/Info.plist) ($(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' /Applications/Safari.app/Contents/Info.plist))"
-      no_proxy='*' ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --this-chunk=$(System.JobPositionInPhase) --total-chunks=$(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-tbpl - --log-tbpl-level info --browser-version "$SAFARI_VERSION" safari
+  # --exclude is a workaround for https://github.com/web-platform-tests/wpt/issues/16229
+  - script: no_proxy='*' ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --this-chunk=$(System.JobPositionInPhase) --total-chunks=$(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-tbpl - --log-tbpl-level info safari --exclude /inert/inert-retargeting.tentative.html --exclude /inert/inert-retargeting-iframe.tentative.html
     displayName: 'Run tests'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
@@ -353,10 +339,10 @@ jobs:
 - job: results_safari_preview
   displayName: 'all tests: Safari Technology Preview'
   condition: |
-    or(eq(variables['Build.Reason'], 'Schedule'),
+    or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/six_hourly'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_safari_preview']))
   strategy:
-    parallel: 4 # chosen to make runtime ~2h
+    parallel: 5 # chosen to make runtime ~2h
   timeoutInMinutes: 360
   pool:
     vmImage: 'macOS-10.13'
@@ -370,7 +356,8 @@ jobs:
   - template: tools/ci/azure/install_safari.yml
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
-  - script: no_proxy='*' ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --this-chunk=$(System.JobPositionInPhase) --total-chunks=$(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-tbpl - --log-tbpl-level info --channel preview safari
+  # --exclude is a workaround for https://github.com/web-platform-tests/wpt/issues/16229
+  - script: no_proxy='*' ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --this-chunk=$(System.JobPositionInPhase) --total-chunks=$(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-tbpl - --log-tbpl-level info --channel preview safari --exclude /inert/inert-retargeting.tentative.html --exclude /inert/inert-retargeting-iframe.tentative.html --exclude /payment-request/
     displayName: 'Run tests'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'

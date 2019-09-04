@@ -159,7 +159,7 @@ function expectEventsOn(events, element) {
         }
         element.addEventListener(event, f, { capture: true, once: true });
 
-        setTimeout(() => {
+        step_timeout(() => {
           element.removeEventListener(event, f, { capture: true });
           reject("did not get " + event + " on " + element.id);
         }, 1000);
@@ -182,7 +182,7 @@ function unexpectEventsOn(events, element) {
         }
         element.addEventListener(event, f, { capture: true, once: true });
 
-        setTimeout(() => {
+        step_timeout(() => {
           element.removeEventListener(event, f, { capture: true });
           resolve();
         }, 1000);

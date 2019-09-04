@@ -14,5 +14,5 @@ interface PerformanceNavigation {
   const unsigned short TYPE_RESERVED = 255;
   readonly attribute unsigned short type;
   readonly attribute unsigned short redirectCount;
-  // [Default] object toJSON();
+  [Default] object toJSON();
 };

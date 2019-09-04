@@ -28,8 +28,8 @@
         'toText() contains the same text content');
     assert_equals(message.records[0].toArrayBuffer(), null,
         'toArrayBuffer() returns null');
-    assert_equals(message.records[0].toJSON(), undefined,
-        'toJSON() returns undefined');
+    assert_equals(message.records[0].toJSON(), null,
+        'toJSON() returns null');
   }, 'NDEFMessage constructor with a text record');
 
 </script>

@@ -15,7 +15,7 @@ doctest = false
 [dependencies]
 backtrace = "0.3"
 bitflags = "1.0"
-ipc-channel = "0.11"
+ipc-channel = "0.12"
 libc = "0.2"
 log = "0.4"
 msg = {path = "../msg"}

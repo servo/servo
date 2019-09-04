@@ -29,6 +29,7 @@ def main(task_for):
             linux_tidy_unit_docs,
             windows_unit,
             windows_arm64,
+            windows_uwp_x64,
             macos_unit,
             magicleap_dev,
             android_arm32_dev,
@@ -54,7 +55,7 @@ def main(task_for):
 
             "try-mac": [macos_unit],
             "try-linux": [linux_tidy_unit_docs, linux_release],
-            "try-windows": [windows_unit, windows_arm64],
+            "try-windows": [windows_unit, windows_arm64, windows_uwp_x64],
             "try-magicleap": [magicleap_dev],
             "try-arm": [windows_arm64],
             "try-wpt": [linux_wpt],
@@ -374,18 +375,19 @@ def android_x86_wpt():
 
 def windows_arm64():
     return (
-        windows_build_task("Dev build", arch="arm64", package=False)
+        windows_build_task("UWP dev build", arch="arm64", package=False)
         .with_treeherder("Windows arm64")
-        .with_file_mount(
-            "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe",
-            path="nuget.exe"
-        )
-        .with_script(
-            "%HOMEDRIVE%%HOMEPATH%\\nuget.exe install ANGLE.WindowsStore.Servo \
-              -Version 2.1.13 -o %HOMEDRIVE%%HOMEPATH%\\repo\\support\\hololens\\packages",
-        )
         .with_script("python mach build --dev --uwp --win-arm64")
-        .find_or_create("build.windows_arm64_dev." + CONFIG.task_id())
+        .find_or_create("build.windows_uwp_arm64_dev." + CONFIG.task_id())
+    )
+
+
+def windows_uwp_x64():
+    return (
+        windows_build_task("UWP dev build", package=False)
+        .with_treeherder("Windows x64")
+        .with_script("mach build --dev --uwp")
+        .find_or_create("build.windows_uwp_x64_dev." + CONFIG.task_id())
     )
 
 
@@ -868,14 +870,14 @@ def magicleap_build_task(name, build_type):
             path="magicleap"
         )
         .with_directory_mount(
-            "https://servo-deps.s3.amazonaws.com/magicleap/TempSharedCert.zip",
-            sha256="cdc2d26bc87ecf1cd8133df4e72c4eca5df7ddd815d0adf3045460253c1fe123",
+            "https://servo-deps.s3.amazonaws.com/magicleap/ServoCICert-expires-2020-08-25.zip",
+            sha256="33f9d07b89c206e671f6a5020e52265b131e83aede8fa474be323a8e3345d760",
             path="magicleap"
         )
         # Early script in order to run with the initial $PWD
         .with_early_script("""
             export MAGICLEAP_SDK="$PWD/magicleap/v0.20.0+ndk19c"
-            export MLCERT="$PWD/magicleap/TempSharedCert.cert"
+            export MLCERT="$PWD/magicleap/servocimlcert.cert"
         """)
         .with_script("""
             unset OPENSSL_INCLUDE_DIR

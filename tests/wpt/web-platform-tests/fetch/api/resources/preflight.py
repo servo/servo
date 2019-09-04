@@ -26,6 +26,11 @@ def main(request, response):
             response.set_error(400, "No Access-Control-Request-Method header")
             return "ERROR: No access-control-request-method in preflight!"
 
+        # https://github.com/whatwg/fetch/issues/922
+        if request.headers.get("Accept", "") != "*/*":
+            response.set_error(400, "Request does not have 'Accept: */*' header")
+            return "ERROR: Invalid access in preflight!"
+
         if "control_request_headers" in request.GET:
             stashed_data['control_request_headers'] = request.headers.get("Access-Control-Request-Headers", None)
 

@@ -17,6 +17,8 @@ interface DOMRectReadOnly {
   readonly attribute unrestricted double right;
   readonly attribute unrestricted double bottom;
   readonly attribute unrestricted double left;
+
+  [Default] object toJSON();
 };
 
 // https://drafts.fxtf.org/geometry/#dictdef-domrectinit

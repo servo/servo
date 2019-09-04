@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<head>
+<title>Largest Contentful Paint: do NOT observe elements from same-origin iframes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+  async_test((t) => {
+    if (!window.LargestContentfulPaint) {
+      assert_unreached("LargestContentfulPaint is not implemented");
+    }
+    const observer = new PerformanceObserver(
+      t.step_func_done(entryList => {
+        assert_unreached("Should not have received an entry!");
+      })
+    );
+    observer.observe({type: 'largest-contentful-paint', buffered: true});
+    // After a delay, assume that no entry was produced.
+    t.step_timeout(() => {
+      t.done();
+    }, 200);
+  }, 'Element in child iframe is not observed, even if same-origin.');
+</script>
+<iframe src='resources/iframe-with-content.html'></iframe>
+</body>

@@ -11,6 +11,8 @@ struct App : AppT<App> {
 
   void OnLaunched(
       Windows::ApplicationModel::Activation::LaunchActivatedEventArgs const &);
+  void App::OnActivated(
+      Windows::ApplicationModel::Activation::IActivatedEventArgs const &args);
   void OnSuspending(IInspectable const &,
                     Windows::ApplicationModel::SuspendingEventArgs const &);
   void OnNavigationFailed(

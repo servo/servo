@@ -81,7 +81,6 @@
 
     assert_equals(typeof param.usernameFragment, 'string',
       'Expect param.usernameFragment to be set with string value');
-
     assert_equals(typeof param.password, 'string',
       'Expect param.password to be set with string value');
   }
@@ -90,7 +89,7 @@
     const { state, gatheringState, role, component } = iceTransport;
 
     assert_true(role === 'controlling' || role === 'controlled',
-      'Expect RTCIceRole to be either controlling or controlled');
+      'Expect RTCIceRole to be either controlling or controlled, found ' + role);
 
     assert_true(component === 'rtp' || component === 'rtcp',
       'Expect RTCIceComponent to be either rtp or rtcp');

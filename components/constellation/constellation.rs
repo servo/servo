@@ -129,7 +129,9 @@ use msg::constellation_msg::{
     BrowsingContextGroupId, BrowsingContextId, HistoryStateId, PipelineId,
     TopLevelBrowsingContextId,
 };
-use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
+use msg::constellation_msg::{
+    PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest, TraversalDirection,
+};
 use net_traits::pub_domains::reg_host;
 use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
@@ -217,6 +219,12 @@ struct BrowsingContextGroup {
 /// the `script` crate). Script and layout communicate using a `Message`
 /// type.
 pub struct Constellation<Message, LTF, STF> {
+    /// An ipc-sender/threaded-receiver pair
+    /// to facilitate installing pipeline namespaces in threads
+    /// via a per-process installer.
+    namespace_receiver: Receiver<Result<PipelineNamespaceRequest, IpcError>>,
+    namespace_sender: IpcSender<PipelineNamespaceRequest>,
+
     /// An IPC channel for script threads to send messages to the constellation.
     /// This is the script threads' view of `script_receiver`.
     script_sender: IpcSender<(PipelineId, FromScriptMsg)>,
@@ -672,6 +680,12 @@ where
                 let script_receiver =
                     route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(ipc_script_receiver);
 
+                let (namespace_sender, ipc_namespace_receiver) =
+                    ipc::channel().expect("ipc channel failure");
+                let namespace_receiver = route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(
+                    ipc_namespace_receiver,
+                );
+
                 let (background_hang_monitor_sender, ipc_bhm_receiver) =
                     ipc::channel().expect("ipc channel failure");
                 let background_hang_monitor_receiver =
@@ -709,6 +723,8 @@ where
                 PipelineNamespace::install(PipelineNamespaceId(1));
 
                 let mut constellation: Constellation<Message, LTF, STF> = Constellation {
+                    namespace_receiver,
+                    namespace_sender,
                     script_sender: ipc_script_sender,
                     background_hang_monitor_sender,
                     background_hang_monitor_receiver,
@@ -987,6 +1003,8 @@ where
                 sender: self.script_sender.clone(),
                 pipeline_id: pipeline_id,
             },
+            namespace_request_sender: self.namespace_sender.clone(),
+            pipeline_namespace_id: self.next_pipeline_namespace_id(),
             background_monitor_register: self.background_monitor_register.clone(),
             background_hang_monitor_to_constellation_chan: self
                 .background_hang_monitor_sender
@@ -1005,7 +1023,6 @@ where
             event_loop,
             load_data,
             device_pixel_ratio: self.window_size.device_pixel_ratio,
-            pipeline_namespace_id: self.next_pipeline_namespace_id(),
             prev_visibility: is_visible,
             webrender_api_sender: self.webrender_api_sender.clone(),
             webrender_document: self.webrender_document,
@@ -1155,6 +1172,7 @@ where
     fn handle_request(&mut self) {
         #[derive(Debug)]
         enum Request {
+            PipelineNamespace(PipelineNamespaceRequest),
             Script((PipelineId, FromScriptMsg)),
             BackgroundHangMonitor(HangMonitorAlert),
             Compositor(FromCompositorMsg),
@@ -1175,6 +1193,9 @@ where
         // being called. If this happens, there's not much we can do
         // other than panic.
         let request = select! {
+            recv(self.namespace_receiver) -> msg => {
+                msg.expect("Unexpected script channel panic in constellation").map(Request::PipelineNamespace)
+            }
             recv(self.script_receiver) -> msg => {
                 msg.expect("Unexpected script channel panic in constellation").map(Request::Script)
             }
@@ -1203,6 +1224,9 @@ where
         };
 
         match request {
+            Request::PipelineNamespace(message) => {
+                self.handle_request_for_pipeline_namespace(message)
+            },
             Request::Compositor(message) => self.handle_request_from_compositor(message),
             Request::Script(message) => {
                 self.handle_request_from_script(message);
@@ -1220,6 +1244,11 @@ where
                 self.handle_request_from_swmanager(message);
             },
         }
+    }
+
+    fn handle_request_for_pipeline_namespace(&mut self, request: PipelineNamespaceRequest) {
+        let PipelineNamespaceRequest(sender) = request;
+        let _ = sender.send(self.next_pipeline_namespace_id());
     }
 
     fn handle_request_from_background_hang_monitor(&self, message: HangMonitorAlert) {
@@ -3498,6 +3527,10 @@ where
                         x,
                         y,
                     ));
+            },
+            WebDriverCommandMsg::MouseMoveAction(x, y) => {
+                self.compositor_proxy
+                    .send(ToCompositorMsg::WebDriverMouseMoveEvent(x, y));
             },
             WebDriverCommandMsg::TakeScreenshot(_, rect, reply) => {
                 self.compositor_proxy

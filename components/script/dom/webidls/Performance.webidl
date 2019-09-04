@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
- * https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#sec-window.performance-attribute
+ * https://w3c.github.io/hr-time/#sec-performance
  */
 
 typedef double DOMHighResTimeStamp;
@@ -13,7 +13,7 @@ typedef sequence<PerformanceEntry> PerformanceEntryList;
 interface Performance : EventTarget {
   DOMHighResTimeStamp now();
   readonly attribute DOMHighResTimeStamp timeOrigin;
-  // [Default] object toJSON();
+  [Default] object toJSON();
 };
 
 // https://w3c.github.io/performance-timeline/#extensions-to-the-performance-interface

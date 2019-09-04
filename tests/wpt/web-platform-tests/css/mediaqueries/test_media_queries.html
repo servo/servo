@@ -318,6 +318,11 @@ function run() {
       expression_should_not_be_parseable(feature + ": -1/1");
       expression_should_not_be_parseable(feature + ": 1/-1");
       expression_should_not_be_parseable(feature + ": -1/-1");
+      expression_should_not_be_parseable(feature + ": -1/-1");
+      expression_should_not_be_parseable(feature + ": -1/-1");
+      expression_should_not_be_parseable(feature + ": invalid");
+      expression_should_not_be_parseable(feature + ": 1 / invalid");
+      expression_should_not_be_parseable(feature + ": 1 invalid");
     }
 
     var is_monochrome = query_applies("all and (min-monochrome: 1)");

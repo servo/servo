@@ -13,7 +13,7 @@
       <RowDefinition Height="auto"/>
       <RowDefinition Height="*"/>
     </Grid.RowDefinitions>
-    <Grid Grid.Row="0">
+    <Grid Grid.Row="0" x:Name="navigationBar">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="auto"/>
         <ColumnDefinition Width="*"/>
@@ -26,9 +26,6 @@
         <Button x:Name="stopButton" IsTabStop="true" IsEnabled="false" Content="stop" Click="OnStopButtonClicked"/>
       </StackPanel>
       <TextBox Text="" IsTabStop="true" InputScope="Url" PlaceholderText="Type a URL" x:Name="urlTextbox" Grid.Column="1" KeyUp="OnURLEdited"/>
-      <StackPanel Orientation="Horizontal" Grid.Column="2">
-        <Button x:Name="immersiveButton" Click="OnImmersiveButtonClicked">Run Immersive</Button>
-      </StackPanel>
     </Grid>
     <local:ServoControl TabIndex="0" x:Name="servoControl" Grid.Row="1"/>
   </Grid>

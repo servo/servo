@@ -29,7 +29,7 @@ checkFetchResponse("data:image/png;base64,cmVzcG9uc2UncyBib2R5",
                    "response's body",
                    "image/png");
 checkFetchResponse("data:,response%27s%20body", "response's body", "text/plain;charset=US-ASCII", null, "POST");
-checkFetchResponse("data:,response%27s%20body", "response's body", "text/plain;charset=US-ASCII", null, "HEAD");
+checkFetchResponse("data:,response%27s%20body", "", "text/plain;charset=US-ASCII", null, "HEAD");
 
 function checkKoUrl(url, method, desc) {
   var cut = (url.length >= 40) ? "[...]" : "";

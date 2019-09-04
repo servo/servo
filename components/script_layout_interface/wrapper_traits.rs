@@ -170,9 +170,8 @@ pub trait ThreadSafeLayoutNode:
     type ConcreteNode: LayoutNode<ConcreteThreadSafeLayoutNode = Self>;
     type ConcreteElement: TElement;
 
-    type ConcreteThreadSafeLayoutElement: ThreadSafeLayoutElement<
-            ConcreteThreadSafeLayoutNode = Self,
-        > + ::selectors::Element<Impl = SelectorImpl>;
+    type ConcreteThreadSafeLayoutElement: ThreadSafeLayoutElement<ConcreteThreadSafeLayoutNode = Self>
+        + ::selectors::Element<Impl = SelectorImpl>;
     type ChildrenIterator: Iterator<Item = Self> + Sized;
 
     /// Converts self into an `OpaqueNode`.
