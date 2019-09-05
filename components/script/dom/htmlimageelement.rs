@@ -53,6 +53,7 @@ use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
+use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::UsePlaceholder;
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
@@ -61,6 +62,7 @@ use net_traits::request::RequestBuilder;
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use num_traits::ToPrimitive;
+use servo_url::origin::ImmutableOrigin;
 use servo_url::origin::MutableOrigin;
 use servo_url::ServoUrl;
 use std::cell::{Cell, RefMut};
@@ -261,6 +263,17 @@ impl PreInvoke for ImageContext {
     }
 }
 
+// This function is also used to prefetch an image in `script::dom::servoparser::prefetch`.
+pub(crate) fn image_fetch_request(
+    img_url: ServoUrl,
+    origin: ImmutableOrigin,
+    pipeline_id: PipelineId,
+) -> RequestBuilder {
+    RequestBuilder::new(img_url)
+        .origin(origin)
+        .pipeline_id(Some(pipeline_id))
+}
+
 impl HTMLImageElement {
     /// Update the current image with a valid URL.
     fn fetch_image(&self, img_url: &ServoUrl) {
@@ -326,9 +339,11 @@ impl HTMLImageElement {
             }),
         );
 
-        let request = RequestBuilder::new(img_url.clone())
-            .origin(document.origin().immutable().clone())
-            .pipeline_id(Some(document.global().pipeline_id()));
+        let request = image_fetch_request(
+            img_url.clone(),
+            document.origin().immutable().clone(),
+            document.global().pipeline_id(),
+        );
 
         // This is a background load because the load blocker already fulfills the
         // purpose of delaying the document's load event.

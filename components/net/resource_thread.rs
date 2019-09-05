@@ -25,11 +25,12 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::request::{Destination, RequestBuilder};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
+use net_traits::FetchTaskTarget;
 use net_traits::WebSocketNetworkEvent;
 use net_traits::{CookieSource, CoreResourceMsg, CoreResourceThread};
 use net_traits::{CustomResponseMediator, FetchChannels};
-use net_traits::{FetchResponseMsg, ResourceThreads, WebSocketDomAction};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
+use net_traits::{ResourceThreads, WebSocketDomAction};
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use profile_traits::time::ProfilerChan;
@@ -245,6 +246,10 @@ impl ResourceChannelManager {
                     action_receiver,
                     http_state,
                 ),
+                FetchChannels::Prefetch => {
+                    self.resource_manager
+                        .fetch(req_init, None, (), http_state, None)
+                },
             },
             CoreResourceMsg::DeleteCookies(request) => {
                 http_state
@@ -455,11 +460,11 @@ impl CoreResourceManager {
         }
     }
 
-    fn fetch(
+    fn fetch<Target: 'static + FetchTaskTarget + Send>(
         &self,
         request_builder: RequestBuilder,
         res_init_: Option<ResponseInit>,
-        mut sender: IpcSender<FetchResponseMsg>,
+        mut sender: Target,
         http_state: &Arc<HttpState>,
         cancel_chan: Option<IpcReceiver<()>>,
     ) {
