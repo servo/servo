@@ -12,6 +12,7 @@
 <img id="imgTestTag3" style="width: 80px; height:auto;">
 <img id="imgTestTag4">
 <img id="imgTestTag5">
+<div id="image-container"></div>
 
 <script>
   var imageInstance = document.createElement('img');
@@ -27,8 +28,58 @@
   }, "img src and srcset omitted");
 
   test(function() {
+    var img = document.createElement("img");
+    assert_true(img.complete);
+  }, "img src and srcset omitted on newly-created image");
+
+  test(function() {
+    var cont = document.getElementById("image-container");
+    this.add_cleanup(() => { cont.innerHTML = "" });
+    var img = document.createElement("img");
+    cont.appendChild(img);
+    assert_true(img.complete);
+  }, "img src and srcset omitted on newly-created-and-inserted image");
+
+  test(function() {
+    var cont = document.getElementById("image-container");
+    this.add_cleanup(() => { cont.innerHTML = "" });
+    cont.innerHTML = "<img>";
+    assert_true(cont.querySelector("img").complete);
+  }, "img src and srcset omitted on newly-created-via-innerHTML image");
+
+  test(function() {
     assert_true(document.getElementById("imgTestTag2").complete);
-  }, "img src and srcset empty");
+  }, "img src empty and srcset omitted");
+
+  test(function() {
+    var img = document.createElement("img");
+    img.setAttribute("src", "");
+    assert_true(img.complete);
+  }, "img src empty and srcset omitted on newly-created image");
+
+  test(function() {
+    var cont = document.getElementById("image-container");
+    this.add_cleanup(() => { cont.innerHTML = "" });
+    var img = document.createElement("img");
+    img.setAttribute("src", "");
+    cont.appendChild(img);
+    assert_true(img.complete);
+  }, "img src empty and srcset omitted on newly-created-and-inserted image");
+
+  test(function() {
+    var cont = document.getElementById("image-container");
+    this.add_cleanup(() => { cont.innerHTML = "" });
+    cont.innerHTML = "<img src=''>";
+    assert_true(cont.querySelector("img").complete);
+  }, "img src empty and srcset omitted on newly-created-via-innerHTML image");
+
+  test(function() {
+    var img = document.createElement("img");
+    img.src = location.href;
+    assert_false(img.complete, "Should have a load going");
+    img.removeAttribute("src");
+    assert_true(img.complete);
+  }, "img src and srcset omitted on image after it started a load");
 
   // test if set to true after img is completely available
   var t = async_test("async src complete test");
@@ -103,4 +154,57 @@
     assert_true(img4.complete);
     t2.done();
   });
+
+  var t3 = async_test("async src removal test");
+  t3.step(function() {
+    var img = document.createElement("img");
+    assert_true(img.complete);
+    img.src = `3.jpg?nocache=${Math.random()}`;
+    assert_false(img.complete);
+    img.onload = this.step_func_done(() => {
+      assert_true(img.complete);
+      img.removeAttribute("src");
+      assert_true(img.complete, "Should be complete, since we removed the src");
+    });
+  });
+
+  var t4 = async_test("async srcset removal test");
+  t4.step(function() {
+    var img = document.createElement("img");
+    assert_true(img.complete);
+    img.srcset = `3.jpg?nocache=${Math.random()} 1x`;
+    assert_false(img.complete);
+    img.onload = this.step_func_done(() => {
+      assert_true(img.complete);
+      img.removeAttribute("srcset");
+      assert_true(img.complete, "Should be complete, since we removed the srcset");
+    });
+  });
+
+  var t5 = async_test("async src available image lookup test");
+  t5.step(function() {
+    var preload = document.createElement("img");
+    var url = `3.jpg?nocache=${Math.random()}`;
+    preload.src = url;
+    preload.onload = this.step_func_done(function() {
+      var img = document.createElement("img");
+      assert_true(img.complete);
+      img.src = url;
+      assert_true(img.complete, "Should be complete because we should hit the available image cache");
+    });
+  });
+
+  var t6 = async_test("async pending request test");
+  t6.step(function() {
+    var img = document.createElement("img");
+    img.src = `3.jpg?nocache=${Math.random()}`;
+    img.onload = this.step_func_done(function() {
+      assert_true(img.complete);
+      img.src = `3.jpg?nocache=${Math.random()}`;
+      // This is not strictly per spec, but that's a spec bug.  See
+      // https://github.com/whatwg/html/issues/4884
+      assert_false(img.complete, "Should not be complete because we have started a new load");
+    });
+  });
+
 </script>

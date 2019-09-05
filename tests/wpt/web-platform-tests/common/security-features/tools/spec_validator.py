@@ -57,6 +57,15 @@ def assert_contains_only_fields(obj, expected_fields):
                 'Unexpected field "%s".' % actual_field
 
 
+def leaf_values(schema):
+    if isinstance(schema, list):
+        return schema
+    ret = []
+    for _, sub_schema in schema.iteritems():
+        ret += leaf_values(sub_schema)
+    return ret
+
+
 def assert_value_unique_in(value, used_values):
     assert value not in used_values, 'Duplicate value "%s"!' % str(value)
     used_values[value] = True
@@ -78,8 +87,9 @@ def validate(spec_json, details):
 
     details['object'] = spec_json
     assert_contains_only_fields(spec_json, [
-        "specification", "delivery_key", "test_expansion_schema",
-        "excluded_tests"
+        "specification", "delivery_key", "subresource_schema",
+        "source_context_schema", "source_context_list_schema",
+        "test_expansion_schema", "excluded_tests"
     ])
     assert_non_empty_list(spec_json, "specification")
     assert_non_empty_dict(spec_json, "test_expansion_schema")
@@ -90,6 +100,29 @@ def validate(spec_json, details):
     excluded_tests = spec_json['excluded_tests']
 
     valid_test_expansion_fields = ['name'] + test_expansion_schema.keys()
+
+    valid_source_context_names = [
+        "top", "iframe", "srcdoc", "worker-classic", "worker-module",
+        "worker-classic-data", "worker-module-data"
+    ]
+
+    valid_subresource_names = [
+        "a-tag", "area-tag", "audio-tag", "form-tag", "iframe-tag", "img-tag",
+        "link-css-tag", "link-prefetch-tag", "object-tag", "picture-tag",
+        "script-tag", "video-tag"
+    ] + ["beacon", "fetch", "xhr", "websocket"] + [
+        "worker-classic", "worker-module", "worker-import",
+        "worker-import-data", "sharedworker-classic", "sharedworker-module",
+        "sharedworker-import", "sharedworker-import-data",
+        "serviceworker-classic", "serviceworker-module",
+        "serviceworker-import", "serviceworker-import-data"
+    ] + [
+        "worklet-animation", "worklet-audio", "worklet-layout",
+        "worklet-paint", "worklet-animation-import", "worklet-audio-import",
+        "worklet-layout-import", "worklet-paint-import",
+        "worklet-animation-import-data", "worklet-audio-import-data",
+        "worklet-layout-import-data", "worklet-paint-import-data"
+    ]
 
     # Validate each single spec.
     for spec in specification:
@@ -123,12 +156,66 @@ def validate(spec_json, details):
                                       test_expansion_schema[artifact])
                 del details['test_expansion_field']
 
+    # Validate source_context_schema.
+    details['object'] = spec_json['source_context_schema']
+    assert_contains_only_fields(
+        spec_json['source_context_schema'],
+        ['supported_delivery_type', 'supported_subresource'])
+    assert_contains_only_fields(
+        spec_json['source_context_schema']['supported_delivery_type'],
+        valid_source_context_names)
+    for source_context in spec_json['source_context_schema'][
+            'supported_delivery_type']:
+        assert_valid_artifact(
+            spec_json['source_context_schema']['supported_delivery_type'],
+            source_context, test_expansion_schema['delivery_type'])
+    assert_contains_only_fields(
+        spec_json['source_context_schema']['supported_subresource'],
+        valid_source_context_names)
+    for source_context in spec_json['source_context_schema'][
+            'supported_subresource']:
+        assert_valid_artifact(
+            spec_json['source_context_schema']['supported_subresource'],
+            source_context, leaf_values(test_expansion_schema['subresource']))
+
+    # Validate subresource_schema.
+    details['object'] = spec_json['subresource_schema']
+    assert_contains_only_fields(spec_json['subresource_schema'],
+                                ['supported_delivery_type'])
+    assert_contains_only_fields(
+        spec_json['subresource_schema']['supported_delivery_type'],
+        leaf_values(test_expansion_schema['subresource']))
+    for subresource in spec_json['subresource_schema'][
+            'supported_delivery_type']:
+        assert_valid_artifact(
+            spec_json['subresource_schema']['supported_delivery_type'],
+            subresource, test_expansion_schema['delivery_type'])
+
     # Validate the test_expansion schema members.
     details['object'] = test_expansion_schema
     assert_contains_only_fields(test_expansion_schema, [
-        'expansion', 'source_scheme', 'delivery_type', 'delivery_value',
-        'redirection', 'subresource', 'origin', 'expectation'
+        'expansion', 'source_scheme', 'source_context_list', 'delivery_type',
+        'delivery_value', 'redirection', 'subresource', 'origin', 'expectation'
     ])
+    assert_atom_or_list_items_from(test_expansion_schema, 'expansion',
+                                   ['default', 'override'])
+    assert_atom_or_list_items_from(test_expansion_schema, 'source_scheme',
+                                   ['http', 'https'])
+    assert_atom_or_list_items_from(
+        test_expansion_schema, 'source_context_list',
+        spec_json['source_context_list_schema'].keys())
+
+    assert_atom_or_list_items_from(test_expansion_schema, 'redirection', [
+        'no-redirect', 'keep-origin', 'swap-origin', 'keep-scheme',
+        'swap-scheme'
+    ])
+    for subresource in leaf_values(test_expansion_schema['subresource']):
+        assert subresource in valid_subresource_names, "Invalid subresource %s" % subresource
+    assert_atom_or_list_items_from(test_expansion_schema, 'origin', [
+        'same-http', 'same-https', 'same-ws', 'same-wss', 'cross-http',
+        'cross-https', 'cross-ws', 'cross-wss'
+    ])
+
     # Validate excluded tests.
     details['object'] = excluded_tests
     for excluded_test_expansion in excluded_tests:

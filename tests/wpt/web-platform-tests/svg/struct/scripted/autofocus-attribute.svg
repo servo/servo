@@ -19,7 +19,7 @@ promise_test(async t => {
   svgA.setAttribute('href', '#');
   svgA.setAttribute('autofocus', 'autofocus');
   w.document.documentElement.appendChild(svgA);
-  await waitUntilStableAutofocusState(t);
+  await waitUntilStableAutofocusState(w);
   assert_equals(w.document.activeElement, svgA);
 }, '<a> should support autofocus');
 
@@ -32,7 +32,7 @@ promise_test(async t => {
   path.setAttribute('tabindex', '0');
   path.setAttribute('autofocus', 'autofocus');
   w.document.documentElement.appendChild(path);
-  await waitUntilStableAutofocusState(t);
+  await waitUntilStableAutofocusState(w);
   assert_equals(w.document.activeElement, path);
 }, 'Renderable element with tabindex should support autofocus');
 
@@ -44,7 +44,7 @@ promise_test(async t => {
   element.setAttribute('tabindex', '0');
   element.setAttribute('autofocus', 'autofocus');
   w.document.documentElement.appendChild(element);
-  await waitUntilStableAutofocusState(t);
+  await waitUntilStableAutofocusState(w);
   // https://html.spec.whatwg.org/C/#dom-documentorshadowroot-activeelement
   // 6. If candidate's document element is non-null, then return that document
   //    element.

@@ -45,6 +45,15 @@ function getMatrixFromTransform(transform) {
           m14, m24, m34, 1];
 }
 
+function getGFXTransformFromPosition(x, y, z) {
+  let transform = new gfx.mojom.Transform();
+  transform.matrix = getMatrixFromTransform({
+    position: [x, y, z],
+    orientation: [0, 0, 0, 1]
+  });
+  return transform;
+}
+
 class ChromeXRTest {
   constructor() {
     this.mockVRService_ = new MockVRService(mojo.frameInterfaces);
@@ -369,7 +378,7 @@ class MockRuntime {
           leftDegrees: 50.899,
           rightDegrees: 35.197
         },
-        offset: { x: -0.032, y: 0, z: 0 },
+        headFromEye: getGFXTransformFromPosition(-0.032, 0, 0),
         renderWidth: 20,
         renderHeight: 20
       },
@@ -380,7 +389,7 @@ class MockRuntime {
           leftDegrees: 50.899,
           rightDegrees: 35.197
         },
-        offset: { x: 0.032, y: 0, z: 0 },
+        headFromEye: getGFXTransformFromPosition(0.032, 0, 0),
         renderWidth: 20,
         renderHeight: 20
       },
@@ -415,7 +424,7 @@ class MockRuntime {
         leftDegrees: toDegrees(leftTan),
         rightDegrees: toDegrees(rightTan)
       },
-      offset: { x: offset[0], y: offset[1], z: offset[2] },
+      headFromEye: getGFXTransformFromPosition(offset[0], offset[1], offset[2]),
       renderWidth: fakeXRViewInit.resolution.width,
       renderHeight: fakeXRViewInit.resolution.height
     };

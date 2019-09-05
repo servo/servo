@@ -59,6 +59,7 @@ promise_test(t => {
       .then(() => {
           assert_equals(resolvedCount, 0,
                         'methods called on a detached registration should not resolve');
+          frame.remove();
         })
   }, 'accessing a ServiceWorkerRegistration from a removed iframe');
 
@@ -102,6 +103,7 @@ promise_test(t => {
         assert_equals(
             get_navigator().serviceWorker,
             iframe.contentWindow.navigator.serviceWorker);
+        iframe.remove();
       });
   }, 'accessing navigator.serviceWorker on a detached iframe');
 

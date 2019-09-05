@@ -6,6 +6,7 @@
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
 
 <input autofocus>
 <input autofocus>
@@ -13,12 +14,11 @@
 <script>
 "use strict";
 
-const [input1, input2] = document.querySelectorAll("input");
+promise_test(async () => {
+  const [input1, input2] = document.querySelectorAll("input");
 
-step_timeout(() => {
+  await waitUntilStableAutofocusState();
   assert_equals(document.activeElement, input1);
   assert_not_equals(document.activeElement, input2);
-
-  done();
-}, 100);
+}, 'The first autofocus element in the document should win.');
 </script>

@@ -359,15 +359,15 @@ def test_tests_affected_null(capsys, manifest_dir):
     # the current working directory for references to the changed files, not the ones at
     # that specific commit. But we can at least test it returns something sensible.
     # The test will fail if the file we assert is renamed, so we choose a stable one.
-    commit = "9bf1daa3d8b4425f2354c3ca92c4cf0398d329dd"
+    commit = "2614e3316f1d3d1a744ed3af088d19516552a5de"
     with pytest.raises(SystemExit) as excinfo:
         wpt.main(argv=["tests-affected", "--null", "--metadata", manifest_dir, "%s~..%s" % (commit, commit)])
     assert excinfo.value.code == 0
     out, err = capsys.readouterr()
 
     tests = out.split("\0")
-    assert "dom/interfaces.html" in tests
-    assert "html/dom/interfaces.https.html" in tests
+    assert "dom/idlharness.any.js" in tests
+    assert "xhr/idlharness.any.js" in tests
 
 
 @pytest.mark.slow

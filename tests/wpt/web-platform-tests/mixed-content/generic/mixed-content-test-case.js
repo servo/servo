@@ -73,7 +73,7 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
     // We bridge this inconsistency here, and will later pass these information
     // directly from the generated tests and remove this conversion here.
     subresourceType = 'fetch-request';
-    sourceContextList = [{sourceContextType: 'classic-data-worker'}];
+    sourceContextList = [{sourceContextType: 'worker-classic-data'}];
   }
 
   const originTypeConversion = {

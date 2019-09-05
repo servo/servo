@@ -38,7 +38,7 @@
   });
 
   promise_test(() =>
-    requestViaImage(secureRedirectURL + encodeURIComponent("http://{{host}}:{{ports[http][0]}}/common/security-features/subresource/image.py"))
+    return requestViaImage(secureRedirectURL + encodeURIComponent("http://{{host}}:{{ports[http][0]}}/common/security-features/subresource/image.py"))
       .then(result => {
          headers = result.headers;
          got = {

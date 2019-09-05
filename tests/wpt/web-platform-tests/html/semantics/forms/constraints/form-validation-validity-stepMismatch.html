@@ -66,7 +66,8 @@
       types: ["number"],
       testData: [
         {conditions: {step: "", value: "1"}, expected: false, name: "[target] The step attribute is not set"},
-        {conditions: {step: 2 * 1 * 1, value: ""}, expected: false, name: "[target] The value attibute is empty string"},
+        {conditions: {step: "", value: "-.8"}, expected: true, name: "[target] The step attribute is not set and the value attribute is a floating number"},
+        {conditions: {step: 2 * 1 * 1, value: ""}, expected: false, name: "[target] The value attribute is empty string"},
         {conditions: {step: 2 * 1 * 1, value: "2"}, expected: false, name: "[target] The value must match the step"},
         {conditions: {step: 2 * 1 * 1, value: "3"}, expected: true, name: "[target] The value must mismatch the step"}
       ]

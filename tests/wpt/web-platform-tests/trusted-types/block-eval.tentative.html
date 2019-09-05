@@ -12,19 +12,19 @@
 <script nonce="abc">
   let p = createScript_policy(window, 1);
   test(t => {
+    let a = 0;
     assert_throws(new EvalError(), _ => {
-      eval('"hello there"') });
-  }, "eval with plain string throws.");
+      eval('a="hello there"')
+    });
+    assert_equals(a, 0);
+  }, "eval with plain string throws (both block).");
 
   test(t => {
-    let s = eval(p.createScript('"Hello transformed string"'));
-    assert_equals(s, "Hello a cat string");
-  }, "eval with TrustedScript works.");
-
-  TrustedTypes.createPolicy("default", { createScript: createScriptJS }, true);
-  test(t => {
-    let s = eval('"Hello transformed untrusted string"');
-    assert_equals(s, "Hello a cat untrusted string");
-  }, "eval obeys default policy.");
+    let a = 0;
+    assert_throws(new EvalError(), _ => {
+      eval(p.createScript('a="Hello transformed string"'));
+    });
+    assert_equals(a, 0);
+  }, "eval with TrustedScript throws (script-src blocks).");
 </script>
 

@@ -31,10 +31,10 @@
 
             var pointerdown_event = null;
             var pointercancel_event = null;
-            var received_pointerleave = false;
 
             function run() {
                 var target0 = document.getElementById("target0");
+                var actions_promise;
 
                 on_event(target0, "pointerdown", function (event) {
                     pointerdown_event = event;
@@ -68,16 +68,14 @@
                         assert_equals(event.pointerType, pointerdown_event.pointerType, "pointerType should be the same for pointerleave and pointercancel");
                         assert_equals(event.isPrimary, pointerdown_event.isPrimary, "isPrimary should be the same for pointerleave and pointercancel");
                     });
-                    received_pointerleave = true;
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        test_pointerEvent.done();
+                    });
                 });
 
-                // Inject touch inputs and wait for all the actions finish to end the test.
-                touchScrollInTarget(target0, 'down').then(function() {
-                    test_pointerEvent.step(function () {
-                        assert_true(received_pointerleave, "pointerleave should be received before the test finished");
-                    });
-                    test_pointerEvent.done();
-                });
+                // Inject touch inputs.
+                actions_promise = touchScrollInTarget(target0, 'down');
             }
         </script>
         <h1>Pointer Events pointercancel Tests</h1>
