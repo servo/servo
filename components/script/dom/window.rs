@@ -700,7 +700,7 @@ impl WindowMethods for Window {
                         let _ = window.send_to_embedder(EmbedderMsg::CloseBrowser);
                         // Step 4, discard browsing context.
                         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
-                        // which calls into https://html.spec.whatwg.org/#discard-a-document.
+                        // which calls into https://html.spec.whatwg.org/multipage/#discard-a-document.
 
                         // Note: run step 4 of discard-a-document, cancelling all tasks, now.
                         // Otherwise tasks will only be cancelled when the constellation
