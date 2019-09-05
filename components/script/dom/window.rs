@@ -63,7 +63,7 @@ use crate::script_runtime::{
 use crate::script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg};
 use crate::script_thread::{ScriptThread, SendableMainThreadScriptChan};
 use crate::task_manager::TaskManager;
-use crate::task_source::TaskSourceName;
+use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::{IsInterval, TimerCallback};
 use crate::webdriver_handlers::jsval_to_webdriver;
 use app_units::Au;
@@ -82,8 +82,8 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
 use js::jsapi::JSPROP_ENUMERATE;
 use js::jsapi::{GCReason, JS_GC};
-use js::jsval::JSVal;
 use js::jsval::UndefinedValue;
+use js::jsval::{JSVal, NullValue};
 use js::rust::wrappers::JS_DefineProperty;
 use js::rust::HandleValue;
 use media::WindowGLContext;
@@ -352,11 +352,12 @@ impl Window {
             *self.js_runtime.borrow_for_script_deallocation() = None;
             self.window_proxy.set(None);
             self.current_state.set(WindowState::Zombie);
-            self.ignore_all_events();
+            self.ignore_all_tasks();
         }
     }
 
-    fn ignore_all_events(&self) {
+    /// Cancel all current, and ignore all subsequently queued, tasks.
+    pub fn ignore_all_tasks(&self) {
         let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
         for task_source_name in TaskSourceName::all() {
             let flag = ignore_flags
@@ -626,7 +627,10 @@ impl WindowMethods for Window {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
     fn Opener(&self, cx: JSContext) -> JSVal {
-        unsafe { self.window_proxy().opener(*cx) }
+        match self.window_proxy.get() {
+            Some(proxy) => unsafe { proxy.opener(*cx) },
+            None => return NullValue(),
+        }
     }
 
     #[allow(unsafe_code)]
@@ -653,31 +657,72 @@ impl WindowMethods for Window {
     fn Closed(&self) -> bool {
         self.window_proxy
             .get()
-            .map(|ref proxy| proxy.is_browsing_context_discarded())
+            .map(|ref proxy| proxy.is_browsing_context_discarded() || proxy.is_closing())
             .unwrap_or(true)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-close
     fn Close(&self) {
-        let window_proxy = self.window_proxy();
+        // Step 1, Let current be this Window object's browsing context.
+        // Step 2, If current is null or its is closing is true, then return.
+        let window_proxy = match self.window_proxy.get() {
+            Some(proxy) => proxy,
+            None => return,
+        };
+        if window_proxy.is_closing() {
+            return;
+        }
         // Note: check the length of the "session history", as opposed to the joint session history?
         // see https://github.com/whatwg/html/issues/3734
         if let Ok(history_length) = self.History().GetLength() {
             let is_auxiliary = window_proxy.is_auxiliary();
+
             // https://html.spec.whatwg.org/multipage/#script-closable
             let is_script_closable = (self.is_top_level() && history_length == 1) || is_auxiliary;
+
+            // TODO: rest of Step 3:
+            // Is the incumbent settings object's responsible browsing context familiar with current?
+            // Is the incumbent settings object's responsible browsing context allowed to navigate current?
             if is_script_closable {
-                let doc = self.Document();
-                // https://html.spec.whatwg.org/multipage/#closing-browsing-contexts
-                // Step 1, prompt to unload.
-                if doc.prompt_to_unload(false) {
-                    // Step 2, unload.
-                    doc.unload(false);
-                    // Step 3, remove from the user interface
-                    let _ = self.send_to_embedder(EmbedderMsg::CloseBrowser);
-                    // Step 4, discard browsing context.
-                    let _ = self.send_to_constellation(ScriptMsg::DiscardTopLevelBrowsingContext);
-                }
+                // Step 3.1, set current's is closing to true.
+                window_proxy.close();
+
+                // Step 3.2, queue a task on the DOM manipulation task source to close current.
+                let this = Trusted::new(self);
+                let task = task!(window_close_browsing_context: move || {
+                    let window = this.root();
+                    let document = window.Document();
+                    // https://html.spec.whatwg.org/multipage/#closing-browsing-contexts
+                    // Step 1, prompt to unload.
+                    if document.prompt_to_unload(false) {
+                        // Step 2, unload.
+                        document.unload(false);
+                        // Step 3, remove from the user interface
+                        let _ = window.send_to_embedder(EmbedderMsg::CloseBrowser);
+                        // Step 4, discard browsing context.
+                        // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
+                        // which calls into https://html.spec.whatwg.org/multipage/#discard-a-document.
+
+                        // Note: run step 4 of discard-a-document, cancelling all tasks, now.
+                        // Otherwise tasks will only be cancelled when the constellation
+                        // `PipelineExit` msg is handled by the script-thread, and we dont' want
+                        // tasks executing in between now and then.
+                        //
+                        // Per the spec, all steps related to discarding the BC,
+                        // which means discarding all docs in the session history,
+                        // should happen now.
+                        //
+                        // For now we just start ignoring all tasks, and run the rest
+                        // when the script-thread handles the `PipelineExit` message.
+                        window.ignore_all_tasks();
+
+                        let _ = window.send_to_constellation(ScriptMsg::DiscardTopLevelBrowsingContext);
+                    }
+                });
+                self.task_manager()
+                    .dom_manipulation_task_source()
+                    .queue(task, &self.upcast::<GlobalScope>())
+                    .expect("Queuing window_close_browsing_context task to work");
             }
         }
     }
@@ -1302,7 +1347,7 @@ impl Window {
         if let Some(performance) = self.performance.get() {
             performance.clear_and_disable_performance_entry_buffer();
         }
-        self.ignore_all_events();
+        self.ignore_all_tasks();
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scroll>

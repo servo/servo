@@ -936,6 +936,10 @@ impl Document {
         point_in_node: Option<Point2D<f32>>,
         pressed_mouse_buttons: u16,
     ) {
+        if self.window.Closed() {
+            // If the BC is being discared, we don't want to run any JS.
+            return;
+        }
         let mouse_event_type_string = match mouse_event_type {
             MouseEventType::Click => "click".to_owned(),
             MouseEventType::MouseUp => "mouseup".to_owned(),
@@ -1127,6 +1131,10 @@ impl Document {
         node_address: Option<UntrustedNodeAddress>,
         pressed_mouse_buttons: u16,
     ) {
+        if self.window.Closed() {
+            // If the BC is being discared, we don't want to run any JS.
+            return;
+        }
         let client_point = match client_point {
             None => {
                 // If there's no point, there's no target under the mouse
@@ -1238,6 +1246,10 @@ impl Document {
         client_point: Point2D<f32>,
         node_address: Option<UntrustedNodeAddress>,
     ) {
+        if self.window.Closed() {
+            // If the BC is being discared, we don't want to run any JS.
+            return;
+        }
         let wheel_event_type_string = "wheel".to_owned();
         debug!("{}: at {:?}", wheel_event_type_string, client_point);
 
@@ -1286,6 +1298,11 @@ impl Document {
         point: Point2D<f32>,
         node_address: Option<UntrustedNodeAddress>,
     ) -> TouchEventResult {
+        if self.window.Closed() {
+            // If the BC is being discared, we don't want to run any JS.
+            return TouchEventResult::Forwarded;
+        }
+
         let TouchId(identifier) = touch_id;
 
         let event_name = match event_type {

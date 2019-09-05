@@ -668,15 +668,17 @@ impl VirtualMethods for HTMLIFrameElement {
         // so we need to discard the browsing contexts now, rather than
         // when the `PipelineExit` message arrives.
         for exited_pipeline_id in exited_pipeline_ids {
+            // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
             if let Some(exited_document) = ScriptThread::find_document(exited_pipeline_id) {
                 debug!(
                     "Discarding browsing context for pipeline {}",
                     exited_pipeline_id
                 );
-                exited_document
-                    .window()
-                    .window_proxy()
-                    .discard_browsing_context();
+                // We also need to start ignoring tasks now,
+                // rather than when the `PipelineExit` message arrives.
+                let exited_window = exited_document.window();
+                exited_window.ignore_all_tasks();
+                exited_window.window_proxy().discard_browsing_context();
                 for exited_iframe in exited_document.iter_iframes() {
                     debug!("Discarding nested browsing context");
                     exited_iframe.destroy_nested_browsing_context();
