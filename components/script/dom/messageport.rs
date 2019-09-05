@@ -147,7 +147,7 @@ impl MessagePort {
         };
 
         // Have the global proxy this call to the corresponding MessagePortImpl.
-        incumbent.post_messageport_msg(self.message_port_id().clone(), task);
+        self.global().post_messageport_msg(self.message_port_id().clone(), task);
         Ok(())
     }
 }
