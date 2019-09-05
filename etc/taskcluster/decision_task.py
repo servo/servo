@@ -55,7 +55,7 @@ def main(task_for):
 
             "try-mac": [macos_unit],
             "try-linux": [linux_tidy_unit_docs, linux_release],
-            "try-windows": [windows_unit, windows_arm64, windows_uwp_x64],
+            "try-windows": [windows_unit, windows_arm64, windows_uwp_x64, uwp_nightly],
             "try-magicleap": [magicleap_dev],
             "try-arm": [windows_arm64],
             "try-wpt": [linux_wpt],
@@ -92,6 +92,7 @@ def main(task_for):
         macos_nightly()
         update_wpt()
         magicleap_nightly()
+        uwp_nightly()
 
 
 # These are disabled in a "real" decision task,
@@ -409,10 +410,11 @@ def uwp_nightly():
             "mach build --release --uwp",
             "python mach build --release --uwp --win-arm64",
             "mach package --release --uwp=x64 --uwp=arm64",
-            "#mach upload-nightly uwp --secret-from-taskcluster",
+            "mach upload-nightly uwp --secret-from-taskcluster",
         )
         .with_artifacts('repo/support/hololens/AppPackages/ServoApp/ServoApp_1.0.0.0_Test/ServoApp_1.0.0.0_x64_arm64.appxbundle')
         .find_or_create("build.windows_uwp_nightlies." + CONFIG.task_id())
+        .with_max_run_time_minutes(3 * 60)
     )
 
     
