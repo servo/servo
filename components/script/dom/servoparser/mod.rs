@@ -62,6 +62,7 @@ use tendril::stream::LossyDecoder;
 
 mod async_html;
 mod html;
+mod prefetch;
 mod xml;
 
 #[dom_struct]
@@ -101,6 +102,10 @@ pub struct ServoParser {
     aborted: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#script-created-parser>
     script_created_parser: bool,
+    /// We do a quick-and-dirty parse of the input looking for resources to prefetch
+    prefetch_tokenizer: DomRefCell<prefetch::Tokenizer>,
+    #[ignore_malloc_size_of = "Defined in html5ever"]
+    prefetch_input: DomRefCell<BufferQueue>,
 }
 
 #[derive(PartialEq)]
@@ -391,6 +396,8 @@ impl ServoParser {
         last_chunk_state: LastChunkState,
         kind: ParserKind,
     ) -> Self {
+        let base = document.url();
+        let resource_threads = document.loader().resource_threads().clone();
         ServoParser {
             reflector: Reflector::new(),
             document: Dom::from_ref(document),
@@ -403,6 +410,8 @@ impl ServoParser {
             script_nesting_level: Default::default(),
             aborted: Default::default(),
             script_created_parser: kind == ParserKind::ScriptCreated,
+            prefetch_tokenizer: DomRefCell::new(prefetch::Tokenizer::new(base, resource_threads)),
+            prefetch_input: DomRefCell::new(BufferQueue::new()),
         }
     }
 
@@ -432,13 +441,27 @@ impl ServoParser {
             .as_mut()
             .unwrap()
             .decode(chunk);
+        // It's now cheap to clone the chunk, since it has been
+        // decoded from a Vec<u8> to a StrTendril.
         if !chunk.is_empty() {
+            // Push the chunk into the prefetch input stream,
+            // which is tokenized eagerly, to scan for resources
+            // to prefetch. If the user script uses `document.write()`
+            // to overwrite the network input, this prefetching may
+            // have been wasted, but in most cases it won't.
+            let mut prefetch_input = self.prefetch_input.borrow_mut();
+            prefetch_input.push_back(chunk.clone());
+            self.prefetch_tokenizer
+                .borrow_mut()
+                .feed(&mut *prefetch_input);
+            // Push the chunk into the network input stream,
+            // which is tokenized lazily.
             self.network_input.borrow_mut().push_back(chunk);
         }
     }
 
     fn push_string_input_chunk(&self, chunk: String) {
-        self.network_input.borrow_mut().push_back(chunk.into());
+        self.push_bytes_input_chunk(chunk.into());
     }
 
     fn parse_sync(&self) {
