@@ -96,6 +96,9 @@ pub struct WindowProxy {
     /// Has the browsing context been disowned?
     disowned: Cell<bool>,
 
+    /// https://html.spec.whatwg.org/multipage/#is-closing
+    is_closing: Cell<bool>,
+
     /// The containing iframe element, if this is a same-origin iframe
     frame_element: Option<Dom<Element>>,
 
@@ -126,6 +129,7 @@ impl WindowProxy {
             currently_active: Cell::new(currently_active),
             discarded: Cell::new(false),
             disowned: Cell::new(false),
+            is_closing: Cell::new(false),
             frame_element: frame_element.map(Dom::from_ref),
             parent: parent.map(Dom::from_ref),
             delaying_load_events_mode: Cell::new(false),
@@ -352,9 +356,20 @@ impl WindowProxy {
         self.disowned.set(true);
     }
 
+    /// https://html.spec.whatwg.org/multipage/#dom-window-close
+    /// Step 3.1, set BCs `is_closing` to true.
+    pub fn close(&self) {
+        self.is_closing.set(true);
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#is-closing
+    pub fn is_closing(&self) -> bool {
+        self.is_closing.get()
+    }
+
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    pub unsafe fn opener(&self, cx: *mut JSContext) -> JSVal {
+    pub fn opener(&self, cx: *mut JSContext) -> JSVal {
         if self.disowned.get() {
             return NullValue();
         }
@@ -371,7 +386,7 @@ impl WindowProxy {
                     opener_id,
                 ) {
                     Some(opener_top_id) => {
-                        let global_to_clone_from = GlobalScope::from_context(cx);
+                        let global_to_clone_from = unsafe { GlobalScope::from_context(cx) };
                         WindowProxy::new_dissimilar_origin(
                             &*global_to_clone_from,
                             opener_id,
@@ -388,7 +403,7 @@ impl WindowProxy {
             return NullValue();
         }
         rooted!(in(cx) let mut val = UndefinedValue());
-        opener_proxy.to_jsval(cx, val.handle_mut());
+        unsafe { opener_proxy.to_jsval(cx, val.handle_mut()) };
         return val.get();
     }
 
