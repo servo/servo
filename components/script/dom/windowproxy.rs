@@ -365,7 +365,10 @@ impl WindowProxy {
         let opener_proxy = match ScriptThread::find_window_proxy(opener_id) {
             Some(window_proxy) => window_proxy,
             None => {
-                let sender_pipeline_id = self.currently_active().unwrap();
+                let sender_pipeline_id = match self.currently_active() {
+                    Some(pipeline_id) => pipeline_id,
+                    None => return NullValue(),
+                };
                 match ScriptThread::get_top_level_for_browsing_context(
                     sender_pipeline_id,
                     opener_id,
