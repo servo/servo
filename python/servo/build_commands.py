@@ -249,15 +249,8 @@ class MachCommands(CommandBase):
             env["CXXFLAGS"] += "-mmacosx-version-min=10.10"
 
         if 'windows' in host:
-            vsinstalldir = os.environ.get('VSINSTALLDIR')
-            vcinstalldir = None
-            vs_version = os.environ.get('VisualStudioVersion')
-            if vsinstalldir and vs_version:
-                msbuild_version = get_msbuild_version(vs_version)
-            else:
-                (vsinstalldir, vs_version, msbuild_version) = find_highest_msvc_version()
-            msbuildinstalldir = os.path.join(vsinstalldir, "MSBuild",
-                                             msbuild_version, "Bin")
+            vs_dirs = self.vs_dirs()
+            msbuildinstalldir = vs_dirs['msbuild']
 
         if host != target_triple and 'windows' in target_triple:
             if os.environ.get('VisualStudioVersion'):
@@ -265,9 +258,9 @@ class MachCommands(CommandBase):
                       "Please run `python mach build [arguments]` to bypass automatic "
                       "Visual Studio shell.")
                 sys.exit(1)
-            vcinstalldir = os.environ.get("VCINSTALLDIR", "") or os.path.join(vsinstalldir, "VC")
+            vcinstalldir = vs_dirs['vcdir']
             if not os.path.exists(vcinstalldir):
-                print("Can't find Visual C++ %s installation at %s." % (vs_version, vcinstalldir))
+                print("Can't find Visual C++ %s installation at %s." % (vs_dirs['vs_version'], vcinstalldir))
                 sys.exit(1)
 
             env['PKG_CONFIG_ALLOW_CROSS'] = "1"
@@ -695,12 +688,8 @@ class MachCommands(CommandBase):
 
                 # UWP app packaging already bundles all required DLLs for us.
                 print("Packaging MSVC DLLs")
-                if not package_msvc_dlls(servo_exe_dir, target_triple, vcinstalldir, vs_version):
+                if not package_msvc_dlls(servo_exe_dir, target_triple, vs_dirs['vcdir'], vs_dirs['vs_version']):
                     status = 1
-
-                # UWP build hololens
-                if uwp and status == 0:
-                    build_uwp_hololens(target_triple, dev, msbuildinstalldir)
 
             elif sys.platform == "darwin":
                 # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
@@ -907,31 +896,6 @@ def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
     return not missing
 
 
-def build_uwp_hololens(target, dev, msbuild_dir):
-    # determine Visual studio Build Configuration (Debug/Release) and
-    # Build Platform (x64 vs arm64)
-    vs_platforms = {
-        "x86_64": "x64",
-        "i686": "x86",
-        "aarch64": "arm64",
-    }
-    target_arch = target.split('-')[0]
-    vs_platform = vs_platforms[target_arch]
-
-    if dev:
-        Configuration = "Debug"
-    else:
-        Configuration = "Release"
-
-    # execute msbuild
-    # Note: /m implies to use as many CPU cores as possible while building.
-    # msbuild /m /p:project=ServoApp .\support\hololens\servoapp.sln /p:SolutionDir=.\support\hololens
-    # /p:Configuration="Debug" /p:Platform="x64" /property:AppxBundle=Always;AppxBundlePlatforms="x64"
-    check_call([msbuild_dir + "\msbuild.exe", "/m", "/p:project=ServoApp", ".\support\hololens\ServoApp.sln",
-                "/p:SolutionDir=.\support\hololens",
-                "/p:Configuration=" + Configuration,
-                "/p:Platform=" + vs_platform,
-                "/p:AppxBundle=Always;AppxBundlePlatforms=" + vs_platform])
 
 
 def package_msvc_dlls(servo_exe_dir, target, vcinstalldir, vs_version):
@@ -1004,32 +968,3 @@ def package_msvc_dlls(servo_exe_dir, target, vcinstalldir, vs_version):
     return not missing
 
 
-def get_msbuild_version(vs_version):
-    if vs_version in ("15.0", "14.0"):
-        msbuild_version = vs_version
-    else:
-        msbuild_version = "Current"
-    return msbuild_version
-
-
-def find_highest_msvc_version():
-    editions = ["Enterprise", "Professional", "Community", "BuildTools"]
-    prog_files = os.environ.get("ProgramFiles(x86)")
-    base_vs_path = os.path.join(prog_files, "Microsoft Visual Studio")
-
-    vs_versions = ["2019", "2017"]
-    versions = {
-        ("2019", "vs"): "16.0",
-        ("2017", "vs"): "15.0",
-    }
-
-    for version in vs_versions:
-        for edition in editions:
-            vs_version = versions[version, "vs"]
-            msbuild_version = get_msbuild_version(vs_version)
-
-            vsinstalldir = os.path.join(base_vs_path, version, edition)
-            if os.path.exists(vsinstalldir):
-                return (vsinstalldir, vs_version, msbuild_version)
-    print("Can't find MSBuild.exe installation under %s." % base_vs_path)
-    sys.exit(1)

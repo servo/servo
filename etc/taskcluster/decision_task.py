@@ -377,7 +377,11 @@ def windows_arm64():
     return (
         windows_build_task("UWP dev build", arch="arm64", package=False)
         .with_treeherder("Windows arm64")
-        .with_script("python mach build --dev --uwp --win-arm64")
+        .with_script(
+            "python mach build --dev --uwp --win-arm64",
+            "python mach package --dev --target aarch64-pc-windows-msvc --uwp=arm64",
+        )
+        .with_artifacts('repo/support/hololens/AppPackages/ServoApp/ServoApp_1.0.0.0_Debug_Test/ServoApp_1.0.0.0_arm64_Debug.appxbundle')
         .find_or_create("build.windows_uwp_arm64_dev." + CONFIG.task_id())
     )
 
@@ -386,11 +390,32 @@ def windows_uwp_x64():
     return (
         windows_build_task("UWP dev build", package=False)
         .with_treeherder("Windows x64")
-        .with_script("mach build --dev --uwp")
+        .with_script(
+            "mach build --dev --uwp",
+            "mach package --dev --uwp=x64",
+        )
+        .with_artifacts('repo/support/hololens/AppPackages/ServoApp/ServoApp_1.0.0.0_Debug_Test/ServoApp_1.0.0.0_x64_Debug.appxbundle')
         .find_or_create("build.windows_uwp_x64_dev." + CONFIG.task_id())
     )
 
 
+def uwp_nightly():
+    return (
+        windows_build_task("Nightly UWP build and upload", package=False)
+        .with_treeherder("Windows x64", "UWP Nightly")
+        #.with_features("taskclusterProxy")
+        #.with_scopes("secrets:get:project/servo/s3-upload-credentials")
+        .with_script(
+            "mach build --release --uwp",
+            "python mach build --release --uwp --win-arm64",
+            "mach package --release --uwp=x64 --uwp=arm64",
+            "#mach upload-nightly uwp --secret-from-taskcluster",
+        )
+        .with_artifacts('repo/support/hololens/AppPackages/ServoApp/ServoApp_1.0.0.0_Test/ServoApp_1.0.0.0_x64_arm64.appxbundle')
+        .find_or_create("build.windows_uwp_nightlies." + CONFIG.task_id())
+    )
+
+    
 def windows_unit():
     return (
         windows_build_task("Dev build + unit tests")
