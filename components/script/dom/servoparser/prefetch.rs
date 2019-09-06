@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::document::Document;
 use crate::dom::htmlimageelement::image_fetch_request;
 use crate::dom::htmlscriptelement::script_fetch_request;
@@ -15,6 +16,7 @@ use html5ever::tokenizer::TokenSinkResult;
 use html5ever::tokenizer::Tokenizer as HtmlTokenizer;
 use html5ever::Attribute;
 use html5ever::LocalName;
+use js::jsapi::JSTracer;
 use msg::constellation_msg::PipelineId;
 use net_traits::request::CorsSettings;
 use net_traits::request::Referrer;
@@ -26,14 +28,19 @@ use net_traits::ResourceThreads;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 
-#[derive(MallocSizeOf)]
+#[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 pub struct Tokenizer {
     #[ignore_malloc_size_of = "Defined in html5ever"]
     inner: HtmlTokenizer<PrefetchSink>,
 }
 
-unsafe_no_jsmanaged_fields!(Tokenizer);
+#[allow(unsafe_code)]
+unsafe impl JSTraceable for HtmlTokenizer<PrefetchSink> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        self.sink.trace(trc)
+    }
+}
 
 impl Tokenizer {
     pub fn new(document: &Document) -> Self {
@@ -55,6 +62,7 @@ impl Tokenizer {
     }
 }
 
+#[derive(JSTraceable)]
 struct PrefetchSink {
     origin: ImmutableOrigin,
     pipeline_id: PipelineId,
