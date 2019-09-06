@@ -830,7 +830,7 @@ unsafe fn global_scope_from_global(
         ((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)),
         0
     );
-    root_from_object(global, cx).unwrap()
+    root_from_object(global, cx).expect("root_from_object call inside global_scope_from_global to be successful")
 }
 
 /// Returns the Rust global scope from a JS global object.
