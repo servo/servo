@@ -1951,7 +1951,15 @@ impl ScriptThread {
 
         let window = self.documents.borrow().find_window(pipeline_id);
         let window = match window {
-            Some(w) => w,
+            Some(w) => {
+                if w.Closed() {
+                    return warn!(
+                        "Received fire timer msg for a discarded browsing context whose pipeline is pending exit {}.",
+                        pipeline_id
+                    );
+                }
+                w
+            },
             None => {
                 return warn!(
                     "Received fire timer msg for a closed pipeline {}.",
