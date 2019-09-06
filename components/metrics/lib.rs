@@ -7,7 +7,7 @@ extern crate log;
 #[macro_use]
 extern crate malloc_size_of_derive;
 
-use gfx_traits::{DisplayList, Epoch};
+use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use profile_traits::time::TimerMetadata;
@@ -306,7 +306,7 @@ impl PaintTimeMetrics {
         &self,
         profiler_metadata_factory: &T,
         epoch: Epoch,
-        display_list: &dyn DisplayList,
+        display_list_is_contentful: bool,
     ) where
         T: ProfilerMetadataFactory,
     {
@@ -319,7 +319,7 @@ impl PaintTimeMetrics {
             epoch,
             (
                 profiler_metadata_factory.new_metadata(),
-                display_list.is_contentful(),
+                display_list_is_contentful,
             ),
         );
 

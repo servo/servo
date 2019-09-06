@@ -24,8 +24,17 @@ struct ClipScrollState {
     active_spatial_id: SpatialId,
 }
 
+/// Contentful paint, for the purpose of
+/// https://w3c.github.io/paint-timing/#first-contentful-paint
+/// (i.e. the display list contains items of type text,
+/// image, non-white canvas or SVG). Used by metrics.
+pub struct IsContentful(pub bool);
+
 impl DisplayList {
-    pub fn convert_to_webrender(&mut self, pipeline_id: PipelineId) -> DisplayListBuilder {
+    pub fn convert_to_webrender(
+        &mut self,
+        pipeline_id: PipelineId,
+    ) -> (DisplayListBuilder, IsContentful) {
         let mut clip_ids = vec![None; self.clip_scroll_nodes.len()];
         let mut spatial_ids = vec![None; self.clip_scroll_nodes.len()];
 
@@ -54,11 +63,14 @@ impl DisplayList {
             1024 * 1024, // 1 MB of space
         );
 
+        let mut is_contentful = IsContentful(false);
         for item in &mut self.list {
-            item.convert_to_webrender(&self.clip_scroll_nodes, &mut state, &mut builder);
+            is_contentful.0 |= item
+                .convert_to_webrender(&self.clip_scroll_nodes, &mut state, &mut builder)
+                .0;
         }
 
-        builder
+        (builder, is_contentful)
     }
 }
 
@@ -68,7 +80,7 @@ impl DisplayItem {
         clip_scroll_nodes: &[ClipScrollNode],
         state: &mut ClipScrollState,
         builder: &mut DisplayListBuilder,
-    ) {
+    ) -> IsContentful {
         // Note: for each time of a display item, if we register one of `clip_ids` or `spatial_ids`,
         // we also register the other one as inherited from the current state or the stack.
         // This is not an ideal behavior, but it is compatible with the old WebRender model
@@ -96,15 +108,18 @@ impl DisplayItem {
             DisplayItem::Rectangle(ref mut item) => {
                 item.item.common = build_common_item_properties(&item.base, state);
                 builder.push_item(&WrDisplayItem::Rectangle(item.item));
+                IsContentful(false)
             },
             DisplayItem::Text(ref mut item) => {
                 item.item.common = build_common_item_properties(&item.base, state);
                 builder.push_item(&WrDisplayItem::Text(item.item));
                 builder.push_iter(item.data.iter());
+                IsContentful(true)
             },
             DisplayItem::Image(ref mut item) => {
                 item.item.common = build_common_item_properties(&item.base, state);
                 builder.push_item(&WrDisplayItem::Image(item.item));
+                IsContentful(true)
             },
             DisplayItem::Border(ref mut item) => {
                 item.item.common = build_common_item_properties(&item.base, state);
@@ -112,24 +127,29 @@ impl DisplayItem {
                     builder.push_stops(item.data.as_ref());
                 }
                 builder.push_item(&WrDisplayItem::Border(item.item));
+                IsContentful(false)
             },
             DisplayItem::Gradient(ref mut item) => {
                 item.item.common = build_common_item_properties(&item.base, state);
                 builder.push_stops(item.data.as_ref());
                 builder.push_item(&WrDisplayItem::Gradient(item.item));
+                IsContentful(false)
             },
             DisplayItem::RadialGradient(ref mut item) => {
                 item.item.common = build_common_item_properties(&item.base, state);
                 builder.push_stops(item.data.as_ref());
                 builder.push_item(&WrDisplayItem::RadialGradient(item.item));
+                IsContentful(false)
             },
             DisplayItem::Line(ref mut item) => {
                 item.item.common = build_common_item_properties(&item.base, state);
                 builder.push_item(&WrDisplayItem::Line(item.item));
+                IsContentful(false)
             },
             DisplayItem::BoxShadow(ref mut item) => {
                 item.item.common = build_common_item_properties(&item.base, state);
                 builder.push_item(&WrDisplayItem::BoxShadow(item.item));
+                IsContentful(false)
             },
             DisplayItem::PushTextShadow(ref mut item) => {
                 let common = build_common_item_properties(&item.base, state);
@@ -141,9 +161,11 @@ impl DisplayItem {
                     item.shadow,
                     true,
                 );
+                IsContentful(false)
             },
             DisplayItem::PopAllTextShadows(_) => {
                 builder.push_item(&WrDisplayItem::PopAllShadows);
+                IsContentful(false)
             },
             DisplayItem::Iframe(ref mut item) => {
                 let common = build_common_item_properties(&item.base, state);
@@ -157,6 +179,7 @@ impl DisplayItem {
                     item.iframe.to_webrender(),
                     true,
                 );
+                IsContentful(false)
             },
             DisplayItem::PushStackingContext(ref mut item) => {
                 let stacking_context = &item.stacking_context;
@@ -222,8 +245,12 @@ impl DisplayItem {
                 };
 
                 builder.push_item(&WrDisplayItem::PushStackingContext(wr_item));
+                IsContentful(false)
             },
-            DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),
+            DisplayItem::PopStackingContext(_) => {
+                builder.pop_stacking_context();
+                IsContentful(false)
+            },
             DisplayItem::DefineClipScrollNode(ref mut item) => {
                 let node = &clip_scroll_nodes[item.node_index.to_index()];
                 let item_rect = node.clip.main;
@@ -285,6 +312,7 @@ impl DisplayItem {
                         unreachable!("Found DefineClipScrollNode for Placeholder type node.");
                     },
                 };
+                IsContentful(false)
             },
         }
     }

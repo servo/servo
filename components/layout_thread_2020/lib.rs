@@ -1342,7 +1342,7 @@ impl LayoutThread {
         debug!("Layout done!");
 
         // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
-        let builder = display_list.convert_to_webrender(self.id);
+        let (builder, is_contentful) = display_list.convert_to_webrender(self.id);
 
         let viewport_size = Size2D::new(
             self.viewport_size.width.to_f32_px(),
@@ -1359,7 +1359,7 @@ impl LayoutThread {
         // sending the display list to WebRender in order to set time related
         // Progressive Web Metrics.
         self.paint_time_metrics
-            .maybe_observe_paint_time(self, epoch, &display_list);
+            .maybe_observe_paint_time(self, epoch, is_contentful.0);
 
         let mut txn = webrender_api::Transaction::new();
         txn.set_display_list(
