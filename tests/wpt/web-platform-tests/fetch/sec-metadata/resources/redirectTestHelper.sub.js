@@ -78,7 +78,7 @@ function RunCommonRedirectTests(testNamePrefix, urlHelperMethod, expectedResults
       e.onload = e => {
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
-          .then(text => assert_header_equals(text, expectedResults))
+          .then(t.step_func(text => assert_header_equals(text, expectedResults)))
           .then(_ => resolve())
           .catch(e => reject(e));
         };
@@ -102,7 +102,7 @@ function RunCommonRedirectTests(testNamePrefix, urlHelperMethod, expectedResults
       e.onload = e => {
       fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
         .then(response => response.text())
-        .then(text => assert_header_equals(text, expectedResults))
+        .then(t.step_func(text => assert_header_equals(text, expectedResults)))
         .then(_ => resolve())
         .catch(e => reject(e));
       };
@@ -154,7 +154,7 @@ function RunCommonRedirectTests(testNamePrefix, urlHelperMethod, expectedResults
       e.onload = e => {
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
-          .then(text => assert_header_equals(text, expectedResults))
+          .then(t.step_func(text => assert_header_equals(text, expectedResults)))
           .then(_ => resolve())
           .catch(e => reject(e));
       };
@@ -171,7 +171,7 @@ function RunCommonRedirectTests(testNamePrefix, urlHelperMethod, expectedResults
       el.onload = t.step_func(_ => {
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
-          .then(text => assert_header_equals(text, expectedResults))
+          .then(t.step_func(text => assert_header_equals(text, expectedResults)))
           .then(_ => resolve());
       });
       video.appendChild(el);

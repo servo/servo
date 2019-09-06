@@ -1,0 +1,192 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointer Events coalesced events count and properties<</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="../pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="../pointerevent_support.js"></script>
+        <script>
+            var eventList = All_Pointer_Events;
+            PhaseEnum = {
+              WaitingForCancel:   0,
+              WaitingForOver:     1,
+              WaitingForEnter:    2,
+              WaitingForDown:     3,
+              WaitingForMove:     4,
+              WaitingForUp:       5,
+              WaitingForOut:      6,
+              WaitingForLeave:    7,
+              Done:               8,
+            };
+            var phase = PhaseEnum.WaitingForCancel;
+
+            function resetTestState() {
+                phase = PhaseEnum.WaitingForCancel;
+            }
+            function expect_no_coalesced_events(event, eventName) {
+                test(function () {
+                    assert_equals(event.getCoalescedEvents().length, 0, eventName + ' should not have any coalesced events');
+                }, expectedPointerType + ' ' + eventName + ' should not have any coalesced events');
+            }
+            function getInViewPoint(element) {
+                var rectangles = element.getClientRects();
+                if (rectangles.length === 0) {
+                  return false;
+                }
+
+                var rect = rectangles[0];
+                var left = Math.max(0, rect.left);
+                var right = Math.min(window.innerWidth, rect.right);
+                var top = Math.max(0, rect.top);
+                var bottom = Math.min(window.innerHeight, rect.bottom);
+
+                var x = parseInt(0.5 * (left + right));
+                var y = parseInt(0.5 * (top + bottom));
+
+                return [x, y];
+            }
+            function run() {
+                var test_pointerEvent = setup_pointerevent_test("coalesced events attributes in pointerevents", ['touch']);
+                var target0 = document.getElementById("target0");
+                var target1 = document.getElementById("target1");
+                var actions_promise;
+
+                on_event(target0, 'pointercancel', function (event) {
+                    if (phase == PhaseEnum.WaitingForCancel) {
+                        expect_no_coalesced_events(event, 'pointercancel');
+                        phase++;
+                    }
+                });
+                eventList.forEach(function(eventName) {
+                    on_event(target1, eventName, function (event) {
+                        switch (phase) {
+                          case PhaseEnum.WaitingForOver:
+                            if (eventName == 'pointerover') {
+                              expect_no_coalesced_events(event, eventName);
+                              phase++;
+                            }
+                            break;
+                          case PhaseEnum.WaitingForEnter:
+                            if (eventName == 'pointerenter') {
+                              expect_no_coalesced_events(event, eventName);
+                              phase++;
+                            }
+                            break;
+                          case PhaseEnum.WaitingForDown:
+                            if (eventName == 'pointerdown') {
+                              expect_no_coalesced_events(event, eventName);
+                              phase++;
+                              step_timeout(function(){
+                                // This is just a way to block the main thread.
+                                var current = new Date().getTime();
+                                for (; new Date().getTime() - current < 500;);
+                              }, 0);
+                            }
+                            break;
+                          case PhaseEnum.WaitingForMove:
+                            if (eventName == 'pointermove') {
+                              var coalescedEvents = event.getCoalescedEvents();
+                              test (function() {
+                                assert_greater_than(event.getCoalescedEvents().length, 1, 'pointermove should have at least 2 coalesced events.');
+                              }, expectedPointerType + ' pointermove should have >2 coalesced events as main thread is busy.');
+                              test (function() {
+                                for (var i=0; i<coalescedEvents.length; i++) {
+                                  assert_equals(coalescedEvents[i].isTrusted, true, 'isTrusted flag should be true for coalesced events.');
+                                  if (i > 0)
+                                    assert_greater_than_equal(coalescedEvents[i].timeStamp, coalescedEvents[i-1].timeStamp, 'Time stamps of coalesced events must be ascending.');
+                                }
+                              }, expectedPointerType + ' pointermove coalesced events should all be marked as trusted.');
+                              test (function() {
+                                for (var i=1; i<coalescedEvents.length; i++)
+                                  assert_greater_than_equal(coalescedEvents[i].timeStamp, coalescedEvents[i-1].timeStamp, 'Time stamps of coalesced events must be ascending.');
+                              }, expectedPointerType + ' time stamps of coalesced events must be ascending.');
+                              test (function() {
+                                for (var i=0; i<coalescedEvents.length; i++) {
+                                  assert_equals(coalescedEvents[i].bubbles, false, 'Bubbles attribute should be false for coalesced events.');
+                                  assert_equals(coalescedEvents[i].cancelable, false, 'Cancelable attribute should be false for coalesced events.');
+                                }
+                              }, expectedPointerType + ' pointermove coalesced events should all bubbles and cancelable as false.');
+                              phase++;
+                            }
+                            break;
+                          case PhaseEnum.WaitingForUp:
+                            if (eventName == 'pointerup') {
+                              expect_no_coalesced_events(event, eventName);
+                              phase++;
+                            }
+                            break;
+                          case PhaseEnum.WaitingForOut:
+                            if (eventName == 'pointerout') {
+                              expect_no_coalesced_events(event, eventName);
+                              phase++;
+                            }
+                            break;
+                          case PhaseEnum.WaitingForLeave:
+                            if (eventName == 'pointerleave') {
+                              expect_no_coalesced_events(event, eventName);
+                              phase++;
+                              actions_promise.then( () => {
+                                test_pointerEvent.done();
+                              });
+                            }
+                            break;
+                        }
+                    });
+                });
+
+                // Inject touch inputs.
+                var elementPoint1 = getInViewPoint(target0);
+                var x1 = elementPoint1[0];
+                var y1 = elementPoint1[1];
+                var elementPoint2 = getInViewPoint(target1);
+                var x2 = elementPoint2[0];
+                var y2 = elementPoint2[1];
+                actions_promise = new test_driver.Actions(0)
+                   .addPointer("touchPointer1", "touch")
+                   .pointerMove(x1, y1)
+                   .pointerDown()
+                   .pointerMove(x1 + 10, y1)
+                   .pointerMove(x1 + 20, y1)
+                   .pointerMove(x1 + 30, y1)
+                   .addTick(20)
+                   .pointerUp()
+                   .pointerMove(x2, y2)
+                   .pointerDown()
+                   .pointerMove(x2 + 10, y2)
+                   .pointerMove(x2 + 20, y2)
+                   .pointerMove(x2 + 30, y2)
+                   .addTick(20)
+                   .pointerUp()
+                   .send();
+             }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Events coalesced events count and properties</h1>
+        <h2 id="pointerTypeDescription"></h2>
+        <h4>
+            Test Description: This test checks the coalesced events of all types of pointer events.
+            <ol>
+                 <li>Pointer down in the black square and drag inside the black square immediately</li>
+                 <li>Release the pointer.</li>
+                 <li>Pointer down in the purple square and drag inside the purple square immediately</li>
+                 <li>Release the pointer and move out of the purple square</li>
+            </ol>
+
+            Test passes if the proper behavior of the events is observed.
+        </h4>
+        <div id="target0"></div>
+        <div id="target1" class="touchActionNone"></div>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>Refresh the page to run the tests again with a different pointer type.</p>
+        </div>
+    </body>
+</html>
+

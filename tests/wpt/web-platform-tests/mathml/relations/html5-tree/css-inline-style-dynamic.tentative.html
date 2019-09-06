@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="utf-8" />
+    <title>MathML 'ElementCSSInlineStyle` Dynamic Tests</title>
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#dom-and-javascript"/>
+    <link rel="match" href="css-inline-style-dynamic.tentative-ref.html"/>
+    <style>
+      #hidden  {
+        visibility: hidden;
+        background-color: green;
+      }
+      #red  {
+        background-color: red;
+      }
+    </style>
+    <meta
+      name="assert"
+      content="MathMLElements ElementCSSInlineStyle interface changes update rendering"
+    />
+    <script type="text/javascript">
+      function test()
+      {
+        document.body.offsetTop; // Update layout
+        document.getElementById("hidden").style.visibility = "visible";
+        document.getElementById("red").style.backgroundColor = "green";
+        document.documentElement.className = "";
+      }
+    </script>
+  </head>
+  <body onload="test()">
+    <span>This tests that `ElementCSSInlineStyle` interface changes update rendering.</span>
+    <div>
+      <math><mspace width="50px" height="100px" id="hidden"/><mspace width="50px" height="100px" id="red"/></math>
+    </div>
+  </body>
+</html>

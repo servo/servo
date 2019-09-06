@@ -46,10 +46,10 @@ collaborator before it can be merged.
 
 ## Notifications
 
-META.yml files are used only to indicate who should be notified of pull
+META.yml files are used to indicate who should be notified of pull
 requests.  If you are interested in receiving notifications of proposed
-changes to tests in a given directory, feel free to add yourself to the
-META.yml file.
+changes to tests in a given directory, feel free to add your GitHub account
+username to the `suggested_reviewers` list in the META.yml file.
 
 ## Finding contributions to review
 

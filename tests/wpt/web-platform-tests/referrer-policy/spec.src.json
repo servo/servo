@@ -10,6 +10,7 @@
           "name": "insecure-protocol",
           "expansion": "default",
           "source_scheme": "http",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": null,
           "redirection": "*",
@@ -24,6 +25,7 @@
           "name": "upgrade-protocol",
           "expansion": "default",
           "source_scheme": "http",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": null,
           "redirection": "*",
@@ -38,6 +40,7 @@
           "name": "downgrade-protocol",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": null,
           "redirection": "*",
@@ -52,6 +55,7 @@
           "name": "secure-protocol",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": null,
           "redirection": "*",
@@ -74,6 +78,7 @@
           "name": "generic",
           "expansion": "default",
           "source_scheme": "*",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "no-referrer",
           "redirection": "*",
@@ -93,6 +98,7 @@
           "name": "insecure-protocol",
           "expansion": "default",
           "source_scheme": "http",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "no-referrer-when-downgrade",
           "redirection": "*",
@@ -107,6 +113,7 @@
           "name": "upgrade-protocol",
           "expansion": "default",
           "source_scheme": "http",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "no-referrer-when-downgrade",
           "redirection": "*",
@@ -121,6 +128,7 @@
           "name": "downgrade-protocol",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "no-referrer-when-downgrade",
           "redirection": "*",
@@ -135,6 +143,7 @@
           "name": "secure-protocol",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "no-referrer-when-downgrade",
           "redirection": "*",
@@ -157,6 +166,7 @@
           "name": "generic",
           "expansion": "default",
           "source_scheme": "*",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "origin",
           "redirection": "*",
@@ -176,6 +186,7 @@
           "name": "same-origin-insecure",
           "expansion": "default",
           "source_scheme": "http",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "same-origin",
           "redirection": "*",
@@ -187,6 +198,7 @@
           "name": "same-origin-secure-default",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "same-origin",
           "redirection": "*",
@@ -198,6 +210,7 @@
           "name": "same-origin-insecure",
           "expansion": "override",
           "source_scheme": "*",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "same-origin",
           "redirection": "swap-origin",
@@ -212,6 +225,7 @@
           "name": "cross-origin",
           "expansion": "default",
           "source_scheme": "*",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "same-origin",
           "redirection": "*",
@@ -234,6 +248,7 @@
           "name": "same-origin-insecure",
           "expansion": "default",
           "source_scheme": "http",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "origin-when-cross-origin",
           "redirection": "*",
@@ -245,6 +260,7 @@
           "name": "same-origin-secure-default",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "origin-when-cross-origin",
           "redirection": "*",
@@ -256,6 +272,7 @@
           "name": "same-origin-upgrade",
           "expansion": "default",
           "source_scheme": "http",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "origin-when-cross-origin",
           "redirection": "*",
@@ -267,6 +284,7 @@
           "name": "same-origin-downgrade",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "origin-when-cross-origin",
           "redirection": "*",
@@ -278,6 +296,7 @@
           "name": "same-origin-insecure",
           "expansion": "override",
           "source_scheme": "*",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "origin-when-cross-origin",
           "redirection": "swap-origin",
@@ -292,6 +311,7 @@
           "name": "cross-origin",
           "expansion": "default",
           "source_scheme": "*",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "origin-when-cross-origin",
           "redirection": "*",
@@ -314,6 +334,7 @@
           "name": "insecure-protocol",
           "expansion": "default",
           "source_scheme": "http",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "strict-origin",
           "redirection": "*",
@@ -328,6 +349,7 @@
           "name": "upgrade-protocol",
           "expansion": "default",
           "source_scheme": "http",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "strict-origin",
           "redirection": "*",
@@ -342,6 +364,7 @@
           "name": "downgrade-protocol",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "strict-origin",
           "redirection": "*",
@@ -356,6 +379,7 @@
           "name": "secure-protocol",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "strict-origin",
           "redirection": "*",
@@ -378,6 +402,7 @@
           "name": "same-insecure",
           "expansion": "default",
           "source_scheme": "http",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "strict-origin-when-cross-origin",
           "redirection": "*",
@@ -389,6 +414,7 @@
           "name": "same-insecure",
           "expansion": "override",
           "source_scheme": "http",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "strict-origin-when-cross-origin",
           "redirection": "swap-origin",
@@ -400,6 +426,7 @@
           "name": "cross-insecure",
           "expansion": "default",
           "source_scheme": "http",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "strict-origin-when-cross-origin",
           "redirection": "*",
@@ -411,6 +438,7 @@
           "name": "upgrade-protocol",
           "expansion": "default",
           "source_scheme": "http",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "strict-origin-when-cross-origin",
           "redirection": "*",
@@ -425,6 +453,7 @@
           "name": "downgrade-protocol",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "strict-origin-when-cross-origin",
           "redirection": "*",
@@ -439,6 +468,7 @@
           "name": "same-secure",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "strict-origin-when-cross-origin",
           "redirection": "*",
@@ -450,6 +480,7 @@
           "name": "same-secure",
           "expansion": "override",
           "source_scheme": "https",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "strict-origin-when-cross-origin",
           "redirection": "swap-origin",
@@ -461,6 +492,7 @@
           "name": "cross-secure",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "strict-origin-when-cross-origin",
           "redirection": "*",
@@ -480,6 +512,7 @@
           "name": "generic",
           "expansion": "default",
           "source_scheme": "*",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "unsafe-url",
           "redirection": "*",
@@ -496,6 +529,7 @@
       "name": "cross-origin-workers",
       "expansion": "*",
       "source_scheme": "*",
+      "source_context_list": "*",
       "redirection": "*",
       "delivery_type": "*",
       "delivery_value": "*",
@@ -504,9 +538,9 @@
         "cross-https"
       ],
       "subresource": [
-        "worker-request",
-        "module-worker",
-        "shared-worker"
+        "worker-classic",
+        "worker-module",
+        "sharedworker-classic"
       ],
       "expectation": "*"
     },
@@ -514,6 +548,7 @@
       "name": "upgraded-protocol-workers",
       "expansion": "*",
       "source_scheme": "http",
+      "source_context_list": "*",
       "delivery_type": "*",
       "delivery_value": "*",
       "redirection": "*",
@@ -522,9 +557,9 @@
         "cross-https"
       ],
       "subresource": [
-        "worker-request",
-        "module-worker",
-        "shared-worker"
+        "worker-classic",
+        "worker-module",
+        "sharedworker-classic"
       ],
       "expectation": "*"
     },
@@ -532,6 +567,7 @@
       "name": "mixed-content-insecure-subresources",
       "expansion": "*",
       "source_scheme": "https",
+      "source_context_list": "*",
       "delivery_type": "*",
       "delivery_value": "*",
       "redirection": "*",
@@ -546,6 +582,7 @@
       "name": "area-tag",
       "expansion": "*",
       "source_scheme": "*",
+      "source_context_list": "*",
       "delivery_type": "*",
       "delivery_value": "*",
       "redirection": "*",
@@ -557,14 +594,15 @@
       "name": "worker-requests-with-swap-origin-redirect",
       "expansion": "*",
       "source_scheme": "*",
+      "source_context_list": "*",
       "delivery_type": "*",
       "delivery_value": "*",
       "redirection": "swap-origin",
       "origin": "*",
       "subresource": [
-        "worker-request",
-        "module-worker",
-        "shared-worker"
+        "worker-classic",
+        "worker-module",
+        "sharedworker-classic"
       ],
       "expectation": "*"
     },
@@ -572,6 +610,7 @@
       "name": "overhead-for-redirection",
       "expansion": "*",
       "source_scheme": "*",
+      "source_context_list": "*",
       "delivery_type": "*",
       "delivery_value": "*",
       "redirection": [
@@ -589,6 +628,7 @@
       "name": "source-https-unsupported-by-web-platform-tests-runners",
       "expansion": "*",
       "source_scheme": "https",
+      "source_context_list": "*",
       "delivery_type": "*",
       "delivery_value": "*",
       "redirection": "*",
@@ -600,6 +640,7 @@
       "name": "<link rel=noreferrer>'s delivery_value should be no-referrer",
       "expansion": "*",
       "source_scheme": "*",
+      "source_context_list": "*",
       "delivery_type": "rel-noref",
       "delivery_value": [
         null,
@@ -617,6 +658,226 @@
       "expectation": "*"
     }
   ],
+  "source_context_schema": {
+    "supported_delivery_type": {
+      "top": [
+        "meta",
+        "http-rp"
+      ],
+      "iframe": [
+        "meta",
+        "http-rp"
+      ],
+      "srcdoc": [
+        "meta"
+      ],
+      "worker-classic": [
+        "http-rp"
+      ],
+      "worker-module": [
+        "http-rp"
+      ],
+      "worker-classic-data": [],
+      "worker-module-data": []
+    },
+    "supported_subresource": {
+      "top": "*",
+      "iframe": "*",
+      "srcdoc": "*",
+      "worker-classic": [
+        "xhr",
+        "fetch",
+        "worker-classic",
+        "worker-module"
+      ],
+      "worker-module": [
+        "xhr",
+        "fetch",
+        "worker-classic",
+        "worker-module"
+      ],
+      "worker-classic-data": [
+        "xhr",
+        "fetch"
+      ],
+      "worker-module-data": [
+        "xhr",
+        "fetch"
+      ]
+    }
+  },
+  "subresource_schema": {
+    "supported_delivery_type": {
+      "iframe-tag": [
+        "attr"
+      ],
+      "img-tag": [
+        "attr"
+      ],
+      "script-tag": [
+        "attr"
+      ],
+      "a-tag": [
+        "attr",
+        "rel-noref"
+      ],
+      "area-tag": [
+        "attr"
+      ],
+      "xhr": [],
+      "fetch": [],
+      "worker-module": [],
+      "sharedworker-classic": [],
+      "worker-classic": []
+    }
+  },
+  "source_context_list_schema": {
+    "top": {
+      "description": "Policy set by the top-level Document",
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "policy"
+          ]
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    },
+    "req": {
+      "description": "Subresource request's policy should override Document's policy",
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "anotherPolicy"
+          ]
+        }
+      ],
+      "subresourcePolicyDeliveries": [
+        "nonNullPolicy"
+      ]
+    },
+    "srcdoc-inherit": {
+      "description": "srcdoc iframe should inherit parent Document's policy",
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "policy"
+          ]
+        },
+        {
+          "sourceContextType": "srcdoc"
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    },
+    "srcdoc": {
+      "description": "srcdoc iframe's policy should override parent Document's policy",
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "anotherPolicy"
+          ]
+        },
+        {
+          "sourceContextType": "srcdoc",
+          "policyDeliveries": [
+            "nonNullPolicy"
+          ]
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    },
+    "iframe": {
+      "description": "external iframe's policy should override parent Document's policy",
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "anotherPolicy"
+          ]
+        },
+        {
+          "sourceContextType": "iframe",
+          "policyDeliveries": [
+            "policy"
+          ]
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    },
+    "worker-classic": {
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "anotherPolicy"
+          ]
+        },
+        {
+          "sourceContextType": "worker-classic",
+          "policyDeliveries": [
+            "policy"
+          ]
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    },
+    "worker-classic-data": {
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "anotherPolicy"
+          ]
+        },
+        {
+          "sourceContextType": "worker-classic-data",
+          "policyDeliveries": [
+            "policy"
+          ]
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    },
+    "worker-module": {
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "anotherPolicy"
+          ]
+        },
+        {
+          "sourceContextType": "worker-module",
+          "policyDeliveries": [
+            "policy"
+          ]
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    },
+    "worker-module-data": {
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "anotherPolicy"
+          ]
+        },
+        {
+          "sourceContextType": "worker-module-data",
+          "policyDeliveries": [
+            "policy"
+          ]
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    }
+  },
   "test_expansion_schema": {
     "expansion": [
       "default",
@@ -645,6 +906,17 @@
       "cross-http",
       "cross-https"
     ],
+    "source_context_list": [
+      "top",
+      "req",
+      "srcdoc-inherit",
+      "srcdoc",
+      "iframe",
+      "worker-classic",
+      "worker-classic-data",
+      "worker-module",
+      "worker-module-data"
+    ],
     "source_scheme": [
       "http",
       "https"
@@ -660,11 +932,11 @@
       "script-tag",
       "a-tag",
       "area-tag",
-      "xhr-request",
-      "worker-request",
-      "module-worker",
-      "shared-worker",
-      "fetch-request"
+      "xhr",
+      "worker-classic",
+      "worker-module",
+      "sharedworker-classic",
+      "fetch"
     ],
     "expectation": [
       "omitted",

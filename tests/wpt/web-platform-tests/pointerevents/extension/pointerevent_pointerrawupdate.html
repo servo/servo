@@ -20,6 +20,7 @@
         <div id="target0"></div>
         <script>
             var test_pointerrawupdate = async_test("pointerrawupdate event received");
+            var actions_promise;
 
             var pointerrawupdateReceived = false;
             var pointerdownReceived = false;
@@ -47,10 +48,13 @@
                         assert_true(pointerrawupdateFromButtonChangeReceived,
                                     "Pointerrawupdate event should have been received from chorded button changes.");
                         }, "Pointerrawupdate event should have been received from chorded button changes.");
-                    test_pointerrawupdate.done();
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        test_pointerrawupdate.done();
+                    });
                 });
                 var actions = new test_driver.Actions();
-                actions.pointerMove(0, 0, {origin: target0, button: actions.ButtonType.LEFT})
+                actions_promise = actions.pointerMove(0, 0, {origin: target0, button: actions.ButtonType.LEFT})
                     .pointerDown({button: actions.ButtonType.LEFT})
                     .pointerDown({button: actions.ButtonType.MIDDLE})
                     .pointerUp({button: actions.ButtonType.MIDDLE})

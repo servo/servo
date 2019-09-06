@@ -10,6 +10,7 @@
           "name": "opt-in-blocks",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "opt-in",
           "redirection": "*",
@@ -27,6 +28,7 @@
           "name": "no-opt-in-allows",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": null,
           "redirection": "*",
@@ -52,6 +54,7 @@
           "name": "opt-in-blocks",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "opt-in",
           "redirection": "*",
@@ -69,6 +72,7 @@
           "name": "no-opt-in-blocks",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": null,
           "redirection": "*",
@@ -86,11 +90,12 @@
           "name": "ws-downgrade-blocks",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "*",
           "redirection": "*",
           "subresource": {
-            "blockable": "websocket-request",
+            "blockable": "websocket",
             "optionally-blockable": []
           },
           "origin": [
@@ -111,6 +116,7 @@
           "name": "allowed",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "*",
           "redirection": [
@@ -130,6 +136,7 @@
           "name": "websocket-allowed",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "*",
           "redirection": [
@@ -137,7 +144,7 @@
             "keep-scheme"
           ],
           "subresource": {
-            "blockable": "websocket-request",
+            "blockable": "websocket",
             "optionally-blockable": []
           },
           "origin": [
@@ -154,6 +161,7 @@
       "name": "Skip-redundant-no-opt-in",
       "expansion": "*",
       "source_scheme": "*",
+      "source_context_list": "*",
       "delivery_type": "http-rp",
       "delivery_value": null,
       "redirection": "*",
@@ -168,6 +176,7 @@
       "name": "Redundant-subresources",
       "expansion": "*",
       "source_scheme": "*",
+      "source_context_list": "*",
       "delivery_type": "*",
       "delivery_value": "*",
       "redirection": "*",
@@ -184,12 +193,13 @@
       "name": "Skip-origins-not-applicable-to-websockets",
       "expansion": "*",
       "source_scheme": "*",
+      "source_context_list": "*",
       "delivery_type": "*",
       "delivery_value": "*",
       "redirection": "*",
       "subresource": {
         "blockable": [
-          "websocket-request"
+          "websocket"
         ],
         "optionally-blockable": []
       },
@@ -205,6 +215,7 @@
       "name": "Skip-redundant-for-opt-in-method",
       "expansion": "*",
       "source_scheme": "*",
+      "source_context_list": "*",
       "delivery_type": "meta",
       "delivery_value": "opt-in",
       "redirection": [
@@ -219,6 +230,126 @@
       "expectation": "*"
     }
   ],
+  "source_context_schema": {
+    "supported_delivery_type": {
+      "top": [
+        "http-rp",
+        "meta"
+      ],
+      "iframe": [
+        "http-rp",
+        "meta"
+      ],
+      "srcdoc": [
+        "meta"
+      ],
+      "worker-classic": [
+        "http-rp"
+      ],
+      "worker-module": [
+        "http-rp"
+      ],
+      "worker-classic-data": [],
+      "worker-module-data": []
+    },
+    "supported_subresource": {
+      "top": "*",
+      "iframe": "*",
+      "srcdoc": "*",
+      "worker-classic": [
+        "xhr",
+        "fetch",
+        "websocket"
+      ],
+      "worker-module": [
+        "xhr",
+        "fetch",
+        "websocket"
+      ],
+      "worker-classic-data": [
+        "xhr",
+        "fetch",
+        "websocket"
+      ],
+      "worker-module-data": [
+        "xhr",
+        "fetch",
+        "websocket"
+      ]
+    }
+  },
+  "subresource_schema": {
+    "supported_delivery_type": {
+      "script-tag": [],
+      "link-css-tag": [],
+      "xhr": [],
+      "worker-classic": [],
+      "worker-module": [],
+      "worker-import-data": [],
+      "worklet-animation": [],
+      "worklet-audio": [],
+      "worklet-layout": [],
+      "worklet-paint": [],
+      "worklet-animation-import-data": [],
+      "worklet-audio-import-data": [],
+      "worklet-layout-import-data": [],
+      "worklet-paint-import-data": [],
+      "fetch": [],
+      "a-tag": [],
+      "object-tag": [],
+      "picture-tag": [],
+      "websocket": [],
+      "link-prefetch-tag": [],
+      "beacon": [],
+      "img-tag": [],
+      "audio-tag": [],
+      "video-tag": []
+    }
+  },
+  "source_context_list_schema": {
+    "top": {
+      "description": "Policy set by the top-level Document",
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "policy"
+          ]
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    },
+    "worker-classic-data": {
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "policy"
+          ]
+        },
+        {
+          "sourceContextType": "worker-classic-data",
+          "policyDeliveries": []
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    },
+    "worker-module-data": {
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "policy"
+          ]
+        },
+        {
+          "sourceContextType": "worker-module-data",
+          "policyDeliveries": []
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    }
+  },
   "test_expansion_schema": {
     "expansion": [
       "default",
@@ -235,6 +366,11 @@
     "delivery_value": [
       null,
       "opt-in"
+    ],
+    "source_context_list": [
+      "top",
+      "worker-classic-data",
+      "worker-module-data"
     ],
     "redirection": [
       "no-redirect",
@@ -255,26 +391,25 @@
       "blockable": [
         "script-tag",
         "link-css-tag",
-        "xhr-request",
-        "worker-request",
-        "module-worker-top-level",
-        "module-data-worker-import",
-        "classic-data-worker-fetch",
-        "worklet-animation-top-level",
-        "worklet-audio-top-level",
-        "worklet-layout-top-level",
-        "worklet-paint-top-level",
-        "worklet-animation-data-import",
-        "worklet-audio-data-import",
-        "worklet-layout-data-import",
-        "worklet-paint-data-import",
-        "fetch-request",
+        "xhr",
+        "worker-classic",
+        "worker-module",
+        "worker-import-data",
+        "worklet-animation",
+        "worklet-audio",
+        "worklet-layout",
+        "worklet-paint",
+        "worklet-animation-import-data",
+        "worklet-audio-import-data",
+        "worklet-layout-import-data",
+        "worklet-paint-import-data",
+        "fetch",
         "a-tag",
         "object-tag",
         "picture-tag",
-        "websocket-request",
+        "websocket",
         "link-prefetch-tag",
-        "beacon-request"
+        "beacon"
       ],
       "optionally-blockable": [
         "img-tag",

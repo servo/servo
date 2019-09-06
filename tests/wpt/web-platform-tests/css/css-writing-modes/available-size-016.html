@@ -9,7 +9,7 @@
 <style>
 body { margin-top: 0; margin-bottom: 0; } /* Shouldn't matter, but in some browsers does. -007 tests this aspect specifically. */
 :root { overflow: hidden; }
-div {
+#ortho {
   writing-mode: vertical-rl;
   font-family: monospace;
   font-size: 20px;
@@ -38,19 +38,22 @@ span {
   left: 0; top: 0;
 }
 
-section {
+#scroller {
   overflow: hidden;
-  writing-mode: vertical-rl;
+  writing-mode: vertical-lr;
   height: 40vh;
   min-height: 120vh;
 }
-section > section {
+#parent {
   writing-mode: horizontal-tb;
+  width: 8em; /* avoid triggering intrinsic sizing bugs */
 }
 </style>
 
 <p>Test passes if there is a <strong>green rectangle</strong> below and <strong>no red</strong>.
 
-<section>
-<div><aside id="red">0</aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside> <span>0</span></div>
-</section>
+<div id=scroller>
+  <div id=parent>
+    <div id=ortho><aside id="red">0</aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside> <span>0</span></div>
+  </div>
+</div>

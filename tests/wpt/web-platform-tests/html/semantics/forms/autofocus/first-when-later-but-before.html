@@ -6,22 +6,21 @@
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
 
 <input autofocus>
 
 <script>
 "use strict";
 
-const input1 = document.querySelector("input");
+promise_test(async () => {
+  const input1 = document.querySelector("input");
+  const input2 = document.createElement("input");
+  input2.autofocus = true;
+  document.body.prepend(input2);
 
-const input2 = document.createElement("input");
-input2.autofocus = true;
-document.body.prepend(input2);
-
-step_timeout(() => {
-    assert_equals(document.activeElement, input1);
-    assert_not_equals(document.activeElement, input2);
-
-    done();
-}, 100);
+  await waitUntilStableAutofocusState();
+  assert_equals(document.activeElement, input1);
+  assert_not_equals(document.activeElement, input2);
+}, 'The temporally first autofocus in the document wins, even if an element is inserted later that is previous in the document tree.');
 </script>

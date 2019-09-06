@@ -13,9 +13,12 @@
 <script nonce="abc">
   let p = createScript_policy(window, 1);
   test(t => {
-    let s = eval('"hello there"');
-    assert_equals(s, "hello there");
-  }, "eval with plain string with Trusted Types and permissive CSP works.");
+    let a = 0;
+    assert_throws(new EvalError(), _ => {
+      eval('a="hello there"');
+    });
+    assert_equals(a, 0);
+  }, "eval with plain string with Trusted Types and permissive CSP throws (no type).");
 
   test(t => {
     let s = eval(p.createScript('"Hello transformed string"'));

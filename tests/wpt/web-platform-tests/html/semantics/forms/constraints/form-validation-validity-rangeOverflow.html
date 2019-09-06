@@ -106,7 +106,8 @@
         {conditions: {max: "5", value: "1abc"}, expected: false, name: "[target] The value is not a number"},
         {conditions: {max: "5", value: "6"}, expected: true, name: "[target] The value is greater than max(integer)"},
         {conditions: {max: "-5.5", value: "-5.4"}, expected: true, name: "[target] The value is greater than max(floating number)"},
-        {conditions: {max: "-5e-1", value: "5e+2"}, expected: true, name: "[target] The value is greater than max(scientific notation)"}
+        {conditions: {max: "-1", value: "-.8"}, expected: true, name: "[target] The value is greater than max(special floating number)"},
+        {conditions: {max: "-5e-1", value: "5e+2"}, expected: true, name: "[target] The value is greater than max(scientific notation)"},
       ]
     }
    ];

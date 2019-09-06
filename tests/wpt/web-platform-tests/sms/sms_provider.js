@@ -36,16 +36,16 @@ class FakeSmsReceiverImpl {
     return this;
   }
 
-  receive(timeout) {
+  receive() {
     let call = this.returnValues.receive.shift();
     if (!call) {
       throw new Error("Unexpected call.");
     }
-    return call(timeout);
+    return call();
   }
 }
 
-function receive(timeout, callback) {
+function receive(callback) {
   throw new Error("expected to be overriden by tests");
 }
 

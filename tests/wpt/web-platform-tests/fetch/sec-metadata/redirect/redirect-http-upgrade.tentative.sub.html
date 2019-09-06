@@ -37,8 +37,8 @@
     }, "Http upgrade font => No headers");
   });
 
-  promise_test(() =>
-    requestViaImage(insecureRedirectURL + encodeURIComponent("https://{{host}}:{{ports[https][0]}}/common/security-features/subresource/image.py"))
+  promise_test(() => {
+    return requestViaImage(insecureRedirectURL + encodeURIComponent("https://{{host}}:{{ports[https][0]}}/common/security-features/subresource/image.py"))
       .then(result => {
          headers = result.headers;
          got = {
@@ -55,7 +55,8 @@
            "user": undefined,
            "mode": undefined,
          });
-  }), "Http upgrade image => No headers");
+      });
+  }, "Http upgrade image => No headers");
 </script>
 <script src="http://{{host}}:{{ports[http][0]}}/fetch/api/resources/redirect.py?location=https%3A%2F%2F{{host}}%3A{{ports[https][0]}}%2Ffetch%2Fsec-metadata%2Fresources%2Fecho-as-script.py"></script>
 <script>

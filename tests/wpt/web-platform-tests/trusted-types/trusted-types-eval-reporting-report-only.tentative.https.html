@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<head>
+  <script nonce="123" src="/resources/testharness.js"></script>
+  <script nonce="123"src="/resources/testharnessreport.js"></script>
+  <script nonce="123"src="/content-security-policy/support/testharness-helper.js"></script>
+</head>
+<body>
+  <script nonce="123">
+  // CSP insists the "trusted-types: ..." directives are deliverd as headers
+  // (rather than as "<meta http-equiv" tags). This test assumes the following
+  // headers are set in the .headers file:
+  //
+  //   Content-Security-Policy: trusted-types *
+  //   Content-Security-Policy: script-src 'unsafe-inline' 'unsafe-eval'; report-uri ...
+  //   Content-Security-Policy: plugin-types bla/blubb
+  //
+  // The last rule is there so we can provoke a CSP violation report at will.
+  // The intent is that in order to test that a violation has *not* been thrown
+  // (and without resorting to abominations like timeouts), we force a *another*
+  // CSP violation (by violating the img-src rule) and when that event is
+  // processed we can we sure that an earlier event - if it indeed occurred -
+  // must have already been processed.
+
+  // Return function that returns a promise that resolves on the given
+  // violation report.
+  //
+  // filter_arg - iff function, call it with the event object.
+  //              Else, string-ify and compare against event.originalPolicy.
+  function promise_violation(filter_arg) {
+    return _ => new Promise((resolve, reject) => {
+      function handler(e) {
+        let matches = (filter_arg instanceof Function)
+            ? filter_arg(e)
+            : (e.originalPolicy.includes(filter_arg));
+        if (matches) {
+          document.removeEventListener("securitypolicyviolation", handler);
+          e.stopPropagation();
+          resolve(e);
+        }
+      }
+      document.addEventListener("securitypolicyviolation", handler);
+    });
+  }
+
+  // Like assert_throws, but we don't care about the exact error. We just want
+  // to run the code and continue.
+  function expect_throws(fn) {
+    try { fn(); assert_unreached(); } catch (err) { /* ignore */ }
+  }
+
+  // A sample policy we use to test TrustedTypes.createPolicy behaviour.
+  const id = x => x;
+  const a_policy = {
+    createHTML: id,
+    createScriptURL: id,
+    createURL: id,
+    createScript: id,
+  };
+
+  const scriptyPolicy = TrustedTypes.createPolicy('allowEval', a_policy);
+
+  // Provoke/wait for a CSP violation, in order to be sure that all previous
+  // CSP violations have been delivered.
+  function promise_flush() {
+    return promise_violation("plugin-types bla/blubb");
+  }
+  function flush() {
+   expect_throws(_ => {
+      var o = document.createElement('object');
+      o.type = "application/x-shockwave-flash";
+      document.body.appendChild(o);
+    });
+  }
+
+  window.script_run_beacon = 'vanilla';
+
+  promise_test(t => {
+    let p = Promise.resolve()
+        .then(promise_violation("trusted-types *"))
+        .then(promise_flush());
+    eval('script_run_beacon="report-only-does-not-stop"');
+    assert_equals(script_run_beacon, 'report-only-does-not-stop');
+    flush();
+    return p;
+  }, "Trusted Type violation report: evaluating a string.");
+
+  promise_test(t => {
+    let p = promise_flush()();
+    eval(scriptyPolicy.createScript('script_run_beacon="trusted-script-ok"'));
+    flush();
+    assert_equals(script_run_beacon, 'trusted-script-ok');
+    return p;
+  }, "Trusted Type violation report: evaluating a Trusted Script.");
+
+  promise_test(t => {
+    TrustedTypes.createPolicy('default', {
+      createScript: s => s.replace('payload', 'default policy'),
+    }, true);
+    let p = promise_flush()();
+    eval('script_run_beacon="payload"');
+    assert_equals(script_run_beacon, 'default policy');
+    flush();
+    return p;
+  }, "Trusted Type violation report: default policy runs in report-only mode.");
+
+  </script>
+</body>

@@ -11,7 +11,7 @@ promise_test(async t => {
   await waitForLoad(w);
   t.add_cleanup(() => { w.close(); });
   w.document.body.innerHTML = '<div contenteditable=true autofocus></div>';
-  await waitUntilStableAutofocusState(t);
+  await waitUntilStableAutofocusState(w);
   assert_equals(w.document.activeElement.tagName, 'DIV');
 }, 'Contenteditable element should support autofocus');
 
@@ -20,7 +20,7 @@ promise_test(async t => {
   await waitForLoad(w);
   t.add_cleanup(() => { w.close(); });
   w.document.body.innerHTML = '<span tabindex=0></span>';
-  await waitUntilStableAutofocusState(t);
+  await waitUntilStableAutofocusState(w);
   assert_equals(w.document.activeElement.tagName, 'SPAN');
 }, 'Element with tabindex should support autofocus');
 
@@ -31,7 +31,7 @@ promise_test(async t => {
   let element = w.document.createElementNS('uri1', 'prefix:local');
   element.setAttribute('autofocus', '');
   w.document.body.appendChild(element);
-  await waitUntilStableAutofocusState(t);
+  await waitUntilStableAutofocusState(w);
   assert_equals(w.document.activeElement.tagName, 'BODY');
 }, 'Non-HTMLElement should not support autofocus');
 </script>

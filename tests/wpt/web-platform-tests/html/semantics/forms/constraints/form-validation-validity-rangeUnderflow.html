@@ -104,6 +104,7 @@
         {conditions: {min: "5", value: "6abc"}, expected: false, name: "[target] The value is not a number"},
         {conditions: {min: "6", value: "5"}, expected: true, name: "[target] The value is less than min(integer)"},
         {conditions: {min: "-5.4", value: "-5.5"}, expected: true, name: "[target] The value is less than min(floating number)"},
+        {conditions: {min: "1", value: "-.8"}, expected: true, name: "[target] The value is less than min(special floating number)"},
         {conditions: {min: "5e+2", value: "-5e-1"}, expected: true, name: "[target] The value is less than min(scientific notation)"}
       ]
     }

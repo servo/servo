@@ -22,6 +22,8 @@
             var outLeaveEventsFail = false;
             var f_gotPointerCapture = false;
             var f_lostPointerCapture = false;
+            var index = 0;
+            var actions_promise;
 
             function resetTestState() {
               captured_event = null;
@@ -98,7 +100,16 @@
                     });
                     if (event.type == "pointerup") {
                         test_done = true;
-                        test_pointerEvent.done(); // complete test
+                        // Make sure the test finishes after all the input actions are completed.
+                        actions_promise.then( () => {
+                            if (index == 0) {
+                                actions_promise =  pointerDragInTarget('touch', target0, 'right');
+                            } else if (index == 1) {
+                                actions_promise =  pointerDragInTarget('pen', target0, 'right');
+                            }
+                            index++;
+                            test_pointerEvent.done();
+                        });
                     }
                 }
             }
@@ -116,11 +127,7 @@
                 }
 
                 // Inject pointer inputs.
-                pointerDragInTarget('mouse', target0, 'right').then(function() {
-                    return pointerDragInTarget('touch', target0, 'right');
-                }).then(function() {
-                    return pointerDragInTarget('pen', target0, 'right');
-                });
+                actions_promise = pointerDragInTarget('mouse', target0, 'right');
             }
         </script>
     </head>
