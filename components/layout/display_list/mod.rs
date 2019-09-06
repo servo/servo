@@ -8,7 +8,6 @@ pub use self::builder::IndexableText;
 pub use self::builder::StackingContextCollectionFlags;
 pub use self::builder::StackingContextCollectionState;
 pub use self::conversions::ToLayout;
-pub use self::webrender_helpers::WebRenderDisplayListConverter;
 
 mod background;
 mod border;

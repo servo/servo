@@ -17,10 +17,6 @@ use webrender_api::{
     RasterSpace, ReferenceFrameKind, SpaceAndClipInfo, SpatialId, StackingContext,
 };
 
-pub trait WebRenderDisplayListConverter {
-    fn convert_to_webrender(&mut self, pipeline_id: PipelineId) -> DisplayListBuilder;
-}
-
 struct ClipScrollState {
     clip_ids: Vec<Option<ClipId>>,
     spatial_ids: Vec<Option<SpatialId>>,
@@ -28,17 +24,8 @@ struct ClipScrollState {
     active_spatial_id: SpatialId,
 }
 
-trait WebRenderDisplayItemConverter {
-    fn convert_to_webrender(
-        &mut self,
-        clip_scroll_nodes: &[ClipScrollNode],
-        state: &mut ClipScrollState,
-        builder: &mut DisplayListBuilder,
-    );
-}
-
-impl WebRenderDisplayListConverter for DisplayList {
-    fn convert_to_webrender(&mut self, pipeline_id: PipelineId) -> DisplayListBuilder {
+impl DisplayList {
+    pub fn convert_to_webrender(&mut self, pipeline_id: PipelineId) -> DisplayListBuilder {
         let mut clip_ids = vec![None; self.clip_scroll_nodes.len()];
         let mut spatial_ids = vec![None; self.clip_scroll_nodes.len()];
 
@@ -75,7 +62,7 @@ impl WebRenderDisplayListConverter for DisplayList {
     }
 }
 
-impl WebRenderDisplayItemConverter for DisplayItem {
+impl DisplayItem {
     fn convert_to_webrender(
         &mut self,
         clip_scroll_nodes: &[ClipScrollNode],

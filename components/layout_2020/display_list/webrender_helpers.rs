@@ -7,12 +7,8 @@ use msg::constellation_msg::PipelineId;
 use webrender_api::units::LayoutSize;
 use webrender_api::{self, DisplayListBuilder};
 
-pub trait WebRenderDisplayListConverter {
-    fn convert_to_webrender(&mut self, pipeline_id: PipelineId) -> DisplayListBuilder;
-}
-
-impl WebRenderDisplayListConverter for DisplayList {
-    fn convert_to_webrender(&mut self, pipeline_id: PipelineId) -> DisplayListBuilder {
+impl DisplayList {
+    pub fn convert_to_webrender(&mut self, pipeline_id: PipelineId) -> DisplayListBuilder {
         let webrender_pipeline = pipeline_id.to_webrender();
 
         let builder = DisplayListBuilder::with_capacity(

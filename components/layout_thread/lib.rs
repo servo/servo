@@ -45,7 +45,7 @@ use layout::context::LayoutContext;
 use layout::context::RegisteredPainter;
 use layout::context::RegisteredPainters;
 use layout::display_list::items::{OpaqueNode, WebRenderImageInfo};
-use layout::display_list::{IndexableText, ToLayout, WebRenderDisplayListConverter};
+use layout::display_list::{IndexableText, ToLayout};
 use layout::flow::{Flow, GetBaseFlow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
 use layout::incremental::{RelayoutMode, SpecialRestyleDamage};

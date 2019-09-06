@@ -38,7 +38,6 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::context::LayoutContext;
 use layout::display_list::items::DisplayList;
-use layout::display_list::WebRenderDisplayListConverter;
 use layout::query::{
     process_content_box_request, process_content_boxes_request, LayoutRPCImpl, LayoutThreadData,
 };
