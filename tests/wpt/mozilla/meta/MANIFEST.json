@@ -1,5 +1,11 @@
 {
  "items": {
+  "conformancechecker": {
+   "css/blockify_inline_element.html": []
+  },
+  "manual": {
+   "css/blockify_inline_element.html": []
+  },
   "reftest": {
    "css/abs-overflow-stackingcontext.html": [
     [
@@ -773,6 +779,18 @@
      [
       [
        "/_mozilla/css/block_replaced_content_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/blockify_inline_element.html": [
+    [
+     "css/blockify_inline_element.html",
+     [
+      [
+       "/_mozilla/css/blockify_inline_element_ref.html",
        "=="
       ]
      ],
@@ -7640,6 +7658,9 @@
     ]
    ]
   },
+  "stub": {
+   "css/blockify_inline_element.html": []
+  },
   "support": {
    ".gitignore": [
     []
@@ -7864,6 +7885,10 @@
     []
    ],
    "css/block_replaced_content_ref.html": [
+    []
+   ],
+   "css/blockify_inline_element.html": [],
+   "css/blockify_inline_element_ref.html": [
     []
    ],
    "css/blur_ref.html": [
@@ -11096,6 +11121,7 @@
      {}
     ]
    ],
+   "css/blockify_inline_element.html": [],
    "css/bug_1345483.html": [
     [
      "css/bug_1345483.html",
@@ -12515,6 +12541,12 @@
      {}
     ]
    ]
+  },
+  "visual": {
+   "css/blockify_inline_element.html": []
+  },
+  "wdspec": {
+   "css/blockify_inline_element.html": []
   }
  },
  "paths": {
@@ -13940,6 +13972,14 @@
   ],
   "css/block_replaced_content_ref.html": [
    "4d48d763eb784170f680276541d864681a05962b",
+   "support"
+  ],
+  "css/blockify_inline_element.html": [
+   "7f9da081c8e246c7d72a85ecfd129a5ddc56e07a",
+   "reftest"
+  ],
+  "css/blockify_inline_element_ref.html": [
+   "ad88ac2f3f7e4b56a3781e61655dc580806fc4cd",
    "support"
   ],
   "css/blur_a.html": [
