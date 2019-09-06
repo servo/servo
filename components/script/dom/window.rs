@@ -82,7 +82,7 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
 use js::jsapi::JSPROP_ENUMERATE;
 use js::jsapi::{GCReason, JS_GC};
-use js::jsval::JSVal;
+use js::jsval::{JSVal, NullValue};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::JS_DefineProperty;
 use js::rust::HandleValue;
@@ -629,7 +629,10 @@ impl WindowMethods for Window {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
     fn Opener(&self, cx: JSContext) -> JSVal {
-        unsafe { self.window_proxy().opener(*cx) }
+        match self.window_proxy.get() {
+            Some(proxy) => unsafe { proxy.opener(*cx) },
+            None => return NullValue(),
+        }
     }
 
     #[allow(unsafe_code)]
