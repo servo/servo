@@ -9,8 +9,8 @@
 
 namespace winrt::ServoApp::implementation {
 
-static const hstring SERVO_SCHEME = L"servo";
-static const hstring SERVO_SCHEME_SLASH_SLASH = L"servo://";
+static const hstring SERVO_SCHEME = L"fxr";
+static const hstring SERVO_SCHEME_SLASH_SLASH = L"fxr://";
 
 struct BrowserPage : BrowserPageT<BrowserPage> {
 public:
