@@ -106,7 +106,7 @@ otherwise install OpenSSL and ensure that it's on your $PATH.""")
 
 
 def check_environ(product):
-    if product not in ("chrome", "firefox", "servo"):
+    if product not in ("chrome", "firefox", "firefox_android", "servo"):
         config_builder = serve.build_config(os.path.join(wpt_root, "config.json"))
         # Override the ports to avoid looking for free ports
         config_builder.ssl = {"type": "none"}
@@ -172,9 +172,9 @@ class BrowserSetup(object):
             elif resp == "n":
                 return False
 
-    def install(self, venv, channel=None):
+    def install(self, channel=None):
         if self.prompt_install(self.name):
-            return self.browser.install(venv.path, channel)
+            return self.browser.install(self.venv.path, channel)
 
     def install_requirements(self):
         if not self.venv.skip_virtualenv_setup:
@@ -255,8 +255,60 @@ class FirefoxAndroid(BrowserSetup):
     name = "firefox_android"
     browser_cls = browser.FirefoxAndroid
 
+    def install(self, channel):
+        # The install needs to happen in setup so that we have access to all the kwargs
+        self._install_browser = True
+        return None
+
     def setup_kwargs(self, kwargs):
-        pass
+        from . import android
+        import mozdevice
+
+        # We don't support multiple channels for android yet
+        if kwargs["browser_channel"] is None:
+            kwargs["browser_channel"] = "nightly"
+
+        if kwargs["prefs_root"] is None:
+            prefs_root = self.browser.install_prefs(kwargs["binary"],
+                                                    self.venv.path,
+                                                    channel=kwargs["browser_channel"])
+            kwargs["prefs_root"] = prefs_root
+
+        if kwargs["package_name"] is None:
+            kwargs["package_name"] = "org.mozilla.geckoview.test"
+        app = kwargs["package_name"]
+
+        if kwargs["device_serial"] is None:
+            kwargs["device_serial"] = "emulator-5554"
+
+        # We're running on an emulator so ensure that's set up
+        if kwargs["device_serial"].startswith("emulator-"):
+            emulator = android.install(logger, reinstall=False, no_prompt=not self.prompt)
+            android.start(logger, emulator=emulator, reinstall=False)
+
+        install = False
+        if hasattr(self, "_install_browser"):
+            if self.prompt_install("geckoview-test"):
+                install = True
+                apk_path = self.browser.install(self.venv.path,
+                                                channel=kwargs["browser_channel"])
+
+        if "ADB_PATH" not in os.environ:
+            adb_path = os.path.join(android.get_sdk_path(None),
+                                    "platform-tools",
+                                    "adb")
+            os.environ["ADB_PATH"] = adb_path
+        adb_path = os.environ["ADB_PATH"]
+
+        device = mozdevice.ADBDevice(adb=adb_path,
+                                     device=kwargs["device_serial"])
+
+        if install:
+            device.uninstall_app(app)
+            device.install_app(apk_path)
+        elif not device.is_app_installed(app):
+            raise WptrunError("app %s not installed on device %s" %
+                              (app, kwargs["device_serial"]))
 
 
 class Chrome(BrowserSetup):
@@ -425,7 +477,7 @@ class Edge(BrowserSetup):
     name = "edge"
     browser_cls = browser.Edge
 
-    def install(self, venv, channel=None):
+    def install(self, channel=None):
         raise NotImplementedError
 
     def setup_kwargs(self, kwargs):
@@ -451,7 +503,7 @@ class InternetExplorer(BrowserSetup):
     name = "ie"
     browser_cls = browser.InternetExplorer
 
-    def install(self, venv, channel=None):
+    def install(self, channel=None):
         raise NotImplementedError
 
     def setup_kwargs(self, kwargs):
@@ -472,7 +524,7 @@ class Safari(BrowserSetup):
     name = "safari"
     browser_cls = browser.Safari
 
-    def install(self, venv, channel=None):
+    def install(self, channel=None):
         raise NotImplementedError
 
     def setup_kwargs(self, kwargs):
@@ -489,7 +541,7 @@ class Sauce(BrowserSetup):
     name = "sauce"
     browser_cls = browser.Sauce
 
-    def install(self, venv, channel=None):
+    def install(self, channel=None):
         raise NotImplementedError
 
     def setup_kwargs(self, kwargs):
@@ -502,9 +554,9 @@ class Servo(BrowserSetup):
     name = "servo"
     browser_cls = browser.Servo
 
-    def install(self, venv, channel=None):
+    def install(self, channel=None):
         if self.prompt_install(self.name):
-            return self.browser.install(venv.path)
+            return self.browser.install(self.venv.path)
 
     def setup_kwargs(self, kwargs):
         if kwargs["binary"] is None:
@@ -524,7 +576,7 @@ class WebKit(BrowserSetup):
     name = "webkit"
     browser_cls = browser.WebKit
 
-    def install(self, venv, channel=None):
+    def install(self, channel=None):
         raise NotImplementedError
 
     def setup_kwargs(self, kwargs):
@@ -535,7 +587,7 @@ class Epiphany(BrowserSetup):
     name = "epiphany"
     browser_cls = browser.Epiphany
 
-    def install(self, venv, channel=None):
+    def install(self, channel=None):
         raise NotImplementedError
 
     def setup_kwargs(self, kwargs):
@@ -599,7 +651,7 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
     kwargs = utils.Kwargs(kwargs.iteritems())
 
     product_parts = kwargs["product"].split(":")
-    kwargs["product"] = product_parts[0]
+    kwargs["product"] = product_parts[0].replace("-", "_")
     sub_product = product_parts[1:]
 
     check_environ(kwargs["product"])
@@ -648,7 +700,7 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
 
     if install_browser:
         logger.info("Installing browser")
-        kwargs["binary"] = setup_cls.install(venv, channel=channel)
+        kwargs["binary"] = setup_cls.install(channel=channel)
 
     setup_cls.setup(kwargs)
 

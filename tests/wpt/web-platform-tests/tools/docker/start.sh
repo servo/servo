@@ -17,6 +17,14 @@ REF=${2:-master}
 
 cd ~
 
+if [ -e /dev/kvm ]; then
+    # If kvm is present ensure that the test user can access it
+    # Ideally this could be done by adding the test user to the
+    # owning group, but then we need to re-login to evaluate the
+    # group membership. This chmod doesn't affect the host.
+    sudo chmod a+rw /dev/kvm
+fi
+
 if [ ! -d web-platform-tests ]; then
     mkdir web-platform-tests
     cd web-platform-tests

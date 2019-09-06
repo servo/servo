@@ -6,13 +6,10 @@
 [Exposed=Window]
 interface NDEFMessage {
   constructor(NDEFMessageInit messageInit);
-
-  readonly attribute USVString url;
   readonly attribute FrozenArray<NDEFRecord> records;
 };
 
 dictionary NDEFMessageInit {
-  USVString url;
   sequence<NDEFRecordInit> records;
 };
 
@@ -99,7 +96,7 @@ enum NFCPushTarget {
 };
 
 dictionary NFCScanOptions {
-  USVString url = "";
+  USVString id = "";
   NDEFRecordType recordType;
   USVString mediaType = "";
   AbortSignal? signal;

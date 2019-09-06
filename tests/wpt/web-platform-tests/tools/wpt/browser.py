@@ -285,15 +285,19 @@ class Firefox(Browser):
         return "%s/archive/%s.zip/testing/profiles/" % (repo, tag)
 
     def install_prefs(self, binary, dest=None, channel=None):
-        version, channel_ = self.get_version_and_channel(binary)
-        if channel is not None and channel != channel_:
-            # Beta doesn't always seem to have the b in the version string, so allow the
-            # manually supplied value to override the one from the binary
-            self.logger.warning("Supplied channel doesn't match binary, using supplied channel")
-        elif channel is None:
-            channel = channel_
+        if binary:
+            version, channel_ = self.get_version_and_channel(binary)
+            if channel is not None and channel != channel_:
+                # Beta doesn't always seem to have the b in the version string, so allow the
+                # manually supplied value to override the one from the binary
+                self.logger.warning("Supplied channel doesn't match binary, using supplied channel")
+            elif channel is None:
+                channel = channel_
+        else:
+            version = None
+
         if dest is None:
-            dest = os.pwd
+            dest = os.curdir
 
         dest = os.path.join(dest, "profiles", channel)
         if version:
@@ -416,7 +420,33 @@ class FirefoxAndroid(Browser):
     requirements = "requirements_firefox.txt"
 
     def install(self, dest=None, channel=None):
-        raise NotImplementedError
+        if dest is None:
+            dest = os.pwd
+
+        TC_QUEUE_BASE = "https://queue.taskcluster.net/v1/"
+        TC_INDEX_BASE = "https://index.taskcluster.net/v1/"
+
+
+        resp = requests.get(TC_INDEX_BASE +
+                            "task/gecko.v2.mozilla-central.latest.mobile.android-x86_64-opt")
+        resp.raise_for_status()
+        index = resp.json()
+        task_id = index["taskId"]
+
+        resp = requests.get(TC_QUEUE_BASE + "task/%s/artifacts/%s" %
+                            (task_id, "public/build/geckoview-androidTest.apk"))
+        resp.raise_for_status()
+
+        apk_path = os.path.join(dest, "geckoview-androidTest.apk")
+
+        with open(apk_path, "wb") as f:
+            f.write(resp.content)
+
+        return apk_path
+
+    def install_prefs(self, binary, dest=None, channel=None):
+        fx_browser = Firefox(self.logger)
+        return fx_browser.install_prefs(binary, dest, channel)
 
     def find_binary(self, venv_path=None, channel=None):
         raise NotImplementedError

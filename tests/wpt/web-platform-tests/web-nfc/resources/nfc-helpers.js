@@ -201,7 +201,7 @@ function testNFCScanOptions(message, scanOptions, unmatchedScanOptions, desc) {
 function testReadingMultiMessages(message, scanOptions, unmatchedMessage,
     unmatchedCompatibility, desc) {
   nfc_test(async (t, mockNFC) => {
-    const reader = new NFCReader(scanOptions);
+    const reader = new NFCReader();
     const controller = new AbortController();
     const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
 

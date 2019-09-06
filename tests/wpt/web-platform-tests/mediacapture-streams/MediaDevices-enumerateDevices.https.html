@@ -17,26 +17,26 @@
 "use strict";
 //NOTE ALEX: for completion, a test for ondevicechange event is missing.
 promise_test(async () => {
-  assert_true(undefined !== navigator.mediaDevices.enumerateDevices, "navigator.mediaDevices.enumerateDevices exists");
-  const device_list =  await navigator.mediaDevices.enumerateDevices();
-  for (const mediainfo of device_list) {
-    assert_true(undefined !== mediainfo.deviceId, "mediaInfo's deviceId should exist.");
-    assert_true(undefined !== mediainfo.kind,     "mediaInfo's kind     should exist.");
-    assert_in_array(mediainfo.kind, ["videoinput", "audioinput", "audiooutput"]);
-    assert_true(undefined !== mediainfo.label,    "mediaInfo's label    should exist.");
-    assert_true(undefined !== mediainfo.groupId,  "mediaInfo's groupId  should exist.");
+  assert_not_equals(navigator.mediaDevices.enumerateDevices, undefined, "navigator.mediaDevices.enumerateDevices exists");
+  const deviceList =  await navigator.mediaDevices.enumerateDevices();
+  for (const mediaInfo of deviceList) {
+    assert_not_equals(mediaInfo.deviceId, undefined, "mediaInfo's deviceId should exist.");
+    assert_not_equals(mediaInfo.kind, undefined,     "mediaInfo's kind     should exist.");
+    assert_not_equals(mediaInfo.label, undefined,    "mediaInfo's label    should exist.");
+    assert_not_equals(mediaInfo.groupId, undefined,  "mediaInfo's groupId  should exist.");
+    assert_in_array(mediaInfo.kind, ["videoinput", "audioinput", "audiooutput"]);
   }
 }, "mediaDevices.enumerateDevices() is present and working");
 
 promise_test(async () => {
-  const device_list =  await navigator.mediaDevices.enumerateDevices();
-  for (const mediainfo of device_list) {
-    if (mediainfo.kind == "audioinput" || mediainfo.kind == "videoinput") {
-      assert_true(mediainfo instanceof InputDeviceInfo);
-    } else if ( mediainfo.kind == "audiooutput" ) {
-      assert_true(mediainfo instanceof MediaDeviceInfo);
+  const deviceList =  await navigator.mediaDevices.enumerateDevices();
+  for (const mediaInfo of deviceList) {
+    if (mediaInfo.kind == "audioinput" || mediaInfo.kind == "videoinput") {
+      assert_true(mediaInfo instanceof InputDeviceInfo);
+    } else if ( mediaInfo.kind == "audiooutput" ) {
+      assert_true(mediaInfo instanceof MediaDeviceInfo);
     } else {
-      assert_unreached("mediainfo.kind should be one of 'audioinput', 'videoinput', or 'audiooutput'.")
+      assert_unreached("mediaInfo.kind should be one of 'audioinput', 'videoinput', or 'audiooutput'.")
     }
   }
 }, "InputDeviceInfo is supported");

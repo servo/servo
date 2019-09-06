@@ -150,7 +150,7 @@ def start_xvfb():
 def get_extra_jobs(event):
     body = None
     jobs = set()
-    if "commits" in event:
+    if "commits" in event and event["commits"]:
         body = event["commits"][0]["message"]
     elif "pull_request" in event:
         body = event["pull_request"]["body"]

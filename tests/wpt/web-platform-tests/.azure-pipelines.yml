@@ -236,6 +236,7 @@ jobs:
   displayName: 'all tests: Edge Dev'
   condition: |
     or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/six_hourly'),
+       eq(variables['Build.SourceBranch'], 'refs/heads/triggers/edge_dev'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge_dev']))
   strategy:
     parallel: 10 # chosen to make runtime ~2h
@@ -271,6 +272,7 @@ jobs:
   displayName: 'all tests: Edge Canary'
   condition: |
     or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/six_hourly'),
+       eq(variables['Build.SourceBranch'], 'refs/heads/triggers/edge_canary'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge_canary']))
   strategy:
     parallel: 10 # chosen to make runtime ~2h
@@ -306,6 +308,7 @@ jobs:
   displayName: 'all tests: Safari'
   condition: |
     or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/daily'),
+       eq(variables['Build.SourceBranch'], 'refs/heads/triggers/safari_stable'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_safari']))
   strategy:
     parallel: 5 # chosen to make runtime ~2h
@@ -340,6 +343,7 @@ jobs:
   displayName: 'all tests: Safari Technology Preview'
   condition: |
     or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/six_hourly'),
+       eq(variables['Build.SourceBranch'], 'refs/heads/triggers/safari_preview'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_safari_preview']))
   strategy:
     parallel: 5 # chosen to make runtime ~2h

@@ -3,9 +3,13 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Payment Request API (https://w3c.github.io/payment-request/)
 
-[Constructor(sequence<PaymentMethodData> methodData, PaymentDetailsInit details, optional PaymentOptions options = {}),
-SecureContext, Exposed=Window]
+[SecureContext, Exposed=Window]
 interface PaymentRequest : EventTarget {
+  constructor(
+    sequence<PaymentMethodData> methodData,
+    PaymentDetailsInit details,
+    optional PaymentOptions options = {}
+  );
   [NewObject]
   Promise<PaymentResponse> show(optional Promise<PaymentDetailsUpdate> detailsPromise);
   [NewObject]
@@ -171,9 +175,9 @@ dictionary PayerErrors {
   DOMString phone;
 };
 
-[Constructor(DOMString type, optional MerchantValidationEventInit eventInitDict = {}),
-SecureContext, Exposed=Window]
+[SecureContext, Exposed=Window]
 interface MerchantValidationEvent : Event {
+  constructor(DOMString type, optional MerchantValidationEventInit eventInitDict = {});
   readonly attribute DOMString methodName;
   readonly attribute USVString validationURL;
   void complete(Promise<any> merchantSessionPromise);
@@ -184,8 +188,9 @@ dictionary MerchantValidationEventInit : EventInit {
   USVString validationURL = "";
 };
 
-[Constructor(DOMString type, optional PaymentMethodChangeEventInit eventInitDict = {}), SecureContext, Exposed=Window]
+[SecureContext, Exposed=Window]
 interface PaymentMethodChangeEvent : PaymentRequestUpdateEvent {
+  constructor(DOMString type, optional PaymentMethodChangeEventInit eventInitDict = {});
   readonly attribute DOMString methodName;
   readonly attribute object? methodDetails;
 };
@@ -195,8 +200,9 @@ dictionary PaymentMethodChangeEventInit : PaymentRequestUpdateEventInit {
   object? methodDetails = null;
 };
 
-[Constructor(DOMString type, optional PaymentRequestUpdateEventInit eventInitDict = {}), SecureContext, Exposed=Window]
+[SecureContext, Exposed=Window]
 interface PaymentRequestUpdateEvent : Event {
+  constructor(DOMString type, optional PaymentRequestUpdateEventInit eventInitDict = {});
   void updateWith(Promise<PaymentDetailsUpdate> detailsPromise);
 };
 

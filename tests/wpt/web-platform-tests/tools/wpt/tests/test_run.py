@@ -60,6 +60,8 @@ def test_check_environ_fail(platform):
 
 @pytest.mark.parametrize("product", product_list)
 def test_setup_wptrunner(venv, logger, product):
+    if product == "firefox_android":
+        pytest.skip("Android emulator doesn't work on docker")
     parser = run.create_parser()
     kwargs = vars(parser.parse_args(["--channel=nightly", product]))
     kwargs["prompt"] = False
