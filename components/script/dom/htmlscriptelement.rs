@@ -125,35 +125,44 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
     "text/x-javascript",
 ];
 
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
+pub enum ScriptType {
+    Classic,
+    Module,
+}
+
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct ClassicScript {
+pub struct ScriptOrigin {
     text: DOMString,
     url: ServoUrl,
     external: bool,
+    type_: ScriptType,
 }
 
-impl ClassicScript {
-    fn internal(text: DOMString, url: ServoUrl) -> ClassicScript {
-        ClassicScript {
+impl ScriptOrigin {
+    fn internal(text: DOMString, url: ServoUrl, type_: ScriptType) -> ScriptOrigin {
+        ScriptOrigin {
             text: text,
             url: url,
             external: false,
+            type_,
         }
     }
 
-    fn external(text: DOMString, url: ServoUrl) -> ClassicScript {
-        ClassicScript {
+    fn external(text: DOMString, url: ServoUrl, type_: ScriptType) -> ScriptOrigin {
+        ScriptOrigin {
             text: text,
             url: url,
             external: true,
+            type_,
         }
     }
 }
 
-pub type ScriptResult = Result<ClassicScript, NetworkError>;
+pub type ScriptResult = Result<ScriptOrigin, NetworkError>;
 
 /// The context required for asynchronously loading an external script source.
-struct ScriptContext {
+struct ClassicContext {
     /// The element that initiated the request.
     elem: Trusted<HTMLScriptElement>,
     /// The kind of external script.
@@ -173,7 +182,7 @@ struct ScriptContext {
     resource_timing: ResourceFetchTiming,
 }
 
-impl FetchResponseListener for ScriptContext {
+impl FetchResponseListener for ClassicContext {
     fn process_request_body(&mut self) {} // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
 
     fn process_request_eof(&mut self) {} // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
@@ -226,7 +235,11 @@ impl FetchResponseListener for ScriptContext {
 
             // Step 7.
             let (source_text, _, _) = encoding.decode(&self.data);
-            ClassicScript::external(DOMString::from(source_text), metadata.final_url)
+            ScriptOrigin::external(
+                DOMString::from(source_text),
+                metadata.final_url,
+                ScriptType::Classic,
+            )
         });
 
         // Step 9.
@@ -260,7 +273,7 @@ impl FetchResponseListener for ScriptContext {
     }
 }
 
-impl ResourceTimingListener for ScriptContext {
+impl ResourceTimingListener for ClassicContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
         let initiator_type = InitiatorType::LocalName(
             self.elem
@@ -277,7 +290,7 @@ impl ResourceTimingListener for ScriptContext {
     }
 }
 
-impl PreInvoke for ScriptContext {}
+impl PreInvoke for ClassicContext {}
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
 fn fetch_a_classic_script(
@@ -313,7 +326,7 @@ fn fetch_a_classic_script(
 
     // TODO: Step 3, Add custom steps to perform fetch
 
-    let context = Arc::new(Mutex::new(ScriptContext {
+    let context = Arc::new(Mutex::new(ClassicContext {
         elem: Trusted::new(script),
         kind: kind,
         character_encoding: character_encoding,
@@ -364,47 +377,49 @@ impl HTMLScriptElement {
             self.non_blocking.set(true);
         }
 
-        // Step 4.
+        // Step 4-5.
         let text = self.Text();
         if text.is_empty() && !element.has_attribute(&local_name!("src")) {
             return;
         }
 
-        // Step 5.
+        // Step 6.
         if !self.upcast::<Node>().is_connected() {
             return;
         }
 
-        // Step 6.
-        if !self.is_javascript() {
+        let script_type = if let Some(ty) = self.get_script_type() {
+            ty
+        } else {
+            // Step 7.
             return;
-        }
+        };
 
-        // Step 7.
+        // Step 8.
         if was_parser_inserted {
             self.parser_inserted.set(true);
             self.non_blocking.set(false);
         }
 
-        // Step 8.
+        // Step 9.
         self.already_started.set(true);
 
-        // Step 9.
+        // Step 10.
         let doc = document_from_node(self);
         if self.parser_inserted.get() && &*self.parser_document != &*doc {
             return;
         }
 
-        // Step 10.
+        // Step 11.
         if !doc.is_scripting_enabled() {
             return;
         }
 
-        // TODO: Step 11: nomodule content attribute
+        // TODO: Step 12: nomodule content attribute
 
-        // TODO(#4577): Step 12: CSP.
+        // TODO(#4577): Step 13: CSP.
 
-        // Step 13.
+        // Step 14.
         let for_attribute = element.get_attribute(&ns!(), &local_name!("for"));
         let event_attribute = element.get_attribute(&ns!(), &local_name!("event"));
         match (for_attribute, event_attribute) {
@@ -424,20 +439,20 @@ impl HTMLScriptElement {
             (_, _) => (),
         }
 
-        // Step 14.
+        // Step 15.
         let encoding = element
             .get_attribute(&ns!(), &local_name!("charset"))
             .and_then(|charset| Encoding::for_label(charset.value().as_bytes()))
             .unwrap_or_else(|| doc.encoding());
 
-        // Step 15.
+        // Step 16.
         let cors_setting = cors_setting_for_element(element);
 
-        // TODO: Step 16: Module script credentials mode.
+        // TODO: Step 17: Module script credentials mode.
 
-        // TODO: Step 17: Nonce.
+        // TODO: Step 18: Nonce.
 
-        // Step 18: Integrity metadata.
+        // Step 19: Integrity metadata.
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
         let integrity_val = im_attribute.as_ref().map(|a| a.value());
         let integrity_metadata = match integrity_val {
@@ -445,26 +460,30 @@ impl HTMLScriptElement {
             None => "",
         };
 
-        // TODO: Step 19: parser state.
+        // TODO: Step 20: referrer policy
 
-        // TODO: Step 20: environment settings object.
+        // TODO: Step 21: parser state.
+
+        // TODO: Step 22: Fetch options
+
+        // TODO: Step 23: environment settings object.
 
         let base_url = doc.base_url();
         if let Some(src) = element.get_attribute(&ns!(), &local_name!("src")) {
-            // Step 21.
+            // Step 24.
 
-            // Step 21.1.
+            // Step 24.1.
             let src = src.value();
 
-            // Step 21.2.
+            // Step 24.2.
             if src.is_empty() {
                 self.queue_error_event();
                 return;
             }
 
-            // Step 21.3: The "from an external file"" flag is stored in ClassicScript.
+            // Step 24.3: The "from an external file"" flag is stored in ScriptOrigin.
 
-            // Step 21.4-21.5.
+            // Step 24.4-24.5.
             let url = match base_url.join(&src) {
                 Ok(url) => url,
                 Err(_) => {
@@ -474,64 +493,89 @@ impl HTMLScriptElement {
                 },
             };
 
-            // Preparation for step 23.
-            let kind = if element.has_attribute(&local_name!("defer")) &&
-                was_parser_inserted &&
-                !r#async
-            {
-                // Step 23.a: classic, has src, has defer, was parser-inserted, is not async.
-                ExternalScriptKind::Deferred
-            } else if was_parser_inserted && !r#async {
-                // Step 23.c: classic, has src, was parser-inserted, is not async.
-                ExternalScriptKind::ParsingBlocking
-            } else if !r#async && !self.non_blocking.get() {
-                // Step 23.d: classic, has src, is not async, is not non-blocking.
-                ExternalScriptKind::AsapInOrder
-            } else {
-                // Step 23.f: classic, has src.
-                ExternalScriptKind::Asap
-            };
+            match script_type {
+                ScriptType::Classic => {
+                    // Preparation for step 26.
+                    let kind = if element.has_attribute(&local_name!("defer")) &&
+                        was_parser_inserted &&
+                        !r#async
+                    {
+                        // Step 26.a: classic, has src, has defer, was parser-inserted, is not async.
+                        ExternalScriptKind::Deferred
+                    } else if was_parser_inserted && !r#async {
+                        // Step 26.c: classic, has src, was parser-inserted, is not async.
+                        ExternalScriptKind::ParsingBlocking
+                    } else if !r#async && !self.non_blocking.get() {
+                        // Step 26.d: classic, has src, is not async, is not non-blocking.
+                        ExternalScriptKind::AsapInOrder
+                    } else {
+                        // Step 26.f: classic, has src.
+                        ExternalScriptKind::Asap
+                    };
 
-            // Step 21.6.
-            fetch_a_classic_script(
-                self,
-                kind,
-                url,
-                cors_setting,
-                integrity_metadata.to_owned(),
-                encoding,
-            );
+                    // Step 24.6.
+                    fetch_a_classic_script(
+                        self,
+                        kind,
+                        url,
+                        cors_setting,
+                        integrity_metadata.to_owned(),
+                        encoding,
+                    );
 
-            // Step 23.
-            match kind {
-                ExternalScriptKind::Deferred => doc.add_deferred_script(self),
-                ExternalScriptKind::ParsingBlocking => {
-                    doc.set_pending_parsing_blocking_script(self, None)
+                    // Step 23.
+                    match kind {
+                        ExternalScriptKind::Deferred => doc.add_deferred_script(self),
+                        ExternalScriptKind::ParsingBlocking => {
+                            doc.set_pending_parsing_blocking_script(self, None)
+                        },
+                        ExternalScriptKind::AsapInOrder => doc.push_asap_in_order_script(self),
+                        ExternalScriptKind::Asap => doc.add_asap_script(self),
+                    }
                 },
-                ExternalScriptKind::AsapInOrder => doc.push_asap_in_order_script(self),
-                ExternalScriptKind::Asap => doc.add_asap_script(self),
+                ScriptType::Module => {
+                    warn!(
+                        "{} is a module script. It should be fixed after #23545 landed.",
+                        url.clone()
+                    );
+                },
             }
         } else {
-            // Step 22.
+            // Step 25.
             assert!(!text.is_empty());
-            let result = Ok(ClassicScript::internal(text, base_url));
 
-            // Step 23.
+            // Step 25-1.
+            let result = Ok(ScriptOrigin::internal(
+                text.clone(),
+                base_url.clone(),
+                script_type.clone(),
+            ));
+
+            // TODO: Step 25-2.
+            if let ScriptType::Module = script_type {
+                warn!(
+                    "{} is a module script. It should be fixed after #23545 landed.",
+                    base_url.clone()
+                );
+                return;
+            }
+
+            // Step 26.
             if was_parser_inserted &&
                 doc.get_current_parser()
                     .map_or(false, |parser| parser.script_nesting_level() <= 1) &&
                 doc.get_script_blocking_stylesheets_count() > 0
             {
-                // Step 23.h: classic, has no src, was parser-inserted, is blocked on stylesheet.
+                // Step 26.h: classic, has no src, was parser-inserted, is blocked on stylesheet.
                 doc.set_pending_parsing_blocking_script(self, Some(result));
             } else {
-                // Step 23.i: otherwise.
+                // Step 26.i: otherwise.
                 self.execute(result);
             }
         }
     }
 
-    fn unminify_js(&self, script: &mut ClassicScript) {
+    fn unminify_js(&self, script: &mut ScriptOrigin) {
         if !self.parser_document.window().unminify_js() {
             return;
         }
@@ -584,7 +628,7 @@ impl HTMLScriptElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#execute-the-script-block>
-    pub fn execute(&self, result: Result<ClassicScript, NetworkError>) {
+    pub fn execute(&self, result: Result<ScriptOrigin, NetworkError>) {
         // Step 1.
         let doc = document_from_node(self);
         if self.parser_inserted.get() && &*doc != &*self.parser_document {
@@ -639,7 +683,7 @@ impl HTMLScriptElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#run-a-classic-script
-    pub fn run_a_classic_script(&self, script: &ClassicScript) {
+    pub fn run_a_classic_script(&self, script: &ScriptOrigin) {
         // TODO use a settings object rather than this element's document/window
         // Step 2
         let document = document_from_node(self);
@@ -688,45 +732,58 @@ impl HTMLScriptElement {
         );
     }
 
-    pub fn is_javascript(&self) -> bool {
+    // https://html.spec.whatwg.org/multipage/#prepare-a-script Step 7.
+    pub fn get_script_type(&self) -> Option<ScriptType> {
         let element = self.upcast::<Element>();
+
         let type_attr = element.get_attribute(&ns!(), &local_name!("type"));
-        let is_js = match type_attr.as_ref().map(|s| s.value()) {
-            Some(ref s) if s.is_empty() => {
-                // type attr exists, but empty means js
+        let language_attr = element.get_attribute(&ns!(), &local_name!("language"));
+
+        let script_type = match (
+            type_attr.as_ref().map(|t| t.value()),
+            language_attr.as_ref().map(|l| l.value()),
+        ) {
+            (Some(ref ty), _) if ty.is_empty() => {
                 debug!("script type empty, inferring js");
-                true
+                Some(ScriptType::Classic)
             },
-            Some(s) => {
-                debug!("script type={}", &**s);
-                SCRIPT_JS_MIMES
-                    .contains(&s.to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS))
+            (None, Some(ref lang)) if lang.is_empty() => {
+                debug!("script type empty, inferring js");
+                Some(ScriptType::Classic)
             },
-            None => {
-                debug!("no script type");
-                let language_attr = element.get_attribute(&ns!(), &local_name!("language"));
-                let is_js = match language_attr.as_ref().map(|s| s.value()) {
-                    Some(ref s) if s.is_empty() => {
-                        debug!("script language empty, inferring js");
-                        true
-                    },
-                    Some(s) => {
-                        debug!("script language={}", &**s);
-                        let mut language = format!("text/{}", &**s);
-                        language.make_ascii_lowercase();
-                        SCRIPT_JS_MIMES.contains(&&*language)
-                    },
-                    None => {
-                        debug!("no script type or language, inferring js");
-                        true
-                    },
-                };
-                // https://github.com/rust-lang/rust/issues/21114
-                is_js
+            (None, None) => {
+                debug!("script type empty, inferring js");
+                Some(ScriptType::Classic)
+            },
+            (None, Some(ref lang)) => {
+                debug!("script language={}", &***lang);
+                let language = format!("text/{}", &***lang);
+
+                if SCRIPT_JS_MIMES.contains(&language.to_ascii_lowercase().as_str()) {
+                    Some(ScriptType::Classic)
+                } else {
+                    None
+                }
+            },
+            (Some(ref ty), _) => {
+                debug!("script type={}", &***ty);
+
+                if &***ty == String::from("module") {
+                    return Some(ScriptType::Module);
+                }
+
+                if SCRIPT_JS_MIMES
+                    .contains(&ty.to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS))
+                {
+                    Some(ScriptType::Classic)
+                } else {
+                    None
+                }
             },
         };
+
         // https://github.com/rust-lang/rust/issues/21114
-        is_js
+        script_type
     }
 
     pub fn set_parser_inserted(&self, parser_inserted: bool) {
