@@ -35,7 +35,6 @@ rand = [
 # Ignored packages with duplicated versions
 packages = [
   "gl_generator", # https://github.com/servo/servo/pull/23288#issuecomment-494687746
-  "nix", # https://github.com/servo/servo/issues/23189#issuecomment-487512605
   "proc-macro2",
   "quote",
   "rand_core",
