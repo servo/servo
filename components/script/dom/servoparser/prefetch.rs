@@ -2,18 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![allow(unrooted_must_root)]
-
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::document::Document;
+use crate::dom::htmlimageelement::image_fetch_request;
+use crate::dom::htmlscriptelement::script_fetch_request;
+use crate::stylesheet_loader::stylesheet_fetch_request;
 use html5ever::buffer_queue::BufferQueue;
+use html5ever::tokenizer::Tag;
 use html5ever::tokenizer::Token;
 use html5ever::tokenizer::TokenSink;
 use html5ever::tokenizer::TokenSinkResult;
 use html5ever::tokenizer::Tokenizer as HtmlTokenizer;
-use net_traits::request::RequestBuilder;
+use html5ever::Attribute;
+use html5ever::LocalName;
+use msg::constellation_msg::PipelineId;
+use net_traits::request::CorsSettings;
+use net_traits::request::Referrer;
 use net_traits::CoreResourceMsg;
 use net_traits::FetchChannels;
 use net_traits::IpcSend;
+use net_traits::ReferrerPolicy;
 use net_traits::ResourceThreads;
+use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 
 #[derive(MallocSizeOf)]
@@ -26,10 +36,14 @@ pub struct Tokenizer {
 unsafe_no_jsmanaged_fields!(Tokenizer);
 
 impl Tokenizer {
-    pub fn new(base: ServoUrl, resource_threads: ResourceThreads) -> Self {
+    pub fn new(document: &Document) -> Self {
         let sink = PrefetchSink {
-            base,
-            resource_threads,
+            origin: document.origin().immutable().clone(),
+            pipeline_id: document.global().pipeline_id(),
+            base: document.url(),
+            referrer: Referrer::ReferrerUrl(document.url()),
+            referrer_policy: document.get_referrer_policy(),
+            resource_threads: document.loader().resource_threads().clone(),
         };
         let options = Default::default();
         let inner = HtmlTokenizer::new(sink, options);
@@ -42,7 +56,11 @@ impl Tokenizer {
 }
 
 struct PrefetchSink {
+    origin: ImmutableOrigin,
+    pipeline_id: PipelineId,
     base: ServoUrl,
+    referrer: Referrer,
+    referrer_policy: Option<ReferrerPolicy>,
     resource_threads: ResourceThreads,
 }
 
@@ -50,22 +68,97 @@ impl TokenSink for PrefetchSink {
     type Handle = ();
     fn process_token(&mut self, token: Token, _line_number: u64) -> TokenSinkResult<()> {
         if let Token::TagToken(ref tag) = token {
-            if (tag.name == local_name!("img")) || (tag.name == local_name!("script")) {
-                let srcs = tag
-                    .attrs
-                    .iter()
-                    .filter(|attr| attr.name.local == local_name!("src"));
-                for src in srcs {
-                    if let Ok(url) = ServoUrl::parse_with_base(Some(&self.base), &src.value) {
-                        debug!("Prefetch {} {}", tag.name, url);
-                        let req_init = RequestBuilder::new(url);
+            match tag.name {
+                local_name!("script") => {
+                    if let Some(url) = self.get_url(tag, local_name!("src")) {
+                        debug!("Prefetch script {}", url);
+                        let cors_setting = self.get_cors_settings(tag, local_name!("crossorigin"));
+                        let integrity_metadata = self
+                            .get_attr(tag, local_name!("integrity"))
+                            .map(|attr| String::from(&attr.value))
+                            .unwrap_or_default();
+                        let request = script_fetch_request(
+                            url,
+                            cors_setting,
+                            self.origin.clone(),
+                            self.pipeline_id,
+                            self.referrer.clone(),
+                            self.referrer_policy,
+                            integrity_metadata,
+                        );
                         let _ = self
                             .resource_threads
-                            .send(CoreResourceMsg::Fetch(req_init, FetchChannels::Prefetch));
+                            .send(CoreResourceMsg::Fetch(request, FetchChannels::Prefetch));
                     }
-                }
+                },
+                local_name!("img") => {
+                    if let Some(url) = self.get_url(tag, local_name!("src")) {
+                        debug!("Prefetch {} {}", tag.name, url);
+                        let request =
+                            image_fetch_request(url, self.origin.clone(), self.pipeline_id);
+                        let _ = self
+                            .resource_threads
+                            .send(CoreResourceMsg::Fetch(request, FetchChannels::Prefetch));
+                    }
+                },
+                local_name!("link") => {
+                    if let Some(rel) = self.get_attr(tag, local_name!("rel")) {
+                        if rel.value.eq_ignore_ascii_case("stylesheet") {
+                            if let Some(url) = self.get_url(tag, local_name!("href")) {
+                                debug!("Prefetch {} {}", tag.name, url);
+                                let cors_setting =
+                                    self.get_cors_settings(tag, local_name!("crossorigin"));
+                                let integrity_metadata = self
+                                    .get_attr(tag, local_name!("integrity"))
+                                    .map(|attr| String::from(&attr.value))
+                                    .unwrap_or_default();
+                                let request = stylesheet_fetch_request(
+                                    url,
+                                    cors_setting,
+                                    self.origin.clone(),
+                                    self.pipeline_id,
+                                    self.referrer.clone(),
+                                    self.referrer_policy,
+                                    integrity_metadata,
+                                );
+                                let _ = self
+                                    .resource_threads
+                                    .send(CoreResourceMsg::Fetch(request, FetchChannels::Prefetch));
+                            }
+                        }
+                    }
+                },
+                local_name!("base") => {
+                    if let Some(url) = self.get_url(tag, local_name!("href")) {
+                        debug!("Setting base {}", url);
+                        self.base = url;
+                    }
+                },
+                _ => {},
             }
         }
         TokenSinkResult::Continue
+    }
+}
+
+impl PrefetchSink {
+    fn get_attr<'a>(&'a self, tag: &'a Tag, name: LocalName) -> Option<&'a Attribute> {
+        tag.attrs.iter().find(|attr| attr.name.local == name)
+    }
+
+    fn get_url(&self, tag: &Tag, name: LocalName) -> Option<ServoUrl> {
+        self.get_attr(tag, name)
+            .and_then(|attr| ServoUrl::parse_with_base(Some(&self.base), &attr.value).ok())
+    }
+
+    fn get_cors_settings(&self, tag: &Tag, name: LocalName) -> Option<CorsSettings> {
+        let crossorigin = self.get_attr(tag, name)?;
+        if crossorigin.value.eq_ignore_ascii_case("anonymous") {
+            Some(CorsSettings::Anonymous)
+        } else if crossorigin.value.eq_ignore_ascii_case("use-credentials") {
+            Some(CorsSettings::UseCredentials)
+        } else {
+            None
+        }
     }
 }

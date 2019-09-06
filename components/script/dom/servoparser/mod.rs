@@ -396,8 +396,6 @@ impl ServoParser {
         last_chunk_state: LastChunkState,
         kind: ParserKind,
     ) -> Self {
-        let base = document.url();
-        let resource_threads = document.loader().resource_threads().clone();
         ServoParser {
             reflector: Reflector::new(),
             document: Dom::from_ref(document),
@@ -410,7 +408,7 @@ impl ServoParser {
             script_nesting_level: Default::default(),
             aborted: Default::default(),
             script_created_parser: kind == ParserKind::ScriptCreated,
-            prefetch_tokenizer: DomRefCell::new(prefetch::Tokenizer::new(base, resource_threads)),
+            prefetch_tokenizer: DomRefCell::new(prefetch::Tokenizer::new(document)),
             prefetch_input: DomRefCell::new(BufferQueue::new()),
         }
     }
