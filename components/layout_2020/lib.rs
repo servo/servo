@@ -4,12 +4,8 @@
 
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate serde;
-
 pub mod context;
 pub mod data;
-pub mod display_list;
 mod fragment;
 pub mod opaque_node;
 pub mod query;

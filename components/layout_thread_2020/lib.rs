@@ -37,7 +37,6 @@ use histogram::Histogram;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::context::LayoutContext;
-use layout::display_list::items::DisplayList;
 use layout::query::{
     process_content_box_request, process_content_boxes_request, LayoutRPCImpl, LayoutThreadData,
 };
@@ -1337,36 +1336,35 @@ impl LayoutThread {
             document.will_paint();
         }
 
-        let mut display_list = DisplayList {};
-
-        debug!("Layout done!");
-
-        // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
-        let (builder, is_contentful) = display_list.convert_to_webrender(self.id);
-
         let viewport_size = Size2D::new(
             self.viewport_size.width.to_f32_px(),
             self.viewport_size.height.to_f32_px(),
         );
 
+        let viewport_size = webrender_api::units::LayoutSize::from_untyped(viewport_size);
+
+        let display_list =
+            webrender_api::DisplayListBuilder::new(self.id.to_webrender(), viewport_size);
+        let is_contentful = false;
+
+        debug!("Layout done!");
+
         let mut epoch = self.epoch.get();
         epoch.next();
         self.epoch.set(epoch);
-
-        let viewport_size = webrender_api::units::LayoutSize::from_untyped(viewport_size);
 
         // Observe notifications about rendered frames if needed right before
         // sending the display list to WebRender in order to set time related
         // Progressive Web Metrics.
         self.paint_time_metrics
-            .maybe_observe_paint_time(self, epoch, is_contentful.0);
+            .maybe_observe_paint_time(self, epoch, is_contentful);
 
         let mut txn = webrender_api::Transaction::new();
         txn.set_display_list(
             webrender_api::Epoch(epoch.0),
             None,
             viewport_size,
-            builder.finalize(),
+            display_list.finalize(),
             true,
         );
         txn.generate_frame();
