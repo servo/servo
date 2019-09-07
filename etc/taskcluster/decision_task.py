@@ -410,7 +410,7 @@ def uwp_nightly():
             "mach build --release --uwp",
             "python mach build --release --uwp --win-arm64",
             "mach package --release --uwp=x64 --uwp=arm64",
-            "mach upload-nightly uwp --secret-from-taskcluster",
+            #"mach upload-nightly uwp --secret-from-taskcluster",
         )
         .with_artifacts('repo/support/hololens/AppPackages/ServoApp/ServoApp_1.0.0.0_Test/ServoApp_1.0.0.0_x64_arm64.appxbundle')
         .find_or_create("build.windows_uwp_nightlies." + CONFIG.task_id())
