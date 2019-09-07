@@ -1911,7 +1911,6 @@ impl Document {
             let msg = ScriptMsg::DiscardDocument;
             let _ = global_scope.script_to_constellation_chan().send(msg);
         }
-        global_scope.remove_message_ports_router();
         // Step 15, End
         self.decr_ignore_opens_during_unload_counter();
     }

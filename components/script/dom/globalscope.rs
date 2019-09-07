@@ -291,12 +291,11 @@ impl GlobalScope {
     }
 
     /// Tell the constellation to drop the sender to our message-port router.
-    /// Performed as part of document unloading.
     pub fn remove_message_ports_router(&self) {
-        if let Some(router_id) = self.message_ports_router_id.borrow().as_ref() {
+        if let Some(router_id) = self.message_ports_router_id.borrow_mut().take() {
             let _ = self
                 .script_to_constellation_chan()
-                .send(ScriptMsg::RemoveMessagePortRouter(router_id.clone()));
+                .send(ScriptMsg::RemoveMessagePortRouter(router_id));
         }
     }
 
@@ -330,19 +329,14 @@ impl GlobalScope {
     /// Remove all referrences to a port.
     pub fn remove_message_port(&self, port_id: &MessagePortId) {
         let mut ports = self.message_ports.borrow_mut();
-        ports.remove(port_id);
+        ports
+            .remove(port_id)
+            .expect("Port to be removed to be known");
         self.message_port_tracker.borrow_mut().remove(port_id);
         if ports.is_empty() {
             // Remove our port router,
-            // it will have to be setup again if we start managing port once again.
-            let router_id = self
-                .message_ports_router_id
-                .borrow_mut()
-                .take()
-                .expect("Router Id to have been setup.");
-            let _ = self
-                .script_to_constellation_chan()
-                .send(ScriptMsg::RemoveMessagePortRouter(router_id));
+            // it will be setup again if we start managing ports again.
+            self.remove_message_ports_router();
         }
     }
 

@@ -1336,6 +1336,9 @@ impl Window {
         // thread, informing it that it can safely free the memory.
         self.Document().upcast::<Node>().teardown();
 
+        // Tell the constellation to drop the sender to our message-port router, if there is any.
+        self.upcast::<GlobalScope>().remove_message_ports_router();
+
         // Clean up any active promises
         // https://github.com/servo/servo/issues/15318
         if let Some(custom_elements) = self.custom_element_registry.get() {
