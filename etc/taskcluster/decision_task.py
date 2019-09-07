@@ -413,8 +413,8 @@ def uwp_nightly():
             #"mach upload-nightly uwp --secret-from-taskcluster",
         )
         .with_artifacts('repo/support/hololens/AppPackages/ServoApp/ServoApp_1.0.0.0_Test/ServoApp_1.0.0.0_x64_arm64.appxbundle')
-        .find_or_create("build.windows_uwp_nightlies." + CONFIG.task_id())
         .with_max_run_time_minutes(3 * 60)
+        .find_or_create("build.windows_uwp_nightlies." + CONFIG.task_id())
     )
 
     
