@@ -1,4 +1,4 @@
-The web-platform-tests Project [![IRC chat](https://goo.gl/6nCIks)](http://irc.w3.org/?channels=testing)
+The web-platform-tests Project
 ==============================
 
 The web-platform-tests Project is a W3C-coordinated attempt to build a
@@ -11,6 +11,30 @@ confidence that they can actually rely on the Web platform to deliver on
 the promise of working across browsers and devices without needing extra
 layers of abstraction to paper over the gaps left by specification
 editors and implementors.
+
+The most important sources of information and activity are:
+
+- [github.com/web-platform-tests/wpt](https://github.com/web-platform-tests/wpt):
+  the canonical location of the project's source code revision history and the
+  discussion forum for changes to the code
+- [web-platform-tests.org](https://web-platform-tests.org): the documentation
+  website; details how to set up the project, how to write tests, how to give
+  and receive peer review, how to serve as an administrator, and more
+- [web-platform-tests.live](http://web-platform-tests.live): a public
+  deployment of the test suite, allowing anyone to run the tests by visiting
+  from an Internet-enabled browser of their choice
+- [wpt.fyi](https://wpt.fyi): an archive of test results collected from an
+  array of web browsers on a regular basis
+- [Real-time chat room](http://irc.w3.org/?channels=testing): the
+  [IRC](http://www.irchelp.org/) chat room named `#testing` on
+  [irc.w3.org](https://www.w3.org/wiki/IRC); includes participants located
+  around the world, but busiest during the European working day; [all
+  discussion is archived here](https://w3.logbot.info/testing)
+- [Mailing list](https://lists.w3.org/Archives/Public/public-test-infra/): a
+  public and low-traffic discussion list
+
+**If you'd like clarification about anything**, don't hesitate to ask in the
+chat room or on the mailing list.
 
 Setting Up the Repo
 ===================
@@ -251,25 +275,3 @@ web-platform-tests root directory to suppress the error reports.
 For more details, see the [lint-tool documentation][lint-tool].
 
 [lint-tool]: https://web-platform-tests.org/writing-tests/lint-tool.html
-
-Getting Involved
-================
-
-If you wish to contribute actively, you're very welcome to join the
-public-test-infra@w3.org mailing list (low traffic) by
-[signing up to our mailing list](mailto:public-test-infra-request@w3.org?subject=subscribe).
-The mailing list is [archived][mailarchive].
-
-Join us on irc #testing ([irc.w3.org][ircw3org], port 6665). The channel
-is [archived][ircarchive].
-
-[contributing]: https://github.com/web-platform-tests/wpt/blob/master/CONTRIBUTING.md
-[ircw3org]: https://www.w3.org/wiki/IRC
-[ircarchive]: https://w3.logbot.info/testing
-[mailarchive]: https://lists.w3.org/Archives/Public/public-test-infra/
-
-Documentation
-=============
-
-* [How to write and review tests](https://web-platform-tests.org/)
-* [Documentation for the wptserve server](http://wptserve.readthedocs.org/en/latest/)

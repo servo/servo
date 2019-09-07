@@ -4,6 +4,7 @@
 <link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
 <link rel="help" title="10.2 Aligning with auto margins" href="https://drafts.csswg.org/css-grid/#auto-margins">
 <meta name="assert" content="The 'left' and 'right' margins must be recomputed whenever the grid items's width changes.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
   #grid {
       display: grid;
@@ -34,6 +35,7 @@
     <div id="item2">XX</div>
 </div>
 <script>
+document.fonts.ready.then(() => {
     item1.setAttribute("data-offset-x", "80");
     item2.setAttribute("data-offset-x", "340");
     checkLayout('#grid');
@@ -43,4 +45,5 @@
     item1.setAttribute("data-offset-x", "50");
     item2.setAttribute("data-offset-x", "325");
     checkLayout('#grid');
+});
 </script>

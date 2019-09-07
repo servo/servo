@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<meta name="timeout" content="long">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/fetch/sec-metadata/resources/helper.js></script>
@@ -11,7 +12,7 @@
 
   function create_test(host, as, expected) {
     async_test(t => {
-      let nonce = token();
+      let nonce = "{{uuid()}}";
       let key = as + nonce;
 
       let e = document.createElement('link');

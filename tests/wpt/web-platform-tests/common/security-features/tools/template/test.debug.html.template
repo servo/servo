@@ -10,7 +10,7 @@
     <meta name="assert" content="%(test_description)s">%(meta_delivery_method)s
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src="/common/security-features/resources/common.js"></script>
+    <script src="/common/security-features/resources/common.sub.js"></script>
     <!-- The original specification JSON for validating the scenario. -->
     <script src="%(spec_json_js)s"></script>
     <!-- Internal checking of the tests -->

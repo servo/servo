@@ -4,7 +4,7 @@
 <script src=/resources/testharnessreport.js></script>
 <script src=/fetch/sec-metadata/resources/helper.js></script>
 <script src=/fetch/sec-metadata/resources/redirectTestHelper.sub.js></script>
-<script src=/common/security-features/resources/common.js></script>
+<script src=/common/security-features/resources/common.sub.js></script>
 <script src=/common/utils.js></script>
 <style>
   @font-face {
@@ -62,7 +62,7 @@
 <script>
   test(t => {
     t.add_cleanup(_ => { header = null; });
-    assert_header_equals(header, expected);
+    assert_header_equals(header, { "dest": "", "site": "cross-site", "user": "", "mode": "no-cors" });
   }, "Https downgrade script => No headers");
 </script>
 </body>
