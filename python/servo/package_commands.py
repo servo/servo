@@ -756,5 +756,5 @@ def build_uwp(platforms, dev, msbuild_dir):
     # /p:Configuration="Debug" /p:Platform="x64" /property:AppxBundle=Always;AppxBundlePlatforms="x64"
     check_call([msbuild_dir + "\\msbuild.exe", "/m", "/p:project=ServoApp", ".\\support\\hololens\\ServoApp.sln",
                 "/p:Configuration=" + Configuration,
-                "/p:Platform=" + platforms,
-                "/p:AppxBundle=Always;AppxBundlePlatforms=" + platforms])
+                "/p:Platform='%s'" % platforms,
+                "/p:AppxBundle=Always;AppxBundlePlatforms='%s'" % platforms])
