@@ -28,7 +28,7 @@ pub struct MessagePortImpl {
     entangled_port: RefCell<Option<MessagePortId>>,
 
     /// <https://html.spec.whatwg.org/multipage/#port-message-queue>
-    message_buffer: RefCell<VecDeque<PortMessageTask>>,
+    message_buffer: RefCell<Option<VecDeque<PortMessageTask>>>,
 
     /// <https://html.spec.whatwg.org/multipage/#has-been-shipped>
     has_been_shipped: Cell<bool>,
@@ -45,7 +45,7 @@ impl MessagePortImpl {
             enabled: Cell::new(false),
             awaiting_transfer: Cell::new(false),
             entangled_port: RefCell::new(None),
-            message_buffer: RefCell::new(VecDeque::new()),
+            message_buffer: RefCell::new(None),
             has_been_shipped: Cell::new(false),
             message_port_id: port_id,
         }
@@ -91,26 +91,38 @@ impl MessagePortImpl {
             // hence they need to execute first.
             // The global will call `start` if we are enabled,
             // which will add tasks on the event-loop to dispatch incoming messages.
-            let mut incoming_buffer = self.message_buffer.borrow_mut();
-            while let Some(task) = tasks.pop_back() {
-                incoming_buffer.push_front(task);
+            let mut buffer = self.message_buffer.borrow_mut();
+            match &mut *buffer {
+                Some(ref mut incoming_buffer) => {
+                    while let Some(task) = tasks.pop_back() {
+                        incoming_buffer.push_front(task);
+                    }
+                },
+                None => *buffer = Some(tasks),
             }
         }
     }
 
     /// A message was received from our entangled port.
     pub fn handle_incoming(&self, task: PortMessageTask) -> Option<PortMessageTask> {
-        println!("Handling incoming task for {:?}", self.message_port_id);
         if self.detached.get() {
             return None;
         }
 
         if self.enabled.get() && !self.awaiting_transfer.get() {
-            println!("Dispatgchin incoming task for {:?}", self.message_port_id);
             Some(task)
         } else {
-            println!("Buffering incoming task for {:?}", self.message_port_id);
-            self.message_buffer.borrow_mut().push_back(task);
+            let mut buffer = self.message_buffer.borrow_mut();
+            match &mut *buffer {
+                Some(ref mut buffer) => {
+                    buffer.push_back(task);
+                },
+                None => {
+                    let mut queue = VecDeque::new();
+                    queue.push_back(task);
+                    *buffer = Some(queue);
+                },
+            }
             None
         }
     }
@@ -121,7 +133,7 @@ impl MessagePortImpl {
         if self.awaiting_transfer.get() {
             return None;
         }
-        Some(self.message_buffer.borrow_mut().drain(0..).collect())
+        self.message_buffer.borrow_mut().take()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-close>

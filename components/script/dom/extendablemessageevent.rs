@@ -10,6 +10,7 @@ use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::bindings::utils::message_ports_to_frozen_array;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::extendableevent::ExtendableEvent;
@@ -18,9 +19,8 @@ use crate::dom::messageport::MessagePort;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::conversions::ToJSValConvertible;
-use js::jsapi::{HandleObject as RawHandleObject, Heap, JS_FreezeObject};
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsapi::Heap;
+use js::jsval::JSVal;
 use js::rust::HandleValue;
 use servo_atoms::Atom;
 
@@ -139,13 +139,7 @@ impl ExtendableMessageEventMethods for ExtendableMessageEvent {
     }
 
     /// https://w3c.github.io/ServiceWorker/#extendablemessage-event-ports
-    #[allow(unsafe_code)]
     fn Ports(&self, cx: JSContext) -> JSVal {
-        rooted!(in(*cx) let mut ports = UndefinedValue());
-        unsafe { self.ports.to_jsval(*cx, ports.handle_mut()) };
-
-        rooted!(in(*cx) let obj = ports.to_object());
-        unsafe { JS_FreezeObject(*cx, RawHandleObject::from(obj.handle())) };
-        *ports
+        message_ports_to_frozen_array(self.ports.as_slice(), cx)
     }
 }

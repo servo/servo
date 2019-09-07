@@ -7,9 +7,7 @@
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use parking_lot::Mutex;
-use servo_url::ImmutableOrigin;
 use std::cell::Cell;
-use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use std::mem;
 use std::num::NonZeroU32;
@@ -311,34 +309,6 @@ impl PartialEq<BrowsingContextId> for TopLevelBrowsingContextId {
     fn eq(&self, rhs: &BrowsingContextId) -> bool {
         self.0.eq(rhs)
     }
-}
-
-/// Data-holder for https://html.spec.whatwg.org/multipage/#transferable-objects
-/// and https://html.spec.whatwg.org/multipage/#serializable-objects
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
-pub struct StructuredSerializedData {
-    /// Serialized data.
-    pub js: Vec<u8>,
-    /// Transferred objects.
-    pub ports: Option<HashMap<MessagePortId, Vec<u8>>>,
-}
-
-/// A task on the https://html.spec.whatwg.org/multipage/#port-message-queue
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
-pub struct PortMessageTask {
-    pub origin: ImmutableOrigin,
-    pub data: StructuredSerializedData,
-}
-
-/// Messages for communication between the constellation and a global managing ports.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum MessagePortMsg {
-    /// Enables a port to catch-up on messages that were sent while the transfer was ongoing.
-    CompleteTransfer(MessagePortId, Option<VecDeque<PortMessageTask>>),
-    /// Remove a port, the entangled one doesn't exists anymore.
-    RemoveMessagePort(MessagePortId),
-    /// Handle a new port-message-task.
-    NewTask(MessagePortId, PortMessageTask),
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]

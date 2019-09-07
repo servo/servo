@@ -296,7 +296,7 @@ impl GlobalScope {
         if let Some(router_id) = self.message_ports_router_id.borrow().as_ref() {
             let _ = self
                 .script_to_constellation_chan()
-                .send(ScriptMsg::RemoveMessagePortRouter(router_id));
+                .send(ScriptMsg::RemoveMessagePortRouter(router_id.clone()));
         }
     }
 

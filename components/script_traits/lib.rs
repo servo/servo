@@ -1021,7 +1021,7 @@ impl ScriptToConstellationChan {
 /// <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct StructuredSerializedData {
-    /// Serialized data.
+    /// Data serialized by SpiderMonkey.
     pub serialized: Vec<u8>,
     /// Transferred objects.
     pub ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
