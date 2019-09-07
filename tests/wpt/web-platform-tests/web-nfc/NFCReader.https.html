@@ -117,7 +117,7 @@ with '*' wildcard character in the beginning of path component followed by \
 subpath.");
 
 nfc_test(async (t, mockNFC) => {
-  const reader = new NFCReader({url: ""});
+  const reader = new NFCReader();
   const controller = new AbortController();
   const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
 

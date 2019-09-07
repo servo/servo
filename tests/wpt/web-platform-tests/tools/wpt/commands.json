@@ -1,17 +1,86 @@
 {
-    "run": {"path": "run.py", "script": "run", "parser": "create_parser", "help": "Run tests in a browser",
-            "virtualenv": true, "install": ["requests", "zstandard"],
-            "requirements": ["../wptrunner/requirements.txt"]},
-    "create": {"path": "create.py", "script": "run", "parser": "get_parser", "help": "Create a new wpt test"},
-    "update-expectations": {"path": "update.py", "script": "update_expectations",
-                            "parser": "create_parser_update", "help": "Update expectations files from raw logs.",
-                            "virtualenv": true, "install": ["requests"],
-                            "requirements": ["../wptrunner/requirements.txt"]},
-    "files-changed": {"path": "testfiles.py", "script": "run_changed_files", "parser": "get_parser",
-                      "help": "Get a list of files that have changed", "virtualenv": false},
-    "tests-affected": {"path": "testfiles.py", "script": "run_tests_affected", "parser": "get_parser_affected",
-                       "help": "Get a list of tests affected by changes", "virtualenv": false},
-    "install": {"path": "install.py", "script": "run", "parser": "get_parser", "help": "Install browser components",
-                "install": ["mozdownload", "mozinstall"]},
-    "branch-point": {"path": "testfiles.py", "script": "display_branch_point", "parser": null, "help": "Print branch point from master", "virtualenv": false}
+  "run": {
+    "path": "run.py",
+    "script": "run",
+    "parser": "create_parser",
+    "help": "Run tests in a browser",
+    "virtualenv": true,
+    "install": [
+      "requests",
+      "zstandard"
+    ],
+    "requirements": [
+      "../wptrunner/requirements.txt"
+    ]
+  },
+  "create": {
+    "path": "create.py",
+    "script": "run",
+    "parser": "get_parser",
+    "help": "Create a new wpt test"
+  },
+  "update-expectations": {
+    "path": "update.py",
+    "script": "update_expectations",
+    "parser": "create_parser_update",
+    "help": "Update expectations files from raw logs.",
+    "virtualenv": true,
+    "install": [
+      "requests"
+    ],
+    "requirements": [
+      "../wptrunner/requirements.txt"
+    ]
+  },
+  "files-changed": {
+    "path": "testfiles.py",
+    "script": "run_changed_files",
+    "parser": "get_parser",
+    "help": "Get a list of files that have changed",
+    "virtualenv": false
+  },
+  "tests-affected": {
+    "path": "testfiles.py",
+    "script": "run_tests_affected",
+    "parser": "get_parser_affected",
+    "help": "Get a list of tests affected by changes",
+    "virtualenv": false
+  },
+  "install": {
+    "path": "install.py",
+    "script": "run",
+    "parser": "get_parser",
+    "help": "Install browser components",
+    "install": [
+      "mozdownload",
+      "mozinstall"
+    ]
+  },
+  "branch-point": {
+    "path": "testfiles.py",
+    "script": "display_branch_point",
+    "parser": null,
+    "help": "Print branch point from master",
+    "virtualenv": false
+  },
+  "install-android-emulator": {
+    "path": "android.py",
+    "script": "run_install",
+    "parser": "get_parser_install",
+    "help": "Setup the x86 android emulator",
+    "virtualenv": true,
+    "install": [
+      "requests"
+    ]
+  },
+  "start-android-emulator": {
+    "path": "android.py",
+    "script": "run_start",
+    "parser": "get_parser_start",
+    "help": "Start the x86 android emulator",
+    "virtualenv": true,
+    "install": [
+      "requests"
+    ]
+  }
 }

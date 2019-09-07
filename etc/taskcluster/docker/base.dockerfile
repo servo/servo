@@ -17,6 +17,7 @@ RUN \
         # Running mach
         python \
         python-pip \
+        python-dev \
         #
         # Installing rustup and sccache (build dockerfile) or fetching build artifacts (run tasks)
         curl && \

@@ -86,7 +86,8 @@ function callWhenButtonClicked(click_handler) {
   return new Promise((resolve, reject) => {
     document.querySelector('#share_button').onclick = () => {
       try {
-        resolve(click_handler());
+        const result = click_handler();
+        resolve(result);
       } catch (e) {
         reject(e);
       }
