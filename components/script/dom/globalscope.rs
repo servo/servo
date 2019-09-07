@@ -293,7 +293,7 @@ impl GlobalScope {
     /// Tell the constellation to drop the sender to our message-port router.
     /// Performed as part of document unloading.
     pub fn remove_message_ports_router(&self) {
-        if let Some(router_id) = *self.message_ports_router_id.borrow_mut() {
+        if let Some(router_id) = self.message_ports_router_id.borrow().as_ref() {
             let _ = self
                 .script_to_constellation_chan()
                 .send(ScriptMsg::RemoveMessagePortRouter(router_id));
@@ -312,14 +312,14 @@ impl GlobalScope {
             Some(port1) => {
                 port1.entangle(port2.clone());
             },
-            _ => unreachable!("Ports to entangle should exist"),
+            _ => panic!("Ports to entangle should exist"),
         }
 
         match self.message_ports.borrow_mut().get(&port2) {
             Some(port2) => {
                 port2.entangle(port1.clone());
             },
-            _ => unreachable!("Ports to entangle should exist"),
+            _ => panic!("Ports to entangle should exist"),
         }
 
         let _ = self
@@ -396,7 +396,7 @@ impl GlobalScope {
         let message_ports = self.message_ports.borrow();
         let port = message_ports
             .get(&port_id)
-            .expect("Port whose postMessage was set to exist");
+            .expect("Port whose postMessage was called to exist");
         if let Some(entangled_id) = port.entangled_port_id() {
             // Step 7
             let this = Trusted::new(&*self);
@@ -510,9 +510,7 @@ impl GlobalScope {
         let weak = dom_ports.get(port_id).expect("MessagePort to be tracked");
         match weak.root() {
             Some(dom_port) => dom_port,
-            None => {
-                unreachable!("Messageport Gc'ed too early");
-            },
+            None => panic!("Messageport Gc'ed too early"),
         }
     }
 
