@@ -442,16 +442,25 @@ impl ServoParser {
         // It's now cheap to clone the chunk, since it has been
         // decoded from a Vec<u8> to a StrTendril.
         if !chunk.is_empty() {
-            // Push the chunk into the prefetch input stream,
-            // which is tokenized eagerly, to scan for resources
-            // to prefetch. If the user script uses `document.write()`
-            // to overwrite the network input, this prefetching may
-            // have been wasted, but in most cases it won't.
-            let mut prefetch_input = self.prefetch_input.borrow_mut();
-            prefetch_input.push_back(chunk.clone());
-            self.prefetch_tokenizer
-                .borrow_mut()
-                .feed(&mut *prefetch_input);
+            // Per https://github.com/whatwg/html/issues/1495
+            // stylesheets should not be loaded for documents
+            // without browsing contexts.
+            // https://github.com/whatwg/html/issues/1495#issuecomment-230334047
+            // suggests that no content should be preloaded in such a case.
+            // We're conservative, and only prefetch for documents
+            // with browsing contexts.
+            if self.document.browsing_context().is_some() {
+                // Push the chunk into the prefetch input stream,
+                // which is tokenized eagerly, to scan for resources
+                // to prefetch. If the user script uses `document.write()`
+                // to overwrite the network input, this prefetching may
+                // have been wasted, but in most cases it won't.
+                let mut prefetch_input = self.prefetch_input.borrow_mut();
+                prefetch_input.push_back(chunk.clone());
+                self.prefetch_tokenizer
+                    .borrow_mut()
+                    .feed(&mut *prefetch_input);
+            }
             // Push the chunk into the network input stream,
             // which is tokenized lazily.
             self.network_input.borrow_mut().push_back(chunk);
