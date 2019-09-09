@@ -1,20 +1,31 @@
-pub(crate) use crate::style::values::Length;
-use crate::style::values::{LengthOrAuto, LengthOrPercentage, LengthOrPercentageOrAuto};
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use crate::style_ext::{Direction, WritingMode};
+use std::ops::{Add, AddAssign, Sub};
+use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
+use style::Zero;
+use style_traits::CSSPixel;
+
+pub type Point<U> = euclid::Point2D<f32, U>;
+pub type Size<U> = euclid::Size2D<f32, U>;
+pub type Rect<U> = euclid::Rect<f32, U>;
 
 pub(crate) mod physical {
-    #[derive(Debug, Clone)]
+    #[derive(Clone, Debug)]
     pub(crate) struct Vec2<T> {
         pub x: T,
         pub y: T,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Clone, Debug)]
     pub(crate) struct Rect<T> {
         pub top_left: Vec2<T>,
         pub size: Vec2<T>,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Clone, Debug)]
     pub(crate) struct Sides<T> {
         pub top: T,
         pub left: T,
@@ -24,19 +35,19 @@ pub(crate) mod physical {
 }
 
 pub(crate) mod flow_relative {
-    #[derive(Debug, Clone)]
+    #[derive(Clone, Debug)]
     pub(crate) struct Vec2<T> {
         pub inline: T,
         pub block: T,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Clone, Debug)]
     pub(crate) struct Rect<T> {
         pub start_corner: Vec2<T>,
         pub size: Vec2<T>,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Clone, Debug)]
     pub(crate) struct Sides<T> {
         pub inline_start: T,
         pub inline_end: T,
@@ -44,9 +55,6 @@ pub(crate) mod flow_relative {
         pub block_end: T,
     }
 }
-
-use crate::style::values::{Direction, WritingMode};
-use std::ops::{Add, AddAssign, Sub};
 
 impl<T> Add<&'_ physical::Vec2<T>> for &'_ physical::Vec2<T>
 where
@@ -145,9 +153,9 @@ impl<T: Clone> flow_relative::Vec2<T> {
     }
 }
 
-impl From<physical::Vec2<Length>> for crate::primitives::Point<crate::primitives::CssPx> {
+impl From<physical::Vec2<Length>> for Point<CSSPixel> {
     fn from(v: physical::Vec2<Length>) -> Self {
-        crate::primitives::Point::from_lengths(v.x.into(), v.y.into())
+        Point::from_lengths(v.x.into(), v.y.into())
     }
 }
 
@@ -159,18 +167,14 @@ impl<T: Clone> physical::Sides<T> {
         // https://drafts.csswg.org/css-writing-modes/#logical-to-physical
         let (bs, be) = match mode.0 {
             HorizontalTb => (&self.top, &self.bottom),
-            VerticalRl | SidewaysRl => (&self.right, &self.left),
-            VerticalLr | SidewaysLr => (&self.left, &self.right),
+            VerticalRl => (&self.right, &self.left),
+            VerticalLr => (&self.left, &self.right),
         };
         let (is, ie) = match mode {
             (HorizontalTb, Ltr) => (&self.left, &self.right),
             (HorizontalTb, Rtl) => (&self.right, &self.left),
-            (VerticalRl, Ltr) | (SidewaysRl, Ltr) | (VerticalLr, Ltr) | (SidewaysLr, Rtl) => {
-                (&self.top, &self.bottom)
-            }
-            (VerticalRl, Rtl) | (SidewaysRl, Rtl) | (VerticalLr, Rtl) | (SidewaysLr, Ltr) => {
-                (&self.bottom, &self.top)
-            }
+            (VerticalRl, Ltr) | (VerticalLr, Ltr) => (&self.top, &self.bottom),
+            (VerticalRl, Rtl) | (VerticalLr, Rtl) => (&self.bottom, &self.top),
         };
         flow_relative::Sides {
             inline_start: is.clone(),
@@ -229,13 +233,13 @@ impl<T> flow_relative::Sides<T> {
     }
 }
 
-impl flow_relative::Sides<LengthOrPercentage> {
+impl flow_relative::Sides<LengthPercentage> {
     pub fn percentages_relative_to(&self, basis: Length) -> flow_relative::Sides<Length> {
         self.map(|s| s.percentage_relative_to(basis))
     }
 }
 
-impl flow_relative::Sides<LengthOrPercentageOrAuto> {
+impl flow_relative::Sides<LengthPercentageOrAuto> {
     pub fn percentages_relative_to(&self, basis: Length) -> flow_relative::Sides<LengthOrAuto> {
         self.map(|s| s.percentage_relative_to(basis))
     }
@@ -320,11 +324,11 @@ impl<T> physical::Rect<T> {
     }
 }
 
-impl From<physical::Rect<Length>> for crate::primitives::Rect<crate::primitives::CssPx> {
+impl From<physical::Rect<Length>> for Rect<CSSPixel> {
     fn from(r: physical::Rect<Length>) -> Self {
-        crate::primitives::Rect {
-            origin: crate::primitives::Point::new(r.top_left.x.px, r.top_left.y.px),
-            size: crate::primitives::Size::new(r.size.x.px, r.size.y.px),
+        Rect {
+            origin: Point::new(r.top_left.x.px(), r.top_left.y.px()),
+            size: Size::new(r.size.x.px(), r.size.y.px()),
         }
     }
 }

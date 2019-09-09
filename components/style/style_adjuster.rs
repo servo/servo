@@ -12,6 +12,7 @@ use crate::properties::longhands::float::computed_value::T as Float;
 use crate::properties::longhands::overflow_x::computed_value::T as Overflow;
 use crate::properties::longhands::position::computed_value::T as Position;
 use crate::properties::{self, ComputedValues, StyleBuilder};
+#[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
 use crate::values::specified::box_::DisplayInside;
 use app_units::Au;
 
@@ -183,6 +184,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     where
         E: TElement,
     {
+        #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
         use crate::computed_values::list_style_position::T as ListStylePosition;
 
         let mut blockify = false;
@@ -205,6 +207,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         blockify_if!(self.style.floated());
         blockify_if!(self.style.out_of_flow_positioned());
+        #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
         blockify_if!(
             self.style.pseudo.map_or(false, |p| p.is_marker()) &&
                 self.style.get_parent_list().clone_list_style_position() ==

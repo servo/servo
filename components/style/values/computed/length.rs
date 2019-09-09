@@ -20,9 +20,9 @@ use crate::Zero;
 use app_units::Au;
 use ordered_float::NotNan;
 use std::fmt::{self, Write};
-use std::ops::{Add, Neg};
+use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub};
 use style_traits::values::specified::AllowedNumericType;
-use style_traits::{CssWriter, ToCss};
+use style_traits::{CSSPixel, CssWriter, ToCss};
 
 pub use super::image::Image;
 pub use crate::values::specified::url::UrlOrNone;
@@ -206,20 +206,26 @@ impl LengthPercentage {
         Some(Percentage(self.clamping_mode.clamp(self.percentage.0)))
     }
 
+    /// Resolves the percentage.
+    #[inline]
+    pub fn percentage_relative_to(&self, basis: Length) -> Length {
+        let length = self.unclamped_length().0 + basis.0 * self.percentage.0;
+        Length::new(self.clamping_mode.clamp(length))
+    }
+
     /// Convert the computed value into used value.
     #[inline]
-    pub fn maybe_to_used_value(&self, container_len: Option<Au>) -> Option<Au> {
-        self.maybe_to_pixel_length(container_len).map(Au::from)
+    pub fn maybe_to_used_value(&self, container_len: Option<Length>) -> Option<Au> {
+        self.maybe_percentage_relative_to(container_len)
+            .map(Au::from)
     }
 
     /// If there are special rules for computing percentages in a value (e.g.
     /// the height property), they apply whenever a calc() expression contains
     /// percentages.
-    pub fn maybe_to_pixel_length(&self, container_len: Option<Au>) -> Option<Length> {
+    pub fn maybe_percentage_relative_to(&self, container_len: Option<Length>) -> Option<Length> {
         if self.has_percentage {
-            let length = self.unclamped_length().px() +
-                container_len?.scale_by(self.percentage.0).to_f32_px();
-            return Some(Length::new(self.clamping_mode.clamp(length)));
+            return Some(self.percentage_relative_to(container_len?));
         }
         Some(self.length())
     }
@@ -371,7 +377,7 @@ impl LengthPercentage {
 
     /// Returns the used value as CSSPixelLength.
     pub fn to_pixel_length(&self, containing_length: Au) -> Length {
-        self.maybe_to_pixel_length(Some(containing_length)).unwrap()
+        self.percentage_relative_to(containing_length.into())
     }
 
     /// Returns the clamped non-negative values.
@@ -488,6 +494,30 @@ impl LengthPercentageOrAuto {
     }
 
     computed_length_percentage_or_auto!(LengthPercentage);
+
+    /// Resolves the percentage.
+    #[inline]
+    pub fn percentage_relative_to(&self, basis: Length) -> LengthOrAuto {
+        use values::generics::length::LengthPercentageOrAuto::*;
+        match self {
+            LengthPercentage(length_percentage) => {
+                LengthPercentage(length_percentage.percentage_relative_to(basis))
+            },
+            Auto => Auto,
+        }
+    }
+
+    /// Maybe resolves the percentage.
+    #[inline]
+    pub fn maybe_percentage_relative_to(&self, basis: Option<Length>) -> LengthOrAuto {
+        use values::generics::length::LengthPercentageOrAuto::*;
+        match self {
+            LengthPercentage(length_percentage) => length_percentage
+                .maybe_percentage_relative_to(basis)
+                .map_or(Auto, LengthPercentage),
+            Auto => Auto,
+        }
+    }
 }
 
 /// A wrapper of LengthPercentageOrAuto, whose value must be >= 0.
@@ -555,7 +585,9 @@ impl NonNegativeLengthPercentage {
     /// Convert the computed value into used value.
     #[inline]
     pub fn maybe_to_used_value(&self, containing_length: Option<Au>) -> Option<Au> {
-        let resolved = self.0.maybe_to_used_value(containing_length)?;
+        let resolved = self
+            .0
+            .maybe_to_used_value(containing_length.map(|v| v.into()))?;
         Some(::std::cmp::max(resolved, Au(0)))
     }
 }
@@ -644,6 +676,23 @@ impl CSSPixelLength {
     pub fn clamp_to_non_negative(self) -> Self {
         CSSPixelLength::new(self.0.max(0.))
     }
+
+    /// Returns the minimum between `self` and `other`.
+    #[inline]
+    pub fn min(self, other: Self) -> Self {
+        CSSPixelLength::new(self.0.min(other.0))
+    }
+
+    /// Returns the maximum between `self` and `other`.
+    #[inline]
+    pub fn max(self, other: Self) -> Self {
+        CSSPixelLength::new(self.0.max(other.0))
+    }
+
+    /// Sets `self` to the maximum between `self` and `other`.
+    pub fn max_assign(&mut self, other: Self) {
+        *self = self.max(other);
+    }
 }
 
 impl Zero for CSSPixelLength {
@@ -676,12 +725,46 @@ impl Add for CSSPixelLength {
     }
 }
 
+impl AddAssign for CSSPixelLength {
+    #[inline]
+    fn add_assign(&mut self, other: Self) {
+        self.0 += other.0;
+    }
+}
+
+impl Div<CSSFloat> for CSSPixelLength {
+    type Output = Self;
+
+    #[inline]
+    fn div(self, other: CSSFloat) -> Self {
+        Self::new(self.px() / other)
+    }
+}
+
+impl Mul<CSSFloat> for CSSPixelLength {
+    type Output = Self;
+
+    #[inline]
+    fn mul(self, other: CSSFloat) -> Self {
+        Self::new(self.px() * other)
+    }
+}
+
 impl Neg for CSSPixelLength {
     type Output = Self;
 
     #[inline]
     fn neg(self) -> Self {
         CSSPixelLength::new(-self.0)
+    }
+}
+
+impl Sub for CSSPixelLength {
+    type Output = Self;
+
+    #[inline]
+    fn sub(self, other: Self) -> Self {
+        Self::new(self.px() - other.px())
     }
 }
 
@@ -696,6 +779,13 @@ impl From<Au> for CSSPixelLength {
     #[inline]
     fn from(len: Au) -> Self {
         CSSPixelLength::new(len.to_f32_px())
+    }
+}
+
+impl From<CSSPixelLength> for euclid::Length<CSSFloat, CSSPixel> {
+    #[inline]
+    fn from(length: CSSPixelLength) -> Self {
+        Self::new(length.0)
     }
 }
 
