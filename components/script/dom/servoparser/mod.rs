@@ -468,7 +468,19 @@ impl ServoParser {
     }
 
     fn push_string_input_chunk(&self, chunk: String) {
-        self.push_bytes_input_chunk(chunk.into());
+        // Convert the chunk to a tendril so cloning it isn't expensive.
+        let chunk = StrTendril::from(chunk);
+        // Push the chunk into the prefetch input stream,
+        // this time bypassing the network decoder,
+        // since the chunk has already been decoded into a String.
+        let mut prefetch_input = self.prefetch_input.borrow_mut();
+        prefetch_input.push_back(chunk.clone());
+        self.prefetch_tokenizer
+            .borrow_mut()
+            .feed(&mut *prefetch_input);
+        // Push the chunk into the network input stream,
+        // bypassing the network decoder.
+        self.network_input.borrow_mut().push_back(chunk);
     }
 
     fn parse_sync(&self) {
