@@ -467,15 +467,15 @@ impl ServoParser {
             .as_mut()
             .unwrap()
             .decode(chunk);
-	self.push_tendril_input_chunk(chunk);
+        self.push_tendril_input_chunk(chunk);
     }
 
     fn push_string_input_chunk(&self, chunk: String) {
         // Convert the chunk to a tendril so cloning it isn't expensive.
-	// The input has already been decoded as a string, so doesn't need
-	// to be decoded by the network decoder again.
+        // The input has already been decoded as a string, so doesn't need
+        // to be decoded by the network decoder again.
         let chunk = StrTendril::from(chunk);
-	self.push_tendril_input_chunk(chunk);
+        self.push_tendril_input_chunk(chunk);
     }
 
     fn parse_sync(&self) {
