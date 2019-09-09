@@ -432,15 +432,7 @@ impl ServoParser {
         )
     }
 
-    fn push_bytes_input_chunk(&self, chunk: Vec<u8>) {
-        let chunk = self
-            .network_decoder
-            .borrow_mut()
-            .as_mut()
-            .unwrap()
-            .decode(chunk);
-        // It's now cheap to clone the chunk, since it has been
-        // decoded from a Vec<u8> to a StrTendril.
+    fn push_tendril_input_chunk(&self, chunk: StrTendril) {
         if !chunk.is_empty() {
             // Per https://github.com/whatwg/html/issues/1495
             // stylesheets should not be loaded for documents
@@ -467,20 +459,23 @@ impl ServoParser {
         }
     }
 
+    fn push_bytes_input_chunk(&self, chunk: Vec<u8>) {
+        // For byte input, we convert it to text using the network decoder.
+        let chunk = self
+            .network_decoder
+            .borrow_mut()
+            .as_mut()
+            .unwrap()
+            .decode(chunk);
+	self.push_tendril_input_chunk(chunk);
+    }
+
     fn push_string_input_chunk(&self, chunk: String) {
         // Convert the chunk to a tendril so cloning it isn't expensive.
+	// The input has already been decoded as a string, so doesn't need
+	// to be decoded by the network decoder again.
         let chunk = StrTendril::from(chunk);
-        // Push the chunk into the prefetch input stream,
-        // this time bypassing the network decoder,
-        // since the chunk has already been decoded into a String.
-        let mut prefetch_input = self.prefetch_input.borrow_mut();
-        prefetch_input.push_back(chunk.clone());
-        self.prefetch_tokenizer
-            .borrow_mut()
-            .feed(&mut *prefetch_input);
-        // Push the chunk into the network input stream,
-        // bypassing the network decoder.
-        self.network_input.borrow_mut().push_back(chunk);
+	self.push_tendril_input_chunk(chunk);
     }
 
     fn parse_sync(&self) {
