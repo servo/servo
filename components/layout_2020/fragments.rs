@@ -1,5 +1,14 @@
-use super::*;
-use crate::text::ShapedSegment;
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use crate::geom::flow_relative::{Rect, Sides};
+use crate::style_ext::{Direction, WritingMode};
+// use crate::text::ShapedSegment;
+use servo_arc::Arc;
+use style::properties::ComputedValues;
+use style::values::computed::Length;
+use style::Zero;
 
 pub(crate) enum Fragment {
     Box(BoxFragment),
@@ -45,7 +54,7 @@ pub(crate) struct AnonymousFragment {
 pub(crate) struct TextFragment {
     pub parent_style: Arc<ComputedValues>,
     pub content_rect: Rect<Length>,
-    pub text: ShapedSegment,
+    // pub text: ShapedSegment,
 }
 
 impl AnonymousFragment {

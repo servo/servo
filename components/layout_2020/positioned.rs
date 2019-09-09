@@ -1,30 +1,41 @@
-use super::*;
-use rayon::prelude::*;
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use crate::fragments::{AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment};
+use crate::geom::flow_relative::{Rect, Sides, Vec2};
+use crate::style_ext::{ComputedValuesExt, Direction, WritingMode};
+use crate::{ContainingBlock, DefiniteContainingBlock, IndependentFormattingContext};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use servo_arc::Arc;
+use style::properties::ComputedValues;
+use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
+use style::Zero;
 
 #[derive(Debug)]
-pub(super) struct AbsolutelyPositionedBox {
+pub(crate) struct AbsolutelyPositionedBox {
     pub style: Arc<ComputedValues>,
     pub contents: IndependentFormattingContext,
 }
 
 #[derive(Debug)]
-pub(super) struct AbsolutelyPositionedFragment<'box_> {
+pub(crate) struct AbsolutelyPositionedFragment<'box_> {
     absolutely_positioned_box: &'box_ AbsolutelyPositionedBox,
 
     /// The rank of the child from which this absolutely positioned fragment
     /// came from, when doing the layout of a block container. Used to compute
     /// static positions when going up the tree.
-    pub(super) tree_rank: usize,
+    pub(crate) tree_rank: usize,
 
-    pub(super) inline_start: AbsoluteBoxOffsets<LengthOrPercentage>,
-    inline_size: LengthOrPercentageOrAuto,
+    pub(crate) inline_start: AbsoluteBoxOffsets<LengthPercentage>,
+    inline_size: LengthPercentageOrAuto,
 
-    pub(super) block_start: AbsoluteBoxOffsets<LengthOrPercentage>,
-    block_size: LengthOrPercentageOrAuto,
+    pub(crate) block_start: AbsoluteBoxOffsets<LengthPercentage>,
+    block_size: LengthPercentageOrAuto,
 }
 
 #[derive(Clone, Copy, Debug)]
-pub(super) enum AbsoluteBoxOffsets<NonStatic> {
+pub(crate) enum AbsoluteBoxOffsets<NonStatic> {
     StaticStart { start: Length },
     Start { start: NonStatic },
     End { end: NonStatic },
@@ -32,7 +43,7 @@ pub(super) enum AbsoluteBoxOffsets<NonStatic> {
 }
 
 impl AbsolutelyPositionedBox {
-    pub(super) fn layout<'a>(
+    pub(crate) fn layout<'a>(
         &'a self,
         initial_start_corner: Vec2<Length>,
         tree_rank: usize,
@@ -46,9 +57,9 @@ impl AbsolutelyPositionedBox {
 
         fn absolute_box_offsets(
             initial_static_start: Length,
-            start: LengthOrPercentageOrAuto,
-            end: LengthOrPercentageOrAuto,
-        ) -> AbsoluteBoxOffsets<LengthOrPercentage> {
+            start: LengthPercentageOrAuto,
+            end: LengthPercentageOrAuto,
+        ) -> AbsoluteBoxOffsets<LengthPercentage> {
             match (start.non_auto(), end.non_auto()) {
                 (None, None) => AbsoluteBoxOffsets::StaticStart {
                     start: initial_static_start,
@@ -82,7 +93,7 @@ impl AbsolutelyPositionedBox {
 }
 
 impl<'a> AbsolutelyPositionedFragment<'a> {
-    pub(super) fn in_positioned_containing_block(
+    pub(crate) fn in_positioned_containing_block(
         absolute: &[Self],
         fragments: &mut Vec<Fragment>,
         content_rect_size: &Vec2<Length>,
@@ -112,13 +123,13 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
         }))
     }
 
-    pub(super) fn layout(&self, containing_block: &DefiniteContainingBlock) -> Fragment {
+    pub(crate) fn layout(&self, containing_block: &DefiniteContainingBlock) -> Fragment {
         let style = &self.absolutely_positioned_box.style;
         let cbis = containing_block.size.inline;
         let cbbs = containing_block.size.block;
 
         let padding = style.padding().percentages_relative_to(cbis);
-        let border = style.border_width().percentages_relative_to(cbis);
+        let border = style.border_width();
         let computed_margin = style.margin().percentages_relative_to(cbis);
         let pb = &padding + &border;
 
@@ -133,8 +144,8 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             computed_margin_start: LengthOrAuto,
             computed_margin_end: LengthOrAuto,
             solve_margins: impl FnOnce(Length) -> (Length, Length),
-            box_offsets: AbsoluteBoxOffsets<LengthOrPercentage>,
-            size: LengthOrPercentageOrAuto,
+            box_offsets: AbsoluteBoxOffsets<LengthPercentage>,
+            size: LengthPercentageOrAuto,
         ) -> (Anchor, LengthOrAuto, Length, Length) {
             let size = size.percentage_relative_to(containing_size);
             match box_offsets {
@@ -163,40 +174,42 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
                     let mut margin_start = computed_margin_start.auto_is(Length::zero);
                     let mut margin_end = computed_margin_end.auto_is(Length::zero);
 
-                    let size = if let LengthOrAuto::Length(size) = size {
-                        use LengthOrAuto::Auto;
+                    let size = if let LengthOrAuto::LengthPercentage(size) = size {
                         let margins = containing_size - start - end - padding_border_sum - size;
                         match (computed_margin_start, computed_margin_end) {
-                            (Auto, Auto) => {
+                            (LengthOrAuto::Auto, LengthOrAuto::Auto) => {
                                 let (s, e) = solve_margins(margins);
                                 margin_start = s;
                                 margin_end = e;
-                            }
-                            (Auto, LengthOrAuto::Length(end)) => {
+                            },
+                            (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => {
                                 margin_start = margins - end;
-                            }
-                            (LengthOrAuto::Length(start), Auto) => {
+                            },
+                            (LengthOrAuto::LengthPercentage(start), LengthOrAuto::Auto) => {
                                 margin_end = margins - start;
-                            }
-                            (LengthOrAuto::Length(_), LengthOrAuto::Length(_)) => {}
+                            },
+                            (
+                                LengthOrAuto::LengthPercentage(_),
+                                LengthOrAuto::LengthPercentage(_),
+                            ) => {},
                         }
                         size
                     } else {
                         // FIXME(nox): What happens if that is negative?
-                        containing_size
-                            - start
-                            - end
-                            - padding_border_sum
-                            - margin_start
-                            - margin_end
+                        containing_size -
+                            start -
+                            end -
+                            padding_border_sum -
+                            margin_start -
+                            margin_end
                     };
                     (
                         Anchor::Start(start),
-                        LengthOrAuto::Length(size),
+                        LengthOrAuto::LengthPercentage(size),
                         margin_start,
                         margin_end,
                     )
-                }
+                },
             }
         }
 
@@ -206,7 +219,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             computed_margin.inline_start,
             computed_margin.inline_end,
             |margins| {
-                if margins.px >= 0. {
+                if margins.px() >= 0. {
                     (margins / 2., margins / 2.)
                 } else {
                     (Length::zero(), margins)
@@ -303,7 +316,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
     }
 }
 
-pub(super) fn adjust_static_positions(
+pub(crate) fn adjust_static_positions(
     absolutely_positioned_fragments: &mut [AbsolutelyPositionedFragment],
     child_fragments: &mut [Fragment],
     tree_rank_in_parent: usize,

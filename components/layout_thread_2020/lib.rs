@@ -565,6 +565,7 @@ impl LayoutThread {
                 traversal_flags: TraversalFlags::empty(),
                 snapshot_map: snapshot_map,
             },
+            font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
         }
     }
 

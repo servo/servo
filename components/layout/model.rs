@@ -502,7 +502,7 @@ pub fn style_length(style_length: Size, container_size: Option<Au>) -> MaybeAuto
     match style_length {
         Size::Auto => MaybeAuto::Auto,
         Size::LengthPercentage(ref lp) => {
-            MaybeAuto::from_option(lp.0.maybe_to_used_value(container_size))
+            MaybeAuto::from_option(lp.0.maybe_to_used_value(container_size.map(|l| l.into())))
         },
     }
 }

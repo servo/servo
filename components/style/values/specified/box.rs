@@ -44,7 +44,9 @@ pub enum DisplayOutside {
     None = 0,
     Inline,
     Block,
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     TableCaption,
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     InternalTable,
     #[cfg(feature = "gecko")]
     InternalRuby,
@@ -59,19 +61,30 @@ pub enum DisplayInside {
     None = 0,
     #[cfg(feature = "gecko")]
     Contents,
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     Block,
     FlowRoot,
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     Inline,
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     Flex,
     #[cfg(feature = "gecko")]
     Grid,
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     Table,
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     TableRowGroup,
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     TableColumn,
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     TableColumnGroup,
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     TableHeaderGroup,
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     TableFooterGroup,
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     TableRow,
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     TableCell,
     #[cfg(feature = "gecko")]
     Ruby,
@@ -140,19 +153,30 @@ impl Display {
     pub const None: Self = Self::new(DisplayOutside::None, DisplayInside::None);
     #[cfg(feature = "gecko")]
     pub const Contents: Self = Self::new(DisplayOutside::None, DisplayInside::Contents);
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     pub const Inline: Self = Self::new(DisplayOutside::Inline, DisplayInside::Inline);
+    #[cfg(any(feature = "servo-layout-2020"))]
+    pub const Inline: Self = Self::new(DisplayOutside::Inline, DisplayInside::Flow);
     pub const InlineBlock: Self = Self::new(DisplayOutside::Inline, DisplayInside::FlowRoot);
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     pub const Block: Self = Self::new(DisplayOutside::Block, DisplayInside::Block);
+    #[cfg(any(feature = "servo-layout-2020"))]
+    pub const Block: Self = Self::new(DisplayOutside::Block, DisplayInside::Flow);
     #[cfg(feature = "gecko")]
     pub const FlowRoot: Self = Self::new(DisplayOutside::Block, DisplayInside::FlowRoot);
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     pub const Flex: Self = Self::new(DisplayOutside::Block, DisplayInside::Flex);
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     pub const InlineFlex: Self = Self::new(DisplayOutside::Inline, DisplayInside::Flex);
     #[cfg(feature = "gecko")]
     pub const Grid: Self = Self::new(DisplayOutside::Block, DisplayInside::Grid);
     #[cfg(feature = "gecko")]
     pub const InlineGrid: Self = Self::new(DisplayOutside::Inline, DisplayInside::Grid);
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     pub const Table: Self = Self::new(DisplayOutside::Block, DisplayInside::Table);
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     pub const InlineTable: Self = Self::new(DisplayOutside::Inline, DisplayInside::Table);
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     pub const TableCaption: Self = Self::new(DisplayOutside::TableCaption, DisplayInside::Block);
     #[cfg(feature = "gecko")]
     pub const Ruby: Self = Self::new(DisplayOutside::Inline, DisplayInside::Ruby);
@@ -160,25 +184,39 @@ impl Display {
     pub const WebkitBox: Self = Self::new(DisplayOutside::Block, DisplayInside::WebkitBox);
     #[cfg(feature = "gecko")]
     pub const WebkitInlineBox: Self = Self::new(DisplayOutside::Inline, DisplayInside::WebkitBox);
-    /// Internal table boxes.
+
+    // Internal table boxes.
+
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     pub const TableRowGroup: Self =
         Self::new(DisplayOutside::InternalTable, DisplayInside::TableRowGroup);
+
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     pub const TableHeaderGroup: Self = Self::new(
         DisplayOutside::InternalTable,
         DisplayInside::TableHeaderGroup,
     );
+
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     pub const TableFooterGroup: Self = Self::new(
         DisplayOutside::InternalTable,
         DisplayInside::TableFooterGroup,
     );
+
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     pub const TableColumn: Self =
         Self::new(DisplayOutside::InternalTable, DisplayInside::TableColumn);
+
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     pub const TableColumnGroup: Self = Self::new(
         DisplayOutside::InternalTable,
         DisplayInside::TableColumnGroup,
     );
+
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     pub const TableRow: Self = Self::new(DisplayOutside::InternalTable, DisplayInside::TableRow);
 
+    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     pub const TableCell: Self = Self::new(DisplayOutside::InternalTable, DisplayInside::TableCell);
 
     /// Internal ruby boxes.
@@ -235,6 +273,7 @@ impl Display {
     #[inline]
     fn from3(outside: DisplayOutside, inside: DisplayInside, list_item: bool) -> Self {
         let inside = match inside {
+            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             DisplayInside::Flow => match outside {
                 DisplayOutside::Inline => DisplayInside::Inline,
                 _ => DisplayInside::Block,
@@ -307,6 +346,7 @@ impl Display {
     pub fn is_atomic_inline_level(&self) -> bool {
         match *self {
             Display::InlineBlock => true,
+            #[cfg(any(feature = "servo-layout-2013"))]
             Display::InlineFlex | Display::InlineTable => true,
             _ => false,
         }
@@ -318,6 +358,7 @@ impl Display {
     /// This is used to implement various style fixups.
     pub fn is_item_container(&self) -> bool {
         match self.inside() {
+            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             DisplayInside::Flex => true,
             #[cfg(feature = "gecko")]
             DisplayInside::Grid => true,
@@ -352,12 +393,14 @@ impl Display {
         match self.outside() {
             DisplayOutside::Inline => {
                 let inside = match self.inside() {
+                    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
                     DisplayInside::Inline | DisplayInside::FlowRoot => DisplayInside::Block,
                     inside => inside,
                 };
                 Display::from3(DisplayOutside::Block, inside, self.is_list_item())
             },
             DisplayOutside::Block | DisplayOutside::None => *self,
+            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             _ => Display::Block,
         }
     }
@@ -413,6 +456,7 @@ impl ToCss for Display {
         );
         let outside = self.outside();
         let inside = match self.inside() {
+            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             DisplayInside::Block | DisplayInside::Inline => DisplayInside::Flow,
             inside => inside,
         };
@@ -427,10 +471,12 @@ impl ToCss for Display {
             Display::MozInlineGrid => dest.write_str("-moz-inline-grid"),
             #[cfg(feature = "gecko")]
             Display::MozInlineStack => dest.write_str("-moz-inline-stack"),
+            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             Display::TableCaption => dest.write_str("table-caption"),
             _ => match (outside, inside) {
                 #[cfg(feature = "gecko")]
                 (DisplayOutside::Inline, DisplayInside::Grid) => dest.write_str("inline-grid"),
+                #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
                 (DisplayOutside::Inline, DisplayInside::Flex) |
                 (DisplayOutside::Inline, DisplayInside::Table) => {
                     dest.write_str("inline-")?;
@@ -465,9 +511,11 @@ fn parse_display_inside<'i, 't>(
 ) -> Result<DisplayInside, ParseError<'i>> {
     Ok(try_match_ident_ignore_ascii_case! { input,
         "flow" => DisplayInside::Flow,
-        #[cfg(feature = "gecko")]
+        #[cfg(any(feature = "servo-layout-2020", feature = "gecko"))]
         "flow-root" => DisplayInside::FlowRoot,
+        #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
         "table" => DisplayInside::Table,
+        #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
         "flex" => DisplayInside::Flex,
         #[cfg(feature = "gecko")]
         "grid" => DisplayInside::Grid,
@@ -569,18 +617,29 @@ impl Parse for Display {
             #[cfg(feature = "gecko")]
             "contents" => Display::Contents,
             "inline-block" => Display::InlineBlock,
+            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             "inline-table" => Display::InlineTable,
+            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             "-webkit-flex" => Display::Flex,
+            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             "inline-flex" | "-webkit-inline-flex" => Display::InlineFlex,
             #[cfg(feature = "gecko")]
             "inline-grid" => Display::InlineGrid,
+            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             "table-caption" => Display::TableCaption,
+            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             "table-row-group" => Display::TableRowGroup,
+            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             "table-header-group" => Display::TableHeaderGroup,
+            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             "table-footer-group" => Display::TableFooterGroup,
+            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             "table-column" => Display::TableColumn,
+            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             "table-column-group" => Display::TableColumnGroup,
+            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             "table-row" => Display::TableRow,
+            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             "table-cell" => Display::TableCell,
             #[cfg(feature = "gecko")]
             "ruby-base" => Display::RubyBase,

@@ -1,32 +1,46 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 //! Flow layout, also known as block-and-inline layout.
 
-use super::*;
-use rayon::prelude::*;
+use crate::flow::float::{FloatBox, FloatContext};
+use crate::flow::inline::InlineFormattingContext;
+use crate::fragments::{
+    AnonymousFragment, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment,
+};
+use crate::geom::flow_relative::{Rect, Vec2};
+use crate::positioned::{
+    adjust_static_positions, AbsolutelyPositionedBox, AbsolutelyPositionedFragment,
+};
+use crate::style_ext::{ComputedValuesExt, Position};
+use crate::{relative_adjustement, ContainingBlock, IndependentFormattingContext};
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon_croissant::ParallelIteratorExt;
+use servo_arc::Arc;
+use style::properties::ComputedValues;
+use style::values::computed::{Length, LengthOrAuto};
+use style::Zero;
 
 mod construct;
 mod float;
-mod inline;
+pub mod inline;
 mod root;
 
-pub(super) use construct::*;
-pub(super) use float::*;
-pub(super) use inline::*;
-
 #[derive(Debug)]
-pub(super) struct BlockFormattingContext {
+pub(crate) struct BlockFormattingContext {
     pub contents: BlockContainer,
     pub contains_floats: bool,
 }
 
 #[derive(Debug)]
-pub(super) enum BlockContainer {
+pub(crate) enum BlockContainer {
     BlockLevelBoxes(Vec<Arc<BlockLevelBox>>),
     InlineFormattingContext(InlineFormattingContext),
 }
 
 #[derive(Debug)]
-pub(super) enum BlockLevelBox {
+pub(crate) enum BlockLevelBox {
     SameFormattingContextBlock {
         style: Arc<ComputedValues>,
         contents: BlockContainer,
@@ -98,7 +112,7 @@ impl BlockContainer {
             ),
             BlockContainer::InlineFormattingContext(ifc) => {
                 ifc.layout(containing_block, tree_rank, absolutely_positioned_fragments)
-            }
+            },
         }
     }
 }
@@ -115,9 +129,9 @@ fn layout_block_level_children<'a>(
         match fragment {
             Fragment::Box(fragment) => {
                 let fragment_block_margins = &fragment.block_margins_collapsed_with_children;
-                let fragment_block_size = fragment.padding.block_sum()
-                    + fragment.border.block_sum()
-                    + fragment.content_rect.size.block;
+                let fragment_block_size = fragment.padding.block_sum() +
+                    fragment.border.block_sum() +
+                    fragment.content_rect.size.block;
 
                 if placement_state.next_in_flow_margin_collapses_with_parent_start_margin {
                     assert_eq!(placement_state.current_margin.solve(), Length::zero());
@@ -136,8 +150,8 @@ fn layout_block_level_children<'a>(
                         .current_margin
                         .adjoin_assign(&fragment_block_margins.start);
                 }
-                fragment.content_rect.start_corner.block += placement_state.current_margin.solve()
-                    + placement_state.current_block_direction_position;
+                fragment.content_rect.start_corner.block += placement_state.current_margin.solve() +
+                    placement_state.current_block_direction_position;
                 if fragment_block_margins.collapsed_through {
                     placement_state
                         .current_margin
@@ -147,7 +161,7 @@ fn layout_block_level_children<'a>(
                 placement_state.current_block_direction_position +=
                     placement_state.current_margin.solve() + fragment_block_size;
                 placement_state.current_margin = fragment_block_margins.end;
-            }
+            },
             Fragment::Anonymous(fragment) => {
                 // FIXME(nox): Margin collapsing for hypothetical boxes of
                 // abspos elements is probably wrong.
@@ -155,7 +169,7 @@ fn layout_block_level_children<'a>(
                 assert_eq!(fragment.rect.size.block, Length::zero());
                 fragment.rect.start_corner.block +=
                     placement_state.current_block_direction_position;
-            }
+            },
             _ => unreachable!(),
         }
     }
@@ -261,12 +275,12 @@ impl BlockLevelBox {
                         )
                     },
                 ))
-            }
+            },
             BlockLevelBox::Independent { style, contents } => match contents.as_replaced() {
                 Ok(replaced) => {
                     // FIXME
                     match *replaced {}
-                }
+                },
                 Err(contents) => Fragment::Box(layout_in_flow_non_replaced_block_level(
                     containing_block,
                     absolutely_positioned_fragments,
@@ -280,11 +294,11 @@ impl BlockLevelBox {
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
                 absolutely_positioned_fragments.push(box_.layout(Vec2::zero(), tree_rank));
                 Fragment::Anonymous(AnonymousFragment::no_op(containing_block.mode))
-            }
+            },
             BlockLevelBox::OutOfFlowFloatBox(_box_) => {
                 // TODO
                 Fragment::Anonymous(AnonymousFragment::no_op(containing_block.mode))
-            }
+            },
         }
     }
 }
@@ -310,43 +324,40 @@ fn layout_in_flow_non_replaced_block_level<'a>(
 ) -> BoxFragment {
     let cbis = containing_block.inline_size;
     let padding = style.padding().percentages_relative_to(cbis);
-    let border = style.border_width().percentages_relative_to(cbis);
+    let border = style.border_width();
     let mut computed_margin = style.margin().percentages_relative_to(cbis);
     let pb = &padding + &border;
     let box_size = style.box_size();
     let inline_size = box_size.inline.percentage_relative_to(cbis);
-    if let LengthOrAuto::Length(is) = inline_size {
+    if let LengthOrAuto::LengthPercentage(is) = inline_size {
         let inline_margins = cbis - is - pb.inline_sum();
-        use LengthOrAuto::*;
         match (
             &mut computed_margin.inline_start,
             &mut computed_margin.inline_end,
         ) {
-            (s @ &mut Auto, e @ &mut Auto) => {
-                *s = Length(inline_margins / 2.);
-                *e = Length(inline_margins / 2.);
-            }
-            (s @ &mut Auto, _) => {
-                *s = Length(inline_margins);
-            }
-            (_, e @ &mut Auto) => {
-                *e = Length(inline_margins);
-            }
+            (s @ &mut LengthOrAuto::Auto, e @ &mut LengthOrAuto::Auto) => {
+                *s = LengthOrAuto::LengthPercentage(inline_margins / 2.);
+                *e = LengthOrAuto::LengthPercentage(inline_margins / 2.);
+            },
+            (s @ &mut LengthOrAuto::Auto, _) => {
+                *s = LengthOrAuto::LengthPercentage(inline_margins);
+            },
+            (_, e @ &mut LengthOrAuto::Auto) => {
+                *e = LengthOrAuto::LengthPercentage(inline_margins);
+            },
             (_, e @ _) => {
                 // Either the inline-end margin is auto,
                 // or we’re over-constrained and we do as if it were.
-                *e = Length(inline_margins);
-            }
+                *e = LengthOrAuto::LengthPercentage(inline_margins);
+            },
         }
     }
     let margin = computed_margin.auto_is(Length::zero);
     let mut block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
     let inline_size = inline_size.auto_is(|| cbis - pb.inline_sum() - margin.inline_sum());
-    let block_size = match box_size.block {
-        LengthOrPercentageOrAuto::Length(l) => LengthOrAuto::Length(l),
-        LengthOrPercentageOrAuto::Percentage(p) => containing_block.block_size.map(|cbbs| cbbs * p),
-        LengthOrPercentageOrAuto::Auto => LengthOrAuto::Auto,
-    };
+    let block_size = box_size
+        .block
+        .maybe_percentage_relative_to(containing_block.block_size.non_auto());
     let containing_block_for_children = ContainingBlock {
         inline_size,
         block_size,
@@ -358,11 +369,11 @@ fn layout_in_flow_non_replaced_block_level<'a>(
         "Mixed writing modes are not supported yet"
     );
     let this_start_margin_can_collapse_with_children = CollapsibleWithParentStartMargin(
-        block_level_kind == BlockLevelKind::SameFormattingContextBlock
-            && pb.block_start == Length::zero(),
+        block_level_kind == BlockLevelKind::SameFormattingContextBlock &&
+            pb.block_start == Length::zero(),
     );
-    let this_end_margin_can_collapse_with_children = (block_level_kind, pb.block_end, block_size)
-        == (
+    let this_end_margin_can_collapse_with_children = (block_level_kind, pb.block_end, block_size) ==
+        (
             BlockLevelKind::SameFormattingContextBlock,
             Length::zero(),
             LengthOrAuto::Auto,
@@ -370,7 +381,7 @@ fn layout_in_flow_non_replaced_block_level<'a>(
     let mut nested_abspos = vec![];
     let mut flow_children = layout_contents(
         &containing_block_for_children,
-        if style.box_.position.is_relatively_positioned() {
+        if style.get_box().position == Position::Relative {
             &mut nested_abspos
         } else {
             absolutely_positioned_fragments
@@ -401,9 +412,9 @@ fn layout_in_flow_non_replaced_block_level<'a>(
         flow_children.block_size += flow_children.collapsible_margins_in_children.end.solve();
     }
     block_margins_collapsed_with_children.collapsed_through =
-        this_start_margin_can_collapse_with_children.0
-            && this_end_margin_can_collapse_with_children
-            && flow_children
+        this_start_margin_can_collapse_with_children.0 &&
+            this_end_margin_can_collapse_with_children &&
+            flow_children
                 .collapsible_margins_in_children
                 .collapsed_through;
     let relative_adjustement = relative_adjustement(style, inline_size, block_size);
@@ -418,7 +429,7 @@ fn layout_in_flow_non_replaced_block_level<'a>(
             inline: inline_size,
         },
     };
-    if style.box_.position.is_relatively_positioned() {
+    if style.get_box().position == Position::Relative {
         AbsolutelyPositionedFragment::in_positioned_containing_block(
             &nested_abspos,
             &mut flow_children.fragments,
