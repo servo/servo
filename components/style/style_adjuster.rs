@@ -283,6 +283,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     fn adjust_for_text_combine_upright(&mut self) {
         use crate::computed_values::text_combine_upright::T as TextCombineUpright;
         use crate::computed_values::writing_mode::T as WritingMode;
+        use crate::logical_geometry;
 
         let writing_mode = self.style.get_inherited_box().clone_writing_mode();
         let text_combine_upright = self.style.get_inherited_text().clone_text_combine_upright();
@@ -294,6 +295,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             self.style
                 .mutate_inherited_box()
                 .set_writing_mode(WritingMode::HorizontalTb);
+            self.style.writing_mode =
+                logical_geometry::WritingMode::new(self.style.get_inherited_box());
         }
     }
 
