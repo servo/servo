@@ -881,9 +881,11 @@ fn http_network_or_cache_fetch(
     // Step 5.9
     match http_request.referrer {
         Referrer::NoReferrer => (),
-        Referrer::ReferrerUrl(ref http_request_referrer) => http_request
-            .headers
-            .typed_insert::<Referer>(http_request_referrer.to_string().parse().unwrap()),
+        Referrer::ReferrerUrl(ref http_request_referrer) => {
+            if let Ok(referer) = http_request_referrer.to_string().parse::<Referer>() {
+                http_request.headers.typed_insert(referer);
+            }
+        },
         Referrer::Client =>
         // it should be impossible for referrer to be anything else during fetching
         // https://fetch.spec.whatwg.org/#concept-request-referrer
@@ -946,20 +948,20 @@ fn http_network_or_cache_fetch(
 
     // Step 5.16
     let current_url = http_request.current_url();
-    let host = Host::from(
-        format!(
-            "{}{}",
-            current_url.host_str().unwrap(),
-            current_url
-                .port()
-                .map(|v| format!(":{}", v))
-                .unwrap_or("".into())
-        )
-        .parse::<Authority>()
-        .unwrap(),
-    );
+    if let Ok(host) = format!(
+        "{}{}",
+        current_url.host_str().unwrap(),
+        current_url
+            .port()
+            .map(|v| format!(":{}", v))
+            .unwrap_or("".into())
+    )
+    .parse::<Authority>()
+    .map(Host::from)
+    {
+        http_request.headers.typed_insert(host);
+    }
 
-    http_request.headers.typed_insert(host);
     // unlike http_loader, we should not set the accept header
     // here, according to the fetch spec
     set_default_accept_encoding(&mut http_request.headers);
@@ -1484,7 +1486,7 @@ fn cors_preflight_fetch(
     headers.sort();
     let headers = headers
         .iter()
-        .map(|name| HeaderName::from_str(name).unwrap())
+        .filter_map(|name| HeaderName::from_str(name).ok())
         .collect::<Vec<HeaderName>>();
 
     // Step 4
