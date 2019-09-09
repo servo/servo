@@ -1549,6 +1549,23 @@ impl WebGLImpl {
                 depth,
                 stencil,
             } => Self::initialize_framebuffer(ctx.gl(), state, color, depth, stencil),
+            WebGLCommand::BeginQuery(target, query_id) => {
+                ctx.gl().begin_query(target, query_id.get());
+            },
+            WebGLCommand::EndQuery(target) => {
+                ctx.gl().end_query(target);
+            },
+            WebGLCommand::DeleteQuery(query_id) => {
+                ctx.gl().delete_queries(&[query_id.get()]);
+            },
+            WebGLCommand::GenerateQuery(ref sender) => {
+                let id = ctx.gl().gen_queries(1)[0];
+                sender.send(unsafe { WebGLQueryId::new(id) }).unwrap()
+            },
+            WebGLCommand::GetQueryState(ref sender, query_id, pname) => {
+                let value = ctx.gl().get_query_object_uiv(query_id.get(), pname);
+                sender.send(value).unwrap()
+            },
         }
 
         // TODO: update test expectations in order to enable debug assertions

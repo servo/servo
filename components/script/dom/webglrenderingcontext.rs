@@ -394,7 +394,7 @@ impl WebGLRenderingContext {
         }
     }
 
-    fn validate_ownership<T>(&self, object: &T) -> WebGLResult<()>
+    pub fn validate_ownership<T>(&self, object: &T) -> WebGLResult<()>
     where
         T: DerivedFrom<WebGLObject>,
     {

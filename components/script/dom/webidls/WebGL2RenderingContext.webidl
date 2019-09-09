@@ -12,9 +12,6 @@ typedef long long GLint64;
 typedef unsigned long long GLuint64;
 
 
-// interface WebGLQuery : WebGLObject {
-// };
-
 // interface WebGLSampler : WebGLObject {
 // };
 
@@ -528,13 +525,13 @@ interface WebGL2RenderingContextBase
   // void clearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil);
 
   /* Query Objects */
-  /*WebGLQuery? createQuery();
+  WebGLQuery? createQuery();
   void deleteQuery(WebGLQuery? query);
-  [WebGLHandlesContextLoss] GLboolean isQuery(WebGLQuery? query);
+  /*[WebGLHandlesContextLoss]*/ GLboolean isQuery(WebGLQuery? query);
   void beginQuery(GLenum target, WebGLQuery query);
   void endQuery(GLenum target);
   WebGLQuery? getQuery(GLenum target, GLenum pname);
-  any getQueryParameter(WebGLQuery query, GLenum pname);*/
+  any getQueryParameter(WebGLQuery query, GLenum pname);
 
   /* Sampler Objects */
   /*WebGLSampler? createSampler();

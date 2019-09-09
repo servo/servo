@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding;
+use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
@@ -12,7 +13,7 @@ use crate::dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTML
 use crate::dom::bindings::codegen::UnionTypes::Int32ArrayOrLongSequence;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
@@ -20,6 +21,7 @@ use crate::dom::webglactiveinfo::WebGLActiveInfo;
 use crate::dom::webglbuffer::WebGLBuffer;
 use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglprogram::WebGLProgram;
+use crate::dom::webglquery::WebGLQuery;
 use crate::dom::webglrenderbuffer::WebGLRenderbuffer;
 use crate::dom::webglrenderingcontext::{
     LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext,
@@ -31,11 +33,12 @@ use crate::dom::webgluniformlocation::WebGLUniformLocation;
 use crate::dom::window::Window;
 use crate::script_runtime::JSContext;
 /// https://www.khronos.org/registry/webgl/specs/latest/2.0/webgl.idl
+use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use js::jsapi::JSObject;
-use js::jsval::JSVal;
+use js::jsval::{BooleanValue, JSVal, NullValue, UInt32Value};
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBufferView;
 use script_layout_interface::HTMLCanvasDataSource;
@@ -45,6 +48,8 @@ use std::ptr::NonNull;
 pub struct WebGL2RenderingContext {
     reflector_: Reflector,
     base: Dom<WebGLRenderingContext>,
+    occlusion_query: MutNullableDom<WebGLQuery>,
+    primitives_query: MutNullableDom<WebGLQuery>,
 }
 
 impl WebGL2RenderingContext {
@@ -58,6 +63,8 @@ impl WebGL2RenderingContext {
         Some(WebGL2RenderingContext {
             reflector_: Reflector::new(),
             base: Dom::from_ref(&*base),
+            occlusion_query: MutNullableDom::new(None),
+            primitives_query: MutNullableDom::new(None),
         })
     }
 
@@ -1043,6 +1050,149 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9
     fn VertexAttribDivisor(&self, index: u32, divisor: u32) {
         self.base.vertex_attrib_divisor(index, divisor);
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12
+    fn CreateQuery(&self) -> Option<DomRoot<WebGLQuery>> {
+        Some(WebGLQuery::new(&self.base))
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12
+    fn DeleteQuery(&self, query: Option<&WebGLQuery>) {
+        if let Some(query) = query {
+            handle_potential_webgl_error!(self.base, self.base.validate_ownership(query), return);
+
+            if let Some(query_target) = query.target() {
+                let slot = match query_target {
+                    constants::ANY_SAMPLES_PASSED |
+                    constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
+                        &self.occlusion_query
+                    },
+                    constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => {
+                        &self.primitives_query
+                    },
+                    _ => unreachable!(),
+                };
+                if let Some(stored_query) = slot.get() {
+                    if stored_query.target() == query.target() {
+                        slot.set(None);
+                    }
+                }
+            }
+
+            query.delete(&self.base);
+        }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12
+    fn IsQuery(&self, query: Option<&WebGLQuery>) -> bool {
+        match query {
+            Some(query) => {
+                self.base.validate_ownership(query).is_ok() && query.is_valid()
+            },
+            None => false,
+        }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12
+    fn BeginQuery(&self, target: u32, query: &WebGLQuery) {
+        handle_potential_webgl_error!(self.base, self.base.validate_ownership(query), return);
+
+        let active_query = match target {
+            constants::ANY_SAMPLES_PASSED |
+            constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
+                &self.occlusion_query
+            },
+            constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => {
+                &self.primitives_query
+            },
+            _ => {
+                self.base.webgl_error(InvalidEnum);
+                return;
+            },
+        };
+        if active_query.get().is_some() {
+            self.base.webgl_error(InvalidOperation);
+            return;
+        }
+        let result = query.begin(&self.base, target);
+        match result {
+            Ok(_) => active_query.set(Some(query)),
+            Err(error) => self.base.webgl_error(error),
+        }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12
+    fn EndQuery(&self, target: u32) {
+        let active_query = match target {
+            constants::ANY_SAMPLES_PASSED |
+            constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
+                self.occlusion_query.take()
+            },
+            constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => {
+                self.primitives_query.take()
+            },
+            _ => {
+                self.base.webgl_error(InvalidEnum);
+                return;
+            },
+        };
+        match active_query {
+            None => self.base.webgl_error(InvalidOperation),
+            Some(query) => {
+                let result = query.end(&self.base, target);
+                if let Err(error) = result {
+                    self.base.webgl_error(error);
+                }
+            },
+        }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12
+    fn GetQuery(&self, target: u32, pname: u32) -> Option<DomRoot<WebGLQuery>> {
+        if pname != constants::CURRENT_QUERY {
+            self.base.webgl_error(InvalidEnum);
+            return None;
+        }
+        let active_query = match target {
+            constants::ANY_SAMPLES_PASSED |
+            constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
+                self.occlusion_query.get()
+            },
+            constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => {
+                self.primitives_query.get()
+            },
+            _ => {
+                self.base.webgl_error(InvalidEnum);
+                None
+            },
+        };
+        if let Some(query) = active_query.as_ref() {
+            if query.target() != Some(target) {
+                return None;
+            }
+        }
+        active_query
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12
+    fn GetQueryParameter(&self, _cx: JSContext, query: &WebGLQuery, pname: u32) -> JSVal {
+        handle_potential_webgl_error!(
+            self.base,
+            self.base.validate_ownership(query),
+            return NullValue()
+        );
+        match query.get_parameter(&self.base, pname) {
+            Ok(value) => match pname {
+                constants::QUERY_RESULT => UInt32Value(value),
+                constants::QUERY_RESULT_AVAILABLE => BooleanValue(value != 0),
+                _ => unreachable!(),
+            },
+            Err(error) => {
+                self.base.webgl_error(error);
+                NullValue()
+            },
+        }
     }
 }
 

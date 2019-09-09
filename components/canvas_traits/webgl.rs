@@ -425,6 +425,11 @@ pub enum WebGLCommand {
         depth: bool,
         stencil: bool,
     },
+    BeginQuery(u32, WebGLQueryId),
+    DeleteQuery(WebGLQueryId),
+    EndQuery(u32),
+    GenerateQuery(WebGLSender<WebGLQueryId>),
+    GetQueryState(WebGLSender<u32>, WebGLQueryId, u32),
 }
 
 macro_rules! define_resource_id {
@@ -496,6 +501,7 @@ define_resource_id!(WebGLFramebufferId);
 define_resource_id!(WebGLRenderbufferId);
 define_resource_id!(WebGLTextureId);
 define_resource_id!(WebGLProgramId);
+define_resource_id!(WebGLQueryId);
 define_resource_id!(WebGLShaderId);
 define_resource_id!(WebGLVertexArrayId);
 
