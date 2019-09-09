@@ -51,6 +51,10 @@ impl Tokenizer {
             referrer: Referrer::ReferrerUrl(document.url()),
             referrer_policy: document.get_referrer_policy(),
             resource_threads: document.loader().resource_threads().clone(),
+            // Initially we set prefetching to false, and only set it
+            // true after the first script tag, since that is what will
+            // block the main parser.
+            prefetching: false,
         };
         let options = Default::default();
         let inner = HtmlTokenizer::new(sink, options);
@@ -70,6 +74,7 @@ struct PrefetchSink {
     referrer: Referrer,
     referrer_policy: Option<ReferrerPolicy>,
     resource_threads: ResourceThreads,
+    prefetching: bool,
 }
 
 impl TokenSink for PrefetchSink {
@@ -77,7 +82,7 @@ impl TokenSink for PrefetchSink {
     fn process_token(&mut self, token: Token, _line_number: u64) -> TokenSinkResult<()> {
         if let Token::TagToken(ref tag) = token {
             match tag.name {
-                local_name!("script") => {
+                local_name!("script") if self.prefetching => {
                     if let Some(url) = self.get_url(tag, local_name!("src")) {
                         debug!("Prefetch script {}", url);
                         let cors_setting = self.get_cors_settings(tag, local_name!("crossorigin"));
@@ -99,7 +104,7 @@ impl TokenSink for PrefetchSink {
                             .send(CoreResourceMsg::Fetch(request, FetchChannels::Prefetch));
                     }
                 },
-                local_name!("img") => {
+                local_name!("img") if self.prefetching => {
                     if let Some(url) = self.get_url(tag, local_name!("src")) {
                         debug!("Prefetch {} {}", tag.name, url);
                         let request =
@@ -109,7 +114,7 @@ impl TokenSink for PrefetchSink {
                             .send(CoreResourceMsg::Fetch(request, FetchChannels::Prefetch));
                     }
                 },
-                local_name!("link") => {
+                local_name!("link") if self.prefetching => {
                     if let Some(rel) = self.get_attr(tag, local_name!("rel")) {
                         if rel.value.eq_ignore_ascii_case("stylesheet") {
                             if let Some(url) = self.get_url(tag, local_name!("href")) {
@@ -135,6 +140,10 @@ impl TokenSink for PrefetchSink {
                             }
                         }
                     }
+                },
+                local_name!("script") => {
+                    // After the first script tag, the main parser is blocked, so it's worth prefetching.
+                    self.prefetching = true;
                 },
                 local_name!("base") => {
                     if let Some(url) = self.get_url(tag, local_name!("href")) {
