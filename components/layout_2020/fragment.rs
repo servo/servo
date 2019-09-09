@@ -5,11 +5,11 @@
 //! The `Fragment` type, which represents the leaves of the layout tree.
 
 use crate::context::LayoutContext;
-use crate::display_list::items::OpaqueNode;
 use crate::ServoArc;
 use app_units::Au;
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutNode};
 use serde::ser::{Serialize, SerializeStruct, Serializer};
+use style::dom::OpaqueNode;
 use style::logical_geometry::{LogicalMargin, LogicalRect};
 use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;

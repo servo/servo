@@ -5,9 +5,9 @@
 //! Utilities for querying the layout, as needed by the layout thread.
 
 use crate::context::LayoutContext;
-use crate::display_list::items::{DisplayList, OpaqueNode, ScrollOffsetMap};
 use app_units::Au;
 use euclid::default::{Point2D, Rect};
+use euclid::Vector2D;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use script_layout_interface::rpc::TextIndexResponse;
@@ -17,9 +17,12 @@ use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse, 
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use style::dom::OpaqueNode;
 use style::properties::PropertyId;
 use style::selector_parser::PseudoElement;
+use webrender_api::units::LayoutPixel;
 use webrender_api::ExternalScrollId;
 
 /// Mutable data belonging to the LayoutThread.
@@ -30,7 +33,7 @@ pub struct LayoutThreadData {
     pub constellation_chan: IpcSender<ConstellationMsg>,
 
     /// The root stacking context.
-    pub display_list: Option<DisplayList>,
+    pub display_list: Option<webrender_api::DisplayListBuilder>,
 
     /// A queued response for the union of the content boxes of a node.
     pub content_box_response: Option<Rect<Au>>,
@@ -57,7 +60,7 @@ pub struct LayoutThreadData {
     pub style_response: StyleResponse,
 
     /// Scroll offsets of scrolling regions.
-    pub scroll_offsets: ScrollOffsetMap,
+    pub scroll_offsets: HashMap<ExternalScrollId, Vector2D<f32, LayoutPixel>>,
 
     /// Index in a text fragment. We need this do determine the insertion point.
     pub text_index_response: TextIndexResponse,

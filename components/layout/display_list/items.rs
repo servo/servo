@@ -137,22 +137,6 @@ impl DisplayList {
     }
 }
 
-impl gfx_traits::DisplayList for DisplayList {
-    /// Analyze the display list to figure out if this may be the first
-    /// contentful paint (i.e. the display list contains items of type text,
-    /// image, non-white canvas or SVG). Used by metrics.
-    fn is_contentful(&self) -> bool {
-        for item in &self.list {
-            match item {
-                &DisplayItem::Text(_) | &DisplayItem::Image(_) => return true,
-                _ => (),
-            }
-        }
-
-        false
-    }
-}
-
 /// Display list sections that make up a stacking context. Each section  here refers
 /// to the steps in CSS 2.1 Appendix E.
 ///
