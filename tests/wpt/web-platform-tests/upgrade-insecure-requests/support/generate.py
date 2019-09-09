@@ -13,7 +13,7 @@ template = '''<!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="./support/testharness-helper.sub.js"></script>
-<script src="/common/security-features/resources/common.js"></script>
+<script src="/common/security-features/resources/common.sub.js"></script>
 
 <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
 </head>

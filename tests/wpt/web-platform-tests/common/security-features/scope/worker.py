@@ -7,7 +7,7 @@ import util
 def main(request, response):
   policyDeliveries = json.loads(request.GET.first('policyDeliveries', '[]'))
   worker_type = request.GET.first('type', 'classic')
-  commonjs_url = '%s://%s:%s/common/security-features/resources/common.js' % (
+  commonjs_url = '%s://%s:%s/common/security-features/resources/common.sub.js' % (
       request.url_parts.scheme, request.url_parts.hostname,
       request.url_parts.port)
   if worker_type == 'classic':

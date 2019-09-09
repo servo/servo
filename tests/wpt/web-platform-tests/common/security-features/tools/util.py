@@ -58,7 +58,8 @@ class ShouldSkip(Exception):
 
 class PolicyDelivery(object):
     '''
-    See `@typedef PolicyDelivery` comments in `resources/common.js`.
+    See `@typedef PolicyDelivery` comments in
+    `common/security-features/resources/common.sub.js`.
     '''
 
     def __init__(self, delivery_type, key, value):

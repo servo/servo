@@ -86,6 +86,16 @@ const gKeyframesTests = [
                       { marginTop: '60px', margin: '10px 20px 30px 40px' })],
   },
   {
+    desc:   'a two property (one shorthand and one of its shorthand components)'
+            + ' two value property-indexed keyframes specification',
+    input:  { border: ['pink', '2px'],
+              borderColor: ['green', 'blue'] },
+    output: [keyframe(computedOffset(0),
+                      { border: 'pink', borderColor: 'green' }),
+             keyframe(computedOffset(1),
+                      { border: '2px', borderColor: 'blue' })],
+  },
+  {
     desc:   'a two property two value property-indexed keyframes specification',
     input:  { left: ['10px', '20px'],
               top: ['30px', '40px'] },

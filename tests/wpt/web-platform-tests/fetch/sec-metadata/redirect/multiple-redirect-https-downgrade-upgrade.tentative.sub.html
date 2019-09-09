@@ -4,12 +4,12 @@
 <script src=/resources/testharnessreport.js></script>
 <script src=/fetch/sec-metadata/resources/helper.js></script>
 <script src=/fetch/sec-metadata/resources/redirectTestHelper.sub.js></script>
-<script src=/common/security-features/resources/common.js></script>
+<script src=/common/security-features/resources/common.sub.js></script>
 <script src=/common/utils.js></script>
 <style>
   @font-face {
     font-family: myDowngradeUpgradeFont;
-    src: url(https://{{host}}:{{ports[https][0]}}/fetch/api/resources/redirect.py?location=http%3A%2F%2F{{host}}%3A{{ports[http][0]}}%2Ffetch%2Fapi%2Fresources%2Fredirect.py%3Flocation%3Dhttps%253A%252F%252F{{host}}%253A{{ports[https][0]}}%252Ffetch%252Fsec-metadata%252Fresources%252Frecord-header.py%253Ffile%253Dfont-https-downgrade-upgrade);
+    src: url(https://{{host}}:{{ports[https][0]}}/fetch/api/resources/redirect.py?location=http%3A%2F%2F{{host}}%3A{{ports[http][0]}}%2Ffetch%2Fapi%2Fresources%2Fredirect.py%3Flocation%3Dhttps%253A%252F%252F{{host}}%253A{{ports[https][0]}}%252Ffetch%252Fsec-metadata%252Fresources%252Frecord-header.py%253Ffile%253Dfont-https-downgrade-upgrade{{$id:uuid()}});
   }
   #fontTest {
     font-family: myDowngradeUpgradeFont;
@@ -18,8 +18,8 @@
 <body>
     <div id="fontTest">Downgraded then upgraded font</div>
     <script>
-  let nonce = token();
-  let expected = { "dest": "", "site": "cross-site", "user": "", "mode": "" };
+  let nonce = "{{$id}}";
+  let expected = { "dest": "", "site": "cross-site", "user": "", "mode": "cors" };
 
   // Validate various scenarios handle a request that redirects from https => http
   // correctly and avoids disclosure of any Sec- headers.
@@ -28,8 +28,8 @@
   document.fonts.ready.then(function () {
     promise_test(t => {
       return new Promise((resolve, reject) => {
-        let key = "font-https-downgrade-upgrade";
-        fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
+        let key = "font-https-downgrade-upgrade{{$id}}";
+        return fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected))
           .then(_ => resolve())
@@ -54,7 +54,7 @@
            "dest": undefined,
            "site": "cross-site",
            "user": undefined,
-           "mode": undefined,
+           "mode": "cors",
          });
       });
   }, "Https downgrade-upgrade image => No headers");
@@ -63,7 +63,7 @@
 <script>
   test(t => {
     t.add_cleanup(_ => { header = null; });
-    assert_header_equals(header, expected);
+    assert_header_equals(header, { "dest": "", "site": "cross-site", "user": "", "mode": "no-cors" });
   }, "Https downgrade-upgrade script => No headers");
 </script>
 </body>

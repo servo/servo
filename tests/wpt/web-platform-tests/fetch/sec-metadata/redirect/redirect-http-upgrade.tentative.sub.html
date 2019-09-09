@@ -4,12 +4,12 @@
 <script src=/resources/testharnessreport.js></script>
 <script src=/fetch/sec-metadata/resources/helper.js></script>
 <script src=/fetch/sec-metadata/resources/redirectTestHelper.sub.js></script>
-<script src=/common/security-features/resources/common.js></script>
+<script src=/common/security-features/resources/common.sub.js></script>
 <script src=/common/utils.js></script>
 <style>
   @font-face {
     font-family: myUpgradedFont;
-    src: url(http://{{host}}:{{ports[http][0]}}/fetch/api/resources/redirect.py?location=https%3A%2F%2F{{host}}%3A{{ports[https][0]}}%2Ffetch%2Fsec-metadata%2Fresources%2Frecord-header.py%3Ffile%3Dfont-https-upgrade);
+    src: url(http://{{host}}:{{ports[http][0]}}/fetch/api/resources/redirect.py?location=https%3A%2F%2F{{host}}%3A{{ports[https][0]}}%2Ffetch%2Fsec-metadata%2Fresources%2Frecord-header.py%3Ffile%3Dfont-https-upgrade{{$id:uuid()}});
   }
   #fontTest {
     font-family: myUpgradedFont;
@@ -18,8 +18,8 @@
 <body>
     <div id="fontTest">Upgraded font</div>
     <script>
-  let nonce = token();
-  let expected = { "dest": "", "site": "cross-site", "user": "", "mode": "" };
+  let nonce = "{{$id}}";
+  let expected = { "dest": "", "site": "cross-site", "user": "", "mode": "cors" };
 
   // Validate various scenarios handle a request that redirects from http => https correctly and add the proper Sec- headers.
   RunCommonRedirectTests("Http upgrade", upgradeRedirectTo, expected);
@@ -27,7 +27,7 @@
   document.fonts.ready.then(function () {
     promise_test(t => {
       return new Promise((resolve, reject) => {
-        let key = "font-https-upgrade";
+        let key = "font-https-upgrade{{$id}}";
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected))
@@ -53,16 +53,17 @@
            "dest": undefined,
            "site": "cross-site",
            "user": undefined,
-           "mode": undefined,
+           "mode": "cors",
          });
       });
   }, "Http upgrade image => No headers");
 </script>
+
 <script src="http://{{host}}:{{ports[http][0]}}/fetch/api/resources/redirect.py?location=https%3A%2F%2F{{host}}%3A{{ports[https][0]}}%2Ffetch%2Fsec-metadata%2Fresources%2Fecho-as-script.py"></script>
 <script>
   test(t => {
     t.add_cleanup(_ => { header = null; });
-    assert_header_equals(header, expected);
+    assert_header_equals(header, { "dest": "", "site": "cross-site", "user": "", "mode": "no-cors" });
   }, "Http upgrade script => No headers");
 </script>
 </body>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html manifest="/fetch/sec-metadata/resources/record-header.py?file=appcache-manifest">
+<html manifest="/fetch/sec-metadata/resources/record-header.py?file=appcache-manifest{{$id:uuid()}}">
 <meta name="timeout" content="long">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
@@ -9,7 +9,7 @@
 <script>
   async_test(t => {
     window.applicationCache.oncached = window.applicationCache.onnoupdate = window.applicationCache.onerror = t.step_func(e => {
-        fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=appcache-manifest")
+        fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=appcache-manifest{{$id}}")
           .then(t.step_func(response => response.text()))
           .then(t.step_func_done(text => assert_header_equals(text, {
             "dest": "",

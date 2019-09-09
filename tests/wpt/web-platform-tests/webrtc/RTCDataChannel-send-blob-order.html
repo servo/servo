@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCDataChannel.prototype.send for blobs</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+promise_test(async t => {
+    const data1 = new Blob(['blob']);
+    const data1Size = data1.size;
+    const data2 = new ArrayBuffer(8);
+    const data2Size = data2.byteLength;
+
+    const [channel1, channel2] = await createDataChannelPair();
+    channel2.binaryType = "arraybuffer";
+
+    channel1.send(data1);
+    channel1.send(data2);
+
+    let e = await new Promise(r => channel2.onmessage = r);
+    assert_equals(e.data.byteLength, data1Size);
+
+    e = await new Promise(r => channel2.onmessage = r);
+    assert_equals(e.data.byteLength, data2Size);
+}, 'Data channel should send data following the order of the send call');
+</script>

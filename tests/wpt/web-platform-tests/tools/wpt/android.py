@@ -5,16 +5,21 @@ import shutil
 import subprocess
 
 import requests
-from mozrunner.devices import android_device
 
-android_device.TOOLTOOL_PATH = os.path.join(os.path.dirname(__file__),
-                                            os.pardir,
-                                            "third_party",
-                                            "tooltool",
-                                            "tooltool.py")
+android_device = None
 
 here = os.path.abspath(os.path.dirname(__file__))
 wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
+
+
+def do_delayed_imports():
+    global android_device
+    from mozrunner.devices import android_device
+    android_device.TOOLTOOL_PATH = os.path.join(os.path.dirname(__file__),
+                                                os.pardir,
+                                                "third_party",
+                                                "tooltool",
+                                                "tooltool.py")
 
 
 def get_parser_install():
@@ -103,6 +108,8 @@ def install_android_packages(logger, sdk_path, no_prompt=False):
 
 
 def get_emulator(sdk_path):
+    if android_device is None:
+        do_delayed_imports()
     if "ANDROID_SDK_ROOT" not in os.environ:
         os.environ["ANDROID_SDK_ROOT"] = sdk_path
     substs = {"top_srcdir": wpt_root, "TARGET_CPU": "x86"}
