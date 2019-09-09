@@ -12,6 +12,8 @@ use crate::shared_lock::SharedRwLock;
 use crate::thread_state;
 use rayon;
 use std::env;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use parking_lot::{RwLock, RwLockReadGuard};
 
 /// Global style data
 pub struct GlobalStyleData {
@@ -22,20 +24,28 @@ pub struct GlobalStyleData {
     pub options: StyleSystemOptions,
 }
 
-/// Global thread pool
+/// Global thread pool.
 pub struct StyleThreadPool {
     /// How many threads parallel styling can use.
     pub num_threads: usize,
 
     /// The parallel styling thread pool.
-    pub style_thread_pool: Option<rayon::ThreadPool>,
+    ///
+    /// For leak-checking purposes, we want to terminate the thread-pool, which
+    /// waits for all the async jobs to complete. Thus the RwLock.
+    style_thread_pool: RwLock<Option<rayon::ThreadPool>>,
 }
 
 fn thread_name(index: usize) -> String {
     format!("StyleThread#{}", index)
 }
 
+// A counter so that we can wait for shutdown of all threads. See
+// StyleThreadPool::shutdown.
+static ALIVE_WORKER_THREADS: AtomicUsize = AtomicUsize::new(0);
+
 fn thread_startup(_index: usize) {
+    ALIVE_WORKER_THREADS.fetch_add(1, Ordering::Relaxed);
     thread_state::initialize_layout_worker_thread();
     #[cfg(feature = "gecko")]
     unsafe {
@@ -54,6 +64,43 @@ fn thread_shutdown(_: usize) {
     unsafe {
         bindings::Gecko_UnregisterProfilerThread();
         bindings::Gecko_SetJemallocThreadLocalArena(false);
+    }
+    ALIVE_WORKER_THREADS.fetch_sub(1, Ordering::Relaxed);
+}
+
+impl StyleThreadPool {
+    /// Shuts down the thread pool, waiting for all work to complete.
+    pub fn shutdown() {
+        if ALIVE_WORKER_THREADS.load(Ordering::Relaxed) == 0 {
+            return;
+        }
+        {
+            // Drop the pool.
+            let _ = STYLE_THREAD_POOL.style_thread_pool.write().take();
+        }
+        // Spin until all our threads are done. This will usually be pretty
+        // fast, as on shutdown there should be basically no threads left
+        // running.
+        //
+        // This still _technically_ doesn't give us the guarantee of TLS
+        // destructors running on the worker threads. For that we'd need help
+        // from rayon to properly join the threads.
+        //
+        // See https://github.com/rayon-rs/rayon/issues/688
+        //
+        // So we instead intentionally leak TLS stuff (see BLOOM_KEY and co) for
+        // now until that's fixed.
+        while ALIVE_WORKER_THREADS.load(Ordering::Relaxed) != 0 {
+            std::thread::yield_now();
+        }
+    }
+
+    /// Returns a reference to the thread pool.
+    ///
+    /// We only really want to give read-only access to the pool, except
+    /// for shutdown().
+    pub fn pool(&self) -> RwLockReadGuard<Option<rayon::ThreadPool>> {
+        self.style_thread_pool.read()
     }
 }
 
@@ -113,10 +160,11 @@ lazy_static! {
         };
 
         StyleThreadPool {
-            num_threads: num_threads,
-            style_thread_pool: pool,
+            num_threads,
+            style_thread_pool: RwLock::new(pool),
         }
     };
+
     /// Global style data
     pub static ref GLOBAL_STYLE_DATA: GlobalStyleData = GlobalStyleData {
         shared_lock: SharedRwLock::new_leaked(),
