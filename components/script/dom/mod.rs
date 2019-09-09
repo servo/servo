@@ -522,6 +522,7 @@ pub mod webglcontextevent;
 pub mod webglframebuffer;
 pub mod webglobject;
 pub mod webglprogram;
+pub mod webglquery;
 pub mod webglrenderbuffer;
 pub mod webglrenderingcontext;
 pub mod webglshader;
