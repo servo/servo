@@ -762,6 +762,5 @@ def build_uwp(platforms, dev, msbuild_dir):
         "/p:project=ServoApp",
         project,
         "/p:Configuration=" + Configuration,
-        '/p:Platform=%s' % platforms,
         '/p:AppxBundle=Always;AppxBundlePlatforms=%s' % platforms,
     ])
