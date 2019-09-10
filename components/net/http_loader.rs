@@ -964,8 +964,8 @@ fn http_network_or_cache_fetch(
     {
         http_request.headers.typed_insert(host);
     } else {
-        // error!("Failed to parse as authority", current_url);
-        panic!("Failed to parse as authority", current_url);
+        // error!("Failed to parse {} as authority", current_url);
+        panic!("Failed to parse {} as authority", current_url);
     }
 
     // unlike http_loader, we should not set the accept header
