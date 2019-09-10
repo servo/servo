@@ -214,13 +214,19 @@ impl FrameRenderer for MediaFrameRenderer {
                 *height = frame.get_height();
 
                 let image_data = if frame.is_gl_texture() && self.player_id.is_some() {
+                    let texture_target = if frame.is_external_oes() {
+                        TextureTarget::External
+                    } else {
+                        TextureTarget::Default
+                    };
+
                     self.current_frame_holder
                         .get_or_insert_with(|| FrameHolder::new(frame.clone()))
                         .set(frame);
                     ImageData::External(ExternalImageData {
                         id: ExternalImageId(self.player_id.unwrap()),
                         channel_index: 0,
-                        image_type: ExternalImageType::TextureHandle(TextureTarget::Default),
+                        image_type: ExternalImageType::TextureHandle(texture_target),
                     })
                 } else {
                     ImageData::Raw(frame.get_data())
@@ -232,11 +238,17 @@ impl FrameRenderer for MediaFrameRenderer {
                 self.current_frame = Some((image_key, frame.get_width(), frame.get_height()));
 
                 let image_data = if frame.is_gl_texture() && self.player_id.is_some() {
+                    let texture_target = if frame.is_external_oes() {
+                        TextureTarget::External
+                    } else {
+                        TextureTarget::Default
+                    };
+
                     self.current_frame_holder = Some(FrameHolder::new(frame));
                     ImageData::External(ExternalImageData {
                         id: ExternalImageId(self.player_id.unwrap()),
                         channel_index: 0,
-                        image_type: ExternalImageType::TextureHandle(TextureTarget::Default),
+                        image_type: ExternalImageType::TextureHandle(texture_target),
                     })
                 } else {
                     ImageData::Raw(frame.get_data())
