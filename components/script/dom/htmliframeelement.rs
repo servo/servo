@@ -674,11 +674,8 @@ impl VirtualMethods for HTMLIFrameElement {
                     "Discarding browsing context for pipeline {}",
                     exited_pipeline_id
                 );
-                // We also need to start ignoring tasks now,
-                // rather than when the `PipelineExit` message arrives.
                 let exited_window = exited_document.window();
-                exited_window.ignore_all_tasks();
-                exited_window.window_proxy().discard_browsing_context();
+                exited_window.discard_browsing_context();
                 for exited_iframe in exited_document.iter_iframes() {
                     debug!("Discarding nested browsing context");
                     exited_iframe.destroy_nested_browsing_context();

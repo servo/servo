@@ -2834,7 +2834,7 @@ impl ScriptThread {
             // to avoid running layout on detached iframes.
             let window = document.window();
             if discard_bc == DiscardBrowsingContext::Yes {
-                window.window_proxy().discard_browsing_context();
+                window.discard_browsing_context();
             }
             window.clear_js_runtime();
         }

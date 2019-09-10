@@ -356,6 +356,20 @@ impl Window {
         }
     }
 
+    /// A convenience method for
+    /// https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
+    pub fn discard_browsing_context(&self) {
+        let proxy = match self.window_proxy.get() {
+            Some(proxy) => proxy,
+            None => panic!("Discarding a BC from a window that has none"),
+        };
+        proxy.discard_browsing_context();
+        // Step 4 of https://html.spec.whatwg.org/multipage/#discard-a-document
+        // Other steps performed when the `PipelineExit` message
+        // is handled by the ScriptThread.
+        self.ignore_all_tasks();
+    }
+
     /// Cancel all current, and ignore all subsequently queued, tasks.
     pub fn ignore_all_tasks(&self) {
         let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
@@ -702,19 +716,7 @@ impl WindowMethods for Window {
                         // Step 4, discard browsing context.
                         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
                         // which calls into https://html.spec.whatwg.org/multipage/#discard-a-document.
-
-                        // Note: run step 4 of discard-a-document, cancelling all tasks, now.
-                        // Otherwise tasks will only be cancelled when the constellation
-                        // `PipelineExit` msg is handled by the script-thread, and we dont' want
-                        // tasks executing in between now and then.
-                        //
-                        // Per the spec, all steps related to discarding the BC,
-                        // which means discarding all docs in the session history,
-                        // should happen now.
-                        //
-                        // For now we just start ignoring all tasks, and run the rest
-                        // when the script-thread handles the `PipelineExit` message.
-                        window.ignore_all_tasks();
+                        window.discard_browsing_context();
 
                         let _ = window.send_to_constellation(ScriptMsg::DiscardTopLevelBrowsingContext);
                     }
