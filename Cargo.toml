@@ -28,3 +28,6 @@ opt-level = 3
 # Those are here to dedupe winapi since mio is still using winapi 0.2.
 mio = { git = "https://github.com/servo/mio.git", branch = "servo" }
 iovec = { git = "https://github.com/servo/iovec.git", branch = "servo" }
+rust-webvr = { git = "https://github.com/servo/rust-webvr", branch = "shine" }
+rust-webvr-api = { git = "https://github.com/servo/rust-webvr", branch = "shine" }
+offscreen_gl_context = { git = "https://github.com/jdm/rust-offscreen-rendering-context", branch = "no-gleam" }

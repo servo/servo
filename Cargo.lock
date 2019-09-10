@@ -403,11 +403,12 @@ dependencies = [
  "ipc-channel 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "offscreen_gl_context 0.23.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "offscreen_gl_context 0.25.0 (git+https://github.com/jdm/rust-offscreen-rendering-context?branch=no-gleam)",
  "pixels 0.0.1",
  "raqote 0.6.2-alpha.0 (git+https://github.com/jrmuizel/raqote)",
  "serde_bytes 0.10.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
+ "sparkle 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender 0.60.0 (git+https://github.com/servo/webrender)",
  "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "webrender_traits 0.0.1",
@@ -420,7 +421,6 @@ version = "0.0.1"
 dependencies = [
  "cssparser 0.25.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gleam 0.6.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "malloc_size_of 0.0.1",
@@ -429,6 +429,7 @@ dependencies = [
  "serde 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_bytes 0.10.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
+ "sparkle 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "typetag 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "webvr_traits 0.0.1",
@@ -492,6 +493,15 @@ version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "gleam 0.6.18 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.62 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "cgl"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "gleam 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.62 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1474,6 +1484,14 @@ version = "0.6.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "gl_generator 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "gleam"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "gl_generator 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2514,7 +2532,7 @@ dependencies = [
  "libc 0.2.62 (registry+https://github.com/rust-lang/crates.io-index)",
  "libservo 0.0.1",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "rust-webvr 0.14.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rust-webvr 0.16.0 (git+https://github.com/servo/rust-webvr?branch=shine)",
  "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "simpleservo 0.0.1",
  "smallvec 0.6.7 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2553,7 +2571,7 @@ dependencies = [
  "msg 0.0.1",
  "net 0.0.1",
  "net_traits 0.0.1",
- "offscreen_gl_context 0.23.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "offscreen_gl_context 0.25.0 (git+https://github.com/jdm/rust-offscreen-rendering-context?branch=no-gleam)",
  "profile 0.0.1",
  "profile_traits 0.0.1",
  "script 0.0.1",
@@ -2565,6 +2583,7 @@ dependencies = [
  "servo_config 0.0.1",
  "servo_geometry 0.0.1",
  "servo_url 0.0.1",
+ "sparkle 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "style_traits 0.0.1",
  "webdriver_server 0.0.1",
@@ -3174,20 +3193,20 @@ dependencies = [
 
 [[package]]
 name = "offscreen_gl_context"
-version = "0.23.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.25.0"
+source = "git+https://github.com/jdm/rust-offscreen-rendering-context?branch=no-gleam#d38b574dbce275622898091d47c1a4bc449c169b"
 dependencies = [
- "cgl 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cgl 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gl_generator 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gleam 0.6.18 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gl_generator 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libloading 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "objc 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "osmesa-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sparkle 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.17.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -3767,8 +3786,8 @@ dependencies = [
 
 [[package]]
 name = "rust-webvr"
-version = "0.14.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.16.0"
+source = "git+https://github.com/servo/rust-webvr?branch=shine#7ccc50f6a2d136f1b0d9b7f378d9e02a22084b06"
 dependencies = [
  "bindgen 0.49.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3780,19 +3799,20 @@ dependencies = [
  "libloading 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "ovr-mobile-sys 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "rust-webvr-api 0.14.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rust-webvr-api 0.16.0 (git+https://github.com/servo/rust-webvr?branch=shine)",
+ "sparkle 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "rust-webvr-api"
-version = "0.14.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.16.0"
+source = "git+https://github.com/servo/rust-webvr?branch=shine#7ccc50f6a2d136f1b0d9b7f378d9e02a22084b06"
 dependencies = [
  "android_injected_glue 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "gleam 0.6.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sparkle 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -3869,7 +3889,6 @@ dependencies = [
  "enum-iterator 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "gleam 0.6.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "headers 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "html5ever 0.23.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "http 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3922,6 +3941,7 @@ dependencies = [
  "servo_rand 0.0.1",
  "servo_url 0.0.1",
  "smallvec 0.6.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sparkle 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "style_traits 0.0.1",
  "swapper 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4133,7 +4153,7 @@ dependencies = [
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "osmesa-src 0.1.0 (git+https://github.com/servo/osmesa-src)",
  "osmesa-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "rust-webvr 0.14.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rust-webvr 0.16.0 (git+https://github.com/servo/rust-webvr?branch=shine)",
  "servo-media 0.1.0 (git+https://github.com/servo/media)",
  "sig 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tinyfiledialogs 3.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4596,6 +4616,14 @@ dependencies = [
  "cfg-if 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.62 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "sparkle"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "gl_generator 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -5575,10 +5603,11 @@ dependencies = [
  "ipc-channel 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
- "rust-webvr 0.14.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "rust-webvr-api 0.14.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rust-webvr 0.16.0 (git+https://github.com/servo/rust-webvr?branch=shine)",
+ "rust-webvr-api 0.16.0 (git+https://github.com/servo/rust-webvr?branch=shine)",
  "script_traits 0.0.1",
  "servo_config 0.0.1",
+ "sparkle 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "webvr_traits 0.0.1",
 ]
 
@@ -5588,7 +5617,7 @@ version = "0.0.1"
 dependencies = [
  "ipc-channel 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
- "rust-webvr-api 0.14.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rust-webvr-api 0.16.0 (git+https://github.com/servo/rust-webvr?branch=shine)",
  "serde 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -5867,6 +5896,7 @@ dependencies = [
 "checksum cexpr 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "8fc0086be9ca82f7fc89fc873435531cb898b86e850005850de1f820e2db6e9b"
 "checksum cfg-if 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "082bb9b28e00d3c9d39cc03e64ce4cea0f1bb9b3fde493f0cbc008472d22bdf4"
 "checksum cgl 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "55e7ec0b74fe5897894cbc207092c577e87c52f8a59e8ca8d97ef37551f60a49"
+"checksum cgl 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e24cd014051545194d6e879b37d33eed1fcf4bf41e1f54644530c63d8cb912f5"
 "checksum chrono 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "1cce36c92cb605414e9b824f866f5babe0a0368e39ea07393b9b63cf3844c0e6"
 "checksum clang-sys 0.28.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4227269cec09f5f83ff160be12a1e9b0262dd1aa305302d5ba296c2ebd291055"
 "checksum clap 2.32.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b957d88f4b6a63b9d70d5f454ac8011819c6efa7727858f458ab71c756ce2d3e"
@@ -5949,6 +5979,7 @@ dependencies = [
 "checksum gl_generator 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "39a23d5e872a275135d66895d954269cf5e8661d234eb1c2480f4ce0d586acbd"
 "checksum gl_generator 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)" = "ca98bbde17256e02d17336a6bdb5a50f7d0ccacee502e191d3e3d0ec2f96f84a"
 "checksum gleam 0.6.18 (registry+https://github.com/rust-lang/crates.io-index)" = "c8a455b5a3ccd35daeb89fdb8a89ebb0a1fe23c05c7a7f9017840bc3ae176f71"
+"checksum gleam 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "9ea4f9ba7411ae3f00516401fb811b4f4f37f5c926357f2a033d27f96b74c849"
 "checksum glib 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d70d737019da0473a7cd6d9240571cf58c6897dcb10edf32b90774f4ba237c1b"
 "checksum glib-sys 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4b86a9169fbc9cf9a0ef315039c2304b09d5c575c5fde7defba3576a0311b863"
 "checksum glob 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)" = "8be18de09a56b60ed0edf84bc9df007e30040691af7acd1c41874faac5895bfb"
@@ -6072,7 +6103,7 @@ dependencies = [
 "checksum objc 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)" = "31d20fd2b37e07cf5125be68357b588672e8cefe9a96f8c17a9d46053b3e590d"
 "checksum objc-foundation 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1add1b659e36c9607c7aab864a76c7a4c2760cd0cd2e120f3fb8b952c7e22bf9"
 "checksum objc_id 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e4730aa1c64d722db45f7ccc4113a3e2c465d018de6db4d3e7dfe031e8c8a297"
-"checksum offscreen_gl_context 0.23.0 (registry+https://github.com/rust-lang/crates.io-index)" = "9b6b1df447af7a71721bfc33697b364831d59c0c8668dae0e570a7993ca84bc8"
+"checksum offscreen_gl_context 0.25.0 (git+https://github.com/jdm/rust-offscreen-rendering-context?branch=no-gleam)" = "<none>"
 "checksum opaque-debug 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "51ecbcb821e1bd256d456fe858aaa7f380b63863eab2eb86eee1bd9f33dd6682"
 "checksum openssl 0.10.11 (registry+https://github.com/rust-lang/crates.io-index)" = "6c24d3508b4fb6da175c10baac54c578b33f09c89ae90c6fe9788b3b4768efdc"
 "checksum openssl-sys 0.9.35 (registry+https://github.com/rust-lang/crates.io-index)" = "912f301a749394e1025d9dcddef6106ddee9252620e6d0a0e5f8d0681de9b129"
@@ -6133,8 +6164,8 @@ dependencies = [
 "checksum remove_dir_all 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "4a83fa3702a688b9359eccba92d153ac33fd2e8462f9e0e3fdf155239ea7792e"
 "checksum rle-decode-fast 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "cabe4fa914dec5870285fa7f71f602645da47c486e68486d2b4ceb4a343e90ac"
 "checksum ron 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "da06feaa07f69125ab9ddc769b11de29090122170b402547f64b86fe16ebc399"
-"checksum rust-webvr 0.14.2 (registry+https://github.com/rust-lang/crates.io-index)" = "a6dd23c0de4e3a5dbe92d4e629e324e1e068cb92d69361a1a02a671bdadc8276"
-"checksum rust-webvr-api 0.14.1 (registry+https://github.com/rust-lang/crates.io-index)" = "f9bf4e36b6f3a3a7c3f5adae7baef2e115d65e1dfb5028e75158df624dbf939a"
+"checksum rust-webvr 0.16.0 (git+https://github.com/servo/rust-webvr?branch=shine)" = "<none>"
+"checksum rust-webvr-api 0.16.0 (git+https://github.com/servo/rust-webvr?branch=shine)" = "<none>"
 "checksum rustc-demangle 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "3058a43ada2c2d0b92b3ae38007a2d0fa5e9db971be260e0171408a4ff471c95"
 "checksum rustc_version 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
 "checksum rusttype 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)" = "b8eb11f5b0a98c8eca2fb1483f42646d8c340e83e46ab416f8a063a0fd0eeb20"
@@ -6177,6 +6208,7 @@ dependencies = [
 "checksum smallvec 0.6.7 (registry+https://github.com/rust-lang/crates.io-index)" = "b73ea3738b47563803ef814925e69be00799a8c07420be8b996f8e98fb2336db"
 "checksum smithay-client-toolkit 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)" = "2ccb8c57049b2a34d2cc2b203fa785020ba0129d31920ef0d317430adaf748fa"
 "checksum socket2 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)" = "ff606e0486e88f5fc6cfeb3966e434fb409abbc7a3ab495238f70a1ca97f789d"
+"checksum sparkle 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "967aa1a5c219258b3d9106ec18e7e2fd15d741ec08f9c5edd5da14063481c1c6"
 "checksum stable_deref_trait 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "15132e0e364248108c5e2c02e3ab539be8d6f5d52a01ca9bbf27ed657316f02b"
 "checksum stb_truetype 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)" = "48fa7d3136d8645909de1f7c7eb5416cc43057a75ace08fc39ae736bc9da8af1"
 "checksum string 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "d24114bfcceb867ca7f71a0d3fe45d45619ec47a6fbfa98cb14e14250bfa5d6d"

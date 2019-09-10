@@ -52,7 +52,7 @@ encoding_rs = "0.8"
 enum-iterator = "0.2.0"
 euclid = "0.20"
 fnv = "1.0"
-gleam = "0.6"
+#gleam = "0.6"
 headers = "0.2"
 html5ever = "0.23"
 http = "0.1"
@@ -100,6 +100,7 @@ servo_geometry = {path = "../geometry" }
 servo-media = {git = "https://github.com/servo/media"}
 servo_rand = {path = "../rand"}
 servo_url = {path = "../url"}
+sparkle = "0.1"
 smallvec = { version = "0.6", features = ["std", "union"] }
 style = {path = "../style", features = ["servo"]}
 style_traits = {path = "../style_traits"}

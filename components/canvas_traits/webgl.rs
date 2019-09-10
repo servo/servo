@@ -3,10 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use euclid::default::{Rect, Size2D};
-use gleam::gl;
-use gleam::gl::Gl;
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory};
 use pixels::PixelFormat;
+use sparkle::gl;
+use sparkle::gl::Gl;
 use std::borrow::Cow;
 use std::fmt;
 use std::num::NonZeroU32;
@@ -549,7 +549,7 @@ pub enum WebVRCommand {
 // Trait object that handles WebVR commands.
 // Receives the texture id and size associated to the WebGLContext.
 pub trait WebVRRenderHandler: Send {
-    fn handle(&mut self, gl: &dyn Gl, command: WebVRCommand, texture: Option<(u32, Size2D<i32>)>);
+    fn handle(&mut self, gl: &Gl, command: WebVRCommand, texture: Option<(u32, Size2D<i32>)>);
 }
 
 /// WebGL commands required to implement DOMToTexture feature.
@@ -758,9 +758,9 @@ macro_rules! gl_enums {
     }
 }
 
-// FIXME: These should come from gleam
+// FIXME: These should come from sparkle
 mod gl_ext_constants {
-    use gleam::gl::types::GLenum;
+    use sparkle::gl::types::GLenum;
 
     pub const COMPRESSED_RGB_S3TC_DXT1_EXT: GLenum = 0x83F0;
     pub const COMPRESSED_RGBA_S3TC_DXT1_EXT: GLenum = 0x83F1;

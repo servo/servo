@@ -17,7 +17,6 @@ webgl_backtrace = []
 cssparser = "0.25"
 euclid = "0.20"
 ipc-channel = "0.12"
-gleam = "0.6.7"
 lazy_static = "1"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = "0.1"
@@ -25,6 +24,7 @@ pixels = {path = "../pixels"}
 serde = "1.0"
 serde_bytes = "0.10"
 servo_config = {path = "../config"}
+sparkle = "0.1"
 typetag = "0.1"
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr_traits = {path = "../webvr_traits"}
