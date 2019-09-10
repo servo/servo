@@ -132,19 +132,24 @@ impl StructuredCloneReader {
 unsafe fn read_blob(
     cx: *mut JSContext,
     r: *mut JSStructuredCloneReader,
-    sc_holder: &mut StructuredCloneHolder,
+    sc_holder: &mut StructuredDataHolder,
 ) -> *mut JSObject {
     let structured_reader = StructuredCloneReader { r: r };
     let blob_buffer = structured_reader.read_bytes();
     let type_str = structured_reader.read_str();
     let target_global = GlobalScope::from_context(cx);
-    let blob = Blob::new(
+    let read_blob = Blob::new(
         &target_global,
         BlobImpl::new_from_bytes(blob_buffer),
         type_str,
     );
-    let js_object = blob.reflector().get_jsobject().get();
-    sc_holder.blob = Some(blob);
+    let js_object = read_blob.reflector().get_jsobject().get();
+    match sc_holder {
+        StructuredDataHolder::Read { blob, .. } => {
+            *blob = Some(read_blob);
+        },
+        _ => panic!("Unexpected variant of StructuredDataHolder"),
+    }
     js_object
 }
 
@@ -177,7 +182,7 @@ unsafe extern "C" fn read_callback(
         "tag should be higher than StructuredCloneTags::Min"
     );
     if tag == StructuredCloneTags::DomBlob as u32 {
-        return read_blob(cx, r, &mut *(closure as *mut StructuredCloneHolder));
+        return read_blob(cx, r, &mut *(closure as *mut StructuredDataHolder));
     }
     return ptr::null_mut();
 }
@@ -204,7 +209,7 @@ unsafe extern "C" fn read_transfer_callback(
     return_object: RawMutableHandleObject,
 ) -> bool {
     if tag == StructuredCloneTags::MessagePort as u32 {
-        let mut sc_holder = &mut *(closure as *mut StructuredCloneHolder);
+        let mut sc_holder = &mut *(closure as *mut StructuredDataHolder);
         let owner = GlobalScope::from_context(cx);
         if let Ok(_) = <MessagePort as Transferable>::transfer_receive(
             &owner,
@@ -234,7 +239,7 @@ unsafe extern "C" fn write_transfer_callback(
         }
         *tag = StructuredCloneTags::MessagePort as u32;
         *ownership = TransferableOwnership::SCTAG_TMO_CUSTOM;
-        let mut sc_holder = &mut *(closure as *mut StructuredCloneHolder);
+        let mut sc_holder = &mut *(closure as *mut StructuredDataHolder);
         if let Ok(data) = port.transfer(&mut sc_holder) {
             *extra_data = data;
             return true;
@@ -275,10 +280,18 @@ static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredClon
     canTransfer: Some(can_transfer_callback),
 };
 
-pub struct StructuredCloneHolder {
-    pub blob: Option<DomRoot<Blob>>,
-    pub message_ports: Vec<DomRoot<MessagePort>>,
-    pub ports_impl: HashMap<MessagePortId, MessagePortImpl>,
+/// A temporary storage of data for structured read/write operations.
+pub enum StructuredDataHolder {
+    Read {
+        /// A structured-serialized blob.
+        blob: Option<DomRoot<Blob>>,
+        /// A vec of structured-transfered DOM blob.
+        message_ports: Option<Vec<DomRoot<MessagePort>>>,
+        /// A map of structured data for transferred blobs.
+        port_impls: Option<HashMap<MessagePortId, MessagePortImpl>>,
+    },
+    /// A map of structured data for transferred blobs.
+    Write(Option<HashMap<MessagePortId, MessagePortImpl>>),
 }
 
 // TODO: should this be unsafe?
@@ -294,11 +307,7 @@ pub fn write(
             transfer.to_jsval(cx, val.handle_mut());
         }
 
-        let mut sc_holder = StructuredCloneHolder {
-            blob: None,
-            message_ports: vec![],
-            ports_impl: HashMap::new(),
-        };
+        let mut sc_holder = StructuredDataHolder::Write(None);
         let sc_holder_ptr = &mut sc_holder as *mut _;
 
         let scbuf = NewJSAutoStructuredCloneBuffer(
@@ -332,14 +341,14 @@ pub fn write(
 
         DeleteJSAutoStructuredCloneBuffer(scbuf);
 
-        let ports = match sc_holder.ports_impl.len() {
-            0 => None,
-            _ => Some(sc_holder.ports_impl),
+        let mut port_impls = match sc_holder {
+            StructuredDataHolder::Write(port_impls) => port_impls,
+            _ => panic!("Unexpected variant of StructuredDataHolder"),
         };
 
         let data = StructuredSerializedData {
             serialized: data,
-            ports: ports,
+            ports: port_impls.take(),
         };
 
         Ok(data)
@@ -347,22 +356,18 @@ pub fn write(
 }
 
 /// Read structured serialized data, possibly containing transferred objects.
-/// Returns a holder of transferred object, or an error.
+/// Returns a vec of rooted transfer-received ports, or an error.
 pub fn read(
     global: &GlobalScope,
     mut data: StructuredSerializedData,
     rval: MutableHandleValue,
-) -> Result<StructuredCloneHolder, ()> {
+) -> Result<Vec<DomRoot<MessagePort>>, ()> {
     let cx = global.get_cx();
     let _ac = enter_realm(&*global);
-    let ports = match data.ports.take() {
-        Some(ports) => ports,
-        None => HashMap::new(),
-    };
-    let mut sc_holder = StructuredCloneHolder {
+    let mut sc_holder = StructuredDataHolder::Read {
         blob: None,
-        message_ports: vec![],
-        ports_impl: ports,
+        message_ports: None,
+        port_impls: data.ports.take(),
     };
     let sc_holder_ptr = &mut sc_holder as *mut _;
     unsafe {
@@ -391,7 +396,22 @@ pub fn read(
         DeleteJSAutoStructuredCloneBuffer(scbuf);
 
         if result {
-            return Ok(sc_holder);
+            let (mut message_ports, port_impls) = match sc_holder {
+                StructuredDataHolder::Read {
+                    message_ports,
+                    port_impls,
+                    ..
+                } => (message_ports, port_impls),
+                _ => panic!("Unexpected variant of StructuredDataHolder"),
+            };
+
+            // Any transfer-received port-impls should have been taken out.
+            assert!(port_impls.is_none());
+
+            match message_ports.take() {
+                Some(ports) => return Ok(ports),
+                None => return Ok(Vec::with_capacity(0)),
+            }
         }
         Err(())
     }

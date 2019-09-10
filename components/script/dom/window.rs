@@ -2353,7 +2353,7 @@ impl Window {
             let obj = this.reflector().get_jsobject();
             let _ac = JSAutoRealm::new(*cx, obj.get());
             rooted!(in(*cx) let mut message_clone = UndefinedValue());
-            if let Ok(results) = structuredclone::read(this.upcast(), data, message_clone.handle_mut()) {
+            if let Ok(ports) = structuredclone::read(this.upcast(), data, message_clone.handle_mut()) {
                 // Step 7.6, 7.7
                 MessageEvent::dispatch_jsval(
                     this.upcast(),
@@ -2361,7 +2361,7 @@ impl Window {
                     message_clone.handle(),
                     Some(&source_origin.ascii_serialization()),
                     Some(&*source),
-                    results.message_ports,
+                    ports,
                 );
             } else {
                 // Step 4, fire messageerror.
@@ -2372,7 +2372,7 @@ impl Window {
                     message_clone.handle(),
                     Some(&source_origin.ascii_serialization()),
                     Some(&*source),
-                    vec![],
+                    Vec::with_capacity(0),
                 );
             }
         });

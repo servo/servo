@@ -111,7 +111,7 @@ impl ExtendableMessageEvent {
             message,
             DOMString::new(),
             DOMString::new(),
-            vec![],
+            Vec::with_capacity(0),
         );
         Extendablemessageevent.upcast::<Event>().fire(target);
     }

@@ -11,7 +11,7 @@ use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::structuredclone::{self, StructuredCloneHolder};
+use crate::dom::bindings::structuredclone::{self, StructuredDataHolder};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::eventtarget::EventTarget;
@@ -24,6 +24,7 @@ use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use msg::constellation_msg::{MessagePortId, MessagePortIndex, PipelineNamespaceId};
 use script_traits::PortMessageTask;
 use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 use std::convert::TryInto;
 use std::num::NonZeroU32;
 use std::rc::Rc;
@@ -155,14 +156,25 @@ impl MessagePort {
 
 impl Transferable for MessagePort {
     /// <https://html.spec.whatwg.org/multipage/#message-ports:transfer-steps>
-    fn transfer(&self, sc_holder: &mut StructuredCloneHolder) -> Result<u64, ()> {
+    fn transfer(&self, sc_holder: &mut StructuredDataHolder) -> Result<u64, ()> {
+        let port_impls = match sc_holder {
+            StructuredDataHolder::Write(port_impls) => port_impls,
+            _ => panic!("Unexpected variant of StructuredDataHolder"),
+        };
+
         self.detached.set(true);
         let id = self.message_port_id();
         // 1. Run local transfer logic, and return a serialized object for transfer.
         let transferred_port = self.global().mark_port_as_transferred(id);
 
         // 2. Store the transferred object at a given key.
-        sc_holder.ports_impl.insert(id.clone(), transferred_port);
+        if let Some(ports) = port_impls.as_mut() {
+            ports.insert(id.clone(), transferred_port);
+        } else {
+            let mut ports = HashMap::new();
+            ports.insert(id.clone(), transferred_port);
+            *port_impls = Some(ports);
+        }
 
         let PipelineNamespaceId(name_space) = id.clone().namespace_id;
         let MessagePortIndex(index) = id.clone().index;
@@ -183,10 +195,19 @@ impl Transferable for MessagePort {
     /// https://html.spec.whatwg.org/multipage/#message-ports:transfer-receiving-steps
     fn transfer_receive(
         owner: &DomRoot<GlobalScope>,
-        sc_holder: &mut StructuredCloneHolder,
+        sc_holder: &mut StructuredDataHolder,
         extra_data: u64,
         return_object: MutableHandleObject,
     ) -> Result<(), ()> {
+        let (message_ports, port_impls) = match sc_holder {
+            StructuredDataHolder::Read {
+                message_ports,
+                port_impls,
+                ..
+            } => (message_ports, port_impls),
+            _ => panic!("Unexpected variant of StructuredDataHolder"),
+        };
+
         // 1. Re-build the key for the storage location
         // of the transferred object.
         let big: [u8; 8] = extra_data.to_ne_bytes();
@@ -210,10 +231,17 @@ impl Transferable for MessagePort {
         };
 
         // 2. Get the transferred object from it's storage, using the key.
-        let port_impl = sc_holder
-            .ports_impl
-            .remove(&id)
-            .expect("Transferred port to be stored");
+        // Assign the transfer-received port-impl, and total number of transferred ports.
+        let (ports_len, port_impl) = if let Some(ports) = port_impls.as_mut() {
+            let ports_len = ports.len();
+            let port_impl = ports.remove(&id).expect("Transferred port to be stored");
+            if ports.is_empty() {
+                *port_impls = None;
+            }
+            (ports_len, port_impl)
+        } else {
+            panic!("A messageport was transfer-received, yet the SC holder does not have any port impls");
+        };
 
         let transferred_port =
             MessagePort::new_transferred(&**owner, id.clone(), port_impl.entangled_port_id());
@@ -221,7 +249,14 @@ impl Transferable for MessagePort {
 
         return_object.set(transferred_port.reflector().rootable().get());
 
-        sc_holder.message_ports.push(transferred_port);
+        // Store the DOM port where it will be passed along to script in the message-event.
+        if let Some(ports) = message_ports.as_mut() {
+            ports.push(transferred_port);
+        } else {
+            let mut ports = Vec::with_capacity(ports_len);
+            ports.push(transferred_port);
+            *message_ports = Some(ports);
+        }
 
         Ok(())
     }

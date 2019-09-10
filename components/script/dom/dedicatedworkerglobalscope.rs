@@ -469,8 +469,7 @@ impl DedicatedWorkerGlobalScope {
                 let target = self.upcast();
                 let _ac = enter_realm(self);
                 rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
-                if let Ok(results) =
-                    structuredclone::read(scope.upcast(), data, message.handle_mut())
+                if let Ok(ports) = structuredclone::read(scope.upcast(), data, message.handle_mut())
                 {
                     MessageEvent::dispatch_jsval(
                         target,
@@ -478,7 +477,7 @@ impl DedicatedWorkerGlobalScope {
                         message.handle(),
                         Some(&origin.ascii_serialization()),
                         None,
-                        results.message_ports,
+                        ports,
                     );
                 } else {
                     rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
@@ -488,7 +487,7 @@ impl DedicatedWorkerGlobalScope {
                         message.handle(),
                         Some(&origin.ascii_serialization()),
                         None,
-                        vec![],
+                        Vec::with_capacity(0),
                     );
                 }
             },

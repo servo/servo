@@ -7,15 +7,15 @@
 
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::structuredclone::StructuredCloneHolder;
+use crate::dom::bindings::structuredclone::StructuredDataHolder;
 use crate::dom::globalscope::GlobalScope;
 use js::jsapi::MutableHandleObject;
 
 pub trait Transferable: DomObject {
-    fn transfer(&self, sc_holder: &mut StructuredCloneHolder) -> Result<u64, ()>;
+    fn transfer(&self, sc_holder: &mut StructuredDataHolder) -> Result<u64, ()>;
     fn transfer_receive(
         owner: &DomRoot<GlobalScope>,
-        sc_holder: &mut StructuredCloneHolder,
+        sc_holder: &mut StructuredDataHolder,
         extra_data: u64,
         return_object: MutableHandleObject,
     ) -> Result<(), ()>;

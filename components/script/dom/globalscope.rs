@@ -433,9 +433,7 @@ impl GlobalScope {
 
             // Substep 3-4
             rooted!(in(*self.get_cx()) let mut message_clone = UndefinedValue());
-            if let Ok(deserialize_result) =
-                structuredclone::read(self, data, message_clone.handle_mut())
-            {
+            if let Ok(ports) = structuredclone::read(self, data, message_clone.handle_mut()) {
                 // Substep 6
                 // Dispatch the event, using the dom message-port.
                 MessageEvent::dispatch_jsval(
@@ -444,7 +442,7 @@ impl GlobalScope {
                     message_clone.handle(),
                     Some(&origin.ascii_serialization()),
                     None,
-                    deserialize_result.message_ports,
+                    ports,
                 );
             } else {
                 // Step 4, fire messageerror event.
@@ -455,7 +453,7 @@ impl GlobalScope {
                     message_clone.handle(),
                     Some(&origin.ascii_serialization()),
                     None,
-                    vec![],
+                    Vec::with_capacity(0),
                 );
             }
         }
