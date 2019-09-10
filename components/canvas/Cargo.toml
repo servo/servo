@@ -29,11 +29,12 @@ half = "1"
 ipc-channel = "0.12"
 log = "0.4"
 num-traits = "0.2"
-offscreen_gl_context = {version = "0.23", features = ["serde", "osmesa"]}
+offscreen_gl_context = {version = "0.25", features = ["serde", "osmesa"]}
 raqote = {git = "https://github.com/jrmuizel/raqote", optional = true}
 pixels = {path = "../pixels"}
 serde_bytes = "0.10"
 servo_config = {path = "../config"}
+sparkle = "0.1"
 webrender = {git = "https://github.com/servo/webrender"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webrender_traits = {path = "../webrender_traits"}

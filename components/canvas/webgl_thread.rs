@@ -8,12 +8,12 @@ use canvas_traits::webgl::*;
 use embedder_traits::EventLoopWaker;
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
-use gleam::gl;
 use half::f16;
 use ipc_channel::ipc::{self, OpaqueIpcMessage};
 use ipc_channel::router::ROUTER;
 use offscreen_gl_context::{DrawBuffer, GLContext, NativeGLContextMethods};
 use pixels::{self, PixelFormat};
+use sparkle::gl;
 use std::borrow::Cow;
 use std::cell::Cell;
 use std::cell::RefCell;
@@ -1573,7 +1573,7 @@ impl WebGLImpl {
     }
 
     fn initialize_framebuffer(
-        gl: &dyn gl::Gl,
+        gl: &gl::Gl,
         state: &GLState,
         color: bool,
         depth: bool,
@@ -1633,7 +1633,7 @@ impl WebGLImpl {
     }
 
     #[allow(unsafe_code)]
-    fn link_program(gl: &dyn gl::Gl, program: WebGLProgramId) -> ProgramLinkInfo {
+    fn link_program(gl: &gl::Gl, program: WebGLProgramId) -> ProgramLinkInfo {
         gl.link_program(program.get());
         let mut linked = [0];
         unsafe {
@@ -1706,13 +1706,13 @@ impl WebGLImpl {
         }
     }
 
-    fn finish(gl: &dyn gl::Gl, chan: &WebGLSender<()>) {
+    fn finish(gl: &gl::Gl, chan: &WebGLSender<()>) {
         gl.finish();
         chan.send(()).unwrap();
     }
 
     fn shader_precision_format(
-        gl: &dyn gl::Gl,
+        gl: &gl::Gl,
         shader_type: u32,
         precision_type: u32,
         chan: &WebGLSender<(i32, i32, i32)>,
@@ -1722,7 +1722,7 @@ impl WebGLImpl {
     }
 
     #[allow(unsafe_code)]
-    fn get_extensions(gl: &dyn gl::Gl, chan: &WebGLSender<String>) {
+    fn get_extensions(gl: &gl::Gl, chan: &WebGLSender<String>) {
         let mut ext_count = [0];
         unsafe {
             gl.get_integer_v(gl::NUM_EXTENSIONS, &mut ext_count);
@@ -1743,7 +1743,7 @@ impl WebGLImpl {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn get_framebuffer_attachment_parameter(
-        gl: &dyn gl::Gl,
+        gl: &gl::Gl,
         target: u32,
         attachment: u32,
         pname: u32,
@@ -1754,18 +1754,13 @@ impl WebGLImpl {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
-    fn get_renderbuffer_parameter(
-        gl: &dyn gl::Gl,
-        target: u32,
-        pname: u32,
-        chan: &WebGLSender<i32>,
-    ) {
+    fn get_renderbuffer_parameter(gl: &gl::Gl, target: u32, pname: u32, chan: &WebGLSender<i32>) {
         let parameter = gl.get_renderbuffer_parameter_iv(target, pname);
         chan.send(parameter).unwrap();
     }
 
     fn uniform_location(
-        gl: &dyn gl::Gl,
+        gl: &gl::Gl,
         program_id: WebGLProgramId,
         name: &str,
         chan: &WebGLSender<i32>,
@@ -1775,18 +1770,18 @@ impl WebGLImpl {
         chan.send(location).unwrap();
     }
 
-    fn shader_info_log(gl: &dyn gl::Gl, shader_id: WebGLShaderId, chan: &WebGLSender<String>) {
+    fn shader_info_log(gl: &gl::Gl, shader_id: WebGLShaderId, chan: &WebGLSender<String>) {
         let log = gl.get_shader_info_log(shader_id.get());
         chan.send(log).unwrap();
     }
 
-    fn program_info_log(gl: &dyn gl::Gl, program_id: WebGLProgramId, chan: &WebGLSender<String>) {
+    fn program_info_log(gl: &gl::Gl, program_id: WebGLProgramId, chan: &WebGLSender<String>) {
         let log = gl.get_program_info_log(program_id.get());
         chan.send(log).unwrap();
     }
 
     #[allow(unsafe_code)]
-    fn create_buffer(gl: &dyn gl::Gl, chan: &WebGLSender<Option<WebGLBufferId>>) {
+    fn create_buffer(gl: &gl::Gl, chan: &WebGLSender<Option<WebGLBufferId>>) {
         let buffer = gl.gen_buffers(1)[0];
         let buffer = if buffer == 0 {
             None
@@ -1797,7 +1792,7 @@ impl WebGLImpl {
     }
 
     #[allow(unsafe_code)]
-    fn create_framebuffer(gl: &dyn gl::Gl, chan: &WebGLSender<Option<WebGLFramebufferId>>) {
+    fn create_framebuffer(gl: &gl::Gl, chan: &WebGLSender<Option<WebGLFramebufferId>>) {
         let framebuffer = gl.gen_framebuffers(1)[0];
         let framebuffer = if framebuffer == 0 {
             None
@@ -1808,7 +1803,7 @@ impl WebGLImpl {
     }
 
     #[allow(unsafe_code)]
-    fn create_renderbuffer(gl: &dyn gl::Gl, chan: &WebGLSender<Option<WebGLRenderbufferId>>) {
+    fn create_renderbuffer(gl: &gl::Gl, chan: &WebGLSender<Option<WebGLRenderbufferId>>) {
         let renderbuffer = gl.gen_renderbuffers(1)[0];
         let renderbuffer = if renderbuffer == 0 {
             None
@@ -1819,7 +1814,7 @@ impl WebGLImpl {
     }
 
     #[allow(unsafe_code)]
-    fn create_texture(gl: &dyn gl::Gl, chan: &WebGLSender<Option<WebGLTextureId>>) {
+    fn create_texture(gl: &gl::Gl, chan: &WebGLSender<Option<WebGLTextureId>>) {
         let texture = gl.gen_textures(1)[0];
         let texture = if texture == 0 {
             None
@@ -1830,7 +1825,7 @@ impl WebGLImpl {
     }
 
     #[allow(unsafe_code)]
-    fn create_program(gl: &dyn gl::Gl, chan: &WebGLSender<Option<WebGLProgramId>>) {
+    fn create_program(gl: &gl::Gl, chan: &WebGLSender<Option<WebGLProgramId>>) {
         let program = gl.create_program();
         let program = if program == 0 {
             None
@@ -1841,7 +1836,7 @@ impl WebGLImpl {
     }
 
     #[allow(unsafe_code)]
-    fn create_shader(gl: &dyn gl::Gl, shader_type: u32, chan: &WebGLSender<Option<WebGLShaderId>>) {
+    fn create_shader(gl: &gl::Gl, shader_type: u32, chan: &WebGLSender<Option<WebGLShaderId>>) {
         let shader = gl.create_shader(shader_type);
         let shader = if shader == 0 {
             None
@@ -1852,7 +1847,7 @@ impl WebGLImpl {
     }
 
     #[allow(unsafe_code)]
-    fn create_vertex_array(gl: &dyn gl::Gl, chan: &WebGLSender<Option<WebGLVertexArrayId>>) {
+    fn create_vertex_array(gl: &gl::Gl, chan: &WebGLSender<Option<WebGLVertexArrayId>>) {
         let vao = gl.gen_vertex_arrays(1)[0];
         let vao = if vao == 0 {
             None
@@ -1864,7 +1859,7 @@ impl WebGLImpl {
 
     #[inline]
     fn bind_framebuffer<Native: NativeGLContextMethods>(
-        gl: &dyn gl::Gl,
+        gl: &gl::Gl,
         target: u32,
         request: WebGLFramebufferBindingRequest,
         ctx: &GLContext<Native>,
@@ -1880,7 +1875,7 @@ impl WebGLImpl {
     }
 
     #[inline]
-    fn compile_shader(gl: &dyn gl::Gl, shader_id: WebGLShaderId, source: &str) {
+    fn compile_shader(gl: &gl::Gl, shader_id: WebGLShaderId, source: &str) {
         gl.shader_source(shader_id.get(), &[source.as_bytes()]);
         gl.compile_shader(shader_id.get());
     }

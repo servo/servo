@@ -7,7 +7,6 @@ use canvas_traits::webgl::{
     GLContextAttributes, GLLimits, WebGLCommand, WebGLCommandBacktrace, WebGLVersion,
 };
 use euclid::default::Size2D;
-use gleam::gl;
 use offscreen_gl_context::{
     ColorAttachmentType, DrawBuffer, GLContext, GLContextAttributes as RawGLContextAttributes,
     GLContextDispatcher,
@@ -15,6 +14,7 @@ use offscreen_gl_context::{
 use offscreen_gl_context::{GLLimits as RawGLLimits, GLVersion};
 use offscreen_gl_context::{NativeGLContext, NativeGLContextHandle, NativeGLContextMethods};
 use offscreen_gl_context::{OSMesaContext, OSMesaContextHandle};
+use sparkle::gl;
 
 pub trait CloneableDispatcher: GLContextDispatcher {
     fn clone(&self) -> Box<dyn GLContextDispatcher>;
@@ -84,7 +84,7 @@ impl GLContextFactory {
                     size.to_i32(),
                     attributes,
                     ColorAttachmentType::Texture,
-                    gl::GlType::default(),
+                    gl::GlType::Gl,
                     Self::gl_version(webgl_version),
                     Some(handle),
                     None,
@@ -120,7 +120,7 @@ impl GLContextFactory {
                     size.to_i32(),
                     attributes,
                     ColorAttachmentType::Texture,
-                    gl::GlType::default(),
+                    gl::GlType::Gl,
                     Self::gl_version(webgl_version),
                     None,
                     None,
@@ -171,7 +171,7 @@ impl GLContextWrapper {
         }
     }
 
-    pub fn gl(&self) -> &dyn gl::Gl {
+    pub fn gl(&self) -> &gl::Gl {
         match *self {
             GLContextWrapper::Native(ref ctx) => ctx.gl(),
             GLContextWrapper::OSMesa(ref ctx) => ctx.gl(),
