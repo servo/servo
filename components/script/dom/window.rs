@@ -638,13 +638,23 @@ impl WindowMethods for Window {
         self.window_proxy().open(url, target, features)
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
     fn Opener(&self, cx: JSContext) -> JSVal {
-        match self.window_proxy.get() {
-            Some(proxy) => unsafe { proxy.opener(*cx) },
+        // Step 1, Let current be this Window object's browsing context.
+        let current = match self.window_proxy.get() {
+            Some(proxy) => proxy,
+            // Step 2, If current is null, then return null.
             None => return NullValue(),
+        };
+        // Still step 2, since the window's BC is the associated doc's BC,
+        // see https://html.spec.whatwg.org/multipage/#window-bc
+        // and a doc's BC is null if it has been discarded.
+        // see https://html.spec.whatwg.org/multipage/#concept-document-bc
+        if current.is_browsing_context_discarded() {
+            return NullValue();
         }
+        // Step 3 to 5.
+        current.opener(*cx)
     }
 
     #[allow(unsafe_code)]

@@ -369,7 +369,7 @@ impl WindowProxy {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    pub unsafe fn opener(&self, cx: *mut JSContext) -> JSVal {
+    pub fn opener(&self, cx: *mut JSContext) -> JSVal {
         if self.disowned.get() {
             return NullValue();
         }
@@ -386,7 +386,7 @@ impl WindowProxy {
                     opener_id,
                 ) {
                     Some(opener_top_id) => {
-                        let global_to_clone_from = GlobalScope::from_context(cx);
+                        let global_to_clone_from = unsafe { GlobalScope::from_context(cx) };
                         WindowProxy::new_dissimilar_origin(
                             &*global_to_clone_from,
                             opener_id,
@@ -403,7 +403,7 @@ impl WindowProxy {
             return NullValue();
         }
         rooted!(in(cx) let mut val = UndefinedValue());
-        opener_proxy.to_jsval(cx, val.handle_mut());
+        unsafe { opener_proxy.to_jsval(cx, val.handle_mut()) };
         return val.get();
     }
 
