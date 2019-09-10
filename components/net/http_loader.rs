@@ -884,7 +884,10 @@ fn http_network_or_cache_fetch(
         Referrer::ReferrerUrl(ref http_request_referrer) => {
             if let Ok(referer) = http_request_referrer.to_string().parse::<Referer>() {
                 http_request.headers.typed_insert(referer);
-            }
+            } else {
+	     // error!("Failed to parse {} as referer", http_request_referrer);
+	        panic!("Failed to parse {} as referer", http_request_referrer);
+	    }
         },
         Referrer::Client =>
         // it should be impossible for referrer to be anything else during fetching
@@ -960,6 +963,9 @@ fn http_network_or_cache_fetch(
     .map(Host::from)
     {
         http_request.headers.typed_insert(host);
+    } else {
+     // error!("Failed to parse as authority", current_url);
+        panic!("Failed to parse as authority", current_url);
     }
 
     // unlike http_loader, we should not set the accept header
