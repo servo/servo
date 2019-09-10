@@ -74,25 +74,49 @@
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            self.text_decoration_line.to_css(dest)?;
+            use crate::values::specified::TextDecorationLine;
+
+            let (is_solid_style, is_current_color, is_auto_thickness) =
+            (
+            % if engine == "gecko":
+                *self.text_decoration_style == text_decoration_style::SpecifiedValue::Solid,
+                *self.text_decoration_color == specified::Color::CurrentColor,
+                self.text_decoration_thickness.map_or(true, |t| t.is_auto())
+            % else:
+                true, true, true
+            % endif
+            );
+
+            let mut has_value = false;
+            let is_none = *self.text_decoration_line == TextDecorationLine::none();
+            if (is_solid_style && is_current_color && is_auto_thickness) || !is_none {
+                self.text_decoration_line.to_css(dest)?;
+                has_value = true;
+            }
 
             % if engine == "gecko":
-                if *self.text_decoration_style != text_decoration_style::SpecifiedValue::Solid {
+            if !is_solid_style {
+                if has_value {
                     dest.write_str(" ")?;
-                    self.text_decoration_style.to_css(dest)?;
                 }
+                self.text_decoration_style.to_css(dest)?;
+                has_value = true;
+            }
 
-                if *self.text_decoration_color != specified::Color::CurrentColor {
+            if !is_current_color {
+                if has_value {
                     dest.write_str(" ")?;
-                    self.text_decoration_color.to_css(dest)?;
                 }
+                self.text_decoration_color.to_css(dest)?;
+                has_value = true;
+            }
 
-                if let Some(text_decoration_thickness) = self.text_decoration_thickness {
-                    if !text_decoration_thickness.is_auto() {
-                        dest.write_str(" ")?;
-                        self.text_decoration_thickness.to_css(dest)?;
-                    }
+            if !is_auto_thickness {
+                if has_value {
+                    dest.write_str(" ")?;
                 }
+                self.text_decoration_thickness.to_css(dest)?;
+            }
             % endif
 
             Ok(())
