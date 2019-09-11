@@ -388,12 +388,18 @@
     }
 
     toggleFullscreen() {
-        const fullscreenEnabled = document.fullscreenEnabled && document.fullscreenElement;
+        const { fullscreenEnabled, fullscreenElement } = document;
 
-        if (fullscreenEnabled) {
-            document.exitFullscreen();
+        const isElementFullscreen = fullscreenElement && fullscreenElement === this.media;
+
+        if (fullscreenEnabled && isElementFullscreen) {
+            document.exitFullscreen().then(() => {
+                this.elements.fullscreenSwitch.classList.remove("fullscreen-active");
+            });
         } else {
-            this.media.requestFullscreen();
+            this.media.requestFullscreen().then(() => {
+                this.elements.fullscreenSwitch.classList.add("fullscreen-active");
+            });
         }
     }
 
