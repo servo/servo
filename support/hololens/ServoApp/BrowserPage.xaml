@@ -7,25 +7,105 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
+  <Page.Resources>
+    <Style x:Key="NavigationBarButton" TargetType="Button">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="{ThemeResource ButtonForeground}"/>
+      <Setter Property="BorderBrush" Value="{ThemeResource ButtonBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="{ThemeResource ButtonBorderThemeThickness}"/>
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="Margin" Value="10,2"/>
+      <Setter Property="MinWidth" Value="30"/>
+      <Setter Property="MinHeight" Value="30"/>
+      <Setter Property="HorizontalAlignment" Value="Center"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="FontFamily" Value="{ThemeResource ContentControlThemeFontFamily}"/>
+      <Setter Property="FontWeight" Value="Normal"/>
+      <Setter Property="FontSize" Value="{ThemeResource ControlContentThemeFontSize}"/>
+      <Setter Property="UseSystemFocusVisuals" Value="{StaticResource UseSystemFocusVisuals}"/>
+      <Setter Property="FocusVisualMargin" Value="-3"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <ContentPresenter x:Name="ContentPresenter" AutomationProperties.AccessibilityView="Raw" Background="{TemplateBinding Background}" BorderThickness="{TemplateBinding BorderThickness}" BorderBrush="{TemplateBinding BorderBrush}" ContentTemplate="{TemplateBinding ContentTemplate}" Content="{TemplateBinding Content}" CornerRadius="{TemplateBinding CornerRadius}" ContentTransitions="{TemplateBinding ContentTransitions}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" Padding="{TemplateBinding Padding}" VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}">
+              <VisualStateManager.VisualStateGroups>
+                <VisualStateGroup x:Name="CommonStates">
+                  <VisualState x:Name="Normal">
+                    <Storyboard>
+                      <PointerUpThemeAnimation Storyboard.TargetName="ContentPresenter"/>
+                    </Storyboard>
+                  </VisualState>
+                  <VisualState x:Name="PointerOver">
+                    <Storyboard>
+                      <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="Background">
+                        <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource ButtonBackgroundPointerOver}"/>
+                      </ObjectAnimationUsingKeyFrames>
+                      <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="BorderBrush">
+                        <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource ButtonBorderBrushPointerOver}"/>
+                      </ObjectAnimationUsingKeyFrames>
+                      <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="Foreground">
+                        <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource ButtonForegroundPointerOver}"/>
+                      </ObjectAnimationUsingKeyFrames>
+                      <PointerUpThemeAnimation Storyboard.TargetName="ContentPresenter"/>
+                    </Storyboard>
+                  </VisualState>
+                  <VisualState x:Name="Pressed">
+                    <Storyboard>
+                      <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="Background">
+                        <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource ButtonBackgroundPressed}"/>
+                      </ObjectAnimationUsingKeyFrames>
+                      <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="BorderBrush">
+                        <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource ButtonBorderBrushPressed}"/>
+                      </ObjectAnimationUsingKeyFrames>
+                      <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="Foreground">
+                        <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource ButtonForegroundPressed}"/>
+                      </ObjectAnimationUsingKeyFrames>
+                      <PointerDownThemeAnimation Storyboard.TargetName="ContentPresenter"/>
+                    </Storyboard>
+                  </VisualState>
+                  <VisualState x:Name="Disabled">
+                    <Storyboard>
+                      <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="Opacity">
+                        <DiscreteObjectKeyFrame KeyTime="0" Value="0.2"/>
+                      </ObjectAnimationUsingKeyFrames>
+                    </Storyboard>
+                  </VisualState>
+                </VisualStateGroup>
+              </VisualStateManager.VisualStateGroups>
+            </ContentPresenter>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Page.Resources>
 
   <Grid VerticalAlignment="Stretch">
     <Grid.RowDefinitions>
       <RowDefinition Height="auto"/>
       <RowDefinition Height="*"/>
     </Grid.RowDefinitions>
-    <Grid Grid.Row="0" x:Name="navigationBar">
+    <Grid Grid.Row="0" x:Name="navigationBar" Background="{ThemeResource InkToolbarButtonBackgroundThemeBrush}">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="auto"/>
         <ColumnDefinition Width="*"/>
         <ColumnDefinition Width="auto"/>
       </Grid.ColumnDefinitions>
       <StackPanel Orientation="Horizontal" Grid.Column="0">
-        <Button x:Name="backButton" IsTabStop="true" IsEnabled="false" Content="Back" Click="OnBackButtonClicked"/>
-        <Button x:Name="forwardButton" IsTabStop="true" IsEnabled="false" Content="Forward" Click="OnForwardButtonClicked"/>
-        <Button x:Name="reloadButton" IsTabStop="true" IsEnabled="false" Content="reload" Click="OnReloadButtonClicked"/>
-        <Button x:Name="stopButton" IsTabStop="true" IsEnabled="false" Content="stop" Click="OnStopButtonClicked"/>
+          <Button Style="{StaticResource NavigationBarButton}" x:Name="backButton" IsTabStop="true" IsEnabled="false" Click="OnBackButtonClicked" AutomationProperties.Name="Back">
+          <Image Source="Assets/UI/back.png" Height="12"></Image>
+        </Button>
+          <Button Style="{StaticResource NavigationBarButton}" x:Name="forwardButton" IsTabStop="true" IsEnabled="false" Click="OnForwardButtonClicked" AutomationProperties.Name="Forward">
+          <Image Source="Assets/UI/forward.png" Height="12"></Image>
+        </Button>
+          <Button Style="{StaticResource NavigationBarButton}" x:Name="reloadButton" IsTabStop="true" IsEnabled="false" Visibility="Visible" Click="OnReloadButtonClicked" AutomationProperties.Name="Reload">
+          <Image Source="Assets/UI/reload.png" Height="12"></Image>
+        </Button>
+          <Button Style="{StaticResource NavigationBarButton}" x:Name="stopButton" IsTabStop="true" IsEnabled="false" Visibility="Collapsed" Click="OnStopButtonClicked" AutomationProperties.Name="Stop">
+          <Image Source="Assets/UI/stop.png" Height="12"></Image>
+        </Button>
       </StackPanel>
-      <TextBox Text="" IsTabStop="true" InputScope="Url" PlaceholderText="Type a URL" x:Name="urlTextbox" Grid.Column="1" KeyUp="OnURLEdited"/>
+      <TextBox Text="" IsTabStop="true" InputScope="Url" PlaceholderText="Type a URL" x:Name="urlTextbox" Grid.Column="1" KeyUp="OnURLEdited" IsSpellCheckEnabled="False" Margin="3,0"/>
+      <ProgressRing x:Name="throbber" Grid.Column="2" Margin="10,0"/>
     </Grid>
     <local:ServoControl TabIndex="0" x:Name="servoControl" Grid.Row="1"/>
   </Grid>
