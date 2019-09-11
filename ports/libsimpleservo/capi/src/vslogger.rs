@@ -3,14 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use log::{self, Level, Metadata, Record};
+use std::os::raw::c_char;
 use std::sync::{Arc, Mutex};
 
 lazy_static! {
     pub static ref LOG_MODULE_FILTERS: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(vec![]));
-}
-
-extern "C" {
-    fn OutputDebugStringA(s: *const u8);
+    pub static ref LOG_PTR_FUNC: Arc<Mutex<Option<fn(*const c_char) -> bool>>> =
+        Arc::new(Mutex::new(Option::None));
 }
 
 pub struct VSLogger;
@@ -31,8 +30,8 @@ impl log::Log for VSLogger {
                 record.target(),
                 record.args()
             );
-            unsafe {
-                OutputDebugStringA(log.as_ptr());
+            if LOG_PTR_FUNC.lock().unwrap().is_some() {
+                LOG_PTR_FUNC.lock().unwrap().unwrap()(log.as_ptr() as *const i8);
             };
         }
     }

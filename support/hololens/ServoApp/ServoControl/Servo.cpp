@@ -1,6 +1,15 @@
 #include "pch.h"
 #include "Servo.h"
 
+/* Sample use of CInitOptions ptrfunc
+bool myptrfunc(const char *plog) 
+{ 
+	OutputDebugStringA(plog);
+
+	return true; 
+}
+*/
+
 namespace winrt::servo {
 
 void on_load_started() { sServo->Delegate().OnServoLoadStarted(); }
@@ -61,6 +70,10 @@ Servo::Servo(hstring url, GLsizei width, GLsizei height, float dpi,
     : mWindowHeight(height), mWindowWidth(width), mDelegate(aDelegate) {
 
   capi::CInitOptions o;
+
+  // Important to initialize structure.
+  memset(&o, '\0', sizeof(capi::CInitOptions));
+
   o.args = "--pref dom.webxr.enabled";
   o.url = *hstring2char(url);
   o.width = mWindowWidth;
@@ -68,6 +81,9 @@ Servo::Servo(hstring url, GLsizei width, GLsizei height, float dpi,
   o.density = dpi;
   o.enable_subpixel_text_antialiasing = false;
   o.vr_pointer = NULL;
+
+  // Example of how to specify platform specific logger
+  // o.ptrfunc = NULL; //&myptrfunc;
 
   // 7 filter modules.
   /* Sample list of servo modules to filter.
@@ -108,7 +124,7 @@ Servo::Servo(hstring url, GLsizei width, GLsizei height, float dpi,
   c.on_ime_state_changed = &on_ime_state_changed;
   c.get_clipboard_contents = &get_clipboard_contents;
   c.set_clipboard_contents = &set_clipboard_contents;
-
+  
   capi::register_panic_handler(&on_panic);
 
   capi::init_with_egl(o, &wakeup, c);
