@@ -577,6 +577,9 @@ impl WindowProxy {
             // making the old window proxy a cross-compartment wrapper
             // pointing to the new window proxy.
             rooted!(in(*cx) let new_js_proxy = NewWindowProxy(*cx, window_jsobject, handler));
+            // Explicitly set this slot to a null pointer in case a GC occurs before we
+            // are ready to set it to a real value.
+            SetProxyReservedSlot(new_js_proxy.get(), 0, &PrivateValue(ptr::null_mut()));
             debug!(
                 "Transplanting proxy from {:p} to {:p}.",
                 old_js_proxy.get(),

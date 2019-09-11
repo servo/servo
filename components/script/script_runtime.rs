@@ -743,7 +743,7 @@ unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
     use js::jsapi::{JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ};
 
     let level = match pref!(js.mem.gc.zeal.level) {
-        level @ 0...14 => level as u8,
+        level @ 0..=14 => level as u8,
         _ => return,
     };
     let frequency = match pref!(js.mem.gc.zeal.frequency) {

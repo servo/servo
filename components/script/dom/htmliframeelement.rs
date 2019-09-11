@@ -131,10 +131,13 @@ impl HTMLIFrameElement {
 
         let document = document_from_node(self);
 
-        let mut load_blocker = self.load_blocker.borrow_mut();
-        // Any oustanding load is finished from the point of view of the blocked
-        // document; the new navigation will continue blocking it.
-        LoadBlocker::terminate(&mut load_blocker);
+        // Ensure we don't borrow the load blocker while evaluating JS below.
+        {
+            let mut load_blocker = self.load_blocker.borrow_mut();
+            // Any oustanding load is finished from the point of view of the blocked
+            // document; the new navigation will continue blocking it.
+            LoadBlocker::terminate(&mut load_blocker);
+        }
 
         if load_data.url.scheme() == "javascript" {
             let window_proxy = self.GetContentWindow();
@@ -151,6 +154,7 @@ impl HTMLIFrameElement {
         match load_data.js_eval_result {
             Some(JsEvalResult::NoContent) => (),
             _ => {
+                let mut load_blocker = self.load_blocker.borrow_mut();
                 *load_blocker = Some(LoadBlocker::new(
                     &*document,
                     LoadType::Subframe(load_data.url.clone()),

@@ -39,6 +39,7 @@ def main(task_for):
             linux_wpt,
             linux_release,
             macos_wpt,
+            macos_debugmozjs,
         ]
         by_branch_name = {
             "auto": all_tests,
@@ -53,7 +54,7 @@ def main(task_for):
             # The "try-*" keys match those in `servo_try_choosers` in Homu’s config:
             # https://github.com/servo/saltfs/blob/master/homu/map.jinja
 
-            "try-mac": [macos_unit],
+            "try-mac": [macos_debugmozjs],
             "try-linux": [linux_tidy_unit_docs, linux_release],
             "try-windows": [windows_unit, windows_arm64, windows_uwp_x64],
             "try-magicleap": [magicleap_dev],
@@ -538,36 +539,83 @@ def update_wpt():
     )
 
 
-def macos_release_build():
+def macos_release_build(build_flags="", task_name="", treeherder_name="", artifact_extra=""):
     return (
-        macos_build_task("Release build")
-        .with_treeherder("macOS x64", "Release")
+        macos_build_task(task_name or "Release build")
+        .with_treeherder("macOS x64", treeherder_name or "Release")
         .with_script("""
-            ./mach build --release --verbose
+            ./mach build --release --verbose {build_flags}
             ./etc/ci/lockfile_changed.sh
             tar -czf target.tar.gz \
                 target/release/servo \
                 target/release/build/osmesa-src-*/output \
                 target/release/build/osmesa-src-*/out/src/gallium/targets/osmesa/.libs \
                 target/release/build/osmesa-src-*/out/src/mapi/shared-glapi/.libs
-        """)
+        """.format(build_flags=build_flags))
         .with_artifacts("repo/target.tar.gz")
-        .find_or_create("build.macos_x64_release." + CONFIG.task_id())
+        .find_or_create("build.macos_x64_release.{extra}{id}".format(
+            extra=artifact_extra or "",
+            id=CONFIG.task_id()
+        ))
+    )
+
+
+def macos_run_task(name):
+    task = macos_task(name).with_python2()
+    return (
+        with_homebrew(task, ["etc/taskcluster/macos/Brewfile-gstreamer"])
+        .with_script("""
+            export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
+        """)
+    )
+
+
+def macos_debugmozjs():
+    build_task = macos_release_build(
+        build_flags="--debug-mozjs",
+        task_name="Release build + debugmozjs",
+        treeherder_name="Release + debugmozjs",
+        artifact_extra="debugmozjs.",
+    )
+    return (
+        wpt_task(macos_run_task, "WPT debugmozjs", "WPT debugmozjs", "macOS x64",
+                 build_task, processes=8)
+        .with_script("""
+            time ./mach test-wpt --release \
+                --binary-arg="--pref=js.mem.gc.zeal.level=2" \
+                --binary-arg="--pref=js.mem.gc.zeal.frequency=20" \
+                --timeout-multiplier=60 \
+                --log-raw test-wpt.log \
+                --log-errorsummary wpt-errorsummary.log \
+                --log-mach - \
+                eventsource \
+                xhr
+        """)
+        .with_artifacts("repo/test-wpt.log", "repo/wpt-errorsummary.log")
+        .find_or_create("macOS_x64.wpt.debugmozjs." + CONFIG.task_id())
     )
 
 
 def macos_wpt():
     build_task = macos_release_build()
-    def macos_run_task(name):
-        task = macos_task(name).with_python2()
-        return (
-            with_homebrew(task, ["etc/taskcluster/macos/Brewfile-gstreamer"])
-            .with_script("""
-                export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
-            """)
-        )
     wpt_chunks("macOS x64", macos_run_task, build_task, repo_dir="repo",
                total_chunks=6, processes=4)
+
+
+def wpt_task(make_wpt_task, task_name, treeherder_name, platform, build_task, processes):
+        return (
+            make_wpt_task(task_name)
+            .with_treeherder(platform, treeherder_name)
+            .with_repo()
+            .with_curl_artifact_script(build_task, "target.tar.gz")
+            .with_script("tar -xzf target.tar.gz")
+            .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
+            .with_max_run_time_minutes(90)
+            .with_env(
+                PROCESSES=str(processes),
+                GST_DEBUG="3",
+            )
+        )
 
 
 def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
@@ -576,18 +624,17 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
         chunks = [n + 1 for n in range(total_chunks)]
     for this_chunk in chunks:
         task = (
-            make_chunk_task("WPT chunk %s / %s" % (this_chunk, total_chunks))
-            .with_treeherder(platform, "WPT-%s" % this_chunk)
-            .with_repo()
-            .with_curl_artifact_script(build_task, "target.tar.gz")
-            .with_script("tar -xzf target.tar.gz")
-            .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
-            .with_max_run_time_minutes(90)
+            wpt_task(
+                make_chunk_task,
+                "WPT chunk %s / %s" % (this_chunk, total_chunks),
+                "WPT-%s" % this_chunk,
+                platform,
+                build_task,
+                processes,
+            )
             .with_env(
                 TOTAL_CHUNKS=str(total_chunks),
                 THIS_CHUNK=str(this_chunk),
-                PROCESSES=str(processes),
-                GST_DEBUG="3",
             )
         )
         if this_chunk == chunks[-1]:

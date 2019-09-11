@@ -17,6 +17,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::is_execution_stack_empty;
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::comment::Comment;
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
@@ -44,6 +45,8 @@ use html5ever::tendril::{ByteTendril, StrTendril, TendrilSink};
 use html5ever::tree_builder::{ElementFlags, NextParserState, NodeOrText, QuirksMode, TreeSink};
 use html5ever::{Attribute, ExpandedName, LocalName, QualName};
 use hyper_serde::Serde;
+use js::jsapi::JSTracer;
+use js::rust::CustomTrace;
 use mime::{self, Mime};
 use msg::constellation_msg::PipelineId;
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
@@ -85,12 +88,12 @@ pub struct ServoParser {
     network_decoder: DomRefCell<Option<NetworkDecoder>>,
     /// Input received from network.
     #[ignore_malloc_size_of = "Defined in html5ever"]
-    network_input: DomRefCell<BufferQueue>,
+    network_input: DomRefCell<Option<BufferQueue>>,
     /// Input received from script. Used only to support document.write().
     #[ignore_malloc_size_of = "Defined in html5ever"]
     script_input: DomRefCell<BufferQueue>,
     /// The tokenizer of this parser.
-    tokenizer: DomRefCell<Tokenizer>,
+    tokenizer: DomRefCell<Option<Tokenizer>>,
     /// Whether to expect any further input from the associated network request.
     last_chunk_received: Cell<bool>,
     /// Whether this parser should avoid passing any further data to the tokenizer.
@@ -279,10 +282,10 @@ impl ServoParser {
 
         mem::swap(
             &mut *self.script_input.borrow_mut(),
-            &mut *self.network_input.borrow_mut(),
+            self.network_input.borrow_mut().as_mut().expect("should have network input"),
         );
         while let Some(chunk) = self.script_input.borrow_mut().pop_front() {
-            self.network_input.borrow_mut().push_back(chunk);
+            self.network_input.borrow_mut().as_mut().expect("should have network input").push_back(chunk);
         }
 
         let script_nesting_level = self.script_nesting_level.get();
@@ -365,14 +368,14 @@ impl ServoParser {
 
         // Step 1.
         *self.script_input.borrow_mut() = BufferQueue::new();
-        *self.network_input.borrow_mut() = BufferQueue::new();
+        *self.network_input.borrow_mut() = Some(BufferQueue::new());
 
         // Step 2.
         self.document
             .set_ready_state(DocumentReadyState::Interactive);
 
         // Step 3.
-        self.tokenizer.borrow_mut().end();
+        self.use_tokenizer(&mut |tokenizer: &mut Tokenizer| tokenizer.end());
         self.document.set_current_parser(None);
 
         // Step 4.
@@ -395,9 +398,9 @@ impl ServoParser {
             reflector: Reflector::new(),
             document: Dom::from_ref(document),
             network_decoder: DomRefCell::new(Some(NetworkDecoder::new(document.encoding()))),
-            network_input: DomRefCell::new(BufferQueue::new()),
+            network_input: DomRefCell::new(Some(BufferQueue::new())),
             script_input: DomRefCell::new(BufferQueue::new()),
-            tokenizer: DomRefCell::new(tokenizer),
+            tokenizer: DomRefCell::new(Some(tokenizer)),
             last_chunk_received: Cell::new(last_chunk_state == LastChunkState::Received),
             suspended: Default::default(),
             script_nesting_level: Default::default(),
@@ -433,12 +436,12 @@ impl ServoParser {
             .unwrap()
             .decode(chunk);
         if !chunk.is_empty() {
-            self.network_input.borrow_mut().push_back(chunk);
+            self.network_input.borrow_mut().as_mut().expect("should have network input").push_back(chunk);
         }
     }
 
     fn push_string_input_chunk(&self, chunk: String) {
-        self.network_input.borrow_mut().push_back(chunk.into());
+        self.network_input.borrow_mut().as_mut().expect("should have network input").push_back(chunk.into());
     }
 
     fn parse_sync(&self) {
@@ -447,7 +450,7 @@ impl ServoParser {
             iframe: TimerMetadataFrameType::RootWindow,
             incremental: TimerMetadataReflowType::FirstReflow,
         };
-        let profiler_category = self.tokenizer.borrow().profiler_category();
+        let profiler_category = self.tokenizer.borrow().as_ref().expect("should not be feeding").profiler_category();
         profile(
             profiler_category,
             Some(metadata),
@@ -470,17 +473,19 @@ impl ServoParser {
             if let Some(decoder) = self.network_decoder.borrow_mut().take() {
                 let chunk = decoder.finish();
                 if !chunk.is_empty() {
-                    self.network_input.borrow_mut().push_back(chunk);
+                    self.network_input.borrow_mut().as_mut().expect("should have network input").push_back(chunk);
                 }
             }
         }
-        self.tokenize(|tokenizer| tokenizer.feed(&mut *self.network_input.borrow_mut()));
+        let mut network_input = self.network_input.borrow_mut().take().expect("should have network input");
+        self.tokenize(|tokenizer| tokenizer.feed(&mut network_input));
+        *self.network_input.borrow_mut() = Some(network_input);
 
         if self.suspended.get() {
             return;
         }
 
-        assert!(self.network_input.borrow().is_empty());
+        assert!(self.network_input.borrow().as_ref().expect("should have network input").is_empty());
 
         if self.last_chunk_received.get() {
             self.finish();
@@ -503,6 +508,17 @@ impl ServoParser {
         }
     }
 
+    /// Make use of the tokenizer in an operation that could invoke arbitrary DOM code.
+    /// This avoids the risk of borrow panics if a JS GC occurs, while ensuring that
+    /// the tokenizer remains visible to the GC so there are no GC hazards.
+    fn use_tokenizer<R, F: FnMut(&mut Tokenizer) -> R>(&self, f: &mut F) -> R {
+        let cx = self.global().get_cx();
+        auto_root!(in(*cx) let mut tokenizer = self.tokenizer.borrow_mut().take());
+        let result = f(tokenizer.as_mut().expect("should have tokenizer"));
+        *self.tokenizer.borrow_mut() = tokenizer.take();
+        result
+    }
+
     fn tokenize<F>(&self, mut feed: F)
     where
         F: FnMut(&mut Tokenizer) -> Result<(), DomRoot<HTMLScriptElement>>,
@@ -512,7 +528,7 @@ impl ServoParser {
             assert!(!self.aborted.get());
 
             self.document.reflow_if_reflow_timer_expired();
-            let script = match feed(&mut *self.tokenizer.borrow_mut()) {
+            let script = match self.use_tokenizer(&mut feed) {
                 Ok(()) => return,
                 Err(script) => script,
             };
@@ -538,7 +554,7 @@ impl ServoParser {
         assert!(!self.suspended.get());
         assert!(self.last_chunk_received.get());
         assert!(self.script_input.borrow().is_empty());
-        assert!(self.network_input.borrow().is_empty());
+        assert!(self.network_input.borrow().as_ref().expect("should have network input").is_empty());
         assert!(self.network_decoder.borrow().is_none());
 
         // Step 1.
@@ -546,11 +562,11 @@ impl ServoParser {
             .set_ready_state(DocumentReadyState::Interactive);
 
         // Step 2.
-        self.tokenizer.borrow_mut().end();
+        self.use_tokenizer(&mut |tokenizer: &mut Tokenizer| tokenizer.end());
         self.document.set_current_parser(None);
 
         // Steps 3-12 are in another castle, namely finish_load.
-        let url = self.tokenizer.borrow().url().clone();
+        let url = self.tokenizer.borrow().as_ref().expect("should not be feeding").url().clone();
         self.document.finish_load(LoadType::PageSource(url));
     }
 }
@@ -727,7 +743,7 @@ impl FetchResponseListener for ParserContext {
                 let page = "<pre>\n".into();
                 parser.push_string_input_chunk(page);
                 parser.parse_sync();
-                parser.tokenizer.borrow_mut().set_plaintext_state();
+                parser.tokenizer.borrow_mut().as_mut().expect("should not be feeding").set_plaintext_state();
             },
             Some(ref mime) if mime.type_() == mime::TEXT && mime.subtype() == mime::HTML => {
                 // Handle text/html
@@ -1234,5 +1250,14 @@ impl TendrilSink<UTF8> for NetworkSink {
 
     fn finish(self) -> Self::Output {
         self.output
+    }
+}
+
+#[allow(unsafe_code)]
+unsafe impl CustomTrace for Tokenizer {
+    fn trace(&self, trc: *mut JSTracer) {
+        unsafe {
+            <Self as JSTraceable>::trace(self, trc)
+        }
     }
 }
