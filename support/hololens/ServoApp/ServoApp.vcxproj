@@ -317,7 +317,6 @@
     <None Include="..\..\..\target\aarch64-pc-windows-msvc\debug\intl-8.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</DeploymentContent>
     </None>
-
     <None Include="..\..\..\target\aarch64-pc-windows-msvc\debug\libcrypto.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</DeploymentContent>
     </None>
@@ -936,14 +935,19 @@
     <Image Include="Assets\Square150x150Logo.scale-200.png" />
     <Image Include="Assets\Square150x150Logo.scale-400.png" />
     <Image Include="Assets\Square44x44Logo.altform-unplated_targetsize-16.png" />
+    <Image Include="Assets\Square44x44Logo.altform-unplated_targetsize-24.png" />
     <Image Include="Assets\Square44x44Logo.altform-unplated_targetsize-256.png" />
+    <Image Include="Assets\Square44x44Logo.altform-unplated_targetsize-32.png" />
     <Image Include="Assets\Square44x44Logo.altform-unplated_targetsize-48.png" />
     <Image Include="Assets\Square44x44Logo.scale-100.png" />
+    <Image Include="Assets\Square44x44Logo.scale-125.png" />
+    <Image Include="Assets\Square44x44Logo.scale-150.png" />
     <Image Include="Assets\Square44x44Logo.scale-200.png" />
     <Image Include="Assets\Square44x44Logo.scale-400.png" />
     <Image Include="Assets\Square44x44Logo.targetsize-16.png" />
-    <Image Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
+    <Image Include="Assets\Square44x44Logo.targetsize-24.png" />
     <Image Include="Assets\Square44x44Logo.targetsize-256.png" />
+    <Image Include="Assets\Square44x44Logo.targetsize-32.png" />
     <Image Include="Assets\Square44x44Logo.targetsize-48.png" />
     <Image Include="Assets\StoreLogo.scale-100.png" />
     <Image Include="Assets\StoreLogo.scale-200.png" />
