@@ -5,19 +5,6 @@
 (() => {
   "use strict";
 
-  const MARKUP = `
-    <div class="controls">
-      <button id="play-pause-button"></button>
-      <input id="progress" type="range" value="0" min="0" max="100" step="1"></input>
-      <span id="position-duration-box" class="hidden">
-        <span id="position-text">#1</span>
-        <span id="duration"> / #2</span>
-      </span>
-      <button id="volume-switch"></button>
-      <input id="volume-level" type="range" value="100" min="0" max="100" step="1"></input>
-    </div>
-  `;
-
   // States.
   const BUFFERING = "buffering";
   const ENDED = "ended";
@@ -49,6 +36,22 @@
       paused: PLAYING
     }
   };
+
+  function generateMarkup(isAudioOnly) {
+    return `
+      <div class="controls">
+        <button id="play-pause-button"></button>
+        <input id="progress" type="range" value="0" min="0" max="100" step="1"></input>
+        <span id="position-duration-box" class="hidden">
+          <span id="position-text">#1</span>
+          <span id="duration"> / #2</span>
+        </span>
+        <button id="volume-switch"></button>
+        <input id="volume-level" type="range" value="100" min="0" max="100" step="1"></input>
+        ${isAudioOnly ? "" : '<button id="fullscreen-switch" class="fullscreen"></button>'}
+      </div>
+    `;
+  }
 
   function camelCase(str) {
     const rdashes = /-(.)/g;
@@ -89,15 +92,16 @@
         attributeFilter: ["controls"]
       });
 
+      this.isAudioOnly = this.media.localName == "audio";
+
       // Create root element and load markup.
       this.root = document.createElement("div");
       this.root.classList.add("root");
-      this.root.innerHTML = MARKUP;
+      this.root.innerHTML = generateMarkup(this.isAudioOnly);
       this.controls.appendChild(this.root);
 
-      // Import elements.
-      this.elements = {};
-      [
+
+      const elementNames = [
         "duration",
         "play-pause-button",
         "position-duration-box",
@@ -105,7 +109,15 @@
         "progress",
         "volume-switch",
         "volume-level"
-      ].forEach(id => {
+      ];
+
+      if (!this.isAudioOnly) {
+        elementNames.push("fullscreen-switch");
+      }
+
+      // Import elements.
+      this.elements = {};
+      elementNames.forEach(id => {
         this.elements[camelCase(id)] = this.controls.getElementById(id);
       });
 
@@ -182,6 +194,11 @@
         { el: this.elements.volumeSwitch, type: "click" },
         { el: this.elements.volumeLevel, type: "input" }
       ];
+
+      if (!this.isAudioOnly) {
+        this.controlEvents.push({ el: this.elements.fullscreenSwitch, type: "click" });
+      }
+
       this.controlEvents.forEach(({ el, type }) => {
         el.addEventListener(type, this);
       });
@@ -238,8 +255,7 @@
     }
 
     render(from = this.state) {
-      const isAudioOnly = this.media.localName == "audio";
-      if (!isAudioOnly) {
+      if (!this.isAudioOnly) {
         // XXX This should ideally use clientHeight/clientWidth,
         //     but for some reason I couldn't figure out yet,
         //     using it breaks layout.
@@ -312,6 +328,9 @@
             case this.elements.volumeSwitch:
               this.toggleMuted();
               break;
+            case this.elements.fullscreenSwitch:
+                this.toggleFullscreen();
+                break;
           }
           break;
         case "input":
@@ -366,6 +385,10 @@
 
     toggleMuted() {
       this.media.muted = !this.media.muted;
+    }
+
+    toggleFullscreen() {
+        this.media.requestFullscreen();
     }
 
     changeVolume() {
