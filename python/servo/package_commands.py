@@ -743,7 +743,6 @@ def build_uwp(platforms, dev, msbuild_dir):
     if dev and len(platforms) > 1:
         raise Exception("Debug package with multiple architectures is unsupported")
 
-    platforms = '|'.join(platforms)
 
     if dev:
         Configuration = "Debug"
@@ -756,11 +755,24 @@ def build_uwp(platforms, dev, msbuild_dir):
     # /p:Configuration="Debug" /p:Platform="x64" /property:AppxBundle=Always;AppxBundlePlatforms="x64"
     msbuild = path.join(msbuild_dir, "msbuild.exe")
     project = path.join('.', 'support', 'hololens', 'ServoApp.sln')
+    for platform in platforms:
+        subprocess.check_call([
+            msbuild,
+            "/m",
+            "/p:project=ServoApp",
+            project,
+            "/p:Configuration=" + Configuration,
+            '/p:Platform=%s' % platforms,
+        ])
+
+    # Generate an appxbundle by combining all of the previous builds.
     subprocess.check_call([
         msbuild,
         "/m",
         "/p:project=ServoApp",
         project,
         "/p:Configuration=" + Configuration,
-        '/p:AppxBundle=Always;AppxBundlePlatforms=%s' % platforms,
+        "/p:AppxBundle=Always",
+        "/p:Platform=%s" % platforms[0],
+        "/p:AppxBundlePlatforms=%s" % '|'.join(platforms),
     ])
