@@ -50,7 +50,8 @@ impl Tokenizer {
         let sink = PrefetchSink {
             origin: document.origin().immutable().clone(),
             pipeline_id: document.global().pipeline_id(),
-            base: document.url(),
+            base_url: None,
+            document_url: document.url(),
             referrer: Referrer::ReferrerUrl(document.url()),
             referrer_policy: document.get_referrer_policy(),
             resource_threads: document.loader().resource_threads().clone(),
@@ -73,7 +74,8 @@ impl Tokenizer {
 struct PrefetchSink {
     origin: ImmutableOrigin,
     pipeline_id: PipelineId,
-    base: ServoUrl,
+    document_url: ServoUrl,
+    base_url: Option<ServoUrl>,
     referrer: Referrer,
     referrer_policy: Option<ReferrerPolicy>,
     resource_threads: ResourceThreads,
@@ -166,8 +168,10 @@ impl TokenSink for PrefetchSink {
             },
             (TagKind::StartTag, local_name!("base")) => {
                 if let Some(url) = self.get_url(tag, local_name!("href")) {
-                    debug!("Setting base {}", url);
-                    self.base = url;
+                    if self.base_url.is_none() {
+                        debug!("Setting base {}", url);
+                        self.base_url = Some(url);
+                    }
                 }
                 TokenSinkResult::Continue
             },
@@ -182,8 +186,9 @@ impl PrefetchSink {
     }
 
     fn get_url(&self, tag: &Tag, name: LocalName) -> Option<ServoUrl> {
-        self.get_attr(tag, name)
-            .and_then(|attr| ServoUrl::parse_with_base(Some(&self.base), &attr.value).ok())
+        let attr = self.get_attr(tag, name)?;
+        let base = self.base_url.as_ref().unwrap_or(&self.document_url);
+        ServoUrl::parse_with_base(Some(base), &attr.value).ok()
     }
 
     fn get_cors_settings(&self, tag: &Tag, name: LocalName) -> Option<CorsSettings> {
