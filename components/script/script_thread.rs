@@ -3364,6 +3364,22 @@ impl ScriptThread {
     ///
     /// TODO: Actually perform DOM event dispatch.
     fn handle_event(&self, pipeline_id: PipelineId, event: CompositorEvent) {
+        let window = match { self.documents.borrow().find_window(pipeline_id) } {
+            Some(win) => win,
+            None => {
+                return warn!(
+                    "Compositor event sent to a pipeline that already exited {}.",
+                    pipeline_id
+                )
+            },
+        };
+        if window.Closed() {
+            // If the BC has been, or is being, discarded, we don't want to run any JS.
+            return warn!(
+                "Compositor event sent to a pipeline with a closed window {}.",
+                pipeline_id
+            );
+        }
         match event {
             ResizeEvent(new_size, size_type) => {
                 self.handle_resize_event(pipeline_id, new_size, size_type);
