@@ -32,12 +32,15 @@ use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
+use msg::constellation_msg::PipelineId;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode,
 };
+use net_traits::ReferrerPolicy;
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_atoms::Atom;
+use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::fs::File;
@@ -292,19 +295,18 @@ impl ResourceTimingListener for ClassicContext {
 
 impl PreInvoke for ClassicContext {}
 
-/// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
-fn fetch_a_classic_script(
-    script: &HTMLScriptElement,
-    kind: ExternalScriptKind,
+/// Steps 1-2 of <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
+// This function is also used to prefetch a script in `script::dom::servoparser::prefetch`.
+pub(crate) fn script_fetch_request(
     url: ServoUrl,
     cors_setting: Option<CorsSettings>,
+    origin: ImmutableOrigin,
+    pipeline_id: PipelineId,
+    referrer: Referrer,
+    referrer_policy: Option<ReferrerPolicy>,
     integrity_metadata: String,
-    character_encoding: &'static Encoding,
-) {
-    let doc = document_from_node(script);
-
-    // Step 1, 2.
-    let request = RequestBuilder::new(url.clone())
+) -> RequestBuilder {
+    RequestBuilder::new(url)
         .destination(Destination::Script)
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
         // Step 1
@@ -318,11 +320,34 @@ fn fetch_a_classic_script(
             Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
             _ => CredentialsMode::Include,
         })
-        .origin(doc.origin().immutable().clone())
-        .pipeline_id(Some(script.global().pipeline_id()))
-        .referrer(Some(Referrer::ReferrerUrl(doc.url())))
-        .referrer_policy(doc.get_referrer_policy())
-        .integrity_metadata(integrity_metadata);
+        .origin(origin)
+        .pipeline_id(Some(pipeline_id))
+        .referrer(Some(referrer))
+        .referrer_policy(referrer_policy)
+        .integrity_metadata(integrity_metadata)
+}
+
+/// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
+fn fetch_a_classic_script(
+    script: &HTMLScriptElement,
+    kind: ExternalScriptKind,
+    url: ServoUrl,
+    cors_setting: Option<CorsSettings>,
+    integrity_metadata: String,
+    character_encoding: &'static Encoding,
+) {
+    let doc = document_from_node(script);
+
+    // Step 1, 2.
+    let request = script_fetch_request(
+        url.clone(),
+        cors_setting,
+        doc.origin().immutable().clone(),
+        script.global().pipeline_id(),
+        Referrer::ReferrerUrl(doc.url()),
+        doc.get_referrer_policy(),
+        integrity_metadata,
+    );
 
     // TODO: Step 3, Add custom steps to perform fetch
 
