@@ -58,7 +58,7 @@ def install_sdk(logger, dest=None):
 
     os_name = platform.system().lower()
     if os_name not in ["darwin", "linux", "windows"]:
-        logger.error("Unsupported platform %s" % os_name)
+        logger.critical("Unsupported platform %s" % os_name)
         raise NotImplementedError
 
     os_name = 'darwin' if os_name == 'macosx' else os_name

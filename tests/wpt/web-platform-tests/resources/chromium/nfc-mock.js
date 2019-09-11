@@ -1,20 +1,5 @@
 'use strict';
 
-function toMojoNDEFRecordType(type) {
-  switch (type) {
-  case 'text':
-    return device.mojom.NDEFRecordType.TEXT;
-  case 'url':
-    return device.mojom.NDEFRecordType.URL;
-  case 'json':
-    return device.mojom.NDEFRecordType.JSON;
-  case 'opaque':
-    return device.mojom.NDEFRecordType.OPAQUE_RECORD;
-  }
-
-  return device.mojom.NDEFRecordType.EMPTY;
-}
-
 function toMojoNFCPushTarget(target) {
   switch (target) {
   case 'peer':
@@ -48,7 +33,7 @@ function toMojoNDEFMessage(message) {
 
 function toMojoNDEFRecord(record) {
   let nfcRecord = new device.mojom.NDEFRecord();
-  nfcRecord.recordType = toMojoNDEFRecordType(record.recordType);
+  nfcRecord.recordType = record.recordType;
   nfcRecord.mediaType = record.mediaType;
   nfcRecord.data = toByteArray(record.data);
   return nfcRecord;
@@ -74,8 +59,7 @@ function toByteArray(data) {
 // TODO: Use different getters to get received record data,
 // see spec changes at https://github.com/w3c/web-nfc/pull/243
 function compareNDEFRecords(providedRecord, receivedRecord) {
-  assert_equals(toMojoNDEFRecordType(providedRecord.recordType),
-                receivedRecord.recordType);
+  assert_equals(providedRecord.recordType, receivedRecord.recordType);
 
   // Compare media types without charset.
   // Charset should be compared when watch method is implemented, in order
@@ -83,8 +67,7 @@ function compareNDEFRecords(providedRecord, receivedRecord) {
   assert_equals(providedRecord.mediaType,
       receivedRecord.mediaType.substring(0, providedRecord.mediaType.length));
 
-  assert_false(toMojoNDEFRecordType(providedRecord.recordType) ==
-              device.mojom.NDEFRecordType.EMPTY);
+  assert_not_equals(providedRecord.recordType, 'empty');
 
   assert_array_equals(toByteArray(providedRecord.data),
                       new Uint8Array(receivedRecord.data));
@@ -140,8 +123,7 @@ function assertNFCReaderOptionsEqual(provided, received) {
 
   if (provided.recordType !== undefined) {
     assert_equals(!+received.record_filter, true);
-    assert_equals(toMojoNDEFRecordType(provided.recordType),
-        received.recordFilter.recordType);
+    assert_equals(provided.recordType, received.recordFilter.recordType);
   }
 }
 
@@ -169,9 +151,8 @@ function matchesWatchOptions(message, compatibility, options) {
         && options.mediaType !== record.mediaType) {
       return false;
     }
-    if (options.recordFilter != null
-        && options.recordFilter.recordType
-            !== toMojoNDEFRecordType(record.recordType)) {
+    if (options.recordFilter != null &&
+        options.recordFilter.recordType !== record.recordType) {
       return false;
     }
   }

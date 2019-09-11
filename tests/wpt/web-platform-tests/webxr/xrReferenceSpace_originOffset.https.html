@@ -11,7 +11,7 @@ let testName = "Updating XRReferenceSpace origin offset updates view and input m
 
 const VIEW_OFFSET_WITH_ROTATION = {
   position: [4, 3, 2],
-  orientation: [0, -0.71, 0, 0.71 ]
+  orientation: [0, -0.7071, 0, 0.7071 ]
 };
 
 const VIEWS_WITH_OFFSET = [{
@@ -55,15 +55,15 @@ let testFunction =
 
     const RADIANS_90D = Math.PI / 2;
 
-    const EXPECTED_VIEW_MATRIX_1 = [0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, -5, -4, -3, 1];
+    const EXPECTED_VIEW_MATRIX_1 = [1, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0, -3, -4, 5, 1];
     const EXPECTED_GRIP_MATRIX_1 = [0, 0, -1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 2, 3, 1];
     const EXPECTED_RAY_MATRIX_1 = [0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 2, 2, 1, 1];
 
-    const EXPECTED_VIEW_MATRIX_2 = [0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, 0, -8, 1, 7, 1];
+    const EXPECTED_VIEW_MATRIX_2 = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 7, 1, 8, 1];
     const EXPECTED_GRIP_MATRIX_2 = [0, -1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, -9, -2, -5, 1];
     const EXPECTED_RAY_MATRIX_2 = [0, 0, -1, 0, 0, 1, 0, 0, 1, 0, 0, 0, -8, -4, -5, 1];
 
-    const EXPECTED_VIEW_MATRIX_3 = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -8, 3, 12, 1];
+    const EXPECTED_VIEW_MATRIX_3 = [0, 0, -1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 12, 3, 8, 1];
     const EXPECTED_GRIP_MATRIX_3 = [0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 5, -4, -14, 1];
     const EXPECTED_RAY_MATRIX_3 = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 5, -6, -13, 1];
 

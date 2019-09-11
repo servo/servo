@@ -53,8 +53,8 @@ def get_git_cmd(repo_path):
             logger.debug(" ".join(full_cmd))
             return subprocess.check_output(full_cmd, cwd=repo_path).decode("utf8").strip()
         except subprocess.CalledProcessError as e:
-            logger.error("Git command exited with status %i" % e.returncode)
-            logger.error(e.output)
+            logger.critical("Git command exited with status %i" % e.returncode)
+            logger.critical(e.output)
             sys.exit(1)
     return git
 

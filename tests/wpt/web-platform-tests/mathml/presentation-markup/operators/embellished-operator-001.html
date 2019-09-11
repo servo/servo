@@ -27,6 +27,15 @@
       color: blue !important;
       background: blue !important;
   }
+  .oof1 {
+      position: absolute;
+  }
+  .oof2 {
+      position: fixed;
+  }
+  .nobox {
+      display: none;
+  }
 </style>
 <script>
   function spaceBeforeElement(id) {
@@ -51,15 +60,27 @@
       ["mrow", "mstyle", "mphantom", "mpadded"].forEach(tag => {
           test(function() {
               assert_true(MathMLFeatureDetection.has_operator_spacing());
-              assert_approx_equals(spaceBeforeElement(`${tag}-op`), 2 * emToPx, epsilon);
-              assert_approx_equals(spaceBeforeCoreOperator(`${tag}-op`), 0, epsilon);
+              assert_approx_equals(spaceBeforeElement(`${tag}-op-1`), 2 * emToPx, epsilon);
+              assert_approx_equals(spaceBeforeCoreOperator(`${tag}-op-1`), 0, epsilon);
           }, `${tag} (embellished operator)`);
 
           test(function() {
               assert_true(MathMLFeatureDetection.has_operator_spacing());
-              assert_approx_equals(spaceBeforeElement(`${tag}-nonop`), 0, epsilon);
-              assert_approx_equals(spaceBeforeCoreOperator(`${tag}-nonop`), 2 * emToPx, epsilon);
+              assert_approx_equals(spaceBeforeElement(`${tag}-op-2`), 2 * emToPx, epsilon);
+              assert_approx_equals(spaceBeforeCoreOperator(`${tag}-op-2`), 0, epsilon);
+          }, `${tag} (embellished operator, from in-flow children)`);
+
+          test(function() {
+              assert_true(MathMLFeatureDetection.has_operator_spacing());
+              assert_approx_equals(spaceBeforeElement(`${tag}-nonop-1`), 0, epsilon);
+              assert_approx_equals(spaceBeforeCoreOperator(`${tag}-nonop-1`), 2 * emToPx, epsilon);
           }, `${tag} (not embellished operator)`);
+
+          test(function() {
+              assert_true(MathMLFeatureDetection.has_operator_spacing());
+              assert_approx_equals(spaceBeforeElement(`${tag}-nonop-2`), 0, epsilon);
+              assert_approx_equals(spaceBeforeCoreOperator(`${tag}-nonop-2`), 2 * emToPx, epsilon);
+          }, `${tag} (not embellished operator, from in-flow children)`);
       });
 
       done();
@@ -68,10 +89,12 @@
 </head>
 <body>
   <div id="log"></div>
+  <!-- mrow is an embellished operator if its in-flow children consist
+       of one embellished operator and zero or more space-like elements. -->
   <p>
     <math>
       <mn>X</mn>
-      <mrow id="mrow-op" class="testedElement">
+      <mrow id="mrow-op-1" class="testedElement">
         <mo lspace="2em" rspace="0em">X</mo>
         <mtext class="space-like">X</mtext>
       </mrow>
@@ -81,19 +104,53 @@
   <p>
     <math>
       <mn>X</mn>
-      <mrow id="mrow-nonop" class="testedElement">
+      <mrow id="mrow-nonop-1" class="testedElement">
         <mo lspace="2em" rspace="0em">X</mo>
         <mn>X</mn> <!-- "mn" is not space-like -->
       </mrow>
       <mn>X</mn>
     </math>
   </p>
-  <!-- mstyle is an embellished operator if its children consist
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mrow id="mrow-op-1" class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mtext class="space-like">X</mtext>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </mrow>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mrow id="mrow-nonop-2" class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn> <!-- "mn" is not space-like -->
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </mrow>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <!-- mstyle is an embellished operator if its in-flow children consist
        of one embellished operator and zero or more space-like elements. -->
   <p>
     <math>
       <mn>X</mn>
-      <mstyle id="mstyle-op" class="testedElement">
+      <mstyle id="mstyle-op-1" class="testedElement">
         <mo lspace="2em" rspace="0em">X</mo>
       </mstyle>
       <mn>X</mn>
@@ -102,19 +159,51 @@
   <p>
     <math>
       <mn>X</mn>
-      <mstyle id="mstyle-nonop" class="testedElement">
+      <mstyle id="mstyle-nonop-1" class="testedElement">
         <mo lspace="2em" rspace="0em">X</mo>
         <mn>X</mn> <!-- "mn" is not space-like -->
       </mstyle>
       <mn>X</mn>
     </math>
   </p>
-  <!-- mphantom is an embellished operator if its children consist
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mstyle id="mstyle-op-2" class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </mstyle>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mstyle id="mstyle-nonop-2" class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn> <!-- "mn" is not space-like -->
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </mstyle>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <!-- mphantom is an embellished operator if its in-flow children consist
        of one embellished operator and zero or more space-like elements. -->
   <p>
     <math>
       <mn>X</mn>
-      <mphantom id="mphantom-op" class="testedElement">
+      <mphantom id="mphantom-op-1" class="testedElement">
         <mo lspace="2em" rspace="0em">X</mo>
       </mphantom>
       <mn>X</mn>
@@ -123,11 +212,43 @@
   <p>
     <math>
       <mn>X</mn>
-      <mphantom id="mphantom-nonop" class="testedElement">
+      <mphantom id="mphantom-nonop-1" class="testedElement">
         <mo lspace="2em" rspace="0em">X</mo>
         <mn>X</mn> <!-- "mn" is not space-like -->
       </mphantom>
       <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mphantom id="mphantom-op-2" class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </mphantom>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mphantom id="mphantom-nonop-2" class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn> <!-- "mn" is not space-like -->
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </mphantom>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
     </math>
   </p>
   <!-- mpadded is an embellished operator if its children consist
@@ -135,7 +256,7 @@
   <p>
     <math>
       <mn>X</mn>
-      <mpadded id="mpadded-op" class="testedElement">
+      <mpadded id="mpadded-op-1" class="testedElement">
         <mo lspace="2em" rspace="0em">X</mo>
       </mpadded>
       <mn>X</mn>
@@ -144,11 +265,43 @@
   <p>
     <math>
       <mn>X</mn>
-      <mpadded id="mpadded-nonop" class="testedElement">
+      <mpadded id="mpadded-nonop-1" class="testedElement">
         <mo lspace="2em" rspace="0em">X</mo>
         <mn>X</mn> <!-- "mn" is not space-like -->
       </mpadded>
       <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mpadded id="mpadded-op-2" class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </mpadded>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mpadded id="mpadded-nonop-2" class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn> <!-- "mn" is not space-like -->
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </mpadded>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
     </math>
   </p>
 </body>

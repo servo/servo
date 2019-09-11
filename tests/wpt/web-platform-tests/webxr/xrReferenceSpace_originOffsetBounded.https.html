@@ -87,9 +87,9 @@ function testFunction(session, fakeDeviceController, t) {
             let grip_matrix = grip_pose.transform.matrix;
             let ray_matrix = input_pose.transform.matrix;
 
-            assert_matrix_approx_equals(expected_view_matrix, view_matrix);
-            assert_matrix_approx_equals(expected_grip_matrix, grip_matrix);
-            assert_matrix_approx_equals(expected_ray_matrix, ray_matrix);
+            assert_matrix_approx_equals(view_matrix, expected_view_matrix);
+            assert_matrix_approx_equals(grip_matrix, expected_grip_matrix);
+            assert_matrix_approx_equals(ray_matrix, expected_ray_matrix);
 
             assert_equals(reference_space.boundsGeometry.length, expected_bounds_geometry.length);
             for (var i = 0; i < reference_space.boundsGeometry.length; ++i) {

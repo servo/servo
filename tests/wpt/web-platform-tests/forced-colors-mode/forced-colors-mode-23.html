@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - non-inherited cache.
+  Ensures that forced colors styles don't get overridden by non-inherited
+  cached values.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel=match href="forced-colors-mode-23-ref.html">
+<style>
+  div span{
+    background: rgb(0, 128, 0);
+    box-shadow: 5px 10px rgb(255, 255, 0);
+    color: rgb(0, 0, 255);
+  }
+  #a {
+    forced-color-adjust: auto;
+  }
+  #b {
+    forced-color-adjust: none;
+  }
+</style>
+<body>
+  <div id="a">
+    <span>text</span>
+  </div>
+  <div id="b">
+    <span>text</span>
+  </div>
+</body>

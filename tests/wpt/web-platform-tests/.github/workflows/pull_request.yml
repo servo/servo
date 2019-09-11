@@ -2,9 +2,9 @@ on: pull_request
 name: Synchronize the Pull Request Preview
 jobs:
   update-pr-preview:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
-    - uses: actions/checkout@v1.0.0
+    - uses: actions/checkout@v1
       with:
         ref: refs/heads/master
         fetch-depth: 1

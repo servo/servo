@@ -14,9 +14,9 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <math
-  oncopy="document.copyHappened = true"
-  oncut="document.cutHappened = true"
-  onpaste="document.pasteHappened = true"
+  oncopy="window.copyHappened1 = true"
+  oncut="window.cutHappened1 = true"
+  onpaste="window.pasteHappened1 = true"
 >
   <mi>E</mi>
 </math>
@@ -56,10 +56,62 @@
       );
       compiledHandler();
       assert_true(
-        window[name + "Happened"],
+        window[`${name}Happened1`],
         "Calling the handler must run the code"
       );
     }, `${handlerName}: the content attribute must be compiled into a function as the corresponding property`);
+
+    test(() => {
+        const mathEl = document.createElementNS(
+            "http://www.w3.org/1998/Math/MathML",
+            "math"
+        );
+        assert_equals(mathEl[handlerName], null, `The ${handlerName} property must be null (no attribute)`);
+
+        mathEl.setAttribute(handlerName, `window.${handlerName}Happened2 = true;`);
+        const compiledHandler = mathEl[handlerName];
+        assert_equals(
+            typeof compiledHandler,
+            "function",
+            `The ${handlerName} property must be a function (set attribute)`
+        );
+        compiledHandler();
+        assert_true(
+            window[`${handlerName}Happened2`],
+            "Calling the handler must run the code (set attribute)"
+        );
+
+        window[`${handlerName}Happened2`] = false;
+        const clonedMathEl = mathEl.cloneNode(true);
+        const clonedCompiledHandler = clonedMathEl[handlerName];
+        assert_equals(
+            typeof clonedCompiledHandler,
+            "function",
+            `The ${handlerName} property must be a function (clone node)`
+        );
+        clonedCompiledHandler();
+        assert_true(
+            window[`${handlerName}Happened2`],
+            "Calling the handler must run the code (clone node)"
+        );
+
+        mathEl.setAttribute(handlerName, `window.${handlerName}Happened3 = true;`);
+        const newCompiledHandler = mathEl[handlerName];
+        assert_equals(
+            typeof newCompiledHandler,
+            "function",
+            `The ${handlerName} property must be a function (modify attribute)`
+        );
+        newCompiledHandler();
+        assert_true(
+            window[`${handlerName}Happened3`],
+            "Calling the handler must run the code (modify attribute)"
+        );
+
+        mathEl.removeAttribute(handlerName);
+        assert_equals(mathEl[handlerName], null, `The ${handlerName} property must be null (remove attribute)`);
+    }, `${handlerName}: dynamic changes on the attribute`);
+
   }
 
   EVENTS.forEach(name => {

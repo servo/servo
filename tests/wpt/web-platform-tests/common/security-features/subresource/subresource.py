@@ -71,13 +71,13 @@ def preprocess_redirection(request, response):
 
     if redirection == "no-redirect":
         return False
-    elif redirection == "keep-scheme-redirect":
+    elif redirection == "keep-scheme":
         redirect_url = create_url(request, swap_scheme=False)
-    elif redirection == "swap-scheme-redirect":
+    elif redirection == "swap-scheme":
         redirect_url = create_url(request, swap_scheme=True)
-    elif redirection == "keep-origin-redirect":
+    elif redirection == "keep-origin":
         redirect_url = create_url(request, swap_origin=False)
-    elif redirection == "swap-origin-redirect":
+    elif redirection == "swap-origin":
         redirect_url = create_url(request, swap_origin=True)
     else:
         raise ValueError("Invalid redirection type '%s'" % redirection)

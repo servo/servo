@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  Forced colors mode - backplate reference.
+  Tests that backplates of overlapping inline boxes do not overlap.
+</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  body {
+    background-image: url("../resources/test-image.jpg");
+    font-family: Ahem;
+    font-size: 10px;
+    forced-color-adjust: none; /* This turns the backplate feature off in forced colors mode.
+                                  The backplate is simulated in testing using a background-color
+                                  of Window behind the text.
+                                */
+    line-height: 10px;
+    text-align: justify;
+    width: 100px;
+  }
+  div {
+    background-color: Window;
+  }
+</style>
+<body>
+  <div>
+    <div>
+      The two backplates should not overlap
+    </div>
+    <br>
+    <div style="margin-top: -25px; z-index: -1;">
+      in forced colors mode.
+    </div>
+  </div>
+</body>

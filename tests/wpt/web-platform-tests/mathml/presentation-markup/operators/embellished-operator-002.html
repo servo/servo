@@ -30,6 +30,15 @@
       color: blue !important;
       background: blue !important;
   }
+  .oof1 {
+      position: absolute;
+  }
+  .oof2 {
+      position: fixed;
+  }
+  .nobox {
+      display: none;
+  }
 </style>
 <script>
   function spaceBeforeElement(element) {
@@ -55,8 +64,20 @@
            test(function() {
                assert_true(MathMLFeatureDetection.has_operator_spacing());
                var element = document.getElementsByTagName(tag)[1];
+               assert_approx_equals(spaceBeforeElement(element), 2 * emToPx, epsilon);
+           }, `${tag} (embellished operator, from in-flow children)`);
+
+           test(function() {
+               assert_true(MathMLFeatureDetection.has_operator_spacing());
+               var element = document.getElementsByTagName(tag)[2];
                assert_approx_equals(spaceBeforeElement(element), 0, epsilon);
            }, `${tag} (not embellished operator)`);
+
+           test(function() {
+               assert_true(MathMLFeatureDetection.has_operator_spacing());
+               var element = document.getElementsByTagName(tag)[3];
+               assert_approx_equals(spaceBeforeElement(element), 0, epsilon);
+           }, `${tag} (not embellished operator, from in-flow children)`);
       });
       done();
   }
@@ -66,7 +87,8 @@
   <div id="log"></div>
   <!-- <msub>, <msup>, <msubsup>, <munder>, <mover>, <munderover>,
        <mmultiscripts>, <mfrac>, <semantics> or <maction> are embellished
-       operators if their first child exists and is an embellished operator -->
+       operators if their first in-flow
+       child exists and is an embellished operator -->
   <p>
     <math>
       <mn>X</mn>
@@ -172,9 +194,192 @@
       <mn>X</mn>
     </math>
   </p>
+
+  <!-- Only in-flow children affect determination of embellished operators. -->
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <msub class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </msub>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <msup class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </msup>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <msubsup class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </msubsup>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <munder class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </munder>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mover class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </mover>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <munderover class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </munderover>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mmultiscripts class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </mmultiscripts>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mfrac class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </mfrac>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <maction class="testedElement" actiontype="statusline">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>STATUS MESSAGE</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </maction>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <semantics class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <annotation>TEXT ANNOTATION</annotation>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </semantics>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+
   <!-- <msub>, <msup>, <msubsup>, <munder>, <mover>, <munderover>,
        <mmultiscripts>, <mfrac>, <semantics> or <maction> are not embellished
-       operators if their first child is not an embellished operator -->
+       operators if their first in-flow child is not an embellished operator -->
   <p>
     <math>
       <mn>X</mn>
@@ -282,5 +487,192 @@
       <mn>X</mn>
     </math>
   </p>
+
+  <!-- Only in-flow children affect determination of embellished operators. -->
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <msub class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </msub>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <msup class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </msup>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <msubsup class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </msubsup>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <munder class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </munder>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mover class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </mover>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <munderover class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </munderover>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mmultiscripts class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </mmultiscripts>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mfrac class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </mfrac>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <maction class="testedElement" actiontype="statusline">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">STATUS MESSAGE</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </maction>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <semantics class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mrow>
+          <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+          <mn>X</mn>
+          <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+          <mo lspace="2em" rspace="0em">X</mo>
+          <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        </mrow>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <annotation>TEXT ANNOTATION</annotation>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </semantics>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+
 </body>
 </html>

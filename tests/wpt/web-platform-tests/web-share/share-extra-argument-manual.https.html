@@ -12,9 +12,9 @@
         setup({explicit_timeout: true});
 
         setupManualShareTest(
-            {title: 'the title', text: 'the message', url: 'data:the url'});
+            {title: 'the title', text: 'the message', url: 'https://example.com'});
         callWhenButtonClicked(() => navigator.share(
-              {title: 'the title', text: 'the message', url: 'data:the url'},
+              {title: 'the title', text: 'the message', url: 'https://example.com'},
               'more than required'));
     </script>
   </body>

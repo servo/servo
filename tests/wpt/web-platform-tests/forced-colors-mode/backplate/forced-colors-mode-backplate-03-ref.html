@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  Forced colors mode - backplate reference.
+  Tests the backplate feature behind lists.
+</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  body {
+    background-image: url("../resources/test-image.jpg");
+    font-family: Ahem;
+    font-size: 10px;
+    forced-color-adjust: none; /* This turns the backplate feature off in
+                                  forced colors mode. The backplate is
+                                  simulated in testing using a Window
+                                  background-color behind the text.
+                                */
+    left: 0%;
+    line-height: 10px;
+    text-align: justify;
+    width: 100px;
+  }
+  li {
+    margin-left: -8px;
+  }
+</style>
+<body>
+  <div>
+    <li style="background-color: Window;">
+      There should be a backplate drawn
+  </div>
+  <br>
+  <div>
+    <li style="background-color: Window;">
+      behind the first three list items
+  </div>
+  <br>
+  <div>
+    <li style="background-color: Window;">
+      in forced colors mode.
+  </div>
+  <br>
+  <div>
+    <li>
+      There should be NO backplate drawn
+  </div>
+  <br>
+  <div>
+    <li>
+      behind the last three list items
+  </div>
+  <br>
+  <div>
+    <li>
+      in forced colors mode.
+  </div>
+</body>
