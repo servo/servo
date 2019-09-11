@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::VideoTrackBinding::{self, VideoTrackMethods};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::videotracklist::VideoTrackList;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use std::cell::Cell;
@@ -18,14 +20,17 @@ pub struct VideoTrack {
     label: DOMString,
     language: DOMString,
     selected: Cell<bool>,
+    track_list: DomRefCell<Option<Dom<VideoTrackList>>>,
 }
 
 impl VideoTrack {
+    #[allow(unrooted_must_root)]
     pub fn new_inherited(
         id: DOMString,
         kind: DOMString,
         label: DOMString,
         language: DOMString,
+        track_list: Option<Dom<VideoTrackList>>,
     ) -> VideoTrack {
         VideoTrack {
             reflector_: Reflector::new(),
@@ -34,18 +39,23 @@ impl VideoTrack {
             label: label.into(),
             language: language.into(),
             selected: Cell::new(false),
+            track_list: DomRefCell::new(track_list),
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(
         window: &Window,
         id: DOMString,
         kind: DOMString,
         label: DOMString,
         language: DOMString,
+        track_list: Option<Dom<VideoTrackList>>,
     ) -> DomRoot<VideoTrack> {
         reflect_dom_object(
-            Box::new(VideoTrack::new_inherited(id, kind, label, language)),
+            Box::new(VideoTrack::new_inherited(
+                id, kind, label, language, track_list,
+            )),
             window,
             VideoTrackBinding::Wrap,
         )
@@ -96,6 +106,11 @@ impl VideoTrackMethods for VideoTrack {
 
     // https://html.spec.whatwg.org/multipage/#dom-videotrack-selected
     fn SetSelected(&self, value: bool) {
+        if let Some(list) = self.track_list.borrow_mut().as_ref() {
+            if let Some(idx) = list.find(self) {
+                list.set_selected(idx, value);
+            }
+        }
         self.set_selected(value);
     }
 }

@@ -11,6 +11,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::htmlmediaelement::HTMLMediaElement;
 use crate::dom::window::Window;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
@@ -19,19 +20,30 @@ use dom_struct::dom_struct;
 pub struct AudioTrackList {
     eventtarget: EventTarget,
     tracks: DomRefCell<Vec<Dom<AudioTrack>>>,
+    media_element: DomRefCell<Option<Dom<HTMLMediaElement>>>,
 }
 
 impl AudioTrackList {
-    pub fn new_inherited(tracks: &[&AudioTrack]) -> AudioTrackList {
+    #[allow(unrooted_must_root)]
+    pub fn new_inherited(
+        tracks: &[&AudioTrack],
+        media_element: Option<Dom<HTMLMediaElement>>,
+    ) -> AudioTrackList {
         AudioTrackList {
             eventtarget: EventTarget::new_inherited(),
             tracks: DomRefCell::new(tracks.iter().map(|track| Dom::from_ref(&**track)).collect()),
+            media_element: DomRefCell::new(media_element),
         }
     }
 
-    pub fn new(window: &Window, tracks: &[&AudioTrack]) -> DomRoot<AudioTrackList> {
+    #[allow(unrooted_must_root)]
+    pub fn new(
+        window: &Window,
+        tracks: &[&AudioTrack],
+        media_element: Option<Dom<HTMLMediaElement>>,
+    ) -> DomRoot<AudioTrackList> {
         reflect_dom_object(
-            Box::new(AudioTrackList::new_inherited(tracks)),
+            Box::new(AudioTrackList::new_inherited(tracks, media_element)),
             window,
             AudioTrackListBinding::Wrap,
         )
@@ -39,6 +51,10 @@ impl AudioTrackList {
 
     pub fn len(&self) -> usize {
         self.tracks.borrow().len()
+    }
+
+    pub fn find(&self, track: &AudioTrack) -> Option<usize> {
+        self.tracks.borrow().iter().position(|t| &**t == track)
     }
 
     pub fn item(&self, idx: usize) -> Option<DomRoot<AudioTrack>> {
@@ -55,7 +71,6 @@ impl AudioTrackList {
             .position(|track| track.enabled())
     }
 
-    // TODO(#22799) Integrate DOM Audio and Video track selection with media player.
     pub fn set_enabled(&self, idx: usize, value: bool) {
         let track = match self.item(idx) {
             Some(t) => t,
@@ -68,6 +83,9 @@ impl AudioTrackList {
         }
         // Set the tracks enabled status.
         track.set_enabled(value);
+        if let Some(media_element) = self.media_element.borrow().as_ref() {
+            media_element.set_audio_track(idx, value);
+        }
 
         // Queue a task to fire an event named change.
         let global = &self.global();

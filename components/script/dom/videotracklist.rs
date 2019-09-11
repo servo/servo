@@ -11,6 +11,7 @@ use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::htmlmediaelement::HTMLMediaElement;
 use crate::dom::videotrack::VideoTrack;
 use crate::dom::window::Window;
 use crate::task_source::TaskSource;
@@ -20,19 +21,30 @@ use dom_struct::dom_struct;
 pub struct VideoTrackList {
     eventtarget: EventTarget,
     tracks: DomRefCell<Vec<Dom<VideoTrack>>>,
+    media_element: DomRefCell<Option<Dom<HTMLMediaElement>>>,
 }
 
 impl VideoTrackList {
-    pub fn new_inherited(tracks: &[&VideoTrack]) -> VideoTrackList {
+    #[allow(unrooted_must_root)]
+    pub fn new_inherited(
+        tracks: &[&VideoTrack],
+        media_element: Option<Dom<HTMLMediaElement>>,
+    ) -> VideoTrackList {
         VideoTrackList {
             eventtarget: EventTarget::new_inherited(),
             tracks: DomRefCell::new(tracks.iter().map(|track| Dom::from_ref(&**track)).collect()),
+            media_element: DomRefCell::new(media_element),
         }
     }
 
-    pub fn new(window: &Window, tracks: &[&VideoTrack]) -> DomRoot<VideoTrackList> {
+    #[allow(unrooted_must_root)]
+    pub fn new(
+        window: &Window,
+        tracks: &[&VideoTrack],
+        media_element: Option<Dom<HTMLMediaElement>>,
+    ) -> DomRoot<VideoTrackList> {
         reflect_dom_object(
-            Box::new(VideoTrackList::new_inherited(tracks)),
+            Box::new(VideoTrackList::new_inherited(tracks, media_element)),
             window,
             VideoTrackListBinding::Wrap,
         )
@@ -40,6 +52,10 @@ impl VideoTrackList {
 
     pub fn len(&self) -> usize {
         self.tracks.borrow().len()
+    }
+
+    pub fn find(&self, track: &VideoTrack) -> Option<usize> {
+        self.tracks.borrow().iter().position(|t| &**t == track)
     }
 
     pub fn item(&self, idx: usize) -> Option<DomRoot<VideoTrack>> {
@@ -56,7 +72,6 @@ impl VideoTrackList {
             .position(|track| track.selected())
     }
 
-    // TODO(#22799) Integrate DOM Audio and Video track selection with media player.
     pub fn set_selected(&self, idx: usize, value: bool) {
         let track = match self.item(idx) {
             Some(t) => t,
@@ -80,6 +95,9 @@ impl VideoTrackList {
         }
 
         track.set_selected(value);
+        if let Some(media_element) = self.media_element.borrow().as_ref() {
+            media_element.set_video_track(idx, value);
+        }
 
         let _ = source.queue_with_canceller(
             task!(media_track_change: move || {
