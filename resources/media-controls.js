@@ -388,7 +388,13 @@
     }
 
     toggleFullscreen() {
-        this.media.requestFullscreen();
+        const fullscreenEnabled = document.fullscreenEnabled && document.fullscreenElement;
+
+        if (fullscreenEnabled) {
+            document.exitFullscreen();
+        } else {
+            this.media.requestFullscreen();
+        }
     }
 
     changeVolume() {
