@@ -164,17 +164,18 @@ class MachCommands(CommandBase):
     @CommandArgument('--very-verbose', '-vv',
                      action='store_true',
                      help='Print very verbose output')
-    @CommandArgument('--win-arm64', action='store_true', help="Use arm64 Windows target")
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     @CommandBase.build_like_command_arguments
     def build(self, release=False, dev=False, jobs=None, params=None,
               no_package=False, verbose=False, very_verbose=False,
-              target=None, android=False, magicleap=False, libsimpleservo=False, uwp=False,
-              features=None, win_arm64=False, **kwargs):
+              target=None, android=False, magicleap=False, libsimpleservo=False,
+              features=None, **kwargs):
         opts = params or []
         features = features or []
+
         target, android = self.pick_target_triple(target, android, magicleap)
+        uwp = target and 'uwp' in target
 
         target_path = base_path = self.get_target_dir()
         if android:
@@ -220,14 +221,8 @@ class MachCommands(CommandBase):
         if very_verbose:
             opts += ["-vv"]
 
-        if win_arm64:
-            if target:
-                print("Can't specify explicit --target value with --win-arm64.")
-                sys.exit(1)
-            target = "aarch64-pc-windows-msvc"
-
         if target:
-            if self.config["tools"]["use-rustup"]:
+            if self.config["tools"]["use-rustup"] and not uwp:
                 # 'rustup target add' fails if the toolchain is not installed at all.
                 self.call_rustup_run(["rustc", "--version"])
 
@@ -265,6 +260,10 @@ class MachCommands(CommandBase):
             env['PKG_CONFIG_ALLOW_CROSS'] = "1"
 
         if uwp:
+            # Ensure libstd is ready for the new UWP target.
+            check_call(["rustup", "component", "add", "rust-src"])
+            env['RUST_SYSROOT'] = path.expanduser('~\\.xargo')
+
             # Don't try and build a desktop port.
             libsimpleservo = True
 
@@ -943,7 +942,7 @@ def package_msvc_dlls(servo_exe_dir, target, vcinstalldir, vs_version):
         "msvcp140.dll",
         "vcruntime140.dll",
     ]
-    if target_arch != "aarch64" and vs_version in ("14.0", "15.0", "16.0"):
+    if target_arch != "aarch64" and "uwp" not in target and vs_version in ("14.0", "15.0", "16.0"):
         msvc_deps += ["api-ms-win-crt-runtime-l1-1-0.dll"]
 
     # Check if it's Visual C++ Build Tools or Visual Studio 2015
