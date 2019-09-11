@@ -25,6 +25,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::request::{Destination, RequestBuilder};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
+use net_traits::DiscardFetch;
 use net_traits::FetchTaskTarget;
 use net_traits::WebSocketNetworkEvent;
 use net_traits::{CookieSource, CoreResourceMsg, CoreResourceThread};
@@ -248,7 +249,7 @@ impl ResourceChannelManager {
                 ),
                 FetchChannels::Prefetch => {
                     self.resource_manager
-                        .fetch(req_init, None, (), http_state, None)
+                        .fetch(req_init, None, DiscardFetch, http_state, None)
                 },
             },
             CoreResourceMsg::DeleteCookies(request) => {

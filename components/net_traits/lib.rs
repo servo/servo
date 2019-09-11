@@ -237,7 +237,12 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     }
 }
 
-impl FetchTaskTarget for () {
+/// A fetch task that discards all data it's sent,
+/// useful when speculatively prefetching data that we don't need right
+/// now, but might need in the future.
+pub struct DiscardFetch;
+
+impl FetchTaskTarget for DiscardFetch {
     fn process_request_body(&mut self, _: &Request) {}
 
     fn process_request_eof(&mut self, _: &Request) {}

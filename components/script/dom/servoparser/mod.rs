@@ -102,7 +102,9 @@ pub struct ServoParser {
     aborted: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#script-created-parser>
     script_created_parser: bool,
-    /// We do a quick-and-dirty parse of the input looking for resources to prefetch
+    /// We do a quick-and-dirty parse of the input looking for resources to prefetch.
+    // TODO: if we had speculative parsing, we could do this when speculatively
+    // building the DOM. https://github.com/servo/servo/pull/19203
     prefetch_tokenizer: DomRefCell<prefetch::Tokenizer>,
     #[ignore_malloc_size_of = "Defined in html5ever"]
     prefetch_input: DomRefCell<BufferQueue>,
@@ -433,30 +435,31 @@ impl ServoParser {
     }
 
     fn push_tendril_input_chunk(&self, chunk: StrTendril) {
-        if !chunk.is_empty() {
-            // Per https://github.com/whatwg/html/issues/1495
-            // stylesheets should not be loaded for documents
-            // without browsing contexts.
-            // https://github.com/whatwg/html/issues/1495#issuecomment-230334047
-            // suggests that no content should be preloaded in such a case.
-            // We're conservative, and only prefetch for documents
-            // with browsing contexts.
-            if self.document.browsing_context().is_some() {
-                // Push the chunk into the prefetch input stream,
-                // which is tokenized eagerly, to scan for resources
-                // to prefetch. If the user script uses `document.write()`
-                // to overwrite the network input, this prefetching may
-                // have been wasted, but in most cases it won't.
-                let mut prefetch_input = self.prefetch_input.borrow_mut();
-                prefetch_input.push_back(chunk.clone());
-                let _ = self.prefetch_tokenizer
-                    .borrow_mut()
-                    .feed(&mut *prefetch_input);
-            }
-            // Push the chunk into the network input stream,
-            // which is tokenized lazily.
-            self.network_input.borrow_mut().push_back(chunk);
+        if chunk.is_empty() {
+            return;
         }
+        // Per https://github.com/whatwg/html/issues/1495
+        // stylesheets should not be loaded for documents
+        // without browsing contexts.
+        // https://github.com/whatwg/html/issues/1495#issuecomment-230334047
+        // suggests that no content should be preloaded in such a case.
+        // We're conservative, and only prefetch for documents
+        // with browsing contexts.
+        if self.document.browsing_context().is_some() {
+            // Push the chunk into the prefetch input stream,
+            // which is tokenized eagerly, to scan for resources
+            // to prefetch. If the user script uses `document.write()`
+            // to overwrite the network input, this prefetching may
+            // have been wasted, but in most cases it won't.
+            let mut prefetch_input = self.prefetch_input.borrow_mut();
+            prefetch_input.push_back(chunk.clone());
+            self.prefetch_tokenizer
+                .borrow_mut()
+                .feed(&mut *prefetch_input);
+        }
+        // Push the chunk into the network input stream,
+        // which is tokenized lazily.
+        self.network_input.borrow_mut().push_back(chunk);
     }
 
     fn push_bytes_input_chunk(&self, chunk: Vec<u8>) {
@@ -471,7 +474,6 @@ impl ServoParser {
     }
 
     fn push_string_input_chunk(&self, chunk: String) {
-        // Convert the chunk to a tendril so cloning it isn't expensive.
         // The input has already been decoded as a string, so doesn't need
         // to be decoded by the network decoder again.
         let chunk = StrTendril::from(chunk);
