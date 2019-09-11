@@ -10,6 +10,8 @@
 
 namespace winrt::servo {
 
+bool ServoLogger(const char *plogmsg);
+
 namespace capi {
 extern "C" {
 #include <simpleservo.h>

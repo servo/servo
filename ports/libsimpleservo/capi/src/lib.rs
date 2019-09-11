@@ -8,6 +8,8 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
+use crate::vslogger::LOG_PTR_FUNC;
+
 #[cfg(target_os = "windows")]
 mod vslogger;
 
@@ -17,6 +19,7 @@ use env_logger;
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
 use simpleservo::{Coordinates, EventLoopWaker, HostTrait, InitOptions, VRInitOptions};
 use std::ffi::{CStr, CString};
+
 #[cfg(target_os = "windows")]
 use std::mem;
 use std::os::raw::{c_char, c_void};
@@ -225,6 +228,7 @@ pub struct CInitOptions {
     pub enable_subpixel_text_antialiasing: bool,
     pub vslogger_mod_list: *const *const c_char,
     pub vslogger_mod_size: u32,
+    pub log_func: Option<fn(*const c_char) -> bool>,
 }
 
 /// The returned string is not freed. This will leak.
@@ -275,6 +279,8 @@ unsafe fn init(
     } else {
         slice::from_raw_parts(opts.vslogger_mod_list, opts.vslogger_mod_size as usize)
     };
+
+    *LOG_PTR_FUNC.lock().unwrap() = opts.log_func;
 
     init_logger(logger_modules);
 
