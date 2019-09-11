@@ -765,7 +765,7 @@ def build_uwp(platforms, dev, msbuild_dir):
         "/p:AppxBundlePlatforms=%s" % '|'.join(platforms),
     ]
 
-    if len(platform) == 1:
+    if len(platforms) == 1:
         args += ["/p:Platform=%s" % platforms[0]]
 
     # Generate an appxbundle.
