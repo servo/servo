@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::audiotracklist::AudioTrackList;
 use crate::dom::bindings::codegen::Bindings::AudioTrackBinding::{self, AudioTrackMethods};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
@@ -18,6 +19,7 @@ pub struct AudioTrack {
     label: DOMString,
     language: DOMString,
     enabled: Cell<bool>,
+    track_list: Option<Dom<AudioTrackList>>,
 }
 
 impl AudioTrack {
@@ -26,6 +28,7 @@ impl AudioTrack {
         kind: DOMString,
         label: DOMString,
         language: DOMString,
+        track_list: Option<&AudioTrackList>,
     ) -> AudioTrack {
         AudioTrack {
             reflector_: Reflector::new(),
@@ -34,6 +37,7 @@ impl AudioTrack {
             label: label.into(),
             language: language.into(),
             enabled: Cell::new(false),
+            track_list: track_list.map(|t| Dom::from_ref(t)),
         }
     }
 
@@ -43,9 +47,12 @@ impl AudioTrack {
         kind: DOMString,
         label: DOMString,
         language: DOMString,
+        track_list: Option<&AudioTrackList>,
     ) -> DomRoot<AudioTrack> {
         reflect_dom_object(
-            Box::new(AudioTrack::new_inherited(id, kind, label, language)),
+            Box::new(AudioTrack::new_inherited(
+                id, kind, label, language, track_list,
+            )),
             window,
             AudioTrackBinding::Wrap,
         )
@@ -96,6 +103,11 @@ impl AudioTrackMethods for AudioTrack {
 
     // https://html.spec.whatwg.org/multipage/#dom-audiotrack-enabled
     fn SetEnabled(&self, value: bool) {
+        if let Some(list) = self.track_list.as_ref() {
+            if let Some(idx) = list.find(self) {
+                list.set_enabled(idx, value);
+            }
+        }
         self.set_enabled(value);
     }
 }

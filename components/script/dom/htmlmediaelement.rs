@@ -1435,6 +1435,22 @@ impl HTMLMediaElement {
         Ok(())
     }
 
+    pub fn set_audio_track(&self, idx: usize, enabled: bool) {
+        if let Some(ref player) = *self.player.borrow() {
+            if let Err(err) = player.lock().unwrap().set_audio_track(idx as i32, enabled) {
+                warn!("Could not set audio track {:#?}", err);
+            }
+        }
+    }
+
+    pub fn set_video_track(&self, idx: usize, enabled: bool) {
+        if let Some(ref player) = *self.player.borrow() {
+            if let Err(err) = player.lock().unwrap().set_video_track(idx as i32, enabled) {
+                warn!("Could not set video track {:#?}", err);
+            }
+        }
+    }
+
     fn handle_player_event(&self, event: &PlayerEvent) {
         match *event {
             PlayerEvent::EndOfStream => {
@@ -1530,6 +1546,7 @@ impl HTMLMediaElement {
                             kind,
                             DOMString::new(),
                             DOMString::new(),
+                            Some(&*self.AudioTracks()),
                         );
 
                         // Steps 2. & 3.
@@ -1585,6 +1602,7 @@ impl HTMLMediaElement {
                             kind,
                             DOMString::new(),
                             DOMString::new(),
+                            Some(&*self.VideoTracks()),
                         );
 
                         // Steps 2. & 3.
@@ -2217,14 +2235,14 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     fn AudioTracks(&self) -> DomRoot<AudioTrackList> {
         let window = window_from_node(self);
         self.audio_tracks_list
-            .or_init(|| AudioTrackList::new(&window, &[]))
+            .or_init(|| AudioTrackList::new(&window, &[], Some(self)))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-videotracks
     fn VideoTracks(&self) -> DomRoot<VideoTrackList> {
         let window = window_from_node(self);
         self.video_tracks_list
-            .or_init(|| VideoTrackList::new(&window, &[]))
+            .or_init(|| VideoTrackList::new(&window, &[], Some(self)))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-texttracks
