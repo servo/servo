@@ -34,7 +34,6 @@ sys.path.append(path.join(path.dirname(__file__), "..", "..",
 from servo.command_base import (
     archive_deterministically,
     BuildNotFound,
-    check_call,
     cd,
     CommandBase,
     is_macosx,
@@ -227,7 +226,10 @@ class PackageCommands(CommandBase):
         if magicleap:
             target = "aarch64-linux-android"
         env = self.build_env(target=target)
-        binary_path = self.get_binary_path(release, dev, target=target, android=android, magicleap=magicleap, simpleservo=uwp is not None)
+        binary_path = self.get_binary_path(
+            release, dev, target=target, android=android, magicleap=magicleap,
+            simpleservo=uwp is not None
+        )
         dir_to_root = self.get_top_dir()
         target_dir = path.dirname(binary_path)
         if uwp:
@@ -742,7 +744,6 @@ def build_uwp(platforms, dev, msbuild_dir):
         raise Exception("Unsupported appx platforms: " + str(platforms))
     if dev and len(platforms) > 1:
         raise Exception("Debug package with multiple architectures is unsupported")
-
 
     if dev:
         Configuration = "Debug"

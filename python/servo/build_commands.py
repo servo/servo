@@ -250,7 +250,6 @@ class MachCommands(CommandBase):
 
         if 'windows' in host:
             vs_dirs = self.vs_dirs()
-            msbuildinstalldir = vs_dirs['msbuild']
 
         if host != target_triple and 'windows' in target_triple:
             if os.environ.get('VisualStudioVersion'):
@@ -896,8 +895,6 @@ def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
     return not missing
 
 
-
-
 def package_msvc_dlls(servo_exe_dir, target, vcinstalldir, vs_version):
     # copy some MSVC DLLs to servo.exe dir
     msvc_redist_dir = None
@@ -966,5 +963,3 @@ def package_msvc_dlls(servo_exe_dir, target, vcinstalldir, vs_version):
     for msvc_dll in missing:
         print("DLL file `{}` not found!".format(msvc_dll))
     return not missing
-
-
