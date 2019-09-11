@@ -762,7 +762,7 @@ def build_uwp(platforms, dev, msbuild_dir):
             "/p:project=ServoApp",
             project,
             "/p:Configuration=" + Configuration,
-            '/p:Platform=%s' % platforms,
+            '/p:Platform=%s' % platform,
         ])
 
     # Generate an appxbundle by combining all of the previous builds.
