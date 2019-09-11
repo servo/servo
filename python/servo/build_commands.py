@@ -174,6 +174,7 @@ class MachCommands(CommandBase):
               features=None, win_arm64=False, **kwargs):
         opts = params or []
         features = features or []
+
         target, android = self.pick_target_triple(target, android, magicleap)
 
         target_path = base_path = self.get_target_dir()
@@ -227,7 +228,7 @@ class MachCommands(CommandBase):
             target = "aarch64-pc-windows-msvc"
 
         if target:
-            if self.config["tools"]["use-rustup"]:
+            if self.config["tools"]["use-rustup"] and 'uwp' not in target:
                 # 'rustup target add' fails if the toolchain is not installed at all.
                 self.call_rustup_run(["rustc", "--version"])
 
@@ -271,6 +272,12 @@ class MachCommands(CommandBase):
                 sys.exit(1)
 
             env['PKG_CONFIG_ALLOW_CROSS'] = "1"
+
+        if 'uwp' in target_triple:
+            # Ensure libstd is ready for the new UWP target.
+            check_call(["rustup", "component", "add", "rust-src"])
+            env['RUST_SYSROOT'] = path.expanduser('~\\.xargo')
+            uwp = True
 
         if uwp:
             # Don't try and build a desktop port.
@@ -951,7 +958,7 @@ def package_msvc_dlls(servo_exe_dir, target, vcinstalldir, vs_version):
         "msvcp140.dll",
         "vcruntime140.dll",
     ]
-    if target_arch != "aarch64" and vs_version in ("14.0", "15.0"):
+    if target_arch != "aarch64" and "uwp" not in target and vs_version in ("14.0", "15.0"):
         msvc_deps += ["api-ms-win-crt-runtime-l1-1-0.dll"]
 
     # Check if it's Visual C++ Build Tools or Visual Studio 2015
