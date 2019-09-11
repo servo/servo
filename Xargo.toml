@@ -1,0 +1,5 @@
+[target.x86_64-uwp-windows-msvc.dependencies]
+std = { features = ["panic-unwind"] }
+
+[target.aarch64-uwp-windows-msvc.dependencies]
+std = { features = ["panic-unwind"] }

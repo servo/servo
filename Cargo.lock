@@ -185,9 +185,9 @@ dependencies = [
 
 [[package]]
 name = "backtrace"
-version = "0.3.35"
+version = "0.3.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1371048253fa3bac6704bfd6bbfc922ee9bdcee8881330d40f308b81cc5adc55"
+checksum = "690a62be8920ccf773ee00ef0968649b0e724cda8bd5b12286302b4ae955fdf5"
 dependencies = [
  "backtrace-sys",
  "cfg-if",
@@ -502,11 +502,12 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.0.35"
+version = "1.0.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e5f3fee5eeb60324c2781f1e41286bdee933850fff9b3c672587fed5ec58c83"
+checksum = "4fc9a35e1f4290eb9e5fc54ba6cf40671ed2a2514c3eeb2b2a908dda2ea5a1be"
 dependencies = [
- "rayon",
+ "jobserver",
+ "num_cpus",
 ]
 
 [[package]]
@@ -1468,6 +1469,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b900c08c1939860ce8b54dc6a89e26e00c04c380fd0e09796799bd7f12861e05"
 
 [[package]]
+name = "getrandom"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "473a1265acc8ff1e808cd0a1af8cee3c2ee5200916058a2ca113c29f2d903571"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "wasi",
+]
+
+[[package]]
 name = "gfx"
 version = "0.0.1"
 dependencies = [
@@ -2359,6 +2371,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8eaf4bc02d17cbdd7ff4c7438cafcdf7fb9a4613313ad11b4f8fefe7d3fa0130"
 
 [[package]]
+name = "jobserver"
+version = "0.1.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2b1d42ef453b30b7387e113da1c83ab1605d90c5b4e0eb8e96d016ed3b8c160"
+dependencies = [
+ "getrandom",
+ "libc",
+ "log",
+]
+
+[[package]]
 name = "jpeg-decoder"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3088,7 +3111,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.67.1"
-source = "git+https://github.com/servo/mozjs?rev=dd175ee73a179ce218286c4be4ab80e1a75348be#dd175ee73a179ce218286c4be4ab80e1a75348be"
+source = "git+https://github.com/jdm/mozjs?branch=uwp-rust-changes2#c72b3f5fdf38e3b4013c9a3aec71f8fe2158f9a8"
 dependencies = [
  "bindgen",
  "cc",
@@ -5709,6 +5732,12 @@ dependencies = [
  "tokio-threadpool",
  "urlencoding",
 ]
+
+[[package]]
+name = "wasi"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b89c3ce4ce14bdc6fb6beaf9ec7928ca331de5df7e5ea278375642a2f478570d"
 
 [[package]]
 name = "wayland-client"
