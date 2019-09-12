@@ -689,6 +689,22 @@ pub trait ToRaqoteSource<'a> {
     fn to_raqote_source(self) -> Option<raqote::Source<'a>>;
 }
 
+pub trait ToRaqoteGradientStop {
+    fn to_raqote(&self) -> raqote::GradientStop;
+}
+
+impl ToRaqoteGradientStop for CanvasGradientStop {
+    fn to_raqote(&self) -> raqote::GradientStop {
+        let color: u32 = (self.color.alpha << 8 * 3 &
+            self.color.red << 8 * 2 &
+            self.color.green << 8 * 1 &
+            self.color.blue << 8 * 0)
+            .into();
+        let position = self.offset as f32;
+        raqote::GradientStop { position, color }
+    }
+}
+
 impl<'a> ToRaqoteSource<'a> for FillOrStrokeStyle {
     #[allow(unsafe_code)]
     fn to_raqote_source(self) -> Option<raqote::Source<'a>> {
@@ -701,7 +717,18 @@ impl<'a> ToRaqoteSource<'a> for FillOrStrokeStyle {
                 b: rgba.blue,
                 a: rgba.alpha,
             })),
-            LinearGradient(_) => unimplemented!(),
+            LinearGradient(style) => {
+                let stops = style.stops.into_iter().map(|s| s.to_raqote()).collect();
+                let gradient = raqote::Gradient { stops };
+                let start = Point2D::new(style.x0 as f32, style.y0 as f32);
+                let end = Point2D::new(style.x1 as f32, style.y1 as f32);
+                Some(raqote::Source::new_linear_gradient(
+                    gradient,
+                    start,
+                    end,
+                    raqote::Spread::Pad,
+                ))
+            },
             RadialGradient(_) => unimplemented!(),
             Surface(ref surface) => {
                 let data = &surface.surface_data[..];
