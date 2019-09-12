@@ -186,8 +186,7 @@ impl Path {
     }
 
     pub fn contains_point(&self, x: f64, y: f64, _path_transform: &Transform2D<f32>) -> bool {
-        let path = self.as_raqote();
-        path.contains_point(0.1, path.winding, x as f32, y as f32)
+        self.as_raqote().contains_point(0.1, x as f32, y as f32)
     }
 
     pub fn copy_to_builder(&self) -> Box<dyn GenericPathBuilder> {
