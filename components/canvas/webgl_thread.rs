@@ -1727,6 +1727,11 @@ impl WebGLImpl {
         unsafe {
             gl.get_integer_v(gl::NUM_EXTENSIONS, &mut ext_count);
         }
+        // Fall back to the depricated extensions API if that fails
+        if gl.get_error() != gl::NO_ERROR {
+            chan.send(gl.get_string(gl::EXTENSIONS)).unwrap();
+            return;
+        }
         let ext_count = ext_count[0] as usize;
         let mut extensions = Vec::with_capacity(ext_count);
         for idx in 0..ext_count {

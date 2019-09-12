@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<link rel="help" href="https://www.w3.org/TR/css-position-3/" />
+<meta name="assert" content="This test checks that a dynamic change in constraints calculates the static position correctly for table-cells."/>
+<style>
+#table-cell {
+  position: relative;
+  display: table-cell;
+  vertical-align: middle;
+
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+
+#target {
+  position: absolute;
+  translate: 0 -50px;
+
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="table-cell">
+  <div id="target" style="top: 0;"></div>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.top = 'auto';
+</script>

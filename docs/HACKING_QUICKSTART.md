@@ -148,7 +148,7 @@ Before starting the debugger right away, you might want to get some information 
 A typical command might be:
 
 ``` shell
-./mach run -d -- -i -y 1 -t 1 --debug dump-layer-tree /tmp/a.html
+./mach run -d -- -i -y 1 --debug dump-layer-tree /tmp/a.html
 ```
 
 … to avoid using too many threads and make things easier to understand.
@@ -168,7 +168,7 @@ RUST_LOG="debug" ./mach run -d -- /tmp/a.html
 Using `RUST_LOG="debug"` is usually the very first thing you might want to do if you have no idea what to look for. Because this is very verbose, you can combine these with `ts` (`moreutils` package (apt-get, brew)) to add timestamps and `tee` to save the logs (while keeping them in the console):
 
 ```
-RUST_LOG="debug" ./mach run -d -- -i -y 1 -t 1  /tmp/a.html 2>&1 | ts -s "%.S: " | tee /tmp/log.txt
+RUST_LOG="debug" ./mach run -d -- -i -y 1 /tmp/a.html 2>&1 | ts -s "%.S: " | tee /tmp/log.txt
 ```
 
 You can filter by crate or module, for example `RUST_LOG="layout::inline=debug" ./mach run …`. Check the [env_logger](https://doc.rust-lang.org/log/env_logger/index.html) documentation for more details.
@@ -190,7 +190,7 @@ usually just works. If it doesn't, maybe some of foobar's properties don't imple
 To run the debugger:
 
 ``` shell
-./mach run -d --debug -- -y 1 -t 1 /tmp/a.html
+./mach run -d --debug -- -y 1 /tmp/a.html
 ```
 
 This will start `lldb` on Mac, and `gdb` on Linux.

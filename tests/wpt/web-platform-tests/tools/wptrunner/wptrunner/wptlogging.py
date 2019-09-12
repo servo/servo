@@ -1,7 +1,7 @@
 import logging
 
 from mozlog import commandline, stdadapter, set_default_logger
-from mozlog.structuredlog import StructuredLogger
+from mozlog.structuredlog import StructuredLogger, log_levels
 
 
 def setup(args, defaults):
@@ -46,3 +46,21 @@ class LogLevelRewriter(object):
             data = data.copy()
             data["level"] = self.to_level
         return self.inner(data)
+
+
+class LoggedAboveLevelHandler(object):
+    """Filter that records whether any log message above a certain level has been
+    seen.
+
+    :param min_level: Minimum level to record as a str (e.g., "CRITICAL")
+
+    """
+    def __init__(self, min_level):
+        self.min_level = log_levels[min_level.upper()]
+        self.has_log = False
+
+    def __call__(self, data):
+        if (data["action"] == "log" and
+            not self.has_log and
+            log_levels[data["level"]] <= self.min_level):
+            self.has_log = True

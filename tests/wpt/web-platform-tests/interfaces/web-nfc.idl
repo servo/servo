@@ -3,32 +3,36 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Web NFC API (https://w3c.github.io/web-nfc/)
 
-[Constructor(NDEFMessageInit messageInit), Exposed=Window]
+[Exposed=Window]
 interface NDEFMessage {
-  readonly attribute USVString url;
+  constructor(NDEFMessageInit messageInit);
   readonly attribute FrozenArray<NDEFRecord> records;
 };
 
 dictionary NDEFMessageInit {
-  USVString url;
   sequence<NDEFRecordInit> records;
 };
 
 typedef any NDEFRecordData;
 
-[Constructor(NDEFRecordInit recordInit), Exposed=Window]
+[Exposed=Window]
 interface NDEFRecord {
+  constructor(NDEFRecordInit recordInit);
+
   readonly attribute NDEFRecordType recordType;
   readonly attribute USVString mediaType;
+  readonly attribute USVString id;
 
   USVString? toText();
   [NewObject] ArrayBuffer? toArrayBuffer();
   [NewObject] any toJSON();
+  sequence<NDEFRecord> toRecords();
 };
 
 dictionary NDEFRecordInit {
   NDEFRecordType recordType;
   USVString mediaType;
+  USVString id;
 
   NDEFRecordData data;
 };
@@ -37,21 +41,27 @@ typedef DOMString NDEFRecordType;
 
 typedef (DOMString or ArrayBuffer or NDEFMessageInit) NDEFMessageSource;
 
-[Constructor, SecureContext, Exposed=Window]
+[SecureContext, Exposed=Window]
 interface NFCWriter {
+  constructor();
+
   Promise<void> push(NDEFMessageSource message, optional NFCPushOptions options={});
 };
 
-[Constructor, SecureContext, Exposed=Window]
+[SecureContext, Exposed=Window]
 interface NFCReader : EventTarget {
+  constructor();
+
   attribute EventHandler onreading;
   attribute EventHandler onerror;
 
   void scan(optional NFCScanOptions options={});
 };
 
-[Constructor(DOMString type, NFCReadingEventInit readingEventInitDict), SecureContext, Exposed=Window]
+[SecureContext, Exposed=Window]
 interface NFCReadingEvent : Event {
+  constructor(DOMString type, NFCReadingEventInit readingEventInitDict);
+
   readonly attribute DOMString serialNumber;
   [SameObject] readonly attribute NDEFMessage message;
 };
@@ -61,8 +71,10 @@ dictionary NFCReadingEventInit : EventInit {
   required NDEFMessageInit message;
 };
 
-[Constructor(DOMString type, NFCErrorEventInit errorEventInitDict), SecureContext, Exposed=Window]
+[SecureContext, Exposed=Window]
 interface NFCErrorEvent : Event {
+  constructor(DOMString type, NFCErrorEventInit errorEventInitDict);
+
   readonly attribute DOMException error;
 };
 
@@ -70,18 +82,11 @@ dictionary NFCErrorEventInit : EventInit {
   required DOMException error;
 };
 
-enum NDEFCompatibility {
-  "nfc-forum",
-  "vendor",
-  "any"
-};
-
 dictionary NFCPushOptions {
   NFCPushTarget target = "any";
   unrestricted double timeout = Infinity;
   boolean ignoreRead = true;
   AbortSignal? signal;
-  NDEFCompatibility compatibility = "nfc-forum";
 };
 
 enum NFCPushTarget {
@@ -91,9 +96,8 @@ enum NFCPushTarget {
 };
 
 dictionary NFCScanOptions {
-  AbortSignal? signal;
-  USVString url = "";
+  USVString id = "";
   NDEFRecordType recordType;
   USVString mediaType = "";
-  NDEFCompatibility compatibility = "nfc-forum";
+  AbortSignal? signal;
 };

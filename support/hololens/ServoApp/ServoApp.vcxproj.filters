@@ -42,13 +42,7 @@
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
       <Filter>Assets</Filter>
     </Image>
-    <Image Include="Assets\StoreLogo.png">
-      <Filter>Assets</Filter>
-    </Image>
     <Image Include="Assets\Square150x150Logo.scale-200.png">
-      <Filter>Assets</Filter>
-    </Image>
-    <Image Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png">
       <Filter>Assets</Filter>
     </Image>
     <Image Include="Assets\Square44x44Logo.scale-200.png">
@@ -57,8 +51,104 @@
     <Image Include="Assets\SplashScreen.scale-200.png">
       <Filter>Assets</Filter>
     </Image>
-    <Image Include="Assets\LockScreenLogo.scale-200.png">
+    <Image Include="Assets\SmallTile.scale-100.png">
       <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\SmallTile.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\SmallTile.scale-400.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square150x150Logo.scale-100.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square150x150Logo.scale-400.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Wide310x150Logo.scale-100.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Wide310x150Logo.scale-400.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\LargeTile.scale-100.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\LargeTile.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\LargeTile.scale-400.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.scale-100.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.scale-400.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.targetsize-16.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.targetsize-48.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.targetsize-256.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\SplashScreen.scale-100.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\SplashScreen.scale-400.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\StoreLogo.scale-100.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\StoreLogo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\StoreLogo.scale-400.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.scale-125.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.scale-150.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.targetsize-24.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.targetsize-32.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.altform-unplated_targetsize-16.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.altform-unplated_targetsize-24.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.altform-unplated_targetsize-32.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.altform-unplated_targetsize-48.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.altform-unplated_targetsize-256.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\UI\back.png">
+      <Filter>Assets\UI</Filter>
+    </Image>
+    <Image Include="Assets\UI\forward.png">
+      <Filter>Assets\UI</Filter>
+    </Image>
+    <Image Include="Assets\UI\reload.png">
+      <Filter>Assets\UI</Filter>
+    </Image>
+    <Image Include="Assets\UI\stop.png">
+      <Filter>Assets\UI</Filter>
     </Image>
   </ItemGroup>
   <ItemGroup>
@@ -67,9 +157,6 @@
   <ItemGroup>
     <None Include="ServoApp_TemporaryKey.pfx" />
     <None Include="packages.config" />
-    <None Include="..\..\..\target\debug\openxr_loader.dll">
-      <Filter>DebugServoDLLs</Filter>
-    </None>
     <None Include="..\..\..\target\debug\libcrypto.dll">
       <Filter>DebugServoDLLs</Filter>
     </None>
@@ -82,17 +169,11 @@
     <None Include="..\..\..\target\debug\simpleservo.dll">
       <Filter>DebugServoDLLs</Filter>
     </None>
-    <None Include="..\..\..\target\release\openxr_loader.dll">
-      <Filter>ReleaseServoDLLs</Filter>
-    </None>
     <None Include="..\..\..\target\release\libcrypto.dll">
       <Filter>ReleaseServoDLLs</Filter>
     </None>
     <None Include="..\..\..\target\release\libssl.dll">
       <Filter>ReleaseServoDLLs</Filter>
-    </None>
-    <None Include="..\..\..\target\aarch64-pc-windows-msvc\debug\openxr_loader.dll">
-      <Filter>DebugARM64ServoDLLs</Filter>
     </None>
     <None Include="..\..\..\target\aarch64-pc-windows-msvc\debug\libcrypto.dll">
       <Filter>DebugARM64ServoDLLs</Filter>
@@ -102,9 +183,6 @@
     </None>
     <None Include="..\..\..\target\aarch64-pc-windows-msvc\debug\simpleservo.dll">
       <Filter>DebugARM64ServoDLLs</Filter>
-    </None>
-    <None Include="..\..\..\target\aarch64-pc-windows-msvc\release\openxr_loader.dll">
-      <Filter>ReleaseARM64ServoDLLs</Filter>
     </None>
     <None Include="..\..\..\target\aarch64-pc-windows-msvc\release\libcrypto.dll">
       <Filter>ReleaseARM64ServoDLLs</Filter>
@@ -824,6 +902,9 @@
     </Filter>
     <Filter Include="ServoControl">
       <UniqueIdentifier>{d21a959c-19d1-4a54-b942-692c27e5b3a6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets\UI">
+      <UniqueIdentifier>{d49fe329-5e22-4470-8310-5b925419e6f8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

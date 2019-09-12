@@ -1,0 +1,22 @@
+<!doctype html>
+<title>CSS Animations Test: Chrome crash when removing documentElement and @keyframes stylesheet</title>
+<link rel="help" href="https://crbug.com/999522">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @keyframes anim {
+    from { color: pink }
+    to { color: purple }
+  }
+  div {
+    animation: notfound 1s;
+  }
+</style>
+<div></div>
+<script>
+  test(() => {
+    document.body.offsetTop;
+    document.querySelector("style").remove();
+    document.documentElement.remove();
+  }, "Removing documentElement and @keyframes sheet should not crash.");
+</script>

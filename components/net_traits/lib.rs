@@ -237,6 +237,23 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     }
 }
 
+/// A fetch task that discards all data it's sent,
+/// useful when speculatively prefetching data that we don't need right
+/// now, but might need in the future.
+pub struct DiscardFetch;
+
+impl FetchTaskTarget for DiscardFetch {
+    fn process_request_body(&mut self, _: &Request) {}
+
+    fn process_request_eof(&mut self, _: &Request) {}
+
+    fn process_response(&mut self, _: &Response) {}
+
+    fn process_response_chunk(&mut self, _: Vec<u8>) {}
+
+    fn process_response_eof(&mut self, _: &Response) {}
+}
+
 pub trait Action<Listener> {
     fn process(self, listener: &mut Listener);
 }
@@ -368,6 +385,9 @@ pub enum FetchChannels {
         event_sender: IpcSender<WebSocketNetworkEvent>,
         action_receiver: IpcReceiver<WebSocketDomAction>,
     },
+    /// If the fetch is just being done to populate the cache,
+    /// not because the data is needed now.
+    Prefetch,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

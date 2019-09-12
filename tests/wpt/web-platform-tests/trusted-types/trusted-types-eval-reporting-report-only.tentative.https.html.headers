@@ -1,0 +1,4 @@
+Content-Security-Policy-Report-Only: trusted-types *
+Content-Security-Policy: script-src http: https: 'nonce-123' 'unsafe-eval'
+Content-Security-Policy: plugin-types bla/blubb
+

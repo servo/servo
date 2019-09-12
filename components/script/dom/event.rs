@@ -263,6 +263,11 @@ impl EventMethods for Event {
         self.target.get()
     }
 
+    // https://dom.spec.whatwg.org/#dom-event-srcelement
+    fn GetSrcElement(&self) -> Option<DomRoot<EventTarget>> {
+        self.target.get()
+    }
+
     // https://dom.spec.whatwg.org/#dom-event-currenttarget
     fn GetCurrentTarget(&self) -> Option<DomRoot<EventTarget>> {
         self.current_target.get()

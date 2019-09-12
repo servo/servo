@@ -22,7 +22,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::Document;
 use crate::dom::element::{reflect_cross_origin_attribute, set_cross_origin_attribute};
 use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlareaelement::HTMLAreaElement;
@@ -37,7 +37,6 @@ use crate::dom::node::{
     document_from_node, window_from_node, BindContext, Node, NodeDamage, ShadowIncluding,
 };
 use crate::dom::performanceresourcetiming::InitiatorType;
-use crate::dom::progressevent::ProgressEvent;
 use crate::dom::values::UNSIGNED_LONG_MAX;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
@@ -54,6 +53,7 @@ use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
+use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::UsePlaceholder;
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
@@ -62,6 +62,7 @@ use net_traits::request::RequestBuilder;
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use num_traits::ToPrimitive;
+use servo_url::origin::ImmutableOrigin;
 use servo_url::origin::MutableOrigin;
 use servo_url::ServoUrl;
 use std::cell::{Cell, RefMut};
@@ -262,6 +263,17 @@ impl PreInvoke for ImageContext {
     }
 }
 
+// This function is also used to prefetch an image in `script::dom::servoparser::prefetch`.
+pub(crate) fn image_fetch_request(
+    img_url: ServoUrl,
+    origin: ImmutableOrigin,
+    pipeline_id: PipelineId,
+) -> RequestBuilder {
+    RequestBuilder::new(img_url)
+        .origin(origin)
+        .pipeline_id(Some(pipeline_id))
+}
+
 impl HTMLImageElement {
     /// Update the current image with a valid URL.
     fn fetch_image(&self, img_url: &ServoUrl) {
@@ -327,9 +339,11 @@ impl HTMLImageElement {
             }),
         );
 
-        let request = RequestBuilder::new(img_url.clone())
-            .origin(document.origin().immutable().clone())
-            .pipeline_id(Some(document.global().pipeline_id()));
+        let request = image_fetch_request(
+            img_url.clone(),
+            document.origin().immutable().clone(),
+            document.global().pipeline_id(),
+        );
 
         // This is a background load because the load blocker already fulfills the
         // purpose of delaying the document's load event.
@@ -809,26 +823,7 @@ impl HTMLImageElement {
                 return;
             },
         };
-        // Step 10.
-        let target = Trusted::new(self.upcast::<EventTarget>());
-        // FIXME(nox): Why are errors silenced here?
-        let _ = task_source.queue(
-            task!(fire_progress_event: move || {
-                let target = target.root();
 
-                let event = ProgressEvent::new(
-                    &target.global(),
-                    atom!("loadstart"),
-                    EventBubbles::DoesNotBubble,
-                    EventCancelable::NotCancelable,
-                    false,
-                    0,
-                    0,
-                );
-                event.upcast::<Event>().fire(&target);
-            }),
-            window.upcast(),
-        );
         // Step 11
         let base_url = document.base_url();
         let parsed_url = base_url.join(&src.0);
@@ -850,7 +845,6 @@ impl HTMLImageElement {
                             current_request.source_url = Some(USVString(src))
                         }
                         this.upcast::<EventTarget>().fire_event(atom!("error"));
-                        this.upcast::<EventTarget>().fire_event(atom!("loadend"));
 
                         // FIXME(nox): According to the spec, setting the current
                         // request to the broken state is done prior to queuing a

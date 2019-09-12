@@ -22,7 +22,6 @@
             <div style="background:purple; height: 35px; width: 90%; position: absolute"></div>
         </div>
         <script>
-            var eventTested = false;
             var detected_pointertypes = {};
 
             add_completion_callback(showPointerTypes);
@@ -31,6 +30,7 @@
                 var target0 = document.getElementById("target0");
                 var target1 = document.querySelector("#target0 > div");
                 var test_pointerleave = async_test("pointerleave event received");
+                var actions_promise;
 
                 on_event(target0, "pointerover", function(event) {
                     detected_pointertypes[ event.pointerType ] = true;
@@ -39,14 +39,14 @@
                 // When a pointing device is moved off of the hit test boundaries of an element and all of its descendants, the pointerleave event must be dispatched.
                 // TA: 9.1
                 on_event(target0, "pointerleave", function (event) {
-                    if (eventTested == false) {
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
                         test_pointerleave.done();
-                        eventTested = true;
-                    }
+                    });
                 });
 
                 // Inject mouse inputs.
-                new test_driver.Actions()
+                actions_promise = new test_driver.Actions()
                     .pointerMove(0, 0, {origin: target0})
                     .pointerMove(0, 0, {origin: target1})
                     .pointerMove(0, 0)

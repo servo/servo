@@ -78,6 +78,11 @@ class AhemCopy(Rule):
     description = "Don't add extra copies of Ahem, use /fonts/Ahem.ttf"
 
 
+class AhemSystemFont(Rule):
+    name = "AHEM SYSTEM FONT"
+    description = "Don't use Ahem as a system font, use /fonts/ahem.css"
+
+
 # TODO: Add tests for this rule
 class IgnoredPath(Rule):
     name = "IGNORED PATH"

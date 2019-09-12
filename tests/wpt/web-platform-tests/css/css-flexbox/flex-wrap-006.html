@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS Flexbox Test: Tests correct block size with percentages and dynamic changes</title>
+<link rel="author" title="Google LLC" href="http://www.google.com">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=999253" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#cross-sizing" />
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<!-- Each item should stretch to the size of the flex line. Because the first
+     item has no explicit height, the percentage should resolve to zero in
+     the line height calculation stage, so the second item should determine
+     the total height (500px at first, 100px after the change). When the first
+     item gets relaid out for stretching, the percentage can resolve.
+     The bug that motivated this testcase resolved the line height using
+     the previous post-stretching height of the first flex item (and
+     therefore resolves the percentage against 500px), which is incorrect.
+  -->
+<div id="flex" style="display: flex; flex-wrap: wrap;">
+  <div>
+    <div style="height: 100%; background: green; width: 100px;"></div>
+  </div>
+  <div style="height: 500px;" id="item"></div>
+</div>
+
+<script>
+var flex = document.getElementById("flex");
+flex.offsetHeight;
+var item2 = document.getElementById("item");
+item2.style.height = "100px";
+</script>
+

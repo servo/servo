@@ -26,5 +26,5 @@ interface PerformanceResourceTiming : PerformanceEntry {
     /// readonly attribute unsigned long long  transferSize;
     /// readonly attribute unsigned long long  encodedBodySize;
     /// readonly attribute unsigned long long  decodedBodySize;
-    // [Default] object toJSON();
+    [Default] object toJSON();
 };

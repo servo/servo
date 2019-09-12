@@ -10,7 +10,7 @@ const check_report_format = ([reports, observer]) => {
   const report = reports[0];
   assert_equals(report.type, "feature-policy-violation");
   assert_equals(report.url, document.location.href);
-  assert_equals(report.body.featureId, "vr");
+  assert_equals(report.body.featureId, "xr");
   assert_equals(report.body.sourceFile, document.location.href);
   assert_equals(typeof report.body.lineNumber, "number");
   assert_equals(typeof report.body.columnNumber, "number");

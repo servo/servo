@@ -32,6 +32,13 @@ For example, tests in HTML for ["The History
 interface"](https://html.spec.whatwg.org/multipage/history.html#the-history-interface)
 are located in `html/browsers/history/the-history-interface/`.
 
+Many directories also include a file named `META.yml`. This file may define any
+of the following properties:
+
+- `spec` - a link to the specification covered by the tests in the directory
+- `suggested_reviewers` - a list of GitHub account username belonging to
+  people who are notified when pull requests modify files in the directory
+
 Various resources that tests depend on are in `common`, `images`, `fonts`,
 `media`, and `resources`.
 

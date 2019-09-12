@@ -18,7 +18,7 @@ extern crate serde_json;
 mod actions;
 mod capabilities;
 
-use crate::actions::InputSourceState;
+use crate::actions::{InputSourceState, PointerInputState};
 use base64;
 use capabilities::ServoCapabilities;
 use crossbeam_channel::{after, unbounded, Receiver, Sender};
@@ -49,7 +49,10 @@ use std::thread;
 use std::time::Duration;
 use style_traits::CSSPixel;
 use uuid::Uuid;
-use webdriver::actions::ActionSequence;
+use webdriver::actions::{
+    ActionSequence, PointerDownAction, PointerMoveAction, PointerOrigin, PointerType,
+    PointerUpAction,
+};
 use webdriver::capabilities::{Capabilities, CapabilitiesMatching};
 use webdriver::command::{ActionsParameters, SwitchToWindowParameters};
 use webdriver::command::{
@@ -1474,6 +1477,65 @@ impl Handler {
         Ok(WebDriverResponse::Void)
     }
 
+    // https://w3c.github.io/webdriver/#element-click
+    fn handle_element_click(&mut self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        // Steps 1 - 7
+        let command = WebDriverScriptCommand::ElementClick(element.to_string(), sender);
+        self.browsing_context_script_command(command)?;
+
+        match receiver.recv().unwrap() {
+            Ok(element_id) => match element_id {
+                Some(element_id) => {
+                    let id = Uuid::new_v4().to_string();
+
+                    // Step 8.1
+                    self.session_mut()?.input_state_table.insert(
+                        id.clone(),
+                        InputSourceState::Pointer(PointerInputState::new(&PointerType::Mouse)),
+                    );
+
+                    // Steps 8.3 - 8.6
+                    let pointer_move_action = PointerMoveAction {
+                        duration: None,
+                        origin: PointerOrigin::Element(WebElement(element_id)),
+                        x: Some(0),
+                        y: Some(0),
+                    };
+
+                    // Steps 8.7 - 8.8
+                    let pointer_down_action = PointerDownAction { button: 1 };
+
+                    // Steps 8.9 - 8.10
+                    let pointer_up_action = PointerUpAction { button: 1 };
+
+                    // Step 8.11
+                    if let Err(error) =
+                        self.dispatch_pointermove_action(&id, &pointer_move_action, 0)
+                    {
+                        return Err(WebDriverError::new(error, ""));
+                    }
+
+                    // Steps 8.12
+                    self.dispatch_pointerdown_action(&id, &pointer_down_action);
+
+                    // Steps 8.13
+                    self.dispatch_pointerup_action(&id, &pointer_up_action);
+
+                    // Step 8.14
+                    self.session_mut()?.input_state_table.remove(&id);
+
+                    // Step 13
+                    Ok(WebDriverResponse::Void)
+                },
+                // Step 13
+                None => Ok(WebDriverResponse::Void),
+            },
+            Err(error) => Err(WebDriverError::new(error, "")),
+        }
+    }
+
     fn take_screenshot(&self, rect: Option<Rect<f32, CSSPixel>>) -> WebDriverResult<String> {
         let mut img = None;
 
@@ -1694,6 +1756,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::ElementSendKeys(ref element, ref keys) => {
                 self.handle_element_send_keys(element, keys)
             },
+            WebDriverCommand::ElementClick(ref element) => self.handle_element_click(element),
             WebDriverCommand::DismissAlert => self.handle_dismiss_alert(),
             WebDriverCommand::DeleteCookies => self.handle_delete_cookies(),
             WebDriverCommand::GetTimeouts => self.handle_get_timeouts(),

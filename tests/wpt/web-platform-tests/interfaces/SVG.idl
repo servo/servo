@@ -219,16 +219,6 @@ interface mixin SVGFitToViewBox {
   [SameObject] readonly attribute SVGAnimatedPreserveAspectRatio preserveAspectRatio;
 };
 
-interface mixin SVGZoomAndPan {
-
-  // Zoom and Pan Types
-  const unsigned short SVG_ZOOMANDPAN_UNKNOWN = 0;
-  const unsigned short SVG_ZOOMANDPAN_DISABLE = 1;
-  const unsigned short SVG_ZOOMANDPAN_MAGNIFY = 2;
-
-  attribute unsigned short zoomAndPan;
-};
-
 interface mixin SVGURIReference {
   [SameObject] readonly attribute SVGAnimatedString href;
 };
@@ -275,7 +265,6 @@ interface SVGSVGElement : SVGGraphicsElement {
 };
 
 SVGSVGElement includes SVGFitToViewBox;
-SVGSVGElement includes SVGZoomAndPan;
 SVGSVGElement includes WindowEventHandlers;
 
 [Exposed=Window]
@@ -688,4 +677,3 @@ SVGAElement includes HTMLHyperlinkElementUtils;
 interface SVGViewElement : SVGElement {};
 
 SVGViewElement includes SVGFitToViewBox;
-SVGViewElement includes SVGZoomAndPan;

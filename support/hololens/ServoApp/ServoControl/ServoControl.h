@@ -95,7 +95,7 @@ private:
   winrt::event<EventDelegate> mOnCaptureGesturesEndedEvent;
 
   float mDPI = 1;
-  hstring mInitialURL = L"https://servo.org";
+  hstring mInitialURL = L"about:blank";
   bool mTransient = false;
 
   Windows::UI::Xaml::Controls::SwapChainPanel ServoControl::Panel();

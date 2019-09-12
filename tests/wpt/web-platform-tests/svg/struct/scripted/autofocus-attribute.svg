@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+    <title>Autofocus attribute</title>
+    <metadata>
+        <h:link rel="help" href="https://svgwg.org/svg2-draft/struct.html#autofocusattribute"/>
+    </metadata>
+    <h:script src="/resources/testharness.js"/>
+    <h:script src="/resources/testharnessreport.js"/>
+    <h:script src="/html/semantics/forms/autofocus/resources/utils.js"/>
+    <script><![CDATA[
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+promise_test(async t => {
+  let w = window.open('blank.svg');
+  await waitForLoad(w);
+  t.add_cleanup(() => { w.close(); });
+  const svgA = w.document.createElementNS(SVG_NS, 'a');
+  svgA.setAttribute('href', '#');
+  svgA.setAttribute('autofocus', 'autofocus');
+  w.document.documentElement.appendChild(svgA);
+  await waitUntilStableAutofocusState(w);
+  assert_equals(w.document.activeElement, svgA);
+}, '<a> should support autofocus');
+
+promise_test(async t => {
+  let w = window.open('blank.svg');
+  await waitForLoad(w);
+  t.add_cleanup(() => { w.close(); });
+  const path = w.document.createElementNS(SVG_NS, 'path');
+  path.setAttribute('d', 'M0,0h8v8z');
+  path.setAttribute('tabindex', '0');
+  path.setAttribute('autofocus', 'autofocus');
+  w.document.documentElement.appendChild(path);
+  await waitUntilStableAutofocusState(w);
+  assert_equals(w.document.activeElement, path);
+}, 'Renderable element with tabindex should support autofocus');
+
+promise_test(async t => {
+  let w = window.open('blank.svg');
+  await waitForLoad(w);
+  t.add_cleanup(() => { w.close(); });
+  let element = w.document.createElementNS(SVG_NS, 'metadata');
+  element.setAttribute('tabindex', '0');
+  element.setAttribute('autofocus', 'autofocus');
+  w.document.documentElement.appendChild(element);
+  await waitUntilStableAutofocusState(w);
+  // https://html.spec.whatwg.org/C/#dom-documentorshadowroot-activeelement
+  // 6. If candidate's document element is non-null, then return that document
+  //    element.
+  assert_equals(w.document.activeElement.tagName, 'svg');
+}, 'Never-rendered element with tabindex should not support autofocus');
+]]></script>
+</svg>

@@ -51,6 +51,41 @@ function stripUrlForUseAsReferrer(url) {
   return url.replace(/#.*$/, "");
 }
 
+function invokeScenario(scenario, sourceContextList) {
+  const originTypeConversion = {
+    "same-origin-http": "same-http",
+    "same-origin-https": "same-https",
+    "cross-origin-http": "cross-http",
+    "cross-origin-https": "cross-https"
+  };
+  const urls = getRequestURLs(
+    scenario.subresource,
+    originTypeConversion[scenario.origin + '-' + scenario.target_protocol],
+    scenario.redirection);
+
+  const deliveryTypeConversion = {
+    "attr-referrer": "attr",
+    "rel-noreferrer": "rel-noref",
+    // Other delivery methods such as "http-rp" are ignored here because
+    // they are already applied to the main document by generator.py.
+  };
+
+  /** @type {PolicyDelivery} */
+  const delivery = {
+      deliveryType: deliveryTypeConversion[scenario.delivery_method],
+      key: "referrerPolicy",
+      value: scenario.referrer_policy};
+
+  /** @type {Subresource} */
+  const subresource = {
+    subresourceType: scenario.subresource,
+    url: urls.testUrl,
+    policyDeliveries: [delivery]
+  };
+
+  return invokeRequest(subresource, sourceContextList || []);
+}
+
 function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
   // Pass and skip rest of the test if browser does not support fetch.
   if (scenario.subresource == "fetch-request" && !window.fetch) {
@@ -66,17 +101,6 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
   // This check is A NOOP in release.
   sanityChecker.checkScenario(scenario);
 
-  const originTypeConversion = {
-    "same-origin-http": "same-http",
-    "same-origin-https": "same-https",
-    "cross-origin-http": "cross-http",
-    "cross-origin-https": "cross-https"
-  };
-  const urls = getRequestURLs(
-      scenario.subresource,
-      originTypeConversion[scenario.origin + '-' + scenario.target_protocol],
-      scenario.redirection);
-
   const referrerUrlResolver = {
     "omitted": function(sourceUrl) {
       return undefined;
@@ -89,15 +113,16 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
     }
   };
 
-  const checkResult = (expectedReferrerUrl, result) => {
-    // Check if the result is in valid format. NOOP in release.
-    sanityChecker.checkSubresourceResult(scenario, urls.testUrl, result);
+  const checkResult = (expectation, result) => {
+    let currentURL = location.toString();
+    const expectedReferrerUrl =
+      referrerUrlResolver[expectation](currentURL);
 
     // Check the reported URL.
     assert_equals(result.referrer,
                   expectedReferrerUrl,
                   "Reported Referrer URL is '" +
-                  scenario.referrer_url + "'.");
+                  expectation + "'.");
     assert_equals(result.headers.referer,
                   expectedReferrerUrl,
                   "Reported Referrer URL from HTTP header is '" +
@@ -105,30 +130,6 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
   };
 
   function runTest() {
-    const deliveryTypeConversion = {
-      "attr-referrer": "attr",
-      "rel-noreferrer": "rel-noref",
-      // Other delivery methods such as "http-rp" are ignored here because
-      // they are already applied to the main document by generator.py.
-    };
-
-    /** @type {PolicyDelivery} */
-    const delivery = {
-        deliveryType: deliveryTypeConversion[scenario.delivery_method],
-        key: "referrerPolicy",
-        value: scenario.referrer_policy};
-
-    /** @type {Subresource} */
-    const subresource = {
-      subresourceType: scenario.subresource,
-      url: urls.testUrl,
-      policyDeliveries: [delivery]
-    };
-
-    let currentURL = location.toString();
-    const expectedReferrer =
-      referrerUrlResolver[scenario.referrer_url](currentURL);
-
     function historyBackPromise(t, scenario) {
       history.back();
       return new Promise(resolve => {
@@ -148,43 +149,37 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
 
     // Request in the top-level document.
     promise_test(_ => {
-      return invokeRequest(subresource, [])
-        .then(result => checkResult(expectedReferrer, result));
+      return invokeScenario(scenario)
+        .then(result => checkResult(scenario.referrer_url, result));
     }, testDescription);
 
-    // `Referer` headers with length over 4k are culled down to an origin, so, let's test around
-    // that boundary for tests that would otherwise return the complete URL.
+    // `Referer` headers with length over 4k are culled down to an origin, so,
+    // let's test around that boundary for tests that would otherwise return
+    // the complete URL.
+    // Different subresource URLs are used because getRequestURLs() is called
+    // for each sub test which returns a unique URL.
     if (scenario.referrer_url == "stripped-referrer") {
       promise_test(t => {
         history.pushState(null, null, "/");
         history.replaceState(null, null, "A".repeat(4096 - location.href.length - 1));
-        const expectedReferrer = location.href;
-        // Ensure that we don't load the same URL as the previous test.
-        subresource.url += "&-1";
-        return invokeRequest(subresource, [])
-          .then(result => checkResult(location.href, result))
+        return invokeScenario(scenario)
+          .then(result => checkResult(scenario.referrer_url, result))
           .finally(_ => historyBackPromise(t, scenario));
       }, "`Referer` header with length < 4k is not stripped to an origin.");
 
       promise_test(t => {
         history.pushState(null, null, "/");
         history.replaceState(null, null, "A".repeat(4096 - location.href.length));
-        const expectedReferrer = location.href;
-        // Ensure that we don't load the same URL as the previous test.
-        subresource.url += "&0";
-        return invokeRequest(subresource, [])
-          .then(result => checkResult(expectedReferrer, result))
+        return invokeScenario(scenario)
+          .then(result => checkResult(scenario.referrer_url, result))
           .finally(_ => historyBackPromise(t, scenario));
       }, "`Referer` header with length == 4k is not stripped to an origin.");
 
       promise_test(t => {
-        const originString = referrerUrlResolver["origin"](currentURL);
         history.pushState(null, null, "/");
         history.replaceState(null, null, "A".repeat(4096 - location.href.length + 1));
-        // Ensure that we don't load the same URL as the previous test.
-        subresource.url += "&+1";
-        return invokeRequest(subresource, [])
-          .then(result => checkResult(originString, result))
+        return invokeScenario(scenario)
+          .then(result => checkResult("origin", result))
           .finally(_ => historyBackPromise(t, scenario));
       }, "`Referer` header with length > 4k is stripped to an origin.");
     }
@@ -196,15 +191,39 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
       return;
     }
 
+    // We skip <srcdoc> tests for attr-referrer, because delivering referrer
+    // policy via DOM attributes inside <srcdoc> is quite similar to doing
+    // so in the top-level Document.
+    if (scenario.delivery_method === "attr-referrer") {
+      return;
+    }
+
     // Request in a `srcdoc` frame to ensure that it uses the referrer
     // policy of its parent,
     promise_test(_ => {
         /** @type {Array<SourceContext>} */
         const sourceContextList = [{sourceContextType: "srcdoc"}];
 
-        return invokeRequest(subresource, sourceContextList)
-          .then(result => checkResult(expectedReferrer, result));
+        return invokeScenario(scenario, sourceContextList)
+          .then(result => checkResult(scenario.referrer_url, result));
       }, testDescription + " (srcdoc iframe inherits parent)");
+
+    // We skip (top Document w/ referrer policy by HTTP headers)->
+    // (<iframe srcdoc> w/ overriding referrer policy) tests, because we
+    // already have similar (top Document w/ referrer policy by <meta>)->
+    // (<iframe srcdoc> w/ overriding referrer policy) tests.
+    if (scenario.delivery_method === "http-rp") {
+      return;
+    }
+
+    // We skip (top Document w/o referrer policy)->
+    // (<iframe srcdoc> w/ overriding referrer policy) tests, to simplify the
+    // generator. We already have (top Document w/ referrer policy)->
+    // (<iframe srcdoc> w/ overriding referrer policy) tests, which verify the
+    // <iframe srcdoc>'s referrer policy behavior.
+    if (scenario.referrer_policy === null) {
+      return;
+    }
 
     // Request in a `srcdoc` frame with its own referrer policy to
     // override its parent.
@@ -214,16 +233,14 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
         const overridingPolicy =
             scenario.referrer_policy === "no-referrer" ? "unsafe-url"
                                                        : "no-referrer";
-        const overrridingExpectedReferrer =
-          referrerUrlResolver[overridingPolicy === "no-referrer"
-                              ? "omitted"
-                              : "stripped-referrer"](location.toString());
+        const overrridingExpectation =
+            overridingPolicy === "no-referrer" ? "omitted"
+                                               : "stripped-referrer";
 
-        /** @type {Subresource} */
-        const subresourceWithoutDelivery = {
-          subresourceType: scenario.subresource,
-          url: urls.testUrl
-        };
+        const scenarioWithoutDelivery = Object.assign({}, scenario);
+        // Omit policy deliveries applied to subresource requests.
+        // This is hacky method but will be removed soon.
+        scenarioWithoutDelivery.delivery_method = null;
 
         // <iframe srcdoc> with overriding <meta> referrerPolicy.
         /** @type {Array<SourceContext>} */
@@ -234,8 +251,8 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
                                 value: overridingPolicy}]
           }];
 
-        return invokeRequest(subresourceWithoutDelivery, sourceContextList)
-          .then(result => checkResult(overrridingExpectedReferrer, result));
+        return invokeScenario(scenarioWithoutDelivery, sourceContextList)
+          .then(result => checkResult(overrridingExpectation, result));
       }, testDescription + " (overridden by srcdoc iframe)");
   }
 

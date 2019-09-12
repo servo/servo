@@ -32,16 +32,19 @@
 
             function run() {
                 var target0 = document.getElementById("target0");
+                var actions_promise;
 
                 on_event(target0, "pointerover", function (event) {
                     detected_pointertypes[event.pointerType] = true;
                     target0.setPointerCapture(event.pointerId);
                     // After we receive a pointerover event, dispatch a pointer move to move out of target0.
-                    new test_driver.Actions().pointerMove(0, 0).send();
+                    actions_promise.then(function() {
+                        return new test_driver.Actions().pointerMove(0, 0).send();
+                    });
                 });
 
                 // First dispatch a pointer move to target0.
-                new test_driver.Actions().pointerMove(0, 0, {origin: target0}).send();
+                actions_promise = new test_driver.Actions().pointerMove(0, 0, {origin: target0}).send();
 
                  // When the setPointerCapture method is invoked, if the specified pointer is not in active button state, then the method must have no effect on subsequent pointer events.
                  // TA: 13.2
@@ -49,7 +52,10 @@
                     test(function() {
                         assert_false(captureGot, "pointer capture is not set while button state is inactive")
                     }, "pointer capture is not set while button state is inactive");
-                    done();
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        done();
+                    });
                 });
 
                 on_event(target0, 'gotpointercapture', function(e) {

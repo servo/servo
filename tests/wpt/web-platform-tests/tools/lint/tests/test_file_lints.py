@@ -677,6 +677,45 @@ def test_print_function():
             assert errors == []
 
 
+def test_ahem_system_font():
+    code = b"""\
+<html>
+<style>
+body {
+  font-family: aHEm, sans-serif;
+}
+</style>
+</html>
+"""
+    error_map = check_with_files(code)
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if filename.endswith((".htm", ".html", ".xht", ".xhtml")):
+            assert errors == [
+                ("AHEM SYSTEM FONT", "Don't use Ahem as a system font, use /fonts/ahem.css", filename, None)
+            ]
+
+
+def test_ahem_web_font():
+    code = b"""\
+<html>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+body {
+  font-family: aHEm, sans-serif;
+}
+</style>
+</html>
+"""
+    error_map = check_with_files(code)
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if filename.endswith((".htm", ".html", ".xht", ".xhtml")):
+            assert errors == []
+
+
 open_mode_code = """
 def first():
     return {0}("test.png")

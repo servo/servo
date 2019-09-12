@@ -80,16 +80,28 @@ function parseFromString(mapString, mapBaseURL) {
   iframe.contentDocument.write(`
     <base href="${mapBaseURL}">
     <script>
-    let isError = false;
-    function onError() {
-      isError = true;
+    var scriptError;
+    var windowError;
+    function onScriptError(event) {
+      scriptError = event.error;
     }
+    function onWindowError(event) {
+      windowError = event.error;
+      return false;
+    }
+    window.addEventListener('error', onWindowError);
     </sc` + `ript>
-    <script type="importmap" onerror="onError()">
+    <script type="importmap" onerror="onScriptError(event)">
     ${mapString}
     </sc` + `ript>
   `);
   iframe.contentDocument.close();
+
+  // Rethrow window's error event.
+  if (iframe.contentWindow.windowError) {
+    throw iframe.contentWindow.windowError;
+  }
+
   return iframe;
 }
 

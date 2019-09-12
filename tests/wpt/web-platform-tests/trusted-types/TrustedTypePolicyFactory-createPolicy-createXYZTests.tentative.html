@@ -18,7 +18,7 @@
   }, "html = identity function");
 
   test(t => {
-    createHTMLTest('TestPolicyHTML2', { createHTML: s => null }, "null", t);
+    createHTMLTest('TestPolicyHTML2', { createHTML: s => null }, "", t);
   }, "html = null");
 
   var HTMLstr = 'well, ';
@@ -90,7 +90,7 @@
   }, "script = identity function");
 
   test(t => {
-    createScriptTest('TestPolicyScript2', { createScript: s => null }, "null", t);
+    createScriptTest('TestPolicyScript2', { createScript: s => null }, "", t);
   }, "script = null");
 
   var Scriptstr = 'well, ';
@@ -165,7 +165,7 @@
   }, "script_url = identity function");
 
   test(t => {
-    createScriptURLTest('TestPolicyScriptURL2', { createScriptURL: s => null }, "null", t);
+    createScriptURLTest('TestPolicyScriptURL2', { createScriptURL: s => null }, "", t);
   }, "script_url = null");
 
   var scriptURLstr = '#duck';
@@ -240,7 +240,7 @@
   }, "url = identity function");
 
   test(t => {
-    createURLTest('TestPolicyURL2', { createURL: s => null }, "null", t);
+    createURLTest('TestPolicyURL2', { createURL: s => null }, "", t);
   }, "url = null");
 
   var URLstr = '#x';

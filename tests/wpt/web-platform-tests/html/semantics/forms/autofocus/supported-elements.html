@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script>
+"use strict";
+
+promise_test(async t => {
+  let w = window.open('/common/blank.html');
+  await waitForLoad(w);
+  t.add_cleanup(() => { w.close(); });
+  w.document.body.innerHTML = '<div contenteditable=true autofocus></div>';
+  await waitUntilStableAutofocusState(w);
+  assert_equals(w.document.activeElement.tagName, 'DIV');
+}, 'Contenteditable element should support autofocus');
+
+promise_test(async t => {
+  let w = window.open('/common/blank.html');
+  await waitForLoad(w);
+  t.add_cleanup(() => { w.close(); });
+  w.document.body.innerHTML = '<span tabindex=0></span>';
+  await waitUntilStableAutofocusState(w);
+  assert_equals(w.document.activeElement.tagName, 'SPAN');
+}, 'Element with tabindex should support autofocus');
+
+promise_test(async t => {
+  let w = window.open('/common/blank.html');
+  await waitForLoad(w);
+  t.add_cleanup(() => { w.close(); });
+  let element = w.document.createElementNS('uri1', 'prefix:local');
+  element.setAttribute('autofocus', '');
+  w.document.body.appendChild(element);
+  await waitUntilStableAutofocusState(w);
+  assert_equals(w.document.activeElement.tagName, 'BODY');
+}, 'Non-HTMLElement should not support autofocus');
+</script>

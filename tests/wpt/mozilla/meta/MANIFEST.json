@@ -1,5 +1,11 @@
 {
  "items": {
+  "conformancechecker": {
+   "css/blockify_inline_element.html": []
+  },
+  "manual": {
+   "css/blockify_inline_element.html": []
+  },
   "reftest": {
    "css/abs-overflow-stackingcontext.html": [
     [
@@ -773,6 +779,18 @@
      [
       [
        "/_mozilla/css/block_replaced_content_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/blockify_inline_element.html": [
+    [
+     "css/blockify_inline_element.html",
+     [
+      [
+       "/_mozilla/css/blockify_inline_element_ref.html",
        "=="
       ]
      ],
@@ -7640,6 +7658,9 @@
     ]
    ]
   },
+  "stub": {
+   "css/blockify_inline_element.html": []
+  },
   "support": {
    ".gitignore": [
     []
@@ -7864,6 +7885,10 @@
     []
    ],
    "css/block_replaced_content_ref.html": [
+    []
+   ],
+   "css/blockify_inline_element.html": [],
+   "css/blockify_inline_element_ref.html": [
     []
    ],
    "css/blur_ref.html": [
@@ -11096,6 +11121,7 @@
      {}
     ]
    ],
+   "css/blockify_inline_element.html": [],
    "css/bug_1345483.html": [
     [
      "css/bug_1345483.html",
@@ -12515,6 +12541,12 @@
      {}
     ]
    ]
+  },
+  "visual": {
+   "css/blockify_inline_element.html": []
+  },
+  "wdspec": {
+   "css/blockify_inline_element.html": []
   }
  },
  "paths": {
@@ -13415,7 +13447,7 @@
    "support"
   ],
   "css/abs_float_pref_width.html": [
-   "4d5c2f971a5ec46dddfcff254b4b433b89d6e5c1",
+   "6091dc5ad57aba55ec9568f82a348e50b160e631",
    "reftest"
   ],
   "css/abs_rel_explicit_height.html": [
@@ -13679,7 +13711,7 @@
    "reftest"
   ],
   "css/background_image_position_a.html": [
-   "f3ff1cc329bd824c4cebe655bd68989c9b9909ca",
+   "080fdc9a0f42f0ab391ce846048e4d4e111cc444",
    "reftest"
   ],
   "css/background_image_position_ref.html": [
@@ -13942,6 +13974,14 @@
    "4d48d763eb784170f680276541d864681a05962b",
    "support"
   ],
+  "css/blockify_inline_element.html": [
+   "7f9da081c8e246c7d72a85ecfd129a5ddc56e07a",
+   "reftest"
+  ],
+  "css/blockify_inline_element_ref.html": [
+   "ad88ac2f3f7e4b56a3781e61655dc580806fc4cd",
+   "support"
+  ],
   "css/blur_a.html": [
    "a75af6a020711df2b97caa6b32f4d3cc445d1178",
    "reftest"
@@ -14015,11 +14055,11 @@
    "support"
   ],
   "css/border_inline_split.html": [
-   "4cf2aaacc112946d203106d2aa9a4b029fcfc06b",
+   "95bd669bdb4104a239ad47d2bfcf01f05f724fd8",
    "reftest"
   ],
   "css/border_inline_split_ref.html": [
-   "658b7f533b6494e49fb3ecc9cd61415db303cfcb",
+   "8a85ef944366e18b3eaabf952c5416a6f22d0df4",
    "support"
   ],
   "css/border_radius_asymmetric_sizes_a.html": [
@@ -14435,11 +14475,11 @@
    "reftest"
   ],
   "css/css-position-3/position-sticky-inline-ref.html": [
-   "11e2909f47b3b785652f509215876fd5e3f36c1e",
+   "1e467bdd71171a175ca22c56882ff178ee77e6a9",
    "support"
   ],
   "css/css-position-3/position-sticky-inline.html": [
-   "cc8694d42363278eaec0704a7130ca1c8a6d7433",
+   "6e6ea9ef91ed17820dc1e272820c4288e02cfae4",
    "reftest"
   ],
   "css/css-position-3/position-sticky-input-box-gets-focused-after-scroll.html": [
@@ -14471,11 +14511,11 @@
    "reftest"
   ],
   "css/css-position-3/position-sticky-nested-inline-ref.html": [
-   "694a3cc84037a546f33c5bf33761c798de4e6b56",
+   "914ff82d73f73de667497cc85487e1ca0aa94616",
    "support"
   ],
   "css/css-position-3/position-sticky-nested-inline.html": [
-   "f44c0e69b59f87b23f4f995926218a60df73c620",
+   "d31bf6617cbf358b4983120ba1265abbf65f788f",
    "reftest"
   ],
   "css/css-position-3/position-sticky-nested-left-ref.html": [
@@ -14615,11 +14655,11 @@
    "reftest"
   ],
   "css/css-position-3/position-sticky-writing-modes-ref.html": [
-   "8b171fa5583d4d1344a79c11b62701dafdcdba17",
+   "e79c639b43ab65d125e399b13366df15f952412b",
    "support"
   ],
   "css/css-position-3/position-sticky-writing-modes.html": [
-   "7f10ff5daf3c17890b8d23088a36b3f7a0447b0f",
+   "9672d093a8f2d4b5500063b4ed1d7f591017cb3c",
    "reftest"
   ],
   "css/css/ahem.css": [
@@ -14767,7 +14807,7 @@
    "support"
   ],
   "css/fixed_width_overrides_child_intrinsic_width_a.html": [
-   "f12c3e9e65aa8201ff0a1e7933d0f9caf81a904f",
+   "ec2a05b49a0929b58a34a9378366b5236a14661d",
    "reftest"
   ],
   "css/fixed_width_overrides_child_intrinsic_width_ref.html": [
@@ -14855,7 +14895,7 @@
    "support"
   ],
   "css/float_intrinsic_width_a.html": [
-   "0b95a45374033a79aa62691553726c13ac54d7d8",
+   "7c77a2b7c0960581b725a5d09cc8662ec936adff",
    "reftest"
   ],
   "css/float_intrinsic_width_ref.html": [
@@ -14883,7 +14923,7 @@
    "testharness"
   ],
   "css/float_right_intrinsic_width_a.html": [
-   "ee47bd9244b165505e7d7adb2cba899b939e0aa3",
+   "79a3e1933e01b49da982d509d5669407c0138f6e",
    "reftest"
   ],
   "css/float_right_intrinsic_width_ref.html": [
@@ -14899,7 +14939,7 @@
    "support"
   ],
   "css/float_table_a.html": [
-   "c4b4a76e4c4daae158a85d1fc2825231de38839a",
+   "2bd4390cbaa7e26274488bc3857f2a9b33f25aba",
    "reftest"
   ],
   "css/float_table_ref.html": [
@@ -15303,7 +15343,7 @@
    "support"
   ],
   "css/img_block_display_a.html": [
-   "5e3071ac1e047a5ab3376a45bd21dd7fde61b7fc",
+   "bae7e2ac8c446d42671f3c591bab0375054543f2",
    "reftest"
   ],
   "css/img_block_display_ref.html": [
@@ -15495,7 +15535,7 @@
    "support"
   ],
   "css/inline_block_baseline_a.html": [
-   "ff80d2fccb87be6a8e4759f2716d3d7b076b1dcd",
+   "734579c126b4d6e4039dd0ecc8bde9ad0eb814db",
    "reftest"
   ],
   "css/inline_block_baseline_ref.html": [
@@ -15535,7 +15575,7 @@
    "support"
   ],
   "css/inline_block_explicit_height_a.html": [
-   "59c40d14231c66e4649019666b3632fdeffe8c5c",
+   "6e94487b8c1c183be35b9e0b002cc8da6a73550c",
    "reftest"
   ],
   "css/inline_block_explicit_height_ref.html": [
@@ -15551,7 +15591,7 @@
    "support"
   ],
   "css/inline_block_img_a.html": [
-   "3fe84cf7ae68ca4b1790c522fb228db636a2bbd5",
+   "cf344c180fca21a60235eab7ee7d307376f1e7b0",
    "reftest"
   ],
   "css/inline_block_img_ref.html": [
@@ -15559,7 +15599,7 @@
    "support"
   ],
   "css/inline_block_margin_a.html": [
-   "290721e1ffd2d61dff749adb7217c42331c9f07f",
+   "5d4f9a18d28504c0e95552d67c1f8e3e9bbf9b31",
    "reftest"
   ],
   "css/inline_block_margin_auto_a.html": [
@@ -15659,7 +15699,7 @@
    "support"
   ],
   "css/inline_block_with_margin_a.html": [
-   "6c20a6cad78409f5ddb1cb388b168e9d33c784ad",
+   "970616b7bd3e20929d247c99eb93555c658475d1",
    "reftest"
   ],
   "css/inline_block_with_margin_ref.html": [
@@ -15675,7 +15715,7 @@
    "support"
   ],
   "css/inline_element_border_a.html": [
-   "e0dbb62983b6f37da91a6086133b9cc453647c81",
+   "ba2f00917b15484e9c596cc5f7ec442e0c1619f9",
    "reftest"
   ],
   "css/inline_element_border_ref.html": [
@@ -16019,35 +16059,35 @@
    "support"
   ],
   "css/line_break_nowrap.html": [
-   "3eb3fdeb652f174817c352219e3e36c34e36703b",
+   "7e20e3d6ec8f2f0a13a7457623e64e065ccd95a9",
    "reftest"
   ],
   "css/line_break_nowrap_ref.html": [
-   "aac581da1dfbfe5e747de3d9b1051fffa541fefe",
+   "94993e6693f676e9df9dd1dd9efb28c5e4c26887",
    "support"
   ],
   "css/line_breaking_whitespace_collapse_a.html": [
-   "38e9f70d088796dfc3ff881386ef08a666fb2781",
+   "07448d97ee0b8b776e18e38654ef1fff81d0a6b2",
    "reftest"
   ],
   "css/line_breaking_whitespace_collapse_ref.html": [
-   "c36c0b4068d09169459ceef97d029cbe36dca310",
+   "6f70c2e94b017ca492bd54aec0efe6fc584e4ae7",
    "support"
   ],
   "css/line_height_a.html": [
-   "c995e2c1dd0f9a8806953e395511df35c428fd80",
+   "aff1ae25e06fd79de96a71b4830dba7461a1259d",
    "reftest"
   ],
   "css/line_height_float_placement_a.html": [
-   "bbf8b5b93eb2d2a4df0abdbb7a5c6aba5f2ea053",
+   "a773ea48179b11d9c21a5dbb86a9c67eec401053",
    "reftest"
   ],
   "css/line_height_float_placement_ref.html": [
-   "89a0c78b28ec65d60f5d3f1da7a10fa09dc3439e",
+   "3093a4cf0cfcaeb8f1906868bcb9bcead1b84d0b",
    "support"
   ],
   "css/line_height_ref.html": [
-   "deaabe11d2bec4eb681716fdef28bed3cec7aa1e",
+   "7d12dfcad27f3072d62ad2293fc340619a987319",
    "support"
   ],
   "css/linear_gradients_corners_a.html": [
@@ -16155,11 +16195,11 @@
    "support"
   ],
   "css/list_style_image_sizing_a.html": [
-   "b47401c033368a1247bdbbd1679dfcebd325a81e",
+   "b9edef664ca6cfe6efa59e166b8944e459e12da0",
    "reftest"
   ],
   "css/list_style_image_sizing_ref.html": [
-   "a4af95bd1ccc94604cbaab6feca7376fc5daf323",
+   "fa406baead6fcdd217cc891c0a02afb5b149656c",
    "support"
   ],
   "css/list_style_position_a.html": [
@@ -16463,7 +16503,7 @@
    "support"
   ],
   "css/offset_properties_inline.html": [
-   "9b93cde7fc09e34687e263896828b46e50003919",
+   "44eaa4490fc515f203c3062476121f94b4337d78",
    "testharness"
   ],
   "css/ol_japanese_iroha_a.html": [
@@ -16679,11 +16719,11 @@
    "support"
   ],
   "css/per_glyph_font_fallback_a.html": [
-   "a6f768682293964a730b3cb6bd2e19764b3f75fb",
+   "ec3c513dcbb2a31d1a2d6cf13a61278e171bb3bf",
    "reftest"
   ],
   "css/per_glyph_font_fallback_ref.html": [
-   "7e0c56a3a3ab6402ce9c5e43f15e4e8f2eacc766",
+   "738631a384dc5df61bcafeebb7c0902ced305269",
    "support"
   ],
   "css/percent_height.html": [
@@ -16839,11 +16879,11 @@
    "support"
   ],
   "css/position_fixed_a.html": [
-   "708fc8bcf8e188df9e09b66e0db32ef8064ad90f",
+   "22878f4c38959f16cfe549d7998f2e5c5147c13c",
    "reftest"
   ],
   "css/position_fixed_b.html": [
-   "5d40c68109cfb0f28fa88cc315450e0a508bf880",
+   "4340cb69b4340396c58e4bb28d1b1f9aa8dbb2b8",
    "support"
   ],
   "css/position_fixed_background_color_a.html": [
@@ -17423,7 +17463,7 @@
    "support"
   ],
   "css/table_padding_a.html": [
-   "6c2feb220580c7f3fd7096b7e75be49bca2edb4e",
+   "ab57c9581fb199d711b681491e93e986d745f2ec",
    "reftest"
   ],
   "css/table_padding_ref.html": [
@@ -17563,11 +17603,11 @@
    "testharness"
   ],
   "css/text_align_complex_a.html": [
-   "2d81dc278b3a347bdc1d24ca83ef4fb3b1af37d6",
+   "b31226691ef9e56be4e77cc4b5708efaf5b71d0c",
    "reftest"
   ],
   "css/text_align_complex_ref.html": [
-   "d7a244de5a8884e4e32c3d12c40e38815c791b9f",
+   "66d9d05bcf74c55f9330467c0fcb5ba25e0c00c2",
    "support"
   ],
   "css/text_align_justify_a.html": [
@@ -17675,11 +17715,11 @@
    "support"
   ],
   "css/text_overflow_reflow.html": [
-   "958e2826fa4c1a5e5e785faa582ac4bb2ea2840e",
+   "cea19c91318fbde554f7f1be78b319cf6020a3a2",
    "reftest"
   ],
   "css/text_overflow_reflow_ref.html": [
-   "3997908406b32e94a863e56935cbc89f240ffe07",
+   "a1043ba4095323ba9549ed5aec8578e7730e2849",
    "support"
   ],
   "css/text_overflow_string.html": [
@@ -18027,7 +18067,7 @@
    "support"
   ],
   "css/white-space-mixed-002.htm": [
-   "c8399602a7d5dfd3ebb7883033ac76b05fd4d6f4",
+   "70fd5baf403e2f78572abb49cd4f37ab51fa2dc5",
    "reftest"
   ],
   "css/white-space-pre-line-long-line.html": [
@@ -18035,11 +18075,11 @@
    "testharness"
   ],
   "css/white-space-pre-line-ref.htm": [
-   "631c37056b507874270f9f3c9479fb0a3b38c5b9",
+   "aa9f5905d7e8be2db9286e1839fda9bbbd08789e",
    "support"
   ],
   "css/white-space-pre-line.htm": [
-   "ed1cdb31a097d127ef568d9c1118f2ca3724d363",
+   "c73c34a390fdd49e3d7b905ddf5c904051a72112",
    "reftest"
   ],
   "css/white-space-pre-wrap-long-line.html": [
@@ -18047,11 +18087,11 @@
    "testharness"
   ],
   "css/white-space-pre-wrap-ref.htm": [
-   "f6bda4e0ee8defc790c5137ccfd8801af5cc9126",
+   "7bbca51e692ccc72055f36934f04d92bd2a6f4c6",
    "support"
   ],
   "css/white-space-pre-wrap.htm": [
-   "ab6bc399c14abd1bfb831ebdcaeaf2e2f55dad19",
+   "077d0fd0d988e73423e54fc81a571379d2f92b06",
    "reftest"
   ],
   "css/white_space_intrinsic_sizes_a.html": [
@@ -18279,11 +18319,11 @@
    "support"
   ],
   "gfx-rs-gecko/display-block-baselines-1-ref.html": [
-   "aeac413c0d35d9a3f2ae418ba6e36cafa67f72b8",
+   "3fd3566190c482d8e2a2372558ed60496ad93477",
    "support"
   ],
   "gfx-rs-gecko/display-block-baselines-1.html": [
-   "0051525c907bf975323c92b6c2f4d50f45041337",
+   "cb599315d26a5527ec414cf37479954c9616a8f4",
    "reftest"
   ],
   "gfx-rs-gecko/downscale-2f.html": [
@@ -18359,7 +18399,7 @@
    "support"
   ],
   "lint.whitelist": [
-   "4e9dcc5ddf894bc85224a634349663b832dd8c24",
+   "314a9e5b44443be1a4e28dd3c5047a5082a7ccab",
    "support"
   ],
   "mozilla/2x2.png": [
@@ -18475,7 +18515,7 @@
    "support"
   ],
   "mozilla/client-top-left-height-width.html": [
-   "a1fade32ab93c5df3e74f6a13bacc29713f6241c",
+   "efa80c330053d7850b180b583adead004303f3b5",
    "testharness"
   ],
   "mozilla/codegen_unions.html": [
@@ -18751,7 +18791,7 @@
    "reftest"
   ],
   "mozilla/getBoundingClientRect.html": [
-   "a8e92d836330126f6ccc4a13354368e223d260da",
+   "447c782db3582529a29fe7db200f32d7490421c4",
    "testharness"
   ],
   "mozilla/getComputedStyle.html": [
@@ -18983,7 +19023,7 @@
    "testharness"
   ],
   "mozilla/mime_sniffing_font_context.html": [
-   "3d8a4d170595ee7bd8926581eefd179a20d131a8",
+   "57c18f558ff9a71ef97088779e79fa3a74057d77",
    "testharness"
   ],
   "mozilla/mql_borrow.html": [

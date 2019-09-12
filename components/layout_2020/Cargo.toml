@@ -14,6 +14,8 @@ doctest = false
 
 [dependencies]
 app_units = "0.7"
+atomic_refcell = "0.1"
+cssparser = "0.25"
 euclid = "0.20"
 fnv = "1.0"
 gfx = {path = "../gfx"}
@@ -21,13 +23,15 @@ gfx_traits = {path = "../gfx_traits"}
 ipc-channel = "0.12"
 libc = "0.2"
 malloc_size_of = { path = "../malloc_size_of" }
+matches = "0.1"
 msg = {path = "../msg"}
 range = {path = "../range"}
 rayon = "1"
+rayon_croissant = "0.1.1"
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
 serde = "1.0"
-servo_arc = {path = "../servo_arc"}
+servo_arc = { path = "../servo_arc" }
 servo_url = {path = "../url"}
 style = {path = "../style", features = ["servo", "servo-layout-2020"]}
 style_traits = {path = "../style_traits"}

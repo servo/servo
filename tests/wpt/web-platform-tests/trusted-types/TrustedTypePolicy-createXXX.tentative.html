@@ -60,7 +60,7 @@
 
   const stringTestCases = [
     [ s => s, "whatever" ],
-    [ s => null, "null" ],
+    [ s => null, "" ],
     [ s => "well, " + s, "well, whatever" ],
     [ s => { throw new Error() }, new Error() ],
     [ s => { aGlobalVarForSideEffectTesting = s; return s }, "whatever" ],
@@ -71,7 +71,7 @@
 
   const urlTestCases = [
     [ s => s, INPUTS.SCRIPTURL ],
-    [ s => null, "null" ],
+    [ s => null, "" ],
     [ s => s + "#duck", INPUTS.SCRIPTURL + "#duck" ],
     [ s => { throw new Error() }, new Error() ],
     [ s => s + "#" + aGlobalVarForSideEffectTesting,

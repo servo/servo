@@ -3,8 +3,10 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Web Speech API (https://w3c.github.io/speech-api/)
 
-[Exposed=Window, Constructor]
+[Exposed=Window]
 interface SpeechRecognition : EventTarget {
+    constructor();
+
     // recognition parameters
     attribute SpeechGrammarList grammars;
     attribute DOMString lang;
@@ -42,9 +44,9 @@ enum SpeechRecognitionErrorCode {
     "language-not-supported"
 };
 
-[Exposed=Window,
- Constructor(DOMString type, SpeechRecognitionErrorEventInit eventInitDict)]
+[Exposed=Window]
 interface SpeechRecognitionErrorEvent : Event {
+    constructor(DOMString type, SpeechRecognitionErrorEventInit eventInitDict);
     readonly attribute SpeechRecognitionErrorCode error;
     readonly attribute DOMString message;
 };
@@ -77,9 +79,9 @@ interface SpeechRecognitionResultList {
 };
 
 // A full response, which could be interim or final, part of a continuous response or not
-[Exposed=Window,
- Constructor(DOMString type, SpeechRecognitionEventInit eventInitDict)]
+[Exposed=Window]
 interface SpeechRecognitionEvent : Event {
+    constructor(DOMString type, SpeechRecognitionEventInit eventInitDict);
     readonly attribute unsigned long resultIndex;
     readonly attribute SpeechRecognitionResultList results;
 };
@@ -97,8 +99,9 @@ interface SpeechGrammar {
 };
 
 // The object representing a speech grammar collection
-[Exposed=Window, Constructor]
+[Exposed=Window]
 interface SpeechGrammarList {
+    constructor();
     readonly attribute unsigned long length;
     getter SpeechGrammar item(unsigned long index);
     void addFromURI(DOMString src,
@@ -126,9 +129,10 @@ partial interface Window {
     [SameObject] readonly attribute SpeechSynthesis speechSynthesis;
 };
 
-[Exposed=Window,
-  Constructor(optional DOMString text)]
+[Exposed=Window]
 interface SpeechSynthesisUtterance : EventTarget {
+    constructor(optional DOMString text);
+
     attribute DOMString text;
     attribute DOMString lang;
     attribute SpeechSynthesisVoice? voice;
@@ -145,9 +149,9 @@ interface SpeechSynthesisUtterance : EventTarget {
     attribute EventHandler onboundary;
 };
 
-[Exposed=Window,
- Constructor(DOMString type, SpeechSynthesisEventInit eventInitDict)]
+[Exposed=Window]
 interface SpeechSynthesisEvent : Event {
+    constructor(DOMString type, SpeechSynthesisEventInit eventInitDict);
     readonly attribute SpeechSynthesisUtterance utterance;
     readonly attribute unsigned long charIndex;
     readonly attribute unsigned long charLength;
@@ -178,9 +182,9 @@ enum SpeechSynthesisErrorCode {
     "not-allowed",
 };
 
-[Exposed=Window,
- Constructor(DOMString type, SpeechSynthesisErrorEventInit eventInitDict)]
+[Exposed=Window]
 interface SpeechSynthesisErrorEvent : SpeechSynthesisEvent {
+    constructor(DOMString type, SpeechSynthesisErrorEventInit eventInitDict);
     readonly attribute SpeechSynthesisErrorCode error;
 };
 

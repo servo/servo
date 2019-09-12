@@ -15,6 +15,7 @@
     <script type="text/javascript">
       var test_pointerEvent = async_test("Suppress compat mouse events on click");
       add_completion_callback(end_of_test);
+      var actions_promise;
 
       var detected_pointertypes = {};
       var event_log = [];
@@ -30,11 +31,15 @@
                   "click@target0, mousedown@target1, mouseup@target1, click@target1");
           }, "Event log");
 
-          test_pointerEvent.done(); // complete test
+          // Make sure the test finishes after all the input actions are completed.
+          actions_promise.then( () => {
+              test_pointerEvent.done();
+          });
       }
 
       function run() {
-          on_event(document.getElementById("done"), "click", end_of_interaction);
+          var targetDone = document.getElementById('done');
+          on_event(targetDone, "click", end_of_interaction);
 
           var target_list = ["target0", "target1"];
           var pointer_event_list = ["pointerdown"];
@@ -65,10 +70,7 @@
           });
 
           // Inject mouse inputs.
-          var target0 = document.getElementById('target0');
-          var target1 = document.getElementById('target1');
-          var targetDone = document.getElementById('done');
-          new test_driver.Actions()
+          actions_promise = new test_driver.Actions()
               .pointerMove(0, 0, {origin: target0})
               .pointerDown()
               .pointerUp()

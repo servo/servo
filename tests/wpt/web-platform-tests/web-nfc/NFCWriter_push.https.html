@@ -23,18 +23,14 @@ const invalid_type_messages =
       // NDEFRecord must have data.
       createMessage([createTextRecord()]),
 
-      // NDEFRecord.data for 'text' record must be number or string.
+      // NDEFRecord.data for 'text' record must be a string.
       createMessage([createTextRecord(test_buffer_data)]),
       createMessage([createTextRecord(test_json_data)]),
+      createMessage([createTextRecord(test_number_data)]),
 
       // https://w3c.github.io/web-nfc/#dfn-map-a-json-object-to-ndef
       // NDEFRecord must have data.
       createMessage([createJsonRecord()]),
-
-      // NDEFRecord.data for 'json' record must be object.
-      createMessage([createJsonRecord(test_buffer_data)]),
-      createMessage([createJsonRecord(test_number_data)]),
-      createMessage([createJsonRecord(test_text_data)]),
 
       // https://w3c.github.io/web-nfc/#dfn-map-a-url-to-ndef
       // NDEFRecord must have data.
@@ -59,16 +55,16 @@ const invalid_syntax_messages =
     [
       // NDEFRecord.mediaType for 'text' record must be 'text/*'.
       createMessage([createRecord('text', 'application/json',
-          test_number_data)]),
+          test_text_data)]),
 
       // Data for 'url' record, must be a valid URL.
       createMessage([createUrlRecord('Invalid URL:// Data')]),
 
-      // NDEFRecord.mediaType for 'json' record must be 'application/json' or
-      // starts with 'application/' and ends with '+json'.
+      // A JSON MIME type is any MIME type whose subtype ends in "+json" or
+      // whose essence is "application/json" or "text/json".
       createMessage([createRecord('json', 'image/png', test_json_data)]),
       createMessage([createRecord('json', 'application/x+y', test_json_data)]),
-      createMessage([createRecord('json', 'custom/app+json', test_json_data)]),
+      createMessage([createRecord('json', 'custom/app+jsonx', test_json_data)]),
     ];
 
 const invalid_signals = [
@@ -195,8 +191,8 @@ promise_test(async t => {
   const writer = new NFCWriter();
   const message = createMessage([createRecord('json','application/json',
       { get x(){ return this; } })]);
-  await promise_rejects(t, 'SyntaxError', writer.push(message));
-}, "Reject promise with SyntaxError if 'json' record cannot be serialized.");
+  await promise_rejects(t, new TypeError(), writer.push(message));
+}, "Reject promise with exceptions thrown from serializing the 'json' record data.");
 
 promise_test(async t => {
   const writer = new NFCWriter();
@@ -251,8 +247,8 @@ nfc_test(async (t, mockNFC) => {
   const writer = new NFCWriter();
   let message = createMessage([createTextRecord(test_text_data),
                                createJsonRecord(test_json_data),
+                               createJsonRecord(test_number_data),
                                createOpaqueRecord(test_buffer_data),
-                               createTextRecord(test_number_data),
                                createUrlRecord(test_url_data)],
                                test_message_origin);
   await writer.push(message);

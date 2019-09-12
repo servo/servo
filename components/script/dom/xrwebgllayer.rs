@@ -91,20 +91,25 @@ impl XRWebGLLayer {
 
         let cx = global.get_cx();
         let old_fbo = context.bound_framebuffer();
+        let old_rbo = context.bound_renderbuffer();
         let old_texture = context
             .textures()
             .active_texture_for_image_target(TexImageTarget::Texture2D);
 
-        // Step 8.2. "Initialize layer’s framebuffer to a new opaque framebuffer created with context."
+        // Step 9.2. "Initialize layer’s framebuffer to a new opaque framebuffer created with
+        // context and layerInit’s depth, stencil, and alpha values."
         let framebuffer = context.CreateFramebuffer().ok_or(Error::Operation)?;
 
-        // Step 8.3. "Allocate and initialize resources compatible with session’s XR device,
+        // Step 9.3. "Allocate and initialize resources compatible with session’s XR device,
         // including GPU accessible memory buffers, as required to support the compositing of layer."
 
         // Create a new texture with size given by the session's recommended resolution
         let texture = context.CreateTexture().ok_or(Error::Operation)?;
+        let render_buffer = context.CreateRenderbuffer().ok_or(Error::Operation)?;
         let resolution = session.with_session(|s| s.recommended_framebuffer_resolution());
         let mut pixels = CustomAutoRooter::new(None);
+        let mut clear_bits = constants::COLOR_BUFFER_BIT;
+
         context.BindTexture(constants::TEXTURE_2D, Some(&texture));
         let sc = context.TexImage2D(
             constants::TEXTURE_2D,
@@ -128,15 +133,64 @@ impl XRWebGLLayer {
             0,
         );
 
+        // Create backing store and bind a renderbuffer if requested
+        if init.depth || init.stencil {
+            let (internal_format, attachment) = if init.depth && init.stencil {
+                clear_bits |= constants::DEPTH_BUFFER_BIT | constants::STENCIL_BUFFER_BIT;
+                (
+                    constants::DEPTH_STENCIL,
+                    constants::DEPTH_STENCIL_ATTACHMENT,
+                )
+            } else if init.depth {
+                clear_bits |= constants::DEPTH_BUFFER_BIT;
+                (constants::DEPTH_COMPONENT16, constants::DEPTH_ATTACHMENT)
+            } else {
+                clear_bits |= constants::STENCIL_BUFFER_BIT;
+                (constants::STENCIL_INDEX8, constants::STENCIL_ATTACHMENT)
+            };
+            context.BindRenderbuffer(constants::RENDERBUFFER, Some(&render_buffer));
+            context.RenderbufferStorage(
+                constants::RENDERBUFFER,
+                internal_format,
+                resolution.width,
+                resolution.height,
+            );
+            context.FramebufferRenderbuffer(
+                constants::FRAMEBUFFER,
+                attachment,
+                constants::RENDERBUFFER,
+                Some(&render_buffer),
+            );
+        }
+
+        context.initialize_framebuffer(clear_bits);
+
         // Restore the WebGL state while complaining about global mutable state
+        let fb_status = context.CheckFramebufferStatus(constants::FRAMEBUFFER);
+        let gl_status = context.GetError();
         context.BindTexture(constants::TEXTURE_2D, old_texture.as_ref().map(|t| &**t));
         context.BindFramebuffer(constants::FRAMEBUFFER, old_fbo.as_ref().map(|f| &**f));
+        context.BindRenderbuffer(constants::RENDERBUFFER, old_rbo.as_ref().map(|f| &**f));
 
-        // Step 8.4: "If layer’s resources were unable to be created for any reason,
+        // Step 9.4: "If layer’s resources were unable to be created for any reason,
         // throw an OperationError and abort these steps."
-        sc.or(Err(Error::Operation))?;
+        if let Err(err) = sc {
+            error!("TexImage2D error {:?} while creating XR context", err);
+            return Err(Error::Operation);
+        }
+        if fb_status != constants::FRAMEBUFFER_COMPLETE {
+            error!(
+                "Framebuffer error {:x} while creating XR context",
+                fb_status
+            );
+            return Err(Error::Operation);
+        }
+        if gl_status != constants::NO_ERROR {
+            error!("GL error {:x} while creating XR context", gl_status);
+            return Err(Error::Operation);
+        }
 
-        // Step 9. "Return layer."
+        // Step 10. "Return layer."
         Ok(XRWebGLLayer::new(
             &global.global(),
             session,
