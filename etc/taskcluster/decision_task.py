@@ -386,7 +386,7 @@ def windows_uwp_x64():
     return (
         windows_build_task("UWP dev build", package=False)
         .with_treeherder("Windows x64")
-        .with_script("mach build --dev --target=x86_64-uwp-windows-msvc")
+        .with_script("python mach build --dev --target=x86_64-uwp-windows-msvc")
         .find_or_create("build.windows_uwp_x64_dev." + CONFIG.task_id())
     )
 
