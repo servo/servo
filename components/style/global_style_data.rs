@@ -10,10 +10,10 @@ use crate::gecko_bindings::bindings;
 use crate::parallel::STYLE_THREAD_STACK_SIZE_KB;
 use crate::shared_lock::SharedRwLock;
 use crate::thread_state;
+use parking_lot::{RwLock, RwLockReadGuard};
 use rayon;
 use std::env;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use parking_lot::{RwLock, RwLockReadGuard};
 
 /// Global style data
 pub struct GlobalStyleData {

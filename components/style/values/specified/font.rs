@@ -12,8 +12,8 @@ use crate::values::computed::font::{FamilyName, FontFamilyList, FontStyleAngle, 
 use crate::values::computed::{font as computed, Length, NonNegativeLength};
 use crate::values::computed::{Angle as ComputedAngle, Percentage as ComputedPercentage};
 use crate::values::computed::{CSSPixelLength, Context, ToComputedValue};
-use crate::values::generics::font::{self as generics, FeatureTagValue, FontSettings, FontTag};
 use crate::values::generics::font::VariationValue;
+use crate::values::generics::font::{self as generics, FeatureTagValue, FontSettings, FontTag};
 use crate::values::generics::NonNegative;
 use crate::values::specified::length::{FontBaseSize, AU_PER_PT, AU_PER_PX};
 use crate::values::specified::{AllowQuirks, Angle, Integer, LengthPercentage};
@@ -877,19 +877,17 @@ impl ToComputedValue for KeywordSize {
 impl FontSize {
     /// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size>
     pub fn from_html_size(size: u8) -> Self {
-        FontSize::Keyword(
-            KeywordInfo::new(match size {
-                // If value is less than 1, let it be 1.
-                0 | 1 => KeywordSize::XSmall,
-                2 => KeywordSize::Small,
-                3 => KeywordSize::Medium,
-                4 => KeywordSize::Large,
-                5 => KeywordSize::XLarge,
-                6 => KeywordSize::XXLarge,
-                // If value is greater than 7, let it be 7.
-                _ => KeywordSize::XXXLarge,
-            })
-        )
+        FontSize::Keyword(KeywordInfo::new(match size {
+            // If value is less than 1, let it be 1.
+            0 | 1 => KeywordSize::XSmall,
+            2 => KeywordSize::Small,
+            3 => KeywordSize::Medium,
+            4 => KeywordSize::Large,
+            5 => KeywordSize::XLarge,
+            6 => KeywordSize::XXLarge,
+            // If value is greater than 7, let it be 7.
+            _ => KeywordSize::XXXLarge,
+        }))
     }
 
     /// Compute it against a given base font size
@@ -924,9 +922,7 @@ impl FontSize {
             FontSize::Length(LengthPercentage::Length(NoCalcLength::Absolute(ref l))) => {
                 context.maybe_zoom_text(l.to_computed_value(context))
             },
-            FontSize::Length(LengthPercentage::Length(ref l)) => {
-                l.to_computed_value(context)
-            },
+            FontSize::Length(LengthPercentage::Length(ref l)) => l.to_computed_value(context),
             FontSize::Length(LengthPercentage::Percentage(pc)) => {
                 // If the parent font was keyword-derived, this is too.
                 // Tack the % onto the factor
@@ -983,8 +979,7 @@ impl FontSize {
             },
             FontSize::Larger => {
                 info = compose_keyword(LARGER_FONT_SIZE_RATIO);
-                FontRelativeLength::Em(LARGER_FONT_SIZE_RATIO)
-                    .to_computed_value(context, base_size)
+                FontRelativeLength::Em(LARGER_FONT_SIZE_RATIO).to_computed_value(context, base_size)
             },
 
             FontSize::System(_) => {
@@ -994,7 +989,13 @@ impl FontSize {
                 }
                 #[cfg(feature = "gecko")]
                 {
-                    context.cached_system_font.as_ref().unwrap().font_size.size.0
+                    context
+                        .cached_system_font
+                        .as_ref()
+                        .unwrap()
+                        .font_size
+                        .size
+                        .0
                 }
             },
         };
@@ -1115,7 +1116,15 @@ pub enum VariantAlternates {
 }
 
 #[derive(
-    Clone, Debug, Default, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToResolvedValue, ToShmem,
+    Clone,
+    Debug,
+    Default,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(transparent)]
 /// List of Variant Alternates
@@ -1190,7 +1199,7 @@ impl Parse for FontVariantAlternates {
             .try(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
-            return Ok(FontVariantAlternates::Value(Default::default()))
+            return Ok(FontVariantAlternates::Value(Default::default()));
         }
 
         let mut alternates = Vec::new();

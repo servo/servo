@@ -9,11 +9,15 @@ use crate::gecko_bindings::sugar::refptr::RefPtr;
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::{bindings, structs};
 use crate::values::animated::{ToAnimatedValue, ToAnimatedZero};
-use crate::values::computed::{Angle, Context, Integer, Length, NonNegativeLength, NonNegativePercentage};
+use crate::values::computed::{
+    Angle, Context, Integer, Length, NonNegativeLength, NonNegativePercentage,
+};
 use crate::values::computed::{Number, Percentage, ToComputedValue};
-use crate::values::generics::{font as generics, NonNegative};
 use crate::values::generics::font::{FeatureTagValue, FontSettings, VariationValue};
-use crate::values::specified::font::{self as specified, KeywordInfo, MAX_FONT_WEIGHT, MIN_FONT_WEIGHT};
+use crate::values::generics::{font as generics, NonNegative};
+use crate::values::specified::font::{
+    self as specified, KeywordInfo, MAX_FONT_WEIGHT, MIN_FONT_WEIGHT,
+};
 use crate::values::specified::length::{FontBaseSize, NoCalcLength};
 use crate::values::CSSFloat;
 use crate::Atom;

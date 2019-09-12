@@ -16,7 +16,9 @@ use crate::parser::{Parse, ParserContext};
 use crate::servo::media_queries::MEDIA_FEATURES;
 use crate::str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
 use crate::values::computed::{self, ToComputedValue};
-use crate::values::specified::{Integer, NonNegativeNumber, Length, Number, Resolution};
+#[cfg(feature = "gecko")]
+use crate::values::specified::NonNegativeNumber;
+use crate::values::specified::{Integer, Length, Number, Resolution};
 use crate::values::{serialize_atom_identifier, CSSFloat};
 use crate::{Atom, Zero};
 use cssparser::{Parser, Token};
@@ -429,9 +431,11 @@ impl MediaFeatureExpression {
                 eval(device, expect!(Integer).cloned(), self.range_or_operator)
             },
             Evaluator::Float(eval) => eval(device, expect!(Float).cloned(), self.range_or_operator),
-            Evaluator::NumberRatio(eval) => {
-                eval(device, expect!(NumberRatio).cloned(), self.range_or_operator)
-            },
+            Evaluator::NumberRatio(eval) => eval(
+                device,
+                expect!(NumberRatio).cloned(),
+                self.range_or_operator,
+            ),
             Evaluator::Resolution(eval) => {
                 let computed = expect!(Resolution).map(|specified| {
                     computed::Context::for_media_query_evaluation(device, quirks_mode, |context| {
@@ -530,19 +534,25 @@ impl MediaExpressionValue {
                 MediaExpressionValue::Float(number.get())
             },
             Evaluator::NumberRatio(..) => {
-                if static_prefs::pref!("layout.css.aspect-ratio-number.enabled") {
-                    let a = NonNegativeNumber::parse(context, input)?.0.get();
-                    let b = match input.try_parse(|input| input.expect_delim('/')) {
-                        Ok(()) => NonNegativeNumber::parse(context, input)?.0.get(),
-                        _ => 1.0,
-                    };
-                    MediaExpressionValue::NumberRatio(AspectRatio(a, b))
-                } else {
-                    let a = Integer::parse_positive(context, input)?;
-                    input.expect_delim('/')?;
-                    let b = Integer::parse_positive(context, input)?;
-                    MediaExpressionValue::NumberRatio(AspectRatio(a.value() as CSSFloat, b.value() as CSSFloat))
+                #[cfg(feature = "gecko")]
+                {
+                    if static_prefs::pref!("layout.css.aspect-ratio-number.enabled") {
+                        let a = NonNegativeNumber::parse(context, input)?.0.get();
+                        let b = match input.try_parse(|input| input.expect_delim('/')) {
+                            Ok(()) => NonNegativeNumber::parse(context, input)?.0.get(),
+                            _ => 1.0,
+                        };
+                        return Ok(MediaExpressionValue::NumberRatio(AspectRatio(a, b)));
+                    }
                 }
+
+                let a = Integer::parse_positive(context, input)?;
+                input.expect_delim('/')?;
+                let b = Integer::parse_positive(context, input)?;
+                MediaExpressionValue::NumberRatio(AspectRatio(
+                    a.value() as CSSFloat,
+                    b.value() as CSSFloat,
+                ))
             },
             Evaluator::Resolution(..) => {
                 MediaExpressionValue::Resolution(Resolution::parse(context, input)?)

@@ -171,7 +171,6 @@ impl Parse for FontTag {
     }
 }
 
-
 /// A generic value for the `font-style` property.
 ///
 /// https://drafts.csswg.org/css-fonts-4/#font-style-prop

@@ -797,6 +797,7 @@ class PropertyRestrictions:
           + PropertyRestrictions.shorthand(data, "outline")
           + PropertyRestrictions.shorthand(data, "font"))
 
+
 class CountedUnknownProperty:
     def __init__(self, name):
         self.name = name

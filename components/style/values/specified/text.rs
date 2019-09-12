@@ -89,8 +89,7 @@ impl ToComputedValue for LineHeight {
             GenericLineHeight::Length(ref non_negative_lp) => {
                 let result = match non_negative_lp.0 {
                     LengthPercentage::Length(NoCalcLength::Absolute(ref abs)) => {
-                        context
-                            .maybe_zoom_text(abs.to_computed_value(context))
+                        context.maybe_zoom_text(abs.to_computed_value(context))
                     },
                     LengthPercentage::Length(ref length) => length.to_computed_value(context),
                     LengthPercentage::Percentage(ref p) => FontRelativeLength::Em(p.0)

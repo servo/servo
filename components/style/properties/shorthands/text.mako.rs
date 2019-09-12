@@ -73,6 +73,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        #[allow(unused)]
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             use crate::values::specified::TextDecorationLine;
 

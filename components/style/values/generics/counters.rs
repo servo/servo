@@ -118,7 +118,9 @@ impl<I> Deref for CounterSetOrReset<I> {
     ToShmem,
 )]
 #[repr(transparent)]
-pub struct GenericCounters<I>(#[css(iterable, if_empty = "none")] crate::OwnedSlice<GenericCounterPair<I>>);
+pub struct GenericCounters<I>(
+    #[css(iterable, if_empty = "none")] crate::OwnedSlice<GenericCounterPair<I>>,
+);
 pub use self::GenericCounters as Counters;
 
 #[cfg(feature = "servo")]

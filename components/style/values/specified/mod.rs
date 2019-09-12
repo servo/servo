@@ -706,7 +706,7 @@ impl ClipRectOrAuto {
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(v) = input.try(|i| ClipRect::parse_quirky(context, i, allow_quirks)) {
-            return Ok(generics::GenericClipRectOrAuto::Rect(v))
+            return Ok(generics::GenericClipRectOrAuto::Rect(v));
         }
         input.expect_ident_matching("auto")?;
         Ok(generics::GenericClipRectOrAuto::Auto)
