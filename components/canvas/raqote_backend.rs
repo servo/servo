@@ -12,6 +12,7 @@ use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use raqote::PathOp;
+use std::f32::consts::PI;
 use std::marker::PhantomData;
 
 pub struct RaqoteBackend;
@@ -483,16 +484,144 @@ impl GenericPathBuilder for PathBuilder {
     }
     fn ellipse(
         &mut self,
-        _origin: Point2D<f32>,
-        _radius_x: f32,
-        _radius_y: f32,
+        origin: Point2D<f32>,
+        radius_x: f32,
+        radius_y: f32,
         _rotation_angle: f32,
-        _start_angle: f32,
-        _end_angle: f32,
-        _anticlockwise: bool,
+        start_angle: f32,
+        mut end_angle: f32,
+        anticlockwise: bool,
     ) {
-        unimplemented!();
+        /*
+         *  Point startPoint(aOrigin.x + cosf(aStartAngle) * aRadius.width,
+         *                   aOrigin.y + sinf(aStartAngle) * aRadius.height);
+         *  aSink->LineTo(startPoint);
+         *  // Clockwise we always sweep from the smaller to the larger angle, ccw
+         *  // it's vice versa.
+         *  if (!aAntiClockwise && (aEndAngle < aStartAngle)) {
+         *    Float correction = Float(ceil((aStartAngle - aEndAngle) / (2.0f * M_PI)));
+         *    aEndAngle += float(correction * 2.0f * M_PI);
+         *  } else if (aAntiClockwise && (aStartAngle < aEndAngle)) {
+         *    Float correction = (Float)ceil((aEndAngle - aStartAngle) / (2.0f * M_PI));
+         *    aStartAngle += float(correction * 2.0f * M_PI);
+         *  }
+         *  // Sweeping more than 2 * pi is a full circle.
+         *  if (!aAntiClockwise && (aEndAngle - aStartAngle > 2 * M_PI)) {
+         *    aEndAngle = float(aStartAngle + 2.0f * M_PI);
+         *  } else if (aAntiClockwise && (aStartAngle - aEndAngle > 2.0f * M_PI)) {
+         *    aEndAngle = float(aStartAngle - 2.0f * M_PI);
+         *  }
+         *
+         *  // Calculate the total arc we're going to sweep.
+         *  Float arcSweepLeft = fabs(aEndAngle - aStartAngle);
+         *
+         *  Float sweepDirection = aAntiClockwise ? -1.0f : 1.0f;
+         *
+         *  Float currentStartAngle = aStartAngle;
+         *
+         *  while (arcSweepLeft > 0) {
+         *    // We guarantee here the current point is the start point of the next
+         *    // curve segment.
+         *    Float currentEndAngle;
+         *
+         *    if (arcSweepLeft > M_PI / 2.0f) {
+         *      currentEndAngle = Float(currentStartAngle + M_PI / 2.0f * sweepDirection);
+         *    } else {
+         *      currentEndAngle = currentStartAngle + arcSweepLeft * sweepDirection;
+         *    }
+         *    Point currentStartPoint(aOrigin.x + cosf(currentStartAngle) * aRadius.width,
+         *                            aOrigin.y + sinf(currentStartAngle) * aRadius.height);
+         *    Point currentEndPoint(aOrigin.x + cosf(currentEndAngle) * aRadius.width,
+         *                          aOrigin.y + sinf(currentEndAngle) * aRadius.height);
+         *
+         *    // Calculate kappa constant for partial curve. The sign of angle in the
+         *    // tangent will actually ensure this is negative for a counter clockwise
+         *    // sweep, so changing signs later isn't needed.
+         *    Float kappaFactor = (4.0f / 3.0f) * tan((currentEndAngle - currentStartAngle) / 4.0f);
+         *    Float kappaX = kappaFactor * aRadius.width;
+         *    Float kappaY = kappaFactor * aRadius.height;
+         *
+         *    Point tangentStart(-sin(currentStartAngle), cos(currentStartAngle));
+         *    Point cp1 = currentStartPoint;
+         *    cp1 += Point(tangentStart.x * kappaX, tangentStart.y * kappaY);
+         *
+         *    Point revTangentEnd(sin(currentEndAngle), -cos(currentEndAngle));
+         *    Point cp2 = currentEndPoint;
+         *    cp2 += Point(revTangentEnd.x * kappaX, revTangentEnd.y * kappaY);
+         *
+         *    aSink->BezierTo(cp1, cp2, currentEndPoint);
+         *
+         *    arcSweepLeft -= Float(M_PI / 2.0f);
+         *    currentStartAngle = currentEndAngle;
+         */
+        let start_point = Point2D::new(
+            origin.x + start_angle.cos() * radius_x,
+            origin.y + end_angle.sin() * radius_y,
+        );
+        self.line_to(start_point);
+
+        if !anticlockwise && (end_angle < start_angle) {
+            let correction = ((start_angle - end_angle) / (2.0 * PI)).ceil();
+            end_angle += correction * 2.0 * PI;
+        } else if anticlockwise && (start_angle < end_angle) {
+            let correction = ((end_angle - start_angle) / (2.0 * PI)).ceil();
+            end_angle += correction * 2.0 * PI;
+        }
+        // Sweeping more than 2 * pi is a full circle.
+        if !anticlockwise && (end_angle - start_angle > 2.0 * PI) {
+            end_angle = start_angle + 2.0 * PI;
+        } else if anticlockwise && (start_angle - end_angle > 2.0 * PI) {
+            end_angle = start_angle - 2.0 * PI;
+        }
+
+        // Calculate the total arc we're going to sweep.
+        let mut arc_sweep_left = (end_angle - start_angle).abs();
+        let sweep_direction = match anticlockwise {
+            true => -1.0,
+            false => 1.0,
+        };
+        let mut current_start_angle = start_angle;
+        while arc_sweep_left > 0.0 {
+            // We guarantee here the current point is the start point of the next
+            // curve segment.
+            let current_end_angle;
+            if arc_sweep_left > PI / 2.0 {
+                current_end_angle = current_start_angle + PI / 2.0 * sweep_direction;
+            } else {
+                current_end_angle = current_start_angle + arc_sweep_left * sweep_direction;
+            }
+            let current_start_point = Point2D::new(
+                origin.x + current_start_angle.cos() * radius_x,
+                origin.y + current_start_angle.sin() * radius_y,
+            );
+            let current_end_point = Point2D::new(
+                origin.x + current_end_angle.cos() * radius_x,
+                origin.y + current_end_angle.sin() * radius_y,
+            );
+            // Calculate kappa constant for partial curve. The sign of angle in the
+            // tangent will actually ensure this is negative for a counter clockwise
+            // sweep, so changing signs later isn't needed.
+            let kappa_factor =
+                (4.0 / 3.0) * ((current_end_angle - current_start_angle) / 4.0).tan();
+            let kappa_x = kappa_factor * radius_x;
+            let kappa_y = kappa_factor * radius_y;
+
+            let tangent_start =
+                Point2D::new(-(current_start_angle.sin()), current_start_angle.cos());
+            let mut cp1 = current_start_point;
+            cp1 += Point2D::new(tangent_start.x * kappa_x, tangent_start.y * kappa_y).to_vector();
+            let rev_tangent_end = Point2D::new(current_end_angle.sin(), -(current_end_angle.cos()));
+            let mut cp2 = current_end_point;
+            cp2 +=
+                Point2D::new(rev_tangent_end.x * kappa_x, rev_tangent_end.y * kappa_y).to_vector();
+
+            self.bezier_curve_to(&cp1, &cp2, &current_end_point);
+
+            arc_sweep_left -= PI / 2.0;
+            current_start_angle = current_end_angle;
+        }
     }
+
     fn get_current_point(&mut self) -> Point2D<f32> {
         let path = self.finish();
 
