@@ -750,24 +750,19 @@ def build_uwp(platforms, dev, msbuild_dir):
     else:
         Configuration = "Release"
 
-    # execute msbuild
-    # Note: /m implies to use as many CPU cores as possible while building.
-    # msbuild /m /p:project=ServoApp .\support\hololens\servoapp.sln
-    # /p:Configuration="Debug" /p:Platform="x64" /property:AppxBundle=Always;AppxBundlePlatforms="x64"
     msbuild = path.join(msbuild_dir, "msbuild.exe")
-    project = path.join('.', 'support', 'hololens', 'ServoApp.sln')
-    args = [
-        msbuild,
-        "/m",
-        "/p:project=ServoApp",
-        project,
-        "/p:Configuration=" + Configuration,
-        "/p:AppxBundle=Always",
-        "/p:AppxBundlePlatforms=%s" % '|'.join(platforms),
-    ]
-
-    if len(platforms) == 1:
-        args += ["/p:Platform=%s" % platforms[0]]
-
-    # Generate an appxbundle.
-    subprocess.check_call(args)
+    build_file_template = path.join('support', 'hololens', 'package.msbuild')
+    with open(build_file_template) as f:
+        template_contents = f.read()
+        build_file = tempfile.NamedTemporaryFile(delete=False)
+        build_file.write(
+            template_contents
+                .replace("%%BUILD_PLATFORMS%%", ';'.join(platforms))
+                .replace("%%PACKAGE_PLATFORMS%%", '|'.join(platforms))
+                .replace("%%CONFIGURATION%%", Configuration)
+                .replace("%%SOLUTION%%", path.join(os.getcwd(), 'support', 'hololens', 'ServoApp.sln'))
+        )
+        build_file.close()
+        # Generate an appxbundle.
+        subprocess.check_call([msbuild, "/m", build_file.name])
+        os.unlink(build_file.name)
