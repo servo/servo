@@ -377,7 +377,7 @@ def windows_arm64():
     return (
         windows_build_task("UWP dev build", arch="arm64", package=False)
         .with_treeherder("Windows arm64")
-        .with_script("python mach build --dev --target=aarch64-uwp-windows-msvc")
+        .with_script("python mach build --dev --target=aarch64-uwp-windows-msvc --verbose")
         .find_or_create("build.windows_uwp_arm64_dev." + CONFIG.task_id())
     )
 
@@ -386,7 +386,7 @@ def windows_uwp_x64():
     return (
         windows_build_task("UWP dev build", package=False)
         .with_treeherder("Windows x64")
-        .with_script("python mach build --dev --target=x86_64-uwp-windows-msvc")
+        .with_script("python mach build --dev --target=x86_64-uwp-windows-msvc --verbose")
         .find_or_create("build.windows_uwp_x64_dev." + CONFIG.task_id())
     )
 
