@@ -491,68 +491,6 @@ impl GenericPathBuilder for PathBuilder {
         mut end_angle: f32,
         anticlockwise: bool,
     ) {
-        /*
-         *  Point startPoint(aOrigin.x + cosf(aStartAngle) * aRadius.width,
-         *                   aOrigin.y + sinf(aStartAngle) * aRadius.height);
-         *  aSink->LineTo(startPoint);
-         *  // Clockwise we always sweep from the smaller to the larger angle, ccw
-         *  // it's vice versa.
-         *  if (!aAntiClockwise && (aEndAngle < aStartAngle)) {
-         *    Float correction = Float(ceil((aStartAngle - aEndAngle) / (2.0f * M_PI)));
-         *    aEndAngle += float(correction * 2.0f * M_PI);
-         *  } else if (aAntiClockwise && (aStartAngle < aEndAngle)) {
-         *    Float correction = (Float)ceil((aEndAngle - aStartAngle) / (2.0f * M_PI));
-         *    aStartAngle += float(correction * 2.0f * M_PI);
-         *  }
-         *  // Sweeping more than 2 * pi is a full circle.
-         *  if (!aAntiClockwise && (aEndAngle - aStartAngle > 2 * M_PI)) {
-         *    aEndAngle = float(aStartAngle + 2.0f * M_PI);
-         *  } else if (aAntiClockwise && (aStartAngle - aEndAngle > 2.0f * M_PI)) {
-         *    aEndAngle = float(aStartAngle - 2.0f * M_PI);
-         *  }
-         *
-         *  // Calculate the total arc we're going to sweep.
-         *  Float arcSweepLeft = fabs(aEndAngle - aStartAngle);
-         *
-         *  Float sweepDirection = aAntiClockwise ? -1.0f : 1.0f;
-         *
-         *  Float currentStartAngle = aStartAngle;
-         *
-         *  while (arcSweepLeft > 0) {
-         *    // We guarantee here the current point is the start point of the next
-         *    // curve segment.
-         *    Float currentEndAngle;
-         *
-         *    if (arcSweepLeft > M_PI / 2.0f) {
-         *      currentEndAngle = Float(currentStartAngle + M_PI / 2.0f * sweepDirection);
-         *    } else {
-         *      currentEndAngle = currentStartAngle + arcSweepLeft * sweepDirection;
-         *    }
-         *    Point currentStartPoint(aOrigin.x + cosf(currentStartAngle) * aRadius.width,
-         *                            aOrigin.y + sinf(currentStartAngle) * aRadius.height);
-         *    Point currentEndPoint(aOrigin.x + cosf(currentEndAngle) * aRadius.width,
-         *                          aOrigin.y + sinf(currentEndAngle) * aRadius.height);
-         *
-         *    // Calculate kappa constant for partial curve. The sign of angle in the
-         *    // tangent will actually ensure this is negative for a counter clockwise
-         *    // sweep, so changing signs later isn't needed.
-         *    Float kappaFactor = (4.0f / 3.0f) * tan((currentEndAngle - currentStartAngle) / 4.0f);
-         *    Float kappaX = kappaFactor * aRadius.width;
-         *    Float kappaY = kappaFactor * aRadius.height;
-         *
-         *    Point tangentStart(-sin(currentStartAngle), cos(currentStartAngle));
-         *    Point cp1 = currentStartPoint;
-         *    cp1 += Point(tangentStart.x * kappaX, tangentStart.y * kappaY);
-         *
-         *    Point revTangentEnd(sin(currentEndAngle), -cos(currentEndAngle));
-         *    Point cp2 = currentEndPoint;
-         *    cp2 += Point(revTangentEnd.x * kappaX, revTangentEnd.y * kappaY);
-         *
-         *    aSink->BezierTo(cp1, cp2, currentEndPoint);
-         *
-         *    arcSweepLeft -= Float(M_PI / 2.0f);
-         *    currentStartAngle = currentEndAngle;
-         */
         let start_point = Point2D::new(
             origin.x + start_angle.cos() * radius_x,
             origin.y + end_angle.sin() * radius_y,
@@ -689,6 +627,22 @@ pub trait ToRaqoteSource<'a> {
     fn to_raqote_source(self) -> Option<raqote::Source<'a>>;
 }
 
+pub trait ToRaqoteGradientStop {
+    fn to_raqote(&self) -> raqote::GradientStop;
+}
+
+impl ToRaqoteGradientStop for CanvasGradientStop {
+    fn to_raqote(&self) -> raqote::GradientStop {
+        let color: u32 = ((self.color.alpha as u32) << 8 * 3 |
+            (self.color.red as u32) << 8 * 2 |
+            (self.color.green as u32) << 8 * 1 |
+            (self.color.blue as u32) << 8 * 0)
+            .into();
+        let position = self.offset as f32;
+        raqote::GradientStop { position, color }
+    }
+}
+
 impl<'a> ToRaqoteSource<'a> for FillOrStrokeStyle {
     #[allow(unsafe_code)]
     fn to_raqote_source(self) -> Option<raqote::Source<'a>> {
@@ -701,8 +655,32 @@ impl<'a> ToRaqoteSource<'a> for FillOrStrokeStyle {
                 b: rgba.blue,
                 a: rgba.alpha,
             })),
-            LinearGradient(_) => unimplemented!(),
-            RadialGradient(_) => unimplemented!(),
+            LinearGradient(style) => {
+                let stops = style.stops.into_iter().map(|s| s.to_raqote()).collect();
+                let gradient = raqote::Gradient { stops };
+                let start = Point2D::new(style.x0 as f32, style.y0 as f32);
+                let end = Point2D::new(style.x1 as f32, style.y1 as f32);
+                Some(raqote::Source::new_linear_gradient(
+                    gradient,
+                    start,
+                    end,
+                    raqote::Spread::Pad,
+                ))
+            },
+            RadialGradient(style) => {
+                let stops = style.stops.into_iter().map(|s| s.to_raqote()).collect();
+                let gradient = raqote::Gradient { stops };
+                let center1 = Point2D::new(style.x0 as f32, style.y0 as f32);
+                let center2 = Point2D::new(style.x1 as f32, style.y1 as f32);
+                Some(raqote::Source::new_two_circle_radial_gradient(
+                    gradient,
+                    center1,
+                    style.r0 as f32,
+                    center2,
+                    style.r1 as f32,
+                    raqote::Spread::Pad,
+                ))
+            },
             Surface(ref surface) => {
                 let data = &surface.surface_data[..];
                 Some(raqote::Source::Image(
