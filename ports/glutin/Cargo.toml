@@ -57,7 +57,7 @@ lazy_static = "1"
 libservo = {path = "../../components/servo"}
 libc = "0.2"
 log = "0.4"
-rust-webvr = { version = "0.14.2", features = ["glwindow"] }
+rust-webvr = { version = "0.16", features = ["glwindow"] }
 servo-media = {git = "https://github.com/servo/media"}
 tinyfiledialogs = "3.0"
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }

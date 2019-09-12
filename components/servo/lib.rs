@@ -412,7 +412,11 @@ where
         } else {
             let dispatcher =
                 Box::new(MainThreadDispatcher::new(compositor_proxy.clone())) as Box<_>;
-            GLContextFactory::current_native_handle(dispatcher, window.gl().get_type())
+            let gl_type = match window.gl().get_type() {
+                gl::GlType::Gl => sparkle::gl::GlType::Gl,
+                gl::GlType::Gles => sparkle::gl::GlType::Gles,
+            };
+            GLContextFactory::current_native_handle(dispatcher, gl_type)
         };
 
         let (external_image_handlers, external_images) = WebrenderExternalImageHandlers::new();

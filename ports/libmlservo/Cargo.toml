@@ -22,7 +22,7 @@ layout-2020 = ["simpleservo/layout-2020"]
 [dependencies]
 libservo = { path = "../../components/servo", features = ["no_static_freetype"] }
 simpleservo = { path = "../libsimpleservo/api", features = ["no_static_freetype"] }
-rust-webvr = { version = "0.14.2", features = ["magicleap"] }
+rust-webvr = { version = "0.16", features = ["magicleap"] }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "magicleap"] }
 libc = "0.2"
