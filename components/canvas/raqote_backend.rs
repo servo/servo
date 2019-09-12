@@ -773,7 +773,7 @@ impl ToRaqoteStyle for BlendingStyle {
             BlendingStyle::Saturation => raqote::BlendMode::Saturation,
             BlendingStyle::Color => raqote::BlendMode::Color,
             BlendingStyle::Luminosity => raqote::BlendMode::Luminosity,
-            BlendingStyle::ColorBurn => unimplemented!("raqote doesn't support colorburn"),
+            BlendingStyle::ColorBurn => raqote::BlendMode::ColorBurn,
         }
     }
 }
