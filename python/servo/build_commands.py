@@ -951,7 +951,7 @@ def package_msvc_dlls(servo_exe_dir, target, vcinstalldir, vs_version):
         "msvcp140.dll",
         "vcruntime140.dll",
     ]
-    if target_arch != "aarch64" and vs_version in ("14.0", "15.0"):
+    if target_arch != "aarch64" and vs_version in ("14.0", "15.0", "16.0"):
         msvc_deps += ["api-ms-win-crt-runtime-l1-1-0.dll"]
 
     # Check if it's Visual C++ Build Tools or Visual Studio 2015
