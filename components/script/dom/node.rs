@@ -153,7 +153,7 @@ pub struct Node {
     /// node is finalized.
     style_and_layout_data: Cell<Option<OpaqueStyleAndLayoutData>>,
 
-    unique_id: Option<UniqueId>,
+    unique_id: DomRefCell<Option<UniqueId>>,
 }
 
 bitflags! {
@@ -1006,19 +1006,12 @@ impl Node {
     }
 
     pub fn unique_id(&self) -> String {
-        let node_id = match self.unique_id {
-            Some(uid) => uid,
-            None => {
-                let uid = UniqueId::new();
-                self.unique_id = Some(uid);
-                uid
-            },
-        };
-
-        let node_id_str = node_id.borrow().to_simple().to_string();
-        ScriptThread::save_node_id(node_id_str);
-
-        node_id_str
+        if self.unique_id.borrow().is_none() {
+            let mut uid = self.unique_id.borrow_mut();
+            *uid = Some(UniqueId::new());
+            ScriptThread::save_node_id(self.unique_id());
+        }
+        self.unique_id.borrow().as_ref().unwrap().borrow().to_simple().to_string()
     }
 
     pub fn summarize(&self) -> NodeInfo {
@@ -1684,7 +1677,7 @@ impl Node {
 
             style_and_layout_data: Cell::new(None),
 
-            unique_id: None, // Lazily created in unique_id()
+            unique_id: DomRefCell::new(None), // Lazily created in unique_id()
         }
     }
 
