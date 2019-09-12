@@ -31,10 +31,7 @@
       assert_approx_equals(elementSize, expectedSize, epsilon, description);
   }
 
-  window.addEventListener("load", function() {
-    // Delay the check to workaround WebKit's bug https://webkit.org/b/174030.
-    requestAnimationFrame(() => { document.fonts.ready.then(runTests); });
-  });
+  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
 
   function runTests() {
       for (transform in AttributeValueTransforms) {

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - alpha channel.
+  Tests that the alpha channel for background colors are preserved in forced
+  colors mode at the root node.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body {
+    background-color: rgba(114, 173, 218, .3);
+  }
+  div {
+    background-color: Window;
+  }
+</style>
+<body id="body">
+  <div id="div">
+    Background colors should maintain their alpha channels in forced
+    colors mode.
+  </div>
+</body>
+
+<script>
+  var div_color = getComputedStyle(div).backgroundColor;
+  var expected_div_color = div_color.replace(')', ', 0.3)').replace('rgb(', 'rgba(');
+  test(function(){
+    assert_equals(getComputedStyle(body).backgroundColor, expected_div_color);
+  }, "Checks that background color alpha channels are preserved in forced colors mode at the root node.");
+</script>

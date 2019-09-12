@@ -7,33 +7,38 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script>
 let test_cases = [
-  { fragment: '#', expect_scroll: false },
-  { fragment: '##targetText=test', expect_scroll: true },
-  { fragment: '##targetText=this,page', expect_scroll: true },
-  { fragment: '##targetText=this-,is,test', expect_scroll: true },
-  { fragment: '##targetText=this-,is,test,-page', expect_scroll: true },
-  { fragment: '##targetText=this-,is,page,-none', expect_scroll: false },
-  { fragment: '##targetText=this,test,-page', expect_scroll: true },
-  { fragment: '##targetText=this%20is%20a%20test%20page', expect_scroll: true },
-  { fragment: '##targetText=this&targetText=test,page', expect_scroll: true },
-  { fragment: '#pagestate##targetText=test', expect_scroll: true },
-  { fragment: '#pagestate##targetText=nomatch', expect_scroll: false },
-  { fragment: '#element##targetText=nomatch', expect_scroll: true },
+  { fragment: '#', expect_position: 'top' },
+  { fragment: '##targetText=test', expect_position: 'text' },
+  { fragment: '##targetText=this,page', expect_position: 'text' },
+  { fragment: '##targetText=this-,is,test', expect_position: 'text' },
+  { fragment: '##targetText=this-,is,test,-page', expect_position: 'text' },
+  { fragment: '##targetText=this-,is,page,-none', expect_position: 'top' },
+  { fragment: '##targetText=this,test,-page', expect_position: 'text' },
+  { fragment: '##targetText=this%20is%20a%20test%20page', expect_position: 'text' },
+  { fragment: '##targetText=this&targetText=test,page', expect_position: 'text' },
+  { fragment: '#pagestate##targetText=test', expect_position: 'text' },
+  { fragment: '#pagestate##targetText=nomatch', expect_position: 'top' },
+  { fragment: '#element##targetText=nomatch', expect_position: 'element' },
+  { fragment: '#element##directive', expect_position: 'element' },
 ];
+
+test(t => {
+  assert_equals(typeof(window.location.selector), 'object', 'window.location.selector is defined');
+}, 'Scroll to text is feature detectable via window.location.selector');
 
 for (const test_case of test_cases) {
   promise_test(t => new Promise(resolve => {
     let channel = new BroadcastChannel('scroll-to-text-fragment');
     channel.addEventListener("message", e => {
-      resolve(e.data.didScrollToTarget);
+      resolve(e.data.scrollPosition);
     }, {once: true});
 
     test_driver.bless('Open a URL with a text fragment anchor', () => {
       window.open('scroll-to-text-fragment-target.html' + test_case.fragment, '_blank', 'noopener');
     });
-  }).then(scroll => {
-    assert_equals(scroll, test_case.expect_scroll,
-                  'Expected ' + test_case.fragment + (test_case.expect_scroll ? ' to scroll.' : ' to not scroll.'));
+  }).then(scrollPosition => {
+    assert_equals(scrollPosition, test_case.expect_position,
+                  'Expected ' + test_case.fragment + ' to scroll to ' + test_case.expect_position);
   }), 'Test navigation with text fragment anchor ' + test_case.fragment);
 }
 </script>

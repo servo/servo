@@ -99,12 +99,3 @@ interface Global {
   any valueOf();
   attribute any value;
 };
-
-[LegacyNamespace=WebAssembly]
-interface CompileError { };
-
-[LegacyNamespace=WebAssembly]
-interface LinkError { };
-
-[LegacyNamespace=WebAssembly]
-interface RuntimeError { };

@@ -45,12 +45,9 @@ function getMatrixFromTransform(transform) {
           m14, m24, m34, 1];
 }
 
-function getGFXTransformFromPosition(x, y, z) {
+function composeGFXTransform(fakeTransformInit) {
   let transform = new gfx.mojom.Transform();
-  transform.matrix = getMatrixFromTransform({
-    position: [x, y, z],
-    orientation: [0, 0, 0, 1]
-  });
+  transform.matrix = getMatrixFromTransform(fakeTransformInit);
   return transform;
 }
 
@@ -378,7 +375,10 @@ class MockRuntime {
           leftDegrees: 50.899,
           rightDegrees: 35.197
         },
-        headFromEye: getGFXTransformFromPosition(-0.032, 0, 0),
+        headFromEye: composeGFXTransform({
+          position: [-0.032, 0, 0],
+          orientation: [0, 0, 0, 1]
+        }),
         renderWidth: 20,
         renderHeight: 20
       },
@@ -389,7 +389,10 @@ class MockRuntime {
           leftDegrees: 50.899,
           rightDegrees: 35.197
         },
-        headFromEye: getGFXTransformFromPosition(0.032, 0, 0),
+        headFromEye: composeGFXTransform({
+          position: [0.032, 0, 0],
+          orientation: [0, 0, 0, 1]
+        }),
         renderWidth: 20,
         renderHeight: 20
       },
@@ -415,8 +418,6 @@ class MockRuntime {
     let upTan = (1 + m[9]) / m[5];
     let downTan = (1 - m[9]) / m[5];
 
-    let offset = fakeXRViewInit.viewOffset.position;
-
     return {
       fieldOfView: {
         upDegrees: toDegrees(upTan),
@@ -424,7 +425,7 @@ class MockRuntime {
         leftDegrees: toDegrees(leftTan),
         rightDegrees: toDegrees(rightTan)
       },
-      headFromEye: getGFXTransformFromPosition(offset[0], offset[1], offset[2]),
+      headFromEye: composeGFXTransform(fakeXRViewInit.viewOffset),
       renderWidth: fakeXRViewInit.resolution.width,
       renderHeight: fakeXRViewInit.resolution.height
     };

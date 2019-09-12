@@ -21,6 +21,8 @@ import { referrer as referrerSameRemote } from "./resources/import-remote-origin
 
 import { referrer as referrerRemoteRemote } from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/module/resources/import-referrer-checker.sub.js?name=remote_remote";
 
+import { referrer as referrerRemoteSame } from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/module/resources/import-same-origin-referrer-checker-from-remote-origin.sub.js?name=remote_same";
+
 const origin = (new URL(location.href)).origin + "/";
 const remoteOrigin = "http://{{domains[www1]}}:{{ports[http][0]}}/";
 
@@ -37,7 +39,6 @@ test(t => {
       "Referrer should be sent for the remote-origin top-level script.");
 }, "Importing a remote-origin top-level script with the " +
    "origin-when-cross-origin policy.");
-
 test(t => {
   const scriptURL =
       new URL("resources/import-referrer-checker.sub.js", location.href)
@@ -46,7 +47,6 @@ test(t => {
       "Referrer should be sent for the same-origin descendant script.");
 }, "Importing a same-origin descendant script from a same-origin top-level " +
    "script with the origin-when-cross-origin policy.");
-
 test(t => {
   assert_equals(
       referrerSameRemote, origin,
@@ -59,6 +59,16 @@ test(t => {
       referrerRemoteRemote, remoteOrigin,
       "Referrer should be sent for the remote-origin descendant script.");
 }, "Importing a remote-origin descendant script from a remote-origin " +
+   "top-level script with the origin-when-cross-origin policy.");
+
+test(t => {
+  const scriptURL = new URL(
+    "html/semantics/scripting-1/the-script-element/module/resources/" +
+    "import-same-origin-referrer-checker-from-remote-origin.sub.js",
+    remoteOrigin);
+  assert_equals(referrerRemoteSame, scriptURL + "?name=remote_same",
+      "Referrer should be sent for the same-origin descendant script.");
+}, "Importing a same-origin descendant script from a remote-origin " +
    "top-level script with the origin-when-cross-origin policy.");
 
 </script>

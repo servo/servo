@@ -7,26 +7,6 @@
 </head>
 <body>
 <script>
-
-// We expect to run this test in two instances, enforcing and report-only
-// Trusted Type policies. We'll infer from our URL which one we are.
-//
-// The expected file names/headers are:
-// - default-policy.tentative.html:
-//     Content-Security-Policy: trusted-types *
-// - default-policy-report-only.tentative.html:
-//    Content-Security-Policy-Report-Only: trusted-types *
-//
-// The behaviour of the tests should be _mostly_ identical, except that
-// Trusted Types relevant assignments should only throw in the enforced
-// case. We will use assert_throws for things that should always throw
-// (i.e., regular exceptions), and maybe_throws for tests that should only
-// throw in TT-enforcing mode.
-const is_report_only = document.location.pathname.includes("report-only");
-const maybe_throws = (is_report_only
-  ? (error, fn, message) => fn()
-  : assert_throws);
-
 // Ensure that only the right events trigger violation reports.
 // The Promise will resolve, when an event including the string "done" is
 // received. The last line of this test file will cause this trigger.
@@ -69,7 +49,8 @@ const testCases = [
 testCases.forEach(c => {
   test(t => {
     const element = document.createElement(c[0]);
-    maybe_throws(TypeError(), _ => element[c[1]] = "nodefault");
+    assert_throws(TypeError(), _ => element[c[1]] = "nodefault");
+    assert_equals(element[c[1]], "");
   }, `${c[0]}.${c[1]} no default policy`);
 });
 
@@ -105,7 +86,8 @@ testCases.forEach(c => {
   }, name + "default");
   test(t => {
     const element = document.createElement(c[0]);
-    maybe_throws(TypeError(), _ => element[c[1]] = "null");
+    assert_throws(TypeError(), _ => element[c[1]] = "null");
+    assert_equals(element[c[1]], "");
   }, name + "null");
   test(t => {
     const element = document.createElement(c[0]);
@@ -113,7 +95,8 @@ testCases.forEach(c => {
   }, name + "throw");
   test(t => {
     const element = document.createElement(c[0]);
-    maybe_throws(TypeError(), _ => element[c[1]] = "undefined");
+    assert_throws(TypeError(), _ => element[c[1]] = "undefined");
+    assert_equals(element[c[1]], "");
   }, name + "undefined");
   test(t => {
     const element = document.createElement(c[0]);

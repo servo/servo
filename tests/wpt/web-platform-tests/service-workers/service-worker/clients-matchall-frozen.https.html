@@ -49,19 +49,6 @@ promise_test(function(t) {
             });
         })
       .then(function(e) {
-          assert_equals(e.data.length, 1);
-          assert_object_equals(e.data[0], expected_window_2);
-        })
-      .then(function() {
-          var channel = new MessageChannel();
-
-          return new Promise(function(resolve) {
-              channel.port1.onmessage = resolve;
-              windows[1].navigator.serviceWorker.controller.postMessage(
-                  {port:channel.port2, options: {lifecycleState: "all"}, includeLifecycleState: true}, [channel.port2]);
-            });
-        })
-      .then(function(e) {
           assert_equals(e.data.length, 2);
           // No specific order is required, so support inversion.
           if (e.data[0][3] == new URL(scope + '#2', location)) {
@@ -71,32 +58,6 @@ promise_test(function(t) {
             assert_object_equals(e.data[0], expected_window_1);
             assert_object_equals(e.data[1], expected_window_2);
           }
-        })
-      .then(function() {
-          var channel = new MessageChannel();
-
-          return new Promise(function(resolve) {
-              channel.port1.onmessage = resolve;
-              windows[1].navigator.serviceWorker.controller.postMessage(
-                  {port:channel.port2, options: {lifecycleState: "frozen"}, includeLifecycleState: true}, [channel.port2]);
-            });
-        })
-      .then(function(e) {
-          assert_equals(e.data.length, 1);
-          assert_object_equals(e.data[0], expected_window_1);
-        })
-      .then(function() {
-          var channel = new MessageChannel();
-
-          return new Promise(function(resolve) {
-              channel.port1.onmessage = resolve;
-              windows[1].navigator.serviceWorker.controller.postMessage(
-                  {port:channel.port2, options: {lifecycleState: "active"}, includeLifecycleState: true}, [channel.port2]);
-            });
-        })
-      .then(function(e) {
-          assert_equals(e.data.length, 1);
-          assert_object_equals(e.data[0], expected_window_2);
       });
 }, 'Test Clients.matchAll()');
 

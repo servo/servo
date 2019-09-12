@@ -20,8 +20,8 @@ two ways:
    renders a green square when it passes; these can mostly be written to
    match [this][ref-filled-green-100px-square] reference. This green square is
    often rendered over a red square, such that when the test fails there is red
-   visible on the page; this can even be done using text by using the [Ahem][]
-   font.
+   visible on the page; this can even be done using text by using the
+   [Ahem][ahem] font.
 
 More occasionally, the entire canvas is rendered green, typically when
 testing parts of CSS that affect the entire page. Care has to be taken
@@ -81,3 +81,4 @@ color-related functionality will necessitate using some of these
 colors!
 
 [ref-filled-green-100px-square]: https://github.com/w3c/csswg-test/blob/master/reference/ref-filled-green-100px-square.xht
+[ahem]: ahem

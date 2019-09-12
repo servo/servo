@@ -857,11 +857,11 @@ const subresourceMap = {
     path: "/common/security-features/subresource/audio.py",
     invoker: requestViaAudio,
   },
-  "beacon-request": {
+  "beacon": {
     path: "/common/security-features/subresource/empty.py",
     invoker: requestViaSendBeacon,
   },
-  "fetch-request": {
+  "fetch": {
     path: "/common/security-features/subresource/xhr.py",
     invoker: requestViaFetch,
   },
@@ -901,45 +901,40 @@ const subresourceMap = {
     path: "/common/security-features/subresource/video.py",
     invoker: requestViaVideo,
   },
-  "xhr-request": {
+  "xhr": {
     path: "/common/security-features/subresource/xhr.py",
     invoker: requestViaXhr,
   },
 
-  "worker-request": {
+  "worker-classic": {
     path: "/common/security-features/subresource/worker.py",
     invoker: url => requestViaDedicatedWorker(url),
   },
-  // TODO: Merge "module-worker" and "module-worker-top-level".
-  "module-worker": {
+  "worker-module": {
     path: "/common/security-features/subresource/worker.py",
     invoker: url => requestViaDedicatedWorker(url, {type: "module"}),
   },
-  "module-worker-top-level": {
-    path: "/common/security-features/subresource/worker.py",
-    invoker: url => requestViaDedicatedWorker(url, {type: "module"}),
-  },
-  "module-data-worker-import": {
+  "worker-import-data": {
     path: "/common/security-features/subresource/worker.py",
     invoker: url =>
         requestViaDedicatedWorker(workerUrlThatImports(url), {type: "module"}),
   },
-  "shared-worker": {
+  "sharedworker-classic": {
     path: "/common/security-features/subresource/shared-worker.py",
     invoker: requestViaSharedWorker,
   },
 
-  "websocket-request": {
+  "websocket": {
     path: "/stash_responder",
     invoker: requestViaWebSocket,
   },
 };
 for (const workletType of ['animation', 'audio', 'layout', 'paint']) {
-  subresourceMap[`worklet-${workletType}-top-level`] = {
+  subresourceMap[`worklet-${workletType}`] = {
       path: "/common/security-features/subresource/worker.py",
       invoker: url => requestViaWorklet(workletType, url)
     };
-  subresourceMap[`worklet-${workletType}-data-import`] = {
+  subresourceMap[`worklet-${workletType}-import-data`] = {
       path: "/common/security-features/subresource/worker.py",
       invoker: url =>
           requestViaWorklet(workletType, workerUrlThatImports(url))
@@ -955,6 +950,70 @@ for (const workletType of ['animation', 'audio', 'layout', 'paint']) {
   See preprocess_redirection() in
   /common/security-features/subresource/subresource.py for valid values.
 */
+
+/**
+  Construct subresource (and related) origin.
+
+  @param {string} originType
+  @returns {object} the origin of the subresource.
+*/
+function getSubresourceOrigin(originType) {
+  const httpProtocol = "http";
+  const httpsProtocol = "https";
+  const wsProtocol = "ws";
+  const wssProtocol = "wss";
+
+  const sameOriginHost = "{{host}}";
+  const crossOriginHost = "{{domains[www1]}}";
+
+  // These values can evaluate to either empty strings or a ":port" string.
+  const httpPort = getNormalizedPort(parseInt("{{ports[http][0]}}", 10));
+  const httpsRawPort = parseInt("{{ports[https][0]}}", 10);
+  const httpsPort = getNormalizedPort(httpsRawPort);
+  const wsPort = getNormalizedPort(parseInt("{{ports[ws][0]}}", 10));
+  const wssRawPort = parseInt("{{ports[wss][0]}}", 10);
+  const wssPort = getNormalizedPort(wssRawPort);
+
+  /**
+    @typedef OriginType
+    @type {string}
+
+    Represents the origin of the subresource request URL.
+    The keys of `originMap` below are the valid values.
+
+    Note that there can be redirects from the specified origin
+    (see RedirectionType), and thus the origin of the subresource
+    response URL might be different from what is specified by OriginType.
+  */
+  const originMap = {
+    "same-https": httpsProtocol + "://" + sameOriginHost + httpsPort,
+    "same-http": httpProtocol + "://" + sameOriginHost + httpPort,
+    "cross-https": httpsProtocol + "://" + crossOriginHost + httpsPort,
+    "cross-http": httpProtocol + "://" + crossOriginHost + httpPort,
+    "same-wss": wssProtocol + "://" + sameOriginHost + wssPort,
+    "same-ws": wsProtocol + "://" + sameOriginHost + wsPort,
+    "cross-wss": wssProtocol + "://" + crossOriginHost + wssPort,
+    "cross-ws": wsProtocol + "://" + crossOriginHost + wsPort,
+
+    // The following origin types are used for upgrade-insecure-requests tests:
+    // These rely on some unintuitive cleverness due to WPT's test setup:
+    // 'Upgrade-Insecure-Requests' does not upgrade the port number,
+    // so we use URLs in the form `http://[domain]:[https-port]`,
+    // which will be upgraded to `https://[domain]:[https-port]`.
+    // If the upgrade fails, the load will fail, as we don't serve HTTP over
+    // the secure port.
+    "same-http-downgrade":
+        httpProtocol + "://" + sameOriginHost + ":" + httpsRawPort,
+    "cross-http-downgrade":
+        httpProtocol + "://" + crossOriginHost + ":" + httpsRawPort,
+    "same-ws-downgrade":
+        wsProtocol + "://" + sameOriginHost + ":" + wssRawPort,
+    "cross-ws-downgrade":
+        wsProtocol + "://" + crossOriginHost + ":" + wssRawPort,
+  };
+
+  return originMap[originType];
+}
 
 /**
   Construct subresource (and related) URLs.

@@ -121,10 +121,10 @@ assumptions that can be relied on are documented [here][assumptions];
 tests that rely on anything else should be manual tests that document
 their assumptions.
 
-Aside from the [Ahem font][ahem], fonts cannot be relied on to be
-either installed or to have specific metrics. As such, in most cases
-when a known font is needed Ahem should be used. In other cases,
-`@font-face` should be used.
+Fonts cannot be relied on to be either installed or to have specific
+metrics. As such, in most cases when a known font is needed, [Ahem][ahem]
+should be used and loaded as a web font. In other cases, `@font-face`
+should be used.
 
 
 ### Be Self-Contained

@@ -19,10 +19,10 @@ partial interface Presentation {
   readonly attribute PresentationReceiver? receiver;
 };
 
-[Constructor(USVString url),
- Constructor(sequence<USVString> urls),
- SecureContext, Exposed=Window]
+[SecureContext, Exposed=Window]
 interface PresentationRequest : EventTarget {
+  constructor(USVString url);
+  constructor(sequence<USVString> urls);
   Promise<PresentationConnection> start();
   Promise<PresentationConnection> reconnect(USVString presentationId);
   Promise<PresentationAvailability> getAvailability();
@@ -37,9 +37,9 @@ interface PresentationAvailability : EventTarget {
   attribute EventHandler onchange;
 };
 
-[Constructor(DOMString type, PresentationConnectionAvailableEventInit eventInitDict),
- SecureContext, Exposed=Window]
+[SecureContext, Exposed=Window]
 interface PresentationConnectionAvailableEvent : Event {
+  constructor(DOMString type, PresentationConnectionAvailableEventInit eventInitDict);
   [SameObject] readonly attribute PresentationConnection connection;
 };
 
@@ -64,17 +64,17 @@ interface PresentationConnection : EventTarget {
   // Communication
   attribute BinaryType binaryType;
   attribute EventHandler onmessage;
-  void send(DOMString message);
-  void send(Blob data);
-  void send(ArrayBuffer data);
-  void send(ArrayBufferView data);
+  void send (DOMString message);
+  void send (Blob data);
+  void send (ArrayBuffer data);
+  void send (ArrayBufferView data);
 };
 
 enum PresentationConnectionCloseReason { "error", "closed", "wentaway" };
 
-[Constructor(DOMString type, PresentationConnectionCloseEventInit eventInitDict),
- SecureContext, Exposed=Window]
+[SecureContext, Exposed=Window]
 interface PresentationConnectionCloseEvent : Event {
+  constructor(DOMString type, PresentationConnectionCloseEventInit eventInitDict);
   readonly attribute PresentationConnectionCloseReason reason;
   readonly attribute DOMString message;
 };

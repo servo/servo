@@ -164,7 +164,7 @@ class WPTUpdate(object):
             return exit_clean
 
         if not self.kwargs["continue"] and not self.state.is_empty():
-            self.logger.error("Found existing state. Run with --continue to resume or --abort to clear state")
+            self.logger.critical("Found existing state. Run with --continue to resume or --abort to clear state")
             return exit_unclean
 
         if self.kwargs["continue"]:

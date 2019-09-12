@@ -17,11 +17,11 @@
       assert_equals(document.fullscreenElement, trans);
       assert_equals(getComputedStyle(trans).color, "rgb(0, 128, 0)", "Transition is in progress - still green");
     });
-    trans.addEventListener('click', e => {
+    trans.addEventListener('click', t.step_func(() => {
       trans.style.color = "red";
       trans.offsetTop;
       trans.requestFullscreen();
-    }, {once: true});
+    }), {once: true});
     test_driver.click(trans);
   });
 </script>

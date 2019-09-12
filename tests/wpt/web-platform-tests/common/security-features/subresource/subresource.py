@@ -32,10 +32,15 @@ def __get_swapped_origin_netloc(netloc, subdomain_prefix = "www1."):
 # current request URL `request.url`, except for:
 # - When `swap_scheme` or `swap_origin` is True, its scheme/origin is changed
 #   to the other one. (http <-> https, ws <-> wss, etc.)
+# - For `downgrade`, we redirect to a URL that would be successfully loaded
+#   if and only if upgrade-insecure-request is applied.
 # - `query_parameter_to_remove` parameter is removed from query part.
 #   Its default is "redirection" to avoid redirect loops.
-def create_url(request, swap_scheme = False, swap_origin = False,
-               query_parameter_to_remove = "redirection"):
+def create_url(request,
+               swap_scheme=False,
+               swap_origin=False,
+               downgrade=False,
+               query_parameter_to_remove="redirection"):
     parsed = urlparse.urlsplit(request.url)
     destination_netloc = parsed.netloc
 
@@ -44,6 +49,24 @@ def create_url(request, swap_scheme = False, swap_origin = False,
         scheme = "http" if parsed.scheme == "https" else "https"
         hostname = parsed.netloc.split(':')[0]
         port = request.server.config["ports"][scheme][0]
+        destination_netloc = ":".join([hostname, str(port)])
+
+    if downgrade:
+        # These rely on some unintuitive cleverness due to WPT's test setup:
+        # 'Upgrade-Insecure-Requests' does not upgrade the port number,
+        # so we use URLs in the form `http://[domain]:[https-port]`,
+        # which will be upgraded to `https://[domain]:[https-port]`.
+        # If the upgrade fails, the load will fail, as we don't serve HTTP over
+        # the secure port.
+        if parsed.scheme == "https":
+            scheme = "http"
+        elif parsed.scheme == "wss":
+            scheme = "ws"
+        else:
+            raise ValueError("Downgrade redirection: Invalid scheme '%s'" %
+                             parsed.scheme)
+        hostname = parsed.netloc.split(':')[0]
+        port = request.server.config["ports"][parsed.scheme][0]
         destination_netloc = ":".join([hostname, str(port)])
 
     if swap_origin:
@@ -71,13 +94,15 @@ def preprocess_redirection(request, response):
 
     if redirection == "no-redirect":
         return False
-    elif redirection == "keep-scheme-redirect":
+    elif redirection == "keep-scheme":
         redirect_url = create_url(request, swap_scheme=False)
-    elif redirection == "swap-scheme-redirect":
+    elif redirection == "swap-scheme":
         redirect_url = create_url(request, swap_scheme=True)
-    elif redirection == "keep-origin-redirect":
+    elif redirection == "downgrade":
+        redirect_url = create_url(request, downgrade=True)
+    elif redirection == "keep-origin":
         redirect_url = create_url(request, swap_origin=False)
-    elif redirection == "swap-origin-redirect":
+    elif redirection == "swap-origin":
         redirect_url = create_url(request, swap_origin=True)
     else:
         raise ValueError("Invalid redirection type '%s'" % redirection)

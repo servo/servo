@@ -66,6 +66,7 @@ test(t => {
   const promise = animation.ready;
   animation.cancel();
   assert_not_equals(animation.ready, promise);
+  promise_rejects(t, 'AbortError', promise, 'Cancel should abort ready promise');
 }, 'The ready promise should be replaced when the animation is canceled');
 
 promise_test(t => {

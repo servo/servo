@@ -5,7 +5,7 @@ from collections import MutableMapping, defaultdict
 from six import iteritems, iterkeys, itervalues, string_types, binary_type, text_type
 
 from . import vcs
-from .item import (ConformanceCheckerTest, ManifestItem, ManualTest, RefTest, RefTestNode, Stub,
+from .item import (ConformanceCheckerTest, ManifestItem, ManualTest, RefTest, RefTestNode,
                    SupportFile, TestharnessTest, VisualTest, WebDriverSpecTest)
 from .log import get_logger
 from .sourcefile import SourceFile
@@ -51,7 +51,6 @@ item_classes = {"testharness": TestharnessTest,
                 "reftest": RefTest,
                 "reftest_node": RefTestNode,
                 "manual": ManualTest,
-                "stub": Stub,
                 "wdspec": WebDriverSpecTest,
                 "conformancechecker": ConformanceCheckerTest,
                 "visual": VisualTest,
@@ -471,6 +470,14 @@ class Manifest(object):
         self._path_hash = {to_os_path(k): v for k, v in iteritems(obj["paths"])}
 
         for test_type, type_paths in iteritems(obj["items"]):
+            # Drop "stub" items, which are no longer supported but may be
+            # present when doing an incremental manifest update.
+            # See https://github.com/web-platform-tests/rfcs/pull/27 for background.
+            #
+            # TODO(MANIFESTv7): remove this condition
+            if test_type == "stub":
+                continue
+
             if test_type not in item_classes:
                 raise ManifestError
 

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests Stale While Revalidate is not executed for fetch API</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script>
+function wait25ms(test) {
+  return new Promise(resolve => {
+    test.step_timeout(() => {
+      resolve();
+    }, 25);
+  });
+}
+
+promise_test(async (test) => {
+  var request_token = token();
+  var client_hint_headers = [
+    "device-memory",
+    "dpr",
+    "width",
+    "viewport-width",
+    "rtt",
+    "downlink",
+    "ect",
+    "sec-ch-lang",
+    "sec-ch-ua",
+    "sec-ch-ua-arch",
+    "sec-ch-ua-platform",
+    "sec-ch-ua-model",
+  ];
+
+  const response = await fetch(`resources/stale-echo-client-hints.py?token=` + request_token);
+  const response2 = await fetch(`resources/stale-echo-client-hints.py?token=` + request_token);
+
+  assert_equals(response.headers.get('Unique-Id'), response2.headers.get('Unique-Id'));
+
+  while(true) {
+    const revalidation_check = await fetch(`resources/stale-echo-client-hints.py?query&token=` + request_token);
+    if (revalidation_check.headers.get('Count') == '2') {
+      client_hint_headers.forEach(header => {
+        assert_equals(revalidation_check.headers.get(header+"-recieved"), revalidation_check.headers.get(header+"-previous"));
+      });
+      break;
+    }
+    await wait25ms(test);
+  }
+}, 'Same headers sent for revalidation request');
+</script>

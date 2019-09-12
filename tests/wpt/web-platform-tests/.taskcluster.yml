@@ -76,8 +76,6 @@ tasks:
                   public/results:
                     path: /home/test/artifacts
                     type: directory
-                env:
-                    TASK_EVENT: "${event_str}"
                 command:
                   - /bin/bash
                   - --login
@@ -106,6 +104,9 @@ tasks:
                         --test-type=${chunk[0]}
                         --this-chunk=${chunk[1]}
                         --total-chunks=${chunk[2]};
+              extra:
+                github_event: "${event_str}"
+
       - $if: tasks_for == "github-pull-request"
         # PR tasks that run the tests in various configurations
         then:
@@ -168,8 +169,6 @@ tasks:
                     public/results:
                       path: /home/test/artifacts
                       type: directory
-                  env:
-                    TASK_EVENT: "${event_str}"
                   # Fetch the GitHub-provided merge commit (rather than the pull
                   # request branch) so that the tasks simulate the behavior of the
                   # submitted patch after it is merged. Using the merge commit also
@@ -199,6 +198,9 @@ tasks:
                           --
                           --channel=${browser.channel}
                           ${operation.extra_args};
+                extra:
+                  github_event: "${event_str}"
+
       - $map:
           # This is the main point to define new CI checks other than stability checks
         - name: lint
@@ -334,8 +336,6 @@ tasks:
                     public/results:
                       path: /home/test/artifacts
                       type: directory
-                  env:
-                    TASK_EVENT: "${event_str}"
                   command:
                     - /bin/bash
                     - --login
@@ -347,3 +347,5 @@ tasks:
                         ${checkout_ref};
                       cd ~/web-platform-tests;
                       ${operation.script};
+                extra:
+                  github_event: "${event_str}"
