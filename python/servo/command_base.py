@@ -914,7 +914,7 @@ install them, let us know by filing a bug!")
         args += ["--features", " ".join(features)]
 
         if target and 'uwp' in target:
-            return call(["xargo", command] + args + cargo_args, env=env, verbose=verbose)
+            return call(["xargo", command] + args + cargo_args + "-v", env=env, verbose=verbose)
         else:
             return self.call_rustup_run(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
 
