@@ -301,7 +301,6 @@ impl<S: Side> ToComputedValue for PositionComponent<S> {
                     l,
                     Some(p),
                     length.clamping_mode,
-                    /* was_calc = */ true,
                 )
             },
             PositionComponent::Side(_, Some(ref length)) |
