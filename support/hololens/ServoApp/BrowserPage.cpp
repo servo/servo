@@ -28,12 +28,18 @@ void BrowserPage::BindServoEvents() {
     forwardButton().IsEnabled(forward);
   });
   servoControl().OnLoadStarted([=] {
+    throbber().IsActive(true);
     reloadButton().IsEnabled(false);
+    reloadButton().Visibility(Visibility::Collapsed);
     stopButton().IsEnabled(true);
+    stopButton().Visibility(Visibility::Visible);
   });
   servoControl().OnLoadEnded([=] {
+    throbber().IsActive(false);
     reloadButton().IsEnabled(true);
+    reloadButton().Visibility(Visibility::Visible);
     stopButton().IsEnabled(false);
+    stopButton().Visibility(Visibility::Collapsed);
   });
   servoControl().OnCaptureGesturesStarted([=] {
     servoControl().Focus(FocusState::Programmatic);
