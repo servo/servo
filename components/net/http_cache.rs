@@ -872,7 +872,7 @@ impl HttpCacheEntry {
     }
 
     /// Wake-up requests that are waiting for the entry to be ready to construct.
-    fn wake_up_concurrent_requests(&self) {
+    pub fn wake_up_concurrent_requests(&self) {
         let (lock, cvar) = &*self.is_ready_to_construct;
         *lock.lock().unwrap() = true;
         cvar.notify_all();

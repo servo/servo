@@ -1097,6 +1097,9 @@ fn http_network_or_cache_fetch(
     if response.is_none() {
         // Substep 1
         if http_request.cache_mode == CacheMode::OnlyIfCached {
+            if let Some(entry) = cache_entry {
+                entry.wake_up_concurrent_requests();
+            }
             return Response::network_error(NetworkError::Internal(
                 "Couldn't find response in cache".into(),
             ));
