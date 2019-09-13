@@ -865,6 +865,9 @@ impl HttpCacheEntry {
             stored_headers.extend(response.headers);
             constructed_response.headers = stored_headers.clone();
 
+            // Only wake-up concurrent requests in this case,
+            // the None case will result in `store` being called below, which will ensure wake-up.
+            self.wake_up_concurrent_requests();
             return Some(constructed_response);
         }
         None
