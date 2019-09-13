@@ -729,7 +729,20 @@ impl<'a> ToRaqoteSource<'a> for FillOrStrokeStyle {
                     raqote::Spread::Pad,
                 ))
             },
-            RadialGradient(_) => unimplemented!(),
+            RadialGradient(style) => {
+                let stops = style.stops.into_iter().map(|s| s.to_raqote()).collect();
+                let gradient = raqote::Gradient { stops };
+                let center1 = Point2D::new(style.x0 as f32, style.y0 as f32);
+                let center2 = Point2D::new(style.x1 as f32, style.y1 as f32);
+                Some(raqote::Source::new_two_circle_radial_gradient(
+                    gradient,
+                    center1,
+                    style.r0 as f32,
+                    center2,
+                    style.r1 as f32,
+                    raqote::Spread::Pad,
+                ))
+            },
             Surface(ref surface) => {
                 let data = &surface.surface_data[..];
                 Some(raqote::Source::Image(
