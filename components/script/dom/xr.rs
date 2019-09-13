@@ -23,6 +23,7 @@ use crate::dom::vrdisplay::VRDisplay;
 use crate::dom::vrdisplayevent::VRDisplayEvent;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrtest::XRTest;
+use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
@@ -156,6 +157,11 @@ impl XRMethods for XR {
         comp: InCompartment,
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_compartment(&self.global(), comp);
+
+        if !ScriptThread::is_user_interacting() {
+            promise.reject_error(Error::Security);
+            return promise;
+        }
 
         if self.pending_or_active_session() {
             promise.reject_error(Error::InvalidState);

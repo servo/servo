@@ -16,7 +16,11 @@
               views: TEST_VIEWS,
               viewerOrigin: {position: [0.5, 0.1, 0.1], orientation: [1, 0, 0, 1] }
             });
-            let session = await navigator.xr.requestSession("immersive-vr");
+            let sessionPromise;
+            navigator.xr.test.simulateUserActivation(() => {
+              sessionPromise = navigator.xr.requestSession("immersive-vr");
+            });
+            let session = await sessionPromise;
             await session.updateRenderState({"baseLayer": new XRWebGLLayer(session, gl, {})});
             let resolve;
 

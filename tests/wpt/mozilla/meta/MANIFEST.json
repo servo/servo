@@ -7658,9 +7658,6 @@
     ]
    ]
   },
-  "stub": {
-   "css/blockify_inline_element.html": []
-  },
   "support": {
    ".gitignore": [
     []
@@ -19747,11 +19744,11 @@
    "testharness"
   ],
   "webxr/create_session.html": [
-   "e68ea81893a65793094f9086cdd6d73800ee1c14",
+   "af76c5a812d7d05a0158194560933def3fbdb9f9",
    "testharness"
   ],
   "webxr/obtain_frame.html": [
-   "39698805b476c7e469548d25ece59560a596604d",
+   "74fda5bad43e8ea95552e65380e83952680e8469",
    "testharness"
   ],
   "webxr/resources/webxr-util.js": [
