@@ -506,7 +506,7 @@ fn wait_for_response(response: &mut Response, target: Target, done_chan: &mut Do
                 },
                 Data::Done => break,
                 Data::Cancelled => {
-                    response.aborted.store(true, Ordering::Relaxed);
+                    response.aborted.store(true, Ordering::Release);
                     break;
                 },
             }

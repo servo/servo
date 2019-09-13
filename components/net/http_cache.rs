@@ -335,7 +335,7 @@ fn create_cached_response(
         response: response,
         needs_validation: has_expired,
     };
-    if cached_resource.aborted.load(Ordering::Relaxed) {
+    if cached_resource.aborted.load(Ordering::Acquire) {
         return None;
     }
     Some(cached_response)
@@ -599,12 +599,12 @@ impl HttpCache {
 
     fn invalidate_for_url(&mut self, url: &ServoUrl) {
         let entry_key = CacheKey::from_servo_url(url);
-        let entry = self
+        if let Some(entry) = self
             .entries
-            .entry(entry_key.clone())
-            .or_insert(HttpCacheEntry::new(entry_key));
-        for cached_resource in entry.resources.write().unwrap().iter_mut() {
-            cached_resource.data.expires = Duration::seconds(0i64);
+            .get(&entry_key.clone()) {
+            for cached_resource in entry.resources.write().unwrap().iter_mut() {
+                cached_resource.data.expires = Duration::seconds(0i64);
+            }
         }
     }
 
@@ -797,7 +797,7 @@ impl HttpCacheEntry {
             }
             let mut awaiting_consumers = cached_resource.awaiting_body.lock().unwrap();
             for done_sender in awaiting_consumers.drain(..) {
-                if cached_resource.aborted.load(Ordering::Relaxed) || response.is_network_error() {
+                if cached_resource.aborted.load(Ordering::Acquire) || response.is_network_error() {
                     // In the case of an aborted fetch or a network errror,
                     // wake-up all awaiting consumers.
                     // Each will then start a new network request.
