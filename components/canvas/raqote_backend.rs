@@ -695,9 +695,9 @@ pub trait ToRaqoteGradientStop {
 
 impl ToRaqoteGradientStop for CanvasGradientStop {
     fn to_raqote(&self) -> raqote::GradientStop {
-        let color: u32 = (self.color.alpha << 8 * 3 &
-            self.color.red << 8 * 2 &
-            self.color.green << 8 * 1 &
+        let color: u32 = (self.color.alpha << 8 * 3 |
+            self.color.red << 8 * 2 |
+            self.color.green << 8 * 1 |
             self.color.blue << 8 * 0)
             .into();
         let position = self.offset as f32;
