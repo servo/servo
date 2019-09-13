@@ -11,6 +11,7 @@ use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use crate::dom::bindings::codegen::UnionTypes::Float32ArrayOrUnrestrictedFloatSequence;
 use crate::dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
 use crate::dom::bindings::codegen::UnionTypes::Int32ArrayOrLongSequence;
+use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
@@ -26,6 +27,7 @@ use crate::dom::webglrenderbuffer::WebGLRenderbuffer;
 use crate::dom::webglrenderingcontext::{
     LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext,
 };
+use crate::dom::webglsampler::{WebGLSampler, WebGLSamplerValue};
 use crate::dom::webglshader::WebGLShader;
 use crate::dom::webglshaderprecisionformat::WebGLShaderPrecisionFormat;
 use crate::dom::webgltexture::WebGLTexture;
@@ -38,7 +40,7 @@ use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use js::jsapi::JSObject;
-use js::jsval::{BooleanValue, JSVal, NullValue, UInt32Value};
+use js::jsval::{BooleanValue, DoubleValue, JSVal, NullValue, UInt32Value};
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBufferView;
 use script_layout_interface::HTMLCanvasDataSource;
@@ -50,6 +52,7 @@ pub struct WebGL2RenderingContext {
     base: Dom<WebGLRenderingContext>,
     occlusion_query: MutNullableDom<WebGLQuery>,
     primitives_query: MutNullableDom<WebGLQuery>,
+    samplers: Box<[MutNullableDom<WebGLSampler>]>,
 }
 
 impl WebGL2RenderingContext {
@@ -60,11 +63,18 @@ impl WebGL2RenderingContext {
         attrs: GLContextAttributes,
     ) -> Option<WebGL2RenderingContext> {
         let base = WebGLRenderingContext::new(window, canvas, WebGLVersion::WebGL2, size, attrs)?;
+
+        let samplers = (0..base.limits().max_combined_texture_image_units)
+            .map(|_| Default::default())
+            .collect::<Vec<_>>()
+            .into();
+
         Some(WebGL2RenderingContext {
             reflector_: Reflector::new(),
             base: Dom::from_ref(&*base),
             occlusion_query: MutNullableDom::new(None),
             primitives_query: MutNullableDom::new(None),
+            samplers: samplers,
         })
     }
 
@@ -125,7 +135,15 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn GetParameter(&self, cx: JSContext, parameter: u32) -> JSVal {
-        self.base.GetParameter(cx, parameter)
+        match parameter {
+            constants::SAMPLER_BINDING => unsafe {
+                let idx = (self.base.textures().active_unit_enum() - constants::TEXTURE0) as usize;
+                assert!(idx < self.samplers.len());
+                let sampler = self.samplers[idx].get();
+                optional_root_object_to_js_or_null!(*cx, sampler)
+            },
+            _ => self.base.GetParameter(cx, parameter),
+        }
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
@@ -1093,6 +1111,32 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13
+    fn CreateSampler(&self) -> Option<DomRoot<WebGLSampler>> {
+        Some(WebGLSampler::new(&self.base))
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13
+    fn DeleteSampler(&self, sampler: Option<&WebGLSampler>) {
+        if let Some(sampler) = sampler {
+            handle_potential_webgl_error!(self.base, self.base.validate_ownership(sampler), return);
+            for slot in self.samplers.iter() {
+                if slot.get().map_or(false, |s| sampler == &*s) {
+                    slot.set(None);
+                }
+            }
+            sampler.delete(false);
+        }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13
+    fn IsSampler(&self, sampler: Option<&WebGLSampler>) -> bool {
+        match sampler {
+            Some(sampler) => self.base.validate_ownership(sampler).is_ok() && sampler.is_valid(),
+            None => false,
+        }
+    }
+
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12
     #[cfg_attr(rustfmt, rustfmt_skip)]
     fn BeginQuery(&self, target: u32, query: &WebGLQuery) {
@@ -1190,6 +1234,63 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                 constants::QUERY_RESULT => UInt32Value(value),
                 constants::QUERY_RESULT_AVAILABLE => BooleanValue(value != 0),
                 _ => unreachable!(),
+            },
+            Err(error) => {
+                self.base.webgl_error(error);
+                NullValue()
+            },
+        }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13
+    fn BindSampler(&self, unit: u32, sampler: Option<&WebGLSampler>) {
+        if let Some(sampler) = sampler {
+            handle_potential_webgl_error!(self.base, self.base.validate_ownership(sampler), return);
+
+            if unit as usize >= self.samplers.len() {
+                self.base.webgl_error(InvalidValue);
+                return;
+            }
+
+            let result = sampler.bind(&self.base, unit);
+            match result {
+                Ok(_) => self.samplers[unit as usize].set(Some(sampler)),
+                Err(error) => self.base.webgl_error(error),
+            }
+        }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13
+    fn SamplerParameteri(&self, sampler: &WebGLSampler, pname: u32, param: i32) {
+        handle_potential_webgl_error!(self.base, self.base.validate_ownership(sampler), return);
+        let param = WebGLSamplerValue::GLenum(param as u32);
+        let result = sampler.set_parameter(&self.base, pname, param);
+        if let Err(error) = result {
+            self.base.webgl_error(error);
+        }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13
+    fn SamplerParameterf(&self, sampler: &WebGLSampler, pname: u32, param: f32) {
+        handle_potential_webgl_error!(self.base, self.base.validate_ownership(sampler), return);
+        let param = WebGLSamplerValue::Float(param);
+        let result = sampler.set_parameter(&self.base, pname, param);
+        if let Err(error) = result {
+            self.base.webgl_error(error);
+        }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13
+    fn GetSamplerParameter(&self, _cx: JSContext, sampler: &WebGLSampler, pname: u32) -> JSVal {
+        handle_potential_webgl_error!(
+            self.base,
+            self.base.validate_ownership(sampler),
+            return NullValue()
+        );
+        match sampler.get_parameter(&self.base, pname) {
+            Ok(value) => match value {
+                WebGLSamplerValue::GLenum(value) => UInt32Value(value),
+                WebGLSamplerValue::Float(value) => DoubleValue(value as f64),
             },
             Err(error) => {
                 self.base.webgl_error(error);

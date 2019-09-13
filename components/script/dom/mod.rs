@@ -525,6 +525,7 @@ pub mod webglprogram;
 pub mod webglquery;
 pub mod webglrenderbuffer;
 pub mod webglrenderingcontext;
+pub mod webglsampler;
 pub mod webglshader;
 pub mod webglshaderprecisionformat;
 pub mod webgltexture;

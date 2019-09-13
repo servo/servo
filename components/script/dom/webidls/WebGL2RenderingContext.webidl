@@ -12,9 +12,6 @@ typedef long long GLint64;
 typedef unsigned long long GLuint64;
 
 
-// interface WebGLSampler : WebGLObject {
-// };
-
 // interface WebGLSync : WebGLObject {
 // };
 
@@ -533,13 +530,13 @@ interface mixin WebGL2RenderingContextBase
   any getQueryParameter(WebGLQuery query, GLenum pname);
 
   /* Sampler Objects */
-  /*WebGLSampler? createSampler();
+  WebGLSampler? createSampler();
   void deleteSampler(WebGLSampler? sampler);
-  [WebGLHandlesContextLoss] GLboolean isSampler(WebGLSampler? sampler);
+  /*[WebGLHandlesContextLoss]*/ GLboolean isSampler(WebGLSampler? sampler);
   void bindSampler(GLuint unit, WebGLSampler? sampler);
   void samplerParameteri(WebGLSampler sampler, GLenum pname, GLint param);
   void samplerParameterf(WebGLSampler sampler, GLenum pname, GLfloat param);
-  any getSamplerParameter(WebGLSampler sampler, GLenum pname);*/
+  any getSamplerParameter(WebGLSampler sampler, GLenum pname);
 
   /* Sync objects */
   /*WebGLSync? fenceSync(GLenum condition, GLbitfield flags);

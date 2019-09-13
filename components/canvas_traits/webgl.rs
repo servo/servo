@@ -432,6 +432,13 @@ pub enum WebGLCommand {
     EndQuery(u32),
     GenerateQuery(WebGLSender<WebGLQueryId>),
     GetQueryState(WebGLSender<u32>, WebGLQueryId, u32),
+    GenerateSampler(WebGLSender<WebGLSamplerId>),
+    DeleteSampler(WebGLSamplerId),
+    BindSampler(u32, WebGLSamplerId),
+    SetSamplerParameterFloat(WebGLSamplerId, u32, f32),
+    SetSamplerParameterInt(WebGLSamplerId, u32, i32),
+    GetSamplerParameterFloat(WebGLSamplerId, u32, WebGLSender<f32>),
+    GetSamplerParameterInt(WebGLSamplerId, u32, WebGLSender<i32>),
 }
 
 macro_rules! define_resource_id {
@@ -504,6 +511,7 @@ define_resource_id!(WebGLRenderbufferId);
 define_resource_id!(WebGLTextureId);
 define_resource_id!(WebGLProgramId);
 define_resource_id!(WebGLQueryId);
+define_resource_id!(WebGLSamplerId);
 define_resource_id!(WebGLShaderId);
 define_resource_id!(WebGLVertexArrayId);
 

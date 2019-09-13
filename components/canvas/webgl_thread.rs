@@ -1610,6 +1610,30 @@ impl WebGLImpl {
                 let value = ctx.gl().get_query_object_uiv(query_id.get(), pname);
                 sender.send(value).unwrap()
             },
+            WebGLCommand::GenerateSampler(ref sender) => {
+                let id = ctx.gl().gen_samplers(1)[0];
+                sender.send(unsafe { WebGLSamplerId::new(id) }).unwrap()
+            },
+            WebGLCommand::DeleteSampler(sampler_id) => {
+                ctx.gl().delete_samplers(&[sampler_id.get()]);
+            },
+            WebGLCommand::BindSampler(unit, sampler_id) => {
+                ctx.gl().bind_sampler(unit, sampler_id.get());
+            },
+            WebGLCommand::SetSamplerParameterInt(sampler_id, pname, value) => {
+                ctx.gl().sampler_parameter_i(sampler_id.get(), pname, value);
+            },
+            WebGLCommand::SetSamplerParameterFloat(sampler_id, pname, value) => {
+                ctx.gl().sampler_parameter_f(sampler_id.get(), pname, value);
+            },
+            WebGLCommand::GetSamplerParameterInt(sampler_id, pname, ref sender) => {
+                let value = ctx.gl().get_sampler_parameter_iv(sampler_id.get(), pname)[0];
+                sender.send(value).unwrap();
+            },
+            WebGLCommand::GetSamplerParameterFloat(sampler_id, pname, ref sender) => {
+                let value = ctx.gl().get_sampler_parameter_fv(sampler_id.get(), pname)[0];
+                sender.send(value).unwrap();
+            },
         }
 
         // TODO: update test expectations in order to enable debug assertions
