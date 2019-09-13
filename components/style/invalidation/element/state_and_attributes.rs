@@ -16,7 +16,7 @@ use crate::invalidation::element::invalidator::{Invalidation, InvalidationProces
 use crate::invalidation::element::restyle_hints::RestyleHint;
 use crate::selector_map::SelectorMap;
 use crate::selector_parser::Snapshot;
-use crate::stylesheets::origin::{Origin, OriginSet};
+use crate::stylesheets::origin::OriginSet;
 use crate::{Atom, WeakAtom};
 use selectors::attr::CaseSensitivity;
 use selectors::matching::matches_selector;
@@ -246,7 +246,7 @@ where
             };
 
             let document_origins = if !matches_document_author_rules {
-                Origin::UserAgent.into()
+                OriginSet::ORIGIN_USER_AGENT | OriginSet::ORIGIN_USER
             } else {
                 OriginSet::all()
             };

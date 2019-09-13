@@ -26,16 +26,48 @@ pub enum InlineBaseDirection {
 // TODO: improve the readability of the WritingMode serialization, refer to the Debug:fmt()
 bitflags!(
     #[cfg_attr(feature = "servo", derive(MallocSizeOf, Serialize))]
+    #[repr(C)]
     pub struct WritingMode: u8 {
-        const RTL = 1 << 0;
-        const VERTICAL = 1 << 1;
+        /// A vertical writing mode; writing-mode is vertical-rl,
+        /// vertical-lr, sideways-lr, or sideways-rl.
+        const VERTICAL = 1 << 0;
+        /// The inline flow direction is reversed against the physical
+        /// direction (i.e. right-to-left or bottom-to-top); writing-mode is
+        /// sideways-lr or direction is rtl (but not both).
+        ///
+        /// (This bit can be derived from the others, but we store it for
+        /// convenience.)
+        const INLINE_REVERSED = 1 << 1;
+        /// A vertical writing mode whose block progression direction is left-
+        /// to-right; writing-mode is vertical-lr or sideways-lr.
+        ///
+        /// Never set without VERTICAL.
         const VERTICAL_LR = 1 << 2;
-        /// For vertical writing modes only.  When set, line-over/line-under
-        /// sides are inverted from block-start/block-end.  This flag is
-        /// set when sideways-lr is used.
+        /// The line-over/line-under sides are inverted with respect to the
+        /// block-start/block-end edge; writing-mode is vertical-lr.
+        ///
+        /// Never set without VERTICAL and VERTICAL_LR.
         const LINE_INVERTED = 1 << 3;
-        const SIDEWAYS = 1 << 4;
-        const UPRIGHT = 1 << 5;
+        /// direction is rtl.
+        const RTL = 1 << 4;
+        /// Horizontal text within a vertical writing mode is displayed sideways
+        /// and runs top-to-bottom or bottom-to-top; set in these cases:
+        ///
+        /// * writing-mode: vertical-rl; text-orientation: sideways;
+        /// * writing-mode: vertical-lr; text-orientation: sideways;
+        /// * writing-mode: sideways-rl;
+        /// * writing-mode: sideways-lr;
+        ///
+        /// Never set without VERTICAL.
+        const SIDEWAYS = 1 << 5;
+        /// Horizontal text within a vertical writing mode is displayed with each
+        /// glyph upright; set in these cases:
+        ///
+        /// * writing-mode: vertical-rl; text-orientation: upright;
+        /// * writing-mode: vertical-lr: text-orientation: upright;
+        ///
+        /// Never set without VERTICAL.
+        const UPRIGHT = 1 << 6;
     }
 );
 
@@ -47,33 +79,52 @@ impl WritingMode {
 
         let mut flags = WritingMode::empty();
 
-        match inheritedbox_style.clone_direction() {
+        let direction = inheritedbox_style.clone_direction();
+        let writing_mode = inheritedbox_style.clone_writing_mode();
+
+        match direction {
             Direction::Ltr => {},
             Direction::Rtl => {
                 flags.insert(WritingMode::RTL);
             },
         }
 
-        match inheritedbox_style.clone_writing_mode() {
-            SpecifiedWritingMode::HorizontalTb => {},
+        match writing_mode {
+            SpecifiedWritingMode::HorizontalTb => {
+                if direction == Direction::Rtl {
+                    flags.insert(WritingMode::INLINE_REVERSED);
+                }
+            },
             SpecifiedWritingMode::VerticalRl => {
                 flags.insert(WritingMode::VERTICAL);
+                if direction == Direction::Rtl {
+                    flags.insert(WritingMode::INLINE_REVERSED);
+                }
             },
             SpecifiedWritingMode::VerticalLr => {
                 flags.insert(WritingMode::VERTICAL);
                 flags.insert(WritingMode::VERTICAL_LR);
+                flags.insert(WritingMode::LINE_INVERTED);
+                if direction == Direction::Rtl {
+                    flags.insert(WritingMode::INLINE_REVERSED);
+                }
             },
             #[cfg(feature = "gecko")]
             SpecifiedWritingMode::SidewaysRl => {
                 flags.insert(WritingMode::VERTICAL);
                 flags.insert(WritingMode::SIDEWAYS);
+                if direction == Direction::Rtl {
+                    flags.insert(WritingMode::INLINE_REVERSED);
+                }
             },
             #[cfg(feature = "gecko")]
             SpecifiedWritingMode::SidewaysLr => {
                 flags.insert(WritingMode::VERTICAL);
                 flags.insert(WritingMode::VERTICAL_LR);
-                flags.insert(WritingMode::LINE_INVERTED);
                 flags.insert(WritingMode::SIDEWAYS);
+                if direction == Direction::Ltr {
+                    flags.insert(WritingMode::INLINE_REVERSED);
+                }
             },
         }
 
@@ -81,19 +132,21 @@ impl WritingMode {
         {
             use crate::properties::longhands::text_orientation::computed_value::T as TextOrientation;
 
-            // If FLAG_SIDEWAYS is already set, this means writing-mode is
-            // either sideways-rl or sideways-lr, and for both of these values,
-            // text-orientation has no effect.
-            if !flags.intersects(WritingMode::SIDEWAYS) {
-                match inheritedbox_style.clone_text_orientation() {
-                    TextOrientation::Mixed => {},
-                    TextOrientation::Upright => {
-                        flags.insert(WritingMode::UPRIGHT);
-                    },
-                    TextOrientation::Sideways => {
-                        flags.insert(WritingMode::SIDEWAYS);
-                    },
-                }
+            // text-orientation only has an effect for vertical-rl and
+            // vertical-lr values of writing-mode.
+            match writing_mode {
+                SpecifiedWritingMode::VerticalRl | SpecifiedWritingMode::VerticalLr => {
+                    match inheritedbox_style.clone_text_orientation() {
+                        TextOrientation::Mixed => {},
+                        TextOrientation::Upright => {
+                            flags.insert(WritingMode::UPRIGHT);
+                        },
+                        TextOrientation::Sideways => {
+                            flags.insert(WritingMode::SIDEWAYS);
+                        },
+                    }
+                },
+                _ => {},
             }
         }
 
@@ -115,7 +168,7 @@ impl WritingMode {
     #[inline]
     pub fn is_inline_tb(&self) -> bool {
         // https://drafts.csswg.org/css-writing-modes-3/#logical-to-physical
-        self.intersects(WritingMode::RTL) == self.intersects(WritingMode::LINE_INVERTED)
+        !self.intersects(WritingMode::INLINE_REVERSED)
     }
 
     #[inline]

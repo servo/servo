@@ -18,8 +18,8 @@ ${helpers.single_keyword(
 
 ${helpers.predefined_type(
     "-x-span",
-    "XSpan",
-    "computed::XSpan(1)",
+    "Integer",
+    "1",
     engines="gecko",
     spec="Internal-only (for `<col span>` pres attr)",
     animation_value_type="none",

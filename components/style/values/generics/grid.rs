@@ -185,8 +185,6 @@ impl Parse for GridLine<specified::Integer> {
 /// avoid re-implementing it for the computed type.
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-breadth>
-///
-/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[derive(
     Animate,
     Clone,
@@ -230,8 +228,6 @@ impl<L> TrackBreadth<L> {
 /// generic only to avoid code bloat. It only takes `<length-percentage>`
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-size>
-///
-/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[derive(
     Clone,
     Debug,
@@ -494,8 +490,6 @@ impl<L: ToCss, I: ToCss> ToCss for TrackRepeat<L, I> {
 }
 
 /// Track list values. Can be <track-size> or <track-repeat>
-///
-/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[derive(
     Animate,
     Clone,
@@ -729,8 +723,6 @@ impl ToCss for LineNameList {
 }
 
 /// Variants for `<grid-template-rows> | <grid-template-columns>`
-///
-/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[derive(
     Animate,
     Clone,

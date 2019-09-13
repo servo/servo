@@ -1497,11 +1497,10 @@ impl LayoutThread {
         // Create a layout context for use throughout the following passes.
         let mut layout_context = self.build_layout_context(guards.clone(), true, &map);
 
+        let pool;
         let (thread_pool, num_threads) = if self.parallel_flag {
-            (
-                STYLE_THREAD_POOL.style_thread_pool.as_ref(),
-                STYLE_THREAD_POOL.num_threads,
-            )
+            pool = STYLE_THREAD_POOL.pool();
+            (pool.as_ref(), STYLE_THREAD_POOL.num_threads)
         } else {
             (None, 1)
         };
@@ -1859,8 +1858,10 @@ impl LayoutThread {
                 || {
                     let profiler_metadata = self.profiler_metadata();
 
+                    let pool;
                     let thread_pool = if self.parallel_flag {
-                        STYLE_THREAD_POOL.style_thread_pool.as_ref()
+                        pool = STYLE_THREAD_POOL.pool();
+                        pool.as_ref()
                     } else {
                         None
                     };

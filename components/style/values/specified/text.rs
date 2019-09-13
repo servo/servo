@@ -89,9 +89,7 @@ impl ToComputedValue for LineHeight {
             GenericLineHeight::Length(ref non_negative_lp) => {
                 let result = match non_negative_lp.0 {
                     LengthPercentage::Length(NoCalcLength::Absolute(ref abs)) => {
-                        context
-                            .maybe_zoom_text(abs.to_computed_value(context).into())
-                            .0
+                        context.maybe_zoom_text(abs.to_computed_value(context))
                     },
                     LengthPercentage::Length(ref length) => length.to_computed_value(context),
                     LengthPercentage::Percentage(ref p) => FontRelativeLength::Em(p.0)
@@ -133,7 +131,6 @@ impl ToComputedValue for LineHeight {
 }
 
 /// A generic value for the `text-overflow` property.
-/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 #[repr(C, u8)]
 pub enum TextOverflowSide {

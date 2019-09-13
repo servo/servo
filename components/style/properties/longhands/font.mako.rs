@@ -80,7 +80,7 @@ ${helpers.predefined_type(
     engines="gecko",
     initial_value="computed::FontSizeAdjust::none()",
     initial_specified_value="specified::FontSizeAdjust::none()",
-    animation_value_type="ComputedValue",
+    animation_value_type="FontSizeAdjust",
     spec="https://drafts.csswg.org/css-fonts/#propdef-font-size-adjust",
 )}
 
@@ -401,7 +401,7 @@ ${helpers.predefined_type(
                         is_system_font: true,
                     },
                     font_size: FontSize {
-                        size: cx.maybe_zoom_text(Au(system.size).into()),
+                        size: NonNegative(cx.maybe_zoom_text(Au(system.size).into())),
                         keyword_info: None
                     },
                     font_weight,

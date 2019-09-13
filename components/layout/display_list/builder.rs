@@ -61,11 +61,11 @@ use style::properties::{style_structs, ComputedValues};
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::effects::SimpleShadow;
 use style::values::computed::image::{Image, ImageLayer};
-use style::values::computed::{Gradient, LengthOrAuto};
+use style::values::computed::{ClipRectOrAuto, Gradient, LengthOrAuto};
 use style::values::generics::background::BackgroundSize;
 use style::values::generics::image::{GradientKind, PaintWorklet};
 use style::values::specified::ui::CursorKind;
-use style::values::{Either, RGBA};
+use style::values::RGBA;
 use style_traits::ToCss;
 use webrender_api::units::{LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D};
 use webrender_api::{self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF};
@@ -2632,8 +2632,8 @@ impl BlockFlow {
     ) {
         // Account for `clip` per CSS 2.1 § 11.1.2.
         let style_clip_rect = match self.fragment.style().get_effects().clip {
-            Either::First(style_clip_rect) => style_clip_rect,
-            _ => return,
+            ClipRectOrAuto::Rect(ref r) => r,
+            ClipRectOrAuto::Auto => return,
         };
 
         // CSS `clip` should only apply to position:absolute or positione:fixed elements.

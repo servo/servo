@@ -8,11 +8,11 @@
 use crate::computed_values::list_style_type::T as ListStyleType;
 use crate::parser::{Parse, ParserContext};
 use crate::values::generics::counters as generics;
-use crate::values::generics::counters::CounterIncrement as GenericCounterIncrement;
 use crate::values::generics::counters::CounterPair;
-use crate::values::generics::counters::CounterSetOrReset as GenericCounterSetOrReset;
+use crate::values::generics::counters::GenericCounterIncrement;
+use crate::values::generics::counters::GenericCounterSetOrReset;
 #[cfg(feature = "gecko")]
-use crate::values::generics::CounterStyleOrNone;
+use crate::values::generics::CounterStyle;
 use crate::values::specified::url::SpecifiedImageUrl;
 #[cfg(feature = "gecko")]
 use crate::values::specified::Attr;
@@ -98,13 +98,13 @@ impl Content {
     }
 
     #[cfg(feature = "gecko")]
-    fn parse_counter_style(context: &ParserContext, input: &mut Parser) -> CounterStyleOrNone {
+    fn parse_counter_style(context: &ParserContext, input: &mut Parser) -> CounterStyle {
         input
             .try(|input| {
                 input.expect_comma()?;
-                CounterStyleOrNone::parse(context, input)
+                CounterStyle::parse(context, input)
             })
-            .unwrap_or(CounterStyleOrNone::decimal())
+            .unwrap_or(CounterStyle::decimal())
     }
 }
 

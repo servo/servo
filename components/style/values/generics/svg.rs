@@ -9,7 +9,6 @@ use cssparser::Parser;
 use style_traits::ParseError;
 
 /// The fallback of an SVG paint server value.
-/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[derive(
     Animate,
     Clone,
@@ -43,8 +42,6 @@ pub use self::GenericSVGPaintFallback as SVGPaintFallback;
 /// An SVG paint value
 ///
 /// <https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint>
-///
-/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[animation(no_bound(Url))]
 #[derive(
     Animate,
@@ -84,8 +81,6 @@ impl<C, U> Default for SVGPaint<C, U> {
 ///
 /// Whereas the spec only allows PaintServer to have a fallback, Gecko lets the
 /// context properties have a fallback as well.
-///
-/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[animation(no_bound(U))]
 #[derive(
     Animate,

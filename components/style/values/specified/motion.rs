@@ -15,7 +15,6 @@ use style_traits::{ParseError, StyleParseErrorKind};
 /// The offset-path value.
 ///
 /// https://drafts.fxtf.org/motion-1/#offset-path-property
-/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[derive(
     Animate,
     Clone,

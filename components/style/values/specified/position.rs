@@ -707,8 +707,6 @@ fn is_name_code_point(c: char) -> bool {
 /// The syntax of this property also provides a visualization of the structure
 /// of the grid, making the overall layout of the grid container easier to
 /// understand.
-///
-/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[repr(C, u8)]
 #[derive(
     Clone,
