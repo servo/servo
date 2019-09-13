@@ -599,9 +599,7 @@ impl HttpCache {
 
     fn invalidate_for_url(&mut self, url: &ServoUrl) {
         let entry_key = CacheKey::from_servo_url(url);
-        if let Some(entry) = self
-            .entries
-            .get(&entry_key.clone()) {
+        if let Some(entry) = self.entries.get(&entry_key.clone()) {
             for cached_resource in entry.resources.write().unwrap().iter_mut() {
                 cached_resource.data.expires = Duration::seconds(0i64);
             }
