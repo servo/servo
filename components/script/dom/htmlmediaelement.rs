@@ -136,6 +136,10 @@ impl FrameHolder {
             unreachable!();
         }
     }
+
+    fn get_frame(&self) -> Frame {
+        self.1.clone()
+    }
 }
 
 pub struct MediaFrameRenderer {
@@ -1855,6 +1859,13 @@ impl HTMLMediaElement {
     fn remove_controls(&self) {
         if let Some(id) = self.media_controls_id.borrow_mut().take() {
             document_from_node(self).unregister_media_controls(&id);
+        }
+    }
+
+    pub fn get_current_frame(&self) -> Option<Frame> {
+        match self.frame_renderer.lock().unwrap().current_frame_holder {
+            Some(ref holder) => Some(holder.get_frame()),
+            None => return None,
         }
     }
 }
