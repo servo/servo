@@ -48,6 +48,9 @@ except ImportError:
     from urllib.request import urlopen
 
 
+QUEUE_BASE = "https://queue.taskcluster.net/v1/task"
+
+
 root = os.path.abspath(
     os.path.join(os.path.dirname(__file__),
                  os.pardir,
@@ -245,14 +248,29 @@ def setup_repository():
         run(["git", "fetch", "--quiet", "origin", "%s:%s" % (branch, branch)])
 
 
+def fetch_event_data():
+    try:
+        task_id = os.environ["TASK_ID"]
+    except KeyError:
+        print("WARNING: Missing TASK_ID environment variable")
+        # For example under local testing
+        return None
+
+    resp = urlopen("%s/%s" % (QUEUE_BASE, task_id))
+
+    task_data = json.load(resp)
+    event_data = task_data.get("extra", {}).get("github_event")
+    if event_data is not None:
+        return json.loads(event_data)
+
+
 def main():
     args = get_parser().parse_args()
-    try:
+
+    if "TASK_EVENT" in os.environ:
         event = json.loads(os.environ["TASK_EVENT"])
-    except KeyError:
-        print("WARNING: Missing TASK_EVENT environment variable")
-        # For example under local testing
-        event = {}
+    else:
+        event = fetch_event_data()
 
     if event:
         set_variables(event)

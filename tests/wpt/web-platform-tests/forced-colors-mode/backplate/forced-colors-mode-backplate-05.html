@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  Forced colors mode - backplate.
+  Tests the backplate feature for display inline/relative position.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced">
+<link rel=match href="forced-colors-mode-backplate-05-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  body {
+    background-image: url("../resources/test-image.jpg");
+    font-family: Ahem;
+    font-size: 10px;
+    line-height: 10px;
+  }
+  li {
+    display: inline;
+    position: relative;
+  }
+  div {
+    text-align: justify;
+    width: 110px;
+  }
+</style>
+<body>
+  <div>
+    <li>The backplate</li>
+    <li>for all of</li>
+    <li>the elements</li>
+    <li>in this list</li>
+    <li>should create</li>
+    <li>one single</li>
+    <li>paragraph</li>
+    <li>in forced</li>
+    <li>colors mode.</li>
+    <li>The backplate</li>
+    <li>should not be</li>
+    <li>painted for</li>
+    <li>each individual</li>
+    <li>list item</li>
+    <li>separately.</li>
+  </div>
+</body>

@@ -39,12 +39,14 @@
 document.fonts.ready.then(() => {
     item1.setAttribute("data-offset-x", "50");
     item2.setAttribute("data-offset-x", "325");
-    checkLayout('#grid');
+    checkLayout('#grid', false);
 
     item2.style.fontSize = "30px";
 
     item1.setAttribute("data-offset-x", "50");
     item2.setAttribute("data-offset-x", "275");
-    checkLayout('#grid');
+    checkLayout('#grid', false);
+
+    done();
 });
 </script>

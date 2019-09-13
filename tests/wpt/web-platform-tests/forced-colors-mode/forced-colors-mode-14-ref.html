@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  Forced colors mode - active selection reference.
+</title>
+<style>
+  span {
+    background-color: Highlight;
+    color: HighlightText;
+    display: inline-block;
+    forced-color-adjust: none;
+  }
+  #adjust-none {
+    background-color: rgba(255, 0, 0, 0.99);
+    color: blue;
+  }
+</style>
+<body>
+  <span class="select">AAA</span>
+  <br>
+  <span class="select" id="adjust-none">AAA</span>
+</body>

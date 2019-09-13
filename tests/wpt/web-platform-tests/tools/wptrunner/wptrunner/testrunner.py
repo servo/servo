@@ -473,7 +473,7 @@ class TestRunnerManager(threading.Thread):
     def init(self):
         assert isinstance(self.state, RunnerManagerState.initializing)
         if self.state.failure_count > self.max_restarts:
-            self.logger.error("Max restarts exceeded")
+            self.logger.critical("Max restarts exceeded")
             return RunnerManagerState.error()
 
         self.browser.update_settings(self.state.test)

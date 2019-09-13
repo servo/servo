@@ -98,14 +98,12 @@ promise_test(function(t) {
               resource: 'resources/missing.jpg',
               mode: 'same-origin',
               description: 'Network fallback load failure',
-              should_no_performance_entry: true,
           });
           verify({
               performance: performance,
               resource: 'resources/missing.jpg',
               mode: 'cross-origin',
               description: 'Network fallback cross-origin load failure',
-              should_no_performance_entry: true,
           });
           // Tests for respondWith(fetch()).
           verify({

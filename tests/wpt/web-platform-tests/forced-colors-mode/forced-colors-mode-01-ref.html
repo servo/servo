@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test forced colors mode on table styles reference</title>
+<style>
+  body {
+    forced-color-adjust: none;
+  }
+  table {
+    border-collapse: collapse;
+  }
+  td, th {
+    border: 1px solid;
+    border-bottom-color: WindowText;
+    border-left-color: WindowText;
+    border-right-color: WindowText;
+    border-top-color: WindowText;
+    forced-color-adjust: none;
+    padding: 8px;
+    text-align: left;
+  }
+  tr:nth-child(even) {
+    background-color: Window;
+    color: WindowText;
+    forced-color-adjust: none;
+  }
+</style>
+<body>
+  <table>
+    <tr>
+      <th>Column1</th>
+      <th>Column2</th>
+      <th>Column3</th>
+    </tr>
+    <tr>
+      <td>Entry1</td>
+      <td>Entry1</td>
+      <td>Entry1</td>
+    </tr>
+    <tr>
+      <td>Entry2</td>
+      <td>Entry2</td>
+      <td>Entry2</td>
+    </tr>
+  </table>
+</body>

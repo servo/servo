@@ -1,47 +1,3 @@
-// TODO: This function is currently placed and duplicated at:
-// - mixed-content/generic/mixed-content-test-case.js
-// - referrer-policy/generic/referrer-policy-test-case.sub.js
-// but should be moved to /common/security-features/resources/common.js.
-function getSubresourceOrigin(originType) {
-  const httpProtocol = "http";
-  const httpsProtocol = "https";
-  const wsProtocol = "ws";
-  const wssProtocol = "wss";
-
-  const sameOriginHost = "{{host}}";
-  const crossOriginHost = "{{domains[www1]}}";
-
-  // These values can evaluate to either empty strings or a ":port" string.
-  const httpPort = getNormalizedPort(parseInt("{{ports[http][0]}}", 10));
-  const httpsPort = getNormalizedPort(parseInt("{{ports[https][0]}}", 10));
-  const wsPort = getNormalizedPort(parseInt("{{ports[ws][0]}}", 10));
-  const wssPort = getNormalizedPort(parseInt("{{ports[wss][0]}}", 10));
-
-  /**
-    @typedef OriginType
-    @type {string}
-
-    Represents the origin of the subresource request URL.
-    The keys of `originMap` below are the valid values.
-
-    Note that there can be redirects from the specified origin
-    (see RedirectionType), and thus the origin of the subresource
-    response URL might be different from what is specified by OriginType.
-  */
-  const originMap = {
-    "same-https": httpsProtocol + "://" + sameOriginHost + httpsPort,
-    "same-http": httpProtocol + "://" + sameOriginHost + httpPort,
-    "cross-https": httpsProtocol + "://" + crossOriginHost + httpsPort,
-    "cross-http": httpProtocol + "://" + crossOriginHost + httpPort,
-    "same-wss": wssProtocol + "://" + sameOriginHost + wssPort,
-    "same-ws": wsProtocol + "://" + sameOriginHost + wsPort,
-    "cross-wss": wssProtocol + "://" + crossOriginHost + wssPort,
-    "cross-ws": wsProtocol + "://" + crossOriginHost + wsPort,
-  };
-
-  return originMap[originType];
-}
-
 // NOTE: This method only strips the fragment and is not in accordance to the
 // recommended draft specification:
 // https://w3c.github.io/webappsec/specs/referrer-policy/#null
@@ -52,40 +8,13 @@ function stripUrlForUseAsReferrer(url) {
 }
 
 function invokeScenario(scenario) {
-  const redirectionTypeConversion = {
-    "no-redirect": "no-redirect",
-    "keep-scheme": "keep-scheme-redirect",
-    "swap-scheme": "swap-scheme-redirect",
-    "keep-origin": "keep-origin-redirect",
-    "swap-origin": "swap-origin-redirect"
-  };
-  const subresourceTypeConversion = {
-    "beacon": "beacon-request",
-    "fetch": "fetch-request",
-    "xhr": "xhr-request",
-    "websocket": "websocket-request",
-    "worker-classic": "worker-request",
-    "worker-module": "module-worker",
-    "worker-import-data": "module-data-worker-import",
-    "sharedworker-classic": "shared-worker",
-    "worklet-animation": "worklet-animation-top-level",
-    "worklet-audio": "worklet-audio-top-level",
-    "worklet-layout": "worklet-layout-top-level",
-    "worklet-paint": "worklet-paint-top-level",
-    "worklet-animation-import-data": "worklet-animation-data-import",
-    "worklet-audio-import-data": "worklet-audio-data-import",
-    "worklet-layout-import-data": "worklet-layout-data-import",
-    "worklet-paint-import-data": "worklet-paint-data-import"
-  };
-  const subresourceType =
-      subresourceTypeConversion[scenario.subresource] || scenario.subresource;
   const urls = getRequestURLs(
-    subresourceType,
+    scenario.subresource,
     scenario.origin,
-    redirectionTypeConversion[scenario.redirection]);
+    scenario.redirection);
   /** @type {Subresource} */
   const subresource = {
-    subresourceType: subresourceType,
+    subresourceType: scenario.subresource,
     url: urls.testUrl,
     policyDeliveries: scenario.subresource_policy_deliveries,
   };

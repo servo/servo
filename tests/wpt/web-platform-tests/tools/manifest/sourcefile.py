@@ -33,7 +33,7 @@ except ImportError:
 import html5lib
 
 from . import XMLParser
-from .item import (ManifestItem, Stub, ManualTest, WebDriverSpecTest, RefTestNode, TestharnessTest,
+from .item import (ManifestItem, ManualTest, WebDriverSpecTest, RefTestNode, TestharnessTest,
                    SupportFile, ConformanceCheckerTest, VisualTest)
 from .utils import ContextManagerBytesIO, cached_property
 
@@ -351,13 +351,6 @@ class SourceFile(object):
     def name_is_conformance_support(self):
         # type: () -> bool
         return self.in_conformance_checker_dir()
-
-    @property
-    def name_is_stub(self):
-        # type: () -> bool
-        """Check if the file name matches the conditions for the file to
-        be a stub file"""
-        return self.name_prefix("stub-")
 
     @property
     def name_is_manual(self):
@@ -792,15 +785,6 @@ class SourceFile(object):
                     self.tests_root,
                     self.rel_path
                 )]  # type: Tuple[Text, List[ManifestItem]]
-
-        elif self.name_is_stub:
-            rv = Stub.item_type, [
-                Stub(
-                    self.tests_root,
-                    self.rel_path,
-                    self.url_base,
-                    self.rel_url
-                )]
 
         elif self.name_is_manual:
             rv = ManualTest.item_type, [

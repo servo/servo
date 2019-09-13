@@ -49,14 +49,13 @@ If you are behind a proxy, you also need to make sure the domains above are
 excluded from your proxy lookups.
 
 [The Ahem font](../writing-tests/ahem) is used to test precise rendering
-behavior. [Download the font][download-ahem] and install it using the
-appropriate steps for your platform:
+behavior. This font should be loaded as a web font in tests, using the
+`/fonts/ahem.css` stylesheet, as follows:
 
-- On Windows, right-click the downloaded file in File Explorer/Windows Explorer
-  (depending on Windows version) and select "Install" from the menu.
-- On macOS, open the downloaded file in Font Book (the default application for
-  font files) and then click install.
-- On Linux, copy the file to `~/.local/share/fonts` and then run `fc-cache`.
+```
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+```
+
 
 ### Windows Notes
 
@@ -147,5 +146,3 @@ Additional browser-specific documentation:
   android_webview
   safari
 ```
-
-[download-ahem]: https://github.com/web-platform-tests/wpt/raw/master/fonts/Ahem.ttf

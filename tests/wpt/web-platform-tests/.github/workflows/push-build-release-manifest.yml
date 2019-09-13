@@ -1,10 +1,15 @@
-on: push
+on:
+  push:
+    branches:
+      - master
 name: Build & Release Manifest
 jobs:
   manifest-build-and-tag:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1
+      with:
+        fetch-depth: 1
     - name: manifest-build-and-tag
       uses: ./tools/docker/github
       env:

@@ -1,10 +1,15 @@
-on: push
+on:
+  push:
+    branches:
+      - master
 name: Build & Publish Documentation Website
 jobs:
   website-build-and-publish:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1
+      with:
+        fetch-depth: 1
     - name: website-build-and-publish
       uses: ./tools/docker/documentation
       env:

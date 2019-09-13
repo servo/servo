@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - webkit-tap-highlight-color.</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  a {
+    -webkit-tap-highlight-color: rgb(0, 0, 255);
+  }
+</style>
+<body>
+  <p>
+    <a href="https://www.wikipedia.org" id="link">
+      This link color should be overridden when forced colors mode is enabled.
+    </a>
+  </p>
+</body>
+
+<script>
+  test(function(){
+    assert_equals(getComputedStyle(link).webkitTapHighlightColor, "rgba(0, 0, 0, 0.18)");
+  }, "Checks hyperlinks are overridden in forced colors mode.");
+</script>

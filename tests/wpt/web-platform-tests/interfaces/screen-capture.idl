@@ -4,43 +4,43 @@
 // Source: Screen Capture (https://w3c.github.io/mediacapture-screen-share/)
 
 partial interface MediaDevices {
-    Promise<MediaStream> getDisplayMedia (optional DisplayMediaStreamConstraints constraints = {});
+  Promise<MediaStream> getDisplayMedia(optional DisplayMediaStreamConstraints constraints = {});
 };
 
 dictionary DisplayMediaStreamConstraints {
-    (boolean or MediaTrackConstraints) video = true;
-    (boolean or MediaTrackConstraints) audio = false;
+  (boolean or MediaTrackConstraints) video = true;
+  (boolean or MediaTrackConstraints) audio = false;
 };
 
 partial dictionary MediaTrackSupportedConstraints {
-             boolean displaySurface = true;
-             boolean logicalSurface = true;
-             boolean cursor = true;
-             boolean restrictOwnAudio = true;
+  boolean displaySurface = true;
+  boolean logicalSurface = true;
+  boolean cursor = true;
+  boolean restrictOwnAudio = true;
 };
 
 partial dictionary MediaTrackConstraintSet {
-             ConstrainDOMString displaySurface;
-             ConstrainBoolean logicalSurface;
-             ConstrainDOMString cursor;
-             ConstrainBoolean restrictOwnAudio;
+  ConstrainDOMString displaySurface;
+  ConstrainBoolean logicalSurface;
+  ConstrainDOMString cursor;
+  ConstrainBoolean restrictOwnAudio;
 };
 
 partial dictionary MediaTrackSettings {
-             DOMString displaySurface;
-             boolean logicalSurface;
-             DOMString cursor;
+  DOMString displaySurface;
+  boolean logicalSurface;
+  DOMString cursor;
 };
 
 enum DisplayCaptureSurfaceType {
-    "monitor",
-    "window",
-    "application",
-    "browser"
+  "monitor",
+  "window",
+  "application",
+  "browser"
 };
 
 enum CursorCaptureConstraint {
-    "never",
-    "always",
-    "motion"
+  "never",
+  "always",
+  "motion"
 };

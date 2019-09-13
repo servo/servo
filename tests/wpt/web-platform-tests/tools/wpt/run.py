@@ -67,7 +67,7 @@ def create_parser():
 
 def exit(msg=None):
     if msg:
-        logger.error(msg)
+        logger.critical(msg)
         sys.exit(1)
     else:
         sys.exit(0)

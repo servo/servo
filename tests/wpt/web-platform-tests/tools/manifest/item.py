@@ -329,12 +329,6 @@ class VisualTest(URLManifestItem):
     item_type = "visual"
 
 
-class Stub(URLManifestItem):
-    __slots__ = ()
-
-    item_type = "stub"
-
-
 class WebDriverSpecTest(URLManifestItem):
     __slots__ = ()
 

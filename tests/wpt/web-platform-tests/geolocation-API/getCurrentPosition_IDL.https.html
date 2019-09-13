@@ -20,31 +20,29 @@ function successCallback(position)
   var ii, oldval;
 
   /*
-    [NoInterfaceObject]
-    interface Position {
-      readonly attribute Coordinates coords;
+    interface GeolocationPosition {
+      readonly attribute GeolocationCoordinates coords;
       readonly attribute DOMTimeStamp timestamp;
     };
   */
 
   test(function() {
-    assert_equals(position.toString(), "[object Position]",
-        "Position.toString should result in '[object Position]' was: " + position.toString());
-  }, "Position toString");
+    assert_equals(position.toString(), "[object GeolocationPosition]",
+        "position.toString should result in '[object GeolocationPosition]' was: " + position.toString());
+  }, "GeolocationPosition toString");
 
   test(function() {
-    assert_equals(position.coords.toString(), "[object Coordinates]",
-        "position.coords.toString should result in '[object Coordinates]' was: " + position.coords.toString());
-  }, "Position.coordinates toString");
+    assert_equals(position.coords.toString(), "[object GeolocationCoordinates]",
+        "position.coords.toString should result in '[object GeolocationCoordinates]' was: " + position.coords.toString());
+  }, "GeolocationCoordinates toString");
 
   test(function() {
     assert_equals(typeof(position.timestamp), "number",
-        "Position.timestamp should be of type 'number' was: " + typeof(position.timestamp));
-  }, "Position.timestamp is type number");
+        "position.timestamp should be of type 'number' was: " + typeof(position.timestamp));
+  }, "GeolocationPosition.timestamp is type number");
 
   /*
-    [NoInterfaceObject]
-    interface Coordinates {
+    interface GeolocationCoordinates {
       readonly attribute double latitude;
       readonly attribute double longitude;
       readonly attribute double? altitude;
@@ -103,10 +101,10 @@ function BadSuccessCallback(position)
 function errorCallback(error)
 {
   test(function() {
-    assert_equals(error.toString(), "[object PositionError]",
-        "PositionError.toString should result in '[object PositionError]' was: " +
+    assert_equals(error.toString(), "[object GeolocationPositionError]",
+        "error.toString should result in '[object GeolocationPositionError]' was: " +
         error.toString());
-  }, "PositionError toString");
+  }, "GeolocationPositionError toString");
 
   test(function() {
     assert_equals(error.PERMISSION_DENIED, 1,

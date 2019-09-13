@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - outline and column color reference.</title>
+<style>
+  h1 {
+    forced-color-adjust: none;
+    outline-color: WindowText;
+    outline-style: solid;
+    -webkit-column-count: 3;
+    -webkit-column-gap: 40px;
+    -webkit-column-rule-color: WindowText;
+    -webkit-column-rule-style: solid;
+  }
+</style>
+<body>
+  <h1>
+    The outline-color and column-rule-color should be blue when forced colors
+    mode is off and WindowText in forced colors mode.
+  </h1>
+</body>

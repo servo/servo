@@ -17,7 +17,7 @@
           return callWhenButtonClicked(() => promise_rejects(
               t, 'AbortError',
               navigator.share({title: 'the title', text: 'the message',
-                               url: 'data:the url'})));
+                               url: 'https://example.com'})));
         }, 'share with user cancellation');
     </script>
   </body>

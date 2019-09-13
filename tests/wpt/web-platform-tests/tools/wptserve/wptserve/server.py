@@ -676,7 +676,7 @@ class WebTestHttpd(object):
 
             _host, self.port = self.httpd.socket.getsockname()
         except Exception:
-            self.logger.error("Failed to start HTTP server. {}".format(EDIT_HOSTS_HELP))
+            self.logger.critical("Failed to start HTTP server. {}".format(EDIT_HOSTS_HELP))
             raise
 
     def start(self, block=False):
