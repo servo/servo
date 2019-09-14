@@ -28,6 +28,14 @@ const VALID_POSE_TRANSFORM = {
 const VALID_PROJECTION_MATRIX =
     [1, 0, 0, 0, 0, 1, 0, 0, 3, 2, -1, -1, 0, 0, -0.2, 0];
 
+// This is a decomposed version of the above.
+const VALID_FIELD_OF_VIEW = {
+    upDegrees: 71.565,
+    downDegrees: -45,
+    leftDegrees:-63.4349,
+    rightDegrees: 75.9637
+};
+
 // A valid input grip matrix for  when we don't care about specific values
 const VALID_GRIP = [1, 0, 0, 0,
                     0, 1, 0, 0,

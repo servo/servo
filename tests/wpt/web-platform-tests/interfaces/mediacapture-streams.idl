@@ -3,11 +3,11 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Media Capture and Streams (https://w3c.github.io/mediacapture-main/)
 
-[Exposed=Window,
- Constructor,
- Constructor(MediaStream stream),
- Constructor(sequence<MediaStreamTrack> tracks)]
+[Exposed=Window]
 interface MediaStream : EventTarget {
+  constructor();
+  constructor(MediaStream stream);
+  constructor(sequence<MediaStreamTrack> tracks);
   readonly attribute DOMString id;
   sequence<MediaStreamTrack> getAudioTracks();
   sequence<MediaStreamTrack> getVideoTracks();
@@ -37,7 +37,7 @@ interface MediaStreamTrack : EventTarget {
   MediaTrackCapabilities getCapabilities();
   MediaTrackConstraints getConstraints();
   MediaTrackSettings getSettings();
-  Promise<void> applyConstraints(optional MediaTrackConstraints constraints);
+  Promise<void> applyConstraints(optional MediaTrackConstraints constraints = {});
 };
 
 enum MediaStreamTrackState {
@@ -133,8 +133,9 @@ enum VideoResizeModeEnum {
   "crop-and-scale"
 };
 
-[Exposed=Window, Constructor(DOMString type, MediaStreamTrackEventInit eventInitDict)]
+[Exposed=Window]
 interface MediaStreamTrackEvent : Event {
+  constructor(DOMString type, MediaStreamTrackEventInit eventInitDict);
   [SameObject] readonly attribute MediaStreamTrack track;
 };
 
@@ -180,7 +181,7 @@ partial interface Navigator {
 
 partial interface MediaDevices {
   MediaTrackSupportedConstraints getSupportedConstraints();
-  Promise<MediaStream> getUserMedia(optional MediaStreamConstraints constraints);
+  Promise<MediaStream> getUserMedia(optional MediaStreamConstraints constraints = {});
 };
 
 dictionary MediaStreamConstraints {

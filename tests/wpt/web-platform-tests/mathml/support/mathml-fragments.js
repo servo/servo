@@ -117,8 +117,10 @@ var MathMLFragments = {
 };
 
 var FragmentHelper = {
+    mathml_namespace: "http://www.w3.org/1998/Math/MathML",
+
     createElement: function(tag) {
-        return document.createElementNS("http://www.w3.org/1998/Math/MathML", tag);
+        return document.createElementNS(this.mathml_namespace, tag);
     },
 
     isValidChildOfMrow: function(tag) {
@@ -158,5 +160,22 @@ var FragmentHelper = {
         if (element.firstElementChild)
             return element.firstElementChild;
         return this.appendChild(fragment);
-    }
+    },
+
+    forceNonEmptyDescendants: function(fragment) {
+        var element = this.element(fragment) || fragment;
+        if (element.classList.contains("mathml-container") ||
+            element.classList.contains("foreign-container")) {
+            for (var i = 0; i < 10; i++)
+                this.appendChild(element);
+            return;
+        }
+        var child = element.firstElementChild;
+        if (child) {
+            for (; child; child = child.nextElementSibling) {
+                this.forceNonEmptyDescendants(child);
+            }
+            return;
+        }
+    },
 }

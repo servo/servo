@@ -263,4 +263,207 @@
     assert_equals(lightParent.ariaActiveDescendantElement, optionElement);
   }, "Reparenting an element into a descendant shadow scope nullifies the element reference.");
   </script>
+
+  <div id="myBillingId">Billing</div>
+
+  <div>
+      <div id="myNameId">Name</div>
+      <input type="text" id="input1" aria-labelledby="myBillingId myNameId"/>
+  </div>
+  <div>
+      <div id="myAddressId">Address</div>
+      <input type="text" id="input2"/>
+  </div>
+
+  <script>
+  test(function(t) {
+    const billingElement = document.getElementById("myBillingId");
+    const nameElement = document.getElementById("myNameId");
+    const addressElement = document.getElementById("myAddressId");
+    const input1 = document.getElementById("input1");
+    const input2 = document.getElementById("input2");
+
+    assert_array_equals(input1.ariaLabelledByElements, [billingElement, nameElement], "parsed content attribute sets element references.");
+    assert_equals(input2.ariaLabelledByElements, null, "Testing empty content attribute after parsing.");
+
+    input2.ariaLabelledByElements = [billingElement, addressElement];
+    assert_array_equals(input2.ariaLabelledByElements, [billingElement, addressElement], "Testing IDL setter/getter.");
+    assert_equals(input2.getAttribute("aria-labelledby"), "myBillingId myAddressId");
+
+    billingElement.remove();
+    assert_array_equals(input2.ariaLabelledByElements, [addressElement]);
+
+    input2.ariaLabelledByElements = [];
+    assert_array_equals(input2.ariaLabelledByElements, [], "Testing IDL setter/getter for empty array.");
+    assert_equals(input2.getAttribute("aria-labelledby"), "");
+
+    input1.removeAttribute("aria-labelledby");
+    assert_equals(input1.ariaLabelledByElements, null);
+  }, "aria-labelledby.");
+  </script>
+
+  <ul role="tablist">
+    <li role="presentation"><a id="link1" role="tab" aria-controls="panel1">Tab 1</a></li>
+    <li role="presentation"><a id="link2" role="tab">Tab 2</a></li>
+  </ul>
+
+  <div role="tabpanel" id="panel1"></div>
+  <div role="tabpanel" id="panel2"></div>
+
+  <script>
+  test(function(t) {
+    const link1 = document.getElementById("link1");
+    const link2 = document.getElementById("link2");
+    const panel1 = document.getElementById("panel1");
+    const panel2 = document.getElementById("panel2");
+    assert_array_equals(link1.ariaControlsElements, [panel1]);
+    assert_equals(link2.ariaControlsElements, null);
+
+    link2.setAttribute("aria-controls", "panel1 panel2");
+    assert_array_equals(link2.ariaControlsElements, [panel1, panel2]);
+
+    link1.ariaControlsElements = [];
+    assert_equals(link1.getAttribute("aria-controls"), "");
+
+    link2.ariaControlsElements = [panel1, panel2];
+    assert_equals(link2.getAttribute("aria-controls"), "panel1 panel2");
+
+    link2.removeAttribute("aria-controls");
+    assert_equals(link2.ariaControlsElements, null);
+  }, "aria-controls.");
+  </script>
+
+  <a id="described-link" aria-describedby="description1 description2">Fruit</a>
+  <div id="description1">Delicious</div>
+  <div id="description2">Nutritious</div>
+
+  <script>
+  test(function(t) {
+    const link = document.getElementById("described-link");
+    const description1 = document.getElementById("description1");
+    const description2 = document.getElementById("description2");
+    assert_array_equals(link.ariaDescribedByElements, [description1, description2]);
+
+    link.ariaDescribedByElements = [description1, description2];
+    assert_equals(link.getAttribute("aria-describedby"), "description1 description2");
+
+    link.ariaDescribedByElements = [];
+    assert_equals(link.getAttribute("aria-describedby"), "");
+
+    link.setAttribute("aria-describedby", "description1");
+    assert_array_equals(link.ariaDescribedByElements, [description1]);
+
+    link.removeAttribute("aria-describedby");
+    assert_equals(link.ariaDescribedByElements, null);
+  }, "aria-describedby.");
+  </script>
+
+  <h2 id="title-heading" aria-flowto="article1 article2">Title</h2>
+  <div>Next</div>
+  <article id="article2">Content2</article>
+  <article id="article1">Content1</article>
+
+  <script>
+  test(function(t) {
+    const heading = document.getElementById("title-heading");
+    const article1 = document.getElementById("article1");
+    const article2 = document.getElementById("article2");
+
+    assert_array_equals(heading.ariaFlowToElements, [article1, article2]);
+
+    heading.ariaFlowToElements = [article1, article2];
+    assert_equals(heading.getAttribute("aria-flowto"), "article1 article2");
+
+    heading.ariaFlowToElements = [];
+    assert_equals(heading.getAttribute("aria-flowto"), "");
+
+    heading.setAttribute("aria-flowto", "article1");
+    assert_array_equals(heading.ariaFlowToElements, [article1]);
+
+    heading.removeAttribute("aria-flowto");
+    assert_equals(heading.ariaFlowToElements, null);
+  }, "aria-flowto.");
+  </script>
+
+  <ul>
+    <li id="li-owner" aria-owns="child1 child2">Parent</li>
+  </ul>
+  <ul>
+    <li id="child1">Child 1</li>
+    <li id="child2">Child 2</li>
+  </ul>
+  <script>
+  test(function(t) {
+    const owner = document.getElementById("li-owner");
+    const child1 = document.getElementById("child1");
+    const child2 = document.getElementById("child2");
+
+    assert_array_equals(owner.ariaOwnsElements, [child1, child2]);
+
+    owner.removeAttribute("aria-owns");
+    assert_equals(owner.ariaOwnsElements, null);
+
+    owner.ariaOwnsElements = [child1, child2];
+    assert_equals(owner.getAttribute("aria-owns"), "child1 child2");
+
+    owner.ariaOwnsElements = [];
+    assert_equals(owner.getAttribute("aria-owns"), "");
+
+    owner.setAttribute("aria-owns", "child1");
+    assert_array_equals(owner.ariaOwnsElements, [child1]);
+  }, "aria-owns.");
+  </script>
+
+  <div id="light-dom-container">
+    <h2 id="light-dom-heading" aria-flowto="shadow-child-1 shadow-child-2">Light DOM Heading</h2>
+    <div id="shadow-dom-host"></div>
+    <p id="light-dom-text-1">Light DOM text</p>
+    <p id="light-dom-text-2">Light DOM text</p>
+  </div>
+
+  <script>
+  test(function(t) {
+    const shadowHost = document.getElementById("shadow-dom-host");
+    const lightDomHeading = document.getElementById("light-dom-heading");
+    const lightDomText1 = document.getElementById("light-dom-text-1");
+    const lightDomText2 = document.getElementById("light-dom-text-2");
+
+    const shadowRoot = shadowHost.attachShadow({mode: "open"});
+    const shadowChild1 = document.createElement("article");
+    shadowChild1.setAttribute("id", "shadow-child-1");
+    shadowRoot.appendChild(shadowChild1);
+    const shadowChild2 = document.createElement("article");
+    shadowChild2.setAttribute("id", "shadow-child-1");
+    shadowRoot.appendChild(shadowChild2);
+
+    // The elements in the content attribute are in a "darker" tree - they
+    // enter a shadow encapsulation boundary, so should reflect null for
+    // the content attribute.
+    assert_equals(lightDomHeading.ariaFlowToElements, null);
+
+    // These elements are in a shadow including ancestor, i.e "lighter" tree.
+    // Valid for the IDL attribute, but content attribute should be null.
+    shadowChild1.ariaFlowToElements = [lightDomText1, lightDomText2];
+    assert_equals(shadowChild1.getAttribute("aria-flowto"), "", "empty content attribute for elements that cross shadow boundaries.");
+
+    // These IDs belong to a different scope, so the attr-associated-element
+    // cannot be computed.
+    shadowChild2.setAttribute("aria-flowto", "light-dom-text-1 light-dom-text-2");
+    assert_equals(shadowChild2.ariaFlowToElements, null);
+
+    // Elements that cross into shadow DOM are dropped, only reflect the valid
+    // elements in IDL and in the content attribute.
+    lightDomHeading.ariaFlowToElements = [shadowChild1, shadowChild2, lightDomText1, lightDomText2];
+    assert_array_equals(lightDomHeading.ariaFlowToElements, [lightDomText1, lightDomText2]);
+    assert_equals(lightDomHeading.getAttribute("aria-flowto"), "light-dom-text-1 light-dom-text-2", "empty content attribute if any given elements cross shadow boundaries");
+
+    // Using a mixture of elements in the same scope and in a shadow including
+    // ancestor should set the IDL attribute, but should reflect the empty
+    // string in the content attribute.
+    shadowChild1.removeAttribute("aria-flowto");
+    shadowChild1.ariaFlowToElements = [shadowChild1, lightDomText1];
+    assert_equals(shadowChild1.getAttribute("aria-flowto"), "", "Setting IDL elements with a mix of scopes should reflect an empty string in the content attribute")
+
+  }, "shadow DOM behaviour for FrozenArray element reflection.");
+  </script>
 </html>

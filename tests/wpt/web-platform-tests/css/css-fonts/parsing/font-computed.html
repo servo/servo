@@ -22,12 +22,6 @@
 <script>
 'use strict';
 
-const initial_style = 'normal';
-const initial_variant = 'normal';
-const initial_weight = 'normal';
-const initial_stretch = 'normal';
-const initial_line_height = 'normal';
-
 // Firefox and Edge 18 serialize these as supplied.
 // Blink and Safari have implementation-dependent or platform-dependent serializations.
 function test_system_font(keyword) {
@@ -178,27 +172,19 @@ function test_specific(prefix) {
   if (style) {
     canonical.push(style);
     reference.style.fontStyle = style;
-  } else {
-    canonical.push(initial_style);
   }
 
   if (variant) {
     canonical.push(variant);
     reference.style.fontVariant = style;
-  } else {
-    canonical.push(initial_variant);
   }
   if (weight) {
     canonical.push(compute_weight(weight));
     reference.style.fontWeight = style;
-  } else {
-    canonical.push(compute_weight(initial_weight));
   }
   if (stretch) {
     canonical.push(stretch);
     reference.style.fontStretch = style;
-  } else {
-    canonical.push(initial_stretch);
   }
 
   const size = generate_size();
@@ -215,15 +201,19 @@ function test_specific(prefix) {
   parts.push(family);
   reference.style.fontFamily = family;
 
-  canonical.push(getComputedStyle(reference).fontSize + '/' + getComputedStyle(reference).lineHeight);
+  if (!line_height || line_height === 'normal') {
+    canonical.push(getComputedStyle(reference).fontSize);
+  } else {
+    // Implementations differ on adjacent space when serializing '/'
+    // https://github.com/w3c/csswg-drafts/issues/4282
+    canonical.push(getComputedStyle(reference).fontSize + ' / ' + getComputedStyle(reference).lineHeight);
+  }
+
   canonical.push(family);
 
   reference.remove();
 
-  // Implementations differ on adjacent space when serializing '/'
-  // https://github.com/w3c/csswg-drafts/issues/4282
-  const expected = canonical.join(' ');
-  test_computed_value('font', parts.join(' '), [expected, expected.replace('/', ' / ')]);
+  test_computed_value('font', parts.join(' '), canonical.join(' '));
 }
 
 // Font style, variant, weight and stretch may appear in any order.
