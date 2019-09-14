@@ -53,7 +53,7 @@ enum-iterator = "0.3"
 euclid = "0.20"
 fnv = "1.0"
 headers = "0.2"
-html5ever = "0.23"
+html5ever = "0.24"
 http = "0.1"
 hyper = "0.12"
 hyper_serde = "0.11"
@@ -111,7 +111,7 @@ unicode-segmentation = "1.1.0"
 url = "2.0"
 utf-8 = "0.7"
 uuid = {version = "0.7", features = ["v4"]}
-xml5ever = {version = "0.14"}
+xml5ever = "0.15"
 webdriver = "0.40"
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr_traits = {path = "../webvr_traits"}
