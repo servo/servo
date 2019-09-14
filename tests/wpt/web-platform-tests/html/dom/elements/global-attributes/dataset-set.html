@@ -17,25 +17,27 @@
       }
 
       test(function() { assert_true(testSet('foo', 'data-foo')); },
-        "Setting element.dataset['foo'] should also change the value of element.getAttribute('data-foo')'");
+        "Setting element.dataset['foo'] should also change the value of element.getAttribute('data-foo')");
       test(function() { assert_true(testSet('fooBar', 'data-foo-bar')); },
-        "Setting element.dataset['fooBar'] should also change the value of element.getAttribute('data-foo-bar')'");
+        "Setting element.dataset['fooBar'] should also change the value of element.getAttribute('data-foo-bar')");
       test(function() { assert_true(testSet('-', 'data--')); },
-        "Setting element.dataset['-'] should also change the value of element.getAttribute('data--')'");
+        "Setting element.dataset['-'] should also change the value of element.getAttribute('data--')");
       test(function() { assert_true(testSet('Foo', 'data--foo')); },
-        "Setting element.dataset['Foo'] should also change the value of element.getAttribute('data--foo')'");
+        "Setting element.dataset['Foo'] should also change the value of element.getAttribute('data--foo')");
       test(function() { assert_true(testSet('-Foo', 'data---foo')); },
-        "Setting element.dataset['-Foo'] should also change the value of element.getAttribute('data---foo')'");
+        "Setting element.dataset['-Foo'] should also change the value of element.getAttribute('data---foo')");
       test(function() { assert_true(testSet('', 'data-')); },
-        "Setting element.dataset[''] should also change the value of element.getAttribute('data-')'");
+        "Setting element.dataset[''] should also change the value of element.getAttribute('data-')");
       test(function() { assert_true(testSet('\xE0', 'data-\xE0')); },
-        "Setting element.dataset['\xE0'] should also change the value of element.getAttribute('data-\xE0')'");
+        "Setting element.dataset['\xE0'] should also change the value of element.getAttribute('data-\xE0')");
       test(function() { assert_throws('SYNTAX_ERR', function() { testSet('-foo', 'dummy') }); },
-        "Setting element.dataset['-foo'] should throw a SYNTAX_ERR'");
+        "Setting element.dataset['-foo'] should throw a SYNTAX_ERR");
       test(function() { assert_throws('INVALID_CHARACTER_ERR', function() { testSet('foo\x20', 'dummy') }); },
-        "Setting element.dataset['foo\x20'] should throw an INVALID_CHARACTER_ERR'");
-      test(function() { assert_throws('INVALID_CHARACTER_ERR', function() { testSet('foo\uF900', 'dummy') }); },
-        "Setting element.dataset['foo\uF900'] should throw an INVALID_CHARACTER_ERR'");
+        "Setting element.dataset['foo\x20'] should throw an INVALID_CHARACTER_ERR");
+      test(function() { assert_throws('INVALID_CHARACTER_ERR', function() { testSet('\u037Efoo', 'dummy') }); },
+        "Setting element.dataset['\u037Efoo'] should throw an INVALID_CHARACTER_ERR");
+      test(function() { assert_true(testSet('\u0BC6foo', 'data-\u0BC6foo')); },
+        "Setting element.dataset['\u0BC6foo'] should also change the value of element.getAttribute('\u0BC6foo')");
 
     </script>
   </body>

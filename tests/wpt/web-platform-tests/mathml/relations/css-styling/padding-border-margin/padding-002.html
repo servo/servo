@@ -21,7 +21,8 @@
         if (!FragmentHelper.isValidChildOfMrow(tag))
             continue;
 
-        var style = "padding-left: 30px; padding-right: 40px;  padding-top: 50px; padding-bottom: 60px;";
+        var defaultInlinePadding = (tag === "mfrac" ? 1 : 0);
+        var style = `padding-left: ${defaultInlinePadding + 30}px; padding-right: ${defaultInlinePadding + 40}px;  padding-top: 50px; padding-bottom: 60px;`;
 
         if (FragmentHelper.isEmpty(tag)) {
             test(function() {

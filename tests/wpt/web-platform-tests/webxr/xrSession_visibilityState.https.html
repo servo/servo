@@ -20,7 +20,7 @@ let testFunction = function(session, fakeDeviceController, t) {
   let eventPromise = eventWatcher.wait_for(
     ["visibilitychange", "visibilitychange", "framefired", "watcherdone"]);
 
-  function onFrame(t, frame) {
+  function onFrame(timestamp, frame) {
     t.step( () => {
       // The session should not fire any animation frames while the visibility
       // state is hidden.
@@ -39,7 +39,7 @@ let testFunction = function(session, fakeDeviceController, t) {
     session.removeEventListener("visibilitychange", onSessionVisibilityChangeHidden, false);
     session.addEventListener("visibilitychange", onSessionVisibilityChangeVisible, false);
 
-    session.requestAnimationFrame()
+    session.requestAnimationFrame(onFrame)
 
     t.step_timeout(() => {
       fakeDeviceController.simulateVisibilityChange("visible");
@@ -73,6 +73,8 @@ let testFunction = function(session, fakeDeviceController, t) {
 
   session.addEventListener("visibilitychange", onSessionVisibilityChangeHidden, false);
   fakeDeviceController.simulateVisibilityChange("hidden");
+
+  return eventPromise;
 };
 
 xr_session_promise_test(

@@ -118,7 +118,7 @@
       test(function() {
           assert_true(MathMLFeatureDetection.has_mspace());
           assert_cramped("munderover-001", false, "base");
-          assert_cramped("munderover-002", false, "underscript");
+          assert_cramped("munderover-002", true, "underscript");
           assert_cramped("munderover-003", false, "non-accent overscript");
       }, "child of munderover");
 
@@ -195,7 +195,7 @@
       test(function() {
           assert_true(MathMLFeatureDetection.has_mspace());
           assert_cramped("munderover-011", false, "base");
-          assert_cramped("munderover-012", false, "underscript");
+          assert_cramped("munderover-012", true, "underscript");
           assert_cramped("munderover-013", false, "non-accent overscript");
       }, "child of munderover, from in-flow children");
 

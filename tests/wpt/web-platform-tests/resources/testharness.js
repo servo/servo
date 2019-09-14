@@ -544,7 +544,7 @@ policies and contribution forms [3].
         var value = test_obj.step(func, test_obj, test_obj);
 
         if (value !== undefined) {
-            var msg = "test named \"" + test_name +
+            var msg = "Test named \"" + test_name +
                 "\" inappropriately returned a value";
 
             try {

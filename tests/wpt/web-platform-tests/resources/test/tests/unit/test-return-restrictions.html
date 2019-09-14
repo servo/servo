@@ -81,7 +81,7 @@ promise_test(() => {
       assert_equals(harness.status, 'ERROR');
       assert_equals(
         harness.message,
-        'test named "null" inappropriately returned a value'
+        'Test named "null" inappropriately returned a value'
       );
       assert_equals(tests.before, 'PASS');
       assert_equals(tests.null, 'PASS');
@@ -100,7 +100,7 @@ promise_test(() => {
       assert_equals(harness.status, 'ERROR');
       assert_equals(
         harness.message,
-        'test named "object" inappropriately returned a value'
+        'Test named "object" inappropriately returned a value'
       );
       assert_equals(tests.before, 'PASS');
       assert_equals(tests.object, 'PASS');
@@ -119,7 +119,7 @@ promise_test(() => {
       assert_equals(harness.status, 'ERROR');
       assert_equals(
         harness.message,
-        'test named "thenable" inappropriately returned a value, consider using `promise_test` instead'
+        'Test named "thenable" inappropriately returned a value, consider using `promise_test` instead'
       );
       assert_equals(tests.before, 'PASS');
       assert_equals(tests.thenable, 'PASS');
@@ -143,7 +143,7 @@ promise_test(() => {
       assert_equals(harness.status, 'ERROR');
       assert_equals(
         harness.message,
-        'test named "restricted" inappropriately returned a value'
+        'Test named "restricted" inappropriately returned a value'
       );
       assert_equals(tests.before, 'PASS');
       assert_equals(tests.restricted, 'PASS');
