@@ -15,7 +15,6 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::Document;
-use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::element::{
     cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
 };
@@ -568,15 +567,6 @@ impl HTMLScriptElement {
                     }
                 },
                 ScriptType::Module => {
-                    {
-                        let global = self.global();
-                        let module_maps = global.get_module_map().borrow();
-
-                        if module_maps.get(&url).is_some() {
-                            return;
-                        }
-                    }
-
                     fetch_external_module_script(
                         ModuleOwner::Window(Trusted::new(self)),
                         url.clone(),
@@ -780,33 +770,41 @@ impl HTMLScriptElement {
         let global = window.upcast::<GlobalScope>();
         let _aes = AutoEntryScript::new(&global);
 
-        // TODO: Step 6. Check script's error to throw
-
         let module_map = global.get_module_map().borrow();
 
         if let Some(module_tree) = module_map.get(&script.url) {
-            // Step 7-1.
-            let module_error = module_tree.get_error().borrow();
-            if let Some(_exception) = &*module_error {
-                return;
+            // Step 6.
+            {
+                let module_error = module_tree.get_error().borrow();
+                if module_error.is_some() {
+                    module_tree.report_error(&global);
+                    return;
+                }
             }
 
             let module_record = module_tree.get_record().borrow();
             if let Some(record) = &*module_record {
                 // Step 7-2.
-                let instantiated = module_tree.instantiate_module_tree(global, record.handle());
+                {
+                    let instantiated = module_tree.instantiate_module_tree(global, record.handle());
 
-                if instantiated.is_err() {
-                    self.queue_error_event();
-                    return;
+                    if let Err(exception) = instantiated {
+                        module_tree.set_error(Some(exception.clone()));
+                        module_tree.report_error(&global);
+                        return;
+                    }
                 }
 
-                let evaluated = module_tree.execute_module(global, record.handle());
+                {
+                    let evaluated = module_tree.execute_module(global, record.handle());
 
-                if evaluated.is_err() {
-                    let _exception = DOMException::new(&global, DOMErrorName::QuotaExceededError);
-                    self.queue_error_event();
+                    if let Err(exception) = evaluated {
+                        module_tree.set_error(Some(exception.clone()));
+                        module_tree.report_error(&global);
+                        return;
+                    }
                 }
+
             }
         }
     }
