@@ -33,6 +33,7 @@ use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::script_runtime::{CommonScriptMsg, JSContext as SafeJSContext, ScriptChan, ScriptPort};
 use crate::script_thread::{MainThreadScriptChan, ScriptThread};
 use crate::task::TaskCanceller;
+use crate::task_source::database_access::DatabaseAccessTaskSource;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
 use crate::task_source::networking::NetworkingTaskSource;
@@ -1395,6 +1396,16 @@ impl GlobalScope {
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.dom_manipulation_task_source();
+        }
+        unreachable!();
+    }
+
+    pub fn database_access_task_source(&self) -> DatabaseAccessTaskSource {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.task_manager().database_access_task_source();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.database_access_task_source();
         }
         unreachable!();
     }

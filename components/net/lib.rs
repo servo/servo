@@ -30,6 +30,7 @@ pub mod hsts;
 pub mod http_cache;
 pub mod http_loader;
 pub mod image_cache;
+pub mod indexeddb;
 pub mod mime_classifier;
 pub mod resource_thread;
 mod storage_thread;

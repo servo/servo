@@ -16,6 +16,7 @@ extern crate malloc_size_of_derive;
 extern crate serde;
 
 use crate::filemanager_thread::FileManagerThreadMsg;
+use crate::indexeddb_thread::IndexedDBThreadMsg;
 use crate::request::{Request, RequestBuilder};
 use crate::response::{HttpsState, Response, ResponseInit};
 use crate::storage_thread::StorageThreadMsg;
@@ -38,6 +39,7 @@ use webrender_api::ImageKey;
 pub mod blob_url_store;
 pub mod filemanager_thread;
 pub mod image_cache;
+pub mod indexeddb_thread;
 pub mod pub_domains;
 pub mod quality;
 pub mod request;
@@ -317,13 +319,19 @@ where
 pub struct ResourceThreads {
     core_thread: CoreResourceThread,
     storage_thread: IpcSender<StorageThreadMsg>,
+    idb_thread: IpcSender<IndexedDBThreadMsg>,
 }
 
 impl ResourceThreads {
-    pub fn new(c: CoreResourceThread, s: IpcSender<StorageThreadMsg>) -> ResourceThreads {
+    pub fn new(
+        c: CoreResourceThread,
+        s: IpcSender<StorageThreadMsg>,
+        i: IpcSender<IndexedDBThreadMsg>,
+    ) -> ResourceThreads {
         ResourceThreads {
             core_thread: c,
             storage_thread: s,
+            idb_thread: i,
         }
     }
 }
@@ -345,6 +353,16 @@ impl IpcSend<StorageThreadMsg> for ResourceThreads {
 
     fn sender(&self) -> IpcSender<StorageThreadMsg> {
         self.storage_thread.clone()
+    }
+}
+
+impl IpcSend<IndexedDBThreadMsg> for ResourceThreads {
+    fn send(&self, msg: IndexedDBThreadMsg) -> IpcSendResult {
+        self.idb_thread.send(msg)
+    }
+
+    fn sender(&self) -> IpcSender<IndexedDBThreadMsg> {
+        self.idb_thread.clone()
     }
 }
 

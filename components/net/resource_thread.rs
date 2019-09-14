@@ -13,6 +13,7 @@ use crate::filemanager_thread::FileManager;
 use crate::hsts::HstsList;
 use crate::http_cache::HttpCache;
 use crate::http_loader::{http_redirect_fetch, HttpState, HANDLE};
+use crate::indexeddb::idb_thread::IndexedDBThreadFactory;
 use crate::storage_thread::StorageThreadFactory;
 use crate::websocket_loader;
 use crossbeam_channel::Sender;
@@ -22,6 +23,7 @@ use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use net_traits::indexeddb_thread::IndexedDBThreadMsg;
 use net_traits::request::{Destination, RequestBuilder};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
@@ -67,10 +69,11 @@ pub fn new_resource_threads(
         config_dir.clone(),
         certificate_path,
     );
+    let idb: IpcSender<IndexedDBThreadMsg> = IndexedDBThreadFactory::new(config_dir.clone());
     let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new(config_dir);
     (
-        ResourceThreads::new(public_core, storage.clone()),
-        ResourceThreads::new(private_core, storage),
+        ResourceThreads::new(public_core, storage.clone(), idb.clone()),
+        ResourceThreads::new(private_core, storage, idb),
     )
 }
 

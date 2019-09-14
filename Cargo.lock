@@ -117,6 +117,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arrayref"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d382e583f07208808f6b1249e60848879ba3543f57c32277bf52d69c2f0f0ee"
+
+[[package]]
 name = "arrayvec"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -317,7 +323,7 @@ dependencies = [
  "log",
  "servo_config",
  "servo_rand",
- "uuid",
+ "uuid 0.8.0",
 ]
 
 [[package]]
@@ -1139,7 +1145,7 @@ dependencies = [
  "serde",
  "serde_json",
  "time",
- "uuid",
+ "uuid 0.8.0",
 ]
 
 [[package]]
@@ -1155,7 +1161,7 @@ dependencies = [
  "serde",
  "servo_url",
  "time",
- "uuid",
+ "uuid 0.8.0",
 ]
 
 [[package]]
@@ -1385,6 +1391,27 @@ checksum = "658f19728920138342f68408b7cf7644d90d4784353d8ebc32e7e8663dbe45fa"
 dependencies = [
  "cmake",
  "pkg-config",
+]
+
+[[package]]
+name = "failure"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8273f13c977665c5db7eb2b99ae520952fe5ac831ae4cd09d80c4c7042b5ed9"
+dependencies = [
+ "failure_derive",
+]
+
+[[package]]
+name = "failure_derive"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0bc225b78e0391e4b8683440bf2e63c2deeeb2ce5189eab46e2b68c6d3725d08"
+dependencies = [
+ "proc-macro2 1.0.1",
+ "quote 1.0.2",
+ "syn 1.0.3",
+ "synstructure",
 ]
 
 [[package]]
@@ -2583,7 +2610,7 @@ dependencies = [
  "rand",
  "serde",
  "tempfile",
- "uuid",
+ "uuid 0.8.0",
 ]
 
 [[package]]
@@ -3063,6 +3090,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "lmdb-rkv"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "605061e5465304475be2041f19967a900175ea1b6d8f47fbab84a84fb8c48452"
+dependencies = [
+ "bitflags",
+ "byteorder",
+ "libc",
+ "lmdb-rkv-sys",
+]
+
+[[package]]
+name = "lmdb-rkv-sys"
+version = "0.9.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7982ba0460e939e26a52ee12c8075deab0ebd44ed21881f656841b70e021b7c8"
+dependencies = [
+ "cc",
+ "libc",
+ "pkg-config",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3153,7 +3203,7 @@ dependencies = [
  "thin-slice",
  "time",
  "url",
- "uuid",
+ "uuid 0.8.0",
  "void",
  "webrender_api",
  "xml5ever",
@@ -3504,6 +3554,7 @@ dependencies = [
  "pixels",
  "profile_traits",
  "rayon",
+ "rkv",
  "serde",
  "serde_json",
  "servo_allocator",
@@ -3515,7 +3566,7 @@ dependencies = [
  "tokio",
  "tokio-openssl",
  "url",
- "uuid",
+ "uuid 0.8.0",
  "webrender_api",
  "ws",
 ]
@@ -3559,7 +3610,7 @@ dependencies = [
  "std_test_override",
  "time",
  "url",
- "uuid",
+ "uuid 0.8.0",
  "webrender_api",
 ]
 
@@ -4337,6 +4388,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "rkv"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9aab7c645d32e977e186448b0a5c2c3139a91a7f630cfd8a8c314d1d145e78bf"
+dependencies = [
+ "arrayref",
+ "bincode",
+ "bitflags",
+ "byteorder",
+ "failure",
+ "lazy_static",
+ "lmdb-rkv",
+ "ordered-float",
+ "serde",
+ "serde_derive",
+ "url",
+ "uuid 0.7.4",
+]
+
+[[package]]
 name = "rle-decode-fast"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4536,7 +4607,7 @@ dependencies = [
  "unicode-segmentation",
  "url",
  "utf-8",
- "uuid",
+ "uuid 0.8.0",
  "webdriver",
  "webgpu",
  "webrender_api",
@@ -4955,7 +5026,7 @@ version = "0.1.0"
 source = "git+https://github.com/servo/media#220ed1388f2ba008b05f5e94aca21dd14aa37290"
 dependencies = [
  "lazy_static",
- "uuid",
+ "uuid 0.8.0",
 ]
 
 [[package]]
@@ -5079,7 +5150,7 @@ dependencies = [
  "rand",
  "rand_core",
  "rand_isaac",
- "uuid",
+ "uuid 0.8.0",
 ]
 
 [[package]]
@@ -5100,7 +5171,7 @@ dependencies = [
  "servo_rand",
  "to_shmem",
  "url",
- "uuid",
+ "uuid 0.8.0",
 ]
 
 [[package]]
@@ -6086,6 +6157,12 @@ checksum = "796f7e48bef87609f7ade7e06495a87d5cd06c7866e6a5cbfceffc558a243737"
 
 [[package]]
 name = "uuid"
+version = "0.7.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90dbc611eb48397705a6b0f6e917da23ae517e4d127123d2cf7674206627d32a"
+
+[[package]]
+name = "uuid"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf1d83e5fa94e6c54ee47351bc92daca1f386aa1529ffbb668d2cee5e8173013"
@@ -6282,7 +6359,7 @@ dependencies = [
  "servo_url",
  "style_traits",
  "url",
- "uuid",
+ "uuid 0.8.0",
  "webdriver",
 ]
 

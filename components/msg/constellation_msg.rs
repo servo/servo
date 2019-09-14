@@ -471,6 +471,7 @@ pub enum LayoutHangAnnotation {
 pub enum ScriptHangAnnotation {
     AttachLayout,
     ConstellationMsg,
+    DatabaseAccessEvent,
     DevtoolsMsg,
     DocumentEvent,
     DomEvent,
