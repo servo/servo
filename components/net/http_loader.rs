@@ -1064,6 +1064,7 @@ fn http_network_or_cache_fetch(
 
     fn wait_for_cached_response(done_chan: &mut DoneChannel, response: &mut Option<Response>) {
         if let Some(ref ch) = *done_chan {
+            assert!(response.is_some());
             // The cache constructed a response with a body of ResponseBody::Receiving.
             // We wait for the response in the cache to "finish",
             // with a body of either Done or Cancelled.
@@ -1097,8 +1098,10 @@ fn http_network_or_cache_fetch(
     if response.is_none() {
         // Substep 1
         if http_request.cache_mode == CacheMode::OnlyIfCached {
+            // The cache will not be updated with a store,
+            // set it's state to ready to construct.
             if let Some(entry) = cache_entry {
-                entry.wake_up_concurrent_requests();
+                entry.set_state_to_ready();
             }
             return Response::network_error(NetworkError::Internal(
                 "Couldn't find response in cache".into(),
@@ -1145,6 +1148,11 @@ fn http_network_or_cache_fetch(
     }
 
     let mut response = response.unwrap();
+
+    if let Some(entry) = cache_entry {
+        // The entry has been updated, set it's state to ready to construct.
+        entry.set_state_to_ready();
+    }
 
     // Step 8
     // TODO: if necessary set response's range-requested flag

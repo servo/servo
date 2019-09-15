@@ -34,7 +34,8 @@ use time::{Duration, Timespec, Tm};
 /// The key used to differentiate requests in the cache.
 #[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 pub struct CacheKey {
-    url: ServoUrl,
+    /// url
+    pub url: ServoUrl,
 }
 
 impl CacheKey {
@@ -297,6 +298,9 @@ fn create_cached_response(
     cached_headers: &HeaderMap,
     done_chan: &mut DoneChannel,
 ) -> Option<CachedResponse> {
+    if cached_resource.aborted.load(Ordering::Acquire) {
+        return None;
+    }
     let resource_timing = ResourceFetchTiming::new(request.timing_type());
     let mut response = Response::new(
         cached_resource.data.metadata.data.final_url.clone(),
@@ -335,9 +339,6 @@ fn create_cached_response(
         response: response,
         needs_validation: has_expired,
     };
-    if cached_resource.aborted.load(Ordering::Acquire) {
-        return None;
-    }
     Some(cached_response)
 }
 
@@ -603,6 +604,8 @@ impl HttpCache {
             for cached_resource in entry.resources.write().unwrap().iter_mut() {
                 cached_resource.data.expires = Duration::seconds(0i64);
             }
+        } else {
+            warn!("Http-cache: invalidate_for_url called for unknown entry.");
         }
     }
 
@@ -670,20 +673,32 @@ fn check_vary_headers(request: &Request, cached_resource: &CachedResource) -> bo
     can_be_constructed
 }
 
+/// The various states a HttpCacheEntry can be in.
+#[derive(Eq, PartialEq)]
+enum CacheEntryState {
+    /// The entry is fully up-to-date,
+    /// there are no pending concurrent stores,
+    /// and it is ready to construct cached responses.
+    ReadyToConstruct,
+    /// The entry is pending a concurrent store.
+    PendingStore,
+}
+
 #[derive(Clone)]
-/// A cache entry.
+/// A cache entry, corresponding to a cache-key,
+/// and containing a list of cached resources.
 pub struct HttpCacheEntry {
     /// Resources corresponding to the entry.
     pub resources: Arc<RwLock<Vec<CachedResource>>>,
-    /// The entry is ready to construct a response
-    /// if a pending network fetch has already begun,
-    /// and a pending response has been stored in the cache,
-    /// or if there is no pending network fetch.
-    is_ready_to_construct: Arc<(Mutex<bool>, Condvar)>,
+    /// The state of the entry.
+    /// A state of `PendingStore` will see any concurrent client block on the condvar,
+    /// untile the state is set to `ReadyToConstruct`.
+    state: Arc<(Mutex<CacheEntryState>, Condvar)>,
     /// The request key of this entry.
     key: CacheKey,
 }
 
+/// Only count the size of the cached resources, leaving aside the key an and state for now.
 impl MallocSizeOf for HttpCacheEntry {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut size = 0;
@@ -699,7 +714,7 @@ impl HttpCacheEntry {
     pub fn new(key: CacheKey) -> HttpCacheEntry {
         HttpCacheEntry {
             resources: Arc::new(RwLock::new(vec![])),
-            is_ready_to_construct: Arc::new((Mutex::new(true), Condvar::new())),
+            state: Arc::new((Mutex::new(CacheEntryState::ReadyToConstruct), Condvar::new())),
             key,
         }
     }
@@ -723,10 +738,10 @@ impl HttpCacheEntry {
         //
         // Note that this is a different workflow from the one involving `wait_for_cached_response`.
         // That one happens when a fetch gets a cache hit, and the resource is pending completion from the network.
-        let (lock, cvar) = &*self.is_ready_to_construct;
-        let mut ready = lock.lock().unwrap();
-        while !*ready {
-            ready = cvar.wait(ready).unwrap();
+        let (lock, cvar) = &*self.state;
+        let mut state = lock.lock().unwrap();
+        while *state == CacheEntryState::PendingStore {
+            state = cvar.wait(state).unwrap();
         }
 
         let cached_resources = self.resources.read().unwrap();
@@ -774,8 +789,8 @@ impl HttpCacheEntry {
             }
         }
         // The cache wasn't able to construct anything.
-        // Set it's readiness to false and fetch the response from the network.
-        *ready = false;
+        // Update it's state and fetch the response from the network.
+        *state = CacheEntryState::PendingStore;
         None
     }
 
@@ -787,12 +802,16 @@ impl HttpCacheEntry {
             ResponseBody::Done(ref completed_body) => completed_body.clone(),
             _ => return,
         };
-        for cached_resource in self.resources.read().unwrap().iter() {
-            // Ensure we only wake-up consumers of relevant resources,
-            // ie we don't want to wake-up 200 awaiting consumers with a 206.
-            if cached_resource.data.raw_status == response.raw_status {
-                continue;
-            }
+        let cached_resources = self
+            .resources
+            .read()
+            .unwrap();
+        // Ensure we only wake-up consumers of relevant resources,
+        // ie we don't want to wake-up 200 awaiting consumers with a 206.
+        let relevant_cached_resources = cached_resources
+            .iter()
+            .filter(|resource| resource.data.raw_status == response.raw_status);
+        for cached_resource in relevant_cached_resources {
             let mut awaiting_consumers = cached_resource.awaiting_body.lock().unwrap();
             for done_sender in awaiting_consumers.drain(..) {
                 if cached_resource.aborted.load(Ordering::Acquire) || response.is_network_error() {
@@ -863,18 +882,16 @@ impl HttpCacheEntry {
             stored_headers.extend(response.headers);
             constructed_response.headers = stored_headers.clone();
 
-            // Only wake-up concurrent requests in this case,
-            // the None case will result in `store` being called below, which will ensure wake-up.
-            self.wake_up_concurrent_requests();
             return Some(constructed_response);
         }
         None
     }
 
-    /// Wake-up requests that are waiting for the entry to be ready to construct.
-    pub fn wake_up_concurrent_requests(&self) {
-        let (lock, cvar) = &*self.is_ready_to_construct;
-        *lock.lock().unwrap() = true;
+    /// Set the state to ready to construct, and wake-up any concurrent client.
+    pub fn set_state_to_ready(&self) {
+        let (lock, cvar) = &*self.state;
+        let mut state = lock.lock().unwrap();
+        *state = CacheEntryState::ReadyToConstruct;
         cvar.notify_all();
     }
 
@@ -888,7 +905,6 @@ impl HttpCacheEntry {
         }
         if request.method != Method::GET {
             // Only Get requests are cached.
-            self.wake_up_concurrent_requests();
             return;
         }
         if request.headers.contains_key(header::AUTHORIZATION) {
@@ -898,7 +914,6 @@ impl HttpCacheEntry {
             //
             // TODO: unless a cache directive that allows such
             // responses to be stored is present in the response.
-            self.wake_up_concurrent_requests();
             return;
         }
         let metadata = match response.metadata() {
@@ -907,13 +922,9 @@ impl HttpCacheEntry {
                 unsafe_: metadata,
             }) |
             Ok(FetchMetadata::Unfiltered(metadata)) => metadata,
-            _ => {
-                self.wake_up_concurrent_requests();
-                return;
-            },
+            _ => return,
         };
         if !response_is_cacheable(&metadata) {
-            self.wake_up_concurrent_requests();
             return;
         }
         let expiry = get_response_expiry(&response);
@@ -946,6 +957,5 @@ impl HttpCacheEntry {
         // See A cache MAY complete a stored incomplete response by making a subsequent range request
         // https://tools.ietf.org/html/rfc7234#section-3.1
         self.resources.write().unwrap().push(entry_resource);
-        self.wake_up_concurrent_requests();
     }
 }
