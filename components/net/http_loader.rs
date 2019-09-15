@@ -1183,6 +1183,10 @@ fn http_network_or_cache_fetch(
             return response;
         }
 
+        // Make sure this is set to None,
+        // since we're about to start a new `http_network_or_cache_fetch`.
+        *done_chan = None;
+
         // Substep 4
         response = http_network_or_cache_fetch(
             http_request,
