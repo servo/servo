@@ -713,7 +713,8 @@ impl MallocSizeOf for HttpCacheEntry {
 /// The benefit is that concurrent fetches will not contend on an entry, unless they share the same key,
 /// which only happens if those fetches are fetching the same resource.
 ///
-/// Another benefit is that we can block a fetch using the entry, see the usage around the condvar in `state`,
+/// Another benefit is that we can block fetches using the same entry if necessary,
+/// see the usage around the condvar in `state`,
 /// withouth affecting fetches using other entries.
 impl HttpCacheEntry {
     /// Create a new cache-entry instance.
