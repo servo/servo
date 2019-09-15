@@ -708,8 +708,15 @@ impl MallocSizeOf for HttpCacheEntry {
     }
 }
 
+/// An entry is used by the fetch algorithm as the "interface" to the Http-cache.
+///
+/// The benefit is that concurrent fetches will not contend on an entry, unless they share the same key,
+/// which only happens if those fetches are fetching the same resource.
+///
+/// Another benefit is that we can block a fetch using the entry, see the usage around the condvar in `state`,
+/// withouth affecting fetches using other entries.
 impl HttpCacheEntry {
-    /// Create a new memory cache instance.
+    /// Create a new cache-entry instance.
     pub fn new(key: CacheKey) -> HttpCacheEntry {
         HttpCacheEntry {
             resources: Arc::new(RwLock::new(vec![])),
