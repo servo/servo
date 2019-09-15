@@ -789,7 +789,7 @@ impl HttpCacheEntry {
             }
         }
         // The cache wasn't able to construct anything.
-        // Update it's state and fetch the response from the network.
+        // Update its state and fetch the response from the network.
         *state = CacheEntryState::PendingStore;
         None
     }

@@ -1098,8 +1098,8 @@ fn http_network_or_cache_fetch(
     if response.is_none() {
         // Substep 1
         if http_request.cache_mode == CacheMode::OnlyIfCached {
-            // The cache will not be updated with a store,
-            // set it's state to ready to construct.
+            // The cache will not be updated,
+            // set its state to ready to construct.
             if let Some(entry) = cache_entry {
                 entry.set_state_to_ready();
             }
@@ -1150,7 +1150,7 @@ fn http_network_or_cache_fetch(
     let mut response = response.unwrap();
 
     if let Some(entry) = cache_entry {
-        // The entry has been updated, set it's state to ready to construct.
+        // The entry has been updated, set its state to ready to construct.
         entry.set_state_to_ready();
     }
 
