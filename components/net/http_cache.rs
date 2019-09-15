@@ -713,7 +713,10 @@ impl HttpCacheEntry {
     pub fn new(key: CacheKey) -> HttpCacheEntry {
         HttpCacheEntry {
             resources: Arc::new(RwLock::new(vec![])),
-            state: Arc::new((Mutex::new(CacheEntryState::ReadyToConstruct), Condvar::new())),
+            state: Arc::new((
+                Mutex::new(CacheEntryState::ReadyToConstruct),
+                Condvar::new(),
+            )),
             key,
         }
     }
@@ -801,10 +804,7 @@ impl HttpCacheEntry {
             ResponseBody::Done(ref completed_body) => completed_body.clone(),
             _ => return,
         };
-        let cached_resources = self
-            .resources
-            .read()
-            .unwrap();
+        let cached_resources = self.resources.read().unwrap();
         // Ensure we only wake-up consumers of relevant resources,
         // ie we don't want to wake-up 200 awaiting consumers with a 206.
         let relevant_cached_resources = cached_resources
