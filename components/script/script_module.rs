@@ -1288,36 +1288,39 @@ fn fetch_module_descendants(
     if let Ok(requested_urls) =
         ModuleTree::resolve_requested_modules(&global, parent_module_url.clone(), &mut visited)
     {
-        let module_map = global.get_module_map().borrow();
-
         module_tree.set_descendant_urls(requested_urls.clone());
 
         return Ok(requested_urls
             .iter()
-            .map(|url| match module_map.get(&url.clone()) {
-                Some(module_tree) => {
-                    let promise = module_tree.get_promise().borrow();
+            .map(|url| {
+                {
+                    let module_map = global.get_module_map().borrow();
+                    let descendant_tree = module_map.get(&url.clone());
+                    if let Some(module_tree) = descendant_tree {
+                        let promise = module_tree.get_promise().borrow();
 
-                    // promise.as_ref().unwrap().clone()
-                    // TODO: Check if we need to change to following code
-                    match promise.as_ref() {
-                        Some(p) => p.clone(),
-                        None => {
-                            rooted!(in(*global.get_cx()) let mut undefined_result = UndefinedValue());
+                        // promise.as_ref().unwrap().clone()
+                        // TODO: Check if we need to change to following code
+                        return match promise.as_ref() {
+                            Some(p) => p.clone(),
+                            None => {
+                                rooted!(in(*global.get_cx()) let mut undefined_result = UndefinedValue());
 
-                            let module_error = module_tree.get_error().borrow();
+                                let module_error = module_tree.get_error().borrow();
 
-                            let p = if module_error.is_some() {
-                                Promise::new_rejected(&global, global.get_cx(), undefined_result.handle())
-                            } else {
-                                Promise::new_resolved(&global, global.get_cx(), undefined_result.handle())
-                            };
+                                let p = if module_error.is_some() {
+                                    Promise::new_rejected(&global, global.get_cx(), undefined_result.handle())
+                                } else {
+                                    Promise::new_resolved(&global, global.get_cx(), undefined_result.handle())
+                                };
 
-                            p.unwrap().clone()
-                        },
+                                p.unwrap().clone()
+                            },
+                        };
                     }
-                },
-                None => perform_internal_module_script_fetch(
+                }
+
+                perform_internal_module_script_fetch(
                     owner.clone(),
                     url.clone(),
                     destination.clone(),
@@ -1325,7 +1328,7 @@ fn fetch_module_descendants(
                     Referrer::Client,
                     ParserMetadata::NotParserInserted,
                     true,
-                ),
+                )
             })
             .collect());
     }
