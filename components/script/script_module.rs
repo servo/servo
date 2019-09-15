@@ -1178,14 +1178,82 @@ pub fn fetch_inline_module_script(
     let compiled_module =
         module_tree.compile_module_script(&global, module_script_text, url.clone());
 
-    if let Ok(record) = compiled_module {
-        let _descendant_result =
-            fetch_inline_module_descendants(&owner, &module_tree, url.clone(), Destination::Script);
+    match compiled_module {
+        Ok(record) => {
+            let descendant_results =
+                fetch_inline_module_descendants(&owner, &module_tree, url.clone(), Destination::Script);
 
-        let _instantiated = module_tree.instantiate_module_tree(&global, record.handle());
-        let _evaluated = module_tree.execute_module(&global, record.handle());
+            if let Ok(descendants) = descendant_results {
+                if descendants.len() > 0 {
+                    unsafe {
+                        let _compartment = enter_realm(&*global);
+                        AlreadyInCompartment::assert(&*global);
+                        let _ais = AutoIncumbentScript::new(&*global);
 
-        return;
+                        let abv = CreateAutoObjectVector(*global.get_cx());
+
+                        for descendant in descendants {
+                            assert!(AppendToAutoObjectVector(
+                                abv as *mut AutoObjectVector,
+                                descendant.promise_obj().get()
+                            ));
+                        }
+
+                        rooted!(in(*global.get_cx()) let raw_promise_all = GetWaitForAllPromise(*global.get_cx(), abv));
+
+                        let promise_all = Promise::new_with_js_promise(
+                            raw_promise_all.handle(),
+                            global.get_cx(),
+                        );
+
+                        let resolve_this = owner.clone();
+                        let reject_this = owner.clone();
+
+                        let handler = PromiseNativeHandler::new(
+                            &global,
+                            Some(ModuleHandler::new(Box::new(
+                                task!(all_fetched_resolve: move || {
+                                    println!("promise all fetched");
+                                    resolve_this.finish_promise_all(PromiseAction::Resolve);
+                                }),
+                            ))),
+                            Some(ModuleHandler::new(Box::new(
+                                task!(all_failure_reject: move || {
+                                    println!("promise all failed");
+                                    reject_this.finish_promise_all(PromiseAction::Reject);
+                                }),
+                            ))),
+                        );
+
+                        promise_all.append_native_handler(&handler);
+                        return;
+                    }
+                }
+            }
+
+            {
+                let instantiated = module_tree.instantiate_module_tree(&global, record.handle());
+                if let Err(exception) = instantiated {
+                    module_tree.set_error(Some(exception));
+                    module_tree.report_error(&global);
+                    return;
+                }
+            }
+
+            {
+                let evaluated = module_tree.execute_module(&global, record.handle());
+                if let Err(exception) = evaluated {
+                    module_tree.set_error(Some(exception));
+                    module_tree.report_error(&global);
+                    return;
+                }
+            }
+        },
+        Err(exception) => {
+            module_tree.set_error(Some(exception));
+            module_tree.report_error(&global);
+            return;
+        },
     }
 }
 

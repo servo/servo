@@ -804,7 +804,6 @@ impl HTMLScriptElement {
                         return;
                     }
                 }
-
             }
         }
     }
