@@ -34,8 +34,7 @@ use time::{Duration, Timespec, Tm};
 /// The key used to differentiate requests in the cache.
 #[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 pub struct CacheKey {
-    /// url
-    pub url: ServoUrl,
+    url: ServoUrl,
 }
 
 impl CacheKey {
