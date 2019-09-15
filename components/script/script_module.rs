@@ -64,6 +64,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use url::ParseError as UrlParseError;
 
+#[derive(PartialEq)]
 pub enum PromiseAction {
     Resolve,
     Reject,
@@ -189,13 +190,13 @@ impl ModuleTree {
             Some(ModuleHandler::new(Box::new(
                 task!(fetched_resolve: move || {
                     println!("fetched");
-                    resolve_this.finish_module_load();
+                    resolve_this.finish_module_load(PromiseAction::Resolve);
                 }),
             ))),
             Some(ModuleHandler::new(Box::new(
                 task!(failure_reject: move || {
                     println!("failed");
-                    reject_this.finish_failed_load();
+                    reject_this.finish_module_load(PromiseAction::Reject);
                 }),
             ))),
         );
@@ -361,43 +362,39 @@ impl ModuleTree {
     }
 
     pub fn resolve_requested_modules(
+        &self,
         global: &GlobalScope,
-        parent_module_url: ServoUrl,
         visited: &mut HashSet<ServoUrl>,
     ) -> Result<HashSet<ServoUrl>, ()> {
-        let module_map = global.get_module_map().borrow();
+        let status = self.get_status();
 
-        let module_tree = module_map.get(&parent_module_url);
+        assert_ne!(status, ModuleStatus::Initial);
+        assert_ne!(status, ModuleStatus::Fetching);
 
-        if let Some(module_tree) = module_tree {
-            assert_ne!(module_tree.get_status(), ModuleStatus::Initial);
-            assert_ne!(module_tree.get_status(), ModuleStatus::Fetching);
+        let mut requested_urls: HashSet<ServoUrl> = HashSet::new();
 
-            let mut requested_urls: HashSet<ServoUrl> = HashSet::new();
+        let record = self.record.borrow();
 
-            let record = module_tree.get_record().borrow();
+        if let Some(raw_record) = &*record {
+            let valid_specifier_urls = self.resolve_requested_module_specifiers(
+                &global,
+                raw_record.handle(),
+                global.api_base_url().clone(),
+            );
 
-            if let Some(raw_record) = &*record {
-                let valid_specifier_urls = module_tree.resolve_requested_module_specifiers(
-                    &global,
-                    raw_record.handle(),
-                    parent_module_url.clone(),
-                );
-
-                if valid_specifier_urls.is_err() {
-                    return Err(());
-                }
-
-                for parsed_url in valid_specifier_urls.unwrap().iter() {
-                    if !visited.contains(&parsed_url) {
-                        requested_urls.insert(parsed_url.clone());
-
-                        visited.insert(parsed_url.clone());
-                    }
-                }
-
-                return Ok(requested_urls);
+            if valid_specifier_urls.is_err() {
+                return Err(());
             }
+
+            for parsed_url in valid_specifier_urls.unwrap().iter() {
+                if !visited.contains(&parsed_url) {
+                    requested_urls.insert(parsed_url.clone());
+
+                    visited.insert(parsed_url.clone());
+                }
+            }
+
+            return Ok(requested_urls);
         }
 
         Err(())
@@ -489,17 +486,6 @@ impl ModuleTree {
         return ServoUrl::parse_with_base(Some(url), &specifier_str.clone());
     }
 
-    /// https://html.spec.whatwg.org/multipage/#creating-a-javascript-module-script
-    #[allow(unused)]
-    fn create_javascript_module_script(
-        &self,
-        global: &GlobalScope,
-        module_script_text: DOMString,
-        url: ServoUrl,
-    ) {
-        // TODO: Step 1. If scripting is disabled in responsible browsing context, set `source` to be empty string
-    }
-
     /// https://html.spec.whatwg.org/multipage/#finding-the-first-parse-error
     fn find_first_parse_error(
         module_map: &HashMap<ServoUrl, ModuleTree>,
@@ -576,13 +562,13 @@ impl ModuleOwner {
             Some(ModuleHandler::new(Box::new(
                 task!(fetched_resolve: move || {
                     println!("fetched");
-                    resolve_this.finish_module_load();
+                    resolve_this.finish_module_load(PromiseAction::Resolve);
                 }),
             ))),
             Some(ModuleHandler::new(Box::new(
                 task!(failure_reject: move || {
                     println!("failed");
-                    reject_this.finish_failed_load();
+                    reject_this.finish_module_load(PromiseAction::Reject);
                 }),
             ))),
         );
@@ -628,7 +614,7 @@ impl ModuleOwner {
         }
     }
 
-    pub fn finish_module_load(&self) {
+    pub fn finish_module_load(&self, action: PromiseAction) {
         match &self {
             ModuleOwner::Worker(_) => unimplemented!(),
             ModuleOwner::Window(script) => {
@@ -651,58 +637,12 @@ impl ModuleOwner {
 
                     module_tree.set_status(ModuleStatus::Finished);
 
-                    let load = Ok(ScriptOrigin::external(
-                        source_text.clone(),
-                        script_src.clone(),
-                        ScriptType::Module,
-                    ));
+                    if action == PromiseAction::Reject {
+                        let module_error =
+                            ModuleTree::find_first_parse_error(&module_map, &module_tree);
 
-                    let r#async = script
-                        .root()
-                        .upcast::<Element>()
-                        .has_attribute(&local_name!("async"));
-
-                    if !r#async && (&*script.root()).get_parser_inserted() {
-                        document.deferred_script_loaded(&*script.root(), load);
-                    } else if !r#async && !(&*script.root()).get_non_blocking() {
-                        document.asap_in_order_script_loaded(&*script.root(), load);
-                    } else {
-                        document.asap_script_loaded(&*script.root(), load);
-                    };
-
-                    document.finish_load(LoadType::Script(script_src.clone()));
-                }
-            },
-        }
-    }
-
-    pub fn finish_failed_load(&self) {
-        match &self {
-            ModuleOwner::Worker(_) => unimplemented!(),
-            ModuleOwner::Window(script) => {
-                let global = self.global();
-
-                let document = document_from_node(&*script.root());
-
-                let base_url = document.base_url();
-
-                if let Some(script_src) = script
-                    .root()
-                    .upcast::<Element>()
-                    .get_attribute(&ns!(), &local_name!("src"))
-                    .map(|attr| base_url.join(&attr.value()).ok())
-                    .unwrap_or(None)
-                {
-                    let module_map = global.get_module_map().borrow();
-                    let module_tree = module_map.get(&script_src.clone()).unwrap();
-                    let source_text = module_tree.get_text().borrow();
-
-                    module_tree.set_status(ModuleStatus::Finished);
-
-                    let module_error =
-                        ModuleTree::find_first_parse_error(&module_map, &module_tree);
-
-                    module_tree.set_error(module_error);
+                        module_tree.set_error(module_error);
+                    }
 
                     let load = Ok(ScriptOrigin::external(
                         source_text.clone(),
@@ -852,7 +792,6 @@ impl FetchResponseListener for ModuleContext {
                     let descendant_results = fetch_module_descendants(
                         &self.owner,
                         &module_tree,
-                        self.url.clone(),
                         self.destination.clone(),
                         visited,
                     );
@@ -1181,7 +1120,7 @@ pub fn fetch_inline_module_script(
     match compiled_module {
         Ok(record) => {
             let descendant_results =
-                fetch_inline_module_descendants(&owner, &module_tree, url.clone(), Destination::Script);
+                fetch_inline_module_descendants(&owner, &module_tree, Destination::Script);
 
             if let Ok(descendants) = descendant_results {
                 if descendants.len() > 0 {
@@ -1251,7 +1190,6 @@ pub fn fetch_inline_module_script(
         },
         Err(exception) => {
             module_tree.set_error(Some(exception));
-            module_tree.report_error(&global);
             return;
         },
     }
@@ -1261,10 +1199,9 @@ pub fn fetch_inline_module_script(
 fn fetch_inline_module_descendants(
     owner: &ModuleOwner,
     module_tree: &ModuleTree,
-    url: ServoUrl,
     destination: Destination,
 ) -> Result<Vec<Rc<Promise>>, ()> {
-    fetch_module_descendants(owner, module_tree, url, destination, HashSet::new())
+    fetch_module_descendants(owner, module_tree, destination, HashSet::new())
 }
 
 #[allow(unsafe_code)]
@@ -1272,22 +1209,21 @@ fn fetch_inline_module_descendants(
 fn fetch_module_descendants(
     owner: &ModuleOwner,
     module_tree: &ModuleTree,
-    parent_module_url: ServoUrl,
     destination: Destination,
     mut visited: HashSet<ServoUrl>,
 ) -> Result<Vec<Rc<Promise>>, ()> {
     println!(
-        "Start to load dependencies of {:?}",
-        parent_module_url.clone()
+        "Start to load dependencies of {}",
+        module_tree.url.clone()
     );
 
     let global = owner.global();
 
     module_tree.set_status(ModuleStatus::FetchingDescendants);
 
-    if let Ok(requested_urls) =
-        ModuleTree::resolve_requested_modules(&global, parent_module_url.clone(), &mut visited)
-    {
+    let requested_urls = module_tree.resolve_requested_modules(&global, &mut visited);
+
+    if let Ok(requested_urls) = requested_urls {
         module_tree.set_descendant_urls(requested_urls.clone());
 
         return Ok(requested_urls
