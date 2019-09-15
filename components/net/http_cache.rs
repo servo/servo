@@ -585,10 +585,6 @@ impl HttpCache {
         if pref!(network.http_cache.disabled) {
             return None;
         }
-        if request.method != Method::GET {
-            // Only Get requests are cached.
-            return None;
-        }
         let entry_key = CacheKey::new(request.clone());
         let entry = self
             .entries
@@ -673,7 +669,7 @@ fn check_vary_headers(request: &Request, cached_resource: &CachedResource) -> bo
 }
 
 /// The various states a HttpCacheEntry can be in.
-#[derive(Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 enum CacheEntryState {
     /// The entry is fully up-to-date,
     /// there are no pending concurrent stores,
@@ -737,6 +733,11 @@ impl HttpCacheEntry {
         done_chan: &mut DoneChannel,
     ) -> Option<CachedResponse> {
         // TODO: generate warning headers as appropriate <https://tools.ietf.org/html/rfc7234#section-5.5>
+
+        if request.method != Method::GET {
+            // Only responses to GET requests are cached.
+            return None;
+        }
 
         let entry_key = CacheKey::new(request.clone());
         assert_eq!(entry_key, self.key);
@@ -808,29 +809,39 @@ impl HttpCacheEntry {
     pub fn update_awaiting_consumers(&self, request: &Request, response: &Response) {
         let entry_key = CacheKey::new(request.clone());
         assert_eq!(entry_key, self.key);
-        let completed_body = match *response.body.lock().unwrap() {
-            ResponseBody::Done(ref completed_body) => completed_body.clone(),
-            _ => return,
-        };
+
         let cached_resources = self.resources.read().unwrap();
+
         // Ensure we only wake-up consumers of relevant resources,
         // ie we don't want to wake-up 200 awaiting consumers with a 206.
-        let relevant_cached_resources = cached_resources
-            .iter()
-            .filter(|resource| resource.data.raw_status == response.raw_status);
+        let relevant_cached_resources = cached_resources.iter().filter(|resource| {
+            if response.is_network_error() {
+                return *resource.body.lock().unwrap() == ResponseBody::Empty;
+            }
+            resource.data.raw_status == response.raw_status
+        });
+
         for cached_resource in relevant_cached_resources {
             let mut awaiting_consumers = cached_resource.awaiting_body.lock().unwrap();
-            for done_sender in awaiting_consumers.drain(..) {
-                if cached_resource.aborted.load(Ordering::Acquire) || response.is_network_error() {
-                    // In the case of an aborted fetch or a network errror,
-                    // wake-up all awaiting consumers.
-                    // Each will then start a new network request.
-                    // TODO: Wake-up only one consumer, and make it the producer on which others wait.
-                    let _ = done_sender.send(Data::Cancelled);
-                } else {
-                    let _ = done_sender.send(Data::Payload(completed_body.clone()));
-                    let _ = done_sender.send(Data::Done);
+            if awaiting_consumers.is_empty() {
+                continue;
+            }
+            let to_send = if cached_resource.aborted.load(Ordering::Acquire) {
+                // In the case of an aborted fetch,
+                // wake-up all awaiting consumers.
+                // Each will then start a new network request.
+                // TODO: Wake-up only one consumer, and make it the producer on which others wait.
+                Data::Cancelled
+            } else {
+                match *cached_resource.body.lock().unwrap() {
+                    ResponseBody::Done(_) | ResponseBody::Empty => Data::Done,
+                    ResponseBody::Receiving(_) => {
+                        continue;
+                    },
                 }
+            };
+            for done_sender in awaiting_consumers.drain(..) {
+                let _ = done_sender.send(to_send.clone());
             }
         }
     }
@@ -888,7 +899,6 @@ impl HttpCacheEntry {
             let mut stored_headers = cached_resource.data.metadata.headers.lock().unwrap();
             stored_headers.extend(response.headers);
             constructed_response.headers = stored_headers.clone();
-
             return Some(constructed_response);
         }
         None

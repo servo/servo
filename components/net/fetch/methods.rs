@@ -41,6 +41,7 @@ lazy_static! {
 
 pub type Target<'a> = &'a mut (dyn FetchTaskTarget + Send);
 
+#[derive(Clone)]
 pub enum Data {
     Payload(Vec<u8>),
     Done,
