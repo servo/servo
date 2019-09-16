@@ -18,6 +18,7 @@ test_interfaces([
   "DOMQuad",
   "DOMRect",
   "DOMRectReadOnly",
+  "DOMStringList",
   "CustomEvent",
   "DedicatedWorkerGlobalScope",
   "DOMException",
