@@ -103,6 +103,7 @@ impl Debug for FontTemplate {
 /// this font handle per thread.
 impl FontTemplate {
     pub fn new(identifier: Atom, maybe_bytes: Option<Vec<u8>>) -> Result<FontTemplate, IoError> {
+        info!("creating template for {:?}, {} bytes", identifier, if maybe_bytes.is_some() { "with" } else { "without" });
         let maybe_data = match maybe_bytes {
             Some(_) => Some(FontTemplateData::new(identifier.clone(), maybe_bytes)?),
             None => None,
@@ -141,7 +142,7 @@ impl FontTemplate {
         // already loaded a font, store the style information about it separately,
         // so that we can do font matching against it again in the future
         // without having to reload the font (unless it is an actual match).
-
+        info!("getting descriptor for {:?}: {}", self.identifier, if self.descriptor.is_some() { "exists" } else { "does not exist" });
         self.descriptor.or_else(|| {
             info!("about to instantiate");
             if self.instantiate(font_context).is_err() {
@@ -162,6 +163,7 @@ impl FontTemplate {
         fctx: &FontContextHandle,
         requested_desc: &FontTemplateDescriptor,
     ) -> Option<Arc<FontTemplateData>> {
+        info!("getting template descriptor for {:?}", self.identifier);
         self.descriptor(&fctx).and_then(|descriptor| {
             if *requested_desc == descriptor {
                 self.data().map_err(|_| { info!("error optaining data"); () }).ok()
@@ -178,6 +180,7 @@ impl FontTemplate {
         font_context: &FontContextHandle,
         requested_descriptor: &FontTemplateDescriptor,
     ) -> Option<(Arc<FontTemplateData>, f32)> {
+        info!("data_for_approximate_descriptor for {:?}", self.identifier);
         self.descriptor(&font_context).and_then(|descriptor| {
             self.data()
                 .map_err(|_| { info!("error obtaining data for approx"); () })
@@ -187,7 +190,9 @@ impl FontTemplate {
     }
 
     fn instantiate(&mut self, font_context: &FontContextHandle) -> Result<(), ()> {
+        info!("trying to instantiate {:?}", self.identifier);
         if !self.is_valid {
+            info!("can't instantiate {:?} because not valid", self.identifier);
             return Err(());
         }
 
@@ -195,12 +200,14 @@ impl FontTemplate {
         let handle: Result<FontHandle, ()> =
             FontHandleMethods::new_from_template(font_context, data, None);
         self.is_valid = handle.is_ok();
+        info!("valid after instantiation: {}", self.is_valid);
         let handle = handle?;
         self.descriptor = Some(FontTemplateDescriptor::new(
             handle.boldness(),
             handle.stretchiness(),
             handle.style(),
         ));
+        info!("successfully instantiated {:?}", self.identifier);
         Ok(())
     }
 
@@ -222,11 +229,14 @@ impl FontTemplate {
             None => None,
         };
 
+        info!("checking existing template data for {:?}", self.identifier);
         if let Some(data) = maybe_data {
+            info!("returning existing template data for {:?}", self.identifier);
             return Ok(data);
         }
 
         assert!(self.strong_ref.is_none());
+        info!("need to create new template data for {:?}", self.identifier);
         let template_data = Arc::new(FontTemplateData::new(self.identifier.clone(), None)?);
         self.weak_ref = Some(Arc::downgrade(&template_data));
         Ok(template_data)

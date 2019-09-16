@@ -60,6 +60,7 @@ unsafe impl Sync for FontTemplateData {}
 
 impl FontTemplateData {
     pub fn new(identifier: Atom, font_data: Option<Vec<u8>>) -> Result<FontTemplateData, IoError> {
+        info!("creating FontTemplateData for {} with {}", identifier, if font_data.is_none() { "no " } else { "" });
         Ok(FontTemplateData {
             ctfont: CachedCTFont(Mutex::new(HashMap::new())),
             identifier: identifier.to_owned(),
@@ -101,6 +102,7 @@ impl FontTemplateData {
                 info!("no ctfont to insert");
             }
         }
+        info!("about to try to return cached value for {:?}: {}present", pt_size_key, if !ctfonts.contains_key(&pt_size_key) { "not " } else { "" });
         ctfonts.get(&pt_size_key).map(|ctfont| (*ctfont).clone())
     }
 
@@ -108,10 +110,12 @@ impl FontTemplateData {
     /// operation (depending on the platform) which performs synchronous disk I/O
     /// and should never be done lightly.
     pub fn bytes(&self) -> Vec<u8> {
+        info!("FontTemplateData::bytes - trying to return bytes in memory");
         if let Some(font_data) = self.bytes_if_in_memory() {
             return font_data;
         }
 
+        info!("FontTemplateData::bytes - getting ctfont for 0.0");
         let path = ServoUrl::parse(
             &*self
                 .ctfont(0.0)
@@ -137,11 +141,13 @@ impl FontTemplateData {
     /// Returns a clone of the bytes in this font if they are in memory. This function never
     /// performs disk I/O.
     pub fn bytes_if_in_memory(&self) -> Option<Vec<u8>> {
+        info!("FontTemplateData::bytes_if_in_memory: has bytes is {}", self.font_data.is_some());
         self.font_data.as_ref().map(|bytes| (**bytes).clone())
     }
 
     /// Returns the native font that underlies this font template, if applicable.
     pub fn native_font(&self) -> Option<NativeFontHandle> {
+        info!("FontTemplateData::native_font - getting ctfont for 0.0");
         self.ctfont(0.0)
             .map(|ctfont| NativeFontHandle(ctfont.copy_to_CGFont()))
     }
