@@ -480,6 +480,7 @@ pub fn main_fetch(
     // Step 24.
     target.process_response_eof(&response);
 
+    // Note: we need to get an entry again, to take potential re-directs into account.
     let cache_entry = if let Ok(mut http_cache) = context.state.http_cache.write() {
         http_cache.get_entry(&request)
     } else {
