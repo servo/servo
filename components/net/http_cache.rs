@@ -953,9 +953,7 @@ impl HttpCacheEntry {
                 unsafe_: metadata,
             }) |
             Ok(FetchMetadata::Unfiltered(metadata)) => metadata,
-            _ => {
-                return;
-            },
+            _ => return,
         };
         if !response_is_cacheable(&metadata, response) {
             return;
