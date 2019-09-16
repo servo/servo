@@ -22,6 +22,7 @@ use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptOrigin, ScriptType};
+use crate::dom::node::Node;
 use crate::dom::node::document_from_node;
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
@@ -668,6 +669,46 @@ impl ModuleOwner {
             },
         }
     }
+
+    pub fn finish_inline_module_load(&self, action: PromiseAction) {
+        match &self {
+            ModuleOwner::Worker(_) => unimplemented!(),
+            ModuleOwner::Window(script) => {
+                let document = document_from_node(&*script.root());
+
+                let base_url = document.base_url();
+
+                let source_text = script.root().upcast::<Node>().child_text_content();
+
+                if action == PromiseAction::Reject {
+                    // let module_error =
+                    //     ModuleTree::find_first_parse_error(&module_map, &module_tree);
+                    // module_tree.set_error(module_error);
+                }
+
+                let load = Ok(ScriptOrigin::internal(
+                    source_text.clone(),
+                    base_url.clone(),
+                    ScriptType::Module,
+                ));
+
+                let r#async = script
+                    .root()
+                    .upcast::<Element>()
+                    .has_attribute(&local_name!("async"));
+
+                if !r#async && (&*script.root()).get_parser_inserted() {
+                    document.deferred_script_loaded(&*script.root(), load);
+                } else if !r#async && !(&*script.root()).get_non_blocking() {
+                    document.asap_in_order_script_loaded(&*script.root(), load);
+                } else {
+                    document.asap_script_loaded(&*script.root(), load);
+                };
+
+                document.finish_load(LoadType::Script(base_url.clone()));
+            },
+        }
+    }
 }
 
 /// The context required for asynchronously loading an external module script source.
@@ -844,27 +885,9 @@ impl FetchResponseListener for ModuleContext {
                         }
                     }
 
-                    match &self.owner {
-                        ModuleOwner::Worker(_) => unimplemented!(),
-                        ModuleOwner::Window(script) => {
-                            let document = document_from_node(&*script.root());
-
-                            let base_url = document.base_url();
-
-                            if let Some(script_src) = script
-                                .root()
-                                .upcast::<Element>()
-                                .get_attribute(&ns!(), &local_name!("src"))
-                                .map(|attr| base_url.join(&attr.value()).ok())
-                                .unwrap_or(None)
-                            {
-                                if self.url.clone() == script_src {
-                                    let promise = module_tree.get_promise().borrow();
-                                    promise.as_ref().unwrap().resolve_native(&());
-                                }
-                            }
-                        },
-                    }
+                    let promise = module_tree.get_promise().borrow();
+                    promise.as_ref().unwrap().resolve_native(&());
+                    return;
                 },
             }
         }
@@ -1119,6 +1142,8 @@ pub fn fetch_inline_module_script(
 
     match compiled_module {
         Ok(record) => {
+            module_tree.set_record(record);
+
             let descendant_results =
                 fetch_inline_module_descendants(&owner, &module_tree, Destination::Script);
 
@@ -1153,13 +1178,13 @@ pub fn fetch_inline_module_script(
                             Some(ModuleHandler::new(Box::new(
                                 task!(all_fetched_resolve: move || {
                                     println!("promise all fetched");
-                                    resolve_this.finish_promise_all(PromiseAction::Resolve);
+                                    resolve_this.finish_inline_module_load(PromiseAction::Resolve);
                                 }),
                             ))),
                             Some(ModuleHandler::new(Box::new(
                                 task!(all_failure_reject: move || {
                                     println!("promise all failed");
-                                    reject_this.finish_promise_all(PromiseAction::Reject);
+                                    reject_this.finish_inline_module_load(PromiseAction::Reject);
                                 }),
                             ))),
                         );
@@ -1170,27 +1195,11 @@ pub fn fetch_inline_module_script(
                 }
             }
 
-            {
-                let instantiated = module_tree.instantiate_module_tree(&global, record.handle());
-                if let Err(exception) = instantiated {
-                    module_tree.set_error(Some(exception));
-                    module_tree.report_error(&global);
-                    return;
-                }
-            }
-
-            {
-                let evaluated = module_tree.execute_module(&global, record.handle());
-                if let Err(exception) = evaluated {
-                    module_tree.set_error(Some(exception));
-                    module_tree.report_error(&global);
-                    return;
-                }
-            }
+            owner.finish_inline_module_load(PromiseAction::Resolve);
         },
         Err(exception) => {
             module_tree.set_error(Some(exception));
-            return;
+            owner.finish_inline_module_load(PromiseAction::Reject);
         },
     }
 }
@@ -1225,6 +1234,8 @@ fn fetch_module_descendants(
 
     if let Ok(requested_urls) = requested_urls {
         module_tree.set_descendant_urls(requested_urls.clone());
+
+        println!("{:?}", requested_urls);
 
         return Ok(requested_urls
             .iter()

@@ -594,25 +594,35 @@ impl HTMLScriptElement {
             ));
 
             // Step 25-2.
-            if let ScriptType::Module = script_type {
-                fetch_inline_module_script(
-                    ModuleOwner::Window(Trusted::new(self)),
-                    text.clone(),
-                    base_url.clone(),
-                );
-            }
+            match script_type {
+                ScriptType::Classic => {
+                    if was_parser_inserted &&
+                        doc.get_current_parser()
+                            .map_or(false, |parser| parser.script_nesting_level() <= 1) &&
+                        doc.get_script_blocking_stylesheets_count() > 0
+                    {
+                        // Step 26.h: classic, has no src, was parser-inserted, is blocked on stylesheet.
+                        doc.set_pending_parsing_blocking_script(self, Some(result));
+                    } else {
+                        // Step 26.i: otherwise.
+                        self.execute(result);
+                    }
+                },
+                ScriptType::Module => {
+                    fetch_inline_module_script(
+                        ModuleOwner::Window(Trusted::new(self)),
+                        text.clone(),
+                        base_url.clone(),
+                    );
 
-            // Step 26.
-            if was_parser_inserted &&
-                doc.get_current_parser()
-                    .map_or(false, |parser| parser.script_nesting_level() <= 1) &&
-                doc.get_script_blocking_stylesheets_count() > 0
-            {
-                // Step 26.h: classic, has no src, was parser-inserted, is blocked on stylesheet.
-                doc.set_pending_parsing_blocking_script(self, Some(result));
-            } else {
-                // Step 26.i: otherwise.
-                self.execute(result);
+                    if !r#async && was_parser_inserted {
+                        doc.add_deferred_script(self);
+                    } else if !r#async && !self.non_blocking.get() {
+                        doc.push_asap_in_order_script(self);
+                    } else {
+                        doc.add_asap_script(self);
+                    };
+                },
             }
         }
     }
