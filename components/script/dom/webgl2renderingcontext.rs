@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding;
+use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
@@ -26,16 +27,18 @@ use crate::dom::webglrenderingcontext::{
 };
 use crate::dom::webglshader::WebGLShader;
 use crate::dom::webglshaderprecisionformat::WebGLShaderPrecisionFormat;
+use crate::dom::webglsync::WebGLSync;
 use crate::dom::webgltexture::WebGLTexture;
 use crate::dom::webgluniformlocation::WebGLUniformLocation;
 use crate::dom::window::Window;
 use crate::script_runtime::JSContext;
+use canvas_traits::webgl::WebGLError::{InvalidEnum, InvalidOperation, InvalidValue};
 /// https://www.khronos.org/registry/webgl/specs/latest/2.0/webgl.idl
-use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
+use canvas_traits::webgl::{webgl_channel, GLContextAttributes, WebGLCommand, WebGLVersion};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use js::jsapi::JSObject;
-use js::jsval::JSVal;
+use js::jsval::{Int32Value, JSVal, NullValue, UInt32Value};
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBufferView;
 use script_layout_interface::HTMLCanvasDataSource;
@@ -118,7 +121,12 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn GetParameter(&self, cx: JSContext, parameter: u32) -> JSVal {
-        self.base.GetParameter(cx, parameter)
+        match parameter {
+            constants::MAX_CLIENT_WAIT_TIMEOUT_WEBGL => {
+                Int32Value(self.base.limits().max_client_wait_timeout_webgl.as_nanos() as i32)
+            },
+            _ => self.base.GetParameter(cx, parameter),
+        }
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
@@ -1043,6 +1051,123 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9
     fn VertexAttribDivisor(&self, index: u32, divisor: u32) {
         self.base.vertex_attrib_divisor(index, divisor);
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14
+    fn FenceSync(&self, condition: u32, flags: u32) -> Option<DomRoot<WebGLSync>> {
+        if flags != 0 {
+            self.base.webgl_error(InvalidValue);
+            return None;
+        }
+        if condition != constants::SYNC_GPU_COMMANDS_COMPLETE {
+            self.base.webgl_error(InvalidEnum);
+            return None;
+        }
+
+        Some(WebGLSync::new(&self.base))
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14
+    fn IsSync(&self, sync: Option<&WebGLSync>) -> bool {
+        match sync {
+            Some(sync) => {
+                if !sync.is_valid() {
+                    return false;
+                }
+                handle_potential_webgl_error!(
+                    self.base,
+                    self.base.validate_ownership(sync),
+                    return false
+                );
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.base
+                    .send_command(WebGLCommand::IsSync(sync.id(), sender));
+                receiver.recv().unwrap()
+            },
+            None => false,
+        }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14
+    fn ClientWaitSync(&self, sync: &WebGLSync, flags: u32, timeout: u64) -> u32 {
+        if !sync.is_valid() {
+            return constants::WAIT_FAILED;
+        }
+        handle_potential_webgl_error!(
+            self.base,
+            self.base.validate_ownership(sync),
+            return constants::WAIT_FAILED
+        );
+        if flags != 0 && flags != constants::SYNC_FLUSH_COMMANDS_BIT {
+            self.base.webgl_error(InvalidValue);
+            return constants::WAIT_FAILED;
+        }
+        if timeout > self.base.limits().max_client_wait_timeout_webgl.as_nanos() as u64 {
+            self.base.webgl_error(InvalidOperation);
+            return constants::WAIT_FAILED;
+        }
+
+        sync.client_wait_sync(&self.base, flags, timeout);
+        match sync.get_client_sync_status() {
+            Some(status) => status,
+            None => constants::WAIT_FAILED,
+        }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14
+    fn WaitSync(&self, sync: &WebGLSync, flags: u32, timeout: i64) {
+        if !sync.is_valid() {
+            self.base.webgl_error(InvalidOperation);
+            return;
+        }
+        handle_potential_webgl_error!(self.base, self.base.validate_ownership(sync), return);
+        if flags != 0 {
+            self.base.webgl_error(InvalidValue);
+            return;
+        }
+        if timeout != constants::TIMEOUT_IGNORED {
+            self.base.webgl_error(InvalidValue);
+            return;
+        }
+
+        self.base
+            .send_command(WebGLCommand::WaitSync(sync.id(), flags, timeout));
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14
+    fn GetSyncParameter(&self, _cx: JSContext, sync: &WebGLSync, pname: u32) -> JSVal {
+        if !sync.is_valid() {
+            self.base.webgl_error(InvalidOperation);
+            return NullValue();
+        }
+        handle_potential_webgl_error!(
+            self.base,
+            self.base.validate_ownership(sync),
+            return NullValue()
+        );
+        match pname {
+            constants::OBJECT_TYPE |
+            constants::SYNC_CONDITION |
+            constants::SYNC_FLAGS |
+            constants::SYNC_STATUS => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.base
+                    .send_command(WebGLCommand::GetSyncParameter(sync.id(), pname, sender));
+                UInt32Value(receiver.recv().unwrap())
+            },
+            _ => {
+                self.base.webgl_error(InvalidEnum);
+                NullValue()
+            },
+        }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14
+    fn DeleteSync(&self, sync: Option<&WebGLSync>) {
+        if let Some(sync) = sync {
+            handle_potential_webgl_error!(self.base, self.base.validate_ownership(sync), return);
+            sync.delete(&self.base);
+        }
     }
 }
 

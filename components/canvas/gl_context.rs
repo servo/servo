@@ -235,6 +235,7 @@ fn map_limits(limits: RawGLLimits) -> GLLimits {
         max_varying_vectors: limits.max_varying_vectors,
         max_vertex_texture_image_units: limits.max_vertex_texture_image_units,
         max_vertex_uniform_vectors: limits.max_vertex_uniform_vectors,
+        max_client_wait_timeout_webgl: std::time::Duration::new(1, 0),
     }
 }
 

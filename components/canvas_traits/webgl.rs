@@ -9,7 +9,7 @@ use sparkle::gl;
 use sparkle::gl::Gl;
 use std::borrow::Cow;
 use std::fmt;
-use std::num::NonZeroU32;
+use std::num::{NonZeroU32, NonZeroU64};
 use std::ops::Deref;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
 use webvr_traits::WebVRPoseInformation;
@@ -278,6 +278,12 @@ pub enum WebGLCommand {
     StencilMaskSeparate(u32, u32),
     StencilOp(u32, u32, u32),
     StencilOpSeparate(u32, u32, u32, u32),
+    FenceSync(WebGLSender<WebGLSyncId>),
+    IsSync(WebGLSyncId, WebGLSender<bool>),
+    ClientWaitSync(WebGLSyncId, u32, u64, WebGLSender<u32>),
+    WaitSync(WebGLSyncId, u32, i64),
+    GetSyncParameter(WebGLSyncId, u32, WebGLSender<u32>),
+    DeleteSync(WebGLSyncId),
     Hint(u32, u32),
     LineWidth(f32),
     PixelStorei(u32, i32),
@@ -427,20 +433,29 @@ pub enum WebGLCommand {
     },
 }
 
+macro_rules! nonzero_type {
+    (u32) => {
+        NonZeroU32
+    };
+    (u64) => {
+        NonZeroU64
+    };
+}
+
 macro_rules! define_resource_id {
-    ($name:ident) => {
+    ($name:ident, $type:tt) => {
         #[derive(Clone, Copy, Eq, Hash, PartialEq)]
-        pub struct $name(NonZeroU32);
+        pub struct $name(nonzero_type!($type));
 
         impl $name {
             #[allow(unsafe_code)]
             #[inline]
-            pub unsafe fn new(id: u32) -> Self {
-                $name(NonZeroU32::new_unchecked(id))
+            pub unsafe fn new(id: $type) -> Self {
+                $name(<nonzero_type!($type)>::new_unchecked(id))
             }
 
             #[inline]
-            pub fn get(self) -> u32 {
+            pub fn get(self) -> $type {
                 self.0.get()
             }
         }
@@ -451,7 +466,7 @@ macro_rules! define_resource_id {
             where
                 D: ::serde::Deserializer<'de>,
             {
-                let id = u32::deserialize(deserializer)?;
+                let id = <$type>::deserialize(deserializer)?;
                 if id == 0 {
                     Err(::serde::de::Error::custom("expected a non-zero value"))
                 } else {
@@ -491,13 +506,14 @@ macro_rules! define_resource_id {
     };
 }
 
-define_resource_id!(WebGLBufferId);
-define_resource_id!(WebGLFramebufferId);
-define_resource_id!(WebGLRenderbufferId);
-define_resource_id!(WebGLTextureId);
-define_resource_id!(WebGLProgramId);
-define_resource_id!(WebGLShaderId);
-define_resource_id!(WebGLVertexArrayId);
+define_resource_id!(WebGLBufferId, u32);
+define_resource_id!(WebGLFramebufferId, u32);
+define_resource_id!(WebGLRenderbufferId, u32);
+define_resource_id!(WebGLTextureId, u32);
+define_resource_id!(WebGLProgramId, u32);
+define_resource_id!(WebGLShaderId, u32);
+define_resource_id!(WebGLVertexArrayId, u32);
+define_resource_id!(WebGLSyncId, u64);
 
 #[derive(
     Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
@@ -885,4 +901,5 @@ pub struct GLLimits {
     pub max_varying_vectors: u32,
     pub max_vertex_texture_image_units: u32,
     pub max_vertex_uniform_vectors: u32,
+    pub max_client_wait_timeout_webgl: std::time::Duration,
 }

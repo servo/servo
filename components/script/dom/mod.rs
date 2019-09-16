@@ -527,6 +527,7 @@ pub mod webglrenderbuffer;
 pub mod webglrenderingcontext;
 pub mod webglshader;
 pub mod webglshaderprecisionformat;
+pub mod webglsync;
 pub mod webgltexture;
 pub mod webgluniformlocation;
 pub mod webglvertexarrayobjectoes;
