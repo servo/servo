@@ -18,9 +18,6 @@ typedef unsigned long long GLuint64;
 // interface WebGLSampler : WebGLObject {
 // };
 
-// interface WebGLSync : WebGLObject {
-// };
-
 // interface WebGLTransformFeedback : WebGLObject {
 // };
 
@@ -546,12 +543,12 @@ interface WebGL2RenderingContextBase
   any getSamplerParameter(WebGLSampler sampler, GLenum pname);*/
 
   /* Sync objects */
-  /*WebGLSync? fenceSync(GLenum condition, GLbitfield flags);
+  WebGLSync? fenceSync(GLenum condition, GLbitfield flags);
   [WebGLHandlesContextLoss] GLboolean isSync(WebGLSync? sync);
   void deleteSync(WebGLSync? sync);
   GLenum clientWaitSync(WebGLSync sync, GLbitfield flags, GLuint64 timeout);
   void waitSync(WebGLSync sync, GLbitfield flags, GLint64 timeout);
-  any getSyncParameter(WebGLSync sync, GLenum pname);*/
+  any getSyncParameter(WebGLSync sync, GLenum pname);
 
   /* Transform Feedback */
   /*WebGLTransformFeedback? createTransformFeedback();
