@@ -697,7 +697,9 @@ pub struct HttpCacheEntry {
     /// Resources corresponding to the entry.
     pub resources: Arc<RwLock<Vec<CachedResource>>>,
     /// The state of the entry.
-    /// A state of `PendingStore` will see any concurrent client block on the condvar,
+    ///
+    /// A state of `PendingStore`
+    /// will see any concurrent client to `construct_response` block on the condvar,
     /// untile the state is set to `ReadyToConstruct`.
     state: Arc<(Mutex<CacheEntryState>, Condvar)>,
     /// The request key of this entry.
