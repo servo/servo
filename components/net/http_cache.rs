@@ -127,13 +127,27 @@ pub struct HttpCache {
     entries: HashMap<CacheKey, HttpCacheEntry>,
 }
 
-/// Determine if a given response is cacheable based on the initial metadata received.
+/// Determine if a response is cacheable by default <https://tools.ietf.org/html/rfc7231#section-6.1>
+fn is_cacheable_by_default(status_code: u16) -> bool {
+    match status_code {
+        200 | 203 | 204 | 206 | 300 | 301 | 404 | 405 | 410 | 414 | 501 => true,
+        _ => false,
+    }
+}
+
+/// Determine if a given response is cacheable.
 /// Based on <https://tools.ietf.org/html/rfc7234#section-3>
-fn response_is_cacheable(metadata: &Metadata) -> bool {
+fn response_is_cacheable(metadata: &Metadata, response: &Response) -> bool {
     // TODO: if we determine that this cache should be considered shared:
     // 1. check for absence of private response directive <https://tools.ietf.org/html/rfc7234#section-5.2.2.6>
     // 2. check for absence of the Authorization header field.
-    let mut is_cacheable = false;
+
+    let mut is_cacheable = if let Some((ref code, _)) = response.raw_status {
+        is_cacheable_by_default(*code)
+    } else {
+        false
+    };
+
     let headers = metadata.headers.as_ref().unwrap();
     if headers.contains_key(header::EXPIRES) ||
         headers.contains_key(header::LAST_MODIFIED) ||
@@ -239,19 +253,16 @@ fn get_response_expiry(response: &Response) -> Duration {
         } else {
             max_heuristic
         };
-        match *code {
-            200 | 203 | 204 | 206 | 300 | 301 | 404 | 405 | 410 | 414 | 501 => {
-                // Status codes that are cacheable by default <https://tools.ietf.org/html/rfc7231#section-6.1>
-                return heuristic_freshness;
-            },
-            _ => {
-                // Other status codes can only use heuristic freshness if the public cache directive is present.
-                if let Some(ref directives) = response.headers.typed_get::<CacheControl>() {
-                    if directives.public() {
-                        return heuristic_freshness;
-                    }
+        if is_cacheable_by_default(*code) {
+            // Status codes that are cacheable by default can use heuristic to determine freshness.
+            return heuristic_freshness;
+        } else {
+            // Other status codes can only use heuristic freshness if the public cache directive is present.
+            if let Some(ref directives) = response.headers.typed_get::<CacheControl>() {
+                if directives.public() {
+                    return heuristic_freshness;
                 }
-            },
+            }
         }
     }
     // Requires validation upon first use as default.
@@ -756,7 +767,7 @@ impl HttpCacheEntry {
         }
 
         let cached_resources = self.resources.read().unwrap();
-        let mut candidates = cached_resources
+        let mut candidates: Vec<&CachedResource> = cached_resources
             .iter()
             .filter(|r| check_vary_headers(request, r))
             .collect();
@@ -939,9 +950,11 @@ impl HttpCacheEntry {
                 unsafe_: metadata,
             }) |
             Ok(FetchMetadata::Unfiltered(metadata)) => metadata,
-            _ => return,
+            _ => {
+                return;
+            },
         };
-        if !response_is_cacheable(&metadata) {
+        if !response_is_cacheable(&metadata, response) {
             return;
         }
         let expiry = get_response_expiry(&response);
