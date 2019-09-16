@@ -7,6 +7,7 @@
 <meta name="assert" content="Verify that margin is taken into account.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
 <script src="/mathml/support/mathml-fragments.js"></script>
 <script src="/mathml/support/box-comparison.js"></script>
 <script>
@@ -25,6 +26,7 @@
 
         if (FragmentHelper.isEmpty(tag)) {
             test(function() {
+                assert_true(MathMLFeatureDetection[`has_${tag}`](), `${tag} is supported`);
                 var s = compareSizeWithAndWithoutStyle(tag, style);
                 assert_approx_equals(s.width_delta, 30 + 40, epsilon, "left/right margin");
                 assert_approx_equals(s.height_delta, 50 + 60, epsilon, "top/bottom margin");
@@ -36,6 +38,7 @@
         }
 
         test(function() {
+            assert_true(MathMLFeatureDetection[`has_${tag}`](), `${tag} is supported`);
             var s = compareSpaceWithAndWithoutStyle(tag, style);
             assert_approx_equals(s.left_delta, 30, epsilon, "left margin");
             assert_approx_equals(s.right_delta, 40, epsilon, "right margin");
@@ -47,6 +50,7 @@
         }, `Margin properties on ${tag}`);
 
         test(function() {
+            assert_true(MathMLFeatureDetection[`has_${tag}`](), `${tag} is supported`);
             var s = compareSpaceWithAndWithoutStyle(tag, style, null, "rtl");
             assert_approx_equals(s.left_delta, 30, epsilon, "left margin");
             assert_approx_equals(s.right_delta, 40, epsilon, "right margin");
@@ -58,6 +62,7 @@
         }, `Margin properties on ${tag} (rtl)`);
 
         test(function() {
+            assert_true(MathMLFeatureDetection[`has_${tag}`](), `${tag} is supported`);
             // Apply the same margin style on the parent mrow.
             // The margins are not collapsed so they should be added twice.
             var s = compareSpaceWithAndWithoutStyle(tag, style, style);

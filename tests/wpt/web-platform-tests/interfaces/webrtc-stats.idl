@@ -351,6 +351,7 @@ partial dictionary RTCCodecStats {
 };
 
 partial dictionary RTCIceCandidateStats {
+   boolean deleted = false;
    boolean isRemote;
 };
 

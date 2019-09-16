@@ -7,6 +7,7 @@
 <meta name="assert" content="Verify that width, height, inline-size and block-size properties are ignored.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
 <script src="/mathml/support/mathml-fragments.js"></script>
 <script src="/mathml/support/box-comparison.js"></script>
 <script>
@@ -22,6 +23,7 @@
             continue;
 
         test(function() {
+            assert_true(MathMLFeatureDetection[`has_${tag}`](), `${tag} is supported`);
             var style = "width: 500px; height: 400px;";
             var s = compareSizeWithAndWithoutStyle(tag, style);
             assert_approx_equals(s.width_delta, 0, epsilon, "width");
@@ -31,6 +33,7 @@
         }, `width and height properties on ${tag}`);
 
         test(function() {
+            assert_true(MathMLFeatureDetection[`has_${tag}`](), `${tag} is supported`);
             var style = "inline-size: 500px; block-size: 400px;";
             var s = compareSizeWithAndWithoutStyle(tag, style);
             assert_approx_equals(s.width_delta, 0, epsilon, "width");
