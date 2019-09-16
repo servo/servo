@@ -254,7 +254,7 @@ fn get_response_expiry(response: &Response) -> Duration {
             max_heuristic
         };
         if is_cacheable_by_default(*code) {
-            // Status codes that are cacheable by default can use heuristic to determine freshness.
+            // Status codes that are cacheable by default can use heuristics to determine freshness.
             return heuristic_freshness;
         } else {
             // Other status codes can only use heuristic freshness if the public cache directive is present.
