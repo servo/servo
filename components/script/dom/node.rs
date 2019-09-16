@@ -1009,7 +1009,7 @@ impl Node {
         if self.unique_id.borrow().is_none() {
             let mut uid = self.unique_id.borrow_mut();
             *uid = Some(UniqueId::new());
-            ScriptThread::save_node_id(self.unique_id());
+            ScriptThread::save_node_id(uid.as_ref().unwrap().borrow().to_simple().to_string());
         }
         self.unique_id.borrow().as_ref().unwrap().borrow().to_simple().to_string()
     }
