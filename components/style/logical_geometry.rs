@@ -140,6 +140,13 @@ impl WritingMode {
                         TextOrientation::Mixed => {},
                         TextOrientation::Upright => {
                             flags.insert(WritingMode::UPRIGHT);
+
+                            // https://drafts.csswg.org/css-writing-modes-3/#valdef-text-orientation-upright:
+                            //
+                            // > This value causes the used value of direction
+                            // > to be ltr, and for the purposes of bidi
+                            // > reordering, causes all characters to be treated
+                            // > as strong LTR.
                             flags.remove(WritingMode::RTL);
                             flags.remove(WritingMode::INLINE_REVERSED);
                         },
