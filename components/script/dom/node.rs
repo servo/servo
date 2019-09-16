@@ -1011,7 +1011,13 @@ impl Node {
             *uid = Some(UniqueId::new());
             ScriptThread::save_node_id(uid.as_ref().unwrap().borrow().to_simple().to_string());
         }
-        self.unique_id.borrow().as_ref().unwrap().borrow().to_simple().to_string()
+        self.unique_id
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .borrow()
+            .to_simple()
+            .to_string()
     }
 
     pub fn summarize(&self) -> NodeInfo {
