@@ -766,7 +766,7 @@ impl HttpCacheEntry {
                 .unwrap();
             state = current_state;
             if time_out.timed_out() {
-                // After a timeout, ignore the pending store and go to the network.
+                // After a timeout, ignore the pending store.
                 break;
             }
         }
