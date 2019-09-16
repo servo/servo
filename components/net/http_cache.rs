@@ -379,7 +379,7 @@ fn create_resource_with_bytes_from_resource(
 /// Support for range requests <https://tools.ietf.org/html/rfc7233>.
 fn handle_range_request(
     request: &Request,
-    candidates: Vec<&CachedResource>,
+    candidates: &[&CachedResource],
     range_spec: Vec<(Bound<u64>, Bound<u64>)>,
     done_chan: &mut DoneChannel,
 ) -> Option<CachedResponse> {
@@ -774,9 +774,12 @@ impl HttpCacheEntry {
 
         // Support for range requests
         if let Some(range_spec) = request.headers.typed_get::<Range>() {
-            if let Some(res) =
-                handle_range_request(request, candidates, range_spec.iter().collect(), done_chan)
-            {
+            if let Some(res) = handle_range_request(
+                request,
+                candidates.as_slice(),
+                range_spec.iter().collect(),
+                done_chan,
+            ) {
                 return Some(res);
             }
         } else {
