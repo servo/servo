@@ -28,7 +28,7 @@ use std::collections::HashMap;
 use std::ops::Bound;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Condvar, Mutex, RwLock};
-use std::time::SystemTime;
+use std::time::{Duration as StdDuration, SystemTime};
 use time::{Duration, Timespec, Tm};
 
 /// The key used to differentiate requests in the cache.
@@ -137,16 +137,12 @@ fn is_cacheable_by_default(status_code: u16) -> bool {
 
 /// Determine if a given response is cacheable.
 /// Based on <https://tools.ietf.org/html/rfc7234#section-3>
-fn response_is_cacheable(metadata: &Metadata, response: &Response) -> bool {
+fn response_is_cacheable(metadata: &Metadata) -> bool {
     // TODO: if we determine that this cache should be considered shared:
     // 1. check for absence of private response directive <https://tools.ietf.org/html/rfc7234#section-5.2.2.6>
     // 2. check for absence of the Authorization header field.
 
-    let mut is_cacheable = if let Some((ref code, _)) = response.raw_status {
-        is_cacheable_by_default(*code)
-    } else {
-        false
-    };
+    let mut is_cacheable = false;
 
     let headers = metadata.headers.as_ref().unwrap();
     if headers.contains_key(header::EXPIRES) ||
@@ -765,7 +761,14 @@ impl HttpCacheEntry {
         let (lock, cvar) = &*self.state;
         let mut state = lock.lock().unwrap();
         while *state == CacheEntryState::PendingStore {
-            state = cvar.wait(state).unwrap();
+            let (current_state, time_out) = cvar
+                .wait_timeout(state, StdDuration::from_millis(500))
+                .unwrap();
+            state = current_state;
+            if time_out.timed_out() {
+                // After a timeout, ignore the pending store and go to the network.
+                break;
+            }
         }
 
         let cached_resources = self.resources.read().unwrap();
@@ -957,7 +960,7 @@ impl HttpCacheEntry {
             Ok(FetchMetadata::Unfiltered(metadata)) => metadata,
             _ => return,
         };
-        if !response_is_cacheable(&metadata, response) {
+        if !response_is_cacheable(&metadata) {
             return;
         }
         let expiry = get_response_expiry(&response);
