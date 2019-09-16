@@ -8,14 +8,14 @@
  Exposed=(Window,Worker),
  Serializable]
 interface DOMPointReadOnly {
-    [NewObject] static DOMPointReadOnly fromPoint(optional DOMPointInit other);
+    [NewObject] static DOMPointReadOnly fromPoint(optional DOMPointInit other = {});
 
     readonly attribute unrestricted double x;
     readonly attribute unrestricted double y;
     readonly attribute unrestricted double z;
     readonly attribute unrestricted double w;
 
-    [NewObject] DOMPoint matrixTransform(optional DOMMatrixInit matrix);
+    [NewObject] DOMPoint matrixTransform(optional DOMMatrixInit matrix = {});
 
     [Default] object toJSON();
 };
@@ -26,7 +26,7 @@ interface DOMPointReadOnly {
  Serializable,
  LegacyWindowAlias=SVGPoint]
 interface DOMPoint : DOMPointReadOnly {
-    [NewObject] static DOMPoint fromPoint(optional DOMPointInit other);
+    [NewObject] static DOMPoint fromPoint(optional DOMPointInit other = {});
 
     inherit attribute unrestricted double x;
     inherit attribute unrestricted double y;
@@ -46,7 +46,7 @@ dictionary DOMPointInit {
  Exposed=(Window,Worker),
  Serializable]
 interface DOMRectReadOnly {
-    [NewObject] static DOMRectReadOnly fromRect(optional DOMRectInit other);
+    [NewObject] static DOMRectReadOnly fromRect(optional DOMRectInit other = {});
 
     readonly attribute unrestricted double x;
     readonly attribute unrestricted double y;
@@ -66,7 +66,7 @@ interface DOMRectReadOnly {
  Serializable,
  LegacyWindowAlias=SVGRect]
 interface DOMRect : DOMRectReadOnly {
-    [NewObject] static DOMRect fromRect(optional DOMRectInit other);
+    [NewObject] static DOMRect fromRect(optional DOMRectInit other = {});
 
     inherit attribute unrestricted double x;
     inherit attribute unrestricted double y;
@@ -87,13 +87,13 @@ interface DOMRectList {
     getter DOMRect? item(unsigned long index);
 };
 
-[Constructor(optional DOMPointInit p1, optional DOMPointInit p2,
-             optional DOMPointInit p3, optional DOMPointInit p4),
+[Constructor(optional DOMPointInit p1 = {}, optional DOMPointInit p2 = {},
+             optional DOMPointInit p3 = {}, optional DOMPointInit p4 = {}),
  Exposed=(Window,Worker),
  Serializable]
 interface DOMQuad {
-    [NewObject] static DOMQuad fromRect(optional DOMRectInit other);
-    [NewObject] static DOMQuad fromQuad(optional DOMQuadInit other);
+    [NewObject] static DOMQuad fromRect(optional DOMRectInit other = {});
+    [NewObject] static DOMQuad fromQuad(optional DOMQuadInit other = {});
 
     [SameObject] readonly attribute DOMPoint p1;
     [SameObject] readonly attribute DOMPoint p2;
@@ -115,7 +115,7 @@ dictionary DOMQuadInit {
  Exposed=(Window,Worker),
  Serializable]
 interface DOMMatrixReadOnly {
-    [NewObject] static DOMMatrixReadOnly fromMatrix(optional DOMMatrixInit other);
+    [NewObject] static DOMMatrixReadOnly fromMatrix(optional DOMMatrixInit other = {});
     [NewObject] static DOMMatrixReadOnly fromFloat32Array(Float32Array array32);
     [NewObject] static DOMMatrixReadOnly fromFloat64Array(Float64Array array64);
 
@@ -174,12 +174,12 @@ interface DOMMatrixReadOnly {
                                           optional unrestricted double angle = 0);
     [NewObject] DOMMatrix skewX(optional unrestricted double sx = 0);
     [NewObject] DOMMatrix skewY(optional unrestricted double sy = 0);
-    [NewObject] DOMMatrix multiply(optional DOMMatrixInit other);
+    [NewObject] DOMMatrix multiply(optional DOMMatrixInit other = {});
     [NewObject] DOMMatrix flipX();
     [NewObject] DOMMatrix flipY();
     [NewObject] DOMMatrix inverse();
 
-    [NewObject] DOMPoint transformPoint(optional DOMPointInit point);
+    [NewObject] DOMPoint transformPoint(optional DOMPointInit point = {});
     [NewObject] Float32Array toFloat32Array();
     [NewObject] Float64Array toFloat64Array();
 
@@ -192,7 +192,7 @@ interface DOMMatrixReadOnly {
  Serializable,
  LegacyWindowAlias=(SVGMatrix,WebKitCSSMatrix)]
 interface DOMMatrix : DOMMatrixReadOnly {
-    [NewObject] static DOMMatrix fromMatrix(optional DOMMatrixInit other);
+    [NewObject] static DOMMatrix fromMatrix(optional DOMMatrixInit other = {});
     [NewObject] static DOMMatrix fromFloat32Array(Float32Array array32);
     [NewObject] static DOMMatrix fromFloat64Array(Float64Array array64);
 
@@ -222,8 +222,8 @@ interface DOMMatrix : DOMMatrixReadOnly {
     inherit attribute unrestricted double m44;
 
     // Mutable transform methods
-    DOMMatrix multiplySelf(optional DOMMatrixInit other);
-    DOMMatrix preMultiplySelf(optional DOMMatrixInit other);
+    DOMMatrix multiplySelf(optional DOMMatrixInit other = {});
+    DOMMatrix preMultiplySelf(optional DOMMatrixInit other = {});
     DOMMatrix translateSelf(optional unrestricted double tx = 0,
                             optional unrestricted double ty = 0,
                             optional unrestricted double tz = 0);

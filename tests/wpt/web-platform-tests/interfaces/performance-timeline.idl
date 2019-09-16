@@ -21,8 +21,9 @@ interface PerformanceEntry {
 
 callback PerformanceObserverCallback = void (PerformanceObserverEntryList entries,
                                              PerformanceObserver observer);
-[Constructor(PerformanceObserverCallback callback), Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface PerformanceObserver {
+  constructor(PerformanceObserverCallback callback);
   void observe (optional PerformanceObserverInit options = {});
   void disconnect ();
   PerformanceEntryList takeRecords();

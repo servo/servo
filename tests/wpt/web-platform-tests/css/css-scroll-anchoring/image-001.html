@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Scroll Anchoring: Anchor node can be an image</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/#anchor-node-selection">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/4247">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1540203">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body { height: 4000px }
+#spacer { height: 100px }
+img {
+  width: 500px;
+  height: 500px;
+  background: green;
+}
+</style>
+<div id=spacer></div>
+<br><br>
+<img>
+<script>
+test(() => {
+  document.scrollingElement.scrollTop = 150;
+  document.querySelector("#spacer").style.height = "150px";
+  assert_equals(document.scrollingElement.scrollTop, 200);
+}, "Anchor selection can select images");
+</script>
