@@ -603,9 +603,7 @@ impl HttpCache {
     fn invalidate_for_url(&mut self, url: &ServoUrl) {
         let entry_key = CacheKey::from_servo_url(url);
         if let Some(entry) = self.entries.get(&entry_key.clone()) {
-            for cached_resource in entry.resources.write().unwrap().iter_mut() {
-                cached_resource.data.expires = Duration::seconds(0i64);
-            }
+            entry.invalidate();
         } else {
             warn!("Http-cache: invalidate_for_url called for unknown entry.");
         }
@@ -691,7 +689,7 @@ enum CacheEntryState {
 /// and containing a list of cached resources.
 pub struct HttpCacheEntry {
     /// Resources corresponding to the entry.
-    pub resources: Arc<RwLock<Vec<CachedResource>>>,
+    resources: Arc<RwLock<Vec<CachedResource>>>,
     /// The state of the entry.
     ///
     /// A state of `PendingStore`
@@ -862,6 +860,14 @@ impl HttpCacheEntry {
             for done_sender in awaiting_consumers.drain(..) {
                 let _ = done_sender.send(to_send.clone());
             }
+        }
+    }
+
+    /// Invalidation.
+    /// <https://tools.ietf.org/html/rfc7234#section-4.4>
+    pub fn invalidate(&self) {
+        for cached_resource in self.resources.write().unwrap().iter_mut() {
+            cached_resource.data.expires = Duration::seconds(0i64);
         }
     }
 
