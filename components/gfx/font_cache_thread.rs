@@ -51,10 +51,13 @@ impl FontTemplates {
         // regular/bold/italic/bolditalic with fixed offsets and a
         // static decision table for fallback between these values.
         for template in &mut self.templates {
+            info!("checking template {:?}", template.identifier());
             let maybe_template = template.data_for_descriptor(fctx, desc);
             if maybe_template.is_some() {
-                info!("found a template that matches");
+                info!("found a template that matches in {:?}", template.identifier());
                 return maybe_template;
+            } else {
+                info!("no match template found in {:?}", template.identifier());
             }
         }
 
@@ -316,15 +319,19 @@ impl FontCache {
             },
             Source::Local(ref font) => {
                 let font_face_name = LowercaseString::new(&font.name);
+                info!("adding web font for {:?} ({:?})", family_name, font.name);
                 let templates = &mut self.web_families.get_mut(&family_name).unwrap();
                 let mut found = false;
                 for_each_variation(&font_face_name, |path| {
                     found = true;
+                    info!("adding template for web font for {:?}", path);
                     templates.add_template(Atom::from(&*path), None);
                 });
                 if found {
+                    info!("found variation for {:?}", family_name);
                     sender.send(()).unwrap();
                 } else {
+                    info!("did not find any variations for {:?}", family_name);
                     let msg = Command::AddWebFont(family_name, sources, sender);
                     self.channel_to_self.send(msg).unwrap();
                 }
@@ -404,11 +411,13 @@ impl FontCache {
         let webrender_api = &self.webrender_api;
         let webrender_fonts = &mut self.webrender_fonts;
 
+        info!("fetching template info for {}", template.identifier);
         let font_key = *webrender_fonts
             .entry(template.identifier.clone())
             .or_insert_with(|| {
                 let font_key = webrender_api.generate_font_key();
                 let mut txn = webrender_api::Transaction::new();
+                info!("no entry, getting memory bytes and native font");
                 match (template.bytes_if_in_memory(), template.native_font()) {
                     (Some(bytes), _) => txn.add_raw_font(font_key, bytes, 0),
                     (None, Some(native_font)) => txn.add_native_font(font_key, native_font),
