@@ -45,6 +45,13 @@ test_invalid_value("clip-path", "ellipse(-50px 60px at 70% 80%)");
 test_invalid_value("clip-path", "polygon(1%)");
 
 test_invalid_value("clip-path", "unknown-box");
+
+test_invalid_value("clip-path", 'path(abc, "m 20 0 h -100 z")');
+test_invalid_value("clip-path", 'path(nonzero)');
+test_invalid_value("clip-path", 'path(evenodd, "")');
+test_invalid_value("clip-path", 'path("m 20 0 h -100", nonzero)');
+
+
 </script>
 </body>
 </html>

@@ -16,8 +16,9 @@ dictionary PointerEventInit : MouseEventInit {
     boolean     isPrimary = false;
 };
 
-[Constructor(DOMString type, optional PointerEventInit eventInitDict = {}), Exposed=Window]
+[Exposed=Window]
 interface PointerEvent : MouseEvent {
+    constructor(DOMString type, optional PointerEventInit eventInitDict = {});
     readonly        attribute long        pointerId;
     readonly        attribute double      width;
     readonly        attribute double      height;

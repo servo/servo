@@ -140,6 +140,23 @@ promise_test(async t => {
 }, "NFCWriter.push should fail if signal is not an AbortSignal.");
 
 nfc_test(async (t, mockNFC) => {
+  const writer1 = new NFCWriter();
+  const writer2 = new NFCWriter();
+  const controller = new AbortController();
+  mockNFC.setPendingPushCompleted(false);
+  const p1 = writer1.push(test_text_data,
+      { signal: controller.signal, timeout: 100 });
+
+  // Even though push request is grantable,
+  // this abort should be processed synchronously.
+  controller.abort();
+  await promise_rejects(t, 'AbortError', p1);
+
+  await writer2.push(test_text_data);
+  assertNDEFMessagesEqual(test_text_data, mockNFC.pushedMessage());
+}, "Synchronously signaled abort.");
+
+nfc_test(async (t, mockNFC) => {
   const writer = new NFCWriter();
   mockNFC.setHWStatus(NFCHWStatus.DISABLED);
   await promise_rejects(t, 'NotReadableError', writer.push(test_text_data));
@@ -288,20 +305,35 @@ nfc_test(async (t, mockNFC) => {
 }, "Check that provided NFCPushOptions values are correctly converted.");
 
 nfc_test(async (t, mockNFC) => {
-  const writer1 = new NFCWriter();
-  const writer2 = new NFCWriter();
+  const reader = new NFCReader();
+  const message = createMessage([createTextRecord(test_text_data)]);
   const controller = new AbortController();
-  mockNFC.setPendingPushCompleted(false);
-  const p1 = writer1.push(test_text_data,
-      { signal: controller.signal, timeout: 100 });
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const promise = readerWatcher.wait_for("reading").then(event => {
+    controller.abort();
+    assertWebNDEFMessagesEqual(event.message, new NDEFMessage(message));
+  });
 
-  // Even though push request is grantable,
-  // this abort should be processed synchronously.
-  controller.abort();
-  await promise_rejects(t, 'AbortError', p1);
+  reader.scan({ signal: controller.signal });
 
-  await writer2.push(test_text_data);
+  const writer = new NFCWriter();
+  await writer.push(test_text_data, { ignoreRead: false });
+  mockNFC.setReadingMessage(message);
   assertNDEFMessagesEqual(test_text_data, mockNFC.pushedMessage());
-}, "Synchronously signaled abort.");
+  await promise;
+}, "NFCWriter.push should read data when ignoreRead is false.");
+
+nfc_test(async (t, mockNFC) => {
+  const reader = new NFCReader();
+  const message = createMessage([createTextRecord(test_text_data)]);
+  // Ignore reading if NFCPushOptions.ignoreRead is true
+  reader.onreading = t.unreached_func("reading event should not be fired.");
+  reader.scan();
+
+  const writer = new NFCWriter();
+  await writer.push(test_text_data, { ignoreRead: true });
+  mockNFC.setReadingMessage(message);
+  assertNDEFMessagesEqual(test_text_data, mockNFC.pushedMessage());
+}, "NFCWriter.push should ignore reading data when ignoreRead is true.");
 
 </script>

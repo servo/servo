@@ -12,8 +12,8 @@ interface Report {
   readonly attribute ReportBody? body;
 };
 
-[Constructor(ReportingObserverCallback callback, optional ReportingObserverOptions options)]
 interface ReportingObserver {
+  constructor(ReportingObserverCallback callback, optional ReportingObserverOptions options = {});
   void observe();
   void disconnect();
   ReportList takeRecords();

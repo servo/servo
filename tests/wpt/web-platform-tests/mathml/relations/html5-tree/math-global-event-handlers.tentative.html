@@ -124,18 +124,18 @@
           assert_equals(el[name], null, `The ${name} property must be null (remove attribute)`);
         }, `${name}: dynamic changes on the attribute`);
 
-        test(() => {
+        async_test(t => {
           const element = document.createElementNS(
             "http://www.w3.org/1998/Math/MathML",
             "math"
           );
-          element[name] = e => {
+          element[name] = t.step_func_done(e => {
             assert_equals(
               e.currentTarget,
               element,
               "The event must be fired at the <math> element"
             );
-          };
+          });
 
           element.dispatchEvent(new Event(withoutOn));
         }, `${name}: dispatching an Event at a <math> element must trigger element.${name}`);

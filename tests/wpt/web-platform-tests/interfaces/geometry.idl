@@ -3,11 +3,12 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Geometry Interfaces Module Level 1 (https://drafts.fxtf.org/geometry/)
 
-[Constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
-             optional unrestricted double z = 0, optional unrestricted double w = 1),
- Exposed=(Window,Worker),
+[Exposed=(Window,Worker),
  Serializable]
 interface DOMPointReadOnly {
+    constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
+            optional unrestricted double z = 0, optional unrestricted double w = 1);
+
     [NewObject] static DOMPointReadOnly fromPoint(optional DOMPointInit other = {});
 
     readonly attribute unrestricted double x;
@@ -20,12 +21,13 @@ interface DOMPointReadOnly {
     [Default] object toJSON();
 };
 
-[Constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
-             optional unrestricted double z = 0, optional unrestricted double w = 1),
- Exposed=(Window,Worker),
+[Exposed=(Window,Worker),
  Serializable,
  LegacyWindowAlias=SVGPoint]
 interface DOMPoint : DOMPointReadOnly {
+    constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
+            optional unrestricted double z = 0, optional unrestricted double w = 1);
+
     [NewObject] static DOMPoint fromPoint(optional DOMPointInit other = {});
 
     inherit attribute unrestricted double x;
@@ -41,11 +43,12 @@ dictionary DOMPointInit {
     unrestricted double w = 1;
 };
 
-[Constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
-             optional unrestricted double width = 0, optional unrestricted double height = 0),
- Exposed=(Window,Worker),
+[Exposed=(Window,Worker),
  Serializable]
 interface DOMRectReadOnly {
+    constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
+            optional unrestricted double width = 0, optional unrestricted double height = 0);
+
     [NewObject] static DOMRectReadOnly fromRect(optional DOMRectInit other = {});
 
     readonly attribute unrestricted double x;
@@ -60,12 +63,13 @@ interface DOMRectReadOnly {
     [Default] object toJSON();
 };
 
-[Constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
-             optional unrestricted double width = 0, optional unrestricted double height = 0),
- Exposed=(Window,Worker),
+[Exposed=(Window,Worker),
  Serializable,
  LegacyWindowAlias=SVGRect]
 interface DOMRect : DOMRectReadOnly {
+    constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
+            optional unrestricted double width = 0, optional unrestricted double height = 0);
+
     [NewObject] static DOMRect fromRect(optional DOMRectInit other = {});
 
     inherit attribute unrestricted double x;
@@ -87,11 +91,12 @@ interface DOMRectList {
     getter DOMRect? item(unsigned long index);
 };
 
-[Constructor(optional DOMPointInit p1 = {}, optional DOMPointInit p2 = {},
-             optional DOMPointInit p3 = {}, optional DOMPointInit p4 = {}),
- Exposed=(Window,Worker),
+[Exposed=(Window,Worker),
  Serializable]
 interface DOMQuad {
+    constructor(optional DOMPointInit p1 = {}, optional DOMPointInit p2 = {},
+            optional DOMPointInit p3 = {}, optional DOMPointInit p4 = {});
+
     [NewObject] static DOMQuad fromRect(optional DOMRectInit other = {});
     [NewObject] static DOMQuad fromQuad(optional DOMQuadInit other = {});
 
@@ -111,10 +116,11 @@ dictionary DOMQuadInit {
   DOMPointInit p4;
 };
 
-[Constructor(optional (DOMString or sequence<unrestricted double>) init),
- Exposed=(Window,Worker),
+[Exposed=(Window,Worker),
  Serializable]
 interface DOMMatrixReadOnly {
+    constructor(optional (DOMString or sequence<unrestricted double>) init);
+
     [NewObject] static DOMMatrixReadOnly fromMatrix(optional DOMMatrixInit other = {});
     [NewObject] static DOMMatrixReadOnly fromFloat32Array(Float32Array array32);
     [NewObject] static DOMMatrixReadOnly fromFloat64Array(Float64Array array64);
@@ -187,11 +193,12 @@ interface DOMMatrixReadOnly {
     [Default] object toJSON();
 };
 
-[Constructor(optional (DOMString or sequence<unrestricted double>) init),
- Exposed=(Window,Worker),
+[Exposed=(Window,Worker),
  Serializable,
  LegacyWindowAlias=(SVGMatrix,WebKitCSSMatrix)]
 interface DOMMatrix : DOMMatrixReadOnly {
+    constructor(optional (DOMString or sequence<unrestricted double>) init);
+
     [NewObject] static DOMMatrix fromMatrix(optional DOMMatrixInit other = {});
     [NewObject] static DOMMatrix fromFloat32Array(Float32Array array32);
     [NewObject] static DOMMatrix fromFloat64Array(Float64Array array64);

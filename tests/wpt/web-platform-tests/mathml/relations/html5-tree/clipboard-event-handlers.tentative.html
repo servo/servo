@@ -24,23 +24,22 @@
   const EVENTS = ["copy", "cut", "paste"];
   const el = document.querySelector("math");
 
-  function addEventListenerTest(name) {
+  function dispatchEventTest(name) {
+    const mathEl = document.createElementNS(
+        "http://www.w3.org/1998/Math/MathML",
+        "math"
+    );
     async_test(test => {
-      el.addEventListener(
-        name,
-        test.step_func_done(e => {
-          assert_true(
-            true,
-            "MathML Elements should be able to receive ${name} events"
-          );
-        })
-      );
+      mathEl[`on${name}`] = test.step_func_done(e => {
+        assert_equals(e.currentTarget, mathEl,
+                      "The event must be fired at the <math> element");
+      });
       const event = new ClipboardEvent(name, {
         bubbles: true,
         cancellable: true
       });
-      el.dispatchEvent(event);
-    }, `math.addEventListener for ${name}`);
+      mathEl.dispatchEvent(event);
+    }, `${name}: dispatching an Event at a <math> element must trigger element.on${name}`);
   }
 
   function evaluatedHandlerTest(name) {
@@ -115,7 +114,7 @@
   }
 
   EVENTS.forEach(name => {
-    addEventListenerTest(name);
+    dispatchEventTest(name);
     evaluatedHandlerTest(name);
   });
 </script>

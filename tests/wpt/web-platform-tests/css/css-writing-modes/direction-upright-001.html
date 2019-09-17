@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<title>'text-orientation: upright' forces text to strong LTR in vertical typographic modes</title>
+<link rel=help href="https://www.w3.org/TR/css-writing-modes-3/#text-orientation">
+<link rel=match href="reference/direction-upright-001.html">
+<meta charset=utf-8>
+<style>
+  body > div {
+    border: solid silver;
+    float: left;
+    margin: 1em;
+    text-align: right;
+    font: 20px/1 sans-serif;
+  }
+  span { text-orientation: upright; }
+  hr { clear: both; }
+</style>
+
+<p>Test passes if both rows of boxes are identical (order, orientation, and arrangement of contents).
+
+<!-- test -->
+
+<div dir=rtl style="writing-mode: vertical-rl">
+ א ב <span>ג ד</span> <span>ה ו</span> ז<br>
+ ١ ٢ <span>٣ ٤</span> <span>٥ ٦</span> ٧
+</div>
+<div dir=rtl style="writing-mode: vertical-lr">
+ א ב <span>ג ד</span> <span>ה ו</span> ז<br>
+ ١ ٢ <span>٣ ٤</span> <span>٥ ٦</span> ٧
+</div>
+
+<!-- control -->
+
+<div dir=rtl>
+ א ב <span>ג ד</span> <span>ה ו</span> ז<br>
+ ١ ٢ <span>٣ ٤</span> <span>٥ ٦</span> ٧
+</div>
+<div dir=rtl style="writing-mode: sideways-rl">
+ א ב <span>ג ד</span> <span>ה ו</span> ז<br>
+ ١ ٢ <span>٣ ٤</span> <span>٥ ٦</span> ٧
+</div>
+<div dir=rtl style="writing-mode: sideways-lr">
+ א ב <span>ג ד</span> <span>ה ו</span> ז<br>
+ ١ ٢ <span>٣ ٤</span> <span>٥ ٦</span> ٧
+</div>
+
+<hr>
+
+<!-- reference -->
+
+<div style="writing-mode: vertical-rl">
+<bdo dir=ltr>
+ ז <span>ג ד</span> <span>ה ו</span> ב א<br>
+٧ <span>٣ ٤</span> <span>٥ ٦</span> ٢ ١
+</bdo>
+</div>
+<div style="writing-mode: vertical-lr">
+<bdo dir=ltr>
+ ז <span>ג ד</span> <span>ה ו</span> ב א<br>
+٧ <span>٣ ٤</span> <span>٥ ٦</span> ٢ ١
+</bdo>
+</div>
+
+<div dir=rtl> א ב ג ד ה ו ז<br>
+ ١ ٢ ٣ ٤ ٥ ٦ ٧
+</div>
+<div dir=rtl style="writing-mode: sideways-rl">
+ א ב ג ד ה ו ז<br>
+ ١ ٢ ٣ ٤ ٥ ٦ ٧
+</div>
+<div dir=rtl style="writing-mode: sideways-lr">
+ א ב ג ד ה ו ז<br>
+ ١ ٢ ٣ ٤ ٥ ٦ ٧
+</div>

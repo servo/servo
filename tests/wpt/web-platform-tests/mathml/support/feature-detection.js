@@ -271,6 +271,46 @@ var MathMLFeatureDetection = {
         return this._has_dir;
     },
 
+    "has_mathsize": function() {
+        if (!this.hasOwnProperty("_has_mathsize")) {
+            document.body.insertAdjacentHTML("beforeend", "<math style='font-size: 64px !important;'>\
+<mtext mathsize='32px'></mtext>\
+</math>");
+            var math = document.body.lastElementChild;
+            this._has_mathsize =
+                window.getComputedStyle(math.firstElementChild).
+                getPropertyValue('font-size') === '32px';
+            document.body.removeChild(math);
+        }
+        return this._has_mathsize;
+    },
+
+    "has_movablelimits": function() {
+        if (!this.hasOwnProperty("_has_movablelimits")) {
+            document.body.insertAdjacentHTML("beforeend", "<math>\
+<munder>\
+  <mo style='font-size: 30px !important' movablelimits='false'>A</mo>\
+  <mspace width='100px'></mspace>\
+</munder>\
+<munder>\
+  <mo style='font-size: 30px !important' movablelimits='true'>A</mo>\
+  <mspace width='100px'></mspace>\
+</munder>\
+</math>");
+            var math = document.body.lastElementChild;
+            var munder = math.getElementsByTagName("munder");
+            // If movablelimits is supported, the <mspace> will be placed next
+            // to <mo> rather than below it, so width_delta is about the width
+            // of the <mo>.
+            var width_delta =
+                munder[1].getBoundingClientRect().width -
+                munder[0].getBoundingClientRect().width;
+            this._has_movablelimits = this.has_munder() && width_delta > 20;
+            document.body.removeChild(math);
+        }
+        return this._has_movablelimits;
+    },
+
     "has_operator_spacing": function() {
         // https://mathml-refresh.github.io/mathml-core/#dfn-lspace
         // https://mathml-refresh.github.io/mathml-core/#layout-of-mrow
