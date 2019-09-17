@@ -432,7 +432,7 @@ impl FontGroup {
         S: FontSource,
         P: FnMut(&FontRef) -> bool,
     {
-        info!("checking families for font matching {:?} {:?}", self.family_descriptor, self.font_descriptor);
+        info!("checking families for font matching {:?} {:?}", self.descriptor);
         self.families
             .iter_mut()
             .filter_map(|family| family.font(&mut font_context))
