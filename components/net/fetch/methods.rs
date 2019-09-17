@@ -23,6 +23,7 @@ use net_traits::request::{Origin, ResponseTainting, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::ResourceAttribute;
 use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceFetchTiming};
+use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::fs::File;
@@ -52,7 +53,7 @@ pub struct FetchContext {
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     pub filemanager: FileManager,
     pub cancellation_listener: Arc<Mutex<CancellationListener>>,
-    pub timing: Arc<Mutex<ResourceFetchTiming>>,
+    pub timing: ServoArc<Mutex<ResourceFetchTiming>>,
 }
 
 pub struct CancellationListener {

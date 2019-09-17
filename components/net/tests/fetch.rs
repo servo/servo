@@ -36,6 +36,7 @@ use net_traits::{
     FetchTaskTarget, IncludeSubdomains, NetworkError, ReferrerPolicy, ResourceFetchTiming,
     ResourceTimingType,
 };
+use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::fs::File;
 use std::io::Read;
@@ -665,7 +666,7 @@ fn test_fetch_with_hsts() {
         devtools_chan: None,
         filemanager: FileManager::new(create_embedder_proxy()),
         cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
-        timing: Arc::new(Mutex::new(ResourceFetchTiming::new(
+        timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,
         ))),
     };
