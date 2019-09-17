@@ -23,7 +23,7 @@ use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
-use msg::constellation_msg::BrowsingContextId;
+use msg::constellation_msg::PipelineId;
 use servo_media::audio::context::OfflineAudioContextOptions as ServoMediaOfflineAudioContextOptions;
 use std::cell::Cell;
 use std::rc::Rc;
@@ -47,7 +47,7 @@ impl OfflineAudioContext {
         channel_count: u32,
         length: u32,
         sample_rate: f32,
-        browsing_context_id: BrowsingContextId,
+        pipeline_id: PipelineId,
     ) -> OfflineAudioContext {
         let options = ServoMediaOfflineAudioContextOptions {
             channels: channel_count as u8,
@@ -56,7 +56,7 @@ impl OfflineAudioContext {
         };
         let context = BaseAudioContext::new_inherited(
             BaseAudioContextOptions::OfflineAudioContext(options),
-            browsing_context_id,
+            pipeline_id,
         );
         OfflineAudioContext {
             context,
@@ -82,13 +82,11 @@ impl OfflineAudioContext {
         {
             return Err(Error::NotSupported);
         }
-        let browsing_context_id = window.window_proxy().top_level_browsing_context_id().0;
-        let context = OfflineAudioContext::new_inherited(
-            channel_count,
-            length,
-            sample_rate,
-            browsing_context_id,
-        );
+        let pipeline_id = window
+            .pipeline_id()
+            .expect("Cannot create audio context outside of a pipeline");
+        let context =
+            OfflineAudioContext::new_inherited(channel_count, length, sample_rate, pipeline_id);
         Ok(reflect_dom_object(
             Box::new(context),
             window,
