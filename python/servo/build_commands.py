@@ -741,6 +741,26 @@ class MachCommands(CommandBase):
             print('Removing virtualenv directory: %s' % virtualenv_path)
             shutil.rmtree(virtualenv_path)
 
+        uwp_artifacts = [
+            "support/hololens/x64/",
+            "support/hololens/ARM/",
+            "support/hololens/ARM64/",
+            "support/hololens/ServoApp/x64/",
+            "support/hololens/ServoApp/ARM/",
+            "support/hololens/ServoApp/ARM64/",
+            "support/hololens/ServoApp/Generated Files/",
+            "support/hololens/ServoApp/BundleArtifacts/",
+            "support/hololens/ServoApp/support/",
+            "support/hololens/ServoApp/Debug/",
+            "support/hololens/ServoApp/Release/",
+            "support/hololens/packages/",
+        ]
+
+        for uwp_artifact in uwp_artifacts:
+            dir_path = path.join(self.get_top_dir(), uwp_artifact)
+            if path.exists(dir_path):
+                shutil.rmtree(dir_path)
+
         opts = ["--manifest-path", manifest_path or path.join(self.context.topdir, "Cargo.toml")]
         if verbose:
             opts += ["-v"]
