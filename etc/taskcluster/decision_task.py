@@ -92,6 +92,7 @@ def main(task_for):
         macos_nightly()
         update_wpt()
         magicleap_nightly()
+        uwp_nightly()
 
 
 # These are disabled in a "real" decision task,
@@ -373,11 +374,29 @@ def android_x86_wpt():
     )
 
 
+def appx_artifact(debug, platforms):
+    return '/'.join([
+        'repo',
+        'support',
+        'hololens',
+        'AppPackages',
+        'ServoApp',
+        'ServoApp_1.0.0.0_%sTest' % 'Debug_' if debug else '',
+        'ServoApp_1.0.0.0_%s%s.appxbundle' % (
+            '_'.join(platforms), '_Debug' if debug else ''
+        ),
+    ])
+
+
 def windows_arm64():
     return (
         windows_build_task("UWP dev build", arch="arm64", package=False)
         .with_treeherder("Windows arm64")
-        .with_script("python mach build --dev --uwp --win-arm64")
+        .with_script(
+            "python mach build --dev --uwp --win-arm64",
+            "python mach package --dev --target aarch64-pc-windows-msvc --uwp=arm64",
+        )
+        .with_artifacts(appx_artifact(debug=True, platforms=['arm64']))
         .find_or_create("build.windows_uwp_arm64_dev." + CONFIG.task_id())
     )
 
@@ -386,8 +405,30 @@ def windows_uwp_x64():
     return (
         windows_build_task("UWP dev build", package=False)
         .with_treeherder("Windows x64")
-        .with_script("mach build --dev --uwp")
+        .with_script(
+            "mach build --dev --uwp",
+            "mach package --dev --uwp=x64",
+        )
+        .with_artifacts(appx_artifact(debug=True, platforms=['x64']))
         .find_or_create("build.windows_uwp_x64_dev." + CONFIG.task_id())
+    )
+
+
+def uwp_nightly():
+    return (
+        windows_build_task("Nightly UWP build and upload", package=False)
+        .with_treeherder("Windows x64", "UWP Nightly")
+        .with_features("taskclusterProxy")
+        .with_scopes("secrets:get:project/servo/s3-upload-credentials")
+        .with_script(
+            "mach build --release --uwp",
+            "python mach build --release --uwp --win-arm64",
+            "mach package --release --uwp=x64 --uwp=arm64",
+            "mach upload-nightly uwp --secret-from-taskcluster",
+        )
+        .with_artifacts(appx_artifact(debug=False, platforms=['x64', 'arm64']))
+        .with_max_run_time_minutes(3 * 60)
+        .find_or_create("build.windows_uwp_nightlies." + CONFIG.task_id())
     )
 
 

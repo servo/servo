@@ -597,6 +597,23 @@ install them, let us know by filing a bug!")
     def msvc_package_dir(self, package):
         return path.join(self.context.sharedir, "msvc-dependencies", package, msvc_deps[package])
 
+    def vs_dirs(self):
+        assert 'windows' in host_triple()
+        vsinstalldir = os.environ.get('VSINSTALLDIR')
+        vs_version = os.environ.get('VisualStudioVersion')
+        if vsinstalldir and vs_version:
+            msbuild_version = get_msbuild_version(vs_version)
+        else:
+            (vsinstalldir, vs_version, msbuild_version) = find_highest_msvc_version()
+        msbuildinstalldir = os.path.join(vsinstalldir, "MSBuild", msbuild_version, "Bin")
+        vcinstalldir = os.environ.get("VCINSTALLDIR", "") or os.path.join(vsinstalldir, "VC")
+        return {
+            'msbuild': msbuildinstalldir,
+            'vsdir': vsinstalldir,
+            'vs_version': vs_version,
+            'vcdir': vcinstalldir,
+        }
+
     def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
@@ -978,3 +995,34 @@ install them, let us know by filing a bug!")
                     sys.exit(error)
             else:
                 print("Clobber not needed.")
+
+
+def find_highest_msvc_version():
+    editions = ["Enterprise", "Professional", "Community", "BuildTools"]
+    prog_files = os.environ.get("ProgramFiles(x86)")
+    base_vs_path = os.path.join(prog_files, "Microsoft Visual Studio")
+
+    vs_versions = ["2019", "2017"]
+    versions = {
+        ("2019", "vs"): "16.0",
+        ("2017", "vs"): "15.0",
+    }
+
+    for version in vs_versions:
+        for edition in editions:
+            vs_version = versions[version, "vs"]
+            msbuild_version = get_msbuild_version(vs_version)
+
+            vsinstalldir = os.path.join(base_vs_path, version, edition)
+            if os.path.exists(vsinstalldir):
+                return (vsinstalldir, vs_version, msbuild_version)
+    print("Can't find MSBuild.exe installation under %s." % base_vs_path)
+    sys.exit(1)
+
+
+def get_msbuild_version(vs_version):
+    if vs_version in ("15.0", "14.0"):
+        msbuild_version = vs_version
+    else:
+        msbuild_version = "Current"
+    return msbuild_version
