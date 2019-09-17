@@ -19,7 +19,7 @@ promise_test(async t => {
   let w = window.open('/common/blank.html');
   await waitForLoad(w);
   t.add_cleanup(() => { w.close(); });
-  w.document.body.innerHTML = '<span tabindex=0></span>';
+  w.document.body.innerHTML = '<span tabindex=0 autofocus></span>';
   await waitUntilStableAutofocusState(w);
   assert_equals(w.document.activeElement.tagName, 'SPAN');
 }, 'Element with tabindex should support autofocus');

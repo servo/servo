@@ -900,6 +900,7 @@ for (var element in elements) {
     ReflectionTests.reflects({type: "enum", keywords: ["ltr", "rtl", "auto"]}, "dir", element);
     ReflectionTests.reflects("string", "className", element, "class");
     ReflectionTests.reflects("tokenlist", "classList", element, "class");
+    ReflectionTests.reflects("boolean", "autofocus", element);
     ReflectionTests.reflects("boolean", "hidden", element);
     ReflectionTests.reflects("string", "accessKey", element);
     // Don't try to test the defaultVal -- it should be either 0 or -1, but the

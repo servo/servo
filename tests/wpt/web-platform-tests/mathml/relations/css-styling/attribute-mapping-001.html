@@ -8,6 +8,7 @@
 <meta name="assert" content="Verify that dir, mathcolor, mathbackground and mathsize are mapped to CSS but that deprecated MathML3 attributes are not.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
 <script src="/mathml/support/mathml-fragments.js"></script>
 <style>
   #container {
@@ -72,6 +73,7 @@
           }, `mathsize on the ${tag} element is mapped to CSS font-size`);
 
           test(function() {
+              assert_true(MathMLFeatureDetection.has_mathsize(), "Superseding attributes are supported");
               var properties = ["background-color", "color", "fontfamily", "font-size", "font-style", "font-weight"];
               var oldStyle = {};
               properties.forEach(property => {

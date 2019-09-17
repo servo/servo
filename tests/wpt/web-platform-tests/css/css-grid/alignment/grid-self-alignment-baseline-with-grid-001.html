@@ -1,0 +1,69 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Grid Test: baseline align a display:block item with a display:grid item</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid/#grid-baselines">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <link rel="match" href="grid-self-alignment-baseline-with-grid-001-ref.html">
+  <style>
+html,body {
+  color:black; background-color:white; font:16px/1 Ahem; padding:0; margin:0;
+}
+
+.grid {
+  display: grid;
+  grid: 20px repeat(4, auto) 30px / 30px repeat(4, auto) 20px;
+  place-content: start;
+  place-items: baseline start;
+  border: 1px solid;
+  text-decoration: underline blue;
+}
+
+.inner-grid {
+  display: grid;
+  grid: auto auto / auto;
+  background: lightgrey;
+  grid-column: 2;
+  grid-row: 3;
+  min-width: 10px;
+  min-height: 0;
+  border: 0 solid lightblue;
+  border-top-width: 10px;
+  border-bottom-width: 40px;
+  place-content: inherit;
+  place-items: inherit;
+  padding-bottom: 20px;
+}
+
+x {
+  min-width: 40px;
+  min-height: 10px;
+  font-size: 10em;
+  background: silver;
+}
+
+  </style>
+</head>
+<body>
+
+<div class="grid">
+<y style="grid-area:3/1">A&nbsp;</y>
+<div class="inner-grid">
+  <x>&nbsp;A</x><x style="grid-row:2"></x>
+</div>
+</div>
+
+<div class="grid" style="align-items:last baseline">
+<y style="grid-area:3/1">A&nbsp;</y>
+<div class="inner-grid">
+  <x></x><x style="grid-row:2">&nbsp;A</x>
+</div>
+</div>
+
+</body>
+</html>

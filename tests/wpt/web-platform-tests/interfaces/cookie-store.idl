@@ -7,13 +7,13 @@
  SecureContext]
 interface CookieStore : EventTarget {
   Promise<CookieListItem?> get(USVString name);
-  Promise<CookieListItem?> get(optional CookieStoreGetOptions options);
+  Promise<CookieListItem?> get(optional CookieStoreGetOptions options = {});
 
   Promise<CookieList> getAll(USVString name);
-  Promise<CookieList> getAll(optional CookieStoreGetOptions options);
+  Promise<CookieList> getAll(optional CookieStoreGetOptions options = {});
 
   Promise<void> set(USVString name, USVString value,
-                    optional CookieStoreSetOptions options);
+                    optional CookieStoreSetOptions options = {});
   Promise<void> set(CookieStoreSetExtraOptions options);
 
   Promise<void> delete(USVString name);

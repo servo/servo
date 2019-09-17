@@ -97,7 +97,6 @@ dictionary ComputedEffectTiming : EffectTiming {
  Constructor(KeyframeEffect source)]
 interface KeyframeEffect : AnimationEffect {
     attribute (Element or CSSPseudoElement)? target;
-    attribute IterationCompositeOperation    iterationComposite;
     attribute CompositeOperation             composite;
     sequence<object> getKeyframes();
     void             setKeyframes(object? keyframes);
@@ -123,11 +122,8 @@ dictionary BaseKeyframe {
 };
 
 dictionary KeyframeEffectOptions : EffectTiming {
-    IterationCompositeOperation iterationComposite = "replace";
     CompositeOperation          composite = "replace";
 };
-
-enum IterationCompositeOperation { "replace", "accumulate" };
 
 enum CompositeOperation { "replace", "add", "accumulate" };
 

@@ -22,7 +22,7 @@ enum RTCStatsType {
 "local-candidate",
 "remote-candidate",
 "certificate",
-"stunserverconnection"
+"ice-server"
 };
 
 dictionary RTCRtpStreamStats : RTCStats {
@@ -61,6 +61,9 @@ dictionary RTCReceivedRtpStreamStats : RTCRtpStreamStats {
              double burstDiscardRate;
              double gapLossRate;
              double gapDiscardRate;
+             unsigned long framesDropped;
+             unsigned long partialFramesLost;
+             unsigned long fullFramesLost;
 };
 
 dictionary RTCInboundRtpStreamStats : RTCReceivedRtpStreamStats {
@@ -100,9 +103,6 @@ dictionary RTCInboundRtpStreamStats : RTCReceivedRtpStreamStats {
  double totalAudioEnergy;
  double totalSamplesDuration;
  unsigned long framesReceived;
- unsigned long framesDropped;
- unsigned long partialFramesLost;
- unsigned long fullFramesLost;
  DOMString decoderImplementation;
 };
 
@@ -114,10 +114,7 @@ dictionary RTCRemoteInboundRtpStreamStats : RTCReceivedRtpStreamStats {
 
 dictionary RTCSentRtpStreamStats : RTCRtpStreamStats {
              unsigned long packetsSent;
-             unsigned long packetsDiscardedOnSend;
-             unsigned long fecPacketsSent;
              unsigned long long bytesSent;
-             unsigned long long bytesDiscardedOnSend;
 };
 
 dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
@@ -126,6 +123,9 @@ dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
              DOMString senderId;
              DOMString remoteId;
              DOMHighResTimeStamp lastPacketSentTimestamp;
+             unsigned long packetsDiscardedOnSend;
+             unsigned long long bytesDiscardedOnSend;
+             unsigned long fecPacketsSent;
              unsigned long long retransmittedPacketsSent;
              unsigned long long retransmittedBytesSent;
              double targetBitrate;
@@ -137,6 +137,7 @@ dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
              unsigned long hugeFramesSent;
              unsigned long framesEncoded;
              unsigned long keyFramesEncoded;
+             unsigned long framesDiscardedOnSend;
              unsigned long long qpSum;
              unsigned long long totalSamplesSent;
              boolean voiceActivityFlag;
@@ -319,6 +320,8 @@ dictionary RTCIceCandidatePairStats : RTCStats {
              unsigned long long retransmissionsSent;
              unsigned long long consentRequestsSent;
              DOMHighResTimeStamp consentExpiredTimestamp;
+             unsigned long packetsDiscardedOnSend;
+             unsigned long long bytesDiscardedOnSend;
 };
 
 enum RTCStatsIceCandidatePairState {
@@ -336,7 +339,7 @@ dictionary RTCCertificateStats : RTCStats {
              DOMString issuerCertificateId;
 };
 
-dictionary RTCStunServerConnectionStats : RTCStats {
+dictionary RTCIceServerStats : RTCStats {
            DOMString url;
            long port;
            DOMString protocol;
