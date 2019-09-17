@@ -163,7 +163,7 @@ impl FontTemplate {
         fctx: &FontContextHandle,
         requested_desc: &FontTemplateDescriptor,
     ) -> Option<Arc<FontTemplateData>> {
-        info!("getting template descriptor for {:?}", self.identifier);
+        info!("getting template descriptor for {:?}, comparing against {:?}", self.identifier, requested_desc);
         self.descriptor(&fctx).and_then(|descriptor| {
             if *requested_desc == descriptor {
                 self.data().map_err(|_| { info!("error optaining data"); () }).ok()
@@ -207,7 +207,7 @@ impl FontTemplate {
             handle.stretchiness(),
             handle.style(),
         ));
-        info!("successfully instantiated {:?}", self.identifier);
+        info!("successfully instantiated {:?} with {:?}", self.identifier, self.descriptor);
         Ok(())
     }
 
