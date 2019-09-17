@@ -381,7 +381,7 @@ def appx_artifact(debug, platforms):
         'hololens',
         'AppPackages',
         'ServoApp',
-        'ServoApp_1.0.0.0_%sTest' % 'Debug_' if debug else '',
+        'ServoApp_1.0.0.0_%sTest' % ('Debug_' if debug else ''),
         'ServoApp_1.0.0.0_%s%s.appxbundle' % (
             '_'.join(platforms), '_Debug' if debug else ''
         ),
