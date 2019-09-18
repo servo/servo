@@ -145,6 +145,7 @@ use script_traits::{
 use servo_arc::Arc;
 use servo_atoms::Atom;
 use servo_config::pref;
+use servo_media::{ClientContextId, ServoMedia};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::cell::{Cell, Ref, RefMut};
@@ -499,12 +500,17 @@ impl Document {
         // Set the document's activity level, reflow if necessary, and suspend or resume timers.
         if activity != self.activity.get() {
             self.activity.set(activity);
+            let media = ServoMedia::get().unwrap();
+            let pipeline_id = self.window().pipeline_id().expect("doc with no pipeline");
+            let client_context_id =
+                ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
             if activity == DocumentActivity::FullyActive {
                 self.title_changed();
                 self.dirty_all_nodes();
                 self.window()
                     .reflow(ReflowGoal::Full, ReflowReason::CachedPageNeededReflow);
                 self.window().resume();
+                media.resume(&client_context_id);
                 // html.spec.whatwg.org/multipage/#history-traversal
                 // Step 4.6
                 if self.ready_state.get() == DocumentReadyState::Complete {
@@ -544,6 +550,7 @@ impl Document {
                 }
             } else {
                 self.window().suspend();
+                media.suspend(&client_context_id);
             }
         }
     }
