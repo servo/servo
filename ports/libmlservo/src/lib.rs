@@ -173,8 +173,8 @@ pub unsafe extern "C" fn init_servo(
         vr_init,
         xr_discovery,
         coordinates,
-        gl_context_pointer: Some(gl.gl_context),
-        native_display_pointer: Some(gl.display),
+        gl_context_pointer: Some(ctxt),
+        native_display_pointer: Some(disp),
     };
     let wakeup = Box::new(EventLoopWakerInstance);
     let shut_down_complete = Rc::new(Cell::new(false));
