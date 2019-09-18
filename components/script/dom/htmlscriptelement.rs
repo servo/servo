@@ -790,25 +790,12 @@ impl HTMLScriptElement {
 
             let module_record = module_tree.get_record().borrow();
             if let Some(record) = &*module_record {
-                // Step 7-2.
-                {
-                    let instantiated = module_tree.instantiate_module_tree(global, record.handle());
+                let evaluated = module_tree.execute_module(global, record.handle());
 
-                    if let Err(exception) = instantiated {
-                        module_tree.set_error(Some(exception.clone()));
-                        module_tree.report_error(&global);
-                        return;
-                    }
-                }
-
-                {
-                    let evaluated = module_tree.execute_module(global, record.handle());
-
-                    if let Err(exception) = evaluated {
-                        module_tree.set_error(Some(exception.clone()));
-                        module_tree.report_error(&global);
-                        return;
-                    }
+                if let Err(exception) = evaluated {
+                    module_tree.set_error(Some(exception.clone()));
+                    module_tree.report_error(&global);
+                    return;
                 }
             }
         }
