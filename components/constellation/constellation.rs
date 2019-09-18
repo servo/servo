@@ -157,6 +157,7 @@ use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WebDriver
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
 use servo_geometry::DeviceIndependentPixel;
+use servo_media::{ClientContextId, ServoMedia};
 use servo_rand::{random, Rng, ServoRng, SliceRandom};
 use servo_remutex::ReentrantMutex;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
@@ -4155,9 +4156,14 @@ where
         debug!("Setting activity of {} to be {:?}.", pipeline_id, activity);
         if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
             pipeline.set_activity(activity);
+            let media = ServoMedia::get().unwrap();
+            let client_context_id =
+                ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
             let child_activity = if activity == DocumentActivity::Inactive {
+                media.suspend(&client_context_id);
                 DocumentActivity::Active
             } else {
+                media.resume(&client_context_id);
                 activity
             };
             for child_id in &pipeline.children {

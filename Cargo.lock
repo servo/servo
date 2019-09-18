@@ -671,6 +671,7 @@ dependencies = [
  "profile_traits 0.0.1",
  "script_traits 0.0.1",
  "serde 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-media 0.1.0 (git+https://github.com/ferjm/media?branch=suspend)",
  "servo_config 0.0.1",
  "servo_geometry 0.0.1",
  "servo_rand 0.0.1",
