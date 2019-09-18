@@ -293,6 +293,7 @@ pub mod dompointreadonly;
 pub mod domquad;
 pub mod domrect;
 pub mod domrectreadonly;
+pub mod domstringlist;
 pub mod domstringmap;
 pub mod domtokenlist;
 pub mod element;
