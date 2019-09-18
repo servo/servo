@@ -33,7 +33,7 @@ async_test(t => {
     t.step_timeout(() => {
       assert_equals(frame.contentDocument, null);
       t.done();
-    }, 500);
+    }, 2000);
   });
   frame.src = `resources/navigate-require-corp.sub.html?channelName=${bc.name}&to=/common/blank.html`;
   document.body.append(frame);

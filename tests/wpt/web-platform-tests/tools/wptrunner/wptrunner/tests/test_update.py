@@ -75,7 +75,9 @@ def update(tests, *logs, **kwargs):
         expected_data[test_path] = manifestupdate.compile(BytesIO(manifest_str),
                                                           test_path,
                                                           "/",
-                                                          update_properties)
+                                                          update_properties,
+                                                          update_intermittent,
+                                                          remove_intermittent)
 
     return list(metadata.update_results(id_test_map,
                                         update_properties,
@@ -580,6 +582,198 @@ def test_update_and_remove_intermittent_with_conditions():
     assert not new_manifest.is_empty
     assert new_manifest.get_test(test_id).get(
         "expected", run_info_1) == ["PASS", "TIMEOUT"]
+
+
+@pytest.mark.xfail(sys.version[0] == "3",
+                   reason="metadata doesn't support py3")
+def test_update_intermittent_full():
+    tests = [("path/to/test.htm", [test_id], "testharness",
+              """[test.htm]
+  [test1]
+    expected:
+      if os == "mac": [FAIL, TIMEOUT]
+      FAIL""")]
+
+    log_0 = suite_log([("test_start", {"test": test_id}),
+                     ("test_status", {"test": test_id,
+                                      "subtest": "test1",
+                                      "status": "FAIL",
+                                      "expected": "FAIL",
+                                      "known_intermittent": ["TIMEOUT"]}),
+                     ("test_end", {"test": test_id,
+                                   "status": "OK"})],
+                     run_info={"os": "mac"})
+
+    log_1 = suite_log([("test_start", {"test": test_id}),
+                     ("test_status", {"test": test_id,
+                                      "subtest": "test1",
+                                      "status": "FAIL"}),
+                     ("test_end", {"test": test_id,
+                                   "status": "OK"})])
+
+    updated = update(tests, log_0, log_1, update_intermittent=True, full_update=True)
+
+    new_manifest = updated[0][1]
+
+    assert not new_manifest.is_empty
+    run_info_1 = default_run_info.copy()
+    run_info_1.update({"os": "mac"})
+    assert new_manifest.get_test(test_id).children[0].get(
+        "expected", run_info_1) == ["FAIL", "TIMEOUT"]
+    assert new_manifest.get_test(test_id).children[0].get(
+        "expected", default_run_info) == "FAIL"
+
+
+@pytest.mark.xfail(sys.version[0] == "3",
+                   reason="metadata doesn't support py3")
+def test_update_intermittent_full_remove():
+    tests = [("path/to/test.htm", [test_id], "testharness",
+              """[test.htm]
+  [test1]
+    expected:
+      if os == "mac": [FAIL, TIMEOUT, PASS]
+      FAIL""")]
+
+    log_0 = suite_log([("test_start", {"test": test_id}),
+                     ("test_status", {"test": test_id,
+                                      "subtest": "test1",
+                                      "status": "FAIL",
+                                      "expected": "FAIL",
+                                      "known_intermittent": ["TIMEOUT", "PASS"]}),
+                     ("test_end", {"test": test_id,
+                                   "status": "OK"})],
+                     run_info={"os": "mac"})
+
+    log_1 = suite_log([("test_start", {"test": test_id}),
+                     ("test_status", {"test": test_id,
+                                      "subtest": "test1",
+                                      "status": "TIMEOUT",
+                                      "expected": "FAIL",
+                                      "known_intermittent": ["TIMEOUT", "PASS"]}),
+                     ("test_end", {"test": test_id,
+                                   "status": "OK"})],
+                     run_info={"os": "mac"})
+
+    log_2 = suite_log([("test_start", {"test": test_id}),
+                     ("test_status", {"test": test_id,
+                                      "subtest": "test1",
+                                      "status": "FAIL"}),
+                     ("test_end", {"test": test_id,
+                                   "status": "OK"})])
+
+    updated = update(tests, log_0, log_1, log_2, update_intermittent=True,
+                     full_update=True, remove_intermittent=True)
+
+    new_manifest = updated[0][1]
+
+    assert not new_manifest.is_empty
+    run_info_1 = default_run_info.copy()
+    run_info_1.update({"os": "mac"})
+    assert new_manifest.get_test(test_id).children[0].get(
+        "expected", run_info_1) == ["FAIL", "TIMEOUT"]
+    assert new_manifest.get_test(test_id).children[0].get(
+        "expected", default_run_info) == "FAIL"
+
+
+@pytest.mark.xfail(sys.version[0] == "3",
+                   reason="metadata doesn't support py3")
+def test_full_update():
+    tests = [("path/to/test.htm", [test_id], "testharness",
+              """[test.htm]
+  [test1]
+    expected:
+      if os == "mac": [FAIL, TIMEOUT]
+      FAIL""")]
+
+    log_0 = suite_log([("test_start", {"test": test_id}),
+                     ("test_status", {"test": test_id,
+                                      "subtest": "test1",
+                                      "status": "FAIL",
+                                      "expected": "FAIL",
+                                      "known_intermittent": ["TIMEOUT"]}),
+                     ("test_end", {"test": test_id,
+                                   "status": "OK"})],
+                     run_info={"os": "mac"})
+
+    log_1 = suite_log([("test_start", {"test": test_id}),
+                     ("test_status", {"test": test_id,
+                                      "subtest": "test1",
+                                      "status": "FAIL"}),
+                     ("test_end", {"test": test_id,
+                                   "status": "OK"})])
+
+    updated = update(tests, log_0, log_1, full_update=True)
+
+    new_manifest = updated[0][1]
+
+    assert not new_manifest.is_empty
+    run_info_1 = default_run_info.copy()
+    run_info_1.update({"os": "mac"})
+    assert new_manifest.get_test(test_id).children[0].get(
+        "expected", run_info_1) == "FAIL"
+    assert new_manifest.get_test(test_id).children[0].get(
+        "expected", default_run_info) == "FAIL"
+
+
+@pytest.mark.xfail(sys.version[0] == "3",
+                   reason="metadata doesn't support py3")
+def test_update_reorder_expected_full_conditions():
+    tests = [("path/to/test.htm", [test_id], "testharness",
+              """[test.htm]
+  [test1]
+    expected:
+      if os == "mac": [FAIL, TIMEOUT]
+      [FAIL, PASS]""")]
+
+    log_0 = suite_log([("test_start", {"test": test_id}),
+                     ("test_status", {"test": test_id,
+                                      "subtest": "test1",
+                                      "status": "TIMEOUT",
+                                      "expected": "FAIL",
+                                      "known_intermittent": ["TIMEOUT"]}),
+                     ("test_end", {"test": test_id,
+                                   "status": "OK"})],
+                     run_info={"os": "mac"})
+
+    log_1 = suite_log([("test_start", {"test": test_id}),
+                     ("test_status", {"test": test_id,
+                                      "subtest": "test1",
+                                      "status": "TIMEOUT",
+                                      "expected": "FAIL",
+                                      "known_intermittent": ["TIMEOUT"]}),
+                     ("test_end", {"test": test_id,
+                                   "status": "OK"})],
+                     run_info={"os": "mac"})
+
+    log_2 = suite_log([("test_start", {"test": test_id}),
+                     ("test_status", {"test": test_id,
+                                      "subtest": "test1",
+                                      "status": "PASS",
+                                      "expected": "FAIL",
+                                      "known_intermittent": ["PASS"]}),
+                     ("test_end", {"test": test_id,
+                                   "status": "OK"})])
+
+    log_3 = suite_log([("test_start", {"test": test_id}),
+                     ("test_status", {"test": test_id,
+                                      "subtest": "test1",
+                                      "status": "PASS",
+                                      "expected": "FAIL",
+                                      "known_intermittent": ["PASS"]}),
+                     ("test_end", {"test": test_id,
+                                   "status": "OK"})])
+
+    updated = update(tests, log_0, log_1, log_2, log_3, update_intermittent=True, full_update=True)
+
+    new_manifest = updated[0][1]
+
+    assert not new_manifest.is_empty
+    run_info_1 = default_run_info.copy()
+    run_info_1.update({"os": "mac"})
+    assert new_manifest.get_test(test_id).children[0].get(
+        "expected", run_info_1) == ["TIMEOUT", "FAIL"]
+    assert new_manifest.get_test(test_id).children[0].get(
+        "expected", default_run_info) == ["PASS", "FAIL"]
 
 
 @pytest.mark.xfail(sys.version[0] == "3",

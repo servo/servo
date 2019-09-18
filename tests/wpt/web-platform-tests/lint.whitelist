@@ -827,6 +827,7 @@ MISSING DEPENDENCY: web-nfc/resources/nfc-helpers.js
 MISSING DEPENDENCY: shape-detection/resources/shapedetection-helpers.js
 MISSING DEPENDENCY: webxr/resources/webxr_util.js
 MISSING DEPENDENCY: contacts/resources/helpers.js
+MISSING DEPENDENCY: generic-sensor/resources/generic-sensor-helpers.js
 
 # Tests that are false positives for using Ahem as a system font
 AHEM SYSTEM FONT: acid/acid3/test.html

@@ -65,4 +65,16 @@ test_interpolation({
   {at: 1, expect: '1'},
   {at: 1.5, expect: '1'}
 ]);
+
+test_no_interpolation({
+  property: 'column-count',
+  from: 'initial',
+  to: '5',
+});
+
+test_no_interpolation({
+  property: 'column-count',
+  from: 'unset',
+  to: '5',
+});
 </script>

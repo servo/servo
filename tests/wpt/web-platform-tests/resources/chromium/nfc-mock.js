@@ -11,14 +11,6 @@ function toMojoNFCPushTarget(target) {
   return device.mojom.NFCPushTarget.ANY;
 }
 
-function toMojoNDEFCompatibility(compatibility) {
-  if (compatibility === 'nfc-forum')
-    return device.mojom.NDEFCompatibility.NFC_FORUM;
-  if (compatibility === 'vendor')
-    return device.mojom.NDEFCompatibility.VENDOR;
-  return device.mojom.NDEFCompatibility.ANY;
-}
-
 // Converts between NDEFMessageInit https://w3c.github.io/web-nfc/#dom-ndefmessage
 // and mojom.NDEFMessage structure, so that watch function can be tested.
 function toMojoNDEFMessage(message) {
@@ -90,14 +82,6 @@ function assertNFCPushOptionsEqual(provided, received) {
     assert_equals(toMojoNFCPushTarget(provided.target), received.target);
   else
     assert_equals(received.target, device.mojom.NFCPushTarget.ANY);
-
-  if (provided.compatibility !== undefined) {
-    assert_equals(toMojoNDEFCompatibility(provided.compatibility),
-        received.compatibility);
-  } else {
-    assert_equals(received.compatibility,
-        device.mojom.NDEFCompatibility.NFC_FORUM);
-  }
 }
 
 // Compares NFCReaderOptions structures that were provided to API and
@@ -113,29 +97,14 @@ function assertNFCReaderOptionsEqual(provided, received) {
   else
     assert_equals(received.mediaType, '');
 
-  if (provided.compatibility !== undefined) {
-    assert_equals(toMojoNDEFCompatibility(provided.compatibility),
-        received.compatibility);
-  } else {
-    assert_equals(received.compatibility,
-        device.mojom.NDEFCompatibility.NFC_FORUM);
-  }
-
   if (provided.recordType !== undefined) {
     assert_equals(!+received.record_filter, true);
     assert_equals(provided.recordType, received.recordFilter.recordType);
   }
 }
 
-// Checks whether NFCReaderOptions are matched with given message
-// and mock nfc's compatibility
-function matchesWatchOptions(message, compatibility, options) {
-  // Filter by NDEFCompatibility
-  if (options.compatibility !== toMojoNDEFCompatibility("any")
-      && options.compatibility !== compatibility) {
-    return false;
-  }
-
+// Checks whether NFCReaderOptions are matched with given message.
+function matchesWatchOptions(message, options) {
   // Filter by Web NFC id
   if (!matchesWebNfcId(message.url, options.url)) return false;
 
@@ -255,10 +224,9 @@ var WebNFCTest = (() => {
       this.watchers_.push({id: id, options: options});
       // Triggers onWatch if the new watcher matches existing messages
       for (let message of this.reading_messages_) {
-        if (matchesWatchOptions(
-                message.message, message.compatibility, options)) {
+        if (matchesWatchOptions(message, options)) {
           this.client_.onWatch(
-              [id], fake_tag_serial_number, toMojoNDEFMessage(message.message));
+              [id], fake_tag_serial_number, toMojoNDEFMessage(message));
         }
       }
 
@@ -335,19 +303,16 @@ var WebNFCTest = (() => {
       this.push_should_timeout_ = false;
     }
 
-    // Sets message that is used to deliver NFC reading updates
-    // with a specific NDEFCompatibility.
-    setReadingMessage(message, compatibility = 'nfc-forum') {
-      this.reading_messages_.push({message: message,
-          compatibility: toMojoNDEFCompatibility(compatibility)});
+    // Sets message that is used to deliver NFC reading updates.
+    setReadingMessage(message) {
+      this.reading_messages_.push(message);
       // Ignore reading if NFCPushOptions.ignoreRead is true
       let ignoreRead = false;
       if(this.push_options_ && this.push_options_.ignoreRead)
         ignoreRead = this.push_options_.ignoreRead;
       // Triggers onWatch if the new message matches existing watchers
       for (let watcher of this.watchers_) {
-        if (!ignoreRead && matchesWatchOptions(
-            message, toMojoNDEFCompatibility(compatibility), watcher.options)) {
+        if (!ignoreRead && matchesWatchOptions(message, watcher.options)) {
           this.client_.onWatch(
               [watcher.id], fake_tag_serial_number,
               toMojoNDEFMessage(message));

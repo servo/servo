@@ -61,13 +61,6 @@ const NFCReaderOptionTests =
       scanOptions: {mediaType: "application/octet-stream"},
       unmatchedScanOptions: {mediaType: "application/json"},
       message: createMessage([createOpaqueRecord(test_buffer_data)])
-    },
-    {
-      desc: "Test that the compatibility of NFCScanOptions filters relevant data" +
-            " sources correctly.",
-      scanOptions: {compatibility: "vendor"},
-      unmatchedScanOptions: {compatibility: "nfc-forum"},
-      message: createMessage([createTextRecord(test_text_data)]),
     }
   ];
 
@@ -123,14 +116,6 @@ const ReadMultiMessagesTests =
       scanOptions: {mediaType: "application/octet-stream"},
       message: createMessage([createOpaqueRecord(test_buffer_data)]),
       unmatchedMessage: createMessage([createJsonRecord(test_json_data)])
-    },
-    {
-      desc: "Test that filtering 'text' record from different messages" +
-            " correctly with NFCScanOptions' compatibility set.",
-      scanOptions: {compatibility: "nfc-forum"},
-      message: createMessage([createTextRecord(test_text_data)]),
-      unmatchedMessage: createMessage([createJsonRecord(test_json_data)]),
-      unmatchedCompatibility: "vendor"
     }
   ];
 
@@ -144,16 +129,10 @@ for (let NFCReaderOptionTest of NFCReaderOptionTests) {
 }
 
 for (let readMultiMessagesTest of ReadMultiMessagesTests) {
-  // Sets default message's associated compatibility
-  let unmatchedCompatibility = "nfc-forum";
-  if(readMultiMessagesTest.unmatchedCompatibility)
-    unmatchedCompatibility = readMultiMessagesTest.unmatchedCompatibility;
-
   testReadingMultiMessages(
     readMultiMessagesTest.message,
     readMultiMessagesTest.scanOptions,
     readMultiMessagesTest.unmatchedMessage,
-    unmatchedCompatibility,
     readMultiMessagesTest.desc
   );
 }
