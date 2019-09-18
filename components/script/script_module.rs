@@ -9,10 +9,10 @@ use crate::compartments::{enter_realm, AlreadyInCompartment, InCompartment};
 use crate::document_loader::LoadType;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::conversions::jsstring_to_str;
-use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::report_pending_exception;
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::settings_stack::AutoIncumbentScript;
@@ -22,8 +22,7 @@ use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptOrigin, ScriptType};
-use crate::dom::node::Node;
-use crate::dom::node::document_from_node;
+use crate::dom::node::{document_from_node, Node};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
@@ -48,10 +47,10 @@ use js::jsapi::{SetModuleDynamicImportHook, SetScriptPrivateReferenceHooks};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::jsapi_wrapped::{CompileModule, JS_GetArrayLength, JS_GetElement};
 use js::rust::jsapi_wrapped::{GetRequestedModuleSpecifier, JS_GetPendingException};
+use js::rust::wrappers::JS_SetPendingException;
 use js::rust::CompileOptionsWrapper;
 use js::rust::IntoHandle;
 use js::rust::{Handle, HandleValue};
-use js::rust::wrappers::JS_SetPendingException;
 use net_traits::request::{Destination, ParserMetadata, Referrer, RequestBuilder, RequestMode};
 use net_traits::{FetchMetadata, Metadata};
 use net_traits::{FetchResponseListener, NetworkError};
@@ -585,36 +584,8 @@ impl ModuleOwner {
         promise
     }
 
-    pub fn finish_promise_all(&self, action: PromiseAction) {
-        match &self {
-            ModuleOwner::Worker(_) => unimplemented!(),
-            ModuleOwner::Window(script) => {
-                let global = self.global();
-
-                let document = document_from_node(&*script.root());
-
-                let base_url = document.base_url();
-
-                if let Some(script_src) = script
-                    .root()
-                    .upcast::<Element>()
-                    .get_attribute(&ns!(), &local_name!("src"))
-                    .map(|attr| base_url.join(&attr.value()).ok())
-                    .unwrap_or(None)
-                {
-                    let module_map = global.get_module_map().borrow();
-                    let module_tree = module_map.get(&script_src.clone()).unwrap();
-                    let promise = module_tree.get_promise().borrow();
-
-                    match action {
-                        PromiseAction::Resolve => promise.as_ref().unwrap().resolve_native(&()),
-                        PromiseAction::Reject => promise.as_ref().unwrap().reject_native(&()),
-                    }
-                }
-            }
-        }
-    }
-
+    /// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script
+    /// step 4-7.
     pub fn finish_module_load(&self, action: PromiseAction) {
         match &self {
             ModuleOwner::Worker(_) => unimplemented!(),
@@ -636,14 +607,26 @@ impl ModuleOwner {
                     let module_tree = module_map.get(&script_src.clone()).unwrap();
                     let source_text = module_tree.get_text().borrow();
 
-                    module_tree.set_status(ModuleStatus::Finished);
-
                     if action == PromiseAction::Reject {
                         let module_error =
                             ModuleTree::find_first_parse_error(&*module_map, &module_tree);
 
                         module_tree.set_error(module_error);
                     }
+
+                    {
+                        let module_record = module_tree.get_record().borrow();
+                        if let Some(record) = &*module_record {
+                            let instantiated =
+                                module_tree.instantiate_module_tree(&global, record.handle());
+
+                            if let Err(exception) = instantiated {
+                                module_tree.set_error(Some(exception.clone()));
+                            }
+                        }
+                    }
+
+                    module_tree.set_status(ModuleStatus::Finished);
 
                     let load = Ok(ScriptOrigin::external(
                         source_text.clone(),
@@ -670,6 +653,7 @@ impl ModuleOwner {
         }
     }
 
+    // FIXME: We should have same `finish` method for both external and internal module
     pub fn finish_inline_module_load(&self, action: PromiseAction) {
         match &self {
             ModuleOwner::Worker(_) => unimplemented!(),
@@ -832,64 +816,19 @@ impl FetchResponseListener for ModuleContext {
                     let mut visited = HashSet::new();
                     visited.insert(self.url.clone());
 
-                    let descendant_results = fetch_module_descendants(
+                    let descendant_results = fetch_module_descendants_and_link(
                         &self.owner,
                         &module_tree,
                         self.destination.clone(),
                         visited,
                     );
 
-                    if let Ok(descendants) = descendant_results {
-                        if descendants.len() > 0 {
-                            unsafe {
-                                let _compartment = enter_realm(&*global);
-                                AlreadyInCompartment::assert(&*global);
-                                let _ais = AutoIncumbentScript::new(&*global);
-
-                                let abv = CreateAutoObjectVector(*global.get_cx());
-
-                                for descendant in descendants {
-                                    assert!(AppendToAutoObjectVector(
-                                        abv as *mut AutoObjectVector,
-                                        descendant.promise_obj().get()
-                                    ));
-                                }
-
-                                rooted!(in(*global.get_cx()) let raw_promise_all = GetWaitForAllPromise(*global.get_cx(), abv));
-
-                                let promise_all = Promise::new_with_js_promise(
-                                    raw_promise_all.handle(),
-                                    global.get_cx(),
-                                );
-
-                                let resolve_this = self.owner.clone();
-                                let reject_this = self.owner.clone();
-
-                                let handler = PromiseNativeHandler::new(
-                                    &global,
-                                    Some(ModuleHandler::new(Box::new(
-                                        task!(all_fetched_resolve: move || {
-                                            println!("promise all fetched");
-                                            resolve_this.finish_promise_all(PromiseAction::Resolve);
-                                        }),
-                                    ))),
-                                    Some(ModuleHandler::new(Box::new(
-                                        task!(all_failure_reject: move || {
-                                            println!("promise all failed");
-                                            reject_this.finish_promise_all(PromiseAction::Reject);
-                                        }),
-                                    ))),
-                                );
-
-                                promise_all.append_native_handler(&handler);
-                                return;
-                            }
-                        }
+                    // Resolve the request of this module tree promise directly
+                    // when there's no descendant
+                    if descendant_results.is_none() {
+                        let promise = module_tree.get_promise().borrow();
+                        promise.as_ref().unwrap().resolve_native(&());
                     }
-
-                    let promise = module_tree.get_promise().borrow();
-                    promise.as_ref().unwrap().resolve_native(&());
-                    return;
                 },
             }
         }
@@ -1146,58 +1085,16 @@ pub fn fetch_inline_module_script(
         Ok(record) => {
             module_tree.set_record(record);
 
-            let descendant_results =
-                fetch_inline_module_descendants(&owner, &module_tree, Destination::Script);
+            let descendant_results = fetch_module_descendants_and_link(
+                &owner,
+                &module_tree,
+                Destination::Script,
+                HashSet::new(),
+            );
 
-            if let Ok(descendants) = descendant_results {
-                if descendants.len() > 0 {
-                    unsafe {
-                        let _compartment = enter_realm(&*global);
-                        AlreadyInCompartment::assert(&*global);
-                        let _ais = AutoIncumbentScript::new(&*global);
-
-                        let abv = CreateAutoObjectVector(*global.get_cx());
-
-                        for descendant in descendants {
-                            assert!(AppendToAutoObjectVector(
-                                abv as *mut AutoObjectVector,
-                                descendant.promise_obj().get()
-                            ));
-                        }
-
-                        rooted!(in(*global.get_cx()) let raw_promise_all = GetWaitForAllPromise(*global.get_cx(), abv));
-
-                        let promise_all = Promise::new_with_js_promise(
-                            raw_promise_all.handle(),
-                            global.get_cx(),
-                        );
-
-                        let resolve_this = owner.clone();
-                        let reject_this = owner.clone();
-
-                        let handler = PromiseNativeHandler::new(
-                            &global,
-                            Some(ModuleHandler::new(Box::new(
-                                task!(all_fetched_resolve: move || {
-                                    println!("promise all fetched");
-                                    resolve_this.finish_inline_module_load(PromiseAction::Resolve);
-                                }),
-                            ))),
-                            Some(ModuleHandler::new(Box::new(
-                                task!(all_failure_reject: move || {
-                                    println!("promise all failed");
-                                    reject_this.finish_inline_module_load(PromiseAction::Reject);
-                                }),
-                            ))),
-                        );
-
-                        promise_all.append_native_handler(&handler);
-                        return;
-                    }
-                }
+            if descendant_results.is_none() {
+                owner.finish_inline_module_load(PromiseAction::Resolve);
             }
-
-            owner.finish_inline_module_load(PromiseAction::Resolve);
         },
         Err(exception) => {
             module_tree.set_error(Some(exception));
@@ -1207,12 +1104,71 @@ pub fn fetch_inline_module_script(
 }
 
 /// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script
-fn fetch_inline_module_descendants(
+/// Step 1-3.
+#[allow(unsafe_code)]
+fn fetch_module_descendants_and_link(
     owner: &ModuleOwner,
     module_tree: &ModuleTree,
     destination: Destination,
-) -> Result<Vec<Rc<Promise>>, ()> {
-    fetch_module_descendants(owner, module_tree, destination, HashSet::new())
+    visited: HashSet<ServoUrl>,
+) -> Option<Rc<Promise>> {
+    let descendant_results = fetch_module_descendants(owner, module_tree, destination, visited);
+
+    if let Ok(descendants) = descendant_results {
+        if descendants.len() > 0 {
+            unsafe {
+                let global = owner.global();
+
+                let _compartment = enter_realm(&*global);
+                AlreadyInCompartment::assert(&*global);
+                let _ais = AutoIncumbentScript::new(&*global);
+
+                let abv = CreateAutoObjectVector(*global.get_cx());
+
+                for descendant in descendants {
+                    assert!(AppendToAutoObjectVector(
+                        abv as *mut AutoObjectVector,
+                        descendant.promise_obj().get()
+                    ));
+                }
+
+                rooted!(in(*global.get_cx()) let raw_promise_all = GetWaitForAllPromise(*global.get_cx(), abv));
+
+                let promise_all =
+                    Promise::new_with_js_promise(raw_promise_all.handle(), global.get_cx());
+
+                let promise = module_tree.get_promise().borrow();
+                let promise = promise.as_ref().unwrap().clone();
+
+                let resolve_promise = TrustedPromise::new(promise.clone());
+                let reject_promise = TrustedPromise::new(promise.clone());
+
+                let handler = PromiseNativeHandler::new(
+                    &global,
+                    Some(ModuleHandler::new(Box::new(
+                        task!(all_fetched_resolve: move || {
+                            println!("promise all fetched");
+                            let promise = resolve_promise.root();
+                            promise.resolve_native(&());
+                        }),
+                    ))),
+                    Some(ModuleHandler::new(Box::new(
+                        task!(all_failure_reject: move || {
+                            println!("promise all failed");
+                            let promise = reject_promise.root();
+                            promise.reject_native(&());
+                        }),
+                    ))),
+                );
+
+                promise_all.append_native_handler(&handler);
+
+                return Some(promise_all);
+            }
+        }
+    }
+
+    None
 }
 
 #[allow(unsafe_code)]
@@ -1223,10 +1179,7 @@ fn fetch_module_descendants(
     destination: Destination,
     mut visited: HashSet<ServoUrl>,
 ) -> Result<Vec<Rc<Promise>>, ()> {
-    println!(
-        "Start to load dependencies of {}",
-        module_tree.url.clone()
-    );
+    println!("Start to load dependencies of {}", module_tree.url.clone());
 
     let global = owner.global();
 
