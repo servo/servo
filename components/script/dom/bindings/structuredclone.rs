@@ -280,17 +280,22 @@ static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredClon
     canTransfer: Some(can_transfer_callback),
 };
 
-/// A temporary storage of data for structured read/write operations.
+/// A data holder for results from, and inputs to, structured-data read/write operations.
+/// https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data
 pub enum StructuredDataHolder {
     Read {
-        /// A structured-serialized blob.
+        /// A deserialized blob, stored temporarily here to keep it rooted.
         blob: Option<DomRoot<Blob>>,
-        /// A vec of structured-transfered DOM blob.
+        /// A vec of transfer-received DOM ports,
+        /// to be made available to script through a message event.
         message_ports: Option<Vec<DomRoot<MessagePort>>>,
-        /// A map of structured data for transferred blobs.
+        /// A map of port implementations,
+        /// used as part of the "transfer-receiving" steps of ports,
+        /// to produce the DOM ports stored in `message_ports` above.
         port_impls: Option<HashMap<MessagePortId, MessagePortImpl>>,
     },
-    /// A map of structured data for transferred blobs.
+    /// A data holder into which transferred ports
+    /// can be written as part of their transfer steps.
     Write(Option<HashMap<MessagePortId, MessagePortImpl>>),
 }
 
