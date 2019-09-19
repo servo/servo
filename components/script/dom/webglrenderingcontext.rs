@@ -1928,6 +1928,47 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Err(_) => return,
         };
 
+        let framebuffer_format = match self.bound_framebuffer.get() {
+            Some(fb) => match fb.attachment(constants::COLOR_ATTACHMENT0) {
+                Some(WebGLFramebufferAttachmentRoot::Renderbuffer(rb)) => {
+                    TexFormat::from_gl_constant(rb.internal_format())
+                },
+                Some(WebGLFramebufferAttachmentRoot::Texture(texture)) => {
+                    texture.image_info_for_target(&target, 0).internal_format()
+                },
+                None => None,
+            },
+            None => {
+                let attrs = self.GetContextAttributes().unwrap();
+                Some(if attrs.alpha {
+                    TexFormat::RGBA
+                } else {
+                    TexFormat::RGB
+                })
+            },
+        };
+
+        let framebuffer_format = match framebuffer_format {
+            Some(f) => f,
+            None => {
+                self.webgl_error(InvalidOperation);
+                return;
+            },
+        };
+
+        match (framebuffer_format, internal_format) {
+            (a, b) if a == b => (),
+            (TexFormat::RGBA, TexFormat::RGB) => (),
+            (TexFormat::RGBA, TexFormat::Alpha) => (),
+            (TexFormat::RGBA, TexFormat::Luminance) => (),
+            (TexFormat::RGBA, TexFormat::LuminanceAlpha) => (),
+            (TexFormat::RGB, TexFormat::Luminance) => (),
+            _ => {
+                self.webgl_error(InvalidOperation);
+                return;
+            },
+        }
+
         // NB: TexImage2D depth is always equal to 1
         handle_potential_webgl_error!(
             self,
