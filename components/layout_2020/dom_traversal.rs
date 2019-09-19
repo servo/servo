@@ -6,10 +6,11 @@ use crate::element_data::{LayoutBox, LayoutDataForElement};
 use crate::replaced::ReplacedContent;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOutside};
 use crate::wrapper::GetRawData;
-use atomic_refcell::AtomicRefMut;
+use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_arc::Arc;
 use std::convert::TryInto;
+use std::marker::PhantomData as marker;
 use style::context::SharedStyleContext;
 use style::dom::TNode;
 use style::properties::ComputedValues;
@@ -43,7 +44,10 @@ pub(super) enum PseudoElementContentItem {
     Replaced(ReplacedContent),
 }
 
-pub(super) trait TraversalHandler<Node> {
+pub(super) trait TraversalHandler<'dom, Node>
+where
+    Node: 'dom,
+{
     fn handle_text(&mut self, text: String, parent_style: &Arc<ComputedValues>);
 
     /// Or pseudo-element
@@ -52,14 +56,14 @@ pub(super) trait TraversalHandler<Node> {
         style: &Arc<ComputedValues>,
         display: DisplayGeneratingBox,
         contents: Contents<Node>,
-        box_slot: BoxSlot,
+        box_slot: BoxSlot<'dom>,
     );
 }
 
 fn traverse_children_of<'dom, Node>(
     parent_element: Node,
     context: &SharedStyleContext,
-    handler: &mut impl TraversalHandler<Node>,
+    handler: &mut impl TraversalHandler<'dom, Node>,
 ) where
     Node: NodeExt<'dom>,
 {
@@ -81,7 +85,7 @@ fn traverse_children_of<'dom, Node>(
 fn traverse_element<'dom, Node>(
     element: Node,
     context: &SharedStyleContext,
-    handler: &mut impl TraversalHandler<Node>,
+    handler: &mut impl TraversalHandler<'dom, Node>,
 ) where
     Node: NodeExt<'dom>,
 {
@@ -94,7 +98,7 @@ fn traverse_element<'dom, Node>(
                 // <https://drafts.csswg.org/css-display-3/#valdef-display-contents>
                 element.unset_boxes_in_subtree()
             } else {
-                element.layout_data_mut().self_box = Some(LayoutBox::DisplayContents);
+                *element.layout_data_mut().self_box.borrow_mut() = Some(LayoutBox::DisplayContents);
                 traverse_children_of(element, context, handler)
             }
         },
@@ -116,7 +120,7 @@ fn traverse_pseudo_element<'dom, Node>(
     which: WhichPseudoElement,
     element: Node,
     context: &SharedStyleContext,
-    handler: &mut impl TraversalHandler<Node>,
+    handler: &mut impl TraversalHandler<'dom, Node>,
 ) where
     Node: NodeExt<'dom>,
 {
@@ -141,7 +145,7 @@ fn traverse_pseudo_element<'dom, Node>(
 fn traverse_pseudo_element_contents<'dom, Node>(
     pseudo_element_style: &Arc<ComputedValues>,
     items: Vec<PseudoElementContentItem>,
-    handler: &mut impl TraversalHandler<Node>,
+    handler: &mut impl TraversalHandler<'dom, Node>,
 ) where
     Node: 'dom,
 {
@@ -201,7 +205,7 @@ where
         self,
         inherited_style: &Arc<ComputedValues>,
         context: &SharedStyleContext,
-        handler: &mut impl TraversalHandler<Node>,
+        handler: &mut impl TraversalHandler<'dom, Node>,
     ) {
         match self {
             NonReplacedContents::OfElement(node) => traverse_children_of(node, context, handler),
@@ -239,22 +243,25 @@ where
 }
 
 pub(super) struct BoxSlot<'dom> {
-    slot: Option<AtomicRefMut<'dom, Option<LayoutBox>>>,
+    slot: Option<Arc<AtomicRefCell<Option<LayoutBox>>>>,
+    marker: marker<&'dom ()>,
 }
 
-impl<'dom> BoxSlot<'dom> {
-    pub fn new(mut slot: AtomicRefMut<'dom, Option<LayoutBox>>) -> Self {
-        *slot = None;
-        Self { slot: Some(slot) }
+impl BoxSlot<'_> {
+    pub fn new(slot: Arc<AtomicRefCell<Option<LayoutBox>>>) -> Self {
+        *slot.borrow_mut() = None;
+        let slot = Some(slot);
+        Self { slot, marker }
     }
 
     pub fn dummy() -> Self {
-        Self { slot: None }
+        let slot = None;
+        Self { slot, marker }
     }
 
     pub fn set(mut self, box_: LayoutBox) {
         if let Some(slot) = &mut self.slot {
-            **slot = Some(box_)
+            *slot.borrow_mut() = Some(box_);
         }
     }
 }
@@ -262,7 +269,7 @@ impl<'dom> BoxSlot<'dom> {
 impl Drop for BoxSlot<'_> {
     fn drop(&mut self) {
         if let Some(slot) = &mut self.slot {
-            assert!(slot.is_some(), "failed to set a layout box")
+            assert!(slot.borrow().is_some(), "failed to set a layout box");
         }
     }
 }
@@ -276,8 +283,8 @@ pub(crate) trait NodeExt<'dom>: 'dom + Copy + Send + Sync {
     fn style(self, context: &SharedStyleContext) -> Arc<ComputedValues>;
 
     fn layout_data_mut(&self) -> AtomicRefMut<LayoutDataForElement>;
-    fn element_box_slot(&self) -> BoxSlot;
-    fn pseudo_element_box_slot(&self, which: WhichPseudoElement) -> BoxSlot;
+    fn element_box_slot(&self) -> BoxSlot<'dom>;
+    fn pseudo_element_box_slot(&self, which: WhichPseudoElement) -> BoxSlot<'dom>;
     fn unset_pseudo_element_box(self, which: WhichPseudoElement);
     fn unset_boxes_in_subtree(self);
 }
@@ -320,27 +327,25 @@ where
             .unwrap()
     }
 
-    fn element_box_slot(&self) -> BoxSlot {
-        BoxSlot::new(AtomicRefMut::map(self.layout_data_mut(), |data| {
-            &mut data.self_box
-        }))
+    fn element_box_slot(&self) -> BoxSlot<'dom> {
+        BoxSlot::new(self.layout_data_mut().self_box.clone())
     }
 
-    fn pseudo_element_box_slot(&self, which: WhichPseudoElement) -> BoxSlot {
-        BoxSlot::new(AtomicRefMut::map(self.layout_data_mut(), |data| {
-            let pseudos = data.pseudo_elements.get_or_insert_with(Default::default);
-            match which {
-                WhichPseudoElement::Before => &mut pseudos.before,
-                WhichPseudoElement::After => &mut pseudos.after,
-            }
-        }))
+    fn pseudo_element_box_slot(&self, which: WhichPseudoElement) -> BoxSlot<'dom> {
+        let mut data = self.layout_data_mut();
+        let pseudos = data.pseudo_elements.get_or_insert_with(Default::default);
+        let cell = match which {
+            WhichPseudoElement::Before => &mut pseudos.before,
+            WhichPseudoElement::After => &mut pseudos.after,
+        };
+        BoxSlot::new(cell.clone())
     }
 
     fn unset_pseudo_element_box(self, which: WhichPseudoElement) {
         if let Some(pseudos) = &mut self.layout_data_mut().pseudo_elements {
             match which {
-                WhichPseudoElement::Before => pseudos.before = None,
-                WhichPseudoElement::After => pseudos.after = None,
+                WhichPseudoElement::Before => *pseudos.before.borrow_mut() = None,
+                WhichPseudoElement::After => *pseudos.after.borrow_mut() = None,
             }
         }
     }
@@ -352,7 +357,8 @@ where
                 let traverse_children = {
                     let mut layout_data = node.layout_data_mut();
                     layout_data.pseudo_elements = None;
-                    layout_data.self_box.take().is_some()
+                    let self_box = layout_data.self_box.borrow_mut().take();
+                    self_box.is_some()
                 };
                 if traverse_children {
                     // Only descend into children if we removed a box.

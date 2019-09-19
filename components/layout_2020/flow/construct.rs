@@ -178,7 +178,7 @@ impl BlockContainer {
     }
 }
 
-impl<'dom, Node> TraversalHandler<Node> for BlockContainerBuilder<'dom, '_, Node>
+impl<'dom, Node> TraversalHandler<'dom, Node> for BlockContainerBuilder<'dom, '_, Node>
 where
     Node: NodeExt<'dom>,
 {
@@ -187,7 +187,7 @@ where
         style: &Arc<ComputedValues>,
         display: DisplayGeneratingBox,
         contents: Contents<Node>,
-        box_slot: BoxSlot,
+        box_slot: BoxSlot<'dom>,
     ) {
         match display {
             DisplayGeneratingBox::OutsideInside { outside, inside } => match outside {
