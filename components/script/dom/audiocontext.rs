@@ -23,7 +23,7 @@ use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
-use msg::constellation_msg::BrowsingContextId;
+use msg::constellation_msg::PipelineId;
 use servo_media::audio::context::{LatencyCategory, ProcessingState, RealTimeAudioContextOptions};
 use std::rc::Rc;
 
@@ -40,14 +40,11 @@ pub struct AudioContext {
 impl AudioContext {
     #[allow(unrooted_must_root)]
     // https://webaudio.github.io/web-audio-api/#AudioContext-constructors
-    fn new_inherited(
-        options: &AudioContextOptions,
-        browsing_context_id: BrowsingContextId,
-    ) -> AudioContext {
+    fn new_inherited(options: &AudioContextOptions, pipeline_id: PipelineId) -> AudioContext {
         // Steps 1-3.
         let context = BaseAudioContext::new_inherited(
             BaseAudioContextOptions::AudioContext(options.into()),
-            browsing_context_id,
+            pipeline_id,
         );
 
         // Step 4.1.
@@ -70,8 +67,10 @@ impl AudioContext {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, options: &AudioContextOptions) -> DomRoot<AudioContext> {
-        let browsing_context_id = window.window_proxy().top_level_browsing_context_id().0;
-        let context = AudioContext::new_inherited(options, browsing_context_id);
+        let pipeline_id = window
+            .pipeline_id()
+            .expect("Cannot create AudioContext outside of a pipeline");
+        let context = AudioContext::new_inherited(options, pipeline_id);
         let context = reflect_dom_object(Box::new(context), window, AudioContextBinding::Wrap);
         context.resume();
         context

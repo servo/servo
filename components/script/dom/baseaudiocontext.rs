@@ -51,7 +51,7 @@ use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBuffer;
-use msg::constellation_msg::BrowsingContextId;
+use msg::constellation_msg::PipelineId;
 use servo_media::audio::context::{AudioContext, AudioContextOptions, ProcessingState};
 use servo_media::audio::context::{OfflineAudioContextOptions, RealTimeAudioContextOptions};
 use servo_media::audio::decoder::AudioDecoderCallbacks;
@@ -109,7 +109,7 @@ impl BaseAudioContext {
     #[allow(unrooted_must_root)]
     pub fn new_inherited(
         options: BaseAudioContextOptions,
-        browsing_context_id: BrowsingContextId,
+        pipeline_id: PipelineId,
     ) -> BaseAudioContext {
         let (sample_rate, channel_count) = match options {
             BaseAudioContextOptions::AudioContext(ref opt) => (opt.sample_rate, 2),
@@ -118,10 +118,8 @@ impl BaseAudioContext {
             },
         };
 
-        let client_context_id = ClientContextId::build(
-            browsing_context_id.namespace_id.0,
-            browsing_context_id.index.0.get(),
-        );
+        let client_context_id =
+            ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
         let context = BaseAudioContext {
             eventtarget: EventTarget::new_inherited(),
             audio_context_impl: ServoMedia::get()

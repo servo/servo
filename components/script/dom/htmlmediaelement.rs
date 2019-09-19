@@ -1329,11 +1329,11 @@ impl HTMLMediaElement {
             HTMLMediaElementTypeId::HTMLVideoElement => Some(self.frame_renderer.clone()),
         };
 
-        let browsing_context_id = window.window_proxy().top_level_browsing_context_id().0;
-        let client_context_id = ClientContextId::build(
-            browsing_context_id.namespace_id.0,
-            browsing_context_id.index.0.get(),
-        );
+        let pipeline_id = window
+            .pipeline_id()
+            .expect("Cannot create player outside of a pipeline");
+        let client_context_id =
+            ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
         let player = ServoMedia::get().unwrap().create_player(
             &client_context_id,
             stream_type,
