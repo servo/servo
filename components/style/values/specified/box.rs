@@ -393,6 +393,20 @@ impl Display {
                 };
                 Display::from3(DisplayOutside::Block, inside, self.is_list_item())
             },
+            // If this pref is true, then we'll blockify "-moz-inline-box" to
+            // "-moz-box", and blockify "-moz-box" to itself. Otherwise, we
+            // blockify both to "block".
+            #[cfg(feature = "gecko")]
+            DisplayOutside::XUL => {
+              if static_prefs::pref!("layout.css.xul-box-display-values.survive-blockification.enabled") {
+                match self.inside() {
+                  DisplayInside::MozInlineBox | DisplayInside::MozBox => Display::MozBox,
+                  _ => Display::Block,
+                }
+              } else {
+                Display::Block
+              }
+            },
             DisplayOutside::Block | DisplayOutside::None => *self,
             #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             _ => Display::Block,
