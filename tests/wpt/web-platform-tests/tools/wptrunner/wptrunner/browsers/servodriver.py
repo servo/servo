@@ -63,7 +63,7 @@ def env_options():
 
 
 def update_properties():
-    return ["debug", "os", "processor"], {"os": ["version"], "processor": ["bits"]}
+    return (["debug", "os", "processor"], {"os": ["version"], "processor": ["bits"]})
 
 
 def write_hosts_file(config):

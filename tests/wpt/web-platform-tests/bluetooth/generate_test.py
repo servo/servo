@@ -31,7 +31,7 @@ def main():
         if data != generated_test.data:
           logging.error('%s does not match template', generated_test.path)
           return -1
-    except IOError, e:
+    except IOError as e:
       if e.errno == 2:
         logging.error('Missing generated test:\n%s\nFor template:\n%s',
                      generated_test.path,

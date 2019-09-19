@@ -74,4 +74,32 @@ test_interpolation({
   {at: 1, expect: 'rgb(170, 70, 70)'},
   {at: 1.5, expect: 'rgb(220, 20, 70)'},
 ]);
+
+test_interpolation({
+  property: 'column-rule-color',
+  from: 'unset',
+  to: 'rgb(0, 255, 0)',
+}, [
+  {at: -5, expect: 'rgb(255, 0, 255)'},
+  {at: -0.4, expect: 'rgb(98, 136, 98)'},
+  {at: 0, expect: 'rgb(70, 170, 70)'},
+  {at: 0.2, expect: 'rgb(56, 187, 56)'},
+  {at: 0.6, expect: 'rgb(28, 221, 28)'},
+  {at: 1, expect: 'rgb(0, 255, 0)'},
+  {at: 1.5, expect: 'rgb(0, 255, 0)'},
+]);
+
+test_interpolation({
+  property: 'column-rule-color',
+  from: 'orange',
+  to: 'blue'
+}, [
+  {at: -5, expect: '#ffff00'},
+  {at: -0.4, expect: '#ffe700'},
+  {at: 0, expect: 'orange'},
+  {at: 0.2, expect: '#cc8433'},
+  {at: 0.6, expect: '#664299'},
+  {at: 1, expect: 'blue'},
+  {at: 1.5, expect: 'blue'}
+]);
 </script>

@@ -71,7 +71,26 @@ testText("<div>abc <canvas style='display:block'></canvas> def", "abc\ndef", "Re
 /**** Soft line breaks ****/
 
 testText("<div style='width:0'>abc def", "abc def", "Soft line breaks ignored");
+testText("<div style='width:0'>abc-def", "abc-def", "Soft line break at hyphen ignored");
 testText("<div style='width:0'><span>abc</span> <span>def</span>", "abc def", "Whitespace text node preserved");
+
+/**** Soft line breaks when word-break:break-word is in effect ****/
+/* (based on Testcase #2 at https://bugzilla.mozilla.org/show_bug.cgi?id=1241631) */
+
+testText("<div style='width:1px; word-break:break-word'>Hello Kitty</div>", "Hello Kitty", "Soft breaks ignored in presence of word-break:break-word");
+testText("<div style='width:1px; word-break:break-word'><x>Hello</x> <x>Kitty</x></div>", "Hello Kitty", "Element boundaries ignored for soft break handling (1)");
+testText("<div style='width:1px; word-break:break-word'><x>Hello</x> <x> Kitty</x></div>", "Hello Kitty", "Whitespace collapses across element boundaries at soft break (1)");
+testText("<div style='width:1px; word-break:break-word'><x>Hello</x><x> Kitty</x></div>", "Hello Kitty", "Element boundaries ignored for soft break handling (2)");
+testText("<div style='width:1px; word-break:break-word'><x>Hello </x> <x>Kitty</x></div>", "Hello Kitty", "Whitespace collapses across element boundaries at soft break (2)");
+testText("<div style='width:1px; word-break:break-word'><x>Hello </x><x>Kitty</x></div>", "Hello Kitty", "Element boundaries ignored for soft break handling (3)");
+testText("<div style='width:1px; word-break:break-word'><x>Hello </x><x> Kitty</x></div>", "Hello Kitty", "Whitespace collapses across element boundaries at soft break (3)");
+testText("<div style='width:1px; word-break:break-word'><x>Hello </x> <x> Kitty</x></div>", "Hello Kitty", "Whitespace collapses across element boundaries at soft break (4)");
+testText("<div style='width:1px; word-break:break-word'><x>Hello</x> Kitty</div>", "Hello Kitty", "Element boundaries ignored for soft break handling (4)");
+testText("<div style='width:1px; word-break:break-word'><x>Hello </x>Kitty</div>", "Hello Kitty", "Element boundaries ignored for soft break handling (5)");
+testText("<div style='width:1px; word-break:break-word; text-transform:uppercase'>Hello Kitty</div>", "HELLO KITTY", "Soft breaks ignored, text-transform applied");
+testText("<div style='width:1px; word-break:break-word'>Hello<br> Kitty</div>", "Hello\nKitty", "<br> returned as newline, following space collapsed");
+testText("<div style='width:1px; word-break:break-word'>Hello <br>Kitty</div>", "Hello\nKitty", "<br> returned as newline, preceding space collapsed");
+testText("<div style='width:1px; word-break:break-word'><x>Hello </x> <br> <x> Kitty</x></div>", "Hello\nKitty", "<br> returned as newline, adjacent spaces collapsed across element boundaries");
 
 /**** first-line/first-letter ****/
 

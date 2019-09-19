@@ -12,8 +12,7 @@ The `WebNFCTest` interface is defined as:
 
   class MockNFC {
     setHWStatus(number status); // Sets the hardware status.
-    setCompatibility(NDEFCompatibility compatibility); // Sets NDEF accepted compatible devices
-    setReadingMessage(NDEFMessageInit message, NDEFCompatibility compatibility); // Sets message that is used to deliver NFC reading updates with a specific NDEFCompatibility.
+    setReadingMessage(NDEFMessageInit message); // Sets message that is used to deliver NFC reading updates.
     setPendingPushCompleted(boolean result); // Sets if the pending push is completed.
     setPushShouldTimeout(boolean result); // Sets flag to trigger the pending push to timeout.
     pushedMessage(); // Gets the pushed `NDEFMessageSource`.

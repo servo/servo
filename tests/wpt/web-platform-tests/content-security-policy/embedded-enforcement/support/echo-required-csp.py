@@ -10,7 +10,7 @@ def main(request, response):
 
     second_level_iframe_code = ""
     if "include_second_level_iframe" in request.GET:
-       if "second_level_iframe_csp" in request.GET and request.GET["second_level_iframe_csp"] <> "":
+       if "second_level_iframe_csp" in request.GET and request.GET["second_level_iframe_csp"] != "":
          second_level_iframe_code = '''<script>
             var i2 = document.createElement('iframe');
             i2.src = 'echo-required-csp.py';

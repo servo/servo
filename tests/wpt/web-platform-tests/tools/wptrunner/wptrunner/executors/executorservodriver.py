@@ -67,7 +67,7 @@ def parse_pref_value(value):
 
 
 class ServoBaseProtocolPart(BaseProtocolPart):
-    def execute_script(self, script, async=False):
+    def execute_script(self, script, asynchronous=False):
         pass
 
     def set_timeout(self, timeout):

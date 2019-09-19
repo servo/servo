@@ -10,7 +10,7 @@ partial interface Navigator {
 [SecureContext, Exposed=Window] interface XR : EventTarget {
   // Methods
   Promise<void> supportsSession(XRSessionMode mode);
-  Promise<XRSession> requestSession(XRSessionMode mode, optional XRSessionInit options = {});
+  [NewObject] Promise<XRSession> requestSession(XRSessionMode mode, optional XRSessionInit options = {});
 
   // Events
   attribute EventHandler ondevicechange;
@@ -40,7 +40,7 @@ enum XRVisibilityState {
 
   // Methods
   void updateRenderState(optional XRRenderStateInit state = {});
-  Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceType type);
+  [NewObject] Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceType type);
 
   long requestAnimationFrame(XRFrameRequestCallback callback);
   void cancelAnimationFrame(long handle);
@@ -93,7 +93,7 @@ enum XRReferenceSpaceType {
 
 [SecureContext, Exposed=Window]
 interface XRReferenceSpace : XRSpace {
-  XRReferenceSpace getOffsetReferenceSpace(XRRigidTransform originOffset);
+  [NewObject] XRReferenceSpace getOffsetReferenceSpace(XRRigidTransform originOffset);
 
   attribute EventHandler onreset;
 };

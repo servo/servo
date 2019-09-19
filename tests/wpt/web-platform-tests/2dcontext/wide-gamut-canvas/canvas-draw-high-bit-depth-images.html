@@ -23,7 +23,7 @@ function runTest(testScenario) {
     var _16bitImage = new Image();
     var t_image = async_test(testScenarioToString(testScenario));
     _8bitImage.onload = t_image.step_func(function() {
-        _16bitImage.onload = function() {
+        _16bitImage.onload = t_image.step_func(function() {
             var refCanvas = document.createElement("canvas");
             refCanvas.width = refCanvas.height = 2;
             var refCtx = refCanvas.getContext(
@@ -41,7 +41,7 @@ function runTest(testScenario) {
             assert_array_approx_equals(refPixels, testPixels, tolerance);
 
             t_image.done();
-            };
+        });
         _16bitImage.src = _16bitImageSrc;
     });
     _8bitImage.src = _8bitImageSrc;
@@ -104,6 +104,8 @@ function testScenarioToString(testScenario) {
     return str;
 }
 
-runAllTests();
+test(function() {
+    runAllTests();
+}, "Overall test");
 
 </script>

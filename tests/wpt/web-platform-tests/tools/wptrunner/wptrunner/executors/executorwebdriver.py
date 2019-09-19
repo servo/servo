@@ -34,8 +34,8 @@ class WebDriverBaseProtocolPart(BaseProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
 
-    def execute_script(self, script, async=False):
-        method = self.webdriver.execute_async_script if async else self.webdriver.execute_script
+    def execute_script(self, script, asynchronous=False):
+        method = self.webdriver.execute_async_script if asynchronous else self.webdriver.execute_script
         return method(script)
 
     def set_timeout(self, timeout):
@@ -367,7 +367,7 @@ class WebDriverTestharnessExecutor(TestharnessExecutor):
 
         while True:
             result = protocol.base.execute_script(
-                self.script_resume % format_map, async=True)
+                self.script_resume % format_map, asynchronous=True)
 
             # As of 2019-03-29, WebDriver does not define expected behavior for
             # cases where the browser crashes during script execution:
@@ -401,7 +401,7 @@ if (location.href === "about:blank") {
   callback(true);
 } else {
   document.addEventListener("readystatechange", () => {if (document.readyState !== "loading") {callback(true)}});
-}""", async=True)
+}""", asynchronous=True)
             except client.JavascriptErrorException:
                 # We can get an error here if the script runs in the initial about:blank
                 # document before it has navigated, with the driver returning an error

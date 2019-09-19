@@ -6,12 +6,40 @@
 <link rel="help" href="https://www.w3.org/TR/accelerometer/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/generic-sensor/resources/generic-sensor-helpers.js"></script>
 <script src="/generic-sensor/generic-sensor-tests.js"></script>
-<div id="log"></div>
 <script>
 
-runGenericSensorTests('Accelerometer');
-runGenericSensorTests('GravitySensor');
-runGenericSensorTests('LinearAccelerationSensor');
+'use strict';
+
+const kReadings = {
+    readings: [
+        [1.12345, 2.12345, 3.12345]
+    ],
+    expectedReadings: [
+        [1.12345, 2.12345, 3.12345]
+    ],
+    expectedRemappedReadings: [
+        [-2.12345, 1.12345, 3.12345]
+    ]
+};
+
+runGenericSensorTests(
+    'Accelerometer',
+    kReadings,
+    verifyXyzSensorReading,
+    ['accelerometer']);
+
+runGenericSensorTests(
+    'GravitySensor',
+    kReadings,
+    verifyXyzSensorReading,
+    ['accelerometer']);
+
+runGenericSensorTests(
+    'LinearAccelerationSensor',
+    kReadings,
+    verifyXyzSensorReading,
+    ['accelerometer']);
 
 </script>

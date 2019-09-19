@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<script>
+'use strict';
+
+promise_test(async () => {
+  let doc = document.cloneNode(false);
+  doc.appendChild(doc.createElement('html'))
+  doc.firstChild.innerHTML = '<body><input autofocus/></body>';
+  await waitUntilStableAutofocusState();
+  assert_equals(doc.activeElement, doc.body);
+}, 'Autofocus element in not-fully-active document should not be queued.');
+</script>

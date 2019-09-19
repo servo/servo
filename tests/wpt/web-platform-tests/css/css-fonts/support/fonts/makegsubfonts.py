@@ -125,7 +125,7 @@ def makeLookup1():
     		if table.format == 4:
     			table.cmap[cp] = glyphName
     		else:
-    			raise NotImplementedError, "Unsupported cmap table format: %d" % table.format
+    			raise NotImplementedError("Unsupported cmap table format: %d" % table.format)
     	cp += 1
 
     	# tag.fail
@@ -146,7 +146,7 @@ def makeLookup1():
     		if table.format == 4:
     			table.cmap[cp] = glyphName
     		else:
-    			raise NotImplementedError, "Unsupported cmap table format: %d" % table.format
+    			raise NotImplementedError("Unsupported cmap table format: %d" % table.format)
 
         # bump this up so that the sequence is the same as the lookup 3 font
     	cp += 3
@@ -327,7 +327,7 @@ def makeLookup3():
     		if table.format == 4:
     			table.cmap[cp] = glyphName
     		else:
-    			raise NotImplementedError, "Unsupported cmap table format: %d" % table.format
+    			raise NotImplementedError("Unsupported cmap table format: %d" % table.format)
     	cp += 1
 
     	# tag.alt1,2,3
@@ -348,7 +348,7 @@ def makeLookup3():
     			if table.format == 4:
     				table.cmap[cp] = glyphName
     			else:
-    				raise NotImplementedError, "Unsupported cmap table format: %d" % table.format
+    				raise NotImplementedError("Unsupported cmap table format: %d" % table.format)
     		cp += 1
 
     # set the glyph order

@@ -201,7 +201,7 @@ def headerparserhandler(request):
             request.log_error(
                 'mod_pywebsocket: Fallback to Apache', apache.APLOG_INFO)
             return apache.DECLINED
-    except dispatch.DispatchException, e:
+    except dispatch.DispatchException as e:
         request.log_error(
             'mod_pywebsocket: Dispatch failed for error: %s' % e,
             apache.APLOG_INFO)
@@ -217,14 +217,14 @@ def headerparserhandler(request):
         try:
             handshake.do_handshake(
                 request, _dispatcher, allowDraft75=allow_draft75)
-        except handshake.VersionException, e:
+        except handshake.VersionException as e:
             request.log_error(
                 'mod_pywebsocket: Handshake failed for version error: %s' % e,
                 apache.APLOG_INFO)
             request.err_headers_out.add(common.SEC_WEBSOCKET_VERSION_HEADER,
                                         e.supported_versions)
             return apache.HTTP_BAD_REQUEST
-        except handshake.HandshakeException, e:
+        except handshake.HandshakeException as e:
             # Handshake for ws/wss failed.
             # Send http response with error status.
             request.log_error(
@@ -235,10 +235,10 @@ def headerparserhandler(request):
         handshake_is_done = True
         request._dispatcher = _dispatcher
         _dispatcher.transfer_data(request)
-    except handshake.AbortedByUserException, e:
+    except handshake.AbortedByUserException as e:
         request.log_error('mod_pywebsocket: Aborted: %s' % e,
                           apache.APLOG_INFO)
-    except Exception, e:
+    except Exception as e:
         # DispatchException can also be thrown if something is wrong in
         # pywebsocket code. It's caught here, then.
 

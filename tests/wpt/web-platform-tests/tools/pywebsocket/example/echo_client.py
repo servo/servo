@@ -527,7 +527,7 @@ class ClientHandshakeProcessor(ClientHandshakeBase):
         # Validate
         try:
             binary_accept = base64.b64decode(accept)
-        except TypeError, e:
+        except TypeError:
             raise HandshakeError(
                 'Illegal value for header %s: %r' %
                 (common.SEC_WEBSOCKET_ACCEPT_HEADER, accept))
@@ -947,7 +947,7 @@ class EchoClient(object):
 
                     if self._options.verbose:
                         print('Recv: %s' % received)
-                except Exception, e:
+                except Exception as e:
                     if self._options.verbose:
                         print('Error: %s' % e)
                     raise

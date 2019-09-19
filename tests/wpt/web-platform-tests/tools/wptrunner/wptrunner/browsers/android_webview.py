@@ -67,7 +67,8 @@ def env_extras(**kwargs):
 
 
 def env_options():
-    return {}
+    # allow the use of host-resolver-rules in lieu of modifying /etc/hosts file
+    return {"server_host": "127.0.0.1"}
 
 
 #TODO: refactor common elements of SystemWebViewShell and ChromeAndroidBrowser
