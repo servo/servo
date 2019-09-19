@@ -50,16 +50,22 @@ bitflags!(
         const LINE_INVERTED = 1 << 3;
         /// direction is rtl.
         const RTL = 1 << 4;
-        /// Horizontal text within a vertical writing mode is displayed sideways
+        /// All text within a vertical writing mode is displayed sideways
         /// and runs top-to-bottom or bottom-to-top; set in these cases:
         ///
-        /// * writing-mode: vertical-rl; text-orientation: sideways;
-        /// * writing-mode: vertical-lr; text-orientation: sideways;
         /// * writing-mode: sideways-rl;
         /// * writing-mode: sideways-lr;
         ///
         /// Never set without VERTICAL.
-        const SIDEWAYS = 1 << 5;
+        const VERTICAL_SIDEWAYS = 1 << 5;
+        /// Similar to VERTICAL_SIDEWAYS, but is set via text-orientation;
+        /// set in these cases:
+        ///
+        /// * writing-mode: vertical-rl; text-orientation: sideways;
+        /// * writing-mode: vertical-lr; text-orientation: sideways;
+        ///
+        /// Never set without VERTICAL.
+        const TEXT_SIDEWAYS = 1 << 6;
         /// Horizontal text within a vertical writing mode is displayed with each
         /// glyph upright; set in these cases:
         ///
@@ -67,7 +73,7 @@ bitflags!(
         /// * writing-mode: vertical-lr: text-orientation: upright;
         ///
         /// Never set without VERTICAL.
-        const UPRIGHT = 1 << 6;
+        const UPRIGHT = 1 << 7;
     }
 );
 
@@ -112,7 +118,7 @@ impl WritingMode {
             #[cfg(feature = "gecko")]
             SpecifiedWritingMode::SidewaysRl => {
                 flags.insert(WritingMode::VERTICAL);
-                flags.insert(WritingMode::SIDEWAYS);
+                flags.insert(WritingMode::VERTICAL_SIDEWAYS);
                 if direction == Direction::Rtl {
                     flags.insert(WritingMode::INLINE_REVERSED);
                 }
@@ -121,7 +127,7 @@ impl WritingMode {
             SpecifiedWritingMode::SidewaysLr => {
                 flags.insert(WritingMode::VERTICAL);
                 flags.insert(WritingMode::VERTICAL_LR);
-                flags.insert(WritingMode::SIDEWAYS);
+                flags.insert(WritingMode::VERTICAL_SIDEWAYS);
                 if direction == Direction::Ltr {
                     flags.insert(WritingMode::INLINE_REVERSED);
                 }
@@ -151,7 +157,7 @@ impl WritingMode {
                             flags.remove(WritingMode::INLINE_REVERSED);
                         },
                         TextOrientation::Sideways => {
-                            flags.insert(WritingMode::SIDEWAYS);
+                            flags.insert(WritingMode::TEXT_SIDEWAYS);
                         },
                     }
                 },
@@ -187,7 +193,7 @@ impl WritingMode {
 
     #[inline]
     pub fn is_sideways(&self) -> bool {
-        self.intersects(WritingMode::SIDEWAYS)
+        self.intersects(WritingMode::VERTICAL_SIDEWAYS | WritingMode::TEXT_SIDEWAYS)
     }
 
     #[inline]
@@ -325,7 +331,7 @@ impl fmt::Display for WritingMode {
             } else {
                 write!(formatter, " RL")?;
             }
-            if self.intersects(WritingMode::SIDEWAYS) {
+            if self.is_sideways() {
                 write!(formatter, " Sideways")?;
             }
             if self.intersects(WritingMode::LINE_INVERTED) {
