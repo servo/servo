@@ -177,6 +177,7 @@ impl WebGLFramebuffer {
                 constants::RGB5_A1,
                 constants::RGB565,
                 constants::RGBA,
+                constants::RGB,
             ][..],
             &[constants::DEPTH_COMPONENT16][..],
             &[constants::STENCIL_INDEX8][..],
