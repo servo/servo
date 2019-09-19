@@ -1241,9 +1241,17 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             // GL_OES_read_format support (assuming an underlying GLES
             // driver. Desktop is happy to format convert for us).
             constants::IMPLEMENTATION_COLOR_READ_FORMAT => {
+                if self.validate_framebuffer().is_err() {
+                    self.webgl_error(InvalidOperation);
+                    return NullValue();
+                }
                 return Int32Value(constants::RGBA as i32);
             },
             constants::IMPLEMENTATION_COLOR_READ_TYPE => {
+                if self.validate_framebuffer().is_err() {
+                    self.webgl_error(InvalidOperation);
+                    return NullValue();
+                }
                 return Int32Value(constants::UNSIGNED_BYTE as i32);
             },
             constants::COMPRESSED_TEXTURE_FORMATS => unsafe {
@@ -2819,6 +2827,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         pixel_type: u32,
         mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
     ) {
+        handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
+
         let pixels =
             handle_potential_webgl_error!(self, pixels.as_mut().ok_or(InvalidValue), return);
 
@@ -2834,7 +2844,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
         let (fb_width, fb_height) = handle_potential_webgl_error!(
             self,
             self.get_current_framebuffer_size().ok_or(InvalidOperation),
