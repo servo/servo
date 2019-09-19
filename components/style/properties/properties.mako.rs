@@ -1793,7 +1793,7 @@ impl ToCss for PropertyId {
 }
 
 /// The counted unknown property list which is used for css use counters.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, PartialEq)]
 #[repr(u8)]
 pub enum CountedUnknownProperty {
     % for prop in data.counted_unknown_properties:
