@@ -91,6 +91,8 @@ pub struct WebGLCreateContextResult {
     pub glsl_version: WebGLSLVersion,
     /// The GL API used by the context.
     pub api_type: GlType,
+    /// The format for creating new offscreen framebuffers for this context.
+    pub framebuffer_format: GLFormats,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -885,4 +887,10 @@ pub struct GLLimits {
     pub max_varying_vectors: u32,
     pub max_vertex_texture_image_units: u32,
     pub max_vertex_uniform_vectors: u32,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct GLFormats {
+    pub texture_format: u32,
+    pub texture_type: u32,
 }

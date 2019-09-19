@@ -53,8 +53,8 @@ use crate::script_runtime::JSContext as SafeJSContext;
 use backtrace::Backtrace;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
-    webgl_channel, AlphaTreatment, DOMToTextureCommand, GLContextAttributes, GLLimits, GlType,
-    Parameter, TexDataType, TexFormat, TexParameter, WebGLChan, WebGLCommand,
+    webgl_channel, AlphaTreatment, DOMToTextureCommand, GLContextAttributes, GLFormats, GLLimits,
+    GlType, Parameter, TexDataType, TexFormat, TexParameter, WebGLChan, WebGLCommand,
     WebGLCommandBacktrace, WebGLContextId, WebGLContextShareMode, WebGLError,
     WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId, WebGLResult,
     WebGLSLVersion, WebGLSendResult, WebGLSender, WebGLVersion, WebVRCommand, YAxisTreatment,
@@ -170,6 +170,7 @@ pub struct WebGLRenderingContext {
     current_vao: MutNullableDom<WebGLVertexArrayObjectOES>,
     textures: Textures,
     api_type: GlType,
+    framebuffer_format: GLFormats,
 }
 
 impl WebGLRenderingContext {
@@ -229,6 +230,7 @@ impl WebGLRenderingContext {
                 current_vao: Default::default(),
                 textures: Textures::new(max_combined_texture_image_units),
                 api_type: ctx_data.api_type,
+                framebuffer_format: ctx_data.framebuffer_format,
             }
         })
     }
@@ -1108,6 +1110,10 @@ impl WebGLRenderingContext {
 
     pub fn extension_manager(&self) -> &WebGLExtensions {
         &self.extension_manager
+    }
+
+    pub fn formats(&self) -> &GLFormats {
+        &self.framebuffer_format
     }
 }
 

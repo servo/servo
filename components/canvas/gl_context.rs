@@ -4,14 +4,14 @@
 
 use super::webgl_thread::{GLState, WebGLImpl};
 use canvas_traits::webgl::{
-    GLContextAttributes, GLLimits, WebGLCommand, WebGLCommandBacktrace, WebGLVersion,
+    GLContextAttributes, GLFormats, GLLimits, WebGLCommand, WebGLCommandBacktrace, WebGLVersion,
 };
 use euclid::default::Size2D;
 use offscreen_gl_context::{
     ColorAttachmentType, DrawBuffer, GLContext, GLContextAttributes as RawGLContextAttributes,
     GLContextDispatcher,
 };
-use offscreen_gl_context::{GLLimits as RawGLLimits, GLVersion};
+use offscreen_gl_context::{GLFormats as RawGLFormats, GLLimits as RawGLLimits, GLVersion};
 use offscreen_gl_context::{NativeGLContext, NativeGLContextHandle, NativeGLContextMethods};
 use offscreen_gl_context::{OSMesaContext, OSMesaContextHandle};
 use sparkle::gl;
@@ -179,7 +179,7 @@ impl GLContextWrapper {
         }
     }
 
-    pub fn get_info(&self) -> (Size2D<i32>, u32, GLLimits) {
+    pub fn get_info(&self) -> (Size2D<i32>, u32, GLLimits, GLFormats) {
         match *self {
             GLContextWrapper::Native(ref ctx) => {
                 let (real_size, texture_id) = {
@@ -191,8 +191,9 @@ impl GLContextWrapper {
                 };
 
                 let limits = ctx.borrow_limits().clone();
+                let formats = map_formats(ctx.borrow_formats());
 
-                (real_size, texture_id, map_limits(limits))
+                (real_size, texture_id, map_limits(limits), formats)
             },
             GLContextWrapper::OSMesa(ref ctx) => {
                 let (real_size, texture_id) = {
@@ -204,8 +205,9 @@ impl GLContextWrapper {
                 };
 
                 let limits = ctx.borrow_limits().clone();
+                let formats = map_formats(ctx.borrow_formats());
 
-                (real_size, texture_id, map_limits(limits))
+                (real_size, texture_id, map_limits(limits), formats)
             },
         }
     }
@@ -258,5 +260,12 @@ pub fn map_attrs_to_script_attrs(attrs: RawGLContextAttributes) -> GLContextAttr
         antialias: attrs.antialias,
         premultiplied_alpha: attrs.premultiplied_alpha,
         preserve_drawing_buffer: attrs.preserve_drawing_buffer,
+    }
+}
+
+fn map_formats(formats: &RawGLFormats) -> GLFormats {
+    GLFormats {
+        texture_format: formats.texture,
+        texture_type: formats.texture_type,
     }
 }
