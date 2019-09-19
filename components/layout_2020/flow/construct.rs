@@ -9,7 +9,7 @@ use crate::flow::inline::{InlineBox, InlineFormattingContext, InlineLevelBox, Te
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::style_ext::{DisplayGeneratingBox, DisplayInside, DisplayOutside};
-use crate::IndependentFormattingContext;
+use crate::{take, IndependentFormattingContext};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
@@ -152,8 +152,7 @@ impl BlockContainer {
                 );
                 return (container, builder.contains_floats);
             }
-            // FIXME
-            // builder.end_ongoing_inline_formatting_context();
+            builder.end_ongoing_inline_formatting_context();
         }
 
         let mut contains_floats = builder.contains_floats;
@@ -166,8 +165,7 @@ impl BlockContainer {
                     |contains_floats, (intermediate, box_slot): (IntermediateBlockLevelBox<_>, BoxSlot<'_>)| {
                         let (block_level_box, box_contains_floats) = intermediate.finish(context);
                         *contains_floats |= box_contains_floats;
-                        // FIXME
-                        // box_slot.set(LayoutBox::BlockLevel(block_level_box.clone()));
+                        box_slot.set(LayoutBox::BlockLevel(block_level_box.clone()));
                         block_level_box
                     },
                     |left, right| *left |= right,
@@ -195,21 +193,21 @@ where
                     self.handle_inline_level_element(style, inside, contents),
                 )),
                 DisplayOutside::Block => {
-                    // FIXME
+                    let box_style = style.get_box();
                     // Floats and abspos cause blockification, so they only happen in this case.
                     // https://drafts.csswg.org/css2/visuren.html#dis-pos-flo
-                    // if style.box_.position.is_absolutely_positioned() {
-                    //     self.handle_absolutely_positioned_element(
-                    //         style.clone(),
-                    //         inside,
-                    //         contents,
-                    //         box_slot,
-                    //     )
-                    // } else if style.box_.float.is_floating() {
-                    //     self.handle_float_element(style.clone(), inside, contents, box_slot)
-                    // } else {
-                    //     self.handle_block_level_element(style.clone(), inside, contents, box_slot)
-                    // }
+                    if box_style.position.is_absolutely_positioned() {
+                        self.handle_absolutely_positioned_element(
+                            style.clone(),
+                            inside,
+                            contents,
+                            box_slot,
+                        )
+                    } else if box_style.float.is_floating() {
+                        self.handle_float_element(style.clone(), inside, contents, box_slot)
+                    } else {
+                        self.handle_block_level_element(style.clone(), inside, contents, box_slot)
+                    }
                 },
                 DisplayOutside::None => panic!(":("),
             },
@@ -362,80 +360,79 @@ where
         box_
     }
 
-    // FIXME
-    // fn handle_block_level_element(
-    //     &mut self,
-    //     style: Arc<ComputedValues>,
-    //     display_inside: DisplayInside,
-    //     contents: Contents,
-    //     box_slot: BoxSlot<'a>,
-    // ) {
-    //     // We just found a block level element, all ongoing inline level boxes
-    //     // need to be split around it. We iterate on the fragmented inline
-    //     // level box stack to take their contents and set their first_fragment
-    //     // field to false, for the fragmented inline level boxes that will
-    //     // come after the block level element.
-    //     let mut fragmented_inline_boxes =
-    //         self.ongoing_inline_boxes_stack
-    //             .iter_mut()
-    //             .rev()
-    //             .map(|ongoing| {
-    //                 let fragmented = InlineBox {
-    //                     style: ongoing.style.clone(),
-    //                     first_fragment: ongoing.first_fragment,
-    //                     // The fragmented boxes before the block level element
-    //                     // are obviously not the last fragment.
-    //                     last_fragment: false,
-    //                     children: take(&mut ongoing.children),
-    //                 };
-    //                 ongoing.first_fragment = false;
-    //                 fragmented
-    //             });
+    fn handle_block_level_element(
+        &mut self,
+        style: Arc<ComputedValues>,
+        display_inside: DisplayInside,
+        contents: Contents<Node>,
+        box_slot: BoxSlot<'dom>,
+    ) {
+        // We just found a block level element, all ongoing inline level boxes
+        // need to be split around it. We iterate on the fragmented inline
+        // level box stack to take their contents and set their first_fragment
+        // field to false, for the fragmented inline level boxes that will
+        // come after the block level element.
+        let mut fragmented_inline_boxes =
+            self.ongoing_inline_boxes_stack
+                .iter_mut()
+                .rev()
+                .map(|ongoing| {
+                    let fragmented = InlineBox {
+                        style: ongoing.style.clone(),
+                        first_fragment: ongoing.first_fragment,
+                        // The fragmented boxes before the block level element
+                        // are obviously not the last fragment.
+                        last_fragment: false,
+                        children: take(&mut ongoing.children),
+                    };
+                    ongoing.first_fragment = false;
+                    fragmented
+                });
 
-    //     if let Some(last) = fragmented_inline_boxes.next() {
-    //         // There were indeed some ongoing inline level boxes before
-    //         // the block, we accumulate them as a single inline level box
-    //         // to be pushed to the ongoing inline formatting context.
-    //         let mut fragmented_inline = InlineLevelBox::InlineBox(last);
-    //         for mut fragmented_parent_inline_box in fragmented_inline_boxes {
-    //             fragmented_parent_inline_box
-    //                 .children
-    //                 .push(Arc::new(fragmented_inline));
-    //             fragmented_inline = InlineLevelBox::InlineBox(fragmented_parent_inline_box);
-    //         }
+        if let Some(last) = fragmented_inline_boxes.next() {
+            // There were indeed some ongoing inline level boxes before
+            // the block, we accumulate them as a single inline level box
+            // to be pushed to the ongoing inline formatting context.
+            let mut fragmented_inline = InlineLevelBox::InlineBox(last);
+            for mut fragmented_parent_inline_box in fragmented_inline_boxes {
+                fragmented_parent_inline_box
+                    .children
+                    .push(Arc::new(fragmented_inline));
+                fragmented_inline = InlineLevelBox::InlineBox(fragmented_parent_inline_box);
+            }
 
-    //         self.ongoing_inline_formatting_context
-    //             .inline_level_boxes
-    //             .push(Arc::new(fragmented_inline));
-    //     }
+            self.ongoing_inline_formatting_context
+                .inline_level_boxes
+                .push(Arc::new(fragmented_inline));
+        }
 
-    //     // We found a block level element, so the ongoing inline formatting
-    //     // context needs to be ended.
-    //     self.end_ongoing_inline_formatting_context();
+        // We found a block level element, so the ongoing inline formatting
+        // context needs to be ended.
+        self.end_ongoing_inline_formatting_context();
 
-    //     let intermediate_box = match contents.try_into() {
-    //         Ok(contents) => match display_inside {
-    //             DisplayInside::Flow => IntermediateBlockLevelBox::SameFormattingContextBlock {
-    //                 style,
-    //                 contents: IntermediateBlockContainer::Deferred { contents },
-    //             },
-    //             _ => IntermediateBlockLevelBox::Independent {
-    //                 style,
-    //                 display_inside,
-    //                 contents: contents.into(),
-    //             },
-    //         },
-    //         Err(contents) => {
-    //             let contents = Contents::Replaced(contents);
-    //             IntermediateBlockLevelBox::Independent {
-    //                 style,
-    //                 display_inside,
-    //                 contents,
-    //             }
-    //         }
-    //     };
-    //     self.block_level_boxes.push((intermediate_box, box_slot))
-    // }
+        let intermediate_box = match contents.try_into() {
+            Ok(contents) => match display_inside {
+                DisplayInside::Flow => IntermediateBlockLevelBox::SameFormattingContextBlock {
+                    style,
+                    contents: IntermediateBlockContainer::Deferred { contents },
+                },
+                _ => IntermediateBlockLevelBox::Independent {
+                    style,
+                    display_inside,
+                    contents: contents.into(),
+                },
+            },
+            Err(contents) => {
+                let contents = Contents::Replaced(contents);
+                IntermediateBlockLevelBox::Independent {
+                    style,
+                    display_inside,
+                    contents,
+                }
+            },
+        };
+        self.block_level_boxes.push((intermediate_box, box_slot))
+    }
 
     fn handle_absolutely_positioned_element(
         &mut self,
