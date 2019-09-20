@@ -39,8 +39,9 @@ interface MediaSession {
   void setPositionState(optional MediaPositionState? state);
 };
 
-[Constructor(optional MediaMetadataInit init), Exposed=Window]
+[Exposed=Window]
 interface MediaMetadata {
+  constructor(optional MediaMetadataInit init = {});
   attribute DOMString title;
   attribute DOMString artist;
   attribute DOMString album;

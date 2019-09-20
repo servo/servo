@@ -1118,6 +1118,9 @@ function invokeRequest(subresource, sourceContextList) {
     "iframe": { // <iframe src="same-origin-URL"></iframe>
       invoker: invokeFromIframe,
     },
+    "iframe-blank": { // <iframe></iframe>
+      invoker: invokeFromIframe,
+    },
     "worker-classic": {
       // Classic dedicated worker loaded from same-origin.
       invoker: invokeFromWorker.bind(undefined, false, {}),
@@ -1204,35 +1207,53 @@ function invokeFromIframe(subresource, sourceContextList) {
     encodeURIComponent(JSON.stringify(
         currentSourceContext.policyDeliveries || []));
 
+  let iframe;
   let promise;
   if (currentSourceContext.sourceContextType === 'srcdoc') {
     promise = fetch(frameUrl)
       .then(r => r.text())
       .then(srcdoc => {
-          return createElement("iframe", {srcdoc: srcdoc}, document.body, true);
+          iframe = createElement(
+              "iframe", {srcdoc: srcdoc}, document.body, true);
+          return iframe.eventPromise;
         });
   } else if (currentSourceContext.sourceContextType === 'iframe') {
-    promise = Promise.resolve(
-        createElement("iframe", {src: frameUrl}, document.body, true));
+    iframe = createElement("iframe", {src: frameUrl}, document.body, true);
+    promise = iframe.eventPromise;
+  } else if (currentSourceContext.sourceContextType === 'iframe-blank') {
+    let frameContent;
+    promise = fetch(frameUrl)
+      .then(r => r.text())
+      .then(t => {
+          frameContnent = t;
+          iframe = createElement("iframe", {}, document.body, true);
+          return iframe.eventPromise;
+        })
+      .then(() => {
+          // Reinitialize `iframe.eventPromise` with a new promise
+          // that catches the load event for the document.write() below.
+          bindEvents(iframe);
+
+          iframe.contentDocument.write(frameContent);
+          iframe.contentDocument.close();
+          return iframe.eventPromise;
+        });
   }
 
   return promise
-    .then(iframe => {
-        return iframe.eventPromise
-          .then(() => {
-              const promise = bindEvents2(
-                  window, "message", iframe, "error", window, "error");
-              iframe.contentWindow.postMessage(
-                  {subresource: subresource,
-                   sourceContextList: sourceContextList.slice(1)},
-                  "*");
-              return promise;
-            })
-          .then(event => {
-              if (event.data.error)
-                return Promise.reject(event.data.error);
-              return event.data;
-            });
+    .then(() => {
+        const promise = bindEvents2(
+            window, "message", iframe, "error", window, "error");
+        iframe.contentWindow.postMessage(
+            {subresource: subresource,
+             sourceContextList: sourceContextList.slice(1)},
+            "*");
+        return promise;
+      })
+    .then(event => {
+        if (event.data.error)
+          return Promise.reject(event.data.error);
+        return event.data;
       });
 }
 

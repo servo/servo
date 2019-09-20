@@ -200,7 +200,7 @@ var GenericSensorTest = (() => {
 
       const initParams = new device.mojom.SensorInitParams({
         sensor: sensorPtr,
-        clientRequest: mojo.makeRequest(this.activeSensors_.get(type).client_),
+        clientReceiver: mojo.makeRequest(this.activeSensors_.get(type).client_),
         memory: rv.handle,
         bufferOffset: offset,
         mode: reportingMode,

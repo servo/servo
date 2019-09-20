@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>Web NFC: NFCReader tests</title>
+<title>Web NFC: NFCReader.scan tests</title>
 <link rel="author" title="Intel" href="http://www.intel.com"/>
 <link rel="help" href="https://w3c.github.io/web-nfc/"/>
 <script src="/resources/testharness.js"></script>
@@ -9,6 +9,16 @@
 <script>
 
 "use strict";
+
+const invalid_signals = [
+  "string",
+  123,
+  {},
+  true,
+  Symbol(),
+  () => {},
+  self
+];
 
 function waitSyntaxErrorPromise(t, scan_options) {
   const reader = new NFCReader();
@@ -130,5 +140,55 @@ nfc_test(async (t, mockNFC) => {
   reader.scan({signal : controller.signal, url: ""});
   await promise;
 }, "Test that NFCReader.scan succeeds if NFCScanOptions.url is empty.");
+
+nfc_test(async (t, mockNFC) => {
+  const reader = new NFCReader();
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  mockNFC.setReadingMessage(createMessage([createTextRecord(test_text_data)]));
+
+  const controller = new AbortController();
+  controller.abort();
+  reader.scan({signal: controller.signal});
+
+  await new Promise((resolve, reject) => {
+    readerWatcher.wait_for("reading").then(event => {
+      reject("reading event should not be fired.");
+    });
+    t.step_timeout(resolve, 100);
+  });
+
+}, "Test that NFCReader.onreading should not be fired if NFCScanOptions.signal \
+is aborted.");
+
+nfc_test(async (t, mockNFC) => {
+  const reader = new NFCReader();
+  const controller = new AbortController();
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const message = createMessage([createTextRecord(test_text_data)]);
+
+  mockNFC.setReadingMessage(message);
+
+  reader.scan({signal: controller.signal});
+  const event = await readerWatcher.wait_for("reading");
+  assert_true(event instanceof NFCReadingEvent);
+  mockNFC.setReadingMessage(message);
+  controller.abort();
+
+  await new Promise((resolve, reject) => {
+    readerWatcher.wait_for("reading").then(event => {
+      reject("reading event should not be fired.");
+    });
+    t.step_timeout(resolve, 100);
+  });
+
+}, "Synchronously signaled abort.");
+
+test(() => {
+  const reader = new NFCReader();
+  invalid_signals.forEach(invalid_signal => {
+    assert_throws(new TypeError(),
+        () => { reader.scan({ signal: invalid_signal }); });
+  });
+}, "NFCReader.scan should fail if signal is not an AbortSignal.");
 
 </script>

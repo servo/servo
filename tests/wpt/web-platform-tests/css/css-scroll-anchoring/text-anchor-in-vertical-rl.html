@@ -22,9 +22,9 @@
       var displayMe = document.getElementById("displayMe");
       var displayMeToo = document.getElementById("displayMeToo");
       // Scroll the text container into view.
-      container.scrollLeft = 100;
+      container.scrollLeft = -300;
       displayMe.style.display = "inline";
       displayMeToo.style.display = "block";
-      assert_equals(container.scrollLeft, 300);
+      assert_equals(container.scrollLeft, -400);
   }, "Line at edge of scrollport shouldn't jump visually when content is inserted before");
 </script>

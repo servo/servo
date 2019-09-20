@@ -320,15 +320,15 @@ var MathMLFeatureDetection = {
   <mn>1</mn><mo lspace='0px' rspace='0px'>+</mo><mn>2</mn>\
 </mrow>\
 <mrow>\
-  <mn>1</mn><mo lspace='8px' rspace='8px'>+</mo><mn>2</mn>\
+  <mn>1</mn><mo lspace='20px' rspace='20px'>+</mo><mn>2</mn>\
 </mrow>\
 </math>");
             var math = document.body.lastElementChild;
             var mrow = math.getElementsByTagName("mrow");
-            // lspace/rspace will add 16px per MathML and none if not supported.
+            // lspace/rspace will add 40px per MathML and none if not supported.
             this._has_operator_spacing =
                 mrow[1].getBoundingClientRect().width -
-                mrow[0].getBoundingClientRect().width > 10;
+                mrow[0].getBoundingClientRect().width > 30;
             document.body.removeChild(math);
         }
         return this._has_operator_spacing;

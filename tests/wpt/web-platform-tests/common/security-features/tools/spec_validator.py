@@ -101,9 +101,11 @@ def validate(spec_json, details):
 
     valid_test_expansion_fields = ['name'] + test_expansion_schema.keys()
 
+    # Should be consistent with `sourceContextMap` in
+    # `/common/security-features/resources/common.sub.js`.
     valid_source_context_names = [
-        "top", "iframe", "srcdoc", "worker-classic", "worker-module",
-        "worker-classic-data", "worker-module-data"
+        "top", "iframe", "iframe-blank", "srcdoc", "worker-classic",
+        "worker-module", "worker-classic-data", "worker-module-data"
     ]
 
     valid_subresource_names = [
