@@ -10,8 +10,9 @@ use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGL
 use crate::dom::bindings::codegen::Bindings::WebGLTextureBinding;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::webgl_validations::types::TexImageTarget;
+use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use canvas_traits::webgl::{webgl_channel, TexDataType, TexFormat, WebGLResult, WebGLTextureId};
@@ -48,6 +49,8 @@ pub struct WebGLTexture {
     mag_filter: Cell<u32>,
     /// True if this texture is used for the DOMToTexture feature.
     attached_to_dom: Cell<bool>,
+    /// Framebuffer that this texture is attached to.
+    attached_framebuffer: MutNullableDom<WebGLFramebuffer>,
 }
 
 impl WebGLTexture {
@@ -63,6 +66,7 @@ impl WebGLTexture {
             mag_filter: Cell::new(constants::LINEAR),
             image_info_array: DomRefCell::new([ImageInfo::new(); MAX_LEVEL_COUNT * MAX_FACE_COUNT]),
             attached_to_dom: Cell::new(false),
+            attached_framebuffer: Default::default(),
         }
     }
 
@@ -138,6 +142,11 @@ impl WebGLTexture {
 
         let face_index = self.face_index_for_target(&target);
         self.set_image_infos_at_level_and_face(level, face_index, image_info);
+
+        if let Some(fb) = self.attached_framebuffer.get() {
+            fb.update_status();
+        }
+
         Ok(())
     }
 
@@ -404,6 +413,14 @@ impl WebGLTexture {
 
     pub fn set_attached_to_dom(&self) {
         self.attached_to_dom.set(true);
+    }
+
+    pub fn attach_to_framebuffer(&self, fb: &WebGLFramebuffer) {
+        self.attached_framebuffer.set(Some(fb));
+    }
+
+    pub fn detach_from_framebuffer(&self) {
+        self.attached_framebuffer.set(None);
     }
 }
 
