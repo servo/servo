@@ -16,6 +16,7 @@ let test_cases = [
   { fragment: '##targetText=this,test,-page', expect_position: 'text' },
   { fragment: '##targetText=this%20is%20a%20test%20page', expect_position: 'text' },
   { fragment: '##targetText=this&targetText=test,page', expect_position: 'text' },
+  { fragment: '##targetText=tes&targetText=age', expect_position: 'top' },
   { fragment: '#pagestate##targetText=test', expect_position: 'text' },
   { fragment: '#pagestate##targetText=nomatch', expect_position: 'top' },
   { fragment: '#element##targetText=nomatch', expect_position: 'element' },

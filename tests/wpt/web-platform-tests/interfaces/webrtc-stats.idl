@@ -109,7 +109,10 @@ dictionary RTCInboundRtpStreamStats : RTCReceivedRtpStreamStats {
 dictionary RTCRemoteInboundRtpStreamStats : RTCReceivedRtpStreamStats {
              DOMString localId;
              double roundTripTime;
+             double totalRoundTripTime;
              double fractionLost;
+             unsigned long long reportsReceived;
+             unsigned long long roundTripTimeMeasurements;
 };
 
 dictionary RTCSentRtpStreamStats : RTCRtpStreamStats {
@@ -165,6 +168,7 @@ enum RTCQualityLimitationReason {
 dictionary RTCRemoteOutboundRtpStreamStats : RTCSentRtpStreamStats {
              DOMString localId;
              DOMHighResTimeStamp remoteTimestamp;
+             unsigned long long reportsSent;
 };
 
 dictionary RTCMediaSourceStats : RTCStats {

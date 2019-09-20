@@ -16,29 +16,32 @@ def main(request, response):
     origin = request.url_parts.scheme + "://" + request.url_parts.hostname + ":" + str(request.url_parts.port)
     page_origin = request.GET.first("page_origin")
     cross_origin = request.GET.first("cross_origin")
+    tao_steps = 0
+    if "tao_steps" in request.GET:
+        tao_steps = int(request.GET.first("tao_steps"))
     timing_allow = "0"
     if "timing_allow" in request.GET:
         timing_allow = request.GET.first("timing_allow")
 
+    next_tao_steps = tao_steps - 1
     redirect_url_path = "/resource-timing/resources/multi_redirect.py?"
     redirect_url_path += "page_origin=" + page_origin
     redirect_url_path += "&cross_origin=" + cross_origin
     redirect_url_path += "&timing_allow=" + timing_allow
+    redirect_url_path += "&tao_steps=" + str(next_tao_steps)
     redirect_url_path += "&step="
+    if timing_allow != "0" and tao_steps > 0:
+        response.headers.set("timing-allow-origin", page_origin)
 
     if step == 1:
         # On the first request, redirect to a cross origin URL
         redirect_url = cross_origin + redirect_url_path + "2"
-        if timing_allow != "0" and origin != page_origin:
-            response.headers.set("timing-allow-origin", page_origin)
     elif step == 2:
         # On the second request, redirect to a same origin URL
         redirect_url = page_origin + redirect_url_path + "3"
-        if timing_allow != "0":
-            response.headers.set("timing-allow-origin", page_origin)
     else:
         # On the third request, redirect to a static response
-        redirect_url = page_origin + "/resource-timing/resources/blank_page_green.htm"
+        redirect_url = page_origin + "/resource-timing/resources/blank-with-tao.html"
 
     response.status = 302
     response.headers.set("Location", redirect_url)

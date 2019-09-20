@@ -51,6 +51,13 @@ test(t => {
 
 test(t => {
   assert_equals(
+      referrerRemoteRemote, "",
+      "Referrer should not be sent for the remote-origin descendant script.");
+}, "Importing a remote-origin descendant script from a remote-origin " +
+   "top-level script with the no-referrer policy.");
+
+test(t => {
+  assert_equals(
       referrerRemoteSame, "",
       "Referrer should not be sent for the same-origin descendant script.");
 }, "Importing a same-origin descendant script from a remote-origin " +

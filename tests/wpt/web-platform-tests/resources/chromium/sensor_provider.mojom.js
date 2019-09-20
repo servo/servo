@@ -57,7 +57,7 @@
   SensorInitParams.kReadBufferSizeForTests = 48;
   SensorInitParams.prototype.initDefaults_ = function() {
     this.sensor = new sensor$.SensorPtr();
-    this.clientRequest = new bindings.InterfaceRequest();
+    this.clientReceiver = new bindings.InterfaceRequest();
     this.memory = null;
     this.bufferOffset = 0;
     this.mode = 0;
@@ -92,7 +92,7 @@
         return err;
 
 
-    // validate SensorInitParams.clientRequest
+    // validate SensorInitParams.clientReceiver
     err = messageValidator.validateInterfaceRequest(offset + codec.kStructHeaderSize + 8, false)
     if (err !== validator.validationError.NONE)
         return err;
@@ -129,7 +129,7 @@
     var numberOfBytes = decoder.readUint32();
     var version = decoder.readUint32();
     val.sensor = decoder.decodeStruct(new codec.Interface(sensor$.SensorPtr));
-    val.clientRequest = decoder.decodeStruct(codec.InterfaceRequest);
+    val.clientReceiver = decoder.decodeStruct(codec.InterfaceRequest);
     val.memory = decoder.decodeStruct(codec.Handle);
     val.bufferOffset = decoder.decodeStruct(codec.Uint64);
     val.mode = decoder.decodeStruct(codec.Int32);
@@ -148,7 +148,7 @@
     encoder.writeUint32(SensorInitParams.encodedSize);
     encoder.writeUint32(0);
     encoder.encodeStruct(new codec.Interface(sensor$.SensorPtr), val.sensor);
-    encoder.encodeStruct(codec.InterfaceRequest, val.clientRequest);
+    encoder.encodeStruct(codec.InterfaceRequest, val.clientReceiver);
     encoder.encodeStruct(codec.Handle, val.memory);
     encoder.encodeStruct(codec.Uint64, val.bufferOffset);
     encoder.encodeStruct(codec.Int32, val.mode);

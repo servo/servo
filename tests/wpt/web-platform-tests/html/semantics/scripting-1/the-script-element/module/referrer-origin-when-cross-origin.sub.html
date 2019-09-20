@@ -39,6 +39,7 @@ test(t => {
       "Referrer should be sent for the remote-origin top-level script.");
 }, "Importing a remote-origin top-level script with the " +
    "origin-when-cross-origin policy.");
+
 test(t => {
   const scriptURL =
       new URL("resources/import-referrer-checker.sub.js", location.href)
@@ -47,6 +48,7 @@ test(t => {
       "Referrer should be sent for the same-origin descendant script.");
 }, "Importing a same-origin descendant script from a same-origin top-level " +
    "script with the origin-when-cross-origin policy.");
+
 test(t => {
   assert_equals(
       referrerSameRemote, origin,
