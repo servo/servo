@@ -37,6 +37,7 @@
     <ClInclude Include="ServoControl\ServoControl.h">
       <Filter>ServoControl</Filter>
     </ClInclude>
+    <ClInclude Include="DefaultUrl.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">

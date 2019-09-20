@@ -128,6 +128,7 @@
     <ClInclude Include="ServoControl\OpenGLES.h" />
     <ClInclude Include="ServoControl\Servo.h" />
     <ClInclude Include="ServoControl\ServoControl.h" />
+    <ClInclude Include="DefaultUrl.h" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
