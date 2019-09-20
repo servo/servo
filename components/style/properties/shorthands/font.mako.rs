@@ -221,7 +221,7 @@
             self.font_size.to_css(dest)?;
 
             if *self.line_height != LineHeight::normal() {
-                dest.write_str("/")?;
+                dest.write_str(" / ")?;
                 self.line_height.to_css(dest)?;
             }
 

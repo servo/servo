@@ -36,7 +36,7 @@ impl ToCss for AspectRatio {
         W: fmt::Write,
     {
         self.0.to_css(dest)?;
-        dest.write_char('/')?;
+        dest.write_str(" / ")?;
         self.1.to_css(dest)
     }
 }
