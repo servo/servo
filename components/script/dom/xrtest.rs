@@ -18,6 +18,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::fakexrdevice::{get_origin, get_views, FakeXRDevice};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use euclid::RigidTransform3D;
@@ -159,8 +160,9 @@ impl XRTestMethods for XRTest {
 
     /// https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
     fn SimulateUserActivation(&self, f: Rc<Function>) {
-        // XXXManishearth actually check for activation in XRSession
+        ScriptThread::set_user_interacting(true);
         let _ = f.Call__(vec![], ExceptionHandling::Rethrow);
+        ScriptThread::set_user_interacting(false);
     }
 
     /// https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
