@@ -274,7 +274,7 @@ impl Drop for BoxSlot<'_> {
     }
 }
 
-pub(crate) trait NodeExt<'dom>: 'dom + Copy + Send + Sync {
+pub(crate) trait NodeExt<'dom>: 'dom + Copy + LayoutNode + Send + Sync {
     fn is_element(self) -> bool;
     fn as_text(self) -> Option<String>;
     fn first_child(self) -> Option<Self>;
@@ -291,7 +291,7 @@ pub(crate) trait NodeExt<'dom>: 'dom + Copy + Send + Sync {
 
 impl<'dom, T> NodeExt<'dom> for T
 where
-    T: 'dom + LayoutNode + Send + Sync,
+    T: 'dom + Copy + LayoutNode + Send + Sync,
 {
     fn is_element(self) -> bool {
         self.to_threadsafe().as_element().is_some()
