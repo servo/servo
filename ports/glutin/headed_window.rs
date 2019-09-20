@@ -85,7 +85,7 @@ fn window_creation_scale_factor() -> Scale<f32, DeviceIndependentPixel, DevicePi
 impl Window {
     pub fn new(
         win_size: Size2D<u32, DeviceIndependentPixel>,
-        sharing: Option<&GlContext>,
+        sharing: Option<&Window>,
         events_loop: Rc<RefCell<EventsLoop>>,
     ) -> Window {
         let opts = opts::get();
@@ -119,7 +119,11 @@ impl Window {
         }
 
         let context = match sharing {
-            Some(sharing) => sharing.new_window(context_builder, window_builder, events_loop.borrow().as_winit()),
+            Some(sharing) => sharing.gl_context.borrow().new_window(
+                context_builder,
+                window_builder,
+                events_loop.borrow().as_winit()
+            ),
             None => context_builder.build_windowed(window_builder, events_loop.borrow().as_winit()),
         }.expect("Failed to create window.");
 
@@ -149,7 +153,9 @@ impl Window {
 
         context.window().show();
 
-        let gl = match context.get_api() {
+        let gl = if let Some(sharing) = sharing {
+            sharing.gl.clone()
+        } else { match context.get_api() {
             Api::OpenGl => unsafe {
                 gl::GlFns::load_with(|s| context.get_proc_address(s) as *const _)
             },
@@ -157,7 +163,7 @@ impl Window {
                 gl::GlesFns::load_with(|s| context.get_proc_address(s) as *const _)
             },
             Api::WebGl => unreachable!("webgl is unsupported"),
-        };
+        } };
 
         gl.clear_color(0.6, 0.6, 0.6, 1.0);
         gl.clear(gl::COLOR_BUFFER_BIT);
@@ -494,10 +500,9 @@ impl webxr::glwindow::GlWindow for Window {
     }
 
     fn new_window(&self) -> Result<Box<dyn webxr::glwindow::GlWindow>, ()> {
-        let gl_context = self.gl_context.borrow();
         Ok(Box::new(Window::new(
             self.inner_size.get(),
-            Some(&*gl_context),
+            Some(self),
             self.events_loop.clone(),
         )))
     }
