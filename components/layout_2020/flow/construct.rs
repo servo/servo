@@ -16,6 +16,7 @@ use servo_arc::Arc;
 use std::convert::TryInto;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
+use style::selector_parser::PseudoElement;
 
 impl BlockFormattingContext {
     pub fn construct<'dom>(
@@ -511,22 +512,25 @@ where
             return;
         }
 
+        let context = self.context;
         let block_container_style = self.block_container_style;
-        // FIXME
-        // let anonymous_style = self.anonymous_style.get_or_insert_with(|| {
-        //     // If parent_style is None, the parent is the document node,
-        //     // in which case anonymous inline boxes should inherit their
-        //     // styles from initial values.
-        //     ComputedValues::anonymous_inheriting_from(Some(block_container_style))
-        // });
+        let anonymous_style = self.anonymous_style.get_or_insert_with(|| {
+            context
+                .stylist
+                .style_for_anonymous::<Node::ConcreteElement>(
+                    &context.guards,
+                    &PseudoElement::ServoText,
+                    &block_container_style,
+                )
+        });
 
-        // let box_ = IntermediateBlockLevelBox::SameFormattingContextBlock {
-        //     style: anonymous_style.clone(),
-        //     contents: IntermediateBlockContainer::InlineFormattingContext(take(
-        //         &mut self.ongoing_inline_formatting_context,
-        //     )),
-        // };
-        // self.block_level_boxes.push((box_, BoxSlot::dummy()))
+        let box_ = IntermediateBlockLevelBox::SameFormattingContextBlock {
+            style: anonymous_style.clone(),
+            contents: IntermediateBlockContainer::InlineFormattingContext(take(
+                &mut self.ongoing_inline_formatting_context,
+            )),
+        };
+        self.block_level_boxes.push((box_, BoxSlot::dummy()))
     }
 
     fn current_inline_level_boxes(&mut self) -> &mut Vec<Arc<InlineLevelBox>> {
