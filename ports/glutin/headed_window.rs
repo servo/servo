@@ -134,6 +134,7 @@ impl Window {
         }
 
         let context = unsafe {
+            debug!("Making window {:?} current", context.window().id());
             context.make_current().expect("Couldn't make window current")
         };
 
@@ -173,6 +174,7 @@ impl Window {
 
         context.make_not_current();
 
+        debug!("Created window {:?}", context.window().id());
         let window = Window {
             gl_context: RefCell::new(context),
             events_loop,
@@ -480,10 +482,12 @@ impl WindowPortsMethods for Window {
 
 impl webxr::glwindow::GlWindow for Window {
     fn make_current(&mut self) {
+        debug!("Making window {:?} current", self.gl_context.borrow().window().id());
         self.gl_context.get_mut().make_current();
     }
 
     fn swap_buffers(&mut self) {
+        debug!("Swapping buffers on window {:?}", self.gl_context.borrow().window().id());
         self.gl_context.get_mut().swap_buffers();
         self.gl_context.get_mut().make_not_current();
     }
