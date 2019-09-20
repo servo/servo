@@ -133,6 +133,11 @@ impl Window {
             context.window().set_window_icon(Some(load_icon(icon_bytes)));
         }
 
+        if let Some(sharing) = sharing {
+            debug!("Making window {:?} not current", sharing.gl_context.borrow().window().id());
+            sharing.gl_context.borrow_mut().make_not_current();
+        }
+
         let context = unsafe {
             debug!("Making window {:?} current", context.window().id());
             context.make_current().expect("Couldn't make window current")
