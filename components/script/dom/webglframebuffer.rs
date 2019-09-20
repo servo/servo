@@ -59,6 +59,15 @@ impl WebGLFramebufferAttachment {
             },
         }
     }
+
+    fn detach(&self) {
+        match self {
+            WebGLFramebufferAttachment::Renderbuffer(rb) => rb.detach_from_framebuffer(),
+            WebGLFramebufferAttachment::Texture { ref texture, .. } => {
+                texture.detach_from_framebuffer()
+            },
+        }
+    }
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -161,7 +170,7 @@ impl WebGLFramebuffer {
         self.size.get()
     }
 
-    fn update_status(&self) {
+    pub fn update_status(&self) {
         let c = self.color.borrow();
         let z = self.depth.borrow();
         let s = self.stencil.borrow();
@@ -311,6 +320,7 @@ impl WebGLFramebuffer {
                 }
                 *binding.borrow_mut() =
                     Some(WebGLFramebufferAttachment::Renderbuffer(Dom::from_ref(rb)));
+                rb.attach_to_framebuffer(self);
                 Some(rb.id())
             },
 
@@ -340,6 +350,9 @@ impl WebGLFramebuffer {
         binding: &DomRefCell<Option<WebGLFramebufferAttachment>>,
         attachment: u32,
     ) {
+        if let Some(att) = &*binding.borrow() {
+            att.detach();
+        }
         *binding.borrow_mut() = None;
         if INTERESTING_ATTACHMENT_POINTS.contains(&attachment) {
             self.reattach_depth_stencil();
@@ -364,6 +377,7 @@ impl WebGLFramebuffer {
             let context = self.upcast::<WebGLObject>().context();
             match *attachment {
                 WebGLFramebufferAttachment::Renderbuffer(ref rb) => {
+                    rb.attach_to_framebuffer(self);
                     context.send_command(WebGLCommand::FramebufferRenderbuffer(
                         constants::FRAMEBUFFER,
                         attachment_point,
@@ -372,6 +386,7 @@ impl WebGLFramebuffer {
                     ));
                 },
                 WebGLFramebufferAttachment::Texture { ref texture, level } => {
+                    texture.attach_to_framebuffer(self);
                     context.send_command(WebGLCommand::FramebufferTexture2D(
                         constants::FRAMEBUFFER,
                         attachment_point,
@@ -464,6 +479,7 @@ impl WebGLFramebuffer {
                     texture: Dom::from_ref(texture),
                     level: level,
                 });
+                texture.attach_to_framebuffer(self);
 
                 Some(texture.id())
             },
@@ -551,6 +567,9 @@ impl WebGLFramebuffer {
         let mut depth_or_stencil_updated = false;
         self.with_matching_renderbuffers(rb, |att, name| {
             depth_or_stencil_updated |= INTERESTING_ATTACHMENT_POINTS.contains(&name);
+            if let Some(att) = &*att.borrow() {
+                att.detach();
+            }
             *att.borrow_mut() = None;
             self.update_status();
         });
@@ -564,6 +583,9 @@ impl WebGLFramebuffer {
         let mut depth_or_stencil_updated = false;
         self.with_matching_textures(texture, |att, name| {
             depth_or_stencil_updated |= INTERESTING_ATTACHMENT_POINTS.contains(&name);
+            if let Some(att) = &*att.borrow() {
+                att.detach();
+            }
             *att.borrow_mut() = None;
             self.update_status();
         });

@@ -10,7 +10,8 @@ use crate::dom::bindings::codegen::Bindings::WebGLRenderbufferBinding;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use canvas_traits::webgl::{
@@ -18,6 +19,7 @@ use canvas_traits::webgl::{
 };
 use dom_struct::dom_struct;
 use std::cell::Cell;
+use std::default::Default;
 
 #[dom_struct]
 pub struct WebGLRenderbuffer {
@@ -28,6 +30,7 @@ pub struct WebGLRenderbuffer {
     size: Cell<Option<(i32, i32)>>,
     internal_format: Cell<Option<u32>>,
     is_initialized: Cell<bool>,
+    attached_framebuffer: MutNullableDom<WebGLFramebuffer>,
 }
 
 impl WebGLRenderbuffer {
@@ -40,6 +43,7 @@ impl WebGLRenderbuffer {
             internal_format: Cell::new(None),
             size: Cell::new(None),
             is_initialized: Cell::new(false),
+            attached_framebuffer: Default::default(),
         }
     }
 
@@ -186,6 +190,10 @@ impl WebGLRenderbuffer {
         self.internal_format.set(Some(internal_format));
         self.is_initialized.set(false);
 
+        if let Some(fb) = self.attached_framebuffer.get() {
+            fb.update_status();
+        }
+
         self.upcast::<WebGLObject>()
             .context()
             .send_command(WebGLCommand::RenderbufferStorage(
@@ -198,6 +206,14 @@ impl WebGLRenderbuffer {
         self.size.set(Some((width, height)));
 
         Ok(())
+    }
+
+    pub fn attach_to_framebuffer(&self, fb: &WebGLFramebuffer) {
+        self.attached_framebuffer.set(Some(fb));
+    }
+
+    pub fn detach_from_framebuffer(&self) {
+        self.attached_framebuffer.set(None);
     }
 }
 
