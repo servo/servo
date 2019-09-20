@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>Web NFC: Test exceptions in NFCWriter.push</title>
+<title>Web NFC: NFCWriter.push Tests</title>
 <link rel="author" title="Intel" href="http://www.intel.com"/>
 <link rel="help" href="https://w3c.github.io/web-nfc/"/>
 <script src="/resources/testharness.js"></script>
@@ -336,4 +336,30 @@ nfc_test(async (t, mockNFC) => {
   assertNDEFMessagesEqual(test_text_data, mockNFC.pushedMessage());
 }, "NFCWriter.push should ignore reading data when ignoreRead is true.");
 
+nfc_test(async (t, mockNFC) => {
+  const writer1 = new NFCWriter();
+  const writer2 = new NFCWriter();
+
+  const nfcPushOptions1 = createNFCPushOptions('tag', 1000, false);
+  const nfcPushOptions2 = createNFCPushOptions('tag', Infinity, true);
+  const p1 = writer1.push(test_text_data, nfcPushOptions1);
+  const p2 = writer2.push(test_url_data, nfcPushOptions2);
+
+  await new Promise((resolve, reject) => {
+    // Make first push pending
+    mockNFC.setPendingPushCompleted(false);
+    let err = "";
+    p1.then(() => {
+      reject("pending push should not be fulfilled");
+    }).catch(e => {
+      err = e.name;
+    });
+    p2.then(() => {
+      assertNDEFMessagesEqual(test_url_data, mockNFC.pushedMessage());
+      assertNFCPushOptionsEqual(nfcPushOptions2, mockNFC.pushOptions());
+      assert_equals(err, "AbortError", "the pending push should be aborted");
+      resolve();
+    });
+  });
+}, "NFCWriter.push should replace all previously configured push operations.");
 </script>

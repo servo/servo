@@ -23,7 +23,7 @@ interface DocumentTimeline : AnimationTimeline {
 interface Animation : EventTarget {
              attribute DOMString                id;
              attribute AnimationEffect?         effect;
-             attribute AnimationTimeline?       timeline;
+    readonly attribute AnimationTimeline?       timeline;
              attribute double?                  startTime;
              attribute double?                  currentTime;
              attribute double                   playbackRate;

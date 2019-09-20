@@ -6,11 +6,34 @@
 <link rel="help" href="https://www.w3.org/TR/magnetometer/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/generic-sensor/resources/generic-sensor-helpers.js"></script>
 <script src="/generic-sensor/generic-sensor-tests.js"></script>
-<div id="log"></div>
 <script>
 
-runGenericSensorTests('Magnetometer');
-runGenericSensorTests('UncalibratedMagnetometer');
+'use strict';
+
+const kReadings = {
+    readings: [
+        [-19.2, 12.1, -44.3]
+    ],
+    expectedReadings: [
+        [-19.2, 12.1, -44.3]
+    ],
+    expectedRemappedReadings: [
+        [-12.1, -19.2, -44.3]
+    ]
+};
+
+runGenericSensorTests(
+    'Magnetometer',
+    kReadings,
+    verifyXyzSensorReading,
+    ['magnetometer']);
+
+runGenericSensorTests(
+    'UncalibratedMagnetometer',
+    kReadings,
+    verifyXyzSensorReading,
+    ['magnetometer']);
 
 </script>

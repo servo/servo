@@ -304,9 +304,9 @@ class EndToEndHyBiTest(EndToEndTestBase):
             try:
                 client.connect()
                 self.fail('Could not catch HttpStatusException')
-            except client_for_testing.HttpStatusException, e:
+            except client_for_testing.HttpStatusException as e:
                 self.assertEqual(status, e.status)
-            except Exception, e:
+            except Exception as e:
                 self.fail('Catch unexpected exception')
             finally:
                 client.close_socket()

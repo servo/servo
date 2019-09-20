@@ -2,12 +2,11 @@
 
 from __future__ import print_function
 from lxml import etree
-from utils.misc import downloadWithProgressBar
+from utils.misc import downloadWithProgressBar, UnicodeXMLURL
 from utils import mathfont
-import json
 
 # Retrieve the unicode.xml file if necessary.
-unicodeXML = downloadWithProgressBar("http://www.w3.org/2003/entities/2007xml/unicode.xml")
+unicodeXML = downloadWithProgressBar(UnicodeXMLURL)
 
 # Extract the mathvariants transformation.
 xsltTransform = etree.XSLT(etree.XML('''\
@@ -63,6 +62,8 @@ mathvariantTransforms["auto"] = mathvariantTransforms["italic"]
 
 # Create a WOFF font for each mathvariant.
 for mathvariant in mathvariantTransforms:
+    if mathvariant == "auto":
+        continue
     font = mathfont.create("mathvariant-%s" % mathvariant)
     for baseChar in mathvariantTransforms[mathvariant]:
         if baseChar not in font:
@@ -90,25 +91,26 @@ for mathvariant in mathvariantTransforms:
     CSSreftestReference.write(source % ("text-transform math-%s (reference)" % mathvariant))
     if mathvariant == "auto":
         mathAssert = "Verify that a single-char <mi> is equivalent to an <mi> with the transformed italic unicode character."
+        mapping = "italic"
     else:
         mathAssert = "Verify that a single-char <mtext> with a %s mathvariant is equivalent to an <mtext> with the transformed unicode character." % mathvariant
+        mapping = mathvariant
     source ='\
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">\n\
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-mathvariant-attribute">\n\
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#new-text-transform-values">\n\
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#%s-mappings">\n\
 <link rel="match" href="mathvariant-%s-ref.html"/>\n\
 <meta name="assert" content="%s">\n'
-    reftest.write(source % (mathvariant, mathAssert))
+    reftest.write(source % (mapping, mathvariant, mathAssert))
     source = '\
 <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3745"/>\n\
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#new-text-transform-values">\n\
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#%s-mappings">\n\
 <link rel="match" href="text-transform-math-%s-001.tentative-ref.html"/>\n\
 <meta name="assert" content="Verify that a character with \'text-transform: math-%s\' renders the same as the transformed unicode character.">\n'
-    CSSreftest.write(source % (mathvariant, mathvariant))
-    if mathvariant == "auto":
-        WOFFfont = "mathvariant-italic.woff"
-    else:
-        WOFFfont = "mathvariant-%s.woff" % mathvariant
+    CSSreftest.write(source % (mapping, mathvariant, mathvariant))
+    WOFFfont = "mathvariant-%s.woff" % mapping
     source = '\
 <style>\n\
   @font-face {\n\

@@ -27,7 +27,7 @@ dictionary SVGBoundingBoxOptions {
 interface SVGGraphicsElement : SVGElement {
   [SameObject] readonly attribute SVGAnimatedTransformList transform;
 
-  DOMRect getBBox(optional SVGBoundingBoxOptions options);
+  DOMRect getBBox(optional SVGBoundingBoxOptions options = {});
   DOMMatrix? getCTM();
   DOMMatrix? getScreenCTM();
 };
@@ -38,8 +38,8 @@ SVGGraphicsElement includes SVGTests;
 interface SVGGeometryElement : SVGGraphicsElement {
   [SameObject] readonly attribute SVGAnimatedNumber pathLength;
 
-  boolean isPointInFill(optional DOMPointInit point);
-  boolean isPointInStroke(optional DOMPointInit point);
+  boolean isPointInFill(optional DOMPointInit point = {});
+  boolean isPointInStroke(optional DOMPointInit point = {});
   float getTotalLength();
   DOMPoint getPointAtLength(float distance);
 };
@@ -505,7 +505,7 @@ interface SVGTextContentElement : SVGGraphicsElement {
   DOMPoint getEndPositionOfChar(unsigned long charnum);
   DOMRect getExtentOfChar(unsigned long charnum);
   float getRotationOfChar(unsigned long charnum);
-  long getCharNumAtPosition(optional DOMPointInit point);
+  long getCharNumAtPosition(optional DOMPointInit point = {});
   void selectSubString(unsigned long charnum, unsigned long nchars);
 };
 

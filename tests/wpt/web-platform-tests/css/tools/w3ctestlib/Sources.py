@@ -534,7 +534,7 @@ class FileSource:
   def unicode(self):
     try:
       return self.data().decode(self.encoding)
-    except UnicodeDecodeError, e:
+    except UnicodeDecodeError:
       return None
 
   def parse(self):

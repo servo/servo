@@ -53,8 +53,6 @@
             var reference = FragmentHelper.element(referenceContainer);
             FragmentHelper.forceNonEmptyElement(reference);
 
-            var epsilon = 1;
-
             test(function() {
                 assert_true(MathMLFeatureDetection[`has_${tag}`](), `${tag} is supported`);
                 assert_approx_equals(elementContainerWidth, referenceContainerWidth, epsilon);

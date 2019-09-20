@@ -3,6 +3,9 @@
   <head>
     <title>CSS Motion Path: ray paths</title>
     <link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+    <link rel="help" href="https://drafts.fxtf.org/motion-1/#offset-path-property">
+    <link rel="match" href="offset-path-ray-001-ref.html">
+    <meta name="assert" content="This tests that ray() generates a rotation and translation.">
     <style>
       #target {
         position: absolute;
@@ -12,7 +15,8 @@
         height: 200px;
         background-color: lime;
         transform-origin: 0px 0px;
-        transform: rotate(60deg) translate(20px);
+        offset-path: ray(135deg closest-side);
+        offset-distance: 20px;
       }
     </style>
   </head>

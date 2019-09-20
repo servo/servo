@@ -109,11 +109,11 @@ class BaseProtocolPart(ProtocolPart):
     name = "base"
 
     @abstractmethod
-    def execute_script(self, script, async=False):
+    def execute_script(self, script, asynchronous=False):
         """Execute javascript in the current Window.
 
         :param str script: The js source to execute. This is implicitly wrapped in a function.
-        :param bool async: Whether the script is asynchronous in the webdriver
+        :param bool asynchronous: Whether the script is asynchronous in the webdriver
                            sense i.e. whether the return value is the result of
                            the initial function call or if it waits for some callback.
         :returns: The result of the script execution.

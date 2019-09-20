@@ -113,7 +113,7 @@ window.SameSiteStatus = {
 const wait_for_message = (type, origin) => {
   return new Promise((resolve, reject) => {
     window.addEventListener('message', e => {
-      if (e.origin != origin) {
+      if (origin && e.origin != origin) {
         reject("Message from unexpected origin in wait_for_message:" + e.origin);
         return;
       }
