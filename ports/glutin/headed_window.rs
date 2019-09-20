@@ -325,7 +325,7 @@ impl WindowPortsMethods for Window {
     fn set_fullscreen(&self, state: bool) {
         if self.fullscreen.get() != state {
             self.gl_context.borrow_mut().window()
-                .set_fullscreen(Some(self.primary_monitor.clone()));
+                .set_fullscreen(if state { Some(self.primary_monitor.clone()) } else { None });
         }
         self.fullscreen.set(state);
     }
