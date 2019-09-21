@@ -2,6 +2,7 @@
 #include "ServoControl.g.h"
 #include "OpenGLES.h"
 #include "Servo.h"
+#include "DefaultUrl.h"
 
 namespace winrt::ServoApp::implementation {
 struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
@@ -95,7 +96,7 @@ private:
   winrt::event<EventDelegate> mOnCaptureGesturesEndedEvent;
 
   float mDPI = 1;
-  hstring mInitialURL = L"about:blank";
+  hstring mInitialURL = DEFAULT_URL;
   bool mTransient = false;
 
   Windows::UI::Xaml::Controls::SwapChainPanel ServoControl::Panel();

@@ -747,6 +747,7 @@ class MachCommands(CommandBase):
             "support/hololens/ServoApp/Debug/",
             "support/hololens/ServoApp/Release/",
             "support/hololens/packages/",
+            "support/hololens/AppPackages/",
         ]
 
         for uwp_artifact in uwp_artifacts:
