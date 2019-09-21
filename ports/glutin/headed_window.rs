@@ -85,7 +85,7 @@ fn window_creation_scale_factor() -> Scale<f32, DeviceIndependentPixel, DevicePi
 impl Window {
     pub fn new(
         win_size: Size2D<u32, DeviceIndependentPixel>,
-        sharing: Option<&GlContext>,
+        sharing: Option<&Window>,
         events_loop: Rc<RefCell<EventsLoop>>,
     ) -> Window {
         let opts = opts::get();
@@ -119,7 +119,11 @@ impl Window {
         }
 
         let context = match sharing {
-            Some(sharing) => sharing.new_window(context_builder, window_builder, events_loop.borrow().as_winit()),
+            Some(sharing) => sharing.gl_context.borrow().new_window(
+                context_builder,
+                window_builder,
+                events_loop.borrow().as_winit()
+            ),
             None => context_builder.build_windowed(window_builder, events_loop.borrow().as_winit()),
         }.expect("Failed to create window.");
 
@@ -129,7 +133,13 @@ impl Window {
             context.window().set_window_icon(Some(load_icon(icon_bytes)));
         }
 
+        if let Some(sharing) = sharing {
+            debug!("Making window {:?} not current", sharing.gl_context.borrow().window().id());
+            sharing.gl_context.borrow_mut().make_not_current();
+        }
+
         let context = unsafe {
+            debug!("Making window {:?} current", context.window().id());
             context.make_current().expect("Couldn't make window current")
         };
 
@@ -149,7 +159,9 @@ impl Window {
 
         context.window().show();
 
-        let gl = match context.get_api() {
+        let gl = if let Some(sharing) = sharing {
+            sharing.gl.clone()
+        } else { match context.get_api() {
             Api::OpenGl => unsafe {
                 gl::GlFns::load_with(|s| context.get_proc_address(s) as *const _)
             },
@@ -157,7 +169,7 @@ impl Window {
                 gl::GlesFns::load_with(|s| context.get_proc_address(s) as *const _)
             },
             Api::WebGl => unreachable!("webgl is unsupported"),
-        };
+        } };
 
         gl.clear_color(0.6, 0.6, 0.6, 1.0);
         gl.clear(gl::COLOR_BUFFER_BIT);
@@ -167,6 +179,7 @@ impl Window {
 
         context.make_not_current();
 
+        debug!("Created window {:?}", context.window().id());
         let window = Window {
             gl_context: RefCell::new(context),
             events_loop,
@@ -474,10 +487,12 @@ impl WindowPortsMethods for Window {
 
 impl webxr::glwindow::GlWindow for Window {
     fn make_current(&mut self) {
+        debug!("Making window {:?} current", self.gl_context.borrow().window().id());
         self.gl_context.get_mut().make_current();
     }
 
     fn swap_buffers(&mut self) {
+        debug!("Swapping buffers on window {:?}", self.gl_context.borrow().window().id());
         self.gl_context.get_mut().swap_buffers();
         self.gl_context.get_mut().make_not_current();
     }
@@ -494,10 +509,9 @@ impl webxr::glwindow::GlWindow for Window {
     }
 
     fn new_window(&self) -> Result<Box<dyn webxr::glwindow::GlWindow>, ()> {
-        let gl_context = self.gl_context.borrow();
         Ok(Box::new(Window::new(
             self.inner_size.get(),
-            Some(&*gl_context),
+            Some(self),
             self.events_loop.clone(),
         )))
     }

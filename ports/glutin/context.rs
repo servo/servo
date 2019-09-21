@@ -35,6 +35,13 @@ impl GlContext {
         *self = match std::mem::replace(self, GlContext::None) {
             GlContext::Current(c) => {
                 warn!("Making an already current context current");
+                // Servo thinks that that this window is current,
+                // but it might be wrong, since other code may have
+                // changed the current GL context. Just to be on
+                // the safe side, we make it current anyway.
+                let c = unsafe {
+                    c.make_current().expect("Couldn't make window current")
+                };
                 GlContext::Current(c)
             },
             GlContext::NotCurrent(c) => {
