@@ -1821,16 +1821,6 @@ impl CountedUnknownProperty {
     }
 }
 
-#[cfg(feature = "gecko")]
-fn is_counted_unknown_use_counters_enabled() -> bool {
-    static_prefs::pref!("layout.css.use-counters-unimplemented.enabled")
-}
-
-#[cfg(feature = "servo")]
-fn is_counted_unknown_use_counters_enabled() -> bool {
-    false
-}
-
 impl PropertyId {
     /// Return the longhand id that this property id represents.
     #[inline]
@@ -1890,10 +1880,8 @@ impl PropertyId {
                 StaticId::LonghandAlias(id, alias) => PropertyId::LonghandAlias(id, alias),
                 StaticId::ShorthandAlias(id, alias) => PropertyId::ShorthandAlias(id, alias),
                 StaticId::CountedUnknown(unknown_prop) => {
-                    if is_counted_unknown_use_counters_enabled() {
-                        if let Some(counters) = use_counters {
-                            counters.counted_unknown_properties.record(unknown_prop);
-                        }
+                    if let Some(counters) = use_counters {
+                        counters.counted_unknown_properties.record(unknown_prop);
                     }
 
                     // Always return Err(()) because these aren't valid custom property names.
