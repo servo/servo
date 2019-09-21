@@ -229,6 +229,25 @@ class CheckTidiness(unittest.TestCase):
 
         self.assertNoMoreErrors(errors)
 
+    def test_lock_exceptions(self):
+        tidy.config["blocked-packages"]["rand"] = ["test_exception", "test_unneeded_exception"]
+        errors = tidy.collect_errors_for_files(iterFile('blocked_package.lock'), [tidy.check_lock], [], print_text=False)
+
+        msg = (
+            "Package test_blocked 0.0.2 depends on blocked package rand."
+        )
+
+        msg2 = (
+            "Package test_unneeded_exception is not required to be an exception of blocked package rand."
+        )
+
+        self.assertEqual(msg, errors.next()[2])
+        self.assertEqual(msg2, errors.next()[2])
+        self.assertNoMoreErrors(errors)
+
+        # needed to not raise errors in other test cases
+        tidy.config["blocked-packages"]["rand"] = []
+
     def test_lint_runner(self):
         test_path = base_path + 'lints/'
         runner = tidy.LintRunner(only_changed_files=False, progress=False)

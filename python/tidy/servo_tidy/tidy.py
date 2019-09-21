@@ -402,18 +402,32 @@ def check_lock(file_name, contents):
         yield (1, message)
 
     # Check to see if we are transitively using any blocked packages
+    blocked_packages = config["blocked-packages"]
+    # Create map to keep track of visited exception packages
+    visited_whitelisted_packages = {package: {} for package in blocked_packages.keys()}
+
     for package in content.get("package", []):
         package_name = package.get("name")
         package_version = package.get("version")
         for dependency in package.get("dependencies", []):
             dependency = dependency.split()
             dependency_name = dependency[0]
-            whitelist = config['blocked-packages'].get(dependency_name)
+            whitelist = blocked_packages.get(dependency_name)
             if whitelist is not None:
                 if package_name not in whitelist:
                     fmt = "Package {} {} depends on blocked package {}."
                     message = fmt.format(package_name, package_version, dependency_name)
                     yield (1, message)
+                else:
+                    visited_whitelisted_packages[dependency_name][package_name] = True
+
+    # Check if all the exceptions to blocked packages actually depend on the blocked package
+    for dependency_name, package_names in blocked_packages.iteritems():
+        for package_name in package_names:
+            if not visited_whitelisted_packages[dependency_name].get(package_name):
+                fmt = "Package {} is not required to be an exception of blocked package {}."
+                message = fmt.format(package_name, dependency_name)
+                yield (1, message)
 
 
 def check_toml(file_name, lines):
