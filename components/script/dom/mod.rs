@@ -484,6 +484,7 @@ pub mod text;
 pub mod textcontrol;
 pub mod textdecoder;
 pub mod textencoder;
+pub mod textmetrics;
 pub mod texttrack;
 pub mod texttrackcue;
 pub mod texttrackcuelist;

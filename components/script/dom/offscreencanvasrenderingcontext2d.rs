@@ -23,6 +23,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::imagedata::ImageData;
 use crate::dom::offscreencanvas::OffscreenCanvas;
+use crate::dom::textmetrics::TextMetrics;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 
@@ -242,6 +243,11 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
     fn FillText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
         self.canvas_state.borrow().FillText(text, x, y, max_width)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#textmetrics
+    fn MeasureText(&self, text: DOMString) -> DomRoot<TextMetrics> {
+        self.canvas_state.borrow().MeasureText(&self.global(), text)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth

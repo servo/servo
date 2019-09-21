@@ -24,6 +24,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
 use crate::dom::imagedata::ImageData;
 use crate::dom::node::{Node, NodeDamage};
+use crate::dom::textmetrics::TextMetrics;
 use crate::unpremultiplytable::UNPREMULTIPLY_TABLE;
 use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg};
 use canvas_traits::canvas::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
@@ -873,6 +874,15 @@ impl CanvasState {
         self.send_canvas_2d_msg(Canvas2dMsg::FillText(parsed_text, x, y, max_width));
     }
 
+    // https://html.spec.whatwg.org/multipage/#textmetrics
+    pub fn MeasureText(&self, global: &GlobalScope, _text: DOMString) -> DomRoot<TextMetrics> {
+        // FIXME: for now faking the implementation of MeasureText().
+        // See https://github.com/servo/servo/issues/5411#issuecomment-533776291
+        TextMetrics::new(
+            global, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        )
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth
     pub fn LineWidth(&self) -> f64 {
         self.state.borrow().line_width
@@ -1669,6 +1679,11 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     fn FillText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
         self.canvas_state.borrow().FillText(text, x, y, max_width);
         self.mark_as_dirty();
+    }
+
+    // https://html.spec.whatwg.org/multipage/#textmetrics
+    fn MeasureText(&self, text: DOMString) -> DomRoot<TextMetrics> {
+        self.canvas_state.borrow().MeasureText(&self.global(), text)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
