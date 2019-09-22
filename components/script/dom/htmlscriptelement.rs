@@ -54,6 +54,10 @@ use std::sync::{Arc, Mutex};
 use style::str::{StaticStringVec, HTML_SPACE_CHARACTERS};
 use uuid::Uuid;
 
+/// An unique id for script element.
+#[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
+pub struct ScriptId(Uuid);
+
 #[dom_struct]
 pub struct HTMLScriptElement {
     htmlelement: HTMLElement,
@@ -74,6 +78,10 @@ pub struct HTMLScriptElement {
 
     /// Track line line_number
     line_number: u64,
+
+    /// Unique id for each script element
+    #[ignore_malloc_size_of = "Defined in uuid"]
+    id: ScriptId,
 }
 
 impl HTMLScriptElement {
@@ -84,6 +92,7 @@ impl HTMLScriptElement {
         creator: ElementCreator,
     ) -> HTMLScriptElement {
         HTMLScriptElement {
+            id: ScriptId(Uuid::new_v4()),
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             already_started: Cell::new(false),
             parser_inserted: Cell::new(creator.is_parser_created()),
@@ -107,6 +116,10 @@ impl HTMLScriptElement {
             document,
             HTMLScriptElementBinding::Wrap,
         )
+    }
+
+    pub fn get_script_id(&self) -> ScriptId {
+        self.id.clone()
     }
 }
 
@@ -605,12 +618,9 @@ impl HTMLScriptElement {
                     }
                 },
                 ScriptType::Module => {
-                    fetch_inline_module_script(
-                        ModuleOwner::Window(Trusted::new(self)),
-                        text.clone(),
-                        base_url.clone(),
-                    );
-
+                    // We should add inline module script elements
+                    // into those vectors in case that there's no
+                    // descendants in the inline module script.
                     if !r#async && was_parser_inserted {
                         doc.add_deferred_script(self);
                     } else if !r#async && !self.non_blocking.get() {
@@ -618,6 +628,13 @@ impl HTMLScriptElement {
                     } else {
                         doc.add_asap_script(self);
                     };
+
+                    fetch_inline_module_script(
+                        ModuleOwner::Window(Trusted::new(self)),
+                        text.clone(),
+                        base_url.clone(),
+                        self.id.clone(),
+                    );
                 },
             }
         }
@@ -776,26 +793,52 @@ impl HTMLScriptElement {
         let global = window.upcast::<GlobalScope>();
         let _aes = AutoEntryScript::new(&global);
 
-        let module_map = global.get_module_map().borrow();
+        if script.external {
+            let module_map = global.get_module_map().borrow();
 
-        if let Some(module_tree) = module_map.get(&script.url) {
-            // Step 6.
-            {
-                let module_error = module_tree.get_error().borrow();
-                if module_error.is_some() {
-                    module_tree.report_error(&global);
-                    return;
+            if let Some(module_tree) = module_map.get(&script.url) {
+                // Step 6.
+                {
+                    let module_error = module_tree.get_error().borrow();
+                    if module_error.is_some() {
+                        module_tree.report_error(&global);
+                        return;
+                    }
+                }
+
+                let module_record = module_tree.get_record().borrow();
+                if let Some(record) = &*module_record {
+                    let evaluated = module_tree.execute_module(global, record.handle());
+
+                    if let Err(exception) = evaluated {
+                        module_tree.set_error(Some(exception.clone()));
+                        module_tree.report_error(&global);
+                        return;
+                    }
                 }
             }
+        } else {
+            let inline_module_map = global.get_inline_module_map().borrow();
 
-            let module_record = module_tree.get_record().borrow();
-            if let Some(record) = &*module_record {
-                let evaluated = module_tree.execute_module(global, record.handle());
+            if let Some(module_tree) = inline_module_map.get(&self.id.clone()) {
+                // Step 6.
+                {
+                    let module_error = module_tree.get_error().borrow();
+                    if module_error.is_some() {
+                        module_tree.report_error(&global);
+                        return;
+                    }
+                }
 
-                if let Err(exception) = evaluated {
-                    module_tree.set_error(Some(exception.clone()));
-                    module_tree.report_error(&global);
-                    return;
+                let module_record = module_tree.get_record().borrow();
+                if let Some(record) = &*module_record {
+                    let evaluated = module_tree.execute_module(global, record.handle());
+
+                    if let Err(exception) = evaluated {
+                        module_tree.set_error(Some(exception.clone()));
+                        module_tree.report_error(&global);
+                        return;
+                    }
                 }
             }
         }

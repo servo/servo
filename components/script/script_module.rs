@@ -21,8 +21,8 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptOrigin, ScriptType};
-use crate::dom::node::{document_from_node, Node};
+use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptId, ScriptOrigin, ScriptType};
+use crate::dom::node::document_from_node;
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
@@ -63,12 +63,6 @@ use std::ptr;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use url::ParseError as UrlParseError;
-
-#[derive(PartialEq)]
-pub enum PromiseAction {
-    Resolve,
-    Reject,
-}
 
 pub fn get_source_text(source: Vec<u16>) -> SourceText<u16> {
     SourceText {
@@ -179,24 +173,27 @@ impl ModuleTree {
         *self.descendant_urls.borrow_mut() = descendant_urls;
     }
 
-    pub fn append_handler(&self, owner: ModuleOwner) {
+    pub fn append_handler(&self, owner: ModuleOwner, module_url: ServoUrl) {
         let promise = self.promise.borrow();
 
         let resolve_this = owner.clone();
         let reject_this = owner.clone();
 
+        let resolved_url = module_url.clone();
+        let rejected_url = module_url.clone();
+
         let handler = PromiseNativeHandler::new(
             &owner.global(),
             Some(ModuleHandler::new(Box::new(
                 task!(fetched_resolve: move || {
-                    println!("fetched");
-                    resolve_this.finish_module_load(PromiseAction::Resolve);
+                    println!("fetched: {}", resolved_url.clone());
+                    resolve_this.finish_module_load(Some(resolved_url));
                 }),
             ))),
             Some(ModuleHandler::new(Box::new(
                 task!(failure_reject: move || {
                     println!("failed");
-                    reject_this.finish_module_load(PromiseAction::Reject);
+                    reject_this.finish_module_load(Some(rejected_url));
                 }),
             ))),
         );
@@ -553,22 +550,25 @@ impl ModuleOwner {
         }
     }
 
-    fn gen_promise_with_final_handler(&self) -> Rc<Promise> {
+    fn gen_promise_with_final_handler(&self, module_url: Option<ServoUrl>) -> Rc<Promise> {
         let resolve_this = self.clone();
         let reject_this = self.clone();
+
+        let resolved_url = module_url.clone();
+        let rejected_url = module_url.clone();
 
         let handler = PromiseNativeHandler::new(
             &self.global(),
             Some(ModuleHandler::new(Box::new(
                 task!(fetched_resolve: move || {
                     println!("fetched");
-                    resolve_this.finish_module_load(PromiseAction::Resolve);
+                    resolve_this.finish_module_load(resolved_url);
                 }),
             ))),
             Some(ModuleHandler::new(Box::new(
                 task!(failure_reject: move || {
                     println!("failed");
-                    reject_this.finish_module_load(PromiseAction::Reject);
+                    reject_this.finish_module_load(rejected_url);
                 }),
             ))),
         );
@@ -586,7 +586,7 @@ impl ModuleOwner {
 
     /// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script
     /// step 4-7.
-    pub fn finish_module_load(&self, action: PromiseAction) {
+    pub fn finish_module_load(&self, module_url: Option<ServoUrl>) {
         match &self {
             ModuleOwner::Worker(_) => unimplemented!(),
             ModuleOwner::Window(script) => {
@@ -596,25 +596,57 @@ impl ModuleOwner {
 
                 let base_url = document.base_url();
 
-                if let Some(script_src) = script
+                let module_map = global.get_module_map().borrow();
+
+                let script_src = script
                     .root()
                     .upcast::<Element>()
                     .get_attribute(&ns!(), &local_name!("src"))
                     .map(|attr| base_url.join(&attr.value()).ok())
-                    .unwrap_or(None)
-                {
-                    let module_map = global.get_module_map().borrow();
-                    let module_tree = module_map.get(&script_src.clone()).unwrap();
-                    let source_text = module_tree.get_text().borrow();
+                    .unwrap_or(None);
 
-                    if action == PromiseAction::Reject {
-                        let module_error =
-                            ModuleTree::find_first_parse_error(&*module_map, &module_tree);
+                let (module_tree, load, load_type) = if let Some(script_src) = script_src.clone() {
+                    let module_tree = module_map.get(&script_src.clone()).unwrap().clone();
 
-                        module_tree.set_error(module_error);
-                    }
+                    let load = Ok(ScriptOrigin::external(
+                        module_tree.get_text().borrow().clone(),
+                        script_src.clone(),
+                        ScriptType::Module,
+                    ));
 
-                    {
+                    println!(
+                        "Going to finish external script from {}",
+                        script_src.clone()
+                    );
+
+                    (module_tree, load, LoadType::Script(script_src.clone()))
+                } else {
+                    let module_tree = {
+                        let inline_module_map = global.get_inline_module_map().borrow();
+                        inline_module_map
+                            .get(&script.root().get_script_id())
+                            .unwrap()
+                            .clone()
+                    };
+
+                    let load = Ok(ScriptOrigin::internal(
+                        module_tree.get_text().borrow().clone(),
+                        base_url.clone(),
+                        ScriptType::Module,
+                    ));
+
+                    println!("Going to finish internal script from {}", base_url.clone());
+
+                    (module_tree, load, LoadType::Script(base_url.clone()))
+                };
+
+                module_tree.set_status(ModuleStatus::Finished);
+
+                if script_src == module_url {
+                    let module_error =
+                        ModuleTree::find_first_parse_error(&*module_map, &module_tree);
+
+                    if module_error.is_none() {
                         let module_record = module_tree.get_record().borrow();
                         if let Some(record) = &*module_record {
                             let instantiated =
@@ -624,15 +656,9 @@ impl ModuleOwner {
                                 module_tree.set_error(Some(exception.clone()));
                             }
                         }
+                    } else {
+                        module_tree.set_error(module_error);
                     }
-
-                    module_tree.set_status(ModuleStatus::Finished);
-
-                    let load = Ok(ScriptOrigin::external(
-                        source_text.clone(),
-                        script_src.clone(),
-                        ScriptType::Module,
-                    ));
 
                     let r#async = script
                         .root()
@@ -647,49 +673,8 @@ impl ModuleOwner {
                         document.asap_script_loaded(&*script.root(), load);
                     };
 
-                    document.finish_load(LoadType::Script(script_src.clone()));
+                    document.finish_load(load_type);
                 }
-            },
-        }
-    }
-
-    // FIXME: We should have same `finish` method for both external and internal module
-    pub fn finish_inline_module_load(&self, action: PromiseAction) {
-        match &self {
-            ModuleOwner::Worker(_) => unimplemented!(),
-            ModuleOwner::Window(script) => {
-                let document = document_from_node(&*script.root());
-
-                let base_url = document.base_url();
-
-                let source_text = script.root().upcast::<Node>().child_text_content();
-
-                if action == PromiseAction::Reject {
-                    // let module_error =
-                    //     ModuleTree::find_first_parse_error(&module_map, &module_tree);
-                    // module_tree.set_error(module_error);
-                }
-
-                let load = Ok(ScriptOrigin::internal(
-                    source_text.clone(),
-                    base_url.clone(),
-                    ScriptType::Module,
-                ));
-
-                let r#async = script
-                    .root()
-                    .upcast::<Element>()
-                    .has_attribute(&local_name!("async"));
-
-                if !r#async && (&*script.root()).get_parser_inserted() {
-                    document.deferred_script_loaded(&*script.root(), load);
-                } else if !r#async && !(&*script.root()).get_non_blocking() {
-                    document.asap_in_order_script_loaded(&*script.root(), load);
-                } else {
-                    document.asap_script_loaded(&*script.root(), load);
-                };
-
-                document.finish_load(LoadType::Script(base_url.clone()));
             },
         }
     }
@@ -886,6 +871,8 @@ unsafe extern "C" fn HostResolveImportedModule(
     // Step 2.
     let base_url = global_scope.api_base_url();
 
+    // TODO: Step 3.
+
     // Step 5.
     let url = ModuleTree::resolve_module_specifier(*global_scope.get_cx(), &base_url, specifier);
 
@@ -986,7 +973,7 @@ pub fn fetch_single_module_script(
 
             assert!(promise.is_some());
 
-            module_tree.append_handler(owner.clone());
+            module_tree.append_handler(owner.clone(), url.clone());
 
             // Step 2.
             if status == ModuleStatus::Fetching || status == ModuleStatus::FetchingDescendants {
@@ -1008,7 +995,7 @@ pub fn fetch_single_module_script(
     let module_tree = ModuleTree::new(url.clone());
     module_tree.set_status(ModuleStatus::Fetching);
 
-    let promise = owner.gen_promise_with_final_handler();
+    let promise = owner.gen_promise_with_final_handler(Some(url.clone()));
 
     module_tree.set_promise(promise.clone());
 
@@ -1073,10 +1060,15 @@ pub fn fetch_inline_module_script(
     owner: ModuleOwner,
     module_script_text: DOMString,
     url: ServoUrl,
+    script_id: ScriptId,
 ) {
     let global = owner.global();
 
     let module_tree = ModuleTree::new(url.clone());
+
+    let promise = owner.gen_promise_with_final_handler(None);
+
+    module_tree.set_promise(promise.clone());
 
     let compiled_module =
         module_tree.compile_module_script(&global, module_script_text, url.clone());
@@ -1092,13 +1084,16 @@ pub fn fetch_inline_module_script(
                 HashSet::new(),
             );
 
+            global.set_inline_module_map(script_id, module_tree);
+
             if descendant_results.is_none() {
-                owner.finish_inline_module_load(PromiseAction::Resolve);
+                promise.resolve_native(&());
             }
         },
         Err(exception) => {
             module_tree.set_error(Some(exception));
-            owner.finish_inline_module_load(PromiseAction::Reject);
+            global.set_inline_module_map(script_id, module_tree);
+            promise.reject_native(&());
         },
     }
 }
@@ -1200,6 +1195,8 @@ fn fetch_module_descendants(
                     let descendant_tree = module_map.get(&url.clone());
                     if let Some(module_tree) = descendant_tree {
                         let promise = module_tree.get_promise().borrow();
+
+                        println!("See existing descendant: {}", url.clone());
 
                         return match promise.as_ref() {
                             Some(p) => p.clone(),

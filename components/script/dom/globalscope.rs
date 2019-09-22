@@ -22,6 +22,7 @@ use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::htmlscriptelement::ScriptId;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
@@ -113,6 +114,9 @@ pub struct GlobalScope {
     /// https://html.spec.whatwg.org/multipage/#concept-settings-object-module-map
     #[ignore_malloc_size_of = "mozjs"]
     module_map: DomRefCell<HashMap<ServoUrl, Rc<ModuleTree>>>,
+
+    #[ignore_malloc_size_of = "mozjs"]
+    inline_module_map: DomRefCell<HashMap<ScriptId, Rc<ModuleTree>>>,
 
     /// For providing instructions to an optional devtools server.
     #[ignore_malloc_size_of = "channels are hard"]
@@ -318,6 +322,7 @@ impl GlobalScope {
             devtools_wants_updates: Default::default(),
             console_timers: DomRefCell::new(Default::default()),
             module_map: DomRefCell::new(Default::default()),
+            inline_module_map: DomRefCell::new(Default::default()),
             devtools_chan,
             mem_profiler_chan,
             time_profiler_chan,
@@ -859,6 +864,16 @@ impl GlobalScope {
 
     pub fn get_module_map(&self) -> &DomRefCell<HashMap<ServoUrl, Rc<ModuleTree>>> {
         &self.module_map
+    }
+
+    pub fn set_inline_module_map(&self, script_id: ScriptId, module: ModuleTree) {
+        self.inline_module_map
+            .borrow_mut()
+            .insert(script_id, Rc::new(module));
+    }
+
+    pub fn get_inline_module_map(&self) -> &DomRefCell<HashMap<ScriptId, Rc<ModuleTree>>> {
+        &self.inline_module_map
     }
 
     #[allow(unsafe_code)]
