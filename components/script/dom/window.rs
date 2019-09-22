@@ -943,7 +943,7 @@ impl WindowMethods for Window {
             options
                 .transfer
                 .as_ref()
-                .unwrap_or(&Vec::new())
+                .unwrap_or(&Vec::with_capacity(0))
                 .iter()
                 .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
                 .collect(),
