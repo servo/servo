@@ -21,6 +21,7 @@ use style_traits::{CssWriter, ParseError, ToCss};
     PartialEq,
     SpecifiedValueInfo,
     ToAnimatedValue,
+    ToAnimatedZero,
     ToComputedValue,
     ToResolvedValue,
     ToShmem,

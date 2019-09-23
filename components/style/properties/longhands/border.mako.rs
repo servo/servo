@@ -126,7 +126,7 @@ ${helpers.predefined_type(
     initial_value="generics::rect::Rect::all(computed::NonNegativeLengthOrNumber::zero())",
     initial_specified_value="generics::rect::Rect::all(specified::NonNegativeLengthOrNumber::zero())",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-outset",
-    animation_value_type="discrete",
+    animation_value_type="NonNegativeLengthOrNumberRect",
     boxed=True,
 )}
 
@@ -147,7 +147,7 @@ ${helpers.predefined_type(
     initial_value="computed::BorderImageWidth::all(computed::BorderImageSideWidth::one())",
     initial_specified_value="specified::BorderImageWidth::all(specified::BorderImageSideWidth::one())",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-width",
-    animation_value_type="discrete",
+    animation_value_type="BorderImageWidth",
     boxed=True,
 )}
 
@@ -158,6 +158,6 @@ ${helpers.predefined_type(
     initial_value="computed::BorderImageSlice::hundred_percent()",
     initial_specified_value="specified::BorderImageSlice::hundred_percent()",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-slice",
-    animation_value_type="discrete",
+    animation_value_type="BorderImageSlice",
     boxed=True,
 )}
