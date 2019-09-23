@@ -16,6 +16,7 @@ use style_traits::{CssWriter, ToCss};
     Copy,
     Debug,
     MallocSizeOf,
+    Parse,
     PartialEq,
     SpecifiedValueInfo,
     ToComputedValue,
@@ -25,10 +26,13 @@ use style_traits::{CssWriter, ToCss};
 )]
 #[repr(C, u8)]
 pub enum GenericBorderImageSideWidth<LP, N> {
+    /// `<number>`
+    ///
+    /// NOTE: Numbers need to be before length-percentagess, in order to parse
+    /// them first, since `0` should be a number, not the `0px` length.
+    Number(N),
     /// `<length-or-percentage>`
     LengthPercentage(LP),
-    /// `<number>`
-    Number(N),
     /// `auto`
     Auto,
 }

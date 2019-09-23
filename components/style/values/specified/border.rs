@@ -180,24 +180,6 @@ impl BorderImageSideWidth {
     }
 }
 
-impl Parse for BorderImageSideWidth {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
-            return Ok(GenericBorderImageSideWidth::Auto);
-        }
-
-        if let Ok(len) = input.try(|i| NonNegativeLengthPercentage::parse(context, i)) {
-            return Ok(GenericBorderImageSideWidth::LengthPercentage(len));
-        }
-
-        let num = NonNegativeNumber::parse(context, input)?;
-        Ok(GenericBorderImageSideWidth::Number(num))
-    }
-}
-
 impl Parse for BorderImageSlice {
     fn parse<'i, 't>(
         context: &ParserContext,
