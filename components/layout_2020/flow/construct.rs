@@ -518,11 +518,13 @@ where
             // If parent_style is None, the parent is the document node,
             // in which case anonymous inline boxes should inherit their
             // styles from initial values.
-            context.stylist.style_for_anonymous::<Node::ConcreteElement>(
-                &context.guards,
-                &PseudoElement::ServoText,
-                &block_container_style,
-            )
+            context
+                .stylist
+                .style_for_anonymous::<Node::ConcreteElement>(
+                    &context.guards,
+                    &PseudoElement::ServoText,
+                    &block_container_style,
+                )
         });
 
         let box_ = IntermediateBlockLevelBox::SameFormattingContextBlock {
