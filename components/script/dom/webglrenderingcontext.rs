@@ -53,8 +53,8 @@ use crate::script_runtime::JSContext as SafeJSContext;
 use backtrace::Backtrace;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
-    webgl_channel, AlphaTreatment, DOMToTextureCommand, GLContextAttributes, GLLimits, GlType,
-    Parameter, TexDataType, TexFormat, TexParameter, WebGLChan, WebGLCommand,
+    webgl_channel, AlphaTreatment, DOMToTextureCommand, GLContextAttributes, GLFormats, GLLimits,
+    GlType, Parameter, TexDataType, TexFormat, TexParameter, WebGLChan, WebGLCommand,
     WebGLCommandBacktrace, WebGLContextId, WebGLContextShareMode, WebGLError,
     WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId, WebGLResult,
     WebGLSLVersion, WebGLSendResult, WebGLSender, WebGLVersion, WebVRCommand, YAxisTreatment,
@@ -170,6 +170,7 @@ pub struct WebGLRenderingContext {
     current_vao: MutNullableDom<WebGLVertexArrayObjectOES>,
     textures: Textures,
     api_type: GlType,
+    framebuffer_format: GLFormats,
 }
 
 impl WebGLRenderingContext {
@@ -229,6 +230,7 @@ impl WebGLRenderingContext {
                 current_vao: Default::default(),
                 textures: Textures::new(max_combined_texture_image_units),
                 api_type: ctx_data.api_type,
+                framebuffer_format: ctx_data.framebuffer_format,
             }
         })
     }
@@ -1109,6 +1111,10 @@ impl WebGLRenderingContext {
     pub fn extension_manager(&self) -> &WebGLExtensions {
         &self.extension_manager
     }
+
+    pub fn formats(&self) -> &GLFormats {
+        &self.framebuffer_format
+    }
 }
 
 #[cfg(not(feature = "webgl_backtrace"))]
@@ -1241,9 +1247,17 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             // GL_OES_read_format support (assuming an underlying GLES
             // driver. Desktop is happy to format convert for us).
             constants::IMPLEMENTATION_COLOR_READ_FORMAT => {
+                if self.validate_framebuffer().is_err() {
+                    self.webgl_error(InvalidOperation);
+                    return NullValue();
+                }
                 return Int32Value(constants::RGBA as i32);
             },
             constants::IMPLEMENTATION_COLOR_READ_TYPE => {
+                if self.validate_framebuffer().is_err() {
+                    self.webgl_error(InvalidOperation);
+                    return NullValue();
+                }
                 return Int32Value(constants::UNSIGNED_BYTE as i32);
             },
             constants::COMPRESSED_TEXTURE_FORMATS => unsafe {
@@ -1919,6 +1933,47 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Ok(result) => result,
             Err(_) => return,
         };
+
+        let framebuffer_format = match self.bound_framebuffer.get() {
+            Some(fb) => match fb.attachment(constants::COLOR_ATTACHMENT0) {
+                Some(WebGLFramebufferAttachmentRoot::Renderbuffer(rb)) => {
+                    TexFormat::from_gl_constant(rb.internal_format())
+                },
+                Some(WebGLFramebufferAttachmentRoot::Texture(texture)) => {
+                    texture.image_info_for_target(&target, 0).internal_format()
+                },
+                None => None,
+            },
+            None => {
+                let attrs = self.GetContextAttributes().unwrap();
+                Some(if attrs.alpha {
+                    TexFormat::RGBA
+                } else {
+                    TexFormat::RGB
+                })
+            },
+        };
+
+        let framebuffer_format = match framebuffer_format {
+            Some(f) => f,
+            None => {
+                self.webgl_error(InvalidOperation);
+                return;
+            },
+        };
+
+        match (framebuffer_format, internal_format) {
+            (a, b) if a == b => (),
+            (TexFormat::RGBA, TexFormat::RGB) => (),
+            (TexFormat::RGBA, TexFormat::Alpha) => (),
+            (TexFormat::RGBA, TexFormat::Luminance) => (),
+            (TexFormat::RGBA, TexFormat::LuminanceAlpha) => (),
+            (TexFormat::RGB, TexFormat::Luminance) => (),
+            _ => {
+                self.webgl_error(InvalidOperation);
+                return;
+            },
+        }
 
         // NB: TexImage2D depth is always equal to 1
         handle_potential_webgl_error!(
@@ -2819,6 +2874,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         pixel_type: u32,
         mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
     ) {
+        handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
+
         let pixels =
             handle_potential_webgl_error!(self, pixels.as_mut().ok_or(InvalidValue), return);
 
@@ -2834,7 +2891,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
         let (fb_width, fb_height) = handle_potential_webgl_error!(
             self,
             self.get_current_framebuffer_size().ok_or(InvalidOperation),

@@ -110,16 +110,18 @@ impl XRWebGLLayer {
         let mut pixels = CustomAutoRooter::new(None);
         let mut clear_bits = constants::COLOR_BUFFER_BIT;
 
+        let formats = context.formats();
+
         context.BindTexture(constants::TEXTURE_2D, Some(&texture));
         let sc = context.TexImage2D(
             constants::TEXTURE_2D,
             0,
-            constants::RGBA,
+            formats.texture_format,
             resolution.width,
             resolution.height,
             0,
-            constants::RGBA,
-            constants::UNSIGNED_BYTE,
+            formats.texture_format,
+            formats.texture_type,
             pixels.root(*cx),
         );
 

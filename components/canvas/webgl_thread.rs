@@ -238,7 +238,7 @@ impl WebGLThread {
             WebGLMsg::CreateContext(version, size, attributes, result_sender) => {
                 let result = self.create_webgl_context(version, size, attributes);
                 result_sender
-                    .send(result.map(|(id, limits, share_mode)| {
+                    .send(result.map(|(id, limits, share_mode, framebuffer_format)| {
                         let data = Self::make_current_if_needed(
                             id,
                             &self.contexts,
@@ -276,6 +276,7 @@ impl WebGLThread {
                             share_mode,
                             glsl_version,
                             api_type,
+                            framebuffer_format,
                         }
                     }))
                     .unwrap();
@@ -406,7 +407,7 @@ impl WebGLThread {
         version: WebGLVersion,
         size: Size2D<u32>,
         attributes: GLContextAttributes,
-    ) -> Result<(WebGLContextId, GLLimits, WebGLContextShareMode), String> {
+    ) -> Result<(WebGLContextId, GLLimits, WebGLContextShareMode, GLFormats), String> {
         // Creating a new GLContext may make the current bound context_id dirty.
         // Clear it to ensure that  make_current() is called in subsequent commands.
         self.bound_context_id = None;
@@ -434,7 +435,7 @@ impl WebGLThread {
                 .next_id(WebrenderImageHandlerType::WebGL)
                 .0 as usize,
         );
-        let (size, texture_id, limits) = ctx.get_info();
+        let (size, texture_id, limits, framebuffer_formats) = ctx.get_info();
         let use_apple_vertex_arrays = needs_apple_vertex_arrays(ctx.gl(), version);
         self.contexts.insert(
             id,
@@ -458,7 +459,7 @@ impl WebGLThread {
             },
         );
 
-        Ok((id, limits, share_mode))
+        Ok((id, limits, share_mode, framebuffer_formats))
     }
 
     /// Resizes a WebGLContext
@@ -476,7 +477,7 @@ impl WebGLThread {
         .expect("Missing WebGL context!");
         match data.ctx.resize(size) {
             Ok(old_draw_buffer) => {
-                let (real_size, texture_id, _) = data.ctx.get_info();
+                let (real_size, texture_id, _, _) = data.ctx.get_info();
                 let info = self.cached_context_info.get_mut(&context_id).unwrap();
                 if let ContextRenderState::Locked(ref mut in_use) = info.render_state {
                     // If there's already an outdated draw buffer present, we can ignore
