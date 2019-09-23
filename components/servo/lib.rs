@@ -130,6 +130,34 @@ mod media_platform {
     use super::ServoMedia;
     use servo_media_gstreamer::GStreamerBackend;
 
+    #[cfg(target_os = "windows")]
+    fn set_gstreamer_log_handler() {
+        use gstreamer::{debug_add_log_function, debug_remove_default_log_function, DebugLevel};
+
+        debug_remove_default_log_function();
+        debug_add_log_function(|cat, level, file, function, line, _, message| {
+            let message = format!(
+                "{:?} {:?} {:?}:{:?}:{:?} {:?}",
+                cat.get_name(),
+                level,
+                file,
+                line,
+                function,
+                message
+            );
+            match level {
+                DebugLevel::Debug => debug!("{}", message),
+                DebugLevel::Error => error!("{}", message),
+                DebugLevel::Warning => warn!("{}", message),
+                DebugLevel::Fixme | DebugLevel::Info => info!("{}", message),
+                DebugLevel::Memdump | DebugLevel::Count | DebugLevel::Trace => {
+                    trace!("{}", message)
+                },
+                _ => (),
+            }
+        });
+    }
+
     #[cfg(windows)]
     pub fn init() {
         // UWP apps have the working directory set appropriately. Win32 apps
@@ -195,6 +223,9 @@ mod media_platform {
             },
         };
         ServoMedia::init_with_backend(backend);
+        if cfg!(feature = "uwp") {
+            set_gstreamer_log_handler();
+        }
     }
 
     #[cfg(not(windows))]
