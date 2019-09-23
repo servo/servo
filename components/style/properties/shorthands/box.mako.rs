@@ -365,3 +365,79 @@ ${helpers.two_properties_shorthand(
         }
     }
 </%helpers:shorthand>
+
+<%helpers:shorthand name="offset"
+                    engines="gecko"
+                    sub_properties="offset-path offset-distance offset-rotate offset-anchor"
+                    gecko_pref="layout.css.motion-path.enabled",
+                    spec="https://drafts.fxtf.org/motion-1/#offset-shorthand">
+    use crate::parser::Parse;
+    use crate::values::specified::motion::{OffsetPath, OffsetRotate};
+    use crate::values::specified::position::PositionOrAuto;
+    use crate::values::specified::LengthPercentage;
+    use crate::Zero;
+
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
+        // FIXME: Bug 1559232: Support offset-position.
+        // Per the spec, this must have offet-position and/or offset-path. However, we don't
+        // support offset-position, so offset-path is necessary now.
+        let offset_path = OffsetPath::parse(context, input)?;
+
+        let mut offset_distance = None;
+        let mut offset_rotate = None;
+        loop {
+            if offset_distance.is_none() {
+                if let Ok(value) = input.try(|i| LengthPercentage::parse(context, i)) {
+                    offset_distance = Some(value);
+                }
+            }
+
+            if offset_rotate.is_none() {
+                if let Ok(value) = input.try(|i| OffsetRotate::parse(context, i)) {
+                    offset_rotate = Some(value);
+                    continue;
+                }
+            }
+            break;
+        }
+
+        let offset_anchor = input.try(|i| {
+            i.expect_delim('/')?;
+            PositionOrAuto::parse(context, i)
+        }).ok();
+
+        Ok(expanded! {
+            offset_path: offset_path,
+            offset_distance: offset_distance.unwrap_or(LengthPercentage::zero()),
+            offset_rotate: offset_rotate.unwrap_or(OffsetRotate::auto()),
+            offset_anchor: offset_anchor.unwrap_or(PositionOrAuto::auto()),
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            // FIXME: Bug 1559232: Support offset-position. We don't support offset-position,
+            // so always serialize offset-path now.
+            self.offset_path.to_css(dest)?;
+
+            if !self.offset_distance.is_zero() {
+                dest.write_str(" ")?;
+                self.offset_distance.to_css(dest)?;
+            }
+
+            if !self.offset_rotate.is_auto() {
+                dest.write_str(" ")?;
+                self.offset_rotate.to_css(dest)?;
+            }
+
+            if *self.offset_anchor != PositionOrAuto::auto() {
+                dest.write_str(" / ")?;
+                self.offset_anchor.to_css(dest)?;
+            }
+            Ok(())
+        }
+    }
+</%helpers:shorthand>

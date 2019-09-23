@@ -130,6 +130,23 @@ pub struct OffsetRotate {
     angle: Angle,
 }
 
+impl OffsetRotate {
+    /// Returns the initial value, auto.
+    #[inline]
+    pub fn auto() -> Self {
+        OffsetRotate {
+            direction: OffsetRotateDirection::Auto,
+            angle: Angle::zero(),
+        }
+    }
+
+    /// Returns true if self is auto 0deg.
+    #[inline]
+    pub fn is_auto(&self) -> bool {
+        self.direction == OffsetRotateDirection::Auto && self.angle.is_zero()
+    }
+}
+
 impl Parse for OffsetRotate {
     fn parse<'i, 't>(
         context: &ParserContext,
