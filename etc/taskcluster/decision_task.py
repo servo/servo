@@ -558,7 +558,7 @@ def update_wpt():
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/wpt-sync")
         .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
-        .with_max_run_time_minutes(5 * 60)
+        .with_max_run_time_minutes(6 * 60)
     )
     return (
         with_homebrew(update_task, [
