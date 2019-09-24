@@ -36,6 +36,7 @@ use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use profile_traits::time::ProfilerChan;
 use serde::{Deserialize, Serialize};
+use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
 use std::borrow::{Cow, ToOwned};
 use std::collections::HashMap;
@@ -491,7 +492,7 @@ impl CoreResourceManager {
                 devtools_chan: dc,
                 filemanager: filemanager,
                 cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(cancel_chan))),
-                timing: Arc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
+                timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
             };
 
             match res_init_ {

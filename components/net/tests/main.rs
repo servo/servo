@@ -38,6 +38,7 @@ use net_traits::request::Request;
 use net_traits::response::Response;
 use net_traits::{FetchTaskTarget, ResourceFetchTiming, ResourceTimingType};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
+use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
 use std::net::TcpListener as StdTcpListener;
 use std::path::PathBuf;
@@ -95,7 +96,7 @@ fn new_fetch_context(
         devtools_chan: dc,
         filemanager: FileManager::new(sender),
         cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
-        timing: Arc::new(Mutex::new(ResourceFetchTiming::new(
+        timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,
         ))),
     }
