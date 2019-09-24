@@ -152,8 +152,6 @@ pub struct Node {
     /// Must be sent back to the layout thread to be destroyed when this
     /// node is finalized.
     style_and_layout_data: Cell<Option<OpaqueStyleAndLayoutData>>,
-
-    unique_id: UniqueId,
 }
 
 bitflags! {
@@ -1006,7 +1004,20 @@ impl Node {
     }
 
     pub fn unique_id(&self) -> String {
-        self.unique_id.borrow().to_simple().to_string()
+        let mut rare_data = self.ensure_rare_data();
+
+        if rare_data.unique_id.is_none() {
+            let id = UniqueId::new();
+            ScriptThread::save_node_id(id.borrow().to_simple().to_string());
+            rare_data.unique_id = Some(id);
+        }
+        rare_data
+            .unique_id
+            .as_ref()
+            .unwrap()
+            .borrow()
+            .to_simple()
+            .to_string()
     }
 
     pub fn summarize(&self) -> NodeInfo {
@@ -1654,7 +1665,7 @@ impl Node {
 
     #[allow(unrooted_must_root)]
     fn new_(flags: NodeFlags, doc: Option<&Document>) -> Node {
-        let node = Node {
+        Node {
             eventtarget: EventTarget::new_inherited(),
 
             parent_node: Default::default(),
@@ -1671,13 +1682,7 @@ impl Node {
             ranges: WeakRangeVec::new(),
 
             style_and_layout_data: Cell::new(None),
-
-            unique_id: UniqueId::new(),
-        };
-
-        ScriptThread::save_node_id(node.unique_id());
-
-        node
+        }
     }
 
     // https://dom.spec.whatwg.org/#concept-node-adopt
@@ -3122,7 +3127,7 @@ impl<'a> UnbindContext<'a> {
 }
 
 /// A node's unique ID, for devtools.
-struct UniqueId {
+pub struct UniqueId {
     cell: UnsafeCell<Option<Box<Uuid>>>,
 }
 
