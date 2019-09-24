@@ -76,7 +76,7 @@ impl ImageData {
             })?;
 
             let byte_len = array.as_slice().len() as u32;
-            if byte_len % 4 != 0 {
+            if byte_len % 4 != 0 || byte_len == 0 {
                 return Err(Error::InvalidState);
             }
 
