@@ -166,6 +166,7 @@ mod media_platform {
         ];
 
         let non_uwp_plugins = [
+            "gstmatroska.dll",
             "gstnice.dll",
             "gstogg.dll",
             "gstopengl.dll",
