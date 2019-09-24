@@ -84,20 +84,29 @@ impl ModuleObject {
 }
 
 #[derive(JSTraceable)]
-pub struct ModuleException(RootedTraceableBox<Heap<JSVal>>);
+pub enum ModuleError {
+    Network(NetworkError),
+    RawException(RootedTraceableBox<Heap<JSVal>>),
+}
 
-impl ModuleException {
+impl ModuleError {
     #[allow(unsafe_code)]
     pub fn handle(&self) -> Handle<JSVal> {
-        self.0.handle()
+        match self {
+            Self::Network(_) => unreachable!(),
+            Self::RawException(exception) => exception.handle(),
+        }
     }
 }
 
-impl Clone for ModuleException {
+impl Clone for ModuleError {
     fn clone(&self) -> Self {
-        Self(RootedTraceableBox::from_box(Heap::boxed(
-            self.0.get().clone(),
-        )))
+        match self {
+            Self::Network(network_error) => Self::Network(network_error.clone()),
+            Self::RawException(exception) => Self::RawException(RootedTraceableBox::from_box(
+                Heap::boxed(exception.get().clone()),
+            )),
+        }
     }
 }
 
@@ -108,7 +117,7 @@ pub struct ModuleTree {
     record: DomRefCell<Option<ModuleObject>>,
     status: DomRefCell<ModuleStatus>,
     descendant_urls: DomRefCell<HashSet<ServoUrl>>,
-    error: DomRefCell<Option<ModuleException>>,
+    error: DomRefCell<Option<ModuleError>>,
     promise: DomRefCell<Option<Rc<Promise>>>,
 }
 
@@ -149,11 +158,11 @@ impl ModuleTree {
         *self.record.borrow_mut() = Some(record);
     }
 
-    pub fn get_error(&self) -> &DomRefCell<Option<ModuleException>> {
+    pub fn get_error(&self) -> &DomRefCell<Option<ModuleError>> {
         &self.error
     }
 
-    pub fn set_error(&self, error: Option<ModuleException>) {
+    pub fn set_error(&self, error: Option<ModuleError>) {
         *self.error.borrow_mut() = error;
     }
 
@@ -225,7 +234,7 @@ impl ModuleTree {
         global: &GlobalScope,
         module_script_text: DOMString,
         url: ServoUrl,
-    ) -> Result<ModuleObject, ModuleException> {
+    ) -> Result<ModuleObject, ModuleError> {
         let module: Vec<u16> = module_script_text.encode_utf16().collect();
 
         let url_cstr = ffi::CString::new(url.as_str().as_bytes()).unwrap();
@@ -254,9 +263,9 @@ impl ModuleTree {
                 ));
                 JS_ClearPendingException(*global.get_cx());
 
-                return Err(ModuleException(RootedTraceableBox::from_box(Heap::boxed(
-                    exception.get(),
-                ))));
+                return Err(ModuleError::RawException(RootedTraceableBox::from_box(
+                    Heap::boxed(exception.get()),
+                )));
             }
         }
 
@@ -278,9 +287,9 @@ impl ModuleTree {
                     thrown.handle_mut(),
                 );
 
-                return Err(ModuleException(RootedTraceableBox::from_box(Heap::boxed(
-                    thrown.get(),
-                ))));
+                return Err(ModuleError::RawException(RootedTraceableBox::from_box(
+                    Heap::boxed(thrown.get()),
+                )));
             }
         }
 
@@ -292,7 +301,7 @@ impl ModuleTree {
         &self,
         global: &GlobalScope,
         module_record: HandleObject,
-    ) -> Result<(), ModuleException> {
+    ) -> Result<(), ModuleError> {
         let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
 
         unsafe {
@@ -306,9 +315,9 @@ impl ModuleTree {
                 ));
                 JS_ClearPendingException(*global.get_cx());
 
-                Err(ModuleException(RootedTraceableBox::from_box(Heap::boxed(
-                    exception.get(),
-                ))))
+                Err(ModuleError::RawException(RootedTraceableBox::from_box(
+                    Heap::boxed(exception.get()),
+                )))
             } else {
                 println!("module instantiated successfully");
 
@@ -322,7 +331,7 @@ impl ModuleTree {
         &self,
         global: &GlobalScope,
         module_record: HandleObject,
-    ) -> Result<(), ModuleException> {
+    ) -> Result<(), ModuleError> {
         let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
 
         unsafe {
@@ -336,9 +345,9 @@ impl ModuleTree {
                 ));
                 JS_ClearPendingException(*global.get_cx());
 
-                Err(ModuleException(RootedTraceableBox::from_box(Heap::boxed(
-                    exception.get(),
-                ))))
+                Err(ModuleError::RawException(RootedTraceableBox::from_box(
+                    Heap::boxed(exception.get()),
+                )))
             } else {
                 println!("module evaluated successfully");
                 Ok(())
@@ -487,7 +496,7 @@ impl ModuleTree {
     fn find_first_parse_error(
         module_map: &HashMap<ServoUrl, Rc<ModuleTree>>,
         module_tree: &ModuleTree,
-    ) -> Option<ModuleException> {
+    ) -> Option<ModuleError> {
         // 4.
         let record = module_tree.get_record().borrow();
 
@@ -605,40 +614,41 @@ impl ModuleOwner {
                     .map(|attr| base_url.join(&attr.value()).ok())
                     .unwrap_or(None);
 
-                let (module_tree, load, load_type) = if let Some(script_src) = script_src.clone() {
-                    let module_tree = module_map.get(&script_src.clone()).unwrap().clone();
+                let (module_tree, mut load, load_type) =
+                    if let Some(script_src) = script_src.clone() {
+                        let module_tree = module_map.get(&script_src.clone()).unwrap().clone();
 
-                    let load = Ok(ScriptOrigin::external(
-                        module_tree.get_text().borrow().clone(),
-                        script_src.clone(),
-                        ScriptType::Module,
-                    ));
+                        let load = Ok(ScriptOrigin::external(
+                            module_tree.get_text().borrow().clone(),
+                            script_src.clone(),
+                            ScriptType::Module,
+                        ));
 
-                    println!(
-                        "Going to finish external script from {}",
-                        script_src.clone()
-                    );
+                        println!(
+                            "Going to finish external script from {}",
+                            script_src.clone()
+                        );
 
-                    (module_tree, load, LoadType::Script(script_src.clone()))
-                } else {
-                    let module_tree = {
-                        let inline_module_map = global.get_inline_module_map().borrow();
-                        inline_module_map
-                            .get(&script.root().get_script_id())
-                            .unwrap()
-                            .clone()
+                        (module_tree, load, LoadType::Script(script_src.clone()))
+                    } else {
+                        let module_tree = {
+                            let inline_module_map = global.get_inline_module_map().borrow();
+                            inline_module_map
+                                .get(&script.root().get_script_id())
+                                .unwrap()
+                                .clone()
+                        };
+
+                        let load = Ok(ScriptOrigin::internal(
+                            module_tree.get_text().borrow().clone(),
+                            base_url.clone(),
+                            ScriptType::Module,
+                        ));
+
+                        println!("Going to finish internal script from {}", base_url.clone());
+
+                        (module_tree, load, LoadType::Script(base_url.clone()))
                     };
-
-                    let load = Ok(ScriptOrigin::internal(
-                        module_tree.get_text().borrow().clone(),
-                        base_url.clone(),
-                        ScriptType::Module,
-                    ));
-
-                    println!("Going to finish internal script from {}", base_url.clone());
-
-                    (module_tree, load, LoadType::Script(base_url.clone()))
-                };
 
                 module_tree.set_status(ModuleStatus::Finished);
 
@@ -646,19 +656,29 @@ impl ModuleOwner {
                     let module_error =
                         ModuleTree::find_first_parse_error(&*module_map, &module_tree);
 
-                    if module_error.is_none() {
-                        let module_record = module_tree.get_record().borrow();
-                        if let Some(record) = &*module_record {
-                            let instantiated =
-                                module_tree.instantiate_module_tree(&global, record.handle());
+                    match module_error {
+                        None => {
+                            let module_record = module_tree.get_record().borrow();
+                            if let Some(record) = &*module_record {
+                                let instantiated =
+                                    module_tree.instantiate_module_tree(&global, record.handle());
 
-                            if let Err(exception) = instantiated {
-                                module_tree.set_error(Some(exception.clone()));
+                                if let Err(exception) = instantiated {
+                                    module_tree.set_error(Some(exception.clone()));
+                                }
                             }
-                        }
-                    } else {
-                        module_tree.set_error(module_error);
-                    }
+                        },
+                        Some(ModuleError::RawException(exception)) => {
+                            module_tree.set_error(Some(ModuleError::RawException(exception)));
+                        },
+                        Some(ModuleError::Network(network_error)) => {
+                            module_tree
+                                .set_error(Some(ModuleError::Network(network_error.clone())));
+
+                            // Change the `result` load of the script into `network` error
+                            load = Err(network_error);
+                        },
+                    };
 
                     let r#async = script
                         .root()
@@ -759,12 +779,18 @@ impl FetchResponseListener for ModuleContext {
             )
         });
 
-        if load.is_err() {
+        if let Err(err) = load {
             // Step 9.
-            let module_tree = ModuleTree::new(self.url.clone());
-            module_tree.set_status(ModuleStatus::Finished);
+            println!("Failed to fetch {}", self.url.clone());
+            let module_tree = {
+                let module_map = global.get_module_map().borrow();
+                module_map.get(&self.url.clone()).unwrap().clone()
+            };
 
-            global.set_module_map(self.url.clone(), module_tree);
+            module_tree.set_error(Some(ModuleError::Network(err)));
+
+            let promise = module_tree.get_promise().borrow();
+            promise.as_ref().unwrap().reject_native(&());
 
             return;
         }
