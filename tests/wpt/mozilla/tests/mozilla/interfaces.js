@@ -38,6 +38,7 @@ function test_interfaces(interfaceNamesInGlobalScope) {
       "String",
       "Symbol",
       "SyntaxError",
+      "TextMetrics",
       "TypeError",
       "URIError",
       "Uint16Array",
