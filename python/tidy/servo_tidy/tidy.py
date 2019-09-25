@@ -65,7 +65,7 @@ COMMENTS = ["// ", "# ", " *", "/* "]
 
 # File patterns to include in the non-WPT tidy check.
 FILE_PATTERNS_TO_CHECK = ["*.rs", "*.rc", "*.cpp", "*.c",
-                          "*.h", "Cargo.lock", "*.py", "*.sh",
+                          "*.h", "*.py", "*.sh",
                           "*.toml", "*.webidl", "*.json", "*.html",
                           "*.yml"]
 
@@ -193,6 +193,9 @@ def filter_file(file_name):
 def filter_files(start_dir, only_changed_files, progress):
     file_iter = FileList(start_dir, only_changed_files=only_changed_files,
                          exclude_dirs=config["ignore"]["directories"], progress=progress)
+    # always yield Cargo.lock so that the correctness of transitive dependacies is checked
+    yield "./Cargo.lock"
+
     for file_name in file_iter:
         base_name = os.path.basename(file_name)
         if not any(fnmatch.fnmatch(base_name, pattern) for pattern in FILE_PATTERNS_TO_CHECK):
@@ -399,18 +402,32 @@ def check_lock(file_name, contents):
         yield (1, message)
 
     # Check to see if we are transitively using any blocked packages
+    blocked_packages = config["blocked-packages"]
+    # Create map to keep track of visited exception packages
+    visited_whitelisted_packages = {package: {} for package in blocked_packages.keys()}
+
     for package in content.get("package", []):
         package_name = package.get("name")
         package_version = package.get("version")
         for dependency in package.get("dependencies", []):
             dependency = dependency.split()
             dependency_name = dependency[0]
-            whitelist = config['blocked-packages'].get(dependency_name)
+            whitelist = blocked_packages.get(dependency_name)
             if whitelist is not None:
                 if package_name not in whitelist:
                     fmt = "Package {} {} depends on blocked package {}."
                     message = fmt.format(package_name, package_version, dependency_name)
                     yield (1, message)
+                else:
+                    visited_whitelisted_packages[dependency_name][package_name] = True
+
+    # Check if all the exceptions to blocked packages actually depend on the blocked package
+    for dependency_name, package_names in blocked_packages.iteritems():
+        for package_name in package_names:
+            if not visited_whitelisted_packages[dependency_name].get(package_name):
+                fmt = "Package {} is not required to be an exception of blocked package {}."
+                message = fmt.format(package_name, dependency_name)
+                yield (1, message)
 
 
 def check_toml(file_name, lines):
