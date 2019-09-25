@@ -57,17 +57,16 @@ function runTest(config,qualifier) {
                 // with the provided initData. generateRequest() should fail with an
                 // TypeError. Returns a promise that is resolved
                 // if the error occurred and rejected otherwise.
-                return navigator.requestMediaKeySystemAccess(testspec.keysystem, getSimpleConfigurationForInitDataType(testspec.initDataType)).then(function(access) {
+                var p = navigator.requestMediaKeySystemAccess(testspec.keysystem, getSimpleConfigurationForInitDataType(testspec.initDataType)).then(function(access) {
                     return access.createMediaKeys();
                 }).then(function(mediaKeys) {
                     var mediaKeySession = mediaKeys.createSession("temporary");
                     return mediaKeySession.generateRequest(testspec.initDataType, testspec.initData);
-                }).then(test.step_func(function() {
-                    assert_unreached('generateRequest() succeeded unexpectedly');
-                }), test.step_func(function(error) {
-                    assert_equals(error.name, 'TypeError');
-                }));
-            },testspec.testname);
+                });
+
+                return promise_rejects_js(test, TypeError, p,
+                                          "generateRequest() should fail");
+            }, testspec.testname);
         });
     });
 }

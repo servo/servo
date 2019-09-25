@@ -14,7 +14,7 @@ async_test(t => {
   window.addEventListener("load", t.step_func(() => {
     const images = document.getElementsByTagName("img");
     for (let img of images) {
-      assert_equals(performance.getEntriesByName(img.src).length, 1, img.src);
+      assert_greater_than(performance.getEntriesByName(img.src).length, 0, img.src);
     }
     t.done();
   }));

@@ -14,6 +14,8 @@ def main(request, response):
                 window.opener.postMessage(data, "*");
             if (window.top != window)
                 window.top.postMessage(data, "*");
+            if (window.portalHost)
+                window.portalHost.postMessage(data, "*");
         </script>
     """ % json.dumps({
         "dest": request.headers.get("sec-fetch-dest", ""),

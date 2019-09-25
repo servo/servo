@@ -13,6 +13,9 @@
 <script>
 test_invalid_value("animation-direction", "auto");
 test_invalid_value("animation-direction", "normal reverse");
+
+test_invalid_value("animation-direction", "reverse, initial");
+test_invalid_value("animation-direction", "initial, reverse");
 </script>
 </body>
 </html>

@@ -56,4 +56,13 @@ if (topLevelDocument) {
   // Validate the nested-iframe scenario where the cross-origin frame containing
   //  the tests is not the first child.
   RunTestsInNestedIFrame("http://{{domains[www]}}:{{ports[http][0]}}/storage-access-api/hasStorageAccess.sub.window.html?testCase=nested-cross-origin-frame&allowed=false&rootdocument=false");
+
+  // Run tests specific to the top-level window only here. They won't get re-run inside of various iframes.
+  promise_test(() => {
+    let createdDocument = document.implementation.createDocument("", null);
+
+    return createdDocument.hasStorageAccess().then(hasAccess => {
+      assert_false(hasAccess, "Access should be denied to a generated document not part of the DOM.");
+    });
+  }, "[" + testPrefix + "] document.hasStorageAccess() should work on a document object.");
 }

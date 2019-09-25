@@ -1,0 +1,39 @@
+<!doctype html>
+<title>Video width and height attributes are not used to infer aspect-ratio</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<style>
+  video {
+    width: 100%;
+    max-width: 100px;
+    height: auto;
+  }
+</style>
+<body>
+<script>
+let t = async_test("Video width and height attributes are not used to infer aspect-ratio");
+function assert_ratio(img, expected) {
+  let epsilon = 0.001;
+  assert_approx_equals(parseInt(getComputedStyle(img).width, 10) / parseInt(getComputedStyle(img).height, 10), expected, epsilon);
+}
+// Create and append a new video and immediately check the ratio.
+// This is not racy because the spec requires the user agent to queue a task:
+// https://html.spec.whatwg.org/multipage/media.html#concept-media-load-algorithm
+t.step(function() {
+  var video = document.createElement("video");
+  video.setAttribute("width", "250");
+  video.setAttribute("height", "100");
+  video.src = getVideoURI('/media/2x2-green');
+  document.body.appendChild(video);
+  // Videos default to a size of 300x150px and calculate their aspect ratio
+  // based on that before the video is loaded. So this should be 2, ignoring
+  // the 2.5 that it would be based on the attributes.
+  assert_ratio(video, 2);
+
+  video.onloadeddata = t.step_func_done(function() {
+    // When loaded this video is square.
+    assert_ratio(video, 1);
+  });
+});
+</script>

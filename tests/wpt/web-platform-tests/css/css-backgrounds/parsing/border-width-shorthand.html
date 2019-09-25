@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders Module Level 3: border-width sets longhands</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#border-width">
+<meta name="assert" content="border-width supports the full grammar '<line-width>{1,4}'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_shorthand_value('border-width', '5px', {
+  'border-top-width': '5px',
+  'border-right-width': '5px',
+  'border-bottom-width': '5px',
+  'border-left-width': '5px'
+});
+
+test_shorthand_value('border-width', 'thick thin', {
+  'border-top-width': 'thick',
+  'border-right-width': 'thin',
+  'border-bottom-width': 'thick',
+  'border-left-width': 'thin'
+});
+
+test_shorthand_value('border-width', 'thin medium thick', {
+  'border-top-width': 'thin',
+  'border-right-width': 'medium',
+  'border-bottom-width': 'thick',
+  'border-left-width': 'medium'
+});
+
+test_shorthand_value('border-width', '1px 2px 3px 4px', {
+  'border-top-width': '1px',
+  'border-right-width': '2px',
+  'border-bottom-width': '3px',
+  'border-left-width': '4px'
+});
+</script>
+</body>
+</html>

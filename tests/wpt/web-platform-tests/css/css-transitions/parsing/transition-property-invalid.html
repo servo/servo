@@ -14,6 +14,9 @@
 test_invalid_value("transition-property", 'one two three');
 test_invalid_value("transition-property", '1, 2, 3');
 test_invalid_value("transition-property", 'none, one');
+
+test_invalid_value("transition-property", 'initial, top');
+test_invalid_value("transition-property", 'top, initial');
 </script>
 </body>
 </html>

@@ -52,7 +52,7 @@ testCases = [
     description: 'createImageBitmap with <sourceType> source and sw set to 0',
     promiseTestFunction:
       (source, t) => {
-        return promise_rejects(t, new RangeError(),
+        return promise_rejects_js(t, RangeError,
             createImageBitmap(source, 0, 0, 0, 10));
       }
   },
@@ -60,7 +60,7 @@ testCases = [
     description: 'createImageBitmap with <sourceType> source and sh set to 0',
     promiseTestFunction:
       (source, t) => {
-        return promise_rejects(t, new RangeError(),
+        return promise_rejects_js(t, RangeError,
             createImageBitmap(source, 0, 0, 10, 0));
       }
   },
@@ -100,88 +100,88 @@ imageSourceTypes.forEach(imageSourceType => {
 });
 
 promise_test( t => {
-  return promise_rejects(t, new TypeError(), createImageBitmap(undefined));
+  return promise_rejects_js(t, TypeError, createImageBitmap(undefined));
 }, "createImageBitmap with undefined image source.");
 
 promise_test( t => {
-  return promise_rejects(t, new TypeError(), createImageBitmap(null));
+  return promise_rejects_js(t, TypeError, createImageBitmap(null));
 }, "createImageBitmap with null image source.");
 
 promise_test( t => {
   var context = document.createElement("canvas").getContext("2d");
-  return promise_rejects(t, new TypeError(), createImageBitmap(context));
+  return promise_rejects_js(t, TypeError, createImageBitmap(context));
 }, "createImageBitmap with CanvasRenderingContext2D image source.");
 
 promise_test( t => {
   var context = document.createElement("canvas").getContext("webgl");
-  return promise_rejects(t, new TypeError(), createImageBitmap(context));
+  return promise_rejects_js(t, TypeError, createImageBitmap(context));
 }, "createImageBitmap with WebGLRenderingContext image source.");
 
 promise_test( t => {
   var buffer = new Uint8Array();
-  return promise_rejects(t, new TypeError(), createImageBitmap(buffer));
+  return promise_rejects_js(t, TypeError, createImageBitmap(buffer));
 }, "createImageBitmap with Uint8Array image source.");
 
 promise_test( t => {
   var buffer = new ArrayBuffer(8);
-  return promise_rejects(t, new TypeError(), createImageBitmap(buffer));
+  return promise_rejects_js(t, TypeError, createImageBitmap(buffer));
 }, "createImageBitmap with ArrayBuffer image source.");
 
 promise_test( t => {
-  return promise_rejects(t, "InvalidStateError",
+  return promise_rejects_dom(t, "InvalidStateError",
     createImageBitmap(new Image()));
 }, "createImageBitmap with empty image source.");
 
 promise_test( t => {
-  return promise_rejects(t, "InvalidStateError",
+  return promise_rejects_dom(t, "InvalidStateError",
     createImageBitmap(document.createElement('video')));
 }, "createImageBitmap with empty video source.");
 
 promise_test( t => {
   return makeOversizedCanvas().then(canvas => {
-    return promise_rejects(t, "InvalidStateError",
+    return promise_rejects_dom(t, "InvalidStateError",
         createImageBitmap(canvas));
   });
 }, "createImageBitmap with an oversized canvas source.");
 
 promise_test( t => {
   return makeOversizedOffscreenCanvas().then(offscreenCanvas => {
-    return promise_rejects(t, "InvalidStateError",
+    return promise_rejects_dom(t, "InvalidStateError",
         createImageBitmap(offscreenCanvas));
   });
 }, "createImageBitmap with an invalid OffscreenCanvas source.");
 
 promise_test( t => {
   return makeInvalidBlob().then(blob => {
-    return promise_rejects(t, "InvalidStateError",
+    return promise_rejects_dom(t, "InvalidStateError",
         createImageBitmap(blob));
   });
 }, "createImageBitmap with an undecodable blob source.");
 
 promise_test( t => {
   return makeBrokenImage().then(image => {
-    return promise_rejects(t, "InvalidStateError",
+    return promise_rejects_dom(t, "InvalidStateError",
         createImageBitmap(image));
   });
 }, "createImageBitmap with a broken image source.");
 
 promise_test( t => {
   return makeAvailableButBrokenImage("/images/broken.png").then(image => {
-    return promise_rejects(t, "InvalidStateError",
+    return promise_rejects_dom(t, "InvalidStateError",
         createImageBitmap(image));
   });
 }, "createImageBitmap with an available but undecodable image source.");
 
 promise_test( t => {
   return makeAvailableButBrokenImage("/images/red-zeroheight.svg").then(image => {
-    return promise_rejects(t, "InvalidStateError",
+    return promise_rejects_dom(t, "InvalidStateError",
         createImageBitmap(image));
   });
 }, "createImageBitmap with an available but zero height image source.");
 
 promise_test( t => {
   return makeAvailableButBrokenImage("/images/red-zerowidth.svg").then(image => {
-    return promise_rejects(t, "InvalidStateError",
+    return promise_rejects_dom(t, "InvalidStateError",
         createImageBitmap(image));
   });
 }, "createImageBitmap with an available but zero width image source.");
@@ -189,7 +189,8 @@ promise_test( t => {
 promise_test( t => {
   return makeImageBitmap().then(bitmap => {
     bitmap.close()
-    return promise_rejects(t, "InvalidStateError", createImageBitmap(bitmap));
+    return promise_rejects_dom(t, "InvalidStateError",
+        createImageBitmap(bitmap));
   });
 }, "createImageBitmap with a closed ImageBitmap.");
 </script>

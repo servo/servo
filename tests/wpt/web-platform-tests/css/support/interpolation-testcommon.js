@@ -11,11 +11,10 @@
     return keyframe === neutralKeyframe;
   }
 
-  // For the CSS interpolation methods, we set the animation duration long
-  // enough that any advancement in time during the test is irrelevant in terms
-  // of the progress. We then set the delay to be negative half the duration, so
-  // we are immediately at the halfway point of the animation. Finally, we use
-  // an easing function that maps halfway to whatever progress we actually want.
+  // For the CSS interpolation methods set the delay to be negative half the
+  // duration, so we are immediately at the halfway point of the animation.
+  // We then use an easing function that maps halfway to whatever progress
+  // we actually want.
 
   var cssAnimationsInterpolation = {
     name: 'CSS Animations',
@@ -36,8 +35,8 @@
           (isNeutralKeyframe(to) ? '' : `to {${property}:${to};}`) +
         '}';
       target.style.animationName = 'animation' + id;
-      target.style.animationDuration = '2e9s';
-      target.style.animationDelay = '-1e9s';
+      target.style.animationDuration = '100s';
+      target.style.animationDelay = '-50s';
       target.style.animationTimingFunction = createEasing(at);
     },
   };
@@ -54,9 +53,9 @@
     },
     interpolate: function(property, from, to, at, target) {
       // Force a style recalc on target to set the 'from' value.
-      getComputedStyle(target).left;
-      target.style.transitionDuration = '2e9s';
-      target.style.transitionDelay = '-1e9s';
+      getComputedStyle(target).getPropertyValue(property);
+      target.style.transitionDuration = '100s';
+      target.style.transitionDelay = '-50s';
       target.style.transitionTimingFunction = createEasing(at);
       target.style.transitionProperty = property;
       target.style.setProperty(property, isNeutralKeyframe(to) ? '' : to);
@@ -76,9 +75,9 @@
     },
     interpolate: function(property, from, to, at, target) {
       // Force a style recalc on target to set the 'from' value.
-      getComputedStyle(target).left;
-      target.style.transitionDuration = '2e9s';
-      target.style.transitionDelay = '-1e9s';
+      getComputedStyle(target).getPropertyValue(property);
+      target.style.transitionDuration = '100s';
+      target.style.transitionDelay = '-50s';
       target.style.transitionTimingFunction = createEasing(at);
       target.style.transitionProperty = 'all';
       target.style.setProperty(property, isNeutralKeyframe(to) ? '' : to);
@@ -104,8 +103,11 @@
             property = property.substring(0, i) + property[i + 1].toUpperCase() + property.substring(i + 2);
           }
         }
-        if (property === 'offset')
+        if (property === 'offset') {
           property = 'cssOffset';
+        } else if (property === 'float') {
+          property = 'cssFloat';
+        }
       }
       var keyframes = [];
       if (!isNeutralKeyframe(from)) {
@@ -124,11 +126,11 @@
       }
       var animation = target.animate(keyframes, {
         fill: 'forwards',
-        duration: 1,
+        duration: 100 * 1000,
         easing: createEasing(at),
       });
       animation.pause();
-      animation.currentTime = 0.5;
+      animation.currentTime = 50 * 1000;
     },
   };
 
@@ -150,7 +152,7 @@
       return 'steps(1, start)';
     }
     if (y == 0.5) {
-      return 'steps(2, end)';
+      return 'linear';
     }
     // Approximate using a bezier.
     var b = (8 * y - 1) / 6;

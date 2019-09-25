@@ -836,11 +836,6 @@ AHEM SYSTEM FONT: acid/acid3/test.html
 AHEM SYSTEM FONT: resource-timing/resources/all_resource_types.htm
 AHEM SYSTEM FONT: resource-timing/resources/iframe-reload-TAO.sub.html
 
-# These tests are imported from mozilla-central and can't be modified in WPT.
-# They do load Ahem as a web font, but they use their own copy which trips the
-# lint rule. Basically false positives.
-AHEM SYSTEM FONT: css/vendor-imports/mozilla/mozilla-central-reftests/*
-
 # TODO: The following should be deleted along with the Ahem web font cleanup
 # PR (https://github.com/web-platform-tests/wpt/pull/18702)
 AHEM SYSTEM FONT: infrastructure/assumptions/ahem-ref.html

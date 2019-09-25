@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Unhandled rejection</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+Promise.reject(new Error("error outside any setup or test"));
+</script>

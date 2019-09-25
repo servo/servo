@@ -134,35 +134,35 @@
 		*/
 		function executeTest(curveData, inputData, expectedData, testName) {
 			var stTest=async_test("WaveShaperNode - "+testName);
+			stTest.step(function() {
 
-			// Create offline audio context.
-			var ac=new OfflineAudioContext(1, inputData.length, sampleRate);
+				// Create offline audio context.
+				var ac=new OfflineAudioContext(1, inputData.length, sampleRate);
 
-			// Create the WaveShaper and its curve.
-			var waveShaper=ac.createWaveShaper();
-			if(curveData!=null) {
-				var curve=new Float32Array(curveData.length);
-				for(var i=0;i<curveData.length;i++) { curve[i]=curveData[i]; }
-				waveShaper.curve=curve;
-			}
-			waveShaper.connect(ac.destination);
+				// Create the WaveShaper and its curve.
+				var waveShaper=ac.createWaveShaper();
+				if(curveData!=null) {
+					var curve=new Float32Array(curveData.length);
+					for(var i=0;i<curveData.length;i++) { curve[i]=curveData[i]; }
+					waveShaper.curve=curve;
+				}
+				waveShaper.connect(ac.destination);
 
-			// Create buffer containing the input values.
-			var inputBuffer=ac.createBuffer(1, Math.max(inputData.length, 2), sampleRate);
-			var d=inputBuffer.getChannelData(0);
-			for(var i=0;i<inputData.length;i++) { d[i]=inputData[i]; }
+				// Create buffer containing the input values.
+				var inputBuffer=ac.createBuffer(1, Math.max(inputData.length, 2), sampleRate);
+				var d=inputBuffer.getChannelData(0);
+				for(var i=0;i<inputData.length;i++) { d[i]=inputData[i]; }
 
-			// Play the input buffer through the WaveShaper.
-			var src=ac.createBufferSource();
-			src.buffer=inputBuffer;
-			src.connect(waveShaper);
-			src.start();
+				// Play the input buffer through the WaveShaper.
+				var src=ac.createBufferSource();
+				src.buffer=inputBuffer;
+				src.connect(waveShaper);
+				src.start();
 
-			// Test the outputs match the expected values.
-			ac.oncomplete=function(ev) {
-				var d=ev.renderedBuffer.getChannelData(0);
+				// Test the outputs match the expected values.
+				ac.oncomplete=stTest.step_func_done(function(ev) {
+					var d=ev.renderedBuffer.getChannelData(0);
 
-				stTest.step(function() {
 					for(var i=0;i<expectedData.length;i++) {
 						var curveText="null";
 						if(curve!=null) {
@@ -176,10 +176,8 @@
 						assert_approx_equals(d[i], expectedData[i], tolerance, comment);
 					}
 				});
-
-				stTest.done();
-			};
-			ac.startRendering();
+				ac.startRendering();
+			});
 		}
 	</script>
 </body>

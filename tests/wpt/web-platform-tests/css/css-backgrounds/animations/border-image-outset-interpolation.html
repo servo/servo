@@ -48,14 +48,14 @@ test_interpolation({
 test_interpolation({
   property: 'border-image-outset',
   from: 'initial',
-  to: '2px',
+  to: '2',
 }, [
-  {at: -0.3, expect: '0px'}, // Non-negative
-  {at: 0, expect: '0px'},
-  {at: 0.3, expect: '0.6px'},
-  {at: 0.6, expect: '1.2px'},
-  {at: 1, expect: '2px'},
-  {at: 1.5, expect: '3px'},
+  {at: -0.3, expect: '0'}, // Non-negative
+  {at: 0, expect: '0'},
+  {at: 0.3, expect: '0.6'},
+  {at: 0.6, expect: '1.2'},
+  {at: 1, expect: '2'},
+  {at: 1.5, expect: '3'},
 ]);
 
 test_interpolation({
@@ -74,14 +74,14 @@ test_interpolation({
 test_interpolation({
   property: 'border-image-outset',
   from: 'unset',
-  to: '2px',
+  to: '2',
 }, [
-  {at: -0.3, expect: '0px'}, // Non-negative
-  {at: 0, expect: '0px'},
-  {at: 0.3, expect: '0.6px'},
-  {at: 0.6, expect: '1.2px'},
-  {at: 1, expect: '2px'},
-  {at: 1.5, expect: '3px'},
+  {at: -0.3, expect: '0'}, // Non-negative
+  {at: 0, expect: '0'},
+  {at: 0.3, expect: '0.6'},
+  {at: 0.6, expect: '1.2'},
+  {at: 1, expect: '2'},
+  {at: 1.5, expect: '3'},
 ]);
 
 test_interpolation({

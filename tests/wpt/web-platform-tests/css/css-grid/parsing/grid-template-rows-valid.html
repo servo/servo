@@ -43,11 +43,7 @@ test_valid_value("grid-template-rows", 'fit-content(calc(30% + 40vw))');
 
 // <track-repeat> = repeat( [ <positive-integer> ] , [ <line-names>? <track-size> ]+ <line-names>? )
 
-// 'repeat(1, [] 10px)' in Blink
-// 'repeat(1, 10px)' in Firefox
-// '[] 10px' in Safari
-// '10px' in Edge 18
-test_valid_value("grid-template-rows", 'repeat(1, [] 10px)', ['repeat(1, 10px)', 'repeat(1, [] 10px)']);
+test_valid_value("grid-template-rows", 'repeat(1, [] 10px [])', 'repeat(1, 10px)');
 
 // 'repeat(1, [one two] 20%)' in Blink, Firefox
 // '[one two] 20%' in Safari, Edge 18
@@ -61,6 +57,7 @@ test_valid_value("grid-template-rows", 'repeat(2, fit-content(20%) [three four] 
 
 // <track-list> = [ <line-names>? [ <track-size> | <track-repeat> ] ]+ <line-names>?
 test_valid_value("grid-template-rows", 'min-content repeat(5, minmax(10px, auto))');
+test_valid_value("grid-template-rows", '[] 150px [] 1fr []', '150px 1fr');
 
 // <auto-repeat> = repeat( [ auto-fill | auto-fit ] , [ <line-names>? <fixed-size> ]+ <line-names>? )
 test_valid_value("grid-template-rows", 'repeat(auto-fill, 10px)');

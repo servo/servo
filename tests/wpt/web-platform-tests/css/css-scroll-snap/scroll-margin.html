@@ -58,14 +58,31 @@ test(() => {
 test(() => {
   target.style.left = "0px";
   target.style.top = "0px";
-
   target.style.scrollSnapAlign = "start";
-  target.style.scrollMargin = "100px";
 
-  // Scroll to the position between #target and #another-target elements but
-  // if the scroll-margin 100px contributed to the snap start-aligned snap
-  // position it will be farther than #another-target.
-  scroller.scrollTo(200, 200);
+  // Since the target is at (0px, 0px) in the scroll port, the added margin
+  // should not be considered, and the snap points for this snap area should be
+  // the closest points in the scroll port (i.e x=0 or y=0).
+  target.style.scrollMargin = "200px";
+
+  // Distance from target without margin:
+  // `scroll position (150px, 150px)` - `target position (0px, 0px)`
+  // = (150px, 150px)
+  //
+  // Distance from target with margin:
+  // `scroll position (150px, 150px)` - [`target position (0px, 0px)` -
+  // `target margin (200px, 200px)`]
+  // = (350px, 350px)
+  //
+  // Distance from other target:
+  // `other target position (400px, 400px)` - `scroll position (150px, 150px)`
+  // = (250px, 250px)
+  //
+  // Therefore if the "out-of-scrollport" scroll-margin contributes to the
+  // calculation, then the other target would be snapped to. However if the
+  // scroll-margin is not considered, then the (0px, 0px) target should be
+  // snapped to.
+  scroller.scrollTo(150, 150);
   assert_equals(scroller.scrollLeft, 0);
   assert_equals(scroller.scrollTop, 0);
 }, "scroll-margin doesn't contribute to the snap position of the element " +

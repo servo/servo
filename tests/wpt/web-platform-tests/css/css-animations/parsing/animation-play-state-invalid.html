@@ -13,6 +13,9 @@
 <script>
 test_invalid_value("animation-play-state", "auto");
 test_invalid_value("animation-play-state", "paused running");
+
+test_invalid_value("animation-play-state", "paused, initial");
+test_invalid_value("animation-play-state", "initial, paused");
 </script>
 </body>
 </html>
