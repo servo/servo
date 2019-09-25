@@ -892,6 +892,7 @@ def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
 
     if not uwp:
         gst_dlls += [
+            "gstmatroska.dll",
             "gstnice.dll",
             "gstogg.dll",
             "gstopengl.dll",
