@@ -1576,7 +1576,7 @@ class PropertyDefiner:
                                           "Pref"),
             PropertyDefiner.getStringAttr(interfaceMember,
                                           "Func"),
-            interfaceMember.exposedSet())
+            interfaceMember.exposureSet)
 
     def generateGuardedArray(self, array, name, specTemplate, specTerminator,
                              specType, getCondition, getDataTuple):

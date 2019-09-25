@@ -1,6 +1,6 @@
 --- WebIDL.py
 +++ WebIDL.py
-@@ -1769,7 +1769,8 @@ class IDLInterface(IDLInterfaceOrNamespace):
+@@ -1884,7 +1884,8 @@ class IDLInterface(IDLInterfaceOrNamespace):
                    identifier == "RunConstructorInCallerCompartment" or
                    identifier == "WantsEventListenerHooks" or
                    identifier == "Serializable" or

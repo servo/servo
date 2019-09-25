@@ -1,6 +1,6 @@
 --- WebIDL.py
 +++ WebIDL.py
-@@ -1768,7 +1768,8 @@ class IDLInterface(IDLInterfaceOrNamespace):
+@@ -1883,7 +1883,8 @@ class IDLInterface(IDLInterfaceOrNamespace):
                    identifier == "LegacyUnenumerableNamedProperties" or
                    identifier == "RunConstructorInCallerCompartment" or
                    identifier == "WantsEventListenerHooks" or
