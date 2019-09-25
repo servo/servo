@@ -14690,7 +14690,9 @@
    "conformance/rendering/multisample-corruption.html": [
     [
      "conformance/rendering/multisample-corruption.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/rendering/negative-one-index.html": [
@@ -15452,7 +15454,9 @@
    "conformance/textures/misc/tex-video-using-tex-unit-non-zero.html": [
     [
      "conformance/textures/misc/tex-video-using-tex-unit-non-zero.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/textures/misc/texparameter-test.html": [
@@ -36719,7 +36723,7 @@
    "testharness"
   ],
   "conformance/rendering/multisample-corruption.html": [
-   "7de9b47f229ac935cdb76b14e6237243ae14ce04",
+   "db9fb69975dfb1acd5e490c756e7221f8d176cb1",
    "testharness"
   ],
   "conformance/rendering/negative-one-index.html": [
@@ -37279,7 +37283,7 @@
    "testharness"
   ],
   "conformance/textures/misc/tex-video-using-tex-unit-non-zero.html": [
-   "9abe3bd71772133857507f18a5a6fcfc95b080da",
+   "288260b019d12a753c0677f5747746545867e5e7",
    "testharness"
   ],
   "conformance/textures/misc/texparameter-test.html": [
