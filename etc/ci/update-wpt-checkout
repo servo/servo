@@ -48,8 +48,11 @@ function unsafe_pull_from_upstream() {
     # Update the manifest again to reach a fixed state (https://github.com/servo/servo/issues/22275).
     ./mach update-manifest || return 4
 
+    # Clean up any now-unused test results.
+    (python3 etc/unused_wpt_results.py | xargs rm -rfv) || return 5
+
     # Amend the existing commit with the new changes from updating the manifest.
-    git commit -a --amend --no-edit || return 5
+    git commit -a --amend --no-edit || return 6
 }
 
 # Remove all local traces of this sync operation.
