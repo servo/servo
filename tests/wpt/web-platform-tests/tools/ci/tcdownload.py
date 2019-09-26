@@ -71,7 +71,7 @@ def run(*args, **kwargs):
 
     if not taskgroups:
         logger.error("No complete TaskCluster runs found for ref %s" % kwargs["ref"])
-        return
+        return 1
 
     for taskgroup in taskgroups:
         taskgroup_url = "https://queue.taskcluster.net/v1/task-group/%s/list"

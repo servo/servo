@@ -47,7 +47,7 @@ test_valid_value("grid-template-columns", 'fit-content(calc(30% + 40vw))');
 // 'repeat(1, 10px)' in Firefox
 // '[] 10px' in Safari
 // '10px' in Edge 18
-test_valid_value("grid-template-columns", 'repeat(1, [] 10px)', ['repeat(1, 10px)', 'repeat(1, [] 10px)']);
+test_valid_value("grid-template-columns", 'repeat(1, [] 10px [])', 'repeat(1, 10px)');
 
 // 'repeat(1, [one two] 20%)' in Blink, Firefox
 // '[one two] 20%' in Safari, Edge 18
@@ -61,6 +61,7 @@ test_valid_value("grid-template-columns", 'repeat(2, fit-content(20%) [three fou
 
 // <track-list> = [ <line-names>? [ <track-size> | <track-repeat> ] ]+ <line-names>?
 test_valid_value("grid-template-columns", 'min-content repeat(5, minmax(10px, auto))');
+test_valid_value("grid-template-columns", '[] 150px [] 1fr []', '150px 1fr');
 
 // <auto-repeat> = repeat( [ auto-fill | auto-fit ] , [ <line-names>? <fixed-size> ]+ <line-names>? )
 test_valid_value("grid-template-columns", 'repeat(auto-fill, 10px)');

@@ -40,8 +40,9 @@ partial interface ServiceWorkerGlobalScope {
   attribute EventHandler oncanmakepayment;
 };
 
-[Constructor(DOMString type, CanMakePaymentEventInit eventInitDict), Exposed=ServiceWorker]
+[Exposed=ServiceWorker]
 interface CanMakePaymentEvent : ExtendableEvent {
+  constructor(DOMString type, CanMakePaymentEventInit eventInitDict);
   readonly attribute USVString topOrigin;
   readonly attribute USVString paymentRequestOrigin;
   readonly attribute FrozenArray<PaymentMethodData> methodData;
@@ -65,8 +66,9 @@ dictionary PaymentMethodChangeResponse {
   object paymentMethodErrors;
 };
 
-[Constructor(DOMString type, PaymentRequestEventInit eventInitDict), Exposed=ServiceWorker]
+[Exposed=ServiceWorker]
 interface PaymentRequestEvent : ExtendableEvent {
+  constructor(DOMString type, PaymentRequestEventInit eventInitDict);
   readonly attribute USVString topOrigin;
   readonly attribute USVString paymentRequestOrigin;
   readonly attribute DOMString paymentRequestId;

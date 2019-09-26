@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transitions Test: transition-property - clip</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" title="7.1. Properties from CSS" href="http://www.w3.org/TR/css3-transitions/#animatable-css">
+<meta name="assert" content="Test checks that the 'clip' property is animatable.">
+<style>
+  #test {
+    clip: rect(0px, 60px, 60px, 0px);
+    position: absolute;
+    transition-duration: 2s;
+    transition-property: clip;
+    transition-timing-function: linear;
+  }
+</style>
+<body>
+  <p>Click the image(half green and half red) below. Test passes if the half red condenses gradually not immediately until only half green left.</p>
+  <image id="test" src="support/60x60-gg-rr.png"></image>
+  <script>
+    (function() {
+      var image = document.querySelector("#test");
+      image.addEventListener("click", function(evt) {
+        image.setAttribute("style", "clip: rect(0px, 60px, 30px, 0px);");
+      }, false);
+    })();
+  </script>
+</body>

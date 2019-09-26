@@ -1,0 +1,44 @@
+<!doctype html>
+<title>paused state when removing from a document</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1583052">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<div id="log"></div>
+<div>
+  <video hidden></video>
+</div>
+<script>
+function afterStableState(func) {
+  var a = new Audio();
+  a.volume = 0;
+  a.addEventListener('volumechange', func);
+}
+
+async_test(function(t) {
+  var v = document.querySelector('video');
+
+  // Much like pause-remove-from-document.html, modulo this call.
+  document.body.appendChild(v);
+
+  v.src = getVideoURI('/media/movie_300');
+  v.play();
+  v.onplaying = t.step_func(function() {
+    assert_false(v.paused, 'paused after playing');
+    v.parentNode.removeChild(v);
+    assert_false(v.paused, 'paused after removing');
+    afterStableState(t.step_func(function() {
+      assert_true(v.paused, 'paused after stable state');
+      v.onpause = t.step_func(function() {
+        assert_true(v.paused, 'paused in pause event');
+        // re-insert and verify that it stays paused
+        document.body.appendChild(v);
+        t.step_timeout(function() {
+          assert_true(v.paused, 'paused after re-inserting');
+          t.done();
+        }, 0);
+      });
+    }));
+  });
+});
+</script>

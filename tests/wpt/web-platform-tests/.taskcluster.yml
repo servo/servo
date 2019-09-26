@@ -86,6 +86,9 @@ tasks:
                       ${event.repository.url}
                       ${event.ref};
                     cd ~/web-platform-tests;
+                    sudo cp tools/certs/cacert.pem
+                        /usr/local/share/ca-certificates/cacert.crt;
+                    sudo update-ca-certificates;
                     ./tools/ci/run_tc.py
                       --checkout=${event.after}
                       --oom-killer

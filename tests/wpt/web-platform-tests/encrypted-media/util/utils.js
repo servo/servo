@@ -240,25 +240,31 @@ function test_exception(testCase /*...*/) {
     var exception = testCase.exception;
     var args = Array.prototype.slice.call(arguments, 1);
 
-    // Currently blink throws for TypeErrors rather than returning
-    // a rejected promise (http://crbug.com/359386).
-    // FIXME: Remove try/catch once they become failed promises.
-    try {
-        return func.apply(null, args).then(
-            function (result) {
-                assert_unreached(format_value(func));
-            },
-            function (error) {
-                assert_equals(error.name, exception, format_value(func));
-                assert_not_equals(error.message, "", format_value(func));
+    // This should really be rewritten in terms of the promise_rejects_*
+    // testharness utility functions, but that needs the async test involved
+    // passed in, and we don't have that here.
+    return func.apply(null, args).then(
+        function (result) {
+            assert_unreached(format_value(func));
+        },
+        function (error) {
+            assert_not_equals(error.message, "", format_value(func));
+            // `exception` is a string name for the error.  We can differentiate
+            // JS Errors from DOMExceptions by checking whether
+            // window[exception] exists.  If it does, expectedError is the name
+            // of a JS Error subclass and window[exception] is the constructor
+            // for that subclass.  Otherwise it's a name for a DOMException.
+            if (window[exception]) {
+                assert_throws_js(window[exception],
+                                 () => { throw error; },
+                                 format_value(func));
+            } else {
+                assert_throws_dom(exception,
+                                  () => { throw error; },
+                                  format_value(func));
             }
-        );
-    } catch (e) {
-        // Only allow 'TypeError' exceptions to be thrown.
-        // Everything else should be a failed promise.
-        assert_equals('TypeError', exception, format_value(func));
-        assert_equals(e.name, exception, format_value(func));
-    }
+        }
+    );
 }
 
 // Check that the events sequence (array of strings) matches the pattern (array of either strings, or

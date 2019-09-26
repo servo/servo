@@ -10,7 +10,7 @@ const WebContactsTest = (() => {
       this.bindingSet_ = new mojo.BindingSet(blink.mojom.ContactsManager);
 
       this.interceptor_ = new MojoInterfaceInterceptor(
-        blink.mojom.ContactsManager.name);
+        blink.mojom.ContactsManager.name, "context", true);
       this.interceptor_.oninterfacerequest =
           e => this.bindingSet_.addBinding(this, e.handle);
       this.interceptor_.start();

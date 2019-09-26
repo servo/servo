@@ -125,6 +125,9 @@
         }, `${name}: dynamic changes on the attribute`);
 
         async_test(t => {
+          t.step(function() {
+            assert_true(MathMLElement.prototype.hasOwnProperty(name));
+          });
           const element = document.createElementNS(
             "http://www.w3.org/1998/Math/MathML",
             "math"

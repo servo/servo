@@ -13,6 +13,9 @@
 <script>
 test_invalid_value("animation-fill-mode", "auto");
 test_invalid_value("animation-fill-mode", "forwards backwards");
+
+test_invalid_value("animation-fill-mode", "both, initial");
+test_invalid_value("animation-fill-mode", "initial, both");
 </script>
 </body>
 </html>

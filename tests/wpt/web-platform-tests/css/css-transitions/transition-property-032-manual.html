@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transitions Test: transition-property - outline-color</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" title="7.1. Properties from CSS" href="http://www.w3.org/TR/css3-transitions/#animatable-css">
+<meta name="assert" content="Test checks that the 'outline-color' property is animatable.">
+<style>
+  #test {
+    height: 100px;
+    outline-style: solid;
+    outline-color: red;
+    outline-width: 4px;
+    transition-duration: 2s;
+    transition-property: outline-color;
+    transition-timing-function: linear;
+    width: 100px;
+  }
+</style>
+<body>
+  <p>Click the blank square with red border below. Test passes if the color of border transforms to green gradually not immediately.</p>
+  <div id="test"></div>
+  <script>
+    (function() {
+      var test = document.querySelector("#test");
+      test.addEventListener("click", function(evt) {
+        test.setAttribute("style", "outline-color: green;");
+      }, false);
+    })();
+  </script>
+</body>

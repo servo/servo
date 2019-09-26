@@ -60,8 +60,9 @@ function removeTabIndex(elements) {
   }
 }
 
-function resetFocus() {
-  document.body.focus();
+function resetFocus(root = document) {
+  if (root.activeElement)
+    root.activeElement.blur();
 }
 
 function navigateFocusForward() {

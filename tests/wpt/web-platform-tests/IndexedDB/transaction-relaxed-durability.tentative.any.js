@@ -12,8 +12,9 @@
 let cases = [
   undefined,
   {},
-  {relaxedDurability: false},
-  {relaxedDurability: true},
+  {durability: "default"},
+  {durability: "relaxed"},
+  {durability: "strict"},
 ];
 
 for (let i = 0; i < cases.length; ++i) {

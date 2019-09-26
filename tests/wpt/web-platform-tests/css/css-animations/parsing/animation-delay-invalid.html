@@ -14,6 +14,9 @@
 test_invalid_value("animation-delay", "infinite");
 test_invalid_value("animation-delay", "0");
 test_invalid_value("animation-delay", "1s 2s");
+
+test_invalid_value("animation-delay", "initial, -3s");
+test_invalid_value("animation-delay", "-3s, initial");
 </script>
 </body>
 </html>

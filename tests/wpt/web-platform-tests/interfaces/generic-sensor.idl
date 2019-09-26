@@ -19,9 +19,9 @@ dictionary SensorOptions {
   double frequency;
 };
 
-[Constructor(DOMString type, SensorErrorEventInit errorEventInitDict),
- SecureContext, Exposed=(DedicatedWorker, Window)]
+[SecureContext, Exposed=(DedicatedWorker, Window)]
 interface SensorErrorEvent : Event {
+  constructor(DOMString type, SensorErrorEventInit errorEventInitDict);
   readonly attribute DOMException error;
 };
 

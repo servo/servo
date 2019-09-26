@@ -30,6 +30,9 @@
         "math"
     );
     async_test(test => {
+      test.step(function() {
+        assert_true(MathMLElement.prototype.hasOwnProperty(`on${name}`));
+      });
       mathEl[`on${name}`] = test.step_func_done(e => {
         assert_equals(e.currentTarget, mathEl,
                       "The event must be fired at the <math> element");

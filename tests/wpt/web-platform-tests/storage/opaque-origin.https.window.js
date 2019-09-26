@@ -15,7 +15,7 @@ function load_iframe(src, sandbox) {
 function wait_for_message(iframe) {
   return new Promise(resolve => {
     self.addEventListener('message', function listener(e) {
-      if (e.source === iframe.contentWindow) {
+      if (e.source === iframe.contentWindow && "result" in e.data) {
         resolve(e.data);
         self.removeEventListener('message', listener);
       }
@@ -24,7 +24,8 @@ function wait_for_message(iframe) {
 }
 
 function make_script(snippet) {
-  return '<script>' +
+  return '<script src="/resources/testharness.js"></script>' +
+         '<script>' +
          '  window.onmessage = () => {' +
          '    try {' +
          '      (' + snippet + ')' +
@@ -33,19 +34,25 @@ function make_script(snippet) {
          '            window.parent.postMessage({result: "no rejection"}, "*");' +
          '          }, ' +
          '          error => {' +
-         '            window.parent.postMessage({result: error.name}, "*");' +
+         '            try {' +
+         '              assert_throws_js(TypeError, () => { throw error; });' +
+         '              window.parent.postMessage({result: "correct rejection"}, "*");' +
+         '            } catch (e) {' +
+         '              window.parent.postMessage({result: "incorrect rejection"}, "*");' +
+         '            }' +
          '          });' +
          '    } catch (ex) {' +
          // Report if not implemented/exposed, rather than time out.
-         '      window.parent.postMessage({result: ex.message}, "*");' +
+         '      window.parent.postMessage({result: "API access threw"}, "*");' +
          '    }' +
          '  };' +
          '<\/script>';
 }
 
-['navigator.storage.persist()',
- 'navigator.storage.persisted()',
- 'navigator.storage.estimate()'
+['navigator.storage.persisted()',
+ 'navigator.storage.estimate()',
+ // persist() can prompt, so make sure we test that last
+ 'navigator.storage.persist()',
 ].forEach(snippet => {
   promise_test(t => {
     return load_iframe(make_script(snippet))
@@ -66,7 +73,7 @@ function make_script(snippet) {
         return wait_for_message(iframe);
       })
       .then(message => {
-        assert_equals(message.result, 'TypeError',
+        assert_equals(message.result, 'correct rejection',
                       `${snippet} should reject with TypeError`);
       });
   }, `${snippet} in sandboxed iframe should reject with TypeError`);

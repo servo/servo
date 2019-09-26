@@ -9,7 +9,7 @@
   <script>
   'use strict';
   run_all_fp_tests_allow_all(
-      'http://{{domains[www]}}:{{ports[http][0]}}',
+      'http://{{hosts[alt][]}}:{{ports[http][0]}}',
       'sync-xhr',
       'NetworkError',
       () => {

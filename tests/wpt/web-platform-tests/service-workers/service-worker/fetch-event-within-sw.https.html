@@ -18,13 +18,13 @@ async function registerSwAndOpenFrame(t) {
   return frame;
 }
 
-async function deleteCashes() {
+async function deleteCaches() {
   const cacheKeys = await caches.keys();
   await Promise.all(cacheKeys.map(c => caches.delete(c)));
 }
 
 promise_test(async t => {
-  t.add_cleanup(deleteCashes);
+  t.add_cleanup(deleteCaches);
 
   const iframe = await registerSwAndOpenFrame(t);
   const fetchText =

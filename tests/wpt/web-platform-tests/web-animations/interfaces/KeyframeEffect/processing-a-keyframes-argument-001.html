@@ -45,6 +45,8 @@ const gNonAnimatableProps = [
 
   'unsupportedProperty',
 
+  'float', // We use the string "cssFloat" to represent "float" property, and
+           // so reject "float" in the keyframe-like object.
   'font-size', // Supported property that uses dashes
 ];
 

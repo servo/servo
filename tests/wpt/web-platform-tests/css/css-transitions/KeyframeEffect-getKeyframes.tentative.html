@@ -45,7 +45,7 @@ test(t => {
   const expected = [
     { offset: 0,
       computedOffset: 0,
-      easing: 'ease',
+      easing: 'linear',
       composite: 'auto',
       left: '0px',
     },
@@ -80,7 +80,7 @@ test(t => {
     {
       offset: 0,
       computedOffset: 0,
-      easing: 'steps(2)',
+      easing: 'linear',
       composite: 'auto',
       left: '0px',
     },
@@ -96,8 +96,7 @@ test(t => {
   for (let i = 0; i < frames.length; i++) {
     assert_frames_equal(frames[i], expected[i], `ComputedKeyframe #${i}`);
   }
-}, 'KeyframeEffect.getKeyframes() returns expected frames for a simple'
-   + ' transition with a non-default easing function');
+}, 'KeyframeEffect.getKeyframes() returns frames unaffected by a non-default easing function');
 
 test(t => {
   const div = addDiv(t);
@@ -114,7 +113,7 @@ test(t => {
     {
       offset: 0,
       computedOffset: 0,
-      easing: 'ease',
+      easing: 'linear',
       composite: 'auto',
       left: '0px',
     },

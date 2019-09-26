@@ -18,6 +18,7 @@ partial interface Document {
 partial interface HTMLIFrameElement {
     [SameObject] readonly attribute FeaturePolicy featurePolicy;
 };
+[Exposed=Window]
 interface FeaturePolicyViolationReportBody : ReportBody {
   readonly attribute DOMString featureId;
   readonly attribute DOMString? sourceFile;

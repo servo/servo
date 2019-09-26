@@ -37,7 +37,7 @@ function runTest(config,qualifier) {
                         return;
                     }
 
-                    assert_equals(error.name, 'TypeError' );
+                    assert_throws_js(TypeError, () => { throw error; });
                     test.done();
                 } ) );
             }).catch(onFailure);

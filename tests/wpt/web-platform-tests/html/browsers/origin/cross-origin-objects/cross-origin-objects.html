@@ -561,6 +561,32 @@ addPromiseTest(function() {
   });
 }, "Resolving a promise with a cross-origin location should work (cross-site).");
 
+addTest(function(win) {
+  var desc = Object.getOwnPropertyDescriptor(window, "onmouseenter");
+  var f = () => {};
+
+  // Check that it has [LenientThis] behavior
+  assert_equals(desc.get.call({}), undefined, "getter should return undefined");
+  desc.set.call({}, f); // Should not throw.
+
+  // Check that we can apply it to a same-origin window.
+  assert_equals(desc.get.call(B), null, "Should be able to read the value");
+  desc.set.call(B, f);
+  assert_equals(desc.get.call(B), f, "Value should have updated");
+  // And reset it for our next test
+  desc.set.call(B, null);
+  assert_equals(desc.get.call(B), null, "Should have been reset");
+
+  // Check that applying it to a cross-origin window throws instead of doing
+  // the [LenientThis] behavior.
+  assert_throws("SecurityError", () => {
+    desc.get.call(win);
+  }, "Should throw when getting cross-origin");
+  assert_throws("SecurityError", () => {
+    desc.set.call(win, f);
+  }, "Should throw when setting cross-origin");
+}, "LenientThis behavior");
+
 // We do a fresh load of the subframes for each test to minimize side-effects.
 // It would be nice to reload ourselves as well, but we can't do that without
 // disrupting the test harness.
