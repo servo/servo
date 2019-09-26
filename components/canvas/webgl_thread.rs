@@ -1180,6 +1180,41 @@ impl WebGLImpl {
             WebGLCommand::GetRenderbufferParameter(target, pname, ref chan) => {
                 Self::get_renderbuffer_parameter(gl, target, pname, chan)
             },
+            WebGLCommand::CreateTransformFeedback(ref sender) => {
+                let value = gl.gen_transform_feedbacks();
+                sender.send(value).unwrap()
+            },
+            WebGLCommand::DeleteTransformFeedback(id) => {
+                gl.delete_transform_feedbacks(id);
+            },
+            WebGLCommand::IsTransformFeedback(id, ref sender) => {
+                let value = gl.is_transform_feedback(id);
+                sender.send(value).unwrap()
+            },
+            WebGLCommand::BindTransformFeedback(target, id) => {
+                gl.bind_transform_feedback(target, id);
+            },
+            WebGLCommand::BeginTransformFeedback(mode) => {
+                gl.begin_transform_feedback(mode);
+            },
+            WebGLCommand::EndTransformFeedback() => {
+                gl.end_transform_feedback();
+            },
+            WebGLCommand::PauseTransformFeedback() => {
+                gl.pause_transform_feedback();
+            },
+            WebGLCommand::ResumeTransformFeedback() => {
+                gl.resume_transform_feedback();
+            },
+            WebGLCommand::GetTransformFeedbackVarying(program, index, ref sender) => {
+                let (size, ty, mut name) = gl.get_transform_feedback_varying(program.get(), index);
+                // We need to split, because the name starts with '_u' prefix.
+                name = name.split_off(2);
+                sender.send((size, ty, name)).unwrap();
+            },
+            WebGLCommand::TransformFeedbackVaryings(program, ref varyings, buffer_mode) => {
+                gl.transform_feedback_varyings(program.get(), varyings.as_slice(), buffer_mode);
+            },
             WebGLCommand::GetFramebufferAttachmentParameter(
                 target,
                 attachment,
@@ -1814,9 +1849,10 @@ impl WebGLImpl {
                 linked: false,
                 active_attribs: vec![].into(),
                 active_uniforms: vec![].into(),
+                transform_feedback_length: Default::default(),
+                transform_feedback_mode: Default::default(),
             };
         }
-
         let mut num_active_attribs = [0];
         unsafe {
             gl.get_program_iv(
@@ -1868,11 +1904,28 @@ impl WebGLImpl {
             })
             .collect::<Vec<_>>()
             .into();
-
+        let mut transform_feedback_length = [0];
+        unsafe {
+            gl.get_program_iv(
+                program.get(),
+                gl::TRANSFORM_FEEDBACK_VARYINGS,
+                &mut transform_feedback_length,
+            );
+        }
+        let mut transform_feedback_mode = [0];
+        unsafe {
+            gl.get_program_iv(
+                program.get(),
+                gl::TRANSFORM_FEEDBACK_BUFFER_MODE,
+                &mut transform_feedback_mode,
+            );
+        }
         ProgramLinkInfo {
             linked: true,
             active_attribs,
             active_uniforms,
+            transform_feedback_length: transform_feedback_length[0],
+            transform_feedback_mode: transform_feedback_mode[0],
         }
     }
 

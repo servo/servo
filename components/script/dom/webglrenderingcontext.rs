@@ -1165,6 +1165,10 @@ impl WebGLRenderingContext {
 
         slot.set(buffer);
     }
+
+    pub fn current_program(&self) -> Option<DomRoot<WebGLProgram>> {
+        self.current_program.get()
+    }
 }
 
 #[cfg(not(feature = "webgl_backtrace"))]
