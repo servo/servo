@@ -935,12 +935,6 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-responsexml-attribute
     fn GetResponseXML(&self) -> Fallible<Option<DomRoot<Document>>> {
-        // TODO(#2823): Until [Exposed] is implemented, this attribute needs to return null
-        //              explicitly in the worker scope.
-        if self.global().is::<WorkerGlobalScope>() {
-            return Ok(None);
-        }
-
         match self.response_type.get() {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Document => {
                 // Step 3
