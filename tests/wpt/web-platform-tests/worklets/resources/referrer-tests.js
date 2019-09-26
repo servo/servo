@@ -88,6 +88,7 @@ function runReferrerTests(workletType) {
 
   // Tests for descendant script fetch -----------------------------------------
 
+  // Referrer policy: no-referrer.
   promise_test(() => {
     return runReferrerTest({ workletType: workletType,
                              fetchType: 'descendant',
@@ -111,10 +112,20 @@ function runReferrerTests(workletType) {
                              fetchType: 'descendant',
                              referrerPolicy: 'no-referrer',
                              scriptOrigins: { topLevel: 'remote',
+                                              descendant: 'same' } });
+  }, 'Importing a same-origin script from a remote-origin worklet script ' +
+     'that has "no-referrer" referrer policy should not send referrer.');
+
+  promise_test(() => {
+    return runReferrerTest({ workletType: workletType,
+                             fetchType: 'descendant',
+                             referrerPolicy: 'no-referrer',
+                             scriptOrigins: { topLevel: 'remote',
                                               descendant: 'remote' } });
   }, 'Importing a remote-origin script from a remote-origin worklet script ' +
      'that has "no-referrer" referrer policy should not send referrer.');
 
+  // Referrer policy: origin.
   promise_test(() => {
     return runReferrerTest({ workletType: workletType,
                              fetchType: 'descendant',
@@ -138,10 +149,20 @@ function runReferrerTests(workletType) {
                              fetchType: 'descendant',
                              referrerPolicy: 'origin',
                              scriptOrigins: { topLevel: 'remote',
+                                              descendant: 'same' } });
+  }, 'Importing a same-origin script from a remote-origin worklet script ' +
+     'that has "origin" referrer policy should send referrer.');
+
+  promise_test(() => {
+    return runReferrerTest({ workletType: workletType,
+                             fetchType: 'descendant',
+                             referrerPolicy: 'origin',
+                             scriptOrigins: { topLevel: 'remote',
                                               descendant: 'remote' } });
   }, 'Importing a remote-origin script from a remote-origin worklet script ' +
      'that has "origin" referrer policy should send referrer.');
 
+  // Referrer policy: same-origin.
   promise_test(() => {
     return runReferrerTest({ workletType: workletType,
                              fetchType: 'descendant',
@@ -165,7 +186,18 @@ function runReferrerTests(workletType) {
                              fetchType: 'descendant',
                              referrerPolicy: 'same-origin',
                              scriptOrigins: { topLevel: 'remote',
+                                              descendant: 'same' } });
+  }, 'Importing a same-origin script from a remote-origin worklet script ' +
+     'that has "same-origin" referrer policy should send referrer.');
+
+  promise_test(() => {
+    return runReferrerTest({ workletType: workletType,
+                             fetchType: 'descendant',
+                             referrerPolicy: 'same-origin',
+                             scriptOrigins: { topLevel: 'remote',
                                               descendant: 'remote' } });
   }, 'Importing a remote-origin script from a remote-origin worklet script ' +
      'that has "same-origin" referrer policy should not send referrer.');
+
+  // TODO(domfarolino): Add tests for more referrer policies.
 }

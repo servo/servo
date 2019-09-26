@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#time">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-serialize">
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/parsing-testcommon.js"></script>
+<script>
+function test_valid_time(value, expected) {
+  test_valid_value('transition-delay', value, expected);
+}
+
+test_valid_time('min(1ms)', 'min(1ms)');
+test_valid_time('min(1s)', 'min(1s)');
+test_valid_time('max(1ms)', 'max(1ms)');
+test_valid_time('max(1s)', 'max(1s)');
+
+test_valid_time('min(1ms, 2ms, 3ms)', 'min(1ms, 2ms, 3ms)');
+test_valid_time('min(3ms, 2ms, 1ms)', 'min(3ms, 2ms, 1ms)');
+test_valid_time('max(1ms, 2ms, 3ms)', 'max(1ms, 2ms, 3ms)');
+test_valid_time('max(3ms, 2ms, 1ms)', 'max(3ms, 2ms, 1ms)');
+test_valid_time('min(1000ms, 1s)', 'min(1000ms, 1s)');
+test_valid_time('min(1s, 1000ms)', 'min(1s, 1000ms)');
+test_valid_time('max(1000ms, 1s)', 'max(1000ms, 1s)');
+test_valid_time('max(1s, 1000ms)', 'max(1s, 1000ms)');
+
+test_valid_time('calc(min(1s) + min(2s))', 'calc(min(1s) + min(2s))');
+test_valid_time('calc(min(2s) + min(1s))', 'calc(min(2s) + min(1s))');
+test_valid_time('calc(max(1s) + max(2s))', 'calc(max(1s) + max(2s))');
+test_valid_time('calc(max(2s) + max(1s))', 'calc(max(2s) + max(1s))');
+
+test_valid_time('calc(1s + min(2s))', 'calc(1s + min(2s))');
+test_valid_time('calc(min(2s) + 1s)', 'calc(1s + min(2s))');
+test_valid_time('calc(1s + max(2s))', 'calc(1s + max(2s))');
+test_valid_time('calc(max(2s) + 1s)', 'calc(1s + max(2s))');
+
+</script>

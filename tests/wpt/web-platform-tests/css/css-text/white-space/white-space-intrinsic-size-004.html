@@ -6,8 +6,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
 <meta name="flags" content="">
 <link rel="match" href="reference/white-space-intrinsic-size-004-ref.html">
-<meta name="assert" content="Preserved spaces at the end of the line do affect the intrinsic max-content size when white-space is pre-wrap, as hanging does not prevent contributing to the max-content size. The value of overflow-wrap makes no difference.">
-<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<meta name="assert" content="Preserved spaces at the end of the line do affect the intrinsic max-content size when white-space is pre-wrap, as spaces before a forced break, at the end of un unwrapped line, only hanging conditionally, which does not prevent contributing to the max-content size. The value of overflow-wrap makes no difference.">
 <style>
 aside {
   float: left;
@@ -18,10 +17,10 @@ aside:last-of-type { overflow-wrap: break-word; }
 div {
   background: red;
   color: transparent;
-  font-family: Ahem;
+  font-family: monospace;
   font-size: 50px;
   width: 3ch;
-  height: 2em;
+  line-height: 1;
 }
 </style>
 

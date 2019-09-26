@@ -18,10 +18,70 @@
         width: 10px;
         height: 10px;
       }
+      .parent {
+        translate: 100px 200px 300px;
+      }
+      .target {
+        width: 100px;
+        height: 100px;
+        background-color: black;
+        translate: 10px;
+      }
+      .expected {
+        background-color: green;
+      }
     </style>
   </head>
   <body>
+    <template id="target-template">
+      <div class="parent">
+          <div class="target"></div>
+      </div>
+    </template>
     <script>
+      // Matching one-length (pixels) animation.
+      test_interpolation({
+        property: 'translate',
+        from: '-100px',
+        to: '100px',
+      }, [
+        {at: -1, expect: '-300px'},
+        {at: 0, expect: '-100px'},
+        {at: 0.25, expect: '-50px'},
+        {at: 0.75, expect: '50px'},
+        {at: 1, expect: '100px'},
+        {at: 2, expect: '300px'},
+      ]);
+
+      // Matching one-length (percentage) animation.
+      test_interpolation({
+        property: 'translate',
+        from: '-100%',
+        to: '100%',
+      }, [
+        {at: -1, expect: '-300%'},
+        {at: 0, expect: '-100%'},
+        {at: 0.25, expect: '-50%'},
+        {at: 0.75, expect: '50%'},
+        {at: 1, expect: '100%'},
+        {at: 2, expect: '300%'},
+      ]);
+
+      // Matching two-length (all pixels) animation.
+      test_interpolation({
+        property: 'translate',
+        from: '-100px -50px',
+        to: '100px 50px',
+      }, [
+        {at: -1, expect: '-300px -150px'},
+        {at: 0, expect: '-100px -50px'},
+        {at: 0.25, expect: '-50px -25px'},
+        {at: 0.75, expect: '50px 25px'},
+        {at: 1, expect: '100px 50px'},
+        {at: 2, expect: '300px 150px'},
+      ]);
+
+      // Matching three-length (all pixels) animation.
       test_interpolation({
         property: 'translate',
         from: '220px 240px 260px',
@@ -35,6 +95,35 @@
         {at: 2, expect: '380px 560px 740px'}
       ]);
 
+      // Going from one length to three lengths.
+      test_interpolation({
+        property: 'translate',
+        from: '0px',
+        to: '-100px -50px 100px',
+      }, [
+        {at: -1, expect: '100px 50px -100px'},
+        {at: 0, expect: '0px'},
+        {at: 0.25, expect: '-25px -12.5px 25px'},
+        {at: 0.75, expect: '-75px -37.5px 75px'},
+        {at: 1, expect: '-100px -50px 100px'},
+        {at: 2, expect: '-200px -100px 200px'},
+      ]);
+
+      // Going from three lengths to one length.
+      test_interpolation({
+        property: 'translate',
+        from: '-100px -50px 100px',
+        to: '0px',
+      }, [
+        {at: -1, expect: '-200px -100px 200px'},
+        {at: 0, expect: '-100px -50px 100px'},
+        {at: 0.25, expect: '-75px -37.5px 75px'},
+        {at: 0.75, expect: '-25px -12.5px 25px'},
+        {at: 1, expect: '0px'},
+        {at: 2, expect: '100px 50px -100px'},
+      ]);
+
+      // Going from three-lengths to two-percentages.
       test_interpolation({
         property: 'translate',
         from: '480px 400px 320px',
@@ -48,6 +137,21 @@
         {at: 2, expect: 'calc(480% - 480px) calc(320% - 400px) -320px'}
       ]);
 
+      // Handling of the none value.
+      test_interpolation({
+        property: 'translate',
+        from: 'none',
+        to: 'none',
+      }, [
+        {at: -1, expect: 'none'},
+        {at: 0, expect: 'none'},
+        {at: 0.125, expect: 'none'},
+        {at: 0.875, expect: 'none'},
+        {at: 1, expect: 'none'},
+        {at: 2, expect: 'none'}
+      ]);
+
+      // Going from none to a valid value; test that it converts properly.
       test_interpolation({
         property: 'translate',
         from: 'none',
@@ -61,17 +165,114 @@
         {at: 2, expect: '16px 160% 1600px'}
       ]);
 
+      // Test neutral keyframe; make sure it adds the underlying.
       test_interpolation({
         property: 'translate',
-        from: 'none',
-        to: 'none',
+        from: neutralKeyframe,
+        to: '20px',
       }, [
-        {at: -1, expect: 'none'},
+        {at: -1, expect: '0px'},
+        {at: 0, expect: '10px'},
+        {at: 0.25, expect: '12.5px'},
+        {at: 0.75, expect: '17.5px'},
+        {at: 1, expect: '20px'},
+        {at: 2, expect: '30px'},
+      ]);
+
+      // Test initial value; for 'scale' this is 'none'.
+      test_interpolation({
+        property: 'translate',
+        from: 'initial',
+        to: '200px 100px 200px',
+      }, [
+        {at: -1, expect: '-200px -100px -200px'},
         {at: 0, expect: 'none'},
-        {at: 0.125, expect: 'none'},
-        {at: 0.875, expect: 'none'},
+        {at: 0.25, expect: '50px 25px 50px'},
+        {at: 0.75, expect: '150px 75px 150px'},
+        {at: 1, expect: '200px 100px 200px'},
+        {at: 2, expect: '400px 200px 400px'},
+      ]);
+
+      test_interpolation({
+        property: 'translate',
+        from: '200px 100px 400px',
+        to: 'initial',
+      }, [
+        {at: -1, expect: '400px 200px 800px'},
+        {at: 0, expect: '200px 100px 400px'},
+        {at: 0.25, expect: '150px 75px 300px'},
+        {at: 0.75, expect: '50px 25px 100px'},
         {at: 1, expect: 'none'},
-        {at: 2, expect: 'none'}
+        {at: 2, expect: '-200px -100px -400px'},
+      ]);
+
+
+      // Test unset value; for 'translate' this is 'none'.
+      test_interpolation({
+        property: 'translate',
+        from: 'unset',
+        to: '20px',
+      }, [
+        {at: -1, expect: '-20px'},
+        {at: 0, expect: 'none'},
+        {at: 0.25, expect: '5px'},
+        {at: 0.75, expect: '15px'},
+        {at: 1, expect: '20px'},
+        {at: 2, expect: '40px'},
+      ]);
+
+      // Test inherited value.
+      test_interpolation({
+        property: 'translate',
+        from: 'inherit',
+        to: '200px 100px 200px',
+      }, [
+        {at: -1, expect: '0px 300px 400px'},
+        {at: 0, expect: '100px 200px 300px'},
+        {at: 0.25, expect: '125px 175px 275px'},
+        {at: 0.75, expect: '175px 125px 225px'},
+        {at: 1, expect: '200px 100px 200px'},
+        {at: 2, expect: '300px 0px 100px'},
+      ]);
+
+      test_interpolation({
+        property: 'translate',
+        from: '200px 100px 200px',
+        to: 'inherit',
+      }, [
+        {at: -1, expect: '300px 0px 100px'},
+        {at: 0, expect: '200px 100px 200px'},
+        {at: 0.25, expect: '175px 125px 225px'},
+        {at: 0.75, expect: '125px 175px 275px'},
+        {at: 1, expect: '100px 200px 300px'},
+        {at: 2, expect: '0px 300px 400px'},
+      ]);
+
+      // Test combination of initial and inherit.
+      test_interpolation({
+        property: 'translate',
+        from: 'initial',
+        to: 'inherit',
+      }, [
+        {at: -1, expect: '-100px -200px -300px'},
+        {at: 0, expect: 'none'},
+        {at: 0.25, expect: '25px 50px 75px'},
+        {at: 0.75, expect: '75px 150px 225px'},
+        {at: 1, expect: '100px 200px 300px'},
+        {at: 2, expect: '200px 400px 600px'},
+      ]);
+
+      test_interpolation({
+        property: 'translate',
+        from: 'inherit',
+        to: 'initial',
+      }, [
+        {at: -1, expect: '200px 400px 600px'},
+        {at: 0, expect: '100px 200px 300px'},
+        {at: 0.25, expect: '75px 150px 225px'},
+        {at: 0.75, expect: '25px 50px 75px'},
+        {at: 1, expect: 'none'},
+        {at: 2, expect: '-100px -200px -300px'},
       ]);
     </script>
   </body>

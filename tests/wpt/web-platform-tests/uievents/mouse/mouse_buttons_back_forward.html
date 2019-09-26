@@ -15,6 +15,7 @@
             var received_forward = false;
             const backButton = 3;
             const forwardButton = 4;
+            var actions_promise;
             window.addEventListener('mouseup', function(e) {
               if (e.button == backButton) {
                 received_back = true;
@@ -24,14 +25,17 @@
                 e.preventDefault();
               }
               if (received_back && received_forward) {
-                testMouseUp.done();
+                // Make sure the test finishes after all the input actions are completed.
+                actions_promise.then( () => {
+                  testMouseUp.done();
+                });
               }
             });
 
             function inject_input() {
                 // First click on back button and then forward button.
                 var actions = new test_driver.Actions();
-                actions.pointerMove(0, 0, {origin: target})
+                actions_promise = actions.pointerMove(0, 0, {origin: target})
                     .pointerDown({button: actions.ButtonType.BACK})
                     .pointerUp({button: actions.ButtonType.BACK})
                     .pointerDown({button: actions.ButtonType.FORWARD})

@@ -1104,6 +1104,42 @@ class WebKit(Browser):
         return None
 
 
+class WebKitGTKMiniBrowser(WebKit):
+
+    def find_binary(self, venv_path=None, channel=None):
+        libexecpaths = ["/usr/libexec/webkit2gtk-4.0"]  # Fedora path
+        triplet = "x86_64-linux-gnu"
+        # Try to use GCC to detect this machine triplet
+        gcc = find_executable("gcc")
+        if gcc:
+            try:
+                triplet = call(gcc, "-dumpmachine").strip()
+            except subprocess.CalledProcessError:
+                pass
+        # Add Debian/Ubuntu path
+        libexecpaths.append("/usr/lib/%s/webkit2gtk-4.0" % triplet)
+        return find_executable("MiniBrowser", os.pathsep.join(libexecpaths))
+
+    def find_webdriver(self, channel=None):
+        return find_executable("WebKitWebDriver")
+
+    def version(self, binary=None, webdriver_binary=None):
+        if binary is None:
+            return None
+        try:  # WebKitGTK MiniBrowser before 2.26.0 doesn't support --version
+            output = call(binary, "--version").strip()
+        except subprocess.CalledProcessError:
+            return None
+        # Example output: "WebKitGTK 2.26.1"
+        if output:
+            m = re.match(r"WebKitGTK (.+)", output)
+            if not m:
+                self.logger.warning("Failed to extract version from: %s" % output)
+                return None
+            return m.group(1)
+        return None
+
+
 class Epiphany(Browser):
     """Epiphany-specific interface."""
 
