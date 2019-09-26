@@ -75,7 +75,7 @@ lazy_static! {
     pub static ref PYTHON: String = env::var("PYTHON").ok().unwrap_or_else(find_python);
 }
 
-fn generate_properties() {
+fn generate_properties(engine: &str) {
     for entry in WalkDir::new("properties") {
         let entry = entry.unwrap();
         match entry.path().extension().and_then(|e| e.to_str()) {
@@ -89,15 +89,6 @@ fn generate_properties() {
     let script = Path::new(&env::var_os("CARGO_MANIFEST_DIR").unwrap())
         .join("properties")
         .join("build.py");
-
-    #[cfg(feature = "gecko")]
-    let engine = "gecko";
-
-    #[cfg(feature = "servo-layout-2013")]
-    let engine = "servo-2013";
-
-    #[cfg(feature = "servo-layout-2020")]
-    let engine = "servo-2020";
 
     let status = Command::new(&*PYTHON)
         .arg(&script)
@@ -113,20 +104,21 @@ fn generate_properties() {
 fn main() {
     let gecko = cfg!(feature = "gecko");
     let servo = cfg!(feature = "servo");
-    if !(gecko || servo) {
-        panic!("The style crate requires enabling one of its 'servo' or 'gecko' feature flags");
-    }
-    if gecko && servo {
-        panic!(
-            "The style crate does not support enabling both its 'servo' or 'gecko' \
-             feature flags at the same time."
-        );
-    }
-    if gecko && (cfg!(feature = "servo-layout-2013") || cfg!(feature = "servo-layout-2020")) {
-        panic!("The 'servo-layout-*' features can only be enabled together with 'servo'.");
-    }
+    let l2013 = cfg!(feature = "servo-layout-2013");
+    let l2020 = cfg!(feature = "servo-layout-2020");
+    let engine = match (gecko, servo, l2013, l2020) {
+        (true, false, false, false) => "gecko",
+        (false, true, true, false) => "servo-2013",
+        (false, true, false, true) => "servo-2020",
+        _ => panic!(
+            "\n\n\
+             The style crate requires enabling one of its 'servo' or 'gecko' feature flags \
+             and, in the 'servo' case, one of 'servo-layout-2013' or 'servo-layout-2020'.\
+             \n\n"
+        ),
+    };
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:out_dir={}", env::var("OUT_DIR").unwrap());
-    generate_properties();
+    generate_properties(engine);
     build_gecko::generate();
 }
