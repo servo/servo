@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Battery Test: navigator.getBattery() is not allowed in non top-level browsing context</title>
+<title>Battery Test: navigator.getBattery() is allowed in same origin iframe</title>
 <link rel="author" title="Intel" href="http://www.intel.com">
 <link rel="help" href="https://www.w3.org/TR/battery-status/">
 <script src="/resources/testharness.js"></script>
@@ -16,12 +16,11 @@ function load_iframe(iframe, src) {
   });
 }
 
-promise_test(t => {
-  var iframe = document.getElementById('blank');
-  var src = 'support-iframe.html';
-  return load_iframe(iframe, src)
-    .then(iframe => promise_rejects(t, 'SecurityError',
-                                    iframe.contentWindow.navigator.getBattery()));
-}, "throw a 'SecurityError' when invoking navigator.getBattery() within iframe");
+promise_test(async t => {
+  let iframe = document.getElementById('blank');
+  const src = 'support-iframe.html';
+  iframe = await load_iframe(iframe, src);
+  await iframe.contentWindow.navigator.getBattery();
+}, "navigator.getBattery() is allowed in same origin iframe");
 
 </script>

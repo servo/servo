@@ -184,10 +184,8 @@ def main():
 
     pr = get_pr(owner, repo, head_rev)
     if pr is None:
-        # This should only really happen during testing
-        tag_name = "merge_commit_%s" % head_rev
-    else:
-        tag_name = "merge_pr_%s" % pr
+        return Status.FAIL
+    tag_name = "merge_pr_%s" % pr
 
     manifest_path = os.path.expanduser(os.path.join("~", "meta", "MANIFEST.json"))
 

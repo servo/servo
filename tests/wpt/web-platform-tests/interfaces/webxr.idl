@@ -9,7 +9,7 @@ partial interface Navigator {
 
 [SecureContext, Exposed=Window] interface XR : EventTarget {
   // Methods
-  Promise<void> supportsSession(XRSessionMode mode);
+  Promise<boolean> isSessionSupported(XRSessionMode mode);
   [NewObject] Promise<XRSession> requestSession(XRSessionMode mode, optional XRSessionInit options = {});
 
   // Events
@@ -122,9 +122,9 @@ enum XREye {
   readonly attribute long height;
 };
 
-[SecureContext, Exposed=Window,
- Constructor(optional DOMPointInit position = {}, optional DOMPointInit orientation = {})]
+[SecureContext, Exposed=Window]
 interface XRRigidTransform {
+  constructor(optional DOMPointInit position = {}, optional DOMPointInit orientation = {});
   [SameObject] readonly attribute DOMPointReadOnly position;
   [SameObject] readonly attribute DOMPointReadOnly orientation;
   readonly attribute Float32Array matrix;
@@ -180,10 +180,11 @@ dictionary XRWebGLLayerInit {
   double framebufferScaleFactor = 1.0;
 };
 
-[SecureContext, Exposed=Window, Constructor(XRSession session,
-             XRWebGLRenderingContext context,
-             optional XRWebGLLayerInit layerInit = {})]
+[SecureContext, Exposed=Window]
 interface XRWebGLLayer {
+  constructor(XRSession session,
+             XRWebGLRenderingContext context,
+             optional XRWebGLLayerInit layerInit = {});
   // Attributes
   readonly attribute boolean antialias;
   readonly attribute boolean ignoreDepthValues;
@@ -207,8 +208,9 @@ partial interface mixin WebGLRenderingContextBase {
     Promise<void> makeXRCompatible();
 };
 
-[SecureContext, Exposed=Window, Constructor(DOMString type, XRSessionEventInit eventInitDict)]
+[SecureContext, Exposed=Window]
 interface XRSessionEvent : Event {
+  constructor(DOMString type, XRSessionEventInit eventInitDict);
   [SameObject] readonly attribute XRSession session;
 };
 
@@ -216,8 +218,9 @@ dictionary XRSessionEventInit : EventInit {
   required XRSession session;
 };
 
-[SecureContext, Exposed=Window, Constructor(DOMString type, XRInputSourceEventInit eventInitDict)]
+[SecureContext, Exposed=Window]
 interface XRInputSourceEvent : Event {
+  constructor(DOMString type, XRInputSourceEventInit eventInitDict);
   [SameObject] readonly attribute XRFrame frame;
   [SameObject] readonly attribute XRInputSource inputSource;
 };
@@ -227,8 +230,9 @@ dictionary XRInputSourceEventInit : EventInit {
   required XRInputSource inputSource;
 };
 
-[SecureContext, Exposed=Window, Constructor(DOMString type, XRInputSourcesChangeEventInit eventInitDict)]
+[SecureContext, Exposed=Window]
 interface XRInputSourcesChangeEvent : Event {
+  constructor(DOMString type, XRInputSourcesChangeEventInit eventInitDict);
   [SameObject] readonly attribute XRSession session;
   [SameObject] readonly attribute FrozenArray<XRInputSource> added;
   [SameObject] readonly attribute FrozenArray<XRInputSource> removed;
@@ -241,8 +245,9 @@ dictionary XRInputSourcesChangeEventInit : EventInit {
 
 };
 
-[SecureContext, Exposed=Window, Constructor(DOMString type, XRReferenceSpaceEventInit eventInitDict)]
+[SecureContext, Exposed=Window]
 interface XRReferenceSpaceEvent : Event {
+  constructor(DOMString type, XRReferenceSpaceEventInit eventInitDict);
   [SameObject] readonly attribute XRReferenceSpace referenceSpace;
   [SameObject] readonly attribute XRRigidTransform? transform;
 };

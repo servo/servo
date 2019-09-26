@@ -23,6 +23,7 @@
     <div id="target"></div>
     <script>
     var test_auxclick = async_test("auxclick event sequence received.");
+    var actions_promise;
     var target = document.querySelector('#target');
     document.addEventListener('contextmenu', event => { event.preventDefault(); });
     ['click', 'dblclick'].forEach(eventName => {
@@ -60,13 +61,16 @@
                     'There should be two auxclick events for a non-primary button double click each preceded by one mousemove and one mouseup');
                 assert_equals(event.detail, click_count, 'detail attribute of auxclick should be the click count.');
             });
-            test_auxclick.done();
+            // Make sure the test finishes after all the input actions are completed.
+            actions_promise.then( () => {
+                test_auxclick.done();
+            });
         }
     });
 
     // Inject mouse double click events.
     var actions = new test_driver.Actions();
-    actions.pointerMove(0, 0, {origin: target})
+    actions_promise = actions.pointerMove(0, 0, {origin: target})
            .pointerDown({button: actions.ButtonType.MIDDLE})
            .pointerUp({button: actions.ButtonType.MIDDLE})
            .pointerDown({button: actions.ButtonType.MIDDLE})

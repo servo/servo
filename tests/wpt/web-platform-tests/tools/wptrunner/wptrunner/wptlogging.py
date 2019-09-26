@@ -4,13 +4,14 @@ from mozlog import commandline, stdadapter, set_default_logger
 from mozlog.structuredlog import StructuredLogger, log_levels
 
 
-def setup(args, defaults):
+def setup(args, defaults, formatter_defaults=None):
     logger = args.pop('log', None)
     if logger:
         set_default_logger(logger)
         StructuredLogger._logger_states["web-platform-tests"] = logger._state
     else:
-        logger = commandline.setup_logging("web-platform-tests", args, defaults)
+        logger = commandline.setup_logging("web-platform-tests", args, defaults,
+                                           formatter_defaults=formatter_defaults)
     setup_stdlib_logger()
 
     for name in args.keys():

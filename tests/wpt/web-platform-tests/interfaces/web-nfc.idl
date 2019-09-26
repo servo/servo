@@ -13,8 +13,6 @@ dictionary NDEFMessageInit {
   sequence<NDEFRecordInit> records;
 };
 
-typedef any NDEFRecordData;
-
 [Exposed=Window]
 interface NDEFRecord {
   constructor(NDEFRecordInit recordInit);
@@ -34,7 +32,7 @@ dictionary NDEFRecordInit {
   USVString mediaType;
   USVString id;
 
-  NDEFRecordData data;
+  any data;
 };
 
 typedef DOMString NDEFRecordType;

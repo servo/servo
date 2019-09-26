@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Battery Test: navigator.getBattery() is not allowed in cross origin iframe</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://www.w3.org/TR/battery-status/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<iframe id="blank" src="about:blank" style="display: none"></iframe>
+<script>
+
+function load_iframe(iframe, src) {
+  return new Promise((resolve, reject) => {
+    iframe.onload = () => resolve(iframe);
+    iframe.src = src;
+  });
+}
+
+promise_test(async t => {
+  let iframe = document.getElementById('blank');
+  const path = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
+  const src = 'https://{{domains[www1]}}:{{ports[https][0]}}' + path + 'support-iframe.html';
+  iframe = await load_iframe(iframe, src);
+  await promise_rejects(t, 'NotAllowedError', iframe.contentWindow.navigator.getBattery());
+}, "throw a 'NotAllowedError' when invoking navigator.getBattery() within cross-origin iframe");
+
+</script>

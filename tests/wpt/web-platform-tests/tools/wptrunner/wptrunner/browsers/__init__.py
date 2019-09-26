@@ -38,4 +38,5 @@ product_list = ["android_webview",
                 "servodriver",
                 "opera",
                 "webkit",
+                "webkitgtk_minibrowser",
                 "epiphany"]

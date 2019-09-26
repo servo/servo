@@ -77,7 +77,7 @@ def create_parser():
         help="Never attempt to download the manifest.")
     parser.add_argument(
         "--cache-root", action="store", default=os.path.join(wpt_root, ".wptcache"),
-        help="Path in which to store any caches (default <tests_root>/.wptcache/")
+        help="Path in which to store any caches (default <tests_root>/.wptcache/)")
     return parser
 
 

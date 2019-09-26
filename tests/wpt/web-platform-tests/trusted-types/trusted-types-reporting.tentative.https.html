@@ -54,6 +54,24 @@
     try { fn(); assert_unreached(); } catch (err) { /* ignore */ }
   }
 
+  // Test the "sample" field of the event.
+  // TODO(vogelheim): The current set of tests allows for more variance in the
+  //     sample reports than the current spec draft does. Once the spec has
+  //     been finalized, we should clamp this down to check byte-for-byte
+  //     against the values mandated by the spec.
+
+  function expect_sample(s) { return e => {
+    assert_true(e.sample.includes(s),
+                `expected "${e.sample}" to include "${s}".`);
+    return e;
+  } }
+
+  function expect_blocked_uri(s) { return e => {
+    assert_true(e.blockedURI === s,
+                `expected "${e.blockedUri}" to be "${s}".`);
+    return e;
+  } }
+
   // A sample policy we use to test TrustedTypes.createPolicy behaviour.
   const id = x => x;
   const a_policy = {
@@ -80,6 +98,8 @@
     let p = Promise.resolve()
         .then(promise_violation("trusted-types one"))
         .then(promise_violation("trusted-types two"))
+        .then(expect_sample("three"))
+        .then(expect_blocked_uri("trusted-types-policy"))
         .then(promise_flush());
     expect_throws(_ => TrustedTypes.createPolicy("three", a_policy));
     flush();
@@ -130,18 +150,6 @@
     flush();
     return p;
   }, "Trusted Type violation report: assign trusted HTML to html; no report");
-
-  // Test the "sample" field of the event.
-  // TODO(vogelheim): The current set of tests allows for more variance in the
-  //     sample reports than the current spec draft does. Once the spec has
-  //     been finalized, we should clamp this down to check byte-for-byte
-  //     against the values mandated by the spec.
-
-  function expect_sample(s) { return e => {
-    assert_true(e.sample.includes(s),
-                `expected "${e.sample}" to include "${s}".`);
-    return e;
-  } }
 
   promise_test(t => {
     let p = Promise.resolve()

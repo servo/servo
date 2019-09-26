@@ -1,9 +1,7 @@
 <!DOCTYPE HTML>
 <title>DOM img complete Test</title>
-<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<meta charset=UTF-8>
 <link rel="author" title="Anselm Hannemann" href="http://anselm-hannemann.com/" />
-<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-img-complete" />
-<meta name="assert" content="Tests the complete status of the img-element">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
@@ -82,42 +80,41 @@
   }, "img src and srcset omitted on image after it started a load");
 
   // test if set to true after img is completely available
-  var t = async_test("async src complete test");
-
-  t.step(function(){
+  async_test(t => {
     var loaded = false;
-    document.getElementById("imgTestTag3").onload = t.step_func_done(function(){
+    const img = document.getElementById("imgTestTag3");
+    img.onload = t.step_func_done(function(){
       assert_false(loaded);
       loaded = true;
-      assert_true(document.getElementById("imgTestTag3").complete);
-      var currentSrc = document.getElementById("imgTestTag3").currentSrc;
+      assert_true(img.complete);
+      var currentSrc = img.currentSrc;
       var expectedUrl = new URL("3.jpg", window.location);
       assert_equals(new URL(currentSrc).pathname, expectedUrl.pathname);
     }, "Only one onload, despite setting the src twice");
 
-    document.getElementById("imgTestTag3").src = 'test' + Math.random();
+    img.src = 'test' + Math.random();
     //test if img.complete is set to false if src is changed
-    assert_false(document.getElementById("imgTestTag3").complete, "src changed, should be set to false")
+    assert_false(img.complete, "src changed, should be set to false")
     //change src again, should make only one request as per 'await stable state'
-    document.getElementById("imgTestTag3").src = '3.jpg?nocache=' + Math.random();
-  });
+    img.src = '3.jpg?nocache=' + Math.random();
+  }, "async src complete test");
 
-  var t1 = async_test("async srcset complete test");
-  t1.step(function(){
+  async_test(t => {
     var loaded = false;
-    document.getElementById("imgTestTag5").onload = t1.step_func_done(function(){
+    const img = document.getElementById("imgTestTag5")
+    img.onload = t.step_func_done(function(){
       assert_false(loaded);
       loaded = true;
-      assert_true(document.getElementById("imgTestTag5").complete);
+      assert_true(img.complete);
     }, "Only one onload, despite setting the srcset twice");
     //Test if src, srcset is omitted
-    assert_true(document.getElementById("imgTestTag5").complete)
-    document.getElementById("imgTestTag5").srcset = "/images/green-256x256.png 1x";
+    assert_true(img.complete)
+    img.srcset = "/images/green-256x256.png 1x";
     //test if img.complete is set to false if srcset is present
-    assert_false(document.getElementById("imgTestTag5").complete, "srcset present, should be set to false");
+    assert_false(img.complete, "srcset present, should be set to false");
     //change src again, should make only one request as per 'await stable state'
-    document.getElementById("imgTestTag5").srcset="/images/green-256x256.png 1.6x"
-  });
+    img.srcset="/images/green-256x256.png 1.6x"
+  }, "async srcset complete test");
 
   // https://html.spec.whatwg.org/multipage/multipage/embedded-content-1.html#update-the-image-data
   // says to "await a stable state" before fetching so we use a separate <script>
@@ -125,86 +122,79 @@
 </script>
 <script>
   // test: The final task that is queued by the networking task source once the resource has been fetched has been queued, but has not yet been run, and the img element is not in the broken state
-  async_test(function(t) {
+  test(function() {
     assert_false(imageInstance.complete, "imageInstance.complete should be false");
     var startTime = Date.now();
     while (true) {
-      if (Date.now() - startTime > 2000)
-        assert_unreached('.complete didn\'t change to true');
-      if (imageInstance.complete === true) break;
+      if (Date.now() - startTime > 2000) {
+        assert_false(imageInstance.complete, "imageInstance.complete should remain false");
+        break;
+      }
+      if (imageInstance.complete === true) {
+        assert_unreached(".complete should not change within a task");
+      }
     }
-    t.done();
   },
-  'IDL attribute complete returns true when image resource has been fetched but not run yet & image is not in broken state');
+  'IDL attribute complete cannot "randomly" change during a task');
 
   // test if broken img does not pass
-  var t2 = async_test("async src broken test");
-  var img4 = document.getElementById("imgTestTag4");
+  async_test(t => {
+    const img = document.getElementById("imgTestTag4");
 
-  t2.step(
-    function(){
-    img4.src = 'brokenimg.jpg';
+    img.src = 'brokenimg.jpg';
 
     //test if img.complete is set to false if src is changed
-    assert_false(img4.complete, "src changed to broken img, should be set to false");
-  });
+    assert_false(img.complete, "src changed to broken img, should be set to false");
 
-  img4.onload = img4.onerror = t2.step_func(function(event){
-    assert_equals(event.type, "error");
-    assert_true(img4.complete);
-    t2.done();
-  });
+    img.onload = img.onerror = t.step_func_done(function(event){
+      assert_equals(event.type, "error");
+      assert_true(img.complete);
+    });
+  }, "async src broken test");
 
-  var t3 = async_test("async src removal test");
-  t3.step(function() {
+  async_test(t => {
     var img = document.createElement("img");
     assert_true(img.complete);
     img.src = `3.jpg?nocache=${Math.random()}`;
     assert_false(img.complete);
-    img.onload = this.step_func_done(() => {
+    img.onload = t.step_func_done(() => {
       assert_true(img.complete);
       img.removeAttribute("src");
       assert_true(img.complete, "Should be complete, since we removed the src");
     });
-  });
+  }, "async src removal test");
 
-  var t4 = async_test("async srcset removal test");
-  t4.step(function() {
+  async_test(t => {
     var img = document.createElement("img");
     assert_true(img.complete);
     img.srcset = `3.jpg?nocache=${Math.random()} 1x`;
     assert_false(img.complete);
-    img.onload = this.step_func_done(() => {
+    img.onload = t.step_func_done(() => {
       assert_true(img.complete);
       img.removeAttribute("srcset");
       assert_true(img.complete, "Should be complete, since we removed the srcset");
     });
-  });
+  }, "async srcset removal test");
 
-  var t5 = async_test("async src available image lookup test");
-  t5.step(function() {
+  async_test(t => {
     var preload = document.createElement("img");
     var url = `3.jpg?nocache=${Math.random()}`;
     preload.src = url;
-    preload.onload = this.step_func_done(function() {
+    preload.onload = t.step_func_done(function() {
       var img = document.createElement("img");
       assert_true(img.complete);
       img.src = url;
       assert_true(img.complete, "Should be complete because we should hit the available image cache");
     });
-  });
+  }, "async src available image lookup test");
 
-  var t6 = async_test("async pending request test");
-  t6.step(function() {
+  async_test(t => {
     var img = document.createElement("img");
     img.src = `3.jpg?nocache=${Math.random()}`;
-    img.onload = this.step_func_done(function() {
+    img.onload = t.step_func_done(function() {
       assert_true(img.complete);
       img.src = `3.jpg?nocache=${Math.random()}`;
-      // This is not strictly per spec, but that's a spec bug.  See
-      // https://github.com/whatwg/html/issues/4884
       assert_false(img.complete, "Should not be complete because we have started a new load");
     });
-  });
-
+  }, "async pending request test");
 </script>

@@ -3,9 +3,10 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: DOM Standard (https://dom.spec.whatwg.org/)
 
-[Constructor(DOMString type, optional EventInit eventInitDict = {}),
- Exposed=(Window,Worker,AudioWorklet)]
+[Exposed=(Window,Worker,AudioWorklet)]
 interface Event {
+  constructor(DOMString type, optional EventInit eventInitDict = {});
+
   readonly attribute DOMString type;
   readonly attribute EventTarget? target;
   readonly attribute EventTarget? srcElement; // historical
@@ -45,9 +46,10 @@ partial interface Window {
   [Replaceable] readonly attribute any event; // historical
 };
 
-[Constructor(DOMString type, optional CustomEventInit eventInitDict = {}),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface CustomEvent : Event {
+  constructor(DOMString type, optional CustomEventInit eventInitDict = {});
+
   readonly attribute any detail;
 
   void initCustomEvent(DOMString type, optional boolean bubbles = false, optional boolean cancelable = false, optional any detail = null);
@@ -57,9 +59,10 @@ dictionary CustomEventInit : EventInit {
   any detail = null;
 };
 
-[Constructor,
- Exposed=(Window,Worker,AudioWorklet)]
+[Exposed=(Window,Worker,AudioWorklet)]
 interface EventTarget {
+  constructor();
+
   void addEventListener(DOMString type, EventListener? callback, optional (AddEventListenerOptions or boolean) options = {});
   void removeEventListener(DOMString type, EventListener? callback, optional (EventListenerOptions or boolean) options = {});
   boolean dispatchEvent(Event event);
@@ -78,13 +81,15 @@ dictionary AddEventListenerOptions : EventListenerOptions {
   boolean once = false;
 };
 
-[Constructor,
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface AbortController {
+  constructor();
+
   [SameObject] readonly attribute AbortSignal signal;
 
   void abort();
 };
+
 [Exposed=(Window,Worker)]
 interface AbortSignal : EventTarget {
   readonly attribute boolean aborted;
@@ -155,9 +160,10 @@ interface HTMLCollection {
   getter Element? namedItem(DOMString name);
 };
 
-[Constructor(MutationCallback callback),
- Exposed=Window]
+[Exposed=Window]
 interface MutationObserver {
+  constructor(MutationCallback callback);
+
   void observe(Node target, optional MutationObserverInit options = {});
   void disconnect();
   sequence<MutationRecord> takeRecords();
@@ -250,9 +256,10 @@ dictionary GetRootNodeOptions {
   boolean composed = false;
 };
 
-[Constructor,
- Exposed=Window]
+[Exposed=Window]
 interface Document : Node {
+  constructor();
+
   [SameObject] readonly attribute DOMImplementation implementation;
   readonly attribute USVString URL;
   readonly attribute USVString documentURI;
@@ -315,15 +322,16 @@ interface DocumentType : Node {
   readonly attribute DOMString systemId;
 };
 
-[Constructor,
- Exposed=Window]
+[Exposed=Window]
 interface DocumentFragment : Node {
+  constructor();
 };
 
 [Exposed=Window]
 interface ShadowRoot : DocumentFragment {
   readonly attribute ShadowRootMode mode;
   readonly attribute Element host;
+  attribute EventHandler onslotchange;
 };
 
 enum ShadowRootMode { "open", "closed" };
@@ -376,6 +384,7 @@ interface Element : Node {
 
 dictionary ShadowRootInit {
   required ShadowRootMode mode;
+  boolean delegatesFocus = false;
 };
 
 [Exposed=Window,
@@ -414,12 +423,14 @@ interface CharacterData : Node {
   void replaceData(unsigned long offset, unsigned long count, DOMString data);
 };
 
-[Constructor(optional DOMString data = ""),
- Exposed=Window]
+[Exposed=Window]
 interface Text : CharacterData {
+  constructor(optional DOMString data = "");
+
   [NewObject] Text splitText(unsigned long offset);
   readonly attribute DOMString wholeText;
 };
+
 [Exposed=Window]
 interface CDATASection : Text {
 };
@@ -427,9 +438,9 @@ interface CDATASection : Text {
 interface ProcessingInstruction : CharacterData {
   readonly attribute DOMString target;
 };
-[Constructor(optional DOMString data = ""),
- Exposed=Window]
+[Exposed=Window]
 interface Comment : CharacterData {
+  constructor(optional DOMString data = "");
 };
 
 [Exposed=Window]
@@ -448,14 +459,15 @@ dictionary StaticRangeInit {
   required unsigned long endOffset;
 };
 
-[Constructor(StaticRangeInit init),
- Exposed=Window]
+[Exposed=Window]
 interface StaticRange : AbstractRange {
+  constructor(StaticRangeInit init);
 };
 
-[Constructor,
- Exposed=Window]
+[Exposed=Window]
 interface Range : AbstractRange {
+  constructor();
+
   readonly attribute Node commonAncestorContainer;
 
   void setStart(Node node, unsigned long offset);
@@ -602,7 +614,9 @@ interface mixin XPathEvaluatorBase {
 };
 Document includes XPathEvaluatorBase;
 
-[Exposed=Window, Constructor]
-interface XPathEvaluator {};
+[Exposed=Window]
+interface XPathEvaluator {
+  constructor();
+};
 
 XPathEvaluator includes XPathEvaluatorBase;
