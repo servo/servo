@@ -200,7 +200,11 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    pub fn process_read_data(filereader: TrustedFileReader, gen_id: GenerationId) {
+    pub fn process_read_data(
+        filereader: TrustedFileReader,
+        gen_id: GenerationId,
+        blob_contents: Arc<Vec<u8>>,
+    ) {
         let fr = filereader.root();
 
         macro_rules! return_on_abort(
@@ -212,7 +216,9 @@ impl FileReader {
         );
         return_on_abort!();
         //FIXME Step 7 send current progress
-        fr.dispatch_progress_event(atom!("progress"), 0, None);
+        if !blob_contents.is_empty() {
+            fr.dispatch_progress_event(atom!("progress"), 0, None);
+        }
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
@@ -491,7 +497,7 @@ fn perform_annotated_read_operation(
     let task = FileReadingTask::ProcessRead(filereader.clone(), gen_id);
     task_source.queue_with_canceller(task, &canceller).unwrap();
 
-    let task = FileReadingTask::ProcessReadData(filereader.clone(), gen_id);
+    let task = FileReadingTask::ProcessReadData(filereader.clone(), gen_id, blob_contents.clone());
     task_source.queue_with_canceller(task, &canceller).unwrap();
 
     let task = FileReadingTask::ProcessReadEOF(filereader, gen_id, data, blob_contents);
