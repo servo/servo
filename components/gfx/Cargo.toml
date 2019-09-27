@@ -56,7 +56,7 @@ servo_allocator = {path = "../allocator"}
 servo-fontconfig = "0.4"
 
 [target.'cfg(target_os = "android")'.dependencies]
-xml5ever = {version = "0.14"}
+xml5ever = {version = "0.15"}
 
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = "0.9"
