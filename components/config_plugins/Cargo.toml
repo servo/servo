@@ -12,8 +12,7 @@ proc-macro = true
 path = "lib.rs"
 
 [dependencies]
-syn = "0.15"
+syn = { version = "0.15", default-features = false, features = ["clone-impls", "parsing"] }
 quote = "0.6"
 proc-macro2 = "0.4"
 itertools = "0.8"
-

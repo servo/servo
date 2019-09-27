@@ -14,5 +14,5 @@ darling = "0.9"
 derive_common = { path = "../derive_common" }
 proc-macro2 = "0.4"
 quote = "0.6"
-syn = { version = "0.15", features = ["visit"] }
+syn = { version = "0.15", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.10"
