@@ -52,7 +52,7 @@ fn is_unrooted_ty(
 ) -> bool {
     let mut ret = false;
     ty.maybe_walk(|t| {
-        match t.sty {
+        match t.kind {
             ty::Adt(did, substs) => {
                 if cx.tcx.has_attr(did.did, sym.must_root) {
                     ret = true;
@@ -62,7 +62,7 @@ fn is_unrooted_ty(
                 } else if match_def_path(cx, did.did, &[sym.alloc, sym.rc, sym.Rc]) {
                     // Rc<Promise> is okay
                     let inner = substs.type_at(0);
-                    if let ty::Adt(did, _) = inner.sty {
+                    if let ty::Adt(did, _) = inner.kind {
                         if cx.tcx.has_attr(did.did, sym.allow_unrooted_in_rc) {
                             false
                         } else {
