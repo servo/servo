@@ -44,7 +44,7 @@ impl TaskOnce for FileReadingTask {
 #[allow(dead_code)]
 pub enum FileReadingTask {
     ProcessRead(TrustedFileReader, GenerationId),
-    ProcessReadData(TrustedFileReader, GenerationId),
+    ProcessReadData(TrustedFileReader, GenerationId, Arc<Vec<u8>>),
     ProcessReadError(TrustedFileReader, GenerationId, DOMErrorName),
     ProcessReadEOF(TrustedFileReader, GenerationId, ReadMetaData, Arc<Vec<u8>>),
 }
@@ -55,7 +55,9 @@ impl FileReadingTask {
 
         match self {
             ProcessRead(reader, gen_id) => FileReader::process_read(reader, gen_id),
-            ProcessReadData(reader, gen_id) => FileReader::process_read_data(reader, gen_id),
+            ProcessReadData(reader, gen_id, blob_contents) => {
+                FileReader::process_read_data(reader, gen_id, blob_contents)
+            },
             ProcessReadError(reader, gen_id, error) => {
                 FileReader::process_read_error(reader, gen_id, error)
             },
