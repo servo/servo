@@ -8,19 +8,24 @@ from six import iteritems
 
 wpt_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
 
+# Common exclusions between affected_tests and stability jobs.
+# Files in these dirs would trigger the execution of too many tests.
+EXCLUDES = [
+    "!tools/",
+    "!docs/",
+    "!conformance-checkers/",
+    "!.*/OWNERS",
+    "!.*/META.yml",
+    "!.*/tools/",
+    "!.*/README",
+    "!css/[^/]*$"
+]
+
 # Rules are just regex on the path, with a leading ! indicating a regex that must not
 # match for the job
 job_path_map = {
-    "stability": [".*/.*",
-                  "!tools/",
-                  "!docs/",
-                  "!resources/*",
-                  "!conformance-checkers/",
-                  "!.*/OWNERS",
-                  "!.*/META.yml",
-                  "!.*/tools/",
-                  "!.*/README",
-                  "!css/[^/]*$"],
+    "affected_tests": [".*/.*", "!resources/(?!idlharness.js)"] + EXCLUDES,
+    "stability": [".*/.*", "!resources/.*"] + EXCLUDES,
     "lint": [".*"],
     "manifest_upload": [".*"],
     "resources_unittest": ["resources/", "tools/"],

@@ -53,12 +53,7 @@
 
   const get_url = (mime) => {
     // www1 is cross-origin, so the HTTP response is CORB-eligible -->
-    //
-    // TODO(lukasza@chromium.org): Once https://crbug.com/888079 and
-    // https://crbug.com/891872 are fixed, we should use a cross-*origin*
-    // rather than cross-*site* URL below (e.g. s/hosts[alt]/domains/g).
-    // See also https://crbug.com/918660 for more context.
-    url = "http://{{hosts[alt][www1]}}:{{ports[http][0]}}"
+    url = "http://{{domains[www1]}}:{{ports[http][0]}}"
     url = url + "/fetch/nosniff/resources/image.py"
     if (mime != null) {
         url += "?type=" + encodeURIComponent(mime)

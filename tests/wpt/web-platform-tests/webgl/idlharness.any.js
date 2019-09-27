@@ -7,7 +7,7 @@
 'use strict';
 
 idl_test(
-  ['webgl1'],
+  ['webgl1', 'webgl2'],
   ['dom'],
   idl_array => {
     // TODO: objects
