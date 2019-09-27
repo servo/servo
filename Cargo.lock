@@ -1401,7 +1401,6 @@ dependencies = [
  "malloc_size_of 0.0.1",
  "net_traits 0.0.1",
  "ordered-float 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "packed_simd 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "range 0.0.1",
  "serde 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-fontconfig 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3300,14 +3299,6 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "stable_deref_trait 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "packed_simd"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "cfg-if 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -6147,7 +6138,6 @@ dependencies = [
 "checksum osmesa-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "88cfece6e95d2e717e0872a7f53a8684712ad13822a7979bc760b9c77ec0013b"
 "checksum ovr-mobile-sys 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a69b517feac6fc640f0679625defa0998bbcb32871a6901e63063c2abf9c4cbe"
 "checksum owning_ref 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "49a4b8ea2179e6a2e27411d3bca09ca6dd630821cf6894c6c7c8467a8ee7ef13"
-"checksum packed_simd 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "25d36de864f7218ec5633572a800109bbe5a1cc8d9d95a967f3daf93ea7e6ddc"
 "checksum parking_lot 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f842b1982eb6c2fe34036a4fbfb06dd185a3f5c8edfaacdf7d1ea10b07de6252"
 "checksum parking_lot_core 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "b876b1b9e7ac6e1a74a6da34d25c42e17e8862aa409cbbbdcfc8d86c6f3bc62b"
 "checksum paste 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "1f4a4a1c555c6505821f9d58b8779d0f630a6b7e4e1be24ba718610acf01fa79"
