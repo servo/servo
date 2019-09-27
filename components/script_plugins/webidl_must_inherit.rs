@@ -94,7 +94,7 @@ fn get_webidl_path(struct_name: &str) -> io::Result<path::PathBuf> {
 fn is_webidl_ty(symbols: &crate::Symbols, cx: &LateContext, ty: &ty::TyS) -> bool {
     let mut ret = false;
     ty.maybe_walk(|t| {
-        match t.sty {
+        match t.kind {
             ty::Adt(did, _substs) => {
                 if cx.tcx.has_attr(did.did, symbols.webidl) {
                     ret = true;
