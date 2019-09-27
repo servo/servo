@@ -821,6 +821,11 @@ install them, let us know by filing a bug!")
                 default=None,
                 action='store_true',
                 help='Build for HoloLens (x64)'),
+            CommandArgument(
+                '--timings',
+                default=None,
+                action='store_true',
+                help='Generate Cargo timings'),
             CommandArgument('--with-raqote', default=None, action='store_true'),
             CommandArgument('--with-layout-2020', default=None, action='store_true'),
             CommandArgument('--without-wgl', default=None, action='store_true'),
@@ -849,7 +854,7 @@ install them, let us know by filing a bug!")
         target=None, android=False, magicleap=False, libsimpleservo=False,
         features=None, debug_mozjs=False, with_debug_assertions=False,
         with_frame_pointer=False, with_raqote=False, with_layout_2020=False, without_wgl=False,
-        uwp=False,
+        uwp=False, timings=False,
     ):
         env = env or self.build_env()
         target, android = self.pick_target_triple(target, android, magicleap)
@@ -870,6 +875,8 @@ install them, let us know by filing a bug!")
             ]
         if target:
             args += ["--target", target]
+        if timings:
+            args += ["-Z", "timings"]
 
         if features is None:  # If we're passed a list, mutate it even if it's empty
             features = []
