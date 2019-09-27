@@ -85,13 +85,7 @@ impl GlContext {
     pub fn raw_context(&self) -> RawContext {
         match self {
             GlContext::Current(c) => {
-                #[cfg(any(
-                    target_os = "linux",
-                    target_os = "dragonfly",
-                    target_os = "freebsd",
-                    target_os = "netbsd",
-                    target_os = "openbsd",
-                ))]
+                #[cfg(target_os = "linux")]
                 {
                     use glutin::os::unix::RawHandle;
 
@@ -114,23 +108,14 @@ impl GlContext {
                     }
                 }
 
-                #[cfg(target_os = "android")]
-                {
-                    let raw_handle = unsafe { c.raw_handle() };
-                    return RawContext::Egl(raw_handle as usize);
-                }
-
+                // @TODO(victor): https://github.com/rust-windowing/glutin/pull/1221
+                //                https://github.com/servo/media/pull/315
                 #[cfg(target_os = "macos")]
-                return unimplemented!(); // @TODO(victor): RawContext::Cocoa in servo-media
+                return unimplemented!();
 
                 #[cfg(not(any(
                     target_os = "linux",
-                    target_os = "dragonfly",
-                    target_os = "freebsd",
-                    target_os = "netbsd",
-                    target_os = "openbsd",
                     target_os = "windows",
-                    target_os = "android",
                     target_os = "macos",
                 )))]
                 unimplemented!()

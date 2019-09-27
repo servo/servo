@@ -14,6 +14,8 @@ use gleam::gl;
 use glutin::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
 use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
+#[cfg(target_os = "linux")]
+use glutin::os::unix::WindowExt;
 use glutin::Api;
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use glutin::Icon;
@@ -577,10 +579,10 @@ impl WindowMethods for Window {
 
     fn get_gl_context(&self) -> PlayerGLContext {
         if pref!(media.glvideo.enabled) {
-            self.gl_context.borrow().raw_context()
-        } else {
-            PlayerGLContext::Unknown
+            return self.gl_context.borrow().raw_context();
         }
+
+        return PlayerGLContext::Unknown;
     }
 
     fn get_native_display(&self) -> NativeDisplay {
@@ -588,63 +590,25 @@ impl WindowMethods for Window {
             return NativeDisplay::Unknown;
         }
 
-        #[cfg(any(
-            target_os = "linux",
-            target_os = "dragonfly",
-            target_os = "freebsd",
-            target_os = "netbsd",
-            target_os = "openbsd",
-            target_os = "windows",
-            target_os = "android",
-        ))]
-        let native_display = {
-            if let Some(display) = self.gl_context.borrow().egl_display() {
-                NativeDisplay::Egl(display as usize)
-            } else {
-                #[cfg(any(
-                    target_os = "linux",
-                    target_os = "dragonfly",
-                    target_os = "freebsd",
-                    target_os = "netbsd",
-                    target_os = "openbsd",
-                ))]
-                {
-                    use glutin::os::unix::WindowExt;
-
-                    if let Some(display) = self.gl_context.borrow().window().get_wayland_display() {
-                        NativeDisplay::Wayland(display as usize)
-                    } else if let Some(display) =
-                        self.gl_context.borrow().window().get_xlib_display()
-                    {
-                        NativeDisplay::X11(display as usize)
-                    } else {
-                        NativeDisplay::Unknown
-                    }
-                }
-
-                #[cfg(not(any(
-                    target_os = "linux",
-                    target_os = "dragonfly",
-                    target_os = "freebsd",
-                    target_os = "netbsd",
-                    target_os = "openbsd",
-                )))]
-                NativeDisplay::Unknown
+        #[cfg(target_os = "linux")]
+        {
+            if let Some(display) = self.gl_context.borrow().window().get_wayland_display() {
+                return NativeDisplay::Wayland(display as usize);
+            } else if let Some(display) =
+                self.gl_context.borrow().window().get_xlib_display()
+            {
+                return NativeDisplay::X11(display as usize);
             }
-        };
+        }
 
-        #[cfg(not(any(
-            target_os = "linux",
-            target_os = "dragonfly",
-            target_os = "freebsd",
-            target_os = "netbsd",
-            target_os = "openbsd",
-            target_os = "windows",
-            target_os = "android",
-        )))]
-        let native_display = NativeDisplay::Unknown;
+        #[cfg(any(target_os = "linux", target_os = "windows"))]
+        {
+            if let Some(display) = self.gl_context.borrow().egl_display() {
+                return NativeDisplay::Egl(display as usize);
+            }
+        }
 
-        native_display
+        NativeDisplay::Unknown
     }
 
     fn get_gl_api(&self) -> GlApi {
