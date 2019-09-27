@@ -206,10 +206,7 @@
 pub mod macros;
 
 pub mod types {
-    #[cfg(not(target_env = "msvc"))]
     include!(concat!(env!("OUT_DIR"), "/InterfaceTypes.rs"));
-    #[cfg(target_env = "msvc")]
-    include!(concat!(env!("OUT_DIR"), "/build/InterfaceTypes.rs"));
 }
 
 pub mod abstractworker;

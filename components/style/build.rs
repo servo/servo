@@ -27,52 +27,28 @@ mod build_gecko {
     pub fn generate() {}
 }
 
-#[cfg(windows)]
-fn find_python() -> String {
-    if Command::new("python2.7.exe")
-        .arg("--version")
-        .output()
-        .is_ok()
-    {
-        return "python2.7.exe".to_owned();
-    }
-
-    if Command::new("python27.exe")
-        .arg("--version")
-        .output()
-        .is_ok()
-    {
-        return "python27.exe".to_owned();
-    }
-
-    if Command::new("python.exe").arg("--version").output().is_ok() {
-        return "python.exe".to_owned();
-    }
-
-    panic!(concat!(
-        "Can't find python (tried python2.7.exe, python27.exe, and python.exe)! ",
-        "Try fixing PATH or setting the PYTHON env var"
-    ));
-}
-
-#[cfg(not(windows))]
-fn find_python() -> String {
-    if Command::new("python2.7")
-        .arg("--version")
-        .output()
-        .unwrap()
-        .status
-        .success()
-    {
-        "python2.7"
-    } else {
-        "python"
-    }
-    .to_owned()
-}
-
 lazy_static! {
-    pub static ref PYTHON: String = env::var("PYTHON").ok().unwrap_or_else(find_python);
+    pub static ref PYTHON: String = env::var("PYTHON").ok().unwrap_or_else(|| {
+        let candidates = if cfg!(windows) {
+            ["python2.7.exe", "python27.exe", "python.exe"]
+        } else {
+            ["python2.7", "python2", "python"]
+        };
+        for &name in &candidates {
+            if Command::new(name)
+                .arg("--version")
+                .output()
+                .ok()
+                .map_or(false, |out| out.status.success())
+            {
+                return name.to_owned();
+            }
+        }
+        panic!(
+            "Can't find python (tried {})! Try fixing PATH or setting the PYTHON env var",
+            candidates.join(", ")
+        )
+    });
 }
 
 fn generate_properties(engine: &str) {
