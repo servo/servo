@@ -11,5 +11,5 @@ path = "lib.rs"
 proc-macro = true
 
 [dependencies]
-syn = { version = "0.15", default-features = false, features = ["derive", "parsing"] }
-synstructure = "0.10"
+syn = { version = "1", default-features = false, features = ["derive", "parsing"] }
+synstructure = "0.12"

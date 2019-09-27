@@ -196,15 +196,15 @@ impl Field {
 
 fn attr_to_pref_name(attr: &Attribute) -> Option<LitStr> {
     attr.parse_meta().ok().and_then(|meta| {
-        if let Meta::List(MetaList { ident, nested, .. }) = meta {
-            if ident.to_string() == "serde" {
+        if let Meta::List(MetaList { path, nested, .. }) = meta {
+            if path.is_ident("serde") {
                 if let Some(NestedMeta::Meta(Meta::NameValue(MetaNameValue {
-                    ref ident,
+                    ref path,
                     lit: Lit::Str(val),
                     ..
                 }))) = nested.iter().next()
                 {
-                    if ident.to_string() == "rename" {
+                    if path.is_ident("rename") {
                         return Some(val.clone());
                     }
                 }

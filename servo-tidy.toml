@@ -36,6 +36,7 @@ packages = [
   "quote",
   "rand_core",
   "syn",
+  "synstructure",
   "unicode-xid",
 ]
 # Files that are ignored for all tidy and lint checks.
