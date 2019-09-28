@@ -38,6 +38,7 @@ use crate::task_source::websocket::WebsocketTaskSource;
 use crate::task_source::TaskSourceName;
 use crate::timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
 use crate::timers::{OneshotTimers, TimerCallback};
+use content_security_policy::CspList;
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
@@ -811,6 +812,13 @@ impl GlobalScope {
 
     pub fn get_user_agent(&self) -> Cow<'static, str> {
         self.user_agent.clone()
+    }
+
+    pub fn get_csp_list(&self) -> Option<CspList> {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.Document().get_csp_list().map(|c| c.clone());
+        }
+        None
     }
 }
 

@@ -109,6 +109,7 @@ use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
+use content_security_policy::{self as csp, CspList};
 use cookie::Cookie;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
@@ -136,6 +137,7 @@ use num_traits::ToPrimitive;
 use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
+use ref_filter_map::ref_filter_map;
 use ref_slice::ref_slice;
 use script_layout_interface::message::{Msg, ReflowGoal};
 use script_traits::{AnimationState, DocumentActivity, MouseButton, MouseEventType};
@@ -147,7 +149,7 @@ use servo_atoms::Atom;
 use servo_config::pref;
 use servo_media::{ClientContextId, ServoMedia};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use std::borrow::ToOwned;
+use std::borrow::Cow;
 use std::cell::{Cell, Ref, RefMut};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -395,6 +397,9 @@ pub struct Document {
     /// where `id` needs to match any of the registered ShadowRoots
     /// hosting the media controls UI.
     media_controls: DomRefCell<HashMap<String, Dom<ShadowRoot>>>,
+    /// https://html.spec.whatwg.org/multipage/#concept-document-csp-list
+    #[ignore_malloc_size_of = "Defined in rust-content-security-policy"]
+    csp_list: DomRefCell<Option<CspList>>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -1731,9 +1736,10 @@ impl Document {
     pub fn fetch_async(
         &self,
         load: LoadType,
-        request: RequestBuilder,
+        mut request: RequestBuilder,
         fetch_target: IpcSender<FetchResponseMsg>,
     ) {
+        request.csp_list = self.get_csp_list().map(|x| x.clone());
         let mut loader = self.loader.borrow_mut();
         loader.fetch_async(load, request, fetch_target);
     }
@@ -2784,7 +2790,54 @@ impl Document {
             shadow_roots: DomRefCell::new(HashSet::new()),
             shadow_roots_styles_changed: Cell::new(false),
             media_controls: DomRefCell::new(HashMap::new()),
+            csp_list: DomRefCell::new(None),
         }
+    }
+
+    pub fn set_csp_list(&self, csp_list: Option<CspList>) {
+        *self.csp_list.borrow_mut() = csp_list;
+    }
+
+    pub fn get_csp_list(&self) -> Option<Ref<CspList>> {
+        ref_filter_map(self.csp_list.borrow(), Option::as_ref)
+    }
+
+    /// https://www.w3.org/TR/CSP/#should-block-request
+    pub fn should_request_be_blocked_by_csp(&self, request: &RequestBuilder) -> csp::CheckResult {
+        let request = csp::Request {
+            url: request.url.clone().into_url(),
+            origin: request.origin.clone().into_url_origin(),
+            redirect_count: 0,
+            destination: request.destination,
+            initiator: csp::Initiator::None,
+            nonce: String::new(),
+            integrity_metadata: request.integrity_metadata.clone(),
+            parser_metadata: csp::ParserMetadata::None,
+        };
+        // TODO: Instead of ignoring violations, report them.
+        self.get_csp_list()
+            .map(|c| c.should_request_be_blocked(&request).0)
+            .unwrap_or(csp::CheckResult::Allowed)
+    }
+
+    pub fn should_elements_inline_type_behavior_be_blocked(
+        &self,
+        el: &Element,
+        type_: csp::InlineCheckType,
+        source: &str,
+    ) -> csp::CheckResult {
+        let element = csp::Element {
+            nonce: el
+                .get_attribute(&ns!(), &local_name!("nonce"))
+                .map(|attr| Cow::Owned(attr.value().to_string())),
+        };
+        // TODO: Instead of ignoring violations, report them.
+        self.get_csp_list()
+            .map(|c| {
+                c.should_elements_inline_type_behavior_be_blocked(&element, type_, source)
+                    .0
+            })
+            .unwrap_or(csp::CheckResult::Allowed)
     }
 
     /// Prevent any JS or layout from running until the corresponding call to

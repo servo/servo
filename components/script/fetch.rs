@@ -127,6 +127,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
         url_list: vec![],
         parser_metadata: request.parser_metadata,
         initiator: request.initiator,
+        csp_list: None,
     }
 }
 
@@ -155,6 +156,7 @@ pub fn Fetch(
     let timing_type = request.timing_type();
 
     let mut request_init = request_init_from_request(request);
+    request_init.csp_list = global.get_csp_list().clone();
 
     // Step 3
     if global.downcast::<ServiceWorkerGlobalScope>().is_some() {

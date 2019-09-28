@@ -21,10 +21,12 @@ servo = [
     "url",
     "webrender_api",
     "xml5ever",
+    "content-security-policy",
 ]
 
 [dependencies]
 app_units = "0.7"
+content-security-policy = {version = "0.3.0", features = ["serde"], optional = true}
 crossbeam-channel = { version = "0.3", optional = true }
 cssparser = "0.25"
 euclid = "0.20"

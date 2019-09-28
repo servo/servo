@@ -52,6 +52,7 @@ use canvas_traits::webgl::{WebGLBufferId, WebGLChan, WebGLContextShareMode, WebG
 use canvas_traits::webgl::{WebGLFramebufferId, WebGLMsgSender, WebGLPipeline, WebGLProgramId};
 use canvas_traits::webgl::{WebGLReceiver, WebGLRenderbufferId, WebGLSLVersion, WebGLSender};
 use canvas_traits::webgl::{WebGLShaderId, WebGLSyncId, WebGLTextureId, WebGLVersion};
+use content_security_policy::CspList;
 use crossbeam_channel::{Receiver, Sender};
 use cssparser::RGBA;
 use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
@@ -167,6 +168,8 @@ unsafe_no_jsmanaged_fields!(TexDataType, TexFormat);
 unsafe_no_jsmanaged_fields!(*mut JobQueue);
 
 unsafe_no_jsmanaged_fields!(Cow<'static, str>);
+
+unsafe_no_jsmanaged_fields!(CspList);
 
 /// Trace a `JSVal`.
 pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) {

@@ -737,6 +737,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "content-security-policy"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f30ee9967a875968e66f6690e299f06781ed109cb82d10e0d60a126a38d61947"
+dependencies = [
+ "bitflags",
+ "lazy_static",
+ "percent-encoding",
+ "regex",
+ "serde",
+ "url",
+]
+
+[[package]]
 name = "cookie"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2813,6 +2827,7 @@ name = "malloc_size_of"
 version = "0.0.1"
 dependencies = [
  "app_units",
+ "content-security-policy",
  "crossbeam-channel",
  "cssparser",
  "euclid",
@@ -3134,6 +3149,7 @@ dependencies = [
  "base64",
  "brotli",
  "bytes",
+ "content-security-policy",
  "cookie",
  "crossbeam-channel",
  "devtools_traits",
@@ -3193,6 +3209,7 @@ dependencies = [
 name = "net_traits"
 version = "0.0.1"
 dependencies = [
+ "content-security-policy",
  "cookie",
  "embedder_traits",
  "headers",
@@ -4100,6 +4117,7 @@ dependencies = [
  "canvas_traits",
  "caseless",
  "chrono",
+ "content-security-policy",
  "cookie",
  "crossbeam-channel",
  "cssparser",
