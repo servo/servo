@@ -2491,6 +2491,7 @@ policies and contribution forms [3].
                 this.status.status = this.status.ERROR;
                 this.status.message = String(e);
                 this.status.stack = e.stack ? e.stack : null;
+                this.complete();
             }
         }
         this.set_timeout();

@@ -122,6 +122,7 @@ tasks:
               $map:
                 # This is the main place to define new stability checks
                 - name: wpt-${browser.name}-${browser.channel}-stability
+                  job_name: stability
                   checkout: task_head
                   diff_base: base_head
                   description: >-
@@ -129,6 +130,7 @@ tasks:
                     when executed in ${browser.name}.
                   extra_args: '--verify'
                 - name: wpt-${browser.name}-${browser.channel}-results
+                  job_name: affected_tests
                   checkout: task_head
                   diff_base: base_head
                   description: >-
@@ -139,6 +141,7 @@ tasks:
                     --log-wptreport=../artifacts/wpt_report.json
                     --log-wptscreenshot=../artifacts/wpt_screenshot.txt
                 - name: wpt-${browser.name}-${browser.channel}-results-without-changes
+                  job_name: affected_tests
                   checkout: base_head
                   diff_base: task_head
                   description: >-
@@ -194,7 +197,7 @@ tasks:
                         --browser=${browser.name}
                         --channel=${browser.channel}
                         --xvfb
-                        stability
+                        ${operation.job_name}
                         ./tools/ci/taskcluster-run.py
                           --commit-range ${operation.diff_base}
                           ${browser.name}

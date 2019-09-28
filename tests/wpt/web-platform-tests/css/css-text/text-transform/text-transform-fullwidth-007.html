@@ -9,9 +9,11 @@
 <style>
 div { font: 50px/1 Ahem; }
 #test {
-  text-transform: fullwidth;
   color: green;
   white-space: pre-wrap;
+}
+span {
+  text-transform: full-width;
 }
 #ref {
   color: red;
@@ -22,4 +24,4 @@ div { font: 50px/1 Ahem; }
 
 <p>Test passes if there are two green squares and no red.
 <div id=ref>x&#x3000;&#x3000;&#x3000;x</div>
-<div id=test>x   x</div>
+<div id=test>x<span>   </span>x</div>

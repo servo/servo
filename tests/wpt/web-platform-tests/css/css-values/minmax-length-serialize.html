@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#lengths">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-serialize">
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/parsing-testcommon.js"></script>
+<script>
+const property = 'letter-spacing';
+
+function test_valid_length(value, expected) {
+  test_valid_value(property, value, expected);
+}
+
+test_valid_length('min(1px)', 'min(1px)');
+test_valid_length('min(1cm)', 'min(1cm)');
+test_valid_length('min(1mm)', 'min(1mm)');
+// Values are case-insensitive and serialize as lower case, for example 1Q
+// serializes as 1q.
+test_valid_length('min(1Q)', 'min(1q)');
+test_valid_length('min(1in)', 'min(1in)');
+test_valid_length('min(1pc)', 'min(1pc)');
+test_valid_length('min(1pt)', 'min(1pt)');
+test_valid_length('min(1em)', 'min(1em)');
+test_valid_length('min(1ex)', 'min(1ex)');
+test_valid_length('min(1ch)', 'min(1ch)');
+test_valid_length('min(1rem)', 'min(1rem)');
+test_valid_length('min(1vh)', 'min(1vh)');
+test_valid_length('min(1vw)', 'min(1vw)');
+test_valid_length('min(1vmin)', 'min(1vmin)');
+test_valid_length('min(1vmax)', 'min(1vmax)');
+test_valid_length('max(1px)', 'max(1px)');
+test_valid_length('max(1cm)', 'max(1cm)');
+test_valid_length('max(1mm)', 'max(1mm)');
+test_valid_length('max(1Q)', 'max(1q)');
+test_valid_length('max(1in)', 'max(1in)');
+test_valid_length('max(1pc)', 'max(1pc)');
+test_valid_length('max(1pt)', 'max(1pt)');
+test_valid_length('max(1em)', 'max(1em)');
+test_valid_length('max(1ex)', 'max(1ex)');
+test_valid_length('max(1ch)', 'max(1ch)');
+test_valid_length('max(1rem)', 'max(1rem)');
+test_valid_length('max(1vh)', 'max(1vh)');
+test_valid_length('max(1vw)', 'max(1vw)');
+test_valid_length('max(1vmin)', 'max(1vmin)');
+test_valid_length('max(1vmax)', 'max(1vmax)');
+
+test_valid_length('min(10px, 20px, 30px)', 'min(10px, 20px, 30px)');
+test_valid_length('min(30px, 20px, 10px)', 'min(30px, 20px, 10px)');
+test_valid_length('min(20px, 1em, 10vw)', 'min(20px, 1em, 10vw)');
+test_valid_length('min(10vw, 1em, 20px)', 'min(10vw, 1em, 20px)');
+test_valid_length('max(10px, 20px, 30px)', 'max(10px, 20px, 30px)');
+test_valid_length('max(30px, 20px, 10px)', 'max(30px, 20px, 10px)');
+test_valid_length('max(20px, 1em, 10vw)', 'max(20px, 1em, 10vw)');
+test_valid_length('max(10vw, 1em, 20px)', 'max(10vw, 1em, 20px)');
+
+test_valid_length('calc(min(10px) + max(1em) + min(10vw))', 'calc(min(10px) + max(1em) + min(10vw))');
+test_valid_length('calc(max(1em) + min(10vw) + max(10px))', 'calc(max(1em) + min(10vw) + max(10px))');
+test_valid_length('calc(10px + min(1em))', 'calc(10px + min(1em))');
+test_valid_length('calc(min(1em) + 10px)', 'calc(10px + min(1em))');
+test_valid_length('calc(10px + max(1em))', 'calc(10px + max(1em))');
+test_valid_length('calc(max(1em) + 10px)', 'calc(10px + max(1em))');
+
+</script>

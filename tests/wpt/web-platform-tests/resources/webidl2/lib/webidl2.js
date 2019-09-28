@@ -524,7 +524,7 @@ function lastLine(text) {
  * @param {"Syntax" | "Validation"} kind error type
  * @param {WebIDL2ErrorOptions} [options]
  */
-function error(source, position, current, message, kind, { level = "error", autofix } = {}) {
+function error(source, position, current, message, kind, { level = "error", autofix, ruleName } = {}) {
   /**
    * @param {number} count
    */
@@ -574,6 +574,7 @@ function error(source, position, current, message, kind, { level = "error", auto
     line,
     sourceName: source.name,
     level,
+    ruleName,
     autofix,
     input: subsequentText,
     tokens: subsequentTokens
@@ -591,8 +592,9 @@ function syntaxError(source, position, current, message) {
  * @param {string} message error message
  * @param {WebIDL2ErrorOptions} [options]
  */
-function validationError(source, token, current, message, options) {
-  return error(source, token.index, current, message, "Validation", options);
+function validationError(token, current, ruleName, message, options = {}) {
+  options.ruleName = ruleName;
+  return error(current.source, token.index, current, message, "Validation", options);
 }
 
 
@@ -612,7 +614,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "type_with_extended_attributes", function() { return type_with_extended_attributes; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "return_type", function() { return return_type; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "stringifier", function() { return stringifier; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getLastIndentation", function() { return getLastIndentation; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getMemberIndentation", function() { return getMemberIndentation; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "autofixAddExposedWindow", function() { return autofixAddExposedWindow; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getFirstToken", function() { return getFirstToken; });
 /* harmony import */ var _type_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(5);
 /* harmony import */ var _argument_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(8);
 /* harmony import */ var _token_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(12);
@@ -790,6 +795,30 @@ function stringifier(tokeniser) {
 }
 
 /**
+ * @param {string} str
+ */
+function getLastIndentation(str) {
+  const lines = str.split("\n");
+  // the first line visually binds to the preceding token
+  if (lines.length) {
+    const match = lines[lines.length - 1].match(/^\s+/);
+    if (match) {
+      return match[0];
+    }
+  }
+  return "";
+}
+
+/**
+ * @param {string} parentTrivia
+ */
+function getMemberIndentation(parentTrivia) {
+  const indentation = getLastIndentation(parentTrivia);
+  const indentCh = indentation.includes("\t") ? "\t" : "  ";
+  return indentation + indentCh;
+}
+
+/**
  * @param {object} def
  * @param {import("./extended-attributes.js").ExtendedAttributes} def.extAttrs
  */
@@ -806,10 +835,26 @@ function autofixAddExposedWindow(def) {
       def.extAttrs.unshift(exposed);
     } else {
       def.extAttrs = _extended_attributes_js__WEBPACK_IMPORTED_MODULE_3__["ExtendedAttributes"].parse(new _tokeniser_js__WEBPACK_IMPORTED_MODULE_6__["Tokeniser"]("[Exposed=Window]"));
-      def.extAttrs.tokens.open.trivia = def.tokens.base.trivia;
-      def.tokens.base.trivia = " ";
+      const trivia = def.tokens.base.trivia;
+      def.extAttrs.tokens.open.trivia = trivia;
+      def.tokens.base.trivia = `\n${getLastIndentation(trivia)}`;
     }
   };
+}
+
+/**
+ * Get the first syntax token for the given IDL object.
+ * @param {*} data
+ */
+function getFirstToken(data) {
+  if (data.extAttrs.length) {
+    return data.extAttrs.tokens.open;
+  }
+  if (data.type === "operation") {
+    return getFirstToken(data.idlType);
+  }
+  const tokens = Object.values(data.tokens).sort((x, y) => x.index - y.index);
+  return tokens[0];
 }
 
 
@@ -989,7 +1034,7 @@ class Type extends _base_js__WEBPACK_IMPORTED_MODULE_0__["Base"] {
       if (reference) {
         const targetToken = (this.union ? reference : this).tokens.base;
         const message = `Nullable union cannot include a dictionary type`;
-        yield Object(_error_js__WEBPACK_IMPORTED_MODULE_3__["validationError"])(this.source, targetToken, this, message);
+        yield Object(_error_js__WEBPACK_IMPORTED_MODULE_3__["validationError"])(targetToken, this, "no-nullable-union-dict", message);
       }
     } else {
       // allow some dictionary
@@ -1148,10 +1193,10 @@ class Argument extends _base_js__WEBPACK_IMPORTED_MODULE_0__["Base"] {
     if (Object(_validators_helpers_js__WEBPACK_IMPORTED_MODULE_6__["idlTypeIncludesDictionary"])(this.idlType, defs, { useNullableInner: true })) {
       if (this.idlType.nullable) {
         const message = `Dictionary arguments cannot be nullable.`;
-        yield Object(_error_js__WEBPACK_IMPORTED_MODULE_5__["validationError"])(this.source, this.tokens.name, this, message);
+        yield Object(_error_js__WEBPACK_IMPORTED_MODULE_5__["validationError"])(this.tokens.name, this, "no-nullable-dict-arg", message);
       } else if (this.optional && !this.default) {
         const message = `Optional dictionary arguments must have a default value of \`{}\`.`;
-        yield Object(_error_js__WEBPACK_IMPORTED_MODULE_5__["validationError"])(this.source, this.tokens.name, this, message, {
+        yield Object(_error_js__WEBPACK_IMPORTED_MODULE_5__["validationError"])(this.tokens.name, this, "dict-arg-default", message, {
           autofix: autofixOptionalDictionaryDefaultValue(this)
         });
       }
@@ -1315,7 +1360,7 @@ class SimpleExtendedAttribute extends _base_js__WEBPACK_IMPORTED_MODULE_0__["Bas
 undesirable feature that may be removed from Web IDL in the future. Refer to the \
 [relevant upstream PR](https://github.com/heycam/webidl/pull/609) for more \
 information.`;
-      yield Object(_error_js__WEBPACK_IMPORTED_MODULE_3__["validationError"])(this.source, this.tokens.name, this, message, { level: "warning" });
+      yield Object(_error_js__WEBPACK_IMPORTED_MODULE_3__["validationError"])(this.tokens.name, this, "no-nointerfaceobject", message, { level: "warning" });
     }
     for (const arg of this.arguments) {
       yield* arg.validate(defs);
@@ -1464,7 +1509,7 @@ class Operation extends _base_js__WEBPACK_IMPORTED_MODULE_0__["Base"] {
   *validate(defs) {
     if (!this.name && ["", "static"].includes(this.special)) {
       const message = `Regular or static operations must have both a return type and an identifier.`;
-      yield Object(_error_js__WEBPACK_IMPORTED_MODULE_2__["validationError"])(this.source, this.tokens.open, this, message);
+      yield Object(_error_js__WEBPACK_IMPORTED_MODULE_2__["validationError"])(this.tokens.open, this, "incomplete-op", message);
     }
     if (this.idlType) {
       yield* this.idlType.validate(defs);
@@ -1760,6 +1805,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _error_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(3);
 /* harmony import */ var _validators_interface_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(23);
 /* harmony import */ var _constructor_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(24);
+/* harmony import */ var _tokeniser_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(2);
+
 
 
 
@@ -1819,8 +1866,18 @@ To fix, add, for example, \`[Exposed=Window]\`. Please also consider carefully \
 if your interface should also be exposed in a Worker scope. Refer to the \
 [WebIDL spec section on Exposed](https://heycam.github.io/webidl/#Exposed) \
 for more information.`;
-      yield Object(_error_js__WEBPACK_IMPORTED_MODULE_6__["validationError"])(this.source, this.tokens.name, this, message, {
+      yield Object(_error_js__WEBPACK_IMPORTED_MODULE_6__["validationError"])(this.tokens.name, this, "require-exposed", message, {
         autofix: Object(_helpers_js__WEBPACK_IMPORTED_MODULE_5__["autofixAddExposedWindow"])(this)
+      });
+    }
+    const constructors = this.extAttrs.filter(extAttr => extAttr.name === "Constructor");
+    for (const constructor of constructors) {
+      const message = `Constructors should now be represented as a \`constructor()\` operation on the interface \
+instead of \`[Constructor]\` extended attribute. Refer to the \
+[WebIDL spec section on constructor operations](https://heycam.github.io/webidl/#idl-constructors) \
+for more information.`;
+      yield Object(_error_js__WEBPACK_IMPORTED_MODULE_6__["validationError"])(constructor.tokens.name, this, "constructor-member", message, {
+        autofix: autofixConstructor(this, constructor)
       });
     }
 
@@ -1829,6 +1886,37 @@ for more information.`;
       yield* Object(_validators_interface_js__WEBPACK_IMPORTED_MODULE_7__["checkInterfaceMemberDuplication"])(defs, this);
     }
   }
+}
+
+function autofixConstructor(interfaceDef, constructorExtAttr) {
+  return () => {
+    const indentation = Object(_helpers_js__WEBPACK_IMPORTED_MODULE_5__["getLastIndentation"])(interfaceDef.extAttrs.tokens.open.trivia);
+    const memberIndent = interfaceDef.members.length ?
+      Object(_helpers_js__WEBPACK_IMPORTED_MODULE_5__["getLastIndentation"])(Object(_helpers_js__WEBPACK_IMPORTED_MODULE_5__["getFirstToken"])(interfaceDef.members[0]).trivia) :
+      Object(_helpers_js__WEBPACK_IMPORTED_MODULE_5__["getMemberIndentation"])(indentation);
+    const constructorOp = _constructor_js__WEBPACK_IMPORTED_MODULE_8__["Constructor"].parse(new _tokeniser_js__WEBPACK_IMPORTED_MODULE_9__["Tokeniser"](`\n${memberIndent}constructor();`));
+    constructorOp.extAttrs = [];
+    constructorOp.arguments = constructorExtAttr.arguments;
+
+    const existingIndex = interfaceDef.members.findIndex(m => m.type === "constructor");
+    interfaceDef.members.splice(existingIndex + 1, 0, constructorOp);
+
+    const { close }  = interfaceDef.tokens;
+    if (!close.trivia.includes("\n")) {
+      close.trivia += `\n${indentation}`;
+    }
+
+    const { extAttrs } = interfaceDef;
+    const index = extAttrs.indexOf(constructorExtAttr);
+    const removed = extAttrs.splice(index, 1);
+    if (!extAttrs.length) {
+      extAttrs.tokens.open = extAttrs.tokens.close = undefined;
+    } else if (extAttrs.length === index) {
+      extAttrs[index - 1].tokens.separator = undefined;
+    } else if (!extAttrs[index].tokens.name.trivia.trim()) {
+      extAttrs[index].tokens.name.trivia = removed[0].tokens.name.trivia;
+    }
+  };
 }
 
 
@@ -2066,7 +2154,7 @@ function* checkInterfaceMemberDuplication(defs, i) {
       const { name } = addition;
       if (name && existings.has(name)) {
         const message = `The operation "${name}" has already been defined for the base interface "${base.name}" either in itself or in a mixin`;
-        yield Object(_error_js__WEBPACK_IMPORTED_MODULE_0__["validationError"])(ext.source, addition.tokens.name, ext, message);
+        yield Object(_error_js__WEBPACK_IMPORTED_MODULE_0__["validationError"])(addition.tokens.name, ext, "no-cross-overload", message);
       }
     }
   }
@@ -2111,6 +2199,15 @@ class Constructor extends _base_js__WEBPACK_IMPORTED_MODULE_0__["Base"] {
 
   get type() {
     return "constructor";
+  }
+
+  *validate(defs) {
+    if (this.idlType) {
+      yield* this.idlType.validate(defs);
+    }
+    for (const argument of this.arguments) {
+      yield* argument.validate(defs);
+    }
   }
 }
 
@@ -2294,7 +2391,7 @@ To fix, add, for example, [Exposed=Window]. Please also consider carefully \
 if your namespace should also be exposed in a Worker scope. Refer to the \
 [WebIDL spec section on Exposed](https://heycam.github.io/webidl/#Exposed) \
 for more information.`;
-      yield Object(_error_js__WEBPACK_IMPORTED_MODULE_3__["validationError"])(this.source, this.tokens.name, this, message, {
+      yield Object(_error_js__WEBPACK_IMPORTED_MODULE_3__["validationError"])(this.tokens.name, this, "require-exposed", message, {
         autofix: Object(_helpers_js__WEBPACK_IMPORTED_MODULE_4__["autofixAddExposedWindow"])(this)
       });
     }
@@ -2650,7 +2747,6 @@ function write(ast, { templates: ts = templates } = {}) {
     enum: enum_,
     "enum-value": enum_value,
     iterable: iterable_like,
-    legacyiterable: iterable_like,
     maplike: iterable_like,
     setlike: iterable_like,
     "callback interface": container,
@@ -2741,7 +2837,7 @@ function* checkDuplicatedNames({ unique, duplicates }) {
   for (const dup of duplicates) {
     const { name } = dup;
     const message = `The name "${name}" of type "${unique.get(name).type}" was already seen`;
-    yield Object(_error_js__WEBPACK_IMPORTED_MODULE_0__["validationError"])(dup.source, dup.tokens.name, dup, message);
+    yield Object(_error_js__WEBPACK_IMPORTED_MODULE_0__["validationError"])(dup.tokens.name, dup, "no-duplicate", message);
   }
 }
 

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests Stale While Revalidate is not executed for fetch API</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script>
+promise_test(async (test) => {
+  var request_token = token();
+  var client_hint_headers = [
+    "sec-ch-ua",
+    "sec-ch-ua-arch",
+    "sec-ch-ua-platform",
+    "sec-ch-ua-model",
+  ];
+
+  const response = await fetch(`echo_ua_client_hints_received.py`);
+  client_hint_headers.forEach(header => {
+    if(response.headers.get(header+"-recieved")) {
+      assert_equals(response.headers.get(header+"-recieved").slice(0,1), "\"");
+      assert_equals(response.headers.get(header+"-recieved").slice(-1), "\"");
+    }
+  });
+}, 'User agent client hint header values are surrounded by quotes');
+</script>

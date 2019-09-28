@@ -3,18 +3,18 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Reporting API 1 (https://w3c.github.io/reporting/)
 
-[Exposed=Window]
+[Exposed=(Window,Worker)]
 interface ReportBody {
 };
 
-[Exposed=Window]
+[Exposed=(Window,Worker)]
 interface Report {
   readonly attribute DOMString type;
   readonly attribute DOMString url;
   readonly attribute ReportBody? body;
 };
 
-[Exposed=Window]
+[Exposed=(Window,Worker)]
 interface ReportingObserver {
   constructor(ReportingObserverCallback callback, optional ReportingObserverOptions options = {});
   void observe();
@@ -31,7 +31,7 @@ dictionary ReportingObserverOptions {
 
 typedef sequence<Report> ReportList;
 
-[Exposed=Window]
+[Exposed=(Window,Worker)]
 interface DeprecationReportBody : ReportBody {
   readonly attribute DOMString id;
   readonly attribute Date? anticipatedRemoval;
@@ -41,7 +41,7 @@ interface DeprecationReportBody : ReportBody {
   readonly attribute unsigned long? columnNumber;
 };
 
-[Exposed=Window]
+[Exposed=(Window,Worker)]
 interface InterventionReportBody : ReportBody {
   readonly attribute DOMString id;
   readonly attribute DOMString message;
@@ -50,7 +50,7 @@ interface InterventionReportBody : ReportBody {
   readonly attribute unsigned long? columnNumber;
 };
 
-[Exposed=Window]
+[Exposed=(Window,Worker)]
 interface CrashReportBody : ReportBody {
   readonly attribute DOMString? reason;
 };

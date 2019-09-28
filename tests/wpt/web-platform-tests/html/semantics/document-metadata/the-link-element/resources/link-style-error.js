@@ -1,13 +1,7 @@
 ["<link>", "@import"].forEach(linkType => {
   [
    ["same-origin", "resources/css.py"],
-
-   // TODO(lukasza@chromium.org): Once https://crbug.com/888079 and
-   // https://crbug.com/891872 are fixed, we should use a cross-*origin* rather
-   // than cross-*site* URL below (e.g.  s/ HTTP_NOTSAMESITE_ORIGIN /
-   // HTTP_REMOTE_ORIGIN /g).  See also https://crbug.com/918660 for more
-   // context.
-   ["cross-origin", get_host_info().HTTP_NOTSAMESITE_ORIGIN + "/html/semantics/document-metadata/the-link-element/resources/css.py"]
+   ["cross-origin", get_host_info().HTTP_REMOTE_ORIGIN + "/html/semantics/document-metadata/the-link-element/resources/css.py"]
   ].forEach(originType => {
     ["no Content-Type", "wrong Content-Type", "broken Content-Type"].forEach(contentType => {
       ["no nosniff", "nosniff"].forEach(nosniff => {

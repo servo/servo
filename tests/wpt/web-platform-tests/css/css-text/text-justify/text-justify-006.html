@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8">
+<title>CSS text tests: text-justify applies inline</title>
+<link rel='author' title='Florian Rivoal' href='https://florian.rivoal.net'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-justify-property'>
+<link rel='match' href='reference/text-justify-006-ref.html'>
+<meta name="assert" content="text-justify applies to inline elements">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+  font: 20px/1 Ahem;
+  width: 11ch;
+}
+#ref {
+  white-space: pre;
+  color: orange;
+}
+#test {
+  text-align: justify;
+  color: blue;
+}
+span {
+  text-justify: none;
+}
+
+/* this is just filler content to have an invisible last line, as jutification does not affect the last line */
+a { color: white; }
+</style>
+
+<p>Test passes if the the blue and orange boxes are aligned.
+
+<div id=ref>X   X X   X</div>
+<div id=test>X <span>X X</span> X <a>###########</a></div>

@@ -5,8 +5,7 @@
 
 [Exposed=Window]
 partial interface Navigator {
-    [SecureContext] Promise<MediaKeySystemAccess> requestMediaKeySystemAccess(DOMString keySystem,
-                                                                              sequence<MediaKeySystemConfiguration> supportedConfigurations);
+    [SecureContext] Promise<MediaKeySystemAccess> requestMediaKeySystemAccess (DOMString keySystem, sequence<MediaKeySystemConfiguration> supportedConfigurations);
 };
 
 enum MediaKeysRequirement {
@@ -16,26 +15,24 @@ enum MediaKeysRequirement {
 };
 
 dictionary MediaKeySystemConfiguration {
-    DOMString                               label = "";
-    sequence<DOMString>                     initDataTypes = [];
-    sequence<MediaKeySystemMediaCapability> audioCapabilities = [];
-    sequence<MediaKeySystemMediaCapability> videoCapabilities = [];
-    MediaKeysRequirement                    distinctiveIdentifier = "optional";
-    MediaKeysRequirement                    persistentState = "optional";
-    sequence<DOMString>                     sessionTypes;
+             DOMString                               label = "";
+             sequence<DOMString>                     initDataTypes = [];
+             sequence<MediaKeySystemMediaCapability> audioCapabilities = [];
+             sequence<MediaKeySystemMediaCapability> videoCapabilities = [];
+             MediaKeysRequirement                    distinctiveIdentifier = "optional";
+             MediaKeysRequirement                    persistentState = "optional";
+             sequence<DOMString>                     sessionTypes;
 };
 
 dictionary MediaKeySystemMediaCapability {
-    DOMString contentType = "";
-    DOMString robustness = "";
+             DOMString contentType = "";
+             DOMString robustness = "";
 };
 
-[Exposed=Window,
- SecureContext]
-interface MediaKeySystemAccess {
-    readonly attribute DOMString keySystem;
-    MediaKeySystemConfiguration getConfiguration();
-    Promise<MediaKeys>          createMediaKeys();
+[Exposed=Window, SecureContext] interface MediaKeySystemAccess {
+    readonly        attribute DOMString keySystem;
+    MediaKeySystemConfiguration getConfiguration ();
+    Promise<MediaKeys>          createMediaKeys ();
 };
 
 enum MediaKeySessionType {
@@ -43,37 +40,30 @@ enum MediaKeySessionType {
     "persistent-license"
 };
 
-[Exposed=Window,
- SecureContext]
-interface MediaKeys {
-    MediaKeySession  createSession(optional MediaKeySessionType sessionType = "temporary");
-    Promise<boolean> setServerCertificate(BufferSource serverCertificate);
+[Exposed=Window, SecureContext] interface MediaKeys {
+    MediaKeySession  createSession (optional MediaKeySessionType sessionType = "temporary");
+    Promise<boolean> setServerCertificate (BufferSource serverCertificate);
 };
 
-[Exposed=Window,
- SecureContext]
-interface MediaKeySession : EventTarget {
-    readonly attribute DOMString           sessionId;
-    readonly attribute unrestricted double expiration;
-    readonly attribute Promise<void>       closed;
-    readonly attribute MediaKeyStatusMap   keyStatuses;
-             attribute EventHandler        onkeystatuseschange;
-             attribute EventHandler        onmessage;
-    Promise<void>    generateRequest(DOMString initDataType,
-                                     BufferSource initData);
-    Promise<boolean> load(DOMString sessionId);
-    Promise<void>    update(BufferSource response);
-    Promise<void>    close();
-    Promise<void>    remove();
+[Exposed=Window, SecureContext] interface MediaKeySession : EventTarget {
+    readonly        attribute DOMString           sessionId;
+    readonly        attribute unrestricted double expiration;
+    readonly        attribute Promise<void>       closed;
+    readonly        attribute MediaKeyStatusMap   keyStatuses;
+                    attribute EventHandler        onkeystatuseschange;
+                    attribute EventHandler        onmessage;
+    Promise<void>    generateRequest (DOMString initDataType, BufferSource initData);
+    Promise<boolean> load (DOMString sessionId);
+    Promise<void>    update (BufferSource response);
+    Promise<void>    close ();
+    Promise<void>    remove ();
 };
 
-[Exposed=Window,
- SecureContext]
-interface MediaKeyStatusMap {
-    iterable<BufferSource, MediaKeyStatus>;
-    readonly attribute unsigned long size;
-    boolean has(BufferSource keyId);
-    any     get(BufferSource keyId);
+[Exposed=Window, SecureContext] interface MediaKeyStatusMap {
+    iterable<BufferSource,MediaKeyStatus>;
+    readonly        attribute unsigned long size;
+    boolean has (BufferSource keyId);
+    any     get (BufferSource keyId);
 };
 
 enum MediaKeyStatus {
@@ -93,36 +83,33 @@ enum MediaKeyMessageType {
     "individualization-request"
 };
 
-[Exposed=Window,
- SecureContext,
- Constructor(DOMString type, MediaKeyMessageEventInit eventInitDict)]
+[Exposed=Window, SecureContext]
 interface MediaKeyMessageEvent : Event {
-    readonly attribute MediaKeyMessageType messageType;
-    readonly attribute ArrayBuffer         message;
+    constructor(DOMString type, MediaKeyMessageEventInit eventInitDict);
+    readonly        attribute MediaKeyMessageType messageType;
+    readonly        attribute ArrayBuffer         message;
 };
 
 dictionary MediaKeyMessageEventInit : EventInit {
-    required MediaKeyMessageType messageType;
-    required ArrayBuffer         message;
+             required MediaKeyMessageType messageType;
+             required ArrayBuffer         message;
+};
+
+[Exposed=Window] partial interface HTMLMediaElement {
+    [SecureContext] readonly        attribute MediaKeys?   mediaKeys;
+                                    attribute EventHandler onencrypted;
+                                    attribute EventHandler onwaitingforkey;
+    [SecureContext] Promise<void> setMediaKeys (MediaKeys? mediaKeys);
 };
 
 [Exposed=Window]
-partial interface HTMLMediaElement {
-    [SecureContext]
-    readonly attribute MediaKeys?   mediaKeys;
-             attribute EventHandler onencrypted;
-             attribute EventHandler onwaitingforkey;
-    [SecureContext] Promise<void> setMediaKeys(MediaKeys? mediaKeys);
-};
-
-[Exposed=Window,
- Constructor(DOMString type, optional MediaEncryptedEventInit eventInitDict)]
 interface MediaEncryptedEvent : Event {
-    readonly attribute DOMString    initDataType;
-    readonly attribute ArrayBuffer? initData;
+    constructor(DOMString type, optional MediaEncryptedEventInit eventInitDict = {});
+    readonly        attribute DOMString    initDataType;
+    readonly        attribute ArrayBuffer? initData;
 };
 
 dictionary MediaEncryptedEventInit : EventInit {
-    DOMString    initDataType = "";
-    ArrayBuffer? initData = null;
+             DOMString    initDataType = "";
+             ArrayBuffer? initData = null;
 };
