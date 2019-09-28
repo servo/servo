@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+</head>
+<body>
+  <script>
+    var t = async_test("A 'frame-ancestors' CSP directive set from a serviceworker response with a value 'none' should block rendering.");
+
+    // Register service worker.
+    var worker = 'support/service-worker.js';
+    var scope = 'support/service-worker/';
+    service_worker_unregister_and_register(t, worker, scope)
+      .then(registration => wait_for_state(t, registration.installing, 'activated'))
+      .then(() => {
+        // Load iframe.
+        var iframe = document.createElement("iframe");
+        function iframeLoaded(ev) {
+          var failed = false;
+          try {
+            ev.target.contentWindow.location.href;
+            failed = true;
+          } catch (ex) {}
+          t.step_func_done(() => assert_false(failed, "The IFrame should have been blocked. It wasn't."))();
+        };
+        iframe.addEventListener("load", iframeLoaded);
+        iframe.addEventListener("error", iframeLoaded);
+        iframe.src = "/content-security-policy/frame-ancestors/support/service-worker/frame-ancestors-none.html";
+        document.body.appendChild(iframe);
+      });
+  </script>
+</body>
+</html>
+

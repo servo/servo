@@ -22,9 +22,9 @@ partial interface Performance {
     void clearMeasures(optional DOMString measureName);
 };
 
-[Exposed=(Window,Worker),
- Constructor(DOMString markName, optional PerformanceMarkOptions markOptions = {})]
+[Exposed=(Window,Worker)]
 interface PerformanceMark : PerformanceEntry {
+  constructor(DOMString markName, optional PerformanceMarkOptions markOptions = {});
   readonly attribute any detail;
 };
 

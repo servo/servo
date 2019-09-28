@@ -8,7 +8,7 @@ const SmsProvider = (() => {
       this.mojoReceiver_ = new blink.mojom.SmsReceiverReceiver(this);
 
       this.interceptor_ = new MojoInterfaceInterceptor(
-          blink.mojom.SmsReceiver.$interfaceName)
+          blink.mojom.SmsReceiver.$interfaceName, "context", true)
 
       this.interceptor_.oninterfacerequest = (e) => {
         this.mojoReceiver_.$.bindHandle(e.handle);
