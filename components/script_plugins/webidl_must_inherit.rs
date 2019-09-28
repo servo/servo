@@ -177,7 +177,7 @@ impl LintPass for WebIdlPass {
 
 impl<'a, 'tcx> LateLintPass<'a, 'tcx> for WebIdlPass {
     fn check_item(&mut self, cx: &LateContext<'a, 'tcx>, item: &'tcx hir::Item) {
-        let def = match &item.node {
+        let def = match &item.kind {
             hir::ItemKind::Struct(def, ..) => def,
             _ => return,
         };

@@ -151,7 +151,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
         {
             return;
         }
-        if let hir::ItemKind::Struct(def, ..) = &item.node {
+        if let hir::ItemKind::Struct(def, ..) = &item.kind {
             for ref field in def.fields() {
                 let def_id = cx.tcx.hir().local_def_id(field.hir_id);
                 if is_unrooted_ty(&self.symbols, cx, cx.tcx.type_of(def_id), false) {
@@ -257,7 +257,7 @@ impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
             }
         };
 
-        match expr.node {
+        match expr.kind {
             // Trait casts from #[must_root] types are not allowed
             ExprKind::Cast(ref subexpr, _) => require_rooted(cx, self.in_new_function, &*subexpr),
             // This catches assignments... the main point of this would be to catch mutable
@@ -286,7 +286,7 @@ impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
         // When "default binding modes" https://github.com/rust-lang/rust/issues/42640
         // are implemented, the `Unannotated` case could cause false-positives.
         // These should be fixable by adding an explicit `ref`.
-        match pat.node {
+        match pat.kind {
             hir::PatKind::Binding(hir::BindingAnnotation::Unannotated, ..) |
             hir::PatKind::Binding(hir::BindingAnnotation::Mutable, ..) => {
                 let ty = cx.tables.pat_ty(pat);
