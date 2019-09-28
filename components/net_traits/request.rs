@@ -4,6 +4,7 @@
 
 use crate::ReferrerPolicy;
 use crate::ResourceTimingType;
+use content_security_policy as csp;
 use http::HeaderMap;
 use hyper::Method;
 use msg::constellation_msg::PipelineId;
@@ -49,6 +50,27 @@ impl Destination {
             *self == Destination::ServiceWorker ||
             *self == Destination::SharedWorker ||
             *self == Destination::Worker
+    }
+    pub fn to_csp_destination(&self) -> csp::Destination {
+        match *self {
+            Destination::None => csp::Destination::None,
+            Destination::Audio => csp::Destination::Audio,
+            Destination::Document => csp::Destination::Document,
+            Destination::Embed => csp::Destination::Embed,
+            Destination::Font => csp::Destination::Font,
+            Destination::Image => csp::Destination::Image,
+            Destination::Manifest => csp::Destination::Manifest,
+            Destination::Object => csp::Destination::Object,
+            Destination::Report => csp::Destination::Report,
+            Destination::Script => csp::Destination::Script,
+            Destination::ServiceWorker => csp::Destination::ServiceWorker,
+            Destination::SharedWorker => csp::Destination::SharedWorker,
+            Destination::Style => csp::Destination::Style,
+            Destination::Track => csp::Destination::Track,
+            Destination::Video => csp::Destination::Video,
+            Destination::Worker => csp::Destination::Worker,
+            Destination::Xslt => csp::Destination::Xslt,
+        }
     }
 }
 

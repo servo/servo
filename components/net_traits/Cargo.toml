@@ -13,6 +13,7 @@ test = false
 doctest = false
 
 [dependencies]
+content-security-policy = {git = "https://github.com/rust-ammonia/rust-content-security-policy"}
 cookie = "0.11"
 embedder_traits = { path = "../embedder_traits" }
 headers-core = "0.1"

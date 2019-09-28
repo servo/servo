@@ -40,6 +40,7 @@ bluetooth_traits = {path = "../bluetooth_traits"}
 byteorder = "1.0"
 canvas_traits = {path = "../canvas_traits"}
 caseless = "0.2"
+content-security-policy = {git = "https://github.com/rust-ammonia/rust-content-security-policy"}
 cookie = "0.11"
 chrono = "0.4"
 crossbeam-channel = "0.3"

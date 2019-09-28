@@ -683,6 +683,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "content-security-policy"
+version = "0.1.0"
+source = "git+https://github.com/rust-ammonia/rust-content-security-policy#e1b31e394a7eb5bf82245f7bc0b44f5c67f2a0f1"
+dependencies = [
+ "bitflags 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "percent-encoding 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex 1.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "cookie"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3055,6 +3067,7 @@ dependencies = [
 name = "net_traits"
 version = "0.0.1"
 dependencies = [
+ "content-security-policy 0.1.0 (git+https://github.com/rust-ammonia/rust-content-security-policy)",
  "cookie 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "embedder_traits 0.0.1",
  "headers 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3896,6 +3909,7 @@ dependencies = [
  "caseless 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cmake 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)",
+ "content-security-policy 0.1.0 (git+https://github.com/rust-ammonia/rust-content-security-policy)",
  "cookie 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "crossbeam-channel 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.25.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5939,6 +5953,7 @@ dependencies = [
 "checksum cocoa 0.18.4 (registry+https://github.com/rust-lang/crates.io-index)" = "cf79daa4e11e5def06e55306aa3601b87de6b5149671529318da048f67cdd77b"
 "checksum color_quant 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a475fc4af42d83d28adf72968d9bcfaf035a1a9381642d8e85d8a04957767b0d"
 "checksum combine 3.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "54cedd8056314afe0d844a37a207007edf8a45f2cc452fd77629cd63c221740e"
+"checksum content-security-policy 0.1.0 (git+https://github.com/rust-ammonia/rust-content-security-policy)" = "<none>"
 "checksum cookie 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1465f8134efa296b4c19db34d909637cb2bf0f7aaf21299e23e18fa29ac557cf"
 "checksum core-foundation 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "58667b9a618a37ea8c4c4cb5298703e5dfadcd3698c79f54fc43e6a2e94733ea"
 "checksum core-foundation-sys 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e7ca8a5221364ef15ce201e8ed2f609fc312682a8f4e0e3d4aa5879764e0fa3b"

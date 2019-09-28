@@ -109,6 +109,7 @@ use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
+use content_security_policy::{self as csp, CspList};
 use cookie::Cookie;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
@@ -131,6 +132,7 @@ use net_traits::request::RequestBuilder;
 use net_traits::response::HttpsState;
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
+use net_traits::NetworkError;
 use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
 use num_traits::ToPrimitive;
 use percent_encoding::percent_decode;
@@ -147,7 +149,7 @@ use servo_atoms::Atom;
 use servo_config::pref;
 use servo_media::{ClientContextId, ServoMedia};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use std::borrow::ToOwned;
+use std::borrow::{Cow, ToOwned};
 use std::cell::{Cell, Ref, RefMut};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -395,6 +397,9 @@ pub struct Document {
     /// where `id` needs to match any of the registered ShadowRoots
     /// hosting the media controls UI.
     media_controls: DomRefCell<HashMap<String, Dom<ShadowRoot>>>,
+    /// https://html.spec.whatwg.org/multipage/#concept-document-csp-list
+    #[ignore_malloc_size_of = "Defined in rust-content-security-policy"]
+    csp_list: DomRefCell<Option<CspList>>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -1734,6 +1739,14 @@ impl Document {
         request: RequestBuilder,
         fetch_target: IpcSender<FetchResponseMsg>,
     ) {
+        if self.should_request_be_blocked_by_csp(&request) == csp::CheckResult::Blocked {
+            fetch_target
+                .send(FetchResponseMsg::ProcessResponse(Err(
+                    NetworkError::LoadCancelled,
+                )))
+                .unwrap();
+            return;
+        }
         let mut loader = self.loader.borrow_mut();
         loader.fetch_async(load, request, fetch_target);
     }
@@ -2784,7 +2797,58 @@ impl Document {
             shadow_roots: DomRefCell::new(HashSet::new()),
             shadow_roots_styles_changed: Cell::new(false),
             media_controls: DomRefCell::new(HashMap::new()),
+            csp_list: DomRefCell::new(None),
         }
+    }
+
+    pub fn set_csp_list(&self, csp_list: Option<CspList>) {
+        *self.csp_list.borrow_mut() = csp_list;
+    }
+
+    pub fn get_csp_list(&self) -> Option<Ref<CspList>> {
+        let b = self.csp_list.borrow();
+        if b.is_none() {
+            None
+        } else {
+            Some(Ref::map(b, |o| o.as_ref().unwrap()))
+        }
+    }
+
+    pub fn should_request_be_blocked_by_csp(&self, request: &RequestBuilder) -> csp::CheckResult {
+        let request = csp::Request {
+            url: request.url.clone().into_url(),
+            origin: request.origin.clone().into_url_origin(),
+            redirect_count: 0,
+            destination: request.destination.to_csp_destination(),
+            initiator: csp::Initiator::Fetch,
+            nonce: String::new(),
+            integrity_metadata: String::new(),
+            parser_metadata: csp::ParserMetadata::None,
+        };
+        // TODO: Instead of ignoring violations, report them.
+        self.get_csp_list()
+            .map(|c| c.should_request_be_blocked(&request).0)
+            .unwrap_or(csp::CheckResult::Allowed)
+    }
+
+    pub fn should_elements_inline_type_behavior_be_blocked(
+        &self,
+        el: &Element,
+        type_: csp::InlineCheckType,
+        source: &str,
+    ) -> csp::CheckResult {
+        let element = csp::Element {
+            nonce: el
+                .get_attribute(&ns!(), &local_name!("nonce"))
+                .map(|attr| Cow::Owned(attr.value().to_string())),
+        };
+        // TODO: Instead of ignoring violations, report them.
+        self.get_csp_list()
+            .map(|c| {
+                c.should_elements_inline_type_behavior_be_blocked(&element, type_, source)
+                    .0
+            })
+            .unwrap_or(csp::CheckResult::Allowed)
     }
 
     /// Prevent any JS or layout from running until the corresponding call to
