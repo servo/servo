@@ -8,6 +8,7 @@ use crate::filemanager_thread::{fetch_file_in_chunks, FileManager, FILE_CHUNK_SI
 use crate::http_loader::{determine_request_referrer, http_fetch, HttpState};
 use crate::http_loader::{set_default_accept, set_default_accept_language};
 use crate::subresource_integrity::is_response_integrity_valid;
+use content_security_policy as csp;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::DevtoolsControlMsg;
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt, Range};
@@ -137,6 +138,30 @@ pub fn fetch_with_cors_cache(
     main_fetch(request, cache, false, false, target, &mut None, &context);
 }
 
+/// https://www.w3.org/TR/CSP/#should-block-request
+pub fn should_request_be_blocked_by_csp(request: &Request) -> csp::CheckResult {
+    let origin = match &request.origin {
+        Origin::Client => return csp::CheckResult::Allowed,
+        Origin::Origin(origin) => origin,
+    };
+    let csp_request = csp::Request {
+        url: request.url().into_url(),
+        origin: origin.clone().into_url_origin(),
+        redirect_count: request.redirect_count,
+        destination: request.destination,
+        initiator: csp::Initiator::None,
+        nonce: String::new(),
+        integrity_metadata: request.integrity_metadata.clone(),
+        parser_metadata: csp::ParserMetadata::None,
+    };
+    // TODO: Instead of ignoring violations, report them.
+    request
+        .csp_list
+        .as_ref()
+        .map(|c| c.should_request_be_blocked(&csp_request).0)
+        .unwrap_or(csp::CheckResult::Allowed)
+}
+
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
 pub fn main_fetch(
     request: &mut Request,
@@ -162,8 +187,15 @@ pub fn main_fetch(
         }
     }
 
+    // Step 2.2.
+    if should_request_be_blocked_by_csp(request) == csp::CheckResult::Blocked {
+        response = Some(Response::network_error(NetworkError::Internal(
+            "Blocked by Content-Security-Policy".into(),
+        )))
+    }
+
     // Step 3.
-    // TODO: handle content security policy violations.
+    // TODO: handle request abort.
 
     // Step 4.
     // TODO: handle upgrade to a potentially secure URL.

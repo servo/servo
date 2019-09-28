@@ -4,6 +4,7 @@
 
 use crate::ReferrerPolicy;
 use crate::ResourceTimingType;
+use content_security_policy::{self as csp, CspList};
 use http::HeaderMap;
 use hyper::Method;
 use msg::constellation_msg::PipelineId;
@@ -20,37 +21,7 @@ pub enum Initiator {
 }
 
 /// A request [destination](https://fetch.spec.whatwg.org/#concept-request-destination)
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub enum Destination {
-    None,
-    Audio,
-    Document,
-    Embed,
-    Font,
-    Image,
-    Manifest,
-    Object,
-    Report,
-    Script,
-    ServiceWorker,
-    SharedWorker,
-    Style,
-    Track,
-    Video,
-    Worker,
-    Xslt,
-}
-
-impl Destination {
-    /// https://fetch.spec.whatwg.org/#request-destination-script-like
-    #[inline]
-    pub fn is_script_like(&self) -> bool {
-        *self == Destination::Script ||
-            *self == Destination::ServiceWorker ||
-            *self == Destination::SharedWorker ||
-            *self == Destination::Worker
-    }
-}
+pub use csp::Destination;
 
 /// A request [origin](https://fetch.spec.whatwg.org/#concept-request-origin)
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
@@ -175,6 +146,11 @@ pub struct RequestBuilder {
     pub pipeline_id: Option<PipelineId>,
     pub redirect_mode: RedirectMode,
     pub integrity_metadata: String,
+    // This is nominally a part of the client's global object.
+    // It is copied here to avoid having to reach across the thread
+    // boundary every time a redirect occurs.
+    #[ignore_malloc_size_of = "Defined in rust-content-security-policy"]
+    pub csp_list: Option<CspList>,
     // to keep track of redirects
     pub url_list: Vec<ServoUrl>,
     pub parser_metadata: ParserMetadata,
@@ -204,6 +180,7 @@ impl RequestBuilder {
             integrity_metadata: "".to_owned(),
             url_list: vec![],
             parser_metadata: ParserMetadata::Default,
+            csp_list: None,
         }
     }
 
@@ -321,6 +298,7 @@ impl RequestBuilder {
         request.url_list = url_list;
         request.integrity_metadata = self.integrity_metadata;
         request.parser_metadata = self.parser_metadata;
+        request.csp_list = self.csp_list;
         request
     }
 }
@@ -388,6 +366,11 @@ pub struct Request {
     pub response_tainting: ResponseTainting,
     /// <https://fetch.spec.whatwg.org/#concept-request-parser-metadata>
     pub parser_metadata: ParserMetadata,
+    // This is nominally a part of the client's global object.
+    // It is copied here to avoid having to reach across the thread
+    // boundary every time a redirect occurs.
+    #[ignore_malloc_size_of = "Defined in rust-content-security-policy"]
+    pub csp_list: Option<CspList>,
 }
 
 impl Request {
@@ -420,6 +403,7 @@ impl Request {
             parser_metadata: ParserMetadata::Default,
             redirect_count: 0,
             response_tainting: ResponseTainting::Basic,
+            csp_list: None,
         }
     }
 
