@@ -35,6 +35,7 @@ use crate::dom::text::Text;
 use crate::dom::virtualmethods::vtable_for;
 use crate::network_listener::PreInvoke;
 use crate::script_thread::ScriptThread;
+use content_security_policy::{self as csp, CspList};
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
 use encoding_rs::Encoding;
@@ -736,6 +737,44 @@ impl FetchResponseListener for ParserContext {
             .and_then(|meta| meta.content_type)
             .map(Serde::into_inner)
             .map(Into::into);
+
+        // https://www.w3.org/TR/CSP/#initialize-document-csp
+        // XXX TODO: DO NOT MERGE INTO MASTER YET
+        // This only implements the non-local behavior stuff; I need to figure out how to check if a URL is local.
+        let csp_list = metadata.as_ref().and_then(|m| {
+            let h = if let Some(h) = m.headers.as_ref() {
+                h
+            } else {
+                return None;
+            };
+            let mut csp = h.get_all("content-security-policy").iter();
+            // This silently ignores the CSP if it contains invalid Unicode.
+            // We should probably report an error somewhere.
+            let c = if let Some(c) = csp.next().and_then(|c| c.to_str().ok()) {
+                c
+            } else {
+                return None;
+            };
+            let mut csp_list = CspList::parse(
+                c,
+                csp::PolicySource::Header,
+                csp::PolicyDisposition::Enforce,
+            );
+            for c in csp {
+                let c = if let Ok(c) = c.to_str() {
+                    c
+                } else {
+                    return None;
+                };
+                csp_list.append(CspList::parse(
+                    c,
+                    csp::PolicySource::Header,
+                    csp::PolicyDisposition::Enforce,
+                ));
+            }
+            Some(csp_list)
+        });
+
         let parser = match ScriptThread::page_headers_available(&self.id, metadata) {
             Some(parser) => parser,
             None => return,
@@ -743,6 +782,8 @@ impl FetchResponseListener for ParserContext {
         if parser.aborted.get() {
             return;
         }
+
+        parser.document.set_csp_list(csp_list);
 
         self.parser = Some(Trusted::new(&*parser));
 

@@ -754,7 +754,9 @@ impl Into<RequestDestination> for NetTraitsRequestDestination {
             NetTraitsRequestDestination::Object => RequestDestination::Object,
             NetTraitsRequestDestination::Report => RequestDestination::Report,
             NetTraitsRequestDestination::Script => RequestDestination::Script,
-            NetTraitsRequestDestination::ServiceWorker => {
+            NetTraitsRequestDestination::ServiceWorker |
+            NetTraitsRequestDestination::AudioWorklet |
+            NetTraitsRequestDestination::PaintWorklet => {
                 panic!("ServiceWorker request destination should not be exposed to DOM")
             },
             NetTraitsRequestDestination::SharedWorker => RequestDestination::Sharedworker,

@@ -149,6 +149,7 @@ impl DocumentLoader {
             .blocking_loads
             .iter()
             .position(|unfinished| *unfinished == *load);
+        warn!("load count {:?}", self.blocking_loads.len());
         match idx {
             Some(i) => {
                 self.blocking_loads.remove(i);
