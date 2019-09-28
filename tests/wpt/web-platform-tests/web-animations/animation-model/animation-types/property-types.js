@@ -617,7 +617,7 @@ const visibilityType = {
                                          composite });
       testAnimationSamples(animation, idlName,
                            [{ time: 0,    expected: 'visible' },
-                            { time: 1000, expected: 'visible' }]);
+                            { time: 1000, expected: 'hidden' }]);
     }, `${property}: onto "visible"`);
 
     test(t => {

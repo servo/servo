@@ -14,6 +14,10 @@ partial namespace CSS {
   void registerProperty(PropertyDefinition definition);
 };
 
+partial interface CSSRule {
+    const unsigned short PROPERTY_RULE = 18;
+};
+
 [Exposed=Window]
 interface CSSPropertyRule : CSSRule {
     readonly attribute CSSOMString name;

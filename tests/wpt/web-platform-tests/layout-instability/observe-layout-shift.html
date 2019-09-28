@@ -4,6 +4,11 @@
 <body>
 <style>
 #myDiv { position: relative; width: 300px; height: 100px; }
+
+/* Disable the button's focus ring, which otherwise expands its visual rect by
+ * 1px on all sides, triggering a layout shift event.
+ */
+#button { outline: none; }
 </style>
 <div id='myDiv'></div>
 <button id='button'>Generate a 'click' event</button>

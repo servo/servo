@@ -1,5 +1,6 @@
 @font-face {
     font-family: 'Ahem';
-    src: url('/fonts/Ahem.ttf');
+    src: local('Ahem'),
+         url('/fonts/Ahem.ttf');
 }
 

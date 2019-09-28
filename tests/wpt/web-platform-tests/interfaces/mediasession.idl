@@ -77,5 +77,5 @@ dictionary MediaSessionSeekActionDetails : MediaSessionActionDetails {
 
 dictionary MediaSessionSeekToActionDetails : MediaSessionActionDetails {
   required double seekTime;
-  bool? fastSeek;
+  boolean? fastSeek;
 };
