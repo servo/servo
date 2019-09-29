@@ -3996,7 +3996,7 @@ impl DocumentMethods for Document {
             return Ok(());
         }
 
-        match (self.get_html_element(), &old_body) {
+        match (self.GetDocumentElement(), &old_body) {
             // Step 3.
             (Some(ref root), &Some(ref child)) => {
                 let root = root.upcast::<Node>();
