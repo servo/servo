@@ -1039,6 +1039,11 @@ fn http_network_or_cache_fetch(
                         response_from_cache.needs_validation,
                     ),
                 };
+            if cached_response.is_none() {
+                // Ensure the done chan is not set if we're not using the cached response,
+                // as the cache might have set it to Some if it constructed a pending response.
+                *done_chan = None;
+            }
             if needs_revalidation {
                 revalidating_flag = true;
                 // Substep 5
@@ -1065,6 +1070,7 @@ fn http_network_or_cache_fetch(
             // The cache constructed a response with a body of ResponseBody::Receiving.
             // We wait for the response in the cache to "finish",
             // with a body of either Done or Cancelled.
+            assert!(response.is_some());
             loop {
                 match ch
                     .1
@@ -1169,6 +1175,10 @@ fn http_network_or_cache_fetch(
             // We basically pretend that the user declined to enter credentials
             return response;
         }
+
+        // Make sure this is set to None,
+        // since we're about to start a new `http_network_or_cache_fetch`.
+        *done_chan = None;
 
         // Substep 4
         response = http_network_or_cache_fetch(
