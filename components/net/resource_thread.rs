@@ -45,7 +45,7 @@ use std::fs::{self, File};
 use std::io::prelude::*;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Condvar, Mutex, RwLock};
 use std::thread;
 
 /// Returns a tuple of (public, private) senders to the new threads.
@@ -146,6 +146,7 @@ fn create_http_states(
         cookie_jar: RwLock::new(cookie_jar),
         auth_cache: RwLock::new(auth_cache),
         http_cache: RwLock::new(http_cache),
+        http_cache_state: (Mutex::new(HashMap::new()), Condvar::new()),
         hsts_list: RwLock::new(hsts_list),
         history_states: RwLock::new(HashMap::new()),
         client: create_http_client(ssl_connector_builder, HANDLE.lock().unwrap().executor()),
