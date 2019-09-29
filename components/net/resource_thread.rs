@@ -146,6 +146,7 @@ fn create_http_states(
         cookie_jar: RwLock::new(cookie_jar),
         auth_cache: RwLock::new(auth_cache),
         http_cache: RwLock::new(http_cache),
+        http_cache_state: Mutex::new(HashMap::new()),
         hsts_list: RwLock::new(hsts_list),
         history_states: RwLock::new(HashMap::new()),
         client: create_http_client(ssl_connector_builder, HANDLE.lock().unwrap().executor()),
