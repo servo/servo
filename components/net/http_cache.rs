@@ -38,7 +38,8 @@ pub struct CacheKey {
 }
 
 impl CacheKey {
-    fn new(request: Request) -> CacheKey {
+    /// Create a cache-key from a request.
+    pub fn new(request: Request) -> CacheKey {
         CacheKey {
             url: request.current_url(),
         }
