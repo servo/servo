@@ -11,7 +11,8 @@ def main():
     os.chdir(os.path.join(os.path.dirname(__file__)))
     sys.path[0:0] = ["./parser", "./ply"]
 
-    css_properties_json, out_dir, doc_servo = sys.argv[1:]
+    css_properties_json, out_dir = sys.argv[1:]
+    doc_servo = "../../../../../target/doc/servo"
     webidls_dir = "../../webidls"
     config_file = "Bindings.conf"
 
@@ -19,7 +20,7 @@ def main():
     from Configuration import Configuration
     from CodegenRust import CGBindingRoot
 
-    parser = WebIDL.Parser(make_dir(out_dir, "cache"))
+    parser = WebIDL.Parser(make_dir(os.path.join(out_dir, "cache")))
     webidls = [name for name in os.listdir(webidls_dir) if name.endswith(".webidl")]
     for webidl in webidls:
         filename = os.path.join(webidls_dir, webidl)
@@ -29,7 +30,7 @@ def main():
     add_css_properties_attributes(css_properties_json, parser)
     parser_results = parser.finish()
     config = Configuration(config_file, parser_results)
-    make_dir(out_dir, "Bindings")
+    make_dir(os.path.join(out_dir, "Bindings"))
 
     for name, filename in [
         ("PrototypeList", "PrototypeList.rs"),
@@ -54,8 +55,7 @@ def main():
                 f.write(module)
 
 
-def make_dir(out_dir, nested=""):
-    path = os.path.join(out_dir, nested)
+def make_dir(path):
     if not os.path.exists(path):
         os.makedirs(path)
     return path

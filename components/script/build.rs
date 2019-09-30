@@ -17,13 +17,11 @@ fn main() {
 
     let style_out_dir = PathBuf::from(env::var_os("DEP_SERVO_STYLE_CRATE_OUT_DIR").unwrap());
     let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap());
-    let target_dir = PathBuf::from(env::var_os("CARGO_TARGET_DIR").unwrap());
 
     let status = Command::new(find_python())
         .arg("dom/bindings/codegen/run.py")
         .arg(style_out_dir.join("css-properties.json"))
         .arg(&out_dir)
-        .arg(target_dir.join("doc").join("servo"))
         .status()
         .unwrap();
     if !status.success() {
