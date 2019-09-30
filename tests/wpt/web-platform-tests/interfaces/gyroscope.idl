@@ -3,8 +3,9 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Gyroscope (https://w3c.github.io/gyroscope/)
 
-[Constructor(optional GyroscopeSensorOptions sensorOptions), SecureContext, Exposed=Window]
+[SecureContext, Exposed=Window]
 interface Gyroscope : Sensor {
+  constructor(optional GyroscopeSensorOptions sensorOptions = {});
   readonly attribute double? x;
   readonly attribute double? y;
   readonly attribute double? z;

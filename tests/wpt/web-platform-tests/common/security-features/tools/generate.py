@@ -110,6 +110,18 @@ def handle_deliveries(policy_deliveries):
             else:
                 raise Exception(
                     'Invalid delivery_type: %s' % delivery.delivery_type)
+        elif delivery.key == 'upgradeInsecureRequests':
+            # https://w3c.github.io/webappsec-upgrade-insecure-requests/#delivery
+            assert (delivery.value == 'upgrade')
+            if delivery.delivery_type == 'meta':
+                meta += '<meta http-equiv="Content-Security-Policy" ' + \
+                       'content="upgrade-insecure-requests">'
+            elif delivery.delivery_type == 'http-rp':
+                headers[
+                    'Content-Security-Policy'] = 'upgrade-insecure-requests'
+            else:
+                raise Exception(
+                    'Invalid delivery_type: %s' % delivery.delivery_type)
         else:
             raise Exception('Invalid delivery_key: %s' % delivery.key)
     return {"meta": meta, "headers": headers}
