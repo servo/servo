@@ -9,19 +9,24 @@ use crate::embedder::EmbedderCallbacks;
 use crate::window_trait::WindowPortsMethods;
 use crate::events_loop::EventsLoop;
 use crate::{headed_window, headless_window};
+use glutin::WindowId;
 use servo::compositing::windowing::WindowEvent;
 use servo::config::opts::{self, parse_url_or_filename};
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 use servo::{BrowserId, Servo};
 use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 use std::env;
 use std::mem;
 use std::rc::Rc;
 
+thread_local! {
+    pub static WINDOWS: RefCell<HashMap<WindowId, Rc<dyn WindowPortsMethods>>> = RefCell::new(HashMap::new());
+}
+
 pub struct App {
     events_loop: Rc<RefCell<EventsLoop>>,
-    window: Rc<dyn WindowPortsMethods>,
     servo: RefCell<Servo<dyn WindowPortsMethods>>,
     browser: RefCell<Browser<dyn WindowPortsMethods>>,
     event_queue: RefCell<Vec<WindowEvent>>,
@@ -54,10 +59,11 @@ impl App {
         servo.handle_events(vec![WindowEvent::NewBrowser(get_default_url(), browser_id)]);
         servo.setup_logging();
 
+        register_window(window);
+
         let app = App {
             event_queue: RefCell::new(vec![]),
             events_loop,
-            window: window,
             browser: RefCell::new(browser),
             servo: RefCell::new(servo),
             suspended: Cell::new(false),
@@ -89,18 +95,24 @@ impl App {
             glutin::Event::WindowEvent {
                 window_id, event, ..
             } => {
-                if Some(window_id) != self.window.id() {
-                    warn!("Got an event from unknown window");
-                } else {
-                    // Resize events need to be handled during run_forever
-                    let cont = if let glutin::WindowEvent::Resized(_) = event {
-                        glutin::ControlFlow::Continue
-                    } else {
-                        glutin::ControlFlow::Break
-                    };
-                    self.window.winit_event_to_servo_event(event);
-                    return cont;
-                }
+                return WINDOWS.with(|windows| {
+                    match windows.borrow().get(&window_id) {
+                        None => {
+                            warn!("Got an event from unknown window");
+                            glutin::ControlFlow::Break
+                        },
+                        Some(window) => {
+                            // Resize events need to be handled during run_forever
+                            let cont = if let glutin::WindowEvent::Resized(_) = event {
+                                glutin::ControlFlow::Continue
+                            } else {
+                                glutin::ControlFlow::Break
+                            };
+                            window.winit_event_to_servo_event(event);
+                            return cont;
+                        }
+                    }
+                });
             },
         }
         glutin::ControlFlow::Break
@@ -108,7 +120,10 @@ impl App {
 
     fn run_loop(self) {
         loop {
-            if !self.window.is_animating()  || self.suspended.get() {
+            let animating = WINDOWS.with(|windows| {
+                windows.borrow().iter().any(|(_, window)| window.is_animating())
+            });
+            if !animating || self.suspended.get() {
                 // If there's no animations running then we block on the window event loop.
                 self.events_loop.borrow_mut().run_forever(|e| {
                     let cont = self.winit_event_to_servo_event(e);
@@ -141,17 +156,26 @@ impl App {
         let mut browser = self.browser.borrow_mut();
         let mut servo = self.servo.borrow_mut();
 
-        let win_events = self.window.get_events();
+        // FIXME:
+        // As of now, we support only one browser (self.browser)
+        // but have multiple windows (dom.webxr.glwindow). We forward
+        // the events of all the windows combined to that single
+        // browser instance. Pressing the "a" key on the glwindow
+        // will send a key event to the servo window.
+
+        let mut app_events = self.get_events();
+        WINDOWS.with(|windows| {
+            for (_win_id, window) in &*windows.borrow() {
+                app_events.extend(window.get_events());
+            }
+        });
 
         // FIXME: this could be handled by Servo. We don't need
         // a repaint_synchronously function exposed.
-        let need_resize = win_events.iter().any(|e| match *e {
+        let need_resize = app_events.iter().any(|e| match *e {
             WindowEvent::Resize => true,
             _ => false,
         });
-
-        let mut app_events = self.get_events();
-        app_events.extend(win_events);
 
         browser.handle_window_events(app_events);
 
@@ -187,6 +211,12 @@ fn get_default_url() -> ServoUrl {
     let blank_url = ServoUrl::parse("about:blank").ok();
 
     cmdline_url.or(pref_url).or(blank_url).unwrap()
+}
+
+pub fn register_window(window: Rc<dyn WindowPortsMethods>) {
+    WINDOWS.with(|w| {
+        w.borrow_mut().insert(window.id(), window);
+    });
 }
 
 pub fn gl_version() -> glutin::GlRequest {

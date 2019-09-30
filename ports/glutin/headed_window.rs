@@ -9,7 +9,7 @@ use crate::context::GlContext;
 use crate::events_loop::EventsLoop;
 use crate::keyutils::keyboard_event_from_winit;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
-use euclid::{default::Size2D as UntypedSize2D, Point2D, Scale, Size2D, Vector2D};
+use euclid::{Angle, default::Size2D as UntypedSize2D, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D};
 use gleam::gl;
 use glutin::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
@@ -17,7 +17,7 @@ use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
 use glutin::Api;
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use glutin::Icon;
-use glutin::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase};
+use glutin::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use image;
 use keyboard_types::{Key, KeyState, KeyboardEvent};
@@ -68,6 +68,7 @@ pub struct Window {
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
     gl: Rc<dyn gl::Gl>,
+    xr_rotation: Cell<Rotation3D<f32, UnknownUnit, UnknownUnit>>,
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -194,6 +195,7 @@ impl Window {
             inner_size: Cell::new(inner_size),
             primary_monitor,
             screen_size,
+            xr_rotation: Cell::new(Rotation3D::identity()),
         };
 
         window.present();
@@ -235,10 +237,34 @@ impl Window {
             self.last_pressed.set(Some(event));
         } else if event.key != Key::Unidentified {
             self.last_pressed.set(None);
+            self.handle_xr_rotation(&input);
             self.event_queue
                 .borrow_mut()
                 .push(WindowEvent::Keyboard(event));
         }
+    }
+
+    fn handle_xr_rotation(&self, input: &KeyboardInput) {
+        if input.state != glutin::ElementState::Pressed {
+            return;
+        }
+        let mut x = 0.0;
+        let mut y = 0.0;
+        match input.virtual_keycode {
+            Some(VirtualKeyCode::Up) => x = 1.0,
+            Some(VirtualKeyCode::Down) => x = -1.0,
+            Some(VirtualKeyCode::Left) => y = 1.0,
+            Some(VirtualKeyCode::Right) => y = -1.0,
+            _ => return,
+        };
+        if input.modifiers.shift {
+            x = 10.0 * x;
+            y = 10.0 * y;
+        }
+        let x: Rotation3D<_, UnknownUnit, UnknownUnit> = Rotation3D::around_x(Angle::degrees(x));
+        let y: Rotation3D<_, UnknownUnit, UnknownUnit> = Rotation3D::around_y(Angle::degrees(y));
+        let rotation = self.xr_rotation.get().post_rotate(&x).post_rotate(&y);
+        self.xr_rotation.set(rotation);
     }
 
     /// Helper function to handle a click
@@ -394,8 +420,8 @@ impl WindowPortsMethods for Window {
         self.animation_state.get() == AnimationState::Animating
     }
 
-    fn id(&self) -> Option<glutin::WindowId> {
-        Some(self.gl_context.borrow().window().id())
+    fn id(&self) -> glutin::WindowId {
+        self.gl_context.borrow().window().id()
     }
 
     fn winit_event_to_servo_event(&self, event: glutin::WindowEvent) {
@@ -486,15 +512,15 @@ impl WindowPortsMethods for Window {
 }
 
 impl webxr::glwindow::GlWindow for Window {
-    fn make_current(&mut self) {
+    fn make_current(&self) {
         debug!("Making window {:?} current", self.gl_context.borrow().window().id());
-        self.gl_context.get_mut().make_current();
+        self.gl_context.borrow_mut().make_current();
     }
 
-    fn swap_buffers(&mut self) {
+    fn swap_buffers(&self) {
         debug!("Swapping buffers on window {:?}", self.gl_context.borrow().window().id());
-        self.gl_context.get_mut().swap_buffers();
-        self.gl_context.get_mut().make_not_current();
+        self.gl_context.borrow().swap_buffers();
+        self.gl_context.borrow_mut().make_not_current();
     }
 
     fn size(&self) -> UntypedSize2D<gl::GLsizei> {
@@ -508,12 +534,18 @@ impl webxr::glwindow::GlWindow for Window {
         Size2D::new(width * dpr, height *dpr).to_i32()
     }
 
-    fn new_window(&self) -> Result<Box<dyn webxr::glwindow::GlWindow>, ()> {
-        Ok(Box::new(Window::new(
+    fn get_rotation(&self) -> Rotation3D<f32, UnknownUnit, UnknownUnit> {
+        self.xr_rotation.get().clone()
+    }
+
+    fn new_window(&self) -> Result<Rc<dyn webxr::glwindow::GlWindow>, ()> {
+        let window = Rc::new(Window::new(
             self.inner_size.get(),
             Some(self),
             self.events_loop.clone(),
-        )))
+        ));
+        app::register_window(window.clone());
+        Ok(window)
     }
 }
 
