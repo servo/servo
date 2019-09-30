@@ -2243,6 +2243,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn DeleteFramebuffer(&self, framebuffer: Option<&WebGLFramebuffer>) {
         if let Some(framebuffer) = framebuffer {
+            // https://immersive-web.github.io/webxr/#opaque-framebuffer
+            // Can opaque framebuffers be deleted?
+            // https://github.com/immersive-web/webxr/issues/855
+            handle_potential_webgl_error!(self, framebuffer.validate_transparent(), return);
             handle_potential_webgl_error!(self, self.validate_ownership(framebuffer), return);
             handle_object_deletion!(
                 self,
@@ -2253,7 +2257,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     WebGLFramebufferBindingRequest::Default
                 ))
             );
-            framebuffer.delete(false)
+            framebuffer.delete(false);
         }
     }
 
@@ -2402,7 +2406,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         pname: u32,
     ) -> JSVal {
         // Check if currently bound framebuffer is non-zero as per spec.
-        if self.bound_framebuffer.get().is_none() {
+        if let Some(fb) = self.bound_framebuffer.get() {
+            // Opaque framebuffers cannot have their attachments inspected
+            // https://immersive-web.github.io/webxr/#opaque-framebuffer
+            handle_potential_webgl_error!(self, fb.validate_transparent(), return NullValue());
+        } else {
             self.webgl_error(InvalidOperation);
             return NullValue();
         }
@@ -2505,6 +2513,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn GetRenderbufferParameter(&self, _cx: SafeJSContext, target: u32, pname: u32) -> JSVal {
+        // We do not check to see if the renderbuffer came from an opaque framebuffer
+        // https://github.com/immersive-web/webxr/issues/862
         let target_matches = target == constants::RENDERBUFFER;
 
         let pname_matches = match pname {

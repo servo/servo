@@ -48,7 +48,10 @@ use canvas_traits::canvas::{CompositionOrBlending, LineCapStyle, LineJoinStyle, 
 use canvas_traits::webgl::{ActiveAttribInfo, ActiveUniformInfo, GlType, TexDataType, TexFormat};
 use canvas_traits::webgl::{GLFormats, GLLimits};
 use canvas_traits::webgl::{WebGLBufferId, WebGLChan, WebGLContextShareMode, WebGLError};
-use canvas_traits::webgl::{WebGLFramebufferId, WebGLMsgSender, WebGLPipeline, WebGLProgramId};
+use canvas_traits::webgl::{
+    WebGLFramebufferId, WebGLOpaqueFramebufferId, WebGLTransparentFramebufferId,
+};
+use canvas_traits::webgl::{WebGLMsgSender, WebGLPipeline, WebGLProgramId};
 use canvas_traits::webgl::{WebGLReceiver, WebGLRenderbufferId, WebGLSLVersion, WebGLSender};
 use canvas_traits::webgl::{WebGLShaderId, WebGLTextureId, WebGLVersion, WebGLVertexArrayId};
 use crossbeam_channel::{Receiver, Sender};
@@ -474,6 +477,8 @@ unsafe_no_jsmanaged_fields!(WebGLBufferId);
 unsafe_no_jsmanaged_fields!(WebGLChan);
 unsafe_no_jsmanaged_fields!(WebGLContextShareMode);
 unsafe_no_jsmanaged_fields!(WebGLFramebufferId);
+unsafe_no_jsmanaged_fields!(WebGLOpaqueFramebufferId);
+unsafe_no_jsmanaged_fields!(WebGLTransparentFramebufferId);
 unsafe_no_jsmanaged_fields!(WebGLMsgSender);
 unsafe_no_jsmanaged_fields!(WebGLPipeline);
 unsafe_no_jsmanaged_fields!(WebGLProgramId);

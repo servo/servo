@@ -1125,7 +1125,10 @@ impl WebGLImpl {
                 Self::create_shader(ctx.gl(), shader_type, chan)
             },
             WebGLCommand::DeleteBuffer(id) => ctx.gl().delete_buffers(&[id.get()]),
-            WebGLCommand::DeleteFramebuffer(id) => ctx.gl().delete_framebuffers(&[id.get()]),
+            WebGLCommand::DeleteFramebuffer(WebGLFramebufferId::Transparent(id)) => {
+                ctx.gl().delete_framebuffers(&[id.get()])
+            },
+            WebGLCommand::DeleteFramebuffer(WebGLFramebufferId::Opaque(id)) => match id {},
             WebGLCommand::DeleteRenderbuffer(id) => ctx.gl().delete_renderbuffers(&[id.get()]),
             WebGLCommand::DeleteTexture(id) => ctx.gl().delete_textures(&[id.get()]),
             WebGLCommand::DeleteProgram(id) => ctx.gl().delete_program(id.get()),
@@ -1836,12 +1839,12 @@ impl WebGLImpl {
     }
 
     #[allow(unsafe_code)]
-    fn create_framebuffer(gl: &gl::Gl, chan: &WebGLSender<Option<WebGLFramebufferId>>) {
+    fn create_framebuffer(gl: &gl::Gl, chan: &WebGLSender<Option<WebGLTransparentFramebufferId>>) {
         let framebuffer = gl.gen_framebuffers(1)[0];
         let framebuffer = if framebuffer == 0 {
             None
         } else {
-            Some(unsafe { WebGLFramebufferId::new(framebuffer) })
+            Some(unsafe { WebGLTransparentFramebufferId::new(framebuffer) })
         };
         chan.send(framebuffer).unwrap();
     }
@@ -1926,7 +1929,10 @@ impl WebGLImpl {
         ctx: &GLContext<Native>,
     ) {
         let id = match request {
-            WebGLFramebufferBindingRequest::Explicit(id) => id.get(),
+            WebGLFramebufferBindingRequest::Explicit(WebGLFramebufferId::Transparent(id)) => {
+                id.get()
+            },
+            WebGLFramebufferBindingRequest::Explicit(WebGLFramebufferId::Opaque(id)) => match id {},
             WebGLFramebufferBindingRequest::Default => {
                 ctx.borrow_draw_buffer().unwrap().get_framebuffer()
             },

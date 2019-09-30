@@ -73,6 +73,9 @@ pub struct XRSession {
     end_promises: DomRefCell<Vec<Rc<Promise>>>,
     /// https://immersive-web.github.io/webxr/#ended
     ended: Cell<bool>,
+    /// Opaque framebuffers need to know the session is "outside of a requestAnimationFrame"
+    /// https://immersive-web.github.io/webxr/#opaque-framebuffer
+    outside_raf: Cell<bool>,
 }
 
 impl XRSession {
@@ -94,6 +97,7 @@ impl XRSession {
             input_sources: DomRefCell::new(vec![]),
             end_promises: DomRefCell::new(vec![]),
             ended: Cell::new(false),
+            outside_raf: Cell::new(true),
         }
     }
 
@@ -124,6 +128,10 @@ impl XRSession {
 
     pub fn is_ended(&self) -> bool {
         self.ended.get()
+    }
+
+    pub fn is_outside_raf(&self) -> bool {
+        self.outside_raf.get()
     }
 
     fn attach_event_handler(&self) {
@@ -185,6 +193,7 @@ impl XRSession {
             // Step 6-7: XXXManishearth handle inlineVerticalFieldOfView
 
             // XXXManishearth handle inline sessions and composition disabled flag
+            // TODO: use surfman swap chains rather than shared textures
             if let Some(layer) = pending.GetBaseLayer() {
                 let attachment = layer.framebuffer().attachment(constants::COLOR_ATTACHMENT0);
                 if let Some(WebGLFramebufferAttachmentRoot::Texture(texture)) = attachment {
@@ -221,11 +230,13 @@ impl XRSession {
         frame.set_animation_frame(true);
 
         // Step 8
+        self.outside_raf.set(false);
         for (_, callback) in callbacks.drain(..) {
             if let Some(callback) = callback {
                 let _ = callback.Call__(Finite::wrap(time), &frame, ExceptionHandling::Report);
             }
         }
+        self.outside_raf.set(true);
 
         frame.set_active(false);
         self.session.borrow_mut().render_animation_frame();

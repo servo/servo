@@ -98,7 +98,8 @@ impl XRWebGLLayer {
 
         // Step 9.2. "Initialize layer’s framebuffer to a new opaque framebuffer created with
         // context and layerInit’s depth, stencil, and alpha values."
-        let framebuffer = context.CreateFramebuffer().ok_or(Error::Operation)?;
+        // TODO: make this an opaque framebuffer
+        let framebuffer = WebGLFramebuffer::maybe_new(context).ok_or(Error::Operation)?;
 
         // Step 9.3. "Allocate and initialize resources compatible with session’s XR device,
         // including GPU accessible memory buffers, as required to support the compositing of layer."
@@ -173,6 +174,8 @@ impl XRWebGLLayer {
         context.BindTexture(constants::TEXTURE_2D, old_texture.as_ref().map(|t| &**t));
         context.BindFramebuffer(constants::FRAMEBUFFER, old_fbo.as_ref().map(|f| &**f));
         context.BindRenderbuffer(constants::RENDERBUFFER, old_rbo.as_ref().map(|f| &**f));
+
+        framebuffer.set_xr_session(session);
 
         // Step 9.4: "If layer’s resources were unable to be created for any reason,
         // throw an OperationError and abort these steps."

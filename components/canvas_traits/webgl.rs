@@ -243,7 +243,7 @@ pub enum WebGLCommand {
     CopyTexImage2D(u32, i32, u32, i32, i32, i32, i32, i32),
     CopyTexSubImage2D(u32, i32, i32, i32, i32, i32, i32, i32),
     CreateBuffer(WebGLSender<Option<WebGLBufferId>>),
-    CreateFramebuffer(WebGLSender<Option<WebGLFramebufferId>>),
+    CreateFramebuffer(WebGLSender<Option<WebGLTransparentFramebufferId>>),
     CreateRenderbuffer(WebGLSender<Option<WebGLRenderbufferId>>),
     CreateTexture(WebGLSender<Option<WebGLTextureId>>),
     CreateProgram(WebGLSender<Option<WebGLProgramId>>),
@@ -494,9 +494,9 @@ macro_rules! define_resource_id {
 }
 
 define_resource_id!(WebGLBufferId);
-define_resource_id!(WebGLFramebufferId);
 define_resource_id!(WebGLRenderbufferId);
 define_resource_id!(WebGLTextureId);
+define_resource_id!(WebGLTransparentFramebufferId);
 define_resource_id!(WebGLProgramId);
 define_resource_id!(WebGLShaderId);
 define_resource_id!(WebGLVertexArrayId);
@@ -514,6 +514,16 @@ pub enum WebGLError {
     InvalidValue,
     OutOfMemory,
     ContextLost,
+}
+
+// TODO: once surfman arrives, make this a swap chain id
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub enum WebGLOpaqueFramebufferId {}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub enum WebGLFramebufferId {
+    Transparent(WebGLTransparentFramebufferId),
+    Opaque(WebGLOpaqueFramebufferId),
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
