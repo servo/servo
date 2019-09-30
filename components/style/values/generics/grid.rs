@@ -646,11 +646,8 @@ impl Parse for LineNameList {
 
             if let Ok((mut names_list, count)) = repeat_parse_result {
                 match count {
-                    // FIXME(emilio): we probably shouldn't expand repeat() at
-                    // parse time for subgrid.
-                    //
-                    // Also this doesn't have the merging semantics that
-                    // non-subgrid has... But maybe that's ok?
+                    // FIXME(emilio): we shouldn't expand repeat() at
+                    // parse time for subgrid. (bug 1583429)
                     RepeatCount::Number(num) => line_names.extend(
                         names_list
                             .iter()
@@ -660,6 +657,8 @@ impl Parse for LineNameList {
                     ),
                     RepeatCount::AutoFill if fill_idx.is_none() => {
                         // `repeat(autof-fill, ..)` should have just one line name.
+                        // FIXME(bug 1341507) the above comment is wrong per:
+                        // https://drafts.csswg.org/css-grid-2/#typedef-name-repeat
                         if names_list.len() != 1 {
                             return Err(
                                 input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
