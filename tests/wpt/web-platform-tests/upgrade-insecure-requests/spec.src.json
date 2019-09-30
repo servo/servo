@@ -1,0 +1,376 @@
+{
+  "specification": [
+    {
+      "name": "No upgrade-insecure-request",
+      "title": "No upgrade-insecure-request",
+      "description": "No upgrade-insecure-request",
+      "specification_url": "https://w3c.github.io/webappsec-upgrade-insecure-requests/",
+      "test_expansion": [
+        {
+          "name": "Without upgrade-insecure-request, all requests are blocked ...",
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "meta",
+          "delivery_value": null,
+          "redirection": "*",
+          "subresource": "*",
+          "origin": "*",
+          "expectation": "blocked"
+        },
+        {
+          "name": "... except for the secure requests listed here",
+          "expansion": "override",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "meta",
+          "delivery_value": null,
+          "redirection": "no-redirect",
+          "subresource": "*",
+          "origin": [
+            "same-https",
+            "cross-https",
+            "same-wss",
+            "cross-wss"
+          ],
+          "expectation": "allowed"
+        }
+      ]
+    },
+    {
+      "name": "With upgrade-insecure-request",
+      "title": "With upgrade-insecure-request",
+      "description": "With upgrade-insecure-request",
+      "specification_url": "https://w3c.github.io/webappsec-upgrade-insecure-requests/",
+      "test_expansion": [
+        {
+          "name": "With upgrade-insecure-request, all insecure requests are upgraded and allowed.",
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "upgrade",
+          "redirection": "*",
+          "subresource": "*",
+          "origin": "*",
+          "expectation": "allowed"
+        }
+      ]
+    }
+  ],
+  "delivery_key": "upgradeInsecureRequests",
+  "excluded_tests": [
+    {
+      "name": "Omit secure requests",
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "no-redirect",
+      "subresource": "*",
+      "origin": [
+        "same-https",
+        "cross-https",
+        "same-wss",
+        "cross-wss"
+      ],
+      "expectation": "allowed"
+    },
+    {
+      "name": "For inheriting tests skip http-rp because we already have <meta> tests",
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": [
+        "srcdoc-inherit",
+        "iframe-blank-inherit",
+        "worker-classic-data"
+      ],
+      "delivery_type": "http-rp",
+      "delivery_value": "*",
+      "redirection": "*",
+      "subresource": "*",
+      "origin": "*",
+      "expectation": "*"
+    },
+    {
+      "name": "Workers are same-origin only",
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "subresource": [
+        "worker-classic",
+        "worker-module",
+        "sharedworker-classic"
+      ],
+      "origin": [
+        "cross-https",
+        "cross-http-downgrade",
+        "cross-wss",
+        "cross-ws-downgrade"
+      ],
+      "expectation": "*"
+    },
+    {
+      "name": "Websockets are ws/wss-only",
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "subresource": "websocket",
+      "origin": [
+        "same-https",
+        "same-http-downgrade",
+        "cross-https",
+        "cross-http-downgrade"
+      ],
+      "expectation": "*"
+    },
+    {
+      "name": "Websockets is no-redirect only",
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": [
+        "downgrade"
+      ],
+      "subresource": "websocket",
+      "origin": "*",
+      "expectation": "*"
+    },
+    {
+      "name": "ws/wss are websocket-only",
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "subresource": [
+        "iframe-tag",
+        "img-tag",
+        "xhr",
+        "fetch",
+        "worker-classic",
+        "worker-module",
+        "worker-import-data",
+        "sharedworker-classic",
+        "worklet-animation",
+        "worklet-audio",
+        "worklet-layout",
+        "worklet-paint",
+        "worklet-animation-import-data",
+        "worklet-audio-import-data",
+        "worklet-layout-import-data",
+        "worklet-paint-import-data"
+      ],
+      "origin": [
+        "same-wss",
+        "same-ws-downgrade",
+        "cross-wss",
+        "cross-ws-downgrade"
+      ],
+      "expectation": "*"
+    }
+  ],
+  "source_context_schema": {
+    "supported_delivery_type": {
+      "top": [
+        "http-rp",
+        "meta"
+      ],
+      "iframe": [
+        "http-rp",
+        "meta"
+      ],
+      "iframe-blank": [
+        "meta"
+      ],
+      "srcdoc": [
+        "meta"
+      ],
+      "worker-classic": [
+        "http-rp"
+      ],
+      "worker-module": [
+        "http-rp"
+      ],
+      "worker-classic-data": [],
+      "worker-module-data": []
+    },
+    "supported_subresource": {
+      "top": "*",
+      "iframe": "*",
+      "iframe-blank": "*",
+      "srcdoc": "*",
+      "worker-classic": [
+        "xhr",
+        "fetch",
+        "websocket"
+      ],
+      "worker-module": [
+        "xhr",
+        "fetch",
+        "websocket"
+      ],
+      "worker-classic-data": [
+        "xhr",
+        "fetch",
+        "websocket"
+      ],
+      "worker-module-data": [
+        "xhr",
+        "fetch",
+        "websocket"
+      ]
+    }
+  },
+  "subresource_schema": {
+    "supported_delivery_type": {
+      "xhr": [],
+      "worker-classic": [],
+      "worker-module": [],
+      "worker-import-data": [],
+      "sharedworker-classic": [],
+      "worklet-animation": [],
+      "worklet-audio": [],
+      "worklet-layout": [],
+      "worklet-paint": [],
+      "worklet-animation-import-data": [],
+      "worklet-audio-import-data": [],
+      "worklet-layout-import-data": [],
+      "worklet-paint-import-data": [],
+      "fetch": [],
+      "websocket": [],
+      "img-tag": [],
+      "iframe-tag": []
+    }
+  },
+  "source_context_list_schema": {
+    "top": {
+      "description": "CSP set by the top-level Document",
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "policy"
+          ]
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    },
+    "srcdoc-inherit": {
+      "description": "srcdoc iframe should inherit parent Document's policy",
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "policy"
+          ]
+        },
+        {
+          "sourceContextType": "srcdoc"
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    },
+    "iframe-blank-inherit": {
+      "description": "blank iframe should inherit parent Document's policy",
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "policy"
+          ]
+        },
+        {
+          "sourceContextType": "iframe-blank"
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    },
+    "worker-classic-data": {
+      "description": "CSP set by the top-level Document is inherited to dedicated workers",
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "policy"
+          ]
+        },
+        {
+          "sourceContextType": "worker-classic-data",
+          "policyDeliveries": []
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    }
+  },
+  "test_expansion_schema": {
+    "expansion": [
+      "default",
+      "override"
+    ],
+    "source_scheme": [
+      "https"
+    ],
+    "delivery_type": [
+      "http-rp",
+      "meta"
+    ],
+    "delivery_value": [
+      null,
+      "upgrade"
+    ],
+    "source_context_list": [
+      "top",
+      "srcdoc-inherit",
+      "iframe-blank-inherit",
+      "worker-classic-data"
+    ],
+    "redirection": [
+      "no-redirect",
+      "downgrade"
+    ],
+    "origin": [
+      "same-https",
+      "same-http-downgrade",
+      "cross-https",
+      "cross-http-downgrade",
+      "same-wss",
+      "same-ws-downgrade",
+      "cross-wss",
+      "cross-ws-downgrade"
+    ],
+    "subresource": [
+      "iframe-tag",
+      "img-tag",
+      "xhr",
+      "fetch",
+      "websocket",
+      "worker-classic",
+      "worker-module",
+      "worker-import-data",
+      "sharedworker-classic",
+      "worklet-animation",
+      "worklet-audio",
+      "worklet-layout",
+      "worklet-paint",
+      "worklet-animation-import-data",
+      "worklet-audio-import-data",
+      "worklet-layout-import-data",
+      "worklet-paint-import-data"
+    ],
+    "expectation": [
+      "allowed",
+      "blocked"
+    ]
+  }
+}
