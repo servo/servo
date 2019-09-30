@@ -17,47 +17,358 @@
 #![feature(plugin)]
 #![feature(plugin_registrar)]
 #![feature(rustc_private)]
+#![cfg(feature = "unrooted_must_root_lint")]
 
-#[cfg(feature = "unrooted_must_root_lint")]
 #[macro_use]
 extern crate rustc;
 extern crate rustc_driver;
 extern crate syntax;
 
-extern crate weedle;
-
+use rustc::hir::def_id::DefId;
+use rustc::hir::intravisit as visit;
+use rustc::hir::{self, ExprKind, HirId};
+use rustc::lint::{LateContext, LateLintPass, LintArray, LintContext, LintPass};
+use rustc::ty;
 use rustc_driver::plugin::Registry;
 use syntax::feature_gate::AttributeType::Whitelisted;
+use syntax::source_map;
+use syntax::source_map::{ExpnKind, MacroKind, Span};
+use syntax::symbol::sym;
 use syntax::symbol::Symbol;
-
-#[cfg(feature = "unrooted_must_root_lint")]
-mod unrooted_must_root;
-
-#[cfg(feature = "webidl_lint")]
-mod webidl_must_inherit;
-
-/// Utilities for writing plugins
-#[cfg(feature = "unrooted_must_root_lint")]
-mod utils;
 
 #[plugin_registrar]
 pub fn plugin_registrar(reg: &mut Registry) {
-    let symbols = crate::Symbols::new();
-
-    #[cfg(feature = "unrooted_must_root_lint")]
-    reg.register_late_lint_pass(Box::new(unrooted_must_root::UnrootedPass::new(
-        symbols.clone(),
-    )));
-
-    #[cfg(feature = "webidl_lint")]
-    reg.register_late_lint_pass(Box::new(webidl_must_inherit::WebIdlPass::new(
-        symbols.clone(),
-    )));
-
+    let symbols = Symbols::new();
     reg.register_attribute(symbols.allow_unrooted_interior, Whitelisted);
     reg.register_attribute(symbols.allow_unrooted_in_rc, Whitelisted);
     reg.register_attribute(symbols.must_root, Whitelisted);
-    reg.register_attribute(symbols.webidl, Whitelisted);
+    reg.register_late_lint_pass(Box::new(UnrootedPass::new(symbols)));
+}
+
+declare_lint!(
+    UNROOTED_MUST_ROOT,
+    Deny,
+    "Warn and report usage of unrooted jsmanaged objects"
+);
+
+/// Lint for ensuring safe usage of unrooted pointers
+///
+/// This lint (disable with `-A unrooted-must-root`/`#[allow(unrooted_must_root)]`) ensures that `#[must_root]`
+/// values are used correctly.
+///
+/// "Incorrect" usage includes:
+///
+///  - Not being used in a struct/enum field which is not `#[must_root]` itself
+///  - Not being used as an argument to a function (Except onces named `new` and `new_inherited`)
+///  - Not being bound locally in a `let` statement, assignment, `for` loop, or `match` statement.
+///
+/// This helps catch most situations where pointers like `JS<T>` are used in a way that they can be invalidated by a
+/// GC pass.
+///
+/// Structs which have their own mechanism of rooting their unrooted contents (e.g. `ScriptThread`)
+/// can be marked as `#[allow(unrooted_must_root)]`. Smart pointers which root their interior type
+/// can be marked as `#[allow_unrooted_interior]`
+pub(crate) struct UnrootedPass {
+    symbols: Symbols,
+}
+
+impl UnrootedPass {
+    pub fn new(symbols: Symbols) -> UnrootedPass {
+        UnrootedPass { symbols }
+    }
+}
+
+/// Checks if a type is unrooted or contains any owned unrooted types
+fn is_unrooted_ty(sym: &Symbols, cx: &LateContext, ty: &ty::TyS, in_new_function: bool) -> bool {
+    let mut ret = false;
+    ty.maybe_walk(|t| {
+        match t.kind {
+            ty::Adt(did, substs) => {
+                if cx.tcx.has_attr(did.did, sym.must_root) {
+                    ret = true;
+                    false
+                } else if cx.tcx.has_attr(did.did, sym.allow_unrooted_interior) {
+                    false
+                } else if match_def_path(cx, did.did, &[sym.alloc, sym.rc, sym.Rc]) {
+                    // Rc<Promise> is okay
+                    let inner = substs.type_at(0);
+                    if let ty::Adt(did, _) = inner.kind {
+                        if cx.tcx.has_attr(did.did, sym.allow_unrooted_in_rc) {
+                            false
+                        } else {
+                            true
+                        }
+                    } else {
+                        true
+                    }
+                } else if match_def_path(cx, did.did, &[sym::core, sym.cell, sym.Ref]) ||
+                    match_def_path(cx, did.did, &[sym::core, sym.cell, sym.RefMut]) ||
+                    match_def_path(cx, did.did, &[sym::core, sym.slice, sym.Iter]) ||
+                    match_def_path(cx, did.did, &[sym::core, sym.slice, sym.IterMut]) ||
+                    match_def_path(
+                        cx,
+                        did.did,
+                        &[sym::std, sym.collections, sym.hash, sym.map, sym.Entry],
+                    ) ||
+                    match_def_path(
+                        cx,
+                        did.did,
+                        &[
+                            sym::std,
+                            sym.collections,
+                            sym.hash,
+                            sym.map,
+                            sym.OccupiedEntry,
+                        ],
+                    ) ||
+                    match_def_path(
+                        cx,
+                        did.did,
+                        &[
+                            sym::std,
+                            sym.collections,
+                            sym.hash,
+                            sym.map,
+                            sym.VacantEntry,
+                        ],
+                    ) ||
+                    match_def_path(
+                        cx,
+                        did.did,
+                        &[sym::std, sym.collections, sym.hash, sym.map, sym.Iter],
+                    ) ||
+                    match_def_path(
+                        cx,
+                        did.did,
+                        &[sym::std, sym.collections, sym.hash, sym.set, sym.Iter],
+                    )
+                {
+                    // Structures which are semantically similar to an &ptr.
+                    false
+                } else if did.is_box() && in_new_function {
+                    // box in new() is okay
+                    false
+                } else {
+                    true
+                }
+            },
+            ty::Ref(..) => false,    // don't recurse down &ptrs
+            ty::RawPtr(..) => false, // don't recurse down *ptrs
+            ty::FnDef(..) | ty::FnPtr(_) => false,
+            _ => true,
+        }
+    });
+    ret
+}
+
+impl LintPass for UnrootedPass {
+    fn name(&self) -> &'static str {
+        "ServoUnrootedPass"
+    }
+
+    fn get_lints(&self) -> LintArray {
+        lint_array!(UNROOTED_MUST_ROOT)
+    }
+}
+
+impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
+    /// All structs containing #[must_root] types must be #[must_root] themselves
+    fn check_item(&mut self, cx: &LateContext<'a, 'tcx>, item: &'tcx hir::Item) {
+        if item
+            .attrs
+            .iter()
+            .any(|a| a.check_name(self.symbols.must_root))
+        {
+            return;
+        }
+        if let hir::ItemKind::Struct(def, ..) = &item.kind {
+            for ref field in def.fields() {
+                let def_id = cx.tcx.hir().local_def_id(field.hir_id);
+                if is_unrooted_ty(&self.symbols, cx, cx.tcx.type_of(def_id), false) {
+                    cx.span_lint(UNROOTED_MUST_ROOT, field.span,
+                                 "Type must be rooted, use #[must_root] on the struct definition to propagate")
+                }
+            }
+        }
+    }
+
+    /// All enums containing #[must_root] types must be #[must_root] themselves
+    fn check_variant(&mut self, cx: &LateContext, var: &hir::Variant) {
+        let ref map = cx.tcx.hir();
+        if map
+            .expect_item(map.get_parent_item(var.id))
+            .attrs
+            .iter()
+            .all(|a| !a.check_name(self.symbols.must_root))
+        {
+            match var.data {
+                hir::VariantData::Tuple(ref fields, ..) => {
+                    for ref field in fields {
+                        let def_id = cx.tcx.hir().local_def_id(field.hir_id);
+                        if is_unrooted_ty(&self.symbols, cx, cx.tcx.type_of(def_id), false) {
+                            cx.span_lint(
+                                UNROOTED_MUST_ROOT,
+                                field.ty.span,
+                                "Type must be rooted, use #[must_root] on \
+                                 the enum definition to propagate",
+                            )
+                        }
+                    }
+                },
+                _ => (), // Struct variants already caught by check_struct_def
+            }
+        }
+    }
+    /// Function arguments that are #[must_root] types are not allowed
+    fn check_fn(
+        &mut self,
+        cx: &LateContext<'a, 'tcx>,
+        kind: visit::FnKind<'tcx>,
+        decl: &'tcx hir::FnDecl,
+        body: &'tcx hir::Body,
+        span: source_map::Span,
+        id: HirId,
+    ) {
+        let in_new_function = match kind {
+            visit::FnKind::ItemFn(n, _, _, _, _) | visit::FnKind::Method(n, _, _, _) => {
+                &*n.as_str() == "new" || n.as_str().starts_with("new_")
+            },
+            visit::FnKind::Closure(_) => return,
+        };
+
+        if !in_derive_expn(span) {
+            let def_id = cx.tcx.hir().local_def_id(id);
+            let sig = cx.tcx.type_of(def_id).fn_sig(cx.tcx);
+
+            for (arg, ty) in decl.inputs.iter().zip(sig.inputs().skip_binder().iter()) {
+                if is_unrooted_ty(&self.symbols, cx, ty, false) {
+                    cx.span_lint(UNROOTED_MUST_ROOT, arg.span, "Type must be rooted")
+                }
+            }
+
+            if !in_new_function {
+                if is_unrooted_ty(&self.symbols, cx, sig.output().skip_binder(), false) {
+                    cx.span_lint(
+                        UNROOTED_MUST_ROOT,
+                        decl.output.span(),
+                        "Type must be rooted",
+                    )
+                }
+            }
+        }
+
+        let mut visitor = FnDefVisitor {
+            symbols: &self.symbols,
+            cx: cx,
+            in_new_function: in_new_function,
+        };
+        visit::walk_expr(&mut visitor, &body.value);
+    }
+}
+
+struct FnDefVisitor<'a, 'b: 'a, 'tcx: 'a + 'b> {
+    symbols: &'a Symbols,
+    cx: &'a LateContext<'b, 'tcx>,
+    in_new_function: bool,
+}
+
+impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
+    fn visit_expr(&mut self, expr: &'tcx hir::Expr) {
+        let cx = self.cx;
+
+        let require_rooted = |cx: &LateContext, in_new_function: bool, subexpr: &hir::Expr| {
+            let ty = cx.tables.expr_ty(&subexpr);
+            if is_unrooted_ty(&self.symbols, cx, ty, in_new_function) {
+                cx.span_lint(
+                    UNROOTED_MUST_ROOT,
+                    subexpr.span,
+                    &format!("Expression of type {:?} must be rooted", ty),
+                )
+            }
+        };
+
+        match expr.kind {
+            // Trait casts from #[must_root] types are not allowed
+            ExprKind::Cast(ref subexpr, _) => require_rooted(cx, self.in_new_function, &*subexpr),
+            // This catches assignments... the main point of this would be to catch mutable
+            // references to `JS<T>`.
+            // FIXME: Enable this? Triggers on certain kinds of uses of DomRefCell.
+            // hir::ExprAssign(_, ref rhs) => require_rooted(cx, self.in_new_function, &*rhs),
+            // This catches calls; basically, this enforces the constraint that only constructors
+            // can call other constructors.
+            // FIXME: Enable this? Currently triggers with constructs involving DomRefCell, and
+            // constructs like Vec<JS<T>> and RootedVec<JS<T>>.
+            // hir::ExprCall(..) if !self.in_new_function => {
+            //     require_rooted(cx, self.in_new_function, expr);
+            // }
+            _ => {
+                // TODO(pcwalton): Check generics with a whitelist of allowed generics.
+            },
+        }
+
+        visit::walk_expr(self, expr);
+    }
+
+    fn visit_pat(&mut self, pat: &'tcx hir::Pat) {
+        let cx = self.cx;
+
+        // We want to detect pattern bindings that move a value onto the stack.
+        // When "default binding modes" https://github.com/rust-lang/rust/issues/42640
+        // are implemented, the `Unannotated` case could cause false-positives.
+        // These should be fixable by adding an explicit `ref`.
+        match pat.kind {
+            hir::PatKind::Binding(hir::BindingAnnotation::Unannotated, ..) |
+            hir::PatKind::Binding(hir::BindingAnnotation::Mutable, ..) => {
+                let ty = cx.tables.pat_ty(pat);
+                if is_unrooted_ty(&self.symbols, cx, ty, self.in_new_function) {
+                    cx.span_lint(
+                        UNROOTED_MUST_ROOT,
+                        pat.span,
+                        &format!("Expression of type {:?} must be rooted", ty),
+                    )
+                }
+            },
+            _ => {},
+        }
+
+        visit::walk_pat(self, pat);
+    }
+
+    fn visit_ty(&mut self, _: &'tcx hir::Ty) {}
+
+    fn nested_visit_map<'this>(&'this mut self) -> hir::intravisit::NestedVisitorMap<'this, 'tcx> {
+        hir::intravisit::NestedVisitorMap::OnlyBodies(&self.cx.tcx.hir())
+    }
+}
+
+/// check if a DefId's path matches the given absolute type path
+/// usage e.g. with
+/// `match_def_path(cx, id, &["core", "option", "Option"])`
+fn match_def_path(cx: &LateContext, def_id: DefId, path: &[Symbol]) -> bool {
+    let krate = &cx.tcx.crate_name(def_id.krate);
+    if krate != &path[0] {
+        return false;
+    }
+
+    let path = &path[1..];
+    let other = cx.tcx.def_path(def_id).data;
+
+    if other.len() != path.len() {
+        return false;
+    }
+
+    other
+        .into_iter()
+        .zip(path)
+        .all(|(e, p)| e.data.as_interned_str().as_symbol() == *p)
+}
+
+fn in_derive_expn(span: Span) -> bool {
+    if let ExpnKind::Macro(MacroKind::Attr, n) = span.ctxt().outer_expn_data().kind {
+        n.as_str().contains("derive")
+    } else {
+        false
+    }
 }
 
 macro_rules! symbols {
@@ -82,7 +393,6 @@ symbols! {
     allow_unrooted_interior
     allow_unrooted_in_rc
     must_root
-    webidl
     alloc
     rc
     Rc
