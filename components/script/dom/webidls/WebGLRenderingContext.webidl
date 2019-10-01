@@ -43,8 +43,8 @@ dictionary WebGLContextAttributes {
     GLboolean failIfMajorPerformanceCaveat = false;
 };
 
-[Exposed=Window, NoInterfaceObject]
-interface WebGLRenderingContextBase
+[Exposed=Window]
+interface mixin WebGLRenderingContextBase
 {
 
     /* ClearBufferMask */
@@ -713,4 +713,4 @@ interface WebGLRenderingContext
     void readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
                     GLenum format, GLenum type, /*[AllowShared]*/ ArrayBufferView? pixels);
 };
-WebGLRenderingContext implements WebGLRenderingContextBase;
+WebGLRenderingContext includes WebGLRenderingContextBase;

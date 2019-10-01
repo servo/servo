@@ -19,4 +19,4 @@ interface SVGGraphicsElement : SVGElement {
   //DOMMatrix? getScreenCTM();
 };
 
-//SVGGraphicsElement implements SVGTests;
+//SVGGraphicsElement includes SVGTests;

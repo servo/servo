@@ -5,9 +5,9 @@
 // https://html.spec.whatwg.org/multipage/#workernavigator
 [Exposed=Worker]
 interface WorkerNavigator {};
-WorkerNavigator implements NavigatorID;
-WorkerNavigator implements NavigatorLanguage;
-//WorkerNavigator implements NavigatorOnLine;
+WorkerNavigator includes NavigatorID;
+WorkerNavigator includes NavigatorLanguage;
+//WorkerNavigator includes NavigatorOnLine;
 
 // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
 

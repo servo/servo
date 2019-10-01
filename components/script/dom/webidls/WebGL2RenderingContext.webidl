@@ -26,8 +26,7 @@ typedef unsigned long long GLuint64;
 
 // typedef ([AllowShared] Uint32Array or sequence<GLuint>) Uint32List;
 
-[NoInterfaceObject]
-interface WebGL2RenderingContextBase
+interface mixin WebGL2RenderingContextBase
 {
   const GLenum READ_BUFFER                                   = 0x0C02;
   const GLenum UNPACK_ROW_LENGTH                             = 0x0CF2;
@@ -584,5 +583,5 @@ interface WebGL2RenderingContextBase
 interface WebGL2RenderingContext
 {
 };
-WebGL2RenderingContext implements WebGLRenderingContextBase;
-WebGL2RenderingContext implements WebGL2RenderingContextBase;
+WebGL2RenderingContext includes WebGLRenderingContextBase;
+WebGL2RenderingContext includes WebGL2RenderingContextBase;

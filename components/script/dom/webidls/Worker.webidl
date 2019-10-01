@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#abstractworker
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface AbstractWorker {
+[Exposed=(Window,Worker)]
+interface mixin AbstractWorker {
     attribute EventHandler onerror;
 };
 
@@ -27,4 +27,4 @@ dictionary WorkerOptions {
 
 enum WorkerType { "classic", "module" };
 
-Worker implements AbstractWorker;
+Worker includes AbstractWorker;

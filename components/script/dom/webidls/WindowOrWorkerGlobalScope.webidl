@@ -7,8 +7,8 @@
 // FIXME(nox): https://github.com/servo/servo/issues/20700
 // typedef (DOMString or Function) TimerHandler;
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface WindowOrWorkerGlobalScope {
+[Exposed=(Window,Worker)]
+interface mixin WindowOrWorkerGlobalScope {
   [Replaceable] readonly attribute USVString origin;
 
   // base64 utility methods
@@ -32,10 +32,10 @@ interface WindowOrWorkerGlobalScope {
 };
 
 // https://w3c.github.io/hr-time/#the-performance-attribute
-partial interface WindowOrWorkerGlobalScope {
+partial interface mixin WindowOrWorkerGlobalScope {
     [Replaceable]
     readonly attribute Performance performance;
 };
 
-Window implements WindowOrWorkerGlobalScope;
-WorkerGlobalScope implements WindowOrWorkerGlobalScope;
+Window includes WindowOrWorkerGlobalScope;
+WorkerGlobalScope includes WindowOrWorkerGlobalScope;

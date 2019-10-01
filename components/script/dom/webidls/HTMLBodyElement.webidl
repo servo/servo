@@ -7,7 +7,7 @@
 interface HTMLBodyElement : HTMLElement {
   // also has obsolete members
 };
-HTMLBodyElement implements WindowEventHandlers;
+HTMLBodyElement includes WindowEventHandlers;
 
 // https://html.spec.whatwg.org/multipage/#HTMLBodyElement-partial
 partial interface HTMLBodyElement {

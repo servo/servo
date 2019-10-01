@@ -4,10 +4,8 @@
 
 // https://fetch.spec.whatwg.org/#body
 
-[NoInterfaceObject,
- Exposed=(Window,Worker)]
-
-interface Body {
+[Exposed=(Window,Worker)]
+interface mixin Body {
   readonly attribute boolean bodyUsed;
 
   [NewObject] Promise<ArrayBuffer> arrayBuffer();

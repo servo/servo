@@ -67,7 +67,7 @@ partial interface HTMLElement {
   readonly attribute long offsetHeight;
 };
 
-HTMLElement implements GlobalEventHandlers;
-HTMLElement implements DocumentAndElementEventHandlers;
-HTMLElement implements ElementContentEditable;
-HTMLElement implements ElementCSSInlineStyle;
+HTMLElement includes GlobalEventHandlers;
+HTMLElement includes DocumentAndElementEventHandlers;
+HTMLElement includes ElementContentEditable;
+HTMLElement includes ElementCSSInlineStyle;

@@ -122,7 +122,7 @@ partial interface Element {
   Promise<void> requestFullscreen();
 };
 
-Element implements ChildNode;
-Element implements NonDocumentTypeChildNode;
-Element implements ParentNode;
-Element implements ActivatableElement;
+Element includes ChildNode;
+Element includes NonDocumentTypeChildNode;
+Element includes ParentNode;
+Element includes ActivatableElement;

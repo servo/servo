@@ -21,10 +21,9 @@ interface BluetoothRemoteGATTCharacteristic : EventTarget {
   Promise<BluetoothRemoteGATTCharacteristic> stopNotifications();
 };
 
-[NoInterfaceObject]
-interface CharacteristicEventHandlers {
+interface mixin CharacteristicEventHandlers {
   attribute EventHandler oncharacteristicvaluechanged;
 };
 
-// BluetoothRemoteGATTCharacteristic implements EventTarget;
-BluetoothRemoteGATTCharacteristic implements CharacteristicEventHandlers;
+// BluetoothRemoteGATTCharacteristic includes EventTarget;
+BluetoothRemoteGATTCharacteristic includes CharacteristicEventHandlers;

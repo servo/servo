@@ -12,4 +12,4 @@ interface HTMLStyleElement : HTMLElement {
   // [CEReactions]
   //          attribute boolean scoped;
 };
-HTMLStyleElement implements LinkStyle;
+HTMLStyleElement includes LinkStyle;

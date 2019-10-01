@@ -37,6 +37,6 @@ interface Bluetooth : EventTarget {
   Promise<BluetoothDevice> requestDevice(optional RequestDeviceOptions options = {});
 };
 
-// Bluetooth implements BluetoothDeviceEventHandlers;
-// Bluetooth implements CharacteristicEventHandlers;
-// Bluetooth implements ServiceEventHandlers;
+// Bluetooth includes BluetoothDeviceEventHandlers;
+// Bluetooth includes CharacteristicEventHandlers;
+// Bluetooth includes ServiceEventHandlers;

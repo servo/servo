@@ -22,7 +22,7 @@ interface HTMLAreaElement : HTMLElement {
   readonly attribute DOMTokenList relList;
   // hreflang and type are not reflected
 };
-//HTMLAreaElement implements HTMLHyperlinkElementUtils;
+//HTMLAreaElement includes HTMLHyperlinkElementUtils;
 
 // https://html.spec.whatwg.org/multipage/#HTMLAreaElement-partial
 partial interface HTMLAreaElement {
