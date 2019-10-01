@@ -6,7 +6,8 @@ function reportSubresourceCookies() {
   credFetch(SECURE_ORIGIN + "/cookies/resources/list.py")
     .then(r => r.json())
     .then(cookies => { cookies.type = "COOKIES";
-                       window.parent.postMessage(cookies, "*");});
+                       target = window.opener ? window.opener : window.parent;
+                       target.postMessage(cookies, "*");});
 }
 </script>
 </head>

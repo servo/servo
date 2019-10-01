@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/cookies/resources/cookie-helper.sub.js"></script>
+</head>
+<body onload="doTests()">
+  <script>
+  function doTests() {
+    promise_test(async function(t) {
+      var child = window.open("");
+      child.onmessage = (ev) => {
+        child.opener.postMessage(ev.data, '*');
+      };
+      var grandKid = child.document.createElement("iframe");
+      child.document.body.appendChild(grandKid);
+      var value = "" + Math.random();
+      await resetSameSiteCookies(SECURE_ORIGIN, value);
+
+      // Load at what cookies a subresource below an about:blank iframe
+      // inheritting this origin gets.
+      grandKid.src = SECURE_ORIGIN + "/cookies/samesite/resources/iframe-subresource-report.html"
+      var e = await wait_for_message("COOKIES", SECURE_ORIGIN);
+      assert_cookie(SECURE_ORIGIN, e.data, "samesite_unspecified", value, true);
+      assert_cookie(SECURE_ORIGIN, e.data, "samesite_lax", value, true);
+      assert_cookie(SECURE_ORIGIN, e.data, "samesite_strict", value, true);
+      assert_cookie(SECURE_ORIGIN, e.data, "samesite_none", value, true);
+    }, "SameSite cookies on subresource of top-level about:blank window");
+  }
+  </script>
+</body>

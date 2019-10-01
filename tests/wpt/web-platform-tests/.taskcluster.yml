@@ -282,7 +282,6 @@ tasks:
             export TOXENV=py27;
             ./tools/ci/run_tc.py \
               --browser=firefox \
-              --channel=experimental \
               --xvfb \
               resources_unittest \
               tools/ci/ci_resources_unittest.sh

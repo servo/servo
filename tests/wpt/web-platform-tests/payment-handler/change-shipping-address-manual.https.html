@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Tests for PaymentRequestEvent.changeShippingAddress()</title>
+
+<link rel="manifest" href="/payment-handler/basic-card.json" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="register-and-activate-service-worker.js"></script>
+<p>If the payment sheet is shown, please authorize the mock payment.</p>
+<script>
+  const methodName = window.location.origin + '/payment-handler/payment-app/';
+  function createRequest() {
+    return new PaymentRequest([{supportedMethods: methodName}], {
+        total: {label: 'Total', amount: {currency: 'USD', value: '0.01'}},
+        shippingOptions: [{
+          id: 'freeShippingOption',
+          label: 'Free global shipping',
+          amount: {
+            currency: 'USD',
+            value: '0',
+          },
+          selected: false,
+        }],
+      }, {requestShipping: true});
+  }
+
+  async function completeAppSetUp(registration) {
+    await registration.paymentManager.instruments.clear();
+    await registration.paymentManager.instruments.set('instrument-key', {
+      name: 'Instrument Name',
+      method: methodName,
+    });
+    await navigator.serviceWorker.ready;
+    await registration.paymentManager.enableDelegations(['shippingAddress']);
+  }
+
+  async function runTests(registration) {
+    await completeAppSetUp(registration);
+    promise_test(async (t) => {
+      const request = createRequest();
+      // Intentionally do not respond to the 'shippingaddresschange' event.
+      const response = await test_driver.bless('showing a payment sheet', () =>
+        request.show()
+      );
+      const complete_promise = response.complete('success');
+
+      assert_equals(response.details.changeShippingAddressReturned, null);
+
+      return complete_promise;
+    }, 'If updateWith(details) is not run, changeShippingAddress() returns null.');
+
+    promise_test(async (t) => {
+      const request = createRequest();
+      request.addEventListener('shippingaddresschange', (event) => {
+        assert_equals(request.shippingAddress.organization, '', 'organization should be redacted');
+        assert_equals(request.shippingAddress.phone, '', 'phone should be redacted');
+        assert_equals(request.shippingAddress.recipient, '', 'recipient should be redacted');
+        assert_equals(request.shippingAddress.addressLine.length, 0, 'addressLine should be redacted');
+        assert_equals(request.shippingAddress.city, 'Reston');
+        assert_equals(request.shippingAddress.country, 'US');
+        assert_equals(request.shippingAddress.postalCode, '20190');
+        assert_equals(request.shippingAddress.region, 'VA');
+        event.updateWith({
+          total: {label: 'Total', amount: {currency: 'GBP', value: '0.02'}},
+          error: 'Error for test',
+          modifiers: [
+            {
+              supportedMethods: methodName,
+              data: {soup: 'potato'},
+              total: {
+                label: 'Modified total',
+                amount: {currency: 'EUR', value: '0.03'},
+              },
+              additionalDisplayItems: [
+                {
+                  label: 'Modified display item',
+                  amount: {currency: 'INR', value: '0.06'},
+                },
+              ],
+            },
+            {
+              supportedMethods: methodName + '2',
+              data: {soup: 'tomato'},
+              total: {
+                label: 'Modified total #2',
+                amount: {currency: 'CHF', value: '0.07'},
+              },
+              additionalDisplayItems: [
+                {
+                  label: 'Modified display item #2',
+                  amount: {currency: 'CAD', value: '0.08'},
+                },
+              ],
+            },
+          ],
+          displayItems: [
+            {
+              label: 'Display item',
+              amount: {currency: 'CNY', value: '0.04'},
+            },
+          ],
+          shippingOptions: [
+            {
+              id: 'freeShippingOption',
+              label: 'express global shipping',
+              amount: {
+                currency: 'USD',
+                value: '0',
+              },
+              selected: true,
+            }
+          ],
+           shippingAddressErrors: {
+            country: 'US only shipping',
+          }
+        });
+      });
+      const response = await test_driver.bless('showing a payment sheet', () =>
+        request.show()
+      );
+      const complete_promise = response.complete('success');
+      const changeShippingAddressReturned =
+        response.details.changeShippingAddressReturned;
+
+      assert_equals(changeShippingAddressReturned.total.currency, 'GBP');
+      assert_equals(changeShippingAddressReturned.total.value, '0.02');
+      assert_equals(changeShippingAddressReturned.total.label, undefined);
+      assert_equals(changeShippingAddressReturned.error, 'Error for test');
+      assert_equals(changeShippingAddressReturned.modifiers.length, 1);
+      assert_equals(changeShippingAddressReturned.displayItems, undefined);
+      assert_equals(changeShippingAddressReturned.shippingOptions.length, 1);
+      assert_equals(changeShippingAddressReturned.paymentMethodErrors, undefined);
+      assert_equals(changeShippingAddressReturned.shippingAddressErrors.country, 'US only shipping');
+
+      const shipping_option = changeShippingAddressReturned.shippingOptions[0];
+      assert_equals(shipping_option.id, 'freeShippingOption' );
+      assert_equals(shipping_option.label, 'express global shipping');
+      assert_equals(shipping_option.amount.currency, 'USD');
+      assert_equals(shipping_option.amount.value, '0');
+      assert_true(shipping_option.selected);
+
+      const modifier = changeShippingAddressReturned.modifiers[0];
+      assert_equals(modifier.supportedMethods, methodName);
+      assert_equals(modifier.data.soup, 'potato');
+      assert_equals(modifier.total.label, '');
+      assert_equals(modifier.total.amount.currency, 'EUR');
+      assert_equals(modifier.total.amount.value, '0.03');
+      assert_equals(modifier.additionalDisplayItems, undefined);
+
+      return complete_promise;
+    }, 'The changeShippingAddress() returns some details from the "shippingaddresschange" event\'s updateWith(details) call.');
+  }
+
+  registerAndActiveServiceWorker(
+    'app-change-shipping-address.js',
+    'payment-app/',
+    runTests
+  );
+</script>

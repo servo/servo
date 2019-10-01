@@ -221,8 +221,10 @@ def pack_result(data):
     if not data.get("known_intermittent"):
         return status_intern.store(data.get("status"))
     result = array.array("B")
-    result_parts = ([data["status"], data.get("expected", data["status"])] +
-                    data["known_intermittent"])
+    expected = data.get("expected")
+    if expected is None:
+        expected = data["status"]
+    result_parts = [data["status"], expected] + data["known_intermittent"]
     for i, part in enumerate(result_parts):
         value = status_intern.store(part)
         if i % 2 == 0:
@@ -688,13 +690,6 @@ class TestFileData(object):
                             expected.set_leak_threshold(run_info, value)
                         continue
 
-                    if prop == "status":
-                        status, known_intermittent = unpack_result(value)
-                        value = Result(status,
-                                       known_intermittent,
-                                       default_expected_by_type[self.item_type,
-                                                                subtest_id is not None])
-
                     test_expected = expected_by_test[test_id]
                     if subtest_id is None:
                         item_expected = test_expected
@@ -702,7 +697,13 @@ class TestFileData(object):
                         if isinstance(subtest_id, str):
                             subtest_id = subtest_id.decode("utf8")
                         item_expected = test_expected.get_subtest(subtest_id)
+
                     if prop == "status":
+                        status, known_intermittent = unpack_result(value)
+                        value = Result(status,
+                                       known_intermittent,
+                                       default_expected_by_type[self.item_type,
+                                                                subtest_id is not None])
                         item_expected.set_result(run_info, value)
                     elif prop == "asserts":
                         item_expected.set_asserts(run_info, value)

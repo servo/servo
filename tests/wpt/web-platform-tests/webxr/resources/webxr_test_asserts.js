@@ -30,6 +30,31 @@ let assert_point_approx_equals = function(p1, p2, epsilon = FLOAT_EPSILON, prefi
   }
 };
 
+// |p1|, |p2| - objects with x, y, z, w components that are floating point numbers
+// |epsilon| - float specifying precision
+// |prefix| - string used as a prefix for logging
+let assert_point_significantly_not_equals = function(p1, p2, epsilon = FLOAT_EPSILON, prefix = "") {
+
+  assert_not_equals(p1, null, prefix + "p1 must be non-null");
+  assert_not_equals(p2, null, prefix + "p2 must be non-null");
+
+  let mismatched_component = null;
+  for (const v of ['x', 'y', 'z', 'w']) {
+    if (Math.abs(p1[v] - p2[v]) > epsilon) {
+      mismatched_component = v;
+      break;
+    }
+  }
+
+  if (mismatched_component === null) {
+    let error_message = prefix + ' Point comparison failed.\n';
+    error_message += ` p1: {x: ${p1.x}, y: ${p1.y}, z: ${p1.z}, w: ${p1.w}}\n`;
+    error_message += ` p2: {x: ${p2.x}, y: ${p2.y}, z: ${p2.z}, w: ${p2.w}}\n`;
+    error_message += ` Difference in components did not exceeded the given epsilon.\n`;
+    assert_unreached(error_message);
+  }
+};
+
 // |m1|, |m2| - arrays of floating point numbers
 // |epsilon| - float specifying precision
 // |prefix| - string used as a prefix for logging
