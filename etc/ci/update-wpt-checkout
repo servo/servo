@@ -118,7 +118,8 @@ function unsafe_open_pull_request() {
     # Prepare the pull request metadata.
     BODY="Automated downstream sync of changes from upstream as of "
     BODY+="${CURRENT_DATE}.\n"
-    BODY+="[no-wpt-sync]"
+    BODY+="[no-wpt-sync]\n"
+    BODY+="r? @servo-wpt-sync\n"
     cat <<EOF >prdata.json || return 4
 {
   "title": "Sync WPT with upstream (${CURRENT_DATE})",
