@@ -10,12 +10,11 @@ name = "to_shmem"
 path = "lib.rs"
 
 [features]
-servo = ["serde", "cssparser/serde", "string_cache"]
+servo = ["cssparser/serde", "string_cache"]
 gecko = []
 
 [dependencies]
 cssparser = "0.25"
-serde = { version = "1.0", optional = true }
 servo_arc = { path = "../servo_arc" }
 smallbitvec = "2.1.1"
 smallvec = "0.6.6"

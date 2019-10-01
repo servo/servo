@@ -15,7 +15,6 @@ doctest = false
 [dependencies]
 cookie = "0.11"
 embedder_traits = { path = "../embedder_traits" }
-headers-core = "0.1"
 headers = "0.2"
 http = "0.1"
 hyper = "0.12"
@@ -33,7 +32,6 @@ percent-encoding = "2.0"
 pixels = {path = "../pixels"}
 serde = "1.0"
 servo_arc = {path = "../servo_arc"}
-servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 time = "0.1"
 url = "2.0"
