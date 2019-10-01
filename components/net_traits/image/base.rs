@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::image_cache::CorsStatus;
 use ipc_channel::ipc::IpcSharedMemory;
 use piston_image::{DynamicImage, ImageFormat};
 use pixels::PixelFormat;
@@ -16,6 +17,7 @@ pub struct Image {
     pub bytes: IpcSharedMemory,
     #[ignore_malloc_size_of = "Defined in webrender_api"]
     pub id: Option<webrender_api::ImageKey>,
+    pub cors_status: CorsStatus,
 }
 
 impl fmt::Debug for Image {
@@ -37,7 +39,7 @@ pub struct ImageMetadata {
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
 
-pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
+pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image> {
     if buffer.is_empty() {
         return None;
     }
@@ -61,6 +63,7 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                     format: PixelFormat::BGRA8,
                     bytes: IpcSharedMemory::from_bytes(&*rgba),
                     id: None,
+                    cors_status,
                 })
             },
             Err(e) => {

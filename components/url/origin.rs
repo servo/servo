@@ -8,7 +8,7 @@ use url::{Host, Origin};
 use uuid::Uuid;
 
 /// The origin of an URL
-#[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum ImmutableOrigin {
     /// A globally unique identifier
     Opaque(OpaqueOrigin),
@@ -82,7 +82,7 @@ impl ImmutableOrigin {
 }
 
 /// Opaque identifier for URLs that have file or other schemes
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct OpaqueOrigin(Uuid);
 
 malloc_size_of_is_0!(OpaqueOrigin);

@@ -56,7 +56,7 @@ use mime::{self, Mime};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::UsePlaceholder;
-use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
+use net_traits::image_cache::{CanRequestImages, CorsStatus, ImageCache, ImageOrMetadataAvailable};
 use net_traits::image_cache::{ImageResponder, ImageResponse, ImageState, PendingImageId};
 use net_traits::request::RequestBuilder;
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
@@ -281,6 +281,7 @@ impl HTMLImageElement {
         let image_cache = window.image_cache();
         let response = image_cache.find_image_or_metadata(
             img_url.clone().into(),
+            window.origin().immutable().clone(),
             UsePlaceholder::Yes,
             CanRequestImages::Yes,
         );
@@ -907,6 +908,7 @@ impl HTMLImageElement {
                 let image_cache = window.image_cache();
                 let response = image_cache.find_image_or_metadata(
                     img_url.clone().into(),
+                    window.origin().immutable().clone(),
                     UsePlaceholder::No,
                     CanRequestImages::No,
                 );
@@ -1062,6 +1064,7 @@ impl HTMLImageElement {
         // Step 14
         let response = image_cache.find_image_or_metadata(
             img_url.clone().into(),
+            window.origin().immutable().clone(),
             UsePlaceholder::No,
             CanRequestImages::Yes,
         );
@@ -1268,6 +1271,10 @@ impl HTMLImageElement {
     }
 
     pub fn same_origin(&self, origin: &MutableOrigin) -> bool {
+        if let Some(ref image) = self.current_request.borrow().image {
+            return image.cors_status == CorsStatus::Safe;
+        }
+
         self.current_request
             .borrow()
             .final_url

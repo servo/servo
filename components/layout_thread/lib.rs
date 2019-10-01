@@ -659,6 +659,7 @@ impl LayoutThread {
 
         LayoutContext {
             id: self.id,
+            origin: self.url.origin(),
             style_context: SharedStyleContext {
                 stylist: &self.stylist,
                 options: GLOBAL_STYLE_DATA.options.clone(),

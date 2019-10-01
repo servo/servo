@@ -22,6 +22,7 @@ use ipc_channel::ipc;
 use libc::c_void;
 use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId};
 use net_traits::image::base::Image;
+use net_traits::image_cache::CorsStatus;
 use num_traits::FromPrimitive;
 #[cfg(feature = "gl")]
 use pixels::PixelFormat;
@@ -1384,6 +1385,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     format: PixelFormat::RGB8,
                     bytes: ipc::IpcSharedMemory::from_bytes(&*img),
                     id: None,
+                    cors_status: CorsStatus::Safe,
                 })
             },
             #[cfg(feature = "gl")]
