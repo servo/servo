@@ -15,7 +15,7 @@ pub const LINE_HEIGHT: f32 = 38.0;
 
 pub trait WindowPortsMethods: WindowMethods + webxr::glwindow::GlWindow {
     fn get_events(&self) -> Vec<WindowEvent>;
-    fn id(&self) -> Option<glutin::WindowId>;
+    fn id(&self) -> glutin::WindowId;
     fn has_events(&self) -> bool;
     fn page_height(&self) -> f32;
     fn get_fullscreen(&self) -> bool;

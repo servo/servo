@@ -6,7 +6,7 @@
 
 use crate::window_trait::WindowPortsMethods;
 use glutin;
-use euclid::{default::Size2D as UntypedSize2D, Point2D, Scale, Size2D};
+use euclid::{default::Size2D as UntypedSize2D, Point2D, Rotation3D, Scale, Size2D, UnknownUnit};
 use gleam::gl;
 use servo::compositing::windowing::{AnimationState, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
@@ -132,8 +132,10 @@ impl WindowPortsMethods for Window {
         false
     }
 
-    fn id(&self) -> Option<glutin::WindowId> {
-        None
+    fn id(&self) -> glutin::WindowId {
+        unsafe {
+            glutin::WindowId::dummy()
+        }
     }
 
     fn page_height(&self) -> f32 {
@@ -217,23 +219,26 @@ impl WindowMethods for Window {
 }
 
 impl webxr::glwindow::GlWindow for Window {
-    fn make_current(&mut self) {}
-    fn swap_buffers(&mut self) {}
+    fn make_current(&self) {}
+    fn swap_buffers(&self) {}
     fn size(&self) -> UntypedSize2D<gl::GLsizei> {
         let dpr = self.servo_hidpi_factor().get();
         Size2D::new((self.context.width as f32 * dpr) as gl::GLsizei, (self.context.height as f32 * dpr) as gl::GLsizei)
     }
-    fn new_window(&self) -> Result<Box<dyn webxr::glwindow::GlWindow>, ()> {
+    fn new_window(&self) -> Result<Rc<dyn webxr::glwindow::GlWindow>, ()> {
         let width = self.context.width;
         let height = self.context.height;
         let share = Some(&self.context);
         let context = HeadlessContext::new(width, height, share);
         let gl = self.gl.clone();
-        Ok(Box::new(Window {
+        Ok(Rc::new(Window {
             context,
             gl,
             animation_state: Cell::new(AnimationState::Idle),
             fullscreen: Cell::new(false),
         }))
+    }
+    fn get_rotation(&self) -> Rotation3D<f32, UnknownUnit, UnknownUnit> {
+        Rotation3D::identity()
     }
 }
