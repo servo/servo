@@ -5,7 +5,7 @@
 use crate::image::base::{Image, ImageMetadata};
 use crate::FetchResponseMsg;
 use ipc_channel::ipc::IpcSender;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use std::sync::Arc;
 
 // ======================================================================
@@ -110,6 +110,7 @@ pub trait ImageCache: Sync + Send {
     fn find_image_or_metadata(
         &self,
         url: ServoUrl,
+        origin: ImmutableOrigin,
         use_placeholder: UsePlaceholder,
         can_request: CanRequestImages,
     ) -> Result<ImageOrMetadataAvailable, ImageState>;
@@ -120,4 +121,10 @@ pub trait ImageCache: Sync + Send {
 
     /// Inform the image cache about a response for a pending request.
     fn notify_pending_response(&self, id: PendingImageId, action: FetchResponseMsg);
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum CorsStatus {
+    Safe,
+    Unsafe,
 }

@@ -47,7 +47,7 @@ use net_traits::image_cache::UsePlaceholder;
 use pixels::PixelFormat;
 use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use std::cell::Cell;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -126,6 +126,7 @@ pub struct CanvasState {
     /// The base URL for resolving CSS image URL values.
     /// Needed because of https://github.com/servo/servo/issues/17625
     base_url: ServoUrl,
+    origin: ImmutableOrigin,
     /// Any missing image URLs.
     missing_image_urls: DomRefCell<Vec<ServoUrl>>,
     saved_states: DomRefCell<Vec<CanvasContextState>>,
@@ -152,6 +153,7 @@ impl CanvasState {
             base_url: global.api_base_url(),
             missing_image_urls: DomRefCell::new(Vec::new()),
             saved_states: DomRefCell::new(Vec::new()),
+            origin: global.origin().immutable().clone(),
         }
     }
 
@@ -222,6 +224,7 @@ impl CanvasState {
     fn request_image_from_cache(&self, url: ServoUrl) -> ImageResponse {
         let response = self.image_cache.find_image_or_metadata(
             url.clone(),
+            self.origin.clone(),
             UsePlaceholder::No,
             CanRequestImages::No,
         );

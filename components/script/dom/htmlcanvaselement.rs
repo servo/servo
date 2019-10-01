@@ -448,6 +448,7 @@ pub mod utils {
         let image_cache = window.image_cache();
         let response = image_cache.find_image_or_metadata(
             url.into(),
+            window.origin().immutable().clone(),
             UsePlaceholder::No,
             CanRequestImages::No,
         );
