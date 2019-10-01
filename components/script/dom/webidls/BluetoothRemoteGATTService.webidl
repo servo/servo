@@ -17,13 +17,12 @@ interface BluetoothRemoteGATTService : EventTarget {
   Promise<sequence<BluetoothRemoteGATTService>> getIncludedServices(optional BluetoothServiceUUID service);
 };
 
-[NoInterfaceObject]
-interface ServiceEventHandlers {
+interface mixin ServiceEventHandlers {
   attribute EventHandler onserviceadded;
   attribute EventHandler onservicechanged;
   attribute EventHandler onserviceremoved;
 };
 
-// BluetoothRemoteGATTService implements EventTarget;
-// BluetoothRemoteGATTService implements CharacteristicEventHandlers;
-BluetoothRemoteGATTService implements ServiceEventHandlers;
+// BluetoothRemoteGATTService includes EventTarget;
+// BluetoothRemoteGATTService includes CharacteristicEventHandlers;
+BluetoothRemoteGATTService includes ServiceEventHandlers;

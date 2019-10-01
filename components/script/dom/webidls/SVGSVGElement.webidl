@@ -40,6 +40,6 @@ interface SVGSVGElement : SVGGraphicsElement {
   //void forceRedraw();
 };
 
-//SVGSVGElement implements SVGFitToViewBox;
-//SVGSVGElement implements SVGZoomAndPan;
-//SVGSVGElement implements WindowEventHandlers;
+//SVGSVGElement includes SVGFitToViewBox;
+//SVGSVGElement includes SVGZoomAndPan;
+//SVGSVGElement includes WindowEventHandlers;

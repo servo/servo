@@ -24,7 +24,7 @@ interface HTMLLinkElement : HTMLElement {
 
   // also has obsolete members
 };
-HTMLLinkElement implements LinkStyle;
+HTMLLinkElement includes LinkStyle;
 
 // https://html.spec.whatwg.org/multipage/#HTMLLinkElement-partial
 partial interface HTMLLinkElement {

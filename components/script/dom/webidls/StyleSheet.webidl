@@ -17,7 +17,6 @@ interface StyleSheet {
 };
 
 // https://drafts.csswg.org/cssom/#the-linkstyle-interface
-[NoInterfaceObject]
-interface LinkStyle {
+interface mixin LinkStyle {
   readonly attribute StyleSheet? sheet;
 };

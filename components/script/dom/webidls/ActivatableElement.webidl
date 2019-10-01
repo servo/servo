@@ -5,8 +5,8 @@
 // Interface for testing element activation
 // This interface is entirely internal to Servo, and should not be accessible to
 // web pages.
-[Exposed=(Window,Worker), NoInterfaceObject]
-interface ActivatableElement {
+[Exposed=(Window,Worker)]
+interface mixin ActivatableElement {
   [Throws, Pref="dom.testing.element.activation.enabled"]
   void enterFormalActivationState();
 

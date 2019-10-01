@@ -26,7 +26,7 @@ interface Request {
   [NewObject, Throws] Request clone();
 };
 
-Request implements Body;
+Request includes Body;
 
 dictionary RequestInit {
   ByteString method;

@@ -23,7 +23,7 @@ interface Response {
 
   [NewObject, Throws] Response clone();
 };
-Response implements Body;
+Response includes Body;
 
 dictionary ResponseInit {
   unsigned short status = 200;

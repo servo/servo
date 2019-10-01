@@ -15,12 +15,11 @@ interface BluetoothDevice : EventTarget {
   readonly attribute boolean watchingAdvertisements;
 };
 
-[NoInterfaceObject]
-interface BluetoothDeviceEventHandlers {
+interface mixin BluetoothDeviceEventHandlers {
   attribute EventHandler ongattserverdisconnected;
 };
 
-// BluetoothDevice implements EventTarget;
-BluetoothDevice implements BluetoothDeviceEventHandlers;
-// BluetoothDevice implements CharacteristicEventHandlers;
-// BluetoothDevice implements ServiceEventHandlers;
+// BluetoothDevice includes EventTarget;
+BluetoothDevice includes BluetoothDeviceEventHandlers;
+// BluetoothDevice includes CharacteristicEventHandlers;
+// BluetoothDevice includes ServiceEventHandlers;

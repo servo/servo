@@ -14,7 +14,7 @@ interface ServiceWorker : EventTarget {
 };
 
 // FIXME: use `includes` instead of `implements` after #22539 is fixed.
-ServiceWorker implements AbstractWorker;
+ServiceWorker includes AbstractWorker;
 
 enum ServiceWorkerState {
   "installing",

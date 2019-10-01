@@ -72,8 +72,8 @@ interface Document : Node {
                               optional NodeFilter? filter = null);
 };
 
-Document implements NonElementParentNode;
-Document implements ParentNode;
+Document includes NonElementParentNode;
+Document includes ParentNode;
 
 enum DocumentReadyState { "loading", "interactive", "complete" };
 
@@ -148,8 +148,8 @@ partial /*sealed*/ interface Document {
 
   // also has obsolete members
 };
-Document implements GlobalEventHandlers;
-Document implements DocumentAndElementEventHandlers;
+Document includes GlobalEventHandlers;
+Document includes DocumentAndElementEventHandlers;
 
 // https://html.spec.whatwg.org/multipage/#Document-partial
 partial interface Document {
@@ -210,7 +210,7 @@ partial interface Document {
   attribute EventHandler onfullscreenerror;
 };
 
-Document implements DocumentOrShadowRoot;
+Document includes DocumentOrShadowRoot;
 
 // Servo internal API.
 partial interface Document {
