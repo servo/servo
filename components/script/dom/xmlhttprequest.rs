@@ -1292,10 +1292,15 @@ impl XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#document-response
     fn document_response(&self) -> Option<DomRoot<Document>> {
-        // Step 1
+        // Caching: if we have existing response xml, redirect it directly
         let response = self.response_xml.get();
         if response.is_some() {
             return self.response_xml.get();
+        }
+
+        // Step 1
+        if self.response_status.get().is_err() {
+            return None;
         }
 
         let mime_type = self.final_mime_type();
