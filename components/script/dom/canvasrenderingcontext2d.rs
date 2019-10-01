@@ -24,6 +24,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
 use crate::dom::imagedata::ImageData;
 use crate::dom::node::{Node, NodeDamage};
+use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::textmetrics::TextMetrics;
 use crate::unpremultiplytable::UNPREMULTIPLY_TABLE;
 use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg};
@@ -144,6 +145,14 @@ impl CanvasState {
             .unwrap();
         let (ipc_renderer, canvas_id) = receiver.recv().unwrap();
         debug!("Done.");
+        // Worklets always receive a unique origin. This messes with fetching
+        // cached images in the case of paint worklets, since the image cache
+        // is keyed on the origin requesting the image data.
+        let origin = if global.is::<PaintWorkletGlobalScope>() {
+            global.api_base_url().origin()
+        } else {
+            global.origin().immutable().clone()
+        };
         CanvasState {
             ipc_renderer: ipc_renderer,
             canvas_id: canvas_id,
@@ -153,7 +162,7 @@ impl CanvasState {
             base_url: global.api_base_url(),
             missing_image_urls: DomRefCell::new(Vec::new()),
             saved_states: DomRefCell::new(Vec::new()),
-            origin: global.origin().immutable().clone(),
+            origin,
         }
     }
 
