@@ -279,8 +279,6 @@ impl FileReader {
             fr.dispatch_progress_event(atom!("loadend"), 0, None);
         }
         return_on_abort!();
-        // Step 9
-        fr.terminate_ongoing_reading();
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
@@ -443,6 +441,8 @@ impl FileReader {
         self.change_ready_state(FileReaderReadyState::Loading);
 
         // Step 3
+        *self.result.borrow_mut() = None;
+
         let blob_contents = Arc::new(blob.get_bytes().unwrap_or(vec![]));
 
         let type_ = blob.Type();
@@ -450,6 +450,9 @@ impl FileReader {
         let load_data = ReadMetaData::new(String::from(type_), label.map(String::from), function);
 
         let fr = Trusted::new(self);
+
+        let GenerationId(prev_id) = self.generation_id.get();
+        self.generation_id.set(GenerationId(prev_id + 1));
         let gen_id = self.generation_id.get();
 
         let global = self.global();
