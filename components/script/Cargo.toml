@@ -22,7 +22,6 @@ js_backtrace = ["backtrace"]
 uwp = ["js/uwp"]
 
 [build-dependencies]
-cmake = "0.1"
 phf_codegen = "0.7"
 phf_shared = "0.7"
 serde_json = "1.0"
@@ -36,7 +35,6 @@ backtrace = {version = "0.3", optional = true}
 base64 = "0.10.1"
 bitflags = "1.0"
 bluetooth_traits = {path = "../bluetooth_traits"}
-byteorder = "1.0"
 canvas_traits = {path = "../canvas_traits"}
 caseless = "0.2"
 cookie = "0.11"
@@ -90,7 +88,6 @@ script_plugins = {path = "../script_plugins"}
 script_traits = {path = "../script_traits"}
 selectors = { path = "../selectors" }
 serde = {version = "1", features = ["derive"]}
-serde_bytes = "0.10"
 servo_allocator = {path = "../allocator"}
 servo_arc = {path = "../servo_arc"}
 servo_atoms = {path = "../atoms"}
@@ -106,7 +103,6 @@ style_traits = {path = "../style_traits"}
 swapper = "0.1"
 tendril = {version = "0.4.1", features = ["encoding_rs"]}
 time = "0.1.12"
-typetag = "0.1"
 unicode-segmentation = "1.1.0"
 url = "2.0"
 utf-8 = "0.7"

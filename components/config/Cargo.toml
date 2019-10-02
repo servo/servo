@@ -28,7 +28,6 @@ url = "2.0"
 servo_config_plugins = { path = "../config_plugins" }
 
 [dev-dependencies]
-env_logger = "0.6"
 std_test_override = { path = "../std_test_override" }
 
 [target.'cfg(not(any(target_os = "android", feature = "uwp")))'.dependencies]

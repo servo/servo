@@ -10,7 +10,6 @@ path = "lib.rs"
 doctest = false
 
 [dependencies]
-byteorder = "1.0"
 app_units = "0.7"
 cssparser = "0.25"
 euclid = "0.20"
