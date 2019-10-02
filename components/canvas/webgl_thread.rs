@@ -1360,6 +1360,33 @@ impl WebGLImpl {
                 }
                 sender.send(value[0] != 0).unwrap()
             },
+            WebGLCommand::FenceSync(ref sender) => {
+                let value = ctx.gl().fence_sync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
+                sender
+                    .send(unsafe { WebGLSyncId::new(value as u64) })
+                    .unwrap();
+            },
+            WebGLCommand::IsSync(sync_id, ref sender) => {
+                let value = ctx.gl().is_sync(sync_id.get() as *const _);
+                sender.send(value).unwrap();
+            },
+            WebGLCommand::ClientWaitSync(sync_id, flags, timeout, ref sender) => {
+                let value =
+                    ctx.gl()
+                        .client_wait_sync(sync_id.get() as *const _, flags, timeout as u64);
+                sender.send(value).unwrap();
+            },
+            WebGLCommand::WaitSync(sync_id, flags, timeout) => {
+                ctx.gl()
+                    .wait_sync(sync_id.get() as *const _, flags, timeout as u64);
+            },
+            WebGLCommand::GetSyncParameter(sync_id, param, ref sender) => {
+                let value = ctx.gl().get_sync_iv(sync_id.get() as *const _, param);
+                sender.send(value[0] as u32).unwrap();
+            },
+            WebGLCommand::DeleteSync(sync_id) => {
+                ctx.gl().delete_sync(sync_id.get() as *const _);
+            },
             WebGLCommand::GetParameterBool4(param, ref sender) => {
                 let mut value = [0; 4];
                 unsafe {
