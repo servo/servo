@@ -298,6 +298,10 @@ class MachCommands(CommandBase):
             env["GSTREAMER_1_0_ROOT_" + arch['gst']] = path.join(
                 self.msvc_package_dir("gstreamer-uwp"), arch['gst_root']
             )
+            env["PKG_CONFIG_PATH"] = path.join(
+                self.msvc_package_dir("gstreamer-uwp"), arch['gst_root'],
+                "lib", "pkgconfig"
+            )
 
         # Ensure that GStreamer libraries are accessible when linking.
         if 'windows' in target_triple:
