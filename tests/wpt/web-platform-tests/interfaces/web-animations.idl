@@ -12,15 +12,15 @@ dictionary DocumentTimelineOptions {
   DOMHighResTimeStamp originTime = 0;
 };
 
-[Exposed=Window,
- Constructor(optional DocumentTimelineOptions options = {})]
+[Exposed=Window]
 interface DocumentTimeline : AnimationTimeline {
+  constructor(optional DocumentTimelineOptions options = {});
 };
 
-[Exposed=Window,
- Constructor(optional AnimationEffect? effect = null,
-             optional AnimationTimeline? timeline)]
+[Exposed=Window]
 interface Animation : EventTarget {
+    constructor(optional AnimationEffect? effect = null,
+                optional AnimationTimeline? timeline);
              attribute DOMString                id;
              attribute AnimationEffect?         effect;
     readonly attribute AnimationTimeline?       timeline;
@@ -90,12 +90,12 @@ dictionary ComputedEffectTiming : EffectTiming {
     unrestricted double? currentIteration;
 };
 
-[Exposed=Window,
- Constructor((Element or CSSPseudoElement)? target,
-             object? keyframes,
-             optional (unrestricted double or KeyframeEffectOptions) options = {}),
- Constructor(KeyframeEffect source)]
+[Exposed=Window]
 interface KeyframeEffect : AnimationEffect {
+    constructor((Element or CSSPseudoElement)? target,
+                object? keyframes,
+                optional (unrestricted double or KeyframeEffectOptions) options = {});
+    constructor(KeyframeEffect source);
     attribute (Element or CSSPseudoElement)? target;
     attribute CompositeOperation             composite;
     sequence<object> getKeyframes();
@@ -155,9 +155,9 @@ Element includes Animatable;
 
 CSSPseudoElement includes Animatable;
 
-[Exposed=Window,
- Constructor(DOMString type, optional AnimationPlaybackEventInit eventInitDict = {})]
+[Exposed=Window]
 interface AnimationPlaybackEvent : Event {
+    constructor(DOMString type, optional AnimationPlaybackEventInit eventInitDict = {});
     readonly attribute double? currentTime;
     readonly attribute double? timelineTime;
 };

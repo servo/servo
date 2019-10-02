@@ -39,6 +39,7 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
     executor_kwargs["supports_eager_pageload"] = False
 
     capabilities = {
+        "acceptInsecureCerts": True,
         "goog:chromeOptions": {
             "prefs": {
                 "profile": {

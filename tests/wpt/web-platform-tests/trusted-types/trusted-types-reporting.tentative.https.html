@@ -68,7 +68,7 @@
 
   function expect_blocked_uri(s) { return e => {
     assert_true(e.blockedURI === s,
-                `expected "${e.blockedUri}" to be "${s}".`);
+                `expected "${e.blockedURI}" to be "${s}".`);
     return e;
   } }
 
@@ -154,6 +154,7 @@
   promise_test(t => {
     let p = Promise.resolve()
         .then(promise_violation("trusted-types two"))
+        .then(expect_blocked_uri("trusted-types-sink"))
         .then(expect_sample("Element.innerHTML"))
         .then(expect_sample("abc"));
     expect_throws(_ => { document.getElementById("div").innerHTML = "abc" });
@@ -163,6 +164,7 @@
   promise_test(t => {
     let p = Promise.resolve()
         .then(promise_violation("trusted-types two"))
+        .then(expect_blocked_uri("trusted-types-sink"))
         .then(expect_sample("HTMLAnchorElement.href"));
       expect_throws(_ => { document.getElementById("anchor").href = "" });
     return p;
@@ -171,6 +173,7 @@
   promise_test(t => {
     let p = Promise.resolve()
         .then(promise_violation("trusted-types two"))
+        .then(expect_blocked_uri("trusted-types-sink"))
         .then(expect_sample("HTMLElement.innerText"))
         .then(expect_sample("2+2;"));
     expect_throws(_ => document.getElementById("script").innerText = "2+2;");
@@ -180,6 +183,7 @@
   promise_test(t => {
     let p = Promise.resolve()
         .then(promise_violation("trusted-types one"))
+        .then(expect_blocked_uri("trusted-types-sink"))
         .then(expect_sample("eval"))
         .then(expect_sample("2+2"))
         .then(promise_flush());
@@ -193,6 +197,7 @@
     // start of the value, but it should not be excessively long.
     let p = Promise.resolve()
         .then(promise_violation("trusted-types two"))
+        .then(expect_blocked_uri("trusted-types-sink"))
         .then(expect_sample("HTMLElement.innerText"))
         .then(expect_sample("abbb"))
         .then(e => assert_less_than(e.sample.length, 150));
@@ -211,6 +216,7 @@
     promise_test(t => {
       let p = Promise.resolve()
           .then(promise_violation("trusted-types one"))
+          .then(expect_blocked_uri("trusted-types-sink"))
           .then(expect_sample("HTMLAnchorElement.href"))
           .then(expect_sample("abc"));
       expect_throws(_ => document.getElementById("customlink").href = "abc");

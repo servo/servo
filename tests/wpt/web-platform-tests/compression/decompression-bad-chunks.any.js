@@ -34,20 +34,16 @@ const badChunks = [
   {
     name: 'shared Uint8Array',
     get value() {
-      new Uint8Array(new SharedArrayBuffer())
+      return new Uint8Array(new SharedArrayBuffer())
     }
   },
   {
     name: 'invalid deflate bytes',
-    get value() {
-      new Uint8Array([0, 156, 75, 173, 40, 72, 77, 46, 73, 77, 81, 200, 47, 45, 41, 40, 45, 1, 0, 48, 173, 6, 36])
-    }
+    value: new Uint8Array([0, 156, 75, 173, 40, 72, 77, 46, 73, 77, 81, 200, 47, 45, 41, 40, 45, 1, 0, 48, 173, 6, 36])
   },
   {
     name: 'invalid gzip bytes',
-    get value() {
-      new Uint8Array([0, 139, 8, 0, 0, 0, 0, 0, 0, 3, 75, 173, 40, 72, 77, 46, 73, 77, 81, 200, 47, 45, 41, 40, 45, 1, 0, 176, 1, 57, 179, 15, 0, 0, 0])
-    }
+    value: new Uint8Array([0, 139, 8, 0, 0, 0, 0, 0, 0, 3, 75, 173, 40, 72, 77, 46, 73, 77, 81, 200, 47, 45, 41, 40, 45, 1, 0, 176, 1, 57, 179, 15, 0, 0, 0])
   },
 ];
 

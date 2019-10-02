@@ -18,6 +18,7 @@ partial interface DataTransferItem {
 
 callback ErrorCallback = void (DOMException err);
 
+[Exposed=Window]
 interface FileSystemEntry {
     readonly attribute boolean isFile;
     readonly attribute boolean isDirectory;
@@ -29,6 +30,7 @@ interface FileSystemEntry {
                    optional ErrorCallback errorCallback);
 };
 
+[Exposed=Window]
 interface FileSystemDirectoryEntry : FileSystemEntry {
     FileSystemDirectoryReader createReader();
     void getFile(optional USVString? path,
@@ -48,18 +50,21 @@ dictionary FileSystemFlags {
 
 callback FileSystemEntryCallback = void (FileSystemEntry entry);
 
+[Exposed=Window]
 interface FileSystemDirectoryReader {
     void readEntries(FileSystemEntriesCallback successCallback,
                      optional ErrorCallback errorCallback);
 };
 callback FileSystemEntriesCallback = void (sequence<FileSystemEntry> entries);
 
+[Exposed=Window]
 interface FileSystemFileEntry : FileSystemEntry {
     void file(FileCallback successCallback,
               optional ErrorCallback errorCallback);
 };
 callback FileCallback = void (File file);
 
+[Exposed=Window]
 interface FileSystem {
     readonly attribute USVString name;
     readonly attribute FileSystemDirectoryEntry root;
