@@ -43,6 +43,7 @@ profilemozjs = ["libservo/profilemozjs"]
 webdriver = ["libservo/webdriver"]
 webgl_backtrace = ["libservo/webgl_backtrace"]
 webrender_debugger = ["libservo/webrender_debugger"]
+vslatestinstalled = ["libservo/vslatestinstalled"]
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = "0.3"

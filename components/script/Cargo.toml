@@ -20,6 +20,7 @@ default = ["unrooted_must_root_lint"]
 webgl_backtrace = ["backtrace", "canvas_traits/webgl_backtrace"]
 js_backtrace = ["backtrace"]
 uwp = ["js/uwp"]
+vslatestinstalled = ["js/vslatestinstalled"]
 
 [build-dependencies]
 cmake = "0.1"

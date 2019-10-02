@@ -35,6 +35,7 @@ webgl_backtrace = [
     "canvas/webgl_backtrace",
     "canvas_traits/webgl_backtrace",
 ]
+vslatestinstalled = ["script/vslatestinstalled"]
 
 [dependencies]
 background_hang_monitor = {path = "../background_hang_monitor"}
