@@ -6,9 +6,9 @@
 
 typedef (Headers or sequence<sequence<ByteString>> or record<DOMString, ByteString>) HeadersInit;
 
-[Constructor(optional HeadersInit init),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface Headers {
+  [Throws] constructor(optional HeadersInit init);
   [Throws]
   void append(ByteString name, ByteString value);
   [Throws]

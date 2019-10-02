@@ -10,10 +10,10 @@
  * related or neighboring rights to this work.
  */
 
-[Constructor(optional DOMPointInit p1 = {}, optional DOMPointInit p2 = {},
-             optional DOMPointInit p3 = {}, optional DOMPointInit p4 = {}),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface DOMQuad {
+    [Throws] constructor(optional DOMPointInit p1 = {}, optional DOMPointInit p2 = {},
+                optional DOMPointInit p3 = {}, optional DOMPointInit p4 = {});
     [NewObject] static DOMQuad fromRect(optional DOMRectInit other = {});
     [NewObject] static DOMQuad fromQuad(optional DOMQuadInit other = {});
 

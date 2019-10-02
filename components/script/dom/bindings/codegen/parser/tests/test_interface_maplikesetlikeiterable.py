@@ -264,18 +264,18 @@ def WebIDLTest(parser, harness):
 
     shouldPass("JS Implemented maplike interface",
                """
-               [JSImplementation="@mozilla.org/dom/test-interface-js-maplike;1",
-               Constructor()]
+               [JSImplementation="@mozilla.org/dom/test-interface-js-maplike;1"]
                interface Foo1 {
+               constructor();
                setlike<long>;
                };
                """, setRWChromeMembers)
 
     shouldPass("JS Implemented maplike interface",
                """
-               [JSImplementation="@mozilla.org/dom/test-interface-js-maplike;1",
-               Constructor()]
+               [JSImplementation="@mozilla.org/dom/test-interface-js-maplike;1"]
                interface Foo1 {
+               constructor();
                maplike<long, long>;
                };
                """, mapRWChromeMembers)
@@ -655,9 +655,9 @@ def WebIDLTest(parser, harness):
 
     shouldPass("JS Implemented read-only interface with readonly allowable overrides",
                """
-               [JSImplementation="@mozilla.org/dom/test-interface-js-maplike;1",
-               Constructor()]
+               [JSImplementation="@mozilla.org/dom/test-interface-js-maplike;1"]
                interface Foo1 {
+               constructor();
                readonly setlike<long>;
                readonly attribute boolean clear;
                };
@@ -665,9 +665,9 @@ def WebIDLTest(parser, harness):
 
     shouldFail("JS Implemented read-write interface with non-readwrite allowable overrides",
                """
-               [JSImplementation="@mozilla.org/dom/test-interface-js-maplike;1",
-               Constructor()]
+               [JSImplementation="@mozilla.org/dom/test-interface-js-maplike;1"]
                interface Foo1 {
+               constructor();
                setlike<long>;
                readonly attribute boolean clear;
                };

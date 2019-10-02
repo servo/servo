@@ -189,12 +189,12 @@ def WebIDLTest(parser, harness):
 
     parser = parser.reset()
     parser.parse("""
-        [Constructor(long arg)]
         interface A {
+            constructor();
+            constructor(long arg);
             readonly attribute boolean x;
             void foo();
         };
-        [Constructor]
         partial interface A {
             readonly attribute boolean y;
             void foo(long arg);
@@ -219,13 +219,13 @@ def WebIDLTest(parser, harness):
 
     parser = parser.reset()
     parser.parse("""
-        [Constructor]
         partial interface A {
             readonly attribute boolean y;
             void foo(long arg);
         };
-        [Constructor(long arg)]
         interface A {
+            constructor();
+            constructor(long arg);
             readonly attribute boolean x;
             void foo();
         };

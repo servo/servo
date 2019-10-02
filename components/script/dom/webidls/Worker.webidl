@@ -9,8 +9,9 @@ interface mixin AbstractWorker {
 };
 
 // https://html.spec.whatwg.org/multipage/#worker
-[Constructor(USVString scriptURL, optional WorkerOptions options = {}), Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface Worker : EventTarget {
+  [Throws] constructor(USVString scriptURL, optional WorkerOptions options = {});
   void terminate();
 
   [Throws] void postMessage(any message/*, sequence<object> transfer*/);

@@ -4,9 +4,9 @@
 
 // https://fetch.spec.whatwg.org/#response-class
 
- [Constructor(optional BodyInit? body = null, optional ResponseInit init = {}),
-  Exposed=(Window,Worker)]
+ [Exposed=(Window,Worker)]
 interface Response {
+  [Throws] constructor(optional BodyInit? body = null, optional ResponseInit init = {});
   [NewObject] static Response error();
   [NewObject, Throws] static Response redirect(USVString url, optional unsigned short status = 302);
 

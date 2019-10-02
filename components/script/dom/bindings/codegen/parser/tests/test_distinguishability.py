@@ -166,7 +166,7 @@ def WebIDLTest(parser, harness):
                  "record<ByteString, long>",
                  "Date", "Date?", "any",
                  "Promise<any>", "Promise<any>?",
-                 "USVString", "ArrayBuffer", "ArrayBufferView", "SharedArrayBuffer",
+                 "USVString", "JSString", "ArrayBuffer", "ArrayBufferView", "SharedArrayBuffer",
                  "Uint8Array", "Uint16Array",
                  "(long or Callback)", "(long or Dict)",
     ]
@@ -183,7 +183,7 @@ def WebIDLTest(parser, harness):
     primitives = numerics + booleans
     nonNumerics = allBut(argTypes, numerics + unions)
     nonBooleans = allBut(argTypes, booleans)
-    strings = [ "DOMString", "ByteString", "Enum", "Enum2", "USVString" ]
+    strings = [ "DOMString", "ByteString", "Enum", "Enum2", "USVString", "JSString" ]
     nonStrings = allBut(argTypes, strings)
     nonObjects = primitives + strings
     objects = allBut(argTypes, nonObjects )
@@ -202,7 +202,7 @@ def WebIDLTest(parser, harness):
     notRelatedInterfaces = (nonObjects + ["UnrelatedInterface"] +
                             otherObjects + dates + sequences + bufferSourceTypes + sharedBufferSourceTypes)
     records = [ "record<DOMString, object>", "record<USVString, Dict>",
-                "record<ByteString, long>" ]
+                "record<ByteString, long>" ] # JSString not supported in records
 
     # Build a representation of the distinguishability table as a dict
     # of dicts, holding True values where needed, holes elsewhere.
@@ -222,6 +222,7 @@ def WebIDLTest(parser, harness):
     setDistinguishable("DOMString", nonStrings)
     setDistinguishable("ByteString", nonStrings)
     setDistinguishable("USVString", nonStrings)
+    setDistinguishable("JSString", nonStrings)
     setDistinguishable("Enum", nonStrings)
     setDistinguishable("Enum2", nonStrings)
     setDistinguishable("Interface", notRelatedInterfaces)
@@ -244,6 +245,7 @@ def WebIDLTest(parser, harness):
                        allBut(argTypes, sequences + ["object"]))
     setDistinguishable("record<DOMString, object>", nonUserObjects)
     setDistinguishable("record<USVString, Dict>", nonUserObjects)
+    # JSString not supported in records
     setDistinguishable("record<ByteString, long>", nonUserObjects)
     setDistinguishable("Date", allBut(argTypes, dates + ["object"]))
     setDistinguishable("Date?", allBut(argTypes, dates + nullables + ["object"]))

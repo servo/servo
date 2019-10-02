@@ -7,8 +7,9 @@
  */
 
 // https://dom.spec.whatwg.org/#mutationobserver
-[Pref="dom.mutation_observer.enabled", Constructor(MutationCallback callback)]
+[Pref="dom.mutation_observer.enabled"]
 interface MutationObserver {
+    [Throws] constructor(MutationCallback callback);
     [Throws]
     void observe(Node target, optional MutationObserverInit options = {});
     void disconnect();

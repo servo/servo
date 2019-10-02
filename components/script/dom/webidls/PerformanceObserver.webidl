@@ -13,9 +13,9 @@ dictionary PerformanceObserverInit {
 
 callback PerformanceObserverCallback = void (PerformanceObserverEntryList entries, PerformanceObserver observer);
 
-[Constructor(PerformanceObserverCallback callback),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface PerformanceObserver {
+  [Throws] constructor(PerformanceObserverCallback callback);
   [Throws]
   void observe(PerformanceObserverInit options);
   void disconnect();

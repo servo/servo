@@ -12,9 +12,9 @@ dictionary AudioBufferOptions {
   required float sampleRate;
 };
 
-[Exposed=Window,
- Constructor (AudioBufferOptions options)]
+[Exposed=Window]
 interface AudioBuffer {
+  [Throws] constructor(AudioBufferOptions options);
   readonly attribute float sampleRate;
   readonly attribute unsigned long length;
   readonly attribute double duration;

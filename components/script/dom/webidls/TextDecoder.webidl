@@ -12,8 +12,9 @@ dictionary TextDecodeOptions {
   boolean stream = false;
 };
 
-[Constructor(optional DOMString label = "utf-8", optional TextDecoderOptions options = {}), Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface TextDecoder {
+  [Throws] constructor(optional DOMString label = "utf-8", optional TextDecoderOptions options = {});
   readonly attribute DOMString encoding;
   readonly attribute boolean fatal;
   readonly attribute boolean ignoreBOM;

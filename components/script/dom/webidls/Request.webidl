@@ -6,10 +6,9 @@
 
 typedef (Request or USVString) RequestInfo;
 
-[Constructor(RequestInfo input, optional RequestInit init = {}),
- Exposed=(Window,Worker)]
-
+[Exposed=(Window,Worker)]
 interface Request {
+  [Throws] constructor(RequestInfo input, optional RequestInit init = {});
   readonly attribute ByteString method;
   readonly attribute USVString url;
   [SameObject] readonly attribute Headers headers;

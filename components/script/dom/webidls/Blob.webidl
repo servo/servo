@@ -4,10 +4,10 @@
 
 // https://w3c.github.io/FileAPI/#blob
 
-[Constructor(optional sequence<BlobPart> blobParts,
-  optional BlobPropertyBag options = {}),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface Blob {
+  [Throws] constructor(optional sequence<BlobPart> blobParts,
+    optional BlobPropertyBag options = {});
 
   readonly attribute unsigned long long size;
   readonly attribute DOMString type;

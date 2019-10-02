@@ -11,8 +11,9 @@ enum VRDisplayEventReason {
   "requested"
 };
 
-[Pref="dom.webvr.enabled", Constructor(DOMString type, VRDisplayEventInit eventInitDict)]
+[Pref="dom.webvr.enabled"]
 interface VRDisplayEvent : Event {
+  [Throws] constructor(DOMString type, VRDisplayEventInit eventInitDict);
   readonly attribute VRDisplay display;
   readonly attribute VRDisplayEventReason? reason;
 };

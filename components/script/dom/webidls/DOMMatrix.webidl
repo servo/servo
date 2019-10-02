@@ -10,9 +10,9 @@
  * related or neighboring rights to this work.
  */
 
-[Constructor(optional (DOMString or sequence<unrestricted double>) init),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface DOMMatrix : DOMMatrixReadOnly {
+    [Throws] constructor(optional (DOMString or sequence<unrestricted double>) init);
 
     [NewObject, Throws] static DOMMatrix fromMatrix(optional DOMMatrixInit other = {});
     [NewObject, Throws] static DOMMatrix fromFloat32Array(Float32Array array32);

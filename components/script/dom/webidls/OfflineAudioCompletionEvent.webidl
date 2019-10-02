@@ -10,8 +10,8 @@ dictionary OfflineAudioCompletionEventInit : EventInit {
   required AudioBuffer renderedBuffer;
 };
 
-[Exposed=Window,
- Constructor(DOMString type, OfflineAudioCompletionEventInit eventInitDict)]
+[Exposed=Window]
 interface OfflineAudioCompletionEvent : Event {
+  [Throws] constructor(DOMString type, OfflineAudioCompletionEventInit eventInitDict);
   readonly attribute AudioBuffer renderedBuffer;
 };
