@@ -2,23 +2,9 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            [Constructor, Global]
+            [Global]
             interface TestConstructorGlobal {
-            };
-        """)
-
-        results = parser.finish()
-    except:
-        threw = True
-
-    harness.ok(threw, "Should have thrown.")
-
-    parser = parser.reset()
-    threw = False
-    try:
-        parser.parse("""
-            [Global, Constructor]
-            interface TestConstructorGlobal {
+              constructor();
             };
         """)
 

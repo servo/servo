@@ -86,13 +86,13 @@ dictionary TestDictionaryDefaults {
   object? nullableObjectValue = null;
 };
 
-[Constructor,
- Constructor(sequence<unrestricted double> numberSequence),
- Constructor(unrestricted double num),
- Pref="dom.testbinding.enabled",
+[Pref="dom.testbinding.enabled",
  Exposed=(Window,Worker)
 ]
 interface TestBinding {
+           [Throws] constructor();
+           [Throws] constructor(sequence<unrestricted double> numberSequence);
+           [Throws] constructor(unrestricted double num);
            attribute boolean booleanAttribute;
            attribute byte byteAttribute;
            attribute octet octetAttribute;

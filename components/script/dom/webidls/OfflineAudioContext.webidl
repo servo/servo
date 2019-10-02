@@ -12,10 +12,10 @@ dictionary OfflineAudioContextOptions {
   required float sampleRate;
 };
 
-[Exposed=Window,
- Constructor (OfflineAudioContextOptions contextOptions),
- Constructor (unsigned long numberOfChannels, unsigned long length, float sampleRate)]
+[Exposed=Window]
 interface OfflineAudioContext : BaseAudioContext {
+  [Throws] constructor(OfflineAudioContextOptions contextOptions);
+  [Throws] constructor(unsigned long numberOfChannels, unsigned long length, float sampleRate);
   readonly attribute unsigned long length;
   attribute EventHandler oncomplete;
 

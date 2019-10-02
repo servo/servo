@@ -17,11 +17,11 @@ dictionary XRWebGLLayerInit {
   // double framebufferScaleFactor = 1.0;
 };
 
-[SecureContext, Exposed=Window, Constructor(XRSession session,
-            XRWebGLRenderingContext context,
-            optional XRWebGLLayerInit layerInit = {}),
-    Pref="dom.webxr.enabled"]
+[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
 interface XRWebGLLayer {
+  [Throws] constructor(XRSession session,
+              XRWebGLRenderingContext context,
+              optional XRWebGLLayerInit layerInit = {});
   // // Attributes
   readonly attribute XRWebGLRenderingContext context;
 

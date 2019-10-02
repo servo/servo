@@ -6,8 +6,9 @@
  * https://dom.spec.whatwg.org/#event
  */
 
-[Constructor(DOMString type, optional EventInit eventInitDict = {}), Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface Event {
+  [Throws] constructor(DOMString type, optional EventInit eventInitDict = {});
   [Pure]
   readonly attribute DOMString type;
   readonly attribute EventTarget? target;

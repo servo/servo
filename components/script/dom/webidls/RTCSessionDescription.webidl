@@ -4,9 +4,9 @@
 
 // https://w3c.github.io/webrtc-pc/#rtcsessiondescription-class
 
-[Constructor(RTCSessionDescriptionInit descriptionInitDict),
- Exposed=Window, Pref="dom.webrtc.enabled"]
+[Exposed=Window, Pref="dom.webrtc.enabled"]
 interface RTCSessionDescription {
+    [Throws] constructor(RTCSessionDescriptionInit descriptionInitDict);
     readonly attribute RTCSdpType type;
     readonly attribute DOMString  sdp;
     [Default] object toJSON();

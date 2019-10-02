@@ -10,8 +10,8 @@ dictionary ConstantSourceOptions: AudioNodeOptions {
   float offset = 1;
 };
 
-[Exposed=Window,
- Constructor (BaseAudioContext context, optional ConstantSourceOptions options = {})]
+[Exposed=Window]
 interface ConstantSourceNode : AudioScheduledSourceNode {
+  [Throws] constructor(BaseAudioContext context, optional ConstantSourceOptions options = {});
   readonly attribute AudioParam offset;
 };

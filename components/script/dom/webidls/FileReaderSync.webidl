@@ -4,8 +4,9 @@
 
 // https://w3c.github.io/FileAPI/#FileReaderSync
 
-[Constructor, Exposed=Worker]
+[Exposed=Worker]
 interface FileReaderSync {
+  [Throws] constructor();
   // Synchronously return strings
 
   [Throws]

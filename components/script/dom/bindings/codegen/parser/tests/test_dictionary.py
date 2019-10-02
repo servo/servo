@@ -320,14 +320,36 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
-              void doFoo(optional A? arg1);
+              void doFoo(optional A? arg1 = {});
             };
         """)
         results = parser.finish()
-    except:
-        threw = True
+    except Exception as x:
+        threw = x
 
-    harness.ok(threw, "Dictionary arg must not be nullable")
+    harness.ok(threw, "Optional dictionary arg must not be nullable")
+    harness.ok("nullable" in str(threw),
+               "Must have the expected exception for optional nullable dictionary arg")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            dictionary A {
+              required long x;
+            };
+            interface X {
+              void doFoo(A? arg1);
+            };
+        """)
+        results = parser.finish()
+    except Exception as x:
+        threw = x
+
+    harness.ok(threw, "Required dictionary arg must not be nullable")
+    harness.ok("nullable" in str(threw),
+               "Must have the expected exception for required nullable "
+               "dictionary arg")
 
     parser = parser.reset()
     threw = False
@@ -336,14 +358,54 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
-              void doFoo(optional (A or long)? arg1);
+              void doFoo(optional (A or long)? arg1 = {});
+            };
+        """)
+        results = parser.finish()
+    except Exception as x:
+        threw = x
+
+    harness.ok(threw, "Dictionary arg must not be in an optional nullable union")
+    harness.ok("nullable" in str(threw),
+               "Must have the expected exception for optional nullable union "
+               "arg containing dictionary")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            dictionary A {
+              required long x;
+            };
+            interface X {
+              void doFoo((A or long)? arg1);
+            };
+        """)
+        results = parser.finish()
+    except Exception as x:
+        threw = x
+
+    harness.ok(threw, "Dictionary arg must not be in a required nullable union")
+    harness.ok("nullable" in str(threw),
+               "Must have the expected exception for required nullable union "
+               "arg containing dictionary")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            dictionary A {
+            };
+            interface X {
+              void doFoo(sequence<A?> arg1);
             };
         """)
         results = parser.finish()
     except:
         threw = True
 
-    harness.ok(threw, "Dictionary arg must not be in a nullable union")
+    harness.ok(not threw,
+               "Nullable union should be allowed in a sequence argument")
 
     parser = parser.reset()
     threw = False

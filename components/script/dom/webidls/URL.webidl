@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://url.spec.whatwg.org/#url
-[Constructor(USVString url, optional USVString base), Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface URL {
+  [Throws] constructor(USVString url, optional USVString base);
   [SetterThrows]
   /*stringifier*/ attribute USVString href;
   readonly attribute USVString origin;

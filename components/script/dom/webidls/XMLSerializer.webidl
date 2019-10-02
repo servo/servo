@@ -6,8 +6,8 @@
  * https://w3c.github.io/DOM-Parsing/#the-domparser-interface
  */
 
-[Constructor]
 interface XMLSerializer {
+  [Throws] constructor();
   [Throws]
   DOMString serializeToString(Node root);
 };

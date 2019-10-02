@@ -14,8 +14,8 @@ enum SupportedType {
   "image/svg+xml"*/
 };
 
-[Constructor]
 interface DOMParser {
+  [Throws] constructor();
   [Throws]
   Document parseFromString(DOMString str, SupportedType type);
 };

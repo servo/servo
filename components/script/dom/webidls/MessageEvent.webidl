@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#messageevent
-[Constructor(DOMString type, optional MessageEventInit eventInitDict = {}), Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface MessageEvent : Event {
+  [Throws] constructor(DOMString type, optional MessageEventInit eventInitDict = {});
   readonly attribute any data;
   readonly attribute DOMString origin;
   readonly attribute DOMString lastEventId;

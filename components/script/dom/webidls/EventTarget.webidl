@@ -5,8 +5,9 @@
  * https://dom.spec.whatwg.org/#interface-eventtarget
  */
 
-[Constructor, Exposed=(Window,Worker,Worklet,DissimilarOriginWindow)]
+[Exposed=(Window,Worker,Worklet,DissimilarOriginWindow)]
 interface EventTarget {
+  [Throws] constructor();
   void addEventListener(
     DOMString type,
     EventListener? callback,

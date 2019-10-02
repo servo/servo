@@ -4,9 +4,9 @@
 
 // https://w3c.github.io/webrtc-pc/#interface-definition
 
-[Constructor(optional RTCConfiguration configuration = {}),
- Exposed=Window, Pref="dom.webrtc.enabled"]
+[Exposed=Window, Pref="dom.webrtc.enabled"]
 interface RTCPeerConnection : EventTarget {
+    [Throws] constructor(optional RTCConfiguration configuration = {});
     Promise<RTCSessionDescriptionInit> createOffer(optional RTCOfferOptions options = {});
     Promise<RTCSessionDescriptionInit> createAnswer(optional RTCAnswerOptions options = {});
     Promise<void>                      setLocalDescription(RTCSessionDescriptionInit description);

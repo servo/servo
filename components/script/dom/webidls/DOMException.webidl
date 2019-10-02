@@ -9,10 +9,10 @@
 
 [
   ExceptionClass,
-  Exposed=(Window,Worker,Worklet,DissimilarOriginWindow),
-  Constructor(optional DOMString message="", optional DOMString name="Error")
+  Exposed=(Window,Worker,Worklet,DissimilarOriginWindow)
 ]
 interface DOMException {
+  [Throws] constructor(optional DOMString message="", optional DOMString name="Error");
   const unsigned short INDEX_SIZE_ERR = 1;
   const unsigned short DOMSTRING_SIZE_ERR = 2; // historical
   const unsigned short HIERARCHY_REQUEST_ERR = 3;

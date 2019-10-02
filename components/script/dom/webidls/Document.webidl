@@ -8,8 +8,8 @@
  */
 
 // https://dom.spec.whatwg.org/#interface-document
-[Constructor]
 interface Document : Node {
+  [Throws] constructor();
   [SameObject]
   readonly attribute DOMImplementation implementation;
   [Constant]
