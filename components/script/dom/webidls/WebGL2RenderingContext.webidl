@@ -576,7 +576,7 @@ interface mixin WebGL2RenderingContextBase
   void bindVertexArray(WebGLVertexArrayObject? array);*/
 };
 
-[Pref="dom.webgl2.enabled"]
+[Exposed=Window, Pref="dom.webgl2.enabled"]
 interface WebGL2RenderingContext
 {
 };

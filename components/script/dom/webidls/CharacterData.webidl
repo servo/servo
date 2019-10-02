@@ -9,7 +9,7 @@
  * liability, trademark and document use rules apply.
  */
 
-[Abstract]
+[Exposed=Window, Abstract]
 interface CharacterData : Node {
   [Pure] attribute [TreatNullAs=EmptyString] DOMString data;
   [Pure] readonly attribute unsigned long length;

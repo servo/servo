@@ -6,6 +6,7 @@
  * https://dom.spec.whatwg.org/#interface-processinginstruction
  */
 
+[Exposed=Window]
 interface ProcessingInstruction : CharacterData {
   [Constant]
   readonly attribute DOMString target;

@@ -38,11 +38,6 @@ class Configuration:
             iface = thing
             self.interfaces[iface.identifier.name] = iface
             if iface.identifier.name not in config:
-                # Completely skip consequential interfaces with no descriptor
-                # if they have no interface object because chances are we
-                # don't need to do anything interesting with them.
-                if iface.isConsequential() and not iface.hasInterfaceObject():
-                    continue
                 entry = {}
             else:
                 entry = config[iface.identifier.name]

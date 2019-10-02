@@ -25,7 +25,7 @@ dictionary RequestDeviceOptions {
   boolean acceptAllDevices = false;
 };
 
-[Pref="dom.bluetooth.enabled"]
+[Exposed=Window, Pref="dom.bluetooth.enabled"]
 interface Bluetooth : EventTarget {
   [SecureContext]
   Promise<boolean> getAvailability();

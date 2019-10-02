@@ -4,6 +4,7 @@
 
 // https://drafts.csswg.org/cssom/#the-medialist-interface
 // [LegacyArrayClass]
+[Exposed=Window]
 interface MediaList {
   /* stringifier */ attribute [TreatNullAs=EmptyString] DOMString mediaText;
   readonly attribute unsigned long length;

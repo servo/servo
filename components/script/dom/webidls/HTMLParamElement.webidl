@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlparamelement
-[HTMLConstructor]
+[Exposed=Window, HTMLConstructor]
 interface HTMLParamElement : HTMLElement {
   // [CEReactions]
   //         attribute DOMString name;
