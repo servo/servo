@@ -298,13 +298,17 @@ class MachCommands(CommandBase):
             env["GSTREAMER_1_0_ROOT_" + arch['gst']] = path.join(
                 self.msvc_package_dir("gstreamer-uwp"), arch['gst_root']
             )
+            env["PKG_CONFIG_PATH"] = path.join(
+                self.msvc_package_dir("gstreamer-uwp"), arch['gst_root'],
+                "lib", "pkgconfig"
+            )
 
         # Ensure that GStreamer libraries are accessible when linking.
         if 'windows' in target_triple:
             gst_root = gstreamer_root(target_triple, env)
             if gst_root:
                 append_to_path_env(os.path.join(gst_root, "lib"), env, "LIB")
-
+                
         if android:
             if "ANDROID_NDK" not in env:
                 print("Please set the ANDROID_NDK environment variable.")
