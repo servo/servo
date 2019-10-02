@@ -47,8 +47,11 @@ impl MediaSessionMethods for MediaSession {
         self.metadata.get()
     }
 
-    fn SetMetadata(&self, value: Option<&MediaMetadata>) {
-        self.metadata.set(value);
+    fn SetMetadata(&self, metadata: Option<&MediaMetadata>) {
+        if let Some(ref metadata) = metadata {
+            metadata.set_session(self);
+        }
+        self.metadata.set(metadata);
     }
 
     /// https://w3c.github.io/mediasession/#dom-mediasession-playbackstate
@@ -57,8 +60,8 @@ impl MediaSessionMethods for MediaSession {
     }
 
     /// https://w3c.github.io/mediasession/#dom-mediasession-playbackstate
-    fn SetPlaybackState(&self, value: MediaSessionPlaybackState) {
-        *self.playback_state.borrow_mut() = value;
+    fn SetPlaybackState(&self, state: MediaSessionPlaybackState) {
+        *self.playback_state.borrow_mut() = state;
     }
 
     fn SetActionHandler(

@@ -27,7 +27,6 @@ impl MediaMetadata {
     fn new_inherited(init: &MediaMetadataInit) -> MediaMetadata {
         MediaMetadata {
             reflector_: Reflector::new(),
-            // TODO(ferjm): Set active media session?
             session: Default::default(),
             title: DomRefCell::new(init.title.clone()),
             artist: DomRefCell::new(init.artist.clone()),
@@ -55,6 +54,10 @@ impl MediaMetadata {
         if self.session.get().is_none() {
             return;
         }
+    }
+
+    pub fn set_session(&self, session: &MediaSession) {
+        self.session.set(Some(&session));
     }
 }
 
