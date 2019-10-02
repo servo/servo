@@ -1,1 +1,1 @@
-Feature-Policy-Report-Only: xr 'none'
+Feature-Policy-Report-Only: xr-spatial-tracking 'none'

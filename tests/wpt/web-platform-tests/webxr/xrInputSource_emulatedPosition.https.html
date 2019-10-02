@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
+<canvas id="webgl-canvas"></canvas>
+
+<script>
+
+let testName = "Poses from XRInputSource.gripSpace have emulatedPosition set "
+  + "properly";
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction =
+  (session, fakeDeviceController, t) => new Promise((resolve) => {
+    let input_source = fakeDeviceController.simulateInputSourceConnection({
+      handedness: "right",
+      targetRayMode: "tracked-pointer",
+      pointerOrigin: IDENTITY_TRANSFORM,
+      gripOrigin: VALID_GRIP_TRANSFORM,
+      profiles: []
+    });
+
+    // Must have a reference space to get input poses. eye-level doesn't apply
+    // any transforms to the given matrix.
+    session.requestReferenceSpace('local').then( (referenceSpace) => {
+
+      function CheckPositionNotEmulated(time, xrFrame) {
+        let source = session.inputSources[0];
+        let grip_pose = xrFrame.getPose(source.gripSpace, referenceSpace);
+
+        t.step(() => {
+          assert_not_equals(grip_pose, null);
+          assert_equals(grip_pose.emulatedPosition, false);
+        });
+
+        input_source.setGripOrigin(VALID_GRIP_TRANSFORM, true);
+        session.requestAnimationFrame(CheckPositionEmulated);
+      }
+
+      function CheckPositionEmulated(time, xrFrame) {
+        let source = session.inputSources[0];
+        let grip_pose = xrFrame.getPose(source.gripSpace, referenceSpace);
+
+        t.step(() => {
+          assert_not_equals(grip_pose, null);
+          assert_equals(grip_pose.emulatedPosition, true);
+        });
+
+        resolve();
+      }
+
+      // Can only request input poses in an xr frame.
+      session.requestAnimationFrame(CheckPositionNotEmulated);
+    });
+  });
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+
+</script>
