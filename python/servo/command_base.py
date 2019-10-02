@@ -614,7 +614,7 @@ install them, let us know by filing a bug!")
             'vcdir': vcinstalldir,
         }
 
-    def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False):
+    def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False, uwp=False):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
         if sys.platform == "win32" and type(env['PATH']) == unicode:
@@ -639,6 +639,9 @@ install them, let us know by filing a bug!")
                 "i686": "x86-windows",
                 "aarch64": "arm64-windows",
             }
+            target_arch = vcpkg_arch[arch]
+            if uwp:
+                target_arch += "-uwp"
             openssl_base_dir = path.join(self.msvc_package_dir("openssl"), vcpkg_arch[arch])
 
             # Link openssl
