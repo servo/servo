@@ -549,6 +549,7 @@ pub mod xmlserializer;
 pub mod xr;
 pub mod xrframe;
 pub mod xrinputsource;
+pub mod xrinputsourceevent;
 pub mod xrpose;
 pub mod xrreferencespace;
 pub mod xrrenderstate;

@@ -93,8 +93,16 @@ impl XRFrameMethods for XRFrame {
         if !self.active.get() {
             return Err(Error::InvalidState);
         }
-        let space = space.get_pose(&self.data);
-        let relative_to = relative_to.get_pose(&self.data);
+        let space = if let Some(space) = space.get_pose(&self.data) {
+            space
+        } else {
+            return Ok(None);
+        };
+        let relative_to = if let Some(r) = relative_to.get_pose(&self.data) {
+            r
+        } else {
+            return Ok(None);
+        };
         let pose = relative_to.inverse().pre_transform(&space);
         Ok(Some(XRPose::new(&self.global(), pose)))
     }
