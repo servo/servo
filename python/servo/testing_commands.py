@@ -534,13 +534,6 @@ class MachCommands(CommandBase):
                 else:
                     intermittents += [failure]
 
-        if reporter_api:
-            if reporter_api == 'default':
-                reporter_api = "https://build.servo.org/intermittent-failure-tracker"
-            if reporter_api.endswith('/'):
-                reporter_api = reporter_api[0:-1]
-            reported = set()
-
             proc = subprocess.Popen(
                 ["git", "log", "--oneline", "-1"],
                 stdout=subprocess.PIPE)
