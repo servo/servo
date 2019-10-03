@@ -291,6 +291,15 @@ impl XRSessionMethods for XRSession {
     /// https://immersive-web.github.io/webxr/#eventdef-xrsession-end
     event_handler!(end, GetOnend, SetOnend);
 
+    /// https://immersive-web.github.io/webxr/#eventdef-xrsession-select
+    event_handler!(select, GetOnselect, SetOnselect);
+
+    /// https://immersive-web.github.io/webxr/#eventdef-xrsession-selectstart
+    event_handler!(selectstart, GetOnselectstart, SetOnselectstart);
+
+    /// https://immersive-web.github.io/webxr/#eventdef-xrsession-selectend
+    event_handler!(selectend, GetOnselectend, SetOnselectend);
+
     /// https://immersive-web.github.io/webxr/#dom-xrsession-mode
     fn Mode(&self) -> XRSessionMode {
         XRSessionMode::Immersive_vr
