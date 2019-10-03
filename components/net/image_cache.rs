@@ -8,6 +8,7 @@ use net_traits::image::base::{load_from_memory, Image, ImageMetadata};
 use net_traits::image_cache::{CanRequestImages, CorsStatus, ImageCache, ImageResponder};
 use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse, ImageState};
 use net_traits::image_cache::{PendingImageId, UsePlaceholder};
+use net_traits::request::CorsSettings;
 use net_traits::{FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError};
 use pixels::PixelFormat;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -92,6 +93,9 @@ fn set_webrender_image_key(webrender_api: &webrender_api::RenderApi, image: &mut
 // Aux structs and enums.
 // ======================================================================
 
+/// https://html.spec.whatwg.org/multipage/#list-of-available-images
+type ImageKey = (ServoUrl, ImmutableOrigin, Option<CorsSettings>);
+
 // Represents all the currently pending loads/decodings. For
 // performance reasons, loads are indexed by a dedicated load key.
 struct AllPendingLoads {
@@ -101,7 +105,7 @@ struct AllPendingLoads {
 
     // Get a load key from its url and requesting origin. Used ony when starting and
     // finishing a load or when adding a new listener.
-    url_to_load_key: HashMap<(ServoUrl, ImmutableOrigin), LoadKey>,
+    url_to_load_key: HashMap<ImageKey, LoadKey>,
 
     // A counter used to generate instances of LoadKey
     keygen: LoadKeyGenerator,
@@ -124,7 +128,11 @@ impl AllPendingLoads {
     fn remove(&mut self, key: &LoadKey) -> Option<PendingLoad> {
         self.loads.remove(key).and_then(|pending_load| {
             self.url_to_load_key
-                .remove(&(pending_load.url.clone(), pending_load.load_origin.clone()))
+                .remove(&(
+                    pending_load.url.clone(),
+                    pending_load.load_origin.clone(),
+                    pending_load.cors_setting,
+                ))
                 .unwrap();
             Some(pending_load)
         })
@@ -134,9 +142,13 @@ impl AllPendingLoads {
         &'a mut self,
         url: ServoUrl,
         origin: ImmutableOrigin,
+        cors_status: Option<CorsSettings>,
         can_request: CanRequestImages,
     ) -> CacheResult<'a> {
-        match self.url_to_load_key.entry((url.clone(), origin.clone())) {
+        match self
+            .url_to_load_key
+            .entry((url.clone(), origin.clone(), cors_status))
+        {
             Occupied(url_entry) => {
                 let load_key = url_entry.get();
                 CacheResult::Hit(*load_key, self.loads.get_mut(load_key).unwrap())
@@ -149,7 +161,7 @@ impl AllPendingLoads {
                 let load_key = self.keygen.next();
                 url_entry.insert(load_key);
 
-                let pending_load = PendingLoad::new(url, origin);
+                let pending_load = PendingLoad::new(url, origin, cors_status);
                 match self.loads.entry(load_key) {
                     Occupied(_) => unreachable!(),
                     Vacant(load_entry) => {
@@ -274,6 +286,9 @@ struct PendingLoad {
     /// The origin that requested this load.
     load_origin: ImmutableOrigin,
 
+    /// The CORS attribute setting for the requesting
+    cors_setting: Option<CorsSettings>,
+
     /// The CORS status of this image response.
     cors_status: CorsStatus,
 
@@ -282,7 +297,11 @@ struct PendingLoad {
 }
 
 impl PendingLoad {
-    fn new(url: ServoUrl, load_origin: ImmutableOrigin) -> PendingLoad {
+    fn new(
+        url: ServoUrl,
+        load_origin: ImmutableOrigin,
+        cors_setting: Option<CorsSettings>,
+    ) -> PendingLoad {
         PendingLoad {
             bytes: ImageBytes::InProgress(vec![]),
             metadata: None,
@@ -291,6 +310,7 @@ impl PendingLoad {
             url: url,
             load_origin,
             final_url: None,
+            cors_setting,
             cors_status: CorsStatus::Unsafe,
         }
     }
@@ -308,7 +328,7 @@ struct ImageCacheStore {
     pending_loads: AllPendingLoads,
 
     // Images that have finished loading (successful or not)
-    completed_loads: HashMap<(ServoUrl, ImmutableOrigin), CompletedLoad>,
+    completed_loads: HashMap<ImageKey, CompletedLoad>,
 
     // The placeholder image used when an image fails to load
     placeholder_image: Option<Arc<Image>>,
@@ -346,7 +366,11 @@ impl ImageCacheStore {
 
         let completed_load = CompletedLoad::new(image_response.clone(), key);
         self.completed_loads.insert(
-            (pending_load.url.into(), pending_load.load_origin),
+            (
+                pending_load.url.into(),
+                pending_load.load_origin,
+                pending_load.cors_setting,
+            ),
             completed_load,
         );
 
@@ -361,10 +385,11 @@ impl ImageCacheStore {
         &self,
         url: ServoUrl,
         origin: ImmutableOrigin,
+        cors_setting: Option<CorsSettings>,
         placeholder: UsePlaceholder,
     ) -> Option<Result<ImageOrMetadataAvailable, ImageState>> {
         self.completed_loads
-            .get(&(url, origin))
+            .get(&(url, origin, cors_setting))
             .map(
                 |completed_load| match (&completed_load.image_response, placeholder) {
                     (&ImageResponse::Loaded(ref image, ref url), _) |
@@ -421,22 +446,29 @@ impl ImageCache for ImageCacheImpl {
         &self,
         url: ServoUrl,
         origin: ImmutableOrigin,
+        cors_setting: Option<CorsSettings>,
         use_placeholder: UsePlaceholder,
         can_request: CanRequestImages,
     ) -> Result<ImageOrMetadataAvailable, ImageState> {
         debug!("Find image or metadata for {} ({:?})", url, origin);
         let mut store = self.store.lock().unwrap();
-        if let Some(result) =
-            store.get_completed_image_if_available(url.clone(), origin.clone(), use_placeholder)
-        {
+        if let Some(result) = store.get_completed_image_if_available(
+            url.clone(),
+            origin.clone(),
+            cors_setting,
+            use_placeholder,
+        ) {
             debug!("{} is available", url);
             return result;
         }
 
         let decoded = {
-            let result = store
-                .pending_loads
-                .get_cached(url.clone(), origin.clone(), can_request);
+            let result = store.pending_loads.get_cached(
+                url.clone(),
+                origin.clone(),
+                cors_setting,
+                can_request,
+            );
             match result {
                 CacheResult::Hit(key, pl) => match (&pl.result, &pl.metadata) {
                     (&Some(Ok(_)), _) => {
@@ -468,7 +500,7 @@ impl ImageCache for ImageCacheImpl {
         // and ignore the async decode when it finishes later.
         // TODO: make this behaviour configurable according to the caller's needs.
         store.handle_decoder(decoded);
-        match store.get_completed_image_if_available(url, origin, use_placeholder) {
+        match store.get_completed_image_if_available(url, origin, cors_setting, use_placeholder) {
             Some(result) => result,
             None => Err(ImageState::LoadError),
         }

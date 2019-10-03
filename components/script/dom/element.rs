@@ -35,7 +35,7 @@ use crate::dom::create::create_element;
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementState,
 };
-use crate::dom::document::{Document, LayoutDocumentHelpers};
+use crate::dom::document::{determine_policy_for_token, Document, LayoutDocumentHelpers};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domrect::DOMRect;
 use crate::dom::domtokenlist::DOMTokenList;
@@ -97,6 +97,7 @@ use js::jsapi::Heap;
 use js::jsval::JSVal;
 use msg::constellation_msg::InputMethodType;
 use net_traits::request::CorsSettings;
+use net_traits::ReferrerPolicy;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowGoal;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
@@ -3606,7 +3607,14 @@ pub fn set_cross_origin_attribute(element: &Element, value: Option<DOMString>) {
     }
 }
 
-pub fn cors_setting_for_element(element: &Element) -> Option<CorsSettings> {
+pub(crate) fn referrer_policy_for_element(element: &Element) -> Option<ReferrerPolicy> {
+    element
+        .get_attribute_by_name(DOMString::from_string(String::from("referrerpolicy")))
+        .and_then(|attribute: DomRoot<Attr>| determine_policy_for_token(&attribute.Value()))
+        .or_else(|| document_from_node(element).get_referrer_policy())
+}
+
+pub(crate) fn cors_setting_for_element(element: &Element) -> Option<CorsSettings> {
     reflect_cross_origin_attribute(element).map_or(None, |attr| match &*attr {
         "anonymous" => Some(CorsSettings::Anonymous),
         "use-credentials" => Some(CorsSettings::UseCredentials),

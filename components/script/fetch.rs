@@ -26,7 +26,9 @@ use crate::network_listener::{
 use crate::task_source::TaskSourceName;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use net_traits::request::RequestBuilder;
+use net_traits::request::{
+    CorsSettings, CredentialsMode, Destination, RequestBuilder, RequestMode,
+};
 use net_traits::request::{Request as NetTraitsRequest, ServiceWorkersMode};
 use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
 use net_traits::{CoreResourceMsg, CoreResourceThread, FetchResponseMsg};
@@ -124,6 +126,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
         integrity_metadata: "".to_owned(),
         url_list: vec![],
         parser_metadata: request.parser_metadata,
+        initiator: request.initiator,
     }
 }
 
@@ -338,4 +341,30 @@ pub fn load_whole_resource(
             FetchResponseMsg::ProcessResponseEOF(Err(e)) => return Err(e),
         }
     }
+}
+
+/// https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
+pub(crate) fn create_a_potential_CORS_request(
+    url: ServoUrl,
+    destination: Destination,
+    cors_setting: Option<CorsSettings>,
+    same_origin_fallback: Option<bool>,
+) -> RequestBuilder {
+    RequestBuilder::new(url)
+        // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
+        // Step 1
+        .mode(match cors_setting {
+            Some(_) => RequestMode::CorsMode,
+            None if same_origin_fallback == Some(true) => RequestMode::SameOrigin,
+            None => RequestMode::NoCors,
+        })
+        // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
+        // Step 3-4
+        .credentials_mode(match cors_setting {
+            Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
+            _ => CredentialsMode::Include,
+        })
+        // Step 5
+        .destination(destination)
+        .use_url_credentials(true)
 }

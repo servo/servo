@@ -126,6 +126,7 @@ impl<'a> LayoutContext<'a> {
         let result = self.image_cache.find_image_or_metadata(
             url.clone(),
             self.origin.clone(),
+            None,
             use_placeholder,
             can_request,
         );

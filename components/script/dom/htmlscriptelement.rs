@@ -25,6 +25,7 @@ use crate::dom::node::{document_from_node, window_from_node};
 use crate::dom::node::{BindContext, ChildrenMutation, CloneChildrenFlag, Node};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::fetch::create_a_potential_CORS_request;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
@@ -33,9 +34,7 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
-use net_traits::request::{
-    CorsSettings, CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode,
-};
+use net_traits::request::{CorsSettings, Destination, Referrer, RequestBuilder};
 use net_traits::ReferrerPolicy;
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
@@ -306,20 +305,7 @@ pub(crate) fn script_fetch_request(
     referrer_policy: Option<ReferrerPolicy>,
     integrity_metadata: String,
 ) -> RequestBuilder {
-    RequestBuilder::new(url)
-        .destination(Destination::Script)
-        // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
-        // Step 1
-        .mode(match cors_setting {
-            Some(_) => RequestMode::CorsMode,
-            None => RequestMode::NoCors,
-        })
-        // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
-        // Step 3-4
-        .credentials_mode(match cors_setting {
-            Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
-            _ => CredentialsMode::Include,
-        })
+    create_a_potential_CORS_request(url, Destination::Script, cors_setting, None)
         .origin(origin)
         .pipeline_id(Some(pipeline_id))
         .referrer(Some(referrer))

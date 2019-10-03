@@ -19,6 +19,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomOnceCell, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::element::cors_setting_for_element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::htmlcanvaselement::utils as canvas_utils;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
@@ -576,13 +577,15 @@ impl WebGLRenderingContext {
                 };
 
                 let window = window_from_node(&*self.canvas);
+                let cors_setting = cors_setting_for_element(image.upcast());
 
-                let img = match canvas_utils::request_image_from_cache(&window, img_url) {
-                    ImageResponse::Loaded(img, _) => img,
-                    ImageResponse::PlaceholderLoaded(_, _) |
-                    ImageResponse::None |
-                    ImageResponse::MetadataLoaded(_) => return Ok(None),
-                };
+                let img =
+                    match canvas_utils::request_image_from_cache(&window, img_url, cors_setting) {
+                        ImageResponse::Loaded(img, _) => img,
+                        ImageResponse::PlaceholderLoaded(_, _) |
+                        ImageResponse::None |
+                        ImageResponse::MetadataLoaded(_) => return Ok(None),
+                    };
 
                 let size = Size2D::new(img.width, img.height);
 

@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::activation::Activatable;
-use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
@@ -14,10 +13,9 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::document::determine_policy_for_token;
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
-use crate::dom::element::Element;
+use crate::dom::element::{referrer_policy_for_element, Element};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -669,9 +667,7 @@ pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
         };
 
         // Step 12.
-        let referrer_policy = subject
-            .get_attribute_by_name(DOMString::from_string(String::from("referrerpolicy")))
-            .and_then(|attribute: DomRoot<Attr>| (determine_policy_for_token(&attribute.Value())));
+        let referrer_policy = referrer_policy_for_element(subject);
 
         // Step 13
         let referrer = match subject.get_attribute(&ns!(), &local_name!("rel")) {

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::image::base::{Image, ImageMetadata};
+use crate::request::CorsSettings;
 use crate::FetchResponseMsg;
 use ipc_channel::ipc::IpcSender;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -111,6 +112,7 @@ pub trait ImageCache: Sync + Send {
         &self,
         url: ServoUrl,
         origin: ImmutableOrigin,
+        cors_setting: Option<CorsSettings>,
         use_placeholder: UsePlaceholder,
         can_request: CanRequestImages,
     ) -> Result<ImageOrMetadataAvailable, ImageState>;

@@ -58,7 +58,7 @@ use crate::dom::url::URL;
 use crate::dom::videotrack::VideoTrack;
 use crate::dom::videotracklist::VideoTrackList;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::fetch::FetchCanceller;
+use crate::fetch::{create_a_potential_CORS_request, FetchCanceller};
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::script_thread::ScriptThread;
@@ -74,7 +74,7 @@ use ipc_channel::router::ROUTER;
 use media::{glplayer_channel, GLPlayerMsg, GLPlayerMsgForward};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageResponse;
-use net_traits::request::{CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode};
+use net_traits::request::{Destination, Referrer};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata};
 use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
 use script_layout_interface::HTMLMediaData;
@@ -822,16 +822,9 @@ impl HTMLMediaElement {
             None => self.blob_url.borrow().as_ref().unwrap().clone(),
         };
 
-        let request = RequestBuilder::new(url.clone())
+        let cors_setting = cors_setting_for_element(self.upcast());
+        let request = create_a_potential_CORS_request(url.clone(), destination, cors_setting, None)
             .headers(headers)
-            .destination(destination)
-            .credentials_mode(CredentialsMode::Include)
-            // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
-            .mode(match cors_setting_for_element(self.upcast::<Element>()) {
-                Some(_) => RequestMode::CorsMode,
-                None => RequestMode::NoCors,
-            })
-            .use_url_credentials(true)
             .origin(document.origin().immutable().clone())
             .pipeline_id(Some(self.global().pipeline_id()))
             .referrer(Some(Referrer::ReferrerUrl(document.url())))

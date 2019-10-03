@@ -4,8 +4,8 @@
 
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::trace::JSTraceable;
-use crate::dom::document::Document;
-use crate::dom::htmlimageelement::image_fetch_request;
+use crate::dom::document::{determine_policy_for_token, Document};
+use crate::dom::htmlimageelement::{image_fetch_request, FromPictureOrSrcSet};
 use crate::dom::htmlscriptelement::script_fetch_request;
 use crate::stylesheet_loader::stylesheet_fetch_request;
 use html5ever::buffer_queue::BufferQueue;
@@ -123,7 +123,14 @@ impl TokenSink for PrefetchSink {
             (TagKind::StartTag, local_name!("img")) if self.prefetching => {
                 if let Some(url) = self.get_url(tag, local_name!("src")) {
                     debug!("Prefetch {} {}", tag.name, url);
-                    let request = image_fetch_request(url, self.origin.clone(), self.pipeline_id);
+                    let request = image_fetch_request(
+                        url,
+                        self.origin.clone(),
+                        self.pipeline_id,
+                        self.get_cors_settings(tag, local_name!("crossorigin")),
+                        self.get_referrer_policy(tag, LocalName::from("referrerpolicy")),
+                        FromPictureOrSrcSet::No,
+                    );
                     let _ = self
                         .resource_threads
                         .send(CoreResourceMsg::Fetch(request, FetchChannels::Prefetch));
@@ -137,6 +144,8 @@ impl TokenSink for PrefetchSink {
                             debug!("Prefetch {} {}", tag.name, url);
                             let cors_setting =
                                 self.get_cors_settings(tag, local_name!("crossorigin"));
+                            let referrer_policy =
+                                self.get_referrer_policy(tag, LocalName::from("referrerpolicy"));
                             let integrity_metadata = self
                                 .get_attr(tag, local_name!("integrity"))
                                 .map(|attr| String::from(&attr.value))
@@ -147,7 +156,7 @@ impl TokenSink for PrefetchSink {
                                 self.origin.clone(),
                                 self.pipeline_id,
                                 self.referrer.clone(),
-                                self.referrer_policy,
+                                referrer_policy,
                                 integrity_metadata,
                             );
                             let _ = self
@@ -189,6 +198,12 @@ impl PrefetchSink {
         let attr = self.get_attr(tag, name)?;
         let base = self.base_url.as_ref().unwrap_or(&self.document_url);
         ServoUrl::parse_with_base(Some(base), &attr.value).ok()
+    }
+
+    fn get_referrer_policy(&self, tag: &Tag, name: LocalName) -> Option<ReferrerPolicy> {
+        self.get_attr(tag, name)
+            .and_then(|attr| determine_policy_for_token(&*attr.value))
+            .or(self.referrer_policy)
     }
 
     fn get_cors_settings(&self, tag: &Tag, name: LocalName) -> Option<CorsSettings> {

@@ -20,6 +20,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::Document;
+use crate::dom::element::{cors_setting_for_element, referrer_policy_for_element};
 use crate::dom::element::{reflect_cross_origin_attribute, set_cross_origin_attribute};
 use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use crate::dom::event::Event;
@@ -40,6 +41,7 @@ use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::values::UNSIGNED_LONG_MAX;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
+use crate::fetch::create_a_potential_CORS_request;
 use crate::image_listener::{add_cache_listener_for_element, ImageCacheListener};
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
@@ -58,9 +60,9 @@ use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::UsePlaceholder;
 use net_traits::image_cache::{CanRequestImages, CorsStatus, ImageCache, ImageOrMetadataAvailable};
 use net_traits::image_cache::{ImageResponder, ImageResponse, ImageState, PendingImageId};
-use net_traits::request::RequestBuilder;
+use net_traits::request::{CorsSettings, Destination, Initiator, RequestBuilder};
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
-use net_traits::{ResourceFetchTiming, ResourceTimingType};
+use net_traits::{ReferrerPolicy, ResourceFetchTiming, ResourceTimingType};
 use num_traits::ToPrimitive;
 use servo_url::origin::ImmutableOrigin;
 use servo_url::origin::MutableOrigin;
@@ -263,15 +265,31 @@ impl PreInvoke for ImageContext {
     }
 }
 
+#[derive(PartialEq)]
+pub(crate) enum FromPictureOrSrcSet {
+    Yes,
+    No,
+}
+
+// https://html.spec.whatwg.org/multipage/#update-the-image-data steps 17-20
 // This function is also used to prefetch an image in `script::dom::servoparser::prefetch`.
 pub(crate) fn image_fetch_request(
     img_url: ServoUrl,
     origin: ImmutableOrigin,
     pipeline_id: PipelineId,
+    cors_setting: Option<CorsSettings>,
+    referrer_policy: Option<ReferrerPolicy>,
+    from_picture_or_srcset: FromPictureOrSrcSet,
 ) -> RequestBuilder {
-    RequestBuilder::new(img_url)
-        .origin(origin)
-        .pipeline_id(Some(pipeline_id))
+    let mut request =
+        create_a_potential_CORS_request(img_url, Destination::Image, cors_setting, None)
+            .origin(origin)
+            .pipeline_id(Some(pipeline_id))
+            .referrer_policy(referrer_policy);
+    if from_picture_or_srcset == FromPictureOrSrcSet::Yes {
+        request = request.initiator(Initiator::ImageSet);
+    }
+    request
 }
 
 impl HTMLImageElement {
@@ -282,6 +300,7 @@ impl HTMLImageElement {
         let response = image_cache.find_image_or_metadata(
             img_url.clone().into(),
             window.origin().immutable().clone(),
+            cors_setting_for_element(self.upcast()),
             UsePlaceholder::Yes,
             CanRequestImages::Yes,
         );
@@ -344,6 +363,13 @@ impl HTMLImageElement {
             img_url.clone(),
             document.origin().immutable().clone(),
             document.global().pipeline_id(),
+            cors_setting_for_element(self.upcast()),
+            referrer_policy_for_element(self.upcast()),
+            if Self::uses_srcset_or_picture(self.upcast()) {
+                FromPictureOrSrcSet::Yes
+            } else {
+                FromPictureOrSrcSet::No
+            },
         );
 
         // This is a background load because the load blocker already fulfills the
@@ -909,6 +935,7 @@ impl HTMLImageElement {
                 let response = image_cache.find_image_or_metadata(
                     img_url.clone().into(),
                     window.origin().immutable().clone(),
+                    cors_setting_for_element(self.upcast()),
                     UsePlaceholder::No,
                     CanRequestImages::No,
                 );
@@ -1065,6 +1092,7 @@ impl HTMLImageElement {
         let response = image_cache.find_image_or_metadata(
             img_url.clone().into(),
             window.origin().immutable().clone(),
+            cors_setting_for_element(self.upcast()),
             UsePlaceholder::No,
             CanRequestImages::Yes,
         );
