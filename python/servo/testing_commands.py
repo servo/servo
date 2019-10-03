@@ -542,24 +542,6 @@ class MachCommands(CommandBase):
             # Extract the issue reference from "abcdef Auto merge of #NNN"
             pull_request = int(last_merge.split(' ')[4][1:])
 
-            for intermittent in intermittents:
-                if intermittent['test'] in reported:
-                    continue
-                reported.add(intermittent['test'])
-
-                data = {
-                    'test_file': intermittent['test'],
-                    'platform': platform.system(),
-                    'builder': os.environ.get('BUILDER_NAME', 'BUILDER NAME MISSING'),
-                    'number': pull_request,
-                }
-                request = urllib2.Request("%s/record.py" % reporter_api, urllib.urlencode(data))
-                request.add_header('Accept', 'application/json')
-                response = urllib2.urlopen(request)
-                data = json.load(response)
-                if data['status'] != "success":
-                    print('Error reporting test failure: ' + data['error'])
-
         if log_intermittents:
             with open(log_intermittents, "w") as intermittents_file:
                 for intermittent in intermittents:
