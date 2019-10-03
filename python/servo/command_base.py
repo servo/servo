@@ -642,7 +642,7 @@ install them, let us know by filing a bug!")
             target_arch = vcpkg_arch[arch]
             if uwp:
                 target_arch += "-uwp"
-            openssl_base_dir = path.join(self.msvc_package_dir("openssl"), vcpkg_arch[arch])
+            openssl_base_dir = path.join(self.msvc_package_dir("openssl"), target_arch)
 
             # Link openssl
             env["OPENSSL_INCLUDE_DIR"] = path.join(openssl_base_dir, "include")
