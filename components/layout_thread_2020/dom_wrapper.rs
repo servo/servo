@@ -108,6 +108,8 @@ pub struct ServoLayoutNode<'a> {
     /// Being chained to a PhantomData prevents `LayoutNode`s from escaping.
     chain: PhantomData<&'a ()>,
 }
+unsafe impl Send for ServoLayoutNode<'_> {}
+unsafe impl Sync for ServoLayoutNode<'_> {}
 
 impl<'ln> Debug for ServoLayoutNode<'ln> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

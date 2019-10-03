@@ -11,8 +11,18 @@
 #[macro_use]
 extern crate serde;
 
+use crate::dom_traversal::{Contents, NodeExt};
+use crate::flow::{BlockFormattingContext, FlowChildren};
+use crate::geom::flow_relative::Vec2;
+use crate::positioned::AbsolutelyPositionedFragment;
+use crate::replaced::ReplacedContent;
+use crate::style_ext::{ComputedValuesExt, Direction, Position, WritingMode};
+use servo_arc::Arc;
+use std::convert::TryInto;
+use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto};
+use style::values::specified::box_::DisplayInside;
 use style::Zero;
 
 pub mod context;
@@ -30,20 +40,11 @@ pub mod style_ext;
 pub mod traversal;
 pub mod wrapper;
 
-use crate::dom_traversal::{Contents, NodeExt};
-use crate::flow::{BlockFormattingContext, FlowChildren};
-use crate::geom::flow_relative::Vec2;
-use crate::positioned::AbsolutelyPositionedFragment;
-use crate::replaced::ReplacedContent;
-use crate::style_ext::{ComputedValuesExt, Direction, Position, WritingMode};
-use servo_arc::Arc;
-use std::convert::TryInto;
-use style::context::SharedStyleContext;
-use style::values::specified::box_::DisplayInside;
+pub use crate::flow::root::BoxTreeRoot;
 
 /// https://drafts.csswg.org/css-display/#independent-formatting-context
 #[derive(Debug)]
-enum IndependentFormattingContext {
+pub enum IndependentFormattingContext {
     Flow(BlockFormattingContext),
 
     // Not called FC in specs, but behaves close enough

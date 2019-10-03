@@ -22,17 +22,8 @@ use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto};
 use style_traits::CSSPixel;
 
-// FIXME
-// impl crate::dom::Document {
-//     pub(crate) fn layout(
-//         &self,
-//         viewport: crate::geom::Size<crate::geom::CssPx>,
-//     ) -> Vec<Fragment> {
-//         BoxTreeRoot::construct(self).layout(viewport)
-//     }
-// }
-
-struct BoxTreeRoot(BlockFormattingContext);
+#[derive(Debug)]
+pub struct BoxTreeRoot(BlockFormattingContext);
 
 impl BoxTreeRoot {
     pub fn construct<'dom>(

@@ -45,6 +45,7 @@ use layout::query::{
     process_text_index_request,
 };
 use layout::traversal::RecalcStyle;
+use layout::BoxTreeRoot;
 use layout_traits::LayoutThreadFactory;
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -165,6 +166,9 @@ pub struct LayoutThread {
 
     /// The number of Web fonts that have been requested but not yet loaded.
     outstanding_web_fonts: Arc<AtomicUsize>,
+
+    /// The root box tree.
+    box_tree_root: RefCell<Option<BoxTreeRoot>>,
 
     /// The document-specific shared lock used for author-origin stylesheets
     document_shared_lock: Option<SharedRwLock>,
@@ -492,6 +496,7 @@ impl LayoutThread {
             new_animations_sender: new_animations_sender,
             _new_animations_receiver: new_animations_receiver,
             outstanding_web_fonts: Arc::new(AtomicUsize::new(0)),
+            box_tree_root: Default::default(),
             document_shared_lock: None,
             epoch: Cell::new(Epoch(0)),
             viewport_size: Size2D::new(Au(0), Au(0)),
@@ -1075,6 +1080,11 @@ impl LayoutThread {
 
         if token.should_traverse() {
             driver::traverse_dom(&traversal, token, None);
+
+            let shared = DomTraversal::<ServoLayoutElement>::shared_context(&traversal);
+            let box_tree =
+                BoxTreeRoot::construct(shared, document.root_element().unwrap().as_node());
+            *self.box_tree_root.borrow_mut() = Some(box_tree);
         }
 
         for element in elements_with_snapshot {
