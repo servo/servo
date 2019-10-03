@@ -14,13 +14,11 @@ import re
 import sys
 import os
 import os.path as path
-import platform
 import copy
 from collections import OrderedDict
 import time
 import json
 import urllib2
-import urllib
 import base64
 import shutil
 import subprocess
@@ -533,39 +531,6 @@ class MachCommands(CommandBase):
                     actual_failures += [failure]
                 else:
                     intermittents += [failure]
-
-        if reporter_api:
-            if reporter_api == 'default':
-                reporter_api = "https://build.servo.org/intermittent-failure-tracker"
-            if reporter_api.endswith('/'):
-                reporter_api = reporter_api[0:-1]
-            reported = set()
-
-            proc = subprocess.Popen(
-                ["git", "log", "--oneline", "-1"],
-                stdout=subprocess.PIPE)
-            (last_merge, _) = proc.communicate()
-
-            # Extract the issue reference from "abcdef Auto merge of #NNN"
-            pull_request = int(last_merge.split(' ')[4][1:])
-
-            for intermittent in intermittents:
-                if intermittent['test'] in reported:
-                    continue
-                reported.add(intermittent['test'])
-
-                data = {
-                    'test_file': intermittent['test'],
-                    'platform': platform.system(),
-                    'builder': os.environ.get('BUILDER_NAME', 'BUILDER NAME MISSING'),
-                    'number': pull_request,
-                }
-                request = urllib2.Request("%s/record.py" % reporter_api, urllib.urlencode(data))
-                request.add_header('Accept', 'application/json')
-                response = urllib2.urlopen(request)
-                data = json.load(response)
-                if data['status'] != "success":
-                    print('Error reporting test failure: ' + data['error'])
 
         if log_intermittents:
             with open(log_intermittents, "w") as intermittents_file:
