@@ -33,6 +33,7 @@ use crate::dom::promise::Promise;
 use crate::dom::webglframebuffer::WebGLFramebufferAttachmentRoot;
 use crate::dom::xrframe::XRFrame;
 use crate::dom::xrinputsource::XRInputSource;
+use crate::dom::xrinputsourceevent::XRInputSourceEvent;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrenderstate::XRRenderState;
 use crate::dom::xrsessionevent::XRSessionEvent;
@@ -48,7 +49,7 @@ use profile_traits::ipc;
 use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
-use webxr_api::{self, Event as XREvent, Frame, Session};
+use webxr_api::{self, Event as XREvent, Frame, SelectEvent, Session};
 
 #[dom_struct]
 pub struct XRSession {
@@ -169,6 +170,50 @@ impl XRSession {
                 // Step 7
                 let event = XRSessionEvent::new(&self.global(), atom!("end"), false, false, self);
                 event.upcast::<Event>().fire(self.upcast());
+            },
+            XREvent::Select(input, kind, frame) => {
+                let source = self
+                    .input_sources
+                    .borrow_mut()
+                    .iter()
+                    .find(|s| s.id() == input)
+                    .map(|x| DomRoot::from_ref(&**x));
+                if let Some(source) = source {
+                    let frame = XRFrame::new(&self.global(), self, frame);
+                    frame.set_active(true);
+                    if kind == SelectEvent::Start {
+                        let event = XRInputSourceEvent::new(
+                            &self.global(),
+                            atom!("selectstart"),
+                            false,
+                            false,
+                            &frame,
+                            &source,
+                        );
+                        event.upcast::<Event>().fire(self.upcast());
+                    } else {
+                        if kind == SelectEvent::Select {
+                            let event = XRInputSourceEvent::new(
+                                &self.global(),
+                                atom!("select"),
+                                false,
+                                false,
+                                &frame,
+                                &source,
+                            );
+                            event.upcast::<Event>().fire(self.upcast());
+                        }
+                        let event = XRInputSourceEvent::new(
+                            &self.global(),
+                            atom!("selectend"),
+                            false,
+                            false,
+                            &frame,
+                            &source,
+                        );
+                        event.upcast::<Event>().fire(self.upcast());
+                    }
+                }
             },
             _ => (), // XXXManishearth TBD
         }
