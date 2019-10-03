@@ -669,7 +669,9 @@ impl HttpCache {
 
     /// Updating consumers who received a response constructed with a ResponseBody::Receiving.
     pub fn update_awaiting_consumers(&mut self, request: &Request, response: &Response) {
-        if let ResponseBody::Done(ref completed_body) = *response.body.lock().unwrap() {
+        if let ResponseBody::Done(ref completed_body) =
+            *response.actual_response().body.lock().unwrap()
+        {
             let entry_key = CacheKey::new(request.clone());
             if let Some(cached_resources) = self.entries.get(&entry_key) {
                 // Ensure we only wake-up consumers of relevant resources,
