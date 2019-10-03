@@ -72,7 +72,7 @@ impl XRSpace {
                 .iter()
                 .find(|i| i.id == id)
                 .expect("no input found");
-            Some(cast_transform(frame.target_ray_origin))
+            frame.target_ray_origin.map(cast_transform)
         } else {
             unreachable!()
         }
