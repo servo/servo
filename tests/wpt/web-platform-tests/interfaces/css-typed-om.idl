@@ -65,6 +65,8 @@ interface CSSKeywordValue : CSSStyleValue {
     attribute USVString value;
 };
 
+typedef (DOMString or CSSKeywordValue) CSSKeywordish;
+
 typedef (double or CSSNumericValue) CSSNumberish;
 
 enum CSSNumericBaseType {

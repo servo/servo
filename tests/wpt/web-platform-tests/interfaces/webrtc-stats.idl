@@ -48,13 +48,13 @@ enum RTCCodecType {
 };
 
 dictionary RTCReceivedRtpStreamStats : RTCRtpStreamStats {
-             unsigned long packetsReceived;
-             long packetsLost;
+             unsigned long long packetsReceived;
+             long long packetsLost;
              double jitter;
-             unsigned long packetsDiscarded;
-             unsigned long packetsRepaired;
-             unsigned long burstPacketsLost;
-             unsigned long burstPacketsDiscarded;
+             unsigned long long packetsDiscarded;
+             unsigned long long packetsRepaired;
+             unsigned long long burstPacketsLost;
+             unsigned long long burstPacketsDiscarded;
              unsigned long burstLossCount;
              unsigned long burstDiscardCount;
              double burstLossRate;
@@ -64,6 +64,7 @@ dictionary RTCReceivedRtpStreamStats : RTCRtpStreamStats {
              unsigned long framesDropped;
              unsigned long partialFramesLost;
              unsigned long fullFramesLost;
+
 };
 
 dictionary RTCInboundRtpStreamStats : RTCReceivedRtpStreamStats {
@@ -80,12 +81,12 @@ dictionary RTCInboundRtpStreamStats : RTCReceivedRtpStreamStats {
  boolean voiceActivityFlag;
  DOMHighResTimeStamp lastPacketReceivedTimestamp;
  double averageRtcpInterval;
- unsigned long fecPacketsReceived;
- unsigned long fecPacketsDiscarded;
+ unsigned long long fecPacketsReceived;
+ unsigned long long fecPacketsDiscarded;
  unsigned long long bytesReceived;
- unsigned long packetsFailedDecryption;
- unsigned long packetsDuplicated;
- record<USVString, unsigned long> perDscpPacketsReceived;
+ unsigned long long packetsFailedDecryption;
+ unsigned long long packetsDuplicated;
+ record<USVString, unsigned long long> perDscpPacketsReceived;
  unsigned long nackCount;
  unsigned long firCount;
  unsigned long pliCount;
@@ -94,6 +95,8 @@ dictionary RTCInboundRtpStreamStats : RTCReceivedRtpStreamStats {
  double jitterBufferDelay;
  unsigned long long jitterBufferEmittedCount;
  unsigned long long totalSamplesReceived;
+ unsigned long long samplesDecodedWithSilk;
+ unsigned long long samplesDecodedWithCelt;
  unsigned long long concealedSamples;
  unsigned long long silentConcealedSamples;
  unsigned long long concealmentEvents;
@@ -125,6 +128,7 @@ dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
              DOMString mediaSourceId;
              DOMString senderId;
              DOMString remoteId;
+             DOMString rid;
              DOMHighResTimeStamp lastPacketSentTimestamp;
              unsigned long packetsDiscardedOnSend;
              unsigned long long bytesDiscardedOnSend;
@@ -143,6 +147,8 @@ dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
              unsigned long framesDiscardedOnSend;
              unsigned long long qpSum;
              unsigned long long totalSamplesSent;
+             unsigned long long samplesEncodedWithSilk;
+             unsigned long long samplesEncodedWithCelt;
              boolean voiceActivityFlag;
              double totalEncodeTime;
              double totalPacketSendDelay;
@@ -150,7 +156,7 @@ dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
              RTCQualityLimitationReason qualityLimitationReason;
              record<DOMString, double> qualityLimitationDurations;
              unsigned long qualityLimitationResolutionChanges;
-             record<USVString, unsigned long> perDscpPacketsSent;
+             record<USVString, unsigned long long> perDscpPacketsSent;
              unsigned long nackCount;
              unsigned long firCount;
              unsigned long pliCount;
@@ -257,8 +263,8 @@ dictionary RTCDataChannelStats : RTCStats {
 };
 
 dictionary RTCTransportStats : RTCStats {
-             unsigned long packetsSent;
-             unsigned long packetsReceived;
+             unsigned long long packetsSent;
+             unsigned long long packetsReceived;
              unsigned long long bytesSent;
              unsigned long long bytesReceived;
              DOMString rtcpTransportStatsId;
@@ -302,8 +308,8 @@ dictionary RTCIceCandidatePairStats : RTCStats {
              DOMString remoteCandidateId;
              RTCStatsIceCandidatePairState state;
              boolean nominated;
-             unsigned long packetsSent;
-             unsigned long packetsReceived;
+             unsigned long long packetsSent;
+             unsigned long long packetsReceived;
              unsigned long long bytesSent;
              unsigned long long bytesReceived;
              DOMHighResTimeStamp lastPacketSentTimestamp;
@@ -351,6 +357,12 @@ dictionary RTCIceServerStats : RTCStats {
            unsigned long totalRequestsSent;
            unsigned long totalResponsesReceived;
            double totalRoundTripTime;
+};
+
+dictionary RTCReceiverVideoTrackAttachmentStats : RTCVideoReceiverStats {
+};
+
+dictionary RTCReceiverAudioTrackAttachmentStats : RTCAudioReceiverStats {
 };
 
 partial dictionary RTCCodecStats {

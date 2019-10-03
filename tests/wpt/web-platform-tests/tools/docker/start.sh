@@ -1,15 +1,5 @@
 #!/bin/bash
 
-# This script is embedded in the docker image, and so the image must be updated when changes
-# to the script are made. To do this, assuming you have docker installed:
-# In tools/docker/ :
-#   docker build .
-#   docker ps # and look for the id of the image you just built
-#   docker tag <image> <tag>
-#   docker push <tag>
-# Update the `image` specified in the project's .taskcluster.yml file
-
-
 set -ex
 
 REMOTE=${1:-https://github.com/web-platform-tests/wpt}

@@ -20,7 +20,7 @@ test(() => {
 
 test(() => {
   class ShadowDisabledElement extends HTMLElement {
-    static disabledFeatures = ['shadow'];
+    static get disabledFeatures() { return ['shadow']; }
   }
 
   // No definition. attachShadow() should succeed.
@@ -47,7 +47,7 @@ test(() => {
 
 test(() => {
   class ShadowDisabledHeadingElement extends HTMLHeadingElement {
-    static disabledFeatures = ['shadow'];
+    static get disabledFeatures() { return ['shadow']; }
   }
 
   // No definition. attachShadow() should succeed.
@@ -77,7 +77,7 @@ test(() => {
 
 test(() => {
   class CapitalShadowDisabledElement extends HTMLElement {
-    static disabledFeatures = ['SHADOW'];
+    static get disabledFeatures() { return ['shadow']; }
   }
 
   customElements.define('capital-shadow-disabled-element', CapitalShadowDisabledElement);

@@ -37,4 +37,9 @@ test(() => {
   assert_style_value_equals(expected, CSSNumericValue.parse('max(10px, 10%)'));
 }, 'Parsing max() is successful');
 
+test(() => {
+  const expected = new CSSMathMax(CSS.px(10), new CSSMathMin(CSS.percent(10), CSS.px(20)));
+  assert_style_value_equals(expected, CSSNumericValue.parse('clamp(10px, 10%, 20px)'));
+}, 'Parsing clamp() is successful');
+
 </script>

@@ -241,23 +241,39 @@ class FakeDevice {
     return Promise.resolve({ success: true });
   }
 
-  controlTransferIn(params, length, timeout) {
+  async controlTransferIn(params, length, timeout) {
     assert_true(this.opened_);
-    assert_false(this.currentConfiguration_ == null, 'device configured');
-    return Promise.resolve({
+
+    if ((params.recipient == device.mojom.UsbControlTransferRecipient.INTERFACE ||
+         params.recipient == device.mojom.UsbControlTransferRecipient.ENDPOINT) &&
+        this.currentConfiguration_ == null) {
+      return {
+        status: device.mojom.UsbTransferStatus.PERMISSION_DENIED,
+      };
+    }
+
+    return {
       status: device.mojom.UsbTransferStatus.OK,
       data: [length >> 8, length & 0xff, params.request, params.value >> 8,
              params.value & 0xff, params.index >> 8, params.index & 0xff]
-    });
+    };
   }
 
-  controlTransferOut(params, data, timeout) {
+  async controlTransferOut(params, data, timeout) {
     assert_true(this.opened_);
-    assert_false(this.currentConfiguration_ == null, 'device configured');
-    return Promise.resolve({
+
+    if ((params.recipient == device.mojom.UsbControlTransferRecipient.INTERFACE ||
+         params.recipient == device.mojom.UsbControlTransferRecipient.ENDPOINT) &&
+        this.currentConfiguration_ == null) {
+      return {
+        status: device.mojom.UsbTransferStatus.PERMISSION_DENIED,
+      };
+    }
+
+    return {
       status: device.mojom.UsbTransferStatus.OK,
       bytesWritten: data.byteLength
-    });
+    };
   }
 
   genericTransferIn(endpointNumber, length, timeout) {

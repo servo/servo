@@ -16,6 +16,15 @@ function xr_promise_test(name, func, properties) {
       await loadChromiumResources;
     }
 
+    // Ensure that any devices are disconnected when done. If this were done in
+    // a .then() for the success case, a test that expected failure would
+    // already be marked done at the time that runs and the shutdown would
+    // interfere with the next test.
+    t.add_cleanup(async () => {
+      // Ensure system state is cleaned up.
+      await navigator.xr.test.disconnectAllDevices();
+    });
+
     return func(t);
   }, name, properties);
 }
@@ -44,19 +53,16 @@ function xr_session_promise_test(
   xr_promise_test(
       name,
       (t) => {
-          // Ensure that any pending sessions are ended and devices are
-          // disconnected when done. This needs to use a cleanup function to
-          // ensure proper sequencing. If this were done in a .then() for the
-          // success case, a test that expected failure would already be marked
-          // done at the time that runs, and the shutdown would interfere with
-          // the next test which may have started already.
+          // Ensure that any pending sessions are ended when done. This needs to
+          // use a cleanup function to ensure proper sequencing. If this were
+          // done in a .then() for the success case, a test that expected
+          // failure would already be marked done at the time that runs, and the
+          // shutdown would interfere with the next test which may have started.
           t.add_cleanup(async () => {
-                // If a session was created, end it.
-                if (testSession) {
-                  await testSession.end().catch(() => {});
-                }
-                // Cleanup system state.
-                await navigator.xr.test.disconnectAllDevices();
+            // If a session was created, end it.
+            if (testSession) {
+              await testSession.end().catch(() => {});
+            }
           });
 
           return navigator.xr.test.simulateDeviceConnection(fakeDeviceInit)

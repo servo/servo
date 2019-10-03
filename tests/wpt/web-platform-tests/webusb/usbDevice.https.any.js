@@ -22,6 +22,19 @@ function assertRejectsWithNotConfiguredError(promise) {
       'The device must have a configuration selected.');
 }
 
+function assertRejectsWithNotClaimedError(promise) {
+  return assertRejectsWithError(
+      promise, 'InvalidStateError',
+      'The specified interface has not been claimed.');
+}
+
+function assertRejectsWithEndpointNotFoundError(promise) {
+  return assertRejectsWithError(
+      promise, 'NotFoundError',
+      'The specified endpoint is not part of a claimed and selected ' +
+      'alternate interface.');
+}
+
 function assertRejectsWithDeviceStateChangeInProgressError(promise) {
   return assertRejectsWithError(
     promise, 'InvalidStateError',
@@ -236,20 +249,6 @@ usb_test(() => {
         assertRejectsWithNotConfiguredError(device.claimInterface(0)),
         assertRejectsWithNotConfiguredError(device.releaseInterface(0)),
         assertRejectsWithNotConfiguredError(device.selectAlternateInterface(0, 1)),
-        assertRejectsWithNotConfiguredError(device.controlTransferIn({
-            requestType: 'vendor',
-            recipient: 'device',
-            request: 0x42,
-            value: 0x1234,
-            index: 0x5678
-        }, 7)),
-        assertRejectsWithNotConfiguredError(device.controlTransferOut({
-            requestType: 'vendor',
-            recipient: 'device',
-            request: 0x42,
-            value: 0x1234,
-            index: 0x5678
-        }, new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]))),
         assertRejectsWithNotConfiguredError(device.clearHalt('in', 1)),
         assertRejectsWithNotConfiguredError(device.transferIn(1, 8)),
         assertRejectsWithNotConfiguredError(
@@ -484,6 +483,79 @@ usb_test(async () => {
   await device.close();
 }, 'can issue all types of IN control transfers');
 
+usb_test(async () => {
+  let { device } = await getFakeDevice();
+  let usbRequestTypes = ['standard', 'class', 'vendor'];
+  let usbRecipients = ['device', 'other'];
+  await device.open();
+  await Promise.all(usbRequestTypes.flatMap(requestType => {
+    return usbRecipients.map(async recipient => {
+      let result = await device.controlTransferIn({
+        requestType: requestType,
+        recipient: recipient,
+        request: 0x42,
+        value: 0x1234,
+        index: 0x5678
+      }, 7);
+      assert_true(result instanceof USBInTransferResult);
+      assert_equals(result.status, 'ok');
+      assert_equals(result.data.byteLength, 7);
+      assert_equals(result.data.getUint16(0), 0x07);
+      assert_equals(result.data.getUint8(2), 0x42);
+      assert_equals(result.data.getUint16(3), 0x1234);
+      assert_equals(result.data.getUint16(5), 0x5678);
+    });
+  }));
+  await device.close();
+}, 'device-scope IN control transfers don\'t require configuration');
+
+usb_test(async () => {
+  let { device } = await getFakeDevice();
+  let usbRequestTypes = ['standard', 'class', 'vendor'];
+  let usbRecipients = ['interface', 'endpoint'];
+  await device.open();
+  await Promise.all(usbRequestTypes.flatMap(requestType => {
+    return usbRecipients.map(recipient => {
+      let index = recipient === 'interface' ? 0x5600 : 0x5681;
+      return assertRejectsWithNotConfiguredError(device.controlTransferIn({
+        requestType: requestType,
+        recipient: recipient,
+        request: 0x42,
+        value: 0x1234,
+        index: index
+      }, 7));
+    });
+  }));
+  await device.close();
+}, 'interface-scope IN control transfers require configuration');
+
+usb_test(async () => {
+  let { device } = await getFakeDevice();
+  let usbRequestTypes = ['standard', 'class', 'vendor'];
+  let usbRecipients = ['interface', 'endpoint'];
+  await device.open();
+  await device.selectConfiguration(1);
+  await Promise.all(usbRequestTypes.flatMap(requestType => {
+    return [
+      assertRejectsWithNotClaimedError(device.controlTransferIn({
+        requestType: requestType,
+        recipient: 'interface',
+        request: 0x42,
+        value: 0x1234,
+        index: 0x5600
+      }, 7)),
+      assertRejectsWithNotFoundError(device.controlTransferIn({
+        requestType: requestType,
+        recipient: 'endpoint',
+        request: 0x42,
+        value: 0x1234,
+        index: 0x5681
+      }, 7))
+    ];
+  }));
+  await device.close();
+}, 'interface-scope IN control transfers require claiming the interface');
+
 usb_test(() => {
   return getFakeDevice().then(({ device, fakeDevice }) => {
     return device.open()
@@ -532,6 +604,93 @@ usb_test(async () => {
   }
   await device.close();
 }, 'can issue all types of OUT control transfers');
+
+usb_test(async () => {
+  let { device } = await getFakeDevice();
+  let usbRequestTypes = ['standard', 'class', 'vendor'];
+  let usbRecipients = ['device', 'other'];
+  let dataArray = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+  let dataTypes = [dataArray, dataArray.buffer];
+  await device.open();
+  await Promise.all(usbRequestTypes.flatMap(requestType => {
+    return usbRecipients.flatMap(recipient => {
+      let transferParams = {
+        requestType: requestType,
+        recipient: recipient,
+        request: 0x42,
+        value: 0x1234,
+        index: 0x5678
+      };
+      return dataTypes.map(async data => {
+        let result = await device.controlTransferOut(transferParams, data);
+        assert_true(result instanceof USBOutTransferResult);
+        assert_equals(result.status, 'ok');
+        assert_equals(result.bytesWritten, 8);
+      }).push((async () => {
+        let result = await device.controlTransferOut(transferParams);
+        assert_true(result instanceof USBOutTransferResult);
+        assert_equals(result.status, 'ok');
+      })());
+    });
+  }));
+  await device.close();
+}, 'device-scope OUT control transfers don\'t require configuration');
+
+usb_test(async () => {
+  let { device } = await getFakeDevice();
+  let usbRequestTypes = ['standard', 'class', 'vendor'];
+  let usbRecipients = ['interface', 'endpoint'];
+  let dataArray = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+  let dataTypes = [dataArray, dataArray.buffer];
+  await device.open();
+  await Promise.all(usbRequestTypes.flatMap(requestType => {
+    return usbRecipients.flatMap(recipient => {
+      let index = recipient === 'interface' ? 0x5600 : 0x5681;
+      let transferParams = {
+        requestType: requestType,
+        recipient: recipient,
+        request: 0x42,
+        value: 0x1234,
+        index: index
+      };
+      return dataTypes.map(data => {
+        return assertRejectsWithNotConfiguredError(
+            device.controlTransferOut(transferParams, data));
+      }).push(assertRejectsWithNotConfiguredError(
+          device.controlTransferOut(transferParams)));
+    });
+  }));
+  await device.close();
+}, 'interface-scope OUT control transfers require configuration');
+
+usb_test(async () => {
+  let { device } = await getFakeDevice();
+  let usbRequestTypes = ['standard', 'class', 'vendor'];
+  let usbRecipients = ['interface', 'endpoint'];
+  let dataArray = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+  let dataTypes = [dataArray, dataArray.buffer];
+  await device.open();
+  await device.selectConfiguration(1);
+  await Promise.all(usbRequestTypes.flatMap(requestType => {
+    return usbRecipients.flatMap(recipient => {
+      let index = recipient === 'interface' ? 0x5600 : 0x5681;
+      let assertion = recipient === 'interface'
+          ? assertRejectsWithNotClaimedError
+          : assertRejectsWithEndpointNotFoundError;
+      let transferParams = {
+        requestType: requestType,
+        recipient: recipient,
+        request: 0x42,
+        value: 0x1234,
+        index: index
+      };
+      return dataTypes.map(data => {
+        return assertion(device.controlTransferOut(transferParams, data));
+      }).push(assertion(device.controlTransferOut(transferParams)));
+    });
+  }));
+  await device.close();
+}, 'interface-scope OUT control transfers an interface claim');
 
 usb_test(() => {
   return getFakeDevice().then(({ device, fakeDevice }) => {
@@ -738,23 +897,17 @@ usb_test(() => {
     let data = new DataView(new ArrayBuffer(1024));
     for (let i = 0; i < 1024; ++i)
       data.setUint8(i, i & 0xff);
-    const notFoundMessage = 'The specified endpoint is not part of a claimed ' +
-                            'and selected alternate interface.';
     const rangeError = 'The specified endpoint number is out of range.';
     return device.open()
       .then(() => device.selectConfiguration(1))
       .then(() => device.claimInterface(0))
       .then(() => Promise.all([
-          assertRejectsWithError(device.transferIn(2, 8),
-                                 'NotFoundError', notFoundMessage), // Unclaimed
-          assertRejectsWithError(device.transferIn(3, 8), 'NotFoundError',
-                                 notFoundMessage), // Non-existent
+          assertRejectsWithEndpointNotFoundError(device.transferIn(2, 8)), // Unclaimed
+          assertRejectsWithEndpointNotFoundError(device.transferIn(3, 8)), // Non-existent
           assertRejectsWithError(
               device.transferIn(16, 8), 'IndexSizeError', rangeError),
-          assertRejectsWithError(device.transferOut(2, data),
-                                 'NotFoundError', notFoundMessage), // Unclaimed
-          assertRejectsWithError(device.transferOut(3, data), 'NotFoundError',
-                                 notFoundMessage), // Non-existent
+          assertRejectsWithEndpointNotFoundError(device.transferOut(2, data)), // Unclaimed
+          assertRejectsWithEndpointNotFoundError(device.transferOut(3, data)), // Non-existent
           assertRejectsWithError(
               device.transferOut(16, data), 'IndexSizeError', rangeError),
       ]));
