@@ -6,6 +6,6 @@
 // https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14
 //
 
-[Pref="dom.webgl2.enabled"]
+[Exposed=Window, Pref="dom.webgl2.enabled"]
 interface WebGLSync : WebGLObject {
 };

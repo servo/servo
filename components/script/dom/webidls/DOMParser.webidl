@@ -14,6 +14,7 @@ enum SupportedType {
   "image/svg+xml"*/
 };
 
+[Exposed=Window]
 interface DOMParser {
   [Throws] constructor();
   [Throws]

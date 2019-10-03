@@ -7,7 +7,7 @@
 enum CanPlayTypeResult { "" /* empty string */, "maybe", "probably" };
 typedef (MediaStream /*or MediaSource */ or Blob) MediaProvider;
 
-[Abstract]
+[Exposed=Window, Abstract]
 interface HTMLMediaElement : HTMLElement {
   // error state
   readonly attribute MediaError? error;

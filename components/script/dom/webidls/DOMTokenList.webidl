@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://dom.spec.whatwg.org/#domtokenlist
+[Exposed=Window]
 interface DOMTokenList {
   [Pure]
   readonly attribute unsigned long length;

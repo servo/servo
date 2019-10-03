@@ -6,6 +6,7 @@
  * https://w3c.github.io/DOM-Parsing/#the-domparser-interface
  */
 
+[Exposed=Window]
 interface XMLSerializer {
   [Throws] constructor();
   [Throws]

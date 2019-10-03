@@ -7,6 +7,7 @@
  *
  */
 
+[Exposed=Window]
 interface Attr {
   [Constant]
   readonly attribute DOMString? namespaceURI;

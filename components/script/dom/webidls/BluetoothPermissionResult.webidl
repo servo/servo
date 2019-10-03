@@ -12,7 +12,7 @@ dictionary BluetoothPermissionDescriptor : PermissionDescriptor {
   boolean acceptAllDevices = false;
 };
 
-[Pref="dom.bluetooth.enabled"]
+[Exposed=Window, Pref="dom.bluetooth.enabled"]
 interface BluetoothPermissionResult : PermissionStatus {
   // attribute FrozenArray<BluetoothDevice> devices;
   // Workaround until FrozenArray get implemented.

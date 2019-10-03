@@ -8,6 +8,7 @@
  */
 
 // https://dom.spec.whatwg.org/#interface-document
+[Exposed=Window]
 interface Document : Node {
   [Throws] constructor();
   [SameObject]

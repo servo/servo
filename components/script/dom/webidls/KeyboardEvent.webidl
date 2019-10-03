@@ -7,6 +7,7 @@
  *
  */
 
+[Exposed=Window]
 interface KeyboardEvent : UIEvent {
     [Throws] constructor(DOMString typeArg, optional KeyboardEventInit keyboardEventInitDict = {});
     // KeyLocationCode

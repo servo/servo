@@ -252,16 +252,6 @@ def WebIDLTest(parser, harness):
                };
                """, mapRWMembers, numProductions=2)
 
-    shouldPass("Implements with maplike/setlike",
-               """
-               interface Foo1 {
-               maplike<long, long>;
-               };
-               interface Foo2 {
-               };
-               Foo2 implements Foo1;
-               """, mapRWMembers, numProductions=3)
-
     shouldPass("JS Implemented maplike interface",
                """
                [JSImplementation="@mozilla.org/dom/test-interface-js-maplike;1"]
@@ -348,31 +338,6 @@ def WebIDLTest(parser, harness):
                interface Foo3 : Foo2 {
                setlike<long>;
                };
-               """)
-
-    shouldFail("Consequential interface with conflicting maplike/setlike",
-               """
-               interface Foo1 {
-               maplike<long, long>;
-               };
-               interface Foo2 {
-               setlike<long>;
-               };
-               Foo2 implements Foo1;
-               """)
-
-    shouldFail("Consequential interfaces with conflicting maplike/setlike",
-               """
-               interface Foo1 {
-               maplike<long, long>;
-               };
-               interface Foo2 {
-               setlike<long>;
-               };
-               interface Foo3 {
-               };
-               Foo3 implements Foo1;
-               Foo3 implements Foo2;
                """)
 
     #
@@ -477,52 +442,28 @@ def WebIDLTest(parser, harness):
                };
                """, mapRWMembers, numProductions=3)
 
-    shouldFail("Interface with consequential maplike/setlike interface member collision",
+    shouldFail("Maplike interface with mixin member collision",
                """
                interface Foo1 {
-               void entries();
-               };
-               interface Foo2 {
                maplike<long, long>;
                };
-               Foo1 implements Foo2;
+               interface mixin Foo2 {
+               void entries();
+               };
+               Foo1 includes Foo2;
                """)
-
-    shouldFail("Maplike interface with consequential interface member collision",
-               """
-               interface Foo1 {
-               maplike<long, long>;
-               };
-               interface Foo2 {
-               void entries();
-               };
-               Foo1 implements Foo2;
-               """)
-
-    shouldPass("Consequential Maplike interface with inherited interface member collision",
-               """
-               interface Foo1 {
-               maplike<long, long>;
-               };
-               interface Foo2 {
-               void entries();
-               };
-               interface Foo3 : Foo2 {
-               };
-               Foo3 implements Foo1;
-               """, mapRWMembers, numProductions=4)
 
     shouldPass("Inherited Maplike interface with consequential interface member collision",
                """
                interface Foo1 {
                maplike<long, long>;
                };
-               interface Foo2 {
+               interface mixin Foo2 {
                void entries();
                };
                interface Foo3 : Foo1 {
                };
-               Foo3 implements Foo2;
+               Foo3 includes Foo2;
                """, mapRWMembers, numProductions=4)
 
     shouldFail("Inheritance of name collision with child maplike/setlike",
@@ -645,7 +586,7 @@ def WebIDLTest(parser, harness):
                };
                """)
 
-    shouldPass("Implemented interface with readonly allowable overrides",
+    shouldPass("Interface with readonly allowable overrides",
                """
                interface Foo1 {
                readonly setlike<long>;

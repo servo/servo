@@ -5,6 +5,7 @@
  * https://dom.spec.whatwg.org/#callbackdef-eventlistener
  */
 
+[Exposed=Window]
 callback interface EventListener {
   void handleEvent(Event event);
 };

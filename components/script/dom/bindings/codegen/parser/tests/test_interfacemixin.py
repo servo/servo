@@ -338,9 +338,47 @@ def WebIDLTest(parser, harness):
                "Should fail if an interface mixin includes maplike")
 
     parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            interface Interface {
+                attribute short attr;
+            };
+            interface mixin Mixin {
+                attribute short attr;
+            };
+            Interface includes Mixin;
+        """)
+        results = parser.finish()
+    except:
+        threw = True
+    harness.ok(threw,
+               "Should fail if the included mixin interface has duplicated member")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            interface Interface {};
+            interface mixin Mixin1 {
+                attribute short attr;
+            };
+            interface mixin Mixin2 {
+                attribute short attr;
+            };
+            Interface includes Mixin1;
+            Interface includes Mixin2;
+        """)
+        results = parser.finish()
+    except:
+        threw = True
+    harness.ok(threw,
+               "Should fail if the included mixin interfaces have duplicated member")
+
+    parser = parser.reset()
     parser.parse("""
-        [Global] interface Window {};
-        [Global] interface Worker {};
+        [Global, Exposed=Window] interface Window {};
+        [Global, Exposed=Worker] interface Worker {};
         [Exposed=Window]
         interface Base {};
         interface mixin Mixin {
@@ -356,8 +394,8 @@ def WebIDLTest(parser, harness):
 
     parser = parser.reset()
     parser.parse("""
-        [Global] interface Window {};
-        [Global] interface Worker {};
+        [Global, Exposed=Window] interface Window {};
+        [Global, Exposed=Worker] interface Worker {};
         [Exposed=Window]
         interface Base {};
         [Exposed=Window]
@@ -371,3 +409,29 @@ def WebIDLTest(parser, harness):
     attr = base.members[0]
     harness.check(attr.exposureSet, set(["Window"]),
                  "Should follow [Exposed] on interface mixin")
+
+    parser = parser.reset()
+    parser.parse("""
+        [Global, Exposed=Window] interface Window {};
+        [Global, Exposed=Worker] interface Worker {};
+        [Exposed=Window]
+        interface Base1 {};
+        [Exposed=Worker]
+        interface Base2 {};
+        interface mixin Mixin {
+            attribute short a;
+        };
+        Base1 includes Mixin;
+        Base2 includes Mixin;
+    """)
+    results = parser.finish()
+    base = results[2]
+    attr = base.members[0]
+    harness.check(attr.exposureSet, set(["Window", "Worker"]),
+                 "Should expose on all globals where including interfaces are "
+                  "exposed")
+    base = results[3]
+    attr = base.members[0]
+    harness.check(attr.exposureSet, set(["Window", "Worker"]),
+                 "Should expose on all globals where including interfaces are "
+                  "exposed")

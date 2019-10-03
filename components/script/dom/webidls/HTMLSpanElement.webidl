@@ -3,5 +3,5 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlspanelement
-[HTMLConstructor]
+[Exposed=Window, HTMLConstructor]
 interface HTMLSpanElement : HTMLElement {};

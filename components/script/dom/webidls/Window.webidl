@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#window
-[PrimaryGlobal]
+[Global=Window, Exposed=Window]
 /*sealed*/ interface Window : GlobalScope {
   // the current browsing context
   [Unforgeable] readonly attribute WindowProxy window;

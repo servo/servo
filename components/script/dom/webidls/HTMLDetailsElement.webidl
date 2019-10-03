@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmldetailselement
-[HTMLConstructor]
+[Exposed=Window, HTMLConstructor]
 interface HTMLDetailsElement : HTMLElement {
     [CEReactions]
     attribute boolean open;

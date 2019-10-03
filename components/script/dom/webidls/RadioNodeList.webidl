@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#radionodelist
+[Exposed=Window]
 interface RadioNodeList : NodeList {
   attribute DOMString value;
 };

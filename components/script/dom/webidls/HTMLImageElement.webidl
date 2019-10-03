@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlimageelement
-[HTMLConstructor, NamedConstructor=Image(optional unsigned long width, optional unsigned long height)]
+[Exposed=Window, HTMLConstructor, NamedConstructor=Image(optional unsigned long width, optional unsigned long height)]
 interface HTMLImageElement : HTMLElement {
   [CEReactions]
            attribute DOMString alt;

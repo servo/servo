@@ -8,7 +8,7 @@
  */
 
 // https://w3c.github.io/uievents/#idl-compositionevent
-[Pref="dom.compositionevent.enabled"]
+[Exposed=Window, Pref="dom.compositionevent.enabled"]
 interface CompositionEvent : UIEvent {
   [Throws] constructor(DOMString type, optional CompositionEventInit eventInitDict = {});
   readonly attribute DOMString data;

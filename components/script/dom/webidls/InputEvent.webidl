@@ -8,6 +8,7 @@
  */
 
 // https://w3c.github.io/uievents/#idl-inputevent
+[Exposed=Window]
 interface InputEvent : UIEvent {
   [Throws] constructor(DOMString type, optional InputEventInit eventInitDict = {});
   readonly attribute DOMString? data;

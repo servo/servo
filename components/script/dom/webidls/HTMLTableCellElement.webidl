@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmltablecellelement
-[HTMLConstructor]
+[Exposed=Window, HTMLConstructor]
 interface HTMLTableCellElement : HTMLElement {
   [CEReactions]
            attribute unsigned long colSpan;

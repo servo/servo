@@ -7,7 +7,7 @@
  */
 
 // https://dom.spec.whatwg.org/#mutationobserver
-[Pref="dom.mutation_observer.enabled"]
+[Exposed=Window, Pref="dom.mutation_observer.enabled"]
 interface MutationObserver {
     [Throws] constructor(MutationCallback callback);
     [Throws]

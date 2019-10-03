@@ -827,10 +827,6 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         elif isArgument:
             descriptorType = descriptor.argumentType
 
-        if descriptor.interface.isConsequential():
-            raise TypeError("Consequential interface %s being used as an "
-                            "argument" % descriptor.interface.identifier.name)
-
         if failureCode is None:
             substitutions = {
                 "sourceDescription": sourceDescription,

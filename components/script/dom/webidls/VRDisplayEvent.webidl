@@ -11,7 +11,7 @@ enum VRDisplayEventReason {
   "requested"
 };
 
-[Pref="dom.webvr.enabled"]
+[Exposed=Window, Pref="dom.webvr.enabled"]
 interface VRDisplayEvent : Event {
   [Throws] constructor(DOMString type, VRDisplayEventInit eventInitDict);
   readonly attribute VRDisplay display;

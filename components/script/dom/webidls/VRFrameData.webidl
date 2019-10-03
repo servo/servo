@@ -4,7 +4,7 @@
 
 // https://w3c.github.io/webvr/#interface-vrframedata
 
-[Pref="dom.webvr.enabled"]
+[Exposed=Window, Pref="dom.webvr.enabled"]
 interface VRFrameData {
   [Throws] constructor();
   readonly attribute DOMHighResTimeStamp timestamp;

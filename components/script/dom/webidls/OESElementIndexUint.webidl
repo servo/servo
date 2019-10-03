@@ -6,6 +6,6 @@
  * https://www.khronos.org/registry/webgl/extensions/OES_element_index_uint/
  */
 
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=Window]
 interface OESElementIndexUint {
 };

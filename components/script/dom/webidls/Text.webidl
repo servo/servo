@@ -10,6 +10,7 @@
  */
 
 // https://dom.spec.whatwg.org/#text
+[Exposed=Window]
 interface Text : CharacterData {
   [Throws] constructor(optional DOMString data = "");
   [NewObject, Throws]

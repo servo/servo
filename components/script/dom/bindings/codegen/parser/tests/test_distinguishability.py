@@ -59,8 +59,6 @@ def WebIDLTest(parser, harness):
         void passKid(Kid arg);
         void passParent(Parent arg);
         void passGrandparent(Grandparent arg);
-        void passImplemented(Implemented arg);
-        void passImplementedParent(ImplementedParent arg);
         void passUnrelated1(Unrelated1 arg);
         void passUnrelated2(Unrelated2 arg);
         void passArrayBuffer(ArrayBuffer arg);
@@ -70,9 +68,6 @@ def WebIDLTest(parser, harness):
       interface Kid : Parent {};
       interface Parent : Grandparent {};
       interface Grandparent {};
-      interface Implemented : ImplementedParent {};
-      Parent implements Implemented;
-      interface ImplementedParent {};
       interface Unrelated1 {};
       interface Unrelated2 {};
     """)
@@ -156,8 +151,7 @@ def WebIDLTest(parser, harness):
     argTypes = [ "long", "short", "long?", "short?", "boolean",
                  "boolean?", "DOMString", "ByteString", "Enum", "Enum2",
                  "Interface", "Interface?",
-                 "AncestorInterface", "UnrelatedInterface",
-                 "ImplementedInterface", "CallbackInterface",
+                 "AncestorInterface", "UnrelatedInterface", "CallbackInterface",
                  "CallbackInterface?", "CallbackInterface2",
                  "object", "Callback", "Callback2", "Dict",
                  "Dict2", "sequence<long>", "sequence<short>",
@@ -190,7 +184,7 @@ def WebIDLTest(parser, harness):
     bufferSourceTypes = ["ArrayBuffer", "ArrayBufferView", "Uint8Array", "Uint16Array"]
     sharedBufferSourceTypes = ["SharedArrayBuffer"]
     interfaces = [ "Interface", "Interface?", "AncestorInterface",
-                   "UnrelatedInterface", "ImplementedInterface" ] + bufferSourceTypes + sharedBufferSourceTypes
+                   "UnrelatedInterface" ] + bufferSourceTypes + sharedBufferSourceTypes
     nullables = (["long?", "short?", "boolean?", "Interface?",
                   "CallbackInterface?", "Dict", "Dict2",
                   "Date?", "any", "Promise<any>?"] +
@@ -230,7 +224,6 @@ def WebIDLTest(parser, harness):
     setDistinguishable("AncestorInterface", notRelatedInterfaces)
     setDistinguishable("UnrelatedInterface",
                        allBut(argTypes, ["object", "UnrelatedInterface"]))
-    setDistinguishable("ImplementedInterface", notRelatedInterfaces)
     setDistinguishable("CallbackInterface", nonUserObjects)
     setDistinguishable("CallbackInterface?", allBut(nonUserObjects, nullables))
     setDistinguishable("CallbackInterface2", nonUserObjects)
@@ -272,8 +265,6 @@ def WebIDLTest(parser, harness):
           interface Interface : AncestorInterface {};
           interface AncestorInterface {};
           interface UnrelatedInterface {};
-          interface ImplementedInterface {};
-          Interface implements ImplementedInterface;
           callback interface CallbackInterface {};
           callback interface CallbackInterface2 {};
           callback Callback = any();

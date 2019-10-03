@@ -1,8 +1,10 @@
+import traceback
+
 def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            [Global]
+            [Global, Exposed=TestConstructorGlobal]
             interface TestConstructorGlobal {
               constructor();
             };
@@ -18,7 +20,8 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            [Global, NamedConstructor=FooBar]
+            [Global, Exposed=TestNamedConstructorGlobal,
+             NamedConstructor=FooBar]
             interface TestNamedConstructorGlobal {
             };
         """)
@@ -32,7 +35,8 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            [NamedConstructor=FooBar, Global]
+            [NamedConstructor=FooBar, Global,
+             Exposed=TestNamedConstructorGlobal]
             interface TestNamedConstructorGlobal {
             };
         """)
@@ -46,7 +50,7 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            [Global, HTMLConstructor]
+            [Global, HTMLConstructor, Exposed=TestHTMLConstructorGlobal]
             interface TestHTMLConstructorGlobal {
             };
         """)
@@ -61,7 +65,7 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            [HTMLConstructor, Global]
+            [HTMLConstructor, Global, Exposed=TestHTMLConstructorGlobal]
             interface TestHTMLConstructorGlobal {
             };
         """)
