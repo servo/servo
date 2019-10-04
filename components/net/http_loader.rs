@@ -1333,6 +1333,7 @@ fn http_network_fetch(
         res.status(),
         res.status().canonical_reason().unwrap_or("").into(),
     ));
+    debug!("got {:?} response for {:?}", res.status(), request.url());
     response.raw_status = Some((
         res.status().as_u16(),
         res.status().canonical_reason().unwrap_or("").into(),
@@ -1387,6 +1388,8 @@ fn http_network_fetch(
     let done_sender3 = done_sender.clone();
     let timing_ptr2 = context.timing.clone();
     let timing_ptr3 = context.timing.clone();
+    let url1 = request.url();
+    let url2 = url1.clone();
     HANDLE.lock().unwrap().spawn(
         res.into_body()
             .map_err(|_| ())
@@ -1404,6 +1407,7 @@ fn http_network_fetch(
                 future::ok(res_body)
             })
             .and_then(move |res_body| {
+                debug!("successfully finished response for {:?}", url1);
                 let mut body = res_body.lock().unwrap();
                 let completed_body = match *body {
                     ResponseBody::Receiving(ref mut body) => mem::replace(body, vec![]),
@@ -1418,6 +1422,7 @@ fn http_network_fetch(
                 future::ok(())
             })
             .map_err(move |_| {
+                debug!("finished response for {:?} with error", url2);
                 let mut body = res_body2.lock().unwrap();
                 let completed_body = match *body {
                     ResponseBody::Receiving(ref mut body) => mem::replace(body, vec![]),

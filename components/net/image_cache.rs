@@ -530,6 +530,7 @@ impl ImageCache for ImageCacheImpl {
             (FetchResponseMsg::ProcessRequestBody, _) |
             (FetchResponseMsg::ProcessRequestEOF, _) => return,
             (FetchResponseMsg::ProcessResponse(response), _) => {
+                debug!("Received {:?} for {:?}", response.as_ref().map(|_| ()), id);
                 let mut store = self.store.lock().unwrap();
                 let pending_load = store.pending_loads.get_by_key_mut(&id).unwrap();
                 let (cors_status, metadata) = match response {

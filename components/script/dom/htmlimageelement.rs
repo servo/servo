@@ -186,6 +186,7 @@ impl FetchResponseListener for ImageContext {
     fn process_request_eof(&mut self) {}
 
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
+        debug!("got {:?} for {:?}", metadata.as_ref().map(|_| ()), self.url);
         self.image_cache
             .notify_pending_response(self.id, FetchResponseMsg::ProcessResponse(metadata.clone()));
 
