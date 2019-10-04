@@ -14,7 +14,7 @@ use crate::dom::mediametadata::MediaMetadata;
 use crate::dom::window::Window;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::TopLevelBrowsingContextId;
 use std::rc::Rc;
 
 #[dom_struct]
@@ -28,22 +28,20 @@ pub struct MediaSession {
 
 impl MediaSession {
     #[allow(unrooted_must_root)]
-    fn new_inherited(pipeline_id: PipelineId) -> MediaSession {
+    fn new_inherited(browsing_context_id: TopLevelBrowsingContextId) -> MediaSession {
         let media_session = MediaSession {
             reflector_: Reflector::new(),
             metadata: Default::default(),
             playback_state: DomRefCell::new(MediaSessionPlaybackState::None),
         };
-        ScriptThread::register_media_session(&media_session, pipeline_id);
+        ScriptThread::register_media_session(&media_session, browsing_context_id);
         media_session
     }
 
     pub fn new(window: &Window) -> DomRoot<MediaSession> {
-        let pipeline_id = window
-            .pipeline_id()
-            .expect("Cannot create MediaSession without a PipelineId");
+        let browsing_context_id = window.window_proxy().top_level_browsing_context_id();
         reflect_dom_object(
-            Box::new(MediaSession::new_inherited(pipeline_id)),
+            Box::new(MediaSession::new_inherited(browsing_context_id)),
             window,
             MediaSessionBinding::Wrap,
         )
@@ -83,10 +81,10 @@ impl MediaSessionMethods for MediaSession {
 impl Drop for MediaSession {
     fn drop(&mut self) {
         let global = self.global();
-        let pipeline_id = global
+        let browsing_context_id = global
             .as_window()
-            .pipeline_id()
-            .expect("No PipelineId while dropping MediaSession");
-        ScriptThread::remove_media_session(pipeline_id);
+            .window_proxy()
+            .top_level_browsing_context_id();
+        ScriptThread::remove_media_session(browsing_context_id);
     }
 }

@@ -698,10 +698,10 @@ pub struct ScriptThread {
     /// Code is running as a consequence of a user interaction
     is_user_interacting: Cell<bool>,
 
-    /// The MediaSessions registered for this Pipeline, if any.
-    /// There can only be one active MediaSession. The constellation
-    /// has the PipelineId of the active MediaSession, if any.
-    media_sessions: DomRefCell<HashMap<PipelineId, Dom<MediaSession>>>,
+    /// The MediaSessions known by this thread, if any.
+    /// There can only be one active MediaSession.
+    /// The constellation has the BrowsingContextId of the active MediaSession, if any.
+    media_sessions: DomRefCell<HashMap<TopLevelBrowsingContextId, Dom<MediaSession>>>,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -3956,23 +3956,26 @@ impl ScriptThread {
         )
     }
 
-    pub fn register_media_session(media_session: &MediaSession, pipeline_id: PipelineId) {
+    pub fn register_media_session(
+        media_session: &MediaSession,
+        browsing_context_id: TopLevelBrowsingContextId,
+    ) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             script_thread
                 .media_sessions
                 .borrow_mut()
-                .insert(pipeline_id, Dom::from_ref(media_session));
+                .insert(browsing_context_id, Dom::from_ref(media_session));
         })
     }
 
-    pub fn remove_media_session(pipeline_id: PipelineId) {
+    pub fn remove_media_session(browsing_context_id: TopLevelBrowsingContextId) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             script_thread
                 .media_sessions
                 .borrow_mut()
-                .remove(&pipeline_id);
+                .remove(&browsing_context_id);
         })
     }
 }
