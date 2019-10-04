@@ -57,9 +57,9 @@ impl XRSpace {
     /// The reference origin used is common between all
     /// get_pose calls for spaces from the same device, so this can be used to compare
     /// with other spaces
-    pub fn get_pose(&self, base_pose: &Frame) -> ApiPose {
+    pub fn get_pose(&self, base_pose: &Frame) -> Option<ApiPose> {
         if let Some(reference) = self.downcast::<XRReferenceSpace>() {
-            reference.get_pose(base_pose)
+            Some(reference.get_pose(base_pose))
         } else if let Some(source) = self.input_source.get() {
             // XXXManishearth we should be able to request frame information
             // for inputs when necessary instead of always loading it
@@ -72,7 +72,7 @@ impl XRSpace {
                 .iter()
                 .find(|i| i.id == id)
                 .expect("no input found");
-            cast_transform(frame.target_ray_origin)
+            frame.target_ray_origin.map(cast_transform)
         } else {
             unreachable!()
         }
