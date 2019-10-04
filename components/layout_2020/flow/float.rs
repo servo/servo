@@ -7,7 +7,7 @@ use servo_arc::Arc;
 use style::properties::ComputedValues;
 
 #[derive(Debug)]
-pub struct FloatBox {
+pub(crate) struct FloatBox {
     pub style: Arc<ComputedValues>,
     pub contents: IndependentFormattingContext,
 }

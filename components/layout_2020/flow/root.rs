@@ -22,7 +22,6 @@ use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto};
 use style_traits::CSSPixel;
 
-#[derive(Debug)]
 pub struct BoxTreeRoot(BlockFormattingContext);
 
 impl BoxTreeRoot {

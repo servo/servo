@@ -25,22 +25,24 @@ use style::Zero;
 mod construct;
 mod float;
 pub mod inline;
-pub mod root;
+mod root;
+
+pub use root::BoxTreeRoot;
 
 #[derive(Debug)]
-pub struct BlockFormattingContext {
+pub(crate) struct BlockFormattingContext {
     pub contents: BlockContainer,
     pub contains_floats: bool,
 }
 
 #[derive(Debug)]
-pub enum BlockContainer {
+pub(crate) enum BlockContainer {
     BlockLevelBoxes(Vec<Arc<BlockLevelBox>>),
     InlineFormattingContext(InlineFormattingContext),
 }
 
 #[derive(Debug)]
-pub enum BlockLevelBox {
+pub(crate) enum BlockLevelBox {
     SameFormattingContextBlock {
         style: Arc<ComputedValues>,
         contents: BlockContainer,

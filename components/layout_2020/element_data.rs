@@ -19,7 +19,7 @@ pub(super) struct PseudoElementBoxes {
     pub after: Arc<AtomicRefCell<Option<LayoutBox>>>,
 }
 
-pub enum LayoutBox {
+pub(super) enum LayoutBox {
     DisplayContents,
     BlockLevel(Arc<BlockLevelBox>),
     InlineLevel(Arc<InlineLevelBox>),

@@ -35,12 +35,12 @@ pub(super) enum Contents<Node> {
     OfPseudoElement(Vec<PseudoElementContentItem>),
 }
 
-pub enum NonReplacedContents<Node> {
+pub(super) enum NonReplacedContents<Node> {
     OfElement(Node),
     OfPseudoElement(Vec<PseudoElementContentItem>),
 }
 
-pub enum PseudoElementContentItem {
+pub(super) enum PseudoElementContentItem {
     Text(String),
     Replaced(ReplacedContent),
 }
@@ -258,18 +258,18 @@ pub struct BoxSlot<'dom> {
 }
 
 impl BoxSlot<'_> {
-    pub fn new(slot: Arc<AtomicRefCell<Option<LayoutBox>>>) -> Self {
+    pub(crate) fn new(slot: Arc<AtomicRefCell<Option<LayoutBox>>>) -> Self {
         *slot.borrow_mut() = None;
         let slot = Some(slot);
         Self { slot, marker }
     }
 
-    pub fn dummy() -> Self {
+    pub(crate) fn dummy() -> Self {
         let slot = None;
         Self { slot, marker }
     }
 
-    pub fn set(mut self, box_: LayoutBox) {
+    pub(crate) fn set(mut self, box_: LayoutBox) {
         if let Some(slot) = &mut self.slot {
             *slot.borrow_mut() = Some(box_);
         }

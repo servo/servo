@@ -6,7 +6,7 @@ use crate::dom_traversal::NodeExt;
 use style::context::SharedStyleContext;
 
 #[derive(Debug)]
-pub enum ReplacedContent {
+pub(super) enum ReplacedContent {
     // Not implemented yet
 }
 

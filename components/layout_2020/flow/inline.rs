@@ -16,12 +16,12 @@ use style::values::computed::Length;
 use style::Zero;
 
 #[derive(Debug, Default)]
-pub struct InlineFormattingContext {
+pub(crate) struct InlineFormattingContext {
     pub(super) inline_level_boxes: Vec<Arc<InlineLevelBox>>,
 }
 
 #[derive(Debug)]
-pub enum InlineLevelBox {
+pub(crate) enum InlineLevelBox {
     InlineBox(InlineBox),
     TextRun(TextRun),
     OutOfFlowAbsolutelyPositionedBox(AbsolutelyPositionedBox),
@@ -34,7 +34,7 @@ pub enum InlineLevelBox {
 }
 
 #[derive(Debug)]
-pub struct InlineBox {
+pub(crate) struct InlineBox {
     pub style: Arc<ComputedValues>,
     pub first_fragment: bool,
     pub last_fragment: bool,
@@ -43,7 +43,7 @@ pub struct InlineBox {
 
 /// https://www.w3.org/TR/css-display-3/#css-text-run
 #[derive(Debug)]
-pub struct TextRun {
+pub(crate) struct TextRun {
     pub parent_style: Arc<ComputedValues>,
     pub text: String,
 }

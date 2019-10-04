@@ -123,7 +123,7 @@ struct BlockContainerBuilder<'dom, 'style, Node> {
 }
 
 impl BlockContainer {
-    pub(crate) fn construct<'dom, 'style>(
+    pub fn construct<'dom, 'style>(
         context: &SharedStyleContext<'style>,
         block_container_style: &Arc<ComputedValues>,
         contents: NonReplacedContents<impl NodeExt<'dom>>,
@@ -646,7 +646,7 @@ where
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ContainsFloats {
+pub(crate) enum ContainsFloats {
     No,
     Yes,
 }

@@ -13,7 +13,7 @@ use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPerc
 use style::Zero;
 
 #[derive(Debug)]
-pub struct AbsolutelyPositionedBox {
+pub(crate) struct AbsolutelyPositionedBox {
     pub style: Arc<ComputedValues>,
     pub contents: IndependentFormattingContext,
 }

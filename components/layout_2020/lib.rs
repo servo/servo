@@ -11,6 +11,27 @@
 #[macro_use]
 extern crate serde;
 
+use style::properties::ComputedValues;
+use style::values::computed::{Length, LengthOrAuto};
+use style::Zero;
+
+pub mod context;
+pub mod data;
+mod dom_traversal;
+mod element_data;
+mod flow;
+mod fragments;
+mod geom;
+mod opaque_node;
+mod positioned;
+pub mod query;
+mod replaced;
+mod style_ext;
+pub mod traversal;
+pub mod wrapper;
+
+pub use flow::BoxTreeRoot;
+
 use crate::dom_traversal::{Contents, NodeExt};
 use crate::flow::{BlockFormattingContext, FlowChildren};
 use crate::geom::flow_relative::Vec2;
@@ -20,31 +41,11 @@ use crate::style_ext::{ComputedValuesExt, Direction, Position, WritingMode};
 use servo_arc::Arc;
 use std::convert::TryInto;
 use style::context::SharedStyleContext;
-use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthOrAuto};
 use style::values::specified::box_::DisplayInside;
-use style::Zero;
-
-pub mod context;
-pub mod data;
-pub mod dom_traversal;
-pub mod element_data;
-pub mod flow;
-pub mod fragments;
-pub mod geom;
-pub mod opaque_node;
-pub mod positioned;
-pub mod query;
-pub mod replaced;
-pub mod style_ext;
-pub mod traversal;
-pub mod wrapper;
-
-pub use crate::flow::root::BoxTreeRoot;
 
 /// https://drafts.csswg.org/css-display/#independent-formatting-context
 #[derive(Debug)]
-pub enum IndependentFormattingContext {
+enum IndependentFormattingContext {
     Flow(BlockFormattingContext),
 
     // Not called FC in specs, but behaves close enough
