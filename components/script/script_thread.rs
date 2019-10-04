@@ -51,6 +51,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::{HTMLIFrameElement, NavigationType};
+use crate::dom::mediasession::MediaSession;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::{
     from_untrusted_node_address, window_from_node, Node, NodeDamage, ShadowIncluding,
@@ -696,6 +697,11 @@ pub struct ScriptThread {
 
     /// Code is running as a consequence of a user interaction
     is_user_interacting: Cell<bool>,
+
+    /// The MediaSessions registered for this Pipeline, if any.
+    /// There can only be one active MediaSession. The constellation
+    /// has the PipelineId of the active MediaSession, if any.
+    media_sessions: DomRefCell<HashMap<PipelineId, Dom<MediaSession>>>,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -1365,6 +1371,7 @@ impl ScriptThread {
 
             node_ids: Default::default(),
             is_user_interacting: Cell::new(false),
+            media_sessions: DomRefCell::new(HashMap::new()),
         }
     }
 
@@ -3947,6 +3954,26 @@ impl ScriptThread {
             |id| self.documents.borrow().find_global(id),
             globals,
         )
+    }
+
+    pub fn register_media_session(media_session: &MediaSession, pipeline_id: PipelineId) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            script_thread
+                .media_sessions
+                .borrow_mut()
+                .insert(pipeline_id, Dom::from_ref(media_session));
+        })
+    }
+
+    pub fn remove_media_session(pipeline_id: PipelineId) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            script_thread
+                .media_sessions
+                .borrow_mut()
+                .remove(&pipeline_id);
+        })
     }
 }
 

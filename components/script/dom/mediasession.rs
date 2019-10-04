@@ -8,11 +8,13 @@ use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionAc
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionActionHandler;
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionMethods;
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionPlaybackState;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::mediametadata::MediaMetadata;
 use crate::dom::window::Window;
+use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
+use msg::constellation_msg::PipelineId;
 use std::rc::Rc;
 
 #[dom_struct]
@@ -25,18 +27,24 @@ pub struct MediaSession {
 }
 
 impl MediaSession {
-    fn new_inherited() -> MediaSession {
-        MediaSession {
+    #[allow(unrooted_must_root)]
+    fn new_inherited(pipeline_id: PipelineId) -> MediaSession {
+        let media_session = MediaSession {
             reflector_: Reflector::new(),
             metadata: Default::default(),
             playback_state: DomRefCell::new(MediaSessionPlaybackState::None),
-        }
+        };
+        ScriptThread::register_media_session(&media_session, pipeline_id);
+        media_session
     }
 
-    pub fn new(global: &Window) -> DomRoot<MediaSession> {
+    pub fn new(window: &Window) -> DomRoot<MediaSession> {
+        let pipeline_id = window
+            .pipeline_id()
+            .expect("Cannot create MediaSession without a PipelineId");
         reflect_dom_object(
-            Box::new(MediaSession::new_inherited()),
-            global,
+            Box::new(MediaSession::new_inherited(pipeline_id)),
+            window,
             MediaSessionBinding::Wrap,
         )
     }
@@ -69,5 +77,16 @@ impl MediaSessionMethods for MediaSession {
         _action: MediaSessionAction,
         _handler: Option<Rc<MediaSessionActionHandler>>,
     ) {
+    }
+}
+
+impl Drop for MediaSession {
+    fn drop(&mut self) {
+        let global = self.global();
+        let pipeline_id = global
+            .as_window()
+            .pipeline_id()
+            .expect("No PipelineId while dropping MediaSession");
+        ScriptThread::remove_media_session(pipeline_id);
     }
 }
