@@ -7,6 +7,10 @@
 <script>
 'use strict';
 
+const stopTracks = (...streams) => {
+  streams.forEach(stream => stream.getTracks().forEach(track => track.stop()));
+};
+
 // Test is based on the following revision:
 // https://rawgit.com/w3c/webrtc-pc/1cc5bfc3ff18741033d804c4a71f7891242fb5b3/webrtc.html
 
@@ -696,6 +700,53 @@ promise_test(async t => {
   assert_equals(dc.readyState, 'connecting', 'Channel should be in the connecting state');
 }, 'New data channel should be in the connecting state after creation (after connection ' +
   'establishment)');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  const stream = await getNoiseStream({audio: true, video: true});
+  t.add_cleanup(() => stopTracks(stream));
+  const audio = stream.getAudioTracks()[0];
+  const video = stream.getVideoTracks()[0];
+  pc1.addTrack(audio, stream);
+  pc1.addTrack(video, stream);
+  await createDataChannelPair(pc1, pc2);
+}, 'addTrack, then createDataChannel, should negotiate properly');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection({bundlePolicy: "max-bundle"});
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  const stream = await getNoiseStream({audio: true, video: true});
+  t.add_cleanup(() => stopTracks(stream));
+  const audio = stream.getAudioTracks()[0];
+  const video = stream.getVideoTracks()[0];
+  pc1.addTrack(audio, stream);
+  pc1.addTrack(video, stream);
+  await createDataChannelPair(pc1, pc2);
+}, 'addTrack, then createDataChannel, should negotiate properly when max-bundle is used');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection({bundlePolicy: "max-bundle"});
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  const stream = await getNoiseStream({audio: true, video: true});
+  t.add_cleanup(() => stopTracks(stream));
+  const audio = stream.getAudioTracks()[0];
+  const video = stream.getVideoTracks()[0];
+  pc1.addTrack(audio, stream);
+  pc1.addTrack(video, stream);
+  const [dc1, dc2] = await createDataChannelPair(pc1, pc2);
+
+  pc2.getTransceivers()[0].stop();
+  const dc1Closed = new Promise(r => dc1.onclose = r);
+  await doSignalingHandshake(pc1, pc2);
+  await dc1Closed;
+}, 'Stopping the bundle-tag when there is a DataChannel in the bundle should kill the DataChannel');
 
 /*
   Untestable

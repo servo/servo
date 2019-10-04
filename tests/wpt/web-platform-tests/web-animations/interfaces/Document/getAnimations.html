@@ -68,11 +68,12 @@ promise_test(async t => {
   const iframe = document.createElement('iframe');
 
   const eventWatcher = new EventWatcher(t, iframe, ['load']);
+  const event_promise = eventWatcher.wait_for('load');
 
   document.body.appendChild(iframe);
   t.add_cleanup(() => { document.body.removeChild(iframe); });
 
-  await eventWatcher.wait_for('load');
+  await event_promise;
 
   const div = createDiv(t, iframe.contentDocument)
   const effect = new KeyframeEffect(div, null, 100 * MS_PER_SEC);

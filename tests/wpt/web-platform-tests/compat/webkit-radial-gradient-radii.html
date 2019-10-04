@@ -6,16 +6,16 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 test(function() {
-    assert_true(CSS.supports("background-image", "-webkit-radial-gradient(1px 2px, 3% 4% red, blue)"));
+    assert_true(CSS.supports("background-image", "-webkit-radial-gradient(1px 2px, 3% 4%, red, blue)"));
 }, '-webkit-radial-gradient accepts positive radii.');
 
 test(function() {
-    assert_true(CSS.supports("background-image", "-webkit-radial-gradient(1px 2px, 0% 4% red, blue)"));
+    assert_true(CSS.supports("background-image", "-webkit-radial-gradient(1px 2px, 0% 4%, red, blue)"));
 }, '-webkit-radial-gradient accepts zero radii.');
 
 test(function() {
-    assert_false(CSS.supports("background-image", "-webkit-radial-gradient(1px 2px, -3% 4% red, blue)"));
-    assert_false(CSS.supports("background-image", "-webkit-radial-gradient(1px 2px, 3% -4% red, blue)"));
-    assert_false(CSS.supports("background-image", "-webkit-radial-gradient(1px 2px, -3% -4% red, blue)"));
+    assert_false(CSS.supports("background-image", "-webkit-radial-gradient(1px 2px, -3% 4%, red, blue)"));
+    assert_false(CSS.supports("background-image", "-webkit-radial-gradient(1px 2px, 3% -4%, red, blue)"));
+    assert_false(CSS.supports("background-image", "-webkit-radial-gradient(1px 2px, -3% -4%, red, blue)"));
 }, '-webkit-radial-gradient rejects negative radii.');
 </script>

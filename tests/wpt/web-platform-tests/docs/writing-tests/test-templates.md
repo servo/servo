@@ -54,7 +54,7 @@ Filename: `{description}.html` or `{test-topic}-###-ref.html`
 
 ### SVG test
 
-``` svg
+``` xml
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
   <title>${1:Test title}</title>
   <metadata>
@@ -69,7 +69,7 @@ Filename: `{test-topic}-###.svg`
 
 ### SVG reference
 
-``` svg
+``` xml
 <svg xmlns="http://www.w3.org/2000/svg">
   <title>${1:Reference title}</title>
   ${2:Reference content}
@@ -97,7 +97,7 @@ Filename: `{test-topic}-###.html`
 
 ### SVG
 
-``` svg
+``` xml
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
   <title>${1:Test title}</title>
   <metadata>
@@ -133,7 +133,7 @@ Filename: `{test-topic}-###-manual.html`
 
 #### SVG
 
-``` svg
+``` xml
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
   <title>${1:Test title}</title>
   <metadata>

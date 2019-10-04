@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Simple calc expression in table layout</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/94">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3482">
+<link rel="match" href="calc-percent-plus-0px-fixed-ref.html">
+<meta name="assert" content="calc(% + 0px) should be handled as calc(%) in fixed table layout.">
+<table border style="table-layout: fixed; width: 200px">
+  <tr>
+    <td style="width: calc(50% + 0px)">x</td>
+    <td>y</td>
+    <td>z</td>
+  </tr>
+</table>
