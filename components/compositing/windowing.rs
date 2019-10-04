@@ -10,7 +10,7 @@ use euclid::Scale;
 use gleam::gl;
 use keyboard_types::KeyboardEvent;
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId, TraversalDirection};
-use script_traits::{MouseButton, TouchEventType, TouchId, WheelDelta};
+use script_traits::{MediaSessionActionType, MouseButton, TouchEventType, TouchId, WheelDelta};
 use servo_geometry::DeviceIndependentPixel;
 use servo_media::player::context::{GlApi, GlContext, NativeDisplay};
 use servo_url::ServoUrl;
@@ -102,6 +102,9 @@ pub enum WindowEvent {
     CaptureWebRender,
     /// Toggle sampling profiler with the given sampling rate and max duration.
     ToggleSamplingProfiler(Duration, Duration),
+    /// Sent when the user triggers a media action through the UA exposed media UI
+    /// (play, pause, seek, etc.).
+    MediaSessionAction(TopLevelBrowsingContextId, MediaSessionActionType),
 }
 
 impl Debug for WindowEvent {
@@ -132,6 +135,7 @@ impl Debug for WindowEvent {
             WindowEvent::CaptureWebRender => write!(f, "CaptureWebRender"),
             WindowEvent::ToggleSamplingProfiler(..) => write!(f, "ToggleSamplingProfiler"),
             WindowEvent::ExitFullScreen(..) => write!(f, "ExitFullScreen"),
+            WindowEvent::MediaSessionAction(..) => write!(f, "MediaSessionAction"),
         }
     }
 }

@@ -139,7 +139,7 @@ use script_traits::{
     DiscardBrowsingContext, DocumentActivity, EventResult, HistoryEntryReplacement,
 };
 use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData, LoadOrigin};
-use script_traits::{MouseButton, MouseEventType, NewLayoutInfo};
+use script_traits::{MediaSessionActionType, MouseButton, MouseEventType, NewLayoutInfo};
 use script_traits::{Painter, ProgressiveWebMetricType, ScriptMsg, ScriptThreadFactory};
 use script_traits::{ScriptToConstellationChan, TimerEvent, TimerSchedulerMsg};
 use script_traits::{TimerSource, TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta};
@@ -1720,6 +1720,7 @@ impl ScriptThread {
                     WebVREvents(id, ..) => Some(id),
                     PaintMetric(..) => None,
                     ExitFullScreen(id, ..) => Some(id),
+                    MediaSessionAction(..) => None,
                 }
             },
             MixedMessage::FromDevtools(_) => None,
@@ -1948,6 +1949,9 @@ impl ScriptThread {
             },
             ConstellationControlMsg::PaintMetric(pipeline_id, metric_type, metric_value) => {
                 self.handle_paint_metric(pipeline_id, metric_type, metric_value)
+            },
+            ConstellationControlMsg::MediaSessionAction(browsing_context_id, action) => {
+                self.handle_media_session_action(browsing_context_id, action)
             },
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
@@ -3930,6 +3934,14 @@ impl ScriptThread {
                 true, /* buffer performance entry */
             );
         }
+    }
+
+    fn handle_media_session_action(
+        &self,
+        browsing_context_id: TopLevelBrowsingContextId,
+        action: MediaSessionActionType,
+    ) {
+        // TODO
     }
 
     pub fn enqueue_microtask(job: Microtask) {

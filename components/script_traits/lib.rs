@@ -388,6 +388,8 @@ pub enum ConstellationControlMsg {
     WebVREvents(PipelineId, Vec<WebVREvent>),
     /// Notifies the script thread about a new recorded paint metric.
     PaintMetric(PipelineId, ProgressiveWebMetricType, u64),
+    /// Notifies the media session about a user requested media session action.
+    MediaSessionAction(TopLevelBrowsingContextId, MediaSessionActionType),
 }
 
 impl fmt::Debug for ConstellationControlMsg {
@@ -426,6 +428,7 @@ impl fmt::Debug for ConstellationControlMsg {
             WebVREvents(..) => "WebVREvents",
             PaintMetric(..) => "PaintMetric",
             ExitFullScreen(..) => "ExitFullScreen",
+            MediaSessionAction(..) => "MediaSessionAction",
         };
         write!(formatter, "ConstellationControlMsg::{}", variant)
     }
@@ -877,6 +880,8 @@ pub enum ConstellationMsg {
     DisableProfiler,
     /// Request to exit from fullscreen mode
     ExitFullScreen(TopLevelBrowsingContextId),
+    /// Media session action.
+    MediaSessionAction(TopLevelBrowsingContextId, MediaSessionActionType),
 }
 
 impl fmt::Debug for ConstellationMsg {
@@ -907,6 +912,7 @@ impl fmt::Debug for ConstellationMsg {
             EnableProfiler(..) => "EnableProfiler",
             DisableProfiler => "DisableProfiler",
             ExitFullScreen(..) => "ExitFullScreen",
+            MediaSessionAction(..) => "MediaSessionAction",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }
@@ -1052,4 +1058,32 @@ pub enum MessagePortMsg {
     RemoveMessagePort(MessagePortId),
     /// Handle a new port-message-task.
     NewTask(MessagePortId, PortMessageTask),
+
+/// The type of MediaSession action.
+/// https://w3c.github.io/mediasession/#enumdef-mediasessionaction
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum MediaSessionActionType {
+    /// The action intent is to resume playback.
+    Play,
+    /// The action intent is to pause the currently active playback.
+    Pause,
+    /// The action intent is to move the playback time backward by a short period (i.e. a few
+    /// seconds).
+    SeekBackward,
+    /// The action intent is to move the playback time forward by a short period (i.e. a few
+    /// seconds).
+    SeekForward,
+    /// The action intent is to either start the current playback from the beginning if the
+    /// playback has a notion, of beginning, or move to the previous item in the playlist if the
+    /// playback has a notion of playlist.
+    PreviousTrack,
+    /// The action is to move to the playback to the next item in the playlist if the playback has
+    /// a notion of playlist.
+    NextTrack,
+    /// The action intent is to skip the advertisement that is currently playing.
+    SkipAd,
+    /// The action intent is to stop the playback and clear the state if appropriate.
+    Stop,
+    /// The action intent is to move the playback time to a specific time.
+    SeekTo,
 }
