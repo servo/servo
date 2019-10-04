@@ -91,6 +91,7 @@ ${helpers.single_keyword(
     extra_prefixes="webkit",
     animation_value_type="discrete",
     servo_restyle_damage = "reflow",
+    gecko_enum_prefix = "StyleFlexWrap",
 )}
 
 % if engine == "servo-2013":
