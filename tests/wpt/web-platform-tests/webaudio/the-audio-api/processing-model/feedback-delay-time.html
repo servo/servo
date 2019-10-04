@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="a">
+  <head>
+    <title>Feedback cycle with delay in audio node graph</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      const t = async_test(
+        "Test that a DelayNode allows a feedback loop of a single rendering quantum"
+      );
+      t.step(function() {
+          var off = new OfflineAudioContext(1, 512, 48000);
+          var b = off.createBuffer(1, 1, 48000);
+          b.getChannelData(0)[0] = 1;
+          var impulse = new AudioBufferSourceNode(off, {buffer: b});
+          impulse.start(0);
+          var delay = new DelayNode(off, {delayTime: 128/48000});
+          var fb = new GainNode(off);
+          impulse.connect(fb).connect(delay).connect(fb).connect(off.destination);
+          off.startRendering().then((b) => {
+              var samples = b.getChannelData(0);
+              for (var i = 0; i < samples.length; i++) {
+                if ((i % 128) != 0) {
+                  assert_equals(samples[i], 0.0, "Non-silent audio found in between delayed impulses");
+                } else {
+                  assert_equals(samples[i], 1.0, "Silent audio found instead of a delayed impulse");
+                }
+              }
+              t.done();
+          });
+      });
+    </script>
+  </body>
+</html>

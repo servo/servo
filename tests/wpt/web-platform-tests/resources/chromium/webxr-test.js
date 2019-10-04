@@ -89,7 +89,7 @@ class MockVRService {
     this.runtimes_ = [];
 
     this.interceptor_ =
-        new MojoInterfaceInterceptor(device.mojom.VRService.name);
+        new MojoInterfaceInterceptor(device.mojom.VRService.name, "context", true);
     this.interceptor_.oninterfacerequest = e =>
         this.bindingSet_.addBinding(this, e.handle);
     this.interceptor_.start();
