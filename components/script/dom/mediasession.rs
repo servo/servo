@@ -15,6 +15,7 @@ use crate::dom::window::Window;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
 use msg::constellation_msg::TopLevelBrowsingContextId;
+use script_traits::MediaSessionActionType;
 use std::rc::Rc;
 
 #[dom_struct]
@@ -45,6 +46,10 @@ impl MediaSession {
             window,
             MediaSessionBinding::Wrap,
         )
+    }
+
+    pub fn handle_action(&self, action: MediaSessionActionType) {
+        // TODO
     }
 }
 

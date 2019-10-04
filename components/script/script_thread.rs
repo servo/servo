@@ -3941,7 +3941,10 @@ impl ScriptThread {
         browsing_context_id: TopLevelBrowsingContextId,
         action: MediaSessionActionType,
     ) {
-        // TODO
+        match self.media_sessions.borrow().get(&browsing_context_id) {
+            Some(session) => session.handle_action(action),
+            None => warn!("No MediaSession for this browsing context"),
+        };
     }
 
     pub fn enqueue_microtask(job: Microtask) {
