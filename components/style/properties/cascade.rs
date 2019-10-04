@@ -362,9 +362,19 @@ fn should_ignore_declaration_when_ignoring_document_colors(
     // Treat background-color a bit differently.  If the specified color is
     // anything other than a fully transparent color, convert it into the
     // Device's default background color.
+    // Also: for now, we treat background-image a bit differently, too.
+    // background-image is marked as ignored, but really, we only ignore
+    // it when backplates are disabled (since then text may be unreadable over
+    // a background image, if we're ignoring document colors).
+    // Here we check backplate status to decide if ignoring background-image
+    // is the right decision.
     {
         let background_color = match **declaration {
             PropertyDeclaration::BackgroundColor(ref color) => color,
+            // In the future, if/when we remove the backplate pref, we can remove this
+            // special case along with the 'ignored_when_colors_disabled=True' mako line
+            // for the "background-image" property.
+            PropertyDeclaration::BackgroundImage(..) => return !static_prefs::pref!("browser.display.permit_backplate"),
             _ => return true,
         };
 
