@@ -136,6 +136,10 @@ impl FrameHolder {
             unreachable!();
         }
     }
+
+    fn get_frame(&self) -> Frame {
+        self.1.clone()
+    }
 }
 
 pub struct MediaFrameRenderer {
@@ -193,11 +197,11 @@ impl FrameRenderer for MediaFrameRenderer {
                         ImageData::Raw(frame.get_data()),
                         &webrender_api::DirtyRect::All,
                     );
-                } else if self.player_id.is_some() {
-                    self.current_frame_holder
-                        .get_or_insert_with(|| FrameHolder::new(frame.clone()))
-                        .set(frame);
                 }
+
+                self.current_frame_holder
+                    .get_or_insert_with(|| FrameHolder::new(frame.clone()))
+                    .set(frame);
 
                 if let Some(old_image_key) = self.old_frame.take() {
                     txn.delete_image(old_image_key);
@@ -220,9 +224,6 @@ impl FrameRenderer for MediaFrameRenderer {
                         TextureTarget::Default
                     };
 
-                    self.current_frame_holder
-                        .get_or_insert_with(|| FrameHolder::new(frame.clone()))
-                        .set(frame);
                     ImageData::External(ExternalImageData {
                         id: ExternalImageId(self.player_id.unwrap()),
                         channel_index: 0,
@@ -231,6 +232,11 @@ impl FrameRenderer for MediaFrameRenderer {
                 } else {
                     ImageData::Raw(frame.get_data())
                 };
+
+                self.current_frame_holder
+                    .get_or_insert_with(|| FrameHolder::new(frame.clone()))
+                    .set(frame);
+
                 txn.add_image(new_image_key, descriptor, image_data, None);
             },
             None => {
@@ -244,7 +250,6 @@ impl FrameRenderer for MediaFrameRenderer {
                         TextureTarget::Default
                     };
 
-                    self.current_frame_holder = Some(FrameHolder::new(frame));
                     ImageData::External(ExternalImageData {
                         id: ExternalImageId(self.player_id.unwrap()),
                         channel_index: 0,
@@ -253,6 +258,9 @@ impl FrameRenderer for MediaFrameRenderer {
                 } else {
                     ImageData::Raw(frame.get_data())
                 };
+
+                self.current_frame_holder = Some(FrameHolder::new(frame));
+
                 txn.add_image(image_key, descriptor, image_data, None);
             },
         }
@@ -1851,6 +1859,13 @@ impl HTMLMediaElement {
     fn remove_controls(&self) {
         if let Some(id) = self.media_controls_id.borrow_mut().take() {
             document_from_node(self).unregister_media_controls(&id);
+        }
+    }
+
+    pub fn get_current_frame(&self) -> Option<Frame> {
+        match self.frame_renderer.lock().unwrap().current_frame_holder {
+            Some(ref holder) => Some(holder.get_frame()),
+            None => return None,
         }
     }
 }

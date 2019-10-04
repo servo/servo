@@ -604,9 +604,14 @@ impl WebGLRenderingContext {
                     return Ok(None);
                 }
             },
-            TexImageSource::HTMLVideoElement(_) => {
-                // TODO: https://github.com/servo/servo/issues/6711
-                return Ok(None);
+            TexImageSource::HTMLVideoElement(video) => match video.get_current_frame_data() {
+                Some((data, size)) => {
+                    let data = data.unwrap_or_else(|| {
+                        IpcSharedMemory::from_bytes(&vec![0; size.area() as usize * 4])
+                    });
+                    TexPixels::new(data, size, PixelFormat::BGRA8, false)
+                },
+                None => return Ok(None),
             },
         }))
     }
