@@ -38,7 +38,7 @@ pub struct CacheKey {
 }
 
 impl CacheKey {
-    fn new(request: Request) -> CacheKey {
+    fn new(request: &Request) -> CacheKey {
         CacheKey {
             url: request.current_url(),
         }
@@ -575,7 +575,7 @@ impl HttpCache {
             // Only Get requests are cached, avoid a url based match for others.
             return None;
         }
-        let entry_key = CacheKey::new(request.clone());
+        let entry_key = CacheKey::new(&request);
         let resources = self
             .entries
             .get(&entry_key)?
@@ -672,7 +672,7 @@ impl HttpCache {
         if let ResponseBody::Done(ref completed_body) =
             *response.actual_response().body.lock().unwrap()
         {
-            let entry_key = CacheKey::new(request.clone());
+            let entry_key = CacheKey::new(&request);
             if let Some(cached_resources) = self.entries.get(&entry_key) {
                 // Ensure we only wake-up consumers of relevant resources,
                 // ie we don't want to wake-up 200 awaiting consumers with a 206.
@@ -709,7 +709,7 @@ impl HttpCache {
         done_chan: &mut DoneChannel,
     ) -> Option<Response> {
         assert_eq!(response.status.map(|s| s.0), Some(StatusCode::NOT_MODIFIED));
-        let entry_key = CacheKey::new(request.clone());
+        let entry_key = CacheKey::new(&request);
         if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
             for cached_resource in cached_resources.iter_mut() {
                 // done_chan will have been set to Some(..) by http_network_fetch.
@@ -809,7 +809,7 @@ impl HttpCache {
             // responses to be stored is present in the response.
             return;
         };
-        let entry_key = CacheKey::new(request.clone());
+        let entry_key = CacheKey::new(&request);
         let metadata = match response.metadata() {
             Ok(FetchMetadata::Filtered {
                 filtered: _,
