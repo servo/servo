@@ -18,15 +18,3 @@ to run it manually you can find it on any of this paths:
     inside:
     `/usr/lib/${TRIPLET}/webkit2gtk-4.0/MiniBrowser`
     where `TRIPLET=$(gcc -dumpmachine)`
-
-
-Known issues:
-
-* On a docker container WebKitWebDriver fails to listen on localhost,
-because the docker container doesn't provide an IPv6 localhost address.
-To workaround this issue, manually tell it to only listen on IPv4 localhost
-by passing this parameter to wpt run: `--webdriver-arg=--host=127.0.0.1`
-Example:
-```bash
-./wpt run --webdriver-arg=--host=127.0.0.1 webkitgtk_minibrowser TESTS
-```

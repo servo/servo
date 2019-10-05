@@ -36,6 +36,20 @@ def cmd_arg(name, value=None):
     return rv
 
 
+def maybe_add_args(required_args, current_args):
+    for required_arg in required_args:
+        # If the arg is in the form of "variable=value", only add it if
+        # no arg with another value for "variable" is already there.
+        if "=" in required_arg:
+            required_arg_prefix = "%s=" % required_arg.split("=")[0]
+            if not any(item.startswith(required_arg_prefix) for item in current_args):
+                current_args.append(required_arg)
+        else:
+            if required_arg not in current_args:
+                current_args.append(required_arg)
+    return current_args
+
+
 def get_free_port():
     """Get a random unbound port"""
     while True:

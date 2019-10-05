@@ -145,6 +145,28 @@ def install_chrome(channel):
     run(["sudo", "apt-get", "-qqy", "update"])
     run(["sudo", "gdebi", "-qn", "/tmp/%s" % deb_archive])
 
+def install_webkitgtk_from_apt_repository(channel):
+    # Configure webkitgtk.org/debian repository for $channel and pin it with maximum priority
+    run(["sudo", "apt-key", "adv", "--fetch-keys", "https://webkitgtk.org/debian/apt.key"])
+    with open("/tmp/webkitgtk.list", "w") as f:
+        f.write("deb [arch=amd64] https://webkitgtk.org/debian buster-wpt-webkit-updates %s\n" % channel)
+    run(["sudo", "mv", "/tmp/webkitgtk.list", "/etc/apt/sources.list.d/"])
+    with open("/tmp/99webkitgtk", "w") as f:
+        f.write("Package: *\nPin: origin webkitgtk.org\nPin-Priority: 1999\n")
+    run(["sudo", "mv", "/tmp/99webkitgtk", "/etc/apt/preferences.d/"])
+    # Install webkit2gtk from the webkitgtk.org/debian repository for $channel
+    run(["sudo", "apt-get", "-qqy", "update"])
+    run(["sudo", "apt-get", "-qqy", "upgrade"])
+    run(["sudo", "apt-get", "-qqy", "-t", "buster-wpt-webkit-updates", "install", "webkit2gtk-driver"])
+
+
+def install_webkitgtk(channel):
+    if channel in ("experimental", "dev", "nightly"):
+        raise NotImplementedError("Still can't install from release channel: %s" % channel)
+    elif channel in ("beta", "stable"):
+        install_webkitgtk_from_apt_repository(channel)
+    else:
+        raise ValueError("Unrecognized release channel: %s" % channel)
 
 def start_xvfb():
     start(["sudo", "Xvfb", os.environ["DISPLAY"], "-screen", "0",
@@ -217,6 +239,9 @@ def setup_environment(args):
     if "chrome" in args.browser:
         assert args.channel is not None
         install_chrome(args.channel)
+    elif "webkitgtk_minibrowser" in args.browser:
+        assert args.channel is not None
+        install_webkitgtk(args.channel)
 
     if args.xvfb:
         start_xvfb()

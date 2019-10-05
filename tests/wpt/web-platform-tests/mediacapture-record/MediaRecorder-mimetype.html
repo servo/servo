@@ -1,0 +1,147 @@
+<!doctype html>
+<html>
+<head>
+  <title>MediaRecorder MIMEType</title>
+  <link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#dom-mediarecorder-mimetype">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="200" height="200">
+</canvas>
+<script>
+function createAudioStream(t) {
+  const ac = new AudioContext();
+  const {stream} = ac.createMediaStreamDestination();
+  const tracks = stream.getTracks();
+  t.add_cleanup(() => tracks.forEach(tr => tr.stop()));
+  return stream;
+}
+
+function createVideoStream(t) {
+  const canvas = document.getElementById("canvas");
+  canvas.getContext('2d');
+  const stream = canvas.captureStream();
+  const tracks = stream.getTracks();
+  t.add_cleanup(() => tracks.forEach(tr => tr.stop()));
+  return stream;
+}
+
+function createAudioVideoStream(t) {
+  return new MediaStream([
+      ...createAudioStream(t).getTracks(),
+      ...createVideoStream(t).getTracks(),
+    ]);
+}
+
+test(t => {
+  const recorder = new MediaRecorder(createAudioStream(t));
+  assert_equals(recorder.mimeType, "",
+    "MediaRecorder has no default MIMEtype");
+}, "MediaRecorder sets no default MIMEType in the constructor for audio");
+
+test(t => {
+  const recorder = new MediaRecorder(createVideoStream(t));
+  assert_equals(recorder.mimeType, "",
+    "MediaRecorder has no default MIMEtype");
+}, "MediaRecorder sets no default MIMEType in the constructor for video");
+
+test(t => {
+  const stream = createAudioVideoStream(t);
+  const recorder = new MediaRecorder(stream);
+  assert_equals(recorder.mimeType, "",
+    "MediaRecorder has no default MIMEtype");
+}, "MediaRecorder sets no default MIMEType in the constructor for audio/video");
+
+test(t => {
+  assert_throws("NotSupportedError",
+    () => new MediaRecorder(new MediaStream(), {mimeType: "audio/banana"}));
+}, "MediaRecorder invalid audio MIMEType throws");
+
+test(t => {
+  assert_false(MediaRecorder.isTypeSupported("audio/banana"));
+}, "MediaRecorder invalid audio MIMEType is unsupported");
+
+test(t => {
+  assert_throws("NotSupportedError",
+    () => new MediaRecorder(new MediaStream(), {mimeType: "video/pineapple"}));
+}, "MediaRecorder invalid video MIMEType throws");
+
+test(t => {
+  assert_false(MediaRecorder.isTypeSupported("video/pineapple"));
+}, "MediaRecorder invalid video MIMEType is unsupported");
+
+// New MIME types could be added to this list as needed.
+for (const mimeType of [
+  'audio/mp4',
+  'video/mp4',
+  'audio/ogg',
+  'audio/ogg; codecs="vorbis"',
+  'audio/ogg; codecs="opus"',
+  'audio/webm',
+  'audio/webm; codecs="vorbis"',
+  'audio/webm; codecs="opus"',
+  'video/webm',
+  'video/webm; codecs="vp8"',
+  'video/webm; codecs="vp8, vorbis"',
+  'video/webm; codecs="vp8, opus"',
+  'video/webm; codecs="vp9"',
+  'video/webm; codecs="vp9, vorbis"',
+  'video/webm; codecs="vp9, opus"',
+  'video/webm; codecs="av1"',
+  'video/webm; codecs="av1, opus"',
+]) {
+  if (MediaRecorder.isTypeSupported(mimeType)) {
+    test(t => {
+      const recorder = new MediaRecorder(new MediaStream(), {mimeType});
+      assert_equals(recorder.mimeType, mimeType, "Supported MIMEType is set");
+    }, `Supported MIMEType ${mimeType} is set immediately after constructing`);
+  } else {
+    test(t => {
+      assert_throws("NotSupportedError",
+        () => new MediaRecorder(new MediaStream(), {mimeType}));
+    }, `Unsupported MIMEType ${mimeType} throws`);
+  }
+}
+
+test(t => {
+  const recorder = new MediaRecorder(createAudioStream(t));
+  recorder.start();
+  assert_not_equals(recorder.mimeType, "",
+    "MediaRecorder has a MIMEtype after start() for audio");
+  assert_regexp_match(recorder.mimeType, /^audio\//,
+    "MIMEtype has an expected media type");
+  assert_regexp_match(recorder.mimeType, /^[a-z]+\/[a-z]+/,
+    "MIMEtype has a container subtype");
+  assert_regexp_match(recorder.mimeType, /^[a-z]+\/[a-z]+; codecs=[^,]+$/,
+    "MIMEtype has one codec");
+}, "MediaRecorder sets a MIMEType after start() for audio");
+
+test(t => {
+  const recorder = new MediaRecorder(createVideoStream(t));
+  recorder.start();
+  assert_not_equals(recorder.mimeType, "",
+    "MediaRecorder has a MIMEtype after start() for video");
+  assert_regexp_match(recorder.mimeType, /^video\//,
+    "MIMEtype has an expected media type");
+  assert_regexp_match(recorder.mimeType, /^[a-z]+\/[a-z]+/,
+    "MIMEtype has a container subtype");
+  assert_regexp_match(recorder.mimeType, /^[a-z]+\/[a-z]+; codecs=[^,]+$/,
+    "MIMEtype has one codec");
+}, "MediaRecorder sets a MIMEType after start() for video");
+
+test(t => {
+  const recorder = new MediaRecorder(createAudioVideoStream(t));
+  recorder.start();
+  assert_not_equals(recorder.mimeType, "",
+    "MediaRecorder has a MIMEtype after start() for audio/video");
+  assert_regexp_match(recorder.mimeType, /^video\//,
+    "MIMEtype has an expected media type");
+  assert_regexp_match(recorder.mimeType, /^[a-z]+\/[a-z]+/,
+    "MIMEtype has a container subtype");
+  assert_regexp_match(recorder.mimeType, /^[a-z]+\/[a-z]+; codecs=[^,]+,[^,]+$/,
+    "MIMEtype has two codecs");
+}, "MediaRecorder sets a MIMEType after start() for audio/video");
+</script>
+</body>
+</html>

@@ -89,7 +89,7 @@ class MockVRService {
     this.runtimes_ = [];
 
     this.interceptor_ =
-        new MojoInterfaceInterceptor(device.mojom.VRService.name);
+        new MojoInterfaceInterceptor(device.mojom.VRService.name, "context", true);
     this.interceptor_.oninterfacerequest = e =>
         this.bindingSet_.addBinding(this, e.handle);
     this.interceptor_.start();
@@ -187,6 +187,15 @@ class MockVRService {
 // Implements XRFrameDataProvider and XRPresentationProvider. Maintains a mock
 // for XRPresentationProvider.
 class MockRuntime {
+  // Mapping from string feature names to the corresponding mojo types.
+  // This is exposed as a member for extensibility.
+  static featureToMojoMap = {
+    "viewer": device.mojom.XRSessionFeature.REF_SPACE_VIEWER,
+    "local": device.mojom.XRSessionFeature.REF_SPACE_LOCAL,
+    "local-floor": device.mojom.XRSessionFeature.REF_SPACE_LOCAL_FLOOR,
+    "bounded-floor": device.mojom.XRSessionFeature.REF_SPACE_BOUNDED_FLOOR,
+    "unbounded": device.mojom.XRSessionFeature.REF_SPACE_UNBOUNDED };
+
   constructor(fakeDeviceInit, service) {
     this.sessionClient_ = new device.mojom.XRSessionClientPtr();
     this.presentation_provider_ = new MockXRPresentationProvider();
@@ -456,19 +465,10 @@ class MockRuntime {
 
   setFeatures(supportedFeatures) {
     function convertFeatureToMojom(feature) {
-      switch (feature) {
-        case "viewer":
-          return device.mojom.XRSessionFeature.REF_SPACE_VIEWER;
-        case "local":
-          return device.mojom.XRSessionFeature.REF_SPACE_LOCAL;
-        case "local-floor":
-          return device.mojom.XRSessionFeature.REF_SPACE_LOCAL_FLOOR;
-        case "bounded-floor":
-          return device.mojom.XRSessionFeature.REF_SPACE_BOUNDED_FLOOR;
-        case "unbounded":
-          return device.mojom.XRSessionFeature.REF_SPACE_UNBOUNDED;
-        default:
-          return device.mojom.XRSessionFeature.INVALID;
+      if (feature in MockRuntime.featureToMojoMap) {
+        return MockRuntime.featureToMojoMap[feature];
+      } else {
+        return device.mojom.XRSessionFeature.INVALID;
       }
     }
 
