@@ -12,11 +12,11 @@ use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible
 use js::jsapi::HandleId as RawHandleId;
 use js::jsapi::JSContext;
 use js::jsapi::JS_NewPlainObject;
+use js::jsapi::PropertyDescriptor;
 use js::jsapi::JSITER_HIDDEN;
 use js::jsapi::JSITER_OWNONLY;
 use js::jsapi::JSITER_SYMBOLS;
 use js::jsapi::JSPROP_ENUMERATE;
-use js::jsapi::PropertyDescriptor;
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::GetPropertyKeys;
@@ -33,7 +33,7 @@ use std::hash::Hash;
 use std::marker::Sized;
 use std::ops::Deref;
 
-pub trait RecordKey : Eq + Hash + Sized {
+pub trait RecordKey: Eq + Hash + Sized {
     fn to_utf16_vec(&self) -> Vec<u16>;
     unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Option<Self>;
 }
@@ -60,7 +60,7 @@ impl RecordKey for USVString {
 
         match USVString::from_jsval(cx, jsid_value.handle(), ()).unwrap() {
             ConversionResult::Success(s) => return Some(s),
-            ConversionResult::Failure(_) => return None
+            ConversionResult::Failure(_) => return None,
         }
     }
 }
@@ -77,7 +77,7 @@ impl RecordKey for ByteString {
 
         match ByteString::from_jsval(cx, jsid_value.handle(), ()).unwrap() {
             ConversionResult::Success(s) => return Some(s),
-            ConversionResult::Failure(_) => return None
+            ConversionResult::Failure(_) => return None,
         }
     }
 }
@@ -145,7 +145,8 @@ where
             rooted!(in(cx) let id = *id);
             rooted!(in(cx) let mut desc = PropertyDescriptor::default());
 
-            if !JS_GetOwnPropertyDescriptorById(cx, object.handle(), id.handle(), desc.handle_mut()) {
+            if !JS_GetOwnPropertyDescriptorById(cx, object.handle(), id.handle(), desc.handle_mut())
+            {
                 return Err(());
             }
 
@@ -177,8 +178,10 @@ where
 }
 
 impl<K, V> ToJSValConvertible for Record<K, V>
-    where K: RecordKey,
-          V: ToJSValConvertible  {
+where
+    K: RecordKey,
+    V: ToJSValConvertible,
+{
     #[inline]
     unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
         rooted!(in(cx) let js_object = JS_NewPlainObject(cx));

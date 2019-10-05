@@ -900,10 +900,16 @@ impl TestBindingMethods for TestBinding {
     fn PassNullableMozMap(&self, _: Option<Record<DOMString, i32>>) {}
     fn PassMozMapOfNullableInts(&self, _: Record<DOMString, Option<i32>>) {}
     fn PassOptionalMozMapOfNullableInts(&self, _: Option<Record<DOMString, Option<i32>>>) {}
-    fn PassOptionalNullableMozMapOfNullableInts(&self, _: Option<Option<Record<DOMString, Option<i32>>>>) {}
+    fn PassOptionalNullableMozMapOfNullableInts(
+        &self,
+        _: Option<Option<Record<DOMString, Option<i32>>>>,
+    ) {
+    }
     fn PassCastableObjectMozMap(&self, _: Record<DOMString, DomRoot<TestBinding>>) {}
-    fn PassNullableCastableObjectMozMap(&self, _: Record<DOMString, Option<DomRoot<TestBinding>>>) {}
-    fn PassCastableObjectNullableMozMap(&self, _: Option<Record<DOMString, DomRoot<TestBinding>>>) {}
+    fn PassNullableCastableObjectMozMap(&self, _: Record<DOMString, Option<DomRoot<TestBinding>>>) {
+    }
+    fn PassCastableObjectNullableMozMap(&self, _: Option<Record<DOMString, DomRoot<TestBinding>>>) {
+    }
     fn PassNullableCastableObjectNullableMozMap(
         &self,
         _: Option<Record<DOMString, Option<DomRoot<TestBinding>>>>,
