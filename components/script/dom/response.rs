@@ -395,6 +395,7 @@ fn serialize_without_fragment(url: &ServoUrl) -> &str {
 impl Response {
     pub fn set_type(&self, new_response_type: DOMResponseType) {
         *self.response_type.borrow_mut() = new_response_type;
+        self.set_response_members_by_type(new_response_type);
     }
 
     pub fn set_headers(&self, option_hyper_headers: Option<Serde<HyperHeaders>>) {
@@ -410,6 +411,33 @@ impl Response {
 
     pub fn set_final_url(&self, final_url: ServoUrl) {
         *self.url.borrow_mut() = Some(final_url);
+    }
+
+    fn set_response_members_by_type(&self, response_type: DOMResponseType) {
+        match response_type {
+            DOMResponseType::Error => {
+                *self.status.borrow_mut() = None;
+                self.set_raw_status(None);
+                self.set_headers(None);
+                *self.body.borrow_mut() = NetTraitsResponseBody::Done(vec![]);
+            },
+            DOMResponseType::Opaque => {
+                *self.url_list.borrow_mut() = vec![];
+                *self.status.borrow_mut() = None;
+                self.set_raw_status(None);
+                self.set_headers(None);
+                *self.body.borrow_mut() = NetTraitsResponseBody::Done(vec![]);
+            },
+            DOMResponseType::Opaqueredirect => {
+                *self.status.borrow_mut() = None;
+                self.set_raw_status(None);
+                self.set_headers(None);
+                *self.body.borrow_mut() = NetTraitsResponseBody::Done(vec![]);
+            },
+            DOMResponseType::Default => {},
+            DOMResponseType::Basic => {},
+            DOMResponseType::Cors => {},
+        }
     }
 
     #[allow(unrooted_must_root)]
