@@ -412,6 +412,18 @@ impl Response {
         *self.url.borrow_mut() = Some(final_url);
     }
 
+    pub fn set_url_list(&self, new_url_list: Vec<ServoUrl>) {
+        *self.url_list.borrow_mut() = new_url_list;
+    }
+
+    pub fn set_status(&self, status: Option<StatusCode>) {
+        *self.status.borrow_mut() = status;
+    }
+
+    pub fn set_body(&self, body: Vec<u8>) {
+        *self.body.borrow_mut() = NetTraitsResponseBody::Done(body);
+    }
+
     #[allow(unrooted_must_root)]
     pub fn finish(&self, body: Vec<u8>) {
         *self.body.borrow_mut() = NetTraitsResponseBody::Done(body);
