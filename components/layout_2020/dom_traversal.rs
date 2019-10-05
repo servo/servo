@@ -17,7 +17,7 @@ use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 
 #[derive(Clone, Copy)]
-pub(super) enum WhichPseudoElement {
+pub enum WhichPseudoElement {
     Before,
     After,
 }
@@ -252,24 +252,24 @@ where
     unimplemented!()
 }
 
-pub(super) struct BoxSlot<'dom> {
+pub struct BoxSlot<'dom> {
     slot: Option<Arc<AtomicRefCell<Option<LayoutBox>>>>,
     marker: marker<&'dom ()>,
 }
 
 impl BoxSlot<'_> {
-    pub fn new(slot: Arc<AtomicRefCell<Option<LayoutBox>>>) -> Self {
+    pub(crate) fn new(slot: Arc<AtomicRefCell<Option<LayoutBox>>>) -> Self {
         *slot.borrow_mut() = None;
         let slot = Some(slot);
         Self { slot, marker }
     }
 
-    pub fn dummy() -> Self {
+    pub(crate) fn dummy() -> Self {
         let slot = None;
         Self { slot, marker }
     }
 
-    pub fn set(mut self, box_: LayoutBox) {
+    pub(crate) fn set(mut self, box_: LayoutBox) {
         if let Some(slot) = &mut self.slot {
             *slot.borrow_mut() = Some(box_);
         }
@@ -284,7 +284,7 @@ impl Drop for BoxSlot<'_> {
     }
 }
 
-pub(crate) trait NodeExt<'dom>: 'dom + Copy + LayoutNode + Send + Sync {
+pub trait NodeExt<'dom>: 'dom + Copy + LayoutNode + Send + Sync {
     fn is_element(self) -> bool;
     fn as_text(self) -> Option<String>;
     fn first_child(self) -> Option<Self>;

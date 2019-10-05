@@ -17,18 +17,20 @@ use style::Zero;
 
 pub mod context;
 pub mod data;
-pub mod dom_traversal;
-pub mod element_data;
-pub mod flow;
-pub mod fragments;
-pub mod geom;
-pub mod opaque_node;
-pub mod positioned;
+mod dom_traversal;
+mod element_data;
+mod flow;
+mod fragments;
+mod geom;
+mod opaque_node;
+mod positioned;
 pub mod query;
-pub mod replaced;
-pub mod style_ext;
+mod replaced;
+mod style_ext;
 pub mod traversal;
 pub mod wrapper;
+
+pub use flow::BoxTreeRoot;
 
 use crate::dom_traversal::{Contents, NodeExt};
 use crate::flow::{BlockFormattingContext, FlowChildren};

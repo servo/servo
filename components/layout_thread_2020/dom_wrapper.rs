@@ -109,6 +109,13 @@ pub struct ServoLayoutNode<'a> {
     chain: PhantomData<&'a ()>,
 }
 
+// Those are supposed to be sound, but they aren't because the entire system
+// between script and layout so far has been designed to work around their
+// absence. Switching the entire thing to the inert crate infra will help.
+
+unsafe impl Send for ServoLayoutNode<'_> {}
+unsafe impl Sync for ServoLayoutNode<'_> {}
+
 impl<'ln> Debug for ServoLayoutNode<'ln> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(el) = self.as_element() {

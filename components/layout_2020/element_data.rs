@@ -8,7 +8,7 @@ use atomic_refcell::AtomicRefCell;
 use servo_arc::Arc;
 
 #[derive(Default)]
-pub(crate) struct LayoutDataForElement {
+pub struct LayoutDataForElement {
     pub(super) self_box: Arc<AtomicRefCell<Option<LayoutBox>>>,
     pub(super) pseudo_elements: Option<Box<PseudoElementBoxes>>,
 }
