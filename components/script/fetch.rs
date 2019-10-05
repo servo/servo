@@ -217,6 +217,10 @@ impl FetchResponseListener for FetchContext {
                 promise.reject_error(Error::Type("Network error occurred".to_string()));
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 self.response_object.root().set_type(DOMResponseType::Error);
+                self.response_object.root().set_status(None);
+                self.response_object.root().set_raw_status(None);
+                self.response_object.root().set_headers(None);
+                self.response_object.root().set_body(vec![]);
                 return;
             },
             // Step 4.2
