@@ -739,8 +739,7 @@ impl FetchResponseListener for ParserContext {
             .map(Into::into);
 
         // https://www.w3.org/TR/CSP/#initialize-document-csp
-        // XXX TODO: DO NOT MERGE INTO MASTER YET
-        // This only implements the non-local behavior stuff; I need to figure out how to check if a URL is local.
+        // TODO: Implement step 1 (local scheme special case)
         let csp_list = metadata.as_ref().and_then(|m| {
             let h = if let Some(h) = m.headers.as_ref() {
                 h
