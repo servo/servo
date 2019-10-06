@@ -58,9 +58,10 @@ impl RecordKey for USVString {
         let raw_id: RawHandleId = id.into();
         JS_IdToValue(cx, *raw_id.ptr, jsid_value.handle_mut());
 
-        match USVString::from_jsval(cx, jsid_value.handle(), ()).unwrap() {
-            ConversionResult::Success(s) => return Some(s),
-            ConversionResult::Failure(_) => return None,
+        match USVString::from_jsval(cx, jsid_value.handle(), ()) {
+            Ok(ConversionResult::Success(s)) => Some(s),
+            Ok(ConversionResult::Failure(_)) => None,
+            Err(..) => None,
         }
     }
 }
@@ -75,9 +76,10 @@ impl RecordKey for ByteString {
         let raw_id: RawHandleId = id.into();
         JS_IdToValue(cx, *raw_id.ptr, jsid_value.handle_mut());
 
-        match ByteString::from_jsval(cx, jsid_value.handle(), ()).unwrap() {
-            ConversionResult::Success(s) => return Some(s),
-            ConversionResult::Failure(_) => return None,
+        match ByteString::from_jsval(cx, jsid_value.handle(), ()) {
+            Ok(ConversionResult::Success(s)) => Some(s),
+            Ok(ConversionResult::Failure(_)) => None,
+            Err(..) => None,
         }
     }
 }
@@ -154,13 +156,11 @@ where
                 continue;
             }
 
-            // TODO: Is this guaranteed to succeed?
-            // https://github.com/servo/servo/issues/21463
             let key = match K::from_id(cx, id.handle()) {
                 Some(key) => key,
                 None => {
                     return Ok(ConversionResult::Failure("Failed to convert key".into()));
-                }
+                },
             };
 
             rooted!(in(cx) let mut property = UndefinedValue());
