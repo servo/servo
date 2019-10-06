@@ -154,6 +154,15 @@ where
                 continue;
             }
 
+            // TODO: Is this guaranteed to succeed?
+            // https://github.com/servo/servo/issues/21463
+            let key = match K::from_id(cx, id.handle()) {
+                Some(key) => key,
+                None => {
+                    return Ok(ConversionResult::Failure("Failed to convert key".into()));
+                }
+            };
+
             rooted!(in(cx) let mut property = UndefinedValue());
             if !JS_GetPropertyById(cx, object.handle(), id.handle(), property.handle_mut()) {
                 return Err(());
@@ -165,12 +174,7 @@ where
                     return Ok(ConversionResult::Failure(message))
                 },
             };
-
-            // TODO: Is this guaranteed to succeed?
-            // https://github.com/servo/servo/issues/21463
-            if let Some(key) = K::from_id(cx, id.handle()) {
-                map.insert(key, property);
-            }
+            map.insert(key, property);
         }
 
         Ok(ConversionResult::Success(Record { map: map }))
