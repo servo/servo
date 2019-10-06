@@ -215,11 +215,9 @@ impl Headers {
                 }
                 Ok(())
             },
-            Some(HeadersInit::StringByteStringRecord(m)) => {
+            Some(HeadersInit::ByteStringByteStringRecord(m)) => {
                 for (key, value) in m.iter() {
-                    let key_vec = key.as_ref().to_string().into();
-                    let headers_key = ByteString::new(key_vec);
-                    self.Append(headers_key, value.clone())?;
+                    self.Append(key.clone(), value.clone())?;
                 }
                 Ok(())
             },
