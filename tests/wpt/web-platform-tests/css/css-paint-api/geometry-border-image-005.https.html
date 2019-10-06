@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="geometry-border-image-005-ref.html">
+<style>
+html, body { margin: 0; padding: 0; }
+.container {
+  width: 200px;
+  height: 200px;
+  border: 36px solid orange;
+  border-image: paint(foo)               /* source */
+                1 /                      /* slice */
+                36px 36px 36px 36px /    /* width */
+                18px 18px 18px 18px      /* outset */
+                round;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<div id="target" class="container"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('foo', class {
+    paint(ctx, geom) {
+      // Both geom.width and height are 200 + 36 *3 = 308px;
+      ctx.fillStyle = 'green';
+      ctx.fillRect(0, 0, geom.width, geom.height);
+    }
+});
+</script>
+
+<script>
+    importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
+</script>
+</body>
+</html>

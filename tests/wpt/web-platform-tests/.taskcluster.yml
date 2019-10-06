@@ -12,15 +12,16 @@ tasks:
             $flatten:
               $match: {
                 event.ref == "refs/heads/master": [{name: firefox, channel: nightly}, {name: chrome, channel: dev}],
-                event.ref == "refs/heads/epochs/daily": [{name: firefox, channel: stable}, {name: chrome, channel: stable}],
+                event.ref == "refs/heads/epochs/daily": [{name: firefox, channel: stable}, {name: chrome, channel: stable}, {name: webkitgtk_minibrowser, channel: stable}],
                 event.ref == "refs/heads/epochs/weekly": [{name: firefox, channel: beta}, {name: chrome, channel: beta}],
                 event.ref == "refs/heads/triggers/chrome_stable": [{name: chrome, channel: stable}],
                 event.ref == "refs/heads/triggers/chrome_beta": [{name: chrome, channel: beta}],
                 event.ref == "refs/heads/triggers/chrome_dev": [{name: chrome, channel: dev}],
                 event.ref == "refs/heads/triggers/firefox_stable": [{name: firefox, channel: stable}],
                 event.ref == "refs/heads/triggers/firefox_beta": [{name: firefox, channel: beta}],
-                event.ref == "refs/heads/triggers/firefox_nightly": [{name: firefox, channel: nightly}]
-                }
+                event.ref == "refs/heads/triggers/firefox_nightly": [{name: firefox, channel: nightly}],
+                event.ref == "refs/heads/triggers/webkitgtk_minibrowser_stable": [{name: webkitgtk_minibrowser, channel: stable}]
+              }
           each(browser):
             $map:
               - [testharness, 1, 15]
@@ -70,7 +71,12 @@ tasks:
                 owner: ${event.pusher.email}
                 source: ${event.repository.url}
               payload:
-                image: harjgam/web-platform-tests:0.33
+                image:
+                  $if: browser.name == 'webkitgtk_minibrowser'
+                  then:
+                    cl0p3z/web-platform-tests:0.1
+                  else:
+                    harjgam/web-platform-tests:0.33
                 maxRunTime: 7200
                 artifacts:
                   public/results:

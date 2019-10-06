@@ -1225,7 +1225,7 @@ function invokeFromIframe(subresource, sourceContextList) {
     promise = fetch(frameUrl)
       .then(r => r.text())
       .then(t => {
-          frameContnent = t;
+          frameContent = t;
           iframe = createElement("iframe", {}, document.body, true);
           return iframe.eventPromise;
         })

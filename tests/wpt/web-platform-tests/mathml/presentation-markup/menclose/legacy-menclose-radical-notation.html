@@ -5,7 +5,7 @@
     <title>Legacy menclose radical notation</title>
     <link rel="help" href="https://www.w3.org/TR/MathML3/chapter3.html#presm.menclose">
     <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#enclose-expression-inside-notation-menclose">
-    <meta name="assert" content="Verify that the legacy menclose radical notation is not supported.">
+    <meta name="assert" content="Verify that the legacy menclose radical notation is ignored.">
     <link rel="match" href="legacy-menclose-radical-notation-ref.html">
     <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
     <style>
@@ -17,6 +17,9 @@
   <body>
     <math>
       <menclose notation="radical">
+        <mn>123</mn>
+      </menclose>
+      <menclose notation="box radical">
         <mn>123</mn>
       </menclose>
     </math>

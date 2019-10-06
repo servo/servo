@@ -48,6 +48,17 @@ contactsTestWithUserActivation(async (test, setSelectedContacts) => {
 }, 'The Contact API can fail when the selector cannot be opened');
 
 contactsTestWithUserActivation(async (test, setSelectedContacts) => {
+  setSelectedContacts([]);
+
+  const properties = await navigator.contacts.getProperties();
+  assert_true(properties.length > 0);
+
+  // Requesting the available properties should not fail.
+  await navigator.contacts.select(properties);
+
+}, 'Supported contact properties are exposed.');
+
+contactsTestWithUserActivation(async (test, setSelectedContacts) => {
   // Returns two contacts with all information available.
   setSelectedContacts([
       { name: ['Dwight Schrute'], email: ['dwight@schrutefarmsbnb.com'], tel: ['000-0000'] },

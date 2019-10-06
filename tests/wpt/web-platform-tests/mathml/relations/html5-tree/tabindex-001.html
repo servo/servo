@@ -14,16 +14,20 @@
           const mrow = document.getElementById('mrow');
           assert_equals(mrow.tabIndex, -1, "no attribute");
           mrow.setAttribute("tabindex", "invalid");
+          assert_equals(mrow.getAttribute("tabindex"), "invalid");
           assert_equals(mrow.tabIndex, -1, "invalid");
           mrow.setAttribute("tabindex", "9999999999");
+          assert_equals(mrow.getAttribute("tabindex"), "9999999999");
           assert_equals(mrow.tabIndex, -1, "too large integer");
       }, "default and invalid values on mrow");
       test(() => {
           const mrowLink = document.getElementById('mrow-link');
           assert_equals(mrow.tabIndex, 0, "no attribute");
           mrow.setAttribute("tabindex", "invalid");
+          assert_equals(mrow.getAttribute("tabindex"), "invalid");
           assert_equals(mrow.tabIndex, 0, "invalid");
           mrow.setAttribute("tabindex", "9999999999");
+          assert_equals(mrow.getAttribute("tabindex"), "9999999999");
           assert_equals(mrow.tabIndex, 0, "too large integer");
       }, "default and invalid values on MathML link");
   });
