@@ -241,15 +241,19 @@ impl FetchResponseListener for FetchContext {
                         self.response_object.root().set_type(DOMResponseType::Cors);
                     },
                     FilteredMetadata::Opaque => {
-                        self.response_object.root().set_type(DOMResponseType::Opaque);
+                        self.response_object
+                            .root()
+                            .set_type(DOMResponseType::Opaque);
                         self.response_object.root().set_url_list(vec![]);
                         self.response_object.root().set_status(None);
                         self.response_object.root().set_raw_status(None);
                         self.response_object.root().set_headers(None);
                         self.response_object.root().set_body(vec![]);
                     },
-                    FilteredMetadata::OpaqueRedirect =>{
-                        self.response_object.root().set_type(DOMResponseType::Opaqueredirect);
+                    FilteredMetadata::OpaqueRedirect => {
+                        self.response_object
+                            .root()
+                            .set_type(DOMResponseType::Opaqueredirect);
                         self.response_object.root().set_status(None);
                         self.response_object.root().set_raw_status(None);
                         self.response_object.root().set_headers(None);
