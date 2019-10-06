@@ -7,9 +7,13 @@ FROM debian:10
 ENV DEBIAN_FRONTEND=noninteractive \
     DEBCONF_NONINTERACTIVE_SEEN=true
 
-# Install general requirements not in the base image
+
+# Update and upgrade.
 RUN apt-get -qqy update \
-  && apt-get -qqy install \
+  && apt-get -qqy upgrade
+
+# Install general requirements not in the base image
+RUN apt-get -qqy install \
     bzip2 \
     ca-certificates \
     dbus-x11 \
@@ -29,19 +33,10 @@ RUN apt-get -qqy update \
     xvfb \
     git-core
 
-# Configure buster-wpt-webkit-updates repository
-RUN apt-key adv --fetch-keys https://webkitgtk.org/debian/apt.key
-RUN printf 'deb [arch=amd64] https://webkitgtk.org/debian buster-wpt-webkit-updates main' \
-    > /etc/apt/sources.list.d/webkitgtk.list
-RUN printf 'Package: *\nPin: origin webkitgtk.org\nPin-Priority: 1999' \
-    > /etc/apt/preferences.d/99webkitgtk
 
-# Update and upgrade
-RUN apt-get update \
-  && apt-get -y upgrade
-
-# Install webkit packages from https://webkitgtk.org/debian
-RUN apt-get install -y -t buster-wpt-webkit-updates webkit2gtk-driver
+# To speed up testers, cache in the image most of WebKitGTK dependencies
+# but don't install them (that will be done at test time)
+RUN apt-get install -qqy --download-only webkit2gtk-driver
 
 # Set the timezone
 ENV TZ "UTC"

@@ -20,8 +20,8 @@
 
         var recorder = new MediaRecorder(stream);
         assert_equals(recorder.state, "inactive");
-        assert_equals(recorder.videoBitsPerSecond, 0);
-        assert_equals(recorder.audioBitsPerSecond, 0);
+        assert_not_equals(recorder.videoBitsPerSecond, 0);
+        assert_not_equals(recorder.audioBitsPerSecond, 0);
         test.done();
       });
 

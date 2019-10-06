@@ -3,7 +3,6 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Feature Policy (https://w3c.github.io/webappsec-feature-policy/)
 
-[NoInterfaceObject]
 interface FeaturePolicy {
   boolean allowsFeature(DOMString feature, optional DOMString origin);
   sequence<DOMString> features();

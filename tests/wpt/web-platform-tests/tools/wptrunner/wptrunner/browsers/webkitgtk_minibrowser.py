@@ -1,4 +1,4 @@
-from .base import get_timeout_multiplier   # noqa: F401
+from .base import get_timeout_multiplier, maybe_add_args   # noqa: F401
 from .webkit import WebKitBrowser
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executorwebdriver import (WebDriverTestharnessExecutor,  # noqa: F401
@@ -24,16 +24,25 @@ def check_args(**kwargs):
 
 
 def browser_kwargs(test_type, run_info_data, config, **kwargs):
+    # Workaround for https://gitlab.gnome.org/GNOME/libsoup/issues/172
+    webdriver_required_args = ["--host=127.0.0.1"]
+    webdriver_args = maybe_add_args(webdriver_required_args, kwargs.get("webdriver_args"))
     return {"binary": kwargs["binary"],
             "webdriver_binary": kwargs["webdriver_binary"],
-            "webdriver_args": kwargs.get("webdriver_args")}
+            "webdriver_args": webdriver_args}
 
 
 def capabilities(server_config, **kwargs):
+    browser_required_args = ["--automation",
+                            "--javascript-can-open-windows-automatically=true",
+                            "--enable-xss-auditor=false",
+                            "--enable-media-capabilities=true",
+                            "--enable-encrypted-media=true",
+                            "--enable-media-stream=true",
+                            "--enable-mock-capture-devices=true",
+                            "--enable-webaudio=true"]
     args = kwargs.get("binary_args", [])
-    if "--automation" not in args:
-        args.append("--automation")
-
+    args = maybe_add_args(browser_required_args, args)
     return {
         "browserName": "MiniBrowser",
         "webkitgtk:browserOptions": {

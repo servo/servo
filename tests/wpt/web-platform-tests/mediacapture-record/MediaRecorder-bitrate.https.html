@@ -1,0 +1,226 @@
+<!doctype html>
+<html>
+<head>
+<title>MediaRecorder {audio|video}bitsPerSecond attributes</title>
+<link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<script>
+
+/*
+ * The bitrate handling is difficult to test, given that the spec uses text such
+ * as: "values the User Agent deems reasonable" and "such that the sum of
+ * videoBitsPerSecond and audioBitsPerSecond is close to the value of recorder’s
+ * [[ConstrainedBitsPerSecond]] slot". For cases like that this test tries to
+ * use values that are reasonable for the tested track types. Should a UA vendor
+ * see a need to update this to fit their definition of reasonable, they should
+ * feel free to do so, doing their best to avoid regressing existing compliant
+ * implementations.
+ */
+
+async function getStream(t, constraints) {
+  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  const tracks = stream.getTracks();
+  t.add_cleanup(() => tracks.forEach(tr => tr.stop()));
+  return stream;
+}
+
+function getAudioStream(t) {
+  return getStream(t, {audio: true});
+}
+
+function getVideoStream(t) {
+  return getStream(t, {video: true});
+}
+
+function getAudioVideoStream(t) {
+  return getStream(t, {audio: true, video: true});
+}
+
+const AUDIO_BITRATE = 1e5;      // 100kbps
+const VIDEO_BITRATE = 1e6;      // 1Mbps
+const LOW_TOTAL_BITRATE = 5e5;  // 500kbps
+const HIGH_TOTAL_BITRATE = 2e6; // 2Mbps
+const BITRATE_EPSILON = 1e5;    // 100kbps
+
+promise_test(async t => {
+  const rec = new MediaRecorder(await getAudioVideoStream(t));
+  assert_not_equals(rec.audioBitsPerSecond, 0);
+  assert_not_equals(rec.videoBitsPerSecond, 0);
+}, "Passing no bitrate config results in defaults");
+
+promise_test(async t => {
+  const rec = new MediaRecorder(await getAudioVideoStream(t), {
+    bitsPerSecond: 0,
+  });
+  assert_not_equals(rec.audioBitsPerSecond, 0);
+  assert_not_equals(rec.videoBitsPerSecond, 0);
+  assert_approx_equals(rec.audioBitsPerSecond + rec.videoBitsPerSecond, 0,
+    BITRATE_EPSILON);
+}, "Passing bitsPerSecond:0 results in targets close to 0");
+
+promise_test(async t => {
+  const rec = new MediaRecorder(await getAudioVideoStream(t), {
+    audioBitsPerSecond: 0,
+  });
+  assert_equals(rec.audioBitsPerSecond, 0);
+  assert_not_equals(rec.videoBitsPerSecond, 0);
+}, "Passing only audioBitsPerSecond:0 results in 0 for audio, default for video");
+
+promise_test(async t => {
+  const rec = new MediaRecorder(await getAudioVideoStream(t), {
+    videoBitsPerSecond: 0,
+  });
+  assert_not_equals(rec.audioBitsPerSecond, 0);
+  assert_equals(rec.videoBitsPerSecond, 0);
+}, "Passing only videoBitsPerSecond:0 results in 0 for video, default for audio");
+
+promise_test(async t => {
+  const rec = new MediaRecorder(await getAudioVideoStream(t), {
+    bitsPerSecond: 0,
+    audioBitsPerSecond: AUDIO_BITRATE,
+    videoBitsPerSecond: VIDEO_BITRATE,
+  });
+  assert_not_equals(rec.audioBitsPerSecond, 0);
+  assert_not_equals(rec.videoBitsPerSecond, 0);
+  assert_approx_equals(rec.audioBitsPerSecond + rec.videoBitsPerSecond, 0,
+    BITRATE_EPSILON);
+}, "Passing bitsPerSecond:0 overrides audio/video-specific values");
+
+promise_test(async t => {
+  const rec = new MediaRecorder(await getAudioVideoStream(t), {
+    bitsPerSecond: HIGH_TOTAL_BITRATE,
+    audioBitsPerSecond: 0,
+    videoBitsPerSecond: 0,
+  });
+  assert_not_equals(rec.audioBitsPerSecond, 0);
+  assert_not_equals(rec.videoBitsPerSecond, 0);
+  assert_approx_equals(rec.audioBitsPerSecond + rec.videoBitsPerSecond,
+    HIGH_TOTAL_BITRATE, BITRATE_EPSILON);
+}, "Passing bitsPerSecond overrides audio/video zero values");
+
+promise_test(async t => {
+  const rec = new MediaRecorder(await getAudioVideoStream(t), {
+    bitsPerSecond: HIGH_TOTAL_BITRATE,
+  });
+  assert_not_equals(rec.audioBitsPerSecond, 0);
+  assert_not_equals(rec.videoBitsPerSecond, 0);
+  assert_approx_equals(rec.audioBitsPerSecond + rec.videoBitsPerSecond,
+    HIGH_TOTAL_BITRATE, BITRATE_EPSILON);
+}, "Passing bitsPerSecond sets audio/video bitrate values");
+
+promise_test(async t => {
+  const rec = new MediaRecorder(await getAudioVideoStream(t), {
+    audioBitsPerSecond: AUDIO_BITRATE,
+  });
+  assert_equals(rec.audioBitsPerSecond, AUDIO_BITRATE);
+  assert_not_equals(rec.videoBitsPerSecond, 0);
+}, "Passing only audioBitsPerSecond results in default for video");
+
+promise_test(async t => {
+  const rec = new MediaRecorder(await getAudioVideoStream(t), {
+    videoBitsPerSecond: VIDEO_BITRATE,
+  });
+  assert_not_equals(rec.audioBitsPerSecond, 0);
+  assert_equals(rec.videoBitsPerSecond, VIDEO_BITRATE);
+}, "Passing only videoBitsPerSecond results in default for audio");
+
+promise_test(async t => {
+  const rec = new MediaRecorder(await getAudioStream(t), {
+    videoBitsPerSecond: VIDEO_BITRATE,
+  });
+  assert_not_equals(rec.audioBitsPerSecond, 0);
+  assert_equals(rec.videoBitsPerSecond, VIDEO_BITRATE);
+}, "Passing videoBitsPerSecond for audio-only stream still results in something for video");
+
+promise_test(async t => {
+  const rec = new MediaRecorder(await getVideoStream(t), {
+    audioBitsPerSecond: AUDIO_BITRATE,
+  });
+  assert_equals(rec.audioBitsPerSecond, AUDIO_BITRATE);
+  assert_not_equals(rec.videoBitsPerSecond, 0);
+}, "Passing audioBitsPerSecond for video-only stream still results in something for audio");
+
+promise_test(async t => {
+  const rec = new MediaRecorder(await getAudioStream(t), {
+    bitsPerSecond: HIGH_TOTAL_BITRATE,
+  });
+  assert_not_equals(rec.audioBitsPerSecond, 0);
+  assert_not_equals(rec.videoBitsPerSecond, 0);
+}, "Passing bitsPerSecond for audio-only stream still results in something for video");
+
+promise_test(async t => {
+  const rec = new MediaRecorder(await getVideoStream(t), {
+    bitsPerSecond: HIGH_TOTAL_BITRATE,
+  });
+  assert_not_equals(rec.audioBitsPerSecond, 0);
+  assert_not_equals(rec.videoBitsPerSecond, 0);
+}, "Passing bitsPerSecond for video-only stream still results in something for audio");
+
+promise_test(async t => {
+  const rec = new MediaRecorder(await getAudioVideoStream(t));
+  t.add_cleanup(() => rec.stop());
+  const abps = rec.audioBitsPerSecond;
+  const vbps = rec.videoBitsPerSecond;
+  rec.start();
+  assert_equals(rec.audioBitsPerSecond, abps);
+  assert_equals(rec.videoBitsPerSecond, vbps);
+}, "Selected default track bitrates are not changed by start()");
+
+promise_test(async t => {
+  const rec = new MediaRecorder(await getAudioVideoStream(t), {
+    audioBitsPerSecond: AUDIO_BITRATE,
+    videoBitsPerSecond: VIDEO_BITRATE,
+  });
+  t.add_cleanup(() => rec.stop());
+  const abps = rec.audioBitsPerSecond;
+  const vbps = rec.videoBitsPerSecond;
+  rec.start();
+  assert_equals(rec.audioBitsPerSecond, abps);
+  assert_equals(rec.videoBitsPerSecond, vbps);
+}, "Passed-in track bitrates are not changed by start()");
+
+promise_test(async t => {
+  const rec = new MediaRecorder(await getAudioVideoStream(t), {
+    bitsPerSecond: HIGH_TOTAL_BITRATE,
+  });
+  t.add_cleanup(() => rec.stop());
+  const abps = rec.audioBitsPerSecond;
+  const vbps = rec.videoBitsPerSecond;
+  rec.start();
+  assert_equals(rec.audioBitsPerSecond, abps);
+  assert_equals(rec.videoBitsPerSecond, vbps);
+}, "Passing bitsPerSecond for audio/video stream does not change track bitrates in start()");
+
+promise_test(async t => {
+  const rec = new MediaRecorder(await getAudioStream(t), {
+    bitsPerSecond: LOW_TOTAL_BITRATE,
+  });
+  t.add_cleanup(() => rec.stop());
+  const abps = rec.audioBitsPerSecond;
+  const vbps = rec.videoBitsPerSecond;
+  rec.start();
+  assert_approx_equals(rec.audioBitsPerSecond, LOW_TOTAL_BITRATE,
+    BITRATE_EPSILON);
+  assert_equals(rec.videoBitsPerSecond, 0);
+  assert_not_equals(rec.audioBitsPerSecond, abps);
+  assert_not_equals(rec.videoBitsPerSecond, vbps);
+}, "Passing bitsPerSecond for audio stream sets video track bitrate to 0 in start()");
+
+promise_test(async t => {
+  const rec = new MediaRecorder(await getVideoStream(t), {
+    bitsPerSecond: HIGH_TOTAL_BITRATE,
+  });
+  t.add_cleanup(() => rec.stop());
+  const abps = rec.audioBitsPerSecond;
+  const vbps = rec.videoBitsPerSecond;
+  rec.start();
+  assert_equals(rec.audioBitsPerSecond, 0);
+  assert_approx_equals(rec.videoBitsPerSecond, HIGH_TOTAL_BITRATE,
+    BITRATE_EPSILON);
+  assert_not_equals(rec.audioBitsPerSecond, abps);
+  assert_not_equals(rec.videoBitsPerSecond, vbps);
+}, "Passing bitsPerSecond for video stream sets audio track bitrate to 0 in start()");
+</script>
+</html>

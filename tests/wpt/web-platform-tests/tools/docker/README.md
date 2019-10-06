@@ -15,5 +15,3 @@ To update the image used for WebKitGTK:
 docker build -f Dockerfile.webkitgtk -t <tag> .
 docker push <tag>
 ```
-
-(This image is not yet used in .taskcluster.yml.)

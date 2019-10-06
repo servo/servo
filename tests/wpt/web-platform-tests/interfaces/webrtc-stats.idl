@@ -81,6 +81,7 @@ dictionary RTCInboundRtpStreamStats : RTCReceivedRtpStreamStats {
  boolean voiceActivityFlag;
  DOMHighResTimeStamp lastPacketReceivedTimestamp;
  double averageRtcpInterval;
+ unsigned long long headerBytesReceived;
  unsigned long long fecPacketsReceived;
  unsigned long long fecPacketsDiscarded;
  unsigned long long bytesReceived;
@@ -130,6 +131,7 @@ dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
              DOMString remoteId;
              DOMString rid;
              DOMHighResTimeStamp lastPacketSentTimestamp;
+             unsigned long long headerBytesSent;
              unsigned long packetsDiscardedOnSend;
              unsigned long long bytesDiscardedOnSend;
              unsigned long fecPacketsSent;

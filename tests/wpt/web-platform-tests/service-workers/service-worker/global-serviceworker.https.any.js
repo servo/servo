@@ -17,7 +17,7 @@ async_test((t) => {
   assert_true('serviceWorker' in self, 'self.serviceWorker exists');
   serviceWorker.postMessage({ messageTest: true });
 
-  // The rest of the rest runs once we receive the above message.
+  // The rest of the test runs once this receives the above message.
   addEventListener('message', t.step_func((event) => {
     // Ignore unrelated messages.
     if (!event.data.messageTest) return;
