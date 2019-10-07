@@ -767,10 +767,12 @@ impl HttpCache {
                 constructed_response.referrer_policy = request.referrer_policy.clone();
                 constructed_response.raw_status = cached_resource.data.raw_status.clone();
                 constructed_response.url_list = cached_resource.data.url_list.clone();
+                {
+                    let mut stored_headers = cached_resource.data.metadata.headers.lock().unwrap();
+                    stored_headers.extend(response.headers);
+                    constructed_response.headers = stored_headers.clone();
+                }
                 cached_resource.data.expires = get_response_expiry(&constructed_response);
-                let mut stored_headers = cached_resource.data.metadata.headers.lock().unwrap();
-                stored_headers.extend(response.headers);
-                constructed_response.headers = stored_headers.clone();
                 return Some(constructed_response);
             }
         }
