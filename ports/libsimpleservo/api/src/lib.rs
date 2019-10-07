@@ -19,7 +19,7 @@ use servo::embedder_traits::EmbedderMsg;
 use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::msg::constellation_msg::TraversalDirection;
-use servo::script_traits::{TouchEventType, TouchId};
+use servo::script_traits::{MediaSessionActionType, TouchEventType, TouchId};
 use servo::servo_config::opts;
 use servo::servo_config::{pref, set_pref};
 use servo::servo_url::ServoUrl;
@@ -464,6 +464,15 @@ impl ServoGlue {
             ..KeyboardEvent::default()
         };
         self.process_event(WindowEvent::Keyboard(key_event))
+    }
+
+    pub fn media_session_action(
+        &mut self,
+        action: MediaSessionActionType,
+    ) -> Result<(), &'static str> {
+        info!("Media session action {:?}", action);
+        let browser_id = self.get_browser_id()?;
+        self.process_event(WindowEvent::MediaSessionAction(browser_id, action))
     }
 
     fn process_event(&mut self, event: WindowEvent) -> Result<(), &'static str> {
