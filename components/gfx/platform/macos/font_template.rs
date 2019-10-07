@@ -108,10 +108,6 @@ impl FontTemplateData {
                                 CFString::new("NSFontNameAttribute"),
                                 CFString::new(&*self.identifier).as_CFType(),
                             ),
-                            (
-                                CFString::new("NSFontSizeAttribute"),
-                                CFNumber::from(clamped_pt_size).as_CFType(),
-                            ),
                         ]);
 
                     let descriptor = font_descriptor::new_from_attributes(&attributes);
