@@ -58,7 +58,7 @@ impl Response {
             mime_type: DomRefCell::new("".to_string().into_bytes()),
             body_used: Cell::new(false),
             status: DomRefCell::new(Some(StatusCode::OK)),
-            raw_status: DomRefCell::new(Some((200, b"OK".to_vec()))),
+            raw_status: DomRefCell::new(Some((200, b"".to_vec()))),
             response_type: DomRefCell::new(DOMResponseType::Default),
             url: DomRefCell::new(None),
             url_list: DomRefCell::new(vec![]),
@@ -313,7 +313,7 @@ impl ResponseMethods for Response {
     fn StatusText(&self) -> ByteString {
         match *self.raw_status.borrow() {
             Some((_, ref st)) => ByteString::new(st.clone()),
-            None => ByteString::new(b"OK".to_vec()),
+            None => ByteString::new(b"".to_vec()),
         }
     }
 
