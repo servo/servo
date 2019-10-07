@@ -7,7 +7,7 @@
     </metadata>
     <h:script src="/resources/testharness.js"/>
     <h:script src="/resources/testharnessreport.js"/>
-    <h:script src="/html/semantics/forms/autofocus/resources/utils.js"/>
+    <h:script src="/html/interaction/focus/the-autofocus-attribute/resources/utils.js"/>
     <script><![CDATA[
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
