@@ -11353,6 +11353,12 @@
      {}
     ]
    ],
+   "mozilla/cache_crossorigin_response.sub.html": [
+    [
+     "mozilla/cache_crossorigin_response.sub.html",
+     {}
+    ]
+   ],
    "mozilla/calc.html": [
     [
      "mozilla/calc.html",
@@ -18477,6 +18483,10 @@
   ],
   "mozilla/body_listener.html": [
    "13a1a0fdc15ac05458ebf2c1fd75d501a6de92e3",
+   "testharness"
+  ],
+  "mozilla/cache_crossorigin_response.sub.html": [
+   "266995f30afa3e9b3472e4cc43be6493c562aef6",
    "testharness"
   ],
   "mozilla/calc.html": [

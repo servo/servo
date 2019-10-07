@@ -297,6 +297,7 @@ fn create_cached_response(
     cached_headers: &HeaderMap,
     done_chan: &mut DoneChannel,
 ) -> CachedResponse {
+    debug!("creating a cached response for {:?}", request.url());
     let resource_timing = ResourceFetchTiming::new(request.timing_type());
     let mut response = Response::new(
         cached_resource.data.metadata.data.final_url.clone(),
@@ -305,6 +306,7 @@ fn create_cached_response(
     response.headers = cached_headers.clone();
     response.body = cached_resource.body.clone();
     if let ResponseBody::Receiving(_) = *cached_resource.body.lock().unwrap() {
+        debug!("existing body is in progress");
         let (done_sender, done_receiver) = unbounded();
         *done_chan = Some((done_sender.clone(), done_receiver));
         cached_resource
@@ -571,8 +573,10 @@ impl HttpCache {
         done_chan: &mut DoneChannel,
     ) -> Option<CachedResponse> {
         // TODO: generate warning headers as appropriate <https://tools.ietf.org/html/rfc7234#section-5.5>
+        debug!("trying to construct cache response for {:?}", request.url());
         if request.method != Method::GET {
             // Only Get requests are cached, avoid a url based match for others.
+            debug!("non-GET method, not caching");
             return None;
         }
         let entry_key = CacheKey::new(&request);
@@ -588,6 +592,7 @@ impl HttpCache {
             let original_request_headers = cached_resource.request_headers.lock().unwrap();
             if let Some(vary_value) = cached_headers.typed_get::<Vary>() {
                 if vary_value.is_any() {
+                    debug!("vary value is any, not caching");
                     can_be_constructed = false
                 } else {
                     // For every header name found in the Vary header of the stored response.
@@ -602,6 +607,7 @@ impl HttpCache {
                                     // Check that the value of the nominated header field,
                                     // in the original request, matches the value in the current request.
                                     if original_header_data != header_data {
+                                        debug!("headers don't match, not caching");
                                         can_be_constructed = false;
                                         break;
                                     }
@@ -613,6 +619,9 @@ impl HttpCache {
                                 // were also absent in the original request.
                                 can_be_constructed =
                                     original_request_headers.get(vary_val).is_none();
+                                if !can_be_constructed {
+                                    debug!("vary header present, not caching");
+                                }
                             },
                         }
                         if !can_be_constructed {
@@ -663,6 +672,7 @@ impl HttpCache {
                 return Some(cached_response);
             }
         }
+        debug!("couldn't find an appropriate response, not caching");
         // The cache wasn't able to construct anything.
         None
     }
