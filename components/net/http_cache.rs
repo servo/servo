@@ -873,6 +873,30 @@ impl HttpCache {
         };
         debug!("storing new cached response for {:?}", request.url());
         let entry = self.entries.entry(entry_key).or_insert(vec![]);
+
+        if response
+            .status
+            .as_ref()
+            .map_or(false, |s| s.0 == StatusCode::OK)
+        {
+            // Ensure that any existing complete response is overwritten by the new
+            // complete response.
+            let existing_complete_response = entry.iter().position(|response| {
+                response
+                    .data
+                    .status
+                    .as_ref()
+                    .map_or(false, |s| s.0 == StatusCode::OK)
+            });
+            if let Some(idx) = existing_complete_response {
+                debug!(
+                    "Removing existing cached 200 OK response for {:?}",
+                    request.url()
+                );
+                entry.remove(idx);
+            }
+        }
+
         entry.push(entry_resource);
         // TODO: Complete incomplete responses, including 206 response, when stored here.
         // See A cache MAY complete a stored incomplete response by making a subsequent range request
