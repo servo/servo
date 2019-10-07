@@ -23,6 +23,7 @@ use style::values::computed::{Length, LengthOrAuto};
 use style_traits::CSSPixel;
 
 pub struct BoxTreeRoot(BlockFormattingContext);
+pub struct FragmentTreeRoot(Vec<Fragment>);
 
 impl BoxTreeRoot {
     pub fn construct<'dom>(
@@ -95,7 +96,7 @@ fn construct_for_root_element<'dom>(
 }
 
 impl BoxTreeRoot {
-    fn layout(&self, viewport: geom::Size<CSSPixel>) -> Vec<Fragment> {
+    pub fn layout(&self, viewport: geom::Size<CSSPixel>) -> FragmentTreeRoot {
         let initial_containing_block_size = Vec2 {
             inline: Length::new(viewport.width),
             block: Length::new(viewport.height),
@@ -125,6 +126,6 @@ impl BoxTreeRoot {
                 .par_iter()
                 .map(|a| a.layout(&initial_containing_block)),
         );
-        flow_children.fragments
+        FragmentTreeRoot(flow_children.fragments)
     }
 }

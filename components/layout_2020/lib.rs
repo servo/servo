@@ -30,7 +30,7 @@ mod style_ext;
 pub mod traversal;
 pub mod wrapper;
 
-pub use flow::BoxTreeRoot;
+pub use flow::{BoxTreeRoot, FragmentTreeRoot};
 
 use crate::dom_traversal::{Contents, NodeExt};
 use crate::flow::{BlockFormattingContext, FlowChildren};

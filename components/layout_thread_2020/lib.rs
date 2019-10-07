@@ -167,8 +167,11 @@ pub struct LayoutThread {
     /// The number of Web fonts that have been requested but not yet loaded.
     outstanding_web_fonts: Arc<AtomicUsize>,
 
-    /// The root box tree.
-    box_tree_root: RefCell<Option<BoxTreeRoot>>,
+    /// The root of the box tree.
+    box_tree_root: RefCell<Option<layout::BoxTreeRoot>>,
+
+    /// The root of the fragment tree.
+    fragment_tree_root: RefCell<Option<layout::FragmentTreeRoot>>,
 
     /// The document-specific shared lock used for author-origin stylesheets
     document_shared_lock: Option<SharedRwLock>,
@@ -497,6 +500,7 @@ impl LayoutThread {
             _new_animations_receiver: new_animations_receiver,
             outstanding_web_fonts: Arc::new(AtomicUsize::new(0)),
             box_tree_root: Default::default(),
+            fragment_tree_root: Default::default(),
             document_shared_lock: None,
             epoch: Cell::new(Epoch(0)),
             viewport_size: Size2D::new(Au(0), Au(0)),
@@ -1084,7 +1088,12 @@ impl LayoutThread {
             let shared = DomTraversal::<ServoLayoutElement>::shared_context(&traversal);
             let box_tree =
                 BoxTreeRoot::construct(shared, document.root_element().unwrap().as_node());
+            let fragment_tree = box_tree.layout(Size2D::new(
+                self.viewport_size.width.to_f32_px(),
+                self.viewport_size.height.to_f32_px(),
+            ));
             *self.box_tree_root.borrow_mut() = Some(box_tree);
+            *self.fragment_tree_root.borrow_mut() = Some(fragment_tree);
         }
 
         for element in elements_with_snapshot {
