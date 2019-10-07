@@ -231,6 +231,7 @@ fn get_response_expiry(response: &Response) -> Duration {
             let last_modified = Timespec::new(last_modified.as_secs() as i64, 0);
             // A typical setting of this fraction might be 10%.
             let raw_heuristic_calc = (current - last_modified) / 10;
+            trace!("calculated {:?} vs. {:?} ({:?})", current, last_modified, raw_heuristic_calc);
             let result = if raw_heuristic_calc < max_heuristic {
                 raw_heuristic_calc
             } else {
@@ -332,8 +333,12 @@ fn create_cached_response(
     // TODO: take must-revalidate into account <https://tools.ietf.org/html/rfc7234#section-5.2.2.1>
     // TODO: if this cache is to be considered shared, take proxy-revalidate into account
     // <https://tools.ietf.org/html/rfc7234#section-5.2.2.7>
-    let has_expired =
-        (adjusted_expires < time_since_validated) || (adjusted_expires == time_since_validated);
+    let has_expired = adjusted_expires <= time_since_validated;
+    trace!(
+        "time_since_validated: {:?}, adjusted_expires: {:?}",
+        time_since_validated,
+        adjusted_expires
+    );
     CachedResponse {
         response: response,
         needs_validation: has_expired,
@@ -722,6 +727,11 @@ impl HttpCache {
         assert_eq!(response.status.map(|s| s.0), Some(StatusCode::NOT_MODIFIED));
         let entry_key = CacheKey::new(&request);
         if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
+            trace!(
+                "there are {} cached responses for {:?}",
+                cached_resources.len(),
+                request.url()
+            );
             for cached_resource in cached_resources.iter_mut() {
                 // done_chan will have been set to Some(..) by http_network_fetch.
                 // If the body is not receiving data, set the done_chan back to None.
@@ -833,6 +843,7 @@ impl HttpCache {
             return;
         }
         let expiry = get_response_expiry(&response);
+        debug!("new cached response has expiry of {:?}", expiry);
         let cacheable_metadata = CachedMetadata {
             headers: Arc::new(Mutex::new(response.headers.clone())),
             data: Measurable(MeasurableCachedMetadata {
@@ -858,6 +869,7 @@ impl HttpCache {
                 last_validated: time::now(),
             }),
         };
+        debug!("storing new cached response for {:?}", request.url());
         let entry = self.entries.entry(entry_key).or_insert(vec![]);
         entry.push(entry_resource);
         // TODO: Complete incomplete responses, including 206 response, when stored here.

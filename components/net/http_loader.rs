@@ -1040,6 +1040,7 @@ fn http_network_or_cache_fetch(
                     ),
                 };
             if needs_revalidation {
+                debug!("Need to revalidate {:?}", http_request.url());
                 revalidating_flag = true;
                 // Substep 5
                 if let Some(http_date) = response_headers.typed_get::<LastModified>() {
@@ -1054,6 +1055,7 @@ fn http_network_or_cache_fetch(
                         .insert(header::IF_NONE_MATCH, entity_tag.clone());
                 }
             } else {
+                debug!("Using cached response for {:?}", http_request.url());
                 // Substep 6
                 response = cached_response;
             }
@@ -1108,6 +1110,10 @@ fn http_network_or_cache_fetch(
         // Substep 3
         if let Some((200..=399, _)) = forward_response.raw_status {
             if !http_request.method.is_safe() {
+                debug!(
+                    "Unsafe method for response; invalidating cached response for {:?}",
+                    http_request.url(),
+                );
                 if let Ok(mut http_cache) = context.state.http_cache.write() {
                     http_cache.invalidate(&http_request, &forward_response);
                 }
@@ -1120,6 +1126,7 @@ fn http_network_or_cache_fetch(
                 .as_ref()
                 .map_or(false, |s| s.0 == StatusCode::NOT_MODIFIED)
         {
+            debug!("Refreshing cached response for {:?}", http_request.url());
             if let Ok(mut http_cache) = context.state.http_cache.write() {
                 response = http_cache.refresh(&http_request, forward_response.clone(), done_chan);
                 wait_for_cached_response(done_chan, &mut response);
@@ -1129,10 +1136,16 @@ fn http_network_or_cache_fetch(
         // Substep 5
         if response.is_none() {
             if http_request.cache_mode != CacheMode::NoStore {
+                debug!("Storing new cached response for {:?}", http_request.url());
                 // Subsubstep 2, doing it first to avoid a clone of forward_response.
                 if let Ok(mut http_cache) = context.state.http_cache.write() {
                     http_cache.store(&http_request, &forward_response);
                 }
+            } else {
+                debug!(
+                    "Can't store new response for {:?} in cached",
+                    http_request.url()
+                );
             }
             // Subsubstep 1
             response = Some(forward_response);
