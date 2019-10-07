@@ -145,7 +145,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ///    computed to 'absolute' if the element is in a top layer.
     ///
     fn adjust_for_top_layer(&mut self) {
-        if !self.style.out_of_flow_positioned() && self.style.in_top_layer() {
+        if !self.style.is_absolutely_positioned() && self.style.in_top_layer() {
             self.style.mutate_box().set_position(Position::Absolute);
         }
     }
@@ -156,7 +156,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ///    value of 'float' is 'none'.
     ///
     fn adjust_for_position(&mut self) {
-        if self.style.out_of_flow_positioned() && self.style.floated() {
+        if self.style.is_absolutely_positioned() && self.style.is_floating() {
             self.style.mutate_box().set_float(Float::None);
         }
     }
@@ -205,8 +205,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         let is_item_or_root = blockify;
 
-        blockify_if!(self.style.floated());
-        blockify_if!(self.style.out_of_flow_positioned());
+        blockify_if!(self.style.is_floating());
+        blockify_if!(self.style.is_absolutely_positioned());
         #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
         blockify_if!(
             self.style.pseudo.map_or(false, |p| p.is_marker()) &&
@@ -375,7 +375,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         use crate::computed_values::align_self::T as AlignSelf;
 
         if self.style.get_position().clone_align_self() == AlignSelf::Auto &&
-            !self.style.out_of_flow_positioned()
+            !self.style.is_absolutely_positioned()
         {
             let self_align = match layout_parent_style.get_position().clone_align_items() {
                 AlignItems::Stretch => AlignSelf::Stretch,
@@ -556,7 +556,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     #[cfg(feature = "gecko")]
     fn should_suppress_linebreak(&self, layout_parent_style: &ComputedValues) -> bool {
         // Line break suppression should only be propagated to in-flow children.
-        if self.style.floated() || self.style.out_of_flow_positioned() {
+        if self.style.is_floating() || self.style.is_absolutely_positioned() {
             return false;
         }
         let parent_display = layout_parent_style.get_box().clone_display();
