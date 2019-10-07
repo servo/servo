@@ -216,6 +216,7 @@ pub struct CHostCallbacks {
     pub on_ime_state_changed: extern "C" fn(show: bool),
     pub get_clipboard_contents: extern "C" fn() -> *const c_char,
     pub set_clipboard_contents: extern "C" fn(contents: *const c_char),
+    pub on_media_session: extern "C" fn(active: bool),
 }
 
 /// Servo options
@@ -707,5 +708,10 @@ impl HostTrait for HostCallbacks {
         debug!("set_clipboard_contents");
         let contents = CString::new(contents).expect("Can't create string");
         (self.0.set_clipboard_contents)(contents.as_ptr());
+    }
+
+    fn on_media_session(&self, active: bool) {
+        debug!("on_media_session (active: {:?})", active);
+        (self.0.on_media_session)(active);
     }
 }
