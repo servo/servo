@@ -1108,7 +1108,9 @@ impl LayoutThread {
         }
 
         // Perform post-style recalculation layout passes.
-        self.perform_post_style_recalc_layout_passes(&data.reflow_goal, Some(&document));
+        if let Some(root) = &*self.fragment_tree_root.borrow() {
+            self.perform_post_style_recalc_layout_passes(root, &data.reflow_goal, Some(&document));
+        }
 
         self.first_reflow.set(false);
         self.respond_to_query_if_necessary(&data.reflow_goal, &mut *rw_data, &mut layout_context);
@@ -1230,7 +1232,10 @@ impl LayoutThread {
             );
         }
 
-        if let Some(author_shared_lock) = self.document_shared_lock.clone() {
+        if let Some(root) = &*self.fragment_tree_root.borrow() {
+            // Unwrap here should not panic since self.fragment_tree_root is only ever set to Some(_)
+            // in handle_reflow() where self.document_shared_lock is as well.
+            let author_shared_lock = self.document_shared_lock.clone().unwrap();
             let author_guard = author_shared_lock.read();
             let ua_or_user_guard = UA_STYLESHEETS.shared_lock.read();
             let _guards = StylesheetGuards {
@@ -1238,12 +1243,13 @@ impl LayoutThread {
                 ua_or_user: &ua_or_user_guard,
             };
 
-            self.perform_post_style_recalc_layout_passes(&ReflowGoal::TickAnimations, None);
+            self.perform_post_style_recalc_layout_passes(root, &ReflowGoal::TickAnimations, None);
         }
     }
 
     fn perform_post_style_recalc_layout_passes(
         &self,
+        fragment_tree: &layout::FragmentTreeRoot,
         reflow_goal: &ReflowGoal,
         document: Option<&ServoLayoutDocument>,
     ) {
@@ -1261,16 +1267,13 @@ impl LayoutThread {
             document.will_paint();
         }
 
-        let viewport_size = Size2D::new(
+        let viewport_size = webrender_api::units::LayoutSize::from_untyped(Size2D::new(
             self.viewport_size.width.to_f32_px(),
             self.viewport_size.height.to_f32_px(),
-        );
-
-        let viewport_size = webrender_api::units::LayoutSize::from_untyped(viewport_size);
-
-        let display_list =
+        ));
+        let mut display_list =
             webrender_api::DisplayListBuilder::new(self.id.to_webrender(), viewport_size);
-        let is_contentful = false;
+        let is_contentful = fragment_tree.build_display_list(&mut display_list);
 
         debug!("Layout done!");
 
@@ -1282,7 +1285,7 @@ impl LayoutThread {
         // sending the display list to WebRender in order to set time related
         // Progressive Web Metrics.
         self.paint_time_metrics
-            .maybe_observe_paint_time(self, epoch, is_contentful);
+            .maybe_observe_paint_time(self, epoch, is_contentful.0);
 
         let mut txn = webrender_api::Transaction::new();
         txn.set_display_list(

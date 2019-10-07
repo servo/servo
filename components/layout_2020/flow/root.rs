@@ -6,7 +6,7 @@ use crate::dom_traversal::{Contents, NodeExt};
 use crate::flow::construct::ContainsFloats;
 use crate::flow::float::FloatBox;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
-use crate::fragments::Fragment;
+use crate::fragments::{Fragment, IsContentful};
 use crate::geom;
 use crate::geom::flow_relative::Vec2;
 use crate::positioned::AbsolutelyPositionedBox;
@@ -21,6 +21,7 @@ use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto};
 use style_traits::CSSPixel;
+use webrender_api::DisplayListBuilder;
 
 pub struct BoxTreeRoot(BlockFormattingContext);
 pub struct FragmentTreeRoot(Vec<Fragment>);
@@ -127,5 +128,15 @@ impl BoxTreeRoot {
                 .map(|a| a.layout(&initial_containing_block)),
         );
         FragmentTreeRoot(flow_children.fragments)
+    }
+}
+
+impl FragmentTreeRoot {
+    pub fn build_display_list(&self, builder: &mut DisplayListBuilder) -> IsContentful {
+        let mut is_contentful = IsContentful(false);
+        for fragment in &self.0 {
+            fragment.build_display_list(builder, &mut is_contentful)
+        }
+        is_contentful
     }
 }
