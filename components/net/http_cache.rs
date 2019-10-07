@@ -223,7 +223,8 @@ fn get_response_expiry(response: &Response) -> Duration {
             // If the response has a Last-Modified header field,
             // caches are encouraged to use a heuristic expiration value
             // that is no more than some fraction of the interval since that time.
-            response.headers.typed_get::<LastModified>() {
+            response.headers.typed_get::<LastModified>()
+        {
             let current = time::now().to_timespec();
             let last_modified: SystemTime = last_modified.into();
             let last_modified = last_modified.duration_since(SystemTime::UNIX_EPOCH).unwrap();
