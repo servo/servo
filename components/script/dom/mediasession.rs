@@ -16,6 +16,7 @@ use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use script_traits::MediaSessionActionType;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 #[dom_struct]
@@ -25,6 +26,9 @@ pub struct MediaSession {
     metadata: MutNullableDom<MediaMetadata>,
     /// https://w3c.github.io/mediasession/#dom-mediasession-playbackstate
     playback_state: DomRefCell<MediaSessionPlaybackState>,
+    /// https://w3c.github.io/mediasession/#supported-media-session-actions
+    #[ignore_malloc_size_of = "Rc"]
+    action_handlers: DomRefCell<HashMap<MediaSessionActionType, Rc<MediaSessionActionHandler>>>,
 }
 
 impl MediaSession {
@@ -34,6 +38,7 @@ impl MediaSession {
             reflector_: Reflector::new(),
             metadata: Default::default(),
             playback_state: DomRefCell::new(MediaSessionPlaybackState::None),
+            action_handlers: DomRefCell::new(HashMap::new()),
         };
         ScriptThread::register_media_session(&media_session, browsing_context_id);
         media_session
@@ -54,10 +59,12 @@ impl MediaSession {
 }
 
 impl MediaSessionMethods for MediaSession {
+    /// https://w3c.github.io/mediasession/#dom-mediasession-metadata
     fn GetMetadata(&self) -> Option<DomRoot<MediaMetadata>> {
         self.metadata.get()
     }
 
+    /// https://w3c.github.io/mediasession/#dom-mediasession-metadata
     fn SetMetadata(&self, metadata: Option<&MediaMetadata>) {
         if let Some(ref metadata) = metadata {
             metadata.set_session(self);
@@ -75,11 +82,19 @@ impl MediaSessionMethods for MediaSession {
         *self.playback_state.borrow_mut() = state;
     }
 
+    /// https://w3c.github.io/mediasession/#update-action-handler-algorithm
     fn SetActionHandler(
         &self,
-        _action: MediaSessionAction,
-        _handler: Option<Rc<MediaSessionActionHandler>>,
+        action: MediaSessionAction,
+        handler: Option<Rc<MediaSessionActionHandler>>,
     ) {
+        match handler {
+            Some(handler) => self
+                .action_handlers
+                .borrow_mut()
+                .insert(action.into(), handler.clone()),
+            None => self.action_handlers.borrow_mut().remove(&action.into()),
+        };
     }
 }
 
@@ -91,5 +106,21 @@ impl Drop for MediaSession {
             .window_proxy()
             .top_level_browsing_context_id();
         ScriptThread::remove_media_session(browsing_context_id);
+    }
+}
+
+impl From<MediaSessionAction> for MediaSessionActionType {
+    fn from(action: MediaSessionAction) -> MediaSessionActionType {
+        match action {
+            MediaSessionAction::Play => MediaSessionActionType::Play,
+            MediaSessionAction::Pause => MediaSessionActionType::Pause,
+            MediaSessionAction::Seekbackward => MediaSessionActionType::SeekBackward,
+            MediaSessionAction::Seekforward => MediaSessionActionType::SeekForward,
+            MediaSessionAction::Previoustrack => MediaSessionActionType::PreviousTrack,
+            MediaSessionAction::Nexttrack => MediaSessionActionType::NextTrack,
+            MediaSessionAction::Skipad => MediaSessionActionType::SkipAd,
+            MediaSessionAction::Stop => MediaSessionActionType::Stop,
+            MediaSessionAction::Seekto => MediaSessionActionType::SeekTo,
+        }
     }
 }

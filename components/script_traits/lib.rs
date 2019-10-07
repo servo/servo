@@ -1061,7 +1061,7 @@ pub enum MessagePortMsg {
 
 /// The type of MediaSession action.
 /// https://w3c.github.io/mediasession/#enumdef-mediasessionaction
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum MediaSessionActionType {
     /// The action intent is to resume playback.
     Play,
