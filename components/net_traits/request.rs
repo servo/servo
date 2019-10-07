@@ -10,7 +10,7 @@ use msg::constellation_msg::PipelineId;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 /// An [initiator](https://fetch.spec.whatwg.org/#concept-request-initiator)
-#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum Initiator {
     None,
     Download,
@@ -128,7 +128,7 @@ pub enum Window {
 }
 
 /// [CORS settings attribute](https://html.spec.whatwg.org/multipage/#attr-crossorigin-anonymous)
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum CorsSettings {
     Anonymous,
     UseCredentials,
@@ -178,6 +178,7 @@ pub struct RequestBuilder {
     // to keep track of redirects
     pub url_list: Vec<ServoUrl>,
     pub parser_metadata: ParserMetadata,
+    pub initiator: Initiator,
 }
 
 impl RequestBuilder {
@@ -204,7 +205,13 @@ impl RequestBuilder {
             integrity_metadata: "".to_owned(),
             url_list: vec![],
             parser_metadata: ParserMetadata::Default,
+            initiator: Initiator::None,
         }
+    }
+
+    pub fn initiator(mut self, initiator: Initiator) -> RequestBuilder {
+        self.initiator = initiator;
+        self
     }
 
     pub fn method(mut self, method: Method) -> RequestBuilder {
@@ -298,6 +305,7 @@ impl RequestBuilder {
             Some(Origin::Origin(self.origin)),
             self.pipeline_id,
         );
+        request.initiator = self.initiator;
         request.method = self.method;
         request.headers = self.headers;
         request.unsafe_request = self.unsafe_request;

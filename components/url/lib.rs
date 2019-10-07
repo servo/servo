@@ -180,7 +180,8 @@ impl fmt::Display for ServoUrl {
 impl fmt::Debug for ServoUrl {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         if self.0.as_str().len() > 40 {
-            let hasher = DefaultHasher::new();
+            let mut hasher = DefaultHasher::new();
+            hasher.write(self.0.as_str().as_bytes());
             let truncated: String = self.0.as_str().chars().take(40).collect();
             let result = format!("{}... ({:x})", truncated, hasher.finish());
             return result.fmt(formatter);

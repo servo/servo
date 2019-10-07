@@ -159,6 +159,8 @@ impl HTMLVideoElement {
         let image_cache = window.image_cache();
         let response = image_cache.find_image_or_metadata(
             poster_url.clone().into(),
+            window.origin().immutable().clone(),
+            None,
             UsePlaceholder::No,
             CanRequestImages::Yes,
         );

@@ -19,11 +19,13 @@ use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use crate::dom::canvaspattern::CanvasPattern;
+use crate::dom::element::cors_setting_for_element;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
 use crate::dom::imagedata::ImageData;
 use crate::dom::node::{Node, NodeDamage};
+use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::textmetrics::TextMetrics;
 use crate::unpremultiplytable::UNPREMULTIPLY_TABLE;
 use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg};
@@ -44,10 +46,11 @@ use net_traits::image_cache::ImageOrMetadataAvailable;
 use net_traits::image_cache::ImageResponse;
 use net_traits::image_cache::ImageState;
 use net_traits::image_cache::UsePlaceholder;
+use net_traits::request::CorsSettings;
 use pixels::PixelFormat;
 use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use std::cell::Cell;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -126,6 +129,7 @@ pub struct CanvasState {
     /// The base URL for resolving CSS image URL values.
     /// Needed because of https://github.com/servo/servo/issues/17625
     base_url: ServoUrl,
+    origin: ImmutableOrigin,
     /// Any missing image URLs.
     missing_image_urls: DomRefCell<Vec<ServoUrl>>,
     saved_states: DomRefCell<Vec<CanvasContextState>>,
@@ -143,6 +147,14 @@ impl CanvasState {
             .unwrap();
         let (ipc_renderer, canvas_id) = receiver.recv().unwrap();
         debug!("Done.");
+        // Worklets always receive a unique origin. This messes with fetching
+        // cached images in the case of paint worklets, since the image cache
+        // is keyed on the origin requesting the image data.
+        let origin = if global.is::<PaintWorkletGlobalScope>() {
+            global.api_base_url().origin()
+        } else {
+            global.origin().immutable().clone()
+        };
         CanvasState {
             ipc_renderer: ipc_renderer,
             canvas_id: canvas_id,
@@ -152,6 +164,7 @@ impl CanvasState {
             base_url: global.api_base_url(),
             missing_image_urls: DomRefCell::new(Vec::new()),
             saved_states: DomRefCell::new(Vec::new()),
+            origin,
         }
     }
 
@@ -199,8 +212,12 @@ impl CanvasState {
         }
     }
 
-    fn fetch_image_data(&self, url: ServoUrl) -> Option<(Vec<u8>, Size2D<u32>)> {
-        let img = match self.request_image_from_cache(url) {
+    fn fetch_image_data(
+        &self,
+        url: ServoUrl,
+        cors_setting: Option<CorsSettings>,
+    ) -> Option<(Vec<u8>, Size2D<u32>)> {
+        let img = match self.request_image_from_cache(url, cors_setting) {
             ImageResponse::Loaded(img, _) => img,
             ImageResponse::PlaceholderLoaded(_, _) |
             ImageResponse::None |
@@ -218,10 +235,15 @@ impl CanvasState {
         Some((image_data, image_size))
     }
 
-    #[inline]
-    fn request_image_from_cache(&self, url: ServoUrl) -> ImageResponse {
+    fn request_image_from_cache(
+        &self,
+        url: ServoUrl,
+        cors_setting: Option<CorsSettings>,
+    ) -> ImageResponse {
         let response = self.image_cache.find_image_or_metadata(
             url.clone(),
+            self.origin.clone(),
+            cors_setting,
             UsePlaceholder::No,
             CanRequestImages::No,
         );
@@ -341,13 +363,28 @@ impl CanvasState {
                 // If the image argument is an HTMLImageElement object that is in the broken state,
                 // then throw an InvalidStateError exception
                 let url = image.get_url().ok_or(Error::InvalidState)?;
-                self.fetch_and_draw_image_data(htmlcanvas, url, sx, sy, sw, sh, dx, dy, dw, dh)
+                let cors_setting = cors_setting_for_element(image.upcast());
+                self.fetch_and_draw_image_data(
+                    htmlcanvas,
+                    url,
+                    cors_setting,
+                    sx,
+                    sy,
+                    sw,
+                    sh,
+                    dx,
+                    dy,
+                    dw,
+                    dh,
+                )
             },
             CanvasImageSource::CSSStyleValue(ref value) => {
                 let url = value
                     .get_url(self.base_url.clone())
                     .ok_or(Error::InvalidState)?;
-                self.fetch_and_draw_image_data(htmlcanvas, url, sx, sy, sw, sh, dx, dy, dw, dh)
+                self.fetch_and_draw_image_data(
+                    htmlcanvas, url, None, sx, sy, sw, sh, dx, dy, dw, dh,
+                )
             },
         };
 
@@ -423,6 +460,7 @@ impl CanvasState {
         &self,
         canvas: Option<&HTMLCanvasElement>,
         url: ServoUrl,
+        cors_setting: Option<CorsSettings>,
         sx: f64,
         sy: f64,
         sw: Option<f64>,
@@ -433,7 +471,9 @@ impl CanvasState {
         dh: Option<f64>,
     ) -> ErrorResult {
         debug!("Fetching image {}.", url);
-        let (mut image_data, image_size) = self.fetch_image_data(url).ok_or(Error::InvalidState)?;
+        let (mut image_data, image_size) = self
+            .fetch_image_data(url, cors_setting)
+            .ok_or(Error::InvalidState)?;
         pixels::rgba8_premultiply_inplace(&mut image_data);
         let image_size = image_size.to_f64();
 
@@ -776,7 +816,9 @@ impl CanvasState {
                 // then throw an InvalidStateError exception
                 image
                     .get_url()
-                    .and_then(|url| self.fetch_image_data(url))
+                    .and_then(|url| {
+                        self.fetch_image_data(url, cors_setting_for_element(image.upcast()))
+                    })
                     .ok_or(Error::InvalidState)?
             },
             CanvasImageSource::HTMLCanvasElement(ref canvas) => {
@@ -788,7 +830,7 @@ impl CanvasState {
             },
             CanvasImageSource::CSSStyleValue(ref value) => value
                 .get_url(self.base_url.clone())
-                .and_then(|url| self.fetch_image_data(url))
+                .and_then(|url| self.fetch_image_data(url, None))
                 .ok_or(Error::InvalidState)?,
         };
 

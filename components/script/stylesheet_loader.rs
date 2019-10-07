@@ -16,6 +16,7 @@ use crate::dom::htmllinkelement::{HTMLLinkElement, RequestGenerationId};
 use crate::dom::node::{containing_shadow_root, document_from_node, window_from_node};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::shadowroot::ShadowRoot;
+use crate::fetch::create_a_potential_CORS_request;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use cssparser::SourceLocation;
 use encoding_rs::UTF_8;
@@ -23,9 +24,7 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
 use msg::constellation_msg::PipelineId;
-use net_traits::request::{
-    CorsSettings, CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode,
-};
+use net_traits::request::{CorsSettings, Destination, Referrer, RequestBuilder};
 use net_traits::{
     FetchMetadata, FetchResponseListener, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy,
 };
@@ -335,6 +334,7 @@ impl<'a> StylesheetLoader<'a> {
 }
 
 // This function is also used to prefetch a stylesheet in `script::dom::servoparser::prefetch`.
+// https://html.spec.whatwg.org/multipage/#default-fetch-and-process-the-linked-resource
 pub(crate) fn stylesheet_fetch_request(
     url: ServoUrl,
     cors_setting: Option<CorsSettings>,
@@ -344,20 +344,7 @@ pub(crate) fn stylesheet_fetch_request(
     referrer_policy: Option<ReferrerPolicy>,
     integrity_metadata: String,
 ) -> RequestBuilder {
-    RequestBuilder::new(url)
-        .destination(Destination::Style)
-        // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
-        // Step 1
-        .mode(match cors_setting {
-            Some(_) => RequestMode::CorsMode,
-            None => RequestMode::NoCors,
-        })
-        // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
-        // Step 3-4
-        .credentials_mode(match cors_setting {
-            Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
-            _ => CredentialsMode::Include,
-        })
+    create_a_potential_CORS_request(url, Destination::Style, cors_setting, None)
         .origin(origin)
         .pipeline_id(Some(pipeline_id))
         .referrer(Some(referrer))

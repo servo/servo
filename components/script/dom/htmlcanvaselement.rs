@@ -442,12 +442,19 @@ pub mod utils {
     use crate::dom::window::Window;
     use net_traits::image_cache::CanRequestImages;
     use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
+    use net_traits::request::CorsSettings;
     use servo_url::ServoUrl;
 
-    pub fn request_image_from_cache(window: &Window, url: ServoUrl) -> ImageResponse {
+    pub fn request_image_from_cache(
+        window: &Window,
+        url: ServoUrl,
+        cors_setting: Option<CorsSettings>,
+    ) -> ImageResponse {
         let image_cache = window.image_cache();
         let response = image_cache.find_image_or_metadata(
             url.into(),
+            window.origin().immutable().clone(),
+            cors_setting,
             UsePlaceholder::No,
             CanRequestImages::No,
         );

@@ -18,7 +18,7 @@ use script_layout_interface::{PendingImage, PendingImageState};
 use script_traits::Painter;
 use script_traits::UntrustedNodeAddress;
 use servo_atoms::Atom;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
@@ -59,6 +59,9 @@ pub fn malloc_size_of_persistent_local_context(ops: &mut MallocSizeOfOps) -> usi
 pub struct LayoutContext<'a> {
     /// The pipeline id of this LayoutContext.
     pub id: PipelineId,
+
+    /// The origin of this layout context.
+    pub origin: ImmutableOrigin,
 
     /// Bits shared by the layout and style system.
     pub style_context: SharedStyleContext<'a>,
@@ -120,9 +123,13 @@ impl<'a> LayoutContext<'a> {
         };
 
         // See if the image is already available
-        let result =
-            self.image_cache
-                .find_image_or_metadata(url.clone(), use_placeholder, can_request);
+        let result = self.image_cache.find_image_or_metadata(
+            url.clone(),
+            self.origin.clone(),
+            None,
+            use_placeholder,
+            can_request,
+        );
         match result {
             Ok(image_or_metadata) => Some(image_or_metadata),
             // Image failed to load, so just return nothing
