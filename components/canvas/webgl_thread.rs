@@ -388,6 +388,7 @@ impl WebGLThread {
     pub(crate) fn handle_unlock(&mut self, context_id: WebGLContextId) {
         let info = self.cached_context_info.get_mut(&context_id).unwrap();
         info.render_state = ContextRenderState::Unlocked;
+
         if let Some(gl_sync) = info.gl_sync.take() {
             let data = Self::make_current_if_needed(
                 context_id,
@@ -399,6 +400,32 @@ impl WebGLThread {
             data.ctx.gl().delete_sync(gl_sync);
             debug_assert!(data.ctx.gl().get_error() == gl::NO_ERROR);
         }
+
+        self.clear_drawing_buffer(context_id);
+    }
+
+    fn clear_drawing_buffer(&mut self, context_id: WebGLContextId) {
+        let info = self.cached_context_info.get_mut(&context_id).unwrap();
+        if info.preserve_drawing_buffer {
+            return;
+        }
+
+        let data = Self::make_current_if_needed(
+            context_id,
+            &self.contexts,
+            &mut self.bound_context_id,
+        )
+            .expect("WebGLContext not found when clearing drawing buffer");
+        trace!("clearing GL framebuffer");
+        data.ctx.gl().clear_color(0., 0., 0., 0.);
+        data.ctx.gl().clear_depth(1.0);
+        data.ctx.gl().clear_stencil(0);
+        data.ctx.gl().clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
+
+        let (r, g, b, a) = data.state.clear_color;
+        data.ctx.gl().clear_color(r, g, b, a);
+        data.ctx.gl().clear_depth(data.state.depth_clear_value);
+        data.ctx.gl().clear_stencil(data.state.stencil_clear_value);
     }
 
     /// Creates a new WebGLContext
@@ -411,6 +438,8 @@ impl WebGLThread {
         // Creating a new GLContext may make the current bound context_id dirty.
         // Clear it to ensure that  make_current() is called in subsequent commands.
         self.bound_context_id = None;
+
+        let preserve_drawing_buffer = attributes.preserve_drawing_buffer;
 
         // First try to create a shared context for the best performance.
         // Fallback to readback mode if the shared context creation fails.
@@ -456,6 +485,7 @@ impl WebGLThread {
                 share_mode,
                 gl_sync: None,
                 render_state: ContextRenderState::Unlocked,
+                preserve_drawing_buffer,
             },
         );
 
@@ -597,6 +627,12 @@ impl WebGLThread {
 
         // Send the ImageKey to the Layout thread.
         sender.send(image_key).unwrap();
+
+        if let WebGLContextShareMode::Readback = info.share_mode {
+            // Ensure that the drawing buffer is cleared when webrender isn't involved
+            // in drawing the GL texture.
+            self.clear_drawing_buffer(context_id);
+        }
     }
 
     fn handle_dom_to_texture(&mut self, command: DOMToTextureCommand) {
@@ -882,6 +918,8 @@ struct WebGLContextInfo {
     gl_sync: Option<gl::GLsync>,
     /// The status of this context with respect to external consumers.
     render_state: ContextRenderState,
+    /// Should the drawing buffer be preserved between frames?
+    preserve_drawing_buffer: bool,
 }
 
 /// Data about the linked DOM<->WebGLTexture elements.
