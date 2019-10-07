@@ -42,7 +42,7 @@ dictionary MediaSessionSeekToActionDetails : MediaSessionActionDetails {
   boolean? fastSeek;
 };
 
-callback MediaSessionActionHandler = void(MediaSessionActionDetails details);
+callback MediaSessionActionHandler = void(/*MediaSessionActionDetails details*/);
 
 [Exposed=Window]
 interface MediaSession {

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding;
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionAction;
@@ -54,7 +55,13 @@ impl MediaSession {
     }
 
     pub fn handle_action(&self, action: MediaSessionActionType) {
-        // TODO
+        if let Some(handler) = self.action_handlers.borrow().get(&action) {
+            if handler.Call__(ExceptionHandling::Report).is_err() {
+                warn!("Error calling MediaSessionActionHandler callback");
+            }
+            return;
+        }
+        // TODO default action.
     }
 }
 
