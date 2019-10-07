@@ -162,6 +162,9 @@ pub enum EmbedderMsg {
     Shutdown,
     /// Report a complete sampled profile
     ReportProfile(Vec<u8>),
+    /// Sent when a media session is activated or deactivated.
+    /// There can only be a single active media session.
+    MediaSession(bool),
 }
 
 impl Debug for EmbedderMsg {
@@ -194,6 +197,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::AllowOpeningBrowser(..) => write!(f, "AllowOpeningBrowser"),
             EmbedderMsg::BrowserCreated(..) => write!(f, "BrowserCreated"),
             EmbedderMsg::ReportProfile(..) => write!(f, "ReportProfile"),
+            EmbedderMsg::MediaSession(..) => write!(f, "MediaSession"),
         }
     }
 }

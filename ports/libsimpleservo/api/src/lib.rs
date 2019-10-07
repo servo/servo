@@ -130,7 +130,7 @@ pub trait HostTrait {
     fn get_clipboard_contents(&self) -> Option<String>;
     /// Sets system clipboard contents
     fn set_clipboard_contents(&self, contents: String);
-    /// Called when a media session is activated or deactived.
+    /// Called when a media session is activated or deactivated.
     fn on_media_session(&self, active: bool);
 }
 
@@ -582,6 +582,9 @@ impl ServoGlue {
                 },
                 EmbedderMsg::HideIME => {
                     self.callbacks.host_callbacks.on_ime_state_changed(false);
+                },
+                EmbedderMsg::MediaSession(active) => {
+                    self.callbacks.host_callbacks.on_media_session(active);
                 },
                 EmbedderMsg::Status(..) |
                 EmbedderMsg::SelectFiles(..) |
