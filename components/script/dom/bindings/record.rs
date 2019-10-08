@@ -35,7 +35,7 @@ use std::ops::Deref;
 
 pub trait RecordKey: Eq + Hash + Sized {
     fn to_utf16_vec(&self) -> Vec<u16>;
-    unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Option<Self>;
+    unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Result<ConversionResult<Self>, ()>;
 }
 
 impl RecordKey for DOMString {
@@ -43,8 +43,11 @@ impl RecordKey for DOMString {
         self.encode_utf16().collect::<Vec<_>>()
     }
 
-    unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Option<DOMString> {
-        jsid_to_string(cx, id)
+    unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Result<ConversionResult<Self>, ()> {
+        match jsid_to_string(cx, id) {
+            Some(s) => Ok(ConversionResult::Success(s)),
+            None => Ok(ConversionResult::Failure("Failed to get DOMString".into()))
+        }
     }
 }
 
@@ -53,16 +56,12 @@ impl RecordKey for USVString {
         self.0.encode_utf16().collect::<Vec<_>>()
     }
 
-    unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Option<USVString> {
+    unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Result<ConversionResult<Self>, ()> {
         rooted!(in(cx) let mut jsid_value = UndefinedValue());
         let raw_id: RawHandleId = id.into();
         JS_IdToValue(cx, *raw_id.ptr, jsid_value.handle_mut());
 
-        match USVString::from_jsval(cx, jsid_value.handle(), ()) {
-            Ok(ConversionResult::Success(s)) => Some(s),
-            Ok(ConversionResult::Failure(_)) => None,
-            Err(..) => None,
-        }
+        USVString::from_jsval(cx, jsid_value.handle(), ())
     }
 }
 
@@ -71,16 +70,12 @@ impl RecordKey for ByteString {
         self.iter().map(|&x| x as u16).collect::<Vec<u16>>()
     }
 
-    unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Option<ByteString> {
+    unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Result<ConversionResult<Self>, ()> {
         rooted!(in(cx) let mut jsid_value = UndefinedValue());
         let raw_id: RawHandleId = id.into();
         JS_IdToValue(cx, *raw_id.ptr, jsid_value.handle_mut());
 
-        match ByteString::from_jsval(cx, jsid_value.handle(), ()) {
-            Ok(ConversionResult::Success(s)) => Some(s),
-            Ok(ConversionResult::Failure(_)) => None,
-            Err(..) => None,
-        }
+        ByteString::from_jsval(cx, jsid_value.handle(), ())
     }
 }
 
@@ -156,10 +151,10 @@ where
                 continue;
             }
 
-            let key = match K::from_id(cx, id.handle()) {
-                Some(key) => key,
-                None => {
-                    return Ok(ConversionResult::Failure("Failed to convert key".into()));
+            let key = match K::from_id(cx, id.handle())? {
+                ConversionResult::Success(key) => key,
+                ConversionResult::Failure(message) => {
+                    return Ok(ConversionResult::Failure(message))
                 },
             };
 
