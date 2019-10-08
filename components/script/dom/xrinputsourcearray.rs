@@ -11,6 +11,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrsession::XRSession;
 use dom_struct::dom_struct;
+use webxr_api::InputId;
 
 #[dom_struct]
 pub struct XRInputSourceArray {
@@ -45,6 +46,14 @@ impl XRInputSourceArray {
                 input_sources.push(Dom::from_ref(&input));
             }
         });
+    }
+
+    pub fn find(&self, id: InputId) -> Option<DomRoot<XRInputSource>> {
+        self.input_sources
+            .borrow()
+            .iter()
+            .find(|x| x.id() == id)
+            .map(|x| DomRoot::from_ref(&**x))
     }
 }
 
