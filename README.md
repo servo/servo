@@ -54,17 +54,12 @@ Please select your operating system:
 
 Xcode version 10.2 or above is recommended.
 
-##### On macOS (homebrew)
+##### On macOS (Homebrew)
 
 ``` sh
 brew bundle install --file=etc/taskcluster/macos/Brewfile
 brew bundle install --file=etc/taskcluster/macos/Brewfile-gstreamer
 pip install virtualenv
-```
-##### On macOS (MacPorts)
-
-``` sh
-sudo port install python27 py27-virtualenv cmake yasm llvm
 ```
 
 #### On Debian-based Linuxes
