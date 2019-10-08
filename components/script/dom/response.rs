@@ -448,7 +448,7 @@ impl Response {
             },
             DOMResponseType::Default => {},
             DOMResponseType::Basic => {},
-            DOMResponseType::Cors => {}
+            DOMResponseType::Cors => {},
         }
     }
 
