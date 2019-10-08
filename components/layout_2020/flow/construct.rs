@@ -498,11 +498,6 @@ where
     }
 
     fn end_ongoing_inline_formatting_context(&mut self) {
-        assert!(
-            self.ongoing_inline_boxes_stack.is_empty(),
-            "there should be no ongoing inline level boxes",
-        );
-
         if self
             .ongoing_inline_formatting_context
             .inline_level_boxes
