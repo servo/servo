@@ -77,7 +77,7 @@ def innerContainerType(type):
 
 def wrapInNativeContainerType(type, inner):
     if type.isSequence():
-        return CGWrapper(inner, pre="Vec" + "<", post=">")
+        return CGWrapper(inner, pre="Vec<", post=">")
     elif type.isRecord():
         key = type.inner.keyType if type.nullable() else type.keyType
         return CGRecord(key, inner)
