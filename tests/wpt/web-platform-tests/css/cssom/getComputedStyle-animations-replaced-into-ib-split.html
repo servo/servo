@@ -1,0 +1,34 @@
+<!doctype html>
+<title>getComputedStyle() returns the right style for animating nodes that have been just inserted into the document, and that have an ancestor whose layout tree was recreated (like an IB-split)</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1585882">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+  @keyframes my-animation {
+    from { color: green; }
+    to { color: green; }
+  }
+  div {
+    color: red;
+    animation: my-animation 1s infinite linear paused;
+  }
+</style>
+<span>
+  <div></div>
+</span>
+<script>
+test(() => {
+  let oldDiv = document.querySelector("div");
+  window.unused = oldDiv.getBoundingClientRect(); // update layout
+
+  assert_equals(getComputedStyle(oldDiv).color, "rgb(0, 128, 0)", "Should take color from the animation");
+
+  let newDiv = document.createElement("div");
+  oldDiv.replaceWith(newDiv);
+
+  assert_equals(getComputedStyle(newDiv).color, "rgb(0, 128, 0)", "Should take color from the animation (just inserted into the document)");
+}, "getComputedStyle() should return animation styles for nodes just inserted into the document, even if they're in an IB-split");
+</script>

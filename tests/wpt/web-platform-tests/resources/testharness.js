@@ -2475,6 +2475,8 @@ policies and contribution forms [3].
                     {
                         clearTimeout(this.timeout_id);
                     }
+                } else if (p == "single_test" && value) {
+                    this.set_file_is_test();
                 } else if (p == "timeout_multiplier") {
                     this.timeout_multiplier = value;
                     if (this.timeout_length) {

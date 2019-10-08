@@ -14,7 +14,7 @@
         if (messageEvent.data.type === 'Attach') {
           messageEvent.data.interfaces.forEach(interfaceName => {
             let interfaceInterceptor =
-                new MojoInterfaceInterceptor(interfaceName);
+                new MojoInterfaceInterceptor(interfaceName, "context", true);
             interfaceInterceptor.oninterfacerequest =
               e => messageChannel.port1.postMessage({
                 type: interfaceName,

@@ -1,0 +1,30 @@
+<!doctype html>
+<title>getComputedStyle() returns the right style for layout-dependent properties for nodes that have had an IB sibling removed</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1585882">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+  div {
+    width: 100%;
+  }
+</style>
+<span>
+  <div></div>
+  <div></div>
+</span>
+<script>
+test(() => {
+  let first = document.querySelector("div");
+  let second = document.querySelector("div + div");
+
+  let oldWidth = getComputedStyle(second).width;
+  assert_true(oldWidth.indexOf("px") !== -1, "Should return the used value for width");
+
+  first.remove();
+
+  assert_equals(getComputedStyle(second).width, oldWidth, "Should return the used value for width (after sibling removal)");
+}, "getComputedStyle() should return the correct used value for nodes that have had an IB-split sibling removed");
+</script>

@@ -51,8 +51,8 @@ for (const delegatesFocus of delegatesFocusValues) {
 
     slotted.focus();
     assert_true(slotted.matches(":focus"), "slotted element matches :focus");
-    assert_true(host.matches(":focus"), "host matches :focus");
-  }, `:focus applies to host with delegatesFocus=${delegatesFocus} when slotted element has focus`);
+    assert_false(host.matches(":focus"), "host matches :focus");
+  }, `:focus does not apply to host with delegatesFocus=${delegatesFocus} when slotted element has focus`);
 
   for (const nestedDelegatesFocus of delegatesFocusValues) {
     test(() => {
