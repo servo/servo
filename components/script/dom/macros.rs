@@ -660,3 +660,14 @@ macro_rules! impl_rare_data (
         }
     );
 );
+
+#[macro_export]
+macro_rules! optional_root_object_to_js_or_null {
+    ($cx: expr, $binding:expr) => {{
+        rooted!(in($cx) let mut rval = NullValue());
+        if let Some(object) = $binding {
+            object.to_jsval($cx, rval.handle_mut());
+        }
+        rval.get()
+    }};
+}

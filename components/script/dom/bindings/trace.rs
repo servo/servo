@@ -47,7 +47,7 @@ use canvas_traits::canvas::{
 use canvas_traits::canvas::{CompositionOrBlending, LineCapStyle, LineJoinStyle, RepetitionStyle};
 use canvas_traits::webgl::WebGLVertexArrayId;
 use canvas_traits::webgl::{ActiveAttribInfo, ActiveUniformInfo, GlType, TexDataType, TexFormat};
-use canvas_traits::webgl::{GLFormats, GLLimits, WebGLQueryId};
+use canvas_traits::webgl::{GLFormats, GLLimits, WebGLQueryId, WebGLSamplerId};
 use canvas_traits::webgl::{WebGLBufferId, WebGLChan, WebGLContextShareMode, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferId, WebGLMsgSender, WebGLPipeline, WebGLProgramId};
 use canvas_traits::webgl::{WebGLReceiver, WebGLRenderbufferId, WebGLSLVersion, WebGLSender};
@@ -481,6 +481,7 @@ unsafe_no_jsmanaged_fields!(WebGLPipeline);
 unsafe_no_jsmanaged_fields!(WebGLProgramId);
 unsafe_no_jsmanaged_fields!(WebGLQueryId);
 unsafe_no_jsmanaged_fields!(WebGLRenderbufferId);
+unsafe_no_jsmanaged_fields!(WebGLSamplerId);
 unsafe_no_jsmanaged_fields!(WebGLShaderId);
 unsafe_no_jsmanaged_fields!(WebGLSyncId);
 unsafe_no_jsmanaged_fields!(WebGLTextureId);

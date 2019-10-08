@@ -104,16 +104,6 @@ macro_rules! handle_object_deletion {
     };
 }
 
-macro_rules! optional_root_object_to_js_or_null {
-    ($cx: expr, $binding:expr) => {{
-        rooted!(in($cx) let mut rval = NullValue());
-        if let Some(object) = $binding {
-            object.to_jsval($cx, rval.handle_mut());
-        }
-        rval.get()
-    }};
-}
-
 fn has_invalid_blend_constants(arg1: u32, arg2: u32) -> bool {
     match (arg1, arg2) {
         (constants::CONSTANT_COLOR, constants::CONSTANT_ALPHA) => true,
@@ -4267,7 +4257,7 @@ impl Textures {
         }
     }
 
-    fn active_unit_enum(&self) -> u32 {
+    pub fn active_unit_enum(&self) -> u32 {
         self.active_unit.get() + constants::TEXTURE0
     }
 
