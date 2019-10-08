@@ -19,6 +19,8 @@ pub struct XRSpace {
     eventtarget: EventTarget,
     session: Dom<XRSession>,
     input_source: MutNullableDom<XRInputSource>,
+    /// If we're an input space, are we an aim space or a grip space?
+    is_grip_space: bool,
 }
 
 impl XRSpace {
@@ -27,14 +29,20 @@ impl XRSpace {
             eventtarget: EventTarget::new_inherited(),
             session: Dom::from_ref(session),
             input_source: Default::default(),
+            is_grip_space: false,
         }
     }
 
-    fn new_inputspace_inner(session: &XRSession, input: &XRInputSource) -> XRSpace {
+    fn new_inputspace_inner(
+        session: &XRSession,
+        input: &XRInputSource,
+        is_grip_space: bool,
+    ) -> XRSpace {
         XRSpace {
             eventtarget: EventTarget::new_inherited(),
             session: Dom::from_ref(session),
             input_source: MutNullableDom::new(Some(input)),
+            is_grip_space,
         }
     }
 
@@ -42,9 +50,10 @@ impl XRSpace {
         global: &GlobalScope,
         session: &XRSession,
         input: &XRInputSource,
+        is_grip_space: bool,
     ) -> DomRoot<XRSpace> {
         reflect_dom_object(
-            Box::new(XRSpace::new_inputspace_inner(session, input)),
+            Box::new(XRSpace::new_inputspace_inner(session, input, is_grip_space)),
             global,
             XRSpaceBinding::Wrap,
         )
@@ -72,7 +81,11 @@ impl XRSpace {
                 .iter()
                 .find(|i| i.id == id)
                 .expect("no input found");
-            frame.target_ray_origin.map(cast_transform)
+            if self.is_grip_space {
+                frame.grip_origin.map(cast_transform)
+            } else {
+                frame.target_ray_origin.map(cast_transform)
+            }
         } else {
             unreachable!()
         }
