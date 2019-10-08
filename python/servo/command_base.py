@@ -558,7 +558,9 @@ class CommandBase(object):
 
         return self.get_executable(destination_folder)
 
-    def needs_gstreamer_env(self, target, env):
+    def needs_gstreamer_env(self, target, env, uwp=False):
+        if uwp:
+            return False
         try:
             if check_gstreamer_lib():
                 return False
@@ -663,7 +665,7 @@ install them, let us know by filing a bug!")
             # Always build harfbuzz from source
             env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
-        if self.needs_gstreamer_env(target or host_triple(), env):
+        if is_build and self.needs_gstreamer_env(target or host_triple(), env, uwp):
             gstpath = gstreamer_root(target or host_triple(), env, self.get_top_dir())
             extra_path += [path.join(gstpath, "bin")]
             libpath = path.join(gstpath, "lib")
