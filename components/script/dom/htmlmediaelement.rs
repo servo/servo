@@ -15,8 +15,10 @@ use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaE
 use crate::dom::bindings::codegen::Bindings::HTMLSourceElementBinding::HTMLSourceElementMethods;
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConstants::*;
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
+use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackKind, TextTrackMode};
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId};
 use crate::dom::bindings::codegen::InheritTypes::{HTMLMediaElementTypeId, NodeTypeId};
 use crate::dom::bindings::codegen::UnionTypes::{
@@ -78,6 +80,7 @@ use net_traits::request::{Destination, Referrer};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata};
 use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
 use script_layout_interface::HTMLMediaData;
+use script_traits::MediaSessionEvent;
 use servo_config::pref;
 use servo_media::player::audio::AudioRenderer;
 use servo_media::player::video::{VideoFrame, VideoFrameRenderer};
@@ -592,7 +595,6 @@ impl HTMLMediaElement {
         match (old_ready_state, ready_state) {
             (ReadyState::HaveNothing, ReadyState::HaveMetadata) => {
                 task_source.queue_simple_event(self.upcast(), atom!("loadedmetadata"), &window);
-
                 // No other steps are applicable in this case.
                 return;
             },
@@ -1882,6 +1884,12 @@ impl HTMLMediaElement {
             }
             self.media_element_load_algorithm();
         }
+    }
+
+    fn send_media_session_event(&self, event: MediaSessionEvent) {
+        let global = self.global();
+        let media_session = global.as_window().Navigator().MediaSession();
+        media_session.send_event(event);
     }
 }
 

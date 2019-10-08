@@ -3993,6 +3993,19 @@ impl ScriptThread {
                 .remove(&browsing_context_id);
         })
     }
+
+    pub fn get_media_session(
+        browsing_context_id: TopLevelBrowsingContextId,
+    ) -> Option<DomRoot<MediaSession>> {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            script_thread
+                .media_sessions
+                .borrow()
+                .get(&browsing_context_id)
+                .map(|s| DomRoot::from_ref(&**s))
+        })
+    }
 }
 
 impl Drop for ScriptThread {

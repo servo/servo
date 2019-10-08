@@ -474,6 +474,9 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// Mechanism to force the compositor to process events.
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
+    
+    /// Browser ID of the active media session, if any.
+    active_media_session: Option<TopLevelBrowsingContextId>,
 }
 
 /// State needed to construct a constellation.
@@ -843,6 +846,7 @@ where
                     glplayer_threads: state.glplayer_threads,
                     player_context: state.player_context,
                     event_loop_waker: state.event_loop_waker,
+                    active_media_session: None,
                 };
 
                 constellation.run();
@@ -1773,6 +1777,9 @@ where
                     old_value,
                     new_value,
                 );
+            },
+            FromScriptMsg::MediaSessionEventMsg(browser_id, event) => {
+                // TODO
             },
         }
     }

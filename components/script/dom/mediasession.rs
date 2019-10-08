@@ -11,12 +11,13 @@ use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionMe
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionPlaybackState;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::htmlmediaelement::HTMLMediaElement;
 use crate::dom::mediametadata::MediaMetadata;
 use crate::dom::window::Window;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
 use msg::constellation_msg::TopLevelBrowsingContextId;
-use script_traits::MediaSessionActionType;
+use script_traits::{MediaSessionActionType, MediaSessionEvent, ScriptMsg};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -30,6 +31,9 @@ pub struct MediaSession {
     /// https://w3c.github.io/mediasession/#supported-media-session-actions
     #[ignore_malloc_size_of = "Rc"]
     action_handlers: DomRefCell<HashMap<MediaSessionActionType, Rc<MediaSessionActionHandler>>>,
+    /// The media instance controlled by this media session.
+    /// For now only HTMLMediaElements are controlled by media sessions.
+    media_instance: MutNullableDom<HTMLMediaElement>,
 }
 
 impl MediaSession {
@@ -40,6 +44,7 @@ impl MediaSession {
             metadata: Default::default(),
             playback_state: DomRefCell::new(MediaSessionPlaybackState::None),
             action_handlers: DomRefCell::new(HashMap::new()),
+            media_instance: Default::default(),
         };
         ScriptThread::register_media_session(&media_session, browsing_context_id);
         media_session
@@ -62,6 +67,18 @@ impl MediaSession {
             return;
         }
         // TODO default action.
+    }
+
+    pub fn send_event(&self, event: MediaSessionEvent) {
+        let global = self.global();
+        let browser_id = global
+            .as_window()
+            .window_proxy()
+            .top_level_browsing_context_id();
+        let _ = global
+            .script_to_constellation_chan()
+            .send(ScriptMsg::MediaSessionEventMsg(browser_id, event))
+            .unwrap();
     }
 }
 

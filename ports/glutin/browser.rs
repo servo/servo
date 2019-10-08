@@ -449,6 +449,10 @@ where
                         error!("Failed to store profile: {}", e);
                     }
                 },
+                EmbedderMsg::MediaSession(_) => {
+                    debug!("MediaSession received");
+                    // TODO(ferjm)
+                },
             }
         }
     }

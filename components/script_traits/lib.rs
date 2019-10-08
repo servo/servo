@@ -1087,3 +1087,34 @@ pub enum MediaSessionActionType {
     /// The action intent is to move the playback time to a specific time.
     SeekTo,
 }
+
+/// https://w3c.github.io/mediasession/#mediametadata
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MediaMetadata {
+    /// Title
+    pub title: String,
+    /// Artist
+    pub artist: Option<String>,
+    /// Album
+    pub album: Option<String>,
+}
+
+/// https://w3c.github.io/mediasession/#enumdef-mediasessionplaybackstate
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum MediaSessionPlaybackState {
+    /// The browsing context does not specify whether it’s playing or paused.
+    None_,
+    /// The browsing context has paused media and it can be resumed.
+    Playing,
+    /// The browsing context is currently playing media and it can be paused.
+    Paused,
+}
+
+/// Type of events sent from script to the constellation about the media session.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum MediaSessionEvent {
+    /// Indicates that the media metadata is available.
+    SetMetadata(MediaMetadata),
+    /// Indicates that the playback state has changed.
+    PlaybackStateChange(MediaSessionPlaybackState),
+}

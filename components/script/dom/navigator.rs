@@ -21,6 +21,7 @@ use crate::dom::promise::Promise;
 use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
 use crate::dom::window::Window;
 use crate::dom::xr::XR;
+use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
 use std::rc::Rc;
 
@@ -192,7 +193,24 @@ impl NavigatorMethods for Navigator {
 
     /// https://w3c.github.io/mediasession/#dom-navigator-mediasession
     fn MediaSession(&self) -> DomRoot<MediaSession> {
-        self.mediasession
-            .or_init(|| MediaSession::new(self.global().as_window()))
+        self.mediasession.or_init(|| {
+            // There is a single MediaSession instance per top level browsing context
+            // and only one active MediaSession globally.
+            //
+            // MediaSession creation can happen in two cases:
+            //
+            // - If content gets `navigator.mediaSession`
+            // - If a media instance (HTMLMediaElement so far) starts playing media.
+            //
+            // The MediaSession constructor is in charge of registering itself with
+            // the script thread.
+            let global = self.global();
+            let window = global.as_window();
+            let browsing_context_id = window.window_proxy().top_level_browsing_context_id();
+            match ScriptThread::get_media_session(browsing_context_id) {
+                Some(session) => session,
+                None => MediaSession::new(window),
+            }
+        })
     }
 }
