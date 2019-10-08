@@ -64,10 +64,10 @@ pub enum WebGLMsg {
     /// The WR unlocks a context when it finished reading the shared texture contents.
     /// Unlock messages are always sent after a Lock message.
     Unlock(WebGLContextId),
-    /// Creates or updates the image keys required for WebRender.
-    UpdateWebRenderImage(WebGLContextId, WebGLSender<ImageKey>),
     /// Commands used for the DOMToTexture feature.
     DOMToTextureCommand(DOMToTextureCommand),
+    /// Performs a buffer swap.
+    SwapBuffers(Vec<WebGLContextId>, WebGLSender<()>),
     /// Frees all resources and closes the thread.
     Exit,
 }
@@ -93,6 +93,8 @@ pub struct WebGLCreateContextResult {
     pub api_type: GlType,
     /// The format for creating new offscreen framebuffers for this context.
     pub framebuffer_format: GLFormats,
+    /// The WebRender image key.
+    pub image_key: ImageKey,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -172,12 +174,6 @@ impl WebGLMsgSender {
     #[inline]
     pub fn send_remove(&self) -> WebGLSendResult {
         self.sender.send(WebGLMsg::RemoveContext(self.ctx_id))
-    }
-
-    #[inline]
-    pub fn send_update_wr_image(&self, sender: WebGLSender<ImageKey>) -> WebGLSendResult {
-        self.sender
-            .send(WebGLMsg::UpdateWebRenderImage(self.ctx_id, sender))
     }
 
     pub fn send_dom_to_texture(&self, command: DOMToTextureCommand) -> WebGLSendResult {

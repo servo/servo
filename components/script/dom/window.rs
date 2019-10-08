@@ -1520,6 +1520,13 @@ impl Window {
 
         let stylesheets_changed = document.flush_stylesheets_for_reflow();
 
+        // If this reflow is for display, ensure webgl canvases are composited with
+        // up-to-date contents.
+        match reflow_goal {
+            ReflowGoal::Full => document.flush_dirty_canvases(),
+            ReflowGoal::TickAnimations | ReflowGoal::LayoutQuery(..) => {},
+        }
+
         // Send new document and relevant styles to layout.
         let needs_display = reflow_goal.needs_display();
         let reflow = ScriptReflow {

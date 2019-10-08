@@ -179,6 +179,17 @@ impl GLContextWrapper {
         }
     }
 
+    pub fn framebuffer(&self) -> gl::GLuint {
+        match *self {
+            GLContextWrapper::Native(ref ctx) => {
+                ctx.borrow_draw_buffer().unwrap().get_framebuffer()
+            },
+            GLContextWrapper::OSMesa(ref ctx) => {
+                ctx.borrow_draw_buffer().unwrap().get_framebuffer()
+            },
+        }
+    }
+
     pub fn get_info(&self) -> (Size2D<i32>, u32, GLLimits, GLFormats) {
         match *self {
             GLContextWrapper::Native(ref ctx) => {
