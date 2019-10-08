@@ -6,7 +6,6 @@ use app_units::Au;
 use core_foundation::array::CFArray;
 use core_foundation::base::{CFType, TCFType};
 use core_foundation::dictionary::CFDictionary;
-use core_foundation::number::CFNumber;
 use core_foundation::string::CFString;
 use core_graphics::data_provider::CGDataProvider;
 use core_graphics::font::CGFont;
@@ -103,16 +102,10 @@ impl FontTemplateData {
                     // that one.
 
                     let attributes: CFDictionary<CFString, CFType> =
-                        CFDictionary::from_CFType_pairs(&[
-                            (
-                                CFString::new("NSFontNameAttribute"),
-                                CFString::new(&*self.identifier).as_CFType(),
-                            ),
-                            (
-                                CFString::new("NSFontSizeAttribute"),
-                                CFNumber::from(clamped_pt_size).as_CFType(),
-                            ),
-                        ]);
+                        CFDictionary::from_CFType_pairs(&[(
+                            CFString::new("NSFontNameAttribute"),
+                            CFString::new(&*self.identifier).as_CFType(),
+                        )]);
 
                     let descriptor = font_descriptor::new_from_attributes(&attributes);
                     let descriptors = CFArray::from_CFTypes(&[descriptor]);
