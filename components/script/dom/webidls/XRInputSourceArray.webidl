@@ -6,7 +6,7 @@
 
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
 interface XRInputSourceArray {
-  // iterable<XRInputSource>;
-  // readonly attribute unsigned long length;
-  // getter XRInputSource(unsigned long index);
+  iterable<XRInputSource>;
+  readonly attribute unsigned long length;
+  getter XRInputSource(unsigned long index);
 };

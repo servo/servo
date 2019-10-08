@@ -4,6 +4,7 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::XRInputSourceArrayBinding;
+use crate::dom::bindings::codegen::Bindings::XRInputSourceArrayBinding::XRInputSourceArrayMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
@@ -44,5 +45,20 @@ impl XRInputSourceArray {
                 input_sources.push(Dom::from_ref(&input));
             }
         });
+    }
+}
+
+impl XRInputSourceArrayMethods for XRInputSourceArray {
+    /// https://immersive-web.github.io/webxr/#dom-xrinputsourcearray-length
+    fn Length(&self) -> u32 {
+        self.input_sources.borrow().len() as u32
+    }
+
+    /// https://immersive-web.github.io/webxr/#xrinputsourcearray
+    fn IndexedGetter(&self, n: u32) -> Option<DomRoot<XRInputSource>> {
+        self.input_sources
+            .borrow()
+            .get(n as usize)
+            .map(|x| DomRoot::from_ref(&**x))
     }
 }
