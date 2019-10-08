@@ -46,7 +46,7 @@ impl RecordKey for DOMString {
     unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Result<ConversionResult<Self>, ()> {
         match jsid_to_string(cx, id) {
             Some(s) => Ok(ConversionResult::Success(s)),
-            None => Ok(ConversionResult::Failure("Failed to get DOMString".into()))
+            None => Ok(ConversionResult::Failure("Failed to get DOMString".into())),
         }
     }
 }
