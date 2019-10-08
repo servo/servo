@@ -768,17 +768,22 @@ animated_list_impl!(<T> for crate::OwnedSlice<T>);
 animated_list_impl!(<T> for SmallVec<[T; 1]>);
 animated_list_impl!(<T> for Vec<T>);
 
-/// <https://drafts.csswg.org/css-transitions/#animtype-visibility>
+/// <https://drafts.csswg.org/web-animations-1/#animating-visibility>
 impl Animate for Visibility {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        let (this_weight, other_weight) = procedure.weights();
-        match (*self, *other) {
-            (Visibility::Visible, _) => {
-                Ok(if this_weight > 0.0 { *self } else { *other })
-            },
-            (_, Visibility::Visible) => {
-                Ok(if other_weight > 0.0 { *other } else { *self })
+        match procedure {
+            Procedure::Interpolate { .. } => {
+                let (this_weight, other_weight) = procedure.weights();
+                match (*self, *other) {
+                    (Visibility::Visible, _) => {
+                        Ok(if this_weight > 0.0 { *self } else { *other })
+                    },
+                    (_, Visibility::Visible) => {
+                        Ok(if other_weight > 0.0 { *other } else { *self })
+                    },
+                    _ => Err(()),
+                }
             },
             _ => Err(()),
         }
