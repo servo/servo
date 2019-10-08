@@ -41,6 +41,7 @@ lazy_static! {
 
 pub type Target<'a> = &'a mut (dyn FetchTaskTarget + Send);
 
+#[derive(Clone)]
 pub enum Data {
     Payload(Vec<u8>),
     Done,
@@ -456,7 +457,7 @@ pub fn main_fetch(
     // Step 24.
     target.process_response_eof(&response);
 
-    if let Ok(mut http_cache) = context.state.http_cache.write() {
+    if let Ok(http_cache) = context.state.http_cache.write() {
         http_cache.update_awaiting_consumers(&request, &response);
     }
 
@@ -478,7 +479,7 @@ fn wait_for_response(response: &mut Response, target: Target, done_chan: &mut Do
                 },
                 Data::Done => break,
                 Data::Cancelled => {
-                    response.aborted.store(true, Ordering::Relaxed);
+                    response.aborted.store(true, Ordering::Release);
                     break;
                 },
             }
