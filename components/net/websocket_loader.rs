@@ -12,6 +12,7 @@ use headers::Host;
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use http::uri::Authority;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::router::ROUTER;
 use net_traits::request::{RequestBuilder, RequestMode};
 use net_traits::{CookieSource, MessageData};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
@@ -242,8 +243,10 @@ pub fn init(
             let ws_sender = ws.broadcaster();
             let initiated_close = Arc::new(AtomicBool::new(false));
 
-            thread::spawn(move || {
-                while let Ok(dom_action) = dom_action_receiver.recv() {
+            ROUTER.add_route(
+                dom_action_receiver.to_opaque(),
+                Box::new(move |message| {
+                    let dom_action = message.to().expect("Ws dom_action message to deserialize");
                     match dom_action {
                         WebSocketDomAction::SendMessage(MessageData::Text(data)) => {
                             ws_sender.send(Message::text(data)).unwrap();
@@ -265,8 +268,8 @@ pub fn init(
                             }
                         },
                     }
-                }
-            });
+                }),
+            );
 
             if let Err(e) = ws.run() {
                 debug!("Failed to run WebSocket: {:?}", e);
