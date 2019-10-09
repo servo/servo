@@ -6,20 +6,44 @@ use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 
 #[cfg(test)]
-fn modes() -> [WritingMode; 13] {
+fn modes() -> [WritingMode; 21] {
     [
         WritingMode::empty(),
         WritingMode::VERTICAL,
         WritingMode::VERTICAL | WritingMode::VERTICAL_LR,
-        WritingMode::VERTICAL | WritingMode::VERTICAL_LR | WritingMode::SIDEWAYS,
-        WritingMode::VERTICAL | WritingMode::SIDEWAYS,
+        WritingMode::VERTICAL | WritingMode::VERTICAL_LR | WritingMode::VERTICAL_SIDEWAYS,
+        WritingMode::VERTICAL | WritingMode::VERTICAL_LR | WritingMode::TEXT_SIDEWAYS,
+        WritingMode::VERTICAL |
+            WritingMode::VERTICAL_LR |
+            WritingMode::VERTICAL_SIDEWAYS |
+            WritingMode::TEXT_SIDEWAYS,
+        WritingMode::VERTICAL | WritingMode::VERTICAL_SIDEWAYS,
+        WritingMode::VERTICAL | WritingMode::TEXT_SIDEWAYS,
+        WritingMode::VERTICAL | WritingMode::VERTICAL_SIDEWAYS | WritingMode::TEXT_SIDEWAYS,
         WritingMode::VERTICAL | WritingMode::UPRIGHT,
         WritingMode::RTL,
         WritingMode::VERTICAL | WritingMode::RTL,
         WritingMode::VERTICAL | WritingMode::VERTICAL_LR | WritingMode::RTL,
-        WritingMode::VERTICAL | WritingMode::VERTICAL_LR | WritingMode::SIDEWAYS | WritingMode::RTL,
+        WritingMode::VERTICAL |
+            WritingMode::VERTICAL_LR |
+            WritingMode::VERTICAL_SIDEWAYS |
+            WritingMode::RTL,
+        WritingMode::VERTICAL |
+            WritingMode::VERTICAL_LR |
+            WritingMode::TEXT_SIDEWAYS |
+            WritingMode::RTL,
+        WritingMode::VERTICAL |
+            WritingMode::VERTICAL_LR |
+            WritingMode::VERTICAL_SIDEWAYS |
+            WritingMode::TEXT_SIDEWAYS |
+            WritingMode::RTL,
         WritingMode::VERTICAL | WritingMode::VERTICAL_LR | WritingMode::UPRIGHT | WritingMode::RTL,
-        WritingMode::VERTICAL | WritingMode::SIDEWAYS | WritingMode::RTL,
+        WritingMode::VERTICAL | WritingMode::VERTICAL_SIDEWAYS | WritingMode::RTL,
+        WritingMode::VERTICAL | WritingMode::TEXT_SIDEWAYS | WritingMode::RTL,
+        WritingMode::VERTICAL |
+            WritingMode::VERTICAL_SIDEWAYS |
+            WritingMode::TEXT_SIDEWAYS |
+            WritingMode::RTL,
         WritingMode::VERTICAL | WritingMode::UPRIGHT | WritingMode::RTL,
     ]
 }
