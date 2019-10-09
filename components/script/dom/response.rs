@@ -413,38 +413,26 @@ impl Response {
         *self.url.borrow_mut() = Some(final_url);
     }
 
-    pub fn set_url_list(&self, new_url_list: Vec<ServoUrl>) {
-        *self.url_list.borrow_mut() = new_url_list;
-    }
-
-    pub fn set_status(&self, status: Option<StatusCode>) {
-        *self.status.borrow_mut() = status;
-    }
-
-    pub fn set_body(&self, body: Vec<u8>) {
-        *self.body.borrow_mut() = NetTraitsResponseBody::Done(body);
-    }
-
     fn set_response_members_by_type(&self, response_type: DOMResponseType) {
         match response_type {
             DOMResponseType::Error => {
-                self.set_status(None);
+                *self.status.borrow_mut() = None;
                 self.set_raw_status(None);
                 self.set_headers(None);
-                self.set_body(vec![]);
+                *self.body.borrow_mut() = NetTraitsResponseBody::Done(vec![]);
             },
             DOMResponseType::Opaque => {
-                self.set_url_list(vec![]);
-                self.set_status(None);
+                *self.url_list.borrow_mut() = vec![];
+                *self.status.borrow_mut() = None;
                 self.set_raw_status(None);
                 self.set_headers(None);
-                self.set_body(vec![]);
+                *self.body.borrow_mut() = NetTraitsResponseBody::Done(vec![]);
             },
             DOMResponseType::Opaqueredirect => {
-                self.set_status(None);
+                *self.status.borrow_mut() = None;
                 self.set_raw_status(None);
                 self.set_headers(None);
-                self.set_body(vec![]);
+                *self.body.borrow_mut() = NetTraitsResponseBody::Done(vec![]);
             },
             DOMResponseType::Default => {},
             DOMResponseType::Basic => {},
