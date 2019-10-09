@@ -55,7 +55,7 @@ def main(task_for):
 
             "try-mac": [macos_unit],
             "try-linux": [linux_tidy_unit_docs, linux_release],
-            "try-windows": [windows_unit, windows_arm64, windows_uwp_x64],
+            "try-windows": [windows_arm64, windows_uwp_x64],
             "try-magicleap": [magicleap_dev],
             "try-arm": [windows_arm64],
             "try-wpt": [linux_wpt],
