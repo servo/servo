@@ -27,6 +27,8 @@ pub struct MouseEvent {
     screen_y: Cell<i32>,
     client_x: Cell<i32>,
     client_y: Cell<i32>,
+    page_x: Cell<i32>,
+    page_y: Cell<i32>,
     ctrl_key: Cell<bool>,
     shift_key: Cell<bool>,
     alt_key: Cell<bool>,
@@ -45,6 +47,8 @@ impl MouseEvent {
             screen_y: Cell::new(0),
             client_x: Cell::new(0),
             client_y: Cell::new(0),
+            page_x: Cell::new(0),
+            page_y: Cell::new(0),
             ctrl_key: Cell::new(false),
             shift_key: Cell::new(false),
             alt_key: Cell::new(false),
@@ -104,6 +108,10 @@ impl MouseEvent {
         );
         ev.buttons.set(buttons);
         ev.point_in_target.set(point_in_target);
+        ev.page_x
+            .set(window.current_viewport().origin.x.to_px() + client_x);
+        ev.page_y
+            .set(window.current_viewport().origin.y.to_px() + client_y);
         ev
     }
 
@@ -161,6 +169,16 @@ impl MouseEventMethods for MouseEvent {
     // https://w3c.github.io/uievents/#widl-MouseEvent-clientY
     fn ClientY(&self) -> i32 {
         self.client_y.get()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-mouseevent-pagex
+    fn PageX(&self) -> i32 {
+        self.page_x.get()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-mouseevent-pagey
+    fn PageY(&self) -> i32 {
+        self.page_y.get()
     }
 
     // https://w3c.github.io/uievents/#widl-MouseEvent-ctrlKey
