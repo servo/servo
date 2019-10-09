@@ -32,7 +32,7 @@ use crate::dom::node::NodeDamage;
 use crate::dom::promise::Promise;
 use crate::dom::webglframebuffer::WebGLFramebufferAttachmentRoot;
 use crate::dom::xrframe::XRFrame;
-use crate::dom::xrinputsource::XRInputSource;
+use crate::dom::xrinputsourcearray::XRInputSourceArray;
 use crate::dom::xrinputsourceevent::XRInputSourceEvent;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrenderstate::XRRenderState;
@@ -68,7 +68,7 @@ pub struct XRSession {
     raf_callback_list: DomRefCell<Vec<(i32, Option<Rc<XRFrameRequestCallback>>)>>,
     #[ignore_malloc_size_of = "defined in ipc-channel"]
     raf_sender: DomRefCell<Option<IpcSender<(f64, Frame)>>>,
-    input_sources: DomRefCell<Vec<Dom<XRInputSource>>>,
+    input_sources: Dom<XRInputSourceArray>,
     // Any promises from calling end()
     #[ignore_malloc_size_of = "promises are hard"]
     end_promises: DomRefCell<Vec<Rc<Promise>>>,
@@ -77,7 +77,11 @@ pub struct XRSession {
 }
 
 impl XRSession {
-    fn new_inherited(session: Session, render_state: &XRRenderState) -> XRSession {
+    fn new_inherited(
+        session: Session,
+        render_state: &XRRenderState,
+        input_sources: &XRInputSourceArray,
+    ) -> XRSession {
         XRSession {
             eventtarget: EventTarget::new_inherited(),
             base_layer: Default::default(),
@@ -92,7 +96,7 @@ impl XRSession {
             next_raf_id: Cell::new(0),
             raf_callback_list: DomRefCell::new(vec![]),
             raf_sender: DomRefCell::new(None),
-            input_sources: DomRefCell::new(vec![]),
+            input_sources: Dom::from_ref(input_sources),
             end_promises: DomRefCell::new(vec![]),
             ended: Cell::new(false),
         }
@@ -100,20 +104,17 @@ impl XRSession {
 
     pub fn new(global: &GlobalScope, session: Session) -> DomRoot<XRSession> {
         let render_state = XRRenderState::new(global, 0.1, 1000.0, None);
+        let input_sources = XRInputSourceArray::new(global);
         let ret = reflect_dom_object(
-            Box::new(XRSession::new_inherited(session, &render_state)),
+            Box::new(XRSession::new_inherited(
+                session,
+                &render_state,
+                &input_sources,
+            )),
             global,
             XRSessionBinding::Wrap,
         );
-        {
-            let mut input_sources = ret.input_sources.borrow_mut();
-            for info in ret.session.borrow().initial_inputs() {
-                // XXXManishearth we should be able to listen for updates
-                // to the input sources
-                let input = XRInputSource::new(global, &ret, *info);
-                input_sources.push(Dom::from_ref(&input));
-            }
-        }
+        input_sources.set_initial_inputs(&ret);
         ret.attach_event_handler();
         ret
     }
@@ -173,12 +174,7 @@ impl XRSession {
             },
             XREvent::Select(input, kind, frame) => {
                 // https://immersive-web.github.io/webxr/#primary-action
-                let source = self
-                    .input_sources
-                    .borrow_mut()
-                    .iter()
-                    .find(|s| s.id() == input)
-                    .map(|x| DomRoot::from_ref(&**x));
+                let source = self.input_sources.find(input);
                 if let Some(source) = source {
                     let frame = XRFrame::new(&self.global(), self, frame);
                     frame.set_active(true);
@@ -438,13 +434,9 @@ impl XRSessionMethods for XRSession {
         p
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrsession-getinputsources
-    fn GetInputSources(&self) -> Vec<DomRoot<XRInputSource>> {
-        self.input_sources
-            .borrow()
-            .iter()
-            .map(|x| DomRoot::from_ref(&**x))
-            .collect()
+    /// https://immersive-web.github.io/webxr/#dom-xrsession-inputsources
+    fn InputSources(&self) -> DomRoot<XRInputSourceArray> {
+        DomRoot::from_ref(&*self.input_sources)
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-end
