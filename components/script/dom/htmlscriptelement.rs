@@ -429,6 +429,7 @@ impl HTMLScriptElement {
 
         // TODO: Step 12: nomodule content attribute
 
+        // Step 13.
         if !element.has_attribute(&local_name!("src")) &&
             doc.should_elements_inline_type_behavior_be_blocked(
                 &element,

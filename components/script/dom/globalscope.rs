@@ -814,10 +814,12 @@ impl GlobalScope {
         self.user_agent.clone()
     }
 
+    /// https://www.w3.org/TR/CSP/#get-csp-of-object
     pub fn get_csp_list(&self) -> Option<CspList> {
         if let Some(window) = self.downcast::<Window>() {
             return window.Document().get_csp_list().map(|c| c.clone());
         }
+        // TODO: Worker and Worklet global scopes.
         None
     }
 }

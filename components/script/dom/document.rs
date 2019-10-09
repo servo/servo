@@ -2842,6 +2842,7 @@ impl Document {
             .unwrap_or(csp::CheckResult::Allowed)
     }
 
+    /// https://www.w3.org/TR/CSP/#should-block-inline
     pub fn should_elements_inline_type_behavior_be_blocked(
         &self,
         el: &Element,
