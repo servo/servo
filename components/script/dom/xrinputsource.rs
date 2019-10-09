@@ -18,10 +18,12 @@ use webxr_api::{Handedness, InputId, InputSource};
 pub struct XRInputSource {
     reflector: Reflector,
     session: Dom<XRSession>,
-    #[ignore_malloc_size_of = "Defined in rust-webvr"]
+    #[ignore_malloc_size_of = "Defined in rust-webxr"]
     info: InputSource,
-    #[ignore_malloc_size_of = "Defined in rust-webvr"]
+    #[ignore_malloc_size_of = "Defined in rust-webxr"]
     target_ray_space: MutNullableDom<XRSpace>,
+    #[ignore_malloc_size_of = "Defined in rust-webxr"]
+    grip_space: MutNullableDom<XRSpace>,
 }
 
 impl XRInputSource {
@@ -31,6 +33,7 @@ impl XRInputSource {
             session: Dom::from_ref(session),
             info,
             target_ray_space: Default::default(),
+            grip_space: Default::default(),
         }
     }
 
@@ -65,7 +68,19 @@ impl XRInputSourceMethods for XRInputSource {
     fn TargetRaySpace(&self) -> DomRoot<XRSpace> {
         self.target_ray_space.or_init(|| {
             let global = self.global();
-            XRSpace::new_inputspace(&global, &self.session, &self)
+            XRSpace::new_inputspace(&global, &self.session, &self, false)
         })
+    }
+
+    /// https://immersive-web.github.io/webxr/#dom-xrinputsource-gripspace
+    fn GetGripSpace(&self) -> Option<DomRoot<XRSpace>> {
+        if self.info.supports_grip {
+            Some(self.target_ray_space.or_init(|| {
+                let global = self.global();
+                XRSpace::new_inputspace(&global, &self.session, &self, true)
+            }))
+        } else {
+            None
+        }
     }
 }

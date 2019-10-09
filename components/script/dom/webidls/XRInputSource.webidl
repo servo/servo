@@ -21,6 +21,6 @@ interface XRInputSource {
   readonly attribute XRHandedness handedness;
   // [SameObject] readonly attribute XRTargetRayMode targetRayMode;
   [SameObject] readonly attribute XRSpace targetRaySpace;
-  // [SameObject] readonly attribute XRSpace? gripSpace;
+  [SameObject] readonly attribute XRSpace? gripSpace;
   // [SameObject] readonly attribute Gamepad? gamepad;
 };
