@@ -398,14 +398,16 @@ impl Display {
             // blockify both to "block".
             #[cfg(feature = "gecko")]
             DisplayOutside::XUL => {
-              if static_prefs::pref!("layout.css.xul-box-display-values.survive-blockification.enabled") {
-                match self.inside() {
-                  DisplayInside::MozInlineBox | DisplayInside::MozBox => Display::MozBox,
-                  _ => Display::Block,
+                if static_prefs::pref!(
+                    "layout.css.xul-box-display-values.survive-blockification.enabled"
+                ) {
+                    match self.inside() {
+                        DisplayInside::MozInlineBox | DisplayInside::MozBox => Display::MozBox,
+                        _ => Display::Block,
+                    }
+                } else {
+                    Display::Block
                 }
-              } else {
-                Display::Block
-              }
             },
             DisplayOutside::Block | DisplayOutside::None => *self,
             #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
@@ -1155,7 +1157,7 @@ fn change_bits_for_longhand(longhand: LonghandId) -> WillChangeBits {
         LonghandId::Opacity => WillChangeBits::OPACITY,
         LonghandId::Transform | LonghandId::Translate | LonghandId::Rotate | LonghandId::Scale => {
             WillChangeBits::TRANSFORM
-        }
+        },
         _ => WillChangeBits::empty(),
     };
 

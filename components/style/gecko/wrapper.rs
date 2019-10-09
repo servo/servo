@@ -44,6 +44,8 @@ use crate::gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentLWThe
 use crate::gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::nsChangeHint;
+#[cfg(feature = "moz_xbl")]
+use crate::gecko_bindings::structs::nsXBLBinding as RawGeckoXBLBinding;
 use crate::gecko_bindings::structs::Document_DocumentTheme as DocumentTheme;
 use crate::gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use crate::gecko_bindings::structs::ELEMENT_HANDLED_SNAPSHOT;
@@ -53,13 +55,7 @@ use crate::gecko_bindings::structs::ELEMENT_HAS_SNAPSHOT;
 use crate::gecko_bindings::structs::NODE_DESCENDANTS_NEED_FRAMES;
 use crate::gecko_bindings::structs::NODE_NEEDS_FRAME;
 use crate::gecko_bindings::structs::{nsAtom, nsIContent, nsINode_BooleanFlag};
-use crate::gecko_bindings::structs::{
-    nsINode as RawGeckoNode, Element as RawGeckoElement,
-};
-#[cfg(feature = "moz_xbl")]
-use crate::gecko_bindings::structs::nsXBLBinding as RawGeckoXBLBinding;
-#[cfg(not(feature = "moz_xbl"))]
-use values::Impossible;
+use crate::gecko_bindings::structs::{nsINode as RawGeckoNode, Element as RawGeckoElement};
 use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasSimpleFFI};
 use crate::global_style_data::GLOBAL_STYLE_DATA;
 use crate::hash::FxHashMap;
@@ -90,6 +86,8 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::mem;
 use std::ptr;
+#[cfg(not(feature = "moz_xbl"))]
+use values::Impossible;
 
 #[inline]
 fn elements_with_id<'a, 'le>(
@@ -568,7 +566,6 @@ pub struct GeckoXBLBinding<'lb>(&'lb Impossible);
 
 #[cfg(not(feature = "moz_xbl"))]
 impl<'lb> GeckoXBLBinding<'lb> {
-
     #[inline]
     fn anon_content(&self) -> *const nsIContent {
         match *self.0 {}

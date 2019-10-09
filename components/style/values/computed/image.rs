@@ -10,7 +10,10 @@
 use crate::values::computed::position::Position;
 use crate::values::computed::url::ComputedImageUrl;
 use crate::values::computed::{Angle, Color, Context};
-use crate::values::computed::{LengthPercentage, NonNegativeLength, NonNegativeLengthPercentage, NumberOrPercentage, ToComputedValue};
+use crate::values::computed::{
+    LengthPercentage, NonNegativeLength, NonNegativeLengthPercentage, NumberOrPercentage,
+    ToComputedValue,
+};
 use crate::values::generics::image::{self as generic, GradientCompatMode};
 use crate::values::specified::image::LineDirection as SpecifiedLineDirection;
 use crate::values::specified::position::{HorizontalPositionKeyword, VerticalPositionKeyword};

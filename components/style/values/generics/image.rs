@@ -82,7 +82,12 @@ pub struct GenericGradient<
     Color,
 > {
     /// Gradients can be linear or radial.
-    pub kind: GenericGradientKind<LineDirection, NonNegativeLength, NonNegativeLengthPercentage, Position>,
+    pub kind: GenericGradientKind<
+        LineDirection,
+        NonNegativeLength,
+        NonNegativeLengthPercentage,
+        Position,
+    >,
     /// The color stops and interpolation hints.
     pub items: crate::OwnedSlice<GenericGradientItem<Color, LengthPercentage>>,
     /// True if this is a repeating gradient.
@@ -108,11 +113,19 @@ pub enum GradientCompatMode {
 /// A gradient kind.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
 #[repr(C, u8)]
-pub enum GenericGradientKind<LineDirection, NonNegativeLength, NonNegativeLengthPercentage, Position> {
+pub enum GenericGradientKind<
+    LineDirection,
+    NonNegativeLength,
+    NonNegativeLengthPercentage,
+    Position,
+> {
     /// A linear gradient.
     Linear(LineDirection),
     /// A radial gradient.
-    Radial(GenericEndingShape<NonNegativeLength, NonNegativeLengthPercentage>, Position),
+    Radial(
+        GenericEndingShape<NonNegativeLength, NonNegativeLengthPercentage>,
+        Position,
+    ),
 }
 
 pub use self::GenericGradientKind as GradientKind;

@@ -42,7 +42,7 @@ impl nsStyleImage {
                         image_rect.left,
                     );
                 }
-            }
+            },
             GenericImage::Element(ref element) => unsafe {
                 bindings::Gecko_SetImageElement(self, element.as_ptr());
             },
@@ -76,16 +76,16 @@ impl nsStyleImage {
                         left: rect.3,
                     })))
                 }
-            }
+            },
             nsStyleImageType::eStyleImageType_Gradient => {
                 let gradient: &Gradient = &**self.__bindgen_anon_1.mGradient.as_ref();
                 Some(GenericImage::Gradient(Box::new(gradient.clone())))
-            }
+            },
             nsStyleImageType::eStyleImageType_Element => {
                 use crate::gecko_string_cache::Atom;
                 let atom = bindings::Gecko_GetImageElement(self);
                 Some(GenericImage::Element(Atom::from_raw(atom)))
-            }
+            },
         }
     }
 
@@ -128,13 +128,13 @@ pub mod basic_shape {
                         Some(self.mReferenceBox.into())
                     };
                     Some(ShapeSource::Shape(shape, reference_box))
-                }
+                },
                 StyleShapeSourceType::Image => None,
                 StyleShapeSourceType::Path => {
                     let path = self.to_svg_path().expect("expect an SVGPathData");
                     let fill = unsafe { &*self.__bindgen_anon_1.mSVGPath.as_ref().mPtr }.mFillRule;
                     Some(ShapeSource::Path(Path { fill, path }))
-                }
+                },
             }
         }
 
@@ -144,7 +144,7 @@ pub mod basic_shape {
                 StyleShapeSourceType::Path => {
                     let gecko_path = unsafe { &*self.__bindgen_anon_1.mSVGPath.as_ref().mPtr };
                     Some(SVGPathData(gecko_path.mPath.clone()))
-                }
+                },
                 _ => None,
             }
         }
@@ -193,9 +193,9 @@ pub mod basic_shape {
                     other.to_svg_path().expect("Cannot convert to SVGPathData"),
                 ),
                 StyleShapeSourceType::None => OffsetPath::none(),
-                StyleShapeSourceType::Shape
-                | StyleShapeSourceType::Box
-                | StyleShapeSourceType::Image => unreachable!("Unsupported offset-path type"),
+                StyleShapeSourceType::Shape |
+                StyleShapeSourceType::Box |
+                StyleShapeSourceType::Image => unreachable!("Unsupported offset-path type"),
             }
         }
     }

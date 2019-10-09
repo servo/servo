@@ -62,7 +62,9 @@ pub use self::length::{FontRelativeLength, Length, LengthOrNumber, NonNegativeLe
 pub use self::length::{LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
 pub use self::length::{MaxSize, Size};
 pub use self::length::{NoCalcLength, ViewportPercentageLength};
-pub use self::length::{NonNegativeLength, NonNegativeLengthPercentage, NonNegativeLengthPercentageOrAuto};
+pub use self::length::{
+    NonNegativeLength, NonNegativeLengthPercentage, NonNegativeLengthPercentageOrAuto,
+};
 #[cfg(feature = "gecko")]
 pub use self::list::ListStyleType;
 pub use self::list::MozListReversed;
