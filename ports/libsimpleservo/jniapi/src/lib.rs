@@ -15,7 +15,9 @@ use jni::{errors, JNIEnv, JavaVM};
 use libc::{dup2, pipe, read};
 use log::Level;
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
-use simpleservo::{Coordinates, EventLoopWaker, HostTrait, InitOptions, VRInitOptions};
+use simpleservo::{
+    Coordinates, EventLoopWaker, HostTrait, InitOptions, MediaSessionEvent, VRInitOptions,
+};
 use std::os::raw::{c_char, c_int, c_void};
 use std::ptr::{null, null_mut};
 use std::sync::Arc;
@@ -508,6 +510,16 @@ impl HostTrait for HostCallbacks {
     }
 
     fn set_clipboard_contents(&self, _contents: String) {}
+
+    fn on_media_session_metadata(
+        &self,
+        _title: String,
+        _artist: Option<String>,
+        _album: Option<String>,
+    ) {
+    }
+
+    fn on_media_session_playback_state_change(&self, state: i32) {}
 }
 
 fn initialize_android_glue(env: &JNIEnv, activity: JObject) {

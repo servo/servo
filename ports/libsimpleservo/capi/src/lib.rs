@@ -216,8 +216,9 @@ pub struct CHostCallbacks {
     pub on_ime_state_changed: extern "C" fn(show: bool),
     pub get_clipboard_contents: extern "C" fn() -> *const c_char,
     pub set_clipboard_contents: extern "C" fn(contents: *const c_char),
-    // TODO(ferjm) pass C representation of media event.
-    pub on_media_session_event: extern "C" fn(),
+    pub on_media_session_metadata:
+        extern "C" fn(title: *const c_char, album: *const c_char, artist: *const c_char),
+    pub on_media_session_playback_state_change: extern "C" fn(state: i32),
 }
 
 /// Servo options
@@ -711,8 +712,24 @@ impl HostTrait for HostCallbacks {
         (self.0.set_clipboard_contents)(contents.as_ptr());
     }
 
-    fn on_media_session_event(&self, event: MediaSessionEvent) {
-        debug!("on_media_session_event (event: {:?})", event);
-        (self.0.on_media_session_event)();
+    fn on_media_session_metadata(
+        &self,
+        title: String,
+        artist: Option<String>,
+        album: Option<String>,
+    ) {
+        debug!(
+            "on_media_session_metadata ({:?} {:?} {:?})",
+            title, artist, album
+        );
+        let title = CString::new(title).expect("Can't create string");
+        let artist = CString::new(artist.unwrap_or(String::new())).expect("Can't create string");
+        let album = CString::new(album.unwrap_or(String::new())).expect("Can't create string");
+        (self.0.on_media_session_metadata)(title.as_ptr(), artist.as_ptr(), album.as_ptr());
+    }
+
+    fn on_media_session_playback_state_change(&self, state: i32) {
+        debug!("on_media_session_playback_state_change {:?}", state);
+        (self.0.on_media_session_playback_state_change)(state);
     }
 }

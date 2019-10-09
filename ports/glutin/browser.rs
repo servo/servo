@@ -449,9 +449,9 @@ where
                         error!("Failed to store profile: {}", e);
                     }
                 },
-                EmbedderMsg::MediaSession(_) => {
-                    debug!("MediaSession received");
-                    // TODO(ferjm)
+                EmbedderMsg::MediaSessionEvent(_) => {
+                    debug!("MediaSessionEvent received");
+                    // TODO(ferjm): MediaSession support for Glutin based browsers.
                 },
             }
         }
