@@ -1092,20 +1092,6 @@ fn http_network_or_cache_fetch(
                             response_from_cache.needs_validation,
                         ),
                     };
-                if cached_response.is_none() {
-                    // Ensure the done chan is not set if we're not using the cached response,
-                    // as the cache might have set it to Some if it constructed a pending response.
-                    *done_chan = None;
-
-                    // Update the cache state, incrementing the pending store count,
-                    // or starting the count.
-                    if let HttpCacheEntryState::PendingStore(i) = *state {
-                        let new = i + 1;
-                        *state = HttpCacheEntryState::PendingStore(new);
-                    } else {
-                        *state = HttpCacheEntryState::PendingStore(1);
-                    }
-                }
                 if needs_revalidation {
                     revalidating_flag = true;
                     // Substep 5
@@ -1123,6 +1109,20 @@ fn http_network_or_cache_fetch(
                 } else {
                     // Substep 6
                     response = cached_response;
+                }
+                if response.is_none() {
+                    // Ensure the done chan is not set if we're not using the cached response,
+                    // as the cache might have set it to Some if it constructed a pending response.
+                    *done_chan = None;
+
+                    // Update the cache state, incrementing the pending store count,
+                    // or starting the count.
+                    if let HttpCacheEntryState::PendingStore(i) = *state {
+                        let new = i + 1;
+                        *state = HttpCacheEntryState::PendingStore(new);
+                    } else {
+                        *state = HttpCacheEntryState::PendingStore(1);
+                    }
                 }
             }
         }
@@ -1223,6 +1223,9 @@ fn http_network_or_cache_fetch(
                 .map_or(false, |s| s.0 == StatusCode::NOT_MODIFIED)
         {
             if let Ok(mut http_cache) = context.state.http_cache.write() {
+                // Ensure done_chan is None,
+                // since the network response will be replaced by the revalidated stored one.
+                *done_chan = None;
                 response = http_cache.refresh(&http_request, forward_response.clone(), done_chan);
                 wait_for_cached_response(done_chan, &mut response);
             }
