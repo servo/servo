@@ -1155,9 +1155,9 @@ bitflags! {
 fn change_bits_for_longhand(longhand: LonghandId) -> WillChangeBits {
     let mut flags = match longhand {
         LonghandId::Opacity => WillChangeBits::OPACITY,
-        LonghandId::Transform | LonghandId::Translate | LonghandId::Rotate | LonghandId::Scale => {
-            WillChangeBits::TRANSFORM
-        },
+        LonghandId::Transform => WillChangeBits::TRANSFORM,
+        #[cfg(feature = "gecko")]
+        LonghandId::Translate | LonghandId::Rotate | LonghandId::Scale => WillChangeBits::TRANSFORM,
         _ => WillChangeBits::empty(),
     };
 

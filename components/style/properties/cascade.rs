@@ -374,6 +374,7 @@ fn should_ignore_declaration_when_ignoring_document_colors(
             // In the future, if/when we remove the backplate pref, we can remove this
             // special case along with the 'ignored_when_colors_disabled=True' mako line
             // for the "background-image" property.
+            #[cfg(feature = "gecko")]
             PropertyDeclaration::BackgroundImage(..) => return !static_prefs::pref!("browser.display.permit_backplate"),
             _ => return true,
         };

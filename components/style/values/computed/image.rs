@@ -39,6 +39,9 @@ pub type Gradient = generic::GenericGradient<
     Color,
 >;
 
+/// A computed radial gradient ending shape.
+pub type EndingShape = generic::GenericEndingShape<NonNegativeLength, NonNegativeLengthPercentage>;
+
 /// A computed gradient line direction.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToResolvedValue)]
 #[repr(C, u8)]
