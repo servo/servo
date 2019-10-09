@@ -255,9 +255,6 @@ pub enum ScriptMsg {
     GetScreenSize(IpcSender<DeviceIntSize>),
     /// Get the available screen size (pixel)
     GetScreenAvailSize(IpcSender<DeviceIntSize>),
-    /// Notifies the constellation about media session events
-    /// (i.e. when there is metadata for the active media session, playback state changes...).
-    MediaSessionEventMsg(TopLevelBrowsingContextId, MediaSessionEvent),
 }
 
 impl fmt::Debug for ScriptMsg {
@@ -309,7 +306,6 @@ impl fmt::Debug for ScriptMsg {
             GetClientWindow(..) => "GetClientWindow",
             GetScreenSize(..) => "GetScreenSize",
             GetScreenAvailSize(..) => "GetScreenAvailSize",
-            MediaSessionEventMsg(..) => "MediaSessionEventMsg",
         };
         write!(formatter, "ScriptMsg::{}", variant)
     }

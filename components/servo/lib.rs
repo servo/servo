@@ -83,6 +83,7 @@ use constellation::{Constellation, InitialConstellationState, UnprivilegedPipeli
 use constellation::{FromCompositorLogger, FromScriptLogger};
 use crossbeam_channel::{unbounded, Sender};
 use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
+use embedder_traits::{MediaSessionEvent, MediaSessionPlaybackState};
 use env_logger::Builder as EnvLoggerBuilder;
 use euclid::{Scale, Size2D};
 #[cfg(all(
@@ -270,6 +271,9 @@ pub struct Servo<Window: WindowMethods + 'static + ?Sized> {
     embedder_receiver: EmbedderReceiver,
     embedder_events: Vec<(Option<BrowserId>, EmbedderMsg)>,
     profiler_enabled: bool,
+    webgl_thread_data: Option<Rc<WebGLMainThread>>,
+    /// Browser ID of the active media session, if any.
+    active_media_session: Option<BrowserId>,
 }
 
 #[derive(Clone)]
@@ -555,6 +559,8 @@ where
             embedder_receiver: embedder_receiver,
             embedder_events: Vec::new(),
             profiler_enabled: false,
+            webgl_thread_data,
+            active_media_session: None,
         }
     }
 
@@ -742,6 +748,31 @@ where
                 (EmbedderMsg::Keyboard(key_event), ShutdownState::NotShuttingDown) => {
                     let event = (top_level_browsing_context, EmbedderMsg::Keyboard(key_event));
                     self.embedder_events.push(event);
+                },
+
+                (EmbedderMsg::MediaSessionEvent(event), ShutdownState::NotShuttingDown) => {
+                    // Unlikely at this point, but we may receive events coming from
+                    // different media sessions, so we set the active media session based
+                    // on Playing events.
+                    // The last media session claiming to be in playing state is set to
+                    // the active media session.
+                    // Events coming from inactive media sessions are discarded.
+                    if self.active_media_session.is_some() {
+                        match event {
+                            MediaSessionEvent::PlaybackStateChange(ref state) => {
+                                match state {
+                                    MediaSessionPlaybackState::Playing => (),
+                                    _ => return,
+                                };
+                            },
+                            _ => (),
+                        };
+                    }
+                    self.active_media_session = top_level_browsing_context;
+                    self.embedder_events.push((
+                        top_level_browsing_context,
+                        EmbedderMsg::MediaSessionEvent(event),
+                    ));
                 },
 
                 (msg, ShutdownState::NotShuttingDown) => {

@@ -67,6 +67,7 @@ use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource as EmbedderResource};
+use embedder_traits::{MediaMetadata, MediaSessionEvent};
 use euclid::default::Size2D;
 use headers::{ContentLength, ContentRange, HeaderMapExt};
 use html5ever::{LocalName, Prefix};
@@ -80,7 +81,6 @@ use net_traits::request::{Destination, Referrer};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata};
 use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
 use script_layout_interface::HTMLMediaData;
-use script_traits::MediaSessionEvent;
 use servo_config::pref;
 use servo_media::player::audio::AudioRenderer;
 use servo_media::player::video::{VideoFrame, VideoFrameRenderer};
@@ -1727,6 +1727,14 @@ impl HTMLMediaElement {
                 if self.Controls() {
                     self.render_controls();
                 }
+
+                // Send a media session event with the obtained metadata.
+                self.send_media_session_event(MediaSessionEvent::SetMetadata(MediaMetadata {
+                    // TODO(ferjm) set url if no title.
+                    title: metadata.title.clone().unwrap_or("".to_string()),
+                    artist: None,
+                    album: None,
+                }));
             },
             PlayerEvent::NeedData => {
                 // The player needs more data.

@@ -17,7 +17,7 @@ use env_logger;
 use log::LevelFilter;
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
 use simpleservo::{
-    Coordinates, EventLoopWaker, HostTrait, InitOptions, MouseButton, VRInitOptions,
+    Coordinates, EventLoopWaker, HostTrait, InitOptions, MediaSessionEvent, MouseButton, VRInitOptions,
 };
 use std::ffi::{CStr, CString};
 #[cfg(target_os = "windows")]
@@ -216,7 +216,8 @@ pub struct CHostCallbacks {
     pub on_ime_state_changed: extern "C" fn(show: bool),
     pub get_clipboard_contents: extern "C" fn() -> *const c_char,
     pub set_clipboard_contents: extern "C" fn(contents: *const c_char),
-    pub on_media_session: extern "C" fn(active: bool),
+    // TODO(ferjm) pass C representation of media event.
+    pub on_media_session_event: extern "C" fn(),
 }
 
 /// Servo options
@@ -710,8 +711,8 @@ impl HostTrait for HostCallbacks {
         (self.0.set_clipboard_contents)(contents.as_ptr());
     }
 
-    fn on_media_session(&self, active: bool) {
-        debug!("on_media_session (active: {:?})", active);
-        (self.0.on_media_session)(active);
+    fn on_media_session_event(&self, event: MediaSessionEvent) {
+        debug!("on_media_session_event (event: {:?})", event);
+        (self.0.on_media_session_event)();
     }
 }

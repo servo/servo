@@ -16,8 +16,9 @@ use crate::dom::mediametadata::MediaMetadata;
 use crate::dom::window::Window;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
+use embedder_traits::{EmbedderMsg, MediaSessionEvent};
 use msg::constellation_msg::TopLevelBrowsingContextId;
-use script_traits::{MediaSessionActionType, MediaSessionEvent, ScriptMsg};
+use script_traits::MediaSessionActionType;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -71,14 +72,8 @@ impl MediaSession {
 
     pub fn send_event(&self, event: MediaSessionEvent) {
         let global = self.global();
-        let browser_id = global
-            .as_window()
-            .window_proxy()
-            .top_level_browsing_context_id();
-        let _ = global
-            .script_to_constellation_chan()
-            .send(ScriptMsg::MediaSessionEventMsg(browser_id, event))
-            .unwrap();
+        let window = global.as_window();
+        window.send_to_embedder(EmbedderMsg::MediaSessionEvent(event));
     }
 }
 

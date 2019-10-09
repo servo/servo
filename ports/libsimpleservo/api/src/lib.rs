@@ -42,6 +42,7 @@ thread_local! {
 /// It will be called to notify embedder that some events are available,
 /// and that perform_updates need to be called
 pub use servo::embedder_traits::EventLoopWaker;
+pub use servo::embedder_traits::MediaSessionEvent;
 
 pub struct InitOptions {
     pub args: Vec<String>,
@@ -130,8 +131,8 @@ pub trait HostTrait {
     fn get_clipboard_contents(&self) -> Option<String>;
     /// Sets system clipboard contents
     fn set_clipboard_contents(&self, contents: String);
-    /// Called when a media session is activated or deactivated.
-    fn on_media_session(&self, active: bool);
+    /// Called when there is a new media session event.
+    fn on_media_session_event(&self, event: MediaSessionEvent);
 }
 
 pub struct ServoGlue {
@@ -583,8 +584,8 @@ impl ServoGlue {
                 EmbedderMsg::HideIME => {
                     self.callbacks.host_callbacks.on_ime_state_changed(false);
                 },
-                EmbedderMsg::MediaSession(active) => {
-                    self.callbacks.host_callbacks.on_media_session(active);
+                EmbedderMsg::MediaSessionEvent(event) => {
+                    self.callbacks.host_callbacks.on_media_session_event(event);
                 },
                 EmbedderMsg::Status(..) |
                 EmbedderMsg::SelectFiles(..) |

@@ -1778,9 +1778,6 @@ where
                     new_value,
                 );
             },
-            FromScriptMsg::MediaSessionEventMsg(browser_id, event) => {
-                // TODO
-            },
         }
     }
 
