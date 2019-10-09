@@ -118,7 +118,7 @@ To use the web-based runner point your browser to:
 http://web-platform.test:8000/tools/runner/index.html <br>
 https://web-platform.test:8443/tools/runner/index.html *
 
-\**See [Trusting Root CA](#trusting-root-ca)*
+\**See [Trusting Root CA](./tools/certs/README.md)*
 
 Running Tests Automatically
 ---------------------------

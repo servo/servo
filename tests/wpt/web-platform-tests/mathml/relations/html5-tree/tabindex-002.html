@@ -10,6 +10,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <div id="log"></div>
+<a href="#link">tabindex(html,href)</a>
 <math>
   <mtext id="text1">tabindex(omitted)</mtext>
   <mtext id="text2" tabindex="">tabindex(empty)</mtext>
@@ -26,13 +27,20 @@
 <script>
 
 var i = 0,
-    expectation = ["text11", "text8", "text9", "text10", "text7", "text5", "text6"],
+    expectation = ["text11", "text8", "text9", "text10", "text7", "text5"],
     results = [],
     t = async_test("Elements with different tabindex must be focused sequentially when pressing 'Tab' keys");
 
 setup(function () {
   document.body.focus();
 });
+
+document.querySelector("a").addEventListener("focus", function (evt) {
+    // Links are tab-navigable on that platform.
+    expectation.push("text6");
+    // TAB = '\ue004'
+    test_driver.send_keys(document.body, "\ue004");
+}, true);
 
 document.querySelector("math").addEventListener("focus", function (evt) {
   results.push(evt.target.id);

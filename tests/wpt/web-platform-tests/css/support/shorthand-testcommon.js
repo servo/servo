@@ -28,6 +28,7 @@ function test_shorthand_value(property, value, longhands) {
         try {
             const expectedLength = div.style.length;
             div.style[property] = value;
+            assert_true(CSS.supports(property, value));
             for (let longhand of Object.keys(longhands).sort()) {
                 div.style[longhand] = "";
             }

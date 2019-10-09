@@ -121,7 +121,7 @@ var TestUtils = (function() {
       "add": function() {
         return navigator.serviceWorker.register(
             "support/service_worker.js",
-            { scope: "support/scope-that-does-not-contain-this-test/"});
+            { scope: "support/"});
       },
       "isEmpty": function() {
         return new Promise(function(resolve, reject) {

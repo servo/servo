@@ -1,0 +1,25 @@
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'resources/**'
+      - 'tools/**'
+name: documentation
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+      with:
+        fetch-depth: 50
+    - name: Run website_build.sh
+      uses: ./tools/docker/documentation
+      env:
+        DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+      with:
+        entrypoint: /bin/bash
+        args: tools/ci/website_build.sh

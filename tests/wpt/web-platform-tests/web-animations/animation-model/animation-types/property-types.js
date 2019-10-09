@@ -2205,7 +2205,7 @@ const filterListType = {
         [{ time: 500,
            // Per the spec: The initial value for interpolation is all length values
            // set to 0 and the used color set to transparent.
-           expected: 'blur(5px) drop-shadow(rgba(0, 0, 255, 0.4) 5px 5px 5px' }]);
+           expected: 'blur(5px) drop-shadow(rgba(0, 0, 255, 0.4) 5px 5px 5px)' }]);
     }, `${property}: interpolate different length of filter-function-list`
        + ' with drop-shadow function');
 

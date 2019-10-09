@@ -2,13 +2,18 @@
 
 import time
 
-# The amount of buffering a WebSocket connection has is not standardised, but
-# it's reasonable to expect that it will not be as large as 8MB.
-MESSAGE_SIZE = 8 * 1024 * 1024
+# The amount of internal buffering a WebSocket connection has is not
+# standardised, and varies depending upon the OS. Setting this number too small
+# will result in false negatives, as the entire message gets buffered. Setting
+# this number too large will result in false positives, when it takes more than
+# 2 seconds to transmit the message anyway. This number was arrived at by
+# trial-and-error.
+MESSAGE_SIZE = 16 * 1024 * 1024
 
 
 def web_socket_do_extra_handshake(request):
-    # Turn off permessage-deflate, otherwise it shrinks our 8MB buffer to 8KB.
+    # Turn off permessage-deflate, otherwise it shrinks our big message to a
+    # tiny message.
     request.ws_extension_processors = []
 
 

@@ -124,7 +124,7 @@ var GenericSensorTest = (() => {
   class MockSensorProvider {
     constructor() {
       this.readingSizeInBytes_ =
-          device.mojom.SensorInitParams.kReadBufferSizeForTests;
+          device.mojom.SensorInitParams.READ_BUFFER_SIZE_FOR_TESTS;
       this.sharedBufferSizeInBytes_ = this.readingSizeInBytes_ *
               (device.mojom.SensorType.MAX_VALUE + 1);
       const rv = Mojo.createSharedBuffer(this.sharedBufferSizeInBytes_);
