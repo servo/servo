@@ -33,7 +33,7 @@ except that:
   always `top`, which represents the top-level generated test HTML.
   (This entry is omitted in the JSON passed to JavaScript, but
   the policy deliveries specified here are written as e.g.
-  <meta> elements in the generated test HTML or HTTP headers)
+  `<meta>` elements in the generated test HTML or HTTP headers)
 - Instead of `PolicyDelivery` object (in `sourceContextList` or
   `subresourcePolicyDeliveries`), following placeholder strings can be used.
 

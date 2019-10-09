@@ -30,6 +30,7 @@ def query(session, name):
     [ { "descriptor": { "name": "geolocation" }, "state": "granted" } ],
     { "descriptor": { "name": "geolocation" }, "state": "granted", "oneRealm": 23 }
 ])
+@pytest.mark.capabilities({"acceptInsecureCerts": True})
 def test_invalid_parameters(session, url, parameters):
     session.url = url("/common/blank.html", protocol="https")
     response = session.transport.send(
@@ -58,6 +59,7 @@ def test_non_secure_context(session, url, state):
     { "oneRealm": False },
     {}
 ])
+@pytest.mark.capabilities({"acceptInsecureCerts": True})
 def test_set_to_state(session, url, state, realmSetting):
     session.url = url("/common/blank.html", protocol="https")
     parameters = { "descriptor": { "name": "geolocation" }, "state": state }
@@ -97,6 +99,7 @@ def test_set_to_state(session, url, state, realmSetting):
     { "oneRealm": False },
     {}
 ])
+@pytest.mark.capabilities({"acceptInsecureCerts": True})
 def test_set_to_state_cross_realm(session, create_window, url, state, realmSetting):
     session.url = url("/common/blank.html", protocol="https")
     original_window = session.window_handle

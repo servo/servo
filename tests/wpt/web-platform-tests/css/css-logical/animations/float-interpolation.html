@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>float interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-logical/#float-clear">
+<meta name="assert" content="float supports animation">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.expected { color: green; }
+</style>
+
+<body>
+<template id="target-template">float</template>
+<script>
+test_no_interpolation({
+  property: 'float',
+  from: 'left',
+  to: 'right',
+});
+</script>
+</body>
