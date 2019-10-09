@@ -109,7 +109,10 @@ fn add_headers_recursively(path: PathBuf, added_paths: &mut HashSet<PathBuf>) {
 
 fn add_include(name: &str) -> String {
     let mut added_paths = ADDED_PATHS.lock().unwrap();
-    let file = search_include(name).expect("Include not found!");
+    let file = match search_include(name) {
+        Some(file) => file,
+        None => panic!("Include not found: {}", name),
+    };
     let result = String::from(file.to_str().unwrap());
     add_headers_recursively(file, &mut *added_paths);
     result
