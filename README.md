@@ -198,7 +198,7 @@ You should change the installation to install the "Add python.exe to Path" featu
 
 3. Install virtualenv.
 
- In a normal Windows Shell (cmd.exe or "Command Prompt" from the start menu), do:
+ In a normal Windows Shell (cmd.exe or "Command Prompt" from the Start menu), do:
  ```
 pip install virtualenv
 ```
@@ -293,7 +293,7 @@ real-world use, add the `--release` flag to create an optimized build:
 ./mach run --release tests/html/about-mozilla.html
 ```
 
-**Note:** `mach build ` will build both `servo` and `libsimpleservo`. To make compilation a bit faster, it's possible to only compile the servo binary: `./mach build --dev -p servo`.
+**Note:** `mach build ` will build both `servo` and `libsimpleservo`. To make the compilation a bit faster, it's possible to only compile the servo binary: `./mach build --dev -p servo`.
 
 ### Checking for build errors, without building
 
@@ -307,7 +307,7 @@ consider this instead of a full build:
 It will run `cargo check`, which runs the analysis phase of the compiler
 (and so shows build errors if any) but skips the code generation phase.
 This can be a lot faster than a full build,
-though of course it doesn’t produce a binary you can run.
+though of course, it doesn’t produce a binary you can run.
 
 ### Building for Android target
 
@@ -342,16 +342,16 @@ Run Servo with the command:
 - `-p INTERVAL` turns on the profiler and dumps info to the console every
   `INTERVAL` seconds
 - `-s SIZE` sets the tile size for painting; defaults to 512
-- `-z` disables all graphical output; useful for running JS / layout tests
+- `-z` disables all graphical output; useful for running JS/layout tests
 - `-Z help` displays useful output to debug servo
 
 ### Keyboard Shortcuts
 
 - `Ctrl`+`L` opens URL prompt (`Cmd`+`L` on Mac)
-- `Ctrl`+`R` reloads current page (`Cmd`+`R` on Mac)
+- `Ctrl`+`R` reloads the current page (`Cmd`+`R` on Mac)
 - `Ctrl`+`-` zooms out (`Cmd`+`-` on Mac)
 - `Ctrl`+`=` zooms in (`Cmd`+`=` on Mac)
-- `Alt`+`left arrow` goes backwards in the history (`Cmd`+`left arrow` on Mac)
+- `Alt`+`left arrow` goes backward in the history (`Cmd`+`left arrow` on Mac)
 - `Alt`+`right arrow` goes forwards in the history (`Cmd`+`right arrow` on Mac)
 - `Esc` or `Ctrl`+`Q` exits Servo (`Cmd`+`Q` on Mac)
 
