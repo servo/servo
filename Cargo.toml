@@ -27,7 +27,6 @@ opt-level = 3
 
 # Those are here to dedupe winapi since mio is still using winapi 0.2.
 mio = { git = "https://github.com/servo/mio.git", branch = "servo" }
-iovec = { git = "https://github.com/servo/iovec.git", branch = "servo" }
 rand_os = { git = "https://github.com/servo/rand", branch = "servo-rand_os-0.1.3-uwp" }
 rand_core = { git = "https://github.com/servo/rand", branch = "servo-rand_os-0.1.3-uwp" }
 
