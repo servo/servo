@@ -38,7 +38,7 @@
 
   function run(row) {
     var xhr = new XMLHttpRequest();
-    xhr.open("GET", "/common/entities.json");
+    xhr.open("GET", "entities.json");
     xhr.onload = function () {
       var entitiesJSON = JSON.parse(xhr.response);
       setupTests(entitiesJSON, row[1], row[2], row[0], row[3]);

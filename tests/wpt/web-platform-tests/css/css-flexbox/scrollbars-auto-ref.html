@@ -166,8 +166,8 @@ for (var i = 0; i < nodes.length; i++) {
 }
 nodes = document.querySelectorAll(".rtl > .row-reverse");
 for (var i = 0; i < nodes.length; i++) {
-  nodes[i].scrollLeft = 0;
-  nodes[i].scrollTop = 0;
+  nodes[i].scrollLeft = -10000;
+  nodes[i].scrollTop = -10000;
 }
 nodes = document.querySelectorAll(".column-reverse");
 for (var i = 0; i < nodes.length; i++) {
@@ -176,7 +176,7 @@ for (var i = 0; i < nodes.length; i++) {
 }
 nodes = document.querySelectorAll(".flipped-blocks > .column-reverse");
 for (var i = 0; i < nodes.length; i++) {
-  nodes[i].scrollLeft = 0;
+  nodes[i].scrollLeft = -10000;
   nodes[i].scrollTop = 0;
 }
 </script>

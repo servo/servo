@@ -92,20 +92,6 @@ var expectedY = {
   inlineEnd: ((2*box_height) - scroller_height) + scrollbar_width,
 };
 
-// As browsers differ in the meaning of scrollLeft when
-// in a right-to-left mode, we adjust the expectation
-// to match the semantics of scrollLeft.
-// In vertical-rl mode, the scroll x coordinate should be nonpositive per the the spec.
-// But some browsers is nonnegative, so we adjust the expectation.
-scroller.scrollLeft = -1000;
-if(scroller.scrollLeft === 0) {
-  expectedX = {
-    blockStart: ((2*box_width) - scroller_width) + scrollbar_width,
-    blockCenter: ((3*box_width - scroller_width)/2) + (scrollbar_width/2),
-    blockEnd: box_width,
-  };
-}
-
 [
   [{block: "start", inline: "start"}, expectedX.blockStart, expectedY.inlineStart],
   [{block: "start", inline: "center"}, expectedX.blockStart, expectedY.inlineCenter],

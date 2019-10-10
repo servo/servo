@@ -51,7 +51,7 @@ test(function() {
   // The offset in the inline/horizontal direction should be inverted. The
   // block/vertical direction should be unaffected.
   scroller.scrollTop = 50;
-  scroller.scrollLeft = 75;
+  scroller.scrollLeft = 75 - scrollerSize;
 
   assert_equals(blockScrollTimeline.currentTime, 50, 'Scrolled block timeline');
   assert_equals(
@@ -105,7 +105,7 @@ test(function() {
   // horizontal/vertical cases, horizontal starts on the right-hand-side and
   // vertical is normal.
   scroller.scrollTop = 50;
-  scroller.scrollLeft = 75;
+  scroller.scrollLeft = 75 - scrollerSize;
 
   assert_equals(
       blockScrollTimeline.currentTime, scrollerSize - 75,
@@ -207,36 +207,36 @@ test(function() {
   assert_equals(
       calcScrollTimeline.currentTime, null, 'Unscrolled calc-based timeline');
 
-  // With direction rtl offsets are inverted, such that scrollLeft ==
-  // scrollerSize is the 'zero' point for currentTime. However the
+  // With direction rtl offsets are inverted, such that scrollLeft == 0
+  // is the 'zero' point for currentTime. However the
   // startScrollOffset is an absolute distance along the offset, so doesn't
   // need adjusting.
 
   // Check the length-based ScrollTimeline.
-  scroller.scrollLeft = scrollerSize;
+  scroller.scrollLeft = 0;
   assert_equals(
       lengthScrollTimeline.currentTime, null,
       'Length-based timeline before the startScrollOffset point');
-  scroller.scrollLeft = scrollerSize - 20;
+  scroller.scrollLeft = -20;
   assert_equals(
       lengthScrollTimeline.currentTime, 0,
       'Length-based timeline at the startScrollOffset point');
-  scroller.scrollLeft = scrollerSize - 50;
+  scroller.scrollLeft = -50;
   assert_equals(
       lengthScrollTimeline.currentTime,
       calculateCurrentTime(50, 20, scrollerSize, scrollerSize),
       'Length-based timeline after the startScrollOffset point');
 
   // Check the percentage-based ScrollTimeline.
-  scroller.scrollLeft = scrollerSize - (0.19 * scrollerSize);
+  scroller.scrollLeft = -(0.19 * scrollerSize);
   assert_equals(
       percentageScrollTimeline.currentTime, null,
       'Percentage-based timeline before the startScrollOffset point');
-  scroller.scrollLeft = scrollerSize - (0.20 * scrollerSize);
+  scroller.scrollLeft = -(0.20 * scrollerSize);
   assert_equals(
       percentageScrollTimeline.currentTime, 0,
       'Percentage-based timeline at the startScrollOffset point');
-  scroller.scrollLeft = scrollerSize - (0.4 * scrollerSize);
+  scroller.scrollLeft = -(0.4 * scrollerSize);
   assert_equals(
       percentageScrollTimeline.currentTime,
       calculateCurrentTime(
@@ -244,15 +244,15 @@ test(function() {
       'Percentage-based timeline after the startScrollOffset point');
 
   // Check the calc-based ScrollTimeline.
-  scroller.scrollLeft = scrollerSize - (0.2 * scrollerSize - 10);
+  scroller.scrollLeft = -(0.2 * scrollerSize - 10);
   assert_equals(
       calcScrollTimeline.currentTime, null,
       'Calc-based timeline before the startScrollOffset point');
-  scroller.scrollLeft = scrollerSize - (0.2 * scrollerSize - 5);
+  scroller.scrollLeft = -(0.2 * scrollerSize - 5);
   assert_equals(
       calcScrollTimeline.currentTime, 0,
       'Calc-based timeline at the startScrollOffset point');
-  scroller.scrollLeft = scrollerSize - (0.2 * scrollerSize);
+  scroller.scrollLeft = -(0.2 * scrollerSize);
   assert_equals(
       calcScrollTimeline.currentTime,
       calculateCurrentTime(
@@ -288,21 +288,21 @@ test(function() {
     endScrollOffset: 'calc(80% + 5px)'
   });
 
-  // With direction rtl offsets are inverted, such that scrollLeft ==
-  // scrollerSize is the 'zero' point for currentTime. However the
+  // With direction rtl offsets are inverted, such that scrollLeft == 0
+  // is the 'zero' point for currentTime. However the
   // endScrollOffset is an absolute distance along the offset, so doesn't need
   // adjusting.
 
   // Check the length-based ScrollTimeline.
-  scroller.scrollLeft = 0;
+  scroller.scrollLeft = -scrollerSize;
   assert_equals(
       lengthScrollTimeline.currentTime, null,
       'Length-based timeline after the endScrollOffset point');
-  scroller.scrollLeft = 20;
+  scroller.scrollLeft = 20 - scrollerSize;
   assert_equals(
       lengthScrollTimeline.currentTime, null,
       'Length-based timeline at the endScrollOffset point');
-  scroller.scrollLeft = 50;
+  scroller.scrollLeft = 50 - scrollerSize;
   assert_equals(
       lengthScrollTimeline.currentTime,
       calculateCurrentTime(
@@ -310,15 +310,15 @@ test(function() {
       'Length-based timeline before the endScrollOffset point');
 
   // Check the percentage-based ScrollTimeline.
-  scroller.scrollLeft = 0.19 * scrollerSize;
+  scroller.scrollLeft = 0.19 * scrollerSize - scrollerSize;
   assert_equals(
       percentageScrollTimeline.currentTime, null,
       'Percentage-based timeline after the endScrollOffset point');
-  scroller.scrollLeft = 0.20 * scrollerSize;
+  scroller.scrollLeft = 0.20 * scrollerSize - scrollerSize;
   assert_equals(
       percentageScrollTimeline.currentTime, null,
       'Percentage-based timeline at the endScrollOffset point');
-  scroller.scrollLeft = 0.4 * scrollerSize;
+  scroller.scrollLeft = 0.4 * scrollerSize - scrollerSize;
   assert_equals(
       percentageScrollTimeline.currentTime,
       calculateCurrentTime(
@@ -326,15 +326,15 @@ test(function() {
       'Percentage-based timeline before the endScrollOffset point');
 
   // Check the calc-based ScrollTimeline. 80% + 5px
-  scroller.scrollLeft = 0.2 * scrollerSize - 10;
+  scroller.scrollLeft = -0.8 * scrollerSize - 10;
   assert_equals(
       calcScrollTimeline.currentTime, null,
       'Calc-based timeline after the endScrollOffset point');
-  scroller.scrollLeft = 0.2 * scrollerSize - 5;
+  scroller.scrollLeft = -0.8 * scrollerSize - 5;
   assert_equals(
       calcScrollTimeline.currentTime, null,
       'Calc-based timeline at the endScrollOffset point');
-  scroller.scrollLeft = 0.2 * scrollerSize;
+  scroller.scrollLeft = -0.8 * scrollerSize;
   assert_equals(
       calcScrollTimeline.currentTime,
       calculateCurrentTime(

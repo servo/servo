@@ -153,18 +153,35 @@ def env_options():
 
 def run_info_extras(**kwargs):
 
-    def get_bool_pref(pref):
+    def get_bool_pref_if_exists(pref):
         for key, value in kwargs.get('extra_prefs', []):
             if pref == key:
                 return value.lower() in ('true', '1')
-        return False
+        return None
+
+    def get_bool_pref(pref):
+        pref_value = get_bool_pref_if_exists(pref)
+        return pref_value if pref_value is not None else False
 
     rv = {"e10s": kwargs["gecko_e10s"],
           "wasm": kwargs.get("wasm", True),
           "verify": kwargs["verify"],
           "headless": kwargs.get("headless", False) or "MOZ_HEADLESS" in os.environ,
-          "fission": get_bool_pref("fission.autostart"),
-          "sw-e10s": get_bool_pref("dom.serviceWorkers.parent_intercept")}
+          "fission": get_bool_pref("fission.autostart")}
+
+    # The value of `sw-e10s` defaults to whether the "parent_intercept"
+    # implementation is enabled for the current build. This value, however,
+    # can be overridden by explicitly setting the pref with the `--setpref` CLI
+    # flag, which is checked here. If not supplied, the default value of
+    # `sw-e10s` will be filled in in `RunInfo`'s constructor.
+    #
+    # We can't capture the default value right now because (currently), it
+    # defaults to the value of `nightly_build`, which isn't known until
+    # `RunInfo`'s constructor.
+    sw_e10s_override = get_bool_pref_if_exists("dom.serviceWorkers.parent_intercept")
+    if sw_e10s_override is not None:
+        rv["sw-e10s"] = sw_e10s_override
+
     rv.update(run_info_browser_version(kwargs["binary"]))
     return rv
 

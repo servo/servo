@@ -67,8 +67,7 @@ def env_extras(**kwargs):
 def run_info_extras(**kwargs):
     package = kwargs["package_name"]
     rv = {"e10s": True if package is not None and "geckoview" in package else False,
-          "headless": False,
-          "sw-e10s": False}
+          "headless": False}
     rv.update(run_info_browser_version(kwargs["binary"]))
     return rv
 

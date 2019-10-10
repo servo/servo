@@ -13,10 +13,12 @@
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
         <script src="support/parsing-utils.js"></script>
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
     </head>
     <body>
         <div id="log"></div>
         <script type="text/javascript">
+            setup({explicit_done: true});
             var arg_length_units_tests = [
                ['%', 'px', 'px'],
                ['px', '%', 'px'],
@@ -31,8 +33,13 @@
             ];
             generate_tests( ParsingUtils.testInlineStyle,
                             ParsingUtils.buildPolygonTests(arg_length_units_tests, 'inline') );
-            generate_tests( ParsingUtils.testComputedStyle,
-                            ParsingUtils.buildPolygonTests(arg_length_units_tests, 'computed') );
+            ParsingUtils.setupFonts();
+            document.fonts.ready.then(()=> {
+                generate_tests( ParsingUtils.testComputedStyle,
+                                ParsingUtils.buildPolygonTests(arg_length_units_tests, 'computed') );
+                ParsingUtils.restoreFonts();
+                done();
+            });
         </script>
     </body>
 </html>

@@ -446,31 +446,32 @@ function each(object, func) {
     }
 }
 
-function setupFonts(func) {
-    return function () {
-        var fontProperties = {
-            'font-family': 'Ahem',
-            'font-size': '16px',
-            'line-height': '1'
-        };
-        var savedValues = { };
-        each(fontProperties, function (key, value) {
-            savedValues[key] = document.body.style.getPropertyValue(key);
-            document.body.style.setProperty(key, value);
-        });
-        try {
-            func.apply(this, arguments);
-        } finally {
-            each(savedValues, function (key, value) {
-                if (value) {
-                    document.body.style.setProperty(key, value);
-                }
-                else {
-                    document.body.style.removeProperty(key);
-                }
-            });
-        }
+/// For saving and restoring font properties
+var savedFontValues = { };
+
+function setupFonts() {
+    var fontProperties = {
+        'font-family': 'Ahem',
+        'font-size': '16px',
+        'line-height': '1'
     };
+    savedFontValues = { };
+    each(fontProperties, function (key, value) {
+        savedFontValues[key] = document.body.style.getPropertyValue(key);
+        document.body.style.setProperty(key, value);
+    });
+}
+
+function restoreFonts() {
+    each(savedFontValues, function (key, value) {
+        if (value) {
+            document.body.style.setProperty(key, value);
+        }
+        else {
+            document.body.style.removeProperty(key);
+        }
+    });
+    savedFontValues = { };
 }
 
 var validUnits = [
@@ -819,11 +820,11 @@ var calcTestValues = [
 
 return {
     testInlineStyle: testInlineStyle,
-    testComputedStyle: setupFonts(testComputedStyle),
+    testComputedStyle: testComputedStyle,
     testShapeMarginInlineStyle: testShapeMarginInlineStyle,
-    testShapeMarginComputedStyle: setupFonts(testShapeMarginComputedStyle),
+    testShapeMarginComputedStyle: testShapeMarginComputedStyle,
     testShapeThresholdInlineStyle: testShapeThresholdInlineStyle,
-    testShapeThresholdComputedStyle: setupFonts(testShapeThresholdComputedStyle),
+    testShapeThresholdComputedStyle: testShapeThresholdComputedStyle,
     buildTestCases: buildTestCases,
     buildRadiiTests: buildRadiiTests,
     buildPositionTests: buildPositionTests,
@@ -834,6 +835,7 @@ return {
     validUnits: validUnits,
     calcTestValues: calcTestValues,
     roundResultStr: roundResultStr,
-    setupFonts: setupFonts
+    setupFonts: setupFonts,
+    restoreFonts: restoreFonts,
 }
 })();
