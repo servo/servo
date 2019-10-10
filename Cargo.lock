@@ -5994,8 +5994,7 @@ dependencies = [
 [[package]]
 name = "winapi"
 version = "0.3.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8093091eeb260906a183e6ae1abdba2ef5ef2257a21801128899c3fc699229c6"
+source = "git+https://github.com/jdm/winapi-rs?branch=patch-1#f85c3541bbb331fea8918ac070accfb4ab613e7b"
 dependencies = [
  "winapi-i686-pc-windows-gnu",
  "winapi-x86_64-pc-windows-gnu",
@@ -6004,8 +6003,7 @@ dependencies = [
 [[package]]
 name = "winapi-i686-pc-windows-gnu"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6"
+source = "git+https://github.com/jdm/winapi-rs?branch=patch-1#f85c3541bbb331fea8918ac070accfb4ab613e7b"
 
 [[package]]
 name = "winapi-util"
@@ -6019,8 +6017,7 @@ dependencies = [
 [[package]]
 name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+source = "git+https://github.com/jdm/winapi-rs?branch=patch-1#f85c3541bbb331fea8918ac070accfb4ab613e7b"
 
 [[package]]
 name = "wincolor"
