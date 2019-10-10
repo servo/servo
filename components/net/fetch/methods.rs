@@ -189,6 +189,9 @@ pub fn main_fetch(
     }
 
     // Step 2.2.
+    // TODO: Report violations.
+
+    // Step 2.4.
     if should_request_be_blocked_by_csp(request) == csp::CheckResult::Blocked {
         response = Some(Response::network_error(NetworkError::Internal(
             "Blocked by Content-Security-Policy".into(),

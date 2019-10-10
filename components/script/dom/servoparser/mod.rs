@@ -741,30 +741,18 @@ impl FetchResponseListener for ParserContext {
         // https://www.w3.org/TR/CSP/#initialize-document-csp
         // TODO: Implement step 1 (local scheme special case)
         let csp_list = metadata.as_ref().and_then(|m| {
-            let h = if let Some(h) = m.headers.as_ref() {
-                h
-            } else {
-                return None;
-            };
+            let h = m.headers.as_ref()?;
             let mut csp = h.get_all("content-security-policy").iter();
             // This silently ignores the CSP if it contains invalid Unicode.
             // We should probably report an error somewhere.
-            let c = if let Some(c) = csp.next().and_then(|c| c.to_str().ok()) {
-                c
-            } else {
-                return None;
-            };
+            let c = csp.next().and_then(|c| c.to_str().ok())?;
             let mut csp_list = CspList::parse(
                 c,
                 csp::PolicySource::Header,
                 csp::PolicyDisposition::Enforce,
             );
             for c in csp {
-                let c = if let Ok(c) = c.to_str() {
-                    c
-                } else {
-                    return None;
-                };
+                let c = c.to_str().ok()?;
                 csp_list.append(CspList::parse(
                     c,
                     csp::PolicySource::Header,

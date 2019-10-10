@@ -2824,24 +2824,6 @@ impl Document {
         ref_filter_map(self.csp_list.borrow(), Option::as_ref)
     }
 
-    /// https://www.w3.org/TR/CSP/#should-block-request
-    pub fn should_request_be_blocked_by_csp(&self, request: &RequestBuilder) -> csp::CheckResult {
-        let request = csp::Request {
-            url: request.url.clone().into_url(),
-            origin: request.origin.clone().into_url_origin(),
-            redirect_count: 0,
-            destination: request.destination,
-            initiator: csp::Initiator::None,
-            nonce: String::new(),
-            integrity_metadata: request.integrity_metadata.clone(),
-            parser_metadata: csp::ParserMetadata::None,
-        };
-        // TODO: Instead of ignoring violations, report them.
-        self.get_csp_list()
-            .map(|c| c.should_request_be_blocked(&request).0)
-            .unwrap_or(csp::CheckResult::Allowed)
-    }
-
     /// https://www.w3.org/TR/CSP/#should-block-inline
     pub fn should_elements_inline_type_behavior_be_blocked(
         &self,
