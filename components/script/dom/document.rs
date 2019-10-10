@@ -109,6 +109,7 @@ use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
+use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
 use cookie::Cookie;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
@@ -395,6 +396,8 @@ pub struct Document {
     /// where `id` needs to match any of the registered ShadowRoots
     /// hosting the media controls UI.
     media_controls: DomRefCell<HashMap<String, Dom<ShadowRoot>>>,
+    /// List of all WebGL context IDs that need flushing.
+    dirty_webgl_contexts: DomRefCell<HashSet<WebGLContextId>>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -2490,6 +2493,24 @@ impl Document {
             debug_assert!(false, "Trying to unregister unknown media controls");
         }
     }
+
+    pub fn add_dirty_canvas(&self, context_id: WebGLContextId) {
+        self.dirty_webgl_contexts.borrow_mut().insert(context_id);
+    }
+
+    pub fn flush_dirty_canvases(&self) {
+        let dirty_context_ids: Vec<_> = self.dirty_webgl_contexts.borrow_mut().drain().collect();
+        if dirty_context_ids.is_empty() {
+            return;
+        }
+        let (sender, receiver) = webgl::webgl_channel().unwrap();
+        self.window
+            .webgl_chan()
+            .expect("Where's the WebGL channel?")
+            .send(WebGLMsg::SwapBuffers(dirty_context_ids, sender))
+            .unwrap();
+        receiver.recv().unwrap();
+    }
 }
 
 #[derive(MallocSizeOf, PartialEq)]
@@ -2784,6 +2805,7 @@ impl Document {
             shadow_roots: DomRefCell::new(HashSet::new()),
             shadow_roots_styles_changed: Cell::new(false),
             media_controls: DomRefCell::new(HashMap::new()),
+            dirty_webgl_contexts: DomRefCell::new(HashSet::new()),
         }
     }
 

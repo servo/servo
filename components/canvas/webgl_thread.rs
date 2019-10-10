@@ -239,6 +239,12 @@ impl WebGLThread {
                 let result = self.create_webgl_context(version, size, attributes);
                 result_sender
                     .send(result.map(|(id, limits, share_mode, framebuffer_format)| {
+                        let image_key = self
+                            .cached_context_info
+                            .get_mut(&id)
+                            .expect("Where's the cached context info?")
+                            .image_key;
+
                         let data = Self::make_current_if_needed(
                             id,
                             &self.contexts,
@@ -277,6 +283,7 @@ impl WebGLThread {
                             glsl_version,
                             api_type,
                             framebuffer_format,
+                            image_key,
                         }
                     }))
                     .unwrap();
@@ -299,11 +306,11 @@ impl WebGLThread {
             WebGLMsg::Unlock(ctx_id) => {
                 self.handle_unlock(ctx_id);
             },
-            WebGLMsg::UpdateWebRenderImage(ctx_id, sender) => {
-                self.handle_update_wr_image(ctx_id, sender);
-            },
             WebGLMsg::DOMToTextureCommand(command) => {
                 self.handle_dom_to_texture(command);
+            },
+            WebGLMsg::SwapBuffers(context_ids, sender) => {
+                self.handle_swap_buffers(context_ids, sender);
             },
             WebGLMsg::Exit => {
                 return true;
@@ -326,6 +333,11 @@ impl WebGLThread {
             &mut self.bound_context_id,
         );
         if let Some(data) = data {
+            let info = self.cached_context_info.get_mut(&context_id).unwrap();
+            if info.clear_required {
+                info.clear_required = false;
+                Self::clear_drawing_buffer(data);
+            }
             data.ctx.apply_command(
                 command,
                 data.use_apple_vertex_arrays,
@@ -388,6 +400,7 @@ impl WebGLThread {
     pub(crate) fn handle_unlock(&mut self, context_id: WebGLContextId) {
         let info = self.cached_context_info.get_mut(&context_id).unwrap();
         info.render_state = ContextRenderState::Unlocked;
+
         if let Some(gl_sync) = info.gl_sync.take() {
             let data = Self::make_current_if_needed(
                 context_id,
@@ -401,6 +414,36 @@ impl WebGLThread {
         }
     }
 
+    #[allow(unsafe_code)]
+    fn clear_drawing_buffer(data: &mut GLContextData) {
+        trace!("clearing GL framebuffer");
+
+        // Ensure we're clearing the default framebuffer.
+        let mut fb = [0];
+        unsafe {
+            data.ctx
+                .gl()
+                .get_integer_v(gl::FRAMEBUFFER_BINDING, &mut fb);
+        }
+        data.ctx
+            .gl()
+            .bind_framebuffer(gl::FRAMEBUFFER, data.ctx.framebuffer());
+
+        data.ctx.gl().clear_color(0., 0., 0., 0.);
+        data.ctx.gl().clear_depth(1.0);
+        data.ctx.gl().clear_stencil(0);
+        data.ctx
+            .gl()
+            .clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
+
+        let (r, g, b, a) = data.state.clear_color;
+        data.ctx.gl().clear_color(r, g, b, a);
+        data.ctx.gl().clear_depth(data.state.depth_clear_value);
+        data.ctx.gl().clear_stencil(data.state.stencil_clear_value);
+
+        data.ctx.gl().bind_framebuffer(gl::FRAMEBUFFER, fb[0] as _);
+    }
+
     /// Creates a new WebGLContext
     fn create_webgl_context(
         &mut self,
@@ -411,6 +454,8 @@ impl WebGLThread {
         // Creating a new GLContext may make the current bound context_id dirty.
         // Clear it to ensure that  make_current() is called in subsequent commands.
         self.bound_context_id = None;
+
+        let preserve_drawing_buffer = attributes.preserve_drawing_buffer;
 
         // First try to create a shared context for the best performance.
         // Fallback to readback mode if the shared context creation fails.
@@ -446,16 +491,33 @@ impl WebGLThread {
             },
         );
 
+        let image_key = match share_mode {
+            WebGLContextShareMode::Readback => Self::create_wr_readback_image(
+                &self.webrender_api,
+                size,
+                attributes.alpha,
+                vec![0; 4 * size.width as usize * size.height as usize],
+            ),
+            WebGLContextShareMode::SharedTexture => Self::create_wr_external_image(
+                &self.webrender_api,
+                size.to_i32(),
+                attributes.alpha,
+                id,
+            ),
+        };
+
         self.cached_context_info.insert(
             id,
             WebGLContextInfo {
                 texture_id,
                 size,
                 alpha: attributes.alpha,
-                image_key: None,
+                image_key: image_key,
                 share_mode,
                 gl_sync: None,
                 render_state: ContextRenderState::Unlocked,
+                preserve_drawing_buffer,
+                clear_required: false,
             },
         );
 
@@ -497,7 +559,7 @@ impl WebGLThread {
                 // Readback mode already updates the image every frame to send the raw pixels.
                 // See `handle_update_wr_image`.
                 match (info.image_key, info.share_mode) {
-                    (Some(image_key), WebGLContextShareMode::SharedTexture) => {
+                    (image_key, WebGLContextShareMode::SharedTexture) => {
                         Self::update_wr_external_image(
                             &self.webrender_api,
                             info.size,
@@ -523,9 +585,7 @@ impl WebGLThread {
         if let Some(info) = self.cached_context_info.remove(&context_id) {
             let mut txn = webrender_api::Transaction::new();
 
-            if let Some(image_key) = info.image_key {
-                txn.delete_image(image_key);
-            }
+            txn.delete_image(info.image_key);
 
             self.webrender_api.update_resources(txn.resource_updates)
         }
@@ -541,62 +601,33 @@ impl WebGLThread {
         self.bound_context_id = None;
     }
 
-    /// Handles the creation/update of webrender_api::ImageKeys for a specific WebGLContext.
-    /// This method is invoked from a UpdateWebRenderImage message sent by the layout thread.
-    /// If SharedTexture is used the UpdateWebRenderImage message is sent only after a WebGLContext creation.
-    /// If Readback is used UpdateWebRenderImage message is sent always on each layout iteration in order to
-    /// submit the updated raw pixels.
-    fn handle_update_wr_image(
+    fn handle_swap_buffers(
         &mut self,
-        context_id: WebGLContextId,
-        sender: WebGLSender<webrender_api::ImageKey>,
+        context_ids: Vec<WebGLContextId>,
+        completed_sender: WebGLSender<()>,
     ) {
-        let info = self.cached_context_info.get_mut(&context_id).unwrap();
-        let webrender_api = &self.webrender_api;
+        for context_id in context_ids {
+            let info = self.cached_context_info.get_mut(&context_id).unwrap();
+            let webrender_api = &self.webrender_api;
 
-        let image_key = match info.share_mode {
-            WebGLContextShareMode::SharedTexture => {
-                let size = info.size;
-                let alpha = info.alpha;
-                // Reuse existing ImageKey or generate a new one.
-                // When using a shared texture ImageKeys are only generated after a WebGLContext creation.
-                *info.image_key.get_or_insert_with(|| {
-                    Self::create_wr_external_image(webrender_api, size, alpha, context_id)
-                })
-            },
-            WebGLContextShareMode::Readback => {
+            if let WebGLContextShareMode::Readback = info.share_mode {
                 let pixels = Self::raw_pixels(&self.contexts[&context_id].ctx, info.size);
-                match info.image_key.clone() {
-                    Some(image_key) => {
-                        // ImageKey was already created, but WR Images must
-                        // be updated every frame in readback mode to send the new raw pixels.
-                        Self::update_wr_readback_image(
-                            webrender_api,
-                            info.size,
-                            info.alpha,
-                            image_key,
-                            pixels,
-                        );
+                // WR Images must be updated every frame in readback mode to send the new raw pixels.
+                Self::update_wr_readback_image(
+                    webrender_api,
+                    info.size,
+                    info.alpha,
+                    info.image_key,
+                    pixels,
+                );
+            }
 
-                        image_key
-                    },
-                    None => {
-                        // Generate a new ImageKey for Readback mode.
-                        let image_key = Self::create_wr_readback_image(
-                            webrender_api,
-                            info.size,
-                            info.alpha,
-                            pixels,
-                        );
-                        info.image_key = Some(image_key);
-                        image_key
-                    },
-                }
-            },
-        };
+            if !info.preserve_drawing_buffer {
+                info.clear_required = true;
+            }
+        }
 
-        // Send the ImageKey to the Layout thread.
-        sender.send(image_key).unwrap();
+        let _ = completed_sender.send(());
     }
 
     fn handle_dom_to_texture(&mut self, command: DOMToTextureCommand) {
@@ -875,13 +906,17 @@ struct WebGLContextInfo {
     /// True if the WebGLContext uses an alpha channel.
     alpha: bool,
     /// Currently used WebRender image key.
-    image_key: Option<webrender_api::ImageKey>,
+    image_key: webrender_api::ImageKey,
     /// The sharing mode used to send the image to WebRender.
     share_mode: WebGLContextShareMode,
     /// GLSync Object used for a correct synchronization with Webrender external image callbacks.
     gl_sync: Option<gl::GLsync>,
     /// The status of this context with respect to external consumers.
     render_state: ContextRenderState,
+    /// Should the drawing buffer be preserved between frames?
+    preserve_drawing_buffer: bool,
+    /// Does the canvas need to be cleared before executing further WebGL commands?
+    clear_required: bool,
 }
 
 /// Data about the linked DOM<->WebGLTexture elements.

@@ -81,7 +81,6 @@ use std::cell::Cell;
 use std::cmp;
 use std::ptr::{self, NonNull};
 use std::rc::Rc;
-use webrender_api::ImageKey;
 
 // From the GLES 2.0.25 spec, page 85:
 //
@@ -130,7 +129,7 @@ pub struct WebGLRenderingContext {
     #[ignore_malloc_size_of = "Channels are hard"]
     webgl_sender: WebGLMessageSender,
     #[ignore_malloc_size_of = "Defined in webrender"]
-    webrender_image: Cell<Option<webrender_api::ImageKey>>,
+    webrender_image: webrender_api::ImageKey,
     share_mode: WebGLContextShareMode,
     webgl_version: WebGLVersion,
     glsl_version: WebGLSLVersion,
@@ -195,7 +194,7 @@ impl WebGLRenderingContext {
                     ctx_data.sender,
                     window.get_event_loop_waker(),
                 ),
-                webrender_image: Cell::new(None),
+                webrender_image: ctx_data.image_key,
                 share_mode: ctx_data.share_mode,
                 webgl_version,
                 glsl_version: ctx_data.glsl_version,
@@ -453,13 +452,17 @@ impl WebGLRenderingContext {
     }
 
     fn mark_as_dirty(&self) {
-        // If we don't have a bound framebuffer, then don't mark the canvas
-        // as dirty.
-        if self.bound_framebuffer.get().is_none() {
-            self.canvas
-                .upcast::<Node>()
-                .dirty(NodeDamage::OtherNodeDamage);
+        // If we have a bound framebuffer, then don't mark the canvas as dirty.
+        if self.bound_framebuffer.get().is_some() {
+            return;
         }
+
+        self.canvas
+            .upcast::<Node>()
+            .dirty(NodeDamage::OtherNodeDamage);
+
+        let document = document_from_node(&*self.canvas);
+        document.add_dirty_canvas(self.context_id());
     }
 
     fn vertex_attrib(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
@@ -808,26 +811,7 @@ impl WebGLRenderingContext {
     }
 
     pub fn layout_handle(&self) -> webrender_api::ImageKey {
-        match self.share_mode {
-            WebGLContextShareMode::SharedTexture => {
-                // WR using ExternalTexture requires a single update message.
-                self.webrender_image.get().unwrap_or_else(|| {
-                    let (sender, receiver) = webgl_channel().unwrap();
-                    self.webgl_sender.send_update_wr_image(sender).unwrap();
-                    let image_key = receiver.recv().unwrap();
-                    self.webrender_image.set(Some(image_key));
-
-                    image_key
-                })
-            },
-            WebGLContextShareMode::Readback => {
-                // WR using Readback requires to update WR image every frame
-                // in order to send the new raw pixels.
-                let (sender, receiver) = webgl_channel().unwrap();
-                self.webgl_sender.send_update_wr_image(sender).unwrap();
-                receiver.recv().unwrap()
-            },
-        }
+        self.webrender_image
     }
 
     // https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
@@ -4436,10 +4420,6 @@ impl WebGLMessageSender {
 
     pub fn send_remove(&self) -> WebGLSendResult {
         self.wake_after_send(|| self.sender.send_remove())
-    }
-
-    pub fn send_update_wr_image(&self, sender: WebGLSender<ImageKey>) -> WebGLSendResult {
-        self.wake_after_send(|| self.sender.send_update_wr_image(sender))
     }
 
     pub fn send_dom_to_texture(&self, command: DOMToTextureCommand) -> WebGLSendResult {
