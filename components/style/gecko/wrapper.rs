@@ -44,6 +44,8 @@ use crate::gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentLWThe
 use crate::gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::nsChangeHint;
+#[cfg(feature = "moz_xbl")]
+use crate::gecko_bindings::structs::nsXBLBinding as RawGeckoXBLBinding;
 use crate::gecko_bindings::structs::Document_DocumentTheme as DocumentTheme;
 use crate::gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use crate::gecko_bindings::structs::ELEMENT_HANDLED_SNAPSHOT;
@@ -53,9 +55,7 @@ use crate::gecko_bindings::structs::ELEMENT_HAS_SNAPSHOT;
 use crate::gecko_bindings::structs::NODE_DESCENDANTS_NEED_FRAMES;
 use crate::gecko_bindings::structs::NODE_NEEDS_FRAME;
 use crate::gecko_bindings::structs::{nsAtom, nsIContent, nsINode_BooleanFlag};
-use crate::gecko_bindings::structs::{
-    nsINode as RawGeckoNode, nsXBLBinding as RawGeckoXBLBinding, Element as RawGeckoElement,
-};
+use crate::gecko_bindings::structs::{nsINode as RawGeckoNode, Element as RawGeckoElement};
 use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasSimpleFFI};
 use crate::global_style_data::GLOBAL_STYLE_DATA;
 use crate::hash::FxHashMap;
@@ -86,6 +86,8 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::mem;
 use std::ptr;
+#[cfg(not(feature = "moz_xbl"))]
+use values::Impossible;
 
 #[inline]
 fn elements_with_id<'a, 'le>(
@@ -529,9 +531,11 @@ impl<'a> Iterator for GeckoChildrenIterator<'a> {
 }
 
 /// A Simple wrapper over a non-null Gecko `nsXBLBinding` pointer.
+#[cfg(feature = "moz_xbl")]
 #[derive(Clone, Copy)]
 pub struct GeckoXBLBinding<'lb>(pub &'lb RawGeckoXBLBinding);
 
+#[cfg(feature = "moz_xbl")]
 impl<'lb> GeckoXBLBinding<'lb> {
     #[inline]
     fn base_binding(&self) -> Option<Self> {
@@ -553,6 +557,22 @@ impl<'lb> GeckoXBLBinding<'lb> {
             }
             binding = binding.base_binding()?;
         }
+    }
+}
+
+/// A stub wraper for GeckoXBLBinding.
+#[cfg(not(feature = "moz_xbl"))]
+pub struct GeckoXBLBinding<'lb>(&'lb Impossible);
+
+#[cfg(not(feature = "moz_xbl"))]
+impl<'lb> GeckoXBLBinding<'lb> {
+    #[inline]
+    fn anon_content(&self) -> *const nsIContent {
+        match *self.0 {}
+    }
+
+    fn binding_with_content(&self) -> Option<Self> {
+        None
     }
 }
 
@@ -681,11 +701,13 @@ impl<'le> GeckoElement<'le> {
         })
     }
 
+    #[cfg(feature = "moz_xbl")]
     #[inline]
     fn may_be_in_binding_manager(&self) -> bool {
         self.flags() & (structs::NODE_MAY_BE_IN_BINDING_MNGR as u32) != 0
     }
 
+    #[cfg(feature = "moz_xbl")]
     #[inline]
     fn xbl_binding(&self) -> Option<GeckoXBLBinding<'le>> {
         if !self.may_be_in_binding_manager() {
@@ -694,6 +716,12 @@ impl<'le> GeckoElement<'le> {
 
         let slots = self.extended_slots()?;
         unsafe { slots.mXBLBinding.mRawPtr.as_ref().map(GeckoXBLBinding) }
+    }
+
+    #[cfg(not(feature = "moz_xbl"))]
+    #[inline]
+    fn xbl_binding(&self) -> Option<GeckoXBLBinding<'le>> {
+        None
     }
 
     #[inline]

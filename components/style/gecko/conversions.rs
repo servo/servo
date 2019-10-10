@@ -187,10 +187,11 @@ pub mod basic_shape {
 
     impl<'a> From<&'a StyleShapeSource> for OffsetPath {
         fn from(other: &'a StyleShapeSource) -> Self {
+            use crate::values::generics::motion::GenericOffsetPath;
             match other.mType {
-                StyleShapeSourceType::Path => {
-                    OffsetPath::Path(other.to_svg_path().expect("Cannot convert to SVGPathData"))
-                },
+                StyleShapeSourceType::Path => GenericOffsetPath::Path(
+                    other.to_svg_path().expect("Cannot convert to SVGPathData"),
+                ),
                 StyleShapeSourceType::None => OffsetPath::none(),
                 StyleShapeSourceType::Shape |
                 StyleShapeSourceType::Box |

@@ -15,10 +15,13 @@ use crate::values::generics::image::{
     self as generic, Circle, Ellipse, GradientCompatMode, ShapeExtent,
 };
 use crate::values::generics::position::Position as GenericPosition;
+use crate::values::generics::NonNegative;
 use crate::values::specified::position::{HorizontalPositionKeyword, VerticalPositionKeyword};
 use crate::values::specified::position::{Position, PositionComponent, Side};
 use crate::values::specified::url::SpecifiedImageUrl;
-use crate::values::specified::{Angle, Color, Length, LengthPercentage};
+use crate::values::specified::{
+    Angle, Color, Length, LengthPercentage, NonNegativeLength, NonNegativeLengthPercentage,
+};
 use crate::values::specified::{Number, NumberOrPercentage, Percentage};
 use crate::Atom;
 use cssparser::{Delimiter, Parser, Token};
@@ -54,7 +57,14 @@ pub type Image = generic::Image<Gradient, MozImageRect, SpecifiedImageUrl>;
 
 /// Specified values for a CSS gradient.
 /// <https://drafts.csswg.org/css-images/#gradients>
-pub type Gradient = generic::Gradient<LineDirection, Length, LengthPercentage, Position, Color>;
+pub type Gradient = generic::Gradient<
+    LineDirection,
+    LengthPercentage,
+    NonNegativeLength,
+    NonNegativeLengthPercentage,
+    Position,
+    Color,
+>;
 
 impl SpecifiedValueInfo for Gradient {
     const SUPPORTED_TYPES: u8 = CssType::GRADIENT;
@@ -80,7 +90,8 @@ impl SpecifiedValueInfo for Gradient {
 }
 
 /// A specified gradient kind.
-pub type GradientKind = generic::GradientKind<LineDirection, Length, LengthPercentage, Position>;
+pub type GradientKind =
+    generic::GradientKind<LineDirection, NonNegativeLength, NonNegativeLengthPercentage, Position>;
 
 /// A specified gradient line direction.
 ///
@@ -98,7 +109,7 @@ pub enum LineDirection {
 }
 
 /// A specified ending shape.
-pub type EndingShape = generic::EndingShape<Length, LengthPercentage>;
+pub type EndingShape = generic::EndingShape<NonNegativeLength, NonNegativeLengthPercentage>;
 
 /// A specified gradient item.
 pub type GradientItem = generic::GradientItem<Color, LengthPercentage>;
@@ -391,11 +402,11 @@ impl Gradient {
             "radial" => {
                 let first_point = Point::parse(context, input)?;
                 input.expect_comma()?;
-                let first_radius = Number::parse(context, input)?;
+                let first_radius = Number::parse_non_negative(context, input)?;
                 input.expect_comma()?;
                 let second_point = Point::parse(context, input)?;
                 input.expect_comma()?;
-                let second_radius = Number::parse(context, input)?;
+                let second_radius = Number::parse_non_negative(context, input)?;
 
                 let (reverse_stops, point, radius) = if second_radius.value >= first_radius.value {
                     (false, second_point, second_radius)
@@ -403,7 +414,7 @@ impl Gradient {
                     (true, first_point, first_radius)
                 };
 
-                let rad = Circle::Radius(Length::from_px(radius.value));
+                let rad = Circle::Radius(NonNegative(Length::from_px(radius.value)));
                 let shape = generic::EndingShape::Circle(rad);
                 let position: Position = point.into();
 
@@ -678,7 +689,7 @@ impl EndingShape {
                 return Ok(generic::EndingShape::Circle(Circle::Extent(extent)));
             }
             if compat_mode == GradientCompatMode::Modern {
-                if let Ok(length) = input.try(|i| Length::parse(context, i)) {
+                if let Ok(length) = input.try(|i| NonNegativeLength::parse(context, i)) {
                     return Ok(generic::EndingShape::Circle(Circle::Radius(length)));
                 }
             }
@@ -692,8 +703,8 @@ impl EndingShape {
             }
             if compat_mode == GradientCompatMode::Modern {
                 let pair: Result<_, ParseError> = input.try(|i| {
-                    let x = LengthPercentage::parse(context, i)?;
-                    let y = LengthPercentage::parse(context, i)?;
+                    let x = NonNegativeLengthPercentage::parse(context, i)?;
+                    let y = NonNegativeLengthPercentage::parse(context, i)?;
                     Ok((x, y))
                 });
                 if let Ok((x, y)) = pair {
@@ -704,24 +715,24 @@ impl EndingShape {
                 ShapeExtent::FarthestCorner,
             )));
         }
-        if let Ok(length) = input.try(|i| Length::parse(context, i)) {
-            if let Ok(y) = input.try(|i| LengthPercentage::parse(context, i)) {
+        if let Ok(length) = input.try(|i| NonNegativeLength::parse(context, i)) {
+            if let Ok(y) = input.try(|i| NonNegativeLengthPercentage::parse(context, i)) {
                 if compat_mode == GradientCompatMode::Modern {
                     let _ = input.try(|i| i.expect_ident_matching("ellipse"));
                 }
                 return Ok(generic::EndingShape::Ellipse(Ellipse::Radii(
-                    length.into(),
+                    NonNegative(LengthPercentage::from(length.0)),
                     y,
                 )));
             }
             if compat_mode == GradientCompatMode::Modern {
                 let y = input.try(|i| {
                     i.expect_ident_matching("ellipse")?;
-                    LengthPercentage::parse(context, i)
+                    NonNegativeLengthPercentage::parse(context, i)
                 });
                 if let Ok(y) = y {
                     return Ok(generic::EndingShape::Ellipse(Ellipse::Radii(
-                        length.into(),
+                        NonNegative(LengthPercentage::from(length.0)),
                         y,
                     )));
                 }
@@ -731,8 +742,8 @@ impl EndingShape {
             return Ok(generic::EndingShape::Circle(Circle::Radius(length)));
         }
         input.try(|i| {
-            let x = Percentage::parse(context, i)?;
-            let y = if let Ok(y) = i.try(|i| LengthPercentage::parse(context, i)) {
+            let x = Percentage::parse_non_negative(context, i)?;
+            let y = if let Ok(y) = i.try(|i| NonNegativeLengthPercentage::parse(context, i)) {
                 if compat_mode == GradientCompatMode::Modern {
                     let _ = i.try(|i| i.expect_ident_matching("ellipse"));
                 }
@@ -741,9 +752,12 @@ impl EndingShape {
                 if compat_mode == GradientCompatMode::Modern {
                     i.expect_ident_matching("ellipse")?;
                 }
-                LengthPercentage::parse(context, i)?
+                NonNegativeLengthPercentage::parse(context, i)?
             };
-            Ok(generic::EndingShape::Ellipse(Ellipse::Radii(x.into(), y)))
+            Ok(generic::EndingShape::Ellipse(Ellipse::Radii(
+                NonNegative(LengthPercentage::from(x)),
+                y,
+            )))
         })
     }
 }

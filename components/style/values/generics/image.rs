@@ -73,9 +73,21 @@ pub use self::GenericImage as Image;
 /// <https://drafts.csswg.org/css-images/#gradients>
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
 #[repr(C)]
-pub struct GenericGradient<LineDirection, Length, LengthPercentage, Position, Color> {
+pub struct GenericGradient<
+    LineDirection,
+    LengthPercentage,
+    NonNegativeLength,
+    NonNegativeLengthPercentage,
+    Position,
+    Color,
+> {
     /// Gradients can be linear or radial.
-    pub kind: GenericGradientKind<LineDirection, Length, LengthPercentage, Position>,
+    pub kind: GenericGradientKind<
+        LineDirection,
+        NonNegativeLength,
+        NonNegativeLengthPercentage,
+        Position,
+    >,
     /// The color stops and interpolation hints.
     pub items: crate::OwnedSlice<GenericGradientItem<Color, LengthPercentage>>,
     /// True if this is a repeating gradient.
@@ -101,11 +113,19 @@ pub enum GradientCompatMode {
 /// A gradient kind.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
 #[repr(C, u8)]
-pub enum GenericGradientKind<LineDirection, Length, LengthPercentage, Position> {
+pub enum GenericGradientKind<
+    LineDirection,
+    NonNegativeLength,
+    NonNegativeLengthPercentage,
+    Position,
+> {
     /// A linear gradient.
     Linear(LineDirection),
     /// A radial gradient.
-    Radial(GenericEndingShape<Length, LengthPercentage>, Position),
+    Radial(
+        GenericEndingShape<NonNegativeLength, NonNegativeLengthPercentage>,
+        Position,
+    ),
 }
 
 pub use self::GenericGradientKind as GradientKind;
@@ -115,11 +135,11 @@ pub use self::GenericGradientKind as GradientKind;
     Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
 )]
 #[repr(C, u8)]
-pub enum GenericEndingShape<Length, LengthPercentage> {
+pub enum GenericEndingShape<NonNegativeLength, NonNegativeLengthPercentage> {
     /// A circular gradient.
-    Circle(GenericCircle<Length>),
+    Circle(GenericCircle<NonNegativeLength>),
     /// An elliptic gradient.
-    Ellipse(GenericEllipse<LengthPercentage>),
+    Ellipse(GenericEllipse<NonNegativeLengthPercentage>),
 }
 
 pub use self::GenericEndingShape as EndingShape;
@@ -127,9 +147,9 @@ pub use self::GenericEndingShape as EndingShape;
 /// A circle shape.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
 #[repr(C, u8)]
-pub enum GenericCircle<Length> {
+pub enum GenericCircle<NonNegativeLength> {
     /// A circle radius.
-    Radius(Length),
+    Radius(NonNegativeLength),
     /// A circle extent.
     Extent(ShapeExtent),
 }
@@ -141,9 +161,9 @@ pub use self::GenericCircle as Circle;
     Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
 )]
 #[repr(C, u8)]
-pub enum GenericEllipse<LengthPercentage> {
+pub enum GenericEllipse<NonNegativeLengthPercentage> {
     /// An ellipse pair of radii.
-    Radii(LengthPercentage, LengthPercentage),
+    Radii(NonNegativeLengthPercentage, NonNegativeLengthPercentage),
     /// An ellipse extent.
     Extent(ShapeExtent),
 }
@@ -314,11 +334,12 @@ where
     }
 }
 
-impl<D, L, LoP, P, C> ToCss for Gradient<D, L, LoP, P, C>
+impl<D, LP, NL, NLP, P, C> ToCss for Gradient<D, LP, NL, NLP, P, C>
 where
     D: LineDirection,
-    L: ToCss,
-    LoP: ToCss,
+    LP: ToCss,
+    NL: ToCss,
+    NLP: ToCss,
     P: ToCss,
     C: ToCss,
 {

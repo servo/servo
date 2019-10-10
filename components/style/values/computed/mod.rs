@@ -577,7 +577,16 @@ impl From<GreaterThanOrEqualToOneNumber> for CSSFloat {
 
 #[allow(missing_docs)]
 #[derive(
-    Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq, ToCss, ToResolvedValue,
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    ToAnimatedZero,
+    ToCss,
+    ToResolvedValue,
 )]
 #[repr(C, u8)]
 pub enum NumberOrPercentage {

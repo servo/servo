@@ -5,12 +5,11 @@
 //! Computed types for CSS values that are related to motion path.
 
 use crate::values::computed::Angle;
+use crate::values::generics::motion::GenericOffsetPath;
 use crate::Zero;
 
-/// A computed offset-path. The computed value is as specified value.
-///
-/// https://drafts.fxtf.org/motion-1/#offset-path-property
-pub use crate::values::specified::motion::OffsetPath;
+/// The computed value of `offset-path`.
+pub type OffsetPath = GenericOffsetPath<Angle>;
 
 #[inline]
 fn is_auto_zero_angle(auto: &bool, angle: &Angle) -> bool {

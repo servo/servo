@@ -1793,7 +1793,7 @@ impl ToCss for PropertyId {
 }
 
 /// The counted unknown property list which is used for css use counters.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, PartialEq)]
 #[repr(u8)]
 pub enum CountedUnknownProperty {
     % for prop in data.counted_unknown_properties:
@@ -1819,16 +1819,6 @@ impl CountedUnknownProperty {
     pub fn bit(self) -> usize {
         self as usize
     }
-}
-
-#[cfg(feature = "gecko")]
-fn is_counted_unknown_use_counters_enabled() -> bool {
-    static_prefs::pref!("layout.css.use-counters-unimplemented.enabled")
-}
-
-#[cfg(feature = "servo")]
-fn is_counted_unknown_use_counters_enabled() -> bool {
-    false
 }
 
 impl PropertyId {
@@ -1890,10 +1880,8 @@ impl PropertyId {
                 StaticId::LonghandAlias(id, alias) => PropertyId::LonghandAlias(id, alias),
                 StaticId::ShorthandAlias(id, alias) => PropertyId::ShorthandAlias(id, alias),
                 StaticId::CountedUnknown(unknown_prop) => {
-                    if is_counted_unknown_use_counters_enabled() {
-                        if let Some(counters) = use_counters {
-                            counters.counted_unknown_properties.record(unknown_prop);
-                        }
+                    if let Some(counters) = use_counters {
+                        counters.counted_unknown_properties.record(unknown_prop);
                     }
 
                     // Always return Err(()) because these aren't valid custom property names.

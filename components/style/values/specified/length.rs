@@ -704,14 +704,14 @@ impl Parse for NonNegativeLength {
 impl From<NoCalcLength> for NonNegativeLength {
     #[inline]
     fn from(len: NoCalcLength) -> Self {
-        NonNegative::<Length>(Length::NoCalc(len))
+        NonNegative(Length::NoCalc(len))
     }
 }
 
 impl From<Length> for NonNegativeLength {
     #[inline]
     fn from(len: Length) -> Self {
-        NonNegative::<Length>(len)
+        NonNegative(len)
     }
 }
 

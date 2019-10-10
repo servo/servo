@@ -29,6 +29,7 @@ pub mod font;
 pub mod grid;
 pub mod image;
 pub mod length;
+pub mod motion;
 pub mod position;
 pub mod rect;
 pub mod size;
