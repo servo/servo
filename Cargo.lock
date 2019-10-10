@@ -2288,11 +2288,11 @@ dependencies = [
 
 [[package]]
 name = "iovec"
-version = "0.1.3"
-source = "git+https://github.com/servo/iovec.git?branch=servo#538decd188e46e74844c93c0cc987c2be38b3700"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2b3ea6ff95e175473f8ffe6a7eb7c00d054240321b84c57051175fe3c1e075e"
 dependencies = [
  "libc",
- "winapi",
 ]
 
 [[package]]
