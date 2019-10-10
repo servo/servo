@@ -151,8 +151,7 @@ dependencies = [
 [[package]]
 name = "autocfg"
 version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b671c8fb71b457dd4ae18c4ba1e59aa81793daacc361d82fcd410cef0d491875"
+source = "git+https://github.com/servo/autocfg?branch=rustflags#d040e25ff6c129189306011f6a0ff210e08227a0"
 
 [[package]]
 name = "azure"
