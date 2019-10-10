@@ -13,6 +13,7 @@
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
         <script src="support/parsing-utils.js"></script>
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
     </head>
     <body>
         <div id="log"></div>
@@ -21,6 +22,7 @@
             // fixed units: cm, mm, in, px, pt, pc
             // percentage unit: %
             // zero length: 0
+            setup({explicit_done: true});
             var basic_shape_args_tests = [
                 {
                   "name": "0-valued",
@@ -53,10 +55,17 @@
                   "expected_computed": "polygon(1% 2%)"
                 }
             ];
+
             generate_tests( ParsingUtils.testInlineStyle,
                             ParsingUtils.buildTestCases(basic_shape_args_tests, "inline") );
-            generate_tests( ParsingUtils.testComputedStyle,
-                            ParsingUtils.buildTestCases(basic_shape_args_tests, "computed") );
+            ParsingUtils.setupFonts();
+            document.fonts.ready.then(()=> {
+                generate_tests( ParsingUtils.testComputedStyle,
+                                ParsingUtils.buildTestCases(basic_shape_args_tests, "computed") );
+                ParsingUtils.restoreFonts();
+                done();
+            });
+
         </script>
     </body>
 </html>

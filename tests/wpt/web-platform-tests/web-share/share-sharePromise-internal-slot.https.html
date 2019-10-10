@@ -10,21 +10,27 @@
     <script src="/resources/testdriver-vendor.js"></script>
   </head>
   <body>
+    <button>
     <script>
+      setup({ allow_uncaught_exception:true });
       promise_test(async t => {
-        const [, promise2, promise3] = await test_driver.bless(
-          "share needs user activation",
-          () => {
-            return [
+        const button = document.querySelector("button");
+        const p = new Promise(r => {
+          button.onclick = () => {
+            const promises = [];
+            promises.push(
               navigator.share({ title: "should be pending" }),
               navigator.share({ title: "should reject" }),
-              navigator.share({ title: "should also reject" }),
-            ];
-          }
-        );
+              navigator.share({ title: "should also reject" })
+            );
+            r(promises);
+          };
+        });
+        test_driver.click(button);
+        const [, promise2, promise3] = await p;
         await Promise.all([
           promise_rejects(t, "InvalidStateError", promise2),
-          promise_rejects(t, "InvalidStateError", promise3),
+          promise_rejects(t, "InvalidStateError", promise3)
         ]);
       }, "Only allow one share call at a time, which is controlled by the [[sharePromise]] internal slot.");
     </script>

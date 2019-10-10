@@ -108,11 +108,11 @@ function block_vertical_rl(t) {
   const elements = createTestDOM(true, 'vertical-rl', 'ltr');
   const animation = createAndPlayTestAnimation(elements, 'block');
 
-  // Move the scroller to the 75% point. Since it is vertical-rl, this is
-  // equivalent to the 25% point for the ScrollTimeline.
+  // Move the scroller to the left 25% point, since it is vertical-rl,
+  // i.e leftwards overflow direction, scrollLeft is -25% point.
   const maxScroll =
       elements.scroller.scrollWidth - elements.scroller.clientWidth;
-  elements.scroller.scrollLeft = 0.75 * maxScroll;
+  elements.scroller.scrollLeft = -0.25 * maxScroll;
 
   waitForNotNullLocalTime(animation).then(t.step_func_done(() => {
     assert_equals(
@@ -124,11 +124,11 @@ function inline_horizontal_tb_rtl(t) {
   const elements = createTestDOM(true, 'horizontal-tb', 'rtl');
   const animation = createAndPlayTestAnimation(elements, 'inline');
 
-  // Move the scroller to the 75% point. Since it is direction: rtl, this is
-  // equivalent to the 25% point for the ScrollTimeline.
+  // Move the scroller to the left 25% point, since it is direction: rtl,
+  // i.e leftwards overflow direction, scrollLeft is -25% point.
   const maxScroll =
       elements.scroller.scrollWidth - elements.scroller.clientWidth;
-  elements.scroller.scrollLeft = 0.75 * maxScroll;
+  elements.scroller.scrollLeft = -0.25 * maxScroll;
 
   waitForNotNullLocalTime(animation).then(t.step_func_done(() => {
     assert_equals(
@@ -155,11 +155,11 @@ function inline_vertical_writing_mode_rtl(t) {
   const elements = createTestDOM(false, 'vertical-lr', 'rtl');
   const animation = createAndPlayTestAnimation(elements, 'inline');
 
-  // Move the scroller to the 75% point. Since this is a vertical writing mode
-  // and direction: rtl, this is 25% of the ScrollTimeline currentTime.
+  // Move the scroller to the top 25% point, since it is a vertical-lr writing mode
+  // and direction: rtl, i.e upwards overflow direction, scrollTop is -25% point.
   const maxScroll =
       elements.scroller.scrollHeight - elements.scroller.clientHeight;
-  elements.scroller.scrollTop = 0.75 * maxScroll;
+  elements.scroller.scrollTop = -0.25 * maxScroll;
 
   waitForNotNullLocalTime(animation).then(t.step_func_done(() => {
     assert_equals(

@@ -13,14 +13,21 @@
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
         <script src="support/parsing-utils.js"></script>
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
     </head>
     <body>
         <div id="log"></div>
         <script type="text/javascript">
+            setup({explicit_done: true});
             generate_tests( ParsingUtils.testInlineStyle,
                             ParsingUtils.buildPositionTests("circle", true, 'lengthUnit + inline', ParsingUtils.validUnits) );
-            generate_tests( ParsingUtils.testComputedStyle,
-                            ParsingUtils.buildPositionTests("circle", true, 'lengthUnit + computed', ParsingUtils.validUnits) );
+            ParsingUtils.setupFonts();
+            document.fonts.ready.then(()=> {
+                generate_tests( ParsingUtils.testComputedStyle,
+                                ParsingUtils.buildPositionTests("circle", true, 'lengthUnit + computed', ParsingUtils.validUnits) );
+                ParsingUtils.restoreFonts();
+                done();
+            });
         </script>
     </body>
 </html>
