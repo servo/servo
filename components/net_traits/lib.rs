@@ -558,7 +558,9 @@ impl ResourceFetchTiming {
             ResourceAttribute::FetchStart => self.fetch_start = precise_time_ns(),
             ResourceAttribute::ConnectStart(val) => self.connect_start = val,
             ResourceAttribute::ConnectEnd(val) => self.connect_end = val,
-            ResourceAttribute::SecureConnectionStart => self.secure_connection_start = precise_time_ns(),
+            ResourceAttribute::SecureConnectionStart => {
+                self.secure_connection_start = precise_time_ns()
+            },
             ResourceAttribute::ResponseEnd => self.response_end = precise_time_ns(),
         }
     }

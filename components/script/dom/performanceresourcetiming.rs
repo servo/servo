@@ -251,9 +251,4 @@ impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
     fn ResponseEnd(&self) -> DOMHighResTimeStamp {
         Finite::wrap(self.response_end)
     }
-
-    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-secureconnectionstart
-    fn SecureConnectionStart(&self) -> DOMHighResTimeStamp {
-        Finite::wrap(self.secure_connection_start)
-    }
 }
