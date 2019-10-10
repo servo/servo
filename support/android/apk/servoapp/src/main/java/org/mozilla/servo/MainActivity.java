@@ -23,6 +23,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.util.Log;
 
+//import org.mozilla.servo.MediaSessionCallback;
+
 import org.mozilla.servoview.ServoView;
 import org.mozilla.servoview.Servo;
 
@@ -41,6 +43,7 @@ public class MainActivity extends Activity implements Servo.Client {
     ProgressBar mProgressBar;
     TextView mIdleText;
     boolean mCanGoBack;
+    // MediaSession mSession;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -217,4 +220,18 @@ public class MainActivity extends Activity implements Servo.Client {
             super.onBackPressed();
         }
     }
+
+    @Override
+    public void onMediaSessionMetadata(String title, String artist, String album) {
+      Log.d("SERVOMEDIA", "METADATA");
+    }
+
+    @Override
+    public void onMediaSessionPlaybackStateChange(int state) {
+      Log.d("SERVOMEDIA", "PLAYBACK STATE CHANGED");
+    }
+
+/*    private void createMediaSession() {
+      mSession = new MediaSession(this, "ServoMediaSession");
+    }*/
 }

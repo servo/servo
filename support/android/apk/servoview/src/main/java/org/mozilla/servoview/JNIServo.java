@@ -109,6 +109,10 @@ public class JNIServo {
         void onHistoryChanged(boolean canGoBack, boolean canGoForward);
 
         void onShutdownComplete();
+
+        void onMediaSessionMetadata(String title, String artist, String album);
+
+        void onMediaSessionPlaybackStateChange(int state);
     }
 }
 

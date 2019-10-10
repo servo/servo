@@ -184,6 +184,10 @@ public class Servo {
         void onHistoryChanged(boolean canGoBack, boolean canGoForward);
 
         void onRedrawing(boolean redrawing);
+
+        void onMediaSessionMetadata(String title, String artist, String album);
+
+        void onMediaSessionPlaybackStateChange(int state);
     }
 
     public interface RunCallback {
@@ -268,6 +272,14 @@ public class Servo {
 
         public void onRedrawing(boolean redrawing) {
             mRunCallback.inUIThread(() -> mClient.onRedrawing(redrawing));
+        }
+
+        public void onMediaSessionMetadata(String title, String artist, String album) {
+            mRunCallback.inUIThread(() -> mClient.onMediaSessionMetadata(title, artist, album));
+        }
+
+        public void onMediaSessionPlaybackStateChange(int state) {
+            mRunCallback.inUIThread(() -> mClient.onMediaSessionPlaybackStateChange(state));
         }
     }
 }
