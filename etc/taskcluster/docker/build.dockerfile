@@ -18,7 +18,6 @@ RUN \
         autoconf2.13 \
         #
         # Bindgen (for SpiderMonkey bindings)
-        clang \
         llvm \
         llvm-dev \
         #

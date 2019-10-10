@@ -19,6 +19,9 @@ RUN \
         python-pip \
         python-dev \
         #
+        # Building native python dependencies
+        clang \
+        #
         # Installing rustup and sccache (build dockerfile) or fetching build artifacts (run tasks)
         curl && \
     # Running mach
