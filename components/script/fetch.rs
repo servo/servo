@@ -239,14 +239,16 @@ impl FetchResponseListener for FetchContext {
                         fill_headers_with_metadata(self.response_object.root(), m);
                         self.response_object.root().set_type(DOMResponseType::Cors);
                     },
-                    FilteredMetadata::Opaque => self
-                        .response_object
-                        .root()
-                        .set_type(DOMResponseType::Opaque),
-                    FilteredMetadata::OpaqueRedirect => self
-                        .response_object
-                        .root()
-                        .set_type(DOMResponseType::Opaqueredirect),
+                    FilteredMetadata::Opaque => {
+                        self.response_object
+                            .root()
+                            .set_type(DOMResponseType::Opaque);
+                    },
+                    FilteredMetadata::OpaqueRedirect => {
+                        self.response_object
+                            .root()
+                            .set_type(DOMResponseType::Opaqueredirect);
+                    },
                 },
             },
         }
