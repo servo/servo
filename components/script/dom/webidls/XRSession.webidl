@@ -15,7 +15,6 @@ callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame)
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
 interface XRSession : EventTarget {
   // // Attributes
-  readonly attribute XRSessionMode mode;
   readonly attribute XREnvironmentBlendMode environmentBlendMode;
 
   // readonly attribute XRVisibilityState visibilityState;

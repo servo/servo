@@ -9,7 +9,6 @@ use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorBinding:
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateInit;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateMethods;
@@ -295,11 +294,6 @@ impl XRSessionMethods for XRSession {
 
     /// https://immersive-web.github.io/webxr/#eventdef-xrsession-selectend
     event_handler!(selectend, GetOnselectend, SetOnselectend);
-
-    /// https://immersive-web.github.io/webxr/#dom-xrsession-mode
-    fn Mode(&self) -> XRSessionMode {
-        XRSessionMode::Immersive_vr
-    }
 
     // https://immersive-web.github.io/webxr/#dom-xrsession-renderstate
     fn RenderState(&self) -> DomRoot<XRRenderState> {
