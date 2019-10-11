@@ -467,7 +467,7 @@ def genTestUtils(TESTOUTPUTDIR, IMAGEOUTPUTDIR, TEMPLATEFILE, NAME2DIRFILE, ISOF
         # Insert our new stylesheet
         n = doc.getElementsByTagName('head')[0].appendChild(doc.createElement('link'))
         n.setAttribute('rel', 'stylesheet')
-        n.setAttribute('href', '../common/canvas-spec.css')
+        n.setAttribute('href', 'resources/canvas-spec.css')
         n.setAttribute('type', 'text/css')
 
         spec_assertion_patterns = []

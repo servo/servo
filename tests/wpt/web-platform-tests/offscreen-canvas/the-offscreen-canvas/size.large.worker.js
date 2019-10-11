@@ -4,7 +4,7 @@
 // Note:<p class="notes">Not sure how reasonable this is, but the spec doesn't say there's an upper limit on the size.
 
 importScripts("/resources/testharness.js");
-importScripts("/common/canvas-tests.js");
+importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("");
 t.step(function() {

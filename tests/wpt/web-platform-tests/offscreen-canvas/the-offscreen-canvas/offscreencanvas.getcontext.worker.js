@@ -1,7 +1,7 @@
 // spec link: https://html.spec.whatwg.org/#dom-offscreencanvas-getcontext
 
 importScripts("/resources/testharness.js");
-importScripts("/common/canvas-tests.js");
+importScripts("/2dcontext/resources/canvas-tests.js");
 
 test(function() {
     var offscreenCanvas = new OffscreenCanvas(1, 1);

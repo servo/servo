@@ -4,7 +4,7 @@
 // Note:
 
 importScripts("/resources/testharness.js");
-importScripts("/common/canvas-tests.js");
+importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("arcTo() with zero radius draws a straight line from P0 to P1, even when all points are collinear");
 t.step(function() {

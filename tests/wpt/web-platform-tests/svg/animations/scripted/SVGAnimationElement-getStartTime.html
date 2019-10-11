@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>SVGAnimationElement.getStartTime() returns the start time of the current interval.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg height="0">
+  <animate attributeName="visibility" begin="1s; 3s" dur="1s"/>
+  <animate attributeName="visibility" begin="1s; 3s" dur="1s" fill="freeze"/>
+</svg>
+<script>
+setup(function() {
+  window.animationElements = document.querySelectorAll('animate');
+  window.timeContainer = document.querySelector('svg');
+});
+
+function checkStartTime(values, t) {
+  assert_equals(animationElements[0].getStartTime(), values[0],
+                'start time @ ' + t);
+  assert_equals(animationElements[1].getStartTime(), values[1],
+                'start time @ ' + t);
+}
+
+function checkHasNoCurrentInterval(t) {
+  assert_throws('InvalidStateError', () => {
+    animationElements[0].getStartTime()
+  }, 'no interval @ ' + t);
+  assert_throws('InvalidStateError', () => {
+    animationElements[1].getStartTime()
+  }, 'no interval @ ' + t);
+}
+
+async_test(t => {
+  timeContainer.pauseAnimations();
+  // Wait for the timeline to start.
+  onload = t.step_func(() => {
+    t.step_timeout(function() {
+      assert_equals(timeContainer.getCurrentTime(), 0);
+      checkStartTime([1, 1], 0);
+      timeContainer.setCurrentTime(1);
+      checkStartTime([1, 1], 1);
+      timeContainer.setCurrentTime(1.5);
+      checkStartTime([1, 1], 1.5);
+      timeContainer.setCurrentTime(2);
+      checkStartTime([3, 3], 2);
+      timeContainer.setCurrentTime(2.5);
+      checkStartTime([3, 3], 2.5);
+      timeContainer.setCurrentTime(3);
+      checkStartTime([3, 3], 3);
+      timeContainer.setCurrentTime(4);
+      checkHasNoCurrentInterval(4);
+      timeContainer.setCurrentTime(5);
+      checkHasNoCurrentInterval(5);
+      t.done();
+    }, 0);
+  });
+});
+</script>
