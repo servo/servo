@@ -68,7 +68,7 @@ PACKAGES = {
         r'target\release\msi\Servo.zip',
     ],
     'uwp': [
-        r'support\hololens\AppPackages\ServoApp\ServoApp_1.0.0.0_Test\ServoApp_1.0.0.0_x64_arm64.appxbundle',
+        r'support\hololens\AppPackages\ServoApp\ServoApp_1.0.0.0_Test.zip',
     ],
 }
 
@@ -766,3 +766,11 @@ def build_uwp(platforms, dev, msbuild_dir):
         # Generate an appxbundle.
         subprocess.check_call([msbuild, "/m", build_file.name])
         os.unlink(build_file.name)
+
+    print("Creating ZIP")
+    out_dir = path.join(os.getcwd(), 'support', 'hololens', 'AppPackages', 'ServoApp')
+    name = 'ServoApp_1.0.0.0_%sTest' % ('Debug_' if dev else '')
+    artifacts_dir = path.join(out_dir, name)
+    zip_path = path.join(out_dir, name + ".zip")
+    archive_deterministically(artifacts_dir, zip_path, prepend_path='servo/')
+    print("Packaged Servo into " + zip_path)
