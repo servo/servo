@@ -48,7 +48,7 @@ use profile_traits::ipc;
 use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
-use webxr_api::{self, Event as XREvent, Frame, SelectEvent, Session};
+use webxr_api::{self, EnvironmentBlendMode, Event as XREvent, Frame, SelectEvent, Session};
 
 #[dom_struct]
 pub struct XRSession {
@@ -84,8 +84,7 @@ impl XRSession {
         XRSession {
             eventtarget: EventTarget::new_inherited(),
             base_layer: Default::default(),
-            // we don't yet support any AR devices
-            blend_mode: XREnvironmentBlendMode::Opaque,
+            blend_mode: session.environment_blend_mode().into(),
             viewer_space: Default::default(),
             session: DomRefCell::new(session),
             frame_requested: Cell::new(false),
@@ -462,4 +461,14 @@ pub fn cast_transform<T, U, V, W>(
     transform: RigidTransform3D<f32, T, U>,
 ) -> RigidTransform3D<f32, V, W> {
     unsafe { mem::transmute(transform) }
+}
+
+impl From<EnvironmentBlendMode> for XREnvironmentBlendMode {
+    fn from(x: EnvironmentBlendMode) -> Self {
+        match x {
+            EnvironmentBlendMode::Opaque => XREnvironmentBlendMode::Opaque,
+            EnvironmentBlendMode::AlphaBlend => XREnvironmentBlendMode::Alpha_blend,
+            EnvironmentBlendMode::Additive => XREnvironmentBlendMode::Additive,
+        }
+    }
 }
