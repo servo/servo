@@ -1755,12 +1755,16 @@ where
                     warn!("No message-port sender for {:?}", info.router);
                 }
             }
+        } else {
+            warn!("Constellation asked to re-route msg to unknown messageport {:?}", port_id);
         }
     }
 
     fn handle_messageport_shipped(&mut self, port_id: MessagePortId) {
         if let Some(info) = self.message_ports.get_mut(&port_id) {
             info.is_being_transferred = true;
+        } else {
+            warn!("Constellation asked to mark unknown messageport as shipped {:?}", port_id);
         }
     }
 
@@ -1812,7 +1816,9 @@ where
     fn handle_remove_messageport(&mut self, port_id: MessagePortId) {
         let entangled = match self.message_ports.remove(&port_id) {
             Some(info) => info.entangled_with,
-            None => return,
+            None => {
+                return warn!("Constellation asked to remove unknown messageport {:?}", port_id);
+            },
         };
         if let Some(id) = entangled {
             if let Some(info) = self.message_ports.get_mut(&id) {
@@ -1828,9 +1834,13 @@ where
     fn handle_entangle_messageports(&mut self, port1: MessagePortId, port2: MessagePortId) {
         if let Some(info) = self.message_ports.get_mut(&port1) {
             info.entangled_with = Some(port2);
+        } else {
+            warn!("Constellation asked to entangle unknow messageport: {:?}", port1);
         }
         if let Some(info) = self.message_ports.get_mut(&port2) {
             info.entangled_with = Some(port1);
+        } else {
+            warn!("Constellation asked to entangle unknow messageport: {:?}", port2);
         }
     }
 
