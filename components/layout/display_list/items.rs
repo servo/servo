@@ -25,10 +25,11 @@ use std::fmt;
 use style::computed_values::_servo_top_layer::T as InTopLayer;
 use webrender_api as wr;
 use webrender_api::units::{LayoutPixel, LayoutPoint, LayoutRect, LayoutSize, LayoutTransform};
-use webrender_api::{BorderRadius, ClipId, ClipMode, CommonItemProperties, ComplexClipRegion};
-use webrender_api::{ExternalScrollId, FilterOp, GlyphInstance, GradientStop, ImageKey};
-use webrender_api::{MixBlendMode, ScrollSensitivity, Shadow, SpatialId};
-use webrender_api::{StickyOffsetBounds, TransformStyle};
+use webrender_api::{
+    BorderRadius, ClipId, ClipMode, CommonItemProperties, ComplexClipRegion, ExternalScrollId,
+    FilterOp, GlyphInstance, GradientStop, ImageKey, MixBlendMode, PrimitiveFlags,
+    ScrollSensitivity, Shadow, SpatialId, StickyOffsetBounds, TransformStyle,
+};
 
 pub use style::dom::OpaqueNode;
 
@@ -451,7 +452,7 @@ pub fn empty_common_item_properties() -> CommonItemProperties {
         clip_id: ClipId::root(wr::PipelineId::dummy()),
         spatial_id: SpatialId::root_scroll_node(wr::PipelineId::dummy()),
         hit_info: None,
-        is_backface_visible: false,
+        flags: PrimitiveFlags::empty(),
     }
 }
 

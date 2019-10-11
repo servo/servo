@@ -172,7 +172,7 @@ impl SurfaceStyle {
         repeat_y: bool,
     ) -> Self {
         Self {
-            surface_data: surface_data.into(),
+            surface_data: ByteBuf::from(surface_data),
             surface_size,
             repeat_x,
             repeat_y,

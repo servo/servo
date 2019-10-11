@@ -34,7 +34,7 @@ hyper_serde = { version = "0.11", optional = true }
 keyboard-types = {version = "0.4.3", optional = true}
 selectors = { path = "../selectors" }
 serde = { version = "1.0.27", optional = true }
-serde_bytes = { version = "0.10", optional = true }
+serde_bytes = { version = "0.11", optional = true }
 servo_arc = { path = "../servo_arc" }
 smallbitvec = "2.3.0"
 smallvec = "0.6"

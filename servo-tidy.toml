@@ -30,14 +30,18 @@ rand = [
 # Ignored packages with duplicated versions
 packages = [
   "cgl",
-  "gl_generator", # https://github.com/servo/servo/pull/23288#issuecomment-494687746
   "gleam",
+  "rand_core",
+  "unicode-xid",
+
+  # https://github.com/servo/servo/pull/23288#issuecomment-494687746
+  "gl_generator",
+
+  # https://github.com/servo/servo/issues/24421
   "proc-macro2",
   "quote",
-  "rand_core",
   "syn",
   "synstructure",
-  "unicode-xid",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
