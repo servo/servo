@@ -125,7 +125,7 @@ impl<'a> CanvasPaintThread<'a> {
             ) => {
                 let data = imagedata.map_or_else(
                     || vec![0; image_size.width as usize * image_size.height as usize * 4],
-                    |bytes| bytes.into(),
+                    |bytes| bytes.into_vec(),
                 );
                 self.canvas(canvas_id).draw_image(
                     data,

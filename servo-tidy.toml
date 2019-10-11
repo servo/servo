@@ -29,12 +29,15 @@ rand = [
 packages = [
   "cgl",
   "cocoa",
-  "gl_generator", # https://github.com/servo/servo/pull/23288#issuecomment-494687746
   "gleam",
+
+  # https://github.com/servo/servo/pull/23288#issuecomment-494687746
+  "gl_generator",
+
+  # https://github.com/servo/servo/issues/24421
   "proc-macro2",
   "quote",
   "syn",
-  "synstructure",
   "unicode-xid",
   "wayland-sys",
 ]

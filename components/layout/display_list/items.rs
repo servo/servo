@@ -25,10 +25,11 @@ use std::fmt;
 use style::computed_values::_servo_top_layer::T as InTopLayer;
 use webrender_api as wr;
 use webrender_api::units::{LayoutPixel, LayoutPoint, LayoutRect, LayoutSize, LayoutTransform};
-use webrender_api::{BorderRadius, ClipId, ClipMode, CommonItemProperties, ComplexClipRegion};
-use webrender_api::{ExternalScrollId, FilterOp, GlyphInstance, GradientStop, ImageKey};
-use webrender_api::{MixBlendMode, ScrollSensitivity, Shadow, SpatialId};
-use webrender_api::{StickyOffsetBounds, TransformStyle};
+use webrender_api::{
+    BorderRadius, ClipId, ClipMode, CommonItemProperties, ComplexClipRegion, ExternalScrollId,
+    FilterOp, GlyphInstance, GradientStop, ImageKey, MixBlendMode, PrimitiveFlags,
+    ScrollSensitivity, Shadow, SpatialId, StickyOffsetBounds, TransformStyle,
+};
 
 pub use style::dom::OpaqueNode;
 
@@ -377,6 +378,7 @@ pub enum DisplayItem {
     Rectangle(Box<CommonDisplayItem<wr::RectangleDisplayItem>>),
     Text(Box<CommonDisplayItem<wr::TextDisplayItem, Vec<GlyphInstance>>>),
     Image(Box<CommonDisplayItem<wr::ImageDisplayItem>>),
+    RepeatingImage(Box<CommonDisplayItem<wr::RepeatingImageDisplayItem>>),
     Border(Box<CommonDisplayItem<wr::BorderDisplayItem, Vec<GradientStop>>>),
     Gradient(Box<CommonDisplayItem<wr::GradientDisplayItem, Vec<GradientStop>>>),
     RadialGradient(Box<CommonDisplayItem<wr::RadialGradientDisplayItem, Vec<GradientStop>>>),
@@ -451,7 +453,7 @@ pub fn empty_common_item_properties() -> CommonItemProperties {
         clip_id: ClipId::root(wr::PipelineId::dummy()),
         spatial_id: SpatialId::root_scroll_node(wr::PipelineId::dummy()),
         hit_info: None,
-        is_backface_visible: false,
+        flags: PrimitiveFlags::empty(),
     }
 }
 
@@ -672,6 +674,7 @@ impl DisplayItem {
             DisplayItem::Rectangle(ref rect) => &rect.base,
             DisplayItem::Text(ref text) => &text.base,
             DisplayItem::Image(ref image_item) => &image_item.base,
+            DisplayItem::RepeatingImage(ref image_item) => &image_item.base,
             DisplayItem::Border(ref border) => &border.base,
             DisplayItem::Gradient(ref gradient) => &gradient.base,
             DisplayItem::RadialGradient(ref gradient) => &gradient.base,
@@ -703,6 +706,7 @@ impl DisplayItem {
             DisplayItem::Rectangle(ref item) => item.item.common.clip_rect,
             DisplayItem::Text(ref item) => item.item.bounds,
             DisplayItem::Image(ref item) => item.item.bounds,
+            DisplayItem::RepeatingImage(ref item) => item.item.bounds,
             DisplayItem::Border(ref item) => item.item.bounds,
             DisplayItem::Gradient(ref item) => item.item.bounds,
             DisplayItem::RadialGradient(ref item) => item.item.bounds,
@@ -739,6 +743,7 @@ impl fmt::Debug for DisplayItem {
                 DisplayItem::Rectangle(_) => "Rectangle",
                 DisplayItem::Text(_) => "Text",
                 DisplayItem::Image(_) => "Image",
+                DisplayItem::RepeatingImage(_) => "RepeatingImage",
                 DisplayItem::Border(_) => "Border",
                 DisplayItem::Gradient(_) => "Gradient",
                 DisplayItem::RadialGradient(_) => "RadialGradient",

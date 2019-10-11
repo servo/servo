@@ -11,10 +11,10 @@ use crate::display_list::items::{BaseDisplayItem, ClipScrollNode, ClipScrollNode
 use crate::display_list::items::{DisplayItem, DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
 use webrender_api::units::LayoutPoint;
-use webrender_api::{self, ClipId, CommonItemProperties, DisplayItem as WrDisplayItem};
-use webrender_api::{DisplayListBuilder, PropertyBinding, PushStackingContextDisplayItem};
 use webrender_api::{
-    RasterSpace, ReferenceFrameKind, SpaceAndClipInfo, SpatialId, StackingContext,
+    self, ClipId, CommonItemProperties, DisplayItem as WrDisplayItem, DisplayListBuilder,
+    PrimitiveFlags, PropertyBinding, PushStackingContextDisplayItem, RasterSpace,
+    ReferenceFrameKind, SpaceAndClipInfo, SpatialId, StackingContext,
 };
 
 struct ClipScrollState {
@@ -119,6 +119,11 @@ impl DisplayItem {
             DisplayItem::Image(ref mut item) => {
                 item.item.common = build_common_item_properties(&item.base, state);
                 builder.push_item(&WrDisplayItem::Image(item.item));
+                IsContentful(true)
+            },
+            DisplayItem::RepeatingImage(ref mut item) => {
+                item.item.common = build_common_item_properties(&item.base, state);
+                builder.push_item(&WrDisplayItem::RepeatingImage(item.item));
                 IsContentful(true)
             },
             DisplayItem::Border(ref mut item) => {
@@ -232,7 +237,7 @@ impl DisplayItem {
                 let wr_item = PushStackingContextDisplayItem {
                     origin: bounds.origin,
                     spatial_id,
-                    is_backface_visible: true,
+                    prim_flags: PrimitiveFlags::default(),
                     stacking_context: StackingContext {
                         transform_style: stacking_context.transform_style,
                         mix_blend_mode: stacking_context.mix_blend_mode,
@@ -331,7 +336,7 @@ fn build_common_item_properties(
         spatial_id: state.active_spatial_id,
         clip_id: state.active_clip_id,
         // TODO(gw): Make use of the WR backface visibility functionality.
-        is_backface_visible: true,
+        flags: PrimitiveFlags::default(),
         hit_info: tag,
     }
 }
