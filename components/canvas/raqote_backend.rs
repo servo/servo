@@ -357,7 +357,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         self.set_transform(matrix);
     }
     fn snapshot(&self) -> SourceSurface {
-        unimplemented!();
+        SourceSurface::Raqote(self.snapshot_data_owned())
     }
     fn stroke(
         &mut self,
