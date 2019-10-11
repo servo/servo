@@ -4,7 +4,7 @@
 // Note:
 
 importScripts("/resources/testharness.js");
-importScripts("/common/canvas-tests.js");
+importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("arcTo() does not draw anything from P1 to P2");
 t.step(function() {

@@ -38,11 +38,11 @@ dictionary RTCIdentityValidationResult {
 };
 
 partial interface RTCPeerConnection {
-    void setIdentityProvider(DOMString provider, optional RTCIdentityProviderOptions options);
-    Promise<DOMString> getIdentityAssertion();
+    void               setIdentityProvider (DOMString provider, optional RTCIdentityProviderOptions options = {});
+    Promise<DOMString> getIdentityAssertion ();
     readonly        attribute Promise<RTCIdentityAssertion> peerIdentity;
-    readonly        attribute DOMString? idpLoginUrl;
-    readonly        attribute DOMString? idpErrorInfo;
+    readonly        attribute DOMString?                    idpLoginUrl;
+    readonly        attribute DOMString?                    idpErrorInfo;
 };
 
 dictionary RTCIdentityProviderOptions {
@@ -51,8 +51,9 @@ dictionary RTCIdentityProviderOptions {
     DOMString peerIdentity;
 };
 
-[Constructor(DOMString idp, DOMString name), Exposed=Window]
+[Exposed=Window]
 interface RTCIdentityAssertion {
+    constructor(DOMString idp, DOMString name);
     attribute DOMString idp;
     attribute DOMString name;
 };
@@ -62,6 +63,6 @@ partial dictionary MediaStreamConstraints {
 };
 
 partial interface MediaStreamTrack {
-    readonly        attribute boolean isolated;
+    readonly        attribute boolean      isolated;
                     attribute EventHandler onisolationchange;
 };

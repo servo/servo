@@ -25,6 +25,19 @@ def fixture_add_browser_capabilities(configuration):
     return add_browser_capabilities
 
 
+@pytest.fixture(name="configuration")
+def fixture_configuration(configuration):
+  """Remove "acceptInsecureCerts" from capabilities if it exists.
+
+  Some browser configurations add acceptInsecureCerts capability by default.
+  Remove it during new_session tests to avoid interference.
+  """
+
+  if "acceptInsecureCerts" in configuration["capabilities"]:
+    configuration = dict(configuration)
+    del configuration["capabilities"]["acceptInsecureCerts"]
+  return configuration
+
 @pytest.fixture(name="new_session")
 def fixture_new_session(request, configuration, current_session):
     """Start a new session for tests which themselves test creating new sessions.

@@ -22,7 +22,7 @@ dictionary TextDecodeOptions {
 interface TextDecoder {
   constructor(optional DOMString label = "utf-8", optional TextDecoderOptions options = {});
 
-  USVString decode(optional BufferSource input, optional TextDecodeOptions options = {});
+  USVString decode(optional [AllowShared] BufferSource input, optional TextDecodeOptions options = {});
 };
 TextDecoder includes TextDecoderCommon;
 
@@ -40,7 +40,7 @@ interface TextEncoder {
   constructor();
 
   [NewObject] Uint8Array encode(optional USVString input = "");
-  TextEncoderEncodeIntoResult encodeInto(USVString source, Uint8Array destination);
+  TextEncoderEncodeIntoResult encodeInto(USVString source, [AllowShared] Uint8Array destination);
 };
 TextEncoder includes TextEncoderCommon;
 

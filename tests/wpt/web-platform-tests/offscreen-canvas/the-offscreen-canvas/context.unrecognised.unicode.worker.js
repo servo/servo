@@ -4,7 +4,7 @@
 // Note:
 
 importScripts("/resources/testharness.js");
-importScripts("/common/canvas-tests.js");
+importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("Context name which kind of looks like \"2d\" is unrecognised");
 t.step(function() {

@@ -4,7 +4,7 @@
 // Note:
 
 importScripts("/resources/testharness.js");
-importScripts("/common/canvas-tests.js");
+importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("Space characters at the start of a line are collapsed (per CSS)");
 t.step(function() {

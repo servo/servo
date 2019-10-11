@@ -4,7 +4,7 @@
 // Note:
 
 importScripts("/resources/testharness.js");
-importScripts("/common/canvas-tests.js");
+importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("fillText works on @font-face fonts");
 t.step(function() {

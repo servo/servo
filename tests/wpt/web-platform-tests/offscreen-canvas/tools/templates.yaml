@@ -4,7 +4,7 @@ w3c: |
     <title>OffscreenCanvas test: %(name)s</title>%(timeout)s
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src="/common/canvas-tests.js"></script>
+    <script src="/2dcontext/resources/canvas-tests.js"></script>
 
     <h1>%(name)s</h1>
     <p class="desc">%(desc)s</p>
@@ -31,7 +31,7 @@ w3cworker: |
     // Note:%(notes)s
 
     importScripts("/resources/testharness.js");
-    importScripts("/common/canvas-tests.js");
+    importScripts("/2dcontext/resources/canvas-tests.js");
 
     var t = async_test("%(escaped_desc)s");
     t.step(function() {

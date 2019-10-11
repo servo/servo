@@ -233,7 +233,8 @@ dictionary RTCPeerConnectionIceEventInit : EventInit {
 [Exposed=Window]
 interface RTCPeerConnectionIceErrorEvent : Event {
   constructor(DOMString type, RTCPeerConnectionIceErrorEventInit eventInitDict);
-  readonly attribute DOMString hostCandidate;
+  readonly attribute DOMString? address;
+  readonly attribute unsigned short? port;
   readonly attribute DOMString url;
   readonly attribute unsigned short errorCode;
   readonly attribute USVString errorText;

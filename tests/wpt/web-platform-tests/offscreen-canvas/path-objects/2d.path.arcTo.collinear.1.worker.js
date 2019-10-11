@@ -4,7 +4,7 @@
 // Note:
 
 importScripts("/resources/testharness.js");
-importScripts("/common/canvas-tests.js");
+importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("arcTo() with all points on a line, and P1 between P0/P2, draws a straight line to P1");
 t.step(function() {

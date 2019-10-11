@@ -128,11 +128,11 @@ function forEachCanvasSource(crossOriginUrl, sameOriginUrl, callback) {
       name: "cross-origin SVGImageElement",
       factory: () => {
         return new Promise((resolve, reject) => {
-          const image = document.createElementNS(NAMESPACES.svg, "image");
+          const image = document.createElementNS("http://www.w3.org/2000/svg", "image");
           image.onload = () => resolve(image);
           image.onerror = reject;
           image.setAttribute("externalResourcesRequired", "true");
-          image.setAttributeNS(NAMESPACES.xlink, 'xlink:href', crossOriginUrl + "/images/red.png");
+          image.setAttributeNS("http://www.w3.org/1999/xlink", 'xlink:href', crossOriginUrl + "/images/red.png");
           document.body.appendChild(image);
         });
       },

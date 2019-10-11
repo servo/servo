@@ -4,7 +4,7 @@
 // Note:
 
 importScripts("/resources/testharness.js");
-importScripts("/common/canvas-tests.js");
+importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("Draw with the font immediately, then wait a bit until and draw again. (This crashes some version of WebKit.)");
 t.step(function() {
