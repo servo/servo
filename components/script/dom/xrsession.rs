@@ -49,7 +49,7 @@ use profile_traits::ipc;
 use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
-use webxr_api::{self, EnvironmentBlendMode, Event as XREvent, Frame, SelectEvent, Session};
+use webxr_api::{self, EnvironmentBlendMode, Event as XREvent, Frame, SelectEvent, Session, Visibility};
 
 #[dom_struct]
 pub struct XRSession {
@@ -213,6 +213,22 @@ impl XRSession {
                     }
                     frame.set_active(false);
                 }
+            },
+            XREvent::VisibilityChange(v) => {
+                let v = match v {
+                    Visibility::Visible => XRVisibilityState::Visible,
+                    Visibility::VisibleBlurred => XRVisibilityState::Visible_blurred,
+                    Visibility::Hidden => XRVisibilityState::Hidden,
+                };
+                self.visibility_state.set(v);
+                let event = XRSessionEvent::new(
+                    &self.global(),
+                    atom!("visibilitychange"),
+                    false,
+                    false,
+                    self,
+                );
+                event.upcast::<Event>().fire(self.upcast());
             },
             _ => (), // XXXManishearth TBD
         }
