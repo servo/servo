@@ -331,7 +331,9 @@ where
                 contents: replaced,
             }),
             Ok(non_replaced) => match display_inside {
-                DisplayInside::Flow => {
+                DisplayInside::Flow |
+                // TODO: Properly implement display: inline-block.
+                DisplayInside::FlowRoot => {
                     // Whatever happened before, we just found an inline level element, so
                     // all we need to do is to remember this ongoing inline level box.
                     self.ongoing_inline_boxes_stack.push(InlineBox {
@@ -349,10 +351,6 @@ where
                         .expect("no ongoing inline level box found");
                     inline_box.last_fragment = true;
                     Arc::new(InlineLevelBox::InlineBox(inline_box))
-                },
-                DisplayInside::FlowRoot => {
-                    // a.k.a. `inline-block`
-                    unimplemented!()
                 },
                 DisplayInside::None | DisplayInside::Contents => panic!(":("),
             },
