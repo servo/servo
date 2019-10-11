@@ -306,7 +306,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         _sigma: f32,
         _operator: CompositionOp,
     ) {
-        unimplemented!();
+        warn!("no support for drawing shadows");
     }
     fn fill(&mut self, path: &Path, pattern: Pattern, draw_options: &DrawOptions) {
         self.fill(
