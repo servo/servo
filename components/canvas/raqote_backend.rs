@@ -180,9 +180,11 @@ impl DrawOptions {
 impl Path {
     pub fn transformed_copy_to_builder(
         &self,
-        _transform: &Transform2D<f32>,
+        transform: &Transform2D<f32>,
     ) -> Box<dyn GenericPathBuilder> {
-        unimplemented!()
+        Box::new(PathBuilder(Some(raqote::PathBuilder::from(
+            self.as_raqote().clone().transform(transform),
+        ))))
     }
 
     pub fn contains_point(&self, x: f64, y: f64, _path_transform: &Transform2D<f32>) -> bool {
@@ -633,11 +635,12 @@ pub trait ToRaqoteGradientStop {
 
 impl ToRaqoteGradientStop for CanvasGradientStop {
     fn to_raqote(&self) -> raqote::GradientStop {
-        let color: u32 = ((self.color.alpha as u32) << 8 * 3 |
-            (self.color.red as u32) << 8 * 2 |
-            (self.color.green as u32) << 8 * 1 |
-            (self.color.blue as u32) << 8 * 0)
-            .into();
+        let color = raqote::Color::new(
+            self.color.alpha,
+            self.color.red,
+            self.color.green,
+            self.color.blue,
+        );
         let position = self.offset as f32;
         raqote::GradientStop { position, color }
     }
