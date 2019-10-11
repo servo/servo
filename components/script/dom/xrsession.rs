@@ -49,7 +49,9 @@ use profile_traits::ipc;
 use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
-use webxr_api::{self, EnvironmentBlendMode, Event as XREvent, Frame, SelectEvent, Session, Visibility};
+use webxr_api::{
+    self, EnvironmentBlendMode, Event as XREvent, Frame, SelectEvent, Session, Visibility,
+};
 
 #[dom_struct]
 pub struct XRSession {
@@ -312,6 +314,13 @@ impl XRSessionMethods for XRSession {
 
     /// https://immersive-web.github.io/webxr/#eventdef-xrsession-selectend
     event_handler!(selectend, GetOnselectend, SetOnselectend);
+
+    /// https://immersive-web.github.io/webxr/#eventdef-xrsession-visibilitychange
+    event_handler!(
+        visibilitychange,
+        GetOnvisibilitychange,
+        SetOnvisibilitychange
+    );
 
     // https://immersive-web.github.io/webxr/#dom-xrsession-renderstate
     fn RenderState(&self) -> DomRoot<XRRenderState> {

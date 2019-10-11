@@ -42,5 +42,5 @@ interface XRSession : EventTarget {
   // attribute EventHandler oninputsourceschange;
   attribute EventHandler onselectstart;
   attribute EventHandler onselectend;
-  // attribute EventHandler onvisibilitychange;
+  attribute EventHandler onvisibilitychange;
 };
