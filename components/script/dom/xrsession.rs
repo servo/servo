@@ -16,6 +16,7 @@ use crate::dom::bindings::codegen::Bindings::XRSessionBinding;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XREnvironmentBlendMode;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
+use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRVisibilityState;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
@@ -55,6 +56,7 @@ pub struct XRSession {
     eventtarget: EventTarget,
     base_layer: MutNullableDom<XRWebGLLayer>,
     blend_mode: XREnvironmentBlendMode,
+    visibility_state: Cell<XRVisibilityState>,
     viewer_space: MutNullableDom<XRSpace>,
     #[ignore_malloc_size_of = "defined in webxr"]
     session: DomRefCell<Session>,
@@ -85,6 +87,7 @@ impl XRSession {
             eventtarget: EventTarget::new_inherited(),
             base_layer: Default::default(),
             blend_mode: session.environment_blend_mode().into(),
+            visibility_state: Cell::new(XRVisibilityState::Visible),
             viewer_space: Default::default(),
             session: DomRefCell::new(session),
             frame_requested: Cell::new(false),
@@ -403,6 +406,11 @@ impl XRSessionMethods for XRSession {
     /// https://immersive-web.github.io/webxr/#dom-xrsession-environmentblendmode
     fn EnvironmentBlendMode(&self) -> XREnvironmentBlendMode {
         self.blend_mode
+    }
+
+    /// https://immersive-web.github.io/webxr/#dom-xrsession-visibilitystate
+    fn VisibilityState(&self) -> XRVisibilityState {
+        self.visibility_state.get()
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestreferencespace
