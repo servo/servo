@@ -466,6 +466,7 @@ pub struct ResourceFetchTiming {
     /// Number of redirects until final resource (currently limited to 20)
     pub redirect_count: u16,
     pub request_start: u64,
+    pub secure_connection_start: u64,
     pub response_start: u64,
     pub fetch_start: u64,
     pub response_end: u64,
@@ -496,6 +497,7 @@ pub enum ResourceAttribute {
     FetchStart,
     ConnectStart(u64),
     ConnectEnd(u64),
+    SecureConnectionStart,
     ResponseEnd,
 }
 
@@ -514,6 +516,7 @@ impl ResourceFetchTiming {
             timing_check_passed: true,
             domain_lookup_start: 0,
             redirect_count: 0,
+            secure_connection_start: 0,
             request_start: 0,
             response_start: 0,
             fetch_start: 0,
@@ -555,6 +558,9 @@ impl ResourceFetchTiming {
             ResourceAttribute::FetchStart => self.fetch_start = precise_time_ns(),
             ResourceAttribute::ConnectStart(val) => self.connect_start = val,
             ResourceAttribute::ConnectEnd(val) => self.connect_end = val,
+            ResourceAttribute::SecureConnectionStart => {
+                self.secure_connection_start = precise_time_ns()
+            },
             ResourceAttribute::ResponseEnd => self.response_end = precise_time_ns(),
         }
     }

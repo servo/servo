@@ -424,6 +424,17 @@ fn obtain_response(
         )
         .body(request_body.clone().into());
 
+    // TODO: We currently don't know when the handhhake before the connection is done
+    // so our best bet would be to set `secure_connection_start` here when we are currently
+    // fetching on a HTTPS url.
+    if url.scheme() == "https" {
+        context
+            .timing
+            .lock()
+            .unwrap()
+            .set_attribute(ResourceAttribute::SecureConnectionStart);
+    }
+
     let mut request = match request {
         Ok(request) => request,
         Err(e) => return Box::new(future::result(Err(NetworkError::from_http_error(&e)))),
