@@ -509,6 +509,13 @@ pub enum ResourceTimingType {
     None,
 }
 
+fn should_attribute_always_be_updated(attribute: &ResourceAttribute) -> bool {
+    match attribute {
+        ResourceAttribute::FetchStart | ResourceAttribute::ResponseEnd => true,
+        _ => false,
+    }
+}
+
 impl ResourceFetchTiming {
     pub fn new(timing_type: ResourceTimingType) -> ResourceFetchTiming {
         ResourceFetchTiming {
@@ -528,16 +535,37 @@ impl ResourceFetchTiming {
         }
     }
 
+    pub fn set_attribute_from(&mut self, to: ResourceAttribute, from: ResourceAttribute) {
+        if !self.timing_check_passed && !should_attribute_always_be_updated(&to) {
+            return;
+        }
+
+        let val: u64 = self.get_attribute(from);
+
+        match to {
+            ResourceAttribute::DomainLookupStart => self.domain_lookup_start = val,
+            ResourceAttribute::RedirectCount(_) => {
+                panic!("Use `set_attribute` to set ResourceAttribute::RedirectCount.")
+            },
+            ResourceAttribute::RequestStart => self.request_start = val,
+            ResourceAttribute::ResponseStart => self.response_start = val,
+            ResourceAttribute::RedirectStart(_) => self.redirect_start = val,
+            ResourceAttribute::RedirectEnd(_) => self.redirect_end = val,
+            ResourceAttribute::FetchStart => self.fetch_start = val,
+            ResourceAttribute::ConnectStart(_) => self.connect_start = val,
+            ResourceAttribute::ConnectEnd(_) => self.connect_end = val,
+            ResourceAttribute::SecureConnectionStart => self.secure_connection_start = val,
+            ResourceAttribute::ResponseEnd => self.response_end = val,
+        }
+    }
+
     // TODO currently this is being set with precise time ns when it should be time since
     // time origin (as described in Performance::now)
     pub fn set_attribute(&mut self, attribute: ResourceAttribute) {
-        let should_attribute_always_be_updated = match attribute {
-            ResourceAttribute::FetchStart | ResourceAttribute::ResponseEnd => true,
-            _ => false,
-        };
-        if !self.timing_check_passed && !should_attribute_always_be_updated {
+        if !self.timing_check_passed && !should_attribute_always_be_updated(&attribute) {
             return;
         }
+
         match attribute {
             ResourceAttribute::DomainLookupStart => self.domain_lookup_start = precise_time_ns(),
             ResourceAttribute::RedirectCount(count) => self.redirect_count = count,
@@ -562,6 +590,22 @@ impl ResourceFetchTiming {
                 self.secure_connection_start = precise_time_ns()
             },
             ResourceAttribute::ResponseEnd => self.response_end = precise_time_ns(),
+        }
+    }
+
+    fn get_attribute(&mut self, attribute: ResourceAttribute) -> u64 {
+        match attribute {
+            ResourceAttribute::RedirectCount(_) => self.redirect_count as u64,
+            ResourceAttribute::DomainLookupStart => self.domain_lookup_start,
+            ResourceAttribute::RequestStart => self.request_start,
+            ResourceAttribute::ResponseStart => self.response_start,
+            ResourceAttribute::RedirectStart(_) => self.redirect_start,
+            ResourceAttribute::RedirectEnd(_) => self.redirect_end,
+            ResourceAttribute::FetchStart => self.fetch_start,
+            ResourceAttribute::ConnectStart(_) => self.connect_start,
+            ResourceAttribute::ConnectEnd(_) => self.connect_end,
+            ResourceAttribute::SecureConnectionStart => self.secure_connection_start,
+            ResourceAttribute::ResponseEnd => self.response_end,
         }
     }
 
