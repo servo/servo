@@ -7,14 +7,14 @@
 <body>
 <script>
   test(t => {
-    const p1 = TrustedTypes.createPolicy("policyHTMLAndScript", {
+    const p1 = trustedTypes.createPolicy("policyHTMLAndScript", {
       createHTML: s => s,
       createScript: s => s
     });
     assert_throws(new TypeError(), _ => { p1.createScriptURL("foo"); });
     assert_throws(new TypeError(), _ => { p1.createURL("foo"); });
 
-    const p2 = TrustedTypes.createPolicy("policyURLAndScriptURL", {
+    const p2 = trustedTypes.createPolicy("policyURLAndScriptURL", {
       createURL: s => s,
       createScriptURL: s => s
     });
@@ -29,7 +29,7 @@
       createURL: (s) => s,
       createScript: (s) => s,
     };
-    policy = TrustedTypes.createPolicy(Math.random(), noopPolicy, true);
+    policy = trustedTypes.createPolicy(Math.random(), noopPolicy, true);
     let el = document.createElement("div");
 
     el.title = policy.createHTML(INPUTS.URL);
@@ -40,12 +40,12 @@
   }, "Attributes without type constraints will work as before.");
 
   test(t => {
-    const policy = TrustedTypes.createPolicy("nullpolicy", null);
+    const policy = trustedTypes.createPolicy("nullpolicy", null);
     assert_throws(new TypeError(), _ => { policy.createScriptURL("foo"); });
     assert_throws(new TypeError(), _ => { policy.createURL("foo"); });
     assert_throws(new TypeError(), _ => { policy.createHTML("foo"); });
     assert_throws(new TypeError(), _ => { policy.createScript("foo"); });
-  }, "TrustedTypes.createPolicy(.., null) creates empty policy.");
+  }, "trustedTypes.createPolicy(.., null) creates empty policy.");
 
 
   // testCases contains a list of policy functions and expected results (when
@@ -85,7 +85,7 @@
     return function(name, fn) {
       let options = {};
       options[trustedMethodName] = fn;
-      let policy = window.TrustedTypes.createPolicy(name, options);
+      let policy = window.trustedTypes.createPolicy(name, options);
       let result = policy[trustedMethodName](defaultArg);
       assert_true(result instanceof trustedType);
       return result;

@@ -53,8 +53,8 @@ partial interface Window {
 interface MediaQueryList : EventTarget {
   readonly attribute CSSOMString media;
   readonly attribute boolean matches;
-  void addListener(EventListener? listener);
-  void removeListener(EventListener? listener);
+  void addListener(EventListener? callback);
+  void removeListener(EventListener? callback);
            attribute EventHandler onchange;
 };
 

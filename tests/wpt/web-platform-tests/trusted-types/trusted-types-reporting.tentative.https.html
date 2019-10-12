@@ -72,7 +72,7 @@
     return e;
   } }
 
-  // A sample policy we use to test TrustedTypes.createPolicy behaviour.
+  // A sample policy we use to test trustedTypes.createPolicy behaviour.
   const id = x => x;
   const a_policy = {
     createHTML: id,
@@ -101,14 +101,14 @@
         .then(expect_sample("three"))
         .then(expect_blocked_uri("trusted-types-policy"))
         .then(promise_flush());
-    expect_throws(_ => TrustedTypes.createPolicy("three", a_policy));
+    expect_throws(_ => trustedTypes.createPolicy("three", a_policy));
     flush();
     return p;
   }, "Trusted Type violation report: creating a forbidden policy.");
 
   promise_test(t => {
     let p = promise_flush()();
-    expect_throws(_ => TrustedTypes.createPolicy("two", a_policy));
+    expect_throws(_ => trustedTypes.createPolicy("two", a_policy));
     flush();
     return p;
   }, "Trusted Type violation report: creating a report-only-forbidden policy.");
@@ -120,7 +120,7 @@
     let p = Promise.resolve()
         .then(promise_violation("trusted-types two"))
         .then(promise_flush());
-    policy_one = TrustedTypes.createPolicy("one", a_policy);
+    policy_one = trustedTypes.createPolicy("one", a_policy);
     flush();
     return p;
   }, "Trusted Type violation report: creating a forbidden-but-not-reported policy.");

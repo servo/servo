@@ -48,6 +48,14 @@ const NFCReaderOptionTests =
       message: createMessage([createUrlRecord(test_url_data)])
     },
     {
+      desc: "Test that reading data succeed when NFCScanOptions'" +
+            " recordType is set to a custom type for external type records.",
+      scanOptions: {recordType: "w3.org:xyz"},
+      unmatchedScanOptions: {recordType: "opaque"},
+      message: createMessage([createRecord('w3.org:xyz', 'application/octet-stream',
+            test_buffer_data)])
+    },
+    {
       desc: "Test that the url of NFCScanOptions filters relevant data" +
             " sources correctly.",
       scanOptions: {url: `${location.origin}/custom/path`},
@@ -99,6 +107,14 @@ const ReadMultiMessagesTests =
             " correctly with NFCScanOptions' recordType is set to 'url'.",
       scanOptions: {recordType: "url"},
       message: createMessage([createUrlRecord(test_url_data)]),
+      unmatchedMessage: createMessage([createTextRecord(test_text_data)])
+    },
+    {
+      desc: "Test that filtering external record from different messages" +
+            " correctly with NFCScanOptions' recordType is set to the custom type.",
+      scanOptions: {recordType: "w3.org:xyz"},
+      message: createMessage([createRecord('w3.org:xyz', 'application/octet-stream',
+            test_buffer_data)]),
       unmatchedMessage: createMessage([createTextRecord(test_text_data)])
     },
     {

@@ -42,7 +42,7 @@
     try { fn(); assert_unreached(); } catch (err) { /* ignore */ }
   }
 
-  // A sample policy we use to test TrustedTypes.createPolicy behaviour.
+  // A sample policy we use to test trustedTypes.createPolicy behaviour.
   const id = x => x;
   const a_policy = {
     createHTML: id,
@@ -50,7 +50,7 @@
     createURL: id,
     createScript: id,
   };
-  const scriptyPolicy = TrustedTypes.createPolicy('allowEval', a_policy);
+  const scriptyPolicy = trustedTypes.createPolicy('allowEval', a_policy);
 
   // Provoke/wait for a CSP violation, in order to be sure that all previous
   // CSP violations have been delivered.
@@ -88,7 +88,7 @@
 
   promise_test(t => {
     let beacon = 'never_overwritten';
-    TrustedTypes.createPolicy('default', {
+    trustedTypes.createPolicy('default', {
       createScript: s => s.replace('payload', 'default policy'),
     }, true);
     let p = promise_flush()();

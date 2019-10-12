@@ -36,7 +36,7 @@
   }, "`location.replace = null` throws");
 
   // Create default policy. Applies to all subsequent tests.
-  let p = window.TrustedTypes.createPolicy("default",
+  let p = window.trustedTypes.createPolicy("default",
       { createURL: createLocationURLJS }, true);
 
   // After default policy creation string assignment implicitly calls createURL.

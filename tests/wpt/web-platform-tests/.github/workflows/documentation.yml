@@ -2,6 +2,10 @@ on:
   push:
     branches:
       - master
+    paths:
+      - 'docs/**'
+      - 'resources/**'
+      - 'tools/**'
   pull_request:
     paths:
       - 'docs/**'

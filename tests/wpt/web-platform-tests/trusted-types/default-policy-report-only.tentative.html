@@ -70,7 +70,7 @@ function policy(str) {
     return "sanitized: " + str;
 }
 
-TrustedTypes.createPolicy("default", {
+trustedTypes.createPolicy("default", {
   createURL: policy,
   createScriptURL: policy,
   createHTML: policy,

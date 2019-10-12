@@ -6,7 +6,7 @@
 <script>
   //Policy name test
   test(t => {
-    let policy = window.TrustedTypes.createPolicy('SomeName', { createHTML: s => s } );
+    let policy = window.trustedTypes.createPolicy('SomeName', { createHTML: s => s } );
     assert_true(policy instanceof TrustedTypePolicy);
     assert_equals(policy.name, 'SomeName');
   }, "policy.name = name");
@@ -14,14 +14,14 @@
   //Duplicate names test
   test(t => {
     assert_throws(new TypeError(), _ => {
-     window.TrustedTypes.createPolicy('SomeName', { createURL: s => s } );
+     window.trustedTypes.createPolicy('SomeName', { createURL: s => s } );
     });
   }, "duplicate policy name attempt throws");
 
   //Retrieve policy names tests
   test(t => {
-    let policy = window.TrustedTypes.createPolicy('SomeOtherName', { createURL: s => s } );
-    let names = window.TrustedTypes.getPolicyNames();
+    let policy = window.trustedTypes.createPolicy('SomeOtherName', { createURL: s => s } );
+    let names = window.trustedTypes.getPolicyNames();
     assert_true(names.includes('SomeName'));
     assert_true(names.includes('SomeOtherName'));
   }, "Retrieving policy names");

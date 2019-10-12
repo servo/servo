@@ -8,24 +8,24 @@
 <script>
 let test_cases = [
   { fragment: '#', expect_position: 'top' },
-  { fragment: '##targetText=test', expect_position: 'text' },
-  { fragment: '##targetText=this,page', expect_position: 'text' },
-  { fragment: '##targetText=this-,is,test', expect_position: 'text' },
-  { fragment: '##targetText=this-,is,test,-page', expect_position: 'text' },
-  { fragment: '##targetText=this-,is,page,-none', expect_position: 'top' },
-  { fragment: '##targetText=this,test,-page', expect_position: 'text' },
-  { fragment: '##targetText=this%20is%20a%20test%20page', expect_position: 'text' },
-  { fragment: '##targetText=this&targetText=test,page', expect_position: 'text' },
-  { fragment: '##targetText=tes&targetText=age', expect_position: 'top' },
-  { fragment: '#pagestate##targetText=test', expect_position: 'text' },
-  { fragment: '#pagestate##targetText=nomatch', expect_position: 'top' },
-  { fragment: '#element##targetText=nomatch', expect_position: 'element' },
-  { fragment: '#element##directive', expect_position: 'element' },
+  { fragment: '#:~:text=test', expect_position: 'text' },
+  { fragment: '#:~:text=this,page', expect_position: 'text' },
+  { fragment: '#:~:text=this-,is,test', expect_position: 'text' },
+  { fragment: '#:~:text=this-,is,test,-page', expect_position: 'text' },
+  { fragment: '#:~:text=this-,is,page,-none', expect_position: 'top' },
+  { fragment: '#:~:text=this,test,-page', expect_position: 'text' },
+  { fragment: '#:~:text=this%20is%20a%20test%20page', expect_position: 'text' },
+  { fragment: '#:~:text=this&text=test,page', expect_position: 'text' },
+  { fragment: '#:~:text=tes&text=age', expect_position: 'top' },
+  { fragment: '#pagestate:~:text=test', expect_position: 'text' },
+  { fragment: '#pagestate:~:text=nomatch', expect_position: 'top' },
+  { fragment: '#element:~:text=nomatch', expect_position: 'element' },
+  { fragment: '#element:~:directive', expect_position: 'element' },
 ];
 
 test(t => {
-  assert_equals(typeof(window.location.selector), 'object', 'window.location.selector is defined');
-}, 'Scroll to text is feature detectable via window.location.selector');
+  assert_equals(typeof(window.location.fragmentDirective), 'object', 'window.location.fragmentDirective is defined');
+}, 'Scroll to text is feature detectable via window.location.fragmentDirective');
 
 for (const test_case of test_cases) {
   promise_test(t => new Promise(resolve => {

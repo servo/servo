@@ -52,7 +52,7 @@
 
   // After default policy creation string assignment implicitly calls createHTML.
   test(t => {
-    let p = window.TrustedTypes.createPolicy("default", { createHTML: createHTMLJS }, true);
+    let p = window.trustedTypes.createPolicy("default", { createHTML: createHTMLJS }, true);
 
     var d = document.createElement('div');
     document.querySelector('#container').appendChild(d);

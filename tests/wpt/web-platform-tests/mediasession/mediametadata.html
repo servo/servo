@@ -4,6 +4,16 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 
+function load_iframe(src) {
+  return new Promise(resolve => {
+    const iframe = document.createElement('iframe');
+    iframe.onload = () => { resolve(iframe); };
+    iframe.src = src;
+    iframe.style.display = 'none';
+    document.documentElement.appendChild(iframe);
+  });
+}
+
 test(function() {
   var metadata = new MediaMetadata({});
   navigator.mediaSession.metadata = metadata;
@@ -188,5 +198,22 @@ test(function() {
     metadata.artwork = [ { type: 'image/png', sizes: '40x40' } ];
   });
 }, "Test that MediaImage.src is required")
+
+promise_test(async t => {
+  const URLs = [
+    'http://example.com',
+    '../foo',
+    './foo/bar',
+    '/foo/bar',
+  ];
+  const subframe = await load_iframe('helper/artwork-generator.html');
+  // createArtworkFromURLs is a function in the subframe.
+  const artwork = subframe.contentWindow.createArtworkFromURLs(URLs);
+
+  assert_equals(artwork.length, URLs.length);
+  for (let i = 0 ; i < artwork.length ; ++i) {
+    assert_equals(artwork[i].src, new URL(URLs[i], document.URL).href);
+  }
+}, 'Test that the base URL of MediaImage is the base URL of entry setting object');
 
 </script>

@@ -9,7 +9,7 @@
   // No name given test
   test(t => {
     assert_throws(new TypeError(),
-      () => window.TrustedTypes.createPolicy('SomeName', { createHTML: s => s } ),
+      () => window.trustedTypes.createPolicy('SomeName', { createHTML: s => s } ),
       "createPolicy with an empty trusted-types CSP directive");
   }, "No name list given - policy creation fails.");
 </script>
