@@ -1,0 +1,16 @@
+[package]
+name = "malloc_size_of_derive"
+version = "0.1.0"
+authors = ["The Servo Project Developers"]
+license = "MIT/Apache-2.0"
+description = "Crate for Firefox memory reporting, not intended for external use"
+publish = false
+
+[lib]
+path = "lib.rs"
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "0.4"
+syn = { version = "0.15", features = ["full"] }
+synstructure = "0.10"

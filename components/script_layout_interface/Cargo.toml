@@ -21,7 +21,7 @@ html5ever = "0.24"
 ipc-channel = "0.12"
 libc = "0.2"
 malloc_size_of = { path = "../malloc_size_of" }
-malloc_size_of_derive = "0.1"
+malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}

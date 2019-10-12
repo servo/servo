@@ -14,5 +14,5 @@ path = "lib.rs"
 app_units = "0.7"
 euclid = "0.20"
 malloc_size_of = { path = "../malloc_size_of" }
-malloc_size_of_derive = "0.1"
+malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 webrender_api = { git = "https://github.com/servo/webrender" }

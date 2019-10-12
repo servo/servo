@@ -463,7 +463,7 @@ dependencies = [
  "ipc-channel",
  "lazy_static",
  "malloc_size_of",
- "malloc_size_of_derive",
+ "malloc_size_of_derive 0.1.0",
  "pixels",
  "serde",
  "serde_bytes",
@@ -1058,7 +1058,7 @@ dependencies = [
  "http",
  "ipc-channel",
  "malloc_size_of",
- "malloc_size_of_derive",
+ "malloc_size_of_derive 0.1.0",
  "msg",
  "serde",
  "servo_url",
@@ -1515,7 +1515,7 @@ name = "gfx_traits"
 version = "0.0.1"
 dependencies = [
  "malloc_size_of",
- "malloc_size_of_derive",
+ "malloc_size_of_derive 0.1.0",
  "range",
  "serde",
 ]
@@ -2838,6 +2838,15 @@ dependencies = [
 [[package]]
 name = "malloc_size_of_derive"
 version = "0.1.0"
+dependencies = [
+ "proc-macro2 0.4.26",
+ "syn 0.15.39",
+ "synstructure 0.10.1",
+]
+
+[[package]]
+name = "malloc_size_of_derive"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "35adee9ed962cf7d07d62cb58bc45029f3227f5b5b86246caa8632f06c187bc3"
 dependencies = [
@@ -2926,7 +2935,7 @@ dependencies = [
  "ipc-channel",
  "log",
  "malloc_size_of",
- "malloc_size_of_derive",
+ "malloc_size_of_derive 0.1.0",
  "msg",
  "profile_traits",
  "script_traits",
@@ -3114,7 +3123,7 @@ dependencies = [
  "ipc-channel",
  "lazy_static",
  "malloc_size_of",
- "malloc_size_of_derive",
+ "malloc_size_of_derive 0.1.0",
  "parking_lot",
  "serde",
  "size_of_test",
@@ -3151,7 +3160,7 @@ dependencies = [
  "libflate",
  "log",
  "malloc_size_of",
- "malloc_size_of_derive",
+ "malloc_size_of_derive 0.1.0",
  "matches",
  "mime",
  "mime_guess",
@@ -3204,7 +3213,7 @@ dependencies = [
  "lazy_static",
  "log",
  "malloc_size_of",
- "malloc_size_of_derive",
+ "malloc_size_of_derive 0.1.0",
  "mime",
  "msg",
  "num-traits",
@@ -3597,7 +3606,7 @@ version = "0.0.1"
 dependencies = [
  "euclid",
  "malloc_size_of",
- "malloc_size_of_derive",
+ "malloc_size_of_derive 0.1.0",
  "serde",
 ]
 
@@ -3857,7 +3866,7 @@ name = "range"
 version = "0.0.1"
 dependencies = [
  "malloc_size_of",
- "malloc_size_of_derive",
+ "malloc_size_of_derive 0.1.0",
  "num-traits",
  "serde",
 ]
@@ -4127,7 +4136,7 @@ dependencies = [
  "libc",
  "log",
  "malloc_size_of",
- "malloc_size_of_derive",
+ "malloc_size_of_derive 0.1.0",
  "media",
  "metrics",
  "mime",
@@ -4195,7 +4204,7 @@ dependencies = [
  "ipc-channel",
  "libc",
  "malloc_size_of",
- "malloc_size_of_derive",
+ "malloc_size_of_derive 0.1.0",
  "metrics",
  "msg",
  "net_traits",
@@ -4250,7 +4259,7 @@ dependencies = [
  "keyboard-types",
  "libc",
  "malloc_size_of",
- "malloc_size_of_derive",
+ "malloc_size_of_derive 0.1.0",
  "media",
  "msg",
  "net_traits",
@@ -4659,7 +4668,7 @@ dependencies = [
  "app_units",
  "euclid",
  "malloc_size_of",
- "malloc_size_of_derive",
+ "malloc_size_of_derive 0.1.0",
  "webrender_api",
 ]
 
@@ -4698,7 +4707,7 @@ name = "servo_url"
 version = "0.0.1"
 dependencies = [
  "malloc_size_of",
- "malloc_size_of_derive",
+ "malloc_size_of_derive 0.1.0",
  "serde",
  "servo_rand",
  "to_shmem",
@@ -4969,7 +4978,7 @@ dependencies = [
  "lazy_static",
  "log",
  "malloc_size_of",
- "malloc_size_of_derive",
+ "malloc_size_of_derive 0.1.0",
  "matches",
  "new_debug_unreachable",
  "num-derive",
@@ -5048,7 +5057,7 @@ dependencies = [
  "euclid",
  "lazy_static",
  "malloc_size_of",
- "malloc_size_of_derive",
+ "malloc_size_of_derive 0.1.0",
  "selectors",
  "serde",
  "servo_arc",
@@ -5839,7 +5848,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
- "malloc_size_of_derive",
+ "malloc_size_of_derive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits",
  "plane-split",
  "rayon",
@@ -5870,7 +5879,7 @@ dependencies = [
  "derive_more",
  "euclid",
  "ipc-channel",
- "malloc_size_of_derive",
+ "malloc_size_of_derive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "peek-poke",
  "serde",
  "serde_bytes",
