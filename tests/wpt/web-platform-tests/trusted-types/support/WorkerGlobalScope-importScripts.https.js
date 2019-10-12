@@ -1,4 +1,4 @@
-let test_setup_policy = TrustedTypes.createPolicy("hurrayanythinggoes", {
+let test_setup_policy = trustedTypes.createPolicy("hurrayanythinggoes", {
   createScriptURL: x => x
 });
 importScripts(test_setup_policy.createScriptURL("/resources/testharness.js"));
@@ -13,14 +13,14 @@ if (this.DedicatedWorkerGlobalScope !== undefined) {
   worker_type = "service worker";
 }
 
-let test_policy = TrustedTypes.createPolicy("xxx", {
+let test_policy = trustedTypes.createPolicy("xxx", {
   createScriptURL: url => url.replace("play", "work")
 });
 
 test(t => {
   self.result = "Fail";
   let trusted_url = test_policy.createScriptURL("player.js");
-  assert_true(this.TrustedTypes.isScriptURL(trusted_url));
+  assert_true(this.trustedTypes.isScriptURL(trusted_url));
   importScripts(trusted_url);  // worker.js modifies self.result.
   assert_equals(self.result, "Pass");
 }, "importScripts with TrustedScriptURL works in " + worker_type);
@@ -63,7 +63,7 @@ test(t => {
 }, "importScripts with two URLs, one trusted, in " + worker_type);
 
 // Test default policy application:
-TrustedTypes.createPolicy("default", {
+trustedTypes.createPolicy("default", {
   createScriptURL: url => url.replace("play", "work")
 }, true);
 test(t => {

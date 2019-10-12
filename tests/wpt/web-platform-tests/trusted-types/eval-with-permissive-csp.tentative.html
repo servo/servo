@@ -25,7 +25,7 @@
     assert_equals("" + s, "Hello a cat string");
   }, "eval with TrustedScript and permissive CSP works.");
 
-  TrustedTypes.createPolicy("default", { createScript: createScriptJS }, true);
+  trustedTypes.createPolicy("default", { createScript: createScriptJS }, true);
   test(t => {
     let s = eval('"Hello transformed untrusted string"');
     assert_equals(s, "Hello a cat untrusted string");

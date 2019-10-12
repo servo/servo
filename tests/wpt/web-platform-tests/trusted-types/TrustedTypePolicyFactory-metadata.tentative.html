@@ -9,7 +9,7 @@
 <div id="target"></div>
 <script>
 
-  const policy = TrustedTypes.createPolicy("anythinggoes", {
+  const policy = trustedTypes.createPolicy("anythinggoes", {
     "createHTML": x => x,
     "createScript": x => x,
     "createURL": x => x,
@@ -41,7 +41,7 @@
   // so we'll get decent error messages when it might fail.
   test(t => {
     // Collect all element and property names from getTypeMapping().
-    const map = TrustedTypes.getTypeMapping();
+    const map = trustedTypes.getTypeMapping();
     for (let elem in map) {
       elements.push(elem);
       properties = properties.concat(Object.keys(map[elem].properties));
@@ -91,7 +91,7 @@
         test(t => {
           const element = target.appendChild(document.createElement(elem));
           t.add_cleanup(_ => element.remove());
-          const expected_type = TrustedTypes.getPropertyType(elem, property);
+          const expected_type = trustedTypes.getPropertyType(elem, property);
           const value = create_value[type];
           const test_fn = _ => { element[property] = value; };
           if (type == expected_type || !expected_type) {
@@ -129,7 +129,7 @@
         test(t => {
           const element = target.appendChild(document.createElement(elem));
           t.add_cleanup(_ => element.remove());
-          const expected_type = TrustedTypes.getAttributeType(elem, property);
+          const expected_type = trustedTypes.getAttributeType(elem, property);
           const value = create_value[type];
           const test_fn = _ => { element.setAttribute(property, value); };
           if (type == expected_type || !expected_type) {

@@ -5,9 +5,9 @@
 <body>
 <script>
   test(t => {
-    let factory = window.TrustedTypes;
+    let factory = window.trustedTypes;
     assert_true(factory instanceof TrustedTypePolicyFactory);
-  }, "factory = window.TrustedTypes");
+  }, "factory = window.trustedTypes");
 
   test(t => {
     assert_throws(new TypeError(), _ => {

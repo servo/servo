@@ -62,7 +62,7 @@
     assert_equals(document.body.innerText, old);
   }, "`document.writeln(null)` throws");
 
-  let default_policy = TrustedTypes.createPolicy('default',
+  let default_policy = trustedTypes.createPolicy('default',
       { createHTML: createHTMLJS }, true );
 
   // Default policy works.

@@ -40,19 +40,19 @@ function createLocationURLJS(value) {
 }
 
 function createHTML_policy(win, c) {
-  return win.TrustedTypes.createPolicy('SomeHTMLPolicyName' + c, { createHTML: createHTMLJS });
+  return win.trustedTypes.createPolicy('SomeHTMLPolicyName' + c, { createHTML: createHTMLJS });
 }
 
 function createScript_policy(win, c) {
-  return win.TrustedTypes.createPolicy('SomeScriptPolicyName' + c, { createScript: createScriptJS });
+  return win.trustedTypes.createPolicy('SomeScriptPolicyName' + c, { createScript: createScriptJS });
 }
 
 function createScriptURL_policy(win, c) {
-  return win.TrustedTypes.createPolicy('SomeScriptURLPolicyName' + c, { createScriptURL: createScriptURLJS });
+  return win.trustedTypes.createPolicy('SomeScriptURLPolicyName' + c, { createScriptURL: createScriptURLJS });
 }
 
 function createURL_policy(win, c) {
-  return win.TrustedTypes.createPolicy('SomeURLPolicyName' + c, { createURL: createURLJS });
+  return win.trustedTypes.createPolicy('SomeURLPolicyName' + c, { createURL: createURLJS });
 }
 
 function assert_element_accepts_trusted_html(win, c, t, tag, attribute, expected) {

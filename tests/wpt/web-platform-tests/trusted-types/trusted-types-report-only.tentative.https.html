@@ -34,9 +34,9 @@
     });
   }
 
-  // A sample policy we use to test TrustedTypes.createPolicy behaviour.
+  // A sample policy we use to test trustedTypes.createPolicy behaviour.
   const id = x => x;
-  const policy = TrustedTypes.createPolicy("two", {
+  const policy = trustedTypes.createPolicy("two", {
     createHTML: id,
     createScriptURL: id,
     createURL: id,

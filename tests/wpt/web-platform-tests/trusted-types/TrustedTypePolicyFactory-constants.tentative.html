@@ -7,20 +7,20 @@
 <body>
 <script>
   test(t => {
-    const empty = TrustedTypes.emptyHTML;
-    assert_true(TrustedTypes.isHTML(empty));
+    const empty = trustedTypes.emptyHTML;
+    assert_true(trustedTypes.isHTML(empty));
     assert_equals(empty.toString(), "");
-  }, 'TrustedTypes.emptyHTML returns the intended value.');
+  }, 'trustedTypes.emptyHTML returns the intended value.');
 
   test(t => {
-    try { TrustedTypes.emptyHTML = 'fake'; } catch { }
-    assert_true(TrustedTypes.isHTML(TrustedTypes.emptyHTML));
-    assert_equals(TrustedTypes.emptyHTML.toString(), "");
-  }, 'TrustedTypes.emptyHTML cannot be redefined.');
+    try { trustedTypes.emptyHTML = 'fake'; } catch { }
+    assert_true(trustedTypes.isHTML(trustedTypes.emptyHTML));
+    assert_equals(trustedTypes.emptyHTML.toString(), "");
+  }, 'trustedTypes.emptyHTML cannot be redefined.');
 
   test(t => {
     try { Object.defineProperty(TrustedTypes, 'emptyHTML', 'fake'); } catch { }
-    assert_true(TrustedTypes.isHTML(TrustedTypes.emptyHTML));
-    assert_equals(TrustedTypes.emptyHTML.toString(), "");
-  }, 'TrustedTypes.emptyHTML cannot be redefined via defineProperty.');
+    assert_true(trustedTypes.isHTML(trustedTypes.emptyHTML));
+    assert_equals(trustedTypes.emptyHTML.toString(), "");
+  }, 'trustedTypes.emptyHTML cannot be redefined via defineProperty.');
 </script>

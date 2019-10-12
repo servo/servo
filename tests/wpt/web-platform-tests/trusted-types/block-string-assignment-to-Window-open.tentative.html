@@ -64,7 +64,7 @@
   }, "`document.open(null)` throws.");
 
   // After default policy creation string assignment implicitly calls createURL.
-  let p = window.TrustedTypes.createPolicy("default", { createURL: createURLJS }, true);
+  let p = window.trustedTypes.createPolicy("default", { createURL: createURLJS }, true);
   test(t => {
     testWindowDoesntThrow(t, INPUTS.URL, RESULTS.URL, window);
   }, "'window.open(string)' assigned via default policy (successful URL transformation).");

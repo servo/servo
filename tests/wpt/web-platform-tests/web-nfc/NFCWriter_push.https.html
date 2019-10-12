@@ -48,7 +48,21 @@ const invalid_type_messages =
       // NDEFRecord.data for 'opaque' record must be ArrayBuffer.
       createMessage([createOpaqueRecord(test_text_data)]),
       createMessage([createOpaqueRecord(test_number_data)]),
-      createMessage([createOpaqueRecord(test_json_data)])
+      createMessage([createOpaqueRecord(test_json_data)]),
+
+      // https://w3c.github.io/web-nfc/#dfn-map-external-data-to-ndef
+      // NDEFRecord must have data.
+      createMessage([createRecord('w3.org:xyz', '', undefined)]),
+
+      // NDEFRecord.data for external record must be ArrayBuffer.
+      createMessage([createRecord('w3.org:xyz', '', test_text_data)]),
+      createMessage([createRecord('w3.org:xyz', '', test_number_data)]),
+      createMessage([createRecord('w3.org:xyz', '', test_json_data)]),
+
+      // https://w3c.github.io/web-nfc/#the-ndefrecordtype-string
+      // The record type is neither a known type ('text', 'json' etc.) nor a
+      // valid custom type for an external type record.
+      createMessage([createRecord('unmatched_type', '', test_buffer_data)])
     ];
 
 const invalid_syntax_messages =
@@ -266,11 +280,12 @@ nfc_test(async (t, mockNFC) => {
                                createJsonRecord(test_json_data),
                                createJsonRecord(test_number_data),
                                createOpaqueRecord(test_buffer_data),
-                               createUrlRecord(test_url_data)],
+                               createUrlRecord(test_url_data),
+                               createRecord('w3.org:xyz', '', test_buffer_data)],
                                test_message_origin);
   await writer.push(message);
   assertNDEFMessagesEqual(message, mockNFC.pushedMessage());
-}, "NFCWriter.push NDEFMessage containing text, json, opaque and url records \
+}, "NFCWriter.push NDEFMessage containing text, json, opaque, url and external records \
 with default NFCPushOptions.");
 
 nfc_test(async (t, mockNFC) => {

@@ -18,7 +18,7 @@
 // For the same reason we cannot use the otherwise preferred 'META: workers'
 // tag, since that test setup would be blocked as soon as trusted types
 // enforcement is enabled.
-const test_setup_policy = TrustedTypes.createPolicy("hurrayanythinggoes", {
+const test_setup_policy = trustedTypes.createPolicy("hurrayanythinggoes", {
   createScriptURL: x => x});
 const test_url =
   test_setup_policy.createScriptURL("support/WorkerGlobalScope-importScripts.https.js");

@@ -9,7 +9,7 @@
 <div id="container"></div>
 <script>
   const container = document.querySelector("#container");
-  const policy = window.TrustedTypes.createPolicy("policy", {
+  const policy = window.trustedTypes.createPolicy("policy", {
     createScript: t => t,
   });
   function stringify(arg) {
