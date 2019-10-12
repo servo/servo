@@ -123,6 +123,7 @@ transitionend
 unhandledrejection
 unload
 url
+visibilitychange
 volumechange
 waiting
 webglcontextcreationerror

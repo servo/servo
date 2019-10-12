@@ -9,7 +9,6 @@ use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorBinding:
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateInit;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateMethods;
@@ -17,6 +16,7 @@ use crate::dom::bindings::codegen::Bindings::XRSessionBinding;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XREnvironmentBlendMode;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
+use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRVisibilityState;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
@@ -49,13 +49,16 @@ use profile_traits::ipc;
 use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
-use webxr_api::{self, Event as XREvent, Frame, SelectEvent, Session};
+use webxr_api::{
+    self, EnvironmentBlendMode, Event as XREvent, Frame, SelectEvent, Session, Visibility,
+};
 
 #[dom_struct]
 pub struct XRSession {
     eventtarget: EventTarget,
     base_layer: MutNullableDom<XRWebGLLayer>,
     blend_mode: XREnvironmentBlendMode,
+    visibility_state: Cell<XRVisibilityState>,
     viewer_space: MutNullableDom<XRSpace>,
     #[ignore_malloc_size_of = "defined in webxr"]
     session: DomRefCell<Session>,
@@ -85,8 +88,8 @@ impl XRSession {
         XRSession {
             eventtarget: EventTarget::new_inherited(),
             base_layer: Default::default(),
-            // we don't yet support any AR devices
-            blend_mode: XREnvironmentBlendMode::Opaque,
+            blend_mode: session.environment_blend_mode().into(),
+            visibility_state: Cell::new(XRVisibilityState::Visible),
             viewer_space: Default::default(),
             session: DomRefCell::new(session),
             frame_requested: Cell::new(false),
@@ -213,6 +216,22 @@ impl XRSession {
                     frame.set_active(false);
                 }
             },
+            XREvent::VisibilityChange(v) => {
+                let v = match v {
+                    Visibility::Visible => XRVisibilityState::Visible,
+                    Visibility::VisibleBlurred => XRVisibilityState::Visible_blurred,
+                    Visibility::Hidden => XRVisibilityState::Hidden,
+                };
+                self.visibility_state.set(v);
+                let event = XRSessionEvent::new(
+                    &self.global(),
+                    atom!("visibilitychange"),
+                    false,
+                    false,
+                    self,
+                );
+                event.upcast::<Event>().fire(self.upcast());
+            },
             _ => (), // XXXManishearth TBD
         }
     }
@@ -296,10 +315,12 @@ impl XRSessionMethods for XRSession {
     /// https://immersive-web.github.io/webxr/#eventdef-xrsession-selectend
     event_handler!(selectend, GetOnselectend, SetOnselectend);
 
-    /// https://immersive-web.github.io/webxr/#dom-xrsession-mode
-    fn Mode(&self) -> XRSessionMode {
-        XRSessionMode::Immersive_vr
-    }
+    /// https://immersive-web.github.io/webxr/#eventdef-xrsession-visibilitychange
+    event_handler!(
+        visibilitychange,
+        GetOnvisibilitychange,
+        SetOnvisibilitychange
+    );
 
     // https://immersive-web.github.io/webxr/#dom-xrsession-renderstate
     fn RenderState(&self) -> DomRoot<XRRenderState> {
@@ -412,6 +433,11 @@ impl XRSessionMethods for XRSession {
         self.blend_mode
     }
 
+    /// https://immersive-web.github.io/webxr/#dom-xrsession-visibilitystate
+    fn VisibilityState(&self) -> XRVisibilityState {
+        self.visibility_state.get()
+    }
+
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestreferencespace
     fn RequestReferenceSpace(&self, ty: XRReferenceSpaceType, comp: InCompartment) -> Rc<Promise> {
         let p = Promise::new_in_current_compartment(&self.global(), comp);
@@ -468,4 +494,14 @@ pub fn cast_transform<T, U, V, W>(
     transform: RigidTransform3D<f32, T, U>,
 ) -> RigidTransform3D<f32, V, W> {
     unsafe { mem::transmute(transform) }
+}
+
+impl From<EnvironmentBlendMode> for XREnvironmentBlendMode {
+    fn from(x: EnvironmentBlendMode) -> Self {
+        match x {
+            EnvironmentBlendMode::Opaque => XREnvironmentBlendMode::Opaque,
+            EnvironmentBlendMode::AlphaBlend => XREnvironmentBlendMode::Alpha_blend,
+            EnvironmentBlendMode::Additive => XREnvironmentBlendMode::Additive,
+        }
+    }
 }

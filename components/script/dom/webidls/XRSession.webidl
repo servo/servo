@@ -10,15 +10,20 @@ enum XREnvironmentBlendMode {
   "alpha-blend",
 };
 
+enum XRVisibilityState {
+  "visible",
+  "visible-blurred",
+  "hidden",
+};
+
 callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame);
 
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
 interface XRSession : EventTarget {
   // // Attributes
-  readonly attribute XRSessionMode mode;
   readonly attribute XREnvironmentBlendMode environmentBlendMode;
 
-  // readonly attribute XRVisibilityState visibilityState;
+  readonly attribute XRVisibilityState visibilityState;
   [SameObject] readonly attribute XRRenderState renderState;
   [SameObject] readonly attribute XRInputSourceArray inputSources;
 
@@ -37,5 +42,5 @@ interface XRSession : EventTarget {
   // attribute EventHandler oninputsourceschange;
   attribute EventHandler onselectstart;
   attribute EventHandler onselectend;
-  // attribute EventHandler onvisibilitychange;
+  attribute EventHandler onvisibilitychange;
 };

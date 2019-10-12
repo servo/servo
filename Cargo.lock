@@ -5927,7 +5927,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#ec49fdd1c1a7e45a2dfde2f4a7f07e9581f386ef"
+source = "git+https://github.com/servo/webxr#61344bc5d92bc218458063baa7bc5d2d388aa7f5"
 dependencies = [
  "bindgen",
  "euclid",
@@ -5945,7 +5945,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#ec49fdd1c1a7e45a2dfde2f4a7f07e9581f386ef"
+source = "git+https://github.com/servo/webxr#61344bc5d92bc218458063baa7bc5d2d388aa7f5"
 dependencies = [
  "euclid",
  "gleam 0.6.18",
