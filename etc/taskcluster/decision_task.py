@@ -390,8 +390,8 @@ def windows_arm64():
         windows_build_task("UWP dev build", arch="arm64", package=False)
         .with_treeherder("Windows arm64")
         .with_script(
-            "python mach build --dev --uwp --win-arm64",
-            "python mach package --dev --target aarch64-pc-windows-msvc --uwp=arm64",
+            "python mach build --dev --target=aarch64-uwp-windows-msvc",
+            "python mach package --dev --target aarch64-uwp-windows-msvc --uwp=arm64",
         )
         .with_artifacts(appx_artifact(debug=True))
         .find_or_create("build.windows_uwp_arm64_dev." + CONFIG.task_id())
@@ -403,8 +403,8 @@ def windows_uwp_x64():
         windows_build_task("UWP dev build", package=False)
         .with_treeherder("Windows x64")
         .with_script(
-            "mach build --dev --uwp",
-            "mach package --dev --uwp=x64",
+            "python mach build --dev --target=x86_64-uwp-windows-msvc",
+            "python mach package --dev --target=x86_64-uwp-windows-msvc --uwp=x64",
         )
         .with_artifacts(appx_artifact(debug=True))
         .find_or_create("build.windows_uwp_x64_dev." + CONFIG.task_id())
@@ -418,9 +418,9 @@ def uwp_nightly():
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/s3-upload-credentials")
         .with_script(
-            "mach build --release --uwp",
-            "python mach build --release --uwp --win-arm64",
-            "mach package --release --uwp=x64 --uwp=arm64",
+            "python mach build --release --target=x86_64-uwp-windows-msvc",
+            "python mach build --release --target=aarch64-uwp-windows-msvc",
+            "mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64 --uwp=arm64",
             "mach upload-nightly uwp --secret-from-taskcluster",
         )
         .with_artifacts(appx_artifact(debug=False))

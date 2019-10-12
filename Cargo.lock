@@ -150,9 +150,8 @@ dependencies = [
 
 [[package]]
 name = "autocfg"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e49efa51329a5fd37e7c79db4621af617cd4e3e5bc224939808d076077077bf"
+version = "0.1.6"
+source = "git+https://github.com/servo/autocfg?branch=rustflags#d040e25ff6c129189306011f6a0ff210e08227a0"
 
 [[package]]
 name = "azure"
@@ -185,9 +184,9 @@ dependencies = [
 
 [[package]]
 name = "backtrace"
-version = "0.3.35"
+version = "0.3.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1371048253fa3bac6704bfd6bbfc922ee9bdcee8881330d40f308b81cc5adc55"
+checksum = "690a62be8920ccf773ee00ef0968649b0e724cda8bd5b12286302b4ae955fdf5"
 dependencies = [
  "backtrace-sys",
  "cfg-if",
@@ -502,11 +501,12 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.0.35"
+version = "1.0.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e5f3fee5eeb60324c2781f1e41286bdee933850fff9b3c672587fed5ec58c83"
+checksum = "4fc9a35e1f4290eb9e5fc54ba6cf40671ed2a2514c3eeb2b2a908dda2ea5a1be"
 dependencies = [
- "rayon",
+ "jobserver",
+ "num_cpus",
 ]
 
 [[package]]
@@ -1468,6 +1468,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b900c08c1939860ce8b54dc6a89e26e00c04c380fd0e09796799bd7f12861e05"
 
 [[package]]
+name = "getrandom"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "473a1265acc8ff1e808cd0a1af8cee3c2ee5200916058a2ca113c29f2d903571"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "wasi",
+]
+
+[[package]]
 name = "gfx"
 version = "0.0.1"
 dependencies = [
@@ -2359,6 +2370,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8eaf4bc02d17cbdd7ff4c7438cafcdf7fb9a4613313ad11b4f8fefe7d3fa0130"
 
 [[package]]
+name = "jobserver"
+version = "0.1.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2b1d42ef453b30b7387e113da1c83ab1605d90c5b4e0eb8e96d016ed3b8c160"
+dependencies = [
+ "getrandom",
+ "libc",
+ "log",
+]
+
+[[package]]
 name = "jpeg-decoder"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3075,7 +3097,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.12.1"
-source = "git+https://github.com/servo/rust-mozjs#bc44e221420a42ccb77b54911f60ca102cba143b"
+source = "git+https://github.com/servo/rust-mozjs#0832eb778689143cd9f2f3967fac912f7096a466"
 dependencies = [
  "cc",
  "lazy_static",
@@ -3088,7 +3110,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.67.1"
-source = "git+https://github.com/servo/mozjs?rev=dd175ee73a179ce218286c4be4ab80e1a75348be#dd175ee73a179ce218286c4be4ab80e1a75348be"
+source = "git+https://github.com/servo/mozjs?rev=59065889ec7726b767d70b8702b43b4e4776cbfe#59065889ec7726b767d70b8702b43b4e4776cbfe"
 dependencies = [
  "bindgen",
  "cc",
@@ -5711,6 +5733,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "wasi"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b89c3ce4ce14bdc6fb6beaf9ec7928ca331de5df7e5ea278375642a2f478570d"
+
+[[package]]
 name = "wayland-client"
 version = "0.21.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5965,9 +5993,8 @@ dependencies = [
 
 [[package]]
 name = "winapi"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f10e386af2b13e47c89e7236a7a14a086791a2b88ebad6df9bf42040195cf770"
+version = "0.3.8"
+source = "git+https://github.com/servo/winapi-rs?branch=patch-1#f85c3541bbb331fea8918ac070accfb4ab613e7b"
 dependencies = [
  "winapi-i686-pc-windows-gnu",
  "winapi-x86_64-pc-windows-gnu",
@@ -5976,8 +6003,7 @@ dependencies = [
 [[package]]
 name = "winapi-i686-pc-windows-gnu"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6"
+source = "git+https://github.com/servo/winapi-rs?branch=patch-1#f85c3541bbb331fea8918ac070accfb4ab613e7b"
 
 [[package]]
 name = "winapi-util"
@@ -5991,8 +6017,7 @@ dependencies = [
 [[package]]
 name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+source = "git+https://github.com/servo/winapi-rs?branch=patch-1#f85c3541bbb331fea8918ac070accfb4ab613e7b"
 
 [[package]]
 name = "wincolor"

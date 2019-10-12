@@ -29,4 +29,7 @@ opt-level = 3
 mio = { git = "https://github.com/servo/mio.git", branch = "servo" }
 rand_os = { git = "https://github.com/servo/rand", branch = "servo-rand_os-0.1.3-uwp" }
 rand_core = { git = "https://github.com/servo/rand", branch = "servo-rand_os-0.1.3-uwp" }
-
+# https://github.com/cuviper/autocfg/pull/10
+autocfg = { git = "https://github.com/servo/autocfg", branch = "rustflags" }
+# https://github.com/retep998/winapi-rs/pull/816
+winapi = { git = "https://github.com/servo/winapi-rs", branch = "patch-1" }
