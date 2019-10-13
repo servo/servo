@@ -107,7 +107,7 @@ def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None):
         # packaging (in case of exceptional situations like running out of disk space).
         # TODO do this in a temporary folder after #11983 is fixed
         temp_file = '{}.temp~'.format(dest_archive)
-        with os.fdopen(os.open(temp_file, os.O_WRONLY | os.O_CREAT, 0644), 'w') as out_file:
+        with os.fdopen(os.open(temp_file, os.O_WRONLY | os.O_CREAT, 0o644), 'w') as out_file:
             if dest_archive.endswith('.zip'):
                 with zipfile.ZipFile(temp_file, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                     for entry in file_list:
