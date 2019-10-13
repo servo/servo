@@ -7,6 +7,8 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+from __future__ import print_function
+
 from errno import ENOENT as NO_SUCH_FILE_OR_DIRECTORY
 from glob import glob
 import shutil
@@ -350,15 +352,15 @@ class CommandBase(object):
                 version_line = subprocess.check_output(["rustup" + BIN_SUFFIX, "--version"])
             except OSError as e:
                 if e.errno == NO_SUCH_FILE_OR_DIRECTORY:
-                    print "It looks like rustup is not installed. See instructions at " \
-                          "https://github.com/servo/servo/#setting-up-your-environment"
-                    print
+                    print("It looks like rustup is not installed. See instructions at "
+                          "https://github.com/servo/servo/#setting-up-your-environment")
+                    print()
                     return 1
                 raise
             version = tuple(map(int, re.match("rustup (\d+)\.(\d+)\.(\d+)", version_line).groups()))
             if version < (1, 11, 0):
-                print "rustup is at version %s.%s.%s, Servo requires 1.11.0 or more recent." % version
-                print "Try running 'rustup self update'."
+                print("rustup is at version %s.%s.%s, Servo requires 1.11.0 or more recent." % version)
+                print("Try running 'rustup self update'.")
                 return 1
             toolchain = self.toolchain()
             if platform.system() == "Windows":
