@@ -136,16 +136,16 @@ def download(desc, src, writer, start_byte=0):
 
         if not dumb:
             print()
-    except urllib.error.HTTPError, e:
+    except urllib.error.HTTPError as e:
         print("Download failed ({}): {} - {}".format(e.code, e.reason, src))
         if e.code == 403:
             print("No Rust compiler binary available for this platform. "
                   "Please see https://github.com/servo/servo/#prerequisites")
         sys.exit(1)
-    except urllib.error.URLError, e:
+    except urllib.error.URLError as e:
         print("Error downloading {}: {}. The failing URL was: {}".format(desc, e.reason, src))
         sys.exit(1)
-    except socket_error, e:
+    except socket_error as e:
         print("Looks like there's a connectivity issue, check your Internet connection. {}".format(e))
         sys.exit(1)
     except KeyboardInterrupt:

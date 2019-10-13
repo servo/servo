@@ -244,7 +244,7 @@ class MachCommands(CommandBase):
 
             with open(path.join(preload_path, preload_filename), 'w') as fd:
                 json.dump(entries, fd, indent=4)
-        except ValueError, e:
+        except ValueError as e:
             print("Unable to parse chromium HSTS preload list, has the format changed?")
             sys.exit(1)
 
