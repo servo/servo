@@ -25,6 +25,7 @@ import toml
 import voluptuous
 import yaml
 from licenseck import OLD_MPL, MPL, APACHE, COPYRIGHT, licenses_toml, licenses_dep_toml
+from six import iteritems
 topdir = os.path.abspath(os.path.dirname(sys.argv[0]))
 wpt = os.path.join(topdir, "tests", "wpt")
 
@@ -380,7 +381,7 @@ def check_lock(file_name, contents):
         if name not in packages_by_name:
             yield (1, "duplicates are allowed for `{}` but it is not a dependency".format(name))
 
-    for (name, packages) in packages_by_name.iteritems():
+    for (name, packages) in iteritems(packages_by_name):
         has_duplicates = len(packages) > 1
         duplicates_allowed = name in exceptions
 
@@ -424,7 +425,7 @@ def check_lock(file_name, contents):
                     visited_whitelisted_packages[dependency_name][package_name] = True
 
     # Check if all the exceptions to blocked packages actually depend on the blocked package
-    for dependency_name, package_names in blocked_packages.iteritems():
+    for dependency_name, package_names in iteritems(blocked_packages):
         for package_name in package_names:
             if not visited_whitelisted_packages[dependency_name].get(package_name):
                 fmt = "Package {} is not required to be an exception of blocked package {}."

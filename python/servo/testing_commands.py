@@ -22,6 +22,7 @@ import six.moves.urllib as urllib
 import base64
 import shutil
 import subprocess
+from six import iteritems
 
 from mach.registrar import Registrar
 from mach.decorators import (
@@ -59,7 +60,7 @@ TEST_SUITES = OrderedDict([
               "include_arg": "test_name"}),
 ])
 
-TEST_SUITES_BY_PREFIX = {path: k for k, v in TEST_SUITES.iteritems() if "paths" in v for path in v["paths"]}
+TEST_SUITES_BY_PREFIX = {path: k for k, v in iteritems(TEST_SUITES) if "paths" in v for path in v["paths"]}
 
 
 def create_parser_wpt():
@@ -158,7 +159,7 @@ class MachCommands(CommandBase):
                 return 1
 
         test_start = time.time()
-        for suite, tests in selected_suites.iteritems():
+        for suite, tests in iteritems(selected_suites):
             props = suites[suite]
             kwargs = props.get("kwargs", {})
             if tests:
@@ -174,7 +175,7 @@ class MachCommands(CommandBase):
     def suite_for_path(self, path_arg):
         if os.path.exists(path.abspath(path_arg)):
             abs_path = path.abspath(path_arg)
-            for prefix, suite in TEST_SUITES_BY_PREFIX.iteritems():
+            for prefix, suite in iteritems(TEST_SUITES_BY_PREFIX):
                 if abs_path.startswith(prefix):
                     return suite
         return None
