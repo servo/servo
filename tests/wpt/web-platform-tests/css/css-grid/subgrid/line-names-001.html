@@ -38,5 +38,20 @@ x { background: grey; }
   </div>
 </div>
 
+<script>
+  const expectedResults = [
+    "subgrid [] [] [] []",
+  ];
+  [...document.querySelectorAll('.subgrid')].forEach(function(subgrid, i) {
+    let actual = window.getComputedStyle(subgrid)['grid-template-columns'];
+    let expected = expectedResults[i];
+    if (actual != expected) {
+      let err = "Unexpected getComputedStyle value for subgrid " + i + " with className '" + subgrid.className + "':" +
+      " Actual: \"" + actual + "\", Expected: \"" + expected + "\"";
+      document.body.appendChild(document.createTextNode(err));
+    }
+  });
+</script>
+
 </body>
 </html>

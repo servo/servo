@@ -165,5 +165,40 @@ item {
   </div>
 </div>
 
+<script>
+  const expectedResults = [
+    "subgrid [] [] [] [] [x]",
+    "subgrid [] [] [] [] [x]",
+    "subgrid [] [] [] [] []",
+    "subgrid [x] [x] [] [] [x]",
+    "subgrid [x] [x] [] [x] []",
+    "subgrid [x] [x] [x] [x] []",
+    "subgrid [] [] [] [] []",
+    "subgrid [] [] [] [x] []",
+    "subgrid [] [] [] [] [x]",
+    "subgrid [] [] [] [] []",
+    "subgrid [] [] [] [] []",
+    "subgrid [] [] [] [] [x]",
+    "subgrid [x] [x] [] [] [x]",
+    "subgrid [x] [x] [x] [] []",
+    "subgrid [] [] [] [] [x]",
+    "subgrid [] [] [] [] [x]",
+    "subgrid [] [] [] [] [x]",
+    "subgrid [] [] [] [] [x]",
+    "subgrid [] [] [] [] [x]",
+    "subgrid [] [] [] [] [x]",
+    "subgrid [] [] [] [] []",
+  ];
+  [...document.querySelectorAll('.subgrid')].forEach(function(subgrid, i) {
+    let actual = window.getComputedStyle(subgrid)['grid-template-rows'];
+    let expected = expectedResults[i];
+    if (actual != expected) {
+      let err = "Unexpected getComputedStyle value for subgrid " + i + " with className '" + subgrid.className + "':" +
+      " Actual: \"" + actual + "\", Expected: \"" + expected + "\"";
+      document.body.appendChild(document.createTextNode(err));
+    }
+  });
+</script>
+
 </body>
 </html>
