@@ -14,7 +14,7 @@ from time import time
 import signal
 import sys
 import tempfile
-import urllib2
+import six.moves.urllib as urllib
 import json
 import subprocess
 
@@ -201,7 +201,7 @@ class MachCommands(CommandBase):
              category='devenv')
     def rustup(self):
         url = get_static_rust_lang_org_dist() + "/channel-rust-nightly-date.txt"
-        nightly_date = urllib2.urlopen(url, **get_urlopen_kwargs()).read()
+        nightly_date = urllib.request.urlopen(url, **get_urlopen_kwargs()).read()
         toolchain = "nightly-" + nightly_date
         filename = path.join(self.context.topdir, "rust-toolchain")
         with open(filename, "w") as f:

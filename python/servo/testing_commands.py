@@ -18,7 +18,7 @@ import copy
 from collections import OrderedDict
 import time
 import json
-import urllib2
+import six.moves.urllib as urllib
 import base64
 import shutil
 import subprocess
@@ -510,9 +510,9 @@ class MachCommands(CommandBase):
                 elif tracker_api.endswith('/'):
                     tracker_api = tracker_api[0:-1]
 
-                query = urllib2.quote(failure['test'], safe='')
-                request = urllib2.Request("%s/query.py?name=%s" % (tracker_api, query))
-                search = urllib2.urlopen(request)
+                query = urllib.parse.quote(failure['test'], safe='')
+                request = urllib.request.Request("%s/query.py?name=%s" % (tracker_api, query))
+                search = urllib.request.urlopen(request)
                 data = json.load(search)
                 if len(data) == 0:
                     actual_failures += [failure]
@@ -521,11 +521,11 @@ class MachCommands(CommandBase):
             else:
                 qstr = "repo:servo/servo+label:I-intermittent+type:issue+state:open+%s" % failure['test']
                 # we want `/` to get quoted, but not `+` (github's API doesn't like that), so we set `safe` to `+`
-                query = urllib2.quote(qstr, safe='+')
-                request = urllib2.Request("https://api.github.com/search/issues?q=%s" % query)
+                query = urllib.parse.quote(qstr, safe='+')
+                request = urllib.request.Request("https://api.github.com/search/issues?q=%s" % query)
                 if encoded_auth:
                     request.add_header("Authorization", "Basic %s" % encoded_auth)
-                search = urllib2.urlopen(request)
+                search = urllib.request.urlopen(request)
                 data = json.load(search)
                 if data['total_count'] == 0:
                     actual_failures += [failure]
