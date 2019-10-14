@@ -76,7 +76,8 @@ public class MainActivity extends Activity implements Servo.Client {
         Intent intent = getIntent();
         String args = intent.getStringExtra("servoargs");
         String log = intent.getStringExtra("servolog");
-        mServoView.setServoArgs(args, log);
+        String gstdebug = intent.getStringExtra("gstdebug");
+        mServoView.setServoArgs(args, log, gstdebug);
 
         if (Intent.ACTION_VIEW.equals(intent.getAction())) {
           mServoView.loadUri(intent.getData());

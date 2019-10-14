@@ -102,6 +102,9 @@ class PostBuildCommands(CommandBase):
             rust_log = env.get("RUST_LOG", None)
             if rust_log:
                 extra += " -e servolog " + rust_log
+            gst_debug = env.get("GST_DEBUG", None)
+            if gst_debug:
+                extra += " -e gstdebug " + gst_debug
             script += [
                 "am start " + extra + " org.mozilla.servo/org.mozilla.servo.MainActivity",
                 "sleep 0.5",
