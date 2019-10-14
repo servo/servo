@@ -9,7 +9,7 @@
       <Setter.Value>
         <ControlTemplate TargetType="local:ServoControl">
           <Grid>
-            <SwapChainPanel x:Name="swapChainPanel" MinHeight="200" MinWidth="200" ManipulationMode="All">
+            <SwapChainPanel x:Name="swapChainPanel" MinHeight="200" MinWidth="200" ManipulationMode="All" IsTapEnabled="True">
             </SwapChainPanel>
           </Grid>
         </ControlTemplate>

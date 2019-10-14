@@ -36,7 +36,7 @@ void ServoControl::Shutdown() {
 
 void ServoControl::OnLoaded(IInspectable const &, RoutedEventArgs const &) {
   auto panel = Panel();
-  panel.PointerReleased(
+  panel.Tapped(
       std::bind(&ServoControl::OnSurfaceClicked, this, _1, _2));
   panel.ManipulationStarted(
       [=](IInspectable const &,
@@ -95,10 +95,10 @@ void ServoControl::OnSurfaceManipulationDelta(
 }
 
 void ServoControl::OnSurfaceClicked(IInspectable const &,
-                                    Input::PointerRoutedEventArgs const &e) {
-  auto coords = e.GetCurrentPoint(Panel());
-  auto x = coords.Position().X * mDPI;
-  auto y = coords.Position().Y * mDPI;
+                                    Input::TappedRoutedEventArgs const &e) {
+  auto coords = e.GetPosition(Panel());
+  auto x = coords.X * mDPI;
+  auto y = coords.Y * mDPI;
   RunOnGLThread([=] { mServo->Click(x, y); });
   e.Handled(true);
 }
