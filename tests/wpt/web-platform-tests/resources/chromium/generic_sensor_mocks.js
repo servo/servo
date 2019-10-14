@@ -199,6 +199,19 @@ var GenericSensorTest = (() => {
         this.maxFrequency_ = Math.min(10, this.maxFrequency_);
       }
 
+      // Chromium applies some rounding and other privacy-related measures that
+      // can cause ALS not to report a reading when it has not changed beyond a
+      // certain threshold compared to the previous illuminance value. Make
+      // each reading return a different value that is significantly different
+      // from the previous one when setSensorReading() is not called by client
+      // code (e.g. run_generic_sensor_iframe_tests()).
+      if (type == device.mojom.SensorType.AMBIENT_LIGHT) {
+        this.activeSensors_.get(type).setSensorReading([
+          [window.performance.now() * 100],
+          [(window.performance.now() + 50) * 100]
+        ]);
+      }
+
       const initParams = new device.mojom.SensorInitParams({
         sensor: sensorPtr,
         clientReceiver: mojo.makeRequest(this.activeSensors_.get(type).client_),
