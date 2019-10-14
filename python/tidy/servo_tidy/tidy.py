@@ -16,7 +16,7 @@ import itertools
 import json
 import os
 import re
-import StringIO
+from io import StringIO
 import subprocess
 import sys
 
@@ -345,7 +345,7 @@ def check_flake8(file_name, contents):
         "E501",  # 80 character line length; the standard tidy process will enforce line length
     }
 
-    output = StringIO.StringIO()
+    output = StringIO()
     with stdout_redirect(output):
         check_code(contents, ignore=ignore)
     for error in output.getvalue().splitlines():

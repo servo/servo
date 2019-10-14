@@ -16,7 +16,7 @@ import platform
 import shutil
 from socket import error as socket_error
 import stat
-import StringIO
+from io import BytesIO
 import sys
 import time
 import zipfile
@@ -154,7 +154,7 @@ def download(desc, src, writer, start_byte=0):
 
 
 def download_bytes(desc, src):
-    content_writer = StringIO.StringIO()
+    content_writer = BytesIO()
     download(desc, src, content_writer)
     return content_writer.getvalue()
 
