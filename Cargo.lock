@@ -151,7 +151,7 @@ dependencies = [
 [[package]]
 name = "autocfg"
 version = "0.1.6"
-source = "git+https://github.com/servo/autocfg?branch=rustflags#d040e25ff6c129189306011f6a0ff210e08227a0"
+source = "git+https://github.com/servo/autocfg?branch=rustflags2#9142612f4b2599e6a858dc32cd3cbda5c98bd651"
 
 [[package]]
 name = "azure"
