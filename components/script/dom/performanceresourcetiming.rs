@@ -55,7 +55,6 @@ pub struct PerformanceResourceTiming {
     decoded_body_size: u64, //size in octets
 }
 
-// TODO(#21254): startTime
 // TODO(#21255): duration
 // TODO(#21269): next_hop
 // TODO(#21264): worker_start
@@ -115,7 +114,7 @@ impl PerformanceResourceTiming {
             entry: PerformanceEntry::new_inherited(
                 DOMString::from(url.into_string()),
                 DOMString::from("resource"),
-                0.,
+                resource_timing.start_time as f64,
                 0.,
             ),
             initiator_type: initiator_type,
