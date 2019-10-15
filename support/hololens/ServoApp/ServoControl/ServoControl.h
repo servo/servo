@@ -118,7 +118,7 @@ private:
 
   void
   OnSurfaceClicked(IInspectable const &,
-                   Windows::UI::Xaml::Input::PointerRoutedEventArgs const &);
+                   Windows::UI::Xaml::Input::TappedRoutedEventArgs const &);
 
   void OnSurfaceManipulationDelta(
       IInspectable const &,
