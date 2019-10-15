@@ -5292,8 +5292,9 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
             """
             rooted!(in(*cx) let mut expando = ptr::null_mut::<JSObject>());
             get_expando_object(proxy, expando.handle_mut());
-            if !expando.is_null() {
-                GetPropertyKeys(*cx, expando.handle(), JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, props);
+            if !expando.is_null() &&
+                !GetPropertyKeys(*cx, expando.handle(), JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, props) {
+                return false;
             }
 
             return true;
@@ -5337,8 +5338,9 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
             """
             rooted!(in(*cx) let mut expando = ptr::null_mut::<JSObject>());
             get_expando_object(proxy, expando.handle_mut());
-            if !expando.is_null() {
-                GetPropertyKeys(*cx, expando.handle(), JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, props);
+            if !expando.is_null() &&
+                !GetPropertyKeys(*cx, expando.handle(), JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, props) {
+                return false;
             }
 
             return true;
