@@ -13,7 +13,6 @@ path = "lib.rs"
 [features]
 canvas2d-azure = ["canvas/canvas2d-azure"]
 canvas2d-raqote = ["canvas/canvas2d-raqote"]
-no_wgl = ["canvas/no_wgl"]
 
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor"}

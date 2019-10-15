@@ -360,7 +360,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn deinit(self) {
-        self.window.prepare_for_composite();
+        self.window.make_gl_context_current();
         self.webrender.deinit();
     }
 
@@ -1263,7 +1263,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     ) -> Result<Option<Image>, UnableToComposite> {
         let size = self.embedder_coordinates.framebuffer.to_u32();
 
-        self.window.prepare_for_composite();
+        self.window.make_gl_context_current();
         self.webrender.update();
 
         let wait_for_stable_image = match target {

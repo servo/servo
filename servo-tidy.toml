@@ -28,6 +28,7 @@ rand = [
 # Ignored packages with duplicated versions
 packages = [
   "cgl",
+  "cocoa",
   "gl_generator", # https://github.com/servo/servo/pull/23288#issuecomment-494687746
   "gleam",
   "proc-macro2",
@@ -35,6 +36,7 @@ packages = [
   "syn",
   "synstructure",
   "unicode-xid",
+  "wayland-sys",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [

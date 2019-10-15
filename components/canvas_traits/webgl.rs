@@ -5,6 +5,7 @@
 use euclid::default::{Rect, Size2D};
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory};
 use pixels::PixelFormat;
+use serde::{Deserialize, Serialize};
 use sparkle::gl;
 use sparkle::gl::Gl;
 use std::borrow::Cow;
@@ -13,6 +14,7 @@ use std::num::{NonZeroU32, NonZeroU64};
 use std::ops::Deref;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
 use webvr_traits::WebVRPoseInformation;
+use webxr_api::SwapChainId as WebXRSwapChainId;
 
 /// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
 pub use crate::webgl_channel::webgl_channel;
@@ -35,6 +37,24 @@ pub struct WebGLCommandBacktrace {
     pub js_backtrace: Option<String>,
 }
 
+/// WebGL Threading API entry point that lives in the constellation.
+pub struct WebGLThreads(pub WebGLSender<WebGLMsg>);
+
+impl WebGLThreads {
+    /// Gets the WebGLThread handle for each script pipeline.
+    pub fn pipeline(&self) -> WebGLPipeline {
+        // This mode creates a single thread, so the existing WebGLChan is just cloned.
+        WebGLPipeline(WebGLChan(self.0.clone()))
+    }
+
+    /// Sends a exit message to close the WebGLThreads and release all WebGLContexts.
+    pub fn exit(&self) -> Result<(), &'static str> {
+        self.0
+            .send(WebGLMsg::Exit)
+            .map_err(|_| "Failed to send Exit message")
+    }
+}
+
 /// WebGL Message API
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebGLMsg {
@@ -53,21 +73,16 @@ pub enum WebGLMsg {
     WebGLCommand(WebGLContextId, WebGLCommand, WebGLCommandBacktrace),
     /// Runs a WebVRCommand in a specific WebGLContext.
     WebVRCommand(WebGLContextId, WebVRCommand),
-    /// Locks a specific WebGLContext. Lock messages are used for a correct synchronization
-    /// with WebRender external image API.
-    /// WR locks a external texture when it wants to use the shared texture contents.
-    /// The WR client should not change the shared texture content until the Unlock call.
-    /// Currently OpenGL Sync Objects are used to implement the synchronization mechanism.
-    Lock(WebGLContextId, WebGLSender<(u32, Size2D<i32>, usize)>),
-    /// Unlocks a specific WebGLContext. Unlock messages are used for a correct synchronization
-    /// with WebRender external image API.
-    /// The WR unlocks a context when it finished reading the shared texture contents.
-    /// Unlock messages are always sent after a Lock message.
-    Unlock(WebGLContextId),
     /// Commands used for the DOMToTexture feature.
     DOMToTextureCommand(DOMToTextureCommand),
+    /// Creates a new opaque framebuffer for WebXR.
+    CreateWebXRSwapChain(
+        WebGLContextId,
+        Size2D<i32>,
+        WebGLSender<Option<WebXRSwapChainId>>,
+    ),
     /// Performs a buffer swap.
-    SwapBuffers(Vec<WebGLContextId>, WebGLSender<()>),
+    SwapBuffers(Vec<SwapChainId>, WebGLSender<()>),
     /// Frees all resources and closes the thread.
     Exit,
 }
@@ -85,24 +100,12 @@ pub struct WebGLCreateContextResult {
     pub sender: WebGLMsgSender,
     /// Information about the internal GL Context.
     pub limits: GLLimits,
-    /// How the WebGLContext is shared with WebRender.
-    pub share_mode: WebGLContextShareMode,
     /// The GLSL version supported by the context.
     pub glsl_version: WebGLSLVersion,
     /// The GL API used by the context.
     pub api_type: GlType,
-    /// The format for creating new offscreen framebuffers for this context.
-    pub framebuffer_format: GLFormats,
     /// The WebRender image key.
     pub image_key: ImageKey,
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
-pub enum WebGLContextShareMode {
-    /// Fast: a shared texture_id is used in WebRender.
-    SharedTexture,
-    /// Slow: glReadPixels is used to send pixels to WebRender each frame.
-    Readback,
 }
 
 /// Defines the WebGL version
@@ -176,6 +179,28 @@ impl WebGLMsgSender {
         self.sender.send(WebGLMsg::RemoveContext(self.ctx_id))
     }
 
+    #[inline]
+    pub fn send_create_webxr_swap_chain(
+        &self,
+        size: Size2D<i32>,
+        sender: WebGLSender<Option<WebXRSwapChainId>>,
+    ) -> WebGLSendResult {
+        self.sender
+            .send(WebGLMsg::CreateWebXRSwapChain(self.ctx_id, size, sender))
+    }
+
+    #[inline]
+    pub fn send_swap_buffers(&self, id: Option<WebGLOpaqueFramebufferId>) -> WebGLSendResult {
+        let swap_id = id
+            .map(|id| SwapChainId::Framebuffer(self.ctx_id, id))
+            .unwrap_or_else(|| SwapChainId::Context(self.ctx_id));
+        let (sender, receiver) = webgl_channel()?;
+        self.sender
+            .send(WebGLMsg::SwapBuffers(vec![swap_id], sender))?;
+        receiver.recv()?;
+        Ok(())
+    }
+
     pub fn send_dom_to_texture(&self, command: DOMToTextureCommand) -> WebGLSendResult {
         self.sender.send(WebGLMsg::DOMToTextureCommand(command))
     }
@@ -239,7 +264,7 @@ pub enum WebGLCommand {
     CopyTexImage2D(u32, i32, u32, i32, i32, i32, i32, i32),
     CopyTexSubImage2D(u32, i32, i32, i32, i32, i32, i32, i32),
     CreateBuffer(WebGLSender<Option<WebGLBufferId>>),
-    CreateFramebuffer(WebGLSender<Option<WebGLFramebufferId>>),
+    CreateFramebuffer(WebGLSender<Option<WebGLTransparentFramebufferId>>),
     CreateRenderbuffer(WebGLSender<Option<WebGLRenderbufferId>>),
     CreateTexture(WebGLSender<Option<WebGLTextureId>>),
     CreateProgram(WebGLSender<Option<WebGLProgramId>>),
@@ -517,7 +542,7 @@ macro_rules! define_resource_id {
 }
 
 define_resource_id!(WebGLBufferId, u32);
-define_resource_id!(WebGLFramebufferId, u32);
+define_resource_id!(WebGLTransparentFramebufferId, u32);
 define_resource_id!(WebGLRenderbufferId, u32);
 define_resource_id!(WebGLTextureId, u32);
 define_resource_id!(WebGLProgramId, u32);
@@ -530,7 +555,22 @@ define_resource_id!(WebGLVertexArrayId, u32);
 #[derive(
     Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
 )]
-pub struct WebGLContextId(pub usize);
+pub struct WebGLContextId(pub u64);
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum SwapChainId {
+    Context(WebGLContextId),
+    Framebuffer(WebGLContextId, WebGLOpaqueFramebufferId),
+}
+
+impl SwapChainId {
+    pub fn context_id(&self) -> WebGLContextId {
+        match *self {
+            SwapChainId::Context(id) => id,
+            SwapChainId::Framebuffer(id, _) => id,
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum WebGLError {
@@ -540,6 +580,18 @@ pub enum WebGLError {
     InvalidValue,
     OutOfMemory,
     ContextLost,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub enum WebGLOpaqueFramebufferId {
+    // At the moment the only source of opaque framebuffers is webxr
+    WebXR(#[ignore_malloc_size_of = "ids don't malloc"] WebXRSwapChainId),
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub enum WebGLFramebufferId {
+    Transparent(WebGLTransparentFramebufferId),
+    Opaque(WebGLOpaqueFramebufferId),
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -914,10 +966,4 @@ pub struct GLLimits {
     pub max_vertex_texture_image_units: u32,
     pub max_vertex_uniform_vectors: u32,
     pub max_client_wait_timeout_webgl: std::time::Duration,
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
-pub struct GLFormats {
-    pub texture_format: u32,
-    pub texture_type: u32,
 }

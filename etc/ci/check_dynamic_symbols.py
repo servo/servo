@@ -30,6 +30,8 @@ allowed_symbols = frozenset([
     b'abs',
     b'fegetenv',
     b'sigemptyset',
+    b'AHardwareBuffer_allocate',
+    b'AHardwareBuffer_release',
 ])
 actual_symbols = set()
 

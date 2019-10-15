@@ -24,7 +24,7 @@ layout-2013 = ["layout_thread_2013"]
 layout-2020 = ["layout_thread_2020"]
 max_log_level = ["log/release_max_level_info"]
 native-bluetooth = ["bluetooth/native-bluetooth"]
-no_wgl = ["canvas/no_wgl"]
+no-wgl = ["canvas/no-wgl"]
 uwp = ["servo_config/uwp", "script/uwp"]
 webrender_debugger = ["webrender/debugger"]
 no_static_freetype = ["webrender/no_static_freetype"]
@@ -63,7 +63,6 @@ media = {path = "../media"}
 msg = {path = "../msg"}
 net = {path = "../net"}
 net_traits = {path = "../net_traits"}
-offscreen_gl_context = "0.25"
 profile = {path = "../profile"}
 profile_traits = {path = "../profile_traits"}
 script = {path = "../script"}
@@ -83,6 +82,7 @@ webdriver_server = {path = "../webdriver_server", optional = true}
 webvr = {path = "../webvr"}
 webvr_traits = {path = "../webvr_traits"}
 webxr-api = {git = "https://github.com/servo/webxr"}
+surfman = { git = "https://github.com/pcwalton/surfman", features = ["sm-osmesa"] }
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_arch="arm"), not(target_arch="aarch64")))'.dependencies]
 gaol = "0.2.1"

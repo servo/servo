@@ -188,9 +188,7 @@ impl Window {
         gl.clear(gl::COLOR_BUFFER_BIT);
         gl.finish();
 
-        let mut context = GlContext::Current(context);
-
-        context.make_not_current();
+        let context = GlContext::Current(context);
 
         debug!("Created window {:?}", context.window().id());
         let window = Window {
@@ -625,7 +623,7 @@ impl WindowMethods for Window {
         self.animation_state.set(state);
     }
 
-    fn prepare_for_composite(&self) {
+    fn make_gl_context_current(&self) {
         self.gl_context.borrow_mut().make_current();
     }
 

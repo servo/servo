@@ -106,7 +106,7 @@ impl WebGLRenderbuffer {
             let currently_bound_framebuffer =
                 self.upcast::<WebGLObject>().context().bound_framebuffer();
             if let Some(fb) = currently_bound_framebuffer {
-                fb.detach_renderbuffer(self);
+                let _ = fb.detach_renderbuffer(self);
             }
 
             let context = self.upcast::<WebGLObject>().context();

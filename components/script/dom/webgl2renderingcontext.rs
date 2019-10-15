@@ -1426,6 +1426,6 @@ impl LayoutCanvasWebGLRenderingContextHelpers for LayoutDom<WebGL2RenderingConte
     #[allow(unsafe_code)]
     unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource {
         let this = &*self.unsafe_get();
-        HTMLCanvasDataSource::WebGL((*this.base.to_layout().unsafe_get()).layout_handle())
+        (*this.base.to_layout().unsafe_get()).layout_handle()
     }
 }

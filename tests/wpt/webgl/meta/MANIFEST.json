@@ -14740,7 +14740,9 @@
    "conformance/rendering/preservedrawingbuffer-leak.html": [
     [
      "conformance/rendering/preservedrawingbuffer-leak.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/rendering/rendering-stencil-large-viewport.html": [
@@ -36755,7 +36757,7 @@
    "testharness"
   ],
   "conformance/rendering/preservedrawingbuffer-leak.html": [
-   "3df53551ef062f8c5a9b52003f2a564db14d990f",
+   "80571f50ffa06d33e5731c33b75898d4ad329209",
    "testharness"
   ],
   "conformance/rendering/rendering-stencil-large-viewport.html": [

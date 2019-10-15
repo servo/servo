@@ -54,11 +54,11 @@ use crate::script_runtime::JSContext as SafeJSContext;
 use backtrace::Backtrace;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
-    webgl_channel, AlphaTreatment, DOMToTextureCommand, GLContextAttributes, GLFormats, GLLimits,
-    GlType, Parameter, TexDataType, TexFormat, TexParameter, WebGLChan, WebGLCommand,
-    WebGLCommandBacktrace, WebGLContextId, WebGLContextShareMode, WebGLError,
-    WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId, WebGLResult,
-    WebGLSLVersion, WebGLSendResult, WebGLSender, WebGLVersion, WebVRCommand, YAxisTreatment,
+    webgl_channel, AlphaTreatment, DOMToTextureCommand, GLContextAttributes, GLLimits, GlType,
+    Parameter, TexDataType, TexFormat, TexParameter, WebGLChan, WebGLCommand,
+    WebGLCommandBacktrace, WebGLContextId, WebGLError, WebGLFramebufferBindingRequest, WebGLMsg,
+    WebGLMsgSender, WebGLOpaqueFramebufferId, WebGLProgramId, WebGLResult, WebGLSLVersion,
+    WebGLSendResult, WebGLSender, WebGLVersion, WebVRCommand, YAxisTreatment,
 };
 use dom_struct::dom_struct;
 use embedder_traits::EventLoopWaker;
@@ -81,6 +81,7 @@ use std::cell::Cell;
 use std::cmp;
 use std::ptr::{self, NonNull};
 use std::rc::Rc;
+use webxr_api::SwapChainId as WebXRSwapChainId;
 
 // From the GLES 2.0.25 spec, page 85:
 //
@@ -130,10 +131,9 @@ pub struct WebGLRenderingContext {
     webgl_sender: WebGLMessageSender,
     #[ignore_malloc_size_of = "Defined in webrender"]
     webrender_image: webrender_api::ImageKey,
-    share_mode: WebGLContextShareMode,
     webgl_version: WebGLVersion,
     glsl_version: WebGLSLVersion,
-    #[ignore_malloc_size_of = "Defined in offscreen_gl_context"]
+    #[ignore_malloc_size_of = "Defined in surfman"]
     limits: GLLimits,
     canvas: Dom<HTMLCanvasElement>,
     #[ignore_malloc_size_of = "Defined in canvas_traits"]
@@ -160,7 +160,6 @@ pub struct WebGLRenderingContext {
     current_vao: MutNullableDom<WebGLVertexArrayObjectOES>,
     textures: Textures,
     api_type: GlType,
-    framebuffer_format: GLFormats,
 }
 
 impl WebGLRenderingContext {
@@ -195,7 +194,6 @@ impl WebGLRenderingContext {
                     window.get_event_loop_waker(),
                 ),
                 webrender_image: ctx_data.image_key,
-                share_mode: ctx_data.share_mode,
                 webgl_version,
                 glsl_version: ctx_data.glsl_version,
                 limits: ctx_data.limits,
@@ -220,7 +218,6 @@ impl WebGLRenderingContext {
                 current_vao: Default::default(),
                 textures: Textures::new(max_combined_texture_image_units),
                 api_type: ctx_data.api_type,
-                framebuffer_format: ctx_data.framebuffer_format,
             }
         })
     }
@@ -292,7 +289,7 @@ impl WebGLRenderingContext {
         self.send_command(WebGLCommand::Scissor(rect.0, rect.1, rect.2, rect.3));
 
         // Bound texture must not change when the canvas is resized.
-        // Right now offscreen_gl_context generates a new FBO and the bound texture is changed
+        // Right now surfman generates a new FBO and the bound texture is changed
         // in order to create a new render to texture attachment.
         // Send a command to re-bind the TEXTURE_2D, if any.
         if let Some(texture) = self
@@ -308,7 +305,7 @@ impl WebGLRenderingContext {
         }
 
         // Bound framebuffer must not change when the canvas is resized.
-        // Right now offscreen_gl_context generates a new FBO on resize.
+        // Right now surfman generates a new FBO on resize.
         // Send a command to re-bind the framebuffer, if any.
         if let Some(fbo) = self.bound_framebuffer.get() {
             let id = WebGLFramebufferBindingRequest::Explicit(fbo.id());
@@ -324,6 +321,10 @@ impl WebGLRenderingContext {
         self.webgl_sender.context_id()
     }
 
+    pub fn onscreen(&self) -> bool {
+        self.canvas.upcast::<Node>().is_connected()
+    }
+
     #[inline]
     pub fn send_command(&self, command: WebGLCommand) {
         self.webgl_sender
@@ -335,6 +336,10 @@ impl WebGLRenderingContext {
         let _ = self
             .webgl_sender
             .send(command, capture_webgl_backtrace(self));
+    }
+
+    pub fn swap_buffers(&self, id: Option<WebGLOpaqueFramebufferId>) {
+        let _ = self.webgl_sender.send_swap_buffers(id);
     }
 
     #[inline]
@@ -462,7 +467,7 @@ impl WebGLRenderingContext {
             .dirty(NodeDamage::OtherNodeDamage);
 
         let document = document_from_node(&*self.canvas);
-        document.add_dirty_canvas(self.context_id());
+        document.add_dirty_canvas(self);
     }
 
     fn vertex_attrib(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
@@ -810,8 +815,9 @@ impl WebGLRenderingContext {
         receiver.recv().unwrap()
     }
 
-    pub fn layout_handle(&self) -> webrender_api::ImageKey {
-        self.webrender_image
+    pub(crate) fn layout_handle(&self) -> HTMLCanvasDataSource {
+        let image_key = self.webrender_image;
+        HTMLCanvasDataSource::WebGL(image_key)
     }
 
     // https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
@@ -1086,16 +1092,8 @@ impl WebGLRenderingContext {
         self.bound_framebuffer.get()
     }
 
-    pub fn bound_renderbuffer(&self) -> Option<DomRoot<WebGLRenderbuffer>> {
-        self.bound_renderbuffer.get()
-    }
-
     pub fn extension_manager(&self) -> &WebGLExtensions {
         &self.extension_manager
-    }
-
-    pub fn formats(&self) -> &GLFormats {
-        &self.framebuffer_format
     }
 }
 
@@ -2225,6 +2223,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn DeleteFramebuffer(&self, framebuffer: Option<&WebGLFramebuffer>) {
         if let Some(framebuffer) = framebuffer {
+            // https://immersive-web.github.io/webxr/#opaque-framebuffer
+            // Can opaque framebuffers be deleted?
+            // https://github.com/immersive-web/webxr/issues/855
+            handle_potential_webgl_error!(self, framebuffer.validate_transparent(), return);
             handle_potential_webgl_error!(self, self.validate_ownership(framebuffer), return);
             handle_object_deletion!(
                 self,
@@ -2384,7 +2386,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         pname: u32,
     ) -> JSVal {
         // Check if currently bound framebuffer is non-zero as per spec.
-        if self.bound_framebuffer.get().is_none() {
+        if let Some(fb) = self.bound_framebuffer.get() {
+            // Opaque framebuffers cannot have their attachments inspected
+            // https://immersive-web.github.io/webxr/#opaque-framebuffer
+            handle_potential_webgl_error!(self, fb.validate_transparent(), return NullValue());
+        } else {
             self.webgl_error(InvalidOperation);
             return NullValue();
         }
@@ -2487,6 +2493,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn GetRenderbufferParameter(&self, _cx: SafeJSContext, target: u32, pname: u32) -> JSVal {
+        // We do not check to see if the renderbuffer came from an opaque framebuffer
+        // https://github.com/immersive-web/webxr/issues/862
         let target_matches = target == constants::RENDERBUFFER;
 
         let pname_matches = match pname {
@@ -3477,6 +3485,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         if program.is_deleted() ||
             !program.is_linked() ||
+            self.context_id() != location.context_id() ||
             program.id() != location.program_id() ||
             program.link_generation() != location.link_generation()
         {
@@ -4153,7 +4162,7 @@ pub trait LayoutCanvasWebGLRenderingContextHelpers {
 impl LayoutCanvasWebGLRenderingContextHelpers for LayoutDom<WebGLRenderingContext> {
     #[allow(unsafe_code)]
     unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource {
-        HTMLCanvasDataSource::WebGL((*self.unsafe_get()).layout_handle())
+        (*self.unsafe_get()).layout_handle()
     }
 }
 
@@ -4347,7 +4356,7 @@ impl TexPixels {
 }
 
 #[derive(JSTraceable)]
-pub(crate) struct WebGLCommandSender {
+pub struct WebGLCommandSender {
     sender: WebGLChan,
     waker: Option<Box<dyn EventLoopWaker>>,
 }
@@ -4408,6 +4417,18 @@ impl WebGLMessageSender {
 
     pub fn send_vr(&self, command: WebVRCommand) -> WebGLSendResult {
         self.wake_after_send(|| self.sender.send_vr(command))
+    }
+
+    pub fn send_swap_buffers(&self, id: Option<WebGLOpaqueFramebufferId>) -> WebGLSendResult {
+        self.wake_after_send(|| self.sender.send_swap_buffers(id))
+    }
+
+    pub fn send_create_webxr_swap_chain(
+        &self,
+        size: Size2D<i32>,
+        sender: WebGLSender<Option<WebXRSwapChainId>>,
+    ) -> WebGLSendResult {
+        self.wake_after_send(|| self.sender.send_create_webxr_swap_chain(size, sender))
     }
 
     pub fn send_resize(

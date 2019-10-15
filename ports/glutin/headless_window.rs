@@ -189,7 +189,7 @@ impl WindowMethods for Window {
     }
 
     #[cfg(any(target_os = "linux", target_os = "macos"))]
-    fn prepare_for_composite(&self) {
+    fn make_gl_context_current(&self) {
         unsafe {
             let mut buffer = self.context.buffer.borrow_mut();
             let ret = osmesa_sys::OSMesaMakeCurrent(
@@ -204,7 +204,7 @@ impl WindowMethods for Window {
     }
 
     #[cfg(not(any(target_os = "linux", target_os = "macos")))]
-    fn prepare_for_composite(&self) {}
+    fn make_gl_context_current(&self) {}
 
     fn get_gl_context(&self) -> MediaPlayerCtxt::GlContext {
         MediaPlayerCtxt::GlContext::Unknown
