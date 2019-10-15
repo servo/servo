@@ -36,7 +36,6 @@ ${helpers.four_sides_shorthand(
     "scroll-padding-%s",
     "specified::NonNegativeLengthPercentageOrAuto::parse",
     engines="gecko",
-    gecko_pref="layout.css.scroll-snap-v1.enabled",
     spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding"
 )}
 
@@ -46,7 +45,6 @@ ${helpers.two_properties_shorthand(
     "scroll-padding-block-end",
     "specified::NonNegativeLengthPercentageOrAuto::parse",
     engines="gecko",
-    gecko_pref="layout.css.scroll-snap-v1.enabled",
     spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding-block"
 )}
 
@@ -56,7 +54,6 @@ ${helpers.two_properties_shorthand(
     "scroll-padding-inline-end",
     "specified::NonNegativeLengthPercentageOrAuto::parse",
     engines="gecko",
-    gecko_pref="layout.css.scroll-snap-v1.enabled",
     spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding-inline"
 )}
 

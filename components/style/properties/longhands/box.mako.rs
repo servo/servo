@@ -453,7 +453,6 @@ ${helpers.predefined_type(
     "ScrollSnapAlign",
     "computed::ScrollSnapAlign::none()",
     engines="gecko",
-    gecko_pref="layout.css.scroll-snap-v1.enabled",
     spec="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-align",
     animation_value_type="discrete",
 )}

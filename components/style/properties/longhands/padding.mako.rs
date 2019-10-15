@@ -33,7 +33,6 @@
         "NonNegativeLengthPercentageOrAuto",
         "computed::NonNegativeLengthPercentageOrAuto::auto()",
         engines="gecko",
-        gecko_pref="layout.css.scroll-snap-v1.enabled",
         logical=side[1],
         logical_group="scroll-padding",
         spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding-%s" % side[0],
