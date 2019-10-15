@@ -157,6 +157,16 @@ impl XRSession {
                 );
             }),
         );
+
+        self.request_new_xr_frame();
+    }
+
+    /// Requests a new https://immersive-web.github.io/webxr/#xr-animation-frame
+    ///
+    /// This happens regardless of the presense of rAF callbacks
+    fn request_new_xr_frame(&self) {
+        let sender = self.raf_sender.borrow().clone().unwrap();
+        self.session.borrow_mut().request_animation_frame(sender);
     }
 
     fn attach_event_handler(&self) {
@@ -319,6 +329,7 @@ impl XRSession {
 
         frame.set_active(false);
         self.session.borrow_mut().render_animation_frame();
+        self.request_new_xr_frame();
 
         // If the canvas element is attached to the DOM, it is now dirty,
         // and we need to trigger a reflow.
@@ -396,31 +407,12 @@ impl XRSessionMethods for XRSession {
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe
     fn RequestAnimationFrame(&self, callback: Rc<XRFrameRequestCallback>) -> i32 {
-        // We only need to send a message once, until a raf callback executes.
-        let should_send = self.raf_callback_list.borrow().is_empty();
-
         // queue up RAF callback, obtain ID
         let raf_id = self.next_raf_id.get();
         self.next_raf_id.set(raf_id + 1);
         self.raf_callback_list
             .borrow_mut()
             .push((raf_id, Some(callback)));
-
-
-        if should_send {
-            // If our callback list is empty, it either means this is the first request,
-            // or raf_callback executed, in which case we should
-            // send a message to request an animation frame.
-            //
-            // This prevents multiple messages being sent for a single call to raf_callback,
-            // and multiple message are unnecessary,
-            // since one call will already deal with multiple potentially enqueued callbacks.
-            //
-            // Allowing multiple messages could keep the main-thread,
-            // where the session thread might be running, looping on incoming messages.
-            let sender = self.raf_sender.borrow().clone().unwrap();
-            self.session.borrow_mut().request_animation_frame(sender);
-        }
 
         raf_id
     }
