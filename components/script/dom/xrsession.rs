@@ -119,6 +119,7 @@ impl XRSession {
         );
         input_sources.set_initial_inputs(&ret);
         ret.attach_event_handler();
+        ret.setup_raf_loop();
         ret
     }
 
@@ -129,6 +130,33 @@ impl XRSession {
 
     pub fn is_ended(&self) -> bool {
         self.ended.get()
+    }
+
+    fn setup_raf_loop(&self) {
+        assert!(
+            self.raf_sender.borrow().is_none(),
+            "RAF loop already set up"
+        );
+        let this = Trusted::new(self);
+        let global = self.global();
+        let window = global.as_window();
+        let (task_source, canceller) = window
+            .task_manager()
+            .dom_manipulation_task_source_with_canceller();
+        let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
+        *self.raf_sender.borrow_mut() = Some(sender);
+        ROUTER.add_route(
+            receiver.to_opaque(),
+            Box::new(move |message| {
+                let this = this.clone();
+                let _ = task_source.queue_with_canceller(
+                    task!(xr_raf_callback: move || {
+                        this.root().raf_callback(message.to().unwrap());
+                    }),
+                    &canceller,
+                );
+            }),
+        );
     }
 
     fn attach_event_handler(&self) {
@@ -378,29 +406,6 @@ impl XRSessionMethods for XRSession {
             .borrow_mut()
             .push((raf_id, Some(callback)));
 
-        // set up listener for response, if necessary
-        if self.raf_sender.borrow().is_none() {
-            let this = Trusted::new(self);
-            let global = self.global();
-            let window = global.as_window();
-            let (task_source, canceller) = window
-                .task_manager()
-                .dom_manipulation_task_source_with_canceller();
-            let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
-            *self.raf_sender.borrow_mut() = Some(sender);
-            ROUTER.add_route(
-                receiver.to_opaque(),
-                Box::new(move |message| {
-                    let this = this.clone();
-                    let _ = task_source.queue_with_canceller(
-                        task!(xr_raf_callback: move || {
-                            this.root().raf_callback(message.to().unwrap());
-                        }),
-                        &canceller,
-                    );
-                }),
-            );
-        }
 
         if should_send {
             // If our callback list is empty, it either means this is the first request,
