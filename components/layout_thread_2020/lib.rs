@@ -35,6 +35,7 @@ use gfx_traits::{node_id_from_scroll_id, Epoch};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::context::LayoutContext;
+use layout::display_list::DisplayListBuilder;
 use layout::query::{
     process_content_box_request, process_content_boxes_request, LayoutRPCImpl, LayoutThreadData,
 };
@@ -1271,9 +1272,9 @@ impl LayoutThread {
             self.viewport_size.width.to_f32_px(),
             self.viewport_size.height.to_f32_px(),
         ));
-        let mut display_list =
-            webrender_api::DisplayListBuilder::new(self.id.to_webrender(), viewport_size);
-        let is_contentful = fragment_tree.build_display_list(&mut display_list);
+        let mut display_list = DisplayListBuilder::new(self.id.to_webrender(), viewport_size);
+        let is_contentful =
+            fragment_tree.build_display_list(&mut display_list, self.id, viewport_size);
 
         debug!("Layout done!");
 
@@ -1292,7 +1293,7 @@ impl LayoutThread {
             webrender_api::Epoch(epoch.0),
             None,
             viewport_size,
-            display_list.finalize(),
+            display_list.wr.finalize(),
             true,
         );
         txn.generate_frame();

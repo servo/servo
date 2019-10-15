@@ -9,7 +9,6 @@ use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::Zero;
-use webrender_api::DisplayListBuilder;
 
 pub(crate) enum Fragment {
     Box(BoxFragment),
@@ -122,20 +121,5 @@ impl CollapsedMargin {
 
     pub fn solve(&self) -> Length {
         self.max_positive + self.min_negative
-    }
-}
-
-/// Contentful paint, for the purpose of
-/// https://w3c.github.io/paint-timing/#first-contentful-paint
-/// (i.e. the display list contains items of type text,
-/// image, non-white canvas or SVG). Used by metrics.
-pub struct IsContentful(pub bool);
-
-impl Fragment {
-    pub(crate) fn build_display_list(
-        &self,
-        builder: &mut DisplayListBuilder,
-        is_contentful: &mut IsContentful,
-    ) {
     }
 }

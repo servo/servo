@@ -332,3 +332,12 @@ impl From<physical::Rect<Length>> for Rect<CSSPixel> {
         }
     }
 }
+
+impl From<physical::Rect<Length>> for webrender_api::units::LayoutRect {
+    fn from(r: physical::Rect<Length>) -> Self {
+        Rect {
+            origin: Point::new(r.top_left.x.px(), r.top_left.y.px()),
+            size: Size::new(r.size.x.px(), r.size.y.px()),
+        }
+    }
+}
