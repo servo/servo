@@ -770,6 +770,10 @@ install them, let us know by filing a bug!")
         if self.config["build"]["thinlto"]:
             env['RUSTFLAGS'] += " -Z thinlto"
 
+        # Work around https://github.com/servo/servo/issues/24446
+        # Argument-less str.split normalizes leading, trailing, and double spaces
+        env['RUSTFLAGS'] = " ".join(env['RUSTFLAGS'].split())
+
         return env
 
     @staticmethod
