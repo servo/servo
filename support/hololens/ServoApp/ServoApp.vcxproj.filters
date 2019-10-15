@@ -191,18 +191,6 @@
     <None Include="..\..\..\target\x86_64-uwp-windows-msvc\release\msvcp140.dll">
       <Filter>ReleaseServoDLLs</Filter>
     </None>
-    <None Include="..\..\..\target\aarch64-uwp-windows-msvc\release\msvcp140.dll">
-      <Filter>ReleaseARM64ServoDLLs</Filter>
-    </None>
-    <None Include="..\..\..\target\aarch64-uwp-windows-msvc\release\vcruntime140.dll">
-      <Filter>ReleaseARM64ServoDLLs</Filter>
-    </None>
-    <None Include="..\..\..\target\aarch64-uwp-windows-msvc\debug\msvcp140.dll">
-      <Filter>DebugARM64ServoDLLs</Filter>
-    </None>
-    <None Include="..\..\..\target\aarch64-uwp-windows-msvc\debug\vcruntime140.dll">
-      <Filter>DebugARM64ServoDLLs</Filter>
-    </None>
     <None Include="..\..\..\target\aarch64-uwp-windows-msvc\debug\avcodec-58.dll">
       <Filter>DebugARM64ServoDLLs</Filter>
     </None>
@@ -624,12 +612,6 @@
       <Filter>DebugServoDLLs</Filter>
     </None>
     <None Include="..\..\..\target\x86_64-uwp-windows-msvc\debug\libssl.dll">
-      <Filter>DebugServoDLLs</Filter>
-    </None>
-    <None Include="..\..\..\target\x86_64-uwp-windows-msvc\debug\vcruntime140.dll">
-      <Filter>DebugServoDLLs</Filter>
-    </None>
-    <None Include="..\..\..\target\x86_64-uwp-windows-msvc\debug\msvcp140.dll">
       <Filter>DebugServoDLLs</Filter>
     </None>
     <None Include="..\..\..\target\x86_64-uwp-windows-msvc\release\bz2.dll">
