@@ -4819,6 +4819,7 @@ dependencies = [
  "android_injected_glue",
  "android_logger",
  "cc",
+ "gstreamer",
  "jni",
  "libc",
  "log",

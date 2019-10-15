@@ -8,6 +8,7 @@
 extern crate log;
 
 use android_logger::{self, Filter};
+use gstreamer::debug_set_threshold_from_string;
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue};
 use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};
 use jni::{errors, JNIEnv, JavaVM};
@@ -53,8 +54,8 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
     opts: JObject,
     callbacks_obj: JObject,
 ) {
-    let (mut opts, log, log_str) = match get_options(&env, opts) {
-        Ok((opts, log, log_str)) => (opts, log, log_str),
+    let (mut opts, log, log_str, gst_debug_str) = match get_options(&env, opts) {
+        Ok((opts, log, log_str, gst_debug_str)) => (opts, log, log_str, gst_debug_str),
         Err(err) => {
             throw(&env, &err);
             return;
@@ -86,6 +87,11 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
                 filter = filter.with_allowed_module_path(module);
             }
         }
+
+        if let Some(gst_debug_str) = gst_debug_str {
+            debug_set_threshold_from_string(&gst_debug_str, true);
+        }
+
         android_logger::init_once(filter, Some("simpleservo"));
     }
 
@@ -734,10 +740,14 @@ fn get_string(env: &JNIEnv, obj: JObject, field: &str) -> Result<Option<String>,
     }
 }
 
-fn get_options(env: &JNIEnv, opts: JObject) -> Result<(InitOptions, bool, Option<String>), String> {
+fn get_options(
+    env: &JNIEnv,
+    opts: JObject,
+) -> Result<(InitOptions, bool, Option<String>, Option<String>), String> {
     let args = get_string(env, opts, "args")?;
     let url = get_string(env, opts, "url")?;
     let log_str = get_string(env, opts, "logStr")?;
+    let gst_debug_str = get_string(env, opts, "gstDebugStr")?;
     let density = get_non_null_field(env, opts, "density", "F")?
         .f()
         .map_err(|_| "densitiy not a float")? as f32;
@@ -782,5 +792,5 @@ fn get_options(env: &JNIEnv, opts: JObject) -> Result<(InitOptions, bool, Option
         gl_context_pointer: None,
         native_display_pointer: None,
     };
-    Ok((opts, log, log_str))
+    Ok((opts, log, log_str, gst_debug_str))
 }

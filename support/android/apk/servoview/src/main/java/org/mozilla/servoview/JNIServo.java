@@ -74,6 +74,7 @@ public class JNIServo {
       public boolean enableSubpixelTextAntialiasing = true;
       public long VRExternalContext = 0;
       public String logStr;
+      public String gstDebugStr;
       public boolean enableLogs = false;
     }
 
