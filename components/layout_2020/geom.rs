@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::style_ext::{Direction, WritingMode};
+use std::fmt;
 use std::ops::{Add, AddAssign, Sub};
 use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
 use style::Zero;
@@ -13,7 +14,7 @@ pub type Size<U> = euclid::Size2D<f32, U>;
 pub type Rect<U> = euclid::Rect<f32, U>;
 
 pub(crate) mod physical {
-    #[derive(Clone, Debug)]
+    #[derive(Clone)]
     pub(crate) struct Vec2<T> {
         pub x: T,
         pub y: T,
@@ -35,7 +36,7 @@ pub(crate) mod physical {
 }
 
 pub(crate) mod flow_relative {
-    #[derive(Clone, Debug)]
+    #[derive(Clone)]
     pub(crate) struct Vec2<T> {
         pub inline: T,
         pub block: T,
@@ -53,6 +54,28 @@ pub(crate) mod flow_relative {
         pub inline_end: T,
         pub block_start: T,
         pub block_end: T,
+    }
+}
+
+impl<T: fmt::Debug> fmt::Debug for physical::Vec2<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Not using f.debug_struct on purpose here, to keep {:?} output somewhat compact
+        f.write_str("Vec2 { x: ")?;
+        self.x.fmt(f)?;
+        f.write_str(", y: ")?;
+        self.y.fmt(f)?;
+        f.write_str(" }")
+    }
+}
+
+impl<T: fmt::Debug> fmt::Debug for flow_relative::Vec2<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Not using f.debug_struct on purpose here, to keep {:?} output somewhat compact
+        f.write_str("Vec2 { i: ")?;
+        self.inline.fmt(f)?;
+        f.write_str(", b: ")?;
+        self.block.fmt(f)?;
+        f.write_str(" }")
     }
 }
 
