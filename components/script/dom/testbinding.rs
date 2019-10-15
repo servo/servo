@@ -36,8 +36,8 @@ use crate::dom::bindings::codegen::UnionTypes::{
     StringOrUnsignedLong, StringSequenceOrUnsignedLong,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::mozmap::MozMap;
 use crate::dom::bindings::num::Finite;
+use crate::dom::bindings::record::Record;
 use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -894,50 +894,64 @@ impl TestBindingMethods for TestBinding {
     fn FuncControlledMethodDisabled(&self) {}
     fn FuncControlledMethodEnabled(&self) {}
 
-    fn PassMozMap(&self, _: MozMap<i32>) {}
-    fn PassNullableMozMap(&self, _: Option<MozMap<i32>>) {}
-    fn PassMozMapOfNullableInts(&self, _: MozMap<Option<i32>>) {}
-    fn PassOptionalMozMapOfNullableInts(&self, _: Option<MozMap<Option<i32>>>) {}
-    fn PassOptionalNullableMozMapOfNullableInts(&self, _: Option<Option<MozMap<Option<i32>>>>) {}
-    fn PassCastableObjectMozMap(&self, _: MozMap<DomRoot<TestBinding>>) {}
-    fn PassNullableCastableObjectMozMap(&self, _: MozMap<Option<DomRoot<TestBinding>>>) {}
-    fn PassCastableObjectNullableMozMap(&self, _: Option<MozMap<DomRoot<TestBinding>>>) {}
-    fn PassNullableCastableObjectNullableMozMap(
+    fn PassRecord(&self, _: Record<DOMString, i32>) {}
+    fn PassRecordWithUSVStringKey(&self, _: Record<USVString, i32>) {}
+    fn PassRecordWithByteStringKey(&self, _: Record<ByteString, i32>) {}
+    fn PassNullableRecord(&self, _: Option<Record<DOMString, i32>>) {}
+    fn PassRecordOfNullableInts(&self, _: Record<DOMString, Option<i32>>) {}
+    fn PassOptionalRecordOfNullableInts(&self, _: Option<Record<DOMString, Option<i32>>>) {}
+    fn PassOptionalNullableRecordOfNullableInts(
         &self,
-        _: Option<MozMap<Option<DomRoot<TestBinding>>>>,
+        _: Option<Option<Record<DOMString, Option<i32>>>>,
     ) {
     }
-    fn PassOptionalMozMap(&self, _: Option<MozMap<i32>>) {}
-    fn PassOptionalNullableMozMap(&self, _: Option<Option<MozMap<i32>>>) {}
-    fn PassOptionalNullableMozMapWithDefaultValue(&self, _: Option<MozMap<i32>>) {}
-    fn PassOptionalObjectMozMap(&self, _: Option<MozMap<DomRoot<TestBinding>>>) {}
-    fn PassStringMozMap(&self, _: MozMap<DOMString>) {}
-    fn PassByteStringMozMap(&self, _: MozMap<ByteString>) {}
-    fn PassMozMapOfMozMaps(&self, _: MozMap<MozMap<i32>>) {}
-    fn PassMozMapUnion(&self, _: UnionTypes::LongOrStringByteStringRecord) {}
-    fn PassMozMapUnion2(&self, _: UnionTypes::TestBindingOrStringByteStringRecord) {}
-    fn PassMozMapUnion3(
+    fn PassCastableObjectRecord(&self, _: Record<DOMString, DomRoot<TestBinding>>) {}
+    fn PassNullableCastableObjectRecord(&self, _: Record<DOMString, Option<DomRoot<TestBinding>>>) {
+    }
+    fn PassCastableObjectNullableRecord(&self, _: Option<Record<DOMString, DomRoot<TestBinding>>>) {
+    }
+    fn PassNullableCastableObjectNullableRecord(
+        &self,
+        _: Option<Record<DOMString, Option<DomRoot<TestBinding>>>>,
+    ) {
+    }
+    fn PassOptionalRecord(&self, _: Option<Record<DOMString, i32>>) {}
+    fn PassOptionalNullableRecord(&self, _: Option<Option<Record<DOMString, i32>>>) {}
+    fn PassOptionalNullableRecordWithDefaultValue(&self, _: Option<Record<DOMString, i32>>) {}
+    fn PassOptionalObjectRecord(&self, _: Option<Record<DOMString, DomRoot<TestBinding>>>) {}
+    fn PassStringRecord(&self, _: Record<DOMString, DOMString>) {}
+    fn PassByteStringRecord(&self, _: Record<DOMString, ByteString>) {}
+    fn PassRecordOfRecords(&self, _: Record<DOMString, Record<DOMString, i32>>) {}
+    fn PassRecordUnion(&self, _: UnionTypes::LongOrStringByteStringRecord) {}
+    fn PassRecordUnion2(&self, _: UnionTypes::TestBindingOrStringByteStringRecord) {}
+    fn PassRecordUnion3(
         &self,
         _: UnionTypes::TestBindingOrByteStringSequenceSequenceOrStringByteStringRecord,
     ) {
     }
-    fn ReceiveMozMap(&self) -> MozMap<i32> {
-        MozMap::new()
+    fn ReceiveRecord(&self) -> Record<DOMString, i32> {
+        Record::new()
     }
-    fn ReceiveNullableMozMap(&self) -> Option<MozMap<i32>> {
-        Some(MozMap::new())
+    fn ReceiveRecordWithUSVStringKey(&self) -> Record<USVString, i32> {
+        Record::new()
     }
-    fn ReceiveMozMapOfNullableInts(&self) -> MozMap<Option<i32>> {
-        MozMap::new()
+    fn ReceiveRecordWithByteStringKey(&self) -> Record<ByteString, i32> {
+        Record::new()
     }
-    fn ReceiveNullableMozMapOfNullableInts(&self) -> Option<MozMap<Option<i32>>> {
-        Some(MozMap::new())
+    fn ReceiveNullableRecord(&self) -> Option<Record<DOMString, i32>> {
+        Some(Record::new())
     }
-    fn ReceiveMozMapOfMozMaps(&self) -> MozMap<MozMap<i32>> {
-        MozMap::new()
+    fn ReceiveRecordOfNullableInts(&self) -> Record<DOMString, Option<i32>> {
+        Record::new()
     }
-    fn ReceiveAnyMozMap(&self) -> MozMap<JSVal> {
-        MozMap::new()
+    fn ReceiveNullableRecordOfNullableInts(&self) -> Option<Record<DOMString, Option<i32>>> {
+        Some(Record::new())
+    }
+    fn ReceiveRecordOfRecords(&self) -> Record<DOMString, Record<DOMString, i32>> {
+        Record::new()
+    }
+    fn ReceiveAnyRecord(&self) -> Record<DOMString, JSVal> {
+        Record::new()
     }
 
     #[allow(unrooted_must_root)]

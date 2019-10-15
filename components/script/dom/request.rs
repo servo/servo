@@ -311,9 +311,10 @@ impl Request {
                         init_sequence.clone(),
                     )))?;
                 },
-                &HeadersInit::StringByteStringRecord(ref init_map) => {
-                    headers_copy
-                        .fill(Some(HeadersInit::StringByteStringRecord(init_map.clone())))?;
+                &HeadersInit::ByteStringByteStringRecord(ref init_map) => {
+                    headers_copy.fill(Some(HeadersInit::ByteStringByteStringRecord(
+                        init_map.clone(),
+                    )))?;
                 },
             }
         }
@@ -859,8 +860,8 @@ impl Clone for HeadersInit {
             &HeadersInit::ByteStringSequenceSequence(ref b) => {
                 HeadersInit::ByteStringSequenceSequence(b.clone())
             },
-            &HeadersInit::StringByteStringRecord(ref m) => {
-                HeadersInit::StringByteStringRecord(m.clone())
+            &HeadersInit::ByteStringByteStringRecord(ref m) => {
+                HeadersInit::ByteStringByteStringRecord(m.clone())
             },
         }
     }

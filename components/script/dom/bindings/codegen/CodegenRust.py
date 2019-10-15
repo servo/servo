@@ -77,13 +77,12 @@ def innerContainerType(type):
 
 def wrapInNativeContainerType(type, inner):
     if type.isSequence():
-        containerType = "Vec"
+        return CGWrapper(inner, pre="Vec<", post=">")
     elif type.isRecord():
-        containerType = "MozMap"
+        key = type.inner.keyType if type.nullable() else type.keyType
+        return CGRecord(key, inner)
     else:
         raise TypeError("Unexpected container type %s", type)
-
-    return CGWrapper(inner, pre=containerType + "<", post=">")
 
 
 builtinNames = {
@@ -1905,6 +1904,30 @@ class CGWrapper(CGThing):
         return self.pre + defn + self.post
 
 
+class CGRecord(CGThing):
+    """
+    CGThing that wraps value CGThing in record with key type equal to keyType parameter
+    """
+    def __init__(self, keyType, value):
+        CGThing.__init__(self)
+        assert keyType.isString()
+        self.keyType = keyType
+        self.value = value
+
+    def define(self):
+        if self.keyType.isByteString():
+            keyDef = "ByteString"
+        elif self.keyType.isDOMString():
+            keyDef = "DOMString"
+        elif self.keyType.isUSVString():
+            keyDef = "USVString"
+        else:
+            assert False
+
+        defn = keyDef + ", " + self.value.define()
+        return "Record<" + defn + ">"
+
+
 class CGImports(CGWrapper):
     """
     Generates the appropriate import/use statements.
@@ -2024,7 +2047,7 @@ class CGImports(CGWrapper):
                     extras += [descriptor.path, descriptor.bindingPath]
                     parentName = descriptor.getParentName()
             elif t.isType() and t.isRecord():
-                extras += ['crate::dom::bindings::mozmap::MozMap']
+                extras += ['crate::dom::bindings::record::Record']
             elif isinstance(t, IDLPromiseType):
                 extras += ['crate::dom::promise::Promise']
             else:
@@ -2373,7 +2396,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'crate::dom::bindings::conversions::StringificationBehavior',
         'crate::dom::bindings::conversions::root_from_handlevalue',
         'std::ptr::NonNull',
-        'crate::dom::bindings::mozmap::MozMap',
+        'crate::dom::bindings::record::Record',
         'crate::dom::bindings::num::Finite',
         'crate::dom::bindings::root::DomRoot',
         'crate::dom::bindings::str::ByteString',
@@ -6054,7 +6077,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::bindings::proxyhandler::ensure_expando_object',
         'crate::dom::bindings::proxyhandler::fill_property_descriptor',
         'crate::dom::bindings::proxyhandler::get_expando_object',
-        'crate::dom::bindings::mozmap::MozMap',
+        'crate::dom::bindings::record::Record',
         'std::ptr::NonNull',
         'crate::dom::bindings::num::Finite',
         'crate::dom::bindings::str::ByteString',
