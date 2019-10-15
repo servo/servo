@@ -166,7 +166,7 @@ class MachCommands(CommandBase):
                      help='Print very verbose output')
     @CommandArgument('--uwp',
                      action='store_true',
-                     help='Build for HoloLens (x64)'),
+                     help='Build for HoloLens (x64)')
     @CommandArgument('--win-arm64', action='store_true', help="Use arm64 Windows target")
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
