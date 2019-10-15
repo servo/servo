@@ -1118,10 +1118,15 @@ class WebKitGTKMiniBrowser(WebKit):
                 pass
         # Add Debian/Ubuntu path
         libexecpaths.append("/usr/lib/%s/webkit2gtk-4.0" % triplet)
+        if channel == "nightly":
+            libexecpaths.append("/opt/webkitgtk/nightly")
         return find_executable("MiniBrowser", os.pathsep.join(libexecpaths))
 
     def find_webdriver(self, channel=None):
-        return find_executable("WebKitWebDriver")
+        path = os.environ['PATH']
+        if channel == "nightly":
+            path = "%s:%s" % (path, "/opt/webkitgtk/nightly")
+        return find_executable("WebKitWebDriver", path)
 
     def version(self, binary=None, webdriver_binary=None):
         if binary is None:

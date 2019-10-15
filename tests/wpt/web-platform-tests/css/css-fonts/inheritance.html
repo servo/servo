@@ -29,12 +29,15 @@ const mediumFontSize = getComputedStyle(box).fontSize;
 assert_inherited('font-family', null, '"Not Initial!"');  // Initial value depends on user agent.
 assert_inherited('font-feature-settings', 'normal', '"smcp", "swsh" 2');
 assert_inherited('font-kerning', 'auto', 'none');
+assert_inherited('font-language-override', 'normal' , '"ksw"');
+assert_inherited('font-optical-sizing', 'auto' , 'none');
 assert_inherited('font-size', mediumFontSize /* medium */, '123px');
 assert_inherited('font-size-adjust', 'none', '1.5');
 assert_inherited('font-stretch', '100%' /* normal */, '75%');
 assert_inherited('font-style', 'normal', 'italic');
 assert_inherited('font-synthesis', 'weight style', 'none');
 assert_inherited('font-variant', 'normal', 'none');
+assert_inherited('font-variant-alternates', 'normal', 'historical-forms');
 assert_inherited('font-variant-caps', 'normal', 'small-caps');
 assert_inherited('font-variant-east-asian', 'normal', 'ruby');
 assert_inherited('font-variant-ligatures', 'normal', 'none');

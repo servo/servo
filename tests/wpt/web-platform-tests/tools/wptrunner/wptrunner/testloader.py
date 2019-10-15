@@ -69,6 +69,8 @@ class DirectoryHashChunker(TestChunker):
 
 
 class TestFilter(object):
+    """Callable that restricts the set of tests in a given manifest according
+    to initial criteria"""
     def __init__(self, test_manifests, include=None, exclude=None, manifest_path=None, explicit=False):
         if manifest_path is None or include or explicit:
             self.manifest = manifestinclude.IncludeManifest.create()
@@ -147,6 +149,7 @@ def iterfilter(filters, iter):
 
 
 class TestLoader(object):
+    """Loads tests according to a WPT manifest and any associated expectation files"""
     def __init__(self,
                  test_manifests,
                  test_types,

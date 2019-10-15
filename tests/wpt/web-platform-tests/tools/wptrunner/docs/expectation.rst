@@ -160,6 +160,24 @@ A simple example of a manifest file is::
   [another_section]
     another_key: another_value
 
+The web-platform-test harness knows about several keys:
+
+`expected`
+  Must evaluate to a possible test status indicating the expected
+  result of the test. The implicit default is PASS or OK when the
+  field isn't present. When `expected` is a list, the first status
+  is the primary expected status and the trailing statuses listed are
+  expected intermittent statuses.
+
+`disabled`
+  Any value indicates that the test is disabled.
+
+`reftype`
+  The type of comparison for reftests; either `==` or `!=`.
+
+`refurl`
+  The reference url for reftests.
+
 Conditional Values
 ~~~~~~~~~~~~~~~~~~
 

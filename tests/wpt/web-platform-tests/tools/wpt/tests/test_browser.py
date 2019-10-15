@@ -43,9 +43,13 @@ def test_safari_version_errors(mocked_check_output):
 def test_webkitgtk_minibrowser_version(mocked_check_output):
     webkitgtk_minibrowser = browser.WebKitGTKMiniBrowser(logger)
 
+    # stable version
     mocked_check_output.return_value = 'WebKitGTK 2.26.1\n'
     assert webkitgtk_minibrowser.version(binary='MiniBrowser') == '2.26.1'
 
+    # nightly version
+    mocked_check_output.return_value = 'WebKitGTK 2.27.1 (r250823)\n'
+    assert webkitgtk_minibrowser.version(binary='MiniBrowser') == '2.27.1 (r250823)'
 
 @mock.patch('subprocess.check_output')
 def test_webkitgtk_minibrowser_version_errors(mocked_check_output):

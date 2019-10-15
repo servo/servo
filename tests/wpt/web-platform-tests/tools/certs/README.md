@@ -74,3 +74,8 @@ the path to the OpenSSL config file (typically this will be
   },
 }
 ```
+
+### Regenerating the pregenerated certificates
+
+From the root, run `./wpt serve --config tools/certs/config.json` and terminate
+it after it has started up.

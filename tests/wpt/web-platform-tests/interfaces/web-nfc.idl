@@ -21,9 +21,9 @@ interface NDEFRecord {
   readonly attribute USVString mediaType;
   readonly attribute USVString id;
 
-  USVString? toText();
-  [NewObject] ArrayBuffer? toArrayBuffer();
-  [NewObject] any toJSON();
+  USVString? text();
+  [NewObject] ArrayBuffer? arrayBuffer();
+  [NewObject] any json();
   sequence<NDEFRecord> toRecords();
 };
 

@@ -152,17 +152,17 @@ function assertWebNDEFMessagesEqual(message, expectedMessage) {
     assert_equals(record.mediaType, expectedRecord.mediaType);
 
     // Compares record data
-    assert_equals(record.toText(), expectedRecord.toText());
-    assert_array_equals(new Uint8Array(record.toArrayBuffer()),
-          new Uint8Array(expectedRecord.toArrayBuffer()));
+    assert_equals(record.text(), expectedRecord.text());
+    assert_array_equals(new Uint8Array(record.arrayBuffer()),
+          new Uint8Array(expectedRecord.arrayBuffer()));
     let json;
     try {
-      json = record.toJSON();
+      json = record.json();
     } catch (e) {
     }
     let expectedJson;
     try {
-      expectedJson = expectedRecord.toJSON();
+      expectedJson = expectedRecord.json();
     } catch (e) {
     }
     if (json === undefined || json === null)

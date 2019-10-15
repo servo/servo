@@ -246,11 +246,14 @@ function runGenericSensorTests(sensorName,
     assert_true(verificationFunction(expected, sensor2, /*isNull=*/true));
   }, `${sensorName}: sensor reading is correct.`);
 
-  sensor_test(async t => {
+  sensor_test(async (t, sensorProvider) => {
     assert_true(sensorName in self);
     const sensor = new sensorType();
     const sensorWatcher = new EventWatcher(t, sensor, ["reading", "error"]);
     sensor.start();
+
+    const mockSensor = await sensorProvider.getCreatedSensor(sensorName);
+    await mockSensor.setSensorReading(readings);
 
     await sensorWatcher.wait_for("reading");
     const cachedTimeStamp1 = sensor.timestamp;
@@ -392,6 +395,7 @@ function runGenericSensorTests(sensorName,
     fastSensor.start();
 
     const mockSensor = await sensorProvider.getCreatedSensor(sensorName);
+    await mockSensor.setSensorReading(readings);
 
     const fastCounter = await new Promise((resolve, reject) => {
       let fastSensorNotifiedCounter = 0;

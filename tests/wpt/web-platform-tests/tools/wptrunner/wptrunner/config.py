@@ -30,7 +30,7 @@ def read(config_path):
     for section in parser.sections():
         rv[section] = ConfigDict(config_root)
         for key in parser.options(section):
-            rv[section][key] = parser.get(section, key, False, subns)
+            rv[section][key] = parser.get(section, key, raw=False, vars=subns)
 
     return rv
 
