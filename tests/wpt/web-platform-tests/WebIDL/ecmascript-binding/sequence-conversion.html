@@ -128,4 +128,9 @@ test(t => {
   assert_array_equals(ctx.getLineDash(), [13, 14, 15, 16]);
 }, "A holey array with fallback to an accessor on the prototype");
 
+test(t => {
+  // Should fail rather than falling back to record
+  assert_throws(new TypeError(), function() { new URLSearchParams(["key", "value"]); });
+}, "A string array in sequence<sequence> or record");
+
 </script>
