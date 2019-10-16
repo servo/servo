@@ -144,7 +144,7 @@ impl<'a> CanvasPaintThread<'a> {
             ) => {
                 let image_data = self
                     .canvas(canvas_id)
-                    .read_pixels(source_rect.to_u32(), image_size.to_u32());
+                    .read_pixels(source_rect.to_u64(), image_size.to_u64());
                 self.canvas(other_canvas_id).draw_image(
                     image_data.into(),
                     source_rect.size,

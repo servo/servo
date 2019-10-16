@@ -65,6 +65,7 @@ mod dom;
 mod canvas_state;
 #[warn(deprecated)]
 mod compartments;
+mod euclidext;
 #[warn(deprecated)]
 pub mod fetch;
 #[warn(deprecated)]

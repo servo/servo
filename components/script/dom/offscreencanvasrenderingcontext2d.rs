@@ -30,44 +30,32 @@ use euclid::default::Size2D;
 #[dom_struct]
 pub struct OffscreenCanvasRenderingContext2D {
     reflector_: Reflector,
-    canvas: Option<Dom<OffscreenCanvas>>,
+    canvas: Dom<OffscreenCanvas>,
     canvas_state: DomRefCell<CanvasState>,
     htmlcanvas: Option<Dom<HTMLCanvasElement>>,
-    width: u32,
-    height: u32,
 }
 
 impl OffscreenCanvasRenderingContext2D {
     fn new_inherited(
         global: &GlobalScope,
-        canvas: Option<&OffscreenCanvas>,
-        size: Size2D<u64>,
+        canvas: &OffscreenCanvas,
         htmlcanvas: Option<&HTMLCanvasElement>,
     ) -> OffscreenCanvasRenderingContext2D {
         OffscreenCanvasRenderingContext2D {
             reflector_: Reflector::new(),
-            canvas: canvas.map(Dom::from_ref),
+            canvas: Dom::from_ref(canvas),
             htmlcanvas: htmlcanvas.map(Dom::from_ref),
-            canvas_state: DomRefCell::new(CanvasState::new(
-                global,
-                Size2D::new(size.width as u64, size.height as u64),
-            )),
-            width: size.width as u32,
-            height: size.height as u32,
+            canvas_state: DomRefCell::new(CanvasState::new(global, canvas.get_size())),
         }
     }
 
     pub fn new(
         global: &GlobalScope,
         canvas: &OffscreenCanvas,
-        size: Size2D<u64>,
         htmlcanvas: Option<&HTMLCanvasElement>,
     ) -> DomRoot<OffscreenCanvasRenderingContext2D> {
         let boxed = Box::new(OffscreenCanvasRenderingContext2D::new_inherited(
-            global,
-            Some(canvas),
-            size,
-            htmlcanvas,
+            global, canvas, htmlcanvas,
         ));
         reflect_dom_object(
             boxed,
@@ -75,12 +63,21 @@ impl OffscreenCanvasRenderingContext2D {
             OffscreenCanvasRenderingContext2DBinding::Wrap,
         )
     }
+    /*
+    pub fn get_canvas_state(&self) -> Ref<CanvasState> {
+        self.canvas_state.borrow()
+    }
+    */
+
+    pub fn set_canvas_bitmap_dimensions(&self, size: Size2D<u64>) {
+        self.canvas_state.borrow().set_bitmap_dimensions(size);
+    }
 }
 
 impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/offscreencontext2d-canvas
     fn Canvas(&self) -> DomRoot<OffscreenCanvas> {
-        DomRoot::from_ref(self.canvas.as_ref().expect("No canvas."))
+        DomRoot::from_ref(&self.canvas)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-fillrect
@@ -315,7 +312,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
     fn GetImageData(&self, sx: i32, sy: i32, sw: i32, sh: i32) -> Fallible<DomRoot<ImageData>> {
         self.canvas_state.borrow().get_image_data(
-            Size2D::new(self.width, self.height),
+            self.canvas.get_size(),
             &self.global(),
             sx,
             sy,
@@ -326,12 +323,9 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     fn PutImageData(&self, imagedata: &ImageData, dx: i32, dy: i32) {
-        self.canvas_state.borrow().put_image_data(
-            Size2D::new(self.width, self.height),
-            imagedata,
-            dx,
-            dy,
-        )
+        self.canvas_state
+            .borrow()
+            .put_image_data(self.canvas.get_size(), imagedata, dx, dy)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -347,7 +341,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         dirty_height: i32,
     ) {
         self.canvas_state.borrow().put_image_data_(
-            Size2D::new(self.width, self.height),
+            self.canvas.get_size(),
             imagedata,
             dx,
             dy,
