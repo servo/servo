@@ -196,6 +196,12 @@ You should change the installation to install the "Add python.exe to Path" featu
 
 2. Install Python 3.7 for Windows (https://www.python.org/downloads/release/python-374/). The Windows x86-64 MSI installer is fine. This is required in order to build the JavaScript engine, SpiderMonkey.
 
+You will also need to set the `PYTHON3` environment variable, e.g., to 'C:\Python37\python.exe' by doing:
+```
+setx PYTHON3 "C:\Python37\python.exe" /m
+```
+The `/m` will set it system-wide for all future command windows.
+
 3. Install virtualenv.
 
  In a normal Windows Shell (cmd.exe or "Command Prompt" from the start menu), do:
@@ -219,7 +225,7 @@ Note that you should ensure that _all_ components are installed from gstreamer, 
 settings for the installer are fine).
 
 7. Install Visual Studio Community 2017 (https://www.visualstudio.com/vs/community/). You MUST add "Visual C++" to the
-list of installed components. It is not on by default. Visual Studio 2017 MUST installed to the default location or mach.bat will not find it.
+list of installed components as well as the "Windows Universal C runtime." They are not on by default. Visual Studio 2017 MUST installed to the default location or mach.bat will not find it.
 
 ##### [Optional] Install LLVM for faster link times
 
