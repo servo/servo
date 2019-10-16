@@ -67,7 +67,7 @@ use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource as EmbedderResource};
-use embedder_traits::{MediaMetadata, MediaSessionEvent};
+use embedder_traits::{MediaMetadata, MediaSessionEvent, MediaSessionPlaybackState};
 use euclid::default::Size2D;
 use headers::{ContentLength, ContentRange, HeaderMapExt};
 use html5ever::{LocalName, Prefix};
@@ -1792,13 +1792,27 @@ impl HTMLMediaElement {
                 };
                 ScriptThread::await_stable_state(Microtask::MediaElement(task));
             },
-            PlayerEvent::StateChanged(ref state) => match *state {
-                PlaybackState::Paused => {
-                    if self.ready_state.get() == ReadyState::HaveMetadata {
-                        self.change_ready_state(ReadyState::HaveEnoughData);
-                    }
-                },
-                _ => {},
+            PlayerEvent::StateChanged(ref state) => {
+                let mut media_session_playback_state = MediaSessionPlaybackState::None_;
+                match *state {
+                    PlaybackState::Paused => {
+                        media_session_playback_state = MediaSessionPlaybackState::Paused;
+                        if self.ready_state.get() == ReadyState::HaveMetadata {
+                            self.change_ready_state(ReadyState::HaveEnoughData);
+                        }
+                    },
+                    PlaybackState::Playing => {
+                        media_session_playback_state = MediaSessionPlaybackState::Playing;
+                    },
+                    _ => {},
+                };
+                println!(
+                    "Sending media session event playback state changed to {:?}",
+                    media_session_playback_state
+                );
+                self.send_media_session_event(MediaSessionEvent::PlaybackStateChange(
+                    media_session_playback_state,
+                ));
             },
         }
     }
