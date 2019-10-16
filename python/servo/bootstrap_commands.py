@@ -18,7 +18,7 @@ import re
 import subprocess
 import sys
 import traceback
-import urllib2
+import six.moves.urllib as urllib
 import glob
 
 from mach.decorators import (
@@ -220,7 +220,7 @@ class MachCommands(CommandBase):
 
         try:
             content_base64 = download_bytes("Chromium HSTS preload list", chromium_hsts_url)
-        except urllib2.URLError:
+        except urllib.error.URLError:
             print("Unable to download chromium HSTS preload list; are you connected to the internet?")
             sys.exit(1)
 
@@ -244,7 +244,7 @@ class MachCommands(CommandBase):
 
             with open(path.join(preload_path, preload_filename), 'w') as fd:
                 json.dump(entries, fd, indent=4)
-        except ValueError, e:
+        except ValueError as e:
             print("Unable to parse chromium HSTS preload list, has the format changed?")
             sys.exit(1)
 
@@ -258,7 +258,7 @@ class MachCommands(CommandBase):
 
         try:
             content = download_bytes("Public suffix list", list_url)
-        except urllib2.URLError:
+        except urllib.error.URLError:
             print("Unable to download the public suffix list; are you connected to the internet?")
             sys.exit(1)
 

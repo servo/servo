@@ -7,6 +7,8 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+from __future__ import print_function
+
 import contextlib
 import fnmatch
 import imp
@@ -14,7 +16,7 @@ import itertools
 import json
 import os
 import re
-import StringIO
+from io import StringIO
 import subprocess
 import sys
 
@@ -23,6 +25,7 @@ import toml
 import voluptuous
 import yaml
 from licenseck import OLD_MPL, MPL, APACHE, COPYRIGHT, licenses_toml, licenses_dep_toml
+from six import iteritems
 topdir = os.path.abspath(os.path.dirname(sys.argv[0]))
 wpt = os.path.join(topdir, "tests", "wpt")
 
@@ -342,7 +345,7 @@ def check_flake8(file_name, contents):
         "E501",  # 80 character line length; the standard tidy process will enforce line length
     }
 
-    output = StringIO.StringIO()
+    output = StringIO()
     with stdout_redirect(output):
         check_code(contents, ignore=ignore)
     for error in output.getvalue().splitlines():
@@ -378,7 +381,7 @@ def check_lock(file_name, contents):
         if name not in packages_by_name:
             yield (1, "duplicates are allowed for `{}` but it is not a dependency".format(name))
 
-    for (name, packages) in packages_by_name.iteritems():
+    for (name, packages) in iteritems(packages_by_name):
         has_duplicates = len(packages) > 1
         duplicates_allowed = name in exceptions
 
@@ -422,7 +425,7 @@ def check_lock(file_name, contents):
                     visited_whitelisted_packages[dependency_name][package_name] = True
 
     # Check if all the exceptions to blocked packages actually depend on the blocked package
-    for dependency_name, package_names in blocked_packages.iteritems():
+    for dependency_name, package_names in iteritems(blocked_packages):
         for package_name in package_names:
             if not visited_whitelisted_packages[dependency_name].get(package_name):
                 fmt = "Package {} is not required to be an exception of blocked package {}."
@@ -514,7 +517,7 @@ def check_manifest_dirs(config_file, print_text=True):
         lines = conf_file.splitlines(True)
 
     if print_text:
-        print '\rChecking the wpt manifest file...'
+        print('\rChecking the wpt manifest file...')
 
     p = parser.parse(lines)
     paths = rec_parse(wpt_path("web-platform-tests"), p)
@@ -908,7 +911,7 @@ def check_config_file(config_file, print_text=True):
         lines = conf_file.splitlines(True)
 
     if print_text:
-        print '\rChecking the config file...'
+        print('\rChecking the config file...')
 
     config_content = toml.loads(conf_file)
     exclude = config_content.get("ignore", {})
@@ -995,7 +998,7 @@ def parse_config(config_file):
 
 def check_directory_files(directories, print_text=True):
     if print_text:
-        print '\rChecking directories for correct file extensions...'
+        print('\rChecking directories for correct file extensions...')
     for directory, file_extensions in directories.items():
         files = sorted(os.listdir(directory))
         for filename in files:
@@ -1015,7 +1018,7 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
     if not has_element:
         raise StopIteration
     if print_text:
-        print '\rChecking files for tidiness...'
+        print('\rChecking files for tidiness...')
 
     for filename in files_to_check:
         if not os.path.exists(filename):
@@ -1037,7 +1040,7 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
 
 def get_dep_toml_files(only_changed_files=False):
     if not only_changed_files:
-        print '\nRunning the dependency licensing lint...'
+        print('\nRunning the dependency licensing lint...')
         for root, directories, filenames in os.walk(".cargo"):
             for filename in filenames:
                 if filename == "Cargo.toml":
@@ -1136,11 +1139,11 @@ def scan(only_changed_files=False, progress=True, stylo=False):
     error = None
     for error in errors:
         colorama.init()
-        print "\r\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
+        print("\r\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error))
 
-    print
+    print()
     if error is None:
         colorama.init()
-        print "\033[92mtidy reported no errors.\033[0m"
+        print("\033[92mtidy reported no errors.\033[0m")
 
     return int(error is not None)

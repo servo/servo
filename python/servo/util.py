@@ -16,11 +16,11 @@ import platform
 import shutil
 from socket import error as socket_error
 import stat
-import StringIO
+from io import BytesIO
 import sys
 import time
 import zipfile
-import urllib2
+import six.moves.urllib as urllib
 
 
 try:
@@ -101,10 +101,10 @@ def download(desc, src, writer, start_byte=0):
     dumb = (os.environ.get("TERM") == "dumb") or (not sys.stdout.isatty())
 
     try:
-        req = urllib2.Request(src)
+        req = urllib.request.Request(src)
         if start_byte:
-            req = urllib2.Request(src, headers={'Range': 'bytes={}-'.format(start_byte)})
-        resp = urllib2.urlopen(req, **get_urlopen_kwargs())
+            req = urllib.request.Request(src, headers={'Range': 'bytes={}-'.format(start_byte)})
+        resp = urllib.request.urlopen(req, **get_urlopen_kwargs())
 
         fsize = None
         if resp.info().getheader('Content-Length'):
@@ -136,16 +136,16 @@ def download(desc, src, writer, start_byte=0):
 
         if not dumb:
             print()
-    except urllib2.HTTPError, e:
+    except urllib.error.HTTPError as e:
         print("Download failed ({}): {} - {}".format(e.code, e.reason, src))
         if e.code == 403:
             print("No Rust compiler binary available for this platform. "
                   "Please see https://github.com/servo/servo/#prerequisites")
         sys.exit(1)
-    except urllib2.URLError, e:
+    except urllib.error.URLError as e:
         print("Error downloading {}: {}. The failing URL was: {}".format(desc, e.reason, src))
         sys.exit(1)
-    except socket_error, e:
+    except socket_error as e:
         print("Looks like there's a connectivity issue, check your Internet connection. {}".format(e))
         sys.exit(1)
     except KeyboardInterrupt:
@@ -154,7 +154,7 @@ def download(desc, src, writer, start_byte=0):
 
 
 def download_bytes(desc, src):
-    content_writer = StringIO.StringIO()
+    content_writer = BytesIO()
     download(desc, src, content_writer)
     return content_writer.getvalue()
 

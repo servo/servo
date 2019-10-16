@@ -7,6 +7,8 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+from __future__ import print_function
+
 from errno import ENOENT as NO_SUCH_FILE_OR_DIRECTORY
 from glob import glob
 import shutil
@@ -25,7 +27,7 @@ import tarfile
 import zipfile
 from xml.etree.ElementTree import XML
 from servo.util import download_file
-import urllib2
+import six.moves.urllib as urllib
 from bootstrap import check_gstreamer_lib
 
 from mach.decorators import CommandArgument
@@ -105,7 +107,7 @@ def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None):
         # packaging (in case of exceptional situations like running out of disk space).
         # TODO do this in a temporary folder after #11983 is fixed
         temp_file = '{}.temp~'.format(dest_archive)
-        with os.fdopen(os.open(temp_file, os.O_WRONLY | os.O_CREAT, 0644), 'w') as out_file:
+        with os.fdopen(os.open(temp_file, os.O_WRONLY | os.O_CREAT, 0o644), 'w') as out_file:
             if dest_archive.endswith('.zip'):
                 with zipfile.ZipFile(temp_file, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                     for entry in file_list:
@@ -350,15 +352,15 @@ class CommandBase(object):
                 version_line = subprocess.check_output(["rustup" + BIN_SUFFIX, "--version"])
             except OSError as e:
                 if e.errno == NO_SUCH_FILE_OR_DIRECTORY:
-                    print "It looks like rustup is not installed. See instructions at " \
-                          "https://github.com/servo/servo/#setting-up-your-environment"
-                    print
+                    print("It looks like rustup is not installed. See instructions at "
+                          "https://github.com/servo/servo/#setting-up-your-environment")
+                    print()
                     return 1
                 raise
             version = tuple(map(int, re.match("rustup (\d+)\.(\d+)\.(\d+)", version_line).groups()))
             if version < (1, 11, 0):
-                print "rustup is at version %s.%s.%s, Servo requires 1.11.0 or more recent." % version
-                print "Try running 'rustup self update'."
+                print("rustup is at version %s.%s.%s, Servo requires 1.11.0 or more recent." % version)
+                print("Try running 'rustup self update'.")
                 return 1
             toolchain = self.toolchain()
             if platform.system() == "Windows":
@@ -504,15 +506,15 @@ class CommandBase(object):
         nightly_date = nightly_date.strip()
         # Fetch the filename to download from the build list
         repository_index = NIGHTLY_REPOSITORY_URL + "?list-type=2&prefix=nightly"
-        req = urllib2.Request(
+        req = urllib.request.Request(
             "{}/{}/{}".format(repository_index, os_prefix, nightly_date))
         try:
-            response = urllib2.urlopen(req).read()
+            response = urllib.request.urlopen(req).read()
             tree = XML(response)
             namespaces = {'ns': tree.tag[1:tree.tag.index('}')]}
             file_to_download = tree.find('ns:Contents', namespaces).find(
                 'ns:Key', namespaces).text
-        except urllib2.URLError as e:
+        except urllib.error.URLError as e:
             print("Could not fetch the available nightly versions from the repository : {}".format(
                 e.reason))
             sys.exit(1)

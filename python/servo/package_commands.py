@@ -19,7 +19,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import urllib
+import six.moves.urllib as urllib
 
 from mach.decorators import (
     CommandArgument,
@@ -594,7 +594,7 @@ class PackageCommands(CommandBase):
                 "/secrets/v1/secret/project/servo/" +
                 name
             )
-            return json.load(urllib.urlopen(url))["secret"]
+            return json.load(urllib.request.urlopen(url))["secret"]
 
         def get_s3_secret():
             aws_access_key = None

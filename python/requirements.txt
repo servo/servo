@@ -32,4 +32,7 @@ boto3 == 1.4.4
 # https://github.com/servo/servo/pull/18942
 certifi
 
+# For Python3 compatibility
+six
+
 -e python/tidy

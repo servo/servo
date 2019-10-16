@@ -18,10 +18,11 @@ import copy
 from collections import OrderedDict
 import time
 import json
-import urllib2
+import six.moves.urllib as urllib
 import base64
 import shutil
 import subprocess
+from six import iteritems
 
 from mach.registrar import Registrar
 from mach.decorators import (
@@ -59,7 +60,7 @@ TEST_SUITES = OrderedDict([
               "include_arg": "test_name"}),
 ])
 
-TEST_SUITES_BY_PREFIX = {path: k for k, v in TEST_SUITES.iteritems() if "paths" in v for path in v["paths"]}
+TEST_SUITES_BY_PREFIX = {path: k for k, v in iteritems(TEST_SUITES) if "paths" in v for path in v["paths"]}
 
 
 def create_parser_wpt():
@@ -158,7 +159,7 @@ class MachCommands(CommandBase):
                 return 1
 
         test_start = time.time()
-        for suite, tests in selected_suites.iteritems():
+        for suite, tests in iteritems(selected_suites):
             props = suites[suite]
             kwargs = props.get("kwargs", {})
             if tests:
@@ -174,7 +175,7 @@ class MachCommands(CommandBase):
     def suite_for_path(self, path_arg):
         if os.path.exists(path.abspath(path_arg)):
             abs_path = path.abspath(path_arg)
-            for prefix, suite in TEST_SUITES_BY_PREFIX.iteritems():
+            for prefix, suite in iteritems(TEST_SUITES_BY_PREFIX):
                 if abs_path.startswith(prefix):
                     return suite
         return None
@@ -510,9 +511,9 @@ class MachCommands(CommandBase):
                 elif tracker_api.endswith('/'):
                     tracker_api = tracker_api[0:-1]
 
-                query = urllib2.quote(failure['test'], safe='')
-                request = urllib2.Request("%s/query.py?name=%s" % (tracker_api, query))
-                search = urllib2.urlopen(request)
+                query = urllib.parse.quote(failure['test'], safe='')
+                request = urllib.request.Request("%s/query.py?name=%s" % (tracker_api, query))
+                search = urllib.request.urlopen(request)
                 data = json.load(search)
                 if len(data) == 0:
                     actual_failures += [failure]
@@ -521,11 +522,11 @@ class MachCommands(CommandBase):
             else:
                 qstr = "repo:servo/servo+label:I-intermittent+type:issue+state:open+%s" % failure['test']
                 # we want `/` to get quoted, but not `+` (github's API doesn't like that), so we set `safe` to `+`
-                query = urllib2.quote(qstr, safe='+')
-                request = urllib2.Request("https://api.github.com/search/issues?q=%s" % query)
+                query = urllib.parse.quote(qstr, safe='+')
+                request = urllib.request.Request("https://api.github.com/search/issues?q=%s" % query)
                 if encoded_auth:
                     request.add_header("Authorization", "Basic %s" % encoded_auth)
-                search = urllib2.urlopen(request)
+                search = urllib.request.urlopen(request)
                 data = json.load(search)
                 if data['total_count'] == 0:
                     actual_failures += [failure]
