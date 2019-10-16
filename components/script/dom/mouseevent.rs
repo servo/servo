@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethod
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -27,6 +27,8 @@ pub struct MouseEvent {
     screen_y: Cell<i32>,
     client_x: Cell<i32>,
     client_y: Cell<i32>,
+    page_x: Cell<i32>,
+    page_y: Cell<i32>,
     ctrl_key: Cell<bool>,
     shift_key: Cell<bool>,
     alt_key: Cell<bool>,
@@ -45,6 +47,8 @@ impl MouseEvent {
             screen_y: Cell::new(0),
             client_x: Cell::new(0),
             client_y: Cell::new(0),
+            page_x: Cell::new(0),
+            page_y: Cell::new(0),
             ctrl_key: Cell::new(false),
             shift_key: Cell::new(false),
             alt_key: Cell::new(false),
@@ -104,6 +108,9 @@ impl MouseEvent {
         );
         ev.buttons.set(buttons);
         ev.point_in_target.set(point_in_target);
+        // TODO: Set proper values in https://github.com/servo/servo/issues/24415
+        ev.page_x.set(client_x);
+        ev.page_y.set(client_y);
         ev
     }
 
@@ -161,6 +168,28 @@ impl MouseEventMethods for MouseEvent {
     // https://w3c.github.io/uievents/#widl-MouseEvent-clientY
     fn ClientY(&self) -> i32 {
         self.client_y.get()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-mouseevent-pagex
+    fn PageX(&self) -> i32 {
+        if self.upcast::<Event>().dispatching() {
+            self.page_x.get()
+        } else {
+            let global = self.global();
+            let window = global.as_window();
+            window.current_viewport().origin.x.to_px() + self.client_x.get()
+        }
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-mouseevent-pagey
+    fn PageY(&self) -> i32 {
+        if self.upcast::<Event>().dispatching() {
+            self.page_y.get()
+        } else {
+            let global = self.global();
+            let window = global.as_window();
+            window.current_viewport().origin.y.to_px() + self.client_y.get()
+        }
     }
 
     // https://w3c.github.io/uievents/#widl-MouseEvent-ctrlKey

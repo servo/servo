@@ -10,6 +10,8 @@ interface MouseEvent : UIEvent {
     readonly    attribute long           screenY;
     readonly    attribute long           clientX;
     readonly    attribute long           clientY;
+    readonly    attribute long           pageX;
+    readonly    attribute long           pageY;
     readonly    attribute boolean        ctrlKey;
     readonly    attribute boolean        shiftKey;
     readonly    attribute boolean        altKey;
