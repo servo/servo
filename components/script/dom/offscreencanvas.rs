@@ -92,11 +92,9 @@ impl OffscreenCanvas {
                 OffscreenCanvasContext::OffscreenContext2d(ref ctx) => Some(DomRoot::from_ref(ctx)),
             };
         }
-        let size = self.get_size();
         let context = OffscreenCanvasRenderingContext2D::new(
             &self.global(),
             self,
-            size,
             self.placeholder.as_ref().map(|c| &**c),
         );
         *self.context.borrow_mut() = Some(OffscreenCanvasContext::OffscreenContext2d(
@@ -136,6 +134,14 @@ impl OffscreenCanvasMethods for OffscreenCanvas {
     // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-width
     fn SetWidth(&self, value: u64) {
         self.width.set(value);
+
+        if let Some(canvas_context) = self.context() {
+            match &*canvas_context {
+                OffscreenCanvasContext::OffscreenContext2d(rendering_context) => {
+                    rendering_context.set_bitmap_dimensions(self.get_size());
+                },
+            }
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-height
@@ -146,5 +152,13 @@ impl OffscreenCanvasMethods for OffscreenCanvas {
     // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-height
     fn SetHeight(&self, value: u64) {
         self.height.set(value);
+
+        if let Some(canvas_context) = self.context() {
+            match &*canvas_context {
+                OffscreenCanvasContext::OffscreenContext2d(rendering_context) => {
+                    rendering_context.set_bitmap_dimensions(self.get_size());
+                },
+            }
+        }
     }
 }

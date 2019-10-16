@@ -4,7 +4,7 @@
 
 use crate::canvas_data::*;
 use canvas_traits::canvas::*;
-use euclid::default::Size2D;
+use euclid::default::{Point2D, Rect, Size2D};
 use ipc_channel::ipc::{self, IpcSender};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
@@ -142,9 +142,13 @@ impl<'a> CanvasPaintThread<'a> {
                 source_rect,
                 smoothing,
             ) => {
+                let source_rect_u64 = Rect::new(
+                    Point2D::new(source_rect.origin.x as u64, source_rect.origin.y as u64),
+                    Size2D::new(source_rect.size.width as u64, source_rect.size.width as u64),
+                );
                 let image_data = self
                     .canvas(canvas_id)
-                    .read_pixels(source_rect.to_u32(), image_size.to_u32());
+                    .read_pixels(source_rect_u64, image_size.to_u64());
                 self.canvas(other_canvas_id).draw_image(
                     image_data.into(),
                     source_rect.size,
@@ -205,5 +209,15 @@ impl<'a> CanvasPaintThread<'a> {
 
     fn canvas(&mut self, canvas_id: CanvasId) -> &mut CanvasData<'a> {
         self.canvases.get_mut(&canvas_id).expect("Bogus canvas id")
+    }
+}
+
+pub trait Size2DExt {
+    fn to_u64(&self) -> Size2D<u64>;
+}
+
+impl Size2DExt for Size2D<f64> {
+    fn to_u64(&self) -> Size2D<u64> {
+        return Size2D::new(self.width as u64, self.height as u64);
     }
 }

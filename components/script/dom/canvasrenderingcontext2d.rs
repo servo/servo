@@ -172,10 +172,19 @@ impl CanvasState {
         self.canvas_id.clone()
     }
 
+    pub fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
+        self.ipc_renderer.clone()
+    }
+
     pub fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
         self.ipc_renderer
             .send(CanvasMsg::Canvas2d(msg, self.get_canvas_id()))
             .unwrap()
+    }
+
+    pub fn reset_to_initial_state(&self) {
+        self.saved_states.borrow_mut().clear();
+        *self.state.borrow_mut() = CanvasContextState::new();
     }
 
     fn create_drawable_rect(&self, x: f64, y: f64, w: f64, h: f64) -> Option<Rect<f32>> {
@@ -298,7 +307,7 @@ impl CanvasState {
         }
     }
 
-    pub fn get_rect(&self, canvas_size: Size2D<u32>, rect: Rect<u32>) -> Vec<u8> {
+    pub fn get_rect(&self, canvas_size: Size2D<u64>, rect: Rect<u64>) -> Vec<u8> {
         assert!(self.origin_is_clean());
 
         assert!(Rect::from_size(canvas_size).contains_rect(&rect));
@@ -1017,7 +1026,7 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
     pub fn GetImageData(
         &self,
-        canvas_size: Size2D<u32>,
+        canvas_size: Size2D<u64>,
         global: &GlobalScope,
         sx: i32,
         sy: i32,
@@ -1036,7 +1045,7 @@ impl CanvasState {
         }
 
         let (origin, size) = adjust_size_sign(Point2D::new(sx, sy), Size2D::new(sw, sh));
-        let read_rect = match pixels::clip(origin, size, canvas_size) {
+        let read_rect = match pixels::clip(origin, size.to_u64(), canvas_size) {
             Some(rect) => rect,
             None => {
                 // All the pixels are outside the canvas surface.
@@ -1053,7 +1062,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
-    pub fn PutImageData(&self, canvas_size: Size2D<u32>, imagedata: &ImageData, dx: i32, dy: i32) {
+    pub fn PutImageData(&self, canvas_size: Size2D<u64>, imagedata: &ImageData, dx: i32, dy: i32) {
         self.PutImageData_(
             canvas_size,
             imagedata,
@@ -1070,7 +1079,7 @@ impl CanvasState {
     #[allow(unsafe_code)]
     pub fn PutImageData_(
         &self,
-        canvas_size: Size2D<u32>,
+        canvas_size: Size2D<u64>,
         imagedata: &ImageData,
         dx: i32,
         dy: i32,
@@ -1098,7 +1107,7 @@ impl CanvasState {
             Point2D::new(dirty_x, dirty_y),
             Size2D::new(dirty_width, dirty_height),
         );
-        let src_rect = match pixels::clip(src_origin, src_size, imagedata_size) {
+        let src_rect = match pixels::clip(src_origin, src_size.to_u64(), imagedata_size.to_u64()) {
             Some(rect) => rect,
             None => return,
         };
@@ -1495,7 +1504,7 @@ impl CanvasRenderingContext2D {
             .borrow()
             .ipc_renderer
             .send(CanvasMsg::Recreate(
-                size,
+                size.to_u64(),
                 self.canvas_state.borrow().get_canvas_id(),
             ))
             .unwrap();
@@ -1537,10 +1546,14 @@ impl CanvasRenderingContext2D {
     }
 
     pub fn get_rect(&self, rect: Rect<u32>) -> Vec<u8> {
+        let rect = Rect::new(
+            Point2D::new(rect.origin.x as u64, rect.origin.y as u64),
+            Size2D::new(rect.size.width as u64, rect.size.height as u64),
+        );
         self.canvas_state.borrow().get_rect(
             self.canvas
                 .as_ref()
-                .map_or(Size2D::zero(), |c| c.get_size()),
+                .map_or(Size2D::zero(), |c| c.get_size().to_u64()),
             rect,
         )
     }
@@ -1875,7 +1888,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         self.canvas_state.borrow().GetImageData(
             self.canvas
                 .as_ref()
-                .map_or(Size2D::zero(), |c| c.get_size()),
+                .map_or(Size2D::zero(), |c| c.get_size().to_u64()),
             &self.global(),
             sx,
             sy,
@@ -1889,7 +1902,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         self.canvas_state.borrow().PutImageData(
             self.canvas
                 .as_ref()
-                .map_or(Size2D::zero(), |c| c.get_size()),
+                .map_or(Size2D::zero(), |c| c.get_size().to_u64()),
             imagedata,
             dx,
             dy,
@@ -1911,7 +1924,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         self.canvas_state.borrow().PutImageData_(
             self.canvas
                 .as_ref()
-                .map_or(Size2D::zero(), |c| c.get_size()),
+                .map_or(Size2D::zero(), |c| c.get_size().to_u64()),
             imagedata,
             dx,
             dy,
@@ -2122,4 +2135,14 @@ fn adjust_size_sign(
         origin.y = origin.y.saturating_sub(size.height);
     }
     (origin, size.to_u32())
+}
+
+pub trait Size2DExt {
+    fn to_u64(&self) -> Size2D<u64>;
+}
+
+impl Size2DExt for Size2D<u32> {
+    fn to_u64(&self) -> Size2D<u64> {
+        return Size2D::new(self.width as u64, self.height as u64);
+    }
 }

@@ -169,8 +169,8 @@ impl ImageData {
     }
 
     #[allow(unsafe_code)]
-    pub unsafe fn get_rect(&self, rect: Rect<u32>) -> Cow<[u8]> {
-        pixels::rgba8_get_rect(self.as_slice(), self.get_size(), rect)
+    pub unsafe fn get_rect(&self, rect: Rect<u64>) -> Cow<[u8]> {
+        pixels::rgba8_get_rect(self.as_slice(), self.get_size().to_u64(), rect)
     }
 
     pub fn get_size(&self) -> Size2D<u32> {
@@ -192,5 +192,15 @@ impl ImageDataMethods for ImageData {
     // https://html.spec.whatwg.org/multipage/#dom-imagedata-data
     fn Data(&self, _: JSContext) -> NonNull<JSObject> {
         NonNull::new(self.data.get()).expect("got a null pointer")
+    }
+}
+
+pub trait Size2DExt {
+    fn to_u64(&self) -> Size2D<u64>;
+}
+
+impl Size2DExt for Size2D<u32> {
+    fn to_u64(&self) -> Size2D<u64> {
+        return Size2D::new(self.width as u64, self.height as u64);
     }
 }
