@@ -15,13 +15,11 @@ lint-scripts = [
 [blocked-packages]
 num = []
 rand = [
-  "gaol",
   "hashglobe", # Only used in tests
   "ipc-channel",
   "phf_generator",
   "servo_rand",
   "tempfile",
-  "tokio-threadpool",
   "uuid",
   "ws",
 ]
@@ -34,7 +32,6 @@ packages = [
   "gleam",
   "proc-macro2",
   "quote",
-  "rand_core",
   "syn",
   "synstructure",
   "unicode-xid",

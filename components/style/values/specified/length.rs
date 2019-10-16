@@ -471,17 +471,17 @@ impl NoCalcLength {
             // viewport percentages
             "vw" if !context.in_page_rule() => {
                 NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(value))
-            }
+            },
             "vh" if !context.in_page_rule() => {
                 NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vh(value))
-            }
+            },
             "vmin" if !context.in_page_rule() => {
                 NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmin(value))
-            }
+            },
             "vmax" if !context.in_page_rule() => {
                 NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmax(value))
-            }
-            _ => return Err(())
+            },
+            _ => return Err(()),
         })
     }
 

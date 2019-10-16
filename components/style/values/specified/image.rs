@@ -220,7 +220,7 @@ impl Parse for Gradient {
             },
             "-webkit-radial-gradient" => {
                 Some((Shape::Radial, false, GradientCompatMode::WebKit))
-            }
+            },
             #[cfg(feature = "gecko")]
             "-moz-radial-gradient" => {
                 Some((Shape::Radial, false, GradientCompatMode::Moz))

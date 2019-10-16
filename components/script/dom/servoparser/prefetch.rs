@@ -97,7 +97,7 @@ impl TokenSink for PrefetchSink {
             _ => return TokenSinkResult::Continue,
         };
         match (tag.kind, &tag.name) {
-            (TagKind::StartTag, local_name!("script")) if self.prefetching => {
+            (TagKind::StartTag, &local_name!("script")) if self.prefetching => {
                 if let Some(url) = self.get_url(tag, local_name!("src")) {
                     debug!("Prefetch script {}", url);
                     let cors_setting = self.get_cors_settings(tag, local_name!("crossorigin"));
@@ -120,7 +120,7 @@ impl TokenSink for PrefetchSink {
                 }
                 TokenSinkResult::RawData(RawKind::ScriptData)
             },
-            (TagKind::StartTag, local_name!("img")) if self.prefetching => {
+            (TagKind::StartTag, &local_name!("img")) if self.prefetching => {
                 if let Some(url) = self.get_url(tag, local_name!("src")) {
                     debug!("Prefetch {} {}", tag.name, url);
                     let request = image_fetch_request(
@@ -137,7 +137,7 @@ impl TokenSink for PrefetchSink {
                 }
                 TokenSinkResult::Continue
             },
-            (TagKind::StartTag, local_name!("link")) if self.prefetching => {
+            (TagKind::StartTag, &local_name!("link")) if self.prefetching => {
                 if let Some(rel) = self.get_attr(tag, local_name!("rel")) {
                     if rel.value.eq_ignore_ascii_case("stylesheet") {
                         if let Some(url) = self.get_url(tag, local_name!("href")) {
@@ -167,15 +167,15 @@ impl TokenSink for PrefetchSink {
                 }
                 TokenSinkResult::Continue
             },
-            (TagKind::StartTag, local_name!("script")) => {
+            (TagKind::StartTag, &local_name!("script")) => {
                 TokenSinkResult::RawData(RawKind::ScriptData)
             },
-            (TagKind::EndTag, local_name!("script")) => {
+            (TagKind::EndTag, &local_name!("script")) => {
                 // After the first script tag, the main parser is blocked, so it's worth prefetching.
                 self.prefetching = true;
                 TokenSinkResult::Script(PrefetchHandle)
             },
-            (TagKind::StartTag, local_name!("base")) => {
+            (TagKind::StartTag, &local_name!("base")) => {
                 if let Some(url) = self.get_url(tag, local_name!("href")) {
                     if self.base_url.is_none() {
                         debug!("Setting base {}", url);

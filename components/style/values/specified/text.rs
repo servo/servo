@@ -421,7 +421,7 @@ impl Parse for TextTransform {
                 },
                 "full-size-kana" if !result.other_.intersects(TextTransformOther::FULL_SIZE_KANA) => {
                     result.other_.insert(TextTransformOther::FULL_SIZE_KANA)
-                }
+                },
                 _ => return Err(location.new_custom_error(
                     SelectorParseErrorKind::UnexpectedIdent(ident.clone())
                 )),

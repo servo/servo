@@ -149,11 +149,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "autocfg"
-version = "0.1.6"
-source = "git+https://github.com/servo/autocfg?branch=rustflags2#9142612f4b2599e6a858dc32cd3cbda5c98bd651"
-
-[[package]]
 name = "azure"
 version = "0.37.0"
 source = "git+https://github.com/servo/rust-azure#1dbd223157997b5b5301e7da73bff37f928a7418"
@@ -424,6 +419,16 @@ checksum = "6584aa36f5ad4c9247f5323b0a42f37802b37a836f0ad87084d7a33961abe25f"
 dependencies = [
  "cc",
  "libc",
+]
+
+[[package]]
+name = "c2-chacha"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d64d04786e0f528460fc884753cf8dddcc466be308f6026f8e355c41a0e4101"
+dependencies = [
+ "lazy_static",
+ "ppv-lite86",
 ]
 
 [[package]]
@@ -872,18 +877,16 @@ dependencies = [
 
 [[package]]
 name = "cssparser"
-version = "0.25.9"
+version = "0.27.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fbe18ca4efb9ba3716c6da66cc3d7e673bf59fa576353011f48c4cfddbdd740e"
+checksum = "dc63bba4f652956b1afadd4e21c52e76b7dd4f7aefb9e79db8611d0726a9d354"
 dependencies = [
- "autocfg",
  "cssparser-macros",
  "dtoa-short",
  "itoa",
  "matches",
  "phf",
  "proc-macro2 1.0.1",
- "procedural-masquerade",
  "quote 1.0.2",
  "serde",
  "smallvec",
@@ -892,13 +895,10 @@ dependencies = [
 
 [[package]]
 name = "cssparser-macros"
-version = "0.3.6"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5bb1c84e87c717666564ec056105052331431803d606bd45529b28547b611eef"
+checksum = "dfae75de57f2b2e85e8768c3ea840fd159c8f33e2b6522c7835b7abac81be16e"
 dependencies = [
- "phf_codegen",
- "proc-macro2 1.0.1",
- "procedural-masquerade",
  "quote 1.0.2",
  "syn 1.0.3",
 ]
@@ -1400,12 +1400,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fuchsia-cprng"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a06f77d526c1a601b7c4cdd98f54b5eaabffc14d5f2f0296febdc7f357c6d3ba"
-
-[[package]]
 name = "fuchsia-zircon"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1458,12 +1452,12 @@ dependencies = [
 
 [[package]]
 name = "gaol"
-version = "0.2.0"
-source = "git+https://github.com/servo/gaol#e26c5a5dd53c0745bb1e27f3bccdeb6cf306a17d"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "061957ca7a966a39a79ebca393a9a6c7babda10bf9dd6f11d00041558d929c22"
 dependencies = [
  "libc",
  "log",
- "rand",
 ]
 
 [[package]]
@@ -2108,9 +2102,9 @@ checksum = "1bdcec4094c1ca961b685384ea7af76af5718230b3f34657d1a71fd2dcf4cc9d"
 
 [[package]]
 name = "html5ever"
-version = "0.24.1"
+version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "025483b0a1e4577bb28578318c886ee5f817dda6eb62473269349044406644cb"
+checksum = "61072e237173349e0a04d09e6e17178315dbf8135a07b034dd4ac72f4293d97f"
 dependencies = [
  "log",
  "mac",
@@ -2322,9 +2316,9 @@ dependencies = [
 
 [[package]]
 name = "ipc-channel"
-version = "0.12.0"
+version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79d98ee7dd1d2e796d254807fd86ea7189d07571aeaa74007603e29a79d15217"
+checksum = "5172208c1dfd469c409af6d159bd9137ce463285a978b7fad464518edd8ee3f8"
 dependencies = [
  "bincode",
  "crossbeam-channel",
@@ -2893,9 +2887,9 @@ dependencies = [
 
 [[package]]
 name = "markup5ever"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65381d9d47506b8592b97c4efd936afcf673b09b059f2bef39c7211ee78b9d03"
+checksum = "aae38d669396ca9b707bfc3db254bc382ddb94f57cc5c235f34623a669a01dab"
 dependencies = [
  "log",
  "phf",
@@ -2910,9 +2904,9 @@ dependencies = [
 
 [[package]]
 name = "matches"
-version = "0.1.4"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "efd7622e3022e1a6eaa602c4cea8912254e5582c9c692e9167714182244801b1"
+checksum = "7ffc5c5338469d4d3ea17d269fa8ea3512ad247247c30bd2df69e68309ed0a08"
 
 [[package]]
 name = "media"
@@ -3595,18 +3589,20 @@ dependencies = [
 
 [[package]]
 name = "phf"
-version = "0.7.24"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3da44b85f8e8dfaec21adae67f95d93244b2ecf6ad2a692320598dcc8e6dd18"
+checksum = "3dfb61232e34fcb633f43d12c58f83c1df82962dcdfa565a4e866ffc17dafe12"
 dependencies = [
+ "phf_macros",
  "phf_shared",
+ "proc-macro-hack",
 ]
 
 [[package]]
 name = "phf_codegen"
-version = "0.7.24"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b03e85129e324ad4166b06b2c7491ae27fe3ec353af72e72cd1654c7225d517e"
+checksum = "cbffee61585b0411840d3ece935cce9cb6321f01c45477d30066498cd5e1a815"
 dependencies = [
  "phf_generator",
  "phf_shared",
@@ -3614,19 +3610,33 @@ dependencies = [
 
 [[package]]
 name = "phf_generator"
-version = "0.7.24"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09364cc93c159b8b06b1f4dd8a4398984503483891b0c26b867cf431fb132662"
+checksum = "17367f0cc86f2d25802b2c26ee58a7b23faeccf78a396094c13dced0d0182526"
 dependencies = [
  "phf_shared",
  "rand",
 ]
 
 [[package]]
-name = "phf_shared"
-version = "0.7.24"
+name = "phf_macros"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "234f71a15de2288bcb7e3b6515828d22af7ec8598ee6d24c3b526fa0a80b67a0"
+checksum = "7f6fde18ff429ffc8fe78e2bf7f8b7a5a5a6e2a8b58bc5a9ac69198bbda9189c"
+dependencies = [
+ "phf_generator",
+ "phf_shared",
+ "proc-macro-hack",
+ "proc-macro2 1.0.1",
+ "quote 1.0.2",
+ "syn 1.0.3",
+]
+
+[[package]]
+name = "phf_shared"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c00cf8b9eafe68dde5e9eaa2cef8ee84a9336a47d566ec55ca16589633b65af7"
 dependencies = [
  "siphasher",
 ]
@@ -3676,6 +3686,12 @@ name = "podio"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "780fb4b6698bbf9cf2444ea5d22411cef2953f0824b98f33cf454ec5615645bd"
+
+[[package]]
+name = "ppv-lite86"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3cbf9f658cdb5000fcf6f362b8ea2ba154b9f146a61c7a20d647034c6b6561b"
 
 [[package]]
 name = "precomputed-hash"
@@ -3790,106 +3806,62 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.6.5"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d71dacdc3c88c1fde3885a3be3fbab9f35724e6ce99467f7d9c5026132184ca"
+checksum = "3ae1b169243eaf61759b8475a998f0a385e42042370f3a7dbaf35246eacc8412"
 dependencies = [
- "autocfg",
+ "getrandom",
  "libc",
  "rand_chacha",
- "rand_core 0.4.2",
+ "rand_core",
  "rand_hc",
- "rand_isaac",
- "rand_jitter",
- "rand_os",
  "rand_pcg",
- "rand_xorshift",
- "winapi",
 ]
 
 [[package]]
 name = "rand_chacha"
-version = "0.1.1"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "556d3a1ca6600bfcbab7c7c91ccb085ac7fbbcd70e008a98742e7847f4f7bcef"
+checksum = "03a2a90da8c7523f554344f921aa97283eadf6ac484a6d2a7d0212fa7f8d6853"
 dependencies = [
- "autocfg",
- "rand_core 0.3.1",
+ "c2-chacha",
+ "rand_core",
 ]
 
 [[package]]
 name = "rand_core"
-version = "0.3.1"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a6fdeb83b075e8266dcc8762c22776f6877a63111121f5f8c7411e5be7eed4b"
+checksum = "90bde5296fc891b0cef12a6d03ddccc162ce7b2aff54160af9338f8d40df6d19"
 dependencies = [
- "rand_core 0.4.2",
+ "getrandom",
 ]
-
-[[package]]
-name = "rand_core"
-version = "0.4.2"
-source = "git+https://github.com/servo/rand?branch=servo-rand_os-0.1.3-uwp#13b836653183635c0bae3171a63f6faaf6d41809"
 
 [[package]]
 name = "rand_hc"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b40677c7be09ae76218dc623efbf7b18e34bced3f38883af07bb75630a21bc4"
+checksum = "ca3129af7b92a17112d59ad498c6f81eaf463253766b90396d39ea7a39d6613c"
 dependencies = [
- "rand_core 0.3.1",
+ "rand_core",
 ]
 
 [[package]]
 name = "rand_isaac"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ded997c9d5f13925be2a6fd7e66bf1872597f759fd9dd93513dd7e92e5a5ee08"
+checksum = "8df6b0b3dc9991a10b2d91a86d1129314502169a1bf6afa67328945e02498b76"
 dependencies = [
- "rand_core 0.3.1",
-]
-
-[[package]]
-name = "rand_jitter"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b9ea758282efe12823e0d952ddb269d2e1897227e464919a554f2a03ef1b832"
-dependencies = [
- "libc",
- "rand_core 0.4.2",
- "winapi",
-]
-
-[[package]]
-name = "rand_os"
-version = "0.1.3"
-source = "git+https://github.com/servo/rand?branch=servo-rand_os-0.1.3-uwp#13b836653183635c0bae3171a63f6faaf6d41809"
-dependencies = [
- "cloudabi",
- "fuchsia-cprng",
- "libc",
- "rand_core 0.4.2",
- "rdrand",
- "winapi",
+ "rand_core",
 ]
 
 [[package]]
 name = "rand_pcg"
-version = "0.1.2"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "abf9b09b01790cfe0364f52bf32995ea3c39f4d2dd011eac241d2914146d0b44"
+checksum = "16abd0c1b639e9eb4d7c50c0b8100b0d0f849be2349829c740fe8e6eb4816429"
 dependencies = [
- "autocfg",
- "rand_core 0.4.2",
-]
-
-[[package]]
-name = "rand_xorshift"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cbf7e9e623549b0e21f6e97cf8ecf247c1a8fd2e8a992ae265314300b2455d5c"
-dependencies = [
- "rand_core 0.3.1",
+ "rand_core",
 ]
 
 [[package]]
@@ -3947,15 +3919,6 @@ checksum = "5b725e815f3aa08718063883a75003336889debafe2f8fa67fbe91563ddc4efa"
 dependencies = [
  "moite_moite",
  "rayon",
-]
-
-[[package]]
-name = "rdrand"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "678054eb77286b51581ba43620cc911abf02758c91f93f479767aed0f90458b2"
-dependencies = [
- "rand_core 0.3.1",
 ]
 
 [[package]]
@@ -4469,7 +4432,7 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#10ebedeff6d1c9208ab6651db96d760ec4cb34fc"
+source = "git+https://github.com/servo/media#5380170bb42286ce9009d83e1034904bea8f00ee"
 dependencies = [
  "servo-media-audio",
  "servo-media-player",
@@ -4481,7 +4444,7 @@ dependencies = [
 [[package]]
 name = "servo-media-audio"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#10ebedeff6d1c9208ab6651db96d760ec4cb34fc"
+source = "git+https://github.com/servo/media#5380170bb42286ce9009d83e1034904bea8f00ee"
 dependencies = [
  "boxfnonce",
  "byte-slice-cast",
@@ -4498,7 +4461,7 @@ dependencies = [
 [[package]]
 name = "servo-media-dummy"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#10ebedeff6d1c9208ab6651db96d760ec4cb34fc"
+source = "git+https://github.com/servo/media#5380170bb42286ce9009d83e1034904bea8f00ee"
 dependencies = [
  "boxfnonce",
  "ipc-channel",
@@ -4513,7 +4476,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#10ebedeff6d1c9208ab6651db96d760ec4cb34fc"
+source = "git+https://github.com/servo/media#5380170bb42286ce9009d83e1034904bea8f00ee"
 dependencies = [
  "boxfnonce",
  "byte-slice-cast",
@@ -4549,7 +4512,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#10ebedeff6d1c9208ab6651db96d760ec4cb34fc"
+source = "git+https://github.com/servo/media#5380170bb42286ce9009d83e1034904bea8f00ee"
 dependencies = [
  "gstreamer",
  "gstreamer-video",
@@ -4559,7 +4522,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-android"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#10ebedeff6d1c9208ab6651db96d760ec4cb34fc"
+source = "git+https://github.com/servo/media#5380170bb42286ce9009d83e1034904bea8f00ee"
 dependencies = [
  "glib",
  "gstreamer",
@@ -4572,7 +4535,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-unix"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#10ebedeff6d1c9208ab6651db96d760ec4cb34fc"
+source = "git+https://github.com/servo/media#5380170bb42286ce9009d83e1034904bea8f00ee"
 dependencies = [
  "glib",
  "gstreamer",
@@ -4585,7 +4548,7 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#10ebedeff6d1c9208ab6651db96d760ec4cb34fc"
+source = "git+https://github.com/servo/media#5380170bb42286ce9009d83e1034904bea8f00ee"
 dependencies = [
  "ipc-channel",
  "serde",
@@ -4597,7 +4560,7 @@ dependencies = [
 [[package]]
 name = "servo-media-streams"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#10ebedeff6d1c9208ab6651db96d760ec4cb34fc"
+source = "git+https://github.com/servo/media#5380170bb42286ce9009d83e1034904bea8f00ee"
 dependencies = [
  "lazy_static",
  "uuid",
@@ -4606,12 +4569,12 @@ dependencies = [
 [[package]]
 name = "servo-media-traits"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#10ebedeff6d1c9208ab6651db96d760ec4cb34fc"
+source = "git+https://github.com/servo/media#5380170bb42286ce9009d83e1034904bea8f00ee"
 
 [[package]]
 name = "servo-media-webrtc"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#10ebedeff6d1c9208ab6651db96d760ec4cb34fc"
+source = "git+https://github.com/servo/media#5380170bb42286ce9009d83e1034904bea8f00ee"
 dependencies = [
  "boxfnonce",
  "log",
@@ -4708,7 +4671,7 @@ dependencies = [
 [[package]]
 name = "servo_media_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#10ebedeff6d1c9208ab6651db96d760ec4cb34fc"
+source = "git+https://github.com/servo/media#5380170bb42286ce9009d83e1034904bea8f00ee"
 dependencies = [
  "proc-macro2 1.0.1",
  "quote 1.0.2",
@@ -4722,7 +4685,7 @@ dependencies = [
  "lazy_static",
  "log",
  "rand",
- "rand_core 0.4.2",
+ "rand_core",
  "rand_isaac",
  "uuid",
 ]
@@ -4849,9 +4812,9 @@ dependencies = [
 
 [[package]]
 name = "siphasher"
-version = "0.2.2"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0df90a788073e8d0235a67e50441d47db7c8ad9debd91cbf43736a2a92d36537"
+checksum = "83da420ee8d1a89e640d0948c646c1c088758d3a3c538f943bfa97bdac17929d"
 
 [[package]]
 name = "size_of_test"
@@ -4949,37 +4912,28 @@ dependencies = [
 
 [[package]]
 name = "string_cache"
-version = "0.7.3"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25d70109977172b127fe834e5449e5ab1740b9ba49fa18a2020f509174f25423"
+checksum = "2940c75beb4e3bf3a494cef919a747a2cb81e52571e212bfbd185074add7208a"
 dependencies = [
  "lazy_static",
  "new_debug_unreachable",
  "phf_shared",
  "precomputed-hash",
  "serde",
- "string_cache_codegen",
- "string_cache_shared",
 ]
 
 [[package]]
 name = "string_cache_codegen"
-version = "0.4.2"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1eea1eee654ef80933142157fdad9dd8bc43cf7c74e999e369263496f04ff4da"
+checksum = "f24c8e5e19d22a726626f1a5e16fe15b132dcf21d10177fa5a45ce7962996b97"
 dependencies = [
  "phf_generator",
  "phf_shared",
- "proc-macro2 0.4.26",
- "quote 0.6.12",
- "string_cache_shared",
+ "proc-macro2 1.0.1",
+ "quote 1.0.2",
 ]
-
-[[package]]
-name = "string_cache_shared"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1884d1bc09741d466d9b14e6d37ac89d6909cbcac41dd9ae982d4d063bbedfc"
 
 [[package]]
 name = "strsim"
@@ -5181,9 +5135,9 @@ dependencies = [
 
 [[package]]
 name = "tempfile"
-version = "3.0.8"
+version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dc4738f2e68ed2855de5ac9cdbe05c9216773ecde4739b2f095002ab03a13ef"
+checksum = "7a6e24d9338a0a5be79593e2fa15a648add6138caa803e2d5bc782c371732ca9"
 dependencies = [
  "cfg-if",
  "libc",
@@ -5370,9 +5324,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-executor"
-version = "0.1.7"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83ea44c6c0773cc034771693711c35c677b4b5a4b21b9e7071704c54de7d555e"
+checksum = "0f27ee0e6db01c5f0b2973824547ce7e637b2ed79b891a9677b0de9bd532b6ac"
 dependencies = [
  "crossbeam-utils",
  "futures",
@@ -5451,17 +5405,17 @@ dependencies = [
 
 [[package]]
 name = "tokio-threadpool"
-version = "0.1.14"
+version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72558af20be886ea124595ea0f806dd5703b8958e4705429dd58b3d8231f72f2"
+checksum = "2bd2c6a3885302581f4401c82af70d792bb9df1700e7437b0aeb4ada94d5388c"
 dependencies = [
  "crossbeam-deque",
  "crossbeam-queue",
  "crossbeam-utils",
  "futures",
+ "lazy_static",
  "log",
  "num_cpus",
- "rand",
  "slab",
  "tokio-executor",
 ]
@@ -5675,9 +5629,9 @@ checksum = "796f7e48bef87609f7ade7e06495a87d5cd06c7866e6a5cbfceffc558a243737"
 
 [[package]]
 name = "uuid"
-version = "0.7.4"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90dbc611eb48397705a6b0f6e917da23ae517e4d127123d2cf7674206627d32a"
+checksum = "bf1d83e5fa94e6c54ee47351bc92daca1f386aa1529ffbb668d2cee5e8173013"
 dependencies = [
  "rand",
  "serde",
@@ -6103,9 +6057,9 @@ dependencies = [
 
 [[package]]
 name = "ws"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a6f5bb86663ff4d1639408410f50bf6050367a8525d644d49a6894cd618a631"
+checksum = "c51a2c47b5798ccc774ffb93ff536aec7c4275d722fd9c740c83cdd1af1f2d94"
 dependencies = [
  "byteorder",
  "bytes",
@@ -6180,9 +6134,9 @@ checksum = "541b12c998c5b56aa2b4e6f18f03664eef9a4fd0a246a55594efae6cc2d964b5"
 
 [[package]]
 name = "xml5ever"
-version = "0.15.0"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b93ca59bfbbc3c0f807a61faea54e6a4c753f82857d3730e9afb5523b6149c7"
+checksum = "33f9cd1d3587e33237f1716ace767fbddd62405096305c57430369cb7263d32f"
 dependencies = [
  "log",
  "mac",
