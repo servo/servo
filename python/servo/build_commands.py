@@ -164,18 +164,32 @@ class MachCommands(CommandBase):
     @CommandArgument('--very-verbose', '-vv',
                      action='store_true',
                      help='Print very verbose output')
+    @CommandArgument('--uwp',
+                     action='store_true',
+                     help='Build for HoloLens (x64)')
+    @CommandArgument('--win-arm64', action='store_true', help="Use arm64 Windows target")
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     @CommandBase.build_like_command_arguments
     def build(self, release=False, dev=False, jobs=None, params=None,
               no_package=False, verbose=False, very_verbose=False,
               target=None, android=False, magicleap=False, libsimpleservo=False,
-              features=None, **kwargs):
+              features=None, uwp=False, win_arm64=False, **kwargs):
+        # Force the UWP-enabled target if the convenience UWP flags are passed.
+        if uwp and not target:
+            if win_arm64:
+                target = 'aarch64-uwp-windows-msvc'
+            else:
+                target = 'x86_64-uwp-windows-msvc'
+
         opts = params or []
         features = features or []
 
         target, android = self.pick_target_triple(target, android, magicleap)
-        uwp = target and 'uwp' in target
+
+        # Infer UWP build if only provided a target.
+        if not uwp:
+            uwp = target and 'uwp' in target
 
         target_path = base_path = self.get_target_dir()
         if android:
