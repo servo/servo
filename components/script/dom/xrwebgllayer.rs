@@ -192,6 +192,9 @@ impl XRWebGLLayer {
             return Err(Error::Operation);
         }
 
+        // Ensure that we finish setting up this layer before continuing.
+        context.Finish();
+
         // Step 10. "Return layer."
         Ok(XRWebGLLayer::new(
             &global.global(),
