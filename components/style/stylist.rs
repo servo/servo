@@ -2032,11 +2032,17 @@ impl CascadeData {
                         // Part is special, since given it doesn't have any
                         // selectors inside, it's not worth using a whole
                         // SelectorMap for it.
-                        if let Some(part) = selector.part() {
+                        if let Some(parts) = selector.parts() {
+                            // ::part() has all semantics, so we just need to
+                            // put any of them in the selector map.
+                            //
+                            // We choose the last one quite arbitrarily,
+                            // expecting it's slightly more likely to be more
+                            // specific.
                             self.part_rules
                                 .get_or_insert_with(|| Box::new(Default::default()))
                                 .for_insertion(pseudo_element)
-                                .try_entry(part.clone())?
+                                .try_entry(parts.last().unwrap().clone())?
                                 .or_insert_with(SmallVec::new)
                                 .try_push(rule)?;
                         } else {
