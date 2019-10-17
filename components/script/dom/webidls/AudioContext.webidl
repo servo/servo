@@ -13,7 +13,7 @@ enum AudioContextLatencyCategory {
 };
 
 dictionary AudioContextOptions {
-  AudioContextLatencyCategory latencyHint = "interactive";
+  (AudioContextLatencyCategory or double) latencyHint = "interactive";
   float sampleRate;
 };
 
