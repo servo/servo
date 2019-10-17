@@ -55,6 +55,7 @@ use sparkle::gl::Gl;
 use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
+use std::slice;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use surfman;
@@ -1012,6 +1013,26 @@ impl WebGLImpl {
             },
             WebGLCommand::BufferSubData(buffer_type, offset, ref receiver) => {
                 gl::buffer_sub_data(gl, buffer_type, offset, &receiver.recv().unwrap())
+            },
+            WebGLCommand::CopyBufferSubData(src, dst, src_offset, dst_offset, size) => {
+                gl.copy_buffer_sub_data(
+                    src,
+                    dst,
+                    src_offset as isize,
+                    dst_offset as isize,
+                    size as isize,
+                );
+            },
+            WebGLCommand::GetBufferSubData(buffer_type, offset, length, ref sender) => {
+                let ptr = gl.map_buffer_range(
+                    buffer_type,
+                    offset as isize,
+                    length as isize,
+                    gl::MAP_READ_BIT,
+                );
+                let data: &[u8] = unsafe { slice::from_raw_parts(ptr as _, length) };
+                sender.send(data).unwrap();
+                gl.unmap_buffer(buffer_type);
             },
             WebGLCommand::Clear(mask) => {
                 gl.clear(mask);

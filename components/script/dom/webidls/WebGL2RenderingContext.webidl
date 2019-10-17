@@ -299,18 +299,18 @@ interface mixin WebGL2RenderingContextBase
   void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
   void bufferSubData(GLenum target, GLintptr dstByteOffset, /*[AllowShared]*/ BufferSource srcData);
   // WebGL2:
-  // void bufferData(GLenum target, [AllowShared] ArrayBufferView srcData, GLenum usage, GLuint srcOffset,
-  //                 optional GLuint length = 0);
-  // void bufferSubData(GLenum target, GLintptr dstByteOffset, [AllowShared] ArrayBufferView srcData,
-  //                    GLuint srcOffset, optional GLuint length = 0);
+  void bufferData(GLenum target, /*[AllowShared]*/ ArrayBufferView srcData, GLenum usage, GLuint srcOffset,
+                  optional GLuint length = 0);
+  void bufferSubData(GLenum target, GLintptr dstByteOffset, /*[AllowShared]*/ ArrayBufferView srcData,
+                     GLuint srcOffset, optional GLuint length = 0);
 
-  // void copyBufferSubData(GLenum readTarget, GLenum writeTarget, GLintptr readOffset,
-  //                        GLintptr writeOffset, GLsizeiptr size);
+  void copyBufferSubData(GLenum readTarget, GLenum writeTarget, GLintptr readOffset,
+                         GLintptr writeOffset, GLsizeiptr size);
   // MapBufferRange, in particular its read-only and write-only modes,
   // can not be exposed safely to JavaScript. GetBufferSubData
   // replaces it for the purpose of fetching data back from the GPU.
-  // void getBufferSubData(GLenum target, GLintptr srcByteOffset, [AllowShared] ArrayBufferView dstBuffer,
-  //                       optional GLuint dstOffset = 0, optional GLuint length = 0);
+  void getBufferSubData(GLenum target, GLintptr srcByteOffset, /*[AllowShared]*/ ArrayBufferView dstBuffer,
+                        optional GLuint dstOffset = 0, optional GLuint length = 0);
 
   /* Framebuffer objects */
   // void blitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0,

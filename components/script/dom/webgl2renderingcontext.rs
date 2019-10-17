@@ -36,11 +36,13 @@ use crate::dom::webgluniformlocation::WebGLUniformLocation;
 use crate::dom::window::Window;
 use crate::script_runtime::JSContext;
 use canvas_traits::webgl::WebGLError::*;
-/// https://www.khronos.org/registry/webgl/specs/latest/2.0/webgl.idl
-use canvas_traits::webgl::{webgl_channel, GLContextAttributes, WebGLCommand, WebGLVersion};
+use canvas_traits::webgl::{
+    webgl_channel, GLContextAttributes, WebGLCommand, WebGLResult, WebGLVersion,
+};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
-use js::jsapi::JSObject;
+use ipc_channel::ipc;
+use js::jsapi::{JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UInt32Value};
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBufferView;
@@ -54,6 +56,22 @@ pub struct WebGL2RenderingContext {
     occlusion_query: MutNullableDom<WebGLQuery>,
     primitives_query: MutNullableDom<WebGLQuery>,
     samplers: Box<[MutNullableDom<WebGLSampler>]>,
+    bound_copy_read_buffer: MutNullableDom<WebGLBuffer>,
+    bound_copy_write_buffer: MutNullableDom<WebGLBuffer>,
+    bound_pixel_pack_buffer: MutNullableDom<WebGLBuffer>,
+    bound_pixel_unpack_buffer: MutNullableDom<WebGLBuffer>,
+    bound_transform_feedback_buffer: MutNullableDom<WebGLBuffer>,
+    bound_uniform_buffer: MutNullableDom<WebGLBuffer>,
+}
+
+fn typedarray_elem_size(typeid: Type) -> usize {
+    match typeid {
+        Type::Int8 | Type::Uint8 | Type::Uint8Clamped => 1,
+        Type::Int16 | Type::Uint16 => 2,
+        Type::Int32 | Type::Uint32 | Type::Float32 => 4,
+        Type::Int64 | Type::Float64 => 8,
+        Type::MaxTypedArrayViewType => unreachable!(),
+    }
 }
 
 impl WebGL2RenderingContext {
@@ -76,6 +94,12 @@ impl WebGL2RenderingContext {
             occlusion_query: MutNullableDom::new(None),
             primitives_query: MutNullableDom::new(None),
             samplers: samplers,
+            bound_copy_read_buffer: MutNullableDom::new(None),
+            bound_copy_write_buffer: MutNullableDom::new(None),
+            bound_pixel_pack_buffer: MutNullableDom::new(None),
+            bound_pixel_unpack_buffer: MutNullableDom::new(None),
+            bound_transform_feedback_buffer: MutNullableDom::new(None),
+            bound_uniform_buffer: MutNullableDom::new(None),
         })
     }
 
@@ -99,6 +123,25 @@ impl WebGL2RenderingContext {
 
     pub fn base_context(&self) -> DomRoot<WebGLRenderingContext> {
         DomRoot::from_ref(&*self.base)
+    }
+
+    fn bound_buffer(&self, target: u32) -> WebGLResult<Option<DomRoot<WebGLBuffer>>> {
+        match target {
+            constants::COPY_READ_BUFFER => Ok(self.bound_copy_read_buffer.get()),
+            constants::COPY_WRITE_BUFFER => Ok(self.bound_copy_write_buffer.get()),
+            constants::PIXEL_PACK_BUFFER => Ok(self.bound_pixel_pack_buffer.get()),
+            constants::PIXEL_UNPACK_BUFFER => Ok(self.bound_pixel_unpack_buffer.get()),
+            constants::TRANSFORM_FEEDBACK_BUFFER => Ok(self.bound_transform_feedback_buffer.get()),
+            constants::UNIFORM_BUFFER => Ok(self.bound_uniform_buffer.get()),
+            _ => self.base.bound_buffer(target),
+        }
+    }
+
+    fn unbind_from(&self, slot: &MutNullableDom<WebGLBuffer>, buffer: &WebGLBuffer) {
+        if slot.get().map_or(false, |b| buffer == &*b) {
+            buffer.decrement_attached_counter();
+            slot.set(None);
+        }
     }
 }
 
@@ -145,6 +188,27 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                 assert!(idx < self.samplers.len());
                 let sampler = self.samplers[idx].get();
                 optional_root_object_to_js_or_null!(*cx, sampler)
+            },
+            constants::COPY_READ_BUFFER_BINDING => unsafe {
+                optional_root_object_to_js_or_null!(*cx, &self.bound_copy_read_buffer.get())
+            },
+            constants::COPY_WRITE_BUFFER_BINDING => unsafe {
+                optional_root_object_to_js_or_null!(*cx, &self.bound_copy_write_buffer.get())
+            },
+            constants::PIXEL_PACK_BUFFER_BINDING => unsafe {
+                optional_root_object_to_js_or_null!(*cx, &self.bound_pixel_pack_buffer.get())
+            },
+            constants::PIXEL_UNPACK_BUFFER_BINDING => unsafe {
+                optional_root_object_to_js_or_null!(*cx, &self.bound_pixel_unpack_buffer.get())
+            },
+            constants::TRANSFORM_FEEDBACK_BUFFER_BINDING => unsafe {
+                optional_root_object_to_js_or_null!(
+                    *cx,
+                    &self.bound_transform_feedback_buffer.get()
+                )
+            },
+            constants::UNIFORM_BUFFER_BINDING => unsafe {
+                optional_root_object_to_js_or_null!(*cx, &self.bound_uniform_buffer.get())
             },
             _ => self.base.GetParameter(cx, parameter),
         }
@@ -238,9 +302,18 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.BindAttribLocation(program, index, name)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.2
     fn BindBuffer(&self, target: u32, buffer: Option<&WebGLBuffer>) {
-        self.base.BindBuffer(target, buffer)
+        let slot = match target {
+            constants::COPY_READ_BUFFER => &self.bound_copy_read_buffer,
+            constants::COPY_WRITE_BUFFER => &self.bound_copy_write_buffer,
+            constants::PIXEL_PACK_BUFFER => &self.bound_pixel_pack_buffer,
+            constants::PIXEL_UNPACK_BUFFER => &self.bound_pixel_unpack_buffer,
+            constants::TRANSFORM_FEEDBACK_BUFFER => &self.bound_transform_feedback_buffer,
+            constants::UNIFORM_BUFFER => &self.bound_uniform_buffer,
+            _ => return self.base.BindBuffer(target, buffer),
+        };
+        self.base.bind_buffer_maybe(&slot, target, buffer);
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
@@ -265,17 +338,229 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BufferData(&self, target: u32, data: Option<ArrayBufferViewOrArrayBuffer>, usage: u32) {
-        self.base.BufferData(target, data, usage)
+        let bound_buffer =
+            handle_potential_webgl_error!(self.base, self.bound_buffer(target), return);
+        self.base.buffer_data(target, data, usage, bound_buffer)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BufferData_(&self, target: u32, size: i64, usage: u32) {
-        self.base.BufferData_(target, size, usage)
+        let bound_buffer =
+            handle_potential_webgl_error!(self.base, self.bound_buffer(target), return);
+        self.base.buffer_data_(target, size, usage, bound_buffer)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.3
+    #[allow(unsafe_code)]
+    fn BufferData__(
+        &self,
+        target: u32,
+        data: CustomAutoRooterGuard<ArrayBufferView>,
+        usage: u32,
+        elem_offset: u32,
+        length: u32,
+    ) {
+        let bound_buffer =
+            handle_potential_webgl_error!(self.base, self.bound_buffer(target), return);
+        let bound_buffer =
+            handle_potential_webgl_error!(self.base, bound_buffer.ok_or(InvalidOperation), return);
+
+        let elem_size = typedarray_elem_size(data.get_array_type());
+        let elem_count = data.len() / elem_size;
+        let elem_offset = elem_offset as usize;
+        let byte_offset = elem_offset * elem_size;
+
+        if byte_offset > data.len() {
+            return self.base.webgl_error(InvalidValue);
+        }
+
+        let copy_count = if length == 0 {
+            elem_count - elem_offset
+        } else {
+            length as usize
+        };
+        if copy_count == 0 {
+            return;
+        }
+        let copy_bytes = copy_count * elem_size;
+
+        if byte_offset + copy_bytes > data.len() {
+            return self.base.webgl_error(InvalidValue);
+        }
+
+        let data_end = byte_offset + copy_bytes;
+        let data: &[u8] = unsafe { &data.as_slice()[byte_offset..data_end] };
+        handle_potential_webgl_error!(self.base, bound_buffer.buffer_data(target, &data, usage));
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BufferSubData(&self, target: u32, offset: i64, data: ArrayBufferViewOrArrayBuffer) {
         self.base.BufferSubData(target, offset, data)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.3
+    #[allow(unsafe_code)]
+    fn BufferSubData_(
+        &self,
+        target: u32,
+        dst_byte_offset: i64,
+        src_data: CustomAutoRooterGuard<ArrayBufferView>,
+        src_elem_offset: u32,
+        length: u32,
+    ) {
+        let bound_buffer =
+            handle_potential_webgl_error!(self.base, self.bound_buffer(target), return);
+        let bound_buffer =
+            handle_potential_webgl_error!(self.base, bound_buffer.ok_or(InvalidOperation), return);
+
+        let src_elem_size = typedarray_elem_size(src_data.get_array_type());
+        let src_elem_count = src_data.len() / src_elem_size;
+        let src_elem_offset = src_elem_offset as usize;
+        let src_byte_offset = src_elem_offset * src_elem_size;
+
+        if dst_byte_offset < 0 || src_byte_offset > src_data.len() {
+            return self.base.webgl_error(InvalidValue);
+        }
+
+        let copy_count = if length == 0 {
+            src_elem_count - src_elem_offset
+        } else {
+            length as usize
+        };
+        if copy_count == 0 {
+            return;
+        }
+        let copy_bytes = copy_count * src_elem_size;
+
+        let dst_byte_offset = dst_byte_offset as usize;
+        if dst_byte_offset + copy_bytes > bound_buffer.capacity() ||
+            src_byte_offset + copy_bytes > src_data.len()
+        {
+            return self.base.webgl_error(InvalidValue);
+        }
+
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        self.base.send_command(WebGLCommand::BufferSubData(
+            target,
+            dst_byte_offset as isize,
+            receiver,
+        ));
+        let src_end = src_byte_offset + copy_bytes;
+        let data: &[u8] = unsafe { &src_data.as_slice()[src_byte_offset..src_end] };
+        sender.send(data).unwrap();
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.3
+    fn CopyBufferSubData(
+        &self,
+        read_target: u32,
+        write_target: u32,
+        read_offset: i64,
+        write_offset: i64,
+        size: i64,
+    ) {
+        if read_offset < 0 || write_offset < 0 || size < 0 {
+            return self.base.webgl_error(InvalidValue);
+        }
+
+        let read_buffer =
+            handle_potential_webgl_error!(self.base, self.bound_buffer(read_target), return);
+        let read_buffer =
+            handle_potential_webgl_error!(self.base, read_buffer.ok_or(InvalidOperation), return);
+
+        let write_buffer =
+            handle_potential_webgl_error!(self.base, self.bound_buffer(write_target), return);
+        let write_buffer =
+            handle_potential_webgl_error!(self.base, write_buffer.ok_or(InvalidOperation), return);
+
+        let read_until = read_offset + size;
+        let write_until = write_offset + size;
+        if read_until as usize > read_buffer.capacity() ||
+            write_until as usize > write_buffer.capacity()
+        {
+            return self.base.webgl_error(InvalidValue);
+        }
+
+        if read_target == write_target {
+            let is_separate = read_until <= write_offset || write_until <= read_offset;
+            if !is_separate {
+                return self.base.webgl_error(InvalidValue);
+            }
+        }
+        let src_is_elemarray = read_buffer
+            .target()
+            .map_or(false, |t| t == constants::ELEMENT_ARRAY_BUFFER);
+        let dst_is_elemarray = write_buffer
+            .target()
+            .map_or(false, |t| t == constants::ELEMENT_ARRAY_BUFFER);
+        if src_is_elemarray != dst_is_elemarray {
+            return self.base.webgl_error(InvalidOperation);
+        }
+
+        self.base.send_command(WebGLCommand::CopyBufferSubData(
+            read_target,
+            write_target,
+            read_offset,
+            write_offset,
+            size,
+        ));
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.3
+    #[allow(unsafe_code)]
+    fn GetBufferSubData(
+        &self,
+        target: u32,
+        src_byte_offset: i64,
+        mut dst_buffer: CustomAutoRooterGuard<ArrayBufferView>,
+        dst_elem_offset: u32,
+        length: u32,
+    ) {
+        let bound_buffer =
+            handle_potential_webgl_error!(self.base, self.bound_buffer(target), return);
+        let bound_buffer =
+            handle_potential_webgl_error!(self.base, bound_buffer.ok_or(InvalidOperation), return);
+
+        let dst_elem_size = typedarray_elem_size(dst_buffer.get_array_type());
+        let dst_elem_count = dst_buffer.len() / dst_elem_size;
+        let dst_elem_offset = dst_elem_offset as usize;
+        let dst_byte_offset = dst_elem_offset * dst_elem_size;
+
+        if src_byte_offset < 0 || dst_byte_offset > dst_buffer.len() {
+            return self.base.webgl_error(InvalidValue);
+        }
+
+        let copy_count = if length == 0 {
+            dst_elem_count - dst_elem_offset
+        } else {
+            length as usize
+        };
+        if copy_count == 0 {
+            return;
+        }
+        let copy_bytes = copy_count * dst_elem_size;
+
+        // TODO(mmatyas): Transform Feedback
+
+        let src_byte_offset = src_byte_offset as usize;
+        if src_byte_offset + copy_bytes > bound_buffer.capacity() ||
+            dst_byte_offset + copy_bytes > dst_buffer.len()
+        {
+            return self.base.webgl_error(InvalidValue);
+        }
+
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        self.base.send_command(WebGLCommand::GetBufferSubData(
+            target,
+            src_byte_offset,
+            copy_bytes,
+            sender,
+        ));
+        let data = receiver.recv().unwrap();
+        let dst_end = dst_byte_offset + copy_bytes;
+        unsafe {
+            dst_buffer.as_mut_slice()[dst_byte_offset..dst_end].copy_from_slice(&data);
+        }
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
@@ -445,7 +730,23 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn DeleteBuffer(&self, buffer: Option<&WebGLBuffer>) {
-        self.base.DeleteBuffer(buffer)
+        let buffer = match buffer {
+            Some(buffer) => buffer,
+            None => return,
+        };
+        handle_potential_webgl_error!(self.base, self.base.validate_ownership(buffer), return);
+        if buffer.is_marked_for_deletion() {
+            return;
+        }
+        self.base.current_vao().unbind_buffer(buffer);
+        self.unbind_from(&self.base.array_buffer_slot(), &buffer);
+        self.unbind_from(&self.bound_copy_read_buffer, &buffer);
+        self.unbind_from(&self.bound_copy_write_buffer, &buffer);
+        self.unbind_from(&self.bound_pixel_pack_buffer, &buffer);
+        self.unbind_from(&self.bound_pixel_unpack_buffer, &buffer);
+        self.unbind_from(&self.bound_transform_feedback_buffer, &buffer);
+        self.unbind_from(&self.bound_uniform_buffer, &buffer);
+        buffer.mark_for_deletion(false);
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6

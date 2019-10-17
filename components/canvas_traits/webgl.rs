@@ -248,6 +248,8 @@ pub enum WebGLCommand {
     BindAttribLocation(WebGLProgramId, u32, String),
     BufferData(u32, IpcBytesReceiver, u32),
     BufferSubData(u32, isize, IpcBytesReceiver),
+    GetBufferSubData(u32, usize, usize, IpcBytesSender),
+    CopyBufferSubData(u32, u32, i64, i64, i64),
     Clear(u32),
     ClearColor(f32, f32, f32, f32),
     ClearDepth(f32),
