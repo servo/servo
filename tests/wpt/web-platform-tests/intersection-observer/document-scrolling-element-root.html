@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+iframe {
+  height: 250px;
+  width: 150px;
+  border: 0;
+}
+</style>
+<iframe id="target-iframe" src="resources/iframe-no-root-subframe.html"></iframe>
+
+<script>
+var iframe = document.getElementById("target-iframe");
+var target;
+var root;
+var entries = [];
+
+iframe.onload = function() {
+  runTestCycle(function() {
+    assert_true(!!iframe, "iframe exists");
+
+    root = iframe.contentDocument.scrollingElement;
+    assert_true(!!root, "Root element exists.");
+    target = iframe.contentDocument.getElementById("target");
+    assert_true(!!target, "Target element exists.");
+    var observer = new IntersectionObserver(function(changes) {
+      entries = entries.concat(changes)
+    }, { root: root });
+    observer.observe(target);
+    entries = entries.concat(observer.takeRecords());
+    assert_equals(entries.length, 0, "No initial notifications.");
+    runTestCycle(step0, "First rAF.");
+  }, "Observer with explicit root which is the document's scrolling element.");
+};
+
+function step0() {
+  let vw = iframe.contentDocument.documentElement.clientWidth;
+  let vh = iframe.contentDocument.documentElement.clientHeight;
+  // The target element is partially clipped by the iframe's root scroller, so
+  // height of the intersection rect is (250 - 208) == 42.
+  checkLastEntry(entries, 0, [8, 108, 208, 308, 8, 108, 208, 250, 0, vw, 0, vh, true]);
+}
+</script>

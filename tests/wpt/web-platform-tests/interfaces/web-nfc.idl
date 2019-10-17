@@ -10,7 +10,7 @@ interface NDEFMessage {
 };
 
 dictionary NDEFMessageInit {
-  sequence<NDEFRecordInit> records;
+  required sequence<NDEFRecordInit> records;
 };
 
 [Exposed=Window]
@@ -21,14 +21,14 @@ interface NDEFRecord {
   readonly attribute USVString mediaType;
   readonly attribute USVString id;
 
-  USVString? toText();
-  [NewObject] ArrayBuffer? toArrayBuffer();
-  [NewObject] any toJSON();
+  USVString? text();
+  [NewObject] ArrayBuffer? arrayBuffer();
+  [NewObject] any json();
   sequence<NDEFRecord> toRecords();
 };
 
 dictionary NDEFRecordInit {
-  NDEFRecordType recordType;
+  required NDEFRecordType recordType;
   USVString mediaType;
   USVString id;
 
@@ -84,6 +84,7 @@ dictionary NFCPushOptions {
   NFCPushTarget target = "any";
   unrestricted double timeout = Infinity;
   boolean ignoreRead = true;
+  boolean overwrite = true;
   AbortSignal? signal;
 };
 

@@ -390,5 +390,44 @@ html,body {
   <div style="grid-column:y -5"></div>
 </div></div>
 
+<script>
+  const expectedResults = [
+    "subgrid [z] [z] [z] [z] [z]",
+    "subgrid [x] [z] [z] [z] [z]",
+    "subgrid [x] [x] [z] [z] [z]",
+    "subgrid [x] [x] [x] [z] [z]",
+    "subgrid [x] [x] [x] [x] [z]",
+    "subgrid [x] [x] [x] [x] [x]",
+    "subgrid [x] [x] [x] [x] [x]",
+    "subgrid [x] [x] [x] [x] [x]",
+    "subgrid [x] [x] [x] [x] [x]",
+    "subgrid [x] [x] [x] [x] [x]",
+    "subgrid [y] [z] [z] [z] [z]",
+    "subgrid [x] [y] [z] [z] [z]",
+    "subgrid [x] [x] [y] [z] [z]",
+    "subgrid [x] [x] [x] [y] [z]",
+    "subgrid [x] [x] [x] [x] [y]",
+    "subgrid [y] [y] [z] [z] [z]",
+    "subgrid [x] [y] [y] [z] [z]",
+    "subgrid [x] [x] [y] [y] [z]",
+    "subgrid [x] [x] [x] [y] [y]",
+    "subgrid [y] [y] [y] [z] [z]",
+    "subgrid [x] [y] [y] [y] [z]",
+    "subgrid [x] [x] [y] [y] [y]",
+    "subgrid [y] [y] [y] [y] [z]",
+    "subgrid [x] [y] [y] [y] [y]",
+    "subgrid [y] [y] [y] [y] [y]",
+  ];
+  [...document.querySelectorAll('.subgrid')].forEach(function(subgrid, i) {
+    let actual = window.getComputedStyle(subgrid)['grid-template-columns'];
+    let expected = expectedResults[i];
+    if (actual != expected) {
+      let err = "Unexpected getComputedStyle value for subgrid " + i + " with className '" + subgrid.className + "':" +
+      " Actual: \"" + actual + "\", Expected: \"" + expected + "\"";
+      document.body.appendChild(document.createTextNode(err));
+    }
+  });
+</script>
+
 </body>
 </html>

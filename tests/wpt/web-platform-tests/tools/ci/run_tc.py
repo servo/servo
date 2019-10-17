@@ -41,6 +41,9 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
+from socket import error as SocketError  # NOQA: N812
+import errno
 try:
     from urllib2 import urlopen
 except ImportError:
@@ -149,20 +152,61 @@ def install_webkitgtk_from_apt_repository(channel):
     # Configure webkitgtk.org/debian repository for $channel and pin it with maximum priority
     run(["sudo", "apt-key", "adv", "--fetch-keys", "https://webkitgtk.org/debian/apt.key"])
     with open("/tmp/webkitgtk.list", "w") as f:
-        f.write("deb [arch=amd64] https://webkitgtk.org/debian buster-wpt-webkit-updates %s\n" % channel)
+        f.write("deb [arch=amd64] https://webkitgtk.org/apt bionic-wpt-webkit-updates %s\n" % channel)
     run(["sudo", "mv", "/tmp/webkitgtk.list", "/etc/apt/sources.list.d/"])
     with open("/tmp/99webkitgtk", "w") as f:
         f.write("Package: *\nPin: origin webkitgtk.org\nPin-Priority: 1999\n")
     run(["sudo", "mv", "/tmp/99webkitgtk", "/etc/apt/preferences.d/"])
-    # Install webkit2gtk from the webkitgtk.org/debian repository for $channel
+    # Install webkit2gtk from the webkitgtk.org/apt repository for $channel
     run(["sudo", "apt-get", "-qqy", "update"])
     run(["sudo", "apt-get", "-qqy", "upgrade"])
-    run(["sudo", "apt-get", "-qqy", "-t", "buster-wpt-webkit-updates", "install", "webkit2gtk-driver"])
+    run(["sudo", "apt-get", "-qqy", "-t", "bionic-wpt-webkit-updates", "install", "webkit2gtk-driver"])
+
+
+# Download an URL in chunks and saves it to a file descriptor (truncating it)
+# It doesn't close the descriptor, but flushes it on success.
+# It retries the download in case of ECONNRESET up to max_retries.
+def download_url_to_descriptor(fd, url, max_retries=3):
+    download_succeed = False
+    if max_retries < 0:
+        max_retries = 0
+    for current_retry in range(max_retries+1):
+        try:
+            resp = urlopen(url)
+            # We may come here in a retry, ensure to truncate fd before start writing.
+            fd.seek(0)
+            fd.truncate(0)
+            while True:
+                chunk = resp.read(16*1024)
+                if not chunk:
+                    break  # Download finished
+                fd.write(chunk)
+            fd.flush()
+            download_succeed = True
+            break  # Sucess
+        except SocketError as e:
+            if e.errno != errno.ECONNRESET:
+                raise  # Unknown error
+            if current_retry < max_retries:
+                print("ERROR: Connection reset by peer. Retrying ...")
+                continue  # Retry
+    return download_succeed
+
+
+def install_webkitgtk_from_tarball_bundle(channel):
+    with tempfile.NamedTemporaryFile(suffix=".tar.xz") as temp_tarball:
+        download_url = "https://webkitgtk.org/built-products/nightly/webkitgtk-nightly-build-last.tar.xz"
+        if not download_url_to_descriptor(temp_tarball, download_url):
+            raise RuntimeError("Can't download %s. Aborting" % download_url)
+        run(["sudo", "tar", "xfa", temp_tarball.name, "-C", "/"])
+    # Install dependencies
+    run(["sudo", "apt-get", "-qqy", "update"])
+    run(["sudo", "/opt/webkitgtk/nightly/install-dependencies"])
 
 
 def install_webkitgtk(channel):
     if channel in ("experimental", "dev", "nightly"):
-        raise NotImplementedError("Still can't install from release channel: %s" % channel)
+        install_webkitgtk_from_tarball_bundle(channel)
     elif channel in ("beta", "stable"):
         install_webkitgtk_from_apt_repository(channel)
     else:

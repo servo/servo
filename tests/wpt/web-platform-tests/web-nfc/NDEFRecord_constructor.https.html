@@ -20,16 +20,16 @@
     const record = new NDEFRecord(createTextRecord(test_text_data));
     assert_equals(record.recordType, 'text', 'recordType');
     assert_equals(record.mediaType, 'text/plain', 'mediaType');
-    assert_equals(record.toText(), test_text_data,
-        'toText() has the same content with the original dictionary');
+    assert_equals(record.text(), test_text_data,
+        'text() has the same content with the original dictionary');
   }, 'NDEFRecord constructor with text record type');
 
   test(() => {
     const record = new NDEFRecord(createUrlRecord(test_url_data));
     assert_equals(record.recordType, 'url', 'recordType');
     assert_equals(record.mediaType, 'text/plain', 'mediaType');
-    assert_equals(record.toText(), test_url_data,
-        'toText() has the same content with the original dictionary');
+    assert_equals(record.text(), test_url_data,
+        'text() has the same content with the original dictionary');
   }, 'NDEFRecord constructor with url record type');
 
   test(() => {
@@ -41,28 +41,28 @@
     assert_equals(record.recordType, 'opaque', 'recordType');
     assert_equals(record.mediaType, 'application/octet-stream', 'mediaType');
 
-    const data_1 = record.toArrayBuffer();
+    const data_1 = record.arrayBuffer();
     assert_true(data_1 instanceof ArrayBuffer);
-    assert_not_equals(data_1, buffer, 'toArrayBuffer() returns a new object');
+    assert_not_equals(data_1, buffer, 'arrayBuffer() returns a new object');
     assert_array_equals(new Uint8Array(data_1), original_data,
-        'toArrayBuffer() has the same content with the original buffer');
+        'arrayBuffer() has the same content with the original buffer');
 
-    const data_2 = record.toArrayBuffer();
+    const data_2 = record.arrayBuffer();
     assert_true(data_2 instanceof ArrayBuffer);
     assert_not_equals(data_2, data_1,
-        'toArrayBuffer() again returns another new object');
+        'arrayBuffer() again returns another new object');
     assert_array_equals(new Uint8Array(data_2), original_data,
-        'toArrayBuffer() has the same content with the original buffer');
+        'arrayBuffer() has the same content with the original buffer');
 
     buffer_view.set([4, 3, 2, 1]);
-    const data_3 = record.toArrayBuffer();
+    const data_3 = record.arrayBuffer();
     assert_true(data_3 instanceof ArrayBuffer);
     assert_array_equals(new Uint8Array(data_1), original_data,
-        'Modifying the original buffer does not affect toArrayBuffer() content');
+        'Modifying the original buffer does not affect arrayBuffer() content');
     assert_array_equals(new Uint8Array(data_2), original_data,
-        'Modifying the original buffer does not affect toArrayBuffer() content');
+        'Modifying the original buffer does not affect arrayBuffer() content');
     assert_array_equals(new Uint8Array(data_3), original_data,
-        'Modifying the original buffer does not affect toArrayBuffer() content');
+        'Modifying the original buffer does not affect arrayBuffer() content');
   }, 'NDEFRecord constructor with opaque record type');
 
   test(() => {
@@ -70,18 +70,18 @@
     assert_equals(record.recordType, 'json', 'recordType');
     assert_equals(record.mediaType, 'application/json', 'mediaType');
 
-    const data_1 = record.toJSON();
+    const data_1 = record.json();
     assert_true(typeof data_1 === 'object');
-    assert_not_equals(data_1, test_json_data, 'toJSON() returns a new object');
+    assert_not_equals(data_1, test_json_data, 'json() returns a new object');
     assert_object_equals(data_1, test_json_data,
-        'toJSON() has the same content with the original dictionary');
+        'json() has the same content with the original dictionary');
 
-    const data_2 = record.toJSON();
+    const data_2 = record.json();
     assert_true(typeof data_2 === 'object');
     assert_not_equals(data_2, data_1,
-        'toJSON() again returns another new object');
+        'json() again returns another new object');
     assert_object_equals(data_2, test_json_data,
-        'toJSON() has the same content with the original dictionary');
+        'json() has the same content with the original dictionary');
   }, 'NDEFRecord constructor with JSON record type');
 
   test(() => {
@@ -93,28 +93,28 @@
     assert_equals(record.recordType, 'foo.example.com:bAr*-', 'recordType');
     assert_equals(record.mediaType, 'application/octet-stream', 'mediaType');
 
-    const data_1 = record.toArrayBuffer();
+    const data_1 = record.arrayBuffer();
     assert_true(data_1 instanceof ArrayBuffer);
-    assert_not_equals(data_1, buffer, 'toArrayBuffer() returns a new object');
+    assert_not_equals(data_1, buffer, 'arrayBuffer() returns a new object');
     assert_array_equals(new Uint8Array(data_1), original_data,
-        'toArrayBuffer() has the same content with the original buffer');
+        'arrayBuffer() has the same content with the original buffer');
 
-    const data_2 = record.toArrayBuffer();
+    const data_2 = record.arrayBuffer();
     assert_true(data_2 instanceof ArrayBuffer);
     assert_not_equals(data_2, data_1,
-        'toArrayBuffer() again returns another new object');
+        'arrayBuffer() again returns another new object');
     assert_array_equals(new Uint8Array(data_2), original_data,
-        'toArrayBuffer() has the same content with the original buffer');
+        'arrayBuffer() has the same content with the original buffer');
 
     buffer_view.set([4, 3, 2, 1]);
-    const data_3 = record.toArrayBuffer();
+    const data_3 = record.arrayBuffer();
     assert_true(data_3 instanceof ArrayBuffer);
     assert_array_equals(new Uint8Array(data_1), original_data,
-        'Modifying the original buffer does not affect toArrayBuffer() content');
+        'Modifying the original buffer does not affect arrayBuffer() content');
     assert_array_equals(new Uint8Array(data_2), original_data,
-        'Modifying the original buffer does not affect toArrayBuffer() content');
+        'Modifying the original buffer does not affect arrayBuffer() content');
     assert_array_equals(new Uint8Array(data_3), original_data,
-        'Modifying the original buffer does not affect toArrayBuffer() content');
+        'Modifying the original buffer does not affect arrayBuffer() content');
   }, 'NDEFRecord constructor with external record type');
 
   test(() => {

@@ -27,7 +27,7 @@
 
             var captureGot = false;
 
-            setup({ explicit_done: true });
+            setup({ single_test: true });
             add_completion_callback(showPointerTypes);
 
             function run() {
@@ -49,9 +49,7 @@
                  // When the setPointerCapture method is invoked, if the specified pointer is not in active button state, then the method must have no effect on subsequent pointer events.
                  // TA: 13.2
                 on_event(target0, "pointerout", function (event) {
-                    test(function() {
-                        assert_false(captureGot, "pointer capture is not set while button state is inactive")
-                    }, "pointer capture is not set while button state is inactive");
+                    assert_false(captureGot, "pointer capture is not set while button state is inactive")
                     // Make sure the test finishes after all the input actions are completed.
                     actions_promise.then( () => {
                         done();

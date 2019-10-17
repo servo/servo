@@ -55,8 +55,7 @@ add_test(
   "back to same-origin-initiated navigation",
   same_origin_host,  // report_host
   cross_site_host,  // go_back_host
-  { "dest": "document",
-    "site": "same-origin",
+  { "site": "same-origin",
     "user": "",
     "mode": "navigate" });
 
@@ -64,8 +63,7 @@ add_test(
   "back to same-site-initiated navigation",
   same_site_host,  // report_host
   cross_site_host,  // go_back_host
-  { "dest": "document",
-    "site": "same-site",
+  { "site": "same-site",
     "user": "",
     "mode": "navigate" });
 
@@ -73,8 +71,7 @@ add_test(
   "back to cross-site-initiated navigation",
   cross_site_host,  // report_host
   cross_site_host,  // go_back_host
-  { "dest": "document",
-    "site": "cross-site",
+  { "site": "cross-site",
     "user": "",
     "mode": "navigate" });
 

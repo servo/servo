@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/fetch/metadata/resources/helper.js></script>
+
+<!-- Same-origin script -->
+<script src="https://{{host}}:{{ports[https][0]}}/fetch/metadata/resources/echo-as-script.py"></script>
+<script>
+  test(t => {
+    t.add_cleanup(_ => { header = null; });
+
+    assert_header_dest_equals(header, "script");
+  }, "Same-origin script");
+</script>
+
+<!-- Same-site script -->
+<script src="https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/metadata/resources/echo-as-script.py"></script>
+<script>
+  test(t => {
+    t.add_cleanup(_ => { header = null; });
+
+    assert_header_dest_equals(header, "script");
+  }, "Same-site script");
+</script>
+
+<!-- Cross-site script -->
+<script src="https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/metadata/resources/echo-as-script.py"></script>
+<script>
+  test(t => {
+    t.add_cleanup(_ => { header = null; });
+
+    assert_header_dest_equals(header, "script");
+  }, "Cross-site script");
+</script>
+
+<!-- Same-origin script, CORS mode -->
+<script src="https://{{host}}:{{ports[https][0]}}/fetch/metadata/resources/echo-as-script.py" crossorigin="anonymous"></script>
+<script>
+  test(t => {
+    t.add_cleanup(_ => { header = null; });
+
+    assert_header_dest_equals(header, "script");
+  }, "Same-origin CORS script");
+</script>

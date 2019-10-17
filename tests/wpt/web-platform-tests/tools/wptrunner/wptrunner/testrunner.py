@@ -51,19 +51,19 @@ for level_name in structuredlog.log_levels:
 
 
 class TestRunner(object):
+    """Class implementing the main loop for running tests.
+
+    This class delegates the job of actually running a test to the executor
+    that is passed in.
+
+    :param logger: Structured logger
+    :param command_queue: subprocess.Queue used to send commands to the
+                          process
+    :param result_queue: subprocess.Queue used to send results to the
+                         parent TestRunnerManager process
+    :param executor: TestExecutor object that will actually run a test.
+    """
     def __init__(self, logger, command_queue, result_queue, executor):
-        """Class implementing the main loop for running tests.
-
-        This class delegates the job of actually running a test to the executor
-        that is passed in.
-
-        :param logger: Structured logger
-        :param command_queue: subprocess.Queue used to send commands to the
-                              process
-        :param result_queue: subprocess.Queue used to send results to the
-                             parent TestRunnerManager process
-        :param executor: TestExecutor object that will actually run a test.
-        """
         self.command_queue = command_queue
         self.result_queue = result_queue
 
@@ -773,6 +773,7 @@ def make_test_queue(tests, test_source_cls, **test_source_kwargs):
 
 
 class ManagerGroup(object):
+    """Main thread object that owns all the TestRunnerManager threads."""
     def __init__(self, suite_name, size, test_source_cls, test_source_kwargs,
                  browser_cls, browser_kwargs,
                  executor_cls, executor_kwargs,
@@ -782,7 +783,6 @@ class ManagerGroup(object):
                  restart_on_unexpected=True,
                  debug_info=None,
                  capture_stdio=True):
-        """Main thread object that owns all the TestRunnerManager threads."""
         self.suite_name = suite_name
         self.size = size
         self.test_source_cls = test_source_cls

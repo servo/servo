@@ -52,10 +52,6 @@ export class FilterByTestMatch extends FilterOneFile {
     return filterTestGroup(spec.g, testcase => testcase.test.startsWith(this.testPrefix));
   }
 
-  matches(spec, testcase) {
-    throw new Error('unimplemented');
-  }
-
 }
 export class FilterByParamsMatch extends FilterOneFile {
   constructor(specId, test, params) {
@@ -73,10 +69,6 @@ export class FilterByParamsMatch extends FilterOneFile {
     return filterTestGroup(spec.g, testcase => testcase.test === this.test && paramsSupersets(testcase.params, this.params));
   }
 
-  matches(spec, testcase) {
-    throw new Error('unimplemented');
-  }
-
 }
 export class FilterByParamsExact extends FilterOneFile {
   constructor(specId, test, params) {
@@ -92,10 +84,6 @@ export class FilterByParamsExact extends FilterOneFile {
 
   getCases(spec) {
     return filterTestGroup(spec.g, testcase => testcase.test === this.test && paramsEquals(testcase.params, this.params));
-  }
-
-  matches(spec, testcase) {
-    throw new Error('unimplemented');
   }
 
 }

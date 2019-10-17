@@ -78,7 +78,7 @@ g.test('fullscreen quad', async t => {
       vertexBuffers: []
     }
   });
-  const encoder = t.device.createCommandEncoder({});
+  const encoder = t.device.createCommandEncoder();
   const pass = encoder.beginRenderPass({
     colorAttachments: [{
       attachment: colorAttachmentView,

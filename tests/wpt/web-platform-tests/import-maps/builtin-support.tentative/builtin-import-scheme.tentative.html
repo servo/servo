@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/test-helper.js"></script>
+
+<script>
+const tests = {
+  // Arrays of expected results for:
+  // - <script src type="module">,
+  // - <script src> (classic script),
+  // - static import, and
+  // - dynamic import.
+
+  // Currently direct use of import: URLs are disabled.
+  "import:std:blank":
+    [Result.FETCH_ERROR, Result.FETCH_ERROR, Result.FETCH_ERROR, Result.FETCH_ERROR],
+  "import:@std/blank":
+    [Result.FETCH_ERROR, Result.FETCH_ERROR, Result.FETCH_ERROR, Result.FETCH_ERROR],
+  "import:std:none":
+    [Result.FETCH_ERROR, Result.FETCH_ERROR, Result.FETCH_ERROR, Result.FETCH_ERROR],
+  "import:@std/none":
+    [Result.FETCH_ERROR, Result.FETCH_ERROR, Result.FETCH_ERROR, Result.FETCH_ERROR],
+};
+
+doTests(null, null, tests);
+</script>
+<body>

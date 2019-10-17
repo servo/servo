@@ -147,3 +147,9 @@ Additional browser-specific documentation:
   safari
   webkitgtk_minibrowser
 ```
+
+For use in continuous integration systems, and other scenarios where regression
+tracking is required, the command-line interface supports storing and loading
+the expected result of each test in a test run. See [Expectations
+Data](../../tools/wptrunner/docs/expectation) for more information on creating
+and maintaining these files.

@@ -359,6 +359,7 @@ class ManifestItem(object):
     def _remove_child(self, child):
         self.children.remove(child)
         child.parent = None
+        child.node.remove()
 
     def iterchildren(self, name=None):
         for item in self.children:

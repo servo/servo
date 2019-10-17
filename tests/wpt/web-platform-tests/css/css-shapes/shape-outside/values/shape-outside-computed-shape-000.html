@@ -19,16 +19,16 @@
             // font relative units: em, ex, ch, rem
             var units = ['em', 'ex', 'ch', 'rem'];
             var resolveds = {};
-            ParsingUtils.setupFonts(function () {
-                var div = document.createElement('div');
-                document.body.appendChild(div);
-                units.forEach(function(unit) {
-                    div.style.width = '10' + unit;
-                    var s = getComputedStyle(div);
-                    resolveds[unit] = parseFloat(s.width);
-                });
-                document.body.removeChild(div);
-            })();
+            ParsingUtils.setupFonts();
+
+            var div = document.createElement('div');
+            document.body.appendChild(div);
+            units.forEach(function(unit) {
+                div.style.width = '10' + unit;
+                var s = getComputedStyle(div);
+                resolveds[unit] = parseFloat(s.width);
+            });
+            document.body.removeChild(div);
 
             function fillArray(string, length) {
                 return Array.apply(null, new Array(length)).map(String.prototype.valueOf, string);
@@ -49,6 +49,8 @@
             });
 
             generate_tests(testUnit, tests);
+
+            ParsingUtils.restoreFonts();
         </script>
     </body>
 </html>

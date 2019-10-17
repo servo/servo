@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/test-helper.js"></script>
+
+<script>
+// "bare/..." (i.e. without leading "./") are bare specifiers
+// (not relative paths).
+//
+// Discussions about notations for builtin modules are ongoing, e.g.
+// https://github.com/tc39/proposal-javascript-standard-library/issues/12
+// Currently the tests expects two notations are accepted.
+// TODO: Once the discussions converge, update the tests.
+const importMap = `
+{
+  "imports": {
+    "bare/std-blank": "std:blank",
+    "bare/blank": "@std/blank",
+    "bare/std-none": "std:none",
+    "bare/none": "@std/none"
+  }
+}
+`;
+
+const tests = {
+  // Arrays of expected results for:
+  // - <script src type="module">,
+  // - <script src> (classic script),
+  // - static import, and
+  // - dynamic import.
+
+  // Currently, Chromium's implementation resolves import maps as a part of
+  // specifier resolution, and thus failure in import map resolution causes
+  // a parse error, not fetch error. Therefore, we use Result.PARSE_ERROR
+  // below. https://crbug.com/928435
+
+  // Bare to built-in.
+  "bare/std-blank":
+    [Result.URL, Result.URL, Result.BUILTIN, Result.BUILTIN],
+  "bare/blank":
+    [Result.URL, Result.URL, Result.BUILTIN, Result.BUILTIN],
+  "bare/std-none":
+    [Result.URL, Result.URL, Result.PARSE_ERROR, Result.PARSE_ERROR],
+  "bare/none":
+    [Result.URL, Result.URL, Result.PARSE_ERROR, Result.PARSE_ERROR],
+};
+
+doTests(importMap, null, tests);
+</script>
+<body>

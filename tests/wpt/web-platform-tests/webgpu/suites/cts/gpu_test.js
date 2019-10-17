@@ -5,7 +5,8 @@
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 import { getGPU } from '../../framework/gpu/implementation.js';
-import { Fixture } from '../../framework/index.js'; // TODO: Should this gain some functionality currently only in UnitTest?
+import { Fixture } from '../../framework/index.js';
+let glslangInstance; // TODO: Should this gain some functionality currently only in UnitTest?
 
 export class GPUTest extends Fixture {
   constructor(...args) {
@@ -20,8 +21,51 @@ export class GPUTest extends Fixture {
     super.init();
     const gpu = getGPU();
     const adapter = await gpu.requestAdapter();
-    this.device = await adapter.requestDevice({});
+    this.device = await adapter.requestDevice();
     this.queue = this.device.getQueue();
+    this.device.pushErrorScope('out-of-memory');
+    this.device.pushErrorScope('validation');
+  }
+
+  async finalize() {
+    super.finalize();
+    const gpuValidationError = await this.device.popErrorScope();
+
+    if (gpuValidationError !== null) {
+      if (!(gpuValidationError instanceof GPUValidationError)) throw new Error();
+      this.fail(`Unexpected validation error occurred: ${gpuValidationError.message}`);
+    }
+
+    const gpuOutOfMemoryError = await this.device.popErrorScope();
+
+    if (gpuOutOfMemoryError !== null) {
+      if (!(gpuOutOfMemoryError instanceof GPUOutOfMemoryError)) throw new Error();
+      this.fail('Unexpected out-of-memory error occurred');
+    }
+  }
+
+  async initGLSL() {
+    if (!glslangInstance) {
+      const glslangPath = '../../glslang.js';
+      const glslangModule = (await import(glslangPath)).default;
+      await new Promise(resolve => {
+        glslangModule().then(glslang => {
+          glslangInstance = glslang;
+          resolve();
+        });
+      });
+    }
+  }
+
+  makeShaderModule(stage, source) {
+    if (!glslangInstance) {
+      throw new Error('GLSL is not instantiated. Run `await t.initGLSL()` first');
+    }
+
+    const code = glslangInstance.compileGLSL(source, stage, false);
+    return this.device.createShaderModule({
+      code
+    });
   } // TODO: add an expectContents for textures, which logs data: uris on failure
 
 
@@ -33,7 +77,7 @@ export class GPUTest extends Fixture {
         size: expected.buffer.byteLength,
         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
       });
-      const c = this.device.createCommandEncoder({});
+      const c = this.device.createCommandEncoder();
       c.copyBufferToBuffer(src, 0, dst, 0, size);
       this.queue.submit([c.finish()]);
       const actual = new Uint8Array((await dst.mapReadAsync()));

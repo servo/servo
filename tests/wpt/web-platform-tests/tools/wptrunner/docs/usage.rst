@@ -164,15 +164,15 @@ metadata files in a subdirectory of the current directory named ``meta``.
 Output
 ------
 
-wptrunner uses the :py:mod:`mozlog` package for output. This
+wptrunner uses [the `mozlog` package](https://firefox-source-docs.mozilla.org/mozbase/mozlog.html) for output. This
 structures events such as test results or log messages as JSON objects
 that can then be fed to other tools for interpretation. More details
-about the message format are given in the
-:py:mod:`mozlog` documentation.
+about the message format are given in [the
+`mozlog` documentation](https://firefox-source-docs.mozilla.org/mozbase/mozlog.html).
 
 By default the raw JSON messages are dumped to stdout. This is
 convenient for piping into other tools, but not ideal for humans
-reading the output. :py:mod:`mozlog` comes with several other
+reading the output. [`mozlog`](https://firefox-source-docs.mozilla.org/mozbase/mozlog.html) comes with several other
 formatters, which are accessible through command line options. The
 general format of these options is ``--log-name=dest``, where ``name``
 is the name of the format and ``dest`` is a path to a destination

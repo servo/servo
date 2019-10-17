@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=/fetch/metadata/resources/helper.js></script>
+<script src=/common/utils.js></script>
+<body>
+<script>
+  const USER = true;
+  const FORCED = false;
+
+  function create_test(host, expectation) {
+    async_test(t => {
+      let p = document.createElement('portal');
+      p.addEventListener('message', t.step_func(e => {
+        assert_header_dest_equals(e.data, expectation);
+        t.done();
+      }));
+
+      let url = `https://${host}/fetch/metadata/resources/post-to-owner.py`;
+      p.src = url;
+      document.body.appendChild(p);
+    }, `{{host}} -> ${host} portal`);
+  }
+
+  // TODO(mkwst): 'document' seems right, I guess? Perhaps a portal-specific destination would be better?
+  create_test("{{host}}:{{ports[https][0]}}", "document");
+
+  create_test("{{hosts[][www]}}:{{ports[https][0]}}", "document");
+
+  create_test("{{hosts[alt][www]}}:{{ports[https][0]}}", "document");
+</script>

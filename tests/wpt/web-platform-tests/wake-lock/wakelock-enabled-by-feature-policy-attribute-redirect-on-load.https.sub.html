@@ -12,9 +12,13 @@
   const cross_origin_src =
     base_src + "https://{{domains[www]}}:{{ports[https][0]}}" + relative_path;
 
+  // request() checks for both Feature Policy and permission, so the tests below
+  // can have inconsistent results due to the default permission a wake lock
+  // request might return.
+
   async_test(t => {
     test_feature_availability(
-      'WakeLock.request("screen")',
+      'navigator.wakeLock.request("screen")',
       t,
       same_origin_src,
       expect_feature_available_default,
@@ -24,7 +28,7 @@
 
   async_test(t => {
     test_feature_availability(
-      'WakeLock.request("screen")',
+      'navigator.wakeLock.request("screen")',
       t,
       cross_origin_src,
       expect_feature_unavailable_default,

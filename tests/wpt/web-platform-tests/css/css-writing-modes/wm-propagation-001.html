@@ -13,18 +13,17 @@ body {
   writing-mode: vertical-rl;
   width: 0; height: 0;
 }
-html::before {
-  content: "This text must be vertical.";
-  /* This is inline content of the root,
-     and should therefore be vertical,
-     as the root's used value is vertical */
-}
 html::after {
   content: "This text must be horizontal.";
   display: block;
-  /* This is a block level element,
-     with it's own writing mode inherited from the root,
-     horizontal since the root's computed value should be horizontal*/
+  /* The writing mode inherited from the root must be horizontal
+  since the root's computed value should be horizontal */
+
 }
 </style>
-<body></body>
+<script>
+  document.documentElement.append("This text must be vertical");
+  /* This is direct content of the root,
+     and should therefore be vertical,
+     as the root's used value is vertical */
+</script>

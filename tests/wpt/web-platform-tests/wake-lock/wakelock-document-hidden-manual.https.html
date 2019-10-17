@@ -8,30 +8,20 @@
 <script>
 
 promise_test(async t => {
-  const controller = new AbortController();
-  const screenWakeLock = WakeLock.request('screen', { signal: controller.signal });
-  const systemWakeLock = WakeLock.request('system', { signal: controller.signal });
-  const systemWakeLockPromise = new Promise((resolve, reject) => {
-    systemWakeLock.catch(error => {
-      assert_equals("AbortError", error.name, "systemWakeLock must have been aborted");
-      assert_false(document.hidden, "systemWakeLock must have been aborted after the page is visible again");
-      resolve();
-    });
-  });
+  const screenWakeLock = await navigator.wakeLock.request('screen');
+  const screenWakeLockReleased =
+      new EventWatcher(t, screenWakeLock, "release").wait_for("release");
 
   const eventWatcher = new EventWatcher(t, document, "visibilitychange");
   await eventWatcher.wait_for("visibilitychange");
   assert_true(document.hidden, "document is hidden after the visibilitychange event");
-  await promise_rejects(t, "AbortError", screenWakeLock, "existing screen locks are aborted");
-  await promise_rejects(t, "NotAllowedError", WakeLock.request('screen'),
+  await screenWakeLockReleased;
+  await promise_rejects(t, "NotAllowedError", navigator.wakeLock.request('screen'),
       "new screen locks are not allowed when the page is not visible");
 
   await eventWatcher.wait_for("visibilitychange");
   assert_false(document.hidden, "document is no longer hidden after the visibilitychange event");
-  controller.abort();
-
-  return systemWakeLockPromise;
-}, "Test screen locks respect page visibility changes and system locks are unchanged");
+}, "Test screen locks respect page visibility changes");
 
 </script>
 

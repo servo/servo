@@ -25,22 +25,18 @@
   }
 
   create_test("{{host}}:{{ports[https][0]}}", {
-    // TODO(mkwst): 'document' seems right, I guess? Perhaps a portal-specific destination would be better?
-    "dest": "document",
     "site": "same-origin",
     "user": "",
     "mode": "nested-navigate"
   });
 
   create_test("{{hosts[][www]}}:{{ports[https][0]}}", {
-    "dest": "document",
     "site": "same-site",
     "user": "",
     "mode": "nested-navigate"
   });
 
   create_test("{{hosts[alt][www]}}:{{ports[https][0]}}", {
-    "dest": "document",
     "site": "cross-site",
     "user": "",
     "mode": "nested-navigate"

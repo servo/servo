@@ -362,6 +362,7 @@ class OpenSSLEnvironment(object):
                     "-passin", "pass:%s" % self.password,
                     "-selfsign",
                     "-extensions", "v3_ca",
+                    "-notext",
                     "-in", req_path,
                     "-out", cert_path)
 

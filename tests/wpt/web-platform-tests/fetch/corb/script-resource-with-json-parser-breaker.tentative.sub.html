@@ -53,25 +53,25 @@ mime_types = [
 ]
 
 function test(mime_type, body) {
-  async_test(function(t) {
+  // The test below depends on a global/shared event handler - we need to ensure
+  // that no tests run in parallel - this is achieved by using `promise_test`
+  // instead of `async_test`.  See also
+  // https://web-platform-tests.org/writing-tests/testharness-api.html#promise-tests
+  promise_test(t => new Promise(function(resolve, reject) {
     var script = document.createElement("script")
 
     // Without CORB, the JSON parser breaker would cause a syntax error when
     // parsed as JavaScript, but with CORB there should be no errors (because
     // CORB will replace the response body with an empty body).
-    script.onload = t.step_func_done(function(){})
-    addEventListener("error",function(e) {
-      t.step(function() {
-        assert_unreached("Empty body of a CORS-blocked response shouldn't trigger syntax errors.");
-        t.done();
-      })
-    });
+    script.onload = resolve;
+    addEventListener("error", t.unreached_func(
+        "Empty body of a CORS-blocked response shouldn't trigger syntax errors."))
 
     // www1 is cross-origin, so the HTTP response is CORB-eligible.
     var src_prefix = "http://{{domains[www1]}}:{{ports[http][0]}}/fetch/corb/resources/sniffable-resource.py";
     script.src = src_prefix + "?type=" + mime_type + "&body=" + encodeURIComponent(body);
     document.body.appendChild(script)
-  }, "CORB-blocks '" + mime_type + "' that starts with the following JSON parser breaker: " + body);
+  }), "CORB-blocks '" + mime_type + "' that starts with the following JSON parser breaker: " + body);
 }
 
 mime_types.forEach(function(type) {

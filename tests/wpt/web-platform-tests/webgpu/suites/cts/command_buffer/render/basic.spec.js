@@ -23,7 +23,7 @@ g.test('clear', async t => {
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.OUTPUT_ATTACHMENT
   });
   const colorAttachmentView = colorAttachment.createView();
-  const encoder = t.device.createCommandEncoder({});
+  const encoder = t.device.createCommandEncoder();
   const pass = encoder.beginRenderPass({
     colorAttachments: [{
       attachment: colorAttachmentView,

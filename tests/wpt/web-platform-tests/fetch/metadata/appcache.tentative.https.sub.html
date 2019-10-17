@@ -12,7 +12,6 @@
         fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=appcache-manifest{{$id}}")
           .then(t.step_func(response => response.text()))
           .then(t.step_func_done(text => assert_header_equals(text, {
-            "dest": "",
             "site": "same-origin",
             "user": "",
             "mode": "no-cors"

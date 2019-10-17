@@ -36,7 +36,7 @@ interface MediaSession {
 
   void setActionHandler(MediaSessionAction action, MediaSessionActionHandler? handler);
 
-  void setPositionState(optional MediaPositionState? state);
+  void setPositionState(optional MediaPositionState state = {});
 };
 
 [Exposed=Window]

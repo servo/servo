@@ -717,6 +717,39 @@ def test_full_update():
 
 @pytest.mark.xfail(sys.version[0] == "3",
                    reason="metadata doesn't support py3")
+def test_full_orphan():
+    tests = [("path/to/test.htm", [test_id], "testharness",
+              """[test.htm]
+  [test1]
+    expected: FAIL
+    [subsub test]
+      expected: TIMEOUT
+  [test2]
+    expected: ERROR
+""")]
+
+    log_0 = suite_log([("test_start", {"test": test_id}),
+                     ("test_status", {"test": test_id,
+                                      "subtest": "test1",
+                                      "status": "FAIL",
+                                      "expected": "FAIL"}),
+                     ("test_end", {"test": test_id,
+                                   "status": "OK"})])
+
+
+    updated = update(tests, log_0, full_update=True)
+
+    new_manifest = updated[0][1]
+
+    assert not new_manifest.is_empty
+    assert len(new_manifest.get_test(test_id).children[0].children) == 0
+    assert new_manifest.get_test(test_id).children[0].get(
+        "expected", default_run_info) == "FAIL"
+    assert len(new_manifest.get_test(test_id).children) == 1
+
+
+@pytest.mark.xfail(sys.version[0] == "3",
+                   reason="metadata doesn't support py3")
 def test_update_reorder_expected_full_conditions():
     tests = [("path/to/test.htm", [test_id], "testharness",
               """[test.htm]

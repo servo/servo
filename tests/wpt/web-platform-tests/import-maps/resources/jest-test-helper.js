@@ -15,6 +15,22 @@ function require(name) {
   }, exports);
 }
 
+// Sort keys and then stringify for comparison.
+function stringifyImportMap(importMap) {
+  function getKeys(m) {
+    if (typeof m !== 'object')
+      return [];
+
+    let keys = [];
+    for (const key in m) {
+      keys.push(key);
+      keys = keys.concat(getKeys(m[key]));
+    }
+    return keys;
+  }
+  return JSON.stringify(importMap, getKeys(importMap).sort());
+}
+
 function expect(v) {
   return {
     toMatchURL: expected => assert_equals(v, expected),
@@ -34,10 +50,8 @@ function expect(v) {
         const actualParsedImportMap = JSON.parse(
             internals.getParsedImportMap(v.contentDocument));
         assert_equals(
-          JSON.stringify(actualParsedImportMap,
-                         Object.keys(actualParsedImportMap).sort()),
-          JSON.stringify(expected.imports,
-                         Object.keys(expected.imports).sort())
+          stringifyImportMap(actualParsedImportMap),
+          stringifyImportMap(expected)
         );
       } else {
         assert_object_equals(v, expected);

@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+  <script>
+    var t = async_test("Location sets should cancel current navigation and prevent later document.open() from doing anything");
+
+    var finishTest = t.step_func_done(function() {
+        assert_equals(frames[0].document.body.textContent, "PASS",
+                      "Should not have FAIL in our textContent");
+    });
+
+    t.step(function() {
+        var i = document.createElement("iframe");
+        i.srcdoc = `
+          <script>
+            var blob = new Blob(["PASS"], { type: "text/html" });
+            var url = URL.createObjectURL(blob);
+            location.href = url;
+            frameElement.onload = parent.finishTest;
+            document.open();
+            document.write("FAIL");
+            document.close();
+          <\/script>`;
+        document.body.appendChild(i);
+    });
+
+  </script>
+</body>

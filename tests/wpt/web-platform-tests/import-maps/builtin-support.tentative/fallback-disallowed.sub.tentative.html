@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/test-helper.js"></script>
+
+<script>
+// Fallbacks from external URLs (such as HTTPS URLs) are
+// blocked by ongoing spec discussions, for example
+// https://github.com/WICG/import-maps/issues/76.
+// https://crbug.com/928435
+//
+// This test, as well as Chromium's implementation, rejects broader range of
+// fallbacks (not only those from HTTPS), to avoid potential spec and
+// interoperability issues.
+// The only allowed fallback pattern is fallbacks from bare specifiers with
+// two elements, which are listed in fallback.sub.tentative.html.
+const importMap = `
+{
+  "imports": {
+    "bare": "../resources/log.js?pipe=sub&name=bare",
+
+    "../resources/log.js?pipe=sub&name=http-to-builtin": [
+      "../resources/log.js?pipe=sub&name=http-to-builtin",
+      "@std/blank"
+    ],
+
+    "../resources/log.js?pipe=sub&name=fallback-to-different-url-1": [
+      "@std/blank",
+      "../resources/log.js?pipe=sub&name=something-different"
+    ],
+    "../resources/log.js?pipe=sub&name=fallback-to-different-url-2": [
+      "@std/none",
+      "../resources/log.js?pipe=sub&name=something-different2"
+    ],
+    "../resources/log.js?pipe=sub&name=fallback-to-different-origin-1": [
+      "@std/blank",
+      "https://{{domains[www1]}}:{{ports[https][0]}}/import-maps/resources/log.js?pipe=sub&name=fallback-to-different-origin-1"
+    ],
+    "../resources/log.js?pipe=sub&name=fallback-to-different-origin-2": [
+      "@std/none",
+      "https://{{domains[www1]}}:{{ports[https][0]}}/import-maps/resources/log.js?pipe=sub&name=fallback-to-different-origin-2"
+    ],
+
+    "../resources/log.js?pipe=sub&name=more-than-two-values-1": [
+      "@std/none",
+      "@std/blank",
+      "../resources/log.js?pipe=sub&name=more-than-two-values-1"
+    ],
+    "../resources/log.js?pipe=sub&name=more-than-two-values-2": [
+      "@std/none",
+      "../resources/log.js?pipe=sub&name=more-than-two-values-2",
+      "@std/blank"
+    ],
+    "../resources/log.js?pipe=sub&name=fallback-from-http": [
+      "../resources/log.js?pipe=sub&name=non-built-in",
+      "../resources/log.js?pipe=sub&name=fallback-from-http"
+    ],
+    "../resources/log.js?pipe=sub&name=fallback-from-data-1": [
+      "data:text/plain,",
+      "../resources/log.js?pipe=sub&name=fallback-from-http"
+    ],
+    "../resources/log.js?pipe=sub&name=fallback-from-data-2": [
+      "data:text/javascript,log.push('dataURL')",
+      "../resources/log.js?pipe=sub&name=fallback-from-http"
+    ]
+  }
+}
+`;
+const tests = {};
+for (const key in JSON.parse(importMap).imports) {
+  if (key === "bare") {
+    continue;
+  }
+  tests[key] =
+    [Result.URL, Result.URL, Result.PARSE_ERROR, Result.PARSE_ERROR];
+}
+doTests(importMap, null, tests);
+</script>
+<body>
