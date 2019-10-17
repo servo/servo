@@ -88,21 +88,21 @@ class BrowserError(Exception):
 
 
 class Browser(object):
+    """Abstract class serving as the basis for Browser implementations.
+
+    The Browser is used in the TestRunnerManager to start and stop the browser
+    process, and to check the state of that process. This class also acts as a
+    context manager, enabling it to do browser-specific setup at the start of
+    the testrun and cleanup after the run is complete.
+
+    :param logger: Structured logger to use for output.
+    """
     __metaclass__ = ABCMeta
 
     process_cls = None
     init_timeout = 30
 
     def __init__(self, logger):
-        """Abstract class serving as the basis for Browser implementations.
-
-        The Browser is used in the TestRunnerManager to start and stop the browser
-        process, and to check the state of that process. This class also acts as a
-        context manager, enabling it to do browser-specific setup at the start of
-        the testrun and cleanup after the run is complete.
-
-        :param logger: Structured logger to use for output.
-        """
         self.logger = logger
 
     def __enter__(self):
@@ -182,14 +182,14 @@ class NullBrowser(Browser):
 
 
 class ExecutorBrowser(object):
-    def __init__(self, **kwargs):
-        """View of the Browser used by the Executor object.
-        This is needed because the Executor runs in a child process and
-        we can't ship Browser instances between processes on Windows.
+    """View of the Browser used by the Executor object.
+    This is needed because the Executor runs in a child process and
+    we can't ship Browser instances between processes on Windows.
 
-        Typically this will have a few product-specific properties set,
-        but in some cases it may have more elaborate methods for setting
-        up the browser from the runner process.
-        """
+    Typically this will have a few product-specific properties set,
+    but in some cases it may have more elaborate methods for setting
+    up the browser from the runner process.
+    """
+    def __init__(self, **kwargs):
         for k, v in kwargs.iteritems():
             setattr(self, k, v)

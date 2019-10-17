@@ -50,9 +50,9 @@ class TestEnvironmentError(Exception):
 
 
 class TestEnvironment(object):
+    """Context manager that owns the test environment i.e. the http and
+    websockets servers"""
     def __init__(self, test_paths, testharness_timeout_multipler, pause_after_test, debug_info, options, ssl_config, env_extras):
-        """Context manager that owns the test environment i.e. the http and
-        websockets servers"""
         self.test_paths = test_paths
         self.server = None
         self.config_ctx = None

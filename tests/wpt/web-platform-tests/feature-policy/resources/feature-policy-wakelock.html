@@ -2,24 +2,12 @@
 "use strict";
 
 Promise.resolve().then(async () => {
-  // On success, WakeLock.request() returns a promise that never resolves. To
-  // prevent a timeout, abort it with an AbortController and use the different
-  // DOMExceptions we get to determine if this worked or not.
-  const controller = new AbortController();
-  const wakeLock = WakeLock.request("screen", { signal: controller.signal });
-  wakeLock.catch(e => {
-    if (e.name == "AbortError") {
-      // We stopped due to the call to AbortController.abort(), so we did manage
-      // to get the lock.
-      window.parent.postMessage({ enabled: true }, "*");
-    } else if (e.name == "NotAllowedError") {
-      // This means requesting the lock failed.
-      window.parent.postMessage({ enabled: false }, "*");
-    } else {
-      // We should not really hit this branch.
-      window.parent.postMessage({ enabled: false }, "*");
-    }
-  });
-  controller.abort();
+  try {
+    const wakeLock = await navigator.wakeLock.request("screen");
+    await wakeLock.release();
+    window.parent.postMessage({ enabled: true }, "*");
+  } catch (e) {
+    window.parent.postMessage({ enabled: false }, "*");
+  }
 });
 </script>

@@ -3,6 +3,7 @@ import os
 from six.moves.urllib.parse import urljoin, urlsplit
 from collections import namedtuple, defaultdict, deque
 from math import ceil
+from six import iterkeys, itervalues, iteritems
 
 from wptmanifest import serialize
 from wptmanifest.node import (DataNode, ConditionalNode, BinaryExpressionNode,
@@ -75,7 +76,7 @@ class UpdateProperties(object):
         return name in self._classes
 
     def __iter__(self):
-        for name in self._classes.iterkeys():
+        for name in iterkeys(self._classes):
             yield getattr(self, name)
 
 
@@ -312,8 +313,8 @@ def build_conditional_tree(_, run_info_properties, results):
 
 def build_unconditional_tree(_, run_info_properties, results):
     root = expectedtree.Node(None, None)
-    for run_info, values in results.iteritems():
-        for value, count in values.iteritems():
+    for run_info, values in iteritems(results):
+        for value, count in iteritems(values):
             root.result_values[value] += count
         root.run_info.add(run_info)
     return root
@@ -498,7 +499,7 @@ class PropertyUpdate(object):
                           for run_info in node.run_info}
 
         node_by_run_info = {run_info: node
-                            for (run_info, node) in run_info_index.iteritems()
+                            for (run_info, node) in iteritems(run_info_index)
                             if node.result_values}
 
         run_info_by_condition = self.run_info_by_condition(run_info_index,
@@ -511,7 +512,7 @@ class PropertyUpdate(object):
             # using the properties we've specified and not matching any run_info
             top_level_props, dependent_props = self.node.root.run_info_properties
             update_properties = set(top_level_props)
-            for item in dependent_props.itervalues():
+            for item in itervalues(dependent_props):
                 update_properties |= set(dependent_props)
             for condition in current_conditions:
                 if ((not condition.variables.issubset(update_properties) and
@@ -694,7 +695,7 @@ class ExpectedUpdate(PropertyUpdate):
             raise ConditionError
 
         counts = {}
-        for status, count in new.iteritems():
+        for status, count in iteritems(new):
             if isinstance(status, tuple):
                 counts[status[0]] = count
                 counts.update({intermittent: 0 for intermittent in status[1:] if intermittent not in counts})
@@ -708,7 +709,7 @@ class ExpectedUpdate(PropertyUpdate):
         # Counts with 0 are considered intermittent.
         statuses = ["OK", "PASS", "FAIL", "ERROR", "TIMEOUT", "CRASH"]
         status_priority = {value: i for i, value in enumerate(statuses)}
-        sorted_new = sorted(counts.iteritems(), key=lambda x:(-1 * x[1],
+        sorted_new = sorted(iteritems(counts), key=lambda x:(-1 * x[1],
                                                            status_priority.get(x[0],
                                                            len(status_priority))))
         expected = []
@@ -821,7 +822,7 @@ class LeakThresholdUpdate(PropertyUpdate):
         return result
 
     def to_ini_value(self, data):
-        return ["%s:%s" % item for item in sorted(data.iteritems())]
+        return ["%s:%s" % item for item in sorted(iteritems(data))]
 
     def from_ini_value(self, data):
         rv = {}
