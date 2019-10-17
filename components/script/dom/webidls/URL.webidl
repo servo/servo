@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://url.spec.whatwg.org/#url
-[Exposed=(Window,Worker)]
+[Exposed=(Window,Worker),
+ LegacyWindowAlias=webkitURL]
 interface URL {
   [Throws] constructor(USVString url, optional USVString base);
   [SetterThrows]

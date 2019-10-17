@@ -238,6 +238,7 @@ pub fn create_noncallback_interface_object(
     interface_prototype_object: HandleObject,
     name: &[u8],
     length: u32,
+    legacy_window_alias_names: &[&[u8]],
     rval: MutableHandleObject,
 ) {
     create_object(
@@ -260,6 +261,12 @@ pub fn create_noncallback_interface_object(
     define_name(cx, rval.handle(), name);
     define_length(cx, rval.handle(), i32::try_from(length).expect("overflow"));
     define_on_global_object(cx, global, name, rval.handle());
+
+    if is_exposed_in(global, Globals::WINDOW) {
+        for legacy_window_alias in legacy_window_alias_names {
+            define_on_global_object(cx, global, legacy_window_alias, rval.handle());
+        }
+    }
 }
 
 /// Create and define the named constructors of a non-callback interface.

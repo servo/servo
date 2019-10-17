@@ -2925,13 +2925,14 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 
     properties should be a PropertyArrays instance.
     """
-    def __init__(self, descriptor, properties, haveUnscopables):
+    def __init__(self, descriptor, properties, haveUnscopables, haveLegacyWindowAliases):
         args = [Argument('SafeJSContext', 'cx'), Argument('HandleObject', 'global'),
                 Argument('*mut ProtoOrIfaceArray', 'cache')]
         CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', 'void', args,
                                   unsafe=True)
         self.properties = properties
         self.haveUnscopables = haveUnscopables
+        self.haveLegacyWindowAliases = haveLegacyWindowAliases
 
     def definition_body(self):
         name = self.descriptor.interface.identifier.name
@@ -2990,7 +2991,8 @@ assert!(!prototype_proto.is_null());""" % getPrototypeProto)]
 
         properties = {
             "id": name,
-            "unscopables": "unscopable_names" if self.haveUnscopables else "&[]"
+            "unscopables": "unscopable_names" if self.haveUnscopables else "&[]",
+            "legacyWindowAliases": "legacy_window_aliases" if self.haveLegacyWindowAliases else "&[]"
         }
         for arrayName in self.properties.arrayNames():
             array = getattr(self.properties, arrayName)
@@ -3058,6 +3060,7 @@ create_noncallback_interface_object(cx,
                                     prototype.handle(),
                                     %(name)s,
                                     %(length)s,
+                                    %(legacyWindowAliases)s,
                                     interface.handle_mut());
 assert!(!interface.is_null());""" % properties))
             if self.descriptor.shouldCacheConstructor():
@@ -6266,6 +6269,15 @@ class CGDescriptor(CGThing):
             if descriptor.weakReferenceable:
                 cgThings.append(CGWeakReferenceableTrait(descriptor))
 
+        legacyWindowAliases = descriptor.interface.legacyWindowAliases
+        haveLegacyWindowAliases = len(legacyWindowAliases) != 0
+        if haveLegacyWindowAliases:
+            cgThings.append(
+                CGList([CGGeneric("const legacy_window_aliases: &'static [&'static [u8]] = &["),
+                        CGIndenter(CGList([CGGeneric(str_to_const_array(name)) for
+                                           name in legacyWindowAliases], ",\n")),
+                        CGGeneric("];\n")], "\n"))
+
         cgThings.append(CGGeneric(str(properties)))
 
         if not descriptor.interface.getExtendedAttribute("Inline"):
@@ -6287,7 +6299,8 @@ class CGDescriptor(CGThing):
                     cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
                     reexports.append('DefineDOMInterface')
                     cgThings.append(CGConstructorEnabled(descriptor))
-            cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties, haveUnscopables))
+            cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties, haveUnscopables,
+                                                           haveLegacyWindowAliases))
 
         cgThings = generate_imports(config, CGList(cgThings, '\n'), [descriptor])
         cgThings = CGWrapper(CGNamespace(toBindingNamespace(descriptor.name),
@@ -7453,6 +7466,8 @@ class GlobalGenRoots():
         for d in config.getDescriptors(hasInterfaceObject=True, isInline=False):
             binding = toBindingNamespace(d.name)
             pairs.append((d.name, binding, binding))
+            for alias in d.interface.legacyWindowAliases:
+                pairs.append((alias, binding, binding))
             for ctor in d.interface.namedConstructors:
                 pairs.append((ctor.identifier.name, binding, binding))
         pairs.sort(key=operator.itemgetter(0))
