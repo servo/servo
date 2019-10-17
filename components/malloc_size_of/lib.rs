@@ -48,6 +48,8 @@
 
 extern crate app_units;
 #[cfg(feature = "servo")]
+extern crate content_security_policy;
+#[cfg(feature = "servo")]
 extern crate crossbeam_channel;
 extern crate cssparser;
 extern crate euclid;
@@ -79,6 +81,8 @@ extern crate webrender_api;
 #[cfg(feature = "servo")]
 extern crate xml5ever;
 
+#[cfg(feature = "servo")]
+use content_security_policy as csp;
 #[cfg(feature = "servo")]
 use serde_bytes::ByteBuf;
 use std::hash::{BuildHasher, Hash};
@@ -832,6 +836,8 @@ malloc_size_of_is_0!(Range<f32>, Range<f64>);
 malloc_size_of_is_0!(app_units::Au);
 
 malloc_size_of_is_0!(cssparser::RGBA, cssparser::TokenSerializationType);
+
+malloc_size_of_is_0!(csp::Destination);
 
 #[cfg(feature = "url")]
 impl MallocSizeOf for url::Host {

@@ -27,6 +27,7 @@ use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::create_a_potential_CORS_request;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use content_security_policy as csp;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix};
@@ -428,7 +429,16 @@ impl HTMLScriptElement {
 
         // TODO: Step 12: nomodule content attribute
 
-        // TODO(#4577): Step 13: CSP.
+        // Step 13.
+        if !element.has_attribute(&local_name!("src")) &&
+            doc.should_elements_inline_type_behavior_be_blocked(
+                &element,
+                csp::InlineCheckType::Script,
+                &text,
+            ) == csp::CheckResult::Blocked
+        {
+            return;
+        }
 
         // Step 14.
         let for_attribute = element.get_attribute(&ns!(), &local_name!("for"));
