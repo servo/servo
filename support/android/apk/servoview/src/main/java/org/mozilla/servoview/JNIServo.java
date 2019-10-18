@@ -66,6 +66,8 @@ public class JNIServo {
 
     public native void click(float x, float y);
 
+    public native void mediaSessionAction(int action);
+
     public static class ServoOptions {
       public String args;
       public String url;

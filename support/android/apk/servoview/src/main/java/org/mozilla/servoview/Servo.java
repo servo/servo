@@ -168,6 +168,10 @@ public class Servo {
         mSuspended = suspended;
     }
 
+    public void mediaSessionAction(int action) {
+        mRunCallback.inGLThread(() -> mJNI.mediaSessionAction(action));
+    }
+
     public interface Client {
         void onAlert(String message);
 

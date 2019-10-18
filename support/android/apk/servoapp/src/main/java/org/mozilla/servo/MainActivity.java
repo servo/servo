@@ -241,11 +241,11 @@ public class MainActivity extends Activity implements Servo.Client {
         mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
       }
       Log.d("SERVOMEDIA", "PLAYBACK STATE CHANGED " + state);
-      if (state == 1 /* none */) {
+      if (state == MediaSession.PLAYBACK_STATE_NONE) {
           mMediaSession.hideMediaSessionControls();
           return;
       }
-      if (state == 2 /* playing */) {
+      if (state == MediaSession.PLAYBACK_STATE_PLAYING) {
           mMediaSession.showMediaSessionControls();
           return;
       }

@@ -1913,12 +1913,6 @@ impl HTMLMediaElement {
             self.media_element_load_algorithm();
         }
     }
-
-    fn send_media_session_event(&self, event: MediaSessionEvent) {
-        let global = self.global();
-        let media_session = global.as_window().Navigator().MediaSession();
-        media_session.send_event(event);
-    }
 }
 
 // XXX Placeholder for [https://github.com/servo/servo/issues/22293]

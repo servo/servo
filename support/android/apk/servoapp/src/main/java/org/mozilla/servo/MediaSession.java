@@ -32,6 +32,22 @@ public class MediaSession {
         }
     }
 
+    // https://w3c.github.io/mediasession/#enumdef-mediasessionplaybackstate
+    public static final int PLAYBACK_STATE_NONE = 1;
+    public static final int PLAYBACK_STATE_PLAYING = 2;
+    public static final int PLAYBACK_STATE_PAUSED = 3;
+
+    // https://w3c.github.io/mediasession/#enumdef-mediasessionaction
+    private static final int ACTION_PLAY = 1;
+    private static final int ACTION_PAUSE = 2;
+    private static final int ACTON_SEEK_BACKWARD = 3;
+    private static final int ACTION_SEEK_FORWARD = 4;
+    private static final int ACTION_PREVIOUS_TRACK = 5;
+    private static final int ACTION_NEXT_TRACK = 6;
+    private static final int ACTION_SKIP_AD = 7;
+    private static final int ACTION_STOP = 8;
+    private static final int ACTION_SEEK_TO = 9;
+
     private static final String MEDIA_CHANNEL_ID = "MediaNotificationChannel";
     private static final String KEY_MEDIA_PAUSE = "org.mozilla.servoview.MainActivity.pause";
     private static final String KEY_MEDIA_PREV = "org.mozilla.servoview.MainActivity.prev";
@@ -79,12 +95,16 @@ public class MediaSession {
         @Override
         public void onReceive(Context context, Intent intent) {
           if (intent.getAction().equals(KEY_MEDIA_PAUSE)) {
+            mView.mediaSessionAction(ACTION_PAUSE);
             Log.d("SERVOMEDIA", "PAUSE");
           } else if (intent.getAction().equals(KEY_MEDIA_STOP)) {
+            mView.mediaSessionAction(ACTION_STOP);
             Log.d("SERVOMEDIA", "STOP");
           } else if (intent.getAction().equals(KEY_MEDIA_NEXT)) {
+            mView.mediaSessionAction(ACTION_NEXT_TRACK);
             Log.d("SERVOMEDIA", "NEXT");
           } else if (intent.getAction().equals(KEY_MEDIA_PREV)) {
+            mView.mediaSessionAction(ACTION_PREVIOUS_TRACK);
             Log.d("SERVOMEDIA", "PREV");
           }
         }

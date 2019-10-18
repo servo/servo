@@ -333,6 +333,16 @@ pub fn Java_org_mozilla_servoview_JNIServo_click(env: JNIEnv, _: JClass, x: jint
     call(&env, |s| s.click(x as f32, y as f32));
 }
 
+#[no_mangle]
+pub fn Java_org_mozilla_servoview_JNIServo_mediaSessionAction(
+    env: JNIEnv,
+    _: JClass,
+    action: jint,
+) {
+    debug!("mediaSessionAction");
+    call(&env, |s| s.media_session_action(action as i32));
+}
+
 pub struct WakeupCallback {
     callback: GlobalRef,
     jvm: Arc<JavaVM>,

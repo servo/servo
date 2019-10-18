@@ -61,6 +61,7 @@ impl MediaSession {
     }
 
     pub fn handle_action(&self, action: MediaSessionActionType) {
+        println!("HANDLE ACTION {:?}", action);
         if let Some(handler) = self.action_handlers.borrow().get(&action) {
             if handler.Call__(ExceptionHandling::Report).is_err() {
                 warn!("Error calling MediaSessionActionHandler callback");
