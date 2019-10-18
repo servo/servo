@@ -224,9 +224,9 @@ pub struct MediaMetadata {
 pub enum MediaSessionPlaybackState {
     /// The browsing context does not specify whether it’s playing or paused.
     None_ = 1,
-    /// The browsing context has paused media and it can be resumed.
-    Playing,
     /// The browsing context is currently playing media and it can be paused.
+    Playing,
+    /// The browsing context has paused media and it can be resumed.
     Paused,
 }
 

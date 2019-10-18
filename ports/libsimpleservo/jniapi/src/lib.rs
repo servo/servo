@@ -509,15 +509,47 @@ impl HostTrait for HostCallbacks {
 
     fn set_clipboard_contents(&self, _contents: String) {}
 
-    fn on_media_session_metadata(
-        &self,
-        _title: String,
-        _artist: Option<String>,
-        _album: Option<String>,
-    ) {
+    fn on_media_session_metadata(&self, title: String, artist: String, album: String) {
+        info!("on_media_session_metadata");
+        let env = self.jvm.get_env().unwrap();
+        let title = match new_string(&env, &title) {
+            Ok(s) => s,
+            Err(_) => return,
+        };
+        let title = JValue::Object(JObject::from(title));
+
+        let artist = match new_string(&env, &artist) {
+            Ok(s) => s,
+            Err(_) => return,
+        };
+        let artist = JValue::Object(JObject::from(artist));
+
+        let album = match new_string(&env, &album) {
+            Ok(s) => s,
+            Err(_) => return,
+        };
+        let album = JValue::Object(JObject::from(album));
+        env.call_method(
+            self.callbacks.as_obj(),
+            "onMediaSessionMetadata",
+            "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
+            &[title, artist, album],
+        )
+        .unwrap();
     }
 
-    fn on_media_session_playback_state_change(&self, state: i32) {}
+    fn on_media_session_playback_state_change(&self, state: i32) {
+        info!("on_media_session_playback_state_change {:?}", state);
+        let env = self.jvm.get_env().unwrap();
+        let state = JValue::Int(state as jint);
+        env.call_method(
+            self.callbacks.as_obj(),
+            "onMediaSessionPlaybackStateChange",
+            "(I)V",
+            &[state],
+        )
+        .unwrap();
+    }
 }
 
 fn initialize_android_glue(env: &JNIEnv, activity: JObject) {

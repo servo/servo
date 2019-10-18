@@ -131,12 +131,7 @@ pub trait HostTrait {
     /// Sets system clipboard contents.
     fn set_clipboard_contents(&self, contents: String);
     /// Called when we get the media session metadata/
-    fn on_media_session_metadata(
-        &self,
-        title: String,
-        artist: Option<String>,
-        album: Option<String>,
-    );
+    fn on_media_session_metadata(&self, title: String, artist: String, album: String);
     /// Called when the media sessoin playback state changes.
     fn on_media_session_playback_state_change(&self, state: i32);
 }
@@ -595,8 +590,8 @@ impl ServoGlue {
                         MediaSessionEvent::SetMetadata(metadata) => {
                             self.callbacks.host_callbacks.on_media_session_metadata(
                                 metadata.title,
-                                metadata.artist,
-                                metadata.album,
+                                metadata.artist.unwrap_or("".to_owned()),
+                                metadata.album.unwrap_or("".to_owned()),
                             )
                         },
                         MediaSessionEvent::PlaybackStateChange(state) => self

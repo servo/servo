@@ -1804,9 +1804,15 @@ impl HTMLMediaElement {
                     PlaybackState::Playing => {
                         media_session_playback_state = MediaSessionPlaybackState::Playing;
                     },
+                    PlaybackState::Buffering => {
+                        // Do not send the media session playback state change event
+                        // in this case as a None_ state is expected to clean up the
+                        // session.
+                        return;
+                    },
                     _ => {},
                 };
-                println!(
+                debug!(
                     "Sending media session event playback state changed to {:?}",
                     media_session_playback_state
                 );
