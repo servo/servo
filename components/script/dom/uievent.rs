@@ -26,17 +26,17 @@ pub struct UIEvent {
 }
 
 impl UIEvent {
-    pub fn new_inherited() -> UIEvent {
+    pub fn new_inherited(view: MutNullableDom<dom::window::Window>) -> UIEvent {
         UIEvent {
             event: Event::new_inherited(),
-            view: Default::default(),
+            view: view,
             detail: Cell::new(0),
         }
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<UIEvent> {
         reflect_dom_object(
-            Box::new(UIEvent::new_inherited()),
+            Box::new(UIEvent::new_inherited(MutNullableDom::new(Some(window)))),
             window,
             UIEventBinding::Wrap,
         )
