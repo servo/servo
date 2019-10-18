@@ -26,7 +26,7 @@ pub struct UIEvent {
 }
 
 impl UIEvent {
-    pub fn new_inherited(view: MutNullableDom<dom::window::Window>) -> UIEvent {
+    pub fn new_inherited(view: MutNullableDom<Window>) -> UIEvent {
         UIEvent {
             event: Event::new_inherited(),
             view: view,

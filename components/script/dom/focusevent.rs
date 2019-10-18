@@ -24,16 +24,16 @@ pub struct FocusEvent {
 }
 
 impl FocusEvent {
-    fn new_inherited() -> FocusEvent {
+    fn new_inherited(window: &Window) -> FocusEvent {
         FocusEvent {
-            uievent: UIEvent::new_inherited(),
+            uievent: UIEvent::new_inherited(MutNullableDom::new(Some(window))),
             related_target: Default::default(),
         }
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<FocusEvent> {
         reflect_dom_object(
-            Box::new(FocusEvent::new_inherited()),
+            Box::new(FocusEvent::new_inherited(window)),
             window,
             FocusEventBinding::Wrap,
         )

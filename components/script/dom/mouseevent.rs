@@ -38,9 +38,9 @@ pub struct MouseEvent {
 }
 
 impl MouseEvent {
-    pub fn new_inherited() -> MouseEvent {
+    pub fn new_inherited(window: &Window) -> MouseEvent {
         MouseEvent {
-            uievent: UIEvent::new_inherited(),
+            uievent: UIEvent::new_inherited(MutNullableDom::new(Some(window))),
             screen_x: Cell::new(0),
             screen_y: Cell::new(0),
             client_x: Cell::new(0),
@@ -58,7 +58,7 @@ impl MouseEvent {
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<MouseEvent> {
         reflect_dom_object(
-            Box::new(MouseEvent::new_inherited()),
+            Box::new(MouseEvent::new_inherited(window)),
             window,
             MouseEventBinding::Wrap,
         )

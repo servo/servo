@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::TouchEventBinding::TouchEventMethod
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{DomRoot, MutDom};
+use crate::dom::bindings::root::{DomRoot, MutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::touchlist::TouchList;
@@ -30,12 +30,13 @@ pub struct TouchEvent {
 
 impl TouchEvent {
     fn new_inherited(
+        window: &Window,
         touches: &TouchList,
         changed_touches: &TouchList,
         target_touches: &TouchList,
     ) -> TouchEvent {
         TouchEvent {
-            uievent: UIEvent::new_inherited(),
+            uievent: UIEvent::new_inherited(MutNullableDom::new(Some(window))),
             touches: MutDom::new(touches),
             target_touches: MutDom::new(target_touches),
             changed_touches: MutDom::new(changed_touches),
@@ -54,6 +55,7 @@ impl TouchEvent {
     ) -> DomRoot<TouchEvent> {
         reflect_dom_object(
             Box::new(TouchEvent::new_inherited(
+                window,
                 touches,
                 changed_touches,
                 target_touches,

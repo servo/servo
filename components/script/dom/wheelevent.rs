@@ -27,9 +27,9 @@ pub struct WheelEvent {
 }
 
 impl WheelEvent {
-    fn new_inherited() -> WheelEvent {
+    fn new_inherited(window: &Window) -> WheelEvent {
         WheelEvent {
-            mouseevent: MouseEvent::new_inherited(),
+            mouseevent: MouseEvent::new_inherited(window),
             delta_x: Cell::new(Finite::wrap(0.0)),
             delta_y: Cell::new(Finite::wrap(0.0)),
             delta_z: Cell::new(Finite::wrap(0.0)),
@@ -39,7 +39,7 @@ impl WheelEvent {
 
     pub fn new_unintialized(window: &Window) -> DomRoot<WheelEvent> {
         reflect_dom_object(
-            Box::new(WheelEvent::new_inherited()),
+            Box::new(WheelEvent::new_inherited(window)),
             window,
             WheelEventBinding::Wrap,
         )
