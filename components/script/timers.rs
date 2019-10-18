@@ -285,7 +285,7 @@ impl OneshotTimers {
                 delay,
             );
             self.scheduler_chan
-                .send(TimerSchedulerMsg::Request(request))
+                .send(TimerSchedulerMsg(request))
                 .unwrap();
         }
     }
