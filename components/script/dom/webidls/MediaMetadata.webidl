@@ -12,9 +12,9 @@ dictionary MediaImage {
   DOMString type = "";
 };
 
-[Exposed=Window,
- Constructor(optional MediaMetadataInit init = {})]
+[Exposed=Window]
 interface MediaMetadata {
+  [Throws] constructor(optional MediaMetadataInit init = {});
   attribute DOMString title;
   attribute DOMString artist;
   attribute DOMString album;
