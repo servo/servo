@@ -298,12 +298,9 @@ impl CanvasState {
         }
     }
 
-    pub fn get_rect(&self, canvas: Option<&HTMLCanvasElement>, rect: Rect<u32>) -> Vec<u8> {
+    pub fn get_rect(&self, canvas_size: Size2D<u32>, rect: Rect<u32>) -> Vec<u8> {
         assert!(self.origin_is_clean());
 
-        // FIXME(nox): This is probably wrong when this is a context for an
-        // offscreen canvas.
-        let canvas_size = canvas.as_ref().map_or(Size2D::zero(), |c| c.get_size());
         assert!(Rect::from_size(canvas_size).contains_rect(&rect));
 
         let (sender, receiver) = ipc::bytes_channel().unwrap();
@@ -1020,7 +1017,7 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
     pub fn GetImageData(
         &self,
-        canvas: Option<&HTMLCanvasElement>,
+        canvas_size: Size2D<u32>,
         global: &GlobalScope,
         sx: i32,
         sy: i32,
@@ -1039,9 +1036,6 @@ impl CanvasState {
         }
 
         let (origin, size) = adjust_size_sign(Point2D::new(sx, sy), Size2D::new(sw, sh));
-        // FIXME(nox): This is probably wrong when this is a context for an
-        // offscreen canvas.
-        let canvas_size = canvas.as_ref().map_or(Size2D::zero(), |c| c.get_size());
         let read_rect = match pixels::clip(origin, size, canvas_size) {
             Some(rect) => rect,
             None => {
@@ -1054,20 +1048,14 @@ impl CanvasState {
             global,
             size.width,
             size.height,
-            Some(self.get_rect(canvas, read_rect)),
+            Some(self.get_rect(canvas_size, read_rect)),
         )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
-    pub fn PutImageData(
-        &self,
-        canvas: Option<&HTMLCanvasElement>,
-        imagedata: &ImageData,
-        dx: i32,
-        dy: i32,
-    ) {
+    pub fn PutImageData(&self, canvas_size: Size2D<u32>, imagedata: &ImageData, dx: i32, dy: i32) {
         self.PutImageData_(
-            canvas,
+            canvas_size,
             imagedata,
             dx,
             dy,
@@ -1082,7 +1070,7 @@ impl CanvasState {
     #[allow(unsafe_code)]
     pub fn PutImageData_(
         &self,
-        canvas: Option<&HTMLCanvasElement>,
+        canvas_size: Size2D<u32>,
         imagedata: &ImageData,
         dx: i32,
         dy: i32,
@@ -1104,10 +1092,6 @@ impl CanvasState {
 
         // Step 2.
         // TODO: throw InvalidState if buffer is detached.
-
-        // FIXME(nox): This is probably wrong when this is a context for an
-        // offscreen canvas.
-        let canvas_size = canvas.as_ref().map_or(Size2D::zero(), |c| c.get_size());
 
         // Steps 3-6.
         let (src_origin, src_size) = adjust_size_sign(
@@ -1553,9 +1537,12 @@ impl CanvasRenderingContext2D {
     }
 
     pub fn get_rect(&self, rect: Rect<u32>) -> Vec<u8> {
-        self.canvas_state
-            .borrow()
-            .get_rect(self.canvas.as_ref().map(|c| &**c), rect)
+        self.canvas_state.borrow().get_rect(
+            self.canvas
+                .as_ref()
+                .map_or(Size2D::zero(), |c| c.get_size()),
+            rect,
+        )
     }
 }
 
@@ -1886,7 +1873,9 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
     fn GetImageData(&self, sx: i32, sy: i32, sw: i32, sh: i32) -> Fallible<DomRoot<ImageData>> {
         self.canvas_state.borrow().GetImageData(
-            self.canvas.as_ref().map(|c| &**c),
+            self.canvas
+                .as_ref()
+                .map_or(Size2D::zero(), |c| c.get_size()),
             &self.global(),
             sx,
             sy,
@@ -1898,7 +1887,9 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     fn PutImageData(&self, imagedata: &ImageData, dx: i32, dy: i32) {
         self.canvas_state.borrow().PutImageData(
-            self.canvas.as_ref().map(|c| &**c),
+            self.canvas
+                .as_ref()
+                .map_or(Size2D::zero(), |c| c.get_size()),
             imagedata,
             dx,
             dy,
@@ -1918,7 +1909,9 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         dirty_height: i32,
     ) {
         self.canvas_state.borrow().PutImageData_(
-            self.canvas.as_ref().map(|c| &**c),
+            self.canvas
+                .as_ref()
+                .map_or(Size2D::zero(), |c| c.get_size()),
             imagedata,
             dx,
             dy,

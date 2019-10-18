@@ -33,6 +33,8 @@ pub struct OffscreenCanvasRenderingContext2D {
     canvas: Option<Dom<OffscreenCanvas>>,
     canvas_state: DomRefCell<CanvasState>,
     htmlcanvas: Option<Dom<HTMLCanvasElement>>,
+    width: u32,
+    height: u32,
 }
 
 impl OffscreenCanvasRenderingContext2D {
@@ -50,6 +52,8 @@ impl OffscreenCanvasRenderingContext2D {
                 global,
                 Size2D::new(size.width as u64, size.height as u64),
             )),
+            width: size.width as u32,
+            height: size.height as u32,
         }
     }
 
@@ -307,7 +311,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
     fn GetImageData(&self, sx: i32, sy: i32, sw: i32, sh: i32) -> Fallible<DomRoot<ImageData>> {
         self.canvas_state.borrow().GetImageData(
-            self.htmlcanvas.as_ref().map(|c| &**c),
+            Size2D::new(self.width, self.height),
             &self.global(),
             sx,
             sy,
@@ -319,7 +323,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     fn PutImageData(&self, imagedata: &ImageData, dx: i32, dy: i32) {
         self.canvas_state.borrow().PutImageData(
-            self.htmlcanvas.as_ref().map(|c| &**c),
+            Size2D::new(self.width, self.height),
             imagedata,
             dx,
             dy,
@@ -339,7 +343,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         dirty_height: i32,
     ) {
         self.canvas_state.borrow().PutImageData_(
-            self.htmlcanvas.as_ref().map(|c| &**c),
+            Size2D::new(self.width, self.height),
             imagedata,
             dx,
             dy,
