@@ -732,6 +732,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                 default = "%s::Boolean(%s)" % (
                     union_native_type(type),
                     "true" if defaultValue.value else "false")
+            elif tag is IDLType.Tags.usvstring:
+                default = '%s::USVString(USVString("%s".to_owned()))' % (
+                    union_native_type(type),
+                    defaultValue.value)
             else:
                 raise("We don't currently support default values that aren't null, boolean or default dictionary")
         elif dictionaries:
