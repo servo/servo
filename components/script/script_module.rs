@@ -1220,13 +1220,31 @@ fn fetch_module_descendants(
                     let module_map = global.get_module_map().borrow();
                     let descendant_tree = module_map.get(&url.clone());
                     if let Some(module_tree) = descendant_tree {
+                        let status = module_tree.get_status();
                         let promise = module_tree.get_promise().borrow();
 
                         println!("See existing descendant: {}", url.clone());
 
                         return match promise.as_ref() {
-                            Some(p) => p.clone(),
+                            Some(p) => {
+                                if visited.contains(&url.clone()) &&
+                                    status != ModuleStatus::Initial &&
+                                    status != ModuleStatus::Fetching
+                                {
+                                    let module_error = module_tree.get_error().borrow();
+
+                                    if module_error.is_some() {
+                                        p.reject_native(&());
+                                    } else {
+                                        p.resolve_native(&());
+                                    }
+                                }
+
+                                p.clone()
+                            },
                             None => {
+                                debug!("Got a None promise but it exists in module map");
+
                                 rooted!(in(*global.get_cx()) let mut undefined_result = UndefinedValue());
 
                                 let module_error = module_tree.get_error().borrow();
