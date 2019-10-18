@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::MouseEventBinding;
 use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
@@ -12,6 +13,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::node::Node;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
@@ -29,6 +31,10 @@ pub struct MouseEvent {
     client_y: Cell<i32>,
     page_x: Cell<i32>,
     page_y: Cell<i32>,
+    x: Cell<i32>,
+    y: Cell<i32>,
+    offset_x: Cell<i32>,
+    offset_y: Cell<i32>,
     ctrl_key: Cell<bool>,
     shift_key: Cell<bool>,
     alt_key: Cell<bool>,
@@ -49,6 +55,10 @@ impl MouseEvent {
             client_y: Cell::new(0),
             page_x: Cell::new(0),
             page_y: Cell::new(0),
+            x: Cell::new(0),
+            y: Cell::new(0),
+            offset_x: Cell::new(0),
+            offset_y: Cell::new(0),
             ctrl_key: Cell::new(false),
             shift_key: Cell::new(false),
             alt_key: Cell::new(false),
@@ -189,6 +199,56 @@ impl MouseEventMethods for MouseEvent {
             let global = self.global();
             let window = global.as_window();
             window.current_viewport().origin.y.to_px() + self.client_y.get()
+        }
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-mouseevent-x
+    fn X(&self) -> i32 {
+        self.client_x.get()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-mouseevent-y
+    fn Y(&self) -> i32 {
+        self.client_y.get()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-mouseevent-offsetx
+    fn OffsetX(&self) -> i32 {
+        let event = self.upcast::<Event>();
+        if event.dispatching() {
+            match event.GetTarget() {
+                Some(target) => {
+                    if let Some(node) = target.downcast::<Node>() {
+                        let rect = node.client_rect();
+                        self.client_x.get() - rect.origin.x
+                    } else {
+                        self.offset_x.get()
+                    }
+                },
+                None => self.offset_x.get(),
+            }
+        } else {
+            self.PageX()
+        }
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-mouseevent-offsety
+    fn OffsetY(&self) -> i32 {
+        let event = self.upcast::<Event>();
+        if event.dispatching() {
+            match event.GetTarget() {
+                Some(target) => {
+                    if let Some(node) = target.downcast::<Node>() {
+                        let rect = node.client_rect();
+                        self.client_y.get() - rect.origin.y
+                    } else {
+                        self.offset_y.get()
+                    }
+                },
+                None => self.offset_y.get(),
+            }
+        } else {
+            self.PageY()
         }
     }
 

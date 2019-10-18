@@ -29,5 +29,14 @@ test(function () {
     assert_equals(mouseEvent2.pageX, 10);
     assert_equals(mouseEvent2.pageY, 5020);
 }, 'MouseEvent\'s pageX and pageY attributes should be the sum of the scroll offset and clientX/clientY');
+
+test(function () {
+    var mouseEvent = new MouseEvent('mousedown', {clientX: 10, clientY: 20});
+    assert_equals(mouseEvent.offsetX, mouseEvent.pageX);
+    assert_equals(mouseEvent.offsetY, mouseEvent.pageY);
+    scrollBy(0, 5000);
+    assert_equals(mouseEvent.offsetX, mouseEvent.pageX);
+    assert_equals(mouseEvent.offsetY, mouseEvent.pageY);
+}, 'MouseEvent\'s offsetX/offsetY attributes should be the same value as its pageX/pageY attributes.');
 </script>
 </head>
