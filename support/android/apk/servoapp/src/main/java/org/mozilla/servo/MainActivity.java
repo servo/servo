@@ -7,16 +7,9 @@ package org.mozilla.servo;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.PendingIntent;
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.system.ErrnoException;
 import android.system.Os;
@@ -30,6 +23,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.util.Log;
 
+import org.mozilla.servo.MediaSession;
 import org.mozilla.servoview.ServoView;
 import org.mozilla.servoview.Servo;
 
@@ -37,24 +31,7 @@ import java.io.File;
 
 public class MainActivity extends Activity implements Servo.Client {
 
-    private class NotificationID {
-        private int lastID = 0;
-        public int getNext() {
-          lastID++;
-          return lastID;
-        }
-
-        public int get() {
-          return lastID;
-        }
-    }
-
     private static final String LOGTAG = "MainActivity";
-    private static final String MEDIA_CHANNEL_ID = "MediaNotificationChannel";
-    private static final String KEY_MEDIA_PAUSE = "org.mozilla.servoview.MainActivity.pause";
-    private static final String KEY_MEDIA_PREV = "org.mozilla.servoview.MainActivity.prev";
-    private static final String KEY_MEDIA_NEXT = "org.mozilla.servoview.MainActivity.next";
-    private static final String KEY_MEDIA_STOP = "org.mozilla.servoview.MainActivity.stop";
 
     ServoView mServoView;
     Button mBackButton;
@@ -65,8 +42,7 @@ public class MainActivity extends Activity implements Servo.Client {
     ProgressBar mProgressBar;
     TextView mIdleText;
     boolean mCanGoBack;
-    NotificationID mNotificationID;
-    BroadcastReceiver mMediaSessionActionReceiver;
+    MediaSession mMediaSession;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,16 +85,12 @@ public class MainActivity extends Activity implements Servo.Client {
           mServoView.loadUri(intent.getData());
         }
         setupUrlField();
-
-        mNotificationID = new NotificationID();
-        createMediaNotificationChannel();
     }
 
     @Override
     protected void onDestroy() {
-      Log.d("SERVOMEDIA", "onDestroy");
       super.onDestroy();
-      hideMediaSessionControls();
+      mMediaSession.hideMediaSessionControls();
     }
 
     private void setupUrlField() {
@@ -257,103 +229,25 @@ public class MainActivity extends Activity implements Servo.Client {
 
     @Override
     public void onMediaSessionMetadata(String title, String artist, String album) {
+      if (mMediaSession == null) {
+        mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
+      }
       Log.d("SERVOMEDIA", "METADATA");
     }
 
     @Override
     public void onMediaSessionPlaybackStateChange(int state) {
+      if (mMediaSession == null) {
+        mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
+      }
       Log.d("SERVOMEDIA", "PLAYBACK STATE CHANGED " + state);
       if (state == 1 /* none */) {
-          hideMediaSessionControls();
+          mMediaSession.hideMediaSessionControls();
           return;
       }
       if (state == 2 /* playing */) {
-          showMediaSessionControls();
+          mMediaSession.showMediaSessionControls();
           return;
       }
     }
-
-    private void createMediaNotificationChannel() {
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-          CharSequence name = getString(R.string.media_channel_name);
-          String description = getString(R.string.media_channel_description);
-          int importance = NotificationManager.IMPORTANCE_DEFAULT;
-          NotificationChannel channel = new NotificationChannel(MEDIA_CHANNEL_ID, name, importance);
-          channel.setDescription(description);
-          NotificationManager notificationManager = getSystemService(NotificationManager.class);
-          notificationManager.createNotificationChannel(channel);
-      }
-    }
-
-    private void showMediaSessionControls() {
-      Context context = getApplicationContext();
-
-      IntentFilter filter = new IntentFilter();
-      filter.addAction(KEY_MEDIA_PAUSE);
-      filter.addAction(KEY_MEDIA_STOP);
-      filter.addAction(KEY_MEDIA_PREV);
-      filter.addAction(KEY_MEDIA_NEXT);
-
-      mMediaSessionActionReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-          if (intent.getAction().equals(KEY_MEDIA_PAUSE)) {
-            Log.d("SERVOMEDIA", "PAUSE");
-          } else if (intent.getAction().equals(KEY_MEDIA_STOP)) {
-            Log.d("SERVOMEDIA", "STOP");
-          } else if (intent.getAction().equals(KEY_MEDIA_NEXT)) {
-            Log.d("SERVOMEDIA", "NEXT");
-          } else if (intent.getAction().equals(KEY_MEDIA_PREV)) {
-            Log.d("SERVOMEDIA", "PREV");
-          }
-        }
-      };
-
-      registerReceiver(mMediaSessionActionReceiver, filter);
-
-      Intent pauseIntent = new Intent(KEY_MEDIA_PAUSE);
-      Notification.Action pauseAction =
-        new Notification.Action(R.drawable.media_session_pause, "Pause",
-          PendingIntent.getBroadcast(context, 0, pauseIntent, 0));
-
-      Intent nextIntent = new Intent(KEY_MEDIA_NEXT);
-      Notification.Action nextAction =
-        new Notification.Action(R.drawable.media_session_next, "Next",
-          PendingIntent.getBroadcast(context, 0, nextIntent, 0));
-
-      Intent prevIntent = new Intent(KEY_MEDIA_PREV);
-      Notification.Action prevAction =
-        new Notification.Action(R.drawable.media_session_prev, "Previous",
-          PendingIntent.getBroadcast(context, 0, prevIntent, 0));
-
-      Intent stopIntent = new Intent(KEY_MEDIA_STOP);
-      Notification.Action stopAction =
-        new Notification.Action(R.drawable.media_session_stop, "Stop",
-          PendingIntent.getBroadcast(context, 0, stopIntent, 0));
-
-      Notification.Builder builder = new Notification.Builder(context, this.MEDIA_CHANNEL_ID);
-      builder
-        .setSmallIcon(R.drawable.media_session_icon)
-        .setContentTitle("This is the notification title")
-        .setVisibility(Notification.VISIBILITY_PUBLIC)
-        .addAction(prevAction)
-        .addAction(pauseAction)
-        .addAction(nextAction)
-        .addAction(stopAction)
-        .setStyle(new Notification.MediaStyle()
-            .setShowActionsInCompactView(1 /* pause button */ )
-            .setShowActionsInCompactView(3 /* stop button */));
-
-      NotificationManager notificationManager = getSystemService(NotificationManager.class);
-      notificationManager.notify(mNotificationID.getNext(), builder.build());
-    }
-
-    private void hideMediaSessionControls() {
-      Log.d("SERVOMEDIA", "hideMediaSessionControls");
-      NotificationManager notificationManager = getSystemService(NotificationManager.class);
-      notificationManager.cancel(mNotificationID.get());
-      unregisterReceiver(mMediaSessionActionReceiver);
-    }
-
-
 }
