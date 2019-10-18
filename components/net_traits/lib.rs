@@ -582,20 +582,32 @@ impl ResourceFetchTiming {
 
     pub fn set_attribute_from(&mut self, attribute: ResourceAttribute, from: ResourceAttribute) {
         let value = match from {
+            ResourceAttribute::DomainLookupStart => self.domain_lookup_start,
             ResourceAttribute::RedirectCount(_) => self.redirect_count as u64,
             ResourceAttribute::RequestStart => self.request_start,
             ResourceAttribute::ResponseStart => self.response_start,
             ResourceAttribute::RedirectStart(_) => self.redirect_start,
+            ResourceAttribute::RedirectEnd(_) => self.redirect_end,
             ResourceAttribute::StartTime => self.start_time,
             ResourceAttribute::FetchStart => self.fetch_start,
+            ResourceAttribute::ConnectStart(_) => self.connect_start,
+            ResourceAttribute::ConnectEnd(_) => self.connect_end,
+            ResourceAttribute::SecureConnectionStart => self.secure_connection_start,
+            ResourceAttribute::ResponseEnd => self.response_end,
         };
         match attribute {
+            ResourceAttribute::DomainLookupStart => self.domain_lookup_start = value,
             ResourceAttribute::RedirectCount(_) => self.redirect_count = value as u16,
             ResourceAttribute::RequestStart => self.request_start = value,
             ResourceAttribute::ResponseStart => self.response_start = value,
             ResourceAttribute::RedirectStart(_) => self.redirect_start = value,
+            ResourceAttribute::RedirectEnd(_) => self.redirect_end = value,
             ResourceAttribute::StartTime => self.start_time = value,
             ResourceAttribute::FetchStart => self.fetch_start = value,
+            ResourceAttribute::ConnectStart(_) => self.connect_start = value,
+            ResourceAttribute::ConnectEnd(_) => self.connect_end = value,
+            ResourceAttribute::SecureConnectionStart => self.secure_connection_start = value,
+            ResourceAttribute::ResponseEnd => self.response_end = value,
         }
     }
 }
