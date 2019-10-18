@@ -26,7 +26,7 @@ pub struct FocusEvent {
 impl FocusEvent {
     fn new_inherited(window: &Window) -> FocusEvent {
         FocusEvent {
-            uievent: UIEvent::new_inherited(MutNullableDom::new(Some(window))),
+            uievent: UIEvent::new_inherited(window),
             related_target: Default::default(),
         }
     }

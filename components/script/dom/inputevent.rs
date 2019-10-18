@@ -6,7 +6,7 @@ use crate::dom::bindings::codegen::Bindings::InputEventBinding::{self, InputEven
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
@@ -32,7 +32,7 @@ impl InputEvent {
     ) -> DomRoot<InputEvent> {
         let ev = reflect_dom_object(
             Box::new(InputEvent {
-                uievent: UIEvent::new_inherited(MutNullableDom::new(Some(window))),
+                uievent: UIEvent::new_inherited(window),
                 data: data,
                 is_composing: is_composing,
             }),

@@ -40,7 +40,7 @@ pub struct MouseEvent {
 impl MouseEvent {
     pub fn new_inherited(window: &Window) -> MouseEvent {
         MouseEvent {
-            uievent: UIEvent::new_inherited(MutNullableDom::new(Some(window))),
+            uievent: UIEvent::new_inherited(window),
             screen_x: Cell::new(0),
             screen_y: Cell::new(0),
             client_x: Cell::new(0),

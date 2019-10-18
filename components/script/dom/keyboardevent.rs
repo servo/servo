@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::uievent::UIEvent;
@@ -38,7 +38,7 @@ pub struct KeyboardEvent {
 impl KeyboardEvent {
     fn new_inherited(window: &Window) -> KeyboardEvent {
         KeyboardEvent {
-            uievent: UIEvent::new_inherited(MutNullableDom::new(Some(window))),
+            uievent: UIEvent::new_inherited(window),
             key: DomRefCell::new(DOMString::new()),
             typed_key: DomRefCell::new(Key::Unidentified),
             code: DomRefCell::new(DOMString::new()),

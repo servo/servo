@@ -15,7 +15,6 @@ use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
 use std::cell::Cell;
-use std::default::Default;
 
 // https://w3c.github.io/uievents/#interface-uievent
 #[dom_struct]
@@ -26,17 +25,17 @@ pub struct UIEvent {
 }
 
 impl UIEvent {
-    pub fn new_inherited(view: MutNullableDom<Window>) -> UIEvent {
+    pub fn new_inherited(window: &Window) -> UIEvent {
         UIEvent {
             event: Event::new_inherited(),
-            view: view,
+            view: MutNullableDom::new(Some(window)),
             detail: Cell::new(0),
         }
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<UIEvent> {
         reflect_dom_object(
-            Box::new(UIEvent::new_inherited(MutNullableDom::new(Some(window)))),
+            Box::new(UIEvent::new_inherited(window)),
             window,
             UIEventBinding::Wrap,
         )
