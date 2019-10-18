@@ -729,12 +729,10 @@ pub fn http_redirect_fetch(
             RedirectStartValue::FetchStart,
         ));
 
-    context
-        .timing
-        .lock()
-        .unwrap()
-        .set_attribute_from(ResourceAttribute::StartTime,
-                            ResourceAttribute::RedirectStart(RedirectStartValue::Zero));
+    context.timing.lock().unwrap().set_attribute_from(
+        ResourceAttribute::StartTime,
+        ResourceAttribute::RedirectStart(RedirectStartValue::Zero),
+    );
 
     context
         .timing
