@@ -34,7 +34,6 @@
       el.src = "https://{{host}}:{{ports[https][0]}}/fetch/metadata/resources/record-header.py?file=" + key;
       el.onload = t.step_func(_ => {
         expected = {
-          "dest": "track",
           "site": "same-origin",
           "user": "",
           "mode": "cors" // Because the `video` element has `crossorigin`
@@ -57,7 +56,6 @@
       el.src = "https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/metadata/resources/record-header.py?file=" + key;
       el.onload = t.step_func(_ => {
         expected = {
-          "dest": "track",
           "site": "same-site",
           "user": "",
           "mode": "cors" // Because the `video` element has `crossorigin`
@@ -82,7 +80,6 @@
       el.src = "https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/metadata/resources/record-header.py?file=" + key;
       el.onload = t.step_func(_ => {
         expected = {
-          "dest": "track",
           "site": "cross-site",
           "user": "",
           "mode": "cors" // Because the `video` element has `crossorigin`
@@ -110,7 +107,6 @@
       el.src = "https://{{host}}:{{ports[https][0]}}/fetch/metadata/resources/record-header.py?file=" + key;
       el.onload = t.step_func(_ => {
         expected = {
-          "dest":"track",
           "site":"same-origin",
           "user":"",
           "mode": "same-origin"

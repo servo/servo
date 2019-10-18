@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS test reference</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<style>
+div {
+  font-family: monospace;
+  border: solid blue;
+  font-size: 1.5em;
+  margin-bottom:1em;
+  display: inline-block;
+  white-space: pre;
+}
+.ref {
+  border-color: orange;
+}
+.w5 { width: 5ch; }
+.w6 { width: 6ch; }
+.w7 { width: 7ch; }
+.w8 { width: 8ch; }
+
+.blue {	background: #aaaaff; }
+.red {	background: #ffaaaa; }
+.green {	background: #aaffaa; }
+
+</style>
+<p>Test passes if the content of each blue box (on the left) is laid out identically to the content of the orange box to its right.
+
+<div class="w5">A<span class=blue> </span>B<span class=red> </span>ا<br>ب</div>
+<div class="ref w5">A<span class=blue> </span>B<span class=red> </span>ا<br>ب</div>
+<br>
+<div class="w6">A<span class=blue> </span>B<span class=red> </span>ا<br>ب</div>
+<div class="ref w6">A<span class=blue> </span>B<span class=red> </span>ا<br>ب</div>
+<br>
+<div class="w7">A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب</div>
+<div class="ref w7">A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب</div>
+<br>
+<div class="w8">A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب</div>
+<div class="ref w8">A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب</div>

@@ -16,20 +16,6 @@ describe('Mapped using scope instead of "imports"', () => {
   const inJSDirURL = new URL('https://example.com/js/app.mjs');
   const topLevelURL = new URL('https://example.com/app.mjs');
 
-  it('should fail when the mapping is to an empty array', () => {
-    const resolveUnderTest = makeResolveUnderTest(`{
-      "scopes": {
-        "/js/": {
-          "moment": null,
-          "lodash": []
-        }
-      }
-    }`);
-
-    expect(() => resolveUnderTest('moment', inJSDirURL)).toThrow(TypeError);
-    expect(() => resolveUnderTest('lodash', inJSDirURL)).toThrow(TypeError);
-  });
-
   describe('Exact vs. prefix based matching', () => {
     it('should match correctly when both are in the map', () => {
       const resolveUnderTest = makeResolveUnderTest(`{
@@ -153,14 +139,17 @@ describe('Mapped using scope instead of "imports"', () => {
       "imports": {
         "a": "/a-1.mjs",
         "b": "/b-1.mjs",
-        "c": "/c-1.mjs"
+        "c": "/c-1.mjs",
+        "d": "/d-1.mjs"
       },
       "scopes": {
         "/scope2/": {
-          "a": "/a-2.mjs"
+          "a": "/a-2.mjs",
+          "d": "/d-2.mjs"
         },
         "/scope2/scope3/": {
-          "b": "/b-3.mjs"
+          "b": "/b-3.mjs",
+          "d": "/d-3.mjs"
         }
       }
     }`);
@@ -173,18 +162,21 @@ describe('Mapped using scope instead of "imports"', () => {
       expect(resolveUnderTest('a', scope1URL)).toMatchURL('https://example.com/a-1.mjs');
       expect(resolveUnderTest('b', scope1URL)).toMatchURL('https://example.com/b-1.mjs');
       expect(resolveUnderTest('c', scope1URL)).toMatchURL('https://example.com/c-1.mjs');
+      expect(resolveUnderTest('d', scope1URL)).toMatchURL('https://example.com/d-1.mjs');
     });
 
     it('should use a direct scope override', () => {
       expect(resolveUnderTest('a', scope2URL)).toMatchURL('https://example.com/a-2.mjs');
       expect(resolveUnderTest('b', scope2URL)).toMatchURL('https://example.com/b-1.mjs');
       expect(resolveUnderTest('c', scope2URL)).toMatchURL('https://example.com/c-1.mjs');
+      expect(resolveUnderTest('d', scope2URL)).toMatchURL('https://example.com/d-2.mjs');
     });
 
     it('should use an indirect scope override', () => {
       expect(resolveUnderTest('a', scope3URL)).toMatchURL('https://example.com/a-2.mjs');
       expect(resolveUnderTest('b', scope3URL)).toMatchURL('https://example.com/b-3.mjs');
       expect(resolveUnderTest('c', scope3URL)).toMatchURL('https://example.com/c-1.mjs');
+      expect(resolveUnderTest('d', scope3URL)).toMatchURL('https://example.com/d-3.mjs');
     });
   });
 

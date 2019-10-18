@@ -60,14 +60,17 @@ export class TestCaseRecorder {
 
     _defineProperty(this, "logs", []);
 
+    _defineProperty(this, "debugging", false);
+
     this.result = result;
   }
 
-  start() {
+  start(debug = false) {
     this.startTime = now();
     this.logs = [];
     this.failed = false;
     this.warned = false;
+    this.debugging = debug;
   }
 
   finish() {
@@ -80,6 +83,15 @@ export class TestCaseRecorder {
     this.result.timems = Math.ceil((endTime - this.startTime) * 1000) / 1000;
     this.result.status = this.failed ? 'fail' : this.warned ? 'warn' : 'pass';
     this.result.logs = this.logs;
+    this.debugging = false;
+  }
+
+  debug(msg) {
+    if (!this.debugging) {
+      return;
+    }
+
+    this.log('DEBUG: ' + msg);
   }
 
   log(msg) {
@@ -112,9 +124,7 @@ export class TestCaseRecorder {
 
   threw(e) {
     this.failed = true;
-    let m = 'EXCEPTION';
-    m += ' ' + getStackTrace(e);
-    this.log(m);
+    this.log('EXCEPTION: ' + e.name + ': ' + e.message + '\n' + getStackTrace(e));
   }
 
 }

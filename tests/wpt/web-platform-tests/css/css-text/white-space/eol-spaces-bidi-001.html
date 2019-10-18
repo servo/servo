@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: collapsible white space at end-of-line and bidi</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/eol-spaces-bidi-001-ref.html">
+<meta name="assert" content="Collapsible space at the end of the line prior to bidi reordering are removed.">
+<style>
+div {
+  font-family: monospace;
+  border: solid blue;
+  font-size: 1.5em;
+  margin-bottom:1em;
+  display: inline-block;
+}
+.ref {
+  white-space: pre;
+  border-color: orange;
+}
+.w5 { width: 5ch; }
+.w6 { width: 6ch; }
+.w7 { width: 7ch; }
+.w8 { width: 8ch; }
+
+.blue {	background: #aaaaff; }
+.red {	background: #ffaaaa; }
+.green {	background: #aaffaa; }
+.pink {	background: #ffaaff; }
+.yellow {	background: #ffffaa; }
+
+</style>
+<p>Test passes if the content of each blue box (on the left) is laid out identically to the content of the orange box to its right.
+
+<div class=w5><span class=pink> </span>A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب<span class=yellow> </span></div>
+<div class="ref w5">A<span class=blue> </span>B<span class=red> </span>ا<br>ب</div>
+<br>
+<div class=w6><span class=pink> </span>A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب<span class=yellow> </span></div>
+<div class="ref w6">A<span class=blue> </span>B<span class=red> </span>ا<br>ب</div>
+<br>
+<div class=w7><span class=pink> </span>A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب<span class=yellow> </span></div>
+<div class="ref w7">A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب</div>
+<br>
+<div class=w8><span class=pink> </span>A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب<span class=yellow> </span></div>
+<div class="ref w8">A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب</div>

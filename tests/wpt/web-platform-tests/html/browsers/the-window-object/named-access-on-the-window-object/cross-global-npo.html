@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Named access across globals</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function() {
+  var iframe = document.createElement("iframe");
+  iframe.src = "cross-global-support.html";
+  document.body.appendChild(iframe);
+  iframe.onload = this.step_func_done(function() {
+    var name = "named";
+    var win = iframe.contentWindow;
+    var element = win.document.getElementById(name);
+
+    var expectedValues = [
+      // [value, is own property]
+      [element, false, "window"],
+      [element, false, "Window.prototype"],
+      [element, true, "named prototype object"],
+      [undefined, false, "EventTarget.prototype"],
+      [undefined, false, "Object.prototype"],
+    ];
+    for (var object = win; object; object = Object.getPrototypeOf(object)) {
+      var expected = expectedValues.shift();
+      assert_equals(object[name], expected[0], "[[Get]] on " + expected[2]);
+      var desc = Object.getOwnPropertyDescriptor(object, name);
+      if (expected[1]) {
+        assert_not_equals(desc, undefined, "[[GetOwnProperty]] on " + expected[2] + " should return something");
+        assert_equals(desc.value, element, "[[GetOwnProperty]] on " + expected[2]);
+      } else {
+        assert_equals(desc, undefined, "[[GetOwnProperty]] on " + expected[2]);
+      }
+    }
+  });
+});
+</script>

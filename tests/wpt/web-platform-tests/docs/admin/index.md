@@ -48,7 +48,6 @@ explicitly-managed secret.
 - [Google Domains](https://domains.google/): https://wpt.fyi
   - foolip@google.com
   - jeffcarp@google.com
-  - lukebjerring@google.com
   - mike@bocoup.com
 - [GitHub](https://github.com/): web-platform-tests
   - [@foolip](https://github.com/foolip)
@@ -66,8 +65,6 @@ explicitly-managed secret.
   - foolip@google.com
   - geoffers@gmail.com
   - jeffcarp@google.com
-  - kereliuk@google.com
-  - lukebjerring@google.com
   - markdittmer@google.com
   - mike@bocoup.com
   - rick@bocoup.com

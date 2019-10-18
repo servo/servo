@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<script src="portal-harness.js"></script>
+<body>
+<script>
+  function messageFrameAndAwaitResponse(frame, message) {
+    return new Promise((resolve) => {
+      window.onmessage = (e) => {
+        resolve(e.data);
+      };
+      frame.contentWindow.postMessage(message, '*');
+    });
+  }
+
+  function innerFrameUrl(crossSite) {
+    return (crossSite ?
+                'https://{{hosts[alt][www]}}:{{ports[https][0]}}' : '') +
+            '/portals/history/resources/inner-iframe.html'
+  }
+
+  async function runTestIFrameSrcInPortal(crossSite) {
+    assert(history.length == 1, 'Initial history length');
+
+    let iframe = document.createElement('iframe');
+    iframe.src = innerFrameUrl(crossSite);
+    await new Promise((resolve) => {
+      iframe.onload = resolve;
+      document.body.appendChild(iframe);
+    });
+
+    let frameHistoryLength =
+        await messageFrameAndAwaitResponse(iframe, 'reportHistoryLength');
+    assert(history.length == 1, 'History length unchanged when iframe added');
+    assert(frameHistoryLength == 1, 'History length in iframe when added');
+
+    iframe.src = iframe.src + '#test';
+
+    frameHistoryLength =
+        await messageFrameAndAwaitResponse(iframe, 'reportHistoryLength');
+    assert(
+        history.length == 2, 'History length changed when iframe src set');
+    assert(
+        frameHistoryLength == 2,
+        'History length in iframe changed when iframe src set');
+  }
+
+  function testIFrameSrcInPortal() {
+    return runTestIFrameSrcInPortal(false);
+  }
+
+  function testCrossSiteIFrameSrcInPortal() {
+    return runTestIFrameSrcInPortal(true);
+  }
+
+  async function runTestIFrameNavInPortal(crossSite) {
+    assert(history.length == 1, 'Initial history length');
+
+    let iframe = document.createElement('iframe');
+    iframe.src = innerFrameUrl(crossSite);
+    await new Promise((resolve) => {
+      iframe.onload = resolve;
+      document.body.appendChild(iframe);
+    });
+
+    await messageFrameAndAwaitResponse(iframe, 'navigate');
+
+    let frameHistoryLength =
+        await messageFrameAndAwaitResponse(iframe, 'reportHistoryLength');
+    assert(
+        history.length == 2, 'History length changed when iframe navigates');
+    assert(
+        frameHistoryLength == 2,
+        'History length in iframe changed when iframe navigates');
+  }
+
+  function testIFrameNavInPortal() {
+    return runTestIFrameNavInPortal(false);
+  }
+
+  function testCrossSiteIFrameNavInPortal() {
+    return runTestIFrameNavInPortal(true);
+  }
+</script>
+</body>

@@ -12,7 +12,6 @@
         .then(r => r.json())
         .then(j => {
           assert_header_equals(j, {
-            "dest": "empty",
             "site": "cross-site",
             "user": "",
             "mode": "cors",
@@ -27,7 +26,6 @@
         .then(r => r.json())
         .then(j => {
           assert_header_equals(j, {
-            "dest": "",
             "site": "",
             "user": "",
             "mode": "",

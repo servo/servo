@@ -19,7 +19,7 @@
   <div id="fontTest">Downgraded font</div>
   <script>
   let nonce = token();
-  let expected = { "dest": "", "site": "", "user": "", "mode": "" };
+  let expected = { "site": "", "user": "", "mode": "" };
 
   // Validate various scenarios handle a request that redirects from https => http correctly and avoids disclosure of any Sec- headers.
   RunCommonRedirectTests("Https downgrade", downgradeRedirectTo, expected);
@@ -42,7 +42,6 @@
       .then(result => {
          headers = result.headers;
          got = {
-           "dest": headers["sec-fetch-dest"],
            "mode": headers["sec-fetch-mode"],
            "site": headers["sec-fetch-site"],
            "user": headers["sec-fetch-user"]
@@ -50,7 +49,6 @@
          assert_header_equals(got, {
            // Note that we're using `undefined` here, as opposed to "" elsewhere because of the way
            // that `image.py` encodes data.
-           "dest": undefined,
            "site": undefined,
            "user": undefined,
            "mode": undefined,
@@ -62,7 +60,7 @@
 <script>
   test(t => {
     t.add_cleanup(_ => { header = null; });
-    assert_header_equals(header, { "dest": "", "site": "cross-site", "user": "", "mode": "no-cors" });
+    assert_header_equals(header, { "site": "cross-site", "user": "", "mode": "no-cors" });
   }, "Https downgrade script => No headers");
 </script>
 </body>

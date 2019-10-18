@@ -30,7 +30,7 @@
     }, `<link rel='prefetch' href='https://${host}/...'>`);
   }
 
-  create_test("{{host}}:{{ports[https][0]}}", {"dest":"empty", "site":"same-origin", "user":"", "mode": "cors"});
-  create_test("{{hosts[][www]}}:{{ports[https][0]}}", {"dest":"empty", "site":"same-site", "user":"", "mode": "cors"});
-  create_test("{{hosts[alt][www]}}:{{ports[https][0]}}", {"dest":"empty", "site":"cross-site", "user":"", "mode": "cors"});
+  create_test("{{host}}:{{ports[https][0]}}", {"site":"same-origin", "user":"", "mode": "cors"});
+  create_test("{{hosts[][www]}}:{{ports[https][0]}}", {"site":"same-site", "user":"", "mode": "cors"});
+  create_test("{{hosts[alt][www]}}:{{ports[https][0]}}", {"site":"cross-site", "user":"", "mode": "cors"});
 </script>

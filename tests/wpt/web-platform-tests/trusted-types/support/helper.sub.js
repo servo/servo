@@ -2,14 +2,12 @@ const INPUTS = {
   HTML: "Hi, I want to be transformed!",
   SCRIPT: "Hi, I want to be transformed!",
   SCRIPTURL: "http://this.is.a.scripturl.test/",
-  URL: "http://hello.i.am.an.url/"
 };
 
 const RESULTS = {
   HTML: "Quack, I want to be a duck!",
   SCRIPT: "Meow, I want to be a cat!",
   SCRIPTURL: "http://this.is.a.successful.test/",
-  URL: "http://hooray.i.am.successfully.transformed/"
 };
 
 function createHTMLJS(html) {
@@ -26,19 +24,6 @@ function createScriptURLJS(scripturl) {
   return scripturl.replace("scripturl", "successful");
 }
 
-function createURLJS(url) {
-  return url.replace("hello", "hooray")
-      .replace("an.url", "successfully.transformed");
-}
-
-// When testing location.href (& friends), we have the problem that assigning
-// to the new location will navigate away from the test. To fix this, we'll
-// have a policy that will just stick the argument into the fragment identifier
-// of the current location.href.
-function createLocationURLJS(value) {
-  return location.href.replace(/#.*/g, "") + "#" + value;
-}
-
 function createHTML_policy(win, c) {
   return win.trustedTypes.createPolicy('SomeHTMLPolicyName' + c, { createHTML: createHTMLJS });
 }
@@ -49,10 +34,6 @@ function createScript_policy(win, c) {
 
 function createScriptURL_policy(win, c) {
   return win.trustedTypes.createPolicy('SomeScriptURLPolicyName' + c, { createScriptURL: createScriptURLJS });
-}
-
-function createURL_policy(win, c) {
-  return win.trustedTypes.createPolicy('SomeURLPolicyName' + c, { createURL: createURLJS });
 }
 
 function assert_element_accepts_trusted_html(win, c, t, tag, attribute, expected) {
@@ -71,12 +52,6 @@ function assert_element_accepts_trusted_script_url(win, c, t, tag, attribute, ex
   let p = createScriptURL_policy(win, c);
   let scripturl = p.createScriptURL(INPUTS.SCRIPTURL);
   assert_element_accepts_trusted_type(tag, attribute, scripturl, expected);
-}
-
-function assert_element_accepts_trusted_url(win, c, t, tag, attribute, expected) {
-  let p = createURL_policy(win, c);
-  let url = p.createURL(INPUTS.URL);
-  assert_element_accepts_trusted_type(tag, attribute, url, expected);
 }
 
 function assert_element_accepts_trusted_type(tag, attribute, value, expected) {
@@ -110,12 +85,6 @@ function assert_element_accepts_trusted_script_url_explicit_set(win, c, t, tag, 
   let p = createScriptURL_policy(win, c);
   let scripturl = p.createScriptURL(INPUTS.SCRIPTURL);
   assert_element_accepts_trusted_type_explicit_set(tag, attribute, scripturl, expected);
-}
-
-function assert_element_accepts_trusted_url_explicit_set(win, c, t, tag, attribute, expected) {
-  let p = createURL_policy(win, c);
-  let url = p.createURL(INPUTS.URL);
-  assert_element_accepts_trusted_type_explicit_set(tag, attribute, url, expected);
 }
 
 function assert_element_accepts_trusted_type_explicit_set(tag, attribute, value, expected) {
@@ -161,12 +130,6 @@ function assert_element_accepts_trusted_script_url_set_ns(win, c, t, tag, attrib
   let p = createScriptURL_policy(win, c);
   let scripturl = p.createScriptURL(INPUTS.SCRIPTURL);
   assert_element_accepts_trusted_type_set_ns(tag, attribute, scripturl, expected);
-}
-
-function assert_element_accepts_trusted_url_set_ns(win, c, t, tag, attribute, expected) {
-  let p = createURL_policy(win, c);
-  let url = p.createURL(INPUTS.URL);
-  assert_element_accepts_trusted_type_set_ns(tag, attribute, url, expected);
 }
 
 function assert_element_accepts_trusted_type_set_ns(tag, attribute, value, expected) {

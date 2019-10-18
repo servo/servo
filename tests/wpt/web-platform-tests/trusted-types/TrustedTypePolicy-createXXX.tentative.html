@@ -12,10 +12,8 @@
       createScript: s => s
     });
     assert_throws(new TypeError(), _ => { p1.createScriptURL("foo"); });
-    assert_throws(new TypeError(), _ => { p1.createURL("foo"); });
 
     const p2 = trustedTypes.createPolicy("policyURLAndScriptURL", {
-      createURL: s => s,
       createScriptURL: s => s
     });
     assert_throws(new TypeError(), _ => { p2.createHTML("foo"); });
@@ -26,23 +24,18 @@
     const noopPolicy = {
       createHTML: (s) => s,
       createScriptURL: (s) => s,
-      createURL: (s) => s,
       createScript: (s) => s,
     };
     policy = trustedTypes.createPolicy(Math.random(), noopPolicy, true);
     let el = document.createElement("div");
 
-    el.title = policy.createHTML(INPUTS.URL);
-    assert_equals(el.title, INPUTS.URL);
-
-    el.title = policy.createURL(INPUTS.HTML);
-    assert_equals(el.title, INPUTS.HTML);
+    el.title = policy.createHTML(INPUTS.SCRIPTURL);
+    assert_equals(el.title, INPUTS.SCRIPTURL);
   }, "Attributes without type constraints will work as before.");
 
   test(t => {
     const policy = trustedTypes.createPolicy("nullpolicy", null);
     assert_throws(new TypeError(), _ => { policy.createScriptURL("foo"); });
-    assert_throws(new TypeError(), _ => { policy.createURL("foo"); });
     assert_throws(new TypeError(), _ => { policy.createHTML("foo"); });
     assert_throws(new TypeError(), _ => { policy.createScript("foo"); });
   }, "trustedTypes.createPolicy(.., null) creates empty policy.");
@@ -95,7 +88,6 @@
   const testCases = [
     [TrustedHTML, "createHTML", "whatever", stringTestCases],
     [TrustedScript, "createScript", "whatever", stringTestCases],
-    [TrustedURL, "createURL", INPUTS.SCRIPTURL, urlTestCases],
     [TrustedScriptURL, "createScriptURL", INPUTS.SCRIPTURL, urlTestCases],
   ];
 

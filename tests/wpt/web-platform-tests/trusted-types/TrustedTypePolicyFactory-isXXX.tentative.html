@@ -10,7 +10,6 @@
   const noopPolicy = {
     'createHTML': (s) => s,
     'createScriptURL': (s) => s,
-    'createURL': (s) => s,
     'createScript': (s) => s,
   };
 
@@ -65,23 +64,6 @@
     assert_false(trustedTypes.isScriptURL(script3));
   }, 'TrustedTypePolicyFactory.isScriptURL requires the object to be created via policy.');
 
-  // isURL tests
-  test(t => {
-    const p = trustedTypes.createPolicy('url', noopPolicy);
-    let url = p.createURL(INPUTS.URL);
-
-    assert_true(trustedTypes.isURL(url));
-    let url2 = Object.create(url);
-
-    // instanceof can pass, but we rely on isScript
-    assert_true(url2 instanceof TrustedURL);
-    assert_false(trustedTypes.isURL(url2));
-
-    let url3 = Object.assign({}, url, {toString: () => 'fake'});
-
-    assert_false(trustedTypes.isURL(url3));
-  }, 'TrustedTypePolicyFactory.isURL requires the object to be created via policy.');
-
   // Test non-object parameters.
   test(t => {
     assert_false(trustedTypes.isHTML(null));
@@ -94,11 +76,6 @@
     assert_false(trustedTypes.isScript(0.5));
     assert_false(trustedTypes.isScript('test'));
     assert_false(trustedTypes.isScript({}));
-    assert_false(trustedTypes.isURL(null));
-    assert_false(trustedTypes.isURL(123));
-    assert_false(trustedTypes.isURL(0.5));
-    assert_false(trustedTypes.isURL('test'));
-    assert_false(trustedTypes.isURL({}));
     assert_false(trustedTypes.isScriptURL(null));
     assert_false(trustedTypes.isScriptURL(123));
     assert_false(trustedTypes.isScriptURL(0.5));
@@ -126,30 +103,19 @@
     assert_false(trustedTypes.isScriptURL({}));
   }, 'TrustedTypePolicyFactory.isScriptURL cannot be redefined.');
 
-  test(t => {
-    try { trustedTypes.isURL = () => 'fake'; } catch { }
-    assert_false(trustedTypes.isURL({}));
-  }, 'TrustedTypePolicyFactory.isURL cannot be redefined.');
-
   // Redefinition tests, via Object.defineProperty.
   test(t => {
-    try { Object.defineProperty(TrustedTypes, 'isHTML', () => 'fake'); } catch { }
+    try { Object.defineProperty(trustedTypes, 'isHTML', () => 'fake'); } catch { }
     assert_false(trustedTypes.isHTML({}));
   }, 'TrustedTypePolicyFactory.IsHTML cannot be redefined via defineProperty.');
 
   test(t => {
-    try { Object.defineProperty(TrustedTypes, 'isScript', () => 'fake'); } catch { }
+    try { Object.defineProperty(trustedTypes, 'isScript', () => 'fake'); } catch { }
     assert_false(trustedTypes.isScript({}));
   }, 'TrustedTypePolicyFactory.isScript cannot be redefined via definePropert.');
 
   test(t => {
-    try { Object.defineProperty(TrustedTypes, 'isScriptURL', () => 'fake'); } catch { }
+    try { Object.defineProperty(trustedTypes, 'isScriptURL', () => 'fake'); } catch { }
     assert_false(trustedTypes.isScriptURL({}));
   }, 'TrustedTypePolicyFactory.isScriptURL cannot be redefined via definePropert.');
-
-  test(t => {
-    try { Object.defineProperty(TrustedTypes, 'isURL', () => 'fake'); } catch { }
-    assert_false(trustedTypes.isURL({}));
-  }, 'TrustedTypePolicyFactory.isURL cannot be redefined via definePropert.');
-
 </script>

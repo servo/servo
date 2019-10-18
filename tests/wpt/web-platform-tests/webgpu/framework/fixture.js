@@ -23,11 +23,15 @@ export class Fixture {
 
   async init() {}
 
+  debug(msg) {
+    this.rec.debug(msg);
+  }
+
   log(msg) {
     this.rec.log(msg);
   }
 
-  finalize() {
+  async finalize() {
     if (this.numOutstandingAsyncExpectations !== 0) {
       throw new Error('there were outstanding asynchronous expectations (e.g. shouldReject) at the end of the test');
     }
@@ -48,8 +52,9 @@ export class Fixture {
 
   async asyncExpectation(fn) {
     this.numOutstandingAsyncExpectations++;
-    await fn();
+    const ret = await fn();
     this.numOutstandingAsyncExpectations--;
+    return ret;
   }
 
   expectErrorValue(expectedName, ex, m) {

@@ -8,10 +8,11 @@
 <div id="target"></div>
 <script>
   test(t => {
-    assert_equals(trustedTypes.getPropertyType("a", "href"), "TrustedURL");
-    assert_equals(trustedTypes.getPropertyType("a", "id"), null);
-    assert_equals(trustedTypes.getPropertyType("a", "b"), null);
-  }, "sanity check trustedTypes.getPropertyType for the HTML a element.");
+    assert_equals(trustedTypes.getPropertyType("script", "text"), "TrustedScript");
+    assert_equals(trustedTypes.getPropertyType("script", "src"), "TrustedScriptURL");
+    assert_equals(trustedTypes.getPropertyType("script", "id"), null);
+    assert_equals(trustedTypes.getPropertyType("script", "b"), null);
+  }, "sanity check trustedTypes.getPropertyType for the HTML script element.");
 
   test(t => {
     assert_equals(trustedTypes.getAttributeType("img", "onerror"), "TrustedScript");
@@ -28,11 +29,9 @@
   test(t => {
     // returns the proper type for attribute-related properties
     assert_equals(trustedTypes.getPropertyType("script", "src"), "TrustedScriptURL");
-    assert_equals(trustedTypes.getPropertyType("img", "src"), "TrustedURL");
 
     // is case insensitive for tag names
     assert_equals(trustedTypes.getPropertyType("SCRIPT", "src"), "TrustedScriptURL");
-    assert_equals(trustedTypes.getPropertyType("ImG", "src"), "TrustedURL");
 
     // is case sensitive for property names
     assert_equals(trustedTypes.getPropertyType("script", "sRc"), null);
@@ -53,7 +52,6 @@
   test(t => {
     // returns the proper type
     assert_equals(trustedTypes.getAttributeType('script', 'src'), 'TrustedScriptURL');
-    assert_equals(trustedTypes.getAttributeType('img', 'src'), 'TrustedURL');
 
     // ignores attributes from unknown namespaces
     assert_equals(trustedTypes.getAttributeType(
@@ -61,11 +59,9 @@
 
     // is case insensitive for element names
     assert_equals(trustedTypes.getAttributeType('SCRIPT', 'src'), 'TrustedScriptURL');
-    assert_equals(trustedTypes.getAttributeType('imG', 'src'), 'TrustedURL');
 
     // is case insensitive for the attribute names
     assert_equals(trustedTypes.getAttributeType('script', 'SRC'), 'TrustedScriptURL');
-    assert_equals(trustedTypes.getAttributeType('imG', 'srC'), 'TrustedURL');
 
     // supports the inline event handlers
     assert_equals(trustedTypes.getAttributeType('img', 'onerror'), 'TrustedScript');
@@ -82,7 +78,6 @@
 
     // Spot testing some values.
     assert_equals(map["script"].attributes.src, "TrustedScriptURL");
-    assert_equals(map["img"].attributes.src, "TrustedURL");
     assert_equals(map["*"].properties.innerHTML, "TrustedHTML");
     assert_equals(map["foo"], undefined);
 
