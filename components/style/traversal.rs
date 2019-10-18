@@ -45,12 +45,19 @@ impl<E: TElement> PreTraverseToken<E> {
     }
 }
 
+/// A global variable holding the state of
+/// `is_servo_nonincremental_layout()`.
+/// See [#22854](https://github.com/servo/servo/issues/22854).
+#[cfg(feature = "servo")]
+pub static IS_SERVO_NONINCREMENTAL_LAYOUT: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
 #[cfg(feature = "servo")]
 #[inline]
 fn is_servo_nonincremental_layout() -> bool {
-    use servo_config::opts;
+    use std::sync::atomic::Ordering;
 
-    opts::get().nonincremental_layout
+    IS_SERVO_NONINCREMENTAL_LAYOUT.load(Ordering::Relaxed)
 }
 
 #[cfg(not(feature = "servo"))]

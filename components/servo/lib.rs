@@ -310,6 +310,15 @@ where
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
+        use std::sync::atomic::Ordering;
+
+        style::context::DEFAULT_DISABLE_STYLE_SHARING_CACHE
+            .store(opts.disable_share_style_cache, Ordering::Relaxed);
+        style::context::DEFAULT_DUMP_STYLE_STATISTICS
+            .store(opts.style_sharing_stats, Ordering::Relaxed);
+        style::traversal::IS_SERVO_NONINCREMENTAL_LAYOUT
+            .store(opts.nonincremental_layout, Ordering::Relaxed);
+
         if !opts.multiprocess {
             media_platform::init();
         }
