@@ -1637,6 +1637,7 @@ class MethodDefiner(PropertyDefiner):
         self.regular = [{"name": m.identifier.name,
                          "methodInfo": not m.isStatic(),
                          "length": methodLength(m),
+                         "flags": "JSPROP_ENUMERATE",
                          "condition": PropertyDefiner.getControllingCondition(m, descriptor)}
                         for m in methods]
 
@@ -1646,6 +1647,7 @@ class MethodDefiner(PropertyDefiner):
                                  "methodInfo": False,
                                  "selfHostedName": "ArrayValues",
                                  "length": 0,
+                                 "flags": "0",  # Not enumerable, per spec.
                                  "condition": "Condition::Satisfied"})
 
         # Generate the keys/values/entries aliases for value iterables.
@@ -1660,6 +1662,7 @@ class MethodDefiner(PropertyDefiner):
                 "methodInfo": False,
                 "selfHostedName": "ArrayKeys",
                 "length": 0,
+                "flags": "JSPROP_ENUMERATE",
                 "condition": PropertyDefiner.getControllingCondition(m,
                                                                      descriptor)
             })
@@ -1668,6 +1671,7 @@ class MethodDefiner(PropertyDefiner):
                 "methodInfo": False,
                 "selfHostedName": "ArrayValues",
                 "length": 0,
+                "flags": "JSPROP_ENUMERATE",
                 "condition": PropertyDefiner.getControllingCondition(m,
                                                                      descriptor)
             })
@@ -1676,6 +1680,7 @@ class MethodDefiner(PropertyDefiner):
                 "methodInfo": False,
                 "selfHostedName": "ArrayEntries",
                 "length": 0,
+                "flags": "JSPROP_ENUMERATE",
                 "condition": PropertyDefiner.getControllingCondition(m,
                                                                      descriptor)
             })
@@ -1684,6 +1689,7 @@ class MethodDefiner(PropertyDefiner):
                 "methodInfo": False,
                 "selfHostedName": "ArrayForEach",
                 "length": 1,
+                "flags": "JSPROP_ENUMERATE",
                 "condition": PropertyDefiner.getControllingCondition(m,
                                                                      descriptor)
             })
@@ -1696,6 +1702,7 @@ class MethodDefiner(PropertyDefiner):
                     "name": "toString",
                     "nativeName": stringifier.identifier.name,
                     "length": 0,
+                    "flags": "JSPROP_ENUMERATE",
                     "condition": PropertyDefiner.getControllingCondition(stringifier, descriptor)
                 })
         self.unforgeable = unforgeable
@@ -1707,13 +1714,10 @@ class MethodDefiner(PropertyDefiner):
         def condition(m, d):
             return m["condition"]
 
-        flags = "JSPROP_ENUMERATE"
-        if self.unforgeable:
-            flags += " | JSPROP_PERMANENT | JSPROP_READONLY"
-
         def specData(m):
-            # TODO: Use something like JS_FNSPEC
-            # https://github.com/servo/servo/issues/6391
+            flags = m["flags"]
+            if self.unforgeable:
+                flags += " | JSPROP_PERMANENT | JSPROP_READONLY"
             if "selfHostedName" in m:
                 selfHostedName = '%s as *const u8 as *const libc::c_char' % str_to_const_array(m["selfHostedName"])
                 assert not m.get("methodInfo", True)
@@ -3075,12 +3079,14 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                                                    symbolJSID=symbolJSID))
                     defineFn = "JS_DefinePropertyById2"
                     prop = "iteratorId.handle()"
+                    enumFlags = "0"  # Not enumerable, per spec.
                 elif alias.startswith("@@"):
                     raise TypeError("Can't handle any well-known Symbol other than @@iterator")
                 else:
                     getSymbolJSID = None
                     defineFn = "JS_DefineProperty"
                     prop = '"%s"' % alias
+                    enumFlags = "JSPROP_ENUMERATE"
                 return CGList([
                     getSymbolJSID,
                     # XXX If we ever create non-enumerable properties that can
@@ -3089,10 +3095,11 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                     CGGeneric(fill(
                         """
                         assert!(${defineFn}(*cx, prototype.handle(), ${prop}, aliasedVal.handle(),
-                                            JSPROP_ENUMERATE as u32));
+                                            ${enumFlags} as u32));
                         """,
                         defineFn=defineFn,
-                        prop=prop))
+                        prop=prop,
+                        enumFlags=enumFlags))
                 ], "\n")
 
             def defineAliasesFor(m):
