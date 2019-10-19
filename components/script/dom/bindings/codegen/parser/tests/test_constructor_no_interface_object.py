@@ -28,24 +28,9 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            [NoInterfaceObject, HTMLConstructor]
+            [NoInterfaceObject]
             interface TestHTMLConstructorNoInterfaceObject {
-            };
-        """)
-
-        results = parser.finish()
-    except:
-        threw = True
-
-    harness.ok(threw, "Should have thrown.")
-
-    parser = parser.reset()
-
-    threw = False
-    try:
-        parser.parse("""
-            [HTMLConstructor, NoInterfaceObject]
-            interface TestHTMLConstructorNoInterfaceObject {
+              [HTMLConstructor] constructor();
             };
         """)
 

@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlinputelement
-[Exposed=Window, HTMLConstructor]
+[Exposed=Window]
 interface HTMLInputElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   [CEReactions]
            attribute DOMString accept;
   [CEReactions]
@@ -109,7 +111,6 @@ interface HTMLInputElement : HTMLElement {
   // Select with file-system paths for testing purpose
   [Pref="dom.testing.htmlinputelement.select_files.enabled"]
   void selectFiles(sequence<DOMString> path);
-
 };
 
 // https://html.spec.whatwg.org/multipage/#HTMLInputElement-partial

@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmloptgroupelement
-[Exposed=Window, HTMLConstructor]
+[Exposed=Window]
 interface HTMLOptGroupElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   [CEReactions]
            attribute boolean disabled;
   // [CEReactions]
