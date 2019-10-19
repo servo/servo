@@ -6,6 +6,8 @@ def main(request, response):
         response.headers.set("Cross-Origin-Opener-Policy", coop)
     if coep != "":
         response.headers.set("Cross-Origin-Embedder-Policy", coep)
+    if 'cache' in request.GET:
+        response.headers.set('Cache-Control', 'max-age=3600')
 
     if redirect != None:
         response.status = 302

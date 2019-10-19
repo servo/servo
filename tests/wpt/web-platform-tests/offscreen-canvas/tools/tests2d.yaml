@@ -9305,6 +9305,10 @@
     @assert ctx.font === '20px serif';
 
     ctx.font = '20px serif';
+    ctx.font = '';
+    @assert ctx.font === '20px serif';
+
+    ctx.font = '20px serif';
     ctx.font = 'bogus';
     @assert ctx.font === '20px serif';
 
