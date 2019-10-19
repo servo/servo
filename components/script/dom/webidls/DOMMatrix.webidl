@@ -10,7 +10,8 @@
  * related or neighboring rights to this work.
  */
 
-[Exposed=(Window,Worker)]
+[Exposed=(Window,Worker),
+ LegacyWindowAlias=WebKitCSSMatrix]
 interface DOMMatrix : DOMMatrixReadOnly {
     [Throws] constructor(optional (DOMString or sequence<unrestricted double>) init);
 
