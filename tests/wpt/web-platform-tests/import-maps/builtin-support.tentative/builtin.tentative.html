@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/test-helper.js"></script>
+
+<script>
+const tests = {
+  // Arrays of expected results for:
+  // - <script src type="module">,
+  // - <script src> (classic script),
+  // - static import, and
+  // - dynamic import.
+
+  // Discussions about notations are ongoing, e.g.
+  // https://github.com/tc39/proposal-javascript-standard-library/issues/12
+  // Currently the tests expects two notations are accepted.
+  // TODO: Once the discussions converge, update this and related tests.
+  "std:blank":
+    [Result.BUILTIN, Result.FETCH_ERROR, Result.BUILTIN, Result.BUILTIN],
+  "@std/blank":
+    [Result.URL, Result.URL, Result.BUILTIN, Result.BUILTIN],
+  "std:none":
+    [Result.FETCH_ERROR, Result.FETCH_ERROR, Result.FETCH_ERROR, Result.FETCH_ERROR],
+  "@std/none":
+    [Result.URL, Result.URL, Result.FETCH_ERROR, Result.FETCH_ERROR],
+};
+
+doTests(null, null, tests);
+</script>
+<body>

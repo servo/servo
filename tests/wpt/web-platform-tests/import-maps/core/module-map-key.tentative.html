@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "../resources/log.js?pipe=sub&name=A": "../resources/log.js?pipe=sub&name=B"
+  }
+}
+</script>
+<script>
+const log = [];
+
+// This test reflects the Chromium's current implementation.
+// If the import map resolution is moved into the fetch spec, the module map's
+// key will become the URL/specifier BEFORE import map resolution.
+// https://crbug.com/928435
+promise_test(() => {
+  return import("../resources/log.js?pipe=sub&name=A")
+    .then(() => import("../resources/log.js?pipe=sub&name=B"))
+    .then(() => assert_array_equals(log, ["log:B"]))
+  },
+  "Module map's key is the URL after import map resolution");
+</script>

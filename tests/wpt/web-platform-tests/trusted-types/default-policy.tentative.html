@@ -39,7 +39,6 @@ promise_test(t => {
 }, "Count SecurityPolicyViolation events.");
 
 const testCases = [
-  [ "a", "href"],
   [ "script", "src" ],
   [ "div", "innerHTML" ],
   [ "script", "text" ],
@@ -71,7 +70,6 @@ function policy(str) {
 }
 
 trustedTypes.createPolicy("default", {
-  createURL: policy,
   createScriptURL: policy,
   createHTML: policy,
   createScript: policy
@@ -105,6 +103,6 @@ testCases.forEach(c => {
 });
 
 // Trigger the exit condition in the "Count" promise test above.
-try { document.createElement("a").href = "done"; } catch (e) {}
+try { document.createElement("script").text = "done"; } catch (e) {}
 </script>
 </body>

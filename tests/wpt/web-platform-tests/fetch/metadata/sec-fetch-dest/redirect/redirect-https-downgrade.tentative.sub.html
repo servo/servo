@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/fetch/metadata/resources/helper.js></script>
+<script src=/fetch/metadata/resources/redirectTestHelper.sub.js></script>
+<script src=/common/security-features/resources/common.sub.js></script>
+<script src=/common/utils.js></script>
+<style>
+  @font-face {
+    font-family: myDowngradedFont;
+    src: url(https://{{host}}:{{ports[https][0]}}/fetch/api/resources/redirect.py?location=http%3A%2F%2F{{host}}%3A{{ports[http][0]}}%2Ffetch%2Fmetadata%2Fresources%2Frecord-header.py%3Ffile%3Dfont-https-downgrade);
+  }
+  #fontTest {
+    font-family: myDowngradedFont;
+  }
+</style>
+<body>
+  <div id="fontTest">Downgraded font</div>
+  <script>
+  let nonce = token();
+
+  // Validate various scenarios handle a request that redirects from https => http correctly and avoids disclosure of any Sec- headers.
+  RunCommonRedirectTests("Https downgrade", downgradeRedirectTo, expected);
+
+  document.fonts.ready.then(function () {
+    promise_test(t => {
+      return new Promise((resolve, reject) => {
+        let key = "font-https-downgrade";
+        fetch_record_header_with_catch(key, "", assert_header_dest_equals, resolve, reject);
+      });
+    }, "Https downgrade font => No headers");
+  });
+
+  promise_test(() =>
+    return requestViaImage(secureRedirectURL + encodeURIComponent("http://{{host}}:{{ports[http][0]}}/common/security-features/subresource/image.py"))
+      .then(result => {
+         headers = result.headers;
+         got = {
+           "dest": headers["sec-fetch-dest"]
+         };
+         // Note that we're using `undefined` here, as opposed to "" elsewhere because of the way
+         // that `image.py` encodes data.
+         assert_header_dest_equals(got, undefined);
+  }), "Https downgrade image => No headers");
+</script>
+
+<script src="https://{{host}}:{{ports[https][0]}}/fetch/api/resources/redirect.py?location=http%3A%2F%2F{{host}}%3A{{ports[http][0]}}%2Ffetch%2Fmetadata%2Fresources%2Fecho-as-script.py"></script>
+<script>
+  test(t => {
+    t.add_cleanup(_ => { header = null; });
+    assert_header_dest_equals(header, "");
+  }, "Https downgrade script => No headers");
+</script>
+</body>

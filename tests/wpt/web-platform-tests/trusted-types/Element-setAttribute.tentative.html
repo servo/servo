@@ -6,29 +6,6 @@
 </head>
 <body>
 <script>
-  // TrustedURL Assignments
-  let testCases = [
-    [ 'a', 'href' ],
-    [ 'area', 'href' ],
-    [ 'base', 'href' ],
-    [ 'frame', 'src' ],
-    [ 'iframe', 'src' ],
-    [ 'img', 'src' ],
-    [ 'input', 'src' ],
-    [ 'link', 'href' ],
-    [ 'video', 'src' ],
-    [ 'object', 'data' ],
-    [ 'object', 'codeBase' ],
-    [ 'source', 'src' ],
-    [ 'track', 'src' ]
-  ];
-
-  testCases.forEach(c => {
-    test(t => {
-      assert_element_accepts_trusted_url_explicit_set(window, c, t, c[0], c[1], RESULTS.URL);
-    }, c[0] + "." + c[1] + " assigned via policy (successful URL transformation)");
-  });
-
   // TrustedScriptURL Assignments
   let scriptTestCases = [
     [ 'embed', 'src' ],
@@ -54,8 +31,8 @@
 
   // Other attributes can be assigned with TrustedTypes or strings or null values
   test(t => {
-    assert_element_accepts_trusted_url_explicit_set(window, 'arel', t, 'a', 'rel', RESULTS.URL);
-  }, "a.rel assigned via policy (successful URL transformation)");
+    assert_element_accepts_trusted_script_url_explicit_set(window, 'scriptsrc1', t, 'script', 'src', RESULTS.SCRIPTURL);
+  }, "script.src assigned via policy (successful script transformation)");
 
   test(t => {
     assert_element_accepts_non_trusted_type_explicit_set('a', 'rel', 'A string', 'A string');

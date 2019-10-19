@@ -10,7 +10,6 @@
     t.add_cleanup(_ => { header = null; });
 
     assert_header_equals(header, {
-      "dest": "script",
       "site": "same-origin",
       "user": "",
       "mode": "no-cors",
@@ -25,7 +24,6 @@
     t.add_cleanup(_ => { header = null; });
 
     assert_header_equals(header, {
-      "dest": "script",
       "site": "same-site",
       "user": "",
       "mode": "no-cors",
@@ -40,7 +38,6 @@
     t.add_cleanup(_ => { header = null; });
 
     assert_header_equals(header, {
-      "dest": "script",
       "site": "cross-site",
       "user": "",
       "mode": "no-cors",
@@ -55,7 +52,6 @@
     t.add_cleanup(_ => { header = null; });
 
     assert_header_equals(header, {
-      "dest": "script",
       "site": "same-origin",
       "user": "",
       "mode": "cors",

@@ -44,7 +44,7 @@
         const text = await response.text();
 
         // Verify presence of the expected Sec-Fetch-... request headers.
-        let expected = {"dest":"empty", "site":"same-origin", "user":"", "mode": "no-cors"};
+        let expected = {"site":"same-origin", "user":"", "mode": "no-cors"};
         assert_header_equals(text, expected);
       }, 'Sec-Fetch headers after SW fallback');
 </script>

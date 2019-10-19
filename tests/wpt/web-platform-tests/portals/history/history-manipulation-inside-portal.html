@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/run-test-in-portal.js"></script>
+<body>
+<script>
+  var portalSrc =
+      'resources/portal-manipulate-history.html';
+
+  // Runs before and after the history manipulation in the portal to confirm
+  // that the session history of the portal host is not affected by any history
+  // changes in the portal.
+  function assertInitialHistoryState() {
+    assert_equals(history.length, 1);
+    assert_false(!!history.state);
+  }
+
+  promise_test(async () => {
+    assertInitialHistoryState();
+    await runTestInPortal(portalSrc, 'testHistoryPushStateInPortal');
+    assertInitialHistoryState();
+  }, 'history.pushState navigates independently in a portal');
+
+  promise_test(async () => {
+    assertInitialHistoryState();
+    await runTestInPortal(portalSrc, 'testHistoryReplaceStateInPortal');
+    assertInitialHistoryState();
+  }, 'history.replaceState navigates independently in a portal');
+
+  promise_test(async () => {
+    assertInitialHistoryState();
+    await runTestInPortal(portalSrc, 'testLocationAssignInPortal');
+    assertInitialHistoryState();
+  }, 'location.assign navigates independently in a portal');
+
+  promise_test(async () => {
+    assertInitialHistoryState();
+    await runTestInPortal(portalSrc, 'testLocationReplaceInPortal');
+    assertInitialHistoryState();
+  }, 'location.replace navigates independently in a portal');
+
+  promise_test(async () => {
+    assertInitialHistoryState();
+    await runTestInPortal(portalSrc, 'testSetLocationHrefInPortal');
+    assertInitialHistoryState();
+  }, 'Setting location.href navigates independently in a portal');
+
+  promise_test(async () => {
+    assertInitialHistoryState();
+    await runTestInPortal(portalSrc, 'testSyntheticAnchorClickInPortal');
+    assertInitialHistoryState();
+  }, 'Synthetic anchor click navigates independently in a portal');
+</script>
+</body>

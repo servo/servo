@@ -11,6 +11,8 @@ export function encodeSelectively(s) {
   ret = ret.replace(/%2F/g, '/');
   ret = ret.replace(/%3A/g, ':');
   ret = ret.replace(/%3D/g, '=');
+  ret = ret.replace(/%5B/g, '[');
+  ret = ret.replace(/%5D/g, ']');
   ret = ret.replace(/%7B/g, '{');
   ret = ret.replace(/%7D/g, '}');
   return ret;

@@ -5,10 +5,12 @@
 
 [Exposed=(Window,Worker)]
 interface ReportBody {
+  [Default] object toJSON();
 };
 
 [Exposed=(Window,Worker)]
 interface Report {
+  [Default] object toJSON();
   readonly attribute DOMString type;
   readonly attribute DOMString url;
   readonly attribute ReportBody? body;
@@ -33,6 +35,7 @@ typedef sequence<Report> ReportList;
 
 [Exposed=(Window,Worker)]
 interface DeprecationReportBody : ReportBody {
+  [Default] object toJSON();
   readonly attribute DOMString id;
   readonly attribute Date? anticipatedRemoval;
   readonly attribute DOMString message;
@@ -43,6 +46,7 @@ interface DeprecationReportBody : ReportBody {
 
 [Exposed=(Window,Worker)]
 interface InterventionReportBody : ReportBody {
+  [Default] object toJSON();
   readonly attribute DOMString id;
   readonly attribute DOMString message;
   readonly attribute DOMString? sourceFile;
@@ -52,6 +56,7 @@ interface InterventionReportBody : ReportBody {
 
 [Exposed=(Window,Worker)]
 interface CrashReportBody : ReportBody {
+  [Default] object toJSON();
   readonly attribute DOMString? reason;
 };
 

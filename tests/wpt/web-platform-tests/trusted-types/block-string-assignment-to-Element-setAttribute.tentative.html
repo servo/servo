@@ -11,33 +11,6 @@
 <script>
   const nullPolicy = trustedTypes.createPolicy('NullPolicy', {createScript: s => s});
 
-  // TrustedURL Assignments
-  const URLTestCases = [
-    [ 'a', 'href' ],
-    [ 'area', 'href' ],
-    [ 'base', 'href' ],
-    [ 'button', 'formAction' ],
-    [ 'form', 'action' ],
-    [ 'frame', 'src' ],
-    [ 'iframe', 'src' ],
-    [ 'img', 'src' ],
-    [ 'input', 'formAction' ],
-    [ 'input', 'src' ],
-    [ 'link', 'href' ],
-    [ 'video', 'src' ],
-    [ 'source', 'src' ],
-    [ 'track', 'src' ]
-  ];
-
-  URLTestCases.forEach(c => {
-    test(t => {
-      assert_element_accepts_trusted_url_explicit_set(window, c, t, c[0], c[1], RESULTS.URL);
-      assert_throws_no_trusted_type_explicit_set(c[0], c[1], 'A string');
-      assert_throws_no_trusted_type_explicit_set(c[0], c[1], null);
-      assert_throws_no_trusted_type_explicit_set(c[0], c[1], nullPolicy.createScript('script'));
-    }, c[0] + "." + c[1] + " accepts only TrustedURL");
-  });
-
   // TrustedScriptURL Assignments
   const scriptURLTestCases = [
     [ 'embed', 'src' ],
@@ -83,24 +56,17 @@
   });
 
   test(t => {
-    let el = document.createElement('iframe');
+    let el = document.createElement('script');
 
     assert_throws(new TypeError(), _ => {
       el.setAttribute('SrC', INPUTS.URL);
     });
 
     assert_equals(el.src, '');
-  }, "`Element.prototype.setAttribute.SrC = string` throws.");
+  }, "`Script.prototype.setAttribute.SrC = string` throws.");
 
   // After default policy creation string and null assignments implicitly call createXYZ
-  let p = window.trustedTypes.createPolicy("default", { createURL: createURLJS, createScriptURL: createScriptURLJS, createHTML: createHTMLJS, createScript: createScriptJS }, true);
-  URLTestCases.forEach(c => {
-    test(t => {
-      assert_element_accepts_trusted_type(c[0], c[1], INPUTS.URL, RESULTS.URL);
-      assert_element_accepts_trusted_type(c[0], c[1], null, window.location.toString().replace(/[^\/]*$/, "null"));
-    }, c[0] + "." + c[1] + " accepts string and null after default policy was created.");
-  });
-
+  let p = window.trustedTypes.createPolicy("default", { createScriptURL: createScriptURLJS, createHTML: createHTMLJS, createScript: createScriptJS }, true);
   scriptURLTestCases.forEach(c => {
     test(t => {
       assert_element_accepts_trusted_type(c[0], c[1], INPUTS.SCRIPTURL, RESULTS.SCRIPTURL);
@@ -124,10 +90,6 @@
 
   // Other attributes can be assigned with TrustedTypes or strings or null values
   test(t => {
-    assert_element_accepts_trusted_url_explicit_set(window, 'arel', t, 'a', 'rel', RESULTS.URL);
-  }, "a.rel assigned via policy (successful URL transformation)");
-
-  test(t => {
     assert_element_accepts_non_trusted_type_explicit_set('a', 'rel', 'A string', 'A string');
   }, "a.rel accepts strings");
 
@@ -136,14 +98,14 @@
   }, "a.rel accepts null");
 
   test(t => {
-    let div = document.createElement('div');
-    let span = document.createElement('span');
+    let embed = document.createElement('embed');
+    let script = document.createElement('script');
 
-    div.setAttribute('src', INPUTS.URL);
-    let attr = div.getAttributeNode('src');
-    div.removeAttributeNode(attr);
-    span.setAttributeNode(attr);
+    embed.setAttribute('src', INPUTS.SCRIPTURL);
+    let attr = embed.getAttributeNode('src');
+    embed.removeAttributeNode(attr);
+    script.setAttributeNode(attr);
 
-    assert_equals(span.getAttribute('src'), INPUTS.URL);
-  }, "`span.src = setAttributeNode(div.src)` with string works.");
+    assert_equals(script.getAttribute('src'), RESULTS.SCRIPTURL);
+  }, "`script.src = setAttributeNode(embed.src)` with string works.");
 </script>

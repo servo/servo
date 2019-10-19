@@ -14,10 +14,6 @@ export class FilterByGroup {
     this.groupPrefix = groupPrefix;
   }
 
-  matches(spec, testcase) {
-    throw new Error('unimplemented');
-  }
-
   async iterate(loader) {
     const specs = await loader.listing(this.suite);
     const entries = [];

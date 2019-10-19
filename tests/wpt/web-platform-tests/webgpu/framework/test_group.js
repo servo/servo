@@ -36,7 +36,7 @@ export class TestGroup {
     }
 
     if (this.seen.has(name)) {
-      throw new Error('Duplicate test name');
+      throw new Error(`Duplicate test name: ${name}`);
     }
 
     this.seen.add(name);
@@ -113,15 +113,15 @@ class RunCaseSpecific {
     this.fn = fn;
   }
 
-  async run() {
+  async run(debug) {
     const [rec, res] = this.recorder.record(this.id.test, this.id.params);
-    rec.start();
+    rec.start(debug);
 
     try {
       const inst = new this.fixture(rec, this.id.params || {});
       await inst.init();
       await this.fn(inst);
-      inst.finalize();
+      await inst.finalize();
     } catch (e) {
       rec.threw(e);
     }

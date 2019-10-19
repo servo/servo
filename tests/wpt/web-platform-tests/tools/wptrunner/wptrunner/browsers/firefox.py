@@ -198,7 +198,7 @@ def run_info_browser_version(binary):
 
 
 def update_properties():
-    return (["os", "debug", "webrender", "fisson", "e10s", "sw-e10s", "processor"],
+    return (["os", "debug", "webrender", "fission", "e10s", "sw-e10s", "processor"],
             {"os": ["version"], "processor": ["bits"]})
 
 

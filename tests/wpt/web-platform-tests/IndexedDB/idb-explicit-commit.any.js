@@ -288,5 +288,5 @@ promise_test(async testCase => {
   assert_equals(getRequest1.result.title, 'title1');
   assert_equals(getRequest2.result.title, 'title2');
   db.close();
-}, 'Transactions that handle all errors properly should be behave as ' +
+}, 'Transactions that handle all errors properly should behave as ' +
    'expected when an explicit commit is called in an onerror handler.');

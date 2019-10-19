@@ -7,62 +7,52 @@
 <script src=/common/utils.js></script>
 <body>
 <script>
-  let nonce = token();
+  const nonce = token();
 
-  promise_test(t => {
-    return new Promise((resolve, reject) => {
-      let key = "embed-same-origin" + nonce;
+  const origins = {
+    "same-origin": "https://{{host}}:{{ports[https][0]}}",
+    "same-site":   "https://{{hosts[][www]}}:{{ports[https][0]}}",
+    "cross-site":  "https://{{hosts[alt][www]}}:{{ports[https][0]}}",
+  };
 
-      let e = document.createElement('embed');
-      e.src = "https://{{host}}:{{ports[https][0]}}/fetch/metadata/resources/record-header.py?file=" + key;
-      e.onload = e => {
-        let expected = {"dest":"embed", "site":"same-origin", "user":"", "mode":"no-cors"};
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-          .then(response => response.text())
-          .then(text => assert_header_equals(text, expected))
-          .then(_ => resolve())
-          .catch(e => reject(e));
-      };
+  for (let site in origins) {
+    promise_test(t => {
+      return new Promise((resolve, reject) => {
+        let key = "embed-" + site + "-" + nonce;
 
-      document.body.appendChild(e);
-    })
-  }, "Same-Origin embed");
+        let el = document.createElement('embed');
+        el.src = origins[site] + "/fetch/metadata/resources/record-header.py?file=" + key;
+        el.onload = _ => {
+          let expected = {"dest": "embed", "site": site, "user": "", "mode":"no-cors"};
+          validate_expectations(key, expected, site + " embed")
+            .then(resolve)
+            .catch(reject);
+        };
 
-  promise_test(t => {
-    return new Promise((resolve, reject) => {
-      let key = "embed-same-site" + nonce;
+        document.body.appendChild(el);
+      })
+    }, "Wrapper: " + site + " embed");
 
-      let e = document.createElement('embed');
-      e.src = "https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/metadata/resources/record-header.py?file=" + key;
-      e.onload = e => {
-        let expected = {"dest":"embed", "site":"same-site", "user":"", "mode":"no-cors"};
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-          .then(response => response.text())
-          .then(text => assert_header_equals(text, expected))
-          .then(_ => resolve())
-          .catch(e => reject(e));
-      };
+    promise_test(t => {
+      return new Promise((resolve, reject) => {
+        let key = "post-embed-" + site + "-" + nonce;
 
-      document.body.appendChild(e);
-    })
-  }, "Same-Site embed");
+        let el = document.createElement('embed');
+        el.src = "/common/blank.html";
+        el.addEventListener("load", _ => {
+          el.addEventListener("load", _ => {
+            let expected = {"dest": "embed", "site": site, "user":"", "mode":"no-cors"};
+            validate_expectations(key, expected, "Navigate to " + site + " embed")
+              .then(resolve)
+              .catch(reject);
+          }, { once: true });
 
-  promise_test(t => {
-    return new Promise((resolve, reject) => {
-      let key = "embed-cross-site" + nonce;
+          // Navigate the existing `<embed>`
+          window.frames[window.length - 1].location = origins[site] + "/fetch/metadata/resources/record-header.py?file=" + key;
+        }, { once: true });
 
-      let e = document.createElement('embed');
-      e.src = "https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/metadata/resources/record-header.py?file=" + key;
-      e.onload = e => {
-        let expected = {"dest":"embed", "site":"cross-site", "user":"", "mode":"no-cors"};
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-          .then(response => response.text())
-          .then(text => assert_header_equals(text, expected))
-          .then(_ => resolve())
-          .catch(e => reject(e));
-      };
-
-      document.body.appendChild(e);
-    })
-  }, "Cross-Site embed");
+        document.body.appendChild(el);
+      })
+    }, "Wrapper: Navigate to " + site + " embed");
+  }
 </script>

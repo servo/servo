@@ -78,7 +78,7 @@ g.test('memcpy', async t => {
     },
     layout: pl
   });
-  const encoder = t.device.createCommandEncoder({});
+  const encoder = t.device.createCommandEncoder();
   const pass = encoder.beginComputePass();
   pass.setPipeline(pipeline);
   pass.setBindGroup(0, bg);

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/run-test-in-portal.js"></script>
+<body>
+<script>
+  var portalSrc =
+      'resources/portal-manipulate-history-with-subframes.sub.html';
+
+  // Runs before and after the history manipulation in the portal to confirm
+  // that the session history of the portal host is not affected by any history
+  // changes in the portal.
+  function assertInitialHistoryState() {
+    assert_equals(history.length, 1);
+    assert_false(!!history.state);
+  }
+
+  promise_test(async () => {
+    assertInitialHistoryState();
+    await runTestInPortal(portalSrc, 'testIFrameSrcInPortal');
+    assertInitialHistoryState();
+  }, 'Setting iframe src navigates independently in a portal');
+
+  promise_test(async () => {
+    assertInitialHistoryState();
+    await runTestInPortal(portalSrc, 'testCrossSiteIFrameSrcInPortal');
+    assertInitialHistoryState();
+  }, 'Setting cross site iframe src navigates independently in a portal');
+
+  promise_test(async () => {
+    assertInitialHistoryState();
+    await runTestInPortal(portalSrc, 'testIFrameNavInPortal');
+    assertInitialHistoryState();
+  }, 'iframe navigates itself independently in a portal');
+
+  promise_test(async () => {
+    assertInitialHistoryState();
+    await runTestInPortal(portalSrc, 'testCrossSiteIFrameNavInPortal');
+    assertInitialHistoryState();
+  }, 'Cross site iframe navigates itself independently in a portal');
+</script>
+</body>

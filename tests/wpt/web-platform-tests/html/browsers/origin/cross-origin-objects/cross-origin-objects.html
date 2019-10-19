@@ -148,6 +148,9 @@ addTest(function(win) {
   assert_throws("SecurityError", function() { win.location.pathname; }, "location.pathname throws cross-origin");
   assert_equals(B.frames, 'override', "Overrides visible in the same-origin case");
   assert_equals(win.frames, win, "Overrides invisible in the cross-origin case");
+  assert_equals(B.focus, 'override', "Overrides visible in the same-origin case");
+  checkFunction(win.focus, Function.prototype);
+  assert_not_equals(win.focus, focus, "Overrides invisible in the cross-origin case");
 }, "Basic sanity-checking");
 
 /*

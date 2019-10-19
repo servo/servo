@@ -377,4 +377,69 @@ nfc_test(async (t, mockNFC) => {
     });
   });
 }, "NFCWriter.push should replace all previously configured push operations.");
+
+nfc_test(async (t, mockNFC) => {
+  const writer = new NFCWriter();
+  await writer.push({ records: [{ data: test_text_data}] });
+  assertNDEFMessagesEqual(test_text_data, mockNFC.pushedMessage());
+}, "Test that recordType should be set to 'text' if NDEFRecordInit.record's \
+recordType is undefined and NDEFRecordInit.record's data is DOMString.");
+
+nfc_test(async (t, mockNFC) => {
+  const writer = new NFCWriter();
+  await writer.push({ records: [{ data: test_buffer_data}] });
+  assertNDEFMessagesEqual(test_buffer_data, mockNFC.pushedMessage());
+}, "Test that recordType should be set to 'opaque' if NDEFRecordInit.record's \
+recordType is undefined and NDEFRecordInit.record's data is ArrayBuffer.");
+
+nfc_test(async (t, mockNFC) => {
+  const writer = new NFCWriter();
+  await writer.push({ records: [{ data: test_json_data }] });
+  const message = createMessage([createJsonRecord(test_json_data)]);
+  assertNDEFMessagesEqual(message, mockNFC.pushedMessage());
+}, "Test that recordType should be set to 'json' if NDEFRecordInit.record's \
+recordType is undefined and NDEFRecordInit.record's data is not DOMString or \
+ArrayBuffer.");
+
+nfc_test(async (t, mockNFC) => {
+  const writer = new NFCWriter();
+  await writer.push({ records: [{ recordType: "text", data: test_text_data }] });
+  assertNDEFMessagesEqual(test_text_data, mockNFC.pushedMessage());
+}, "Test that mediaType should be set to 'text/plain' if NDEFRecordInit.record's \
+recordType is 'text' and NDEFRecordInit.record's mediaType is undefined.");
+
+nfc_test(async (t, mockNFC) => {
+  const writer = new NFCWriter();
+  await writer.push({ records: [{ recordType: "opaque", data: test_buffer_data }] });
+  assertNDEFMessagesEqual(test_buffer_data, mockNFC.pushedMessage());
+}, "Test that mediaType should be set to 'application/octet-stream' if \
+NDEFRecordInit.record's recordType is 'opaque' and NDEFRecordInit.record's \
+mediaType is undefined.");
+
+nfc_test(async (t, mockNFC) => {
+  const writer = new NFCWriter();
+  await writer.push({ records: [{ recordType: "json", data: test_json_data }] });
+  const message = createMessage([createJsonRecord(test_json_data)]);
+  assertNDEFMessagesEqual(message, mockNFC.pushedMessage());
+}, "Test that mediaType should be set to 'application/json' if \
+NDEFRecordInit.record's recordType is 'json' and NDEFRecordInit.record's \
+mediaType is undefined.");
+
+nfc_test(async (t, mockNFC) => {
+  const writer = new NFCWriter();
+  await writer.push({ records: [{ recordType: "url", data: test_url_data }] });
+  const message = createMessage([createUrlRecord(test_url_data)]);
+  assertNDEFMessagesEqual(message, mockNFC.pushedMessage());
+}, "Test that mediaType should be set to 'text/plain' if NDEFRecordInit.record's \
+recordType is 'url' and NDEFRecordInit.record's mediaType is undefined.");
+
+nfc_test(async (t, mockNFC) => {
+  const writer = new NFCWriter();
+  await writer.push({ records: [{ recordType: "w3.org:xyz", data: test_buffer_data }] });
+  const message = createMessage([createRecord('w3.org:xyz', 'application/octet-stream',
+      test_buffer_data)]);
+  assertNDEFMessagesEqual(message, mockNFC.pushedMessage());
+}, "Test that mediaType should be set to 'application/octet-stream' if \
+NDEFRecordInit.record's recordType is external type and NDEFRecordInit.record's \
+mediaType is undefined.");
 </script>
