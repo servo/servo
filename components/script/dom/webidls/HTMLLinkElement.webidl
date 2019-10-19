@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmllinkelement
-[Exposed=Window, HTMLConstructor]
+[Exposed=Window]
 interface HTMLLinkElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   [CEReactions]
            attribute USVString href;
   [CEReactions]

@@ -11,8 +11,10 @@
  */
 
 // https://html.spec.whatwg.org/multipage/#htmlanchorelement
-[Exposed=Window, HTMLConstructor]
+[Exposed=Window]
 interface HTMLAnchorElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   [CEReactions]
   attribute DOMString target;
   // [CEReactions]

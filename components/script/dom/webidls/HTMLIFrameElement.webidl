@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmliframeelement
-[Exposed=Window, HTMLConstructor]
+[Exposed=Window]
 interface HTMLIFrameElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   [CEReactions]
            attribute USVString src;
   // [CEReactions]

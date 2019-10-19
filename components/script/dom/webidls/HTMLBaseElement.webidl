@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlbaseelement
-[Exposed=Window, HTMLConstructor]
+[Exposed=Window]
 interface HTMLBaseElement : HTMLElement {
+    [HTMLConstructor] constructor();
+
     [CEReactions]
     attribute DOMString href;
     // [CEReactions]

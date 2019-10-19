@@ -392,15 +392,19 @@ class Descriptor(DescriptorProvider):
         return (self.interface.getUserData("hasConcreteDescendant", False) or
                 self.interface.getUserData("hasProxyDescendant", False))
 
+    def hasHTMLConstructor(self):
+        ctor = self.interface.ctor()
+        return ctor and ctor.isHTMLConstructor()
+
     def shouldHaveGetConstructorObjectMethod(self):
         assert self.interface.hasInterfaceObject()
         if self.interface.getExtendedAttribute("Inline"):
             return False
         return (self.interface.isCallback() or self.interface.isNamespace() or
-                self.hasDescendants() or self.interface.getExtendedAttribute("HTMLConstructor"))
+                self.hasDescendants() or self.hasHTMLConstructor())
 
     def shouldCacheConstructor(self):
-        return self.hasDescendants() or self.interface.getExtendedAttribute("HTMLConstructor")
+        return self.hasDescendants() or self.hasHTMLConstructor()
 
     def isExposedConditionally(self):
         return self.interface.isExposedConditionally()

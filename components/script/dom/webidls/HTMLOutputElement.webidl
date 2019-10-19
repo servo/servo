@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmloutputelement
-[Exposed=Window, HTMLConstructor]
+[Exposed=Window]
 interface HTMLOutputElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   // [SameObject, PutForwards=value] readonly attribute DOMTokenList htmlFor;
   readonly attribute HTMLFormElement? form;
   // [CEReactions]

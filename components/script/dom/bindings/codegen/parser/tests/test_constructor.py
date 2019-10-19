@@ -105,8 +105,8 @@ def WebIDLTest(parser, harness):
 
     parser = parser.reset()
     parser.parse("""
-        [HTMLConstructor]
         interface TestHTMLConstructor {
+          [HTMLConstructor] constructor();
         };
     """)
     results = parser.finish()
@@ -138,8 +138,8 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            [HTMLConstructor(DOMString a)]
             interface TestHTMLConstructorWithArgs {
+              [HTMLConstructor] constructor(DOMString a);
             };
         """)
         results = parser.finish()
@@ -153,8 +153,8 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            [HTMLConstructor]
             callback interface TestHTMLConstructorOnCallbackInterface {
+              [HTMLConstructor] constructor();
             };
         """)
         results = parser.finish()
@@ -168,9 +168,9 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            [HTMLConstructor]
             interface TestHTMLConstructorAndConstructor {
               constructor();
+              [HTMLConstructor] constructor();
             };
         """)
         results = parser.finish()
@@ -183,10 +183,10 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            [HTMLConstructor]
             interface TestHTMLConstructorAndConstructor {
               [Throws]
               constructor();
+              [HTMLConstructor] constructor();
             };
         """)
         results = parser.finish()
@@ -200,9 +200,9 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            [HTMLConstructor]
             interface TestHTMLConstructorAndConstructor {
               constructor(DOMString a);
+              [HTMLConstructor] constructor();
             };
         """)
         results = parser.finish()
@@ -216,10 +216,10 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            [HTMLConstructor]
             interface TestHTMLConstructorAndConstructor {
               [Throws]
               constructor(DOMString a);
+              [HTMLConstructor] constructor();
             };
         """)
         results = parser.finish()
@@ -235,10 +235,10 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            [HTMLConstructor]
             interface TestHTMLConstructorAndConstructor {
               [ChromeOnly]
               constructor();
+              [HTMLConstructor] constructor();
             };
         """)
         results = parser.finish()
@@ -252,10 +252,10 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            [HTMLConstructor]
             interface TestHTMLConstructorAndConstructor {
               [Throws, ChromeOnly]
               constructor();
+              [HTMLConstructor] constructor();
             };
         """)
         results = parser.finish()
@@ -270,10 +270,10 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            [HTMLConstructor]
             interface TestHTMLConstructorAndConstructor {
               [ChromeOnly]
               constructor(DOMString a);
+              [HTMLConstructor] constructor();
             };
         """)
         results = parser.finish()
@@ -288,10 +288,10 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            [HTMLConstructor]
             interface TestHTMLConstructorAndConstructor {
               [Throws, ChromeOnly]
               constructor(DOMString a);
+              [HTMLConstructor] constructor();
             };
         """)
         results = parser.finish()

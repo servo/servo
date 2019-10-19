@@ -3,5 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlpictureelement
-[Exposed=Window, HTMLConstructor]
-interface HTMLPictureElement : HTMLElement {};
+[Exposed=Window]
+interface HTMLPictureElement : HTMLElement {
+  [HTMLConstructor] constructor();
+};

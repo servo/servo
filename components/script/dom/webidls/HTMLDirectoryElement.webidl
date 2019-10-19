@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmldirectoryelement
-[Exposed=Window, HTMLConstructor]
+[Exposed=Window]
 interface HTMLDirectoryElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   // [CEReactions]
   //         attribute boolean compact;
 };

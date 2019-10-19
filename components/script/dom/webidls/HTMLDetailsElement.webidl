@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmldetailselement
-[Exposed=Window, HTMLConstructor]
+[Exposed=Window]
 interface HTMLDetailsElement : HTMLElement {
+    [HTMLConstructor] constructor();
+
     [CEReactions]
     attribute boolean open;
 };
