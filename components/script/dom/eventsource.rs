@@ -236,6 +236,7 @@ impl EventSourceContext {
                 DOMString::from(self.origin.clone()),
                 None,
                 event_source.last_event_id.borrow().clone(),
+                Vec::with_capacity(0),
             )
         };
         // Step 7

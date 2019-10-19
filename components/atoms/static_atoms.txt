@@ -57,6 +57,7 @@ loadend
 loadstart
 message
 message
+messageerror
 monospace
 month
 mousedown

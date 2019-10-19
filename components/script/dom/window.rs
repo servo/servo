@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::MediaQueryListBinding::MediaQueryLi
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
-    self, FrameRequestCallback, WindowMethods,
+    self, FrameRequestCallback, WindowMethods, WindowPostMessageOptions,
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use crate::dom::bindings::codegen::UnionTypes::RequestOrUSVString;
@@ -24,7 +24,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
 use crate::dom::bindings::weakref::DOMTracker;
@@ -79,13 +79,15 @@ use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use ipc_channel::ipc::{channel, IpcSender};
 use ipc_channel::router::ROUTER;
+use js::jsapi::Heap;
 use js::jsapi::JSAutoRealm;
+use js::jsapi::JSObject;
 use js::jsapi::JSPROP_ENUMERATE;
 use js::jsapi::{GCReason, JS_GC};
 use js::jsval::UndefinedValue;
 use js::jsval::{JSVal, NullValue};
 use js::rust::wrappers::JS_DefineProperty;
-use js::rust::HandleValue;
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use media::WindowGLContext;
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
@@ -104,7 +106,10 @@ use script_layout_interface::rpc::{
 use script_layout_interface::{PendingImageState, TrustedNodeAddress};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{ConstellationControlMsg, DocumentState, HistoryEntryReplacement, LoadData};
-use script_traits::{ScriptMsg, ScriptToConstellationChan, ScrollState, TimerEvent, TimerEventId};
+use script_traits::{
+    ScriptMsg, ScriptToConstellationChan, ScrollState, StructuredSerializedData, TimerEvent,
+    TimerEventId,
+};
 use script_traits::{TimerSchedulerMsg, WindowSizeData, WindowSizeType};
 use selectors::attr::CaseSensitivity;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
@@ -969,27 +974,57 @@ impl WindowMethods for Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
-    fn PostMessage(&self, cx: JSContext, message: HandleValue, origin: DOMString) -> ErrorResult {
-        let source_global = GlobalScope::incumbent().expect("no incumbent global??");
-        let source = source_global.as_window();
+    fn PostMessage(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        target_origin: USVString,
+        mut transfer: CustomAutoRooterGuard<Option<Vec<*mut JSObject>>>,
+    ) -> ErrorResult {
+        let incumbent = GlobalScope::incumbent().expect("no incumbent global?");
+        let source = incumbent.as_window();
+        let source_origin = source.Document().origin().immutable().clone();
 
-        // Step 3-5.
-        let origin = match &origin[..] {
-            "*" => None,
-            "/" => Some(source.Document().origin().immutable().clone()),
-            url => match ServoUrl::parse(&url) {
-                Ok(url) => Some(url.origin().clone()),
-                Err(_) => return Err(Error::Syntax),
-            },
-        };
+        if transfer.is_some() {
+            let mut rooted = CustomAutoRooter::new(transfer.take().unwrap());
+            let transfer = Some(CustomAutoRooterGuard::new(*cx, &mut rooted));
+            self.post_message_impl(&target_origin, source_origin, source, cx, message, transfer)
+        } else {
+            self.post_message_impl(&target_origin, source_origin, source, cx, message, None)
+        }
+    }
 
-        // Step 1-2, 6-8.
-        // TODO(#12717): Should implement the `transfer` argument.
-        let data = StructuredCloneData::write(*cx, message)?;
+    /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
+    fn PostMessage_(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        options: RootedTraceableBox<WindowPostMessageOptions>,
+    ) -> ErrorResult {
+        let mut rooted = CustomAutoRooter::new(
+            options
+                .transfer
+                .as_ref()
+                .unwrap_or(&Vec::with_capacity(0))
+                .iter()
+                .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+                .collect(),
+        );
+        let transfer = Some(CustomAutoRooterGuard::new(*cx, &mut rooted));
 
-        // Step 9.
-        self.post_message(origin, &*source.window_proxy(), data);
-        Ok(())
+        let incumbent = GlobalScope::incumbent().expect("no incumbent global?");
+        let source = incumbent.as_window();
+
+        let source_origin = source.Document().origin().immutable().clone();
+
+        self.post_message_impl(
+            &options.targetOrigin,
+            source_origin,
+            source,
+            cx,
+            message,
+            transfer,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-captureevents
@@ -1287,6 +1322,34 @@ impl WindowMethods for Window {
 }
 
 impl Window {
+    /// https://html.spec.whatwg.org/multipage/#window-post-message-steps
+    fn post_message_impl(
+        &self,
+        target_origin: &USVString,
+        source_origin: ImmutableOrigin,
+        source: &Window,
+        cx: JSContext,
+        message: HandleValue,
+        transfer: Option<CustomAutoRooterGuard<Vec<*mut JSObject>>>,
+    ) -> ErrorResult {
+        // Step 1-2, 6-8.
+        let data = structuredclone::write(cx, message, transfer)?;
+
+        // Step 3-5.
+        let target_origin = match target_origin.0[..].as_ref() {
+            "*" => None,
+            "/" => Some(source_origin.clone()),
+            url => match ServoUrl::parse(&url) {
+                Ok(url) => Some(url.origin().clone()),
+                Err(_) => return Err(Error::Syntax),
+            },
+        };
+
+        // Step 9.
+        self.post_message(target_origin, source_origin, &*source.window_proxy(), data);
+        Ok(())
+    }
+
     // https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
     pub fn paint_worklet(&self) -> DomRoot<Worklet> {
         self.paint_worklet.or_init(|| self.new_paint_worklet())
@@ -1332,6 +1395,9 @@ impl Window {
         // nodes to dispose of their layout data. This messages the layout
         // thread, informing it that it can safely free the memory.
         self.Document().upcast::<Node>().teardown();
+
+        // Tell the constellation to drop the sender to our message-port router, if there is any.
+        self.upcast::<GlobalScope>().remove_message_ports_router();
 
         // Clean up any active promises
         // https://github.com/servo/servo/issues/15318
@@ -2334,18 +2400,20 @@ impl Window {
     pub fn post_message(
         &self,
         target_origin: Option<ImmutableOrigin>,
+        source_origin: ImmutableOrigin,
         source: &WindowProxy,
-        serialize_with_transfer_result: StructuredCloneData,
+        data: StructuredSerializedData,
     ) {
         let this = Trusted::new(self);
         let source = Trusted::new(source);
         let task = task!(post_serialised_message: move || {
             let this = this.root();
             let source = source.root();
+            let document = this.Document();
 
             // Step 7.1.
-            if let Some(target_origin) = target_origin {
-                if !target_origin.same_origin(this.Document().origin()) {
+            if let Some(ref target_origin) = target_origin {
+                if !target_origin.same_origin(document.origin()) {
                     return;
                 }
             }
@@ -2355,23 +2423,23 @@ impl Window {
             let obj = this.reflector().get_jsobject();
             let _ac = JSAutoRealm::new(*cx, obj.get());
             rooted!(in(*cx) let mut message_clone = UndefinedValue());
-            serialize_with_transfer_result.read(
-                this.upcast(),
-                message_clone.handle_mut(),
-            );
-
-            // Step 7.6.
-            // TODO: MessagePort array.
-
-            // Step 7.7.
-            // TODO(#12719): Set the other attributes.
-            MessageEvent::dispatch_jsval(
-                this.upcast(),
-                this.upcast(),
-                message_clone.handle(),
-                None,
-                Some(&*source),
-            );
+            if let Ok(ports) = structuredclone::read(this.upcast(), data, message_clone.handle_mut()) {
+                // Step 7.6, 7.7
+                MessageEvent::dispatch_jsval(
+                    this.upcast(),
+                    this.upcast(),
+                    message_clone.handle(),
+                    Some(&source_origin.ascii_serialization()),
+                    Some(&*source),
+                    ports,
+                );
+            } else {
+                // Step 4, fire messageerror.
+                MessageEvent::dispatch_error(
+                    this.upcast(),
+                    this.upcast(),
+                );
+            }
         });
         // FIXME(nox): Why are errors silenced here?
         // TODO(#12718): Use the "posted message task source".

@@ -12,12 +12,14 @@ use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, RootCollection, ThreadLocalStackRoots};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::structuredclone;
 use crate::dom::dedicatedworkerglobalscope::AutoWorkerReset;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::extendableevent::ExtendableEvent;
 use crate::dom::extendablemessageevent::ExtendableMessageEvent;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::messageevent::MessageEvent;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::load_whole_resource;
@@ -409,13 +411,22 @@ impl ServiceWorkerGlobalScope {
         use self::ServiceWorkerScriptMsg::*;
 
         match msg {
-            CommonWorker(WorkerScriptMsg::DOMMessage(data)) => {
+            CommonWorker(WorkerScriptMsg::DOMMessage { data, .. }) => {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let target = self.upcast();
                 let _ac = enter_realm(&*scope);
                 rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
-                data.read(scope.upcast(), message.handle_mut());
-                ExtendableMessageEvent::dispatch_jsval(target, scope.upcast(), message.handle());
+                if let Ok(ports) = structuredclone::read(scope.upcast(), data, message.handle_mut())
+                {
+                    ExtendableMessageEvent::dispatch_jsval(
+                        target,
+                        scope.upcast(),
+                        message.handle(),
+                        ports,
+                    );
+                } else {
+                    MessageEvent::dispatch_error(target, scope.upcast());
+                }
             },
             CommonWorker(WorkerScriptMsg::Common(msg)) => {
                 self.upcast::<WorkerGlobalScope>().process_event(msg);

@@ -4,21 +4,23 @@
 
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowPostMessageOptions;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::bindings::str::USVString;
+use crate::dom::bindings::structuredclone;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::dissimilaroriginlocation::DissimilarOriginLocation;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy::WindowProxy;
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
+use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::HandleValue;
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use msg::constellation_msg::PipelineId;
-use script_traits::ScriptMsg;
-use servo_url::ImmutableOrigin;
+use script_traits::{ScriptMsg, StructuredSerializedData};
 use servo_url::ServoUrl;
 
 /// Represents a dissimilar-origin `Window` that exists in another script thread.
@@ -133,28 +135,42 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
         false
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
-    fn PostMessage(&self, cx: JSContext, message: HandleValue, origin: DOMString) -> ErrorResult {
-        // Step 3-5.
-        let origin = match &origin[..] {
-            "*" => None,
-            "/" => {
-                // TODO: Should be the origin of the incumbent settings object.
-                None
-            },
-            url => match ServoUrl::parse(&url) {
-                Ok(url) => Some(url.origin()),
-                Err(_) => return Err(Error::Syntax),
-            },
-        };
+    /// https://html.spec.whatwg.org/multipage/#dom-window-postmessage
+    fn PostMessage(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        target_origin: USVString,
+        mut transfer: CustomAutoRooterGuard<Option<Vec<*mut JSObject>>>,
+    ) -> ErrorResult {
+        if transfer.is_some() {
+            let mut rooted = CustomAutoRooter::new(transfer.take().unwrap());
+            let transfer = Some(CustomAutoRooterGuard::new(*cx, &mut rooted));
+            self.post_message_impl(&target_origin, cx, message, transfer)
+        } else {
+            self.post_message_impl(&target_origin, cx, message, None)
+        }
+    }
 
-        // Step 1-2, 6-8.
-        // TODO(#12717): Should implement the `transfer` argument.
-        let data = StructuredCloneData::write(*cx, message)?;
+    /// https://html.spec.whatwg.org/multipage/#dom-window-postmessage-options
+    fn PostMessage_(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        options: RootedTraceableBox<WindowPostMessageOptions>,
+    ) -> ErrorResult {
+        let mut rooted = CustomAutoRooter::new(
+            options
+                .transfer
+                .as_ref()
+                .unwrap_or(&Vec::with_capacity(0))
+                .iter()
+                .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+                .collect(),
+        );
+        let transfer = Some(CustomAutoRooterGuard::new(*cx, &mut rooted));
 
-        // Step 9.
-        self.post_message(origin, data);
-        Ok(())
+        self.post_message_impl(&options.targetOrigin, cx, message, transfer)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-opener
@@ -186,17 +202,54 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 }
 
 impl DissimilarOriginWindow {
-    pub fn post_message(&self, origin: Option<ImmutableOrigin>, data: StructuredCloneData) {
+    /// https://html.spec.whatwg.org/multipage/#window-post-message-steps
+    fn post_message_impl(
+        &self,
+        target_origin: &USVString,
+        cx: JSContext,
+        message: HandleValue,
+        transfer: Option<CustomAutoRooterGuard<Vec<*mut JSObject>>>,
+    ) -> ErrorResult {
+        // Step 6-7.
+        let data = structuredclone::write(cx, message, transfer)?;
+
+        self.post_message(target_origin, data)
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#window-post-message-steps
+    pub fn post_message(
+        &self,
+        target_origin: &USVString,
+        data: StructuredSerializedData,
+    ) -> ErrorResult {
+        // Step 1.
+        let target = self.window_proxy.browsing_context_id();
+        // Step 2.
         let incumbent = match GlobalScope::incumbent() {
-            None => return warn!("postMessage called with no incumbent global"),
+            None => panic!("postMessage called with no incumbent global"),
             Some(incumbent) => incumbent,
         };
-        let msg = ScriptMsg::PostMessage {
-            target: self.window_proxy.browsing_context_id(),
-            source: incumbent.pipeline_id(),
-            target_origin: origin,
-            data: data.move_to_arraybuffer(),
+
+        let source_origin = incumbent.origin().immutable().clone();
+
+        // Step 3-5.
+        let target_origin = match target_origin.0[..].as_ref() {
+            "*" => None,
+            "/" => Some(source_origin.clone()),
+            url => match ServoUrl::parse(&url) {
+                Ok(url) => Some(url.origin().clone()),
+                Err(_) => return Err(Error::Syntax),
+            },
         };
+        let msg = ScriptMsg::PostMessage {
+            target,
+            source: incumbent.pipeline_id(),
+            source_origin,
+            target_origin,
+            data: data,
+        };
+        // Step 8
         let _ = incumbent.script_to_constellation_chan().send(msg);
+        Ok(())
     }
 }

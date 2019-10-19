@@ -63,9 +63,10 @@
   unsigned long requestAnimationFrame(FrameRequestCallback callback);
   void cancelAnimationFrame(unsigned long handle);
 
-  //void postMessage(any message, DOMString targetOrigin, optional sequence<Transferable> transfer);
   [Throws]
-  void postMessage(any message, DOMString targetOrigin);
+  void postMessage(any message, USVString targetOrigin, optional sequence<object> transfer /*= []*/);
+  [Throws]
+  void postMessage(any message, optional WindowPostMessageOptions options = {});
 
   // also has obsolete members
 };
@@ -172,4 +173,9 @@ partial interface Window {
 partial interface Window {
    [Pref="css.animations.testing.enabled"]
    readonly attribute unsigned long runningAnimationCount;
+};
+
+dictionary WindowPostMessageOptions {
+   USVString targetOrigin = "/";
+   sequence<object> transfer;
 };

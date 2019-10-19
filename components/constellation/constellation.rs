@@ -130,7 +130,8 @@ use msg::constellation_msg::{
     TopLevelBrowsingContextId,
 };
 use msg::constellation_msg::{
-    PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest, TraversalDirection,
+    MessagePortId, MessagePortRouterId, PipelineNamespace, PipelineNamespaceId,
+    PipelineNamespaceRequest, TraversalDirection,
 };
 use net_traits::pub_domains::reg_host;
 use net_traits::request::RequestBuilder;
@@ -153,6 +154,7 @@ use script_traits::{
     IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerSchedulerMsg,
 };
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
+use script_traits::{MessagePortMsg, PortMessageTask, StructuredSerializedData};
 use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WebDriverCommandMsg};
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
@@ -174,6 +176,30 @@ use style_traits::CSSPixel;
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, HistoryEntryReplacement)>;
+
+#[derive(Debug)]
+/// The state used by MessagePortInfo to represent the various states the port can be in.
+enum TransferState {
+    /// The port is currently managed by a given global,
+    /// identified by its router id.
+    Managed(MessagePortRouterId),
+    /// The port is currently in-transfer,
+    /// and incoming tasks should be buffered until it becomes managed again.
+    TransferInProgress(VecDeque<PortMessageTask>),
+    /// The entangled port has been removed while the port was in-transfer,
+    /// the current port should be removed as well once it is managed again.
+    EntangledRemoved,
+}
+
+#[derive(Debug)]
+/// Info related to a message-port tracked by the constellation.
+struct MessagePortInfo {
+    /// The current state of the messageport.
+    state: TransferState,
+
+    /// The id of the entangled port, if any.
+    entangled_with: Option<MessagePortId>,
+}
 
 /// Servo supports tabs (referred to as browsers), so `Constellation` needs to
 /// store browser specific data for bookkeeping.
@@ -339,6 +365,12 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel for the constellation to send messages to the
     /// WebRender thread.
     webrender_api_sender: webrender_api::RenderApiSender,
+
+    /// A map of message-port Id to info.
+    message_ports: HashMap<MessagePortId, MessagePortInfo>,
+
+    /// A map of router-id to ipc-sender, to route messages to ports.
+    message_port_routers: HashMap<MessagePortRouterId, IpcSender<MessagePortMsg>>,
 
     /// The set of all the pipelines in the browser.  (See the `pipeline` module
     /// for more details.)
@@ -751,6 +783,8 @@ where
                     swmanager_sender: sw_mgr_clone,
                     browsing_context_group_set: Default::default(),
                     browsing_context_group_next_id: Default::default(),
+                    message_ports: HashMap::new(),
+                    message_port_routers: HashMap::new(),
                     pipelines: HashMap::new(),
                     browsing_contexts: HashMap::new(),
                     pending_changes: vec![],
@@ -1487,6 +1521,27 @@ where
         };
 
         match content {
+            FromScriptMsg::RerouteMessagePort(port_id, task) => {
+                self.handle_reroute_messageport(port_id, task);
+            },
+            FromScriptMsg::MessagePortShipped(port_id) => {
+                self.handle_messageport_shipped(port_id);
+            },
+            FromScriptMsg::NewMessagePortRouter(router_id, ipc_sender) => {
+                self.handle_new_messageport_router(router_id, ipc_sender);
+            },
+            FromScriptMsg::RemoveMessagePortRouter(router_id) => {
+                self.handle_remove_messageport_router(router_id);
+            },
+            FromScriptMsg::NewMessagePort(router_id, port_id) => {
+                self.handle_new_messageport(router_id, port_id);
+            },
+            FromScriptMsg::RemoveMessagePort(port_id) => {
+                self.handle_remove_messageport(port_id);
+            },
+            FromScriptMsg::EntanglePorts(port1, port2) => {
+                self.handle_entangle_messageports(port1, port2);
+            },
             FromScriptMsg::ForwardToEmbedder(embedder_msg) => {
                 self.embedder_proxy
                     .send((Some(source_top_ctx_id), embedder_msg));
@@ -1563,9 +1618,16 @@ where
                 target: browsing_context_id,
                 source: source_pipeline_id,
                 target_origin: origin,
+                source_origin,
                 data,
             } => {
-                self.handle_post_message_msg(browsing_context_id, source_pipeline_id, origin, data);
+                self.handle_post_message_msg(
+                    browsing_context_id,
+                    source_pipeline_id,
+                    origin,
+                    source_origin,
+                    data,
+                );
             },
             FromScriptMsg::Focus => {
                 self.handle_focus_msg(source_pipeline_id);
@@ -1682,6 +1744,163 @@ where
             FromLayoutMsg::ViewportConstrained(pipeline_id, constraints) => {
                 self.handle_viewport_constrained_msg(pipeline_id, constraints);
             },
+        }
+    }
+
+    fn handle_reroute_messageport(&mut self, port_id: MessagePortId, task: PortMessageTask) {
+        let info = match self.message_ports.get_mut(&port_id) {
+            Some(info) => info,
+            None => {
+                return warn!(
+                    "Constellation asked to re-route msg to unknown messageport {:?}",
+                    port_id
+                )
+            },
+        };
+        match &mut info.state {
+            TransferState::Managed(router_id) => {
+                if let Some(sender) = self.message_port_routers.get(&router_id) {
+                    let _ = sender.send(MessagePortMsg::NewTask(port_id, task));
+                } else {
+                    warn!("No message-port sender for {:?}", router_id);
+                }
+            },
+            TransferState::TransferInProgress(queue) => queue.push_back(task),
+            TransferState::EntangledRemoved => warn!(
+                "Messageport received a message, but entangled has alread been removed {:?}",
+                port_id
+            ),
+        }
+    }
+
+    fn handle_messageport_shipped(&mut self, port_id: MessagePortId) {
+        if let Some(info) = self.message_ports.get_mut(&port_id) {
+            if let TransferState::Managed(_) = info.state {
+                info.state = TransferState::TransferInProgress(VecDeque::new());
+            }
+        } else {
+            warn!(
+                "Constellation asked to mark unknown messageport as shipped {:?}",
+                port_id
+            );
+        }
+    }
+
+    fn handle_new_messageport_router(
+        &mut self,
+        router_id: MessagePortRouterId,
+        control_sender: IpcSender<MessagePortMsg>,
+    ) {
+        self.message_port_routers.insert(router_id, control_sender);
+    }
+
+    fn handle_remove_messageport_router(&mut self, router_id: MessagePortRouterId) {
+        self.message_port_routers.remove(&router_id);
+    }
+
+    fn handle_new_messageport(&mut self, router_id: MessagePortRouterId, port_id: MessagePortId) {
+        match self.message_ports.entry(port_id) {
+            // If we know about this port, it means it was transferred.
+            Entry::Occupied(mut entry) => {
+                if let TransferState::EntangledRemoved = entry.get().state {
+                    // If the entangled port has been removed while this one was in-transfer,
+                    // remove it now.
+                    if let Some(sender) = self.message_port_routers.get(&router_id) {
+                        let _ = sender.send(MessagePortMsg::RemoveMessagePort(port_id));
+                    } else {
+                        warn!("No message-port sender for {:?}", router_id);
+                    }
+                    entry.remove_entry();
+                    return;
+                }
+                let new_info = MessagePortInfo {
+                    state: TransferState::Managed(router_id),
+                    entangled_with: entry.get().entangled_with.clone(),
+                };
+                let old_info = entry.insert(new_info);
+                let buffer = match old_info.state {
+                    TransferState::TransferInProgress(buffer) => buffer,
+                    _ => {
+                        return warn!("Completing transfer of a port that did not have a transfer in progress.");
+                    },
+                };
+                // Forward the buffered message-queue.
+                if let Some(sender) = self.message_port_routers.get(&router_id) {
+                    let _ = sender.send(MessagePortMsg::CompleteTransfer(port_id.clone(), buffer));
+                } else {
+                    warn!("No message-port sender for {:?}", router_id);
+                }
+            },
+            Entry::Vacant(entry) => {
+                let info = MessagePortInfo {
+                    state: TransferState::Managed(router_id),
+                    entangled_with: None,
+                };
+                entry.insert(info);
+            },
+        }
+    }
+
+    fn handle_remove_messageport(&mut self, port_id: MessagePortId) {
+        let entangled = match self.message_ports.remove(&port_id) {
+            Some(info) => info.entangled_with,
+            None => {
+                return warn!(
+                    "Constellation asked to remove unknown messageport {:?}",
+                    port_id
+                );
+            },
+        };
+        let entangled_id = match entangled {
+            Some(id) => id,
+            None => return,
+        };
+        let info = match self.message_ports.get_mut(&entangled_id) {
+            Some(info) => info,
+            None => {
+                return warn!(
+                    "Constellation asked to remove unknown entangled messageport {:?}",
+                    entangled_id
+                )
+            },
+        };
+        let router_id = match info.state {
+            TransferState::EntangledRemoved => return warn!(
+                "Constellation asked to remove entangled messageport by a port that was already removed {:?}",
+                port_id
+            ),
+            TransferState::TransferInProgress(_) => {
+                // Note: since the port is in-transer, we don't have a router to send it a message
+                // to let it know that its entangled port has been removed.
+                // Hence we mark it so that it will be messaged and removed once the transfer completes.
+                info.state = TransferState::EntangledRemoved;
+                return;
+            },
+            TransferState::Managed(router_id) => router_id,
+        };
+        if let Some(sender) = self.message_port_routers.get(&router_id) {
+            let _ = sender.send(MessagePortMsg::RemoveMessagePort(entangled_id));
+        } else {
+            warn!("No message-port sender for {:?}", router_id);
+        }
+    }
+
+    fn handle_entangle_messageports(&mut self, port1: MessagePortId, port2: MessagePortId) {
+        if let Some(info) = self.message_ports.get_mut(&port1) {
+            info.entangled_with = Some(port2);
+        } else {
+            warn!(
+                "Constellation asked to entangle unknow messageport: {:?}",
+                port1
+            );
+        }
+        if let Some(info) = self.message_ports.get_mut(&port2) {
+            info.entangled_with = Some(port1);
+        } else {
+            warn!(
+                "Constellation asked to entangle unknow messageport: {:?}",
+                port2
+            );
         }
     }
 
@@ -3203,7 +3422,8 @@ where
         browsing_context_id: BrowsingContextId,
         source_pipeline: PipelineId,
         origin: Option<ImmutableOrigin>,
-        data: Vec<u8>,
+        source_origin: ImmutableOrigin,
+        data: StructuredSerializedData,
     ) {
         let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
             None => {
@@ -3223,6 +3443,7 @@ where
             source: source_pipeline,
             source_browsing_context: source_browsing_context,
             target_origin: origin,
+            source_origin,
             data,
         };
         let result = match self.pipelines.get(&pipeline_id) {

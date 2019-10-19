@@ -38,7 +38,6 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::ThreadLocalStackRoots;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootCollection};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone::StructuredCloneData;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::bindings::utils::WRAP_CALLBACKS;
 use crate::dom::customelementregistry::{
@@ -81,6 +80,7 @@ use crate::task_source::history_traversal::HistoryTraversalTaskSource;
 use crate::task_source::media_element::MediaElementTaskSource;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
+use crate::task_source::port_message::PortMessageQueue;
 use crate::task_source::remote_event::RemoteEventTaskSource;
 use crate::task_source::user_interaction::UserInteractionTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
@@ -132,6 +132,7 @@ use script_traits::CompositorEvent::{
     CompositionEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent, TouchEvent,
     WheelEvent,
 };
+use script_traits::StructuredSerializedData;
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{
     DiscardBrowsingContext, DocumentActivity, EventResult, HistoryEntryReplacement,
@@ -565,6 +566,8 @@ pub struct ScriptThread {
     file_reading_task_sender: Box<dyn ScriptChan>,
 
     performance_timeline_task_sender: Box<dyn ScriptChan>,
+
+    port_message_sender: Box<dyn ScriptChan>,
 
     remote_event_task_sender: Box<dyn ScriptChan>,
 
@@ -1296,6 +1299,7 @@ impl ScriptThread {
             media_element_task_sender: chan.clone(),
             user_interaction_task_sender: chan.clone(),
             networking_task_sender: boxed_script_sender.clone(),
+            port_message_sender: boxed_script_sender.clone(),
             file_reading_task_sender: boxed_script_sender.clone(),
             performance_timeline_task_sender: boxed_script_sender.clone(),
             remote_event_task_sender: boxed_script_sender.clone(),
@@ -1585,6 +1589,11 @@ impl ScriptThread {
                 continue;
             }
             let window = document.window();
+
+            window
+                .upcast::<GlobalScope>()
+                .perform_a_message_port_garbage_collection_checkpoint();
+
             let pending_reflows = window.get_pending_reflow_count();
             if pending_reflows > 0 {
                 window.reflow(ReflowGoal::Full, ReflowReason::ImageLoaded);
@@ -1656,6 +1665,7 @@ impl ScriptThread {
             ScriptThreadEventCategory::PerformanceTimelineTask => {
                 ScriptHangAnnotation::PerformanceTimelineTask
             },
+            ScriptThreadEventCategory::PortMessage => ScriptHangAnnotation::PortMessage,
         };
         self.background_hang_monitor
             .notify_activity(HangAnnotation::Script(hang_annotation));
@@ -1756,6 +1766,7 @@ impl ScriptThread {
                 ScriptThreadEventCategory::ImageCacheMsg => ProfilerCategory::ScriptImageCacheMsg,
                 ScriptThreadEventCategory::InputEvent => ProfilerCategory::ScriptInputEvent,
                 ScriptThreadEventCategory::NetworkEvent => ProfilerCategory::ScriptNetworkEvent,
+                ScriptThreadEventCategory::PortMessage => ProfilerCategory::ScriptPortMessage,
                 ScriptThreadEventCategory::Resize => ProfilerCategory::ScriptResize,
                 ScriptThreadEventCategory::ScriptEvent => ProfilerCategory::ScriptEvent,
                 ScriptThreadEventCategory::SetScrollState => ProfilerCategory::ScriptSetScrollState,
@@ -1861,12 +1872,14 @@ impl ScriptThread {
                 source: source_pipeline_id,
                 source_browsing_context,
                 target_origin: origin,
+                source_origin,
                 data,
             } => self.handle_post_message_msg(
                 target_pipeline_id,
                 source_pipeline_id,
                 source_browsing_context,
                 origin,
+                source_origin,
                 data,
             ),
             ConstellationControlMsg::UpdatePipelineId(
@@ -2519,7 +2532,8 @@ impl ScriptThread {
         source_pipeline_id: PipelineId,
         source_browsing_context: TopLevelBrowsingContextId,
         origin: Option<ImmutableOrigin>,
-        data: Vec<u8>,
+        source_origin: ImmutableOrigin,
+        data: StructuredSerializedData,
     ) {
         match { self.documents.borrow().find_window(pipeline_id) } {
             None => return warn!("postMessage after target pipeline {} closed.", pipeline_id),
@@ -2541,7 +2555,7 @@ impl ScriptThread {
                     Some(source) => source,
                 };
                 // FIXME(#22512): enqueues a task; unnecessary delay.
-                window.post_message(origin, &*source, StructuredCloneData::Vector(data))
+                window.post_message(origin, source_origin, &*source, data)
             },
         }
     }
@@ -2778,6 +2792,10 @@ impl ScriptThread {
 
     pub fn networking_task_source(&self, pipeline_id: PipelineId) -> NetworkingTaskSource {
         NetworkingTaskSource(self.networking_task_sender.clone(), pipeline_id)
+    }
+
+    pub fn port_message_queue(&self, pipeline_id: PipelineId) -> PortMessageQueue {
+        PortMessageQueue(self.port_message_sender.clone(), pipeline_id)
     }
 
     pub fn file_reading_task_source(&self, pipeline_id: PipelineId) -> FileReadingTaskSource {
@@ -3177,6 +3195,7 @@ impl ScriptThread {
             self.networking_task_source(incomplete.pipeline_id),
             self.performance_timeline_task_source(incomplete.pipeline_id)
                 .clone(),
+            self.port_message_queue(incomplete.pipeline_id),
             self.user_interaction_task_source(incomplete.pipeline_id),
             self.remote_event_task_source(incomplete.pipeline_id),
             self.websocket_task_source(incomplete.pipeline_id),

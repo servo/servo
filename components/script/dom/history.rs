@@ -11,7 +11,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::bindings::structuredclone;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -27,7 +27,7 @@ use msg::constellation_msg::{HistoryStateId, TraversalDirection};
 use net_traits::{CoreResourceMsg, IpcSend};
 use profile_traits::ipc;
 use profile_traits::ipc::channel;
-use script_traits::ScriptMsg;
+use script_traits::{ScriptMsg, StructuredSerializedData};
 use servo_url::ServoUrl;
 use std::cell::Cell;
 
@@ -115,11 +115,16 @@ impl History {
         };
 
         match serialized_data {
-            Some(serialized_data) => {
+            Some(data) => {
+                let data = StructuredSerializedData {
+                    serialized: data,
+                    ports: None,
+                };
                 let global_scope = self.window.upcast::<GlobalScope>();
                 rooted!(in(*global_scope.get_cx()) let mut state = UndefinedValue());
-                StructuredCloneData::Vector(serialized_data)
-                    .read(&global_scope, state.handle_mut());
+                if let Err(_) = structuredclone::read(&global_scope, data, state.handle_mut()) {
+                    warn!("Error reading structuredclone data");
+                }
                 self.state.set(state.get());
             },
             None => {
@@ -185,7 +190,7 @@ impl History {
         // TODO: Step 4
 
         // Step 5
-        let serialized_data = StructuredCloneData::write(*cx, data)?.move_to_arraybuffer();
+        let serialized_data = structuredclone::write(cx, data, None)?;
 
         let new_url: ServoUrl = match url {
             // Step 6
@@ -254,7 +259,7 @@ impl History {
         };
 
         let _ = self.window.upcast::<GlobalScope>().resource_threads().send(
-            CoreResourceMsg::SetHistoryState(state_id, serialized_data.clone()),
+            CoreResourceMsg::SetHistoryState(state_id, serialized_data.serialized.clone()),
         );
 
         // TODO: Step 9 Update current entry to represent a GET request
@@ -266,7 +271,9 @@ impl History {
         // Step 11
         let global_scope = self.window.upcast::<GlobalScope>();
         rooted!(in(*cx) let mut state = UndefinedValue());
-        StructuredCloneData::Vector(serialized_data).read(&global_scope, state.handle_mut());
+        if let Err(_) = structuredclone::read(&global_scope, serialized_data, state.handle_mut()) {
+            warn!("Error reading structuredclone data");
+        }
 
         // Step 12
         self.state.set(state.get());

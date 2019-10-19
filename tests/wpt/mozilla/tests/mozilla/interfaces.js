@@ -24,6 +24,8 @@ function test_interfaces(interfaceNamesInGlobalScope) {
       "JSON",
       "Map",
       "Math",
+      "MessageChannel",
+      "MessagePort",
       "NaN",
       "Number",
       "Object",

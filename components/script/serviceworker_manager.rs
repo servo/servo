@@ -8,7 +8,6 @@
 //! active_workers map
 
 use crate::dom::abstractworker::WorkerScriptMsg;
-use crate::dom::bindings::structuredclone::StructuredCloneData;
 use crate::dom::serviceworkerglobalscope::{ServiceWorkerGlobalScope, ServiceWorkerScriptMsg};
 use crate::dom::serviceworkerregistration::longest_prefix_match;
 use crossbeam_channel::{unbounded, Receiver, RecvError, Sender};
@@ -135,10 +134,9 @@ impl ServiceWorkerManager {
     }
 
     fn forward_message(&self, msg: DOMMessage, sender: &Sender<ServiceWorkerScriptMsg>) {
-        let DOMMessage(data) = msg;
-        let data = StructuredCloneData::Vector(data);
+        let DOMMessage { origin, data } = msg;
         let _ = sender.send(ServiceWorkerScriptMsg::CommonWorker(
-            WorkerScriptMsg::DOMMessage(data),
+            WorkerScriptMsg::DOMMessage { origin, data },
         ));
     }
 
