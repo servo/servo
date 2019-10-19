@@ -20,6 +20,10 @@ ctx.font = '20px serif';
 _assertSame(ctx.font, '20px serif', "ctx.font", "'20px serif'");
 
 ctx.font = '20px serif';
+ctx.font = '';
+_assertSame(ctx.font, '20px serif', "ctx.font", "'20px serif'");
+
+ctx.font = '20px serif';
 ctx.font = 'bogus';
 _assertSame(ctx.font, '20px serif', "ctx.font", "'20px serif'");
 

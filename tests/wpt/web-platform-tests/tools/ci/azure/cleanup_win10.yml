@@ -9,15 +9,21 @@ steps:
         cmd /c taskkill /f /im setup.exe `> nul 2`> nul
         if (Test-Path $edgePath) {
           $installerPath = Get-ChildItem -PATH $edgePath -Filter "setup.exe" -Recurse | Select -First 1 FullName
-          if (Test-Path $installerPath.FullName) {
+          if(-not($installerPath -eq $nul) -and (Test-Path $installerPath.FullName)) {
             Write-Host "Uninstall: $($installerPath.FullName) $uninstallArgs"
             Start-Process "$($installerPath.FullName)" -ArgumentList $uninstallArgs -Wait
             Remove-Item -Path $edgePath -Recurse -Force -ErrorAction SilentlyContinue
+          } else {
+            Write-Host "Failed to find setup.exe under $edgePath"
           }
         }
       } catch [Exception] {
-        Write-Host "Failed to unstall Edge from $edgePath. ERROR= $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "Failed to uninstall Edge from $edgePath. ERROR= $($_.Exception.Message)" -ForegroundColor Red
       }
+    }
+
+    function IsEdgeRunning() {
+      return (Get-Process | Where-Object { $_.Name -eq "msedge" }).Length -gt 0
     }
 
     # restore hosts file
@@ -32,6 +38,18 @@ steps:
     UninstallEdge "$env:systemdrive\Program Files (x86)\Microsoft\Edge Dev\Application" "--uninstall --msedge-dev --system-level --force-uninstall"
     # uninstall Edge Beta channel
     UninstallEdge "$env:systemdrive\Program Files (x86)\Microsoft\Edge Beta\Application" "--uninstall --msedge-beta --system-level --force-uninstall"
+
+    # Check if Edge is still running and try to close it.
+    # If we fail to close it, then reboot the system
+    # as this lingering process can lead to run instability.
+    if (IsEdgeRunning) {
+      Write-Host "Found Edge process running, try to close it."
+      Stop-Process -Name "msedge" -Force
+      if (IsEdgeRunning) {
+        Write-Host "Failed to close running Edge process, reboot the system." -ForegroundColor Red
+        Restart-Computer -Force
+      }
+    }
   displayName: 'Restore hosts file and cleanup test machine'
   condition: always()
   errorActionPreference: silentlyContinue
