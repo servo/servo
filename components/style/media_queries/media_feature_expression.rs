@@ -243,9 +243,6 @@ fn consume_operation_or_colon(input: &mut Parser) -> Result<Option<Operator>, ()
 }
 
 fn disabled_by_pref(feature: &Atom) -> bool {
-    if *feature == atom!("device-pixel-ratio") {
-        return !static_prefs::pref!("layout.css.prefixes.device-pixel-ratio-webkit");
-    }
     if *feature == atom!("-moz-touch-enabled") {
         return !static_prefs::pref!("layout.css.moz-touch-enabled.enabled")
     }
