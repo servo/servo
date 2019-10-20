@@ -242,6 +242,16 @@ fn consume_operation_or_colon(input: &mut Parser) -> Result<Option<Operator>, ()
     }))
 }
 
+fn disabled_by_pref(feature: &Atom) -> bool {
+    if *feature == atom!("device-pixel-ratio") {
+        return !static_prefs::pref!("layout.css.prefixes.device-pixel-ratio-webkit");
+    }
+    if *feature == atom!("-moz-touch-enabled") {
+        return !static_prefs::pref!("layout.css.moz-touch-enabled.enabled")
+    }
+    false
+}
+
 impl MediaFeatureExpression {
     fn new(
         feature_index: usize,
@@ -301,11 +311,6 @@ impl MediaFeatureExpression {
                     if starts_with_ignore_ascii_case(feature_name, "-webkit-") {
                         feature_name = &feature_name[8..];
                         requirements.insert(ParsingRequirements::WEBKIT_PREFIX);
-                        if static_prefs::pref!("layout.css.prefixes.device-pixel-ratio-webkit") {
-                            requirements.insert(
-                                ParsingRequirements::WEBKIT_DEVICE_PIXEL_RATIO_PREF_ENABLED,
-                            );
-                        }
                     }
                 }
 
@@ -320,6 +325,13 @@ impl MediaFeatureExpression {
                 };
 
                 let atom = Atom::from(string_as_ascii_lowercase(feature_name));
+
+                if disabled_by_pref(&atom) {
+                    return Err(location.new_custom_error(
+                        StyleParseErrorKind::MediaQueryExpectedFeatureName(ident.clone()),
+                    ));
+                }
+
                 match MEDIA_FEATURES
                     .iter()
                     .enumerate()
