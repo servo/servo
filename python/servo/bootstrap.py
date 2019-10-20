@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import six
 import six.moves.urllib as urllib
+from six.moves import input
 from subprocess import PIPE
 from zipfile import BadZipfile
 
@@ -254,7 +255,7 @@ def salt(context, force=False):
             print('Something went wrong while bootstrapping')
             return retcode
 
-        proceed = raw_input(
+        proceed = input(
             'Proposed changes are above, proceed with bootstrap? [y/N]: '
         )
         if proceed.lower() not in ['y', 'yes']:
