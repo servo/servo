@@ -2,6 +2,7 @@
 # since `--system-site-packages` is enabled
 
 blessings == 1.6
+distro == 1.4
 mach == 0.6.0
 mozdebug == 0.1
 mozinfo == 0.8

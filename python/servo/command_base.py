@@ -18,10 +18,12 @@ import locale
 import os
 from os import path
 import platform
+import distro
 import re
 import contextlib
 import subprocess
 from subprocess import PIPE
+import six
 import sys
 import tarfile
 import zipfile
@@ -679,8 +681,10 @@ install them, let us know by filing a bug!")
             append_to_path_env(path.join(libpath, "pkgconfig"), env, "PKG_CONFIG_PATH")
 
         if sys.platform == "linux2":
-            distro, version, _ = platform.linux_distribution()
-            if distro == "Ubuntu" and (version == "16.04" or version == "14.04"):
+            distrib, version, _ = distro.linux_distribution()
+            distrib = six.ensure_str(distrib)
+            version = six.ensure_str(version)
+            if distrib == "Ubuntu" and (version == "16.04" or version == "14.04"):
                 env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
         if extra_path:
