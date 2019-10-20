@@ -503,7 +503,7 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         return self \
         .with_path_from_homedir(".cargo\\bin") \
         .with_early_script(
-            "%HOMEDRIVE%%HOMEPATH%\\rustup-init.exe --default-toolchain none -y"
+            "%HOMEDRIVE%%HOMEPATH%\\rustup-init.exe --default-toolchain none --profile=minimal -y"
         ) \
         .with_file_mount("https://win.rustup.rs/x86_64", path="rustup-init.exe")
 
@@ -657,6 +657,8 @@ class MacOsGenericWorkerTask(UnixTaskMixin, GenericWorkerTask):
         return self.with_early_script("""
             export PATH="$HOME/.cargo/bin:$PATH"
             which rustup || curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none -y
+            rustup self update
+            rustup set profile minimal
         """)
 
 
