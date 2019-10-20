@@ -303,12 +303,9 @@ impl MediaFeatureExpression {
             let result = {
                 let mut feature_name = &**ident;
 
-                #[cfg(feature = "gecko")]
-                {
-                    if starts_with_ignore_ascii_case(feature_name, "-webkit-") {
-                        feature_name = &feature_name[8..];
-                        requirements.insert(ParsingRequirements::WEBKIT_PREFIX);
-                    }
+                if starts_with_ignore_ascii_case(feature_name, "-webkit-") {
+                    feature_name = &feature_name[8..];
+                    requirements.insert(ParsingRequirements::WEBKIT_PREFIX);
                 }
 
                 let range = if starts_with_ignore_ascii_case(feature_name, "min-") {
