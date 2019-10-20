@@ -4,7 +4,7 @@ import os
 import re
 import subprocess
 import sys
-import urlparse
+import six.moves.urllib as urllib
 
 from wptrunner.update.sync import UpdateCheckout
 from wptrunner.update.tree import get_unique_name
@@ -264,7 +264,7 @@ class MergeUpstream(Step):
         if "merge_index" not in state:
             state.merge_index = 0
 
-        org, name = urlparse.urlsplit(state.sync["remote_url"]).path[1:].split("/")
+        org, name = urllib.parse.urlsplit(state.sync["remote_url"]).path[1:].split("/")
         if name.endswith(".git"):
             name = name[:-4]
         state.gh_repo = gh.repo(org, name)

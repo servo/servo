@@ -5,7 +5,7 @@
 from __future__ import print_function
 
 import json
-from urlparse import urljoin
+from six.moves.urllib.parse import urljoin
 requests = None
 
 class GitHubError(Exception):
