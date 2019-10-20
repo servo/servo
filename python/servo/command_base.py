@@ -28,7 +28,7 @@ import zipfile
 from xml.etree.ElementTree import XML
 from servo.util import download_file
 import six.moves.urllib as urllib
-from bootstrap import check_gstreamer_lib
+from .bootstrap import check_gstreamer_lib
 
 from mach.decorators import CommandArgument
 from mach.registrar import Registrar
