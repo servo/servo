@@ -767,7 +767,7 @@ install them, let us know by filing a bug!")
             ]).strip())
 
             git_info.append('')
-            git_info.append(git_sha)
+            git_info.append(six.ensure_str(git_sha))
             if git_is_dirty:
                 git_info.append('dirty')
 
