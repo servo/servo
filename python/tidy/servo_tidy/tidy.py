@@ -9,14 +9,12 @@
 
 from __future__ import print_function
 
-import contextlib
 import fnmatch
 import imp
 import itertools
 import json
 import os
 import re
-from io import StringIO
 import subprocess
 import sys
 
@@ -327,28 +325,21 @@ def check_by_line(file_name, lines):
 
 
 def check_flake8(file_name, contents):
-    from flake8.main import check_code
-
     if not file_name.endswith(".py"):
         raise StopIteration
-
-    @contextlib.contextmanager
-    def stdout_redirect(where):
-        sys.stdout = where
-        try:
-            yield where
-        finally:
-            sys.stdout = sys.__stdout__
 
     ignore = {
         "W291",  # trailing whitespace; the standard tidy process will enforce no trailing whitespace
         "E501",  # 80 character line length; the standard tidy process will enforce line length
     }
 
-    output = StringIO()
-    with stdout_redirect(output):
-        check_code(contents, ignore=ignore)
-    for error in output.getvalue().splitlines():
+    output = ""
+    try:
+        args = ["flake8", "--ignore=" + ",".join(ignore), file_name]
+        subprocess.check_output(args)
+    except subprocess.CalledProcessError as e:
+        output = e.output
+    for error in output.splitlines():
         _, line_num, _, message = error.split(":", 3)
         yield line_num, message.strip()
 
