@@ -6,6 +6,7 @@ import subprocess
 import sys
 import six.moves.urllib as urllib
 from six.moves import input
+from six import iteritems
 
 from wptrunner.update.sync import UpdateCheckout
 from wptrunner.update.tree import get_unique_name
@@ -287,7 +288,7 @@ class UpdateLastSyncData(Step):
         data = {"local": state.local_tree.rev,
                 "upstream": state.sync_tree.rev}
         with open(state.sync_data_path, "w") as f:
-            for key, value in data.iteritems():
+            for key, value in iteritems(data):
                 f.write("%s: %s\n" % (key, value))
         # This gets added to the patch later on
 

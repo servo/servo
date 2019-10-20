@@ -8,6 +8,7 @@ import os
 import sys
 import subprocess
 import platform
+from six import itervalues, iteritems
 
 DEFAULT_MOVE_UP_CODE = u"\x1b[A"
 DEFAULT_CLEAR_EOL_CODE = u"\x1b[K"
@@ -105,7 +106,7 @@ class GroupingFormatter(base.BaseFormatter):
             return new_display + "No tests running.\n"
 
     def suite_start(self, data):
-        self.number_of_tests = sum(len(tests) for tests in data["tests"].itervalues())
+        self.number_of_tests = sum(len(tests) for tests in itervalues(data["tests"]))
         self.start_time = data["time"]
 
         if self.number_of_tests == 0:
@@ -182,7 +183,7 @@ class GroupingFormatter(base.BaseFormatter):
             else:
                 failures_by_stack[failure['stack']].append(failure)
 
-        for (stack, failures) in failures_by_stack.iteritems():
+        for (stack, failures) in iteritems(failures_by_stack):
             output += make_subtests_failure(test_name, failures, stack)
         return output
 

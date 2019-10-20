@@ -8,6 +8,7 @@ import os
 import sys
 import tempfile
 from collections import defaultdict
+from six import iterkeys, iteritems
 
 from mozlog.structured import commandline
 from wptrunner.wptcommandline import get_test_paths, set_from_config
@@ -58,7 +59,7 @@ def update(logger, wpt_dir, check_clean=True, rebuild=False):
 
 
 def _update(logger, test_paths, rebuild):
-    for url_base, paths in test_paths.iteritems():
+    for url_base, paths in iteritems(test_paths):
         manifest_path = os.path.join(paths["metadata_path"], "MANIFEST.json")
         cache_subdir = os.path.relpath(os.path.dirname(manifest_path),
                                        os.path.dirname(__file__))
@@ -75,7 +76,7 @@ def _update(logger, test_paths, rebuild):
 def _check_clean(logger, test_paths):
     manifests_by_path = {}
     rv = 0
-    for url_base, paths in test_paths.iteritems():
+    for url_base, paths in iteritems(test_paths):
         tests_path = paths["tests_path"]
         manifest_path = os.path.join(paths["metadata_path"], "MANIFEST.json")
 
@@ -102,7 +103,7 @@ def _check_clean(logger, test_paths):
 
         manifests_by_path[manifest_path] = (old_manifest, new_manifest)
 
-    for manifest_path, (old_manifest, new_manifest) in manifests_by_path.iteritems():
+    for manifest_path, (old_manifest, new_manifest) in iteritems(manifests_by_path):
         if not diff_manifests(logger, manifest_path, old_manifest, new_manifest):
             logger.error("Manifest %s is outdated, use |./mach update-manifest| to fix." % manifest_path)
             rv = 1
@@ -136,8 +137,8 @@ def diff_manifests(logger, manifest_path, old_manifest, new_manifest):
                 test_id = tuple(test_id)
                 items[path].add((test_type, test_id))
 
-    old_paths = set(old_items.iterkeys())
-    new_paths = set(new_items.iterkeys())
+    old_paths = set(iterkeys(old_items))
+    new_paths = set(iterkeys(new_items))
 
     added_paths = new_paths - old_paths
     deleted_paths = old_paths - new_paths
@@ -166,9 +167,9 @@ def diff_manifests(logger, manifest_path, old_manifest, new_manifest):
         # Manifest currently has some list vs tuple inconsistencies that break
         # a simple equality comparison.
         new_paths = {(key, value[0], value[1])
-                     for (key, value) in new_manifest.to_json()["paths"].iteritems()}
+                     for (key, value) in iteritems(new_manifest.to_json()["paths"])}
         old_paths = {(key, value[0], value[1])
-                     for (key, value) in old_manifest.to_json()["paths"].iteritems()}
+                     for (key, value) in iteritems(old_manifest.to_json()["paths"])}
         if old_paths != new_paths:
             logger.warning("Manifest %s contains correct tests but file hashes changed." % manifest_path)  # noqa
             clean = False
