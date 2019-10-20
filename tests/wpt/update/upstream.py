@@ -5,6 +5,7 @@ import re
 import subprocess
 import sys
 import six.moves.urllib as urllib
+from six.moves import input
 
 from wptrunner.update.sync import UpdateCheckout
 from wptrunner.update.tree import get_unique_name
@@ -158,7 +159,7 @@ class SelectCommits(Step):
             for i, commit in enumerate(commits):
                 print("%i:\t%s" % (i, commit.message.summary))
 
-            remove = raw_input("Provide a space-separated list of any commits numbers to remove from the list to upstream:\n").strip()
+            remove = input("Provide a space-separated list of any commits numbers to remove from the list to upstream:\n").strip()
             remove_idx = set()
             invalid = False
             for item in remove.split(" "):
@@ -182,7 +183,7 @@ class SelectCommits(Step):
             print("Selected the following commits to keep:")
             for i, commit in keep_commits:
                 print("%i:\t%s" % (i, commit.message.summary))
-            confirm = raw_input("Keep the above commits? y/n\n").strip().lower()
+            confirm = input("Keep the above commits? y/n\n").strip().lower()
 
             if confirm == "y":
                 state.source_commits = [item[1] for item in keep_commits]
