@@ -135,10 +135,10 @@ def normalize_env(env):
     # want UTF-8, they shouldn't pass in a unicode instance.
     normalized_env = {}
     for k, v in env.items():
-        if isinstance(k, unicode):
+        if isinstance(k, six.text_type):
             k = k.encode('utf-8', 'strict')
 
-        if isinstance(v, unicode):
+        if isinstance(v, six.text_type):
             v = v.encode('utf-8', 'strict')
 
         normalized_env[k] = v
