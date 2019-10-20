@@ -185,10 +185,7 @@ fn test_not_set_start_time_to_redirect_start_if_zero_no_tao() {
 fn test_set_start_time() {
     let mut resource_timing: ResourceFetchTiming =
         ResourceFetchTiming::new(ResourceTimingType::Resource);
-    assert_eq!(
-        resource_timing.start_time, 0,
-        "initial `start_time` should be zero"
-    );
+    assert_eq!(resource_timing.start_time, 0, "`start_time` should be zero");
 
     // verify setting `start_time` to current time succeeds
     resource_timing.set_attribute(ResourceAttribute::StartTime(ResourceTimeValue::Now));
@@ -198,7 +195,7 @@ fn test_set_start_time() {
 fn test_reset_start_time() {
     let mut resource_timing: ResourceFetchTiming =
         ResourceFetchTiming::new(ResourceTimingType::Resource);
-    assert_eq!(resource_timing.start_time, 0, "initial `start_time` = 0");
+    assert_eq!(resource_timing.start_time, 0, "`start_time` should be zero");
 
     resource_timing.start_time = 1;
     assert!(
