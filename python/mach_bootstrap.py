@@ -166,7 +166,7 @@ def _activate_virtualenv(topdir, is_firefox):
         # We want to upgrade pip when virtualenv created for the first time
         need_pip_upgrade = True
 
-    execfile(activate_path, dict(__file__=activate_path))
+    exec(compile(open(activate_path).read(), activate_path, 'exec'), dict(__file__=activate_path))
 
     python = _get_exec_path(PYTHON_NAMES, is_valid_path=check_exec_path)
     if not python:
