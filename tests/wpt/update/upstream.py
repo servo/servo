@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import os
 import re
 import subprocess
@@ -155,7 +157,7 @@ class SelectCommits(Step):
         while True:
             commits = state.source_commits[:]
             for i, commit in enumerate(commits):
-                print "%i:\t%s" % (i, commit.message.summary)
+                print("%i:\t%s" % (i, commit.message.summary))
 
             remove = raw_input("Provide a space-separated list of any commits numbers to remove from the list to upstream:\n").strip()
             remove_idx = set()
@@ -178,9 +180,9 @@ class SelectCommits(Step):
 
             keep_commits = [(i,cmt) for i,cmt in enumerate(commits) if i not in remove_idx]
             #TODO: consider printed removed commits
-            print "Selected the following commits to keep:"
+            print("Selected the following commits to keep:")
             for i, commit in keep_commits:
-                print "%i:\t%s" % (i, commit.message.summary)
+                print("%i:\t%s" % (i, commit.message.summary))
             confirm = raw_input("Keep the above commits? y/n\n").strip().lower()
 
             if confirm == "y":
@@ -210,7 +212,7 @@ class MovePatches(Step):
             try:
                 state.sync_tree.import_patch(stripped_patch, 1 + strip_count)
             except:
-                print patch.diff
+                print(patch.diff)
                 raise
             state.commits_loaded = i
 

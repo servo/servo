@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+from __future__ import print_function
+
 import json
 from urlparse import urljoin
 requests = None
@@ -46,7 +48,7 @@ class GitHub(object):
         if 200 <= resp.status_code < 300:
             return resp.json()
         else:
-            print resp.status_code, resp.json()
+            print(resp.status_code, resp.json())
             raise GitHubError(resp.status_code, resp.json())
 
     def repo(self, owner, name):
