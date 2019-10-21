@@ -55,6 +55,7 @@ mod devtools;
 pub mod document_loader;
 #[macro_use]
 mod dom;
+mod canvas_state;
 mod compartments;
 pub mod fetch;
 mod image_listener;
