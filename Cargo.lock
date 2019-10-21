@@ -155,8 +155,8 @@ source = "git+https://github.com/servo/autocfg?branch=rustflags2#9142612f4b2599e
 
 [[package]]
 name = "azure"
-version = "0.36.1"
-source = "git+https://github.com/servo/rust-azure#5996612af3139cc3c5eafb019d8218f8ca1634de"
+version = "0.37.0"
+source = "git+https://github.com/servo/rust-azure#1dbd223157997b5b5301e7da73bff37f928a7418"
 dependencies = [
  "cmake",
  "euclid",
@@ -2300,13 +2300,13 @@ dependencies = [
 
 [[package]]
 name = "io-surface"
-version = "0.11.1"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f9a33981dff54baaff80f4decb487a65d148a3c00facc97820d0f09128f74dd"
+checksum = "2279a6faecd06034f88218f77f7a767693e0957bce0323a96d92747e2760b445"
 dependencies = [
- "cgl 0.2.3",
+ "cgl 0.3.0",
  "core-foundation",
- "gleam 0.6.18",
+ "gleam 0.7.0",
  "leaky-cow",
  "libc",
 ]
@@ -4618,15 +4618,15 @@ dependencies = [
 
 [[package]]
 name = "servo-skia"
-version = "0.30000022.0"
+version = "0.30000023.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2df44d1fcd25d158fc5430a588daaa4aec88df6306ddf2a079f99dfd52672102"
+checksum = "3cf31d622cdfc24317eb1caa1018294f8058eb8315c9ed79103487b9504ddadb"
 dependencies = [
- "cgl 0.2.3",
+ "cgl 0.3.0",
  "cmake",
  "euclid",
  "expat-sys",
- "gleam 0.6.18",
+ "gleam 0.7.0",
  "glutin",
  "glx",
  "io-surface",
