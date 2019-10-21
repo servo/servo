@@ -53,9 +53,8 @@ interface NDEFReader : EventTarget {
   constructor();
 
   attribute EventHandler onreading;
-  attribute EventHandler onerror;
 
-  void scan(optional NDEFScanOptions options={});
+  Promise<void> scan(optional NDEFScanOptions options={});
 };
 
 [SecureContext, Exposed=Window]
@@ -69,17 +68,6 @@ interface NDEFReadingEvent : Event {
 dictionary NDEFReadingEventInit : EventInit {
   DOMString? serialNumber = "";
   required NDEFMessageInit message;
-};
-
-[SecureContext, Exposed=Window]
-interface NDEFErrorEvent : Event {
-  constructor(DOMString type, NDEFErrorEventInit errorEventInitDict);
-
-  readonly attribute DOMException error;
-};
-
-dictionary NDEFErrorEventInit : EventInit {
-  required DOMException error;
 };
 
 dictionary NDEFPushOptions {

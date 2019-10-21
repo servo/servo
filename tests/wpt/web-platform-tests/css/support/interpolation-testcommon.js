@@ -284,7 +284,7 @@
           comparisonFunction(
               getComputedStyle(target).getPropertyValue(property),
               expectedValue);
-        }, `${testText} at (${expectation.at}) should be [${sanitizeUrls(expectedValue)}]`);
+        }, `${testText} at (${expectation.at}) should be [${sanitizeUrls(expectation.expect)}]`);
       };
       return target;
     });

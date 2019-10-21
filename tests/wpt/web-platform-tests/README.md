@@ -251,27 +251,3 @@ If you spot an issue with a test and are not comfortable providing a
 pull request per above to fix it, please
 [file a new issue](https://github.com/web-platform-tests/wpt/issues/new).
 Thank you!
-
-Lint tool
----------
-
-We have a lint tool for catching common mistakes in test files. You
-can run it manually by starting the `lint` executable from the root of
-your local web-platform-tests working directory like this:
-
-```
-./wpt lint
-```
-
-The lint tool is also run automatically for every submitted pull
-request, and reviewers will not merge branches with tests that have
-lint errors, so you must fix any errors the lint tool reports.
-
-In the unusual case of error reports for things essential to a
-certain test or that for other exceptional reasons shouldn't prevent
-a merge of a test, update and commit the `lint.whitelist` file in the
-web-platform-tests root directory to suppress the error reports.
-
-For more details, see the [lint-tool documentation][lint-tool].
-
-[lint-tool]: https://web-platform-tests.org/writing-tests/lint-tool.html
