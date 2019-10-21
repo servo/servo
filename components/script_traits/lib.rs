@@ -561,14 +561,9 @@ pub struct TimerEventRequest(
     pub MsDuration,
 );
 
-/// Type of messages that can be sent to the timer scheduler.
+/// The message used to send a request to the timer scheduler.
 #[derive(Debug, Deserialize, Serialize)]
-pub enum TimerSchedulerMsg {
-    /// Message to schedule a new timer event.
-    Request(TimerEventRequest),
-    /// Message to exit the timer scheduler.
-    Exit,
-}
+pub struct TimerSchedulerMsg(pub TimerEventRequest);
 
 /// Notifies the script thread to fire due timers.
 /// `TimerSource` must be `FromWindow` when dispatched to `ScriptThread` and

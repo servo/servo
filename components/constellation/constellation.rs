@@ -110,7 +110,7 @@ use canvas_traits::canvas::CanvasMsg;
 use compositing::compositor_thread::CompositorProxy;
 use compositing::compositor_thread::Msg as ToCompositorMsg;
 use compositing::SendableFrameTree;
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use crossbeam_channel::{after, never, unbounded, Receiver, Sender};
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use embedder_traits::{Cursor, EmbedderMsg, EmbedderProxy, EventLoopWaker};
 use euclid::{default::Size2D as UntypedSize2D, Scale, Size2D};
@@ -355,9 +355,14 @@ pub struct Constellation<Message, LTF, STF> {
     /// memory profiler thread.
     mem_profiler_chan: mem::ProfilerChan,
 
-    /// A channel for the constellation to send messages to the
-    /// timer thread.
+    /// A channel for a pipeline to schedule timer events.
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
+
+    /// The receiver to which the IPC requests from scheduler_chan will be forwarded.
+    scheduler_receiver: Receiver<Result<TimerSchedulerMsg, IpcError>>,
+
+    /// The logic and data behing scheduling timer events.
+    timer_scheduler: TimerScheduler,
 
     /// A single WebRender document the constellation operates on.
     webrender_document: webrender_api::DocumentId,
@@ -718,6 +723,12 @@ where
                     ipc_namespace_receiver,
                 );
 
+                let (scheduler_chan, ipc_scheduler_receiver) =
+                    ipc::channel().expect("ipc channel failure");
+                let scheduler_receiver = route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(
+                    ipc_scheduler_receiver,
+                );
+
                 let (background_hang_monitor_sender, ipc_bhm_receiver) =
                     ipc::channel().expect("ipc channel failure");
                 let background_hang_monitor_receiver =
@@ -799,7 +810,9 @@ where
                     },
                     phantom: PhantomData,
                     webdriver: WebDriverData::new(),
-                    scheduler_chan: TimerScheduler::start(),
+                    timer_scheduler: TimerScheduler::new(),
+                    scheduler_chan,
+                    scheduler_receiver,
                     document_states: HashMap::new(),
                     webrender_document: state.webrender_document,
                     webrender_api_sender: state.webrender_api_sender,
@@ -1213,7 +1226,15 @@ where
             Layout(FromLayoutMsg),
             NetworkListener((PipelineId, FetchResponseMsg)),
             FromSWManager(SWManagerMsg),
+            Timer(TimerSchedulerMsg),
         }
+
+        // A timeout corresponding to the earliest scheduled timer event, if any.
+        let scheduler_timeout = self
+            .timer_scheduler
+            .check_timers()
+            .map(|timeout| after(timeout))
+            .unwrap_or(never());
 
         // Get one incoming request.
         // This is one of the few places where the compositor is
@@ -1250,6 +1271,14 @@ where
             recv(self.swmanager_receiver) -> msg => {
                 msg.expect("Unexpected panic channel panic in constellation").map(Request::FromSWManager)
             }
+            recv(self.scheduler_receiver) -> msg => {
+                msg.expect("Unexpected panic channel panic in constellation").map(Request::Timer)
+            }
+            recv(scheduler_timeout) -> _ => {
+                // Note: by returning, we go back to the top,
+                // where check_timers will be called.
+                return;
+            },
         };
 
         let request = match request {
@@ -1276,6 +1305,9 @@ where
             },
             Request::FromSWManager(message) => {
                 self.handle_request_from_swmanager(message);
+            },
+            Request::Timer(message) => {
+                self.timer_scheduler.handle_timer_request(message);
             },
         }
     }
@@ -2076,11 +2108,6 @@ where
             if let Err(e) = glplayer_threads.exit() {
                 warn!("Exit GLPlayer Thread failed ({})", e);
             }
-        }
-
-        debug!("Exiting timer scheduler.");
-        if let Err(e) = self.scheduler_chan.send(TimerSchedulerMsg::Exit) {
-            warn!("Exit timer scheduler failed ({})", e);
         }
 
         debug!("Exiting font cache thread.");
