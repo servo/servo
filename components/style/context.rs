@@ -103,14 +103,29 @@ fn get_env_usize(name: &str) -> Option<usize> {
     })
 }
 
+/// A global variable holding the state of
+/// `StyleSystemOptions::default().disable_style_sharing_cache`.
+/// See [#22854](https://github.com/servo/servo/issues/22854).
+#[cfg(feature = "servo")]
+pub static DEFAULT_DISABLE_STYLE_SHARING_CACHE: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
+/// A global variable holding the state of
+/// `StyleSystemOptions::default().dump_style_statistics`.
+/// See [#22854](https://github.com/servo/servo/issues/22854).
+#[cfg(feature = "servo")]
+pub static DEFAULT_DUMP_STYLE_STATISTICS: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
 impl Default for StyleSystemOptions {
     #[cfg(feature = "servo")]
     fn default() -> Self {
-        use servo_config::opts;
+        use std::sync::atomic::Ordering;
 
         StyleSystemOptions {
-            disable_style_sharing_cache: opts::get().disable_share_style_cache,
-            dump_style_statistics: opts::get().style_sharing_stats,
+            disable_style_sharing_cache: DEFAULT_DISABLE_STYLE_SHARING_CACHE
+                .load(Ordering::Relaxed),
+            dump_style_statistics: DEFAULT_DUMP_STYLE_STATISTICS.load(Ordering::Relaxed),
             style_statistics_threshold: DEFAULT_STATISTICS_THRESHOLD,
         }
     }
