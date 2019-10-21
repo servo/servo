@@ -13,6 +13,7 @@ use crate::dom::bindings::codegen::Bindings::AudioContextBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextBinding::BaseAudioContextMethods;
+use crate::dom::bindings::codegen::UnionTypes::AudioContextLatencyCategoryOrDouble;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -48,7 +49,12 @@ impl AudioContext {
         );
 
         // Step 4.1.
-        let latency_hint = options.latencyHint;
+        let latency_hint = match options.latencyHint {
+            AudioContextLatencyCategoryOrDouble::AudioContextLatencyCategory(category) => category,
+            AudioContextLatencyCategoryOrDouble::Double(_) => {
+                AudioContextLatencyCategory::Interactive
+            }, // TODO
+        };
 
         // Step 4.2. The sample rate is set during the creation of the BaseAudioContext.
         // servo-media takes care of setting the default sample rate of the output device
@@ -250,7 +256,12 @@ impl<'a> From<&'a AudioContextOptions> for RealTimeAudioContextOptions {
     fn from(options: &AudioContextOptions) -> Self {
         Self {
             sample_rate: *options.sampleRate.unwrap_or(Finite::wrap(44100.)),
-            latency_hint: options.latencyHint.into(),
+            latency_hint: match options.latencyHint {
+                AudioContextLatencyCategoryOrDouble::AudioContextLatencyCategory(category) => {
+                    category.into()
+                },
+                AudioContextLatencyCategoryOrDouble::Double(_) => LatencyCategory::Interactive, // TODO
+            },
         }
     }
 }

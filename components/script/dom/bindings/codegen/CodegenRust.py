@@ -736,6 +736,13 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                 default = '%s::USVString(USVString("%s".to_owned()))' % (
                     union_native_type(type),
                     defaultValue.value)
+            elif defaultValue.type.isEnum():
+                enum = defaultValue.type.inner.identifier.name
+                default = "%s::%s(%s::%s)" % (
+                    union_native_type(type),
+                    enum,
+                    enum,
+                    getEnumValueName(defaultValue.value))
             else:
                 raise("We don't currently support default values that aren't null, boolean or default dictionary")
         elif dictionaries:
@@ -2373,20 +2380,19 @@ def getAllTypes(descriptors, dictionaries, callbacks, typedefs):
     """
     Generate all the types we're dealing with.  For each type, a tuple
     containing type, descriptor, dictionary is yielded.  The
-    descriptor and dictionary can be None if the type does not come
-    from a descriptor or dictionary; they will never both be non-None.
+    descriptor can be None if the type does not come from a descriptor.
     """
     for d in descriptors:
         for t in getTypesFromDescriptor(d):
-            yield (t, d, None)
+            yield (t, d)
     for dictionary in dictionaries:
         for t in getTypesFromDictionary(dictionary):
-            yield (t, None, dictionary)
+            yield (t, None)
     for callback in callbacks:
         for t in getTypesFromCallback(callback):
-            yield (t, None, None)
+            yield (t, None)
     for typedef in typedefs:
-        yield (typedef.innerType, None, None)
+        yield (typedef.innerType, None)
 
 
 def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
@@ -2411,6 +2417,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'crate::dom::bindings::str::DOMString',
         'crate::dom::bindings::str::USVString',
         'crate::dom::bindings::trace::RootedTraceableBox',
+        'crate::dom::bindings::utils::find_enum_value',
         'crate::dom::types::*',
         'crate::script_runtime::JSContext as SafeJSContext',
         'js::error::throw_type_error',
@@ -2426,13 +2433,17 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
     # Now find all the things we'll need as arguments and return values because
     # we need to wrap or unwrap them.
     unionStructs = dict()
-    for (t, descriptor, dictionary) in getAllTypes(descriptors, dictionaries, callbacks, typedefs):
-        if dictionary:
-            imports.append("%s::%s" % (CGDictionary.makeModuleName(dictionary),
-                                       CGDictionary.makeDictionaryName(dictionary)))
+    for (t, descriptor) in getAllTypes(descriptors, dictionaries, callbacks, typedefs):
         t = t.unroll()
         if not t.isUnion():
             continue
+        for memberType in t.flatMemberTypes:
+            if memberType.isDictionary() or memberType.isEnum():
+                memberModule = getModuleFromObject(memberType)
+                memberName = memberType.inner.identifier.name
+                imports.append("%s::%s" % (memberModule, memberName))
+                if memberType.isEnum():
+                    imports.append("%s::%sValues" % (memberModule, memberName))
         name = str(t)
         if name not in unionStructs:
             provider = descriptor or config.getDescriptorProvider()
