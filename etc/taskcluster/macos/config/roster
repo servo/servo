@@ -10,3 +10,7 @@ mac5:
     host: servo-tc-mac5.servo.org
 mac6:
     host: servo-tc-mac6.servo.org
+mac7:
+    host: servo-tc-mac8.servo.org
+mac8:
+    host: servo-tc-mac8.servo.org
