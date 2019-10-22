@@ -43,7 +43,9 @@ use net_traits::request::{RedirectMode, Referrer, Request, RequestBuilder, Reque
 use net_traits::request::{ResponseTainting, ServiceWorkersMode};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
-use net_traits::{RedirectEndValue, RedirectStartValue, ResourceAttribute, ResourceFetchTiming};
+use net_traits::{
+    RedirectEndValue, RedirectStartValue, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
+};
 use openssl::ssl::SslConnectorBuilder;
 use servo_arc::Arc;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -572,8 +574,6 @@ pub fn http_fetch(
         // Generally, we use a persistent connection, so we will also set other PerformanceResourceTiming
         //   attributes to this as well (domain_lookup_start, domain_lookup_end, connect_start, connect_end,
         //   secure_connection_start)
-        // TODO(#21254) also set startTime equal to either fetch_start or redirect_start
-        //   (https://w3c.github.io/resource-timing/#dfn-starttime)
         context
             .timing
             .lock()
@@ -736,6 +736,21 @@ pub fn http_redirect_fetch(
         .lock()
         .unwrap()
         .set_attribute(ResourceAttribute::FetchStart);
+
+    // start_time should equal redirect_start if nonzero; else fetch_start
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::StartTime(ResourceTimeValue::FetchStart));
+
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::StartTime(
+            ResourceTimeValue::RedirectStart,
+        )); // updates start_time only if redirect_start is nonzero (implying TAO)
 
     // Step 5
     if request.redirect_count >= 20 {

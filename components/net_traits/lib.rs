@@ -474,6 +474,7 @@ pub struct ResourceFetchTiming {
     pub redirect_end: u64,
     pub connect_start: u64,
     pub connect_end: u64,
+    pub start_time: u64,
 }
 
 pub enum RedirectStartValue {
@@ -485,6 +486,15 @@ pub enum RedirectStartValue {
 pub enum RedirectEndValue {
     Zero,
     ResponseEnd,
+}
+
+// TODO: refactor existing code to use this enum for setting time attributes
+// suggest using this with all time attributes in the future
+pub enum ResourceTimeValue {
+    Zero,
+    Now,
+    FetchStart,
+    RedirectStart,
 }
 
 pub enum ResourceAttribute {
@@ -499,6 +509,7 @@ pub enum ResourceAttribute {
     ConnectEnd(u64),
     SecureConnectionStart,
     ResponseEnd,
+    StartTime(ResourceTimeValue),
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
@@ -525,6 +536,7 @@ impl ResourceFetchTiming {
             connect_start: 0,
             connect_end: 0,
             response_end: 0,
+            start_time: 0,
         }
     }
 
@@ -532,7 +544,9 @@ impl ResourceFetchTiming {
     // time origin (as described in Performance::now)
     pub fn set_attribute(&mut self, attribute: ResourceAttribute) {
         let should_attribute_always_be_updated = match attribute {
-            ResourceAttribute::FetchStart | ResourceAttribute::ResponseEnd => true,
+            ResourceAttribute::FetchStart |
+            ResourceAttribute::ResponseEnd |
+            ResourceAttribute::StartTime(_) => true,
             _ => false,
         };
         if !self.timing_check_passed && !should_attribute_always_be_updated {
@@ -562,6 +576,20 @@ impl ResourceFetchTiming {
                 self.secure_connection_start = precise_time_ns()
             },
             ResourceAttribute::ResponseEnd => self.response_end = precise_time_ns(),
+            ResourceAttribute::StartTime(val) => match val {
+                ResourceTimeValue::RedirectStart
+                    if self.redirect_start == 0 || !self.timing_check_passed => {},
+                _ => self.start_time = self.get_time_value(val),
+            },
+        }
+    }
+
+    fn get_time_value(&self, time: ResourceTimeValue) -> u64 {
+        match time {
+            ResourceTimeValue::Zero => 0,
+            ResourceTimeValue::Now => precise_time_ns(),
+            ResourceTimeValue::FetchStart => self.fetch_start,
+            ResourceTimeValue::RedirectStart => self.redirect_start,
         }
     }
 

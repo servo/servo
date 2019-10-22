@@ -22,8 +22,8 @@ use net_traits::filemanager_thread::RelativePos;
 use net_traits::request::{CredentialsMode, Destination, Referrer, Request, RequestMode};
 use net_traits::request::{Origin, ResponseTainting, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
-use net_traits::ResourceAttribute;
 use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceFetchTiming};
+use net_traits::{ResourceAttribute, ResourceTimeValue};
 use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
@@ -90,12 +90,19 @@ pub type DoneChannel = Option<(Sender<Data>, Receiver<Data>)>;
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
 pub fn fetch(request: &mut Request, target: Target, context: &FetchContext) {
-    // Step 7 of https://w3c.github.io/resource-timing/#processing-model
+    // Steps 7,4 of https://w3c.github.io/resource-timing/#processing-model
+    // rev order okay since spec says they're equal - https://w3c.github.io/resource-timing/#dfn-starttime
     context
         .timing
         .lock()
         .unwrap()
         .set_attribute(ResourceAttribute::FetchStart);
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::StartTime(ResourceTimeValue::FetchStart));
+
     fetch_with_cors_cache(request, &mut CorsCache::new(), target, context);
 }
 
