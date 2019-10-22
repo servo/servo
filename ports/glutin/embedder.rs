@@ -9,8 +9,8 @@ use crate::events_loop::EventsLoop;
 use crate::window_trait::WindowPortsMethods;
 use gleam::gl;
 use glutin;
-use glutin::EventsLoopClosed;
 use glutin::dpi::LogicalSize;
+use glutin::EventsLoopClosed;
 use rust_webvr::GlWindowVRService;
 use servo::compositing::windowing::EmbedderMethods;
 use servo::embedder_traits::EventLoopWaker;
@@ -24,15 +24,22 @@ pub struct EmbedderCallbacks {
     window: Rc<dyn WindowPortsMethods>,
     events_loop: Rc<RefCell<EventsLoop>>,
     gl: Rc<dyn gl::Gl>,
+    angle: bool,
 }
 
 impl EmbedderCallbacks {
     pub fn new(
         window: Rc<dyn WindowPortsMethods>,
         events_loop: Rc<RefCell<EventsLoop>>,
-        gl: Rc<dyn gl::Gl>
+        gl: Rc<dyn gl::Gl>,
+        angle: bool,
     ) -> EmbedderCallbacks {
-        EmbedderCallbacks { window, events_loop, gl }
+        EmbedderCallbacks {
+            window,
+            events_loop,
+            gl,
+            angle,
+        }
     }
 }
 
@@ -55,7 +62,10 @@ impl EmbedderMethods for EmbedderCallbacks {
                 let size = LogicalSize::new(size.width, size.height);
                 let events_loop_clone = self.events_loop.clone();
                 let events_loop_factory = Box::new(move || {
-                    events_loop_clone.borrow_mut().take().ok_or(EventsLoopClosed)
+                    events_loop_clone
+                        .borrow_mut()
+                        .take()
+                        .ok_or(EventsLoopClosed)
                 });
                 let window_builder = glutin::WindowBuilder::new()
                     .with_title(name.clone())
@@ -63,12 +73,13 @@ impl EmbedderMethods for EmbedderCallbacks {
                     .with_visibility(false)
                     .with_multitouch();
                 let context = glutin::ContextBuilder::new()
-                    .with_gl(app::gl_version())
+                    .with_gl(app::gl_version(self.angle))
                     .with_vsync(false) // Assume the browser vsync is the same as the test VR window vsync
                     .build_windowed(window_builder, &*self.events_loop.borrow().as_winit())
                     .expect("Failed to create window.");
                 let gl = self.gl.clone();
-                let (service, heartbeat) = GlWindowVRService::new(name, context, events_loop_factory, gl);
+                let (service, heartbeat) =
+                    GlWindowVRService::new(name, context, events_loop_factory, gl);
 
                 services.register(Box::new(service));
                 heartbeats.push(Box::new(heartbeat));

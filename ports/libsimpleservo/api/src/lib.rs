@@ -9,6 +9,7 @@ pub mod gl_glue;
 
 pub use servo::script_traits::MouseButton;
 
+use getopts::Options;
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderMethods, MouseWindowEvent, WindowEvent,
     WindowMethods,

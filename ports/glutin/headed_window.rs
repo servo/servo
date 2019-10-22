@@ -71,6 +71,8 @@ pub struct Window {
     fullscreen: Cell<bool>,
     gl: Rc<dyn gl::Gl>,
     xr_rotation: Cell<Rotation3D<f32, UnknownUnit, UnknownUnit>>,
+    angle: bool,
+    enable_vsync: bool,
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -90,6 +92,8 @@ impl Window {
         win_size: Size2D<u32, DeviceIndependentPixel>,
         sharing: Option<&Window>,
         events_loop: Rc<RefCell<EventsLoop>>,
+        angle: bool,
+        enable_vsync: bool,
     ) -> Window {
         let opts = opts::get();
 
@@ -114,8 +118,8 @@ impl Window {
         window_builder = builder_with_platform_options(window_builder);
 
         let mut context_builder = glutin::ContextBuilder::new()
-            .with_gl(app::gl_version())
-            .with_vsync(opts.enable_vsync);
+            .with_gl(app::gl_version(angle))
+            .with_vsync(enable_vsync);
 
         if opts.use_msaa {
             context_builder = context_builder.with_multisampling(MULTISAMPLES)
@@ -198,6 +202,8 @@ impl Window {
             primary_monitor,
             screen_size,
             xr_rotation: Cell::new(Rotation3D::identity()),
+            angle,
+            enable_vsync,
         };
 
         window.present();
@@ -545,6 +551,8 @@ impl webxr::glwindow::GlWindow for Window {
             self.inner_size.get(),
             Some(self),
             self.events_loop.clone(),
+            self.angle,
+            self.enable_vsync,
         ));
         app::register_window(window.clone());
         Ok(window)

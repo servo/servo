@@ -128,7 +128,7 @@ pub fn main() {
         process::exit(0);
     }
 
-    App::run();
+    App::run(opts::get().angle, opts::get().enable_vsync);
 
     platform::deinit()
 }
