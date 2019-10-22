@@ -190,6 +190,7 @@ def linux_tidy_unit_docs():
             ./etc/ci/lockfile_changed.sh
             ./etc/ci/check_no_panic.sh
 
+            rustup component add rust-docs
             RUSTDOCFLAGS="--disable-minification" ./mach doc
             (
                 cd target/doc
@@ -732,7 +733,6 @@ def windows_task(name):
         .with_worker_type("servo-win2016")
         .with_treeherder_required()
     )
-
 
 
 def macos_task(name):

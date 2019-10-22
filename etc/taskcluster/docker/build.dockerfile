@@ -42,7 +42,7 @@ RUN \
     && \
     #
     #
-    curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none -y && \
+    curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none --profile=minimal -y && \
     #
     #
     curl -sSfL \
