@@ -2673,6 +2673,7 @@ dependencies = [
 name = "libmlservo"
 version = "0.0.1"
 dependencies = [
+ "getopts",
  "libc",
  "libservo",
  "log",
@@ -4406,6 +4407,7 @@ dependencies = [
  "cc",
  "clipboard",
  "euclid",
+ "getopts",
  "gleam 0.6.18",
  "glutin",
  "image",

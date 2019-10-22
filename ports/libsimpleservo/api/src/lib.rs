@@ -171,7 +171,7 @@ pub fn init(
             gfx.subpixel_text_antialiasing.enabled,
             init_opts.enable_subpixel_text_antialiasing
         );
-        opts::from_cmdline_args(&args);
+        opts::from_cmdline_args(Options::new(), &args);
     }
 
     let embedder_url = init_opts.url.as_ref().and_then(|s| ServoUrl::parse(s).ok());

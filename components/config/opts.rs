@@ -7,7 +7,7 @@
 
 use crate::prefs::{self, PrefValue};
 use euclid::Size2D;
-use getopts::Options;
+use getopts::{Matches, Options};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
@@ -77,9 +77,6 @@ pub struct Opts {
     pub load_webfonts_synchronously: bool,
 
     pub headless: bool,
-
-    /// Use ANGLE to create the GL context (Windows-only).
-    pub angle: bool,
 
     /// True to exit on thread failure instead of displaying about:failure.
     pub hard_fail: bool,
@@ -186,9 +183,6 @@ pub struct Opts {
 
     /// Do not use native titlebar
     pub no_native_titlebar: bool,
-
-    /// Enable vsync in the compositor
-    pub enable_vsync: bool,
 
     /// True to show webrender profiling stats on screen.
     pub webrender_stats: bool,
@@ -314,9 +308,6 @@ pub struct DebugOptions {
     /// Load web fonts synchronously to avoid non-deterministic network-driven reflows.
     pub load_webfonts_synchronously: bool,
 
-    /// Disable vsync in the compositor
-    pub disable_vsync: bool,
-
     /// Show webrender profiling stats on screen.
     pub webrender_stats: bool,
 
@@ -368,7 +359,6 @@ impl DebugOptions {
                 "replace-surrogates" => self.replace_surrogates = true,
                 "gc-profile" => self.gc_profile = true,
                 "load-webfonts-synchronously" => self.load_webfonts_synchronously = true,
-                "disable-vsync" => self.disable_vsync = true,
                 "wr-stats" => self.webrender_stats = true,
                 "wr-record" => self.webrender_record = true,
                 "wr-no-batch" => self.webrender_disable_batch = true,
@@ -461,10 +451,6 @@ fn print_debug_usage(app: &str) -> ! {
     print_option(
         "load-webfonts-synchronously",
         "Load web fonts synchronously to avoid non-deterministic network-driven reflows",
-    );
-    print_option(
-        "disable-vsync",
-        "Disable vsync mode in the compositor to allow profiling at more than monitor refresh rate",
     );
     print_option("wr-stats", "Show WebRender profiler on screen.");
     print_option("msaa", "Use multisample antialiasing in WebRender.");
@@ -564,7 +550,6 @@ pub fn default_opts() -> Opts {
         gc_profile: false,
         load_webfonts_synchronously: false,
         headless: false,
-        angle: false,
         hard_fail: true,
         bubble_inline_sizes_separately: false,
         show_debug_fragment_borders: false,
@@ -595,7 +580,6 @@ pub fn default_opts() -> Opts {
         convert_mouse_to_touch: false,
         exit_after_load: false,
         no_native_titlebar: false,
-        enable_vsync: true,
         webrender_stats: false,
         use_msaa: false,
         config_dir: None,
@@ -613,10 +597,9 @@ pub fn default_opts() -> Opts {
     }
 }
 
-pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
+pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingResult {
     let (app_name, args) = args.split_first().unwrap();
 
-    let mut opts = Options::new();
     opts.optflag("c", "cpu", "CPU painting");
     opts.optflag("g", "gpu", "GPU painting");
     opts.optopt("o", "output", "Output file", "output.png");
@@ -673,11 +656,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         "",
     );
     opts.optflag("z", "headless", "Headless mode");
-    opts.optflag(
-        "",
-        "angle",
-        "Use ANGLE to create a GL context (Windows-only)",
-    );
     opts.optflag(
         "f",
         "hard-fail",
@@ -793,7 +771,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     // some dummy options for now.
     if let Some(content_process) = opt_match.opt_str("content-process") {
         MULTIPROCESS.store(true, Ordering::SeqCst);
-        return ArgumentParsingResult::ContentProcess(content_process);
+        return ArgumentParsingResult::ContentProcess(opt_match, content_process);
     }
 
     let mut debug_options = DebugOptions::default();
@@ -1010,7 +988,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         gc_profile: debug_options.gc_profile,
         load_webfonts_synchronously: debug_options.load_webfonts_synchronously,
         headless: opt_match.opt_present("z"),
-        angle: opt_match.opt_present("angle"),
         hard_fail: opt_match.opt_present("f") && !opt_match.opt_present("F"),
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
         profile_script_events: debug_options.profile_script_events,
@@ -1041,7 +1018,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         convert_mouse_to_touch: debug_options.convert_mouse_to_touch,
         exit_after_load: opt_match.opt_present("x"),
         no_native_titlebar: do_not_use_native_titlebar,
-        enable_vsync: !debug_options.disable_vsync,
         webrender_stats: debug_options.webrender_stats,
         use_msaa: debug_options.use_msaa,
         config_dir: opt_match.opt_str("config-dir").map(Into::into),
@@ -1074,12 +1050,12 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         set_pref!(layout.threads, layout_threads as i64);
     }
 
-    ArgumentParsingResult::ChromeProcess
+    return ArgumentParsingResult::ChromeProcess(opt_match);
 }
 
 pub enum ArgumentParsingResult {
-    ChromeProcess,
-    ContentProcess(String),
+    ChromeProcess(Matches),
+    ContentProcess(Matches, String),
 }
 
 // Make Opts available globally. This saves having to clone and pass

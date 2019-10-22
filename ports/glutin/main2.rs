@@ -24,6 +24,7 @@ mod window_trait;
 
 use app::App;
 use backtrace::Backtrace;
+use getopts::Options;
 use servo::config::opts::{self, ArgumentParsingResult};
 use servo::config::servo_version;
 use std::env;
@@ -76,16 +77,32 @@ pub fn main() {
 
     // Parse the command line options and store them globally
     let args: Vec<String> = env::args().collect();
-    let opts_result = opts::from_cmdline_args(&args);
+    let mut opts = Options::new();
+    opts.optflag(
+        "",
+        "angle",
+        "Use ANGLE to create a GL context (Windows-only)",
+    );
+    opts.optflag(
+        "",
+        "disable-vsync",
+        "Disable vsync mode in the compositor to allow profiling at more than monitor refresh rate",
+    );
 
-    let content_process_token = if let ArgumentParsingResult::ContentProcess(token) = opts_result {
-        Some(token)
-    } else {
-        if opts::get().is_running_problem_test && env::var("RUST_LOG").is_err() {
-            env::set_var("RUST_LOG", "compositing::constellation");
-        }
-
-        None
+    let opts_matches;
+    let content_process_token;
+    match opts::from_cmdline_args(opts, &args) {
+        ArgumentParsingResult::ContentProcess(matches, token) => {
+            opts_matches = matches;
+            content_process_token = Some(token);
+            if opts::get().is_running_problem_test && env::var("RUST_LOG").is_err() {
+                env::set_var("RUST_LOG", "compositing::constellation");
+            }
+        },
+        ArgumentParsingResult::ChromeProcess(matches) => {
+            opts_matches = matches;
+            content_process_token = None;
+        },
     };
 
     // TODO: once log-panics is released, can this be replaced by
@@ -128,7 +145,9 @@ pub fn main() {
         process::exit(0);
     }
 
-    App::run(opts::get().angle, opts::get().enable_vsync);
+    let angle = opts_matches.opt_present("angle");
+    let enable_vsync = !opts_matches.opt_present("disable-vsync");
+    App::run(angle, enable_vsync);
 
     platform::deinit()
 }
