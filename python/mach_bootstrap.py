@@ -145,7 +145,7 @@ def wptserve_path(is_firefox, topdir, *paths):
 
 
 def _activate_virtualenv(topdir, is_firefox):
-    virtualenv_path = os.path.join(topdir, "python", "_virtualenv")
+    virtualenv_path = os.path.join(topdir, "python", "_virtualenv%d.%d" % (sys.version_info[0], sys.version_info[1]))
     check_exec_path = lambda path: path.startswith(virtualenv_path)
     python = sys.executable   # If there was no python, mach wouldn't have run at all!
     if not python:
