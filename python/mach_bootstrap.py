@@ -256,7 +256,8 @@ def bootstrap(topdir):
     # We don't support paths with Unicode characters for now
     # https://github.com/servo/servo/issues/10002
     try:
-        topdir.decode('ascii')
+        # Trick to support both python2 and python3
+        topdir.encode().decode('ascii')
     except UnicodeDecodeError:
         print('Cannot run mach in a path with Unicode characters.')
         print('Current path:', topdir)
@@ -269,10 +270,10 @@ def bootstrap(topdir):
         print('Current path:', topdir)
         sys.exit(1)
 
-    # Ensure we are running Python 2.7+. We put this check here so we generate a
+    # Ensure we are running Python 2.7+ or Python 3.5+. We put this check here so we generate a
     # user-friendly error message rather than a cryptic stack trace on module import.
-    if not (3, 0) > sys.version_info >= (2, 7):
-        print('Python 2.7 or above (but not Python 3) is required to run mach.')
+    if sys.version_info < (2, 7) or (sys.version_info >= (3, 0) and sys.version_info < (3, 5)):
+        print('Python2 (>=2.7) or Python3 (>=3.5) is required to run mach.')
         print('You are running Python', platform.python_version())
         sys.exit(1)
 
