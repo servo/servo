@@ -10,6 +10,7 @@
 from __future__ import print_function
 
 import fnmatch
+import glob
 import imp
 import itertools
 import json
@@ -909,7 +910,7 @@ def check_config_file(config_file, print_text=True, no_wpt=False):
     exclude = config_content.get("ignore", {})
 
     # Check for invalid listed ignored directories
-    exclude_dirs = exclude.get("directories", [])
+    exclude_dirs = [d for p in exclude.get("directories", []) for d in (glob.glob(p) or [p])]
     skip_dirs = ["./target", "./tests"]
     invalid_dirs = [d for d in exclude_dirs if not os.path.isdir(d) and not any(s in d for s in skip_dirs)]
 
@@ -971,7 +972,8 @@ def check_config_file(config_file, print_text=True, no_wpt=False):
 def parse_config(config_file):
     exclude = config_file.get("ignore", {})
     # Add list of ignored directories to config
-    config["ignore"]["directories"] += normilize_paths(exclude.get("directories", []))
+    ignored_directories = [d for p in exclude.get("directories", []) for d in (glob.glob(p) or [p])]
+    config["ignore"]["directories"] += normilize_paths(ignored_directories)
     # Add list of ignored files to config
     config["ignore"]["files"] += normilize_paths(exclude.get("files", []))
     # Add list of ignored packages to config
