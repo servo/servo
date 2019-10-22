@@ -16,7 +16,7 @@ The `WebNFCTest` interface is defined as:
     setPendingPushCompleted(boolean result); // Sets if the pending push is completed.
     setPushShouldTimeout(boolean result); // Sets flag to trigger the pending push to timeout.
     pushedMessage(); // Gets the pushed `NDEFMessageSource`.
-    pushOptions(); // Gets the pushed `NFCPushOptions`.
+    pushOptions(); // Gets the pushed `NDEFPushOptions`.
   };
 ```
 

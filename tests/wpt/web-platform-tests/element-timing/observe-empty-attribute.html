@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: observe with empty elementtiming attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+let beforeRender;
+async_test(function (t) {
+  if (!window.PerformanceElementTiming) {
+    assert_unreached("PerformanceElementTiming is not implemented");
+  }
+  let observedImage = false;
+  let observedText = false;
+  const observer = new PerformanceObserver(
+    t.step_func(function(entryList) {
+      entryList.getEntries().forEach(entry => {
+        if (entry.name === 'image-paint') {
+          assert_false(observedImage, 'Image should only be observed once.');
+          const pathname = window.location.origin + '/element-timing/resources/square20.png';
+          checkElement(entry, pathname, '', 'square', beforeRender,
+              document.getElementById('square'));
+          checkNaturalSize(entry, 20, 20);
+          observedImage = true;
+        } else {
+          assert_false(observedText, 'Text should only be observed once.');
+          checkTextElement(entry, '', 'text', beforeRender, document.getElementById('text'));
+          observedText = true;
+        }
+      });
+      if (observedImage && observedText)
+        t.done();
+    })
+  );
+  observer.observe({type: 'element', buffered: true});
+  beforeRender = performance.now();
+}, "Able to observe image and text with empty elementtiming attribute.");
+</script>
+<img id='square' src='resources/square20.png' elementtiming/>
+<p id='text' elementtiming>Text!</p>

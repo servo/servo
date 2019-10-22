@@ -111,12 +111,12 @@ function createUrlRecord(url) {
   return createRecord('url', 'text/plain', url);
 }
 
-function createNFCPushOptions(target, timeout, ignoreRead) {
+function createNDEFPushOptions(target, timeout, ignoreRead) {
   return {target, timeout, ignoreRead};
 }
 
 // Compares NDEFMessageSource that was provided to the API
-// (e.g. NFCWriter.push), and NDEFMessage that was received by the
+// (e.g. NDEFWriter.push), and NDEFMessage that was received by the
 // mock NFC service.
 function assertNDEFMessagesEqual(providedMessage, receivedMessage) {
   // If simple data type is passed, e.g. String or ArrayBuffer, convert it
@@ -137,7 +137,7 @@ function assertNDEFMessagesEqual(providedMessage, receivedMessage) {
 }
 
 // Used to compare two NDEFMessage, one that is received from
-// NFCWriter.onreading() EventHandler and another that is provided to mock NFC
+// NDEFWriter.onreading() EventHandler and another that is provided to mock NFC
 // service.
 function assertWebNDEFMessagesEqual(message, expectedMessage) {
   if (expectedMessage.url)
@@ -172,10 +172,10 @@ function assertWebNDEFMessagesEqual(message, expectedMessage) {
   }
 }
 
-function testNFCScanOptions(message, scanOptions, unmatchedScanOptions, desc) {
+function testNDEFScanOptions(message, scanOptions, unmatchedScanOptions, desc) {
   nfc_test(async (t, mockNFC) => {
-    const reader1 = new NFCReader();
-    const reader2 = new NFCReader();
+    const reader1 = new NDEFReader();
+    const reader2 = new NDEFReader();
     const controller = new AbortController();
 
     mockNFC.setReadingMessage(message);
@@ -191,7 +191,7 @@ function testNFCScanOptions(message, scanOptions, unmatchedScanOptions, desc) {
       controller.abort();
       assertWebNDEFMessagesEqual(event.message, new NDEFMessage(message));
     });
-    // NFCReader#scan() asynchronously dispatches the onreading event.
+    // NDEFReader#scan() asynchronously dispatches the onreading event.
     scanOptions.signal = controller.signal;
     reader2.scan(scanOptions);
     await promise;
@@ -201,7 +201,7 @@ function testNFCScanOptions(message, scanOptions, unmatchedScanOptions, desc) {
 function testReadingMultiMessages(
     message, scanOptions, unmatchedMessage, desc) {
   nfc_test(async (t, mockNFC) => {
-    const reader = new NFCReader();
+    const reader = new NDEFReader();
     const controller = new AbortController();
     const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
 
@@ -209,7 +209,7 @@ function testReadingMultiMessages(
       controller.abort();
       assertWebNDEFMessagesEqual(event.message, new NDEFMessage(message));
     });
-    // NFCReader#scan() asynchronously dispatches the onreading event.
+    // NDEFReader#scan() asynchronously dispatches the onreading event.
     scanOptions.signal = controller.signal;
     reader.scan(scanOptions);
 

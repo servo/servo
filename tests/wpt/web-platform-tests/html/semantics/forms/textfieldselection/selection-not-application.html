@@ -14,6 +14,11 @@
     var el = document.createElement("input");
     el.type = type;
 
+    if (el.type != type) {
+      // Type is not supported - don't bother with the following checks.
+      return;
+    }
+
     test(() => {
       assert_equals(el.selectionStart, null);
     }, `selectionStart on an input[type=${type}] returns null`);
@@ -70,7 +75,7 @@
     }, `selectionEnd on an input[type=${type}] returns a value`);
 
     test(() => {
-      assert_equals(el.selectionDirection, "none");
+      assert_in_array(el.selectionDirection, ["forward", "none"]);
     }, `selectionDirection on an input[type=${type}] returns a value`);
 
     test(() => {
