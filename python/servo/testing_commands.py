@@ -350,7 +350,7 @@ class MachCommands(CommandBase):
 
         run_file = path.abspath(path.join(test_file_dir, "runtests.py"))
         run_globals = {"__file__": run_file}
-        execfile(run_file, run_globals)
+        exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
 
         verbose = not quiet
         return run_globals["run_tests"](tests, verbose)
@@ -442,7 +442,7 @@ class MachCommands(CommandBase):
             kwargs["binary_args"] = binary_args
 
         run_globals = {"__file__": run_file}
-        execfile(run_file, run_globals)
+        exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
         return run_globals["run_tests"](**kwargs)
 
     @Command('update-manifest',
@@ -473,7 +473,7 @@ class MachCommands(CommandBase):
             return 1
 
         run_globals = {"__file__": run_file}
-        execfile(run_file, run_globals)
+        exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
         return run_globals["update_tests"](**kwargs)
 
     @Command('filter-intermittents',
@@ -913,7 +913,7 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
                                           "components", "net", "tests",
                                           "cookie_http_state_utils.py"))
         run_globals = {"__file__": run_file}
-        execfile(run_file, run_globals)
+        exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
         return run_globals["update_test_file"](cache_dir)
 
     @Command('update-webgl',
@@ -934,7 +934,7 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
             shutil.rmtree(dest_folder)
 
         run_globals = {"__file__": run_file}
-        execfile(run_file, run_globals)
+        exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
         return run_globals["update_conformance"](version, dest_folder, None, patches_dir)
 
     @Command('smoketest',

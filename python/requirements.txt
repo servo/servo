@@ -2,6 +2,7 @@
 # since `--system-site-packages` is enabled
 
 blessings == 1.6
+distro == 1.4
 mach == 0.6.0
 mozdebug == 0.1
 mozinfo == 0.8
@@ -33,6 +34,6 @@ boto3 == 1.4.4
 certifi
 
 # For Python3 compatibility
-six
+six == 1.12
 
 -e python/tidy

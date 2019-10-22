@@ -8,10 +8,12 @@ from distutils.spawn import find_executable
 from distutils.version import LooseVersion
 import json
 import os
-import platform
+import distro
 import shutil
 import subprocess
+import six
 import six.moves.urllib as urllib
+from six.moves import input
 from subprocess import PIPE
 from zipfile import BadZipfile
 
@@ -253,7 +255,7 @@ def salt(context, force=False):
             print('Something went wrong while bootstrapping')
             return retcode
 
-        proceed = raw_input(
+        proceed = input(
             'Proposed changes are above, proceed with bootstrap? [y/N]: '
         )
         if proceed.lower() not in ['y', 'yes']:
@@ -342,9 +344,11 @@ LINUX_SPECIFIC_BOOTSTRAPPERS = {
 
 
 def get_linux_distribution():
-    distro, version, _ = platform.linux_distribution()
+    distrib, version, _ = distro.linux_distribution()
+    distrib = six.ensure_str(distrib)
+    version = six.ensure_str(version)
 
-    if distro == 'LinuxMint':
+    if distrib == 'LinuxMint':
         if '.' in version:
             major, _ = version.split('.', 1)
         else:
@@ -357,10 +361,10 @@ def get_linux_distribution():
         elif major == '17':
             base_version = '14.04'
         else:
-            raise Exception('unsupported version of %s: %s' % (distro, version))
+            raise Exception('unsupported version of %s: %s' % (distrib, version))
 
-        distro, version = 'Ubuntu', base_version
-    elif distro.lower() == 'elementary':
+        distrib, version = 'Ubuntu', base_version
+    elif distrib.lower() == 'elementary':
         if version == '5.0':
             base_version = '18.04'
         elif version[0:3] == '0.4':
@@ -372,21 +376,21 @@ def get_linux_distribution():
         elif version == '0.1':
             base_version = '10.10'
         else:
-            raise Exception('unsupported version of %s: %s' % (distro, version))
-        distro, version = 'Ubuntu', base_version
-    elif distro.lower() == 'ubuntu':
+            raise Exception('unsupported version of %s: %s' % (distrib, version))
+        distrib, version = 'Ubuntu', base_version
+    elif distrib.lower() == 'ubuntu':
         if version > '19.04':
-            raise Exception('unsupported version of %s: %s' % (distro, version))
+            raise Exception('unsupported version of %s: %s' % (distrib, version))
     # Fixme: we should allow checked/supported versions only
-    elif distro.lower() not in [
+    elif distrib.lower() not in [
         'centos',
         'centos linux',
         'debian',
         'fedora',
     ]:
-        raise Exception('mach bootstrap does not support %s, please file a bug' % distro)
+        raise Exception('mach bootstrap does not support %s, please file a bug' % distrib)
 
-    return distro, version
+    return distrib, version
 
 
 def bootstrap(context, force=False, specific=None):
@@ -396,9 +400,9 @@ def bootstrap(context, force=False, specific=None):
     if "windows-msvc" in host_triple():
         bootstrapper = windows_msvc
     elif "linux-gnu" in host_triple():
-        distro, version = get_linux_distribution()
+        distrib, version = get_linux_distribution()
 
-        context.distro = distro
+        context.distro = distrib
         context.distro_version = version
         bootstrapper = LINUX_SPECIFIC_BOOTSTRAPPERS.get(specific, linux)
 

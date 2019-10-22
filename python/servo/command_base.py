@@ -18,17 +18,19 @@ import locale
 import os
 from os import path
 import platform
+import distro
 import re
 import contextlib
 import subprocess
 from subprocess import PIPE
+import six
 import sys
 import tarfile
 import zipfile
 from xml.etree.ElementTree import XML
 from servo.util import download_file
 import six.moves.urllib as urllib
-from bootstrap import check_gstreamer_lib
+from .bootstrap import check_gstreamer_lib
 
 from mach.decorators import CommandArgument
 from mach.registrar import Registrar
@@ -133,10 +135,10 @@ def normalize_env(env):
     # want UTF-8, they shouldn't pass in a unicode instance.
     normalized_env = {}
     for k, v in env.items():
-        if isinstance(k, unicode):
+        if isinstance(k, six.text_type):
             k = k.encode('utf-8', 'strict')
 
-        if isinstance(v, unicode):
+        if isinstance(v, six.text_type):
             v = v.encode('utf-8', 'strict')
 
         normalized_env[k] = v
@@ -357,7 +359,7 @@ class CommandBase(object):
                     print()
                     return 1
                 raise
-            version = tuple(map(int, re.match("rustup (\d+)\.(\d+)\.(\d+)", version_line).groups()))
+            version = tuple(map(int, re.match(b"rustup (\d+)\.(\d+)\.(\d+)", version_line).groups()))
             if version < (1, 11, 0):
                 print("rustup is at version %s.%s.%s, Servo requires 1.11.0 or more recent." % version)
                 print("Try running 'rustup self update'.")
@@ -679,8 +681,10 @@ install them, let us know by filing a bug!")
             append_to_path_env(path.join(libpath, "pkgconfig"), env, "PKG_CONFIG_PATH")
 
         if sys.platform == "linux2":
-            distro, version, _ = platform.linux_distribution()
-            if distro == "Ubuntu" and (version == "16.04" or version == "14.04"):
+            distrib, version, _ = distro.linux_distribution()
+            distrib = six.ensure_str(distrib)
+            version = six.ensure_str(version)
+            if distrib == "Ubuntu" and (version == "16.04" or version == "14.04"):
                 env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
         if extra_path:
@@ -763,7 +767,7 @@ install them, let us know by filing a bug!")
             ]).strip())
 
             git_info.append('')
-            git_info.append(git_sha)
+            git_info.append(six.ensure_str(git_sha))
             if git_is_dirty:
                 git_info.append('dirty')
 
