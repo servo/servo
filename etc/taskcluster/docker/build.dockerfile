@@ -46,6 +46,6 @@ RUN \
     #
     #
     curl -sSfL \
-        https://github.com/mozilla/sccache/releases/download/0.2.7/sccache-0.2.7-x86_64-unknown-linux-musl.tar.gz \
+        https://github.com/mozilla/sccache/releases/download/0.2.12/sccache-0.2.12-x86_64-unknown-linux-musl.tar.gz \
         | tar -xz --strip-components=1 -C /usr/local/bin/ \
-            sccache-0.2.7-x86_64-unknown-linux-musl/sccache
+            sccache-0.2.12-x86_64-unknown-linux-musl/sccache
