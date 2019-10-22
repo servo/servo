@@ -9,6 +9,8 @@ namespace winrt::ServoApp::implementation {
 struct App : AppT<App> {
   App();
 
+  void createRootFrame(bool prelaunchActivated,
+                       winrt::Windows::Foundation::IInspectable const &args);
   void OnLaunched(
       Windows::ApplicationModel::Activation::LaunchActivatedEventArgs const &);
   void App::OnActivated(
