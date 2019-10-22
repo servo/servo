@@ -34,6 +34,27 @@ dictionary VideoConfiguration {
   required unsigned long long bitrate;
   required double framerate;
   boolean hasAlphaChannel;
+  HdrMetadataType hdrMetadataType;
+  ColorGamut colorGamut;
+  TransferFunction transferFunction;
+};
+
+enum HdrMetadataType {
+  "smpteSt2086",
+  "smpteSt2094-10",
+  "smpteSt2094-40"
+};
+
+enum ColorGamut {
+  "srgb",
+  "p3",
+  "rec2020"
+};
+
+enum TransferFunction {
+  "srgb",
+  "pq",
+  "hlg"
 };
 
 dictionary AudioConfiguration {
@@ -79,24 +100,4 @@ partial interface WorkerNavigator {
 interface MediaCapabilities {
   [NewObject] Promise<MediaCapabilitiesDecodingInfo> decodingInfo(MediaDecodingConfiguration configuration);
   [NewObject] Promise<MediaCapabilitiesInfo> encodingInfo(MediaEncodingConfiguration configuration);
-};
-
-[Exposed=Window]
-interface ScreenLuminance {
-  readonly attribute double min;
-  readonly attribute double max;
-  readonly attribute double maxAverage;
-};
-
-enum ScreenColorGamut {
-  "srgb",
-  "p3",
-  "rec2020",
-};
-
-partial interface Screen {
-  readonly attribute ScreenColorGamut colorGamut;
-  readonly attribute ScreenLuminance? luminance;
-
-  attribute EventHandler onchange;
 };
