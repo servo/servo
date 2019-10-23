@@ -1532,7 +1532,7 @@ dependencies = [
  "unicode-script",
  "webrender_api",
  "xi-unicode",
- "xml5ever",
+ "xml-rs",
 ]
 
 [[package]]
