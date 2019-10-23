@@ -122,7 +122,6 @@ impl InlineFormattingContext {
                                     inline: match outside {
                                         DisplayOutside::Inline => ifc.inline_position,
                                         DisplayOutside::Block => Length::zero(),
-                                        DisplayOutside::None => unreachable!(":("),
                                     },
                                     block: ifc.line_boxes.next_line_block_position,
                                 },

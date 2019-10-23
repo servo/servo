@@ -4,14 +4,12 @@
 
 use crate::geom::{flow_relative, physical};
 use style::properties::ComputedValues;
-use style::values::computed::{
-    Display as PackedDisplay, Length, LengthPercentage, LengthPercentageOrAuto, Size,
-};
+use style::values::computed::{Length, LengthPercentage, LengthPercentageOrAuto, Size};
+use style::values::specified::box_ as stylo;
 
 pub use style::computed_values::direction::T as Direction;
 pub use style::computed_values::position::T as Position;
 pub use style::computed_values::writing_mode::T as WritingMode;
-pub use style::values::specified::box_::{DisplayInside, DisplayOutside};
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub(crate) enum Display {
@@ -29,6 +27,18 @@ pub(crate) enum DisplayGeneratingBox {
     },
     // Layout-internal display types go here:
     // https://drafts.csswg.org/css-display-3/#layout-specific-display
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub(crate) enum DisplayOutside {
+    Block,
+    Inline,
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub(crate) enum DisplayInside {
+    Flow,
+    FlowRoot,
 }
 
 pub(crate) trait ComputedValuesExt {
@@ -105,18 +115,27 @@ impl ComputedValuesExt for ComputedValues {
     }
 }
 
-impl From<PackedDisplay> for Display {
-    fn from(packed_display: PackedDisplay) -> Self {
-        if packed_display == PackedDisplay::None {
-            return Self::None;
-        }
-        if packed_display == PackedDisplay::Contents {
-            return Self::Contents;
-        }
-        Self::GeneratingBox(DisplayGeneratingBox::OutsideInside {
-            outside: packed_display.outside(),
-            inside: packed_display.inside(),
-            // list_item: packed_display.is_list_item(),
+impl From<stylo::Display> for Display {
+    fn from(packed: stylo::Display) -> Self {
+        let inside = match packed.inside() {
+            stylo::DisplayInside::Flow => DisplayInside::Flow,
+            stylo::DisplayInside::FlowRoot => DisplayInside::FlowRoot,
+
+            // These should not be values of DisplayInside, but oh well
+            stylo::DisplayInside::None => return Display::None,
+            stylo::DisplayInside::Contents => return Display::Contents,
+        };
+        let outside = match packed.outside() {
+            stylo::DisplayOutside::Block => DisplayOutside::Block,
+            stylo::DisplayOutside::Inline => DisplayOutside::Inline,
+
+            // This should not be a value of DisplayInside, but oh well
+            stylo::DisplayOutside::None => return Display::None,
+        };
+        Display::GeneratingBox(DisplayGeneratingBox::OutsideInside {
+            outside,
+            inside,
+            // list_item: packed.is_list_item(),
         })
     }
 }

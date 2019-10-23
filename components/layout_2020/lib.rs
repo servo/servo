@@ -38,11 +38,10 @@ use crate::flow::{BlockFormattingContext, FlowChildren};
 use crate::geom::flow_relative::Vec2;
 use crate::positioned::AbsolutelyPositionedFragment;
 use crate::replaced::ReplacedContent;
-use crate::style_ext::{ComputedValuesExt, Direction, Position, WritingMode};
+use crate::style_ext::{ComputedValuesExt, Direction, DisplayInside, Position, WritingMode};
 use servo_arc::Arc;
 use std::convert::TryInto;
 use style::context::SharedStyleContext;
-use style::values::specified::box_::DisplayInside;
 
 /// https://drafts.csswg.org/css-display/#independent-formatting-context
 #[derive(Debug)]
@@ -74,7 +73,6 @@ impl IndependentFormattingContext {
                         non_replaced,
                     ))
                 },
-                DisplayInside::None | DisplayInside::Contents => panic!(":("),
             },
             Err(replaced) => IndependentFormattingContext::Replaced(replaced),
         }

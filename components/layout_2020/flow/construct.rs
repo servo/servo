@@ -210,7 +210,6 @@ where
                         self.handle_block_level_element(style.clone(), inside, contents, box_slot)
                     }
                 },
-                DisplayOutside::None => panic!(":("),
             },
         }
     }
@@ -352,7 +351,6 @@ where
                     inline_box.last_fragment = true;
                     Arc::new(InlineLevelBox::InlineBox(inline_box))
                 },
-                DisplayInside::None | DisplayInside::Contents => panic!(":("),
             },
         };
         self.current_inline_level_boxes().push(box_.clone());
