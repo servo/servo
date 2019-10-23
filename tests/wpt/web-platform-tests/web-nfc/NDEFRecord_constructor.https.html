@@ -20,6 +20,9 @@
     const record = new NDEFRecord(createTextRecord(test_text_data));
     assert_equals(record.recordType, 'text', 'recordType');
     assert_equals(record.mediaType, 'text/plain', 'mediaType');
+    const decoder = new TextDecoder();
+    assert_equals(decoder.decode(record.data), test_text_data,
+        'data has the same content with the original dictionary');
     assert_equals(record.text(), test_text_data,
         'text() has the same content with the original dictionary');
   }, 'NDEFRecord constructor with text record type');
@@ -28,6 +31,9 @@
     const record = new NDEFRecord(createUrlRecord(test_url_data));
     assert_equals(record.recordType, 'url', 'recordType');
     assert_equals(record.mediaType, 'text/plain', 'mediaType');
+    const decoder = new TextDecoder();
+    assert_equals(decoder.decode(record.data), test_url_data,
+        'data has the same content with the original dictionary');
     assert_equals(record.text(), test_url_data,
         'text() has the same content with the original dictionary');
   }, 'NDEFRecord constructor with url record type');
@@ -40,6 +46,8 @@
     const record = new NDEFRecord(createOpaqueRecord(buffer));
     assert_equals(record.recordType, 'opaque', 'recordType');
     assert_equals(record.mediaType, 'application/octet-stream', 'mediaType');
+    assert_array_equals(new Uint8Array(record.data.buffer), original_data,
+        'data has the same content with the original buffer');
 
     const data_1 = record.arrayBuffer();
     assert_true(data_1 instanceof ArrayBuffer);

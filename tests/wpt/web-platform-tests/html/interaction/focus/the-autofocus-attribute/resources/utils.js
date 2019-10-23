@@ -36,7 +36,6 @@ function timeOut(test, ms) {
 // doesn't work well.
 async function waitUntilStableAutofocusState(w) {
   let targetWindow = w || window;
-  // Awaiting two animation frames is an easy way to determine autofocus state.
-  await waitForAnimationFrame(targetWindow);
+  // Awaiting one animation frame is an easy way to determine autofocus state.
   await waitForAnimationFrame(targetWindow);
 }

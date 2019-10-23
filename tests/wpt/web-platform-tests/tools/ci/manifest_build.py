@@ -3,6 +3,7 @@ import logging
 import os
 import subprocess
 import sys
+import tempfile
 
 import requests
 
@@ -164,9 +165,7 @@ def should_dry_run():
 def main():
     dry_run = should_dry_run()
 
-    manifest_path = os.path.expanduser(os.path.join("~", "meta", "MANIFEST.json"))
-
-    os.makedirs(os.path.dirname(manifest_path))
+    manifest_path = os.path.join(tempfile.mkdtemp(), "MANIFEST.json")
 
     create_manifest(manifest_path)
 

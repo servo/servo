@@ -7,13 +7,7 @@
 
 ## Whitespace rules that we can't enforce yet ##
 
-INDENT TABS: .gitmodules
 INDENT TABS: conformance-checkers/*
-INDENT TABS: content-security-policy/*
-INDENT TABS: pointerlock/*
-INDENT TABS: shadow-dom/*
-INDENT TABS: webaudio/*
-INDENT TABS: webvtt/*
 INDENT TABS: encoding/legacy*/*
 
 TRAILING WHITESPACE: 2dcontext/tools/current-work-canvas.xhtml
@@ -76,8 +70,8 @@ SET TIMEOUT: docs/*
 WEB-PLATFORM.TEST:README.md
 WEB-PLATFORM.TEST:*/README.md
 WEB-PLATFORM.TEST:docs/*
-INDENT TABS:docs/*
-CR AT EOL:docs/*
+CR AT EOL, INDENT TABS:docs/make.bat
+INDENT TABS:docs/Makefile
 
 ## Helper scripts ##
 
@@ -106,6 +100,8 @@ CR AT EOL: webvtt/parsing/file-parsing/tests/support/newlines.vtt
 
 # Intentional use of tabs
 INDENT TABS: html/semantics/embedded-content/the-canvas-element/size.attributes.parse.whitespace.html
+INDENT TABS: webvtt/parsing/file-parsing/tests/support/header-tab.vtt
+INDENT TABS: webvtt/parsing/file-parsing/tests/support/whitespace-chars.vtt
 
 # Intentional use of print statements
 PRINT STATEMENT: dom/nodes/Document-createElement-namespace-tests/generate.py
@@ -402,31 +398,22 @@ NON-EXISTENT-REF: css/CSS2/normal-flow/blocks-017.xht
 ## Whitespace rules that we can't enforce yet
 INDENT TABS: css/compositing/*
 INDENT TABS: css/CSS2/*
-INDENT TABS: css/css-align/*
 INDENT TABS: css/css-backgrounds/*
 INDENT TABS: css/css-color/*
 INDENT TABS: css/css-conditional/*
-INDENT TABS: css/css-counter-styles/*
 INDENT TABS: css/css-flexbox/*
 INDENT TABS: css/css-fonts/*
-INDENT TABS: css/css-grid/*
-INDENT TABS: css/css-images/*
-INDENT TABS: css/css-lists/*
+INDENT TABS: css/css-images/support/1x1-green.svg
 INDENT TABS: css/css-masking/*
 INDENT TABS: css/css-multicol/*
 INDENT TABS: css/css-page/*
-INDENT TABS: css/css-pseudo/*
 INDENT TABS: css/css-regions/*
 INDENT TABS: css/css-round-display/*
-INDENT TABS: css/css-shapes/*
-INDENT TABS: css/css-speech/*
 INDENT TABS: css/css-text/*
 INDENT TABS: css/css-text-decor/*
 INDENT TABS: css/css-transforms/*
-INDENT TABS: css/css-transitions/*
 INDENT TABS: css/css-ui/*
 INDENT TABS: css/css-values/*
-INDENT TABS: css/css-variables/*
 INDENT TABS: css/css-writing-modes/*
 INDENT TABS: css/filter-effects/*
 INDENT TABS: css/mediaqueries/*

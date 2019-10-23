@@ -1,28 +1,26 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="timeout" content="long">
-<title>NFCWriter.push respect page visibility changes</title>
+<title>NDEFReader.onreading respect page visibility changes</title>
 <link rel="help" href="https://w3c.github.io/web-nfc/#visible-document">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="resources/nfc-helpers.js"></script>
 <script>
 
 promise_test(async t => {
-  const writer = new NFCWriter();
-  const p1 = writer.push(test_text_data);
+  const reader = new NDEFReader();
+  reader.scan();
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
 
   return await new Promise((resolve, reject) => {
-    p1.then(() => {
-      assert_false(document.hidden);
+    readerWatcher.wait_for("reading").then(event => {
+      if (document.hidden) reject();
       resolve();
-    }).catch(e => {
-      reject();
     });
   });
-}, "Test NFCWriter.push operation should be suspend when document is not visible");
+}, "Test NDEFReader.onreading is not fired when document is hidden");
 
 </script>
 
-<p>Step1: switch the page to the background, then tap an NFC tag.</p>
+<p>Step1: switch the page to the background, then tap a formatted NFC tag.</p>
 <p>Step2: switch back to the page, then tap the tag again.</p>

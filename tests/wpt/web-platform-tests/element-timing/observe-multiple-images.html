@@ -25,7 +25,6 @@ body {
     if (!window.PerformanceElementTiming) {
       assert_unreached("PerformanceElementTiming is not implemented");
     }
-    const index = window.location.href.lastIndexOf('/');
     const observer = new PerformanceObserver(
       t.step_func(function(entryList) {
         entryList.getEntries().forEach( entry => {
@@ -35,8 +34,7 @@ body {
               t.done();
             }
             image1Observed = 1;
-            const pathname1 = window.location.href.substring(0, index) +
-                '/resources/square100.png';
+            const pathname1 = window.location.origin + '/element-timing/resources/square100.png';
             // The images do not contain ID, so expect an empty ID.
             checkElement(entry, pathname1, 'image1', 'img1', beforeRender,
                 document.getElementById('img1'));
@@ -61,8 +59,7 @@ body {
               t.done();
             }
             image2Observed = 1;
-            const pathname2 = window.location.href.substring(0, index) +
-                '/resources/square20.png';
+            const pathname2 = window.location.origin + '/element-timing/resources/square20.png';
             checkElement(entry, pathname2, 'image2', 'img2', beforeRender,
                 document.getElementById('img2'));
             // This image should be below image 1, and should respect the margin.
@@ -75,8 +72,7 @@ body {
               t.done();
             }
             image3Observed = 1;
-            const pathname3 = window.location.href.substring(0, index) +
-                '/resources/circle.svg';
+            const pathname3 = window.location.origin + '/element-timing/resources/circle.svg';
             checkElement(entry, pathname3, 'image3', 'img3', beforeRender,
                 document.getElementById('img3'));
             // This image is just to the right of image2.

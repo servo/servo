@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-"""Wrapper script for running jobs in TaskCluster
+"""Wrapper script for running jobs in Taskcluster
 
-This is intended for running test jobs in TaskCluster. The script
+This is intended for running test jobs in Taskcluster. The script
 takes a two positional arguments which are the name of the test job
 and the script to actually run.
 

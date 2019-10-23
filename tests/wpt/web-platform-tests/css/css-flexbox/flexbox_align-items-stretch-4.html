@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Auto cross margins and align-items: stretch</title>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-stretch">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="flags" content="" />
+<meta name="assert" content="Auto cross margins prevent an item from stretching." />
+<link rel="bookmark" href="https://crbug.com/1015475" />
+<style>
+x-flexbox {
+  display: flex;
+  /* This makes auto margins prevent stretching without affecting position. Without
+     it the auto margins make the item move to the center of the window. */
+  width: 100px;
+}
+
+.item-with-auto-margin {
+  background: green;
+  margin: auto;
+}
+
+.pct-height-child {
+  height: 100%;
+  width: 100px;
+  background: red;
+}
+
+.second-child {
+  height: 100px;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<x-flexbox>
+  <div class=item-with-auto-margin>
+    <div class="pct-height-child"></div>
+    <div class="second-child"></div>
+  </div>
+</x-flexbox>

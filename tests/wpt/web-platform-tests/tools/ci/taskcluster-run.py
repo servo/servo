@@ -34,7 +34,7 @@ def gzip_file(filename, delete_original=True):
 
 
 def main(product, commit_range, wpt_args):
-    """Invoke the `wpt run` command according to the needs of the TaskCluster
+    """Invoke the `wpt run` command according to the needs of the Taskcluster
     continuous integration service."""
 
     logger = logging.getLogger("tc-run")

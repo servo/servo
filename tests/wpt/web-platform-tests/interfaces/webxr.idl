@@ -18,7 +18,8 @@ partial interface Navigator {
 
 enum XRSessionMode {
   "inline",
-  "immersive-vr"
+  "immersive-vr",
+  "immersive-ar"
 };
 
 dictionary XRSessionInit {

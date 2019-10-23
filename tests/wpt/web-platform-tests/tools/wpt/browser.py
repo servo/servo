@@ -623,6 +623,7 @@ class ChromeAndroidBase(Browser):
 
     def __init__(self, logger):
         super(ChromeAndroidBase, self).__init__(logger)
+        self.device_serial = None
 
     def install(self, dest=None, channel=None):
         raise NotImplementedError
@@ -646,7 +647,10 @@ class ChromeAndroidBase(Browser):
             self.logger.warning("No package name provided.")
             return None
 
-        command = ['adb', 'shell', 'dumpsys', 'package', binary]
+        command = ['adb']
+        if self.device_serial:
+            command.extend(['-s', self.device_serial])
+        command.extend(['shell', 'dumpsys', 'package', binary])
         try:
             output = call(*command)
         except (subprocess.CalledProcessError, OSError):
@@ -687,7 +691,10 @@ class AndroidWebview(ChromeAndroidBase):
         # For WebView, it is not trivial to change the WebView provider, so
         # we will just grab whatever is available.
         # https://chromium.googlesource.com/chromium/src/+/HEAD/android_webview/docs/channels.md
-        command = ['adb', 'shell', 'dumpsys', 'webviewupdate']
+        command = ['adb']
+        if self.device_serial:
+            command.extend(['-s', self.device_serial])
+        command.extend(['shell', 'dumpsys', 'webviewupdate'])
         try:
             output = call(*command)
         except (subprocess.CalledProcessError, OSError):

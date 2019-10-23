@@ -1,4 +1,6 @@
 spec: https://w3c.github.io/wake-lock/
 suggested_reviewers:
-  - marcoscaceres
   - Honry
+  - marcoscaceres
+  - rakuco
+  - reillyeon

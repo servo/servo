@@ -17,12 +17,12 @@
 
 test(t => {
   assert_false(isSecureContext);
-  assert_false('NFCWriter' in window);
-}, 'NFCWriter requires a secure context');
+  assert_false('NDEFWriter' in window);
+}, 'NDEFWriter requires a secure context');
 
 test(t => {
   assert_false(isSecureContext);
-  assert_false('NFCReader' in window);
-}, 'NFCReader requires a secure context');
+  assert_false('NDEFReader' in window);
+}, 'NDEFReader requires a secure context');
 
 </script>
