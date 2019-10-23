@@ -34,7 +34,7 @@ pub struct App {
 }
 
 impl App {
-    pub fn run(angle: bool, enable_vsync: bool) {
+    pub fn run(angle: bool, enable_vsync: bool, use_msaa: bool, no_native_titlebar: bool) {
         let events_loop = EventsLoop::new(opts::get().headless);
 
         // Implements window methods, used by compositor.
@@ -47,6 +47,8 @@ impl App {
                 events_loop.clone(),
                 angle,
                 enable_vsync,
+                use_msaa,
+                no_native_titlebar,
             ))
         };
 

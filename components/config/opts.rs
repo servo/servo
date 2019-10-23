@@ -181,9 +181,6 @@ pub struct Opts {
     /// True to exit after the page load (`-x`).
     pub exit_after_load: bool,
 
-    /// Do not use native titlebar
-    pub no_native_titlebar: bool,
-
     /// True to show webrender profiling stats on screen.
     pub webrender_stats: bool,
 
@@ -200,9 +197,6 @@ pub struct Opts {
     /// useful when modifying the shaders, to ensure they all compile
     /// after each change is made.
     pub precache_shaders: bool,
-
-    /// True if WebRender should use multisample antialiasing.
-    pub use_msaa: bool,
 
     /// Directory for a default config directory
     pub config_dir: Option<PathBuf>,
@@ -225,9 +219,6 @@ pub struct Opts {
 
     /// Print Progressive Web Metrics to console.
     pub print_pwm: bool,
-
-    /// Only shutdown once all theads are finished.
-    pub clean_shutdown: bool,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -317,9 +308,6 @@ pub struct DebugOptions {
     /// Enable webrender instanced draw call batching.
     pub webrender_disable_batch: bool,
 
-    /// Use multisample antialiasing in WebRender.
-    pub use_msaa: bool,
-
     // don't skip any backtraces on panic
     pub full_backtraces: bool,
 
@@ -362,7 +350,6 @@ impl DebugOptions {
                 "wr-stats" => self.webrender_stats = true,
                 "wr-record" => self.webrender_record = true,
                 "wr-no-batch" => self.webrender_disable_batch = true,
-                "msaa" => self.use_msaa = true,
                 "full-backtraces" => self.full_backtraces = true,
                 "precache-shaders" => self.precache_shaders = true,
                 "signpost" => self.signpost = true,
@@ -453,7 +440,6 @@ fn print_debug_usage(app: &str) -> ! {
         "Load web fonts synchronously to avoid non-deterministic network-driven reflows",
     );
     print_option("wr-stats", "Show WebRender profiler on screen.");
-    print_option("msaa", "Use multisample antialiasing in WebRender.");
     print_option("full-backtraces", "Print full backtraces for all errors");
     print_option("wr-debug", "Display webrender tile borders.");
     print_option("wr-no-batch", "Disable webrender instanced batching.");
@@ -579,9 +565,7 @@ pub fn default_opts() -> Opts {
         style_sharing_stats: false,
         convert_mouse_to_touch: false,
         exit_after_load: false,
-        no_native_titlebar: false,
         webrender_stats: false,
-        use_msaa: false,
         config_dir: None,
         full_backtraces: false,
         is_printing_version: false,
@@ -593,7 +577,6 @@ pub fn default_opts() -> Opts {
         certificate_path: None,
         unminify_js: false,
         print_pwm: false,
-        clean_shutdown: false,
     }
 }
 
@@ -744,11 +727,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         "config-dir",
         "config directory following xdg spec on linux platform",
         "",
-    );
-    opts.optflag(
-        "",
-        "clean-shutdown",
-        "Do not shutdown until all threads have finished (macos only)",
     );
     opts.optflag("v", "version", "Display servo version information");
     opts.optflag("", "unminify-js", "Unminify Javascript");
@@ -964,9 +942,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         })
         .collect();
 
-    let do_not_use_native_titlebar =
-        opt_match.opt_present("b") || !(pref!(shell.native_titlebar.enabled));
-
     let enable_subpixel_text_antialiasing =
         !debug_options.disable_subpixel_aa && pref!(gfx.subpixel_text_antialiasing.enabled);
 
@@ -1017,9 +992,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         style_sharing_stats: debug_options.style_sharing_stats,
         convert_mouse_to_touch: debug_options.convert_mouse_to_touch,
         exit_after_load: opt_match.opt_present("x"),
-        no_native_titlebar: do_not_use_native_titlebar,
         webrender_stats: debug_options.webrender_stats,
-        use_msaa: debug_options.use_msaa,
         config_dir: opt_match.opt_str("config-dir").map(Into::into),
         full_backtraces: debug_options.full_backtraces,
         is_printing_version: is_printing_version,
@@ -1031,7 +1004,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         certificate_path: opt_match.opt_str("certificate-path"),
         unminify_js: opt_match.opt_present("unminify-js"),
         print_pwm: opt_match.opt_present("print-pwm"),
-        clean_shutdown: opt_match.opt_present("clean-shutdown"),
     };
 
     set_options(opts);

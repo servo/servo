@@ -73,6 +73,8 @@ pub struct Window {
     xr_rotation: Cell<Rotation3D<f32, UnknownUnit, UnknownUnit>>,
     angle: bool,
     enable_vsync: bool,
+    use_msaa: bool,
+    no_native_titlebar: bool,
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -94,6 +96,8 @@ impl Window {
         events_loop: Rc<RefCell<EventsLoop>>,
         angle: bool,
         enable_vsync: bool,
+        use_msaa: bool,
+        no_native_titlebar: bool,
     ) -> Window {
         let opts = opts::get();
 
@@ -101,7 +105,7 @@ impl Window {
         // `load_end()`. This avoids an ugly flash of unstyled content (especially important since
         // unstyled content is white and chrome often has a transparent background). See issue
         // #9996.
-        let visible = opts.output_file.is_none() && !opts.no_native_titlebar;
+        let visible = opts.output_file.is_none() && !no_native_titlebar;
 
         let win_size: DeviceIntSize = (win_size.to_f32() * window_creation_scale_factor()).to_i32();
         let width = win_size.to_untyped().width;
@@ -109,8 +113,8 @@ impl Window {
 
         let mut window_builder = glutin::WindowBuilder::new()
             .with_title("Servo".to_string())
-            .with_decorations(!opts.no_native_titlebar)
-            .with_transparency(opts.no_native_titlebar)
+            .with_decorations(!no_native_titlebar)
+            .with_transparency(no_native_titlebar)
             .with_dimensions(LogicalSize::new(width as f64, height as f64))
             .with_visibility(visible)
             .with_multitouch();
@@ -121,7 +125,7 @@ impl Window {
             .with_gl(app::gl_version(angle))
             .with_vsync(enable_vsync);
 
-        if opts.use_msaa {
+        if use_msaa {
             context_builder = context_builder.with_multisampling(MULTISAMPLES)
         }
 
@@ -204,6 +208,8 @@ impl Window {
             xr_rotation: Cell::new(Rotation3D::identity()),
             angle,
             enable_vsync,
+            use_msaa,
+            no_native_titlebar,
         };
 
         window.present();
@@ -553,6 +559,8 @@ impl webxr::glwindow::GlWindow for Window {
             self.events_loop.clone(),
             self.angle,
             self.enable_vsync,
+            self.use_msaa,
+            self.no_native_titlebar,
         ));
         app::register_window(window.clone());
         Ok(window)

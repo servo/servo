@@ -27,6 +27,7 @@ use backtrace::Backtrace;
 use getopts::Options;
 use servo::config::opts::{self, ArgumentParsingResult};
 use servo::config::servo_version;
+use servo::servo_config::pref;
 use std::env;
 use std::panic;
 use std::process;
@@ -40,7 +41,7 @@ pub mod platform {
     pub mod macos;
 
     #[cfg(not(target_os = "macos"))]
-    pub fn deinit() {}
+    pub fn deinit(_clean_shutdown: bool) {}
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]
@@ -85,9 +86,16 @@ pub fn main() {
     );
     opts.optflag(
         "",
+        "clean-shutdown",
+        "Do not shutdown until all threads have finished (macos only)",
+    );
+    opts.optflag(
+        "",
         "disable-vsync",
         "Disable vsync mode in the compositor to allow profiling at more than monitor refresh rate",
     );
+    opts.optflag("", "msaa", "Use multisample antialiasing in WebRender.");
+    opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
 
     let opts_matches;
     let content_process_token;
@@ -146,8 +154,12 @@ pub fn main() {
     }
 
     let angle = opts_matches.opt_present("angle");
+    let clean_shutdown = opts_matches.opt_present("clean-shutdown");
+    let do_not_use_native_titlebar =
+        opts_matches.opt_present("no-native-titlebar") || !(pref!(shell.native_titlebar.enabled));
     let enable_vsync = !opts_matches.opt_present("disable-vsync");
-    App::run(angle, enable_vsync);
+    let use_msaa = opts_matches.opt_present("msaa");
+    App::run(angle, enable_vsync, use_msaa, do_not_use_native_titlebar);
 
-    platform::deinit()
+    platform::deinit(clean_shutdown)
 }
