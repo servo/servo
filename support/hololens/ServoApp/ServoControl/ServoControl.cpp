@@ -40,20 +40,19 @@ void ServoControl::OnLoaded(IInspectable const &, RoutedEventArgs const &) {
       std::bind(&ServoControl::OnSurfaceClicked, this, _1, _2));
   panel.ManipulationStarted(
       [=](IInspectable const &,
-         Input::ManipulationStartedRoutedEventArgs const &e) {
+          Input::ManipulationStartedRoutedEventArgs const &e) {
         mOnCaptureGesturesStartedEvent();
         e.Handled(true);
       });
   panel.ManipulationCompleted(
       [=](IInspectable const &,
-         Input::ManipulationCompletedRoutedEventArgs const &e) {
+          Input::ManipulationCompletedRoutedEventArgs const &e) {
         mOnCaptureGesturesEndedEvent();
         e.Handled(true);
       });
   panel.ManipulationDelta(
       std::bind(&ServoControl::OnSurfaceManipulationDelta, this, _1, _2));
-  Panel().SizeChanged(
-      std::bind(&ServoControl::OnSurfaceResized, this, _1, _2));
+  Panel().SizeChanged(std::bind(&ServoControl::OnSurfaceResized, this, _1, _2));
   InitializeConditionVariable(&mGLCondVar);
   InitializeCriticalSection(&mGLLock);
   CreateRenderSurface();
@@ -166,7 +165,8 @@ void ServoControl::Loop() {
   if (mServo == nullptr) {
     log("Entering loop");
     ServoDelegate *sd = static_cast<ServoDelegate *>(this);
-    mServo = std::make_unique<Servo>(mInitialURL, panelWidth, panelHeight, mDPI, *sd);
+    mServo = std::make_unique<Servo>(mInitialURL, mArgs, panelWidth, panelHeight, mDPI,
+                                     *sd);
   } else {
     // FIXME: this will fail since create_task didn't pick the thread
     // where Servo was running initially.
@@ -273,9 +273,7 @@ void ServoControl::WakeUp() {
 
 bool ServoControl::OnServoAllowNavigation(hstring uri) {
   if (mTransient) {
-    RunOnUIThread([=] {
-      Launcher::LaunchUriAsync(Uri{uri});
-    });
+    RunOnUIThread([=] { Launcher::LaunchUriAsync(Uri{uri}); });
   }
   return !mTransient;
 }
@@ -288,7 +286,8 @@ void ServoControl::OnServoAnimatingChanged(bool animating) {
 }
 
 void ServoControl::OnServoIMEStateChanged(bool aShow) {
-  // FIXME: https://docs.microsoft.com/en-us/windows/win32/winauto/uiauto-implementingtextandtextrange
+  // FIXME:
+  // https://docs.microsoft.com/en-us/windows/win32/winauto/uiauto-implementingtextandtextrange
 }
 
 template <typename Callable> void ServoControl::RunOnUIThread(Callable cb) {

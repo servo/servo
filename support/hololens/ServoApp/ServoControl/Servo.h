@@ -43,7 +43,7 @@ protected:
 
 class Servo {
 public:
-  Servo(hstring, GLsizei, GLsizei, float, ServoDelegate &);
+  Servo(hstring, hstring, GLsizei, GLsizei, float, ServoDelegate &);
   ~Servo();
   ServoDelegate &Delegate() { return mDelegate; }
 

@@ -11,6 +11,7 @@ namespace ServoApp {
       void Stop();
       Windows.Foundation.Uri LoadURIOrSearch(String url);
       void SetTransientMode(Boolean transient);
+      void SetArgs(String args);
       void Shutdown();
       event EventDelegate OnLoadStarted;
       event EventDelegate OnLoadEnded;

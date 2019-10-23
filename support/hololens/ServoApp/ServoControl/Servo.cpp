@@ -56,12 +56,12 @@ const char* get_clipboard_contents() {
   return nullptr;
 }
 
-Servo::Servo(hstring url, GLsizei width, GLsizei height, float dpi,
+Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height, float dpi,
              ServoDelegate &aDelegate)
     : mWindowHeight(height), mWindowWidth(width), mDelegate(aDelegate) {
 
   capi::CInitOptions o;
-  o.args = "--pref dom.webxr.enabled";
+  o.args = *hstring2char(args);
   o.url = *hstring2char(url);
   o.width = mWindowWidth;
   o.height = mWindowHeight;
