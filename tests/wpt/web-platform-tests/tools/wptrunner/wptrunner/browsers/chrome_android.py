@@ -31,6 +31,7 @@ def check_args(**kwargs):
 
 def browser_kwargs(test_type, run_info_data, config, **kwargs):
     return {"package_name": kwargs["package_name"],
+            "device_serial": kwargs["device_serial"],
             "webdriver_binary": kwargs["webdriver_binary"],
             "webdriver_args": kwargs.get("webdriver_args")}
 
@@ -53,6 +54,9 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
     assert kwargs["package_name"], "missing --package-name"
     executor_kwargs["capabilities"]["goog:chromeOptions"]["androidPackage"] = \
         kwargs["package_name"]
+    if kwargs.get("device_serial"):
+        executor_kwargs["capabilities"]["goog:chromeOptions"]["androidDeviceSerial"] = \
+            kwargs["device_serial"]
 
     return executor_kwargs
 
@@ -72,17 +76,22 @@ class ChromeAndroidBrowser(Browser):
     """
 
     def __init__(self, logger, package_name, webdriver_binary="chromedriver",
-                 webdriver_args=None):
+                 device_serial=None, webdriver_args=None):
         Browser.__init__(self, logger)
         self.package_name = package_name
+        self.device_serial = device_serial
         self.server = ChromeDriverServer(self.logger,
                                          binary=webdriver_binary,
                                          args=webdriver_args)
         self.setup_adb_reverse()
 
     def _adb_run(self, args):
-        self.logger.info('adb ' + ' '.join(args))
-        subprocess.check_call(['adb'] + args)
+        cmd = ['adb']
+        if self.device_serial:
+            cmd.extend(['-s', self.device_serial])
+        cmd.extend(args)
+        self.logger.info(' '.join(cmd))
+        subprocess.check_call(cmd)
 
     def setup_adb_reverse(self):
         self._adb_run(['wait-for-device'])

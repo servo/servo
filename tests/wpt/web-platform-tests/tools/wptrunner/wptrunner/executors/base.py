@@ -304,6 +304,11 @@ class RefTestImplementation(object):
         assert relation in ("==", "!=")
         if not fuzzy or fuzzy == ((0,0), (0,0)):
             equal = hashes[0] == hashes[1]
+            # sometimes images can have different hashes, but pixels can be identical.
+            if not equal:
+                self.logger.info("Image hashes didn't match, checking pixel differences")
+                max_per_channel, pixels_different = self.get_differences(screenshots)
+                equal = pixels_different == 0 and max_per_channel == 0
         else:
             max_per_channel, pixels_different = self.get_differences(screenshots)
             allowed_per_channel, allowed_different = fuzzy

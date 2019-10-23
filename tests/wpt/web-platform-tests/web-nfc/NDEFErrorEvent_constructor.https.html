@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>NDEFErrorEvent constructor</title>
+<link rel="help" href="https://w3c.github.io/web-nfc/#dom-ndeferrorevent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(() => {
+    assert_equals(NDEFErrorEvent.length, 2);
+    assert_throws(new TypeError, () => new NDEFErrorEvent('error'));
+  }, 'NDEFErrorEvent constructor without init dict');
+
+  test(() => {
+    assert_throws(new TypeError, () => new NDEFErrorEvent('error', { error : null }));
+  }, 'NDEFErrorEvent constructor with a null that is not of type DOMException');
+
+  test(() => {
+    const event = new NDEFErrorEvent('error', { error : new DOMException() });
+    assert_true(event.error instanceof DOMException);
+  }, 'NDEFErrorEvent constructor with a valid DOMException');
+</script>

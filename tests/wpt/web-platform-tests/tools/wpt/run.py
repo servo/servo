@@ -354,6 +354,8 @@ class ChromeAndroid(BrowserSetup):
     browser_cls = browser.ChromeAndroid
 
     def setup_kwargs(self, kwargs):
+        if kwargs.get("device_serial"):
+            self.browser.device_serial = kwargs["device_serial"]
         browser_channel = kwargs["browser_channel"]
         if kwargs["package_name"] is None:
             kwargs["package_name"] = self.browser.find_binary(
@@ -398,6 +400,8 @@ class AndroidWebview(BrowserSetup):
     browser_cls = browser.AndroidWebview
 
     def setup_kwargs(self, kwargs):
+        if kwargs.get("device_serial"):
+            self.browser.device_serial = kwargs["device_serial"]
         if kwargs["webdriver_binary"] is None:
             webdriver_binary = self.browser.find_webdriver()
 

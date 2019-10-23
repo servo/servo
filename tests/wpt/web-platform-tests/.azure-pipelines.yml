@@ -60,7 +60,7 @@ jobs:
   displayName: './wpt test-jobs'
   condition: eq(variables['Build.Reason'], 'PullRequest')
   pool:
-    vmImage: 'ubuntu-16.04'
+    vmImage: 'ubuntu-18.04'
   steps:
   - template: tools/ci/azure/checkout.yml
   - script: |

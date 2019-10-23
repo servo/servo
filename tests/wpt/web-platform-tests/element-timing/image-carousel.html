@@ -32,12 +32,9 @@ body {
     const beforeRenderTimes = [];
     let entry_count = 0;
     const entry_count_per_element = [0, 0];
-    const index = window.location.href.lastIndexOf('/');
-    const pathname0 = window.location.href.substring(0, index) +
-        '/resources/circle.svg';
-    const pathname1 = window.location.href.substring(0, index) +
-        '/resources/square100.png';
-    const observer = new PerformanceObserver(list => {
+    const pathname0 = window.location.origin + '/element-timing/resources/circle.svg';
+    const pathname1 = window.location.origin + '/element-timing/resources/square100.png';
+    const observer = new PerformanceObserver(t.step_func(list => {
       list.getEntries().forEach(entry => {
         if (entry_count % 2 == 0) {
           checkElement(entry, pathname0, 'image0', 'image0', beforeRenderTimes[entry_count],
@@ -61,7 +58,7 @@ body {
           t.done();
         }
       })
-    });
+    }));
     observer.observe({entryTypes: ['element']});
     let slideIndex = 0;
     showCarousel();

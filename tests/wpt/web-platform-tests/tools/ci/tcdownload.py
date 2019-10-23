@@ -19,7 +19,7 @@ def get_parser():
                         help="Log type to fetch")
     parser.add_argument("--repo-name", action="store", default="web-platform-tests/wpt",
                         help="GitHub repo name in the format owner/repo. "
-                        "This must be the repo from which the TaskCluster run was scheduled "
+                        "This must be the repo from which the Taskcluster run was scheduled "
                         "(for PRs this is the repo into which the PR would merge)")
     parser.add_argument("--token-file", action="store",
                         help="File containing GitHub token")
@@ -70,7 +70,7 @@ def run(*args, **kwargs):
         taskgroups.add(taskgroup_id)
 
     if not taskgroups:
-        logger.error("No complete TaskCluster runs found for ref %s" % kwargs["ref"])
+        logger.error("No complete Taskcluster runs found for ref %s" % kwargs["ref"])
         return 1
 
     for taskgroup in taskgroups:

@@ -11,6 +11,14 @@ partial interface ServiceWorkerRegistration {
 interface PaymentManager {
   [SameObject] readonly attribute PaymentInstruments instruments;
   attribute DOMString userHint;
+  Promise<void> enableDelegations(FrozenArray<PaymentDelegation> delegations);
+};
+
+enum PaymentDelegation {
+  "shippingAddress",
+  "payerName",
+  "payerPhone",
+  "payerEmail"
 };
 
 [SecureContext, Exposed=(Window,Worker)]
@@ -59,11 +67,13 @@ partial interface ServiceWorkerGlobalScope {
   attribute EventHandler onpaymentrequest;
 };
 
-dictionary PaymentMethodChangeResponse {
+dictionary PaymentRequestDetailsUpdate {
   DOMString error;
   PaymentCurrencyAmount total;
   FrozenArray<PaymentDetailsModifier> modifiers;
+  FrozenArray<PaymentShippingOption> shippingOptions;
   object paymentMethodErrors;
+  AddressErrors shippingAddressErrors;
 };
 
 [Exposed=ServiceWorker]
@@ -77,8 +87,12 @@ interface PaymentRequestEvent : ExtendableEvent {
   readonly attribute FrozenArray<PaymentDetailsModifier> modifiers;
   readonly attribute DOMString instrumentKey;
   readonly attribute boolean requestBillingAddress;
+  readonly attribute object? paymentOptions;
+  readonly attribute FrozenArray<PaymentShippingOption>? shippingOptions;
   Promise<WindowClient?> openWindow(USVString url);
-  Promise<PaymentMethodChangeResponse?> changePaymentMethod(DOMString methodName, optional object? methodDetails = null);
+  Promise<PaymentRequestDetailsUpdate?> changePaymentMethod(DOMString methodName, optional object? methodDetails = null);
+  Promise<PaymentRequestDetailsUpdate?> changeShippingAddress(AddressInit shippingAddress);
+  Promise<PaymentRequestDetailsUpdate?> changeShippingOption(DOMString shippingOption);
   void respondWith(Promise<PaymentHandlerResponse> handlerResponsePromise);
 };
 
@@ -90,9 +104,16 @@ dictionary PaymentRequestEventInit : ExtendableEventInit {
   PaymentCurrencyAmount total;
   sequence<PaymentDetailsModifier> modifiers;
   DOMString instrumentKey;
+  PaymentOptions paymentOptions;
+  sequence<PaymentShippingOption> shippingOptions;
 };
 
 dictionary PaymentHandlerResponse {
 DOMString methodName;
 object details;
+DOMString? payerName;
+DOMString? payerEmail;
+DOMString? payerPhone;
+AddressInit shippingAddress;
+DOMString? shippingOption;
 };
