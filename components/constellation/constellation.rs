@@ -1562,10 +1562,17 @@ where
             FromScriptMsg::PostMessage {
                 target: browsing_context_id,
                 source: source_pipeline_id,
+                source_origin: source_origin,
                 target_origin: origin,
                 data,
             } => {
-                self.handle_post_message_msg(browsing_context_id, source_pipeline_id, origin, data);
+                self.handle_post_message_msg(
+                    browsing_context_id,
+                    source_pipeline_id,
+                    source_origin,
+                    origin,
+                    data,
+                );
             },
             FromScriptMsg::Focus => {
                 self.handle_focus_msg(source_pipeline_id);
@@ -3202,6 +3209,7 @@ where
         &mut self,
         browsing_context_id: BrowsingContextId,
         source_pipeline: PipelineId,
+        source_origin: Option<ImmutableOrigin>,
         origin: Option<ImmutableOrigin>,
         data: Vec<u8>,
     ) {
@@ -3222,6 +3230,7 @@ where
             target: pipeline_id,
             source: source_pipeline,
             source_browsing_context: source_browsing_context,
+            source_origin: source_origin,
             target_origin: origin,
             data,
         };

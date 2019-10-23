@@ -164,6 +164,8 @@ pub enum ScriptMsg {
         target: BrowsingContextId,
         /// The source of the posted message.
         source: PipelineId,
+        /// Source origin of the message
+        source_origin: Option<ImmutableOrigin>,
         /// The expected origin of the target.
         target_origin: Option<ImmutableOrigin>,
         /// The data to be posted.

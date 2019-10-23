@@ -1838,12 +1838,14 @@ impl ScriptThread {
                 target: target_pipeline_id,
                 source: source_pipeline_id,
                 source_browsing_context,
+                source_origin,
                 target_origin: origin,
                 data,
             } => self.handle_post_message_msg(
                 target_pipeline_id,
                 source_pipeline_id,
                 source_browsing_context,
+                source_origin,
                 origin,
                 data,
             ),
@@ -2488,6 +2490,7 @@ impl ScriptThread {
         pipeline_id: PipelineId,
         source_pipeline_id: PipelineId,
         source_browsing_context: TopLevelBrowsingContextId,
+        source_origin: Option<ImmutableOrigin>,
         origin: Option<ImmutableOrigin>,
         data: Vec<u8>,
     ) {
@@ -2511,7 +2514,12 @@ impl ScriptThread {
                     Some(source) => source,
                 };
                 // FIXME(#22512): enqueues a task; unnecessary delay.
-                window.post_message(origin, &*source, StructuredCloneData::Vector(data))
+                window.post_message(
+                    source_origin,
+                    origin,
+                    &*source,
+                    StructuredCloneData::Vector(data),
+                )
             },
         }
     }

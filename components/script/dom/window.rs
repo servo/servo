@@ -915,6 +915,7 @@ impl WindowMethods for Window {
     fn PostMessage(&self, cx: JSContext, message: HandleValue, origin: DOMString) -> ErrorResult {
         let source_global = GlobalScope::incumbent().expect("no incumbent global??");
         let source = source_global.as_window();
+        let source_origin = Some(source.Document().origin().immutable().clone());
 
         // Step 3-5.
         let origin = match &origin[..] {
@@ -931,7 +932,7 @@ impl WindowMethods for Window {
         let data = StructuredCloneData::write(*cx, message)?;
 
         // Step 9.
-        self.post_message(origin, &*source.window_proxy(), data);
+        self.post_message(source_origin, origin, &*source.window_proxy(), data);
         Ok(())
     }
 
@@ -2269,12 +2270,14 @@ impl Window {
     // https://html.spec.whatwg.org/multipage/#dom-window-postmessage step 7.
     pub fn post_message(
         &self,
+        source_origin: Option<ImmutableOrigin>,
         target_origin: Option<ImmutableOrigin>,
         source: &WindowProxy,
         serialize_with_transfer_result: StructuredCloneData,
     ) {
         let this = Trusted::new(self);
         let source = Trusted::new(source);
+        let origin = source_origin.map(|origin| origin.ascii_serialization());
         let task = task!(post_serialised_message: move || {
             let this = this.root();
             let source = source.root();
@@ -2305,7 +2308,7 @@ impl Window {
                 this.upcast(),
                 this.upcast(),
                 message_clone.handle(),
-                None,
+                origin.as_ref().map( |origin| { &**origin } ),
                 Some(&*source),
             );
         });

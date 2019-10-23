@@ -152,8 +152,13 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
         // TODO(#12717): Should implement the `transfer` argument.
         let data = StructuredCloneData::write(*cx, message)?;
 
+        let source_origin = match self.window_proxy().document() {
+            Some(document) => Some(document.origin().immutable().clone()),
+            None => None,
+        };
+
         // Step 9.
-        self.post_message(origin, data);
+        self.post_message(source_origin, origin, data);
         Ok(())
     }
 
@@ -186,7 +191,12 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 }
 
 impl DissimilarOriginWindow {
-    pub fn post_message(&self, origin: Option<ImmutableOrigin>, data: StructuredCloneData) {
+    pub fn post_message(
+        &self,
+        source_origin: Option<ImmutableOrigin>,
+        origin: Option<ImmutableOrigin>,
+        data: StructuredCloneData,
+    ) {
         let incumbent = match GlobalScope::incumbent() {
             None => return warn!("postMessage called with no incumbent global"),
             Some(incumbent) => incumbent,
@@ -194,6 +204,7 @@ impl DissimilarOriginWindow {
         let msg = ScriptMsg::PostMessage {
             target: self.window_proxy.browsing_context_id(),
             source: incumbent.pipeline_id(),
+            source_origin,
             target_origin: origin,
             data: data.move_to_arraybuffer(),
         };
