@@ -8,7 +8,7 @@ ${helpers.four_sides_shorthand(
     "margin",
     "margin-%s",
     "specified::LengthPercentageOrAuto::parse",
-    engines="gecko servo-2013",
+    engines="gecko servo-2013 servo-2020",
     spec="https://drafts.csswg.org/css-box/#propdef-margin",
     allowed_in_page_rule=True,
     allow_quirks="Yes",
@@ -19,7 +19,7 @@ ${helpers.two_properties_shorthand(
     "margin-block-start",
     "margin-block-end",
     "specified::LengthPercentageOrAuto::parse",
-    engines="gecko servo-2013",
+    engines="gecko servo-2013 servo-2020",
     spec="https://drafts.csswg.org/css-logical/#propdef-margin-block"
 )}
 
@@ -28,7 +28,7 @@ ${helpers.two_properties_shorthand(
     "margin-inline-start",
     "margin-inline-end",
     "specified::LengthPercentageOrAuto::parse",
-    engines="gecko servo-2013",
+    engines="gecko servo-2013 servo-2020",
     spec="https://drafts.csswg.org/css-logical/#propdef-margin-inline"
 )}
 

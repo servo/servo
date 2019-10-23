@@ -63,7 +63,6 @@ ${helpers.predefined_type(
     "Float",
     "computed::Float::None",
     engines="gecko servo-2013 servo-2020",
-    servo_2020_pref="layout.2020.unimplemented",
     initial_specified_value="specified::Float::None",
     spec="https://drafts.csswg.org/css-box/#propdef-float",
     animation_value_type="discrete",

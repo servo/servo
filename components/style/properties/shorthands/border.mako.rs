@@ -9,7 +9,7 @@ ${helpers.four_sides_shorthand(
     "border-color",
     "border-%s-color",
     "specified::Color::parse",
-    engines="gecko servo-2013",
+    engines="gecko servo-2013 servo-2020",
     spec="https://drafts.csswg.org/css-backgrounds/#border-color",
     allow_quirks="Yes",
 )}
@@ -18,14 +18,14 @@ ${helpers.four_sides_shorthand(
     "border-style",
     "border-%s-style",
     "specified::BorderStyle::parse",
-    engines="gecko servo-2013",
+    engines="gecko servo-2013 servo-2020",
     needs_context=False,
     spec="https://drafts.csswg.org/css-backgrounds/#border-style",
 )}
 
 <%helpers:shorthand
     name="border-width"
-    engines="gecko servo-2013"
+    engines="gecko servo-2013 servo-2020"
     sub_properties="${
         ' '.join('border-%s-width' % side
                  for side in PHYSICAL_SIDES)}"
