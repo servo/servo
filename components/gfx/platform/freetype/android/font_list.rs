@@ -2,17 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use super::xml::{Attribute, Node};
 use crate::text::util::is_cjk;
-use std::cell::RefCell;
-use std::fs::File;
-use std::io::{self, Read};
 use std::path::Path;
 use ucd::{Codepoint, UnicodeBlock};
-use xml5ever::driver::parse_document;
-use xml5ever::rcdom::*;
-use xml5ever::rcdom::{Node, RcDom};
-use xml5ever::tendril::TendrilSink;
-use xml5ever::Attribute;
 
 lazy_static! {
     static ref FONT_LIST: FontList = FontList::new();
@@ -157,51 +150,36 @@ impl FontList {
 
     // Creates a new FontList from a path to the font mapping xml file.
     fn from_path(path: &str) -> Option<FontList> {
-        let xml = match Self::load_file(path) {
-            Ok(xml) => xml,
-            _ => {
-                return None;
-            },
-        };
-
-        let dom: RcDom = parse_document(RcDom::default(), Default::default()).one(xml);
-        let doc = &dom.document;
+        let bytes = std::fs::read(path).ok()?;
+        let nodes = super::xml::parse(&bytes).ok()?;
 
         // find familyset root node
-        let children = doc.children.borrow();
-        let familyset = children.iter().find(|child| match child.data {
-            NodeData::Element { ref name, .. } => &*name.local == "familyset",
-            _ => false,
-        });
-
-        let familyset = match familyset {
-            Some(node) => node,
-            _ => {
-                return None;
+        let familyset = nodes.iter().find_map(|e| match e {
+            Node::Element { name, children, .. } if name.local_name == "familyset" => {
+                Some(children)
             },
-        };
+            _ => None,
+        })?;
 
         // Parse familyset node
         let mut families = Vec::new();
         let mut aliases = Vec::new();
 
-        for node in familyset.children.borrow().iter() {
-            match node.data {
-                NodeData::Element {
-                    ref name,
-                    ref attrs,
-                    ..
-                } => {
-                    if &*name.local == "family" {
-                        Self::parse_family(&node, attrs, &mut families);
-                    } else if &*name.local == "alias" {
-                        // aliases come after the fonts they reference. -->
-                        if !families.is_empty() {
-                            Self::parse_alias(attrs, &mut aliases);
-                        }
+        for node in familyset {
+            if let Node::Element {
+                name,
+                attributes,
+                children,
+            } = node
+            {
+                if name.local_name == "family" {
+                    Self::parse_family(children, attributes, &mut families);
+                } else if name.local_name == "alias" {
+                    // aliases come after the fonts they reference. -->
+                    if !families.is_empty() {
+                        Self::parse_alias(attributes, &mut aliases);
                     }
-                },
-                _ => {},
+                }
             }
         }
 
@@ -253,14 +231,6 @@ impl FontList {
         self.aliases.iter().find(|f| f.from == name)
     }
 
-    fn load_file(path: &str) -> Result<String, io::Error> {
-        let mut file = File::open(path)?;
-        let mut content = String::new();
-        file.read_to_string(&mut content)?;
-
-        Ok(content)
-    }
-
     // Parse family and font file names
     // Example:
     // <family name="sans-serif">
@@ -270,40 +240,35 @@ impl FontList {
     //     <font weight="300" style="italic">Roboto-LightItalic.ttf</font>
     //     <font weight="400" style="normal">Roboto-Regular.ttf</font>
     // </family>
-    fn parse_family(familyset: &Node, attrs: &RefCell<Vec<Attribute>>, out: &mut Vec<FontFamily>) {
+    fn parse_family(familyset: &[Node], attrs: &[Attribute], out: &mut Vec<FontFamily>) {
         // Fallback to old Android API v17 xml format if required
-        let using_api_17 = familyset
-            .children
-            .borrow()
-            .iter()
-            .any(|node| match node.data {
-                NodeData::Element { ref name, .. } => &*name.local == "nameset",
-                _ => false,
-            });
+        let using_api_17 = familyset.iter().any(|node| match node {
+            Node::Element { name, .. } => name.local_name == "nameset",
+            _ => false,
+        });
         if using_api_17 {
             Self::parse_family_v17(familyset, out);
             return;
         }
 
         // Parse family name
-        let name = match Self::find_attrib("name", attrs) {
-            Some(name) => name,
-            _ => {
-                return;
-            },
+        let name = if let Some(name) = Self::find_attrib("name", attrs) {
+            name
+        } else {
+            return;
         };
 
         let mut fonts = Vec::new();
         // Parse font variants
-        for node in familyset.children.borrow().iter() {
-            match node.data {
-                NodeData::Element {
-                    ref name,
-                    ref attrs,
-                    ..
+        for node in familyset {
+            match node {
+                Node::Element {
+                    name,
+                    attributes,
+                    children,
                 } => {
-                    if &*name.local == "font" {
-                        FontList::parse_font(&node, attrs, &mut fonts);
+                    if name.local_name == "font" {
+                        FontList::parse_font(&children, attributes, &mut fonts);
                     }
                 },
                 _ => {},
@@ -333,19 +298,16 @@ impl FontList {
     //         <file>Roboto-BoldItalic.ttf</file>
     //     </fileset>
     // </family>
-    fn parse_family_v17(familyset: &Node, out: &mut Vec<FontFamily>) {
+    fn parse_family_v17(familyset: &[Node], out: &mut Vec<FontFamily>) {
         let mut nameset = Vec::new();
         let mut fileset = Vec::new();
-        for node in familyset.children.borrow().iter() {
-            match node.data {
-                NodeData::Element { ref name, .. } => {
-                    if &*name.local == "nameset" {
-                        Self::collect_contents_with_tag(node, "name", &mut nameset);
-                    } else if &*name.local == "fileset" {
-                        Self::collect_contents_with_tag(node, "file", &mut fileset);
-                    }
-                },
-                _ => {},
+        for node in familyset {
+            if let Node::Element { name, children, .. } = node {
+                if name.local_name == "nameset" {
+                    Self::collect_contents_with_tag(children, "name", &mut nameset);
+                } else if name.local_name == "fileset" {
+                    Self::collect_contents_with_tag(children, "file", &mut fileset);
+                }
             }
         }
 
@@ -370,22 +332,17 @@ impl FontList {
 
     // Example:
     // <font weight="100" style="normal">Roboto-Thin.ttf</font>
-    fn parse_font(node: &Node, attrs: &RefCell<Vec<Attribute>>, out: &mut Vec<Font>) {
+    fn parse_font(nodes: &[Node], attrs: &[Attribute], out: &mut Vec<Font>) {
         // Parse font filename
-        let filename = match Self::text_content(node) {
-            Some(filename) => filename,
-            _ => {
-                return;
-            },
-        };
+        if let Some(filename) = Self::text_content(nodes) {
+            // Parse font weight
+            let weight = Self::find_attrib("weight", attrs).and_then(|w| w.parse().ok());
 
-        // Parse font weight
-        let weight = Self::find_attrib("weight", attrs).and_then(|w| w.parse().ok());
-
-        out.push(Font {
-            filename: filename,
-            weight: weight,
-        })
+            out.push(Font {
+                filename: filename,
+                weight: weight,
+            })
+        }
     }
 
     // Example:
@@ -397,7 +354,7 @@ impl FontList {
     // <alias name="helvetica" to="sans-serif" />
     // <alias name="tahoma" to="sans-serif" />
     // <alias name="verdana" to="sans-serif" />
-    fn parse_alias(attrs: &RefCell<Vec<Attribute>>, out: &mut Vec<FontAlias>) {
+    fn parse_alias(attrs: &[Attribute], out: &mut Vec<FontAlias>) {
         // Parse alias name and referenced font
         let from = match Self::find_attrib("name", attrs) {
             Some(from) => from,
@@ -424,39 +381,28 @@ impl FontList {
         })
     }
 
-    fn find_attrib(name: &str, attrs: &RefCell<Vec<Attribute>>) -> Option<String> {
+    fn find_attrib(name: &str, attrs: &[Attribute]) -> Option<String> {
         attrs
-            .borrow()
             .iter()
-            .find(|attr| &*attr.name.local == name)
-            .map(|s| String::from(&s.value))
+            .find(|attr| attr.name.local_name == name)
+            .map(|attr| attr.value.clone())
     }
 
-    fn text_content(node: &Node) -> Option<String> {
-        node.children
-            .borrow()
-            .get(0)
-            .and_then(|child| match child.data {
-                NodeData::Text { ref contents } => {
-                    let mut result = String::new();
-                    result.push_str(&contents.borrow());
-                    Some(result)
-                },
-                _ => None,
-            })
+    fn text_content(nodes: &[Node]) -> Option<String> {
+        nodes.get(0).and_then(|child| match child {
+            Node::Text(contents) => Some(contents.clone()),
+            Node::Element { .. } => None,
+        })
     }
 
-    fn collect_contents_with_tag(node: &Node, tag: &str, out: &mut Vec<String>) {
-        for child in node.children.borrow().iter() {
-            match child.data {
-                NodeData::Element { ref name, .. } => {
-                    if &*name.local == tag {
-                        if let Some(content) = Self::text_content(child) {
-                            out.push(content);
-                        }
+    fn collect_contents_with_tag(nodes: &[Node], tag: &str, out: &mut Vec<String>) {
+        for node in nodes {
+            if let Node::Element { name, children, .. } = node {
+                if name.local_name == tag {
+                    if let Some(content) = Self::text_content(children) {
+                        out.push(content);
                     }
-                },
-                _ => {},
+                }
             }
         }
     }

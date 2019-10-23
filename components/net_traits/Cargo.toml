@@ -36,7 +36,7 @@ servo_arc = {path = "../servo_arc"}
 servo_url = {path = "../url"}
 time = "0.1"
 url = "2.0"
-uuid = {version = "0.7", features = ["v4", "serde"]}
+uuid = {version = "0.8", features = ["v4", "serde"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 
 [dev-dependencies]

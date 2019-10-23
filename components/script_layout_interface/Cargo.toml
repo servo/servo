@@ -17,7 +17,7 @@ canvas_traits = {path = "../canvas_traits"}
 crossbeam-channel = "0.3"
 euclid = "0.20"
 gfx_traits = {path = "../gfx_traits"}
-html5ever = "0.24"
+html5ever = "0.25"
 ipc-channel = "0.12"
 libc = "0.2"
 malloc_size_of = { path = "../malloc_size_of" }

@@ -480,9 +480,9 @@ macro_rules! font_face_descriptors_common {
                             // rather than returning it.
                             let value = input.parse_entirely(|i| Parse::parse(self.context, i))?;
                             self.rule.$ident = Some(value)
-                        }
+                        },
                     )*
-                    _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
+                    _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone()))),
                 }
                 Ok(())
             }

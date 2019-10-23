@@ -228,7 +228,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
             "charset" => {
                 self.dom_error = Some(RulesMutateError::HierarchyRequest);
                 return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedCharsetRule))
-            }
+            },
             _ => {}
         }
 

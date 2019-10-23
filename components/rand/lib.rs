@@ -31,10 +31,7 @@ use uuid::{Builder, Uuid, Variant, Version};
 
 // The shared RNG which may hold on to a file descriptor
 lazy_static! {
-    static ref OS_RNG: Mutex<OsRng> = match OsRng::new() {
-        Ok(r) => Mutex::new(r),
-        Err(e) => panic!("Failed to seed OsRng: {}", e),
-    };
+    static ref OS_RNG: Mutex<OsRng> = Mutex::new(OsRng);
 }
 
 // Generate 32K of data between reseedings

@@ -53,4 +53,4 @@ webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_arch="arm"), not(target_arch="aarch64")))'.dependencies]
-gaol = {git = "https://github.com/servo/gaol"}
+gaol = "0.2.1"

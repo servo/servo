@@ -220,9 +220,9 @@ macro_rules! counter_style_descriptors {
                             // rather than returning it.
                             let value = input.parse_entirely(|i| Parse::parse(self.context, i))?;
                             self.rule.$ident = Some(value)
-                        }
+                        },
                     )*
-                    _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
+                    _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone()))),
                 }
                 Ok(())
             }
@@ -371,11 +371,11 @@ impl Parse for System {
             "fixed" => {
                 let first_symbol_value = input.try(|i| Integer::parse(context, i)).ok();
                 Ok(System::Fixed { first_symbol_value })
-            }
+            },
             "extends" => {
                 let other = parse_counter_style_name(input)?;
                 Ok(System::Extends(other))
-            }
+            },
         }
     }
 }
@@ -652,7 +652,7 @@ impl Parse for SpeakAs {
                 "spell-out" => {
                     is_spell_out = true;
                     Err(())
-                }
+                },
                 _ => Err(()),
             }
         });

@@ -157,17 +157,17 @@ impl SupportsCondition {
                     CString::new(name.as_bytes())
                 }.map_err(|_| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))?;
                 Ok(SupportsCondition::MozBoolPref(name))
-            }
+            },
             "selector" => {
                 let pos = input.position();
                 consume_any_value(input)?;
                 Ok(SupportsCondition::Selector(RawSelector(
                     input.slice_from(pos).to_owned()
                 )))
-            }
+            },
             _ => {
                 Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-            }
+            },
         }
     }
 

@@ -229,7 +229,7 @@ impl Parse for SpecifiedFontStyle {
                     .unwrap_or_else(|_| Self::default_angle());
 
                 generics::FontStyle::Oblique(angle)
-            }
+            },
         })
     }
 }

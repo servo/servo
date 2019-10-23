@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use phf_shared;
+use phf_shared::{self, FmtConst};
 use serde_json::{self, Value};
 use std::env;
 use std::fmt;
@@ -40,18 +40,17 @@ fn main() {
     let mut phf = File::create(&phf).unwrap();
     write!(
         &mut phf,
-        "pub static MAP: phf::Map<&'static [u8], fn(JSContext, HandleObject)> = "
+        "pub static MAP: phf::Map<&'static [u8], fn(JSContext, HandleObject)> = {};\n",
+        map.build(),
     )
     .unwrap();
-    map.build(&mut phf).unwrap();
-    write!(&mut phf, ";\n").unwrap();
 }
 
 #[derive(Eq, Hash, PartialEq)]
 struct Bytes<'a>(&'a str);
 
-impl<'a> fmt::Debug for Bytes<'a> {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+impl<'a> FmtConst for Bytes<'a> {
+    fn fmt_const(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         // https://github.com/rust-lang/rust/issues/55223
         // should technically be just `write!(formatter, "b\"{}\"", self.0)
         // but the referenced issue breaks promotion in the surrounding code

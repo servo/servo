@@ -23,8 +23,8 @@ uwp = ["js/uwp"]
 vslatestinstalled = ["js/vslatestinstalled"]
 
 [build-dependencies]
-phf_codegen = "0.7"
-phf_shared = "0.7"
+phf_codegen = "0.8"
+phf_shared = "0.8"
 serde_json = "1.0"
 
 [target.'cfg(target_os = "linux")'.dependencies]
@@ -43,7 +43,7 @@ content-security-policy = {version = "0.3.0", features = ["serde"]}
 cookie = "0.11"
 chrono = "0.4"
 crossbeam-channel = "0.3"
-cssparser = "0.25"
+cssparser = "0.27.1"
 deny_public_fields = {path = "../deny_public_fields"}
 devtools_traits = {path = "../devtools_traits"}
 dom_struct = {path = "../dom_struct"}
@@ -54,7 +54,7 @@ enum-iterator = "0.3"
 euclid = "0.20"
 fnv = "1.0"
 headers = "0.2"
-html5ever = "0.24"
+html5ever = "0.25"
 http = "0.1"
 hyper = "0.12"
 hyper_serde = "0.11"
@@ -80,7 +80,7 @@ net_traits = {path = "../net_traits"}
 num-traits = "0.2"
 parking_lot = "0.9"
 percent-encoding = "2.0"
-phf = "0.7"
+phf = "0.8"
 pixels = {path = "../pixels"}
 profile_traits = {path = "../profile_traits"}
 ref_filter_map = "1.0.1"
@@ -109,8 +109,8 @@ time = "0.1.12"
 unicode-segmentation = "1.1.0"
 url = "2.0"
 utf-8 = "0.7"
-uuid = {version = "0.7", features = ["v4"]}
-xml5ever = {version = "0.15"}
+uuid = {version = "0.8", features = ["v4"]}
+xml5ever = "0.16"
 webdriver = "0.40"
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr_traits = {path = "../webvr_traits"}

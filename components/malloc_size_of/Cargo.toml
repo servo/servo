@@ -28,7 +28,7 @@ servo = [
 app_units = "0.7"
 content-security-policy = {version = "0.3.0", features = ["serde"], optional = true}
 crossbeam-channel = { version = "0.3", optional = true }
-cssparser = "0.25"
+cssparser = "0.27.1"
 euclid = "0.20"
 hashglobe = { path = "../hashglobe" }
 hyper = { version = "0.12", optional = true }
@@ -40,10 +40,10 @@ serde_bytes = { version = "0.10", optional = true }
 servo_arc = { path = "../servo_arc" }
 smallbitvec = "2.3.0"
 smallvec = "0.6"
-string_cache = { version = "0.7", optional = true }
+string_cache = { version = "0.8", optional = true }
 thin-slice = "0.1.0"
 time = { version = "0.1.17", optional = true }
 url = { version = "2.0", optional = true }
 webrender_api = { git = "https://github.com/servo/webrender", features = ["ipc"], optional = true }
-xml5ever = { version = "0.15", optional = true }
+xml5ever = { version = "0.16", optional = true }
 void = "1.0.2"
