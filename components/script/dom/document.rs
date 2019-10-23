@@ -121,7 +121,7 @@ use html5ever::{LocalName, Namespace, QualName};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSObject, JSRuntime};
-use keyboard_types::{Key, KeyState, Modifiers};
+use keyboard_types::{Code, Key, KeyState};
 use metrics::{
     InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory,
     ProgressiveWebMetric,
@@ -1469,35 +1469,20 @@ impl Document {
             // however *when* we do it is up to us.
             // Here, we're dispatching it after the key event so the script has a chance to cancel it
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
-            match keyboard_event.key {
-                Key::Character(ref letter)
-                    if letter == " " && keyboard_event.state == KeyState::Up =>
-                {
-                    let maybe_elem = target.downcast::<Element>();
-                    if let Some(el) = maybe_elem {
-                        synthetic_click_activation(
-                            el,
-                            false,
-                            false,
-                            false,
-                            false,
-                            ActivationSource::NotFromClick,
-                        )
-                    }
+            if (keyboard_event.key == Key::Enter && keyboard_event.state == KeyState::Up) ||
+                (keyboard_event.code == Code::Space && keyboard_event.state == KeyState::Down)
+            {
+                let maybe_elem = target.downcast::<Element>();
+                if let Some(el) = maybe_elem {
+                    synthetic_click_activation(
+                        el,
+                        false,
+                        false,
+                        false,
+                        false,
+                        ActivationSource::NotFromClick,
+                    )
                 }
-                Key::Enter if keyboard_event.state == KeyState::Up => {
-                    let maybe_elem = target.downcast::<Element>();
-                    if let Some(el) = maybe_elem {
-                        if let Some(a) = el.as_maybe_activatable() {
-                            let ctrl = keyboard_event.modifiers.contains(Modifiers::CONTROL);
-                            let alt = keyboard_event.modifiers.contains(Modifiers::ALT);
-                            let shift = keyboard_event.modifiers.contains(Modifiers::SHIFT);
-                            let meta = keyboard_event.modifiers.contains(Modifiers::META);
-                            a.implicit_submission(ctrl, alt, shift, meta);
-                        }
-                    }
-                },
-                _ => (),
             }
         }
 
