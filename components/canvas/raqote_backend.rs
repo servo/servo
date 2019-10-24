@@ -563,6 +563,7 @@ impl GenericPathBuilder for PathBuilder {
 
     fn get_current_point(&mut self) -> Point2D<f32> {
         let path = self.finish();
+        self.0 = Some(path.as_raqote().clone().into());
 
         for op in path.as_raqote().ops.iter().rev() {
             match op {
