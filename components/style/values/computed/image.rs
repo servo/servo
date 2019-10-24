@@ -9,10 +9,11 @@
 
 use crate::values::computed::position::Position;
 use crate::values::computed::url::ComputedImageUrl;
+#[cfg(feature = "gecko")]
+use crate::values::computed::NumberOrPercentage;
 use crate::values::computed::{Angle, Color, Context};
 use crate::values::computed::{
-    LengthPercentage, NonNegativeLength, NonNegativeLengthPercentage, NumberOrPercentage,
-    ToComputedValue,
+    LengthPercentage, NonNegativeLength, NonNegativeLengthPercentage, ToComputedValue,
 };
 use crate::values::generics::image::{self as generic, GradientCompatMode};
 use crate::values::specified::image::LineDirection as SpecifiedLineDirection;
@@ -63,7 +64,12 @@ pub type GradientItem = generic::GenericGradientItem<Color, LengthPercentage>;
 pub type ColorStop = generic::ColorStop<Color, LengthPercentage>;
 
 /// Computed values for `-moz-image-rect(...)`.
+#[cfg(feature = "gecko")]
 pub type MozImageRect = generic::MozImageRect<NumberOrPercentage, ComputedImageUrl>;
+
+/// Empty enum on non-gecko
+#[cfg(not(feature = "gecko"))]
+pub type MozImageRect = crate::values::specified::image::MozImageRect;
 
 impl generic::LineDirection for LineDirection {
     fn points_downwards(&self, compat_mode: GradientCompatMode) -> bool {

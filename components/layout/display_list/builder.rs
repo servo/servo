@@ -789,11 +789,9 @@ impl Fragment {
                         );
                     }
                 },
-                Image::Rect(_) => {
-                    // TODO: Implement `-moz-image-rect`
-                },
-                Image::Element(_) => {
-                    // TODO: Implement `-moz-element`
+                Image::Rect(ref rect) => {
+                    // This is a (boxed) empty enum on non-Gecko
+                    match **rect {}
                 },
             }
         }

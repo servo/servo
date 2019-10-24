@@ -679,7 +679,7 @@ where
     element.finish_restyle(context, data, new_styles, important_rules_changed)
 }
 
-#[cfg(feature = "servo")]
+#[cfg(feature = "servo-layout-2013")]
 fn notify_paint_worklet<E>(context: &StyleContext<E>, data: &ElementData)
 where
     E: TElement,
@@ -719,7 +719,7 @@ where
     }
 }
 
-#[cfg(feature = "gecko")]
+#[cfg(not(feature = "servo-layout-2013"))]
 fn notify_paint_worklet<E>(_context: &StyleContext<E>, _data: &ElementData)
 where
     E: TElement,
