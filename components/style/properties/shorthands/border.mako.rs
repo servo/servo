@@ -111,7 +111,6 @@ pub fn parse_border<'i, 't>(
     <%helpers:shorthand
         name="border-${side}"
         engines="gecko servo-2013 servo-2020"
-        servo_2020_pref="layout.2020.unimplemented"
         sub_properties="${' '.join(
             'border-%s-%s' % (side, prop)
             for prop in ['color', 'style', 'width']
@@ -146,7 +145,7 @@ pub fn parse_border<'i, 't>(
 % endfor
 
 <%helpers:shorthand name="border"
-    engines="gecko servo-2013"
+    engines="gecko servo-2013 servo-2020"
     sub_properties="${' '.join('border-%s-%s' % (side, prop)
         for side in PHYSICAL_SIDES
         for prop in ['color', 'style', 'width'])}
@@ -384,7 +383,7 @@ pub fn parse_border<'i, 't>(
             spec = "https://drafts.csswg.org/css-logical/#propdef-border-%s-%s" % (axis, prop)
         %>
         <%helpers:shorthand
-            engines="gecko servo-2013"
+            engines="gecko servo-2013 servo-2020"
             name="border-${axis}-${prop}"
             sub_properties="${' '.join(
                 'border-%s-%s-%s' % (axis, side, prop)
@@ -430,7 +429,7 @@ pub fn parse_border<'i, 't>(
     %>
     <%helpers:shorthand
         name="border-${axis}"
-        engines="gecko servo-2013"
+        engines="gecko servo-2013 servo-2020"
         sub_properties="${' '.join(
             'border-%s-%s-width' % (axis, side)
             for side in ['start', 'end']

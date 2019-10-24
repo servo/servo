@@ -880,7 +880,8 @@
             {
                 // Define all of the expected variables that correspond to the shorthand
                 % for sub_property in shorthand.sub_properties:
-                    let mut ${sub_property.ident} = None;
+                    let mut ${sub_property.ident} =
+                        None::< &'a longhands::${sub_property.ident}::SpecifiedValue>;
                 % endfor
 
                 // Attempt to assign the incoming declarations to the expected variables
