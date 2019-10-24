@@ -61,7 +61,8 @@ Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height, float dpi
     : mWindowHeight(height), mWindowWidth(width), mDelegate(aDelegate) {
 
   capi::CInitOptions o;
-  o.args = *hstring2char(args);
+  hstring defaultPrefs = L" --pref dom.webxr.enabled";
+  o.args = *hstring2char(args + defaultPrefs);
   o.url = *hstring2char(url);
   o.width = mWindowWidth;
   o.height = mWindowHeight;
