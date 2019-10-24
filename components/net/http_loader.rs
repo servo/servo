@@ -195,13 +195,15 @@ fn strict_origin_when_cross_origin(referrer_url: ServoUrl, url: ServoUrl) -> Opt
 
 /// <https://w3c.github.io/webappsec-referrer-policy/#strip-url>
 fn strip_url(mut referrer_url: ServoUrl, origin_only: bool) -> Option<ServoUrl> {
+    const MAX_REFERRER_URL_LENGTH: usize = 4096;
     if referrer_url.scheme() == "https" || referrer_url.scheme() == "http" {
         {
             let referrer = referrer_url.as_mut_url();
             referrer.set_username("").unwrap();
             referrer.set_password(None).unwrap();
             referrer.set_fragment(None);
-            if origin_only {
+            // Limit `referer` header's value to 4k <https://github.com/w3c/webappsec-referrer-policy/pull/122>
+            if origin_only || referrer.as_str().len() > MAX_REFERRER_URL_LENGTH {
                 referrer.set_path("");
                 referrer.set_query(None);
             }
