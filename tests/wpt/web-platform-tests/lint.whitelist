@@ -13,15 +13,7 @@ INDENT TABS: encoding/legacy*/*
 TRAILING WHITESPACE: 2dcontext/tools/current-work-canvas.xhtml
 TRAILING WHITESPACE: conformance-checkers/*
 TRAILING WHITESPACE: content-security-policy/*
-TRAILING WHITESPACE: custom-elements/*
-TRAILING WHITESPACE: html-longdesc/*
-TRAILING WHITESPACE: old-tests/*
-TRAILING WHITESPACE: pointerevents/*
-TRAILING WHITESPACE: shadow-dom/*
-TRAILING WHITESPACE: webaudio/*
-TRAILING WHITESPACE: WebIDL/*
-TRAILING WHITESPACE: webvtt/*
-TRAILING WHITESPACE: server-timing/resources/parsing/*.sub.headers
+TRAILING WHITESPACE: WebIDL/valid/*
 
 ## File types that should never be checked ##
 
@@ -53,10 +45,6 @@ TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.ico
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.wasm
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.bmp
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.sxg
-
-## Whitespace needed for testing
-
-TRAILING WHITESPACE: xhr/resources/headers-some-are-empty.asis
 
 ## .gitignore
 W3C-TEST.ORG: .gitignore
@@ -102,6 +90,12 @@ CR AT EOL: webvtt/parsing/file-parsing/tests/support/newlines.vtt
 INDENT TABS: html/semantics/embedded-content/the-canvas-element/size.attributes.parse.whitespace.html
 INDENT TABS: webvtt/parsing/file-parsing/tests/support/header-tab.vtt
 INDENT TABS: webvtt/parsing/file-parsing/tests/support/whitespace-chars.vtt
+
+## Intentional use of trailing whitespace
+TRAILING WHITESPACE: server-timing/resources/parsing/*
+TRAILING WHITESPACE: webvtt/parsing/file-parsing/support/*.vtt
+TRAILING WHITESPACE: webvtt/parsing/file-parsing/tests/support/*.vtt
+TRAILING WHITESPACE: xhr/resources/headers-some-are-empty.asis
 
 # Intentional use of print statements
 PRINT STATEMENT: dom/nodes/Document-createElement-namespace-tests/generate.py
@@ -434,25 +428,7 @@ CONSOLE: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001*.html
 CONSOLE: css/css-writing-modes/tools/generators/gulpfile.js
 CONSOLE: css/css-writing-modes/tools/generators/text-orientation-generator.js
 
-TRAILING WHITESPACE: css/CSS2/generated-content/before-after-positioned-002.html
-TRAILING WHITESPACE: css/CSS2/generated-content/before-after-positioned-003.html
-TRAILING WHITESPACE: css/CSS2/generated-content/before-after-positioned-004.html
 TRAILING WHITESPACE: css/css-fonts/support/fonts/gsubtest-lookup3.ufo/features.fea
-TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-assigned-node-with-before-after.html
-TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-assigned-node-with-rules.html
-TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-host-rule.html
-TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-host-with-before-after.html
-TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-invisible-slot.html
-TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-root-hides-children.html
-TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-slot-display-override.html
-TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-slot.html
-TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-slot-style.html
-TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-slotted-nested.html
-TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-slotted-rule.html
-TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-with-outside-rules.html
-TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-with-rules.html
-TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-with-rules-no-style-leak.html
-TRAILING WHITESPACE: css/css-variables/reference/vars-font-shorthand-001-ref.html
 TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/css21/pagination/moz-css21-float-page-break-inside-avoid-7.html
 TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/css21/pagination/moz-css21-float-page-break-inside-avoid-7-ref.html
 TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/css21/pagination/moz-css21-float-page-break-inside-avoid-8.html

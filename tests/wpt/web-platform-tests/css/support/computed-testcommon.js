@@ -21,6 +21,7 @@ function test_computed_value(property, specified, computed) {
   test(() => {
     const target = document.getElementById('target');
     assert_true(property in getComputedStyle(target), property + " doesn't seem to be supported in the computed style");
+    assert_true(CSS.supports(property, specified), "'" + specified + "' is a supported value for " + property + ".");
     target.style[property] = '';
     target.style[property] = specified;
 

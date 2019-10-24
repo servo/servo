@@ -15,3 +15,5 @@ async_test(function(t) {
     throw new Error("This error is expected.");
   }, 0);
 }, 'onerror event is triggered');
+
+done();

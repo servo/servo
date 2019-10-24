@@ -32,7 +32,7 @@ function testNodeDisconnector(testFunction, name) {
     let container = document.createElement('div');
     container.appendChild(document.createElement('div'));
     document.body.appendChild(container);
- 
+
     test(function () {
         var element = define_new_custom_element();
         var instance = document.createElement(element.name);

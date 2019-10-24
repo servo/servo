@@ -18,18 +18,38 @@ const WebContactsTest = (() => {
       this.selectedContacts_ = [];
     }
 
-    async select(multiple, includeNames, includeEmails, includeTel) {
+    formatAddress_(address) {
+      // These are all required fields in the mojo definition.
+      return {
+        country: address.country || '',
+        addressLine: address.addressLine || [],
+        region: address.region || '',
+        city: address.city || '',
+        dependentLocality: address.dependentLocality || '',
+        postalCode: address.postCode || '',
+        sortingCode: address.sortingCode || '',
+        organization: address.organization || '',
+        recipient: address.recipient || '',
+        phone: address.phone || '',
+      };
+    }
+
+    async select(multiple, includeNames, includeEmails, includeTel, includeAddresses) {
       if (this.selectedContacts_ === null)
         return {contacts: null};
 
       const contactInfos = this.selectedContacts_.map(contact => {
         const contactInfo = new blink.mojom.ContactInfo();
         if (includeNames)
-          contactInfo.name = contact.name;
+          contactInfo.name = contact.name || [];
         if (includeEmails)
-          contactInfo.email = contact.email;
+          contactInfo.email = contact.email || [];
         if (includeTel)
-          contactInfo.tel = contact.tel;
+          contactInfo.tel = contact.tel || [];
+        if (includeAddresses) {
+          contactInfo.address = contact.address || [];
+          contactInfo.address = contactInfo.address.map(address => this.formatAddress_(address));
+        }
         return contactInfo;
       });
 

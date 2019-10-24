@@ -20,7 +20,7 @@ async function custom_element_reactions_in_parser(test, call_function)
     const document = window.document;
 
     document.open();
- 
+
     let executed = false;
     let exception = null;
     class CustomElement extends window.HTMLElement {
@@ -35,7 +35,7 @@ async function custom_element_reactions_in_parser(test, call_function)
     }
     CustomElement.observedAttributes = ['title'];
     window.customElements.define('some-element', CustomElement);
- 
+
     document.write('<!DOCTYPE html><html><body><some-element title="some title"></some-element></body></html>');
     document.close();
 
@@ -47,12 +47,12 @@ promise_test(async function () {
     const result = await custom_element_reactions_in_parser(this, (document) => document.open());
     assert_throws('InvalidStateError', () => { throw result.exception; }, 'Must throw an InvalidStateError');
 }, 'document.open() must throw an InvalidStateError when processing custom element reactions for a synchronous constructed custom element');
- 
+
 promise_test(async function () {
     const result = await custom_element_reactions_in_parser(this, (document) => document.open('text/html'));
     assert_throws('InvalidStateError', () => { throw result.exception; }, 'Must throw an InvalidStateError');
 }, 'document.open("text/html") must throw an InvalidStateError when processing custom element reactions for a synchronous constructed custom element');
- 
+
 // https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-document-open-window
 promise_test(async function () {
     let load_promise = new Promise((resolve) => window.onmessage = (event) => resolve(event.data));
