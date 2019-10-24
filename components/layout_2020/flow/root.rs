@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::display_list::IsContentful;
 use crate::dom_traversal::{Contents, NodeExt};
 use crate::flow::construct::ContainsFloats;
 use crate::flow::float::FloatBox;
@@ -20,9 +21,11 @@ use servo_arc::Arc;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto};
+use style::Zero;
 use style_traits::CSSPixel;
 
 pub struct BoxTreeRoot(BlockFormattingContext);
+pub struct FragmentTreeRoot(Vec<Fragment>);
 
 impl BoxTreeRoot {
     pub fn construct<'dom>(
@@ -95,7 +98,7 @@ fn construct_for_root_element<'dom>(
 }
 
 impl BoxTreeRoot {
-    fn layout(&self, viewport: geom::Size<CSSPixel>) -> Vec<Fragment> {
+    pub fn layout(&self, viewport: geom::Size<CSSPixel>) -> FragmentTreeRoot {
         let initial_containing_block_size = Vec2 {
             inline: Length::new(viewport.width),
             block: Length::new(viewport.height),
@@ -125,6 +128,31 @@ impl BoxTreeRoot {
                 .par_iter()
                 .map(|a| a.layout(&initial_containing_block)),
         );
-        flow_children.fragments
+        FragmentTreeRoot(flow_children.fragments)
+    }
+}
+
+impl FragmentTreeRoot {
+    pub fn build_display_list(
+        &self,
+        builder: &mut crate::display_list::DisplayListBuilder,
+        pipeline_id: msg::constellation_msg::PipelineId,
+        viewport_size: webrender_api::units::LayoutSize,
+    ) -> IsContentful {
+        let containing_block = geom::physical::Rect {
+            top_left: geom::physical::Vec2 {
+                x: Length::zero(),
+                y: Length::zero(),
+            },
+            size: geom::physical::Vec2 {
+                x: Length::new(viewport_size.width),
+                y: Length::new(viewport_size.height),
+            },
+        };
+        let mut is_contentful = IsContentful(false);
+        for fragment in &self.0 {
+            fragment.build_display_list(builder, &mut is_contentful, &containing_block)
+        }
+        is_contentful
     }
 }

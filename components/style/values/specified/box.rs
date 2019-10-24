@@ -619,7 +619,7 @@ impl Parse for Display {
         // Now parse the single-keyword `display` values.
         Ok(try_match_ident_ignore_ascii_case! { input,
             "none" => Display::None,
-            #[cfg(feature = "gecko")]
+            #[cfg(any(feature = "servo-layout-2020", feature = "gecko"))]
             "contents" => Display::Contents,
             "inline-block" => Display::InlineBlock,
             #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]

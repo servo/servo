@@ -29,6 +29,7 @@ ${helpers.single_keyword(
                          rl=horizontal-tb rl-tb=horizontal-tb \
                          tb=vertical-rl   tb-rl=vertical-rl",
     servo_2013_pref="layout.writing-mode.enabled",
+    servo_2020_pref="layout.writing-mode.enabled",
     animation_value_type="none",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-writing-mode",
     servo_restyle_damage="rebuild_and_reflow",
@@ -38,6 +39,7 @@ ${helpers.single_keyword(
     "direction",
     "ltr rtl",
     engines="gecko servo-2013 servo-2020",
+    servo_2020_pref="layout.2020.unimplemented",
     animation_value_type="none",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-direction",
     needs_conversion=True,

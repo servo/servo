@@ -17,7 +17,6 @@
         "LengthPercentageOrAuto",
         "computed::LengthPercentageOrAuto::zero()",
         engines="gecko servo-2013 servo-2020",
-        servo_2020_pref="layout.2020.unimplemented",
         alias=maybe_moz_logical_alias(engine, side, "-moz-margin-%s"),
         allow_quirks="No" if side[1] else "Yes",
         animation_value_type="ComputedValue",
