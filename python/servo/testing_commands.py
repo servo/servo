@@ -315,17 +315,22 @@ class MachCommands(CommandBase):
     @CommandArgument('--all', default=False, action="store_true", dest="all_files",
                      help="Check all files, and run the WPT lint in tidy, "
                           "even if unchanged")
+    @CommandArgument('--no-wpt', default=False, action="store_true", dest="no_wpt",
+                     help="Skip checking that web-platform-tests manifests are up to date")
     @CommandArgument('--no-progress', default=False, action="store_true",
                      help="Don't show progress for tidy")
     @CommandArgument('--self-test', default=False, action="store_true",
                      help="Run unit tests for tidy")
     @CommandArgument('--stylo', default=False, action="store_true",
                      help="Only handle files in the stylo tree")
-    def test_tidy(self, all_files, no_progress, self_test, stylo):
+    def test_tidy(self, all_files, no_wpt, no_progress, self_test, stylo):
         if self_test:
             return test_tidy.do_tests()
         else:
-            manifest_dirty = run_update(self.context.topdir, check_clean=True)
+            if no_wpt:
+                manifest_dirty = False
+            else:
+                manifest_dirty = run_update(self.context.topdir, check_clean=True)
             tidy_failed = tidy.scan(not all_files, not no_progress, stylo=stylo)
             self.install_rustfmt()
             rustfmt_failed = self.call_rustup_run(["cargo", "fmt", "--", "--check"])
