@@ -29,6 +29,7 @@ public:
   void Shutdown();
   void LoadServoURI(Windows::Foundation::Uri uri);
   void SetTransientMode(bool);
+  void SetArgs(hstring);
 
 private:
   void BindServoEvents();

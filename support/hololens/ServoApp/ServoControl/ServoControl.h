@@ -72,6 +72,8 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
 
   void SetTransientMode(bool transient) { mTransient = transient; }
 
+  void SetArgs(hstring args) { mArgs = args; }
+
   virtual void WakeUp();
   virtual void OnServoLoadStarted();
   virtual void OnServoLoadEnded();
@@ -139,6 +141,7 @@ private:
   CRITICAL_SECTION mGLLock;
   CONDITION_VARIABLE mGLCondVar;
   std::unique_ptr<Concurrency::task<void>> mLoopTask;
+  hstring mArgs;
 };
 } // namespace winrt::ServoApp::implementation
 

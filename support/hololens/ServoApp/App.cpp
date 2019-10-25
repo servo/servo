@@ -31,8 +31,9 @@ App::App() {
 #endif
 }
 
-void App::OnLaunched(LaunchActivatedEventArgs const &e) {
-  Frame rootFrame{nullptr};
+void App::createRootFrame(
+    Frame &rootFrame, bool prelaunchActivated,
+    winrt::Windows::Foundation::IInspectable const &args) {
   auto content = Window::Current().Content();
   if (content) {
     rootFrame = content.try_as<Frame>();
@@ -43,26 +44,42 @@ void App::OnLaunched(LaunchActivatedEventArgs const &e) {
 
     rootFrame.NavigationFailed({this, &App::OnNavigationFailed});
 
-    if (e.PrelaunchActivated() == false) {
+    if (prelaunchActivated == false) {
       if (rootFrame.Content() == nullptr) {
-        rootFrame.Navigate(xaml_typename<ServoApp::BrowserPage>(),
-                           box_value(e.Arguments()));
+        rootFrame.Navigate(xaml_typename<ServoApp::BrowserPage>(), args);
       }
       Window::Current().Content(rootFrame);
       Window::Current().Activate();
     }
   } else {
-    if (e.PrelaunchActivated() == false) {
+    if (prelaunchActivated == false) {
       if (rootFrame.Content() == nullptr) {
-        rootFrame.Navigate(xaml_typename<ServoApp::BrowserPage>(),
-                           box_value(e.Arguments()));
+        rootFrame.Navigate(xaml_typename<ServoApp::BrowserPage>(), args);
       }
       Window::Current().Activate();
     }
   }
 }
 
+void App::OnLaunched(LaunchActivatedEventArgs const &e) {
+  Frame rootFrame{nullptr};
+  this->createRootFrame(rootFrame, e.PrelaunchActivated(),
+                        box_value(e.Arguments()));
+}
+
 void App::OnActivated(IActivatedEventArgs const &args) {
+  if (args.Kind() == Windows::ApplicationModel::Activation::ActivationKind::
+                         CommandLineLaunch) {
+    auto cmdLineArgs{args.as<Windows::ApplicationModel::Activation::
+                                 CommandLineActivatedEventArgs>()};
+    auto cmdLineStr = cmdLineArgs.Operation().Arguments();
+    Frame rootFrame{nullptr};
+    this->createRootFrame(rootFrame, false, nullptr);
+    auto page = rootFrame.Content().try_as<BrowserPage>();
+    page->SetArgs(cmdLineStr);
+    return;
+  }
+
   if (args.Kind() ==
       Windows::ApplicationModel::Activation::ActivationKind::Protocol) {
     auto protocolActivatedEventArgs{args.as<
@@ -73,10 +90,7 @@ void App::OnActivated(IActivatedEventArgs const &args) {
     auto content = Window::Current().Content();
     bool isRunning = content != nullptr;
     if (!isRunning) {
-      rootFrame = Frame();
-      rootFrame.Navigate(xaml_typename<ServoApp::BrowserPage>());
-      Window::Current().Content(rootFrame);
-      Window::Current().Activate();
+      this->createRootFrame(rootFrame, false, nullptr);
     } else {
       rootFrame = content.try_as<Frame>();
     }

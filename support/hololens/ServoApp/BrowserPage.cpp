@@ -67,6 +67,8 @@ void BrowserPage::SetTransientMode(bool transient) {
                                        : Visibility::Visible);
 }
 
+void BrowserPage::SetArgs(hstring args) { servoControl().SetArgs(args); }
+
 void BrowserPage::Shutdown() { servoControl().Shutdown(); }
 
 /**** USER INTERACTIONS WITH UI ****/

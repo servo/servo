@@ -9,10 +9,12 @@ namespace winrt::ServoApp::implementation {
 struct App : AppT<App> {
   App();
 
+  void createRootFrame(winrt::Windows::UI::Xaml::Controls::Frame &, bool,
+                       winrt::Windows::Foundation::IInspectable const &);
   void OnLaunched(
       Windows::ApplicationModel::Activation::LaunchActivatedEventArgs const &);
   void App::OnActivated(
-      Windows::ApplicationModel::Activation::IActivatedEventArgs const &args);
+      Windows::ApplicationModel::Activation::IActivatedEventArgs const &);
   void OnSuspending(IInspectable const &,
                     Windows::ApplicationModel::SuspendingEventArgs const &);
   void OnNavigationFailed(
