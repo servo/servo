@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+</head>
+<body>
+<script>
+var scope = "resources";
+var registration;
+
+promise_test(async (test) => {
+    registration = await navigator.serviceWorker.register("fetch-error-worker.js", { scope : scope });
+    var activeWorker = registration.active;
+    if (activeWorker)
+        return;
+    activeWorker = registration.installing;
+    return new Promise(resolve => {
+        activeWorker.addEventListener('statechange', () => {
+            if (activeWorker.state === "activated")
+                resolve();
+        });
+    });
+}, "Setup service worker");
+
+promise_test(async (test) => {
+    const iframe = await with_iframe(scope);
+
+    const response = await iframe.contentWindow.fetch("fetch-error-test");
+    await response.text().then(assert_unreached, (error) => { assert_true(error.message.includes("Sorry")); });
+    iframe.remove();
+}, "Make sure a load that makes progress does not time out");
+
+promise_test(async () => {
+    registration.unregister();
+}, "Unregister service worker");
+</script>
+</body>
+</html>

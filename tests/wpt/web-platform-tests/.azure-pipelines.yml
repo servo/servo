@@ -239,12 +239,12 @@ jobs:
 - job: results_edge_dev
   displayName: 'all tests: Edge Dev'
   condition: |
-    or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/six_hourly'),
+    or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/three_hourly'),
        eq(variables['Build.SourceBranch'], 'refs/heads/triggers/edge_dev'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge_dev']))
   strategy:
     parallel: 10 # chosen to make runtime ~2h
-  timeoutInMinutes: 360
+  timeoutInMinutes: 180
   pool:
     name: 'Hosted Windows Client'
   steps:
@@ -275,12 +275,12 @@ jobs:
 - job: results_edge_canary
   displayName: 'all tests: Edge Canary'
   condition: |
-    or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/six_hourly'),
+    or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/three_hourly'),
        eq(variables['Build.SourceBranch'], 'refs/heads/triggers/edge_canary'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge_canary']))
   strategy:
     parallel: 10 # chosen to make runtime ~2h
-  timeoutInMinutes: 360
+  timeoutInMinutes: 180
   pool:
     name: 'Hosted Windows Client'
   steps:
@@ -316,7 +316,7 @@ jobs:
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_safari']))
   strategy:
     parallel: 5 # chosen to make runtime ~2h
-  timeoutInMinutes: 360
+  timeoutInMinutes: 180
   pool:
     vmImage: 'macOS-10.13'
   steps:
@@ -346,12 +346,12 @@ jobs:
 - job: results_safari_preview
   displayName: 'all tests: Safari Technology Preview'
   condition: |
-    or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/six_hourly'),
+    or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/three_hourly'),
        eq(variables['Build.SourceBranch'], 'refs/heads/triggers/safari_preview'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_safari_preview']))
   strategy:
     parallel: 5 # chosen to make runtime ~2h
-  timeoutInMinutes: 360
+  timeoutInMinutes: 180
   pool:
     vmImage: 'macOS-10.14'
   steps:

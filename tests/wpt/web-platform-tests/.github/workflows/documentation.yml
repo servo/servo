@@ -1,3 +1,4 @@
+name: documentation
 on:
   push:
     branches:
@@ -11,7 +12,6 @@ on:
       - 'docs/**'
       - 'resources/**'
       - 'tools/**'
-name: documentation
 jobs:
   build-and-publish:
     runs-on: ubuntu-18.04

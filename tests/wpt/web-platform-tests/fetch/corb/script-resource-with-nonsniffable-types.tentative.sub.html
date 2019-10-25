@@ -17,6 +17,8 @@
 setup({allow_uncaught_exception : true});
 
 function test(mime_type, is_blocking_expected) {
+  var action = is_blocking_expected ? "blocks" : "does not block";
+
   async_test(function(t) {
     var script = document.createElement("script")
     var script_has_run_token = "script_has_run" + token();
@@ -49,7 +51,7 @@ function test(mime_type, is_blocking_expected) {
     body = `window['${script_has_run_token}'] = true;`
     script.src = src_prefix + "?type=" + mime_type + "&body=" + encodeURIComponent(body);
     document.body.appendChild(script)
-  }, "CORB-blocks '" + mime_type + "' that starts with the following JSON parser breaker: " + body);
+  }, "CORB " + action + " '" + mime_type + "'");
 }
 
 // Some mime types should be protected by CORB without any kind
