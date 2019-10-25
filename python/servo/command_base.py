@@ -233,9 +233,9 @@ def set_osmesa_env(bin_path, env):
         if not osmesa_dep_path:
             return None
         osmesa_path = path.join(osmesa_dep_path,
-                                "out", "src", "gallium", "targets", "osmesa", ".libs")
+                                "out", "src", "gallium", "targets", "osmesa")
         glapi_path = path.join(osmesa_dep_path,
-                               "out", "src", "mapi", "shared-glapi", ".libs")
+                               "out", "src", "mapi", "shared-glapi")
         append_to_path_env(osmesa_path + ":" + glapi_path, env, "DYLD_LIBRARY_PATH")
         env["GALLIUM_DRIVER"] = "softpipe"
     return env

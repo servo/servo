@@ -73,4 +73,4 @@ sig = "1.0"
 winapi = { version = "0.3", features = ["wingdi", "winuser", "winnt", "winbase", "processenv", "namedpipeapi", "ntdef", "minwindef", "handleapi", "debugapi"] }
 
 [target.'cfg(any(target_os = "macos", all(target_arch = "x86_64", target_os = "linux")))'.dependencies]
-osmesa-src = {git = "https://github.com/servo/osmesa-src"}
+osmesa-src = {git = "https://github.com/servo/osmesa-src", branch = "meson"}

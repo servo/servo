@@ -2956,6 +2956,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "meson"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de6e688268407ad0a7c589bf2d7313db6c2079dae5c96df0f2d5903bc6343a91"
+
+[[package]]
 name = "metrics"
 version = "0.0.1"
 dependencies = [
@@ -3475,8 +3481,11 @@ checksum = "a86ed3f5f244b372d6b1a00b72ef7f8876d0bc6a78a4c9985c53614041512063"
 
 [[package]]
 name = "osmesa-src"
-version = "0.1.0"
-source = "git+https://github.com/servo/osmesa-src#97f4613fd80eee153ab134dfe349777bc5a27bab"
+version = "0.1.1"
+source = "git+https://github.com/servo/osmesa-src?branch=meson#96d92bd67cc764fcaebc803e8ca5e5018f59ec03"
+dependencies = [
+ "meson",
+]
 
 [[package]]
 name = "osmesa-sys"
