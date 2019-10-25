@@ -75,7 +75,7 @@
               // be interpolated correctly after the start frame.  The
               // absoluteThreshold below is currently set for Chrome which does
               // linear interpolation.  This needs to be updated eventually if
-              // other browsers do not user interpolation. 
+              // other browsers do not user interpolation.
               should(
                   output0.slice(0, startFrame + 1), `output0[0:${startFrame}]`)
                   .beConstantValueOf(0);

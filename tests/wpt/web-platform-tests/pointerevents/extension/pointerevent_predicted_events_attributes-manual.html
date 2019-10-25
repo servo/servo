@@ -30,7 +30,7 @@
             function expect_no_predicted_events(event, eventName) {
                 test(function () {
                     assert_equals(event.getPredictedEvents().length, 0, eventName + ' should not have any predicted events');
-                }, expectedPointerType + ' ' + eventName + ' should not have any predicted events'); 
+                }, expectedPointerType + ' ' + eventName + ' should not have any predicted events');
             }
             function run() {
                 var test_pointerEvent = setup_pointerevent_test("predicted events attributes in pointerevents", ['touch']);

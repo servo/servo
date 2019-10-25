@@ -208,7 +208,7 @@ test(() => {
   assert_equals(shadowRoot.activeElement, aboveSlots);
   assert_equals(document.activeElement, host);
 }, "focus() on host with delegatesFocus & tabindex=0, #aboveSlots with tabindex=0 and #belowSlots with tabindex=1");
-  
+
 test(() => {
   resetTabIndexAndFocus();
   setTabIndex([host, slottedToFirstSlot, slottedToSecondSlot, belowSlots], 0);

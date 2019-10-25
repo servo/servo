@@ -59,38 +59,53 @@ contactsTestWithUserActivation(async (test, setSelectedContacts) => {
 }, 'Supported contact properties are exposed.');
 
 contactsTestWithUserActivation(async (test, setSelectedContacts) => {
+  const dwightAddress = {
+    country: 'US',
+    city: 'Scranton',
+    addressLine: ['Schrute Farms'],
+  };
   // Returns two contacts with all information available.
   setSelectedContacts([
-      { name: ['Dwight Schrute'], email: ['dwight@schrutefarmsbnb.com'], tel: ['000-0000'] },
-      { name: ['Michael Scott', 'Prison Mike'], email: ['michael@dundermifflin.com'], tel: [] },
+      { name: ['Dwight Schrute'], email: ['dwight@schrutefarmsbnb.com'], tel: ['000-0000'], address: [dwightAddress] },
+      { name: ['Michael Scott', 'Prison Mike'], email: ['michael@dundermifflin.com'] },
   ]);
 
-  let results = await navigator.contacts.select(['name', 'email', 'tel'], { multiple: true });
+  let results = await navigator.contacts.select(['name', 'email', 'tel', 'address'], { multiple: true });
   assert_equals(results.length, 2);
   results = results.sort((c1, c2) => JSON.stringify(c1) < JSON.stringify(c2) ? -1 : 1);
 
   {
-    const dwight = results[0];
-
-    assert_own_property(dwight, 'name');
-    assert_own_property(dwight, 'email');
-    assert_own_property(dwight, 'tel');
-
-    assert_array_equals(dwight.name, ['Dwight Schrute']);
-    assert_array_equals(dwight.email, ['dwight@schrutefarmsbnb.com']);
-    assert_array_equals(dwight.tel, ['000-0000']);
-  }
-
-  {
-    const michael = results[1];
+    const michael = results[0];
 
     assert_own_property(michael, 'name');
     assert_own_property(michael, 'email');
     assert_own_property(michael, 'tel');
+    assert_own_property(michael, 'address');
 
     assert_array_equals(michael.name, ['Michael Scott', 'Prison Mike']);
     assert_array_equals(michael.email, ['michael@dundermifflin.com']);
     assert_array_equals(michael.tel, []);
+    assert_array_equals(michael.address, []);
+  }
+
+  {
+    const dwight = results[1];
+    assert_own_property(dwight, 'name');
+    assert_own_property(dwight, 'email');
+    assert_own_property(dwight, 'tel');
+    assert_own_property(dwight, 'address');
+
+    assert_array_equals(dwight.name, ['Dwight Schrute']);
+    assert_array_equals(dwight.email, ['dwight@schrutefarmsbnb.com']);
+    assert_array_equals(dwight.tel, ['000-0000']);
+
+    assert_equals(dwight.address.length, 1);
+    const selectedAddress = dwight.address[0];
+    assert_object_equals({
+      country: selectedAddress.country,
+      city: selectedAddress.city,
+      addressLine: selectedAddress.addressLine,
+    }, dwightAddress);
   }
 }, 'The Contact API correctly returns ContactInfo entries');
 
@@ -98,7 +113,7 @@ contactsTestWithUserActivation(async (test, setSelectedContacts) => {
   // Returns two contacts with all information available.
   setSelectedContacts([
       { name: ['Dwight Schrute'], email: ['dwight@schrutefarmsbnb.com'], tel: ['000-0000'] },
-      { name: ['Michael Scott', 'Prison Mike'], email: ['michael@dundermifflin.com'], tel: [] },
+      { name: ['Michael Scott', 'Prison Mike'], email: ['michael@dundermifflin.com'] },
   ]);
 
   const results = await navigator.contacts.select(['name', 'email', 'tel']);
@@ -108,7 +123,7 @@ contactsTestWithUserActivation(async (test, setSelectedContacts) => {
 
 contactsTestWithUserActivation(async (test, setSelectedContacts) => {
   // Returns partial information since no e-mail addresses are requested.
-  setSelectedContacts([{ name: ['Creed'], email: ['creedthoughts@www.creedthoughts.gov.www'], tel: [] }]);
+  setSelectedContacts([{ name: ['Creed'], email: ['creedthoughts@www.creedthoughts.gov.www'] }]);
 
   const results = await navigator.contacts.select(['name']);
 
@@ -125,7 +140,7 @@ contactsTestWithUserActivation(async (test, setSelectedContacts) => {
 
 contactsTestWithUserActivation(async (test, setSelectedContacts) => {
   // Returns partial information since no e-mail addresses are requested.
-  setSelectedContacts([{ name: ['Kelly'], email: [], tel: [] }]);
+  setSelectedContacts([{ name: ['Kelly'] }]);
 
   // First request should work.
   const promise1 = new Promise((resolve, reject) => {

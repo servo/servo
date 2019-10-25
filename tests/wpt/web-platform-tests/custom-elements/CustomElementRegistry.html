@@ -313,7 +313,7 @@ test(function () {
         get: function (target, name) {
             if (name == 'prototype' || name == 'observedAttributes')
                 throw 'Unexpected access to observedAttributes';
-            prototypeCalls.push(callOrder++);    
+            prototypeCalls.push(callOrder++);
             prototypeCalls.push(name);
             return target[name];
         }
@@ -321,7 +321,7 @@ test(function () {
     var constructorCalls = [];
     var proxy = new Proxy(constructor, {
         get: function (target, name) {
-            constructorCalls.push(callOrder++);    
+            constructorCalls.push(callOrder++);
             constructorCalls.push(name);
             return target[name];
         }
@@ -627,7 +627,7 @@ promise_test(function () {
     return Promise.resolve().then(function () {
         assert_false(resolved, 'The promise returned by "whenDefined" must not be resolved until a custom element is defined');
         assert_false(rejected, 'The promise returned by "whenDefined" must not be rejected until a custom element is defined');
-    });    
+    });
 }, 'customElements.whenDefined must return an unresolved promise when the registry does not contain the entry with the given name')
 
 promise_test(function () {

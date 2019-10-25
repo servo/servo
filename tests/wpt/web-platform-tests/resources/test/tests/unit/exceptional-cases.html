@@ -80,6 +80,23 @@ promise_test(() => {
 promise_test(() => {
   return makeTest(
       () => {
+        setup({ allow_uncaught_exception: true });
+        throw new Error('this error is expected');
+      },
+      () => {
+        test(function() {}, 'a');
+        test(function() {}, 'b');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'OK');
+      assert_equals(tests.a, 'PASS');
+      assert_equals(tests.b, 'PASS');
+    });
+}, 'uncaught exception with subsequent subtest');
+
+promise_test(() => {
+  return makeTest(
+      () => {
         async_test((t) => {
           setTimeout(() => {
             setTimeout(() => t.done(), 0);
