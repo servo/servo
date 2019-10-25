@@ -9,7 +9,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::window::Window;
@@ -244,11 +244,6 @@ impl LocationMethods for Location {
         self.check_same_origin_domain()?;
         self.set_url_component(value, UrlHelper::SetProtocol);
         Ok(())
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-location-href
-    fn Stringifier(&self) -> Fallible<DOMString> {
-        Ok(DOMString::from(self.GetHref()?.0))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-search

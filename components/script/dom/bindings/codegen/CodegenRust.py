@@ -3667,6 +3667,8 @@ class CGSpecializedMethod(CGAbstractExternMethod):
 
     @staticmethod
     def makeNativeName(descriptor, method):
+        if method.underlyingAttr:
+            return CGSpecializedGetter.makeNativeName(descriptor, method.underlyingAttr)
         name = method.identifier.name
         nativeName = descriptor.binaryNameFor(name)
         if nativeName == name:
@@ -5762,7 +5764,7 @@ class CGInterfaceTrait(CGThing):
             for m in descriptor.interface.members:
                 if (m.isMethod() and not m.isStatic() and
                         not m.isMaplikeOrSetlikeOrIterableMethod() and
-                        (not m.isIdentifierLess() or m.isStringifier()) and
+                        (not m.isIdentifierLess() or (m.isStringifier() and not m.underlyingAttr)) and
                         not m.isDefaultToJSON()):
                     name = CGSpecializedMethod.makeNativeName(descriptor, m)
                     infallible = 'infallible' in descriptor.getExtendedAttributes(m)
@@ -6172,10 +6174,6 @@ class CGDescriptor(CGThing):
                     cgThings.append(CGSpecializedMethod(descriptor, m))
                     cgThings.append(CGMemberJITInfo(descriptor, m))
             elif m.isAttr():
-                if m.stringifier:
-                    raise TypeError("Stringifier attributes not supported yet. "
-                                    "See https://github.com/servo/servo/issues/7590\n"
-                                    "%s" % m.location)
                 if m.getExtendedAttribute("Unscopable"):
                     assert not m.isStatic()
                     unscopableNames.append(m.identifier.name)

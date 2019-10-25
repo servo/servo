@@ -270,11 +270,6 @@ impl URLMethods for URL {
             .or_init(|| URLSearchParams::new(&self.global(), Some(self)))
     }
 
-    // https://url.spec.whatwg.org/#dom-url-href
-    fn Stringifier(&self) -> DOMString {
-        DOMString::from(self.Href().0)
-    }
-
     // https://url.spec.whatwg.org/#dom-url-username
     fn Username(&self) -> USVString {
         UrlHelper::Username(&self.url.borrow())

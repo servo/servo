@@ -5,7 +5,7 @@
 // https://html.spec.whatwg.org/multipage/#worker-locations
 [Exposed=Worker]
 interface WorkerLocation {
-  /*stringifier*/ readonly attribute USVString href;
+  stringifier readonly attribute USVString href;
   readonly attribute USVString origin;
   readonly attribute USVString protocol;
   readonly attribute USVString host;
@@ -14,9 +14,4 @@ interface WorkerLocation {
   readonly attribute USVString pathname;
   readonly attribute USVString search;
   readonly attribute USVString hash;
-
-  // This is only doing as well as gecko right now.
-  // https://github.com/servo/servo/issues/7590 is on file for
-  // adding attribute stringifier support.
-  stringifier;
 };

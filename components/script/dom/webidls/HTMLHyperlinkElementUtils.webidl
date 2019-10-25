@@ -4,10 +4,8 @@
 
 // https://html.spec.whatwg.org/multipage/#htmlhyperlinkelementutils
 interface mixin HTMLHyperlinkElementUtils {
-  // [CEReactions]
-  // stringifier attribute USVString href;
   [CEReactions]
-           attribute USVString href;
+  stringifier attribute USVString href;
   readonly attribute USVString origin;
   [CEReactions]
            attribute USVString protocol;
@@ -27,9 +25,4 @@ interface mixin HTMLHyperlinkElementUtils {
            attribute USVString search;
   [CEReactions]
            attribute USVString hash;
-
-  // Adding a separate stringifier method until
-  // https://github.com/servo/servo/issues/7590 adds attribute stringifier
-  // support.
-  stringifier;
 };
