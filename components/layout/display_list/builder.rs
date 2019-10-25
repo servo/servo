@@ -1784,8 +1784,7 @@ impl Fragment {
             SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
             SpecificFragmentInfo::InlineAbsolute(_) |
-            SpecificFragmentInfo::TruncatedFragment(_) |
-            SpecificFragmentInfo::Svg(_) => {
+            SpecificFragmentInfo::TruncatedFragment(_) => {
                 if opts::get().show_debug_fragment_borders {
                     self.build_debug_borders_around_fragment(
                         state,
@@ -1794,6 +1793,27 @@ impl Fragment {
                     );
                 }
             },
+            SpecificFragmentInfo::Svg(ref fragment_info) => {
+               let image_key = match fragment_info.image_key {
+                   Some(key) => key,
+                   None => return,
+               };
+
+               let base = create_base_display_item(state);
+               let display_item = webrender_api::ImageDisplayItem {
+                   bounds: stacking_relative_border_box.to_layout(),
+                   common: items::empty_common_item_properties(),
+                   image_key,
+                   stretch_size: stacking_relative_content_box.size.to_layout(),
+                   tile_spacing: LayoutSize::zero(),
+                   image_rendering: ImageRendering::Auto,
+                   alpha_type: webrender_api::AlphaType::PremultipliedAlpha,
+                   color: webrender_api::ColorF::WHITE,
+               };
+
+               state.add_image_item(base, display_item);
+
+            }
             SpecificFragmentInfo::Iframe(ref fragment_info) => {
                 if !stacking_relative_content_box.is_empty() {
                     let browsing_context_id = match fragment_info.browsing_context_id {

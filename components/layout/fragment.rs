@@ -384,6 +384,7 @@ impl MediaFragmentInfo {
 pub struct SvgFragmentInfo {
     pub dom_width: Au,
     pub dom_height: Au,
+    pub image_key: Option<webrender_api::ImageKey>
 }
 
 impl SvgFragmentInfo {
@@ -391,6 +392,7 @@ impl SvgFragmentInfo {
         SvgFragmentInfo {
             dom_width: Au::from_px(data.width as i32),
             dom_height: Au::from_px(data.height as i32),
+            image_key: data.image_key,
         }
     }
 }

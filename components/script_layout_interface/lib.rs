@@ -116,6 +116,7 @@ pub struct HTMLCanvasData {
 pub struct SVGSVGData {
     pub width: u32,
     pub height: u32,
+    pub image_key: Option<webrender_api::ImageKey>,
 }
 
 /// The address of a node known to be valid. These are sent from script to layout.
