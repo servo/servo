@@ -25,7 +25,6 @@ servo-layout-2020 = []
 gecko_debug = []
 gecko_refcount_logging = []
 gecko_profiler = []
-moz_xbl = []
 
 [dependencies]
 app_units = "0.7"

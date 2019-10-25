@@ -776,14 +776,6 @@ pub trait TElement:
         return data.hint.has_animation_hint();
     }
 
-    /// Returns the anonymous content for the current element's XBL binding,
-    /// given if any.
-    ///
-    /// This is used in Gecko for XBL.
-    fn xbl_binding_anonymous_content(&self) -> Option<Self::ConcreteNode> {
-        None
-    }
-
     /// The shadow root this element is a host of.
     fn shadow_root(&self) -> Option<<Self::ConcreteNode as TNode>::ConcreteShadowRoot>;
 

@@ -44,8 +44,6 @@ use crate::gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentLWThe
 use crate::gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::nsChangeHint;
-#[cfg(feature = "moz_xbl")]
-use crate::gecko_bindings::structs::nsXBLBinding as RawGeckoXBLBinding;
 use crate::gecko_bindings::structs::Document_DocumentTheme as DocumentTheme;
 use crate::gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use crate::gecko_bindings::structs::ELEMENT_HANDLED_SNAPSHOT;
@@ -86,8 +84,6 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::mem;
 use std::ptr;
-#[cfg(not(feature = "moz_xbl"))]
-use values::Impossible;
 
 #[inline]
 fn elements_with_id<'a, 'le>(
@@ -317,7 +313,7 @@ impl<'ln> GeckoNode<'ln> {
         }
 
         if let Some(parent) = parent_el {
-            if parent.shadow_root().is_some() || parent.xbl_binding().is_some() {
+            if parent.shadow_root().is_some() {
                 return false;
             }
         }
@@ -530,52 +526,6 @@ impl<'a> Iterator for GeckoChildrenIterator<'a> {
     }
 }
 
-/// A Simple wrapper over a non-null Gecko `nsXBLBinding` pointer.
-#[cfg(feature = "moz_xbl")]
-#[derive(Clone, Copy)]
-pub struct GeckoXBLBinding<'lb>(pub &'lb RawGeckoXBLBinding);
-
-#[cfg(feature = "moz_xbl")]
-impl<'lb> GeckoXBLBinding<'lb> {
-    #[inline]
-    fn base_binding(&self) -> Option<Self> {
-        unsafe { self.0.mNextBinding.mRawPtr.as_ref().map(GeckoXBLBinding) }
-    }
-
-    #[inline]
-    fn anon_content(&self) -> *const nsIContent {
-        self.0.mContent.raw::<nsIContent>()
-    }
-
-    // This duplicates the logic in Gecko's
-    // nsBindingManager::GetBindingWithContent.
-    fn binding_with_content(&self) -> Option<Self> {
-        let mut binding = *self;
-        loop {
-            if !binding.anon_content().is_null() {
-                return Some(binding);
-            }
-            binding = binding.base_binding()?;
-        }
-    }
-}
-
-/// A stub wraper for GeckoXBLBinding.
-#[cfg(not(feature = "moz_xbl"))]
-pub struct GeckoXBLBinding<'lb>(&'lb Impossible);
-
-#[cfg(not(feature = "moz_xbl"))]
-impl<'lb> GeckoXBLBinding<'lb> {
-    #[inline]
-    fn anon_content(&self) -> *const nsIContent {
-        match *self.0 {}
-    }
-
-    fn binding_with_content(&self) -> Option<Self> {
-        None
-    }
-}
-
 /// A simple wrapper over a non-null Gecko `Element` pointer.
 #[derive(Clone, Copy)]
 pub struct GeckoElement<'le>(pub &'le RawGeckoElement);
@@ -699,39 +649,6 @@ impl<'le> GeckoElement<'le> {
                 !structs::nsIContent_nsContentSlots_sNonOwningExtendedSlotsFlag;
             (e_slots as *const structs::FragmentOrElement_nsExtendedDOMSlots).as_ref()
         })
-    }
-
-    #[cfg(feature = "moz_xbl")]
-    #[inline]
-    fn may_be_in_binding_manager(&self) -> bool {
-        self.flags() & (structs::NODE_MAY_BE_IN_BINDING_MNGR as u32) != 0
-    }
-
-    #[cfg(feature = "moz_xbl")]
-    #[inline]
-    fn xbl_binding(&self) -> Option<GeckoXBLBinding<'le>> {
-        if !self.may_be_in_binding_manager() {
-            return None;
-        }
-
-        let slots = self.extended_slots()?;
-        unsafe { slots.mXBLBinding.mRawPtr.as_ref().map(GeckoXBLBinding) }
-    }
-
-    #[cfg(not(feature = "moz_xbl"))]
-    #[inline]
-    fn xbl_binding(&self) -> Option<GeckoXBLBinding<'le>> {
-        None
-    }
-
-    #[inline]
-    fn xbl_binding_with_content(&self) -> Option<GeckoXBLBinding<'le>> {
-        self.xbl_binding().and_then(|b| b.binding_with_content())
-    }
-
-    #[inline]
-    fn has_xbl_binding_with_content(&self) -> bool {
-        !self.xbl_binding_with_content().is_none()
     }
 
     #[inline]
@@ -1107,9 +1024,8 @@ impl<'le> TElement for GeckoElement<'le> {
         // This condition is similar to the check that
         // StyleChildrenIterator::IsNeeded does, except that it might return
         // true if we used to (but no longer) have anonymous content from
-        // ::before/::after, XBL bindings, or nsIAnonymousContentCreators.
+        // ::before/::after, or nsIAnonymousContentCreators.
         if self.is_in_anonymous_subtree() ||
-            self.has_xbl_binding_with_content() ||
             self.is_html_slot_element() ||
             self.shadow_root().is_some() ||
             self.may_have_anonymous_children()
@@ -1593,11 +1509,6 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn has_css_transitions(&self) -> bool {
         self.may_have_animations() && unsafe { Gecko_ElementHasCSSTransitions(self.0) }
-    }
-
-    fn xbl_binding_anonymous_content(&self) -> Option<GeckoNode<'le>> {
-        self.xbl_binding_with_content()
-            .map(|b| unsafe { GeckoNode::from_content(&*b.anon_content()) })
     }
 
     fn might_need_transitions_update(
