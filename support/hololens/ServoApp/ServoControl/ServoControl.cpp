@@ -36,8 +36,11 @@ void ServoControl::Shutdown() {
 
 void ServoControl::OnLoaded(IInspectable const &, RoutedEventArgs const &) {
   auto panel = Panel();
-  panel.Tapped(
-      std::bind(&ServoControl::OnSurfaceClicked, this, _1, _2));
+  panel.Tapped(std::bind(&ServoControl::OnSurfaceTapped, this, _1, _2));
+  panel.PointerPressed(
+      std::bind(&ServoControl::OnSurfacePointerPressed, this, _1, _2));
+  panel.PointerReleased(
+      std::bind(&ServoControl::OnSurfacePointerPressed, this, _1, _2));
   panel.ManipulationStarted(
       [=](IInspectable const &,
           Input::ManipulationStartedRoutedEventArgs const &e) {
@@ -93,13 +96,48 @@ void ServoControl::OnSurfaceManipulationDelta(
   e.Handled(true);
 }
 
-void ServoControl::OnSurfaceClicked(IInspectable const &,
-                                    Input::TappedRoutedEventArgs const &e) {
+void ServoControl::OnSurfaceTapped(IInspectable const &,
+                                   Input::TappedRoutedEventArgs const &e) {
   auto coords = e.GetPosition(Panel());
   auto x = coords.X * mDPI;
   auto y = coords.Y * mDPI;
   RunOnGLThread([=] { mServo->Click(x, y); });
   e.Handled(true);
+}
+
+void ServoControl::OnSurfacePointerPressed(
+    IInspectable const &, Input::PointerRoutedEventArgs const &e) {
+  if (e.Pointer().PointerDeviceType() ==
+      Windows::Devices::Input::PointerDeviceType::Mouse) {
+    auto point = e.GetCurrentPoint(Panel());
+
+    auto x = point.Position().X * mDPI;
+    auto y = point.Position().Y * mDPI;
+    auto props = point.Properties();
+    std::optional<Servo::MouseButton> button = {};
+
+    if (props.IsLeftButtonPressed()) {
+      button = Servo::MouseButton::Left;
+    } else if (props.IsRightButtonPressed()) {
+      button = Servo::MouseButton::Right;
+    } else if (props.IsMiddleButtonPressed()) {
+      button = Servo::MouseButton::Middle;
+    }
+
+    if (!button.has_value() && mPressedMouseButton.has_value()) {
+      auto releasedButton = *mPressedMouseButton;
+      mPressedMouseButton = {};
+      RunOnGLThread([=] { mServo->MouseUp(x, y, releasedButton); });
+      e.Handled(true);
+    }
+
+    if (button.has_value()) {
+      RunOnGLThread([=] { mServo->MouseDown(x, y, *button); });
+      e.Handled(true);
+    }
+
+    mPressedMouseButton = button;
+  }
 }
 
 void ServoControl::OnSurfaceResized(IInspectable const &,

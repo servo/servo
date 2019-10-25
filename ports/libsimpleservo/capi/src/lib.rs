@@ -15,7 +15,9 @@ use backtrace::Backtrace;
 #[cfg(not(target_os = "windows"))]
 use env_logger;
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
-use simpleservo::{Coordinates, EventLoopWaker, HostTrait, InitOptions, VRInitOptions};
+use simpleservo::{
+    Coordinates, EventLoopWaker, HostTrait, InitOptions, MouseButton, VRInitOptions,
+};
 use std::ffi::{CStr, CString};
 #[cfg(target_os = "windows")]
 use std::mem;
@@ -225,6 +227,23 @@ pub struct CInitOptions {
     pub enable_subpixel_text_antialiasing: bool,
     pub vslogger_mod_list: *const *const c_char,
     pub vslogger_mod_size: u32,
+}
+
+#[repr(C)]
+pub enum CMouseButton {
+    Left,
+    Right,
+    Middle,
+}
+
+impl CMouseButton {
+    pub fn convert(&self) -> MouseButton {
+        match self {
+            CMouseButton::Left => MouseButton::Left,
+            CMouseButton::Right => MouseButton::Right,
+            CMouseButton::Middle => MouseButton::Middle,
+        }
+    }
 }
 
 /// The returned string is not freed. This will leak.
@@ -529,10 +548,26 @@ pub extern "C" fn pinchzoom_end(factor: f32, x: i32, y: i32) {
 }
 
 #[no_mangle]
-pub extern "C" fn click(x: i32, y: i32) {
+pub extern "C" fn mouse_down(x: f32, y: f32, button: CMouseButton) {
+    catch_any_panic(|| {
+        debug!("mouse_down");
+        call(|s| s.mouse_down(x, y, button.convert()));
+    });
+}
+
+#[no_mangle]
+pub extern "C" fn mouse_up(x: f32, y: f32, button: CMouseButton) {
+    catch_any_panic(|| {
+        debug!("mouse_up");
+        call(|s| s.mouse_up(x, y, button.convert()));
+    });
+}
+
+#[no_mangle]
+pub extern "C" fn click(x: f32, y: f32) {
     catch_any_panic(|| {
         debug!("click");
-        call(|s| s.click(x as f32, y as f32));
+        call(|s| s.click(x, y));
     });
 }
 

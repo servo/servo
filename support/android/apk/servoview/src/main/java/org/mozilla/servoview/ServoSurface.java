@@ -134,7 +134,7 @@ public class ServoSurface {
         mServo.scrollEnd(dx, dy, x, y);
     }
 
-    public void click(int x, int y) {
+    public void click(float x, float y) {
         mServo.click(x, y);
     }
 

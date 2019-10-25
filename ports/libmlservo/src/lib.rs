@@ -278,7 +278,7 @@ pub unsafe extern "C" fn trigger_servo(servo: *mut ServoInstance, x: f32, y: f32
             ScrollState::TriggerDown(start) if !down => {
                 servo.scroll_state = ScrollState::TriggerUp;
                 let _ = call(|s| s.mouse_up(start.x, start.y, MouseButton::Left));
-                let _ = call(|s| s.click(start.x, start.y));
+                let _ = call(|s| s.click(start.x as f32, start.y as f32));
                 let _ = call(|s| s.move_mouse(start.x, start.y));
             },
             ScrollState::TriggerDragging(start, prev) if !down => {

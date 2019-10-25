@@ -160,7 +160,7 @@ public class Servo {
         mRunCallback.inGLThread(() -> mJNI.pinchZoomEnd(factor, x, y));
     }
 
-    public void click(int x, int y) {
+    public void click(float x, float y) {
         mRunCallback.inGLThread(() -> mJNI.click(x, y));
     }
 
