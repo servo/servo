@@ -4835,12 +4835,11 @@ checksum = "1764fe2b30ee783bfe3b9b37b2649d8d590b3148bb12e0079715d4d5c673562e"
 
 [[package]]
 name = "smallvec"
-version = "0.6.7"
+version = "0.6.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b73ea3738b47563803ef814925e69be00799a8c07420be8b996f8e98fb2336db"
+checksum = "ab606a9c5e214920bb66c458cd7be8ef094f813f20fe77a54cc7dbfff220d4b7"
 dependencies = [
  "serde",
- "unreachable",
 ]
 
 [[package]]
