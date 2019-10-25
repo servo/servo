@@ -5,6 +5,7 @@
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::SVGSVGElementBinding;
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
@@ -58,7 +59,6 @@ impl SVGRenderingContext{
 #[dom_struct]
 pub struct SVGSVGElement {
     svggraphicselement: SVGGraphicsElement,
-    window: RefCell<Window>,
 }
 
 impl SVGSVGElement {
@@ -69,7 +69,6 @@ impl SVGSVGElement {
     ) -> SVGSVGElement {
         SVGSVGElement {
             svggraphicselement: SVGGraphicsElement::new_inherited(local_name, prefix, document),
-            window: RefCell::new(document.window()),
         }
     }
 
@@ -105,8 +104,9 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
                 .get_attr_for_layout(&ns!(), &local_name!("height"));
             let width = width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint());
             let height = height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint());
+            let window = SVG.global().as_window();
 
-            let webgl_chan = match SVG.window.webgl_chan() {
+            let webgl_chan = match window.webgl_chan() {
                 Some(chan) => chan,
                 None => panic!("Crash the system!"),
             };
