@@ -12,9 +12,6 @@ typedef long long GLint64;
 typedef unsigned long long GLuint64;
 
 
-// interface WebGLSampler : WebGLObject {
-// };
-
 // interface WebGLTransformFeedback : WebGLObject {
 // };
 
