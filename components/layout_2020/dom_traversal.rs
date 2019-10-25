@@ -324,7 +324,7 @@ where
     }
 
     fn parent_node(self) -> Option<Self> {
-        TNode::next_sibling(&self)
+        TNode::parent_node(&self)
     }
 
     fn style(self, context: &SharedStyleContext) -> Arc<ComputedValues> {
@@ -361,6 +361,9 @@ where
     }
 
     fn unset_boxes_in_subtree(self) {
+        assert!(self.is_element());
+        assert!(self.parent_node().is_some());
+
         let mut node = self;
         loop {
             if node.is_element() {
