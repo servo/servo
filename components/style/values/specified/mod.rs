@@ -179,11 +179,21 @@ impl Parse for Number {
 
 impl Number {
     /// Returns a new number with the value `val`.
+    fn new_with_clamping_mode(
+        value: CSSFloat,
+        calc_clamping_mode: Option<AllowedNumericType>,
+    ) -> Self {
+        Self { value, calc_clamping_mode }
+    }
+
+    /// Returns this percentage as a number.
+    pub fn to_percentage(&self) -> Percentage {
+        Percentage::new_with_clamping_mode(self.value, self.calc_clamping_mode)
+    }
+
+    /// Returns a new number with the value `val`.
     pub fn new(val: CSSFloat) -> Self {
-        Number {
-            value: val,
-            calc_clamping_mode: None,
-        }
+        Self::new_with_clamping_mode(val, None)
     }
 
     /// Returns whether this number came from a `calc()` expression.
@@ -370,6 +380,22 @@ impl NumberOrPercentage {
     ) -> Result<Self, ParseError<'i>> {
         Self::parse_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
     }
+
+    /// Convert the number or the percentage to a number.
+    pub fn to_percentage(self) -> Percentage {
+        match self {
+            Self::Percentage(p) => p,
+            Self::Number(n) => n.to_percentage(),
+        }
+    }
+
+    /// Convert the number or the percentage to a number.
+    pub fn to_number(self) -> Number {
+        match self {
+            Self::Percentage(p) => p.to_number(),
+            Self::Number(n) => n,
+        }
+    }
 }
 
 impl Parse for NumberOrPercentage {
@@ -419,17 +445,7 @@ impl Parse for Opacity {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let number = match NumberOrPercentage::parse(context, input)? {
-            NumberOrPercentage::Percentage(p) => Number {
-                value: p.get(),
-                calc_clamping_mode: if p.is_calc() {
-                    Some(AllowedNumericType::All)
-                } else {
-                    None
-                },
-            },
-            NumberOrPercentage::Number(n) => n,
-        };
+        let number = NumberOrPercentage::parse(context, input)?.to_number();
         Ok(Opacity(number))
     }
 }

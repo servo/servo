@@ -1876,7 +1876,16 @@ impl PropertyId {
         if let Some(id) = static_id(property_name) {
             return Ok(match *id {
                 StaticId::Longhand(id) => PropertyId::Longhand(id),
-                StaticId::Shorthand(id) => PropertyId::Shorthand(id),
+                StaticId::Shorthand(id) => {
+                    // We want to count `zoom` even if disabled.
+                    if matches!(id, ShorthandId::Zoom) {
+                        if let Some(counters) = use_counters {
+                            counters.non_custom_properties.record(id.into());
+                        }
+                    }
+
+                    PropertyId::Shorthand(id)
+                },
                 StaticId::LonghandAlias(id, alias) => PropertyId::LonghandAlias(id, alias),
                 StaticId::ShorthandAlias(id, alias) => PropertyId::ShorthandAlias(id, alias),
                 StaticId::CountedUnknown(unknown_prop) => {

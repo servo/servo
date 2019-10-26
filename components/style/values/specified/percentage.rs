@@ -8,6 +8,7 @@ use crate::parser::{Parse, ParserContext};
 use crate::values::computed::percentage::Percentage as ComputedPercentage;
 use crate::values::computed::{Context, ToComputedValue};
 use crate::values::specified::calc::CalcNode;
+use crate::values::specified::Number;
 use crate::values::{serialize_percentage, CSSFloat};
 use cssparser::{Parser, Token};
 use std::fmt::{self, Write};
@@ -46,11 +47,19 @@ impl ToCss for Percentage {
 
 impl Percentage {
     /// Creates a percentage from a numeric value.
-    pub fn new(value: CSSFloat) -> Self {
+    pub(super) fn new_with_clamping_mode(
+        value: CSSFloat,
+        calc_clamping_mode: Option<AllowedNumericType>,
+    ) -> Self {
         Self {
             value,
-            calc_clamping_mode: None,
+            calc_clamping_mode,
         }
+    }
+
+    /// Creates a percentage from a numeric value.
+    pub fn new(value: CSSFloat) -> Self {
+        Self::new_with_clamping_mode(value, None)
     }
 
     /// `0%`
@@ -70,10 +79,16 @@ impl Percentage {
             calc_clamping_mode: None,
         }
     }
+
     /// Gets the underlying value for this float.
     pub fn get(&self) -> CSSFloat {
         self.calc_clamping_mode
             .map_or(self.value, |mode| mode.clamp(self.value))
+    }
+
+    /// Returns this percentage as a number.
+    pub fn to_number(&self) -> Number {
+        Number::new_with_clamping_mode(self.value, self.calc_clamping_mode)
     }
 
     /// Returns whether this percentage is a `calc()` value.

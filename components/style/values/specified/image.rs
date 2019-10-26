@@ -435,10 +435,7 @@ impl Gradient {
                     let (color, mut p) = i.parse_nested_block(|i| {
                         let p = match_ignore_ascii_case! { &function,
                             "color-stop" => {
-                                let p = match NumberOrPercentage::parse(context, i)? {
-                                    NumberOrPercentage::Number(number) => Percentage::new(number.value),
-                                    NumberOrPercentage::Percentage(p) => p,
-                                };
+                                let p = NumberOrPercentage::parse(context, i)?.to_percentage();
                                 i.expect_comma()?;
                                 p
                             },
