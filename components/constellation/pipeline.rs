@@ -205,6 +205,10 @@ pub struct InitialPipelineState {
 
     /// Mechanism to force the compositor to process events.
     pub event_loop_waker: Option<Box<dyn EventLoopWaker>>,
+
+    /// The ratio of device pixels per px at the default scale. If unspecified, will use the
+    /// platform default setting.
+    pub device_pixels_per_px: Option<f32>,
 }
 
 pub struct NewPipeline {
@@ -312,6 +316,7 @@ impl Pipeline {
                     webvr_chan: state.webvr_chan,
                     webxr_registry: state.webxr_registry,
                     player_context: state.player_context,
+                    device_pixels_per_px: state.device_pixels_per_px,
                 };
 
                 // Spawn the child process.
@@ -518,6 +523,7 @@ pub struct UnprivilegedPipelineContent {
     webvr_chan: Option<IpcSender<WebVRMsg>>,
     webxr_registry: webxr_api::Registry,
     player_context: WindowGLContext,
+    device_pixels_per_px: Option<f32>,
 }
 
 impl UnprivilegedPipelineContent {
@@ -609,7 +615,7 @@ impl UnprivilegedPipelineContent {
             layout_thread_busy_flag.clone(),
             self.opts.load_webfonts_synchronously,
             self.opts.initial_window_size,
-            self.opts.device_pixels_per_px,
+            self.device_pixels_per_px,
             self.opts.dump_display_list,
             self.opts.dump_display_list_json,
             self.opts.dump_style_tree,

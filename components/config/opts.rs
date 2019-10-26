@@ -32,10 +32,6 @@ pub struct Opts {
     /// The maximum size of each tile in pixels (`-s`).
     pub tile_size: usize,
 
-    /// The ratio of device pixels per px at the default scale. If unspecified, will use the
-    /// platform default setting.
-    pub device_pixels_per_px: Option<f32>,
-
     /// `None` to disable the time profiler or `Some` to enable it with:
     ///
     ///  - an interval in seconds to cause it to produce output on that interval.
@@ -524,7 +520,6 @@ pub fn default_opts() -> Opts {
         is_running_problem_test: false,
         url: None,
         tile_size: 512,
-        device_pixels_per_px: None,
         time_profiling: None,
         time_profiler_trace_path: None,
         mem_profiler_period: None,
@@ -587,7 +582,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
     opts.optflag("g", "gpu", "GPU painting");
     opts.optopt("o", "output", "Output file", "output.png");
     opts.optopt("s", "size", "Size of tiles", "512");
-    opts.optopt("", "device-pixel-ratio", "Device pixels per px", "");
     opts.optflagopt(
         "p",
         "profile",
@@ -792,15 +786,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         None => 512,
     };
 
-    let device_pixels_per_px = opt_match.opt_str("device-pixel-ratio").map(|dppx_str| {
-        dppx_str.parse().unwrap_or_else(|err| {
-            args_fail(&format!(
-                "Error parsing option: --device-pixel-ratio ({})",
-                err
-            ))
-        })
-    });
-
     // If only the flag is present, default to a 5 second period for both profilers
     let time_profiling = if opt_match.opt_present("p") {
         match opt_match.opt_str("p") {
@@ -951,7 +936,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         is_running_problem_test: is_running_problem_test,
         url: url_opt,
         tile_size: tile_size,
-        device_pixels_per_px: device_pixels_per_px,
         time_profiling: time_profiling,
         time_profiler_trace_path: opt_match.opt_str("profiler-trace-path"),
         mem_profiler_period: mem_profiler_period,

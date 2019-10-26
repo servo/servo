@@ -34,12 +34,18 @@ pub struct App {
 }
 
 impl App {
-    pub fn run(angle: bool, enable_vsync: bool, use_msaa: bool, no_native_titlebar: bool) {
+    pub fn run(
+        angle: bool,
+        enable_vsync: bool,
+        use_msaa: bool,
+        no_native_titlebar: bool,
+        device_pixels_per_px: Option<f32>,
+    ) {
         let events_loop = EventsLoop::new(opts::get().headless);
 
         // Implements window methods, used by compositor.
         let window = if opts::get().headless {
-            headless_window::Window::new(opts::get().initial_window_size)
+            headless_window::Window::new(opts::get().initial_window_size, device_pixels_per_px)
         } else {
             Rc::new(headed_window::Window::new(
                 opts::get().initial_window_size,
@@ -49,6 +55,7 @@ impl App {
                 enable_vsync,
                 use_msaa,
                 no_native_titlebar,
+                device_pixels_per_px,
             ))
         };
 
@@ -63,7 +70,7 @@ impl App {
         // Handle browser state.
         let browser = Browser::new(window.clone());
 
-        let mut servo = Servo::new(embedder, window.clone());
+        let mut servo = Servo::new(embedder, window.clone(), device_pixels_per_px);
         let browser_id = BrowserId::new();
         servo.handle_events(vec![WindowEvent::NewBrowser(get_default_url(), browser_id)]);
         servo.setup_logging();

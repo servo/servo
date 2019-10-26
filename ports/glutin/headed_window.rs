@@ -75,6 +75,7 @@ pub struct Window {
     enable_vsync: bool,
     use_msaa: bool,
     no_native_titlebar: bool,
+    device_pixels_per_px: Option<f32>,
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -98,6 +99,7 @@ impl Window {
         enable_vsync: bool,
         use_msaa: bool,
         no_native_titlebar: bool,
+        device_pixels_per_px: Option<f32>,
     ) -> Window {
         let opts = opts::get();
 
@@ -210,6 +212,7 @@ impl Window {
             enable_vsync,
             use_msaa,
             no_native_titlebar,
+            device_pixels_per_px,
         };
 
         window.present();
@@ -329,7 +332,7 @@ impl Window {
     }
 
     fn servo_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        match opts::get().device_pixels_per_px {
+        match self.device_pixels_per_px {
             Some(device_pixels_per_px) => Scale::new(device_pixels_per_px),
             _ => match opts::get().output_file {
                 Some(_) => Scale::new(1.0),
@@ -561,6 +564,7 @@ impl webxr::glwindow::GlWindow for Window {
             self.enable_vsync,
             self.use_msaa,
             self.no_native_titlebar,
+            self.device_pixels_per_px,
         ));
         app::register_window(window.clone());
         Ok(window)

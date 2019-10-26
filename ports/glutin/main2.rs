@@ -96,6 +96,7 @@ pub fn main() {
     );
     opts.optflag("", "msaa", "Use multisample antialiasing in WebRender.");
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
+    opts.optopt("", "device-pixel-ratio", "Device pixels per px", "");
 
     let opts_matches;
     let content_process_token;
@@ -159,7 +160,14 @@ pub fn main() {
         opts_matches.opt_present("no-native-titlebar") || !(pref!(shell.native_titlebar.enabled));
     let enable_vsync = !opts_matches.opt_present("disable-vsync");
     let use_msaa = opts_matches.opt_present("msaa");
-    App::run(angle, enable_vsync, use_msaa, do_not_use_native_titlebar);
+    let device_pixels_per_px = opts_matches.opt_str("device-pixel-ratio").map(|dppx_str| {
+        dppx_str.parse().unwrap_or_else(|err| {
+            error!( "Error parsing option: --device-pixel-ratio ({})", err);
+            process::exit(1);
+        })
+    });
+
+    App::run(angle, enable_vsync, use_msaa, do_not_use_native_titlebar, device_pixels_per_px);
 
     platform::deinit(clean_shutdown)
 }
