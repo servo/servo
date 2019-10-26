@@ -11,8 +11,9 @@
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
 #![doc = "The script crate contains all matters DOM."]
-#![plugin(script_plugins)]
 #![cfg_attr(not(feature = "unrooted_must_root_lint"), allow(unknown_lints))]
+#![allow(deprecated)] // FIXME: Can we make `allow` only apply to the `plugin` crate attribute?
+#![plugin(script_plugins)]
 
 #[macro_use]
 extern crate bitflags;
@@ -47,37 +48,66 @@ extern crate servo_atoms;
 #[macro_use]
 extern crate style;
 
+#[warn(deprecated)]
 #[macro_use]
 mod task;
+#[warn(deprecated)]
 mod body;
+#[warn(deprecated)]
 pub mod clipboard_provider;
+#[warn(deprecated)]
 mod devtools;
+#[warn(deprecated)]
 pub mod document_loader;
+#[warn(deprecated)]
 #[macro_use]
 mod dom;
+#[warn(deprecated)]
 mod canvas_state;
+#[warn(deprecated)]
 mod compartments;
+#[warn(deprecated)]
 pub mod fetch;
+#[warn(deprecated)]
 mod image_listener;
+#[warn(deprecated)]
 mod init;
+#[warn(deprecated)]
 mod layout_image;
+#[warn(deprecated)]
 mod mem;
+#[warn(deprecated)]
 mod microtask;
+#[warn(deprecated)]
 mod network_listener;
+#[warn(deprecated)]
 pub mod script_runtime;
+#[warn(deprecated)]
 #[allow(unsafe_code)]
 pub mod script_thread;
+#[warn(deprecated)]
 mod serviceworker_manager;
+#[warn(deprecated)]
 mod serviceworkerjob;
+#[warn(deprecated)]
 mod stylesheet_loader;
+#[warn(deprecated)]
 mod stylesheet_set;
+#[warn(deprecated)]
 mod task_manager;
+#[warn(deprecated)]
 mod task_queue;
+#[warn(deprecated)]
 mod task_source;
+#[warn(deprecated)]
 pub mod test;
+#[warn(deprecated)]
 pub mod textinput;
+#[warn(deprecated)]
 mod timers;
+#[warn(deprecated)]
 mod unpremultiplytable;
+#[warn(deprecated)]
 mod webdriver_handlers;
 
 pub use init::{init, init_service_workers};
