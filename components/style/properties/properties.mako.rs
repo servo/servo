@@ -3074,10 +3074,6 @@ impl ComputedValuesInner {
         self.rules.as_ref().unwrap()
     }
 
-    /// Whether this style has a -moz-binding value. This is always false for
-    /// Servo for obvious reasons.
-    pub fn has_moz_binding(&self) -> bool { false }
-
     #[inline]
     /// Returns whether the "content" property for the given style is completely
     /// ineffective, and would yield an empty `::before` or `::after`

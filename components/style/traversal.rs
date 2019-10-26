@@ -267,7 +267,6 @@ pub trait DomTraversal<E: TElement>: Sync {
         context: &mut StyleContext<E>,
         parent: E,
         parent_data: &ElementData,
-        is_initial_style: bool,
     ) -> bool {
         debug_assert!(
             parent.has_current_styles_for_traversal(parent_data, context.shared.traversal_flags)
@@ -276,21 +275,6 @@ pub trait DomTraversal<E: TElement>: Sync {
         // If the parent computed display:none, we don't style the subtree.
         if parent_data.styles.is_display_none() {
             debug!("Parent {:?} is display:none, culling traversal", parent);
-            return true;
-        }
-
-        // Gecko-only XBL handling.
-        //
-        // When we apply the XBL binding during frame construction, we restyle
-        // the whole subtree again if the binding is valid, so assuming it's
-        // likely to load valid bindings, we avoid wasted work here, which may
-        // be a very big perf hit when elements with bindings are nested
-        // heavily.
-        if cfg!(feature = "gecko") &&
-            is_initial_style &&
-            parent_data.styles.primary().has_moz_binding()
-        {
-            debug!("Parent {:?} has XBL binding, deferring traversal", parent);
             return true;
         }
 
@@ -521,7 +505,7 @@ pub fn recalc_style_at<E, D, F>(
         is_servo_nonincremental_layout();
 
     traverse_children = traverse_children &&
-        !traversal.should_cull_subtree(context, element, &data, is_initial_style);
+        !traversal.should_cull_subtree(context, element, &data);
 
     // Examine our children, and enqueue the appropriate ones for traversal.
     if traverse_children {
