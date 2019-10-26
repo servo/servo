@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<script src='test-helpers.js'></script>
+<script src='messaging-serialize-helpers.js'></script>
+<script src='message-target.js'></script>
+<script id="inline_script">
+  'use strict'
+
+  if (window.parent !== null) {
+    window.parent.postMessage('LOADED', { targetOrigin: '*' });
+  }
+
+  if (window.opener !== null) {
+    window.opener.postMessage('LOADED', { targetOrigin: '*' });
+  }
+
+  // Use an undefined message target to send responses to
+  // MessageEvent::source instead.
+  const target = undefined;
+
+  add_message_event_handlers(
+    /*receiver=*/self, target, /*target_origin=*/'*');
+</script>

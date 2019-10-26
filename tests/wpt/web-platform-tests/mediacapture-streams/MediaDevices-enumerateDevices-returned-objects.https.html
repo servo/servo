@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+<title>enumerateDevices is returning new MediaDeviceInfo objects every time</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+</head>
+<body>
+<script>
+function doTest(callGetUserMedia, testName)
+{
+    promise_test(async () => {
+        if (callGetUserMedia)
+            await navigator.mediaDevices.getUserMedia({audio : true, video: true});
+
+        const deviceList1 =  await navigator.mediaDevices.enumerateDevices();
+        const deviceList2 =  await navigator.mediaDevices.enumerateDevices();
+
+        assert_equals(deviceList1.length, deviceList2.length);
+        for (let i = 0; i < deviceList1.length; i++) {
+            const device1 = deviceList1[i];
+            const device2 = deviceList2[i];
+            assert_not_equals(device1, device2);
+            assert_equals(device1.deviceId, device2.deviceId, "deviceId");
+            assert_equals(device1.kind, device2.kind, "kind");
+        }
+    }, testName);
+}
+
+doTest(false, "enumerateDevices returns new objects in case device-info permission is not granted");
+doTest(true, "enumerateDevices returns new objects in case device-info permission is granted");
+</script>
+</body>
+</html>

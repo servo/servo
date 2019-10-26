@@ -37,7 +37,7 @@
     }, "Https downgrade font => No headers");
   });
 
-  promise_test(() =>
+  promise_test(() => {
     return requestViaImage(secureRedirectURL + encodeURIComponent("http://{{host}}:{{ports[http][0]}}/common/security-features/subresource/image.py"))
       .then(result => {
          headers = result.headers;
@@ -53,7 +53,8 @@
            "user": undefined,
            "mode": undefined,
          });
-  }), "Https downgrade image => No headers");
+      });
+  }, "Https downgrade image => No headers");
 </script>
 
 <script src="https://{{host}}:{{ports[https][0]}}/fetch/api/resources/redirect.py?location=http%3A%2F%2F{{host}}%3A{{ports[http][0]}}%2Ffetch%2Fmetadata%2Fresources%2Fecho-as-script.py"></script>

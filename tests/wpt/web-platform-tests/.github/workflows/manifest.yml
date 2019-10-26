@@ -1,3 +1,4 @@
+name: manifest
 on:
   push:
     branches:
@@ -5,7 +6,6 @@ on:
   pull_request:
     paths:
       - 'tools/**'
-name: manifest
 jobs:
   build-and-tag:
     runs-on: ubuntu-18.04
