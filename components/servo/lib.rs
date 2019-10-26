@@ -306,7 +306,11 @@ impl<Window> Servo<Window>
 where
     Window: WindowMethods + 'static + ?Sized,
 {
-    pub fn new(mut embedder: Box<dyn EmbedderMethods>, window: Rc<Window>) -> Servo<Window> {
+    pub fn new(
+        mut embedder: Box<dyn EmbedderMethods>,
+        window: Rc<Window>,
+        device_pixels_per_px: Option<f32>,
+    ) -> Servo<Window> {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
@@ -551,6 +555,7 @@ where
             webvr_constellation_sender,
             glplayer_threads,
             event_loop_waker,
+            device_pixels_per_px,
         );
 
         // Send the constellation's swmanager sender to service worker manager thread
@@ -582,7 +587,7 @@ where
             opts.is_running_problem_test,
             opts.exit_after_load,
             opts.convert_mouse_to_touch,
-            opts.device_pixels_per_px,
+            device_pixels_per_px,
         );
 
         Servo {
@@ -870,6 +875,7 @@ fn create_constellation(
     webvr_constellation_sender: Option<Sender<Sender<ConstellationMsg>>>,
     glplayer_threads: Option<GLPlayerThreads>,
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
+    device_pixels_per_px: Option<f32>,
 ) -> (Sender<ConstellationMsg>, SWManagerSenders) {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
@@ -912,6 +918,7 @@ fn create_constellation(
         glplayer_threads,
         player_context,
         event_loop_waker,
+        device_pixels_per_px,
     };
     let (constellation_chan, from_swmanager_sender) = Constellation::<
         script_layout_interface::message::Msg,
@@ -920,7 +927,7 @@ fn create_constellation(
     >::start(
         initial_state,
         opts.initial_window_size,
-        opts.device_pixels_per_px,
+        device_pixels_per_px,
         opts.random_pipeline_closure_probability,
         opts.random_pipeline_closure_seed,
         opts.is_running_problem_test,

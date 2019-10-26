@@ -71,6 +71,11 @@ pub struct Window {
     fullscreen: Cell<bool>,
     gl: Rc<dyn gl::Gl>,
     xr_rotation: Cell<Rotation3D<f32, UnknownUnit, UnknownUnit>>,
+    angle: bool,
+    enable_vsync: bool,
+    use_msaa: bool,
+    no_native_titlebar: bool,
+    device_pixels_per_px: Option<f32>,
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -90,6 +95,11 @@ impl Window {
         win_size: Size2D<u32, DeviceIndependentPixel>,
         sharing: Option<&Window>,
         events_loop: Rc<RefCell<EventsLoop>>,
+        angle: bool,
+        enable_vsync: bool,
+        use_msaa: bool,
+        no_native_titlebar: bool,
+        device_pixels_per_px: Option<f32>,
     ) -> Window {
         let opts = opts::get();
 
@@ -97,7 +107,7 @@ impl Window {
         // `load_end()`. This avoids an ugly flash of unstyled content (especially important since
         // unstyled content is white and chrome often has a transparent background). See issue
         // #9996.
-        let visible = opts.output_file.is_none() && !opts.no_native_titlebar;
+        let visible = opts.output_file.is_none() && !no_native_titlebar;
 
         let win_size: DeviceIntSize = (win_size.to_f32() * window_creation_scale_factor()).to_i32();
         let width = win_size.to_untyped().width;
@@ -105,8 +115,8 @@ impl Window {
 
         let mut window_builder = glutin::WindowBuilder::new()
             .with_title("Servo".to_string())
-            .with_decorations(!opts.no_native_titlebar)
-            .with_transparency(opts.no_native_titlebar)
+            .with_decorations(!no_native_titlebar)
+            .with_transparency(no_native_titlebar)
             .with_dimensions(LogicalSize::new(width as f64, height as f64))
             .with_visibility(visible)
             .with_multitouch();
@@ -114,10 +124,10 @@ impl Window {
         window_builder = builder_with_platform_options(window_builder);
 
         let mut context_builder = glutin::ContextBuilder::new()
-            .with_gl(app::gl_version())
-            .with_vsync(opts.enable_vsync);
+            .with_gl(app::gl_version(angle))
+            .with_vsync(enable_vsync);
 
-        if opts.use_msaa {
+        if use_msaa {
             context_builder = context_builder.with_multisampling(MULTISAMPLES)
         }
 
@@ -198,6 +208,11 @@ impl Window {
             primary_monitor,
             screen_size,
             xr_rotation: Cell::new(Rotation3D::identity()),
+            angle,
+            enable_vsync,
+            use_msaa,
+            no_native_titlebar,
+            device_pixels_per_px,
         };
 
         window.present();
@@ -317,7 +332,7 @@ impl Window {
     }
 
     fn servo_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        match opts::get().device_pixels_per_px {
+        match self.device_pixels_per_px {
             Some(device_pixels_per_px) => Scale::new(device_pixels_per_px),
             _ => match opts::get().output_file {
                 Some(_) => Scale::new(1.0),
@@ -545,6 +560,11 @@ impl webxr::glwindow::GlWindow for Window {
             self.inner_size.get(),
             Some(self),
             self.events_loop.clone(),
+            self.angle,
+            self.enable_vsync,
+            self.use_msaa,
+            self.no_native_titlebar,
+            self.device_pixels_per_px,
         ));
         app::register_window(window.clone());
         Ok(window)

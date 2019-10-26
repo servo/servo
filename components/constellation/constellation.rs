@@ -464,6 +464,10 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// Mechanism to force the compositor to process events.
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
+
+    /// The ratio of device pixels per px at the default scale. If unspecified, will use the
+    /// platform default setting.
+    device_pixels_per_px: Option<f32>,
 }
 
 /// State needed to construct a constellation.
@@ -520,6 +524,10 @@ pub struct InitialConstellationState {
 
     /// Mechanism to force the compositor to process events.
     pub event_loop_waker: Option<Box<dyn EventLoopWaker>>,
+
+    /// The ratio of device pixels per px at the default scale. If unspecified, will use the
+    /// platform default setting.
+    pub device_pixels_per_px: Option<f32>,
 }
 
 /// Data needed for webdriver
@@ -837,6 +845,7 @@ where
                     glplayer_threads: state.glplayer_threads,
                     player_context: state.player_context,
                     event_loop_waker: state.event_loop_waker,
+                    device_pixels_per_px,
                 };
 
                 constellation.run();
@@ -1081,6 +1090,7 @@ where
             webxr_registry: self.webxr_registry.clone(),
             player_context: self.player_context.clone(),
             event_loop_waker: self.event_loop_waker.as_ref().map(|w| (*w).clone_box()),
+            device_pixels_per_px: self.device_pixels_per_px,
         });
 
         let pipeline = match result {

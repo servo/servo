@@ -6,8 +6,8 @@
 
 use crate::browser::Browser;
 use crate::embedder::EmbedderCallbacks;
-use crate::window_trait::WindowPortsMethods;
 use crate::events_loop::EventsLoop;
+use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};
 use glutin::WindowId;
 use servo::compositing::windowing::WindowEvent;
@@ -34,14 +34,29 @@ pub struct App {
 }
 
 impl App {
-    pub fn run() {
+    pub fn run(
+        angle: bool,
+        enable_vsync: bool,
+        use_msaa: bool,
+        no_native_titlebar: bool,
+        device_pixels_per_px: Option<f32>,
+    ) {
         let events_loop = EventsLoop::new(opts::get().headless);
 
         // Implements window methods, used by compositor.
         let window = if opts::get().headless {
-            headless_window::Window::new(opts::get().initial_window_size)
+            headless_window::Window::new(opts::get().initial_window_size, device_pixels_per_px)
         } else {
-            Rc::new(headed_window::Window::new(opts::get().initial_window_size, None, events_loop.clone()))
+            Rc::new(headed_window::Window::new(
+                opts::get().initial_window_size,
+                None,
+                events_loop.clone(),
+                angle,
+                enable_vsync,
+                use_msaa,
+                no_native_titlebar,
+                device_pixels_per_px,
+            ))
         };
 
         // Implements embedder methods, used by libservo and constellation.
@@ -49,12 +64,13 @@ impl App {
             window.clone(),
             events_loop.clone(),
             window.gl(),
+            angle,
         ));
 
         // Handle browser state.
         let browser = Browser::new(window.clone());
 
-        let mut servo = Servo::new(embedder, window.clone());
+        let mut servo = Servo::new(embedder, window.clone(), device_pixels_per_px);
         let browser_id = BrowserId::new();
         servo.handle_events(vec![WindowEvent::NewBrowser(get_default_url(), browser_id)]);
         servo.setup_logging();
@@ -110,7 +126,7 @@ impl App {
                             };
                             window.winit_event_to_servo_event(event);
                             return cont;
-                        }
+                        },
                     }
                 });
             },
@@ -121,7 +137,10 @@ impl App {
     fn run_loop(self) {
         loop {
             let animating = WINDOWS.with(|windows| {
-                windows.borrow().iter().any(|(_, window)| window.is_animating())
+                windows
+                    .borrow()
+                    .iter()
+                    .any(|(_, window)| window.is_animating())
             });
             if !animating || self.suspended.get() {
                 // If there's no animations running then we block on the window event loop.
@@ -219,8 +238,8 @@ pub fn register_window(window: Rc<dyn WindowPortsMethods>) {
     });
 }
 
-pub fn gl_version() -> glutin::GlRequest {
-    if opts::get().angle {
+pub fn gl_version(angle: bool) -> glutin::GlRequest {
+    if angle {
         glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (3, 0))
     } else {
         glutin::GlRequest::GlThenGles {

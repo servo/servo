@@ -9,6 +9,7 @@ pub mod gl_glue;
 
 pub use servo::script_traits::MouseButton;
 
+use getopts::Options;
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderMethods, MouseWindowEvent, WindowEvent,
     WindowMethods,
@@ -170,7 +171,7 @@ pub fn init(
             gfx.subpixel_text_antialiasing.enabled,
             init_opts.enable_subpixel_text_antialiasing
         );
-        opts::from_cmdline_args(&args);
+        opts::from_cmdline_args(Options::new(), &args);
     }
 
     let embedder_url = init_opts.url.as_ref().and_then(|s| ServoUrl::parse(s).ok());
@@ -204,7 +205,7 @@ pub fn init(
         gl: gl.clone(),
     });
 
-    let servo = Servo::new(embedder_callbacks, window_callbacks.clone());
+    let servo = Servo::new(embedder_callbacks, window_callbacks.clone(), None);
 
     SERVO.with(|s| {
         let mut servo_glue = ServoGlue {

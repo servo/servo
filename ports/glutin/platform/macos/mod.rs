@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use servo::config::opts;
 use std::ptr;
 use std::thread;
 use std::time::Duration;
 
-pub fn deinit() {
+pub fn deinit(clean_shutdown: bool) {
     // An unfortunate hack to make sure the linker's dead code stripping doesn't strip our
     // `Info.plist`.
     unsafe {
@@ -21,7 +20,7 @@ pub fn deinit() {
             "{} threads are still running after shutdown (bad).",
             thread_count
         );
-        if opts::get().clean_shutdown {
+        if clean_shutdown {
             println!("Waiting until all threads have shutdown");
             loop {
                 let thread_count = unsafe { macos_count_running_threads() };

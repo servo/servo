@@ -7,6 +7,7 @@ edition = "2018"
 publish = false
 
 [dependencies]
+getopts = "0.2.11"
 libservo = { path = "../../../components/servo" }
 log = "0.4"
 servo-media = { git = "https://github.com/servo/media" }

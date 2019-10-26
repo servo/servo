@@ -4370,6 +4370,7 @@ dependencies = [
  "cc",
  "clipboard",
  "euclid",
+ "getopts",
  "gleam 0.6.18",
  "glutin",
  "image",
@@ -4771,6 +4772,7 @@ name = "simpleservo"
 version = "0.0.1"
 dependencies = [
  "core-foundation",
+ "getopts",
  "gl_generator 0.11.0",
  "libc",
  "libloading",
