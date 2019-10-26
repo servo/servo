@@ -263,8 +263,6 @@ scheme host and port.""")
                              help="Disable the WebRender compositor in Gecko.")
     gecko_group.add_argument("--stackfix-dir", dest="stackfix_dir", action="store",
                              help="Path to directory containing assertion stack fixing scripts")
-    gecko_group.add_argument("--lsan-dir", dest="lsan_dir", action="store",
-                             help="Path to directory containing LSAN suppressions file")
     gecko_group.add_argument("--setpref", dest="extra_prefs", action='append',
                              default=[], metavar="PREF=VALUE",
                              help="Defines an extra user preference (overrides those in prefs_root)")
@@ -548,9 +546,6 @@ def check_args(kwargs):
 
     if kwargs["reftest_internal"] is None:
         kwargs["reftest_internal"] = True
-
-    if kwargs["lsan_dir"] is None:
-        kwargs["lsan_dir"] = kwargs["prefs_root"]
 
     if kwargs["reftest_screenshot"] is None:
         kwargs["reftest_screenshot"] = "unexpected"

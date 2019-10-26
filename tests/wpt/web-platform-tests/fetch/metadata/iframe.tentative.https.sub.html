@@ -44,36 +44,36 @@
   create_test("{{host}}:{{ports[https][0]}}", FORCED, {
     "site": "same-origin",
     "user": "",
-    "mode": "nested-navigate"
+    "mode": "navigate"
   });
 
   create_test("{{hosts[][www]}}:{{ports[https][0]}}", FORCED, {
     "site": "same-site",
     "user": "",
-    "mode": "nested-navigate"
+    "mode": "navigate"
   });
 
   create_test("{{hosts[alt][www]}}:{{ports[https][0]}}", FORCED, {
     "site": "cross-site",
     "user": "",
-    "mode": "nested-navigate"
+    "mode": "navigate"
   });
 
   create_test("{{host}}:{{ports[https][0]}}", USER, {
     "site": "same-origin",
     "user": "?1",
-    "mode": "nested-navigate"
+    "mode": "navigate"
   });
 
   create_test("{{hosts[][www]}}:{{ports[https][0]}}", USER, {
     "site": "same-site",
     "user": "?1",
-    "mode": "nested-navigate"
+    "mode": "navigate"
   });
 
   create_test("{{hosts[alt][www]}}:{{ports[https][0]}}", USER, {
     "site": "cross-site",
     "user": "?1",
-    "mode": "nested-navigate"
+    "mode": "navigate"
   });
 </script>
