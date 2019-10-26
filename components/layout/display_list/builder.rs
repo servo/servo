@@ -1812,7 +1812,6 @@ impl Fragment {
                };
 
                state.add_image_item(base, display_item);
-
             }
             SpecificFragmentInfo::Iframe(ref fragment_info) => {
                 if !stacking_relative_content_box.is_empty() {

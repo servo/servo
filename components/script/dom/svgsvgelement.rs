@@ -6,11 +6,11 @@ use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::SVGSVGElementBinding;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{DomRoot, LayoutDom};
+use crate::dom::bindings::root::{DomRoot, LayoutDom, Dom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
-use crate::dom::node::Node;
+use crate::dom::node::{Node, window_from_node};
 use crate::dom::svggraphicselement::SVGGraphicsElement;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -21,44 +21,18 @@ use canvas_traits::webgl::{WebGLMsg, WebGLContextShareMode, WebGLMsgSender, webg
 use std::cell::{Cell, RefCell};
 use euclid::Size2D;
 use crate::dom::window::Window;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::svgrenderingcontext::{
+    SVGRenderingContext,
+};
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
 
-struct SVGRenderingContext{
-    webgl_sender: WebGLMsgSender,
-    share_mode: WebGLContextShareMode,
-    webrender_image: Cell<Option<webrender_api::ImageKey>>,
-}
-
-impl SVGRenderingContext{
-    fn extract_image_key(&self) -> webrender_api::ImageKey{
-        match self.share_mode {
-            WebGLContextShareMode::SharedTexture => {
-                // WR using ExternalTexture requires a single update message.
-                self.webrender_image.get().unwrap_or_else(|| {
-                    let (sender, receiver) = webgl_channel().unwrap();
-                    self.webgl_sender.send_update_wr_image(sender).unwrap();
-                    let image_key = receiver.recv().unwrap();
-                    self.webrender_image.set(Some(image_key));
-
-                    image_key
-                })
-            },
-            WebGLContextShareMode::Readback => {
-                // WR using Readback requires to update WR image every frame
-                // in order to send the new raw pixels.
-                let (sender, receiver) = webgl_channel().unwrap();
-                self.webgl_sender.send_update_wr_image(sender).unwrap();
-                receiver.recv().unwrap()
-            },
-        }
-    }
-}
-
 #[dom_struct]
 pub struct SVGSVGElement {
     svggraphicselement: SVGGraphicsElement,
+    context: DomRoot<Option<SVGRenderingContext>>,
 }
 
 impl SVGSVGElement {
@@ -69,6 +43,7 @@ impl SVGSVGElement {
     ) -> SVGSVGElement {
         SVGSVGElement {
             svggraphicselement: SVGGraphicsElement::new_inherited(local_name, prefix, document),
+            context: DomRoot::from_ref(None),
         }
     }
 
@@ -84,6 +59,22 @@ impl SVGSVGElement {
             SVGSVGElementBinding::Wrap,
         )
     }
+
+    pub fn context(&mut self) -> DomRoot<Option<SVGRenderingContext>> {
+        let window: DomRoot<Window> = window_from_node(self);
+        context = match self.context {
+           Some(context) => context,
+           _ => {
+               SVGRenderingContext::new(
+                   window,
+                   Size2D::new(DEFAULT_WIDTH, DEFAULT_HEIGHT),
+                   self
+               )
+           }
+        };
+        self.context = context;
+        context
+    }
 }
 
 pub trait LayoutSVGSVGElementHelpers {
@@ -96,6 +87,7 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
         unsafe {
             let SVG = &*self.unsafe_get();
 
+            let ctx = SVG.context();
             let width_attr = SVG
                 .upcast::<Element>()
                 .get_attr_for_layout(&ns!(), &local_name!("width"));
@@ -104,41 +96,9 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
                 .get_attr_for_layout(&ns!(), &local_name!("height"));
             let width = width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint());
             let height = height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint());
-            let window = SVG.global().as_window();
 
-            let webgl_chan = match window.webgl_chan() {
-                Some(chan) => chan,
-                None => panic!("Crash the system!"),
-            };
-            let size = Size2D::new(width, height);
-
-            let (sender, receiver) = webgl_channel()
-                .unwrap();
-            let attrs = GLContextAttributes{
-                depth: false,
-                stencil: false,
-                alpha: true,
-                antialias: true,
-                premultiplied_alpha: true,
-                preserve_drawing_buffer: false,
-            };
-            webgl_chan
-                .send(WebGLMsg::CreateContext(WebGLVersion::WebGL1, size, attrs, sender))
-                .unwrap();
-            let result = receiver.recv().unwrap();
-
-            let mapped = result.map(|ctx_data| {
-                let webgl_sender = ctx_data.sender;
-                let share_mode = ctx_data.share_mode;
-                SVGRenderingContext{
-                    webgl_sender,
-                    share_mode,
-                    webrender_image: Cell::new(None),
-                }
-            });
-
-            match mapped {
-                Ok(ctx) => {
+            match ctx {
+                Some(ctx) => {
                     let image_key = ctx.extract_image_key();
                     SVGSVGData{
                         width,
@@ -146,8 +106,7 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
                         image_key: Some(image_key),
                     }
                 },
-                Err(msg) => {
-                    error!("Couldn't create SVGRenderingContext:{}",msg);
+                _ => {
                     SVGSVGData{
                         width,
                         height,

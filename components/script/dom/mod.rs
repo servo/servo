@@ -470,6 +470,7 @@ pub mod stylesheetlist;
 pub mod svgelement;
 pub mod svggraphicselement;
 pub mod svgsvgelement;
+pub mod svgrenderingcontext;
 pub mod testbinding;
 pub mod testbindingiterable;
 pub mod testbindingpairiterable;
