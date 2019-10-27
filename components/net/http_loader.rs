@@ -1462,7 +1462,15 @@ fn http_network_fetch(
             _ => false,
         });
 
-    if !req_origin_in_timing_allow && !wildcard_present {
+    let is_same_origin = request.url_list.iter().any(|url| match request.origin {
+        SpecificOrigin(ref immutable_request_origin) => {
+            url.clone().into_url().origin().ascii_serialization() ==
+                immutable_request_origin.ascii_serialization()
+        },
+        _ => false,
+    });
+
+    if !(is_same_origin || req_origin_in_timing_allow || wildcard_present) {
         context.timing.lock().unwrap().mark_timing_check_failed();
     }
 
