@@ -178,6 +178,11 @@ be made available by the framework:
     self.GLOBAL.isWindow()
     self.GLOBAL.isWorker()
 
+Although [the global `done` function must be explicitly invoked for most
+dedicated worker tests and shared worker
+tests](testharness-api.html#determining-when-all-tests-are-complete), it is
+automatically invoked for tests defined using the "multi-global" pattern.
+
 ### Specifying a test title in auto-generated boilerplate tests
 
 Use `// META: title=This is the title of the test` at the beginning of the resource.

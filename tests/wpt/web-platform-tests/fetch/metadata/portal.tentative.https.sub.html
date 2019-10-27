@@ -27,18 +27,18 @@
   create_test("{{host}}:{{ports[https][0]}}", {
     "site": "same-origin",
     "user": "",
-    "mode": "nested-navigate"
+    "mode": "navigate"
   });
 
   create_test("{{hosts[][www]}}:{{ports[https][0]}}", {
     "site": "same-site",
     "user": "",
-    "mode": "nested-navigate"
+    "mode": "navigate"
   });
 
   create_test("{{hosts[alt][www]}}:{{ports[https][0]}}", {
     "site": "cross-site",
     "user": "",
-    "mode": "nested-navigate"
+    "mode": "navigate"
   });
 </script>
