@@ -194,7 +194,7 @@ impl NavigatorMethods for Navigator {
     /// https://w3c.github.io/mediasession/#dom-navigator-mediasession
     fn MediaSession(&self) -> DomRoot<MediaSession> {
         self.mediasession.or_init(|| {
-            // There is a single MediaSession instance per top level browsing context
+            // There is a single MediaSession instance per browsing context
             // and only one active MediaSession globally.
             //
             // MediaSession creation can happen in two cases:
@@ -206,7 +206,7 @@ impl NavigatorMethods for Navigator {
             // the script thread.
             let global = self.global();
             let window = global.as_window();
-            let browsing_context_id = window.window_proxy().top_level_browsing_context_id();
+            let browsing_context_id = window.window_proxy().browsing_context_id();
             match ScriptThread::get_media_session(browsing_context_id) {
                 Some(session) => session,
                 None => MediaSession::new(window),

@@ -16,9 +16,10 @@ use crate::dom::mediametadata::MediaMetadata;
 use crate::dom::window::Window;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
-use embedder_traits::{EmbedderMsg, MediaSessionEvent};
-use msg::constellation_msg::TopLevelBrowsingContextId;
+use embedder_traits::MediaSessionEvent;
+use msg::constellation_msg::BrowsingContextId;
 use script_traits::MediaSessionActionType;
+use script_traits::ScriptMsg;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -39,7 +40,7 @@ pub struct MediaSession {
 
 impl MediaSession {
     #[allow(unrooted_must_root)]
-    fn new_inherited(browsing_context_id: TopLevelBrowsingContextId) -> MediaSession {
+    fn new_inherited(browsing_context_id: BrowsingContextId) -> MediaSession {
         let media_session = MediaSession {
             reflector_: Reflector::new(),
             metadata: Default::default(),
@@ -52,7 +53,7 @@ impl MediaSession {
     }
 
     pub fn new(window: &Window) -> DomRoot<MediaSession> {
-        let browsing_context_id = window.window_proxy().top_level_browsing_context_id();
+        let browsing_context_id = window.window_proxy().browsing_context_id();
         reflect_dom_object(
             Box::new(MediaSession::new_inherited(browsing_context_id)),
             window,
@@ -74,7 +75,8 @@ impl MediaSession {
     pub fn send_event(&self, event: MediaSessionEvent) {
         let global = self.global();
         let window = global.as_window();
-        window.send_to_embedder(EmbedderMsg::MediaSessionEvent(event));
+        let browsing_context_id = window.window_proxy().browsing_context_id();
+        window.send_to_constellation(ScriptMsg::MediaSessionEvent(browsing_context_id, event));
     }
 }
 
@@ -121,10 +123,7 @@ impl MediaSessionMethods for MediaSession {
 impl Drop for MediaSession {
     fn drop(&mut self) {
         let global = self.global();
-        let browsing_context_id = global
-            .as_window()
-            .window_proxy()
-            .top_level_browsing_context_id();
+        let browsing_context_id = global.as_window().window_proxy().browsing_context_id();
         ScriptThread::remove_media_session(browsing_context_id);
     }
 }

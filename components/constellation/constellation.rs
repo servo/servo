@@ -112,6 +112,7 @@ use compositing::SendableFrameTree;
 use crossbeam_channel::{after, never, unbounded, Receiver, Sender};
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use embedder_traits::{Cursor, EmbedderMsg, EmbedderProxy, EventLoopWaker};
+use embedder_traits::{MediaSessionEvent, MediaSessionPlaybackState};
 use euclid::{default::Size2D as UntypedSize2D, Size2D};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
@@ -475,8 +476,8 @@ pub struct Constellation<Message, LTF, STF> {
     /// Mechanism to force the compositor to process events.
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
     
-    /// Browser ID of the active media session, if any.
-    active_media_session: Option<TopLevelBrowsingContextId>,
+    /// Browing context ID of the active media session.
+    active_media_session: Option<BrowsingContextId>,
 }
 
 /// State needed to construct a constellation.
@@ -1777,6 +1778,30 @@ where
                     old_value,
                     new_value,
                 );
+            },
+            FromScriptMsg::MediaSessionEvent(browsing_context_id, event) => {
+                // Unlikely at this point, but we may receive events coming from
+                // different media sessions, so we set the active media session based
+                // on Playing events.
+                // The last media session claiming to be in playing state is set to
+                // the active media session.
+                // Events coming from inactive media sessions are discarded.
+                if self.active_media_session.is_some() {
+                    match event {
+                        MediaSessionEvent::PlaybackStateChange(ref state) => {
+                            match state {
+                                MediaSessionPlaybackState::Playing => (),
+                                _ => return,
+                            };
+                        },
+                        _ => (),
+                    };
+                }
+                self.active_media_session = Some(browsing_context_id);
+                self.embedder_proxy.send((
+                    Some(source_top_ctx_id),
+                    EmbedderMsg::MediaSessionEvent(event),
+                ));
             },
         }
     }
@@ -5042,8 +5067,7 @@ where
                 );
             },
         };
-        let msg =
-            ConstellationControlMsg::MediaSessionAction(top_level_browsing_context_id, action);
+        let msg = ConstellationControlMsg::MediaSessionAction(browsing_context_id, action);
         let result = match self.pipelines.get(&pipeline_id) {
             None => {
                 return warn!(

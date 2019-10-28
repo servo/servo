@@ -701,7 +701,7 @@ pub struct ScriptThread {
     /// The MediaSessions known by this thread, if any.
     /// There can only be one active MediaSession.
     /// The constellation has the BrowsingContextId of the active MediaSession, if any.
-    media_sessions: DomRefCell<HashMap<TopLevelBrowsingContextId, Dom<MediaSession>>>,
+    media_sessions: DomRefCell<HashMap<BrowsingContextId, Dom<MediaSession>>>,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -3938,7 +3938,7 @@ impl ScriptThread {
 
     fn handle_media_session_action(
         &self,
-        browsing_context_id: TopLevelBrowsingContextId,
+        browsing_context_id: BrowsingContextId,
         action: MediaSessionActionType,
     ) {
         match self.media_sessions.borrow().get(&browsing_context_id) {
@@ -3973,7 +3973,7 @@ impl ScriptThread {
 
     pub fn register_media_session(
         media_session: &MediaSession,
-        browsing_context_id: TopLevelBrowsingContextId,
+        browsing_context_id: BrowsingContextId,
     ) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
@@ -3984,7 +3984,7 @@ impl ScriptThread {
         })
     }
 
-    pub fn remove_media_session(browsing_context_id: TopLevelBrowsingContextId) {
+    pub fn remove_media_session(browsing_context_id: BrowsingContextId) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             script_thread
@@ -3995,7 +3995,7 @@ impl ScriptThread {
     }
 
     pub fn get_media_session(
-        browsing_context_id: TopLevelBrowsingContextId,
+        browsing_context_id: BrowsingContextId,
     ) -> Option<DomRoot<MediaSession>> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };

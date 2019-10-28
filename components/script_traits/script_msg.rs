@@ -17,7 +17,7 @@ use crate::WorkerGlobalScopeInit;
 use crate::WorkerScriptLoadOrigin;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::EmbedderMsg;
+use embedder_traits::{EmbedderMsg, MediaSessionEvent};
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
 use gfx_traits::Epoch;
@@ -306,6 +306,7 @@ impl fmt::Debug for ScriptMsg {
             GetClientWindow(..) => "GetClientWindow",
             GetScreenSize(..) => "GetScreenSize",
             GetScreenAvailSize(..) => "GetScreenAvailSize",
+            MediaSessionEvent(..) => "MediaSessionEvent",
         };
         write!(formatter, "ScriptMsg::{}", variant)
     }
