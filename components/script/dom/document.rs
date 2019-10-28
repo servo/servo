@@ -1469,8 +1469,8 @@ impl Document {
             // however *when* we do it is up to us.
             // Here, we're dispatching it after the key event so the script has a chance to cancel it
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
-            if (keyboard_event.key == Key::Enter && keyboard_event.state == KeyState::Up) ||
-                (keyboard_event.code == Code::Space && keyboard_event.state == KeyState::Down)
+            if (keyboard_event.key == Key::Enter || keyboard_event.code == Code::Space) &&
+                keyboard_event.state == KeyState::Up
             {
                 let maybe_elem = target.downcast::<Element>();
                 if let Some(el) = maybe_elem {
