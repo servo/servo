@@ -48,13 +48,10 @@ void OpenGLES::Initialize() {
       EGL_PLATFORM_ANGLE_TYPE_ANGLE,
       EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE,
 
-      // EGL_ANGLE_DISPLAY_ALLOW_RENDER_TO_BACK_BUFFER is an optimization that
-      // can have large performance benefits on
-      // mobile devices. Its syntax is subject to change, though. Please update
-      // your Visual Studio templates if you
-      // experience compilation issues with it.
-      EGL_ANGLE_DISPLAY_ALLOW_RENDER_TO_BACK_BUFFER,
-      EGL_TRUE,
+      // EGL_EXPERIMENTAL_PRESENT_PATH_ANGLE is an optimization that
+      // can have large performance benefits on mobile devices.
+      EGL_EXPERIMENTAL_PRESENT_PATH_ANGLE,
+      EGL_EXPERIMENTAL_PRESENT_PATH_FAST_ANGLE,
 
       // EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE is an option that
       // enables ANGLE to automatically call
@@ -79,8 +76,8 @@ void OpenGLES::Initialize() {
       9,
       EGL_PLATFORM_ANGLE_MAX_VERSION_MINOR_ANGLE,
       3,
-      EGL_ANGLE_DISPLAY_ALLOW_RENDER_TO_BACK_BUFFER,
-      EGL_TRUE,
+      EGL_EXPERIMENTAL_PRESENT_PATH_ANGLE,
+      EGL_EXPERIMENTAL_PRESENT_PATH_FAST_ANGLE,
       EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE,
       EGL_TRUE,
       EGL_NONE,
@@ -93,9 +90,9 @@ void OpenGLES::Initialize() {
       EGL_PLATFORM_ANGLE_TYPE_ANGLE,
       EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE,
       EGL_PLATFORM_ANGLE_DEVICE_TYPE_ANGLE,
-      EGL_PLATFORM_ANGLE_DEVICE_TYPE_WARP_ANGLE,
-      EGL_ANGLE_DISPLAY_ALLOW_RENDER_TO_BACK_BUFFER,
-      EGL_TRUE,
+      EGL_PLATFORM_ANGLE_DEVICE_TYPE_D3D_WARP_ANGLE,
+      EGL_EXPERIMENTAL_PRESENT_PATH_ANGLE,
+      EGL_EXPERIMENTAL_PRESENT_PATH_FAST_ANGLE,
       EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE,
       EGL_TRUE,
       EGL_NONE,
@@ -194,8 +191,7 @@ void OpenGLES::Reset() {
 EGLSurface OpenGLES::CreateSurface(SwapChainPanel const &panel, float dpi) {
   EGLSurface surface = EGL_NO_SURFACE;
 
-  const EGLint surfaceAttributes[] = {EGL_ANGLE_SURFACE_RENDER_TO_BACK_BUFFER,
-                                      EGL_TRUE, EGL_NONE};
+  const EGLint surfaceAttributes[] = {EGL_NONE};
 
   PropertySet surfaceCreationProperties;
 
