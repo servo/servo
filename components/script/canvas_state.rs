@@ -1241,6 +1241,10 @@ impl CanvasState {
         y: f64,
         fill_rule: CanvasFillRule,
     ) -> bool {
+        if !(x.is_finite() && y.is_finite()) {
+            return false;
+        }
+
         let fill_rule = match fill_rule {
             CanvasFillRule::Nonzero => FillRule::Nonzero,
             CanvasFillRule::Evenodd => FillRule::Evenodd,
