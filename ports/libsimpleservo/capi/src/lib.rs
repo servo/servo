@@ -14,6 +14,7 @@ mod vslogger;
 use backtrace::Backtrace;
 #[cfg(not(target_os = "windows"))]
 use env_logger;
+use log::LevelFilter;
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
 use simpleservo::{Coordinates, EventLoopWaker, HostTrait, InitOptions, VRInitOptions};
 use std::ffi::{CStr, CString};
@@ -22,6 +23,7 @@ use std::mem;
 use std::os::raw::{c_char, c_void};
 use std::panic::{self, UnwindSafe};
 use std::slice;
+use std::str::FromStr;
 use std::sync::RwLock;
 
 extern "C" fn default_panic_handler(msg: *const c_char) {
@@ -234,9 +236,8 @@ pub extern "C" fn servo_version() -> *const c_char {
 }
 
 #[cfg(target_os = "windows")]
-fn init_logger(modules: &[*const c_char]) {
+fn init_logger(modules: &[*const c_char], level: LevelFilter) {
     use crate::vslogger::LOG_MODULE_FILTERS;
-    use log::LevelFilter;
     use std::sync::Once;
     use vslogger::VSLogger;
 
@@ -252,13 +253,13 @@ fn init_logger(modules: &[*const c_char]) {
 
     LOGGER_INIT.call_once(|| {
         log::set_logger(&LOGGER)
-            .map(|_| log::set_max_level(LevelFilter::Debug))
+            .map(|_| log::set_max_level(level))
             .unwrap();
     });
 }
 
 #[cfg(not(target_os = "windows"))]
-fn init_logger(_modules: &[*const c_char]) {
+fn init_logger(_modules: &[*const c_char], _level: LevelFilter) {
     crate::env_logger::init();
 }
 
@@ -270,18 +271,6 @@ unsafe fn init(
     wakeup: extern "C" fn(),
     callbacks: CHostCallbacks,
 ) {
-    let logger_modules = if opts.vslogger_mod_list.is_null() {
-        &[]
-    } else {
-        slice::from_raw_parts(opts.vslogger_mod_list, opts.vslogger_mod_size as usize)
-    };
-
-    init_logger(logger_modules);
-
-    if let Err(reason) = redirect_stdout_stderr() {
-        warn!("Error redirecting stdout/stderr: {}", reason);
-    }
-
     let args = if !opts.args.is_null() {
         let args = CStr::from_ptr(opts.args);
         args.to_str()
@@ -292,6 +281,29 @@ unsafe fn init(
     } else {
         vec![]
     };
+
+    let logger_level = if let Some(level_index) = args.iter().position(|s| s == "--vslogger-level")
+    {
+        if args.len() >= level_index + 1 {
+            LevelFilter::from_str(&args[level_index + 1]).unwrap_or(LevelFilter::Warn)
+        } else {
+            LevelFilter::Warn
+        }
+    } else {
+        LevelFilter::Warn
+    };
+
+    let logger_modules = if opts.vslogger_mod_list.is_null() {
+        &[]
+    } else {
+        slice::from_raw_parts(opts.vslogger_mod_list, opts.vslogger_mod_size as usize)
+    };
+
+    init_logger(logger_modules, logger_level);
+
+    if let Err(reason) = redirect_stdout_stderr() {
+        warn!("Error redirecting stdout/stderr: {}", reason);
+    }
 
     let url = CStr::from_ptr(opts.url);
     let url = url.to_str().map(|s| s.to_string()).ok();
