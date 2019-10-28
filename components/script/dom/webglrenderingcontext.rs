@@ -380,7 +380,7 @@ impl WebGLRenderingContext {
     //
     // The WebGL spec mentions a couple more operations that trigger
     // this: clear() and getParameter(IMPLEMENTATION_COLOR_READ_*).
-    fn validate_framebuffer(&self) -> WebGLResult<()> {
+    pub fn validate_framebuffer(&self) -> WebGLResult<()> {
         match self.bound_framebuffer.get() {
             Some(fb) => match fb.check_status_for_rendering() {
                 CompleteForRendering::Complete => Ok(()),
@@ -481,13 +481,17 @@ impl WebGLRenderingContext {
         self.send_command(WebGLCommand::VertexAttrib(indx, x, y, z, w));
     }
 
-    fn get_current_framebuffer_size(&self) -> Option<(i32, i32)> {
+    pub fn get_current_framebuffer_size(&self) -> Option<(i32, i32)> {
         match self.bound_framebuffer.get() {
             Some(fb) => return fb.size(),
 
             // The window system framebuffer is bound
             None => return Some((self.DrawingBufferWidth(), self.DrawingBufferHeight())),
         }
+    }
+
+    pub fn get_texture_packing_alignment(&self) -> u8 {
+        self.texture_packing_alignment.get()
     }
 
     // LINEAR filtering may be forbidden when using WebGL extensions.

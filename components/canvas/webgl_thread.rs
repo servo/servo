@@ -1166,6 +1166,17 @@ impl WebGLImpl {
                 );
                 sender.send(&pixels).unwrap();
             },
+            WebGLCommand::ReadPixelsPP(rect, format, pixel_type, offset) => unsafe {
+                gl.read_pixels_into_pixel_pack_buffer(
+                    rect.origin.x,
+                    rect.origin.y,
+                    rect.size.width,
+                    rect.size.height,
+                    format,
+                    pixel_type,
+                    offset,
+                );
+            },
             WebGLCommand::RenderbufferStorage(target, format, width, height) => {
                 gl.renderbuffer_storage(target, format, width, height)
             },
