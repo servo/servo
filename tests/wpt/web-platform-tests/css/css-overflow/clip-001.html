@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>overflow: clip clips its contents and doesn't cause scrollable overflow</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#valdef-overflow-clip">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="match" href="clip-001-ref.html">
+<style>
+  #target {
+    width: 100px;
+    height: 100px;
+    background: red;
+    overflow: -moz-hidden-unscrollable;
+    overflow: clip;
+  }
+
+  #container {
+    overflow: auto;
+    height: 300px;
+  }
+
+  #fill {
+    background: blue;
+    height: 5000px;
+  }
+</style>
+<div id="container">
+  <div id="target">
+    <div id="fill"></div>
+  </div>
+</div>

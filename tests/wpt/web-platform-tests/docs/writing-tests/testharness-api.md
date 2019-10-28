@@ -452,7 +452,9 @@ is called, the two conditions above apply like normal.
 
 Dedicated and shared workers don't have an event that corresponds to the `load`
 event in a document. Therefore these worker tests always behave as if the
-`explicit_done` property is set to true. Service workers depend on the
+`explicit_done` property is set to true (unless they are defined using [the
+"multi-global" pattern](testharness.html#multi-global-tests)). Service workers
+depend on the
 [install](https://w3c.github.io/ServiceWorker/#service-worker-global-scope-install-event)
 event which is fired following the completion of [running the
 worker](https://html.spec.whatwg.org/multipage/workers.html#run-a-worker).

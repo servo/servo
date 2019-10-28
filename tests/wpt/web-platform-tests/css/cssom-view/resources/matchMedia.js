@@ -1,11 +1,21 @@
-const IFRAME_BASE_WIDTH = "200";
-const MEDIA_QUERY = `(max-width: ${IFRAME_BASE_WIDTH}px)`;
+const IFRAME_DEFAULT_SIZE = "200";
+const iframes = new WeakMap();
 
-function createIframe(t) {
+async function createMQL(t) {
+    const iframe = await createIFrame(t);
+    const mql = iframe.contentWindow.matchMedia(`(max-width: ${IFRAME_DEFAULT_SIZE}px)`);
+    assert_true(mql.matches, "MQL should match on newly created <iframe>");
+    iframes.set(mql, iframe);
+    return mql;
+}
+
+function createIFrame(t, width = IFRAME_DEFAULT_SIZE, height = width) {
+    assert_not_equals(document.body, null, "<body> element is missing");
+
     const iframe = document.createElement("iframe");
     iframe.srcdoc = "";
-    iframe.width = IFRAME_BASE_WIDTH;
-    iframe.height = "100";
+    iframe.width = String(width);
+    iframe.height = String(height);
     iframe.style.border = "none";
 
     t.add_cleanup(() => {
@@ -14,6 +24,7 @@ function createIframe(t) {
 
     return new Promise(resolve => {
         iframe.addEventListener("load", () => {
+            iframe.contentDocument.body.offsetWidth; // reflow
             resolve(iframe);
         });
 
@@ -21,8 +32,10 @@ function createIframe(t) {
     });
 }
 
-function triggerMQLEvent(iframe) {
-    iframe.width = iframe.width === IFRAME_BASE_WIDTH ? "250" : IFRAME_BASE_WIDTH;
+function triggerMQLEvent(mql) {
+    const iframe = iframes.get(mql);
+    assert_not_equals(iframe, undefined, "Passed MQL instance was not created with createMQL");
+    iframe.width = iframe.width === IFRAME_DEFAULT_SIZE ? "250" : IFRAME_DEFAULT_SIZE;
 }
 
 function waitForChangesReported() {

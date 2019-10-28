@@ -8,9 +8,9 @@ import glob
 import os
 from six.moves.urllib.parse import urlparse, urlsplit
 
-from wptmanifest.node import DataNode
-from wptmanifest.backends import conditional
-from wptmanifest.backends.conditional import ManifestItem
+from .wptmanifest.node import DataNode
+from .wptmanifest.backends import conditional
+from .wptmanifest.backends.conditional import ManifestItem
 
 
 class IncludeManifest(ManifestItem):

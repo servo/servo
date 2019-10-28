@@ -121,13 +121,15 @@ def list_tests(test_paths, product, **kwargs):
 
 
 def get_pause_after_test(test_loader, **kwargs):
-    total_tests = sum(len(item) for item in test_loader.tests.itervalues())
     if kwargs["pause_after_test"] is None:
         if kwargs["repeat_until_unexpected"]:
             return False
         if kwargs["headless"]:
             return False
-        if kwargs["repeat"] == 1 and kwargs["rerun"] == 1 and total_tests == 1:
+        tests = test_loader.tests
+        is_single_testharness = (sum(len(item) for item in tests.itervalues()) == 1 and
+                                 len(tests.get("testharness", [])) == 1)
+        if kwargs["repeat"] == 1 and kwargs["rerun"] == 1 and is_single_testharness:
             return True
         return False
     return kwargs["pause_after_test"]

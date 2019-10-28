@@ -10,20 +10,8 @@
 "use strict";
 
 test(t => {
-    assert_equals(MediaQueryListEvent.length, 1);
-    assert_throws(new TypeError(), () => {
-        new MediaQueryListEvent();
-    });
-}, "type argument is required");
-
-test(t => {
     assert_equals(new MediaQueryListEvent("test").type, "test");
 }, 'type can be different from "change"');
-
-test(t => {
-    assert_equals(Object.getPrototypeOf(MediaQueryListEvent), Event);
-    assert_true(new MediaQueryListEvent("change") instanceof Event);
-}, "extends Event");
 
 test(t => {
     const event = new MediaQueryListEvent("change");
@@ -47,16 +35,4 @@ test(t => {
     assert_true(event.bubbles);
     assert_true(event.cancelable);
 }, "init dictionary overrides");
-
-test(t => {
-    const event = new MediaQueryListEvent("change");
-    assert_idl_attribute(event, "media");
-    assert_readonly(event, "media");
-}, "MediaQueryListEvent::media is read-only IDL attribute");
-
-test(t => {
-    const event = new MediaQueryListEvent("change");
-    assert_idl_attribute(event, "matches");
-    assert_readonly(event, "matches");
-}, "MediaQueryListEvent::matches is read-only IDL attribute");
 </script>

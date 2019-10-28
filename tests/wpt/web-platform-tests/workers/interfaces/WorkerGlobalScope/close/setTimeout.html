@@ -4,6 +4,8 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <script>
+setup({ single_test: true });
+
 var worker = new Worker('setTimeout.js');
 worker.onmessage = function(e) {
   assert_unreached("Got message");

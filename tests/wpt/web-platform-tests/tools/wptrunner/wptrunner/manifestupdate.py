@@ -5,16 +5,16 @@ from collections import namedtuple, defaultdict, deque
 from math import ceil
 from six import iterkeys, itervalues, iteritems
 
-from wptmanifest import serialize
-from wptmanifest.node import (DataNode, ConditionalNode, BinaryExpressionNode,
+from .wptmanifest import serialize
+from .wptmanifest.node import (DataNode, ConditionalNode, BinaryExpressionNode,
                               BinaryOperatorNode, NumberNode, StringNode, VariableNode,
                               ValueNode, UnaryExpressionNode, UnaryOperatorNode,
                               ListNode)
-from wptmanifest.backends import conditional
-from wptmanifest.backends.conditional import ManifestItem
+from .wptmanifest.backends import conditional
+from .wptmanifest.backends.conditional import ManifestItem
 
-import expected
-import expectedtree
+from . import expected
+from . import expectedtree
 
 """Manifest structure used to update the expected results of a test
 

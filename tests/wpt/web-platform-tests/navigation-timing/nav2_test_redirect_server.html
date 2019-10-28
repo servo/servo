@@ -9,6 +9,7 @@
         <script src="/resources/testharnessreport.js"></script>
 
         <script>
+            setup({ single_test: true });
 
             function verifyTimingEventOrder(eventOrder, timingEntry) {
                 for (let i = 0; i < eventOrder.length - 1; i++) {
