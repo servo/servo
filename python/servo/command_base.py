@@ -27,6 +27,7 @@ import six
 import sys
 import tarfile
 import zipfile
+import functools
 from xml.etree.ElementTree import XML
 from servo.util import download_file
 import six.moves.urllib as urllib
@@ -103,7 +104,7 @@ def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None):
 
         # Sort file entries with the fixed locale
         with setlocale('C'):
-            file_list.sort(cmp=locale.strcoll)
+            file_list.sort(key=functools.cmp_to_key(locale.strcoll))
 
         # Use a temporary file and atomic rename to avoid partially-formed
         # packaging (in case of exceptional situations like running out of disk space).
