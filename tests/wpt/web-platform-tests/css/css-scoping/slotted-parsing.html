@@ -5,31 +5,10 @@
 <link rel="help" href="https://drafts.csswg.org/css-scoping/#slotted-pseudo">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
 <style id="styleElm">
 </style>
 <script>
-  function parse_selector(selector_text) {
-    try {
-      styleElm.sheet.insertRule(selector_text+"{}");
-      styleElm.sheet.deleteRule(0);
-      return true;
-    } catch (ex) {
-      return false;
-    }
-  }
-
-  function test_valid_selector(selector_text) {
-    test(function(){
-      assert_true(parse_selector(selector_text));
-    }, "Should be a valid selector: '" + selector_text + "'");
-  }
-
-  function test_invalid_selector(selector_text) {
-    test(function(){
-      assert_false(parse_selector(selector_text));
-    }, "Should be an invalid selector: '" + selector_text + "'");
-  }
-
   test_invalid_selector("::slotted");
   test_invalid_selector("::slotted()");
   test_invalid_selector("::slotted(*).class");

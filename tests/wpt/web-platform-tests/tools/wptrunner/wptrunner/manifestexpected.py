@@ -2,10 +2,10 @@ import os
 from six.moves.urllib.parse import urljoin
 from collections import deque
 
-from wptmanifest.backends import static
-from wptmanifest.backends.base import ManifestItem
+from .wptmanifest.backends import static
+from .wptmanifest.backends.base import ManifestItem
 
-import expected
+from . import expected
 
 """Manifest structure used to store expected results of a test.
 

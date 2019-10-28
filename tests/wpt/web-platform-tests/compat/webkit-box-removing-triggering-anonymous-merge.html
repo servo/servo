@@ -7,8 +7,9 @@
   text
 </div>
 <script>
-// Force a layout before removing.
-document.body.offsetTop;
-document.getElementById('target').remove();
-done();
+test(function() {
+  // Force a layout before removing.
+  document.body.offsetTop;
+  document.getElementById('target').remove();
+}, '-webkit-box: removal of child');
 </script>

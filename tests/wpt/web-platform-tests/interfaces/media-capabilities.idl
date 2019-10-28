@@ -84,6 +84,11 @@ dictionary MediaCapabilitiesInfo {
 
 dictionary MediaCapabilitiesDecodingInfo : MediaCapabilitiesInfo {
   required MediaKeySystemAccess keySystemAccess;
+  MediaDecodingConfiguration configuration;
+};
+
+dictionary MediaCapabilitiesEncodingInfo : MediaCapabilitiesInfo {
+  MediaEncodingConfiguration configuration;
 };
 
 [Exposed=Window]

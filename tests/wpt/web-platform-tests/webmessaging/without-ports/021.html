@@ -5,6 +5,8 @@
 <iframe src="../without-ports/020-1.html"></iframe>
 <div id="log"></div>
 <script>
+setup({ single_test: true });
+
 var iframe = document.createElement('iframe');
 var url_prefix = location.href.replace('://', '://www1.').replace(/\/with(out)?-ports\/[^\/]+$/, '');
 var url = url_prefix + '/without-ports/020-1.html';

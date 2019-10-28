@@ -92,7 +92,7 @@ function step1() {
 }
 
 function step2() {
-  assert_equals(entries.length, 4, "Has 3 total notifications because 4th element was added.");
+  assert_equals(entries.length, 4, "Has 4 total notifications because 4th element was added.");
   checkRect(entries[3].boundingClientRect, [0, 100, 300, 400], "Check 4th entry rect");
   assert_equals(entries[3].target.id, 'target4', "Check 4th entry target id.");
   checkIsIntersecting(entries, 3, false);
