@@ -27,7 +27,7 @@ extern crate syntax;
 use rustc::hir::def_id::DefId;
 use rustc::hir::intravisit as visit;
 use rustc::hir::{self, ExprKind, HirId};
-use rustc::lint::{LateContext, LateLintPass, LintArray, LintContext, LintPass};
+use rustc::lint::{LateContext, LateLintPass, LintContext, LintPass};
 use rustc::ty;
 use rustc_driver::plugin::Registry;
 use syntax::feature_gate::AttributeType::Whitelisted;
@@ -36,13 +36,20 @@ use syntax::source_map::{ExpnKind, MacroKind, Span};
 use syntax::symbol::sym;
 use syntax::symbol::Symbol;
 
+#[allow(deprecated)]
 #[plugin_registrar]
 pub fn plugin_registrar(reg: &mut Registry) {
+    registrar(reg)
+}
+
+fn registrar(reg: &mut Registry) {
     let symbols = Symbols::new();
     reg.register_attribute(symbols.allow_unrooted_interior, Whitelisted);
     reg.register_attribute(symbols.allow_unrooted_in_rc, Whitelisted);
     reg.register_attribute(symbols.must_root, Whitelisted);
-    reg.register_late_lint_pass(Box::new(UnrootedPass::new(symbols)));
+    reg.lint_store.register_lints(&[&UNROOTED_MUST_ROOT]);
+    reg.lint_store
+        .register_late_pass(move || Box::new(UnrootedPass::new(symbols.clone())));
 }
 
 declare_lint!(
@@ -164,10 +171,6 @@ fn is_unrooted_ty(sym: &Symbols, cx: &LateContext, ty: &ty::TyS, in_new_function
 impl LintPass for UnrootedPass {
     fn name(&self) -> &'static str {
         "ServoUnrootedPass"
-    }
-
-    fn get_lints(&self) -> LintArray {
-        lint_array!(UNROOTED_MUST_ROOT)
     }
 }
 
@@ -360,7 +363,7 @@ fn match_def_path(cx: &LateContext, def_id: DefId, path: &[Symbol]) -> bool {
     other
         .into_iter()
         .zip(path)
-        .all(|(e, p)| e.data.as_interned_str().as_symbol() == *p)
+        .all(|(e, p)| e.data.as_symbol() == *p)
 }
 
 fn in_derive_expn(span: Span) -> bool {

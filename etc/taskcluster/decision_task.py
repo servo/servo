@@ -157,6 +157,9 @@ def linux_tidy_unit_untrusted():
         .with_dockerfile(dockerfile_path("build"))
         .with_env(**build_env, **unix_build_env, **linux_build_env)
         .with_repo()
+        .with_script("rustup set profile minimal")
+        # required by components/script_plugins:
+        .with_script("rustup component add rustc-dev")
         .with_script("""
             ./mach test-tidy --no-progress --all
             ./mach test-tidy --no-progress --self-test
@@ -761,6 +764,9 @@ def linux_build_task(name, *, build_env=build_env):
         .with_dockerfile(dockerfile_path("build"))
         .with_env(**build_env, **unix_build_env, **linux_build_env)
         .with_repo()
+        .with_script("rustup set profile minimal")
+        # required by components/script_plugins:
+        .with_script("rustup component add rustc-dev")
     )
 
 
@@ -806,6 +812,9 @@ def windows_build_task(name, package=True, arch="x86_64"):
             path="python3",
         )
         .with_rustup()
+        .with_script("rustup set profile minimal")
+        # required by components/script_plugins:
+        .with_script("rustup component add rustc-dev")
     )
     if arch in hashes["non-devel"] and arch in hashes["devel"]:
         task = (
@@ -858,6 +867,11 @@ def macos_build_task(name):
         .with_repo()
         .with_python2()
         .with_rustup()
+        # Since macOS workers are long-lived and ~/.rustup kept across tasks:
+        .with_script("rustup self update")
+        .with_script("rustup set profile minimal")
+        # required by components/script_plugins:
+        .with_script("rustup component add rustc-dev")
         .with_index_and_artifacts_expire_in(build_artifacts_expire_in)
         # Debugging for surprising generic-worker behaviour
         .with_early_script("ls")

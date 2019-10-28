@@ -657,8 +657,6 @@ class MacOsGenericWorkerTask(UnixTaskMixin, GenericWorkerTask):
         return self.with_early_script("""
             export PATH="$HOME/.cargo/bin:$PATH"
             which rustup || curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none -y
-            rustup self update
-            rustup set profile minimal
         """)
 
 
