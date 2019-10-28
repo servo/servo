@@ -2430,6 +2430,8 @@ impl ScriptThread {
         );
         if load_data.url.as_str() == "about:blank" {
             self.start_page_load_about_blank(new_load, load_data.js_eval_result);
+        } else if load_data.url.as_str() == "about:srcdoc" {
+            self.page_load_about_srcdoc(new_load, load_data.srcdoc);
         } else {
             self.pre_page_load(new_load, load_data);
         }
@@ -3177,7 +3179,8 @@ impl ScriptThread {
             self.timer_event_chan.clone(),
         );
 
-        let origin = if final_url.as_str() == "about:blank" {
+        let origin = if final_url.as_str() == "about:blank" || final_url.as_str() == "about:srcdoc"
+        {
             incomplete.origin.clone()
         } else {
             MutableOrigin::new(final_url.origin())
@@ -3832,6 +3835,25 @@ impl ScriptThread {
             },
             None => vec![],
         };
+
+        context.process_response(Ok(FetchMetadata::Unfiltered(meta)));
+        context.process_response_chunk(chunk);
+        context.process_response_eof(Ok(ResourceFetchTiming::new(ResourceTimingType::None)));
+    }
+
+    /// Synchronously parse a srcdoc document from a giving HTML string.
+    fn page_load_about_srcdoc(&self, incomplete: InProgressLoad, src_doc: String) {
+        let id = incomplete.pipeline_id;
+
+        self.incomplete_loads.borrow_mut().push(incomplete);
+
+        let url = ServoUrl::parse("about:srcdoc").unwrap();
+        let mut context = ParserContext::new(id, url.clone());
+
+        let mut meta = Metadata::default(url);
+        meta.set_content_type(Some(&mime::TEXT_HTML));
+
+        let chunk = src_doc.into_bytes();
 
         context.process_response(Ok(FetchMetadata::Unfiltered(meta)));
         context.process_response_chunk(chunk);
