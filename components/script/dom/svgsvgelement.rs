@@ -10,6 +10,7 @@ use crate::dom::bindings::root::{DomRoot, LayoutDom, Dom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
+use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::node::{Node, window_from_node};
 use crate::dom::svggraphicselement::SVGGraphicsElement;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -17,7 +18,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use script_layout_interface::SVGSVGData;
 use style::attr::AttrValue;
-use canvas_traits::webgl::{WebGLMsg, WebGLContextShareMode, WebGLMsgSender, webgl_channel, WebGLVersion, GLContextAttributes};
+use canvas_traits::webgl::{WebGLMsg, WebGLContextShareMode, WebGLMsgSender, webgl_channel, WebGLVersion, GLContextAttributes, WebGLCommand};
 use std::cell::{Cell, RefCell, Ref};
 use euclid::Size2D;
 use crate::dom::window::Window;
@@ -25,6 +26,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use std::borrow::Borrow;
 use crate::dom::webglcontextevent::WebGLContextEvent;
 use crate::dom::event::{EventBubbles, EventCancelable, Event};
+use crate::dom::webglrenderingcontext::capture_webgl_backtrace;
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
@@ -132,8 +134,23 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
             let width = width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint());
             let height = height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint());
 
+            //set up clear color command to make context Red
+            let clearColorCommand = WebGLCommand::ClearColor(1 as f32,
+                                                             0 as f32,
+                                                             0 as f32,
+                                                             1 as f32);
+            //Set up clear command to target colors
+            let clearCommand = WebGLCommand::Clear(constants::COLOR_BUFFER_BIT);
+
             match sender {
                 Some(webgl_sender) => {
+                    webgl_sender
+                        .send(clearColorCommand, capture_webgl_backtrace(SVG))
+                        .unwrap();
+                    webgl_sender
+                        .send(clearCommand, capture_webgl_backtrace(SVG))
+                        .unwrap();
+
                     let image_key = match share_mode {
                         WebGLContextShareMode::SharedTexture => {
                             webrender_image.get().unwrap_or_else(|| {
