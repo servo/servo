@@ -177,11 +177,6 @@ impl DOMTokenListMethods for DOMTokenList {
         Ok(())
     }
 
-    // https://dom.spec.whatwg.org/#concept-dtl-serialize
-    fn Stringifier(&self) -> DOMString {
-        self.element.get_string_attribute(&self.local_name)
-    }
-
     // check-tidy: no specs after this line
     fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
         self.Item(index)

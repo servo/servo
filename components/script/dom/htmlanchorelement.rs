@@ -526,11 +526,6 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
         // Step 5.
         self.update_href(url);
     }
-
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-href
-    fn Stringifier(&self) -> DOMString {
-        DOMString::from(self.Href().0)
-    }
 }
 
 impl Activatable for HTMLAnchorElement {

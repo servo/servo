@@ -6,7 +6,7 @@ use crate::dom::bindings::codegen::Bindings::WorkerLocationBinding;
 use crate::dom::bindings::codegen::Bindings::WorkerLocationBinding::WorkerLocationMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::USVString;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use dom_struct::dom_struct;
@@ -86,10 +86,5 @@ impl WorkerLocationMethods for WorkerLocation {
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-search
     fn Search(&self) -> USVString {
         UrlHelper::Search(&self.url)
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-href
-    fn Stringifier(&self) -> DOMString {
-        DOMString::from(self.Href().0)
     }
 }

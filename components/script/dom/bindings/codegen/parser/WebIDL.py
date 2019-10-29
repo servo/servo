@@ -760,6 +760,8 @@ class IDLInterfaceOrInterfaceMixinOrNamespace(IDLObjectWithScope, IDLExposureMix
             # specified, it already has a nonempty exposure global names set.
             if len(m._exposureGlobalNames) == 0:
                 m._exposureGlobalNames.update(self._exposureGlobalNames)
+            if m.isAttr() and m.stringifier:
+                m.expand(self.members)
 
         # resolve() will modify self.members, so we need to iterate
         # over a copy of the member list here.
@@ -1855,6 +1857,9 @@ class IDLDictionary(IDLObjectWithScope):
         self._finished = False
         self.members = list(members)
         self._partialDictionaries = []
+        self._extendedAttrDict = {}
+        self.needsConversionToJS = False
+        self.needsConversionFromJS = False
 
         IDLObjectWithScope.__init__(self, location, parentScope, name)
 
@@ -1988,11 +1993,34 @@ class IDLDictionary(IDLObjectWithScope):
                                   self.identifier.name,
                                   [member.location] + locations)
 
+    def getExtendedAttribute(self, name):
+        return self._extendedAttrDict.get(name, None)
+
     def addExtendedAttributes(self, attrs):
-        if len(attrs) != 0:
-            raise WebIDLError("There are no extended attributes that are "
-                              "allowed on dictionaries",
-                              [attrs[0].location, self.location])
+        for attr in attrs:
+            identifier = attr.identifier()
+
+            if (identifier == "GenerateInitFromJSON" or
+                identifier == "GenerateInit"):
+                if not attr.noArguments():
+                    raise WebIDLError("[%s] must not have arguments" % identifier,
+                                      [attr.location])
+                self.needsConversionFromJS = True
+            elif (identifier == "GenerateConversionToJS" or
+                  identifier == "GenerateToJSON"):
+                if not attr.noArguments():
+                    raise WebIDLError("[%s] must not have arguments" % identifier,
+                                      [attr.location])
+                # ToJSON methods require to-JS conversion, because we
+                # implement ToJSON by converting to a JS object and
+                # then using JSON.stringify.
+                self.needsConversionToJS = True
+            else:
+                raise WebIDLError("[%s] extended attribute not allowed on "
+                                  "dictionaries" % identifier,
+                                  [attr.location])
+
+            self._extendedAttrDict[identifier] = True
 
     def _getDependentObjects(self):
         deps = set(self.members)
@@ -2003,6 +2031,7 @@ class IDLDictionary(IDLObjectWithScope):
     def addPartialDictionary(self, partial):
         assert self.identifier.name == partial.identifier.name
         self._partialDictionaries.append(partial)
+
 
 class IDLEnum(IDLObjectWithIdentifier):
     def __init__(self, location, parentScope, name, values):
@@ -4622,6 +4651,40 @@ class IDLAttribute(IDLInterfaceMember):
     def _getDependentObjects(self):
         return set([self.type])
 
+    def expand(self, members):
+        assert self.stringifier
+        if not self.type.isDOMString() and not self.type.isUSVString():
+            raise WebIDLError("The type of a stringifer attribute must be "
+                              "either DOMString or USVString",
+                              [self.location])
+        identifier = IDLUnresolvedIdentifier(self.location, "__stringifier",
+                                             allowDoubleUnderscore=True)
+        method = IDLMethod(self.location,
+                           identifier,
+                           returnType=self.type, arguments=[],
+                           stringifier=True, underlyingAttr=self)
+        allowedExtAttrs = ["Throws", "NeedsSubjectPrincipal", "Pure"]
+        # Safe to ignore these as they are only meaningful for attributes
+        attributeOnlyExtAttrs = [
+            "CEReactions",
+            "CrossOriginWritable",
+            "SetterThrows",
+        ]
+        for (key, value) in self._extendedAttrDict.items():
+            if key in allowedExtAttrs:
+                if value is not True:
+                    raise WebIDLError("[%s] with a value is currently "
+                                      "unsupported in stringifier attributes, "
+                                      "please file a bug to add support" % key,
+                                      [self.location])
+                method.addExtendedAttributes([IDLExtendedAttribute(self.location, (key,))])
+            elif not key in attributeOnlyExtAttrs:
+                raise WebIDLError("[%s] is currently unsupported in "
+                                  "stringifier attributes, please file a bug "
+                                  "to add support" % key,
+                                  [self.location])
+        members.append(method)
+
 
 class IDLArgument(IDLObjectWithIdentifier):
     def __init__(self, location, identifier, type, optional=False, defaultValue=None, variadic=False, dictionaryMember=False, allowTypeAttributes=False):
@@ -4867,7 +4930,8 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
                  static=False, getter=False, setter=False,
                  deleter=False, specialType=NamedOrIndexed.Neither,
                  legacycaller=False, stringifier=False,
-                 maplikeOrSetlikeOrIterable=None):
+                 maplikeOrSetlikeOrIterable=None,
+                 underlyingAttr=None):
         # REVIEW: specialType is NamedOrIndexed -- wow, this is messed up.
         IDLInterfaceMember.__init__(self, location, identifier,
                                     IDLInterfaceMember.Tags.Method)
@@ -4894,6 +4958,7 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
         assert maplikeOrSetlikeOrIterable is None or isinstance(maplikeOrSetlikeOrIterable, IDLMaplikeOrSetlikeOrIterableBase)
         self.maplikeOrSetlikeOrIterable = maplikeOrSetlikeOrIterable
         self._htmlConstructor = False
+        self.underlyingAttr = underlyingAttr
         self._specialType = specialType
         self._unforgeable = False
         self.dependsOn = "Everything"
@@ -4933,7 +4998,8 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
             assert len(self._overloads) == 1
             overload = self._overloads[0]
             assert len(overload.arguments) == 0
-            assert overload.returnType == BuiltinTypes[IDLBuiltinType.Types.domstring]
+            if not self.underlyingAttr:
+                assert overload.returnType == BuiltinTypes[IDLBuiltinType.Types.domstring]
 
     def isStatic(self):
         return self._static

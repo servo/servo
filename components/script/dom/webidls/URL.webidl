@@ -8,7 +8,7 @@
 interface URL {
   [Throws] constructor(USVString url, optional USVString base);
   [SetterThrows]
-  /*stringifier*/ attribute USVString href;
+  stringifier attribute USVString href;
   readonly attribute USVString origin;
            attribute USVString protocol;
            attribute USVString username;
@@ -27,9 +27,4 @@ interface URL {
   static void revokeObjectURL(DOMString url);
 
   USVString toJSON();
-
-  // This is only doing as well as gecko right now.
-  // https://github.com/servo/servo/issues/7590 is on file for
-  // adding attribute stringifier support.
-  stringifier;
 };
