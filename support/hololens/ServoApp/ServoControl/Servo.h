@@ -47,13 +47,22 @@ public:
   ~Servo();
   ServoDelegate &Delegate() { return mDelegate; }
 
+  typedef capi::CMouseButton MouseButton;
+
   void PerformUpdates() { capi::perform_updates(); }
   void DeInit() { capi::deinit(); }
   void RequestShutdown() { capi::request_shutdown(); }
   void SetBatchMode(bool mode) { capi::set_batch_mode(mode); }
   void GoForward() { capi::go_forward(); }
   void GoBack() { capi::go_back(); }
-  void Click(float x, float y) { capi::click((int32_t)x, (int32_t)y); }
+  void Click(float x, float y) { capi::click(x, y); }
+  void MouseDown(float x, float y, capi::CMouseButton b) {
+    capi::mouse_down(x, y, b);
+  }
+  void MouseUp(float x, float y, capi::CMouseButton b) {
+    capi::mouse_up(x, y, b);
+  }
+
   void Reload() { capi::reload(); }
   void Stop() { capi::stop(); }
   void LoadUri(hstring uri) { capi::load_uri(*hstring2char(uri)); }

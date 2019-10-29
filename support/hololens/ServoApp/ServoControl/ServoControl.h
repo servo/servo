@@ -119,8 +119,11 @@ private:
   }
 
   void
-  OnSurfaceClicked(IInspectable const &,
+  OnSurfaceTapped(IInspectable const &,
                    Windows::UI::Xaml::Input::TappedRoutedEventArgs const &);
+
+  void OnSurfacePointerPressed(IInspectable const &,
+                       Windows::UI::Xaml::Input::PointerRoutedEventArgs const &);
 
   void OnSurfaceManipulationDelta(
       IInspectable const &,
@@ -142,6 +145,8 @@ private:
   CONDITION_VARIABLE mGLCondVar;
   std::unique_ptr<Concurrency::task<void>> mLoopTask;
   hstring mArgs;
+
+  std::optional<servo::Servo::MouseButton> mPressedMouseButton = {};
 };
 } // namespace winrt::ServoApp::implementation
 

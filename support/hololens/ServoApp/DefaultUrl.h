@@ -1,3 +1,3 @@
 #pragma once
 
-#define DEFAULT_URL L"about:blank";
+#define DEFAULT_URL L"http://paulrouget.com/test/bbjs/basic/";

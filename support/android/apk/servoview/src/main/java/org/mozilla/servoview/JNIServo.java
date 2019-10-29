@@ -64,7 +64,7 @@ public class JNIServo {
 
     public native void pinchZoomEnd(float factor, int x, int y);
 
-    public native void click(int x, int y);
+    public native void click(float x, float y);
 
     public static class ServoOptions {
       public String args;
