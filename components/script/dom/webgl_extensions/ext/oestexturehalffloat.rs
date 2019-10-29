@@ -53,17 +53,15 @@ impl WebGLExtension for OESTextureHalfFloat {
     fn enable(ext: &WebGLExtensions) {
         let hf = OESTextureHalfFloatConstants::HALF_FLOAT_OES;
         ext.enable_tex_type(hf);
-        if !ext.supports_gl_extension("GL_OES_texture_half_float") {
-            ext.add_effective_tex_internal_format(webgl::RGBA, hf, gl::RGBA16F);
-            ext.add_effective_tex_internal_format(webgl::RGB, hf, gl::RGB16F);
-            ext.add_effective_tex_internal_format(webgl::LUMINANCE, hf, gl::LUMINANCE16F_ARB);
-            ext.add_effective_tex_internal_format(webgl::ALPHA, hf, gl::ALPHA16F_ARB);
-            ext.add_effective_tex_internal_format(
-                webgl::LUMINANCE_ALPHA,
-                hf,
-                gl::LUMINANCE_ALPHA16F_ARB,
-            );
-        }
+        ext.add_effective_tex_internal_format(webgl::RGBA, hf, gl::RGBA16F);
+        ext.add_effective_tex_internal_format(webgl::RGB, hf, gl::RGB16F);
+        ext.add_effective_tex_internal_format(webgl::LUMINANCE, hf, gl::LUMINANCE16F_ARB);
+        ext.add_effective_tex_internal_format(webgl::ALPHA, hf, gl::ALPHA16F_ARB);
+        ext.add_effective_tex_internal_format(
+            webgl::LUMINANCE_ALPHA,
+            hf,
+            gl::LUMINANCE_ALPHA16F_ARB,
+        );
     }
 
     fn name() -> &'static str {
