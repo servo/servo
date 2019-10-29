@@ -28,14 +28,17 @@ void BrowserPage::BindServoEvents() {
     forwardButton().IsEnabled(forward);
   });
   servoControl().OnLoadStarted([=] {
-    throbber().IsActive(true);
+    urlbarLoadingIndicator().IsActive(true);
+    transientLoadingIndicator().IsIndeterminate(true);
+
     reloadButton().IsEnabled(false);
     reloadButton().Visibility(Visibility::Collapsed);
     stopButton().IsEnabled(true);
     stopButton().Visibility(Visibility::Visible);
   });
   servoControl().OnLoadEnded([=] {
-    throbber().IsActive(false);
+    urlbarLoadingIndicator().IsActive(false);
+    transientLoadingIndicator().IsIndeterminate(false);
     reloadButton().IsEnabled(true);
     reloadButton().Visibility(Visibility::Visible);
     stopButton().IsEnabled(false);
@@ -65,6 +68,8 @@ void BrowserPage::SetTransientMode(bool transient) {
   servoControl().SetTransientMode(transient);
   navigationBar().Visibility(transient ? Visibility::Collapsed
                                        : Visibility::Visible);
+  transientLoadingIndicator().Visibility(transient ? Visibility::Visible
+                                            : Visibility::Collapsed);
 }
 
 void BrowserPage::SetArgs(hstring args) { servoControl().SetArgs(args); }
