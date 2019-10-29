@@ -1230,16 +1230,42 @@ fn fetch_module_descendants(
 
                             return match promise.as_ref() {
                                 Some(p) => {
-                                    if visited.contains(&requested_url.clone()) &&
-                                        status != ModuleStatus::Initial &&
-                                        status != ModuleStatus::Fetching
-                                    {
-                                        let module_error = module_tree.get_error().borrow();
+                                    println!(
+                                        "Visited array of requested url {}: it's visited {:?} and status is {:?}",
+                                        requested_url.clone(),
+                                        visited.contains(&requested_url.clone()),
+                                        status.clone()
+                                    );
 
-                                        if module_error.is_some() {
-                                            p.reject_native(&());
-                                        } else {
-                                            p.resolve_native(&());
+                                    if visited.contains(&requested_url.clone()) {
+                                        match status {
+                                            ModuleStatus::Initial | ModuleStatus::Fetching => {},
+                                            ModuleStatus::FetchingDescendants => {
+                                                let descendant_urls = module_tree.get_descendant_urls().borrow();
+
+                                                if descendant_urls.iter().all(|descendant_url| {
+                                                    let descendant_tree = module_map.get(&descendant_url.clone());
+                                                    let descendant_status = descendant_tree.unwrap().get_status();
+                                                    descendant_status >= ModuleStatus::FetchingDescendants
+                                                }) {
+                                                    let module_error = module_tree.get_error().borrow();
+
+                                                    if module_error.is_some() {
+                                                        p.reject_native(&());
+                                                    } else {
+                                                        p.resolve_native(&());
+                                                    }
+                                                }
+                                            },
+                                            ModuleStatus::Finished => {
+                                                let module_error = module_tree.get_error().borrow();
+
+                                                if module_error.is_some() {
+                                                    p.reject_native(&());
+                                                } else {
+                                                    p.resolve_native(&());
+                                                }
+                                            },
                                         }
                                     }
 
