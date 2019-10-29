@@ -187,8 +187,11 @@ impl Path {
         ))))
     }
 
-    pub fn contains_point(&self, x: f64, y: f64, _path_transform: &Transform2D<f32>) -> bool {
-        self.as_raqote().contains_point(0.1, x as f32, y as f32)
+    pub fn contains_point(&self, x: f64, y: f64, path_transform: &Transform2D<f32>) -> bool {
+        self.as_raqote()
+            .clone()
+            .transform(path_transform)
+            .contains_point(0., x as f32, y as f32)
     }
 
     pub fn copy_to_builder(&self) -> Box<dyn GenericPathBuilder> {
