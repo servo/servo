@@ -137,7 +137,7 @@ impl MouseEvent {
             init.parent.shiftKey,
             init.parent.metaKey,
             init.button,
-            0,
+            init.buttons,
             init.relatedTarget.as_deref(),
             None,
         );
