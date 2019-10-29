@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use log::{self, Level, Metadata, Record};
+use log::{self, Metadata, Record};
 use std::sync::{Arc, Mutex};
 
 lazy_static! {
@@ -20,7 +20,7 @@ impl log::Log for VSLogger {
         let modules = LOG_MODULE_FILTERS.lock().unwrap();
         let is_module_enabled =
             modules.contains(&String::from(metadata.target())) || modules.is_empty();
-        return metadata.level() <= Level::Warn && is_module_enabled;
+        return is_module_enabled;
     }
 
     fn log(&self, record: &Record) {

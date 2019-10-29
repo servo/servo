@@ -728,6 +728,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
     opts.optopt("", "profiler-db-pass", "Profiler database password", "");
     opts.optopt("", "profiler-db-name", "Profiler database name", "");
     opts.optflag("", "print-pwm", "Print Progressive Web Metrics");
+    opts.optopt("", "vslogger-level", "Visual Studio logger level", "Warn");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
