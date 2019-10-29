@@ -20,6 +20,7 @@ import subprocess
 import sys
 
 import colorama
+import six
 import toml
 import voluptuous
 import yaml
@@ -117,7 +118,7 @@ def is_iter_empty(iterator):
 
 
 def normilize_paths(paths):
-    if isinstance(paths, basestring):
+    if isinstance(paths, six.string_types):
         return os.path.join(*paths.split('/'))
     else:
         return [os.path.join(*path.split('/')) for path in paths]
