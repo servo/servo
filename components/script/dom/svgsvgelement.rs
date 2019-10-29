@@ -18,13 +18,14 @@ use html5ever::{LocalName, Prefix};
 use script_layout_interface::SVGSVGData;
 use style::attr::AttrValue;
 use canvas_traits::webgl::{WebGLMsg, WebGLContextShareMode, WebGLMsgSender, webgl_channel, WebGLVersion, GLContextAttributes};
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, RefCell, Ref};
 use euclid::Size2D;
 use crate::dom::window::Window;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::svgrenderingcontext::{
     SVGRenderingContext,
 };
+use std::borrow::Borrow;
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
@@ -32,7 +33,7 @@ const DEFAULT_HEIGHT: u32 = 150;
 #[dom_struct]
 pub struct SVGSVGElement {
     svggraphicselement: SVGGraphicsElement,
-    context: DomRoot<Option<SVGRenderingContext>>,
+    context: DomRefCell<Option<Dom<SVGRenderingContext>>>,
 }
 
 impl SVGSVGElement {
@@ -43,7 +44,7 @@ impl SVGSVGElement {
     ) -> SVGSVGElement {
         SVGSVGElement {
             svggraphicselement: SVGGraphicsElement::new_inherited(local_name, prefix, document),
-            context: DomRoot::from_ref(None),
+            context: DomRefCell::new(None),
         }
     }
 
@@ -60,20 +61,20 @@ impl SVGSVGElement {
         )
     }
 
-    pub fn context(&mut self) -> DomRoot<Option<SVGRenderingContext>> {
+    pub fn context(&self) -> Option<Ref<Dom<SVGRenderingContext>>>{
+        ref_filter_map::ref_filter_map(self.context.borrow(), |ctx| ctx.as_ref())
+    }
+
+    pub fn get_or_init_svg_context(&self) -> Option<DomRoot<SVGRenderingContext>> {
+        if let Some(ctx) = self.context() {
+            return Some(DomRoot::from_ref(ctx.borrow()))
+        }
         let window: DomRoot<Window> = window_from_node(self);
-        context = match self.context {
-           Some(context) => context,
-           _ => {
-               SVGRenderingContext::new(
-                   window,
-                   Size2D::new(DEFAULT_WIDTH, DEFAULT_HEIGHT),
-                   self
-               )
-           }
-        };
-        self.context = context;
-        context
+        let size = Size2D::new(DEFAULT_WIDTH,
+                               DEFAULT_HEIGHT);
+        let new_context = SVGRenderingContext::new(&*window, size, self)?;
+        *self.context.borrow_mut() = Some(Dom::from_ref(&*new_context));
+        Some(new_context)
     }
 }
 
@@ -87,7 +88,7 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
         unsafe {
             let SVG = &*self.unsafe_get();
 
-            let ctx = SVG.context();
+            let ctx = SVG.get_or_init_svg_context();
             let width_attr = SVG
                 .upcast::<Element>()
                 .get_attr_for_layout(&ns!(), &local_name!("width"));

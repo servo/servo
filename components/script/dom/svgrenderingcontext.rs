@@ -8,9 +8,14 @@ use crate::dom::webglcontextevent::WebGLContextEvent;
 use crate::dom::svgsvgelement::SVGSVGElement;
 use dom_struct::dom_struct;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::MutDomObject;
+use crate::dom::bindings::reflector::Reflector;
 
 #[dom_struct]
 pub struct SVGRenderingContext{
+    reflector_: Reflector,
     #[ignore_malloc_size_of = "Channels are hard"]
     webgl_sender: WebGLMsgSender,
     share_mode: WebGLContextShareMode,
@@ -49,10 +54,11 @@ impl SVGRenderingContext{
             let webgl_sender = ctx_data.sender;
             let share_mode = ctx_data.share_mode;
             SVGRenderingContext{
+                reflector_: Reflector::new(),
                 webgl_sender,
                 share_mode,
                 webrender_image: Cell::new(None),
-                Dom::from_ref(svg),
+                svg: Dom::from_ref(svg),
             }
         })
     }
@@ -61,9 +67,9 @@ impl SVGRenderingContext{
         window: &Window,
         size: Size2D<u32>,
         svg: &SVGSVGElement,
-    ) -> DomRoot<Option<SVGRenderingContext>>{
+    ) -> Option<DomRoot<SVGRenderingContext>>{
         match SVGRenderingContext::new_inherited(window, size, svg) {
-            Ok(ctx) => DomRoot::from_ref(Some(ctx)),
+            Ok(ctx) => Some(DomRoot::from_ref(&ctx)),
             Err(msg) => {
                 error!("Couldn't create SVGRenderingContext:{}", msg);
                 let event = WebGLContextEvent::new(
