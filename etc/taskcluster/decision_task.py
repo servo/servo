@@ -205,13 +205,13 @@ def linux_tidy_unit():
         .with_treeherder("Linux x64", "Tidy+Unit")
         .with_script("""
             ./mach test-tidy --no-progress --all
-            ./mach build --dev
-            ./mach test-unit
-            ./mach package --dev
-            ./mach build --dev --features canvas2d-raqote
-            ./mach build --dev --features layout-2020
-            ./mach build --dev --libsimpleservo
-            ./mach build --dev -p servo-gst-plugin
+            python3 ./mach build --dev
+            python3 ./mach test-unit
+            python3 ./mach package --dev
+            python3 ./mach build --dev --features canvas2d-raqote
+            python3 ./mach build --dev --features layout-2020
+            python3 ./mach build --dev --libsimpleservo
+            python3 ./mach build --dev -p servo-gst-plugin
             ./mach test-tidy --no-progress --self-test
 
             ./etc/memory_reports_over_time.py --test
