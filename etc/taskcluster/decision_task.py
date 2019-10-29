@@ -269,8 +269,8 @@ def with_rust_nightly():
     return (
         linux_build_task("with Rust Nightly", build_env=modified_build_env)
         .with_treeherder("Linux x64", "RustNightly")
+        .with_early_script('echo "nightly" > rust-toolchain')
         .with_script("""
-            echo "nightly" > rust-toolchain
             ./mach build --dev
             ./mach test-unit
         """)
