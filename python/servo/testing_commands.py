@@ -22,6 +22,7 @@ import six.moves.urllib as urllib
 import base64
 import shutil
 import subprocess
+from xml.etree.ElementTree import XML
 from six import iteritems
 
 from mach.registrar import Registrar
@@ -46,6 +47,8 @@ SCRIPT_PATH = os.path.split(__file__)[0]
 PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
 WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "web-platform-tests")
 SERVO_TESTS_PATH = os.path.join("tests", "wpt", "mozilla", "tests")
+
+CLANGFMT_CPP_DIRS = ["support/hololens/"]
 
 TEST_SUITES = OrderedDict([
     ("tidy", {"kwargs": {"all_files": False, "no_progress": False, "self_test": False,
@@ -323,7 +326,8 @@ class MachCommands(CommandBase):
                      help="Run unit tests for tidy")
     @CommandArgument('--stylo', default=False, action="store_true",
                      help="Only handle files in the stylo tree")
-    def test_tidy(self, all_files, no_wpt, no_progress, self_test, stylo):
+    @CommandArgument('--no-cpp', default=False, action="store_true", help="Skip CPP files")
+    def test_tidy(self, all_files, no_wpt, no_progress, self_test, stylo, no_cpp):
         if self_test:
             return test_tidy.do_tests()
         else:
@@ -334,9 +338,21 @@ class MachCommands(CommandBase):
             tidy_failed = tidy.scan(not all_files, not no_progress, stylo=stylo)
             self.install_rustfmt()
             rustfmt_failed = self.call_rustup_run(["cargo", "fmt", "--", "--check"])
-            if rustfmt_failed:
+
+            clangfmt_failed = False
+            if not no_cpp:
+                available, cmd, files = setup_clangfmt(all_files)
+                if available:
+                    for file in files:
+                        stdout = subprocess.check_output([cmd, "-output-replacements-xml", file])
+                        if len(XML(stdout)) > 0:
+                            print("%s is not formatted correctly." % file)
+                            clangfmt_failed = True
+
+            if rustfmt_failed or clangfmt_failed:
                 print("Run `./mach fmt` to fix the formatting")
-            return tidy_failed or manifest_dirty or rustfmt_failed
+
+            return tidy_failed or manifest_dirty or rustfmt_failed or clangfmt_failed
 
     @Command('test-webidl',
              description='Run the WebIDL parser tests',
@@ -458,9 +474,16 @@ class MachCommands(CommandBase):
         return run_update(self.context.topdir, **kwargs)
 
     @Command('fmt',
-             description='Format the Rust source files with rustfmt',
+             description='Format the Rust and CPP source files with rustfmt and clang-format',
              category='testing')
-    def format_code(self, **kwargs):
+    @CommandArgument('--no-cpp', default=False, action="store_true", help="Skip CPP files")
+    def format_code(self, no_cpp):
+
+        if not no_cpp:
+            available, cmd, files = setup_clangfmt(True)
+            if available and len(files) > 0:
+                check_call([cmd, "-i"] + files)
+
         self.install_rustfmt()
         return self.call_rustup_run(["cargo", "fmt"])
 
@@ -772,6 +795,25 @@ def create_parser_create():
                    help="Create a reftest that waits until takeScreenshot() is called")
     p.add_argument("path", action="store", help="Path to the test file")
     return p
+
+
+def setup_clangfmt(all_files):
+    cmd = "clang-format.exe" if sys.platform == "win32" else "clang-format"
+    try:
+        version = subprocess.check_output([cmd, "--version"]).rstrip()
+        print(version)
+        if not version.startswith("clang-format version 6."):
+            print("clang-format: wrong version (v6 required). Skipping CPP formatting.")
+            return False, None, None
+    except OSError:
+        print("clang-format not installed. Skipping CPP formatting.")
+        return False, None, None
+    gitcmd = ['git', 'ls-files']
+    if not all_files:
+            gitcmd.append('-m')
+    gitfiles = subprocess.check_output(gitcmd + CLANGFMT_CPP_DIRS).splitlines()
+    filtered = [line for line in gitfiles if line.endswith(".h") or line.endswith(".cpp")]
+    return True, cmd, filtered
 
 
 @CommandProvider
