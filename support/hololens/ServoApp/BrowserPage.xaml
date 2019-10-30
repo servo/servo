@@ -83,6 +83,7 @@
     <Grid.RowDefinitions>
       <RowDefinition Height="auto"/>
       <RowDefinition Height="*"/>
+      <RowDefinition Height="auto"/>
     </Grid.RowDefinitions>
     <Grid Grid.Row="0" x:Name="navigationBar" Background="{ThemeResource InkToolbarButtonBackgroundThemeBrush}">
       <Grid.ColumnDefinitions>
@@ -105,8 +106,9 @@
         </Button>
       </StackPanel>
       <TextBox Text="" IsTabStop="true" InputScope="Url" PlaceholderText="Type a URL" x:Name="urlTextbox" Grid.Column="1" KeyUp="OnURLEdited" IsSpellCheckEnabled="False" Margin="3,0"/>
-      <ProgressRing x:Name="throbber" Grid.Column="2" Margin="10,0"/>
+      <ProgressRing x:Name="urlbarLoadingIndicator" Grid.Column="2" Margin="10,0"/>
     </Grid>
     <local:ServoControl TabIndex="0" x:Name="servoControl" Grid.Row="1"/>
+    <ProgressBar x:Name="transientLoadingIndicator" Visibility="Collapsed" Grid.Row="2"/>
   </Grid>
 </Page>
