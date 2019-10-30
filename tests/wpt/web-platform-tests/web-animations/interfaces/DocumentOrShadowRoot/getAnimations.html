@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>Document.getAnimations</title>
-<link rel="help" href="https://drafts.csswg.org/web-animations/#dom-document-getanimations">
+<title>DocumentOrShadowRoot.getAnimations</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#dom-documentorshadowroot-getanimations">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
@@ -17,7 +17,8 @@ test(t => {
   assert_equals(document.getAnimations().length, 0,
                 'getAnimations returns an empty sequence for a document ' +
                 'with no animations');
-}, 'Test document.getAnimations for non-animated content');
+}, 'Document.getAnimations() returns an empty sequence for non-animated'
+   + ' content');
 
 test(t => {
   const div = createDiv(t);
@@ -30,7 +31,7 @@ test(t => {
   anim2.finish();
   assert_equals(document.getAnimations().length, 0,
                 'getAnimation only returns running animations');
-}, 'Test document.getAnimations for script-generated animations')
+}, 'Document.getAnimations() returns script-generated animations')
 
 test(t => {
   const div = createDiv(t);
@@ -39,7 +40,8 @@ test(t => {
   assert_array_equals(document.getAnimations(),
                       [ anim1, anim2 ],
                       'getAnimations() returns running animations');
-}, 'Test the order of document.getAnimations with script generated animations')
+}, 'Document.getAnimations() returns script-generated animations in the order'
+   + ' they were created')
 
 test(t => {
   // This element exists but is not a descendent of any document, so isn't
@@ -52,7 +54,7 @@ test(t => {
   document.body.appendChild(div);
   t.add_cleanup(() => { div.remove(); });
   assert_equals(document.getAnimations().length, 1);
-}, 'Test document.getAnimations for a disconnected node');
+}, 'Document.getAnimations() does not return a disconnected node');
 
 test(t => {
   const effect = new KeyframeEffect(null, gKeyFrames, 100 * MS_PER_SEC);
@@ -62,7 +64,7 @@ test(t => {
   assert_equals(document.getAnimations().length, 0,
                 'document.getAnimations() only returns animations targeting ' +
                 'elements in this document');
-}, 'Test document.getAnimations with null target');
+}, 'Document.getAnimations() does not return an animation with a null target');
 
 promise_test(async t => {
   const iframe = document.createElement('iframe');
@@ -86,7 +88,66 @@ promise_test(async t => {
   assert_equals(document.getAnimations().length, 0);
   assert_equals(iframe.contentDocument.getAnimations().length, 1);
   anim.finish();
-}, 'Test document.getAnimations for elements inside same-origin iframes');
+}, 'Document.getAnimations() returns animations on elements inside same-origin'
+   + ' iframes');
+
+test(t => {
+  const div = createDiv(t);
+  const shadow = div.attachShadow({ mode: 'open' });
+
+  // Create a tree with the following structure
+  //
+  //             div
+  //              |
+  //         (ShadowRoot)
+  //           /     \
+  //       childA  childB
+  //      (*anim2)   |
+  //              grandChild
+  //               (*anim1)
+  //
+  // This lets us test that:
+  //
+  // a) All children of the ShadowRoot are included
+  // b) Descendants of the children are included
+  // c) The result is sorted by composite order (since we fire anim1 before
+  //    anim2 despite childA appearing first in tree order)
+
+  const childA = createDiv(t);
+  shadow.append(childA);
+
+  const childB = createDiv(t);
+  shadow.append(childB);
+
+  const grandChild = createDiv(t);
+  childB.append(grandChild);
+
+  const anim1 = grandChild.animate(gKeyFrames, 100 * MS_PER_SEC)
+  const anim2 = childA.animate(gKeyFrames, 100 * MS_PER_SEC)
+
+  assert_array_equals(
+    div.shadowRoot.getAnimations(),
+    [ anim1, anim2 ],
+    'getAnimations() called on ShadowRoot returns expected animations'
+  );
+}, 'ShadowRoot.getAnimations() return all animations in the shadow tree');
+
+test(t => {
+  const div = createDiv(t);
+  const shadow = div.attachShadow({ mode: 'open' });
+
+  const child = createDiv(t);
+  shadow.append(child);
+
+  child.animate(gKeyFrames, 100 * MS_PER_SEC)
+
+  assert_array_equals(
+    document.getAnimations(),
+    [],
+    'getAnimations() called on Document does not return animations from shadow'
+    + ' trees'
+  );
+}, 'Document.getAnimations() does NOT return animations in shadow trees');
 
 promise_test(async t => {
   const div = createDiv(t);
@@ -114,7 +175,7 @@ promise_test(async t => {
 
   // If getAnimations() flushed style, we should get a transitionrun event.
   await watcher.wait_for('transitionrun');
-}, 'Triggers a style change event');
+}, 'Document.getAnimations() triggers a style change event');
 
 </script>
 </body>

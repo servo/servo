@@ -19,6 +19,10 @@ const invalid_type_messages =
       // https://w3c.github.io/web-nfc/#the-push-method - Step 8.
       createMessage([{}]),
 
+      // NDEFMessageSource: not NDEF-formatable.
+      // https://w3c.github.io/web-nfc/#the-push-method - Step 8.
+      createMessage([]),
+
       // https://w3c.github.io/web-nfc/#dfn-map-text-to-ndef
       // NDEFRecord must have data.
       createMessage([createTextRecord()]),
@@ -442,4 +446,35 @@ nfc_test(async (t, mockNFC) => {
 }, "Test that mediaType should be set to 'application/octet-stream' if \
 NDEFRecordInit.record's recordType is external type and NDEFRecordInit.record's \
 mediaType is undefined.");
+
+nfc_test(async (t, mockNFC) => {
+  const writer = new NDEFWriter();
+  mockNFC.setIsNDEFTech(false);
+  await promise_rejects(t, 'NotSupportedError', writer.push(test_text_data));
+}, "NDEFWriter.push should fail when the NFC device does not expose \
+NDEF technology.");
+
+nfc_test(async (t, mockNFC) => {
+  const writer = new NDEFWriter();
+  await writer.push(test_text_data, { overwrite: false });
+  assertNDEFMessagesEqual(test_text_data, mockNFC.pushedMessage());
+}, "NDEFWriter.push should succeed to push data to an unformatted NFC device \
+when the NDEFPushOptions.overwrite is false.");
+
+nfc_test(async (t, mockNFC) => {
+  const writer = new NDEFWriter();
+  await writer.push(test_buffer_data);
+  assertNDEFMessagesEqual(test_buffer_data, mockNFC.pushedMessage());
+  await writer.push(test_text_data, { overwrite: true });
+  assertNDEFMessagesEqual(test_text_data, mockNFC.pushedMessage());
+}, "NDEFWriter.push should succeed to overwrite the existing data \
+when the NDEFPushOptions.overwrite is true.");
+
+nfc_test(async (t, mockNFC) => {
+  const writer = new NDEFWriter();
+  const p = writer.push(test_text_data, { overwrite: false });
+  mockNFC.setIsFormattedTag(true);
+  await promise_rejects(t, 'NotAllowedError', p);
+}, "NDEFWriter.push should fail when there are NDEF records on the NFC device \
+and NDEFPushOptions.overwrite is false.");
 </script>

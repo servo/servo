@@ -2705,8 +2705,8 @@ document.viewport = {
 
   getScrollOffsets: function() {
     return Element._returnOffset(
-      window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft,
-      window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop);
+      window.pageXOffset || document.scrollingElement.scrollLeft,
+      window.pageYOffset || document.scrollingElement.scrollTop);
   }
 };
 /* Portions of the Selector class are derived from Jack Slocumâ€™s DomQuery,
@@ -3751,10 +3751,8 @@ Event.Methods = (function() {
 
     pointer: function(event) {
       return {
-        x: event.pageX || (event.clientX +
-          (document.documentElement.scrollLeft || document.body.scrollLeft)),
-        y: event.pageY || (event.clientY +
-          (document.documentElement.scrollTop || document.body.scrollTop))
+        x: event.pageX || (event.clientX + document.scrollingElement.scrollLeft),
+        y: event.pageY || (event.clientY + document.scrollingElement.scrollTop)
       };
     },
 
@@ -4034,12 +4032,10 @@ var Position = {
   // page is scrolled
   prepare: function() {
     this.deltaX =  window.pageXOffset
-                || document.documentElement.scrollLeft
-                || document.body.scrollLeft
+                || document.scrollingElement.scrollLeft
                 || 0;
     this.deltaY =  window.pageYOffset
-                || document.documentElement.scrollTop
-                || document.body.scrollTop
+                || document.scrollingElement.scrollTop
                 || 0;
   },
 

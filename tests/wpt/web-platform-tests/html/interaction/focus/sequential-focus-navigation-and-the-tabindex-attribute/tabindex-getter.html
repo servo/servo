@@ -4,6 +4,17 @@
 <link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#dom-tabindex">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<style>
+#scrollable {
+  width: 100px;
+  height: 100px;
+  overflow: scroll;
+}
+#scrollable-inner {
+  width: 1024px;
+  height: 2048px;
+}
+</style>
 <body>
 <input>
 <input type="hidden">
@@ -26,6 +37,11 @@
 <details><summary>summary</summary><summary id="secondsummary">second summary</summary>details</details>
 <div id="hostDelegatesFocus"></div>
 <div id="hostNonDelegatesFocus"></div>
+<div contenteditable="true"></div>
+<div id="scrollable"><div id="scrollable-inner"></div></div>
+<fieldset></fieldset>
+<output></output>
+<slot></slot>
 <script>
 document.getElementById("hostDelegatesFocus").attachShadow({ mode: "open", delegatesFocus: true });
 document.getElementById("hostNonDelegatesFocus").attachShadow({ mode: "open", delegatesFocus: false });
@@ -55,6 +71,11 @@ const defaultList = [
   ["summary#secondsummary", -1],
   ["#hostDelegatesFocus", -1],
   ["#hostNonDelegatesFocus", -1],
+  ["div[contenteditable]", -1],
+  ["#scrollable", -1],
+  ["fieldset", -1],
+  ["output", -1],
+  ["slot", -1],
 ];
 const tabIndexValue = [-1, 0, 1];
 for (const entry of defaultList) {

@@ -5,6 +5,8 @@
 <script src="/resources/testharnessreport.js"></script>
 <p id="display"><img src="image.png"></p>
 <script>
+    setup({ single_test: true });
+
     function check() {
         var img = document.querySelector("img");
         assert_true(img.complete, "By onload, image should have loaded");

@@ -17,6 +17,8 @@ The `WebNFCTest` interface is defined as:
     setPushShouldTimeout(boolean result); // Sets flag to trigger the pending push to timeout.
     pushedMessage(); // Gets the pushed `NDEFMessageSource`.
     pushOptions(); // Gets the pushed `NDEFPushOptions`.
+    setIsNDEFTech(boolean isNDEF); // Sets if the NFC device exposes NDEF technology.
+    setIsFormattedTag(boolean isFormatted); // Sets if the NFC tag has formatted NDEF message.
   };
 ```
 

@@ -125,11 +125,10 @@
                 new test_driver.Actions().pointerMove(0, 0, {origin: target0}).send();
 
                 on_event(target1, "pointermove", function (event) {
-                        if(isPointerCapture == true) {
-                            test(function() {
-                                assert_unreached("pointermove shouldn't trigger for this target when capture is enabled");
-                            }, "pointermove shouldn't trigger for the purple rectangle while the black rectangle has capture");
-                        }
+                    test(function() {
+                        assert_false(isPointerCapture, "pointermove shouldn't trigger for this target when capture is enabled");
+                    }, "pointermove shouldn't trigger for the purple rectangle while the black rectangle has capture");
+
                     if(!pointermoveNoCaptureGot1) {
                         test_pointermove1.done();
                         event_log.push('pointermove@target1');

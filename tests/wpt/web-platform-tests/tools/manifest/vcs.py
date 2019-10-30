@@ -278,12 +278,11 @@ def walk(root):
 
     Unlike os.walk the implementation is not recursive."""
 
-    listdir = os.listdir
     get_stat = os.stat
-    listdir = os.listdir
-    join = os.path.join
     is_dir = stat.S_ISDIR
     is_link = stat.S_ISLNK
+    join = os.path.join
+    listdir = os.listdir
     relpath = os.path.relpath
 
     root = os.path.abspath(root)

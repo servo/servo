@@ -668,6 +668,9 @@
         "meta",
         "http-rp"
       ],
+      "iframe-blank": [
+        "meta"
+      ],
       "srcdoc": [
         "meta"
       ],
@@ -683,6 +686,7 @@
     "supported_subresource": {
       "top": "*",
       "iframe": "*",
+      "iframe-blank": "*",
       "srcdoc": "*",
       "worker-classic": [
         "xhr",

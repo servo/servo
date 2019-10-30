@@ -707,6 +707,7 @@ class TestRunnerManager(threading.Thread):
         if self.test_runner_proc is None:
             return
 
+        self.browser.stop(force=True)
         self.logger.debug("waiting for runner process to end")
         self.test_runner_proc.join(10)
         self.logger.debug("After join")

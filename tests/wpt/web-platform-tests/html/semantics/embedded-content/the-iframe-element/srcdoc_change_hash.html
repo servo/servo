@@ -1,12 +1,10 @@
-<!--
-  Test same-document navigation inside an srcdoc iframe using location.hash
--->
+<title>same-document navigation inside an srcdoc iframe using location.hash</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script>
-  async function test() {
+  promise_test(async () => {
     // Wait until 'document' is available.
     await new Promise(resolve => window.addEventListener('load', resolve));
 
@@ -66,8 +64,5 @@
       await hash_changed;
       assert_equals(iframe.contentWindow.location.href, "about:srcdoc#2");
     }
-
-    done();
-  }
-  test();
+  });
 </script>
