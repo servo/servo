@@ -52,6 +52,10 @@ touch .nojekyll
 # Publish the website by pushing the built contents to the `gh-pages` branch
 git add .
 
+echo This submission alters the compiled files as follows
+
+git diff --staged
+
 if is_pull_request ; then
   echo Submission comes from a pull request. Exiting without publishing.
 

@@ -687,6 +687,17 @@
             }
         },
         {
+            "comment": "IPv6 literal address with port, crbug.com/1012416",
+            "href": "http://example.net",
+            "new_value": "[2001:db8::2]:4002",
+            "expected": {
+                "href": "http://[2001:db8::2]:4002/",
+                "host": "[2001:db8::2]:4002",
+                "hostname": "[2001:db8::2]",
+                "port": "4002"
+             }
+        },
+        {
             "comment": "Default port number is removed",
             "href": "http://example.net",
             "new_value": "example.com:80",

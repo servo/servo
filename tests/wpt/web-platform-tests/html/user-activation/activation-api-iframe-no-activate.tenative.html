@@ -32,9 +32,9 @@
           // click in parent document
           test_driver.click(document.getElementById('instructions'));
         } else if (msg.type == 'child-one-report') {
-          // state should be false after asked to report
+          // only the transient state should be false after asked to report
           assert_false(msg.isActive);
-          assert_false(msg.hasBeenActive);
+          assert_true(msg.hasBeenActive);
           t.done();
         }
       }));

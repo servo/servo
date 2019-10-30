@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+async_test(t => {
+  const input = document.createElement('input');
+  input.type = 'radio';
+  input.addEventListener('change', t.step_func_done(() => {}));
+  input.dispatchEvent(new MouseEvent('click'));
+}, 'This test will pass if <input type=radio> emits change events while detached from document.body');
+</script>

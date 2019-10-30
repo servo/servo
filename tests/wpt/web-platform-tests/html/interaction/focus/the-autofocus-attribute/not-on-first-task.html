@@ -13,10 +13,10 @@
 <script>
 "use strict";
 
-const input = document.querySelector("input");
+test(() => {
+  const input = document.querySelector("input");
 
-assert_equals(document.activeElement, document.body);
-assert_not_equals(document.activeElement, input);
-
-done();
+  assert_equals(document.activeElement, document.body);
+  assert_not_equals(document.activeElement, input);
+});
 </script>

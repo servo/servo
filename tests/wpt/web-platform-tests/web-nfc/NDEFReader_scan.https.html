@@ -191,4 +191,34 @@ test(() => {
   });
 }, "NDEFReader.scan should fail if signal is not an AbortSignal.");
 
+nfc_test(async (t, mockNFC) => {
+  const reader = new NDEFReader();
+  mockNFC.setIsNDEFTech(false);
+  mockNFC.setReadingMessage(createMessage([createTextRecord(test_text_data)]));
+
+  await new Promise((resolve, reject) => {
+    reader.onreading = () => reject("reading event should not be fired.");
+    reader.scan();
+    t.step_timeout(resolve, 100);
+  });
+}, "Test that NDEFReader.onreading should not be fired if the NFC tag does not \
+expose NDEF technology.");
+
+nfc_test(async (t, mockNFC) => {
+  const reader = new NDEFReader();
+  const controller = new AbortController();
+  mockNFC.setReadingMessage({ records: [] });
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+
+  const promise = readerWatcher.wait_for("reading").then(event => {
+    assert_equals(event.serialNumber, fake_tag_serial_number);
+    assert_equals(event.message.records.length, 0);
+    controller.abort();
+  });
+  // NDEFReader#scan() asynchronously dispatches the reading event.
+  reader.scan({signal : controller.signal});
+  await promise;
+}, "Test that NDEFReader.onreading should be fired on an unformatted NFC tag \
+with empty records array for NDEFMessage.");
+
 </script>

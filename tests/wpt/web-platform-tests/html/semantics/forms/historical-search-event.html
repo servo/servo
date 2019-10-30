@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>search event should not be supported</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<input id=input type=search incremental>
+<script>
+promise_test(async t => {
+  const input = document.getElementById('input');
+  const eventWatcher = new EventWatcher(t, input, ['search', 'keypress']);
+  await Promise.all([
+    test_driver.send_keys(input, 'x'),
+    eventWatcher.wait_for(['keypress'])
+  ]);
+  // During this timeout, the search event will fire, if it's supported,
+  // which fails the test since the event watcher isn't expecting it.
+  await new Promise(resolve => t.step_timeout(resolve, 1000));
+});
+</script>

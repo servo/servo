@@ -7,9 +7,10 @@
 <table vspace=25 hspace=25><tr><td>x</table>
 <div>x</div> <!-- prevent margin collapsing quirks -->
 <script>
-var style = getComputedStyle(document.querySelector('table'));
-['marginTop', 'marginRight', 'marginBottom', 'marginLeft'].forEach(function(m) {
-  assert_equals(style[m], '0px', m);
+test(function() {
+  var style = getComputedStyle(document.querySelector('table'));
+  ['marginTop', 'marginRight', 'marginBottom', 'marginLeft'].forEach(function(m) {
+    assert_equals(style[m], '0px', m);
+  });
 });
-done();
 </script>

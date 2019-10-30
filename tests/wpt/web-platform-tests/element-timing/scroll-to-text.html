@@ -25,7 +25,7 @@
       // We scroll to the end of the document so that the paragraph becomes visible.
       // A user agent could paint the text before or after scrolling, but either way
       // it must produce an entry for it.
-      window.scrollTo(0,document.body.scrollHeight);
+      window.scrollTo(0,document.scrollingElement.scrollHeight);
     };
   }, 'Paragraph with elementtiming attribute is observed even when not initially visible.');
 </script>

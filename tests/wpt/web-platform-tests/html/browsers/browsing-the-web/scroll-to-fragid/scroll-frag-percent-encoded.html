@@ -15,30 +15,26 @@
 var steps = [{
     fragid:'has%20two%20spaces',
       handler: function(){
-        assert_equals( scrollPosition(), 100 );
+        assert_equals( document.scrollingElement.scrollTop, 100 );
       }
     },{
       fragid:'escape%20collision',
       handler: function(){
-        assert_equals( scrollPosition(), 200 );
+        assert_equals( document.scrollingElement.scrollTop, 200 );
         document.getElementById("%20has%20two%20spaces").setAttribute("id", "has%20two%20spaces");
       }
     },{
       fragid:'has%20two%20spaces',
       handler: function(){
-        assert_equals( scrollPosition(), 300 );
+        assert_equals( document.scrollingElement.scrollTop, 300 );
       }
     },{
       fragid:'do%20not%20go%20here',
       handler: function(){
         // don't move
-        assert_equals( scrollPosition(), 400 );
+        assert_equals( document.scrollingElement.scrollTop, 400 );
       }
     }];
-
-function scrollPosition(){
-  return document.documentElement.scrollTop || document.body.scrollTop;
-}
 
 function runNextStep(){
     if( steps.length > 0 ) {

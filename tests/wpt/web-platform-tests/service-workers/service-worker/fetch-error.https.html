@@ -7,34 +7,27 @@
 </head>
 <body>
 <script>
-var scope = "resources";
-var registration;
+const scope = "./resources/in-scope";
 
 promise_test(async (test) => {
-    registration = await navigator.serviceWorker.register("fetch-error-worker.js", { scope : scope });
-    var activeWorker = registration.active;
-    if (activeWorker)
-        return;
-    activeWorker = registration.installing;
-    return new Promise(resolve => {
-        activeWorker.addEventListener('statechange', () => {
-            if (activeWorker.state === "activated")
-                resolve();
-        });
-    });
+    const registration = await service_worker_unregister_and_register(
+        test, "./resources/fetch-error-worker.js", scope);
+    promise_test(async () => registration.unregister(),
+                 "Unregister service worker");
+    await wait_for_state(test, registration.installing, 'activated');
 }, "Setup service worker");
 
 promise_test(async (test) => {
     const iframe = await with_iframe(scope);
-
+    test.add_cleanup(() => iframe.remove());
     const response = await iframe.contentWindow.fetch("fetch-error-test");
-    await response.text().then(assert_unreached, (error) => { assert_true(error.message.includes("Sorry")); });
-    iframe.remove();
+    try {
+      await response.text();
+      assert_unreached();
+    } catch (error) {
+      assert_true(error.message.includes("Sorry"));
+    }
 }, "Make sure a load that makes progress does not time out");
-
-promise_test(async () => {
-    registration.unregister();
-}, "Unregister service worker");
 </script>
 </body>
 </html>

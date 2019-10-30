@@ -25,6 +25,10 @@ documented in two sections:
 See [server features](server-features) for advanced testing features that are commonly used
 with testharness.js. See also the [general guidelines](general-guidelines) for all test types.
 
+This page describes testharness.js exhaustively; [the tutorial on writing a
+testharness.js test](testharness-tutorial) provides a concise guide to writing
+a test--a good place to start for newcomers to the project.
+
 ## Variants
 
 A test file can have multiple variants by including `meta` elements,
