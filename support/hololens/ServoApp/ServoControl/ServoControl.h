@@ -118,12 +118,12 @@ private:
     }
   }
 
-  void
-  OnSurfaceTapped(IInspectable const &,
-                   Windows::UI::Xaml::Input::TappedRoutedEventArgs const &);
+  void OnSurfaceTapped(IInspectable const &,
+                       Windows::UI::Xaml::Input::TappedRoutedEventArgs const &);
 
-  void OnSurfacePointerPressed(IInspectable const &,
-                       Windows::UI::Xaml::Input::PointerRoutedEventArgs const &);
+  void OnSurfacePointerPressed(
+      IInspectable const &,
+      Windows::UI::Xaml::Input::PointerRoutedEventArgs const &);
 
   void OnSurfaceManipulationDelta(
       IInspectable const &,

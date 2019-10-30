@@ -47,17 +47,17 @@ void on_ime_state_changed(bool aShow) {
   sServo->Delegate().OnServoIMEStateChanged(aShow);
 }
 
-void set_clipboard_contents(const char* content) {
+void set_clipboard_contents(const char *content) {
   // FIXME
 }
 
-const char* get_clipboard_contents() {
+const char *get_clipboard_contents() {
   // FIXME
   return nullptr;
 }
 
-Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height, float dpi,
-             ServoDelegate &aDelegate)
+Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
+             float dpi, ServoDelegate &aDelegate)
     : mWindowHeight(height), mWindowWidth(width), mDelegate(aDelegate) {
 
   capi::CInitOptions o;
@@ -73,22 +73,23 @@ Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height, float dpi
   // 7 filter modules.
   /* Sample list of servo modules to filter.
   static char *pfilters[] = {
-	  "servo",
-	  "simpleservo", 
-	  "simpleservo::jniapi",
-	  "simpleservo::gl_glue::egl",
-	  // Show JS errors by default.
-	  "script::dom::bindings::error",
-	  // Show GL errors by default.
-	  "canvas::webgl_thread",
-	  "compositing::compositor",
-	  "constellation::constellation",
+          "servo",
+          "simpleservo",
+          "simpleservo::jniapi",
+          "simpleservo::gl_glue::egl",
+          // Show JS errors by default.
+          "script::dom::bindings::error",
+          // Show GL errors by default.
+          "canvas::webgl_thread",
+          "compositing::compositor",
+          "constellation::constellation",
   };
   */
 
   // Example Call when *pfilters[] is used:
   // o.vslogger_mod_list = pfilters; // servo log modules
-  // o.vslogger_mod_size = sizeof(pfilters) / sizeof(pfilters[0]) -1; // Important: Number of modules in pfilters
+  // o.vslogger_mod_size = sizeof(pfilters) / sizeof(pfilters[0]) -1; //
+  // Important: Number of modules in pfilters
   o.vslogger_mod_list = NULL;
   o.vslogger_mod_size = 0;
 
@@ -135,7 +136,7 @@ std::unique_ptr<char *> hstring2char(hstring hstr) {
   char *str = new char[size];
   size_t converted = 0;
   wcstombs_s(&converted, str, size, wc, hstr.size());
-  return std::make_unique<char*>(str);
+  return std::make_unique<char *>(str);
 }
 
 } // namespace winrt::servo

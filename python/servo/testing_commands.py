@@ -810,7 +810,7 @@ def setup_clangfmt(all_files):
         return False, None, None
     gitcmd = ['git', 'ls-files']
     if not all_files:
-            gitcmd.append('-m')
+        gitcmd.append('-m')
     gitfiles = subprocess.check_output(gitcmd + CLANGFMT_CPP_DIRS).splitlines()
     filtered = [line for line in gitfiles if line.endswith(".h") or line.endswith(".cpp")]
     return True, cmd, filtered
