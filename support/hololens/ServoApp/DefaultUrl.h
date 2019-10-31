@@ -1,3 +1,3 @@
 #pragma once
 
-#define DEFAULT_URL L"http://paulrouget.com/test/bbjs/basic/";
+#define DEFAULT_URL L"https://servo.org/hl-home/";
