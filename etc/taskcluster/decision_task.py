@@ -267,7 +267,7 @@ def with_rust_nightly():
         modified_build_env["RUSTFLAGS"] = " ".join(flags)
 
     return (
-        linux_build_task("with Rust Nightly", build_env=modified_build_env)
+        linux_build_task("with Rust Nightly", build_env=modified_build_env, install_rustc_dev=False)
         .with_treeherder("Linux x64", "RustNightly")
         .with_script("""
             echo "nightly" > rust-toolchain
@@ -748,8 +748,8 @@ def macos_task(name):
     )
 
 
-def linux_build_task(name, *, build_env=build_env):
-    return (
+def linux_build_task(name, *, build_env=build_env, install_rustc_dev=True):
+    task = (
         linux_task(name)
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/caches
         .with_scopes("docker-worker:cache:servo-*")
@@ -766,9 +766,11 @@ def linux_build_task(name, *, build_env=build_env):
         .with_env(**build_env, **unix_build_env, **linux_build_env)
         .with_repo()
         .with_script("rustup set profile minimal")
-        # required by components/script_plugins:
-        .with_script("rustup component add rustc-dev")
     )
+    if install_rustc_dev:
+        # required by components/script_plugins:
+        task = task.with_script("rustup component add rustc-dev")
+    return task
 
 
 def android_build_task(name):
