@@ -75,7 +75,9 @@ impl ToComputedValue for specified::Length {
 ///
 /// https://drafts.csswg.org/css-values-4/#typedef-length-percentage
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, MallocSizeOf, ToAnimatedZero, ToResolvedValue)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize, ToAnimatedZero, ToResolvedValue,
+)]
 #[repr(C)]
 pub struct LengthPercentage {
     length: Length,
@@ -611,9 +613,11 @@ impl Size {
     Clone,
     ComputeSquaredDistance,
     Copy,
+    Deserialize,
     MallocSizeOf,
     PartialEq,
     PartialOrd,
+    Serialize,
     ToAnimatedValue,
     ToAnimatedZero,
     ToResolvedValue,

@@ -22,7 +22,6 @@ extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
 extern crate selectors;
-#[cfg(feature = "servo")]
 #[macro_use]
 extern crate serde;
 extern crate servo_arc;
