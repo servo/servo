@@ -397,7 +397,7 @@ impl ServoGlue {
     }
 
     /// Register a mouse movement.
-    pub fn move_mouse(&mut self, x: f32, y: f32) -> Result<(), &'static str> {
+    pub fn mouse_move(&mut self, x: f32, y: f32) -> Result<(), &'static str> {
         let point = Point2D::new(x, y);
         let event = WindowEvent::MouseWindowMoveEventClass(point);
         self.process_event(event)

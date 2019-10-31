@@ -125,6 +125,18 @@ private:
   void OnSurfacePointerPressed(IInspectable const &,
                        Windows::UI::Xaml::Input::PointerRoutedEventArgs const &);
 
+  void OnSurfacePointerCanceled(
+      IInspectable const &,
+      Windows::UI::Xaml::Input::PointerRoutedEventArgs const &);
+
+  void OnSurfacePointerMoved(
+      IInspectable const &,
+      Windows::UI::Xaml::Input::PointerRoutedEventArgs const &);
+
+  void OnSurfaceWheelChanged(
+      IInspectable const &,
+      Windows::UI::Xaml::Input::PointerRoutedEventArgs const &);
+
   void OnSurfaceManipulationDelta(
       IInspectable const &,
       Windows::UI::Xaml::Input::ManipulationDeltaRoutedEventArgs const &);

@@ -240,7 +240,7 @@ pub unsafe extern "C" fn move_servo(servo: *mut ServoInstance, x: f32, y: f32) {
         match servo.scroll_state {
             ScrollState::TriggerUp => {
                 servo.scroll_state = ScrollState::TriggerUp;
-                let _ = call(|s| s.move_mouse(x, y));
+                let _ = call(|s| s.mouse_move(x, y));
             },
             ScrollState::TriggerDown(start)
                 if (start - point).square_length() < DRAG_CUTOFF_SQUARED =>
@@ -249,14 +249,14 @@ pub unsafe extern "C" fn move_servo(servo: *mut ServoInstance, x: f32, y: f32) {
             }
             ScrollState::TriggerDown(start) => {
                 servo.scroll_state = ScrollState::TriggerDragging(start, point);
-                let _ = call(|s| s.move_mouse(x, y));
+                let _ = call(|s| s.mouse_move(x, y));
                 let delta = (point - start) * servo.scroll_scale;
                 let start = start.to_i32();
                 let _ = call(|s| s.scroll_start(delta.x, delta.y, start.x, start.y));
             },
             ScrollState::TriggerDragging(start, prev) => {
                 servo.scroll_state = ScrollState::TriggerDragging(start, point);
-                let _ = call(|s| s.move_mouse(x, y));
+                let _ = call(|s| s.mouse_move(x, y));
                 let delta = (point - prev) * servo.scroll_scale;
                 let start = start.to_i32();
                 let _ = call(|s| s.scroll(delta.x, delta.y, start.x, start.y));
@@ -279,7 +279,7 @@ pub unsafe extern "C" fn trigger_servo(servo: *mut ServoInstance, x: f32, y: f32
                 servo.scroll_state = ScrollState::TriggerUp;
                 let _ = call(|s| s.mouse_up(start.x, start.y, MouseButton::Left));
                 let _ = call(|s| s.click(start.x as f32, start.y as f32));
-                let _ = call(|s| s.move_mouse(start.x, start.y));
+                let _ = call(|s| s.mouse_move(start.x, start.y));
             },
             ScrollState::TriggerDragging(start, prev) if !down => {
                 servo.scroll_state = ScrollState::TriggerUp;

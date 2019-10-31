@@ -62,6 +62,9 @@ public:
   void MouseUp(float x, float y, capi::CMouseButton b) {
     capi::mouse_up(x, y, b);
   }
+  void MouseMove(float x, float y) {
+    capi::mouse_move(x, y);
+  }
 
   void Reload() { capi::reload(); }
   void Stop() { capi::stop(); }

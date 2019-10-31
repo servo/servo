@@ -41,6 +41,14 @@ void ServoControl::OnLoaded(IInspectable const &, RoutedEventArgs const &) {
       std::bind(&ServoControl::OnSurfacePointerPressed, this, _1, _2));
   panel.PointerReleased(
       std::bind(&ServoControl::OnSurfacePointerPressed, this, _1, _2));
+  panel.PointerCanceled(
+      std::bind(&ServoControl::OnSurfacePointerCanceled, this, _1, _2));
+  panel.PointerCaptureLost(
+      std::bind(&ServoControl::OnSurfacePointerCanceled, this, _1, _2));
+  panel.PointerMoved(
+      std::bind(&ServoControl::OnSurfacePointerMoved, this, _1, _2));
+  panel.PointerWheelChanged(
+      std::bind(&ServoControl::OnSurfaceWheelChanged, this, _1, _2));
   panel.ManipulationStarted(
       [=](IInspectable const &,
           Input::ManipulationStartedRoutedEventArgs const &e) {
@@ -63,7 +71,6 @@ void ServoControl::OnLoaded(IInspectable const &, RoutedEventArgs const &) {
 }
 
 Controls::SwapChainPanel ServoControl::Panel() {
-  // FIXME: is there a better way of doing this?
   return GetTemplateChild(L"swapChainPanel").as<Controls::SwapChainPanel>();
 }
 
@@ -137,6 +144,34 @@ void ServoControl::OnSurfacePointerPressed(
     }
 
     mPressedMouseButton = button;
+  }
+}
+
+void ServoControl::OnSurfacePointerCanceled(
+    IInspectable const &, Input::PointerRoutedEventArgs const &e) {
+    mPressedMouseButton = {};
+}
+
+void ServoControl::OnSurfacePointerMoved(
+    IInspectable const &, Input::PointerRoutedEventArgs const &e) {
+  if (e.Pointer().PointerDeviceType() ==
+      Windows::Devices::Input::PointerDeviceType::Mouse) {
+    auto point = e.GetCurrentPoint(Panel());
+    auto x = point.Position().X * mDPI;
+    auto y = point.Position().Y * mDPI;
+    RunOnGLThread([=] { mServo->MouseMove(x, y); });
+  }
+}
+
+void ServoControl::OnSurfaceWheelChanged(
+    IInspectable const &, Input::PointerRoutedEventArgs const &e) {
+  if (e.Pointer().PointerDeviceType() ==
+      Windows::Devices::Input::PointerDeviceType::Mouse) {
+    auto point = e.GetCurrentPoint(Panel());
+    auto x = point.Position().X * mDPI;
+    auto y = point.Position().Y * mDPI;
+    auto delta = point.Properties().MouseWheelDelta() * mDPI;
+    RunOnGLThread([=] { mServo->Scroll(0, (float)delta, x, y); });
   }
 }
 
