@@ -189,9 +189,9 @@ impl GenericPathBuilder for azure_hl::PathBuilder {
             anticlockwise,
         );
     }
-    fn get_current_point(&mut self) -> Point2D<f32> {
+    fn get_current_point(&mut self) -> Option<Point2D<f32>> {
         let AzPoint { x, y } = azure_hl::PathBuilder::get_current_point(self);
-        Point2D::new(x as f32, y as f32)
+        Some(Point2D::new(x as f32, y as f32))
     }
     fn line_to(&mut self, point: Point2D<f32>) {
         azure_hl::PathBuilder::line_to(self, point as Point2D<AzFloat>);

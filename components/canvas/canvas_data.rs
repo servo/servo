@@ -108,7 +108,7 @@ pub trait GenericPathBuilder {
         end_angle: f32,
         anticlockwise: bool,
     );
-    fn get_current_point(&mut self) -> Point2D<f32>;
+    fn get_current_point(&mut self) -> Option<Point2D<f32>>;
     fn line_to(&mut self, point: Point2D<f32>);
     fn move_to(&mut self, point: Point2D<f32>);
     fn quadratic_curve_to(&mut self, control_point: &Point2D<f32>, end_point: &Point2D<f32>);
@@ -205,8 +205,10 @@ impl<'a> PathBuilderRef<'a> {
             Some(i) => i,
             None => return None,
         };
-        let current_point = self.builder.get_current_point();
-        Some(inverse.transform_point(Point2D::new(current_point.x, current_point.y)))
+        match self.builder.get_current_point() {
+            Some(point) => Some(inverse.transform_point(Point2D::new(point.x, point.y))),
+            None => None,
+        }
     }
 }
 

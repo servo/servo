@@ -564,22 +564,18 @@ impl GenericPathBuilder for PathBuilder {
         }
     }
 
-    fn get_current_point(&mut self) -> Point2D<f32> {
+    fn get_current_point(&mut self) -> Option<Point2D<f32>> {
         let path = self.finish();
         self.0 = Some(path.as_raqote().clone().into());
 
-        for op in path.as_raqote().ops.iter().rev() {
-            match op {
-                PathOp::MoveTo(point) | PathOp::LineTo(point) => {
-                    return Point2D::new(point.x, point.y)
-                },
-                PathOp::CubicTo(_, _, point) => return Point2D::new(point.x, point.y),
-                PathOp::QuadTo(_, point) => return Point2D::new(point.x, point.y),
-                PathOp::Close => {},
-            };
-        }
-        panic!("dead end");
+        path.as_raqote().ops.iter().last().and_then(|op| match op {
+            PathOp::MoveTo(point) | PathOp::LineTo(point) => Some(Point2D::new(point.x, point.y)),
+            PathOp::CubicTo(_, _, point) => Some(Point2D::new(point.x, point.y)),
+            PathOp::QuadTo(_, point) => Some(Point2D::new(point.x, point.y)),
+            PathOp::Close => None,
+        })
     }
+
     fn line_to(&mut self, point: Point2D<f32>) {
         self.0.as_mut().unwrap().line_to(point.x, point.y);
     }
