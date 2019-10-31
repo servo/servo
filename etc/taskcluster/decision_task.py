@@ -271,6 +271,7 @@ def with_rust_nightly():
         .with_treeherder("Linux x64", "RustNightly")
         .with_script("""
             echo "nightly" > rust-toolchain
+            rustup component add rustc-dev
             ./mach build --dev
             ./mach test-unit
         """)
