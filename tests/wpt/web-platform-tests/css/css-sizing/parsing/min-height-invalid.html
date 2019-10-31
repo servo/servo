@@ -12,10 +12,22 @@
 <body>
 <script>
 test_invalid_value("min-height", "none");
-test_invalid_value("min-height", "min-content max-content");
+test_invalid_value("min-height", "complex");
 
 test_invalid_value("min-height", "-10%");
 test_invalid_value("min-height", "-0.5em");
+test_invalid_value("min-height", "60");
+
+test_invalid_value("min-height", "10px 20%");
+test_invalid_value("min-height", "max-content 10px");
+test_invalid_value("min-height", "min-content max-content");
+
+// The following were previously supported by a min-height definition in
+// https://drafts.csswg.org/css-box-3/
+test_invalid_value("min-height", "available");
+test_invalid_value("min-height", "10px border-box");
+test_invalid_value("min-height", "content-box 20%");
+test_invalid_value("min-height", "fit-content");
 </script>
 </body>
 </html>

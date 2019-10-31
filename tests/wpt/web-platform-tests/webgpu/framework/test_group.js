@@ -6,6 +6,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
 import { allowedTestNameCharacters } from './allowed_characters.js';
 import { paramsEquals } from './params/index.js';
+import { checkPublicParamType, extractPublicParams } from './url_query.js';
 const validNames = new RegExp('^[' + allowedTestNameCharacters + ']+$');
 export class TestGroup {
   constructor(fixture) {
@@ -44,6 +45,12 @@ export class TestGroup {
 
 
   test(name, fn) {
+    // Replace spaces with underscores for readability.
+    if (name.indexOf('_') !== -1) {
+      throw new Error('Invalid test name ${name}: contains underscore (use space)');
+    }
+
+    name = name.replace(/ /g, '_');
     this.checkName(name);
     const test = new Test(name, this.fixture, fn);
     this.tests.push(test);
@@ -76,11 +83,18 @@ class Test {
     const seen = []; // This is n^2.
 
     for (const spec of cases) {
-      if (seen.some(x => paramsEquals(x, spec))) {
+      const publicParams = extractPublicParams(spec); // Check type of public params: can only be (currently):
+      // number, string, boolean, undefined, number[]
+
+      for (const v of Object.values(publicParams)) {
+        checkPublicParamType(v);
+      }
+
+      if (seen.some(x => paramsEquals(x, publicParams))) {
         throw new Error('Duplicate test case params');
       }
 
-      seen.push(spec);
+      seen.push(publicParams);
     }
 
     this.cases = cases;
@@ -88,18 +102,17 @@ class Test {
 
   *iterate(rec) {
     for (const params of this.cases || [null]) {
-      yield new RunCaseSpecific(rec, {
-        test: this.name,
-        params
-      }, this.fixture, this.fn);
+      yield new RunCaseSpecific(rec, this.name, params, this.fixture, this.fn);
     }
   }
 
 }
 
 class RunCaseSpecific {
-  constructor(recorder, id, fixture, fn) {
+  constructor(recorder, test, params, fixture, fn) {
     _defineProperty(this, "id", void 0);
+
+    _defineProperty(this, "params", void 0);
 
     _defineProperty(this, "recorder", void 0);
 
@@ -107,8 +120,12 @@ class RunCaseSpecific {
 
     _defineProperty(this, "fn", void 0);
 
+    this.id = {
+      test,
+      params: params ? extractPublicParams(params) : null
+    };
+    this.params = params;
     this.recorder = recorder;
-    this.id = id;
     this.fixture = fixture;
     this.fn = fn;
   }
@@ -118,16 +135,31 @@ class RunCaseSpecific {
     rec.start(debug);
 
     try {
-      const inst = new this.fixture(rec, this.id.params || {});
+      const inst = new this.fixture(rec, this.params || {});
       await inst.init();
-      await this.fn(inst);
+
+      try {
+        await this.fn(inst);
+      } catch (ex) {
+        // There was an exception from the test itself.
+        rec.threw(ex);
+      } // Runs as long as constructor and init succeeded, even if the test rejected.
+
+
       await inst.finalize();
-    } catch (e) {
-      rec.threw(e);
+    } catch (ex) {
+      // There was an exception from constructor, init, or finalize.
+      // (An error from finalize may have been an eventualAsyncExpectation failure.)
+      rec.threw(ex);
     }
 
     rec.finish();
     return res;
+  }
+
+  injectResult(result) {
+    const [, res] = this.recorder.record(this.id.test, this.id.params);
+    Object.assign(res, result);
   }
 
 }

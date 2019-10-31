@@ -114,7 +114,7 @@ g.test('vertex buffers inherit from previous pipeline', async t => {
     renderPass.setPipeline(pipeline1);
     renderPass.draw(3, 1, 0, 0);
     renderPass.endPass();
-    await t.expectValidationError(() => {
+    t.expectValidationError(() => {
       commandEncoder.finish();
     });
   }
@@ -174,7 +174,7 @@ g.test('vertex buffers do not inherit between render passes', async t => {
       renderPass.draw(3, 1, 0, 0);
       renderPass.endPass();
     }
-    await t.expectValidationError(() => {
+    t.expectValidationError(() => {
       commandEncoder.finish();
     });
   }

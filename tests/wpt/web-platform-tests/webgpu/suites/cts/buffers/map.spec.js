@@ -13,7 +13,7 @@ g.test('mapWriteAsync', async t => {
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.MAP_WRITE
   });
   const arrayBuffer = await buffer.mapWriteAsync();
-  await t.checkMapWrite(buffer, arrayBuffer, size);
+  t.checkMapWrite(buffer, arrayBuffer, size);
 }).params(poptions('size', [12, 512 * 1024]));
 g.test('mapReadAsync', async t => {
   const size = t.params.size;
@@ -38,16 +38,16 @@ g.test('createBufferMapped', async t => {
     size,
     usage: GPUBufferUsage.COPY_SRC | (t.params.mappable ? GPUBufferUsage.MAP_WRITE : 0)
   });
-  await t.checkMapWrite(buffer, arrayBuffer, size);
-}).params(pcombine([poptions('size', [12, 512 * 1024]), //
-pbool('mappable')]));
+  t.checkMapWrite(buffer, arrayBuffer, size);
+}).params(pcombine(poptions('size', [12, 512 * 1024]), //
+pbool('mappable')));
 g.test('createBufferMappedAsync', async t => {
   const size = t.params.size;
   const [buffer, arrayBuffer] = await t.device.createBufferMappedAsync({
     size,
     usage: GPUBufferUsage.COPY_SRC | (t.params.mappable ? GPUBufferUsage.MAP_WRITE : 0)
   });
-  await t.checkMapWrite(buffer, arrayBuffer, size);
-}).params(pcombine([poptions('size', [12, 512 * 1024]), //
-pbool('mappable')]));
+  t.checkMapWrite(buffer, arrayBuffer, size);
+}).params(pcombine(poptions('size', [12, 512 * 1024]), //
+pbool('mappable')));
 //# sourceMappingURL=map.spec.js.map

@@ -6,10 +6,13 @@ import { TestLoader } from '../framework/loader.js';
 import { Logger } from '../framework/logger.js';
 import { makeQueryString } from '../framework/url_query.js';
 import { AsyncMutex } from '../framework/util/async_mutex.js';
+import { optionEnabled } from './helper/options.js';
+import { TestWorker } from './helper/test_worker.js';
 
 (async () => {
   const loader = new TestLoader();
   const files = await loader.loadTestsFromQuery(window.location.search);
+  const worker = optionEnabled('worker') ? new TestWorker() : undefined;
   const log = new Logger();
   const mutex = new AsyncMutex();
   const running = [];
@@ -22,10 +25,19 @@ import { AsyncMutex } from '../framework/util/async_mutex.js';
     const [rec] = log.record(f.id);
 
     for (const t of f.spec.g.iterate(rec)) {
-      // Note: apparently, async_tests must ALL be added within the same task.
+      const name = makeQueryString(f.id, t.id); // Note: apparently, async_tests must ALL be added within the same task.
+
       async_test(function () {
         const p = mutex.with(async () => {
-          const r = await t.run();
+          let r;
+
+          if (worker) {
+            r = await worker.run(name);
+            t.injectResult(r);
+          } else {
+            r = await t.run();
+          }
+
           this.step(() => {
             if (r.status === 'fail') {
               throw (r.logs || []).join('\n');
@@ -35,7 +47,7 @@ import { AsyncMutex } from '../framework/util/async_mutex.js';
         });
         running.push(p);
         return p;
-      }, makeQueryString(f.id, t.id));
+      }, name);
     }
   }
 

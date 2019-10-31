@@ -98,7 +98,7 @@ g.test('it is invalid to draw in a render pass with missing bind groups', async 
   const {
     setBindGroup1,
     setBindGroup2,
-    success
+    _success
   } = t.params;
   const uniformBuffer = t.getUniformBuffer();
   const bindGroupLayout1 = t.device.createBindGroupLayout({
@@ -151,24 +151,24 @@ g.test('it is invalid to draw in a render pass with missing bind groups', async 
 
   renderPass.draw(3, 1, 0, 0);
   renderPass.endPass();
-  await t.expectValidationError(() => {
+  t.expectValidationError(() => {
     commandEncoder.finish();
-  }, !success);
+  }, !_success);
 }).params([{
   setBindGroup1: true,
   setBindGroup2: true,
-  success: true
+  _success: true
 }, {
   setBindGroup1: true,
   setBindGroup2: false,
-  success: false
+  _success: false
 }, {
   setBindGroup1: false,
   setBindGroup2: true,
-  success: false
+  _success: false
 }, {
   setBindGroup1: false,
   setBindGroup2: false,
-  success: false
+  _success: false
 }]);
 //# sourceMappingURL=render_pass.spec.js.map

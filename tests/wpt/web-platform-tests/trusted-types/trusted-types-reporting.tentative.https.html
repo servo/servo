@@ -180,18 +180,6 @@
   }, "Trusted Type violation report: sample for script innerText assignment");
 
   promise_test(t => {
-    let p = Promise.resolve()
-        .then(promise_violation("trusted-types one"))
-        .then(expect_blocked_uri("trusted-types-sink"))
-        .then(expect_sample("eval"))
-        .then(expect_sample("2+2"))
-        .then(promise_flush());
-    expect_throws(_ => eval("2+2"));
-    flush();
-    return p;
-  }, "Trusted Type violation report: sample for eval");
-
-  promise_test(t => {
     // We expect the sample string to always contain the name, and at least the
     // start of the value, but it should not be excessively long.
     let p = Promise.resolve()

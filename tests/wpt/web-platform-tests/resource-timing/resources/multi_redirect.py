@@ -1,8 +1,13 @@
 def main(request, response):
-    """Handler that causes multiple redirections.
-    The request has two mandatory and one optional query parameters:
+    """Handler that causes multiple redirections. Redirect chain is as follows:
+        1. Initial URL containing multi-redirect.py
+        2. Redirect to cross-origin URL
+        3. Redirect to same-origin URL
+        4. Final URL containing the final same-origin resource.
+    The request has three mandatory and one optional query parameters:
     page_origin - The page origin, used for redirection and to set TAO. This is a mandatory parameter.
     cross_origin - The cross origin used to make this a cross-origin redirect. This is a mandatory parameter.
+    final_resource - Path of the final resource, without origin. This is a mandatory parameter.
     timing_allow - Whether TAO should be set or not in the redirect chain. This is an optional parameter. Default: not set.
     Note that |step| is a parameter used internally for the multi-redirect. It's the step we're at in the redirect chain.
     """
@@ -16,6 +21,7 @@ def main(request, response):
     origin = request.url_parts.scheme + "://" + request.url_parts.hostname + ":" + str(request.url_parts.port)
     page_origin = request.GET.first("page_origin")
     cross_origin = request.GET.first("cross_origin")
+    final_resource = request.GET.first("final_resource")
     tao_steps = 0
     if "tao_steps" in request.GET:
         tao_steps = int(request.GET.first("tao_steps"))
@@ -27,6 +33,7 @@ def main(request, response):
     redirect_url_path = "/resource-timing/resources/multi_redirect.py?"
     redirect_url_path += "page_origin=" + page_origin
     redirect_url_path += "&cross_origin=" + cross_origin
+    redirect_url_path += "&final_resource=" + final_resource
     redirect_url_path += "&timing_allow=" + timing_allow
     redirect_url_path += "&tao_steps=" + str(next_tao_steps)
     redirect_url_path += "&step="
@@ -41,7 +48,7 @@ def main(request, response):
         redirect_url = page_origin + redirect_url_path + "3"
     else:
         # On the third request, redirect to a static response
-        redirect_url = page_origin + "/resource-timing/resources/blank-with-tao.html"
+        redirect_url = page_origin + final_resource
 
     response.status = 302
     response.headers.set("Location", redirect_url)

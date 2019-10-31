@@ -3,7 +3,7 @@
 **/
 
 export function attemptGarbageCollection() {
-  const w = window;
+  const w = self;
 
   if (w.GCController) {
     w.GCController.collect();

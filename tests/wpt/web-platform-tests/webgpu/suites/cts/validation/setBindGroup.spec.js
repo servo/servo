@@ -70,7 +70,7 @@ g.test('dynamic offsets passed but not expected/compute pass', async t => {
     type
   } = t.params;
   const dynamicOffsets = [0];
-  await t.expectValidationError(() => {
+  t.expectValidationError(() => {
     if (type === 'compute') {
       const encoder = t.device.createCommandEncoder();
       const computePass = encoder.beginComputePass();
@@ -148,9 +148,9 @@ g.test('dynamic offsets match expectations in pass encoder', async t => {
   const {
     type,
     dynamicOffsets,
-    success
+    _success
   } = t.params;
-  await t.expectValidationError(() => {
+  t.expectValidationError(() => {
     if (type === 'compute') {
       t.testComputePass(bindGroup, dynamicOffsets);
     } else if (type === 'renderpass') {
@@ -162,44 +162,44 @@ g.test('dynamic offsets match expectations in pass encoder', async t => {
     }
 
     t.testComputePass(bindGroup, dynamicOffsets);
-  }, !success);
-}).params(pcombine([poptions('type', ['compute', 'renderpass', 'renderbundle']), [{
+  }, !_success);
+}).params(pcombine(poptions('type', ['compute', 'renderpass', 'renderbundle']), [{
   dynamicOffsets: [256, 0],
-  success: true
+  _success: true
 }, // Dynamic offsets aligned
 {
   dynamicOffsets: [1, 2],
-  success: false
+  _success: false
 }, // Dynamic offsets not aligned
 // Wrong number of dynamic offsets
 {
   dynamicOffsets: [256, 0, 0],
-  success: false
+  _success: false
 }, {
   dynamicOffsets: [256],
-  success: false
+  _success: false
 }, {
   dynamicOffsets: [],
-  success: false
+  _success: false
 }, // Dynamic uniform buffer out of bounds because of binding size
 {
   dynamicOffsets: [512, 0],
-  success: false
+  _success: false
 }, {
   dynamicOffsets: [1024, 0],
-  success: false
+  _success: false
 }, {
   dynamicOffsets: [Number.MAX_SAFE_INTEGER, 0],
-  success: false
+  _success: false
 }, // Dynamic storage buffer out of bounds because of binding size
 {
   dynamicOffsets: [0, 512],
-  success: false
+  _success: false
 }, {
   dynamicOffsets: [0, 1024],
-  success: false
+  _success: false
 }, {
   dynamicOffsets: [0, Number.MAX_SAFE_INTEGER],
-  success: false
-}]])); // TODO: test error bind group
+  _success: false
+}])); // TODO: test error bind group
 //# sourceMappingURL=setBindGroup.spec.js.map

@@ -43,49 +43,49 @@ g.test('use of setScissorRect', async t => {
     y,
     width,
     height,
-    success
+    _success
   } = t.params;
   const commandEncoder = t.device.createCommandEncoder();
   const renderPass = t.beginRenderPass(commandEncoder);
   renderPass.setScissorRect(x, y, width, height);
   renderPass.endPass();
-  await t.expectValidationError(() => {
+  t.expectValidationError(() => {
     commandEncoder.finish();
-  }, !success);
+  }, !_success);
 }).params([{
   x: 0,
   y: 0,
   width: 1,
   height: 1,
-  success: true
+  _success: true
 }, // Basic use
 {
   x: 0,
   y: 0,
   width: 0,
   height: 1,
-  success: false
+  _success: false
 }, // Width of zero is not allowed
 {
   x: 0,
   y: 0,
   width: 1,
   height: 0,
-  success: false
+  _success: false
 }, // Height of zero is not allowed
 {
   x: 0,
   y: 0,
   width: 0,
   height: 0,
-  success: false
+  _success: false
 }, // Both width and height of zero are not allowed
 {
   x: 0,
   y: 0,
   width: TEXTURE_WIDTH + 1,
   height: TEXTURE_HEIGHT + 1,
-  success: true
+  _success: true
 } // Scissor larger than the framebuffer is allowed
 ]);
 //# sourceMappingURL=setScissorRect.spec.js.map

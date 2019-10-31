@@ -31,8 +31,6 @@ class ReferrerPolicyConfig(object):
         self.sanity_checker_js = '/referrer-policy/generic/sanity-checker.js'
         self.spec_json_js = '/referrer-policy/spec_json.js'
 
-        self.test_case_name = 'TestCase'
-
         script_directory = os.path.dirname(os.path.abspath(__file__))
         self.spec_directory = os.path.abspath(
             os.path.join(script_directory, '..', '..'))

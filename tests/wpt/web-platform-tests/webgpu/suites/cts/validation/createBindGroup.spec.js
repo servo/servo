@@ -93,7 +93,7 @@ g.test('binding count mismatch', async t => {
     }],
     layout: bindGroupLayout
   };
-  await t.expectValidationError(() => {
+  t.expectValidationError(() => {
     t.device.createBindGroup(badDescriptor);
   });
 });
@@ -127,7 +127,7 @@ g.test('binding must be present in layout', async t => {
     }],
     layout: bindGroupLayout
   };
-  await t.expectValidationError(() => {
+  t.expectValidationError(() => {
     t.device.createBindGroup(badDescriptor);
   });
 });
@@ -171,7 +171,7 @@ g.test('buffer binding must contain exactly one buffer of its type', async t => 
     shouldError = false;
   }
 
-  await t.expectValidationError(() => {
+  t.expectValidationError(() => {
     t.device.createBindGroup({
       bindings: [{
         binding: 0,
@@ -180,7 +180,7 @@ g.test('buffer binding must contain exactly one buffer of its type', async t => 
       layout: bindGroupLayout
     });
   }, shouldError);
-}).params(pcombine([poptions('bindingType', ['uniform-buffer', 'storage-buffer', 'readonly-storage-buffer', 'sampler', 'sampled-texture', 'storage-texture']), poptions('resourceType', ['error', 'uniform-buffer', 'storage-buffer', 'sampler', 'sampled-texture', 'storage-texture'])]));
+}).params(pcombine(poptions('bindingType', ['uniform-buffer', 'storage-buffer', 'readonly-storage-buffer', 'sampler', 'sampled-texture', 'storage-texture']), poptions('resourceType', ['error', 'uniform-buffer', 'storage-buffer', 'sampler', 'sampled-texture', 'storage-texture'])));
 g.test('texture binding must have correct usage', async t => {
   const {
     type
@@ -239,7 +239,7 @@ g.test('texture binding must have correct usage', async t => {
   for (const mismatchedTextureUsage of mismatchedTextureUsages()) {
     const badDescriptor = clone(goodDescriptor);
     badDescriptor.usage = mismatchedTextureUsage;
-    await t.expectValidationError(() => {
+    t.expectValidationError(() => {
       t.device.createBindGroup({
         bindings: [{
           binding: 0,
@@ -311,7 +311,7 @@ g.test('texture must have correct component type', async t => {
   for (const mismatchedTextureFormat of mismatchedTextureFormats()) {
     const badDescriptor = clone(goodDescriptor);
     badDescriptor.format = mismatchedTextureFormat;
-    await t.expectValidationError(() => {
+    t.expectValidationError(() => {
       t.device.createBindGroup({
         bindings: [{
           binding: 0,
@@ -353,7 +353,7 @@ g.test('texture must have correct dimension', async t => {
 
   const badDescriptor = clone(goodDescriptor);
   badDescriptor.arrayLayerCount = 2;
-  await t.expectValidationError(() => {
+  t.expectValidationError(() => {
     t.device.createBindGroup({
       bindings: [{
         binding: 0,
@@ -367,7 +367,7 @@ g.test('buffer offset and size for bind groups match', async t => {
   const {
     offset,
     size,
-    success
+    _success
   } = t.params;
   const bindGroupLayout = t.device.createBindGroupLayout({
     bindings: [{
@@ -392,86 +392,86 @@ g.test('buffer offset and size for bind groups match', async t => {
     layout: bindGroupLayout
   };
 
-  if (success) {
+  if (_success) {
     // Control case
     t.device.createBindGroup(descriptor);
   } else {
     // Buffer offset and/or size don't match in bind groups.
-    await t.expectValidationError(() => {
+    t.expectValidationError(() => {
       t.device.createBindGroup(descriptor);
     });
   }
 }).params([{
   offset: 0,
   size: 512,
-  success: true
+  _success: true
 }, // offset 0 is valid
 {
   offset: 256,
   size: 256,
-  success: true
+  _success: true
 }, // offset 256 (aligned) is valid
 // unaligned buffer offset is invalid
 {
   offset: 1,
   size: 256,
-  success: false
+  _success: false
 }, {
   offset: 1,
   size: undefined,
-  success: false
+  _success: false
 }, {
   offset: 128,
   size: 256,
-  success: false
+  _success: false
 }, {
   offset: 255,
   size: 256,
-  success: false
+  _success: false
 }, {
   offset: 0,
   size: 256,
-  success: true
+  _success: true
 }, // touching the start of the buffer works
 {
   offset: 256 * 3,
   size: 256,
-  success: true
+  _success: true
 }, // touching the end of the buffer works
 {
   offset: 1024,
   size: 0,
-  success: true
+  _success: true
 }, // touching the end of the buffer works
 {
   offset: 0,
   size: 1024,
-  success: true
+  _success: true
 }, // touching the full buffer works
 {
   offset: 0,
   size: undefined,
-  success: true
+  _success: true
 }, // touching the full buffer works
 {
   offset: 256 * 5,
   size: 0,
-  success: false
+  _success: false
 }, // offset is OOB
 {
   offset: 0,
   size: 256 * 5,
-  success: false
+  _success: false
 }, // size is OOB
 {
   offset: 1024,
   size: 1,
-  success: false
+  _success: false
 }, // offset+size is OOB
 {
   offset: 256,
   size: -256,
-  success: false
+  _success: false
 } // offset+size overflows to be 0
 ]);
 //# sourceMappingURL=createBindGroup.spec.js.map

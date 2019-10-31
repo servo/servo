@@ -70,18 +70,19 @@ export class GPUTest extends Fixture {
 
 
   expectContents(src, expected) {
-    return this.asyncExpectation(async () => {
-      const exp = new Uint8Array(expected.buffer, expected.byteOffset, expected.byteLength);
-      const size = expected.buffer.byteLength;
-      const dst = this.device.createBuffer({
-        size: expected.buffer.byteLength,
-        usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
-      });
-      const c = this.device.createCommandEncoder();
-      c.copyBufferToBuffer(src, 0, dst, 0, size);
-      this.queue.submit([c.finish()]);
+    const exp = new Uint8Array(expected.buffer, expected.byteOffset, expected.byteLength);
+    const size = expected.buffer.byteLength;
+    const dst = this.device.createBuffer({
+      size: expected.buffer.byteLength,
+      usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
+    });
+    const c = this.device.createCommandEncoder();
+    c.copyBufferToBuffer(src, 0, dst, 0, size);
+    this.queue.submit([c.finish()]);
+    this.eventualAsyncExpectation(async () => {
       const actual = new Uint8Array((await dst.mapReadAsync()));
       this.expectBuffer(actual, exp);
+      dst.destroy();
     });
   }
 

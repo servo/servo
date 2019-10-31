@@ -37,6 +37,7 @@
     let destUrl = pageOrigin + '/resource-timing/resources/multi_redirect.py?';
     destUrl += 'page_origin=' + pageOrigin;
     destUrl += '&cross_origin=' + crossOrigin;
+    destUrl += '&final_resource=' + "/resource-timing/resources/blank-with-tao.html";
     const frameContext = document.getElementById('frameContext');
     frameContext.onload = onload_test;
     frameContext.src = destUrl;

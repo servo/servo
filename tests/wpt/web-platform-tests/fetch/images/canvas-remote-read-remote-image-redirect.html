@@ -5,6 +5,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
 <script>
+setup({ single_test: true });
 var image = new Image();
 image.onload = function() {
     const canvas = document.createElement("canvas");

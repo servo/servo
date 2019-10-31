@@ -38,6 +38,7 @@
     destUrl += 'page_origin=' + pageOrigin;
     destUrl += '&timing_allow=1';
     destUrl += '&cross_origin=' + crossOrigin;
+    destUrl += '&final_resource=' + "/resource-timing/resources/blank-with-tao.html";
     destUrl += '&tao_steps=2';
     const frameContext = document.getElementById('frameContext');
     frameContext.onload = onload_test;

@@ -6,7 +6,7 @@ let _Symbol$iterator;
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
-export function pcombine(params) {
+export function pcombine(...params) {
   return new PCombine(params);
 }
 

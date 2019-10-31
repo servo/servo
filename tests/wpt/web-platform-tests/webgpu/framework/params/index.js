@@ -2,10 +2,11 @@
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/
 
+import { objectEquals } from '../util/index.js';
 export * from './combine.js';
+export * from './exclude.js';
 export * from './filter.js';
 export * from './options.js';
-export * from './exclude.js';
 export function paramsEquals(x, y) {
   if (x === y) {
     return true;
@@ -16,17 +17,17 @@ export function paramsEquals(x, y) {
   }
 
   for (const xk of Object.keys(x)) {
-    if (!y.hasOwnProperty(xk)) {
+    if (x[xk] !== undefined && !y.hasOwnProperty(xk)) {
       return false;
     }
 
-    if (x[xk] !== y[xk]) {
+    if (!objectEquals(x[xk], y[xk])) {
       return false;
     }
   }
 
   for (const yk of Object.keys(y)) {
-    if (!x.hasOwnProperty(yk)) {
+    if (y[yk] !== undefined && !x.hasOwnProperty(yk)) {
       return false;
     }
   }
