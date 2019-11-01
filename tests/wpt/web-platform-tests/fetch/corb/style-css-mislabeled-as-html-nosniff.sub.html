@@ -9,6 +9,7 @@
   - fetch/nosniff/stylesheet.html
 -->
 <meta charset="utf-8">
+<title>CSS is not applied (because of nosniff + non-text/css headers)</title>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 
@@ -31,11 +32,11 @@ h1 { color: green; }
 </body>
 
 <script>
-// Verify that CSS is not applied (because of nosniff + non-text/css headers).
-let style = getComputedStyle(document.getElementById('header'));
-const external_color = 'rgb(255, 0, 0)';  // red
-const default_color = 'rgb(0, 128, 0)';  // green
-assert_equals(style.getPropertyValue('color'), default_color);
-assert_not_equals(style.getPropertyValue('color'), external_color);
-done();
+test(() => {
+  let style = getComputedStyle(document.getElementById('header'));
+  const external_color = 'rgb(255, 0, 0)';  // red
+  const default_color = 'rgb(0, 128, 0)';  // green
+  assert_equals(style.getPropertyValue('color'), default_color);
+  assert_not_equals(style.getPropertyValue('color'), external_color);
+});
 </script>

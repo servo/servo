@@ -49,6 +49,13 @@ const NDEFReaderOptionTests =
     },
     {
       desc: "Test that reading data succeed when NDEFScanOptions'" +
+            " recordType is set to 'absolute-url'.",
+      scanOptions: {recordType: "absolute-url"},
+      unmatchedScanOptions: {recordType: "json"},
+      message: createMessage([createUrlRecord(test_url_data, true)])
+    },
+    {
+      desc: "Test that reading data succeed when NDEFScanOptions'" +
             " recordType is set to a custom type for external type records.",
       scanOptions: {recordType: "w3.org:xyz"},
       unmatchedScanOptions: {recordType: "opaque"},
@@ -107,6 +114,13 @@ const ReadMultiMessagesTests =
             " correctly with NDEFScanOptions' recordType is set to 'url'.",
       scanOptions: {recordType: "url"},
       message: createMessage([createUrlRecord(test_url_data)]),
+      unmatchedMessage: createMessage([createTextRecord(test_text_data)])
+    },
+    {
+      desc: "Test that filtering 'absolute-url' record from different messages" +
+            " correctly with NDEFScanOptions' recordType is set to 'absolute-url'.",
+      scanOptions: {recordType: "absolute-url"},
+      message: createMessage([createUrlRecord(test_url_data, true)]),
       unmatchedMessage: createMessage([createTextRecord(test_text_data)])
     },
     {

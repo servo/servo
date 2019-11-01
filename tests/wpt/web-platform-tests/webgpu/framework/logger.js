@@ -5,6 +5,7 @@
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 import { makeQueryString } from './url_query.js';
+import { extractPublicParams } from './url_query.js';
 import { getStackTrace, now } from './util/index.js';
 import { version } from './version.js';
 export class Logger {
@@ -39,7 +40,7 @@ export class TestSpecRecorder {
   record(test, params) {
     const result = {
       test,
-      params,
+      params: params ? extractPublicParams(params) : null,
       status: 'running',
       timems: -1
     };

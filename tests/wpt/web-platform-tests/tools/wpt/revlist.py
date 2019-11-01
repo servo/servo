@@ -50,18 +50,14 @@ def get_tagged_revisions(pattern):
         yield tag, commit, date
 
 
-def list_tagged_revisons(epoch, max_count):
+def get_epoch_revisions(epoch, until, max_count):
     # type: (**Any) -> List[Text]
-    logger.debug("list_tagged_revisons(%s, %s)" % (epoch, max_count))
+    logger.debug("get_epoch_revisions(%s, %s)" % (epoch, max_count))
     # Set an offset to start to count the the weekly epoch from
     # Monday 00:00:00. This is particularly important for the weekly epoch
     # because fix the start of the epoch to Monday. This offset is calculated
     # from Thursday, 1 January 1970 0:00:00 to Monday, 5 January 1970 0:00:00
     epoch_offset = 345600
-    # "epoch_threshold" set a safety margin after this time it is fine to
-    # consider that any tags are created and pushed.
-    epoch_threshold = 600
-    epoch_until = int(time.time()) - epoch_threshold
     count = 0
 
     # Iterates the tagged revisions in descending order finding the more
@@ -84,12 +80,12 @@ def list_tagged_revisons(epoch, max_count):
     #                                                      now
     # Expected result: N,M,K,J,H,G,F,C,A
 
-    cutoff_date = calculate_cutoff_date(epoch_until, epoch, epoch_offset)
+    cutoff_date = calculate_cutoff_date(until, epoch, epoch_offset)
     for _, commit, date in get_tagged_revisions("refs/tags/merge_pr_*"):
         if count >= max_count:
             return
         if date < cutoff_date:
-            print(commit)
+            yield commit
             count += 1
             cutoff_date = calculate_cutoff_date(date, epoch, epoch_offset)
 
@@ -115,4 +111,9 @@ def get_parser():
 
 def run_rev_list(**kwargs):
     # type: (**Any) -> None
-    list_tagged_revisons(kwargs["epoch"], kwargs["max_count"])
+    # "epoch_threshold" is a safety margin. After this time it is fine to
+    # assume that any tags are created and pushed.
+    epoch_threshold = 600
+    until = int(time.time()) - epoch_threshold
+    for line in get_epoch_revisions(kwargs["epoch"], until, kwargs["max_count"]):
+        print(line)

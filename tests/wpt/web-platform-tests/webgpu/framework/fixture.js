@@ -13,6 +13,8 @@ export class Fixture {
 
     _defineProperty(this, "rec", void 0);
 
+    _defineProperty(this, "eventualExpectations", []);
+
     _defineProperty(this, "numOutstandingAsyncExpectations", 0);
 
     this.rec = rec;
@@ -35,6 +37,8 @@ export class Fixture {
     if (this.numOutstandingAsyncExpectations !== 0) {
       throw new Error('there were outstanding asynchronous expectations (e.g. shouldReject) at the end of the test');
     }
+
+    await Promise.all(this.eventualExpectations);
   }
 
   warn(msg) {
@@ -45,16 +49,17 @@ export class Fixture {
     this.rec.fail(msg);
   }
 
-  ok(msg) {
-    const m = msg ? ': ' + msg : '';
-    this.log('OK' + m);
-  }
-
-  async asyncExpectation(fn) {
+  async immediateAsyncExpectation(fn) {
     this.numOutstandingAsyncExpectations++;
     const ret = await fn();
     this.numOutstandingAsyncExpectations--;
     return ret;
+  }
+
+  eventualAsyncExpectation(fn) {
+    const promise = fn();
+    this.eventualExpectations.push(promise);
+    return promise;
   }
 
   expectErrorValue(expectedName, ex, m) {
@@ -68,12 +73,12 @@ export class Fixture {
     if (actualName !== expectedName) {
       this.fail(`THREW ${actualName} INSTEAD OF ${expectedName}${m}`);
     } else {
-      this.ok(`threw ${actualName}${m}`);
+      this.debug(`OK: threw ${actualName}${m}`);
     }
   }
 
-  async shouldReject(expectedName, p, msg) {
-    this.asyncExpectation(async () => {
+  shouldReject(expectedName, p, msg) {
+    this.eventualAsyncExpectation(async () => {
       const m = msg ? ': ' + msg : '';
 
       try {
@@ -98,7 +103,8 @@ export class Fixture {
 
   expect(cond, msg) {
     if (cond) {
-      this.ok(msg);
+      const m = msg ? ': ' + msg : '';
+      this.debug('expect OK' + m);
     } else {
       this.rec.fail(msg);
     }

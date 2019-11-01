@@ -16,11 +16,11 @@ export const g = new TestGroup(ValidationTest);
 g.test('number of dynamic buffers exceeds the maximum value', async t => {
   const {
     type,
-    maxDynamicBufferCount
+    _expectedMaxDynamicBufferCount
   } = t.params;
   const maxDynamicBufferBindings = [];
 
-  for (let i = 0; i < maxDynamicBufferCount; i++) {
+  for (let i = 0; i < _expectedMaxDynamicBufferCount; i++) {
     maxDynamicBufferBindings.push({
       binding: i,
       visibility: GPUShaderStage.COMPUTE,
@@ -51,15 +51,15 @@ g.test('number of dynamic buffers exceeds the maximum value', async t => {
   const badPipelineLayoutDescriptor = {
     bindGroupLayouts: [maxDynamicBufferBindGroupLayout, t.device.createBindGroupLayout(badDescriptor)]
   };
-  await t.expectValidationError(() => {
+  t.expectValidationError(() => {
     t.device.createPipelineLayout(badPipelineLayoutDescriptor);
   });
 }).params([{
   type: 'storage-buffer',
-  maxDynamicBufferCount: 4
+  _expectedMaxDynamicBufferCount: 4
 }, {
   type: 'uniform-buffer',
-  maxDynamicBufferCount: 8
+  _expectedMaxDynamicBufferCount: 8
 }]);
 g.test('number of bind group layouts exceeds the maximum value', async t => {
   const {
@@ -83,7 +83,7 @@ g.test('number of bind group layouts exceeds the maximum value', async t => {
   const badPipelineLayoutDescriptor = {
     bindGroupLayouts: [...maxBindGroupLayouts, t.device.createBindGroupLayout(bindGroupLayoutDescriptor)]
   };
-  await t.expectValidationError(() => {
+  t.expectValidationError(() => {
     t.device.createPipelineLayout(badPipelineLayoutDescriptor);
   });
 }).params(poptions('type', ['storage-buffer', 'uniform-buffer']));

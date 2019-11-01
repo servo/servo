@@ -30,7 +30,7 @@ g.test('some binding index was specified more than once', async t => {
   const badDescriptor = clone(goodDescriptor);
   badDescriptor.bindings[1].binding = 0; // Binding index 0 can't be specified twice.
 
-  await t.expectValidationError(() => {
+  t.expectValidationError(() => {
     t.device.createBindGroupLayout(badDescriptor);
   });
 });
@@ -47,7 +47,7 @@ g.test('negative binding index', async t => {
 
   const badDescriptor = clone(goodDescriptor);
   badDescriptor.bindings[0].binding = -1;
-  await t.expectValidationError(() => {
+  t.expectValidationError(() => {
     t.device.createBindGroupLayout(badDescriptor);
   });
 });
@@ -90,7 +90,7 @@ g.test('number of dynamic buffers exceeds the maximum value', async t => {
 
   const badDescriptor = clone(goodDescriptor);
   badDescriptor.bindings[maxDynamicBufferCount].hasDynamicOffset = true;
-  await t.expectValidationError(() => {
+  t.expectValidationError(() => {
     t.device.createBindGroupLayout(badDescriptor);
   });
 }).params([{
@@ -103,7 +103,7 @@ g.test('number of dynamic buffers exceeds the maximum value', async t => {
 g.test('dynamic set to true is allowed only for buffers', async t => {
   const {
     type,
-    success
+    _success
   } = t.params;
   const descriptor = {
     bindings: [{
@@ -114,32 +114,32 @@ g.test('dynamic set to true is allowed only for buffers', async t => {
     }]
   };
 
-  if (success) {
+  if (_success) {
     // Control case
     t.device.createBindGroupLayout(descriptor);
   } else {
     // Dynamic set to true is not allowed in some cases.
-    await t.expectValidationError(() => {
+    t.expectValidationError(() => {
       t.device.createBindGroupLayout(descriptor);
     });
   }
 }).params([{
   type: 'uniform-buffer',
-  success: true
+  _success: true
 }, {
   type: 'storage-buffer',
-  success: true
+  _success: true
 }, {
   type: 'readonly-storage-buffer',
-  success: true
+  _success: true
 }, {
   type: 'sampler',
-  success: false
+  _success: false
 }, {
   type: 'sampled-texture',
-  success: false
+  _success: false
 }, {
   type: 'storage-texture',
-  success: false
+  _success: false
 }]);
 //# sourceMappingURL=createBindGroupLayout.spec.js.map

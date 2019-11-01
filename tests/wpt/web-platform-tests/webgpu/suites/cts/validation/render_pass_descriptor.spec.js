@@ -61,7 +61,7 @@ class F extends ValidationTest {
     const commandEncoder = this.device.createCommandEncoder();
     const renderPass = commandEncoder.beginRenderPass(descriptor);
     renderPass.endPass();
-    await this.expectValidationError(() => {
+    this.expectValidationError(() => {
       commandEncoder.finish();
     }, !success);
   }
@@ -91,7 +91,7 @@ g.test('a render pass with only one depth attachment is ok', t => {
 g.test('OOB color attachment indices are handled', async t => {
   const {
     colorAttachmentsCount,
-    success
+    _success
   } = t.params;
   const colorAttachments = [];
 
@@ -100,16 +100,16 @@ g.test('OOB color attachment indices are handled', async t => {
     colorAttachments.push(t.getColorAttachment(colorTexture));
   }
 
-  await t.tryRenderPass(success, {
+  await t.tryRenderPass(_success, {
     colorAttachments
   });
 }).params([{
   colorAttachmentsCount: 4,
-  success: true
+  _success: true
 }, // Control case
 {
   colorAttachmentsCount: 5,
-  success: false
+  _success: false
 } // Out of bounds
 ]);
 g.test('attachments must have the same size', async t => {
@@ -189,7 +189,7 @@ g.test('check layer count for color or depth stencil', async t => {
   const {
     arrayLayerCount,
     baseArrayLayer,
-    success
+    _success
   } = t.params;
   const ARRAY_LAYER_COUNT = 10;
   const MIP_LEVEL_COUNT = 1;
@@ -224,7 +224,7 @@ g.test('check layer count for color or depth stencil', async t => {
     const descriptor = {
       colorAttachments: [t.getColorAttachment(colorTexture, textureViewDescriptor)]
     };
-    await t.tryRenderPass(success, descriptor);
+    await t.tryRenderPass(_success, descriptor);
   }
   {
     // Check 2D array texture view for depth stencil
@@ -235,29 +235,29 @@ g.test('check layer count for color or depth stencil', async t => {
       colorAttachments: [],
       depthStencilAttachment: t.getDepthStencilAttachment(depthStencilTexture, textureViewDescriptor)
     };
-    await t.tryRenderPass(success, descriptor);
+    await t.tryRenderPass(_success, descriptor);
   }
 }).params([{
   arrayLayerCount: 5,
   baseArrayLayer: 0,
-  success: false
+  _success: false
 }, // using 2D array texture view with arrayLayerCount > 1 is not allowed
 {
   arrayLayerCount: 1,
   baseArrayLayer: 0,
-  success: true
+  _success: true
 }, // using 2D array texture view that covers the first layer of the texture is OK
 {
   arrayLayerCount: 1,
   baseArrayLayer: 9,
-  success: true
+  _success: true
 } // using 2D array texture view that covers the last layer is OK for depth stencil
 ]);
 g.test('check mip level count for color or depth stencil', async t => {
   const {
     mipLevelCount,
     baseMipLevel,
-    success
+    _success
   } = t.params;
   const ARRAY_LAYER_COUNT = 1;
   const MIP_LEVEL_COUNT = 4;
@@ -292,7 +292,7 @@ g.test('check mip level count for color or depth stencil', async t => {
     const descriptor = {
       colorAttachments: [t.getColorAttachment(colorTexture, textureViewDescriptor)]
     };
-    await t.tryRenderPass(success, descriptor);
+    await t.tryRenderPass(_success, descriptor);
   }
   {
     // Check 2D texture view for depth stencil
@@ -303,22 +303,22 @@ g.test('check mip level count for color or depth stencil', async t => {
       colorAttachments: [],
       depthStencilAttachment: t.getDepthStencilAttachment(depthStencilTexture, textureViewDescriptor)
     };
-    await t.tryRenderPass(success, descriptor);
+    await t.tryRenderPass(_success, descriptor);
   }
 }).params([{
   mipLevelCount: 2,
   baseMipLevel: 0,
-  success: false
+  _success: false
 }, // using 2D texture view with mipLevelCount > 1 is not allowed
 {
   mipLevelCount: 1,
   baseMipLevel: 0,
-  success: true
+  _success: true
 }, // using 2D texture view that covers the first level of the texture is OK
 {
   mipLevelCount: 1,
   baseMipLevel: 3,
-  success: true
+  _success: true
 } // using 2D texture view that covers the last level of the texture is OK
 ]);
 g.test('it is invalid to set resolve target if color attachment is non multisampled', async t => {
@@ -429,7 +429,7 @@ g.test('it is invalid to use a resolve target in error state', async t => {
     arrayLayerCount: ARRAY_LAYER_COUNT
   });
   const colorAttachment = t.getColorAttachment(multisampledColorTexture);
-  await t.expectValidationError(() => {
+  t.expectValidationError(() => {
     colorAttachment.resolveTarget = resolveTargetTexture.createView({
       dimension: '2d',
       format: 'rgba8unorm',

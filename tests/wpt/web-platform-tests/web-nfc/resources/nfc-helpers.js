@@ -84,19 +84,23 @@ function createMessage(records) {
   }
 }
 
-function createRecord(recordType, mediaType, data) {
+function createRecord(recordType, mediaType, data, encoding, lang) {
   let record = {};
   if (recordType !== undefined)
     record.recordType = recordType;
   if (mediaType !== undefined)
     record.mediaType = mediaType;
+  if (encoding !== undefined)
+    record.encoding = encoding;
+  if (lang !== undefined)
+    record.lang = lang;
   if (data !== undefined)
     record.data = data;
   return record;
 }
 
-function createTextRecord(text) {
-  return createRecord('text', 'text/plain', text);
+function createTextRecord(data, encoding, lang) {
+  return createRecord('text', 'text/plain', data, encoding, lang);
 }
 
 function createJsonRecord(json) {
@@ -107,7 +111,10 @@ function createOpaqueRecord(buffer) {
   return createRecord('opaque', 'application/octet-stream', buffer);
 }
 
-function createUrlRecord(url) {
+function createUrlRecord(url, isAbsUrl) {
+  if (isAbsUrl) {
+    return createRecord('absolute-url', 'text/plain', url);
+  }
   return createRecord('url', 'text/plain', url);
 }
 

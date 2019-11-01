@@ -69,7 +69,7 @@ g.test('create mapped', async t => {
   if (t.params.destroy) buffer.destroy();
   t.expect(arrayBuffer.byteLength === 0, 'ArrayBuffer should be detached');
   t.expect(view.byteLength === 0, 'ArrayBufferView should be detached');
-}).params(pcombine([pbool('async'), //
+}).params(pcombine(pbool('async'), //
 [{
   unmap: true,
   destroy: false
@@ -79,5 +79,5 @@ g.test('create mapped', async t => {
 }, {
   unmap: true,
   destroy: true
-}]]));
+}]));
 //# sourceMappingURL=map_detach.spec.js.map

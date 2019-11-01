@@ -4,6 +4,8 @@
 
 export const description = `
 Examples of writing CTS tests with various features.
+
+Start here when looking for examples of basic framework usage.
 `;
 import { TestGroup } from '../../framework/index.js';
 import { GPUTest } from './gpu_test.js'; // To run these tests in the standalone runner, run `grunt build` or `grunt pre` then open:
@@ -16,7 +18,9 @@ import { GPUTest } from './gpu_test.js'; // To run these tests in the standalone
 // - ?q=cts:examples:basic/
 // - ?q=cts:examples:
 
-export const g = new TestGroup(GPUTest);
+export const g = new TestGroup(GPUTest); // Note: spaces in test names are replaced with underscores: cts:examples:test_name=
+
+g.test('test name', t => {});
 g.test('basic', t => {
   t.expect(true);
   t.expect(true, 'true should be true');
@@ -29,27 +33,35 @@ g.test('basic', t => {
 });
 g.test('basic/async', async t => {
   // shouldReject must be awaited to ensure it can wait for the promise before the test ends.
-  await t.shouldReject( // The expected '.name' of the thrown error.
+  t.shouldReject( // The expected '.name' of the thrown error.
   'TypeError', // Promise expected to reject.
   Promise.reject(new TypeError()), // Log message.
   'Promise.reject should reject'); // Promise can also be an IIFE.
 
-  await t.shouldReject('TypeError', (async () => {
+  t.shouldReject('TypeError', (async () => {
     throw new TypeError();
   })(), 'Promise.reject should reject');
-});
+}); // A test can be parameterized with a simple array of objects.
+//
+// Parameters can be public (x, y) which means they're part of the case name.
+// They can also be private by starting with an underscore (_result), which passes
+// them into the test but does not make them part of the case name:
+//
+// - cts:examples:basic/params={"x":2,"y":4}    runs with t.params = {x: 2, y: 5, _result: 6}.
+// - cts:examples:basic/params={"x":-10,"y":18} runs with t.params = {x: -10, y: 18, _result: 8}.
+
 g.test('basic/params', t => {
-  t.expect(t.params.x + t.params.y === t.params.result);
+  t.expect(t.params.x + t.params.y === t.params._result);
 }).params([{
   x: 2,
   y: 4,
-  result: 6
+  _result: 6
 }, //
 {
   x: -10,
   y: 18,
-  result: 8
-}]); // (note blank comment above to enforce newlines on autoformat)
+  _result: 8
+}]); // (note the blank comment above to enforce newlines on autoformat)
 
 g.test('gpu/async', async t => {
   const fence = t.queue.createFence();
@@ -67,6 +79,6 @@ g.test('gpu/buffers', async t => {
   src.unmap(); // Use the expectContents helper to check the actual contents of a GPUBuffer.
   // Like shouldReject, it must be awaited.
 
-  await t.expectContents(src, data);
+  t.expectContents(src, data);
 });
 //# sourceMappingURL=examples.spec.js.map

@@ -16,18 +16,18 @@ function getBufferDesc() {
 export const g = new TestGroup(GPUTest);
 g.test('mapWriteAsync', async t => {
   const buffer = t.device.createBuffer(getBufferDesc());
-  await t.shouldReject('RangeError', buffer.mapWriteAsync());
+  t.shouldReject('RangeError', buffer.mapWriteAsync());
 });
 g.test('mapReadAsync', async t => {
   const buffer = t.device.createBuffer(getBufferDesc());
-  await t.shouldReject('RangeError', buffer.mapReadAsync());
+  t.shouldReject('RangeError', buffer.mapReadAsync());
 });
 g.test('createBufferMapped', async t => {
-  await t.shouldThrow('RangeError', () => {
+  t.shouldThrow('RangeError', () => {
     t.device.createBufferMapped(getBufferDesc());
   });
 });
 g.test('createBufferAsync', async t => {
-  await t.shouldReject('RangeError', t.device.createBufferMappedAsync(getBufferDesc()));
+  t.shouldReject('RangeError', t.device.createBufferMappedAsync(getBufferDesc()));
 });
 //# sourceMappingURL=map_oom.spec.js.map

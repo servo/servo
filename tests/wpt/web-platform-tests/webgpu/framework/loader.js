@@ -38,9 +38,7 @@ export class TestLoader {
 
 
   async loadTestsFromCmdLine(filters) {
-    // In actual URL queries (?q=...), + represents a space. But decodeURIComponent doesn't do this,
-    // so do it manually. (+ is used over %20 for readability.) (See also encodeSelectively.)
-    return this.loadTests(filters.map(f => decodeURIComponent(f.replace(/\+/g, '%20'))));
+    return this.loadTests(filters);
   }
 
   async loadTests(filters) {

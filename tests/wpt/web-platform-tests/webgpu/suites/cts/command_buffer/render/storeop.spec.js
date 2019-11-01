@@ -100,14 +100,14 @@ g.test('storeOp controls whether 1x1 drawn quad is stored', async t => {
   });
   t.device.getQueue().submit([encoder.finish()]); // expect the buffer to be clear
 
-  const expectedContent = new Uint32Array([t.params.expected]);
-  await t.expectContents(dstBuffer, expectedContent);
+  const expectedContent = new Uint32Array([t.params._expected]);
+  t.expectContents(dstBuffer, expectedContent);
 }).params([{
   storeOp: 'store',
-  expected: 255
+  _expected: 255
 }, //
 {
   storeOp: 'clear',
-  expected: 0
+  _expected: 0
 }]);
 //# sourceMappingURL=storeop.spec.js.map

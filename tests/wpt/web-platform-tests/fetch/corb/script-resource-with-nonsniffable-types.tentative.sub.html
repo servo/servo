@@ -14,7 +14,7 @@
 <script src="/common/utils.js"></script>
 <div id=log></div>
 <script>
-setup({allow_uncaught_exception : true});
+setup({allow_uncaught_exception : true, single_test : true});
 
 function test(mime_type, is_blocking_expected) {
   var action = is_blocking_expected ? "blocks" : "does not block";

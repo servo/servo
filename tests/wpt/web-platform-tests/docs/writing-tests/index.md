@@ -1,7 +1,10 @@
 # Writing Tests
 
-If you haven't already, it's strongly recommended to read
-the [introduction](../index) first, as it introduces the various test types.
+So you'd like to write new tests for WPT? Great! For starters, we recommend
+reading [the introduction](../index) to learn how the tests are organized and
+interpreted. You might already have an idea about what needs testing, but it's
+okay if you don't know where to begin. In either case, [the guide on making a
+testing plan](making-a-testing-plan) will help you decide what to write.
 
 There's also a load of [general guidelines](general-guidelines) that apply to all tests.
 
@@ -17,6 +20,7 @@ There's also a load of [general guidelines](general-guidelines) that apply to al
    file-names
    h2tests
    lint-tool
+   making-a-testing-plan
    manual
    reftest-tutorial
    reftests

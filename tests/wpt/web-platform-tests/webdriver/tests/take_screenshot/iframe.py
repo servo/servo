@@ -18,7 +18,7 @@ DEFAULT_CSS_STYLE = """
     </style>
 """
 
-DEFAULT_CONTENT = "<div>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>"
+DEFAULT_CONTENT = "<div>Lorem ipsum dolor sit amet.</div>"
 
 
 def take_screenshot(session):

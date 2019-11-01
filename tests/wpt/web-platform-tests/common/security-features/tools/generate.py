@@ -165,22 +165,14 @@ def generate_selection(spec_json, config, selection, spec,
             ['supported_delivery_type'][selection['subresource']])
 
     # We process the top source context below, and do not include it in
-    # `test_parameters` in JavaScript.
+    # `scenario` field in JavaScript.
     top_source_context = selection['source_context_list'].pop(0)
     assert (top_source_context.source_context_type == 'top')
 
-    test_parameters = dump_test_parameters(selection)
     # Adjust the template for the test invoking JS. Indent it to look nice.
     indent = "\n" + " " * 8
-    test_parameters = test_parameters.replace("\n", indent)
-
-    selection['test_js'] = '''
-      %s(
-        %s,
-        document.querySelector("meta[name=assert]").content,
-        new SanityChecker()
-      ).start();
-      ''' % (config.test_case_name, test_parameters)
+    selection['scenario'] = dump_test_parameters(selection).replace(
+        "\n", indent)
 
     selection['spec_name'] = spec['name']
     selection[
