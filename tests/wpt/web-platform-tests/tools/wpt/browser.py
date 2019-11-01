@@ -874,10 +874,12 @@ class EdgeChromium(Browser):
         if os.path.isfile(edgedriver_path):
             # remove read-only attribute
             os.chmod(edgedriver_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)  # 0777
+            print("Delete %s file" % edgedriver_path)
             os.remove(edgedriver_path)
-            driver_notes_path = os.path.join(dest, "Driver_notes")
-            if os.path.isdir(driver_notes_path):
-                shutil.rmtree(driver_notes_path, ignore_errors=False, onerror=handle_remove_readonly)
+        driver_notes_path = os.path.join(dest, "Driver_notes")
+        if os.path.isdir(driver_notes_path):
+            print("Delete %s folder" % driver_notes_path)
+            shutil.rmtree(driver_notes_path, ignore_errors=False, onerror=handle_remove_readonly)
 
         self.logger.info("Downloading MSEdgeDriver from %s" % url)
         unzip(get(url).raw, dest)

@@ -1,0 +1,142 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+"use strict";
+
+const kSmallTimeoutMs = 10;
+
+promise_test(async t => {
+  const offerer = new RTCPeerConnection();
+  t.add_cleanup(() => offerer.close());
+
+  const signalingStateChangeEvent
+      = new EventWatcher(t, offerer, 'signalingstatechange')
+      .wait_for('signalingstatechange');
+  await offerer.setLocalDescription();
+  await signalingStateChangeEvent;
+  assert_equals(offerer.signalingState, 'have-local-offer');
+}, "Parameterless SLD() in 'stable' goes to 'have-local-offer'");
+
+promise_test(async t => {
+  const offerer = new RTCPeerConnection();
+  t.add_cleanup(() => offerer.close());
+
+  await offerer.setLocalDescription();
+  assert_not_equals(offerer.pendingLocalDescription, null);
+}, "Parameterless SLD() in 'stable' sets pendingLocalDescription");
+
+promise_test(async t => {
+  const offerer = new RTCPeerConnection();
+  t.add_cleanup(() => offerer.close());
+
+  const transceiver = offerer.addTransceiver('audio');
+  await offerer.setLocalDescription();
+  assert_not_equals(transceiver.mid, null);
+}, "Parameterless SLD() in 'stable' assigns transceiver.mid");
+
+promise_test(async t => {
+  const offerer = new RTCPeerConnection();
+  t.add_cleanup(() => offerer.close());
+  const answerer = new RTCPeerConnection();
+  t.add_cleanup(() => answerer.close());
+
+  await answerer.setRemoteDescription(await offerer.createOffer());
+  const signalingStateChangeEvent
+      = new EventWatcher(t, answerer, 'signalingstatechange')
+      .wait_for('signalingstatechange');
+  await answerer.setLocalDescription();
+  await signalingStateChangeEvent;
+  assert_equals(answerer.signalingState, 'stable');
+}, "Parameterless SLD() in 'have-remote-offer' goes to 'stable'");
+
+promise_test(async t => {
+  const offerer = new RTCPeerConnection();
+  t.add_cleanup(() => offerer.close());
+  const answerer = new RTCPeerConnection();
+  t.add_cleanup(() => answerer.close());
+
+  await answerer.setRemoteDescription(await offerer.createOffer());
+  await answerer.setLocalDescription();
+  assert_not_equals(answerer.currentLocalDescription, null);
+}, "Parameterless SLD() in 'have-remote-offer' sets currentLocalDescription");
+
+promise_test(async t => {
+  const offerer = new RTCPeerConnection();
+  t.add_cleanup(() => offerer.close());
+  const answerer = new RTCPeerConnection();
+  t.add_cleanup(() => answerer.close());
+
+  offerer.addTransceiver('audio');
+  const onTransceiverPromise = new Promise(resolve =>
+      answerer.ontrack = e => resolve(e.transceiver));
+  await answerer.setRemoteDescription(await offerer.createOffer());
+  const transceiver = await onTransceiverPromise;
+  await answerer.setLocalDescription();
+  assert_equals(transceiver.currentDirection, 'recvonly');
+}, "Parameterless SLD() in 'have-remote-offer' sets " +
+   "transceiver.currentDirection");
+
+promise_test(async t => {
+  const offerer = new RTCPeerConnection();
+  t.add_cleanup(() => offerer.close());
+
+  const offer = await offerer.createOffer();
+  await offerer.setLocalDescription();
+  // assert_true() is used rather than assert_equals() so that if the assertion
+  // fails, the -expected.txt file is not different on each run.
+  assert_true(offerer.pendingLocalDescription.sdp == offer.sdp,
+              "offerer.pendingLocalDescription.sdp == offer.sdp");
+}, "Parameterless SLD() uses [[LastCreatedOffer]] if it is still valid");
+
+promise_test(async t => {
+  const offerer = new RTCPeerConnection();
+  t.add_cleanup(() => offerer.close());
+  const answerer = new RTCPeerConnection();
+  t.add_cleanup(() => answerer.close());
+
+  await answerer.setRemoteDescription(await offerer.createOffer());
+  const answer = await answerer.createAnswer();
+  await answerer.setLocalDescription();
+  // assert_true() is used rather than assert_equals() so that if the assertion
+  // fails, the -expected.txt file is not different on each run.
+  assert_true(answerer.currentLocalDescription.sdp == answer.sdp,
+              "answerer.currentLocalDescription.sdp == answer.sdp");
+}, "Parameterless SLD() uses [[LastCreatedAnswer]] if it is still valid");
+
+promise_test(async t => {
+  const offerer = new RTCPeerConnection();
+  offerer.close();
+
+  offerer.setLocalDescription().then(t.step_func(() => assert_not_reached()));
+  await new Promise(resolve => t.step_timeout(resolve, kSmallTimeoutMs));
+}, "Parameterless SLD() never resolves if already closed");
+
+promise_test(async t => {
+  const offerer = new RTCPeerConnection();
+  t.add_cleanup(() => offerer.close());
+
+  offerer.setLocalDescription().then(t.step_func(() => assert_not_reached()));
+  offerer.close();
+  await new Promise(resolve => t.step_timeout(resolve, kSmallTimeoutMs));
+}, "Parameterless SLD() never resolves if closed while pending");
+
+
+promise_test(async t => {
+  const offerer = new RTCPeerConnection();
+  t.add_cleanup(() => offerer.close());
+  const answerer = new RTCPeerConnection();
+  t.add_cleanup(() => answerer.close());
+
+  // Implicitly create an offer.
+  await offerer.setLocalDescription();
+  await answerer.setRemoteDescription(offerer.pendingLocalDescription);
+  // Implicitly create an answer.
+  await answerer.setLocalDescription();
+  await offerer.setRemoteDescription(answerer.currentLocalDescription);
+}, "Parameterless SLD() in a full O/A exchange succeeds");
+
+</script>
