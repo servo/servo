@@ -560,6 +560,14 @@ pub extern "C" fn pinchzoom_end(factor: f32, x: i32, y: i32) {
 }
 
 #[no_mangle]
+pub extern "C" fn mouse_move(x: f32, y: f32) {
+    catch_any_panic(|| {
+        debug!("mouse_move");
+        call(|s| s.mouse_move(x, y));
+    });
+}
+
+#[no_mangle]
 pub extern "C" fn mouse_down(x: f32, y: f32, button: CMouseButton) {
     catch_any_panic(|| {
         debug!("mouse_down");
