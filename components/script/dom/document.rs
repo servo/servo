@@ -98,6 +98,7 @@ use crate::dom::treewalker::TreeWalker;
 use crate::dom::uievent::UIEvent;
 use crate::dom::virtualmethods::vtable_for;
 use crate::dom::webglcontextevent::WebGLContextEvent;
+use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::wheelevent::WheelEvent;
 use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::WindowProxy;
@@ -109,7 +110,7 @@ use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
-use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
+use canvas_traits::webgl::{self, SwapChainId, WebGLContextId, WebGLMsg};
 use content_security_policy::{self as csp, CspList};
 use cookie::Cookie;
 use devtools_traits::ScriptToDevtoolsControlMsg;
@@ -399,7 +400,7 @@ pub struct Document {
     /// hosting the media controls UI.
     media_controls: DomRefCell<HashMap<String, Dom<ShadowRoot>>>,
     /// List of all WebGL context IDs that need flushing.
-    dirty_webgl_contexts: DomRefCell<HashSet<WebGLContextId>>,
+    dirty_webgl_contexts: DomRefCell<HashMap<WebGLContextId, Dom<WebGLRenderingContext>>>,
     /// https://html.spec.whatwg.org/multipage/#concept-document-csp-list
     #[ignore_malloc_size_of = "Defined in rust-content-security-policy"]
     csp_list: DomRefCell<Option<CspList>>,
@@ -2486,15 +2487,26 @@ impl Document {
         }
     }
 
-    pub fn add_dirty_canvas(&self, context_id: WebGLContextId) {
-        self.dirty_webgl_contexts.borrow_mut().insert(context_id);
+    pub fn add_dirty_canvas(&self, context: &WebGLRenderingContext) {
+        self.dirty_webgl_contexts
+            .borrow_mut()
+            .entry(context.context_id())
+            .or_insert_with(|| Dom::from_ref(context));
     }
 
     pub fn flush_dirty_canvases(&self) {
-        let dirty_context_ids: Vec<_> = self.dirty_webgl_contexts.borrow_mut().drain().collect();
+        let dirty_context_ids: Vec<_> = self
+            .dirty_webgl_contexts
+            .borrow_mut()
+            .drain()
+            .filter(|(_, context)| context.onscreen())
+            .map(|(id, _)| SwapChainId::Context(id))
+            .collect();
+
         if dirty_context_ids.is_empty() {
             return;
         }
+
         let (sender, receiver) = webgl::webgl_channel().unwrap();
         self.window
             .webgl_chan()
@@ -2797,7 +2809,7 @@ impl Document {
             shadow_roots: DomRefCell::new(HashSet::new()),
             shadow_roots_styles_changed: Cell::new(false),
             media_controls: DomRefCell::new(HashMap::new()),
-            dirty_webgl_contexts: DomRefCell::new(HashSet::new()),
+            dirty_webgl_contexts: DomRefCell::new(HashMap::new()),
             csp_list: DomRefCell::new(None),
         }
     }

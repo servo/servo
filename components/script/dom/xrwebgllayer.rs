@@ -2,27 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerInit;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::webgl_validations::types::TexImageTarget;
 use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::window::Window;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrview::XRView;
 use crate::dom::xrviewport::XRViewport;
+use canvas_traits::webgl::WebGLFramebufferId;
 use dom_struct::dom_struct;
-use js::rust::CustomAutoRooter;
 use std::convert::TryInto;
+use webxr_api::SwapChainId as WebXRSwapChainId;
 use webxr_api::Views;
 
 #[dom_struct]
@@ -32,6 +31,8 @@ pub struct XRWebGLLayer {
     depth: bool,
     stencil: bool,
     alpha: bool,
+    #[ignore_malloc_size_of = "ids don't malloc"]
+    swap_chain_id: WebXRSwapChainId,
     context: Dom<WebGLRenderingContext>,
     session: Dom<XRSession>,
     framebuffer: Dom<WebGLFramebuffer>,
@@ -39,6 +40,7 @@ pub struct XRWebGLLayer {
 
 impl XRWebGLLayer {
     pub fn new_inherited(
+        swap_chain_id: WebXRSwapChainId,
         session: &XRSession,
         context: &WebGLRenderingContext,
         init: &XRWebGLLayerInit,
@@ -50,6 +52,7 @@ impl XRWebGLLayer {
             depth: init.depth,
             stencil: init.stencil,
             alpha: init.alpha,
+            swap_chain_id,
             context: Dom::from_ref(context),
             session: Dom::from_ref(session),
             framebuffer: Dom::from_ref(framebuffer),
@@ -58,6 +61,7 @@ impl XRWebGLLayer {
 
     pub fn new(
         global: &GlobalScope,
+        swap_chain_id: WebXRSwapChainId,
         session: &XRSession,
         context: &WebGLRenderingContext,
         init: &XRWebGLLayerInit,
@@ -65,6 +69,7 @@ impl XRWebGLLayer {
     ) -> DomRoot<XRWebGLLayer> {
         reflect_dom_object(
             Box::new(XRWebGLLayer::new_inherited(
+                swap_chain_id,
                 session,
                 context,
                 init,
@@ -89,108 +94,16 @@ impl XRWebGLLayer {
         // XXXManishearth step 3: throw error if context is lost
         // XXXManishearth step 4: check XR compat flag for immersive sessions
 
-        let cx = global.get_cx();
-        let old_fbo = context.bound_framebuffer();
-        let old_rbo = context.bound_renderbuffer();
-        let old_texture = context
-            .textures()
-            .active_texture_for_image_target(TexImageTarget::Texture2D);
-
-        // Step 9.2. "Initialize layer’s framebuffer to a new opaque framebuffer created with
-        // context and layerInit’s depth, stencil, and alpha values."
-        let framebuffer = context.CreateFramebuffer().ok_or(Error::Operation)?;
+        // Step 9.2. "Initialize layer’s framebuffer to a new opaque framebuffer created with context."
+        let size = session.with_session(|session| session.recommended_framebuffer_resolution());
+        let (swap_chain_id, framebuffer) =
+            WebGLFramebuffer::maybe_new_webxr(session, context, size).ok_or(Error::Operation)?;
 
         // Step 9.3. "Allocate and initialize resources compatible with session’s XR device,
         // including GPU accessible memory buffers, as required to support the compositing of layer."
 
-        // Create a new texture with size given by the session's recommended resolution
-        let texture = context.CreateTexture().ok_or(Error::Operation)?;
-        let render_buffer = context.CreateRenderbuffer().ok_or(Error::Operation)?;
-        let resolution = session.with_session(|s| s.recommended_framebuffer_resolution());
-        let mut pixels = CustomAutoRooter::new(None);
-        let mut clear_bits = constants::COLOR_BUFFER_BIT;
-
-        let formats = context.formats();
-
-        context.BindTexture(constants::TEXTURE_2D, Some(&texture));
-        let sc = context.TexImage2D(
-            constants::TEXTURE_2D,
-            0,
-            formats.texture_format,
-            resolution.width,
-            resolution.height,
-            0,
-            formats.texture_format,
-            formats.texture_type,
-            pixels.root(*cx),
-        );
-
-        // Bind the new texture to the framebuffer
-        context.BindFramebuffer(constants::FRAMEBUFFER, Some(&framebuffer));
-        context.FramebufferTexture2D(
-            constants::FRAMEBUFFER,
-            constants::COLOR_ATTACHMENT0,
-            constants::TEXTURE_2D,
-            Some(&texture),
-            0,
-        );
-
-        // Create backing store and bind a renderbuffer if requested
-        if init.depth || init.stencil {
-            let (internal_format, attachment) = if init.depth && init.stencil {
-                clear_bits |= constants::DEPTH_BUFFER_BIT | constants::STENCIL_BUFFER_BIT;
-                (
-                    constants::DEPTH_STENCIL,
-                    constants::DEPTH_STENCIL_ATTACHMENT,
-                )
-            } else if init.depth {
-                clear_bits |= constants::DEPTH_BUFFER_BIT;
-                (constants::DEPTH_COMPONENT16, constants::DEPTH_ATTACHMENT)
-            } else {
-                clear_bits |= constants::STENCIL_BUFFER_BIT;
-                (constants::STENCIL_INDEX8, constants::STENCIL_ATTACHMENT)
-            };
-            context.BindRenderbuffer(constants::RENDERBUFFER, Some(&render_buffer));
-            context.RenderbufferStorage(
-                constants::RENDERBUFFER,
-                internal_format,
-                resolution.width,
-                resolution.height,
-            );
-            context.FramebufferRenderbuffer(
-                constants::FRAMEBUFFER,
-                attachment,
-                constants::RENDERBUFFER,
-                Some(&render_buffer),
-            );
-        }
-
-        context.initialize_framebuffer(clear_bits);
-
-        // Restore the WebGL state while complaining about global mutable state
-        let fb_status = context.CheckFramebufferStatus(constants::FRAMEBUFFER);
-        let gl_status = context.GetError();
-        context.BindTexture(constants::TEXTURE_2D, old_texture.as_ref().map(|t| &**t));
-        context.BindFramebuffer(constants::FRAMEBUFFER, old_fbo.as_ref().map(|f| &**f));
-        context.BindRenderbuffer(constants::RENDERBUFFER, old_rbo.as_ref().map(|f| &**f));
-
         // Step 9.4: "If layer’s resources were unable to be created for any reason,
         // throw an OperationError and abort these steps."
-        if let Err(err) = sc {
-            error!("TexImage2D error {:?} while creating XR context", err);
-            return Err(Error::Operation);
-        }
-        if fb_status != constants::FRAMEBUFFER_COMPLETE {
-            error!(
-                "Framebuffer error {:x} while creating XR context",
-                fb_status
-            );
-            return Err(Error::Operation);
-        }
-        if gl_status != constants::NO_ERROR {
-            error!("GL error {:x} while creating XR context", gl_status);
-            return Err(Error::Operation);
-        }
 
         // Ensure that we finish setting up this layer before continuing.
         context.Finish();
@@ -198,6 +111,7 @@ impl XRWebGLLayer {
         // Step 10. "Return layer."
         Ok(XRWebGLLayer::new(
             &global.global(),
+            swap_chain_id,
             session,
             context,
             init,
@@ -205,12 +119,18 @@ impl XRWebGLLayer {
         ))
     }
 
+    pub fn swap_chain_id(&self) -> WebXRSwapChainId {
+        self.swap_chain_id
+    }
+
     pub fn session(&self) -> &XRSession {
         &self.session
     }
 
-    pub fn framebuffer(&self) -> &WebGLFramebuffer {
-        &self.framebuffer
+    pub fn swap_buffers(&self) {
+        if let WebGLFramebufferId::Opaque(id) = self.framebuffer.id() {
+            self.context.swap_buffers(Some(id));
+        }
     }
 }
 

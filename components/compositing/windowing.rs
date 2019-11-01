@@ -144,9 +144,8 @@ pub enum AnimationState {
 pub trait WindowMethods {
     /// Presents the window to the screen (perhaps by page flipping).
     fn present(&self);
-    /// Requests that the window system prepare a composite. Typically this will involve making
-    /// some type of platform-specific graphics context current.
-    fn prepare_for_composite(&self);
+    /// Make the OpenGL context current.
+    fn make_gl_context_current(&self);
     /// Return the GL function pointer trait.
     #[cfg(feature = "gl")]
     fn gl(&self) -> Rc<dyn gl::Gl>;

@@ -16,14 +16,18 @@ def main(task_for):
             branch if not branch.startswith("try-") else "try"
         )
 
+
+    # Implemented but disabled for now:
+    linux_wpt = lambda: None  # Shadows the existing top-level function
+    # The magicleap build is broken until there's a surfman back end
+    magicleap_dev = lambda: None
+    magicleap_nightly = lambda: None
+
     if task_for == "github-push":
         # FIXME https://github.com/servo/servo/issues/22187
         # In-emulator testing is disabled for now. (Instead we only compile.)
         # This local variable shadows the module-level function of the same name.
         android_x86_wpt = android_x86_release
-
-        # Implemented but disabled for now:
-        linux_wpt = lambda: None  # Shadows the existing top-level function
 
         all_tests = [
             linux_tidy_unit_docs,
@@ -101,6 +105,8 @@ def mocked_only():
     windows_release()
     android_x86_wpt()
     linux_wpt()
+    magicleap_dev()
+    magicleap_nightly()
     decisionlib.DockerWorkerTask("Indexed by task definition").find_or_create()
 
 
@@ -580,26 +586,26 @@ def update_wpt():
     )
 
 
-def macos_release_build():
+def macos_release_build(args=""):
     return (
         macos_build_task("Release build")
         .with_treeherder("macOS x64", "Release")
-        .with_script("""
-            ./mach build --release --verbose
-            ./etc/ci/lockfile_changed.sh
-            tar -czf target.tar.gz \
-                target/release/servo \
-                target/release/build/osmesa-src-*/output \
-                target/release/build/osmesa-src-*/out/src/gallium/targets/osmesa/.libs \
-                target/release/build/osmesa-src-*/out/src/mapi/shared-glapi/.libs
-        """)
+        .with_script("\n".join([
+            "./mach build --release --verbose " + args,
+            "./etc/ci/lockfile_changed.sh",
+            "tar -czf target.tar.gz" +
+            " target/release/servo" +
+            " target/release/build/osmesa-src-*/output" +
+            " target/release/build/osmesa-src-*/out/src/gallium/targets/osmesa/.libs" +
+            " target/release/build/osmesa-src-*/out/src/mapi/shared-glapi/.libs",
+        ]))
         .with_artifacts("repo/target.tar.gz")
         .find_or_create("build.macos_x64_release." + CONFIG.task_id())
     )
 
 
 def macos_wpt():
-    build_task = macos_release_build()
+    build_task = macos_release_build("--with-debug-assertions")
     def macos_run_task(name):
         task = macos_task(name).with_python2()
         return with_homebrew(task, ["etc/taskcluster/macos/Brewfile-gstreamer"])

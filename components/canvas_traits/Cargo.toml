@@ -27,3 +27,4 @@ servo_config = {path = "../config"}
 sparkle = "0.1"
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr_traits = {path = "../webvr_traits"}
+webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}

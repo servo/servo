@@ -47,11 +47,10 @@ use canvas_traits::canvas::{
 use canvas_traits::canvas::{CompositionOrBlending, LineCapStyle, LineJoinStyle, RepetitionStyle};
 use canvas_traits::webgl::WebGLVertexArrayId;
 use canvas_traits::webgl::{ActiveAttribInfo, ActiveUniformInfo, GlType, TexDataType, TexFormat};
-use canvas_traits::webgl::{GLFormats, GLLimits, WebGLQueryId, WebGLSamplerId};
-use canvas_traits::webgl::{
-    WebGLBufferId, WebGLChan, WebGLContextId, WebGLContextShareMode, WebGLError,
-};
+use canvas_traits::webgl::{GLLimits, WebGLQueryId, WebGLSamplerId};
+use canvas_traits::webgl::{WebGLBufferId, WebGLChan, WebGLContextId, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferId, WebGLMsgSender, WebGLPipeline, WebGLProgramId};
+use canvas_traits::webgl::{WebGLOpaqueFramebufferId, WebGLTransparentFramebufferId};
 use canvas_traits::webgl::{WebGLReceiver, WebGLRenderbufferId, WebGLSLVersion, WebGLSender};
 use canvas_traits::webgl::{WebGLShaderId, WebGLSyncId, WebGLTextureId, WebGLVersion};
 use content_security_policy::CspList;
@@ -147,6 +146,7 @@ use time::{Duration, Timespec};
 use uuid::Uuid;
 use webrender_api::{DocumentId, ImageKey, RenderApiSender};
 use webvr_traits::{WebVRGamepadData, WebVRGamepadHand, WebVRGamepadState};
+use webxr_api::SwapChainId as WebXRSwapChainId;
 
 /// A trait to allow tracing (only) DOM objects.
 pub unsafe trait JSTraceable {
@@ -451,7 +451,7 @@ unsafe_no_jsmanaged_fields!(StorageType);
 unsafe_no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyle);
 unsafe_no_jsmanaged_fields!(LineCapStyle, LineJoinStyle, CompositionOrBlending);
 unsafe_no_jsmanaged_fields!(RepetitionStyle);
-unsafe_no_jsmanaged_fields!(WebGLError, GLFormats, GLLimits, GlType);
+unsafe_no_jsmanaged_fields!(WebGLError, GLLimits, GlType);
 unsafe_no_jsmanaged_fields!(TimeProfilerChan);
 unsafe_no_jsmanaged_fields!(MemProfilerChan);
 unsafe_no_jsmanaged_fields!(PseudoElement);
@@ -486,8 +486,9 @@ unsafe_no_jsmanaged_fields!(DocumentId);
 unsafe_no_jsmanaged_fields!(ImageKey);
 unsafe_no_jsmanaged_fields!(WebGLBufferId);
 unsafe_no_jsmanaged_fields!(WebGLChan);
-unsafe_no_jsmanaged_fields!(WebGLContextShareMode);
 unsafe_no_jsmanaged_fields!(WebGLFramebufferId);
+unsafe_no_jsmanaged_fields!(WebGLOpaqueFramebufferId);
+unsafe_no_jsmanaged_fields!(WebGLTransparentFramebufferId);
 unsafe_no_jsmanaged_fields!(WebGLMsgSender);
 unsafe_no_jsmanaged_fields!(WebGLPipeline);
 unsafe_no_jsmanaged_fields!(WebGLProgramId);
@@ -500,6 +501,7 @@ unsafe_no_jsmanaged_fields!(WebGLTextureId);
 unsafe_no_jsmanaged_fields!(WebGLVertexArrayId);
 unsafe_no_jsmanaged_fields!(WebGLVersion);
 unsafe_no_jsmanaged_fields!(WebGLSLVersion);
+unsafe_no_jsmanaged_fields!(WebXRSwapChainId);
 unsafe_no_jsmanaged_fields!(MediaList);
 unsafe_no_jsmanaged_fields!(WebVRGamepadData, WebVRGamepadState, WebVRGamepadHand);
 unsafe_no_jsmanaged_fields!(

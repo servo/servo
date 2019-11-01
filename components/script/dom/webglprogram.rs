@@ -392,10 +392,12 @@ impl WebGLProgram {
                 sender,
             ));
         let location = receiver.recv().unwrap();
+        let context_id = self.upcast::<WebGLObject>().context().context_id();
 
         Ok(Some(WebGLUniformLocation::new(
             self.global().as_window(),
             location,
+            context_id,
             self.id,
             self.link_generation.get(),
             size,

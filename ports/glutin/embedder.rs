@@ -91,8 +91,7 @@ impl EmbedderMethods for EmbedderCallbacks {
 
     fn register_webxr(&mut self, xr: &mut webxr_api::MainThreadRegistry) {
         if pref!(dom.webxr.test) {
-            let gl = self.gl.clone();
-            xr.register_mock(webxr::headless::HeadlessMockDiscovery::new(gl));
+            xr.register_mock(webxr::headless::HeadlessMockDiscovery::new());
         } else if !opts::get().headless && pref!(dom.webxr.glwindow) {
             warn!("Creating test XR device");
             let gl = self.gl.clone();

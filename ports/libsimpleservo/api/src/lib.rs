@@ -646,7 +646,7 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
 }
 
 impl WindowMethods for ServoWindowCallbacks {
-    fn prepare_for_composite(&self) {
+    fn make_gl_context_current(&self) {
         debug!("WindowMethods::prepare_for_composite");
         self.host_callbacks.make_current();
     }

@@ -694,13 +694,16 @@ class MachCommands(CommandBase):
                                 continue
                         libs = remaining_libs
                         if not libs:
-                            return
+                            return True
                     for lib in libs:
                         print("WARNING: could not find " + lib)
 
                 # UWP build has its own ANGLE library that it packages.
                 if not uwp:
-                    package_generated_shared_libraries(["libEGL.dll", "libGLESv2.dll"], build_path, servo_exe_dir)
+                    print("Packaging EGL DLLs")
+                    egl_libs = ["libEGL.dll", "libGLESv2.dll"]
+                    if not package_generated_shared_libraries(egl_libs, build_path, servo_exe_dir):
+                        status = 1
 
                 # copy needed gstreamer DLLs in to servo.exe dir
                 print("Packaging gstreamer DLLs")
