@@ -66,13 +66,12 @@ use servo_url::origin::ImmutableOrigin;
 use servo_url::origin::MutableOrigin;
 use servo_url::ServoUrl;
 use std::cell::Cell;
-use std::char;
 use std::collections::HashSet;
 use std::default::Default;
 use std::i32;
-use std::mem;
 use std::ops::DerefMut;
 use std::sync::{Arc, Mutex};
+use std::{char, mem};
 use style::attr::{
     parse_double, parse_length, parse_unsigned_integer, AttrValue, LengthOrPercentageOrAuto,
 };
@@ -484,8 +483,7 @@ impl HTMLImageElement {
                 pending_request.metadata = Some(meta);
             },
             ImageResponse::None => {
-                let mut pending_opt = self.pending_request.borrow_mut();
-                *pending_opt = None;
+                *self.pending_request.borrow_mut() = None;
             },
         };
     }
@@ -871,8 +869,7 @@ impl HTMLImageElement {
                         // non-active-document.html tests.
                         this.abort_request(State::Broken, ImageRequestPhase::Current);
                         this.abort_request(State::Broken, ImageRequestPhase::Pending);
-                        let mut pending_opt = this.pending_request.borrow_mut();
-                        *pending_opt = None;
+                        *this.pending_request.borrow_mut() = None;
                     }),
                     window.upcast(),
                 );
@@ -885,7 +882,7 @@ impl HTMLImageElement {
         let parsed_url = base_url.join(&src.0);
         match parsed_url {
             Ok(url) => {
-                // Step 13-17
+                // Step 12-17
                 self.prepare_image_request(&url, &src, pixel_density);
             },
             Err(_) => {
@@ -909,8 +906,7 @@ impl HTMLImageElement {
                         // non-active-document.html tests.
                         this.abort_request(State::Broken, ImageRequestPhase::Current);
                         this.abort_request(State::Broken, ImageRequestPhase::Pending);
-                        let mut pending_opt = this.pending_request.borrow_mut();
-                        *pending_opt = None;
+                        *this.pending_request.borrow_mut() = None;
                     }),
                     window.upcast(),
                 );
@@ -974,8 +970,7 @@ impl HTMLImageElement {
                     // Step 6.3.2 abort requests
                     self.abort_request(State::CompletelyAvailable, ImageRequestPhase::Current);
                     self.abort_request(State::Unavailable, ImageRequestPhase::Pending);
-                    let mut pending_opt = self.pending_request.borrow_mut();
-                    *pending_opt = None;
+                    *self.pending_request.borrow_mut() = None;
                     let mut current_request = self.current_request.borrow_mut();
                     current_request.final_url = Some(url);
                     current_request.image = Some(image.clone());
@@ -1185,8 +1180,7 @@ impl HTMLImageElement {
                 let relevant_mutation = this.generation.get() != generation;
                 // Step 15.1
                 if relevant_mutation {
-                    let mut pending_opt = this.pending_request.borrow_mut();
-                    *pending_opt = None;
+                    *this.pending_request.borrow_mut() = None;
                     return;
                 }
                 // Step 15.2
