@@ -264,12 +264,16 @@ impl WebGLFramebuffer {
                 Some(WebGLFramebufferAttachment::Texture {
                     texture: ref att_tex,
                     level,
-                }) => {
-                    let info = att_tex.image_info_at_face(0, level as u32);
-                    (
-                        info.internal_format().map(|t| t.as_gl_constant()),
+                }) => match att_tex.image_info_at_face(0, level as u32) {
+                    Some(info) => (
+                        Some(info.internal_format().as_gl_constant()),
                         Some((info.width() as i32, info.height() as i32)),
-                    )
+                    ),
+                    None => {
+                        self.status
+                            .set(constants::FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
+                        return;
+                    },
                 },
                 None => (None, None),
             };

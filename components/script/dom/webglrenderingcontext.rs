@@ -443,13 +443,12 @@ impl WebGLRenderingContext {
         }
 
         let target = TexImageTarget::Texture2D;
-        let info = texture.image_info_for_target(&target, 0);
-        if info.is_initialized() {
+        if let Some(info) = texture.image_info_for_target(&target, 0) {
             self.validate_filterable_texture(
                 &texture,
                 target,
                 0,
-                info.internal_format().unwrap_or(TexFormat::RGBA),
+                info.internal_format(),
                 Size2D::new(info.width(), info.height()),
                 info.data_type().unwrap_or(TexDataType::UnsignedByte),
             );
@@ -751,7 +750,10 @@ impl WebGLRenderingContext {
         pixels: TexPixels,
     ) {
         // We have already validated level
-        let image_info = texture.image_info_for_target(&target, level);
+        let image_info = match texture.image_info_for_target(&target, level) {
+            Some(info) => info,
+            None => return self.webgl_error(InvalidOperation),
+        };
 
         // GL_INVALID_VALUE is generated if:
         //   - xoffset or yoffset is less than 0
@@ -766,9 +768,7 @@ impl WebGLRenderingContext {
         }
 
         // NB: format and internal_format must match.
-        if format != image_info.internal_format().unwrap() ||
-            data_type != image_info.data_type().unwrap()
-        {
+        if format != image_info.internal_format() || data_type != image_info.data_type().unwrap() {
             return self.webgl_error(InvalidOperation);
         }
 
@@ -1919,9 +1919,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 Some(WebGLFramebufferAttachmentRoot::Renderbuffer(rb)) => {
                     TexFormat::from_gl_constant(rb.internal_format())
                 },
-                Some(WebGLFramebufferAttachmentRoot::Texture(texture)) => {
-                    texture.image_info_for_target(&target, 0).internal_format()
-                },
+                Some(WebGLFramebufferAttachmentRoot::Texture(texture)) => texture
+                    .image_info_for_target(&target, 0)
+                    .map(|info| info.internal_format()),
                 None => None,
             },
             None => {
@@ -2020,7 +2020,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Err(_) => return,
         };
 
-        let image_info = texture.image_info_for_target(&target, level);
+        let image_info = match texture.image_info_for_target(&target, level) {
+            Some(info) => info,
+            None => return self.webgl_error(InvalidOperation),
+        };
 
         // GL_INVALID_VALUE is generated if:
         //   - xoffset or yoffset is less than 0

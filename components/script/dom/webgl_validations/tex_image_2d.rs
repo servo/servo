@@ -613,7 +613,7 @@ impl<'a> WebGLValidator for CompressedTexSubImage2DValidator<'a> {
             compression,
         } = self.compression_validator.validate()?;
 
-        let tex_info = texture.image_info_for_target(&target, level);
+        let tex_info = texture.image_info_for_target(&target, level).unwrap();
 
         // GL_INVALID_VALUE is generated if:
         //   - xoffset or yoffset is less than 0
@@ -630,7 +630,7 @@ impl<'a> WebGLValidator for CompressedTexSubImage2DValidator<'a> {
 
         // GL_INVALID_OPERATION is generated if format does not match
         // internal_format.
-        if compression.format != tex_info.internal_format().unwrap() {
+        if compression.format != tex_info.internal_format() {
             context.webgl_error(InvalidOperation);
             return Err(TexImageValidationError::TextureFormatMismatch);
         }
