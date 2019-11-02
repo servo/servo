@@ -4,36 +4,71 @@ The tests are designed to be run from your local computer.
 
 ## System Setup
 
-The test environment requires [Python 2.7+](http://www.python.org/downloads)
-(but not Python 3.x).
+Running the tests requires `python`, `pip` and `virtualenv`, as well as updating
+the system `hosts` file.
 
-On Windows, be sure to add the Python directory (`c:\python2x`, by default) to
-your `%Path%` [Environment Variable](http://www.computerhope.com/issues/ch000549.htm),
-and read the [Windows Notes](#windows-notes) section below.
+Note that Python 2.7 is required. Using Python 3 is not supported.
 
-<!--
-  There does not appear to be a cross-platform means of installing `pip`.
-  https://github.com/web-platform-tests/wpt/pull/16670
--->
+The required setup is different depending on your operating system.
 
-Install `pip`. On many systems, this can be achieved with the command `python
--m ensurepip`. If this is not possible, use your system's package manager to
-install the `python-pip` package.
+### Linux Setup
 
-Next, install `virtualenv` using the following command:
+If not already present, use the system package manager to install `python`,
+`pip` and `virtualenv`.
+
+On Debian or Ubuntu:
+
+```bash
+sudo apt-get install python python-pip virtualenv
+```
+
+### macOS Setup
+
+The system-provided Python can be used, while `pip` and `virtualenv` can be
+installed for the user only:
+
+```bash
+python -m ensurepip --user
+export PATH="$PATH:$HOME/Library/Python/2.7/bin"
+pip install --user virtualenv
+```
+
+To make the `PATH` change persistent, add it to your `~/.bash_profile` file or
+wherever you currently set your PATH.
+
+See also [additional setup required to run Safari](safari).
+
+### Windows Setup
+**Note:** In general, Windows Subsystem for Linux will provide the smoothest
+user experience for running web-platform-tests on Windows, where installation
+and usage are similar to Linux.
+
+Download and install [Python 2.7](https://www.python.org/downloads). The
+installer includes `pip` by default.
+
+Add `C:\Python27` and `C:\Python27\Scripts` to your `%Path%`
+[environment variable](http://www.computerhope.com/issues/ch000549.htm).
+
+Finally, install `virtualenv`:
 
 ```bash
 pip install virtualenv
 ```
 
+The standard Windows shell requires that all `wpt` commands are prefixed
+by the Python binary i.e. assuming `python` is on your path the server is
+started using:
+
+```bash
+python wpt serve
+```
+
+### `hosts` File Setup
+
 To get the tests running, you need to set up the test domains in your
 [`hosts` file](http://en.wikipedia.org/wiki/Hosts_%28file%29%23Location_in_the_file_system).
 
-The necessary content can be generated with `./wpt make-hosts-file`; on
-Windows, you will need to preceed the prior command with `python` or
-the path to the Python binary (`python wpt make-hosts-file`).
-
-For example, on most UNIX-like systems, you can setup the hosts file with:
+On Linux, macOS or other UNIX-like system:
 
 ```bash
 ./wpt make-hosts-file | sudo tee -a /etc/hosts
@@ -47,26 +82,6 @@ python wpt make-hosts-file | Out-File %SystemRoot%\System32\drivers\etc\hosts -E
 
 If you are behind a proxy, you also need to make sure the domains above are
 excluded from your proxy lookups.
-
-[The Ahem font](../writing-tests/ahem) is used to test precise rendering
-behavior. This font should be loaded as a web font in tests, using the
-`/fonts/ahem.css` stylesheet, as follows:
-
-```
-<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
-```
-
-
-### Windows Notes
-
-Generally Windows Subsystem for Linux will provide the smoothest user
-experience for running web-platform-tests on Windows.
-
-The standard Windows shell requires that all `wpt` commands are prefixed
-by the Python binary i.e. assuming `python` is on your path the server is
-started using:
-
-`python wpt serve`
 
 ## Via the browser
 

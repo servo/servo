@@ -612,7 +612,6 @@ dictionary RTCDTMFToneChangeEventInit : EventInit {
 
 partial interface RTCPeerConnection {
   Promise<RTCStatsReport> getStats(optional MediaStreamTrack? selector = null);
-  attribute EventHandler onstatsended;
 };
 
 [Exposed=Window]
@@ -624,16 +623,6 @@ dictionary RTCStats {
   required DOMHighResTimeStamp timestamp;
   required RTCStatsType type;
   required DOMString id;
-};
-
-[Exposed=Window]
-interface RTCStatsEvent : Event {
-  constructor(DOMString type, RTCStatsEventInit eventInitDict);
-  readonly attribute RTCStatsReport report;
-};
-
-dictionary RTCStatsEventInit : EventInit {
-  required RTCStatsReport report;
 };
 
 [Exposed=Window]

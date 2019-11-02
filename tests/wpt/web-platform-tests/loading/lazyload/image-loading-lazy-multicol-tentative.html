@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<head>
+  <title>Images with loading='lazy' load when in the viewport</title>
+  <link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
+  <link rel="help" href="https://github.com/scott-little/lazyload">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<!--
+Marked as tentative until https://github.com/whatwg/html/pull/3752 is landed.
+-->
+
+<script>
+  const t = async_test("Test that images with loading='lazy' under multicol load once they enter the viewport.");
+
+  let has_in_viewport_loaded = false;
+  let has_window_loaded = false;
+
+  const in_viewport_img_onload = t.step_func(function() {
+    assert_false(has_in_viewport_loaded, "The in_viewport element should load only once.");
+    has_in_viewport_loaded = true;
+  });
+
+  window.addEventListener("load", t.step_func_done(function() {
+    assert_true(has_in_viewport_loaded, "The in_viewport element should have loaded before window.load().");
+    assert_false(has_window_loaded, "The window.load() event should only fire once.");
+    has_window_loaded = true;
+  }));
+
+</script>
+
+<div class=texty style="column-count: 2; height: 300px">
+  <div style="border: 1px solid black">
+    <h2 style="column-span: all"></h2>
+    <img loading="lazy" src="resources/image.png?first" width="160" height="120"
+        onload="in_viewport_img_onload()">
+  </div>
+</div>
+
+  <!--
+    This async script loads very slowly in order to ensure that, if the
+    below_viewport element has started loading, it has a chance to finish
+    loading before window.load() happens, so that the test will dependably fail
+    in that case instead of potentially passing depending on how long different
+    resource fetches take.
+  -->
+  <script async src="/common/slow.py"></script>

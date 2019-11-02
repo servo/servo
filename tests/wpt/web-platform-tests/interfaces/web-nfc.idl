@@ -72,7 +72,6 @@ dictionary NDEFReadingEventInit : EventInit {
 
 dictionary NDEFPushOptions {
   NDEFPushTarget target = "any";
-  unrestricted double timeout = Infinity;
   boolean ignoreRead = true;
   boolean overwrite = true;
   AbortSignal? signal;

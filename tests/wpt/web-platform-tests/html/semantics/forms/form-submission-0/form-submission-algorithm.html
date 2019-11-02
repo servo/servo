@@ -50,6 +50,60 @@ async_test(t => {
   });
 }, "If form's firing submission events is true, then return; 'submit' event");
 
+promise_test(async () => {
+  let form = populateForm('<button type=submit></button><input name=n1 value=submit type=submit>');
+  let iframe = form.previousSibling;
+  let submitter = form.querySelector('input[type=submit]');
+  let event;
+  form.addEventListener('submit', e => { event = e; });
+  submitter.click();
+  await loadPromise(iframe);
+  assert_true(event.bubbles);
+  assert_true(event.cancelable);
+  assert_equals(event.submitter, submitter);
+  assert_true(event instanceof SubmitEvent);
+}, 'firing an event named submit; clicking a submit button');
+
+promise_test(async () => {
+  let form = populateForm('');
+  let iframe = form.previousSibling;
+  let event;
+  form.addEventListener('submit', e => { event = e; });
+  form.requestSubmit();
+  await loadPromise(iframe);
+  assert_true(event.bubbles);
+  assert_true(event.cancelable);
+  assert_equals(event.submitter, null);
+  assert_true(event instanceof SubmitEvent);
+}, 'firing an event named submit; form.requestSubmit()');
+
+promise_test(async () => {
+  let form = populateForm('');
+  let iframe = form.previousSibling;
+  let event;
+  form.addEventListener('submit', e => { event = e; });
+  form.requestSubmit(null);
+  await loadPromise(iframe);
+  assert_true(event.bubbles);
+  assert_true(event.cancelable);
+  assert_equals(event.submitter, null);
+  assert_true(event instanceof SubmitEvent);
+}, 'firing an event named submit; form.requestSubmit(null)');
+
+promise_test(async () => {
+  let form = populateForm('<input type=submit><button type=submit></button>');
+  let iframe = form.previousSibling;
+  let submitter = form.querySelector('button');
+  let event;
+  form.addEventListener('submit', e => { event = e; });
+  form.requestSubmit(submitter);
+  await loadPromise(iframe);
+  assert_true(event.bubbles);
+  assert_true(event.cancelable);
+  assert_equals(event.submitter, submitter);
+  assert_true(event instanceof SubmitEvent);
+}, 'firing an event named submit; form.requestSubmit(submitter)');
+
 async_test(t => {
   let form = populateForm('<input name=n1 value=v1>');
   form.onformdata = (e) => { e.target.remove(); };

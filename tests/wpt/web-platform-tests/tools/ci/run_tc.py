@@ -127,12 +127,8 @@ def checkout_revision(rev):
 
 
 def install_chrome(channel):
-    deb_prefix = "https://dl.google.com/linux/direct/"
     if channel in ("experimental", "dev", "nightly"):
-        # Pinned to 78 as 79 consistently fails reftests. TODO(foolip).
-        # See https://github.com/web-platform-tests/wpt/issues/19297.
-        deb_archive = "google-chrome-unstable_78.0.3904.17-1_amd64.deb"
-        deb_prefix = "https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-unstable/"
+        deb_archive = "google-chrome-unstable_current_amd64.deb"
     elif channel == "beta":
         deb_archive = "google-chrome-beta_current_amd64.deb"
     elif channel == "stable":
@@ -141,7 +137,7 @@ def install_chrome(channel):
         raise ValueError("Unrecognized release channel: %s" % channel)
 
     dest = os.path.join("/tmp", deb_archive)
-    resp = urlopen(deb_prefix + deb_archive)
+    resp = urlopen("https://dl.google.com/linux/direct/%s" % deb_archive)
     with open(dest, "w") as f:
         f.write(resp.read())
 
