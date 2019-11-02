@@ -66,12 +66,12 @@ use servo_url::origin::ImmutableOrigin;
 use servo_url::origin::MutableOrigin;
 use servo_url::ServoUrl;
 use std::cell::Cell;
+use std::char;
 use std::collections::HashSet;
 use std::default::Default;
 use std::i32;
 use std::ops::DerefMut;
 use std::sync::{Arc, Mutex};
-use std::{char, mem};
 use style::attr::{
     parse_double, parse_length, parse_unsigned_integer, AttrValue, LengthOrPercentageOrAuto,
 };
@@ -384,12 +384,11 @@ impl HTMLImageElement {
 
     /// https://html.spec.whatwg.org/multipage/#upgrade-the-pending-request-to-the-current-request
     fn upgrade_pending_to_current(&self) {
-        let mut pending_opt = self.pending_request.borrow_mut();
-        mem::swap(
-            &mut self.current_request.borrow_mut().deref_mut(),
-            &mut pending_opt.get_or_insert(ImageRequest::new()),
-        );
-        *pending_opt = None;
+        *self.current_request.borrow_mut() = self
+            .pending_request
+            .borrow_mut()
+            .take()
+            .expect("no pending request");
         self.image_request.set(ImageRequestPhase::Current);
     }
 
