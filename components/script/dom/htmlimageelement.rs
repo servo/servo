@@ -776,18 +776,18 @@ impl HTMLImageElement {
         request.blocker = Some(LoadBlocker::new(&*document, LoadType::Image(url.clone())));
     }
 
-    /// Step 13-17 of html.spec.whatwg.org/multipage/#update-the-image-data
+    /// Step 12-17 of html.spec.whatwg.org/multipage/#update-the-image-data
     fn prepare_image_request(&self, url: &ServoUrl, src: &USVString, selected_pixel_density: f64) {
         match self.image_request.get() {
             ImageRequestPhase::Pending => {
-                self.pending_request.borrow().as_ref().map(|request| {
-                    // Step 12
-                    if let Some(pending_url) = request.parsed_url.clone() {
+                // Step 12
+                if let Some(pending_request) = self.pending_request.borrow().as_ref() {
+                    if let Some(pending_url) = pending_request.parsed_url.clone() {
                         if pending_url == *url {
                             return;
                         }
                     }
-                });
+                }
             },
             ImageRequestPhase::Current => {
                 let mut current_request = self.current_request.borrow_mut();
