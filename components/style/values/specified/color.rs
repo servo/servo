@@ -119,6 +119,10 @@ pub enum SystemColor {
     Buttonshadow,
     Buttontext,
     Captiontext,
+    #[parse(aliases = "-moz-field")]
+    Field,
+    #[parse(aliases = "-moz-fieldtext")]
+    Fieldtext,
     Graytext,
     Highlight,
     Highlighttext,
@@ -139,8 +143,6 @@ pub enum SystemColor {
     Windowframe,
     Windowtext,
     MozButtondefault,
-    MozField,
-    MozFieldtext,
     MozDialog,
     MozDialogtext,
     /// Used to highlight valid regions to drop something onto.
