@@ -7,9 +7,14 @@
 
 #![allow(dead_code)]
 
+use crate::body::BodyOperations;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
+use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseBinding::ResponseMethods;
+use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use crate::dom::bindings::conversions::get_dom_class;
 use crate::dom::bindings::conversions::private_from_object;
+use crate::dom::bindings::conversions::root_from_handleobject;
+use crate::dom::bindings::error::{throw_dom_exception, Error};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{trace_refcounted_objects, LiveDOMReferences};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -23,6 +28,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promiserejectionevent::PromiseRejectionEvent;
+use crate::dom::response::Response;
 use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
 use crate::script_thread::trace_thread;
 use crate::task::TaskBox;
@@ -31,6 +37,10 @@ use js::glue::{CollectServoSizes, CreateJobQueue, DeleteJobQueue, JobQueueTraps,
 use js::glue::{RUST_js_GetErrorMessage, StreamConsumerConsumeChunk, StreamConsumerStreamEnd};
 use js::glue::{StreamConsumerNoteResponseURLs, StreamConsumerStreamError};
 use js::jsapi::ContextOptionsRef;
+use js::jsapi::Dispatchable;
+use js::jsapi::InitConsumeStreamCallback;
+use js::jsapi::InitDispatchToEventLoop;
+use js::jsapi::MimeType;
 use js::jsapi::StreamConsumer as JSStreamConsumer;
 use js::jsapi::{BuildIdCharVector, DisableIncrementalGC, GCDescription, GCProgress};
 use js::jsapi::{HandleObject, Heap, JobQueue};
@@ -46,6 +56,7 @@ use js::jsval::UndefinedValue;
 use js::panic::wrap_panic;
 use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
 use js::rust::Handle;
+use js::rust::HandleObject as RustHandleObject;
 use js::rust::IntoHandle;
 use js::rust::JSEngine;
 use js::rust::ParentRuntime;
@@ -423,6 +434,16 @@ unsafe fn new_rt_and_cx_with_parent(parent: Option<ParentRuntime>) -> Runtime {
     SetPreserveWrapperCallback(cx, Some(empty_wrapper_callback));
     // Pre barriers aren't working correctly at the moment
     DisableIncrementalGC(cx);
+
+    unsafe extern "C" fn dispatch_to_event_loop(
+        _closure: *mut c_void,
+        _dispatchable: *mut Dispatchable,
+    ) -> bool {
+        false
+    }
+    InitDispatchToEventLoop(cx, Some(dispatch_to_event_loop), ptr::null_mut());
+
+    InitConsumeStreamCallback(cx, Some(consume_stream), Some(report_stream_error));
 
     let microtask_queue = Rc::new(MicrotaskQueue::default());
     let job_queue = CreateJobQueue(
@@ -825,8 +846,94 @@ impl StreamConsumer {
     }
 }
 
+/// Implements the steps to compile webassembly response mentioned here
+/// <https://webassembly.github.io/spec/web-api/#compile-a-potential-webassembly-response>
 #[allow(unsafe_code)]
-unsafe extern "C" fn report_stream_error_callback(_cx: *mut JSContext, error_code: usize) {
+unsafe extern "C" fn consume_stream(
+    _cx: *mut RawJSContext,
+    obj: HandleObject,
+    _mimeType: MimeType,
+    _consumer: *mut JSStreamConsumer,
+) -> bool {
+    let cx = JSContext::from_ptr(_cx);
+    let global = GlobalScope::from_context(*cx);
+
+    //Step 2.1 Upon fulfillment of source, store the Response with value unwrappedSource.
+    if let Ok(unwrapped_source) =
+        root_from_handleobject::<Response>(RustHandleObject::from_raw(obj), *cx)
+    {
+        //Step 2.2 Let mimeType be the result of extracting a MIME type from response’s header list.
+        let mimetype = unwrapped_source.Headers().extract_mime_type();
+
+        //Step 2.3 If mimeType is not `application/wasm`, return with a TypeError and abort these substeps.
+        match &mimetype[..] {
+            b"application/wasm" | b"APPLICATION/wasm" | b"APPLICATION/WASM" => {},
+            _ => {
+                throw_dom_exception(
+                    cx,
+                    &global,
+                    Error::Type("Response has unsupported MIME type".to_string()),
+                );
+                return false;
+            },
+        }
+
+        //Step 2.4 If response is not CORS-same-origin, return with a TypeError and abort these substeps.
+        match unwrapped_source.Type() {
+            DOMResponseType::Basic | DOMResponseType::Cors | DOMResponseType::Default => {},
+            _ => {
+                throw_dom_exception(
+                    cx,
+                    &global,
+                    Error::Type("Response.type must be 'basic', 'cors' or 'default'".to_string()),
+                );
+                return false;
+            },
+        }
+
+        //Step 2.5 If response’s status is not an ok status, return with a TypeError and abort these substeps.
+        if !unwrapped_source.Ok() {
+            throw_dom_exception(
+                cx,
+                &global,
+                Error::Type("Response does not have ok status".to_string()),
+            );
+            return false;
+        }
+
+        // Step 2.6.1 If response body is locked, return with a TypeError and abort these substeps.
+        if unwrapped_source.is_locked() {
+            throw_dom_exception(
+                cx,
+                &global,
+                Error::Type("There was an error consuming the Response".to_string()),
+            );
+            return false;
+        }
+
+        // Step 2.6.2 If response body is alreaady consumed, return with a TypeError and abort these substeps.
+        if unwrapped_source.get_body_used() {
+            throw_dom_exception(
+                cx,
+                &global,
+                Error::Type("Response already consumed".to_string()),
+            );
+            return false;
+        }
+    } else {
+        //Step 3 Upon rejection of source, return with reason.
+        throw_dom_exception(
+            cx,
+            &global,
+            Error::Type("expected Response or Promise resolving to Response".to_string()),
+        );
+        return false;
+    }
+    return true;
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn report_stream_error(_cx: *mut RawJSContext, error_code: usize) {
     error!(
         "Error initializing StreamConsumer: {:?}",
         RUST_js_GetErrorMessage(ptr::null_mut(), error_code as u32)
