@@ -17,6 +17,10 @@ from utils import call, get, untar, unzip
 
 uname = platform.uname()
 
+# the rootUrl for the firefox-ci deployment of Taskcluster
+# (after November 9, https://firefox-ci-tc.services.mozilla.com/)
+FIREFOX_CI_ROOT_URL = 'https://taskcluster.net'
+
 
 def _get_fileversion(binary, logger=None):
     command = "(Get-Item '%s').VersionInfo.FileVersion" % binary.replace("'", "''")
@@ -423,8 +427,13 @@ class FirefoxAndroid(Browser):
         if dest is None:
             dest = os.pwd
 
-        TC_QUEUE_BASE = "https://queue.taskcluster.net/v1/"
-        TC_INDEX_BASE = "https://index.taskcluster.net/v1/"
+        if FIREFOX_CI_ROOT_URL == 'https://taskcluster.net':
+            # NOTE: this condition can be removed after November 9, 2019
+            TC_QUEUE_BASE = "https://queue.taskcluster.net/v1/"
+            TC_INDEX_BASE = "https://index.taskcluster.net/v1/"
+        else:
+            TC_QUEUE_BASE = FIREFOX_CI_ROOT_URL + "/api/queue/v1/"
+            TC_INDEX_BASE = FIREFOX_CI_ROOT_URL + "/api/index/v1/"
 
 
         resp = requests.get(TC_INDEX_BASE +
@@ -874,10 +883,12 @@ class EdgeChromium(Browser):
         if os.path.isfile(edgedriver_path):
             # remove read-only attribute
             os.chmod(edgedriver_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)  # 0777
+            print("Delete %s file" % edgedriver_path)
             os.remove(edgedriver_path)
-            driver_notes_path = os.path.join(dest, "Driver_notes")
-            if os.path.isdir(driver_notes_path):
-                shutil.rmtree(driver_notes_path, ignore_errors=False, onerror=handle_remove_readonly)
+        driver_notes_path = os.path.join(dest, "Driver_notes")
+        if os.path.isdir(driver_notes_path):
+            print("Delete %s folder" % driver_notes_path)
+            shutil.rmtree(driver_notes_path, ignore_errors=False, onerror=handle_remove_readonly)
 
         self.logger.info("Downloading MSEdgeDriver from %s" % url)
         unzip(get(url).raw, dest)

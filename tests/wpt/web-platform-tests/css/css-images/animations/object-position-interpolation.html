@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>object-position-interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#the-object-position">
+<meta name="assert" content="object-position supports animation by computation">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  object-position: 30px 10px;
+}
+
+.target {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  background-color: black;
+  display: inline-block;
+  margin: 20px 0px 20px 0px;
+  object-fit: fill;
+  object-position: 10px 30px;
+}
+
+.expected {
+  background-color: green;
+}
+</style>
+<body>
+</body>
+<script>
+test_interpolation({
+  property: 'object-position',
+  from: neutralKeyframe,
+  to: '20px 20px',
+}, [
+  {at: -0.3, expect: '7px 33px'},
+  {at: 0, expect: '10px 30px'},
+  {at: 0.5, expect: '15px 25px'},
+  {at: 1, expect: '20px 20px'},
+  {at: 1.5, expect: '25px 15px'},
+]);
+
+test_interpolation({
+  property: 'object-position',
+  from: 'initial',
+  to: '20px 20px',
+}, [
+  {at: -0.3, expect: 'calc(-6px + 65%) calc(-6px + 65%)'},
+  {at: 0, expect: '50% 50%'},
+  {at: 0.5, expect: 'calc(10px + 25%) calc(10px + 25%)'},
+  {at: 1, expect: 'calc(20px + 0%) calc(20px + 0%)'},
+  {at: 1.5, expect: 'calc(30px + -25%) calc(30px + -25%)'},
+]);
+
+test_interpolation({
+  property: 'object-position',
+  from: 'inherit',
+  to: '20px 20px',
+}, [
+  {at: -0.3, expect: '33px 7px'},
+  {at: 0, expect: '30px 10px'},
+  {at: 0.5, expect: '25px 15px'},
+  {at: 1, expect: '20px 20px'},
+  {at: 1.5, expect: '15px 25px'},
+]);
+
+test_interpolation({
+  property: 'object-position',
+  from: 'unset',
+  to: '20px 20px',
+}, [
+  {at: -0.3, expect: 'calc(-6px + 65%) calc(-6px + 65%)'},
+  {at: 0, expect: '50% 50%'},
+  {at: 0.5, expect: 'calc(10px + 25%) calc(10px + 25%)'},
+  {at: 1, expect: 'calc(20px + 0%) calc(20px + 0%)'},
+  {at: 1.5, expect: 'calc(30px + -25%) calc(30px + -25%)'},
+]);
+
+test_interpolation({
+  property: 'object-position',
+  from: '50% 50%',
+  to: '100% 100%'
+}, [
+  {at: -0.3, expect: '35% 35%'},
+  {at: 0, expect: '50% 50%'},
+  {at: 0.5, expect: '75% 75%'},
+  {at: 1, expect: '100% 100%'},
+  {at: 1.5, expect: '125% 125%'}
+]);
+
+test_interpolation({
+  property: 'object-position',
+  from: '100px 200px',
+  to: '0px 0px'
+}, [
+  {at: -0.3, expect: '130px 260px'},
+  {at: 0, expect: '100px 200px'},
+  {at: 0.5, expect: '50px 100px'},
+  {at: 1, expect: '0px 0px'},
+  {at: 1.5, expect: '-50px -100px'}
+]);
+
+// Zero seem to be a special case in the old implementation
+test_interpolation({
+  property: 'object-position',
+  from: '50% 100%',
+  to: '0px 0px'
+}, [
+  {at: -0.3, expect: '65% 130%'},
+  {at: 0, expect: '50% 100%'},
+  {at: 0.5, expect: '25% 50%'},
+  {at: 1, expect: '0px 0px'},
+  {at: 1.5, expect: '-25% -50%'}
+]);
+
+test_interpolation({
+  property: 'object-position',
+  from: '50% 100%',
+  to: '50px 100px'
+}, [
+  {at: -0.3, expect: 'calc(65% + -15px) calc(130% + -30px)'},
+  {at: 0, expect: '50% 100%'},
+  {at: 0.5, expect: 'calc(25% + 25px) calc(50% + 50px)'},
+  {at: 1, expect: 'calc(0% + 50px) calc(0% + 100px)'},
+  {at: 1.5, expect: 'calc(-25% + 75px) calc(-50% + 150px)'}
+]);
+
+test_interpolation({
+  property: 'object-position',
+  from: 'center',
+  to: 'top right'
+}, [
+  {at: -0.3, expect: '35% 65%'},
+  {at: 0, expect: '50% 50%'},
+  {at: 0.5, expect: '75% 25%'},
+  {at: 1, expect: '100% 0%'},
+  {at: 1.5, expect: '125% -25%'}
+]);
+
+test_interpolation({
+  property: 'object-position',
+  from: 'center',
+  to: 'right 0% bottom 50%',
+}, [
+  {at: -0.5, expect: '25% 50%'},
+  {at: 0, expect: 'center'},
+  {at: 0.3, expect: '65% 50%'},
+  {at: 0.5, expect: '75% 50%'},
+  {at: 0.9, expect: '95% 50%'},
+  {at: 1, expect: '100% 50%'},
+  {at: 1.5, expect: '125% 50%'},
+  {at: 2, expect: '150% 50%'},
+]);
+</script>
+

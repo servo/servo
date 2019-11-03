@@ -16,7 +16,7 @@ li {
     list-style-type: lower-alpha;
 }
 
-li::marker {
+li::marker, span {
     font-family: sans-serif;
     font-size: 24px;
     font-style: italic;
@@ -27,7 +27,7 @@ li::marker {
 </head>
 <body>
 <ol>
-    <li><span style="font-size: 24px"><!-- FIXME: Needed to ensure consistent baseline position with expected result in WebKit (why?). --></span></li>
+    <li><span><!-- FIXME: Needed to ensure consistent baseline position with expected result in Chromium and WebKit (why?). --></span></li>
 </ol>
 </body>
 </html>

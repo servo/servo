@@ -4,6 +4,19 @@ policy:
 tasks:
   $let:
     event_str: {$json: {$eval: event}}
+    provisionerId:
+      $if: 'taskcluster_root_url == "https://taskcluster.net"'
+      then: aws-provisioner-v1
+      else: proj-wpt
+    workerType:
+      $if: 'taskcluster_root_url == "https://taskcluster.net"'
+      then:
+        $if: event.repository.full_name == 'web-platform-tests/wpt'
+        then:
+          wpt-docker-worker
+        else:
+          github-worker
+      else: ci
   in:
     $flattenDeep:
       - $if: tasks_for == "github-push"
@@ -52,13 +65,8 @@ tasks:
               taskGroupId: {$eval: 'as_slugid("task group")'}
               created: {$fromNow: ''}
               deadline: {$fromNow: '24 hours'}
-              provisionerId: aws-provisioner-v1
-              workerType:
-                $if: event.repository.full_name == 'web-platform-tests/wpt'
-                then:
-                  wpt-docker-worker
-                else:
-                  github-worker
+              provisionerId: ${provisionerId}
+              workerType: ${workerType}
               metadata:
                 name: wpt-${browser.name}-${browser.channel}-${chunk[0]}-${chunk[1]}
                 description: >-
@@ -155,13 +163,8 @@ tasks:
                 taskGroupId: {$eval: 'as_slugid("task group")'}
                 created: {$fromNow: ''}
                 deadline: {$fromNow: '24 hours'}
-                provisionerId: aws-provisioner-v1
-                workerType:
-                  $if: event.repository.full_name == 'web-platform-tests/wpt'
-                  then:
-                    wpt-docker-worker
-                  else:
-                    github-worker
+                provisionerId: ${provisionerId}
+                workerType: ${workerType}
                 metadata:
                   name: ${operation.name}
                   description: ${operation.description}
@@ -321,13 +324,8 @@ tasks:
                 taskGroupId: {$eval: 'as_slugid("task group")'}
                 created: {$fromNow: ''}
                 deadline: {$fromNow: '24 hours'}
-                provisionerId: aws-provisioner-v1
-                workerType:
-                  $if: event.repository.full_name == 'web-platform-tests/wpt'
-                  then:
-                    wpt-docker-worker
-                  else:
-                    github-worker
+                provisionerId: ${provisionerId}
+                workerType: ${workerType}
                 metadata:
                   name: ${operation.name}
                   description: ${operation.description}

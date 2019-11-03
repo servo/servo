@@ -64,8 +64,8 @@ const test_json_data = {level: 1, score: 100, label: 'Game'};
 const test_url_data = 'https://w3c.github.io/web-nfc/';
 const test_message_origin = 'https://127.0.0.1:8443';
 const test_buffer_data = new ArrayBuffer(test_text_byte_array.length);
-const test_buffer_view =
-    new Uint8Array(test_buffer_data).set(test_text_byte_array);
+const test_buffer_view = new Uint8Array(test_buffer_data);
+test_buffer_view.set(test_text_byte_array);
 const fake_tag_serial_number = 'c0:45:00:02';
 
 const NFCHWStatus = {};
@@ -111,6 +111,10 @@ function createOpaqueRecord(buffer) {
   return createRecord('opaque', 'application/octet-stream', buffer);
 }
 
+function createUnknownRecord(buffer) {
+  return createRecord('unknown', '', buffer);
+}
+
 function createUrlRecord(url, isAbsUrl) {
   if (isAbsUrl) {
     return createRecord('absolute-url', 'text/plain', url);
@@ -126,11 +130,12 @@ function createNDEFPushOptions(target, timeout, ignoreRead) {
 // (e.g. NDEFWriter.push), and NDEFMessage that was received by the
 // mock NFC service.
 function assertNDEFMessagesEqual(providedMessage, receivedMessage) {
-  // If simple data type is passed, e.g. String or ArrayBuffer, convert it
-  // to NDEFMessage before comparing.
+  // If simple data type is passed, e.g. String or ArrayBuffer or
+  // ArrayBufferView, convert it to NDEFMessage before comparing.
   // https://w3c.github.io/web-nfc/#dom-ndefmessagesource
   let provided = providedMessage;
-  if (providedMessage instanceof ArrayBuffer)
+  if (providedMessage instanceof ArrayBuffer ||
+      ArrayBuffer.isView(providedMessage))
     provided = createMessage([createOpaqueRecord(providedMessage)]);
   else if (typeof providedMessage === 'string')
     provided = createMessage([createTextRecord(providedMessage)]);

@@ -68,18 +68,21 @@ dictionary AudioConfiguration {
 dictionary MediaCapabilitiesKeySystemConfiguration {
     required DOMString keySystem;
     DOMString initDataType = "";
-    DOMString audioRobustness = "";
-    DOMString videoRobustness = "";
     MediaKeysRequirement distinctiveIdentifier = "optional";
     MediaKeysRequirement persistentState = "optional";
     sequence<DOMString> sessionTypes;
+    KeySystemTrackConfiguration audio;
+    KeySystemTrackConfiguration video;
+  };
+
+dictionary KeySystemTrackConfiguration {
+    DOMString robustness = "";
   };
 
 dictionary MediaCapabilitiesInfo {
   required boolean supported;
   required boolean smooth;
   required boolean powerEfficient;
-
 };
 
 dictionary MediaCapabilitiesDecodingInfo : MediaCapabilitiesInfo {

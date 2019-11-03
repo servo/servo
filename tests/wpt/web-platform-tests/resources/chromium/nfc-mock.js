@@ -31,14 +31,16 @@ function toMojoNDEFRecord(record) {
   return nfcRecord;
 }
 
+// Converts JS objects to byte array.
 function toByteArray(data) {
-  // Converts JS objects to byte array.
+  if (data instanceof ArrayBuffer)
+    return new Uint8Array(data);
+  else if (ArrayBuffer.isView(data))
+    return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+
   let byteArray = new Uint8Array(0);
   let tmpData = data;
-
-  if (tmpData instanceof ArrayBuffer)
-    byteArray = new Uint8Array(tmpData);
-  else if (typeof tmpData === 'object' || typeof tmpData === 'number')
+  if (typeof tmpData === 'object' || typeof tmpData === 'number')
     tmpData = JSON.stringify(tmpData);
 
   if (typeof tmpData === 'string')
