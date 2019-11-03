@@ -144,6 +144,11 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
 
             match sender {
                 Some(webgl_sender) => {
+                    let (resize_sender, resize_receiver) = webgl_channel().unwrap();
+                    webgl_sender.send_resize(Size2D::new(width, height), resize_sender).unwrap();
+                    if let Err(msg) = resize_receiver.recv().unwrap(){
+                        panic!("PANIC: Error resizing rendering context for SVG: {}", msg);
+                    }
                     webgl_sender
                         .send(clearColorCommand, capture_webgl_backtrace(SVG))
                         .unwrap();
@@ -151,12 +156,13 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
                         .send(clearCommand, capture_webgl_backtrace(SVG))
                         .unwrap();
 
+
                     let image_key = match share_mode {
                         WebGLContextShareMode::SharedTexture => {
                             webrender_image.get().unwrap_or_else(|| {
-                                let (sender, receiver) = webgl_channel().unwrap();
-                                webgl_sender.send_update_wr_image(sender).unwrap();
-                                let key = receiver.recv().unwrap();
+                                let (update_sender, update_receiver) = webgl_channel().unwrap();
+                                webgl_sender.send_update_wr_image(update_sender).unwrap();
+                                let key = update_receiver.recv().unwrap();
                                 SVG.webrender_image.set(Some(key));
                                 key
                             })
@@ -164,9 +170,9 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
                         WebGLContextShareMode::Readback => {
                             // WR using Readback requires to update WR image every frame
                             // in order to send the new raw pixels.
-                            let (sender, receiver) = webgl_channel().unwrap();
-                            webgl_sender.send_update_wr_image(sender).unwrap();
-                            receiver.recv().unwrap()
+                            let (update_sender, update_receiver) = webgl_channel().unwrap();
+                            webgl_sender.send_update_wr_image(update_sender).unwrap();
+                            update_receiver.recv().unwrap()
                         },
                     };
                     SVGSVGData{
