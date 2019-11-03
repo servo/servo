@@ -45,6 +45,7 @@ use crate::dom::htmlcollection::HTMLCollection;
 use crate::dom::htmlformcontrolscollection::HTMLFormControlsCollection;
 use crate::dom::htmloptionscollection::HTMLOptionsCollection;
 use crate::dom::nodelist::NodeList;
+use crate::dom::windowproxy::WindowProxy;
 use js::conversions::latin1_to_string;
 pub use js::conversions::ConversionBehavior;
 pub use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
@@ -55,10 +56,10 @@ use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::glue::{RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING};
 use js::jsapi::{Heap, JSContext, JSObject, JSString};
+use js::jsapi::{IsWindowProxy, JS_NewStringCopyN, JS_StringHasLatin1Chars};
 use js::jsapi::{
     JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength, JS_IsExceptionPending,
 };
-use js::jsapi::{JS_NewStringCopyN, JS_StringHasLatin1Chars};
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
 use js::rust::wrappers::{JS_GetProperty, JS_HasProperty, JS_IsArrayObject};
 use js::rust::{get_object_class, is_dom_class, is_dom_object, maybe_wrap_value, ToString};
@@ -633,4 +634,23 @@ where
         Ok(ConversionResult::Failure(_)) => Ok(None),
         Err(()) => Err(Error::JSFailed),
     }
+}
+
+/// Get a `DomRoot<T>` for a WindowProxy accessible from a `HandleValue`.
+/// Caller is responsible for throwing a JS exception if needed in case of error.
+pub unsafe fn windowproxy_from_handlevalue(
+    v: HandleValue,
+    _cx: *mut JSContext,
+) -> Result<DomRoot<WindowProxy>, ()> {
+    if !v.get().is_object() {
+        return Err(());
+    }
+    let object = v.get().to_object();
+    if !IsWindowProxy(object) {
+        return Err(());
+    }
+    let mut value = UndefinedValue();
+    GetProxyReservedSlot(object, 0, &mut value);
+    let ptr = value.to_private() as *const WindowProxy;
+    Ok(DomRoot::from_ref(&*ptr))
 }

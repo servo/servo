@@ -9,9 +9,7 @@ interface MessageEvent : Event {
   readonly attribute any data;
   readonly attribute DOMString origin;
   readonly attribute DOMString lastEventId;
-  // FIXME(#22617): WindowProxy is not exposed in Worker globals
-  readonly attribute object? source;
-  //readonly attribute (WindowProxy or MessagePort)? source;
+  readonly attribute MessageEventSource? source;
   readonly attribute /*FrozenArray<MessagePort>*/any ports;
 };
 
@@ -20,9 +18,8 @@ dictionary MessageEventInit : EventInit {
   DOMString origin = "";
   DOMString lastEventId = "";
   //DOMString channel;
-  Window? source;
-  //(WindowProxy or MessagePort)? source;
-  sequence<MessagePort> ports;
+  MessageEventSource? source = null;
+  sequence<MessagePort> ports = [];
 };
 
-typedef (/*WindowProxy or */MessagePort or ServiceWorker) MessageEventSource;
+typedef (WindowProxy or MessagePort or ServiceWorker) MessageEventSource;

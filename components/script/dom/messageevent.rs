@@ -5,9 +5,10 @@
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::MessageEventBinding;
 use crate::dom::bindings::codegen::Bindings::MessageEventBinding::MessageEventMethods;
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::codegen::UnionTypes::WindowProxyOrMessagePortOrServiceWorker;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -19,11 +20,10 @@ use crate::dom::messageport::MessagePort;
 use crate::dom::windowproxy::WindowProxy;
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSObject};
+use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleValue;
 use servo_atoms::Atom;
-use std::ptr::NonNull;
 
 #[dom_struct]
 pub struct MessageEvent {
@@ -94,10 +94,11 @@ impl MessageEvent {
         type_: DOMString,
         init: RootedTraceableBox<MessageEventBinding::MessageEventInit>,
     ) -> Fallible<DomRoot<MessageEvent>> {
-        let source = init
-            .source
-            .as_ref()
-            .and_then(|inner| inner.as_ref().map(|source| source.window_proxy()));
+        let source = match &init.source {
+            Some(WindowProxyOrMessagePortOrServiceWorker::WindowProxy(i)) => Some(i),
+            None => None,
+            _ => return Err(Error::NotSupported)
+        };
         let ev = MessageEvent::new(
             global,
             Atom::from(type_),
@@ -105,9 +106,9 @@ impl MessageEvent {
             init.parent.cancelable,
             init.data.handle(),
             init.origin.clone(),
-            source.as_ref().map(|source| &**source),
+            source.map(|source| &**source),
             init.lastEventId.clone(),
-            init.ports.clone().unwrap_or(vec![]),
+            init.ports.clone(),
         );
         Ok(ev)
     }
@@ -138,10 +139,6 @@ impl MessageEvent {
 
     pub fn dispatch_error(target: &EventTarget, scope: &GlobalScope) {
         let init = MessageEventBinding::MessageEventInit::empty();
-        let source = init
-            .source
-            .as_ref()
-            .and_then(|inner| inner.as_ref().map(|source| source.window_proxy()));
         let messageevent = MessageEvent::new(
             scope,
             atom!("messageerror"),
@@ -149,9 +146,9 @@ impl MessageEvent {
             init.parent.cancelable,
             init.data.handle(),
             init.origin.clone(),
-            source.as_ref().map(|source| &**source),
+            None,
             init.lastEventId.clone(),
-            init.ports.clone().unwrap_or(vec![]),
+            init.ports.clone(),
         );
         messageevent.upcast::<Event>().fire(target);
     }
@@ -169,10 +166,10 @@ impl MessageEventMethods for MessageEvent {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-messageevent-source
-    fn GetSource(&self, _cx: JSContext) -> Option<NonNull<JSObject>> {
+    fn GetSource(&self) -> Option<WindowProxyOrMessagePortOrServiceWorker> {
         self.source
             .as_ref()
-            .and_then(|source| NonNull::new(source.reflector().get_jsobject().get()))
+            .and_then(|source| Some(WindowProxyOrMessagePortOrServiceWorker::WindowProxy(DomRoot::from_ref(source))))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-lasteventid>

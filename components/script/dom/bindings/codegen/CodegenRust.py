@@ -836,6 +836,8 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             descriptorType = descriptor.nativeType
         elif isArgument:
             descriptorType = descriptor.argumentType
+        elif descriptor.interface.identifier.name == "WindowProxy":
+            conversionFunction = "windowproxy_from_handlevalue"
 
         if failureCode is None:
             substitutions = {
@@ -2409,6 +2411,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'crate::dom::bindings::conversions::ConversionBehavior',
         'crate::dom::bindings::conversions::StringificationBehavior',
         'crate::dom::bindings::conversions::root_from_handlevalue',
+        'crate::dom::bindings::conversions::windowproxy_from_handlevalue',
         'std::ptr::NonNull',
         'crate::dom::bindings::record::Record',
         'crate::dom::bindings::num::Finite',
@@ -2419,6 +2422,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'crate::dom::bindings::trace::RootedTraceableBox',
         'crate::dom::bindings::utils::find_enum_value',
         'crate::dom::types::*',
+        'crate::dom::windowproxy::WindowProxy',
         'crate::script_runtime::JSContext as SafeJSContext',
         'js::error::throw_type_error',
         'js::rust::HandleValue',
