@@ -162,6 +162,30 @@
   }, 'NDEFRecord constructor with JSON record type');
 
   test(() => {
+    assert_throws(new TypeError, () => new NDEFRecord(
+          createUnknownRecord("A string is not a BufferSource")),
+        'Only BufferSource is allowed to be the record data.');
+
+    let buffer = new ArrayBuffer(4);
+    new Uint8Array(buffer).set([1, 2, 3, 4]);
+    // Feed ArrayBuffer.
+    {
+      const record = new NDEFRecord(createUnknownRecord(buffer));
+      assert_equals(record.recordType, 'unknown', 'recordType');
+      assert_array_equals(new Uint8Array(record.data.buffer), [1, 2, 3, 4],
+          'data has the same content with the original buffer');
+    }
+    // Feed ArrayBufferView.
+    {
+      let buffer_view = new Uint8Array(buffer, 1);
+      const record = new NDEFRecord(createUnknownRecord(buffer_view));
+      assert_equals(record.recordType, 'unknown', 'recordType');
+      assert_array_equals(new Uint8Array(record.data.buffer), [2, 3, 4],
+          'data has the same content with the original buffer view');
+    }
+  }, 'NDEFRecord constructor with unknown record type');
+
+  test(() => {
     let buffer = new ArrayBuffer(4);
     let buffer_view = new Uint8Array(buffer);
     let original_data = new Uint8Array([1, 2, 3, 4]);

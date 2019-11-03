@@ -35,6 +35,13 @@ const NDEFReaderOptionTests =
     },
     {
       desc: "Test that reading data succeed when NDEFScanOptions'" +
+            " recordType is set to 'unknown'.",
+      scanOptions: {recordType: "unknown"},
+      unmatchedScanOptions: {recordType: "json"},
+      message: createMessage([createUnknownRecord(test_buffer_data)])
+    },
+    {
+      desc: "Test that reading data succeed when NDEFScanOptions'" +
             " recordType is set to 'text'.",
       scanOptions: {recordType: "text"},
       unmatchedScanOptions: {recordType: "json"},
@@ -101,6 +108,13 @@ const ReadMultiMessagesTests =
       scanOptions: {recordType: "opaque"},
       message: createMessage([createOpaqueRecord(test_buffer_data)]),
       unmatchedMessage: createMessage([createJsonRecord(test_json_data)])
+    },
+    {
+      desc: "Test that filtering 'unknown' record from different messages" +
+            " correctly with NDEFScanOptions' recordType is set to 'unknown'.",
+      scanOptions: {recordType: "unknown"},
+      message: createMessage([createUnknownRecord(test_buffer_data)]),
+      unmatchedMessage: createMessage([createUrlRecord(test_url_data)])
     },
     {
       desc: "Test that filtering 'text' record from different messages" +

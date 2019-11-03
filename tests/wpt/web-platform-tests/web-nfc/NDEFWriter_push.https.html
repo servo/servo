@@ -70,6 +70,14 @@ const invalid_type_messages =
       createMessage([createOpaqueRecord(test_number_data)]),
       createMessage([createOpaqueRecord(test_json_data)]),
 
+      // NDEFRecord must have data.
+      createMessage([createUnknownRecord()]),
+
+      // NDEFRecord.data for 'unknown' record must be BufferSource.
+      createMessage([createUnknownRecord(test_text_data)]),
+      createMessage([createUnknownRecord(test_number_data)]),
+      createMessage([createUnknownRecord(test_json_data)]),
+
       // https://w3c.github.io/web-nfc/#dfn-map-external-data-to-ndef
       // NDEFRecord must have data.
       createMessage([createRecord('w3.org:xyz', '', undefined)]),
@@ -301,13 +309,14 @@ nfc_test(async (t, mockNFC) => {
                                createJsonRecord(test_json_data),
                                createJsonRecord(test_number_data),
                                createOpaqueRecord(test_buffer_data),
+                               createUnknownRecord(test_buffer_data),
                                createUrlRecord(test_url_data),
                                createUrlRecord(test_url_data, true),
                                createRecord('w3.org:xyz', '', test_buffer_data)],
                                test_message_origin);
   await writer.push(message);
   assertNDEFMessagesEqual(message, mockNFC.pushedMessage());
-}, "NDEFWriter.push NDEFMessage containing text, json, opaque, url, absolute-url \
+}, "NDEFWriter.push NDEFMessage containing text, json, opaque, unknown, url, absolute-url \
 and external records with default NDEFPushOptions.");
 
 nfc_test(async (t, mockNFC) => {
@@ -321,6 +330,13 @@ nfc_test(async (t, mockNFC) => {
   await writer.push(test_buffer_data);
   assertNDEFMessagesEqual(test_buffer_data, mockNFC.pushedMessage());
 }, "Test that NDEFWriter.push succeeds when message is ArrayBuffer.");
+
+nfc_test(async (t, mockNFC) => {
+  let buffer_view = new Uint8Array(test_buffer_data, 2, 5);
+  const writer = new NDEFWriter();
+  await writer.push(buffer_view);
+  assertNDEFMessagesEqual(buffer_view, mockNFC.pushedMessage());
+}, "Test that NDEFWriter.push succeeds when message is ArrayBufferView.");
 
 nfc_test(async () => {
   const writer = new NDEFWriter();

@@ -17,7 +17,9 @@
   html    { scroll-padding: 2em 0 1em; } /* snap area is exact fit for snapport  */
   #stripe { background: green;         } /* color part of the snap area          */
   .fail   { color: red;                } /* make failing more obvious            */
-  }
+
+  /* emulate `scrollbar-width: none` for browsers that don't support it yet */
+  ::-webkit-scrollbar { display: none; }
 </style>
 
 <div></div>

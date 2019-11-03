@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: Supported properties in ::marker</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<meta name="assert" content="This test checks that only certain properties apply to ::marker pseudo-elements." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="log"></div>
+<ul>
+  <li id="target">target</li>
+</ul>
+<script>
+// ::marker supports all font properties.
+test_pseudo_computed_value("::marker", "font", "italic small-caps 900 expanded 25px / 50px Ahem",
+  ["italic small-caps 900 expanded 25px Ahem", "italic small-caps 900 expanded 25px/normal Ahem"]);
+test_pseudo_computed_value("::marker", "font-family", "Ahem");
+test_pseudo_computed_value("::marker", "font-feature-settings", "\"smcp\"");
+test_pseudo_computed_value("::marker", "font-kerning", "none");
+test_pseudo_computed_value("::marker", "font-size", "25px");
+test_pseudo_computed_value("::marker", "font-size-adjust", "1");
+test_pseudo_computed_value("::marker", "font-stretch", "expanded", ["expanded", "125%"]);
+test_pseudo_computed_value("::marker", "font-style", "italic");
+test_pseudo_computed_value("::marker", "font-synthesis", "none");
+test_pseudo_computed_value("::marker", "font-variant", "small-caps");
+test_pseudo_computed_value("::marker", "font-variant-caps", "small-caps");
+test_pseudo_computed_value("::marker", "font-variant-east-asian", "full-width");
+test_pseudo_computed_value("::marker", "font-variant-ligatures", "historical-ligatures");
+test_pseudo_computed_value("::marker", "font-variant-numeric", "slashed-zero");
+test_pseudo_computed_value("::marker", "font-variant-position", "sub");
+test_pseudo_computed_value("::marker", "font-weight", "900");
+
+// ::marker supports `color`
+test_pseudo_computed_value("::marker", "color", "rgb(0, 100, 200)");
+
+// ::marker supports `text-combine-upright`, `unicode-bidi` and `direction`
+test_pseudo_computed_value("::marker", "text-combine-upright", "none");
+test_pseudo_computed_value("::marker", "unicode-bidi", "plaintext");
+test_pseudo_computed_value("::marker", "direction", "rtl");
+
+// ::marker supports `content`
+test_pseudo_computed_value("::marker", "content", "\"foo\"");
+
+// ::marker does NOT support layout properties
+test_pseudo_computed_value("::marker", "display", "none", ["block", "inline"]);
+test_pseudo_computed_value("::marker", "position", "absolute", "static");
+test_pseudo_computed_value("::marker", "float", "right", "none");
+
+// ::marker does NOT support list properties despite being affected by them,
+// they apply to the list item instead.
+test_pseudo_computed_value("::marker", "list-style", "inside url('foo') decimal", "outside none disc");
+test_pseudo_computed_value("::marker", "list-style-image", "url('foo')", "none");
+test_pseudo_computed_value("::marker", "list-style-position", "inside", "outside");
+test_pseudo_computed_value("::marker", "list-style-type", "decimal", "disc");
+
+// ::marker does NOT support `line-height` because, despite being a
+// longhand of `font`, it's not a font property.
+test_pseudo_computed_value("::marker", "line-height", "50px", "normal");
+</script>
