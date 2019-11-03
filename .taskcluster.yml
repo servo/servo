@@ -8,7 +8,10 @@ policy:
 tasks:
   $let:
     task_common:
-      provisionerId: aws-provisioner-v1
+      provisionerId:
+        $if: "taskcluster_root_url == 'https://taskcluster.net'"
+        then: aws-provisioner-v1
+        else: proj-servo
       created: {$fromNow: ''}
       deadline: {$fromNow: '1 day'}
       extra:
@@ -53,7 +56,10 @@ tasks:
                   description: ""
                   owner: ${event.pusher.name}@users.noreply.github.com
                   source: ${event.compare}
-                workerType: servo-docker-worker
+                workerType:
+                  $if: "taskcluster_root_url == 'https://taskcluster.net'"
+                  then: servo-docker-worker
+                  else: docker
                 scopes:
                   - "assume:repo:github.com/servo/servo:branch:${branch}"
                 routes:
@@ -82,7 +88,10 @@ tasks:
               description: ""
               owner: ${event.sender.login}@users.noreply.github.com
               source: ${event.pull_request.url}
-            workerType: servo-docker-untrusted
+            workerType:
+              $if: "taskcluster_root_url == 'https://taskcluster.net'"
+              then: servo-docker-untrusted
+              else: docker-untrusted
             scopes:
               - "assume:repo:github.com/servo/servo:pull-request"
             routes:

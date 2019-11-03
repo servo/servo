@@ -57,6 +57,15 @@ class Config:
         self.git_ref = os.environ.get("GIT_REF")
         self.git_sha = os.environ.get("GIT_SHA")
 
+        root_url = os.environ.get("TASKCLUSTER_ROOT_URL")
+        self.legacy_tc_deployment = root_url == "https://taskcluster.net"
+
+        if self.legacy_tc_deployment:
+            self.default_provisioner_id = "aws-provisioner-v1"
+        else:  # pragma: no cover
+            self.default_provisioner_id = "proj-example"
+
+
     def task_id(self):
         if hasattr(self, "_task_id"):
             return self._task_id
@@ -131,7 +140,7 @@ class Task:
         self.name = name
         self.description = ""
         self.scheduler_id = "taskcluster-github"
-        self.provisioner_id = "aws-provisioner-v1"
+        self.provisioner_id = CONFIG.default_provisioner_id
         self.worker_type = "github-worker"
         self.deadline_in = "1 day"
         self.expires_in = "1 year"

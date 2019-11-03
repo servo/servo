@@ -157,7 +157,9 @@ windows_sparse_checkout = [
 def linux_tidy_unit_untrusted():
     return (
         decisionlib.DockerWorkerTask("Tidy + dev build + unit tests")
-        .with_worker_type("servo-docker-untrusted")
+        .with_worker_type(
+            "servo-docker-untrusted" if CONFIG.legacy_tc_deployment else "docker-untrusted"
+        )
         .with_treeherder("Linux x64", "Tidy+Unit")
         .with_max_run_time_minutes(60)
         .with_dockerfile(dockerfile_path("build"))
@@ -731,7 +733,7 @@ def dockerfile_path(name):
 def linux_task(name):
     return (
         decisionlib.DockerWorkerTask(name)
-        .with_worker_type("servo-docker-worker")
+        .with_worker_type("servo-docker-worker" if CONFIG.legacy_tc_deployment else "docker")
         .with_treeherder_required()
     )
 
@@ -739,7 +741,7 @@ def linux_task(name):
 def windows_task(name):
     return (
         decisionlib.WindowsGenericWorkerTask(name)
-        .with_worker_type("servo-win2016")
+        .with_worker_type("servo-win2016" if CONFIG.legacy_tc_deployment else "win2016")
         .with_treeherder_required()
     )
 
@@ -968,10 +970,15 @@ def magicleap_nightly():
 
 
 CONFIG.task_name_template = "Servo: %s"
-CONFIG.index_prefix = "project.servo.servo"
-CONFIG.docker_image_build_worker_type = "servo-docker-worker"
 CONFIG.docker_images_expire_in = build_dependencies_artifacts_expire_in
 CONFIG.repacked_msi_files_expire_in = build_dependencies_artifacts_expire_in
+if CONFIG.legacy_tc_deployment:
+    CONFIG.index_prefix = "project.servo.servo"
+    CONFIG.docker_image_build_worker_type = "servo-docker-worker"
+else:  # pragma: no cover
+    CONFIG.index_prefix = "project.servo"
+    CONFIG.default_provisioner_id = "proj-servo"
+    CONFIG.docker_image_build_worker_type = "docker"
 
 
 if __name__ == "__main__":  # pragma: no cover
