@@ -755,24 +755,24 @@ class DockerWorkerTask(UnixTaskMixin, Task):
             .with_index_and_artifacts_expire_in(CONFIG.docker_images_expire_in)
             .with_features("dind")
             .with_env(DOCKERFILE=dockerfile_contents)
-            .with_artifacts("/image.tar.lz4")
+            .with_artifacts("/image.tar")
             .with_script("""
                 echo "$DOCKERFILE" | docker build -t taskcluster-built -
-                docker save taskcluster-built | lz4 > /image.tar.lz4
+                docker save taskcluster-built > /image.tar
             """)
             .with_docker_image(
                 # https://github.com/servo/taskcluster-bootstrap-docker-images#image-builder
                 "servobrowser/taskcluster-bootstrap:image-builder@sha256:" \
                 "0a7d012ce444d62ffb9e7f06f0c52fedc24b68c2060711b313263367f7272d9d"
             )
-            .find_or_create("docker-image." + digest)
+            .find_or_create("docker-image-uncompressed." + digest)
         )
 
         return self \
         .with_dependencies(image_build_task) \
         .with_docker_image({
             "type": "task-image",
-            "path": "public/image.tar.lz4",
+            "path": "public/image.tar",
             "taskId": image_build_task,
         })
 
