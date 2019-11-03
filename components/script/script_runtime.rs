@@ -5,6 +5,8 @@
 //! The script runtime contains common traits and structs commonly used by the
 //! script thread, the dom, and the worker threads.
 
+#![allow(dead_code)]
+
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::conversions::get_dom_class;
 use crate::dom::bindings::conversions::private_from_object;
@@ -26,7 +28,10 @@ use crate::script_thread::trace_thread;
 use crate::task::TaskBox;
 use crate::task_source::{TaskSource, TaskSourceName};
 use js::glue::{CollectServoSizes, CreateJobQueue, DeleteJobQueue, JobQueueTraps, SetBuildId};
+use js::glue::{RUST_js_GetErrorMessage, StreamConsumerConsumeChunk, StreamConsumerStreamEnd};
+use js::glue::{StreamConsumerNoteResponseURLs, StreamConsumerStreamError};
 use js::jsapi::ContextOptionsRef;
+use js::jsapi::StreamConsumer as JSStreamConsumer;
 use js::jsapi::{BuildIdCharVector, DisableIncrementalGC, GCDescription, GCProgress};
 use js::jsapi::{HandleObject, Heap, JobQueue};
 use js::jsapi::{JSContext as RawJSContext, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
@@ -51,6 +56,7 @@ use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use servo_config::opts;
 use servo_config::pref;
 use std::cell::Cell;
+use std::ffi::CString;
 use std::fmt;
 use std::io::{stdout, Write};
 use std::ops::Deref;
@@ -775,4 +781,54 @@ impl Deref for JSContext {
     fn deref(&self) -> &Self::Target {
         &self.0
     }
+}
+
+pub struct StreamConsumer(*mut JSStreamConsumer);
+
+#[allow(unsafe_code)]
+impl StreamConsumer {
+    fn consume_chunk(&self, stream: &[u8]) -> bool {
+        unsafe {
+            let stream_ptr = stream.as_ptr();
+            return StreamConsumerConsumeChunk(self.0, stream_ptr, stream.len());
+        }
+    }
+
+    fn stream_end(&self) {
+        unsafe {
+            StreamConsumerStreamEnd(self.0);
+        }
+    }
+
+    fn stream_error(&self, error_code: usize) {
+        unsafe {
+            StreamConsumerStreamError(self.0, error_code);
+        }
+    }
+
+    fn note_response_urls(&self, maybe_url: Option<String>, maybe_source_map_url: Option<String>) {
+        unsafe {
+            let maybe_url = maybe_url.map(|url| CString::new(url).unwrap());
+            let maybe_source_map_url = maybe_source_map_url.map(|url| CString::new(url).unwrap());
+
+            let maybe_url_param = match maybe_url.as_ref() {
+                Some(url) => url.as_ptr(),
+                None => ptr::null(),
+            };
+            let maybe_source_map_url_param = match maybe_source_map_url.as_ref() {
+                Some(url) => url.as_ptr(),
+                None => ptr::null(),
+            };
+
+            StreamConsumerNoteResponseURLs(self.0, maybe_url_param, maybe_source_map_url_param);
+        }
+    }
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn report_stream_error_callback(_cx: *mut JSContext, error_code: usize) {
+    error!(
+        "Error initializing StreamConsumer: {:?}",
+        RUST_js_GetErrorMessage(ptr::null_mut(), error_code as u32)
+    );
 }
