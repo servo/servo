@@ -94,18 +94,34 @@
             <StackPanel Orientation="Horizontal" Grid.Column="0">
                 <Button Style="{StaticResource NavigationBarButton}" x:Name="backButton" IsTabStop="true" IsEnabled="false" Click="OnBackButtonClicked" AutomationProperties.Name="Back">
                     <Image Source="Assets/UI/back.png" Height="12"></Image>
+                    <Button.KeyboardAccelerators>
+                        <KeyboardAccelerator Key="Left" Modifiers="Menu" />
+                    </Button.KeyboardAccelerators>
                 </Button>
                 <Button Style="{StaticResource NavigationBarButton}" x:Name="forwardButton" IsTabStop="true" IsEnabled="false" Click="OnForwardButtonClicked" AutomationProperties.Name="Forward">
                     <Image Source="Assets/UI/forward.png" Height="12"></Image>
+                    <Button.KeyboardAccelerators>
+                        <KeyboardAccelerator Key="Right" Modifiers="Menu" />
+                    </Button.KeyboardAccelerators>
                 </Button>
                 <Button Style="{StaticResource NavigationBarButton}" x:Name="reloadButton" IsTabStop="true" IsEnabled="false" Visibility="Visible" Click="OnReloadButtonClicked" AutomationProperties.Name="Reload">
                     <Image Source="Assets/UI/reload.png" Height="12"></Image>
+                    <Button.KeyboardAccelerators>
+                        <KeyboardAccelerator Key="R" Modifiers="Control" />
+                    </Button.KeyboardAccelerators>
                 </Button>
                 <Button Style="{StaticResource NavigationBarButton}" x:Name="stopButton" IsTabStop="true" IsEnabled="false" Visibility="Collapsed" Click="OnStopButtonClicked" AutomationProperties.Name="Stop">
                     <Image Source="Assets/UI/stop.png" Height="12"></Image>
+                    <Button.KeyboardAccelerators>
+                        <KeyboardAccelerator Key="Escape" Modifiers="None" />
+                    </Button.KeyboardAccelerators>
                 </Button>
             </StackPanel>
-            <TextBox Text="" IsTabStop="true" InputScope="Url" PlaceholderText="Type a URL" x:Name="urlTextbox" Grid.Column="1" KeyUp="OnURLEdited" IsSpellCheckEnabled="False" Margin="3,0"/>
+            <TextBox Text="" IsTabStop="true" InputScope="Url" PlaceholderText="Type a URL" x:Name="urlTextbox" Grid.Column="1" KeyUp="OnURLEdited" IsSpellCheckEnabled="False" Margin="3,0">
+                <TextBox.KeyboardAccelerators>
+                    <KeyboardAccelerator Key="L" Modifiers="Control" Invoked="OnURLKeyboardAccelerator"/>
+                </TextBox.KeyboardAccelerators>
+            </TextBox>
             <ProgressRing x:Name="urlbarLoadingIndicator" Grid.Column="2" Margin="10,0"/>
         </Grid>
         <local:ServoControl TabIndex="0" x:Name="servoControl" Grid.Row="1"/>
