@@ -341,7 +341,7 @@ class MachCommands(CommandBase):
 
             clangfmt_failed = False
             if not no_cpp:
-                available, cmd, files = setup_clangfmt(all_files)
+                available, cmd, files = setup_clangfmt()
                 if available:
                     for file in files:
                         stdout = subprocess.check_output([cmd, "-output-replacements-xml", file])
@@ -480,7 +480,7 @@ class MachCommands(CommandBase):
     def format_code(self, no_cpp):
 
         if not no_cpp:
-            available, cmd, files = setup_clangfmt(True)
+            available, cmd, files = setup_clangfmt()
             if available and len(files) > 0:
                 check_call([cmd, "-i"] + files)
 
@@ -797,7 +797,7 @@ def create_parser_create():
     return p
 
 
-def setup_clangfmt(all_files):
+def setup_clangfmt():
     cmd = "clang-format.exe" if sys.platform == "win32" else "clang-format"
     try:
         version = subprocess.check_output([cmd, "--version"]).rstrip()
@@ -809,8 +809,6 @@ def setup_clangfmt(all_files):
         print("clang-format not installed. Skipping CPP formatting.")
         return False, None, None
     gitcmd = ['git', 'ls-files']
-    if not all_files:
-        gitcmd.append('-m')
     gitfiles = subprocess.check_output(gitcmd + CLANGFMT_CPP_DIRS).splitlines()
     filtered = [line for line in gitfiles if line.endswith(".h") or line.endswith(".cpp")]
     return True, cmd, filtered
