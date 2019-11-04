@@ -183,7 +183,10 @@ impl Number {
         value: CSSFloat,
         calc_clamping_mode: Option<AllowedNumericType>,
     ) -> Self {
-        Self { value, calc_clamping_mode }
+        Self {
+            value,
+            calc_clamping_mode,
+        }
     }
 
     /// Returns this percentage as a number.

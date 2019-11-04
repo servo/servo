@@ -504,8 +504,8 @@ pub fn recalc_style_at<E, D, F>(
         !child_cascade_requirement.can_skip_cascade() ||
         is_servo_nonincremental_layout();
 
-    traverse_children = traverse_children &&
-        !traversal.should_cull_subtree(context, element, &data);
+    traverse_children =
+        traverse_children && !traversal.should_cull_subtree(context, element, &data);
 
     // Examine our children, and enqueue the appropriate ones for traversal.
     if traverse_children {
