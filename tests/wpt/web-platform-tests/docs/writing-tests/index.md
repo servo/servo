@@ -28,7 +28,7 @@ There's also a load of [general guidelines](general-guidelines) that apply to al
    server-features
    submission-process
    testdriver
-   testdriver-tutorial
+   testdriver-extension-tutorial
    testharness
    testharness-tutorial
    tools

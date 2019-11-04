@@ -16,16 +16,22 @@ the global scope.
 NB: presently, testdriver.js only works in the top-level test browsing
 context (and not therefore in any frame or window opened from it).
 
-### action_sequence
-Usage: `test_driver.action_sequence(actions)`
- * `actions`: an array of `Action` objects
+### Actions
+Usage:
+```
+let actions = new test_driver.Actions()
+   .action1()
+   .action2();
+actions.send()
+```
 
-This function causes a sequence of actions to be sent to the browser. It is based on the [WebDriver API](https://w3c.github.io/webdriver/#actions).
+Test authors are encouraged to use the builder API to generate the sequence of actions. The builder
+API can be accessed via the `new test_driver.Actions()` object, and actions are defined in [testdriver-actions.js](https://github.com/web-platform-tests/wpt/blob/master/resources/testdriver-actions.js)
+
+The `actions.send()` function causes the sequence of actions to be sent to the browser. It is based on the [WebDriver API](https://w3c.github.io/webdriver/#actions).
 The action can be a keyboard action, a pointer action or a pause. It returns a `Promise` that
 resolves after the actions have been sent or rejects if an error was thrown.
 
-Test authors are encouraged to use the builder API to generate the sequence of actions. The builder
-API can be accessed via the `new test_driver.Actions()` object.
 
 Example:
 

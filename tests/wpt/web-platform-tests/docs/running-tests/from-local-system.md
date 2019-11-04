@@ -36,7 +36,7 @@ pip install --user virtualenv
 To make the `PATH` change persistent, add it to your `~/.bash_profile` file or
 wherever you currently set your PATH.
 
-See also [additional setup required to run Safari](safari).
+See also [additional setup required to run Safari](safari.md).
 
 ### Windows Setup
 **Note:** In general, Windows Subsystem for Linux will provide the smoothest
