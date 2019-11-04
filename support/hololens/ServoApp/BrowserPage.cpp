@@ -69,7 +69,7 @@ void BrowserPage::SetTransientMode(bool transient) {
   navigationBar().Visibility(transient ? Visibility::Collapsed
                                        : Visibility::Visible);
   transientLoadingIndicator().Visibility(transient ? Visibility::Visible
-                                            : Visibility::Collapsed);
+                                                   : Visibility::Collapsed);
 }
 
 void BrowserPage::SetArgs(hstring args) { servoControl().SetArgs(args); }

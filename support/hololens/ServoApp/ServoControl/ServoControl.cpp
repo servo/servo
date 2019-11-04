@@ -238,8 +238,8 @@ void ServoControl::Loop() {
   if (mServo == nullptr) {
     log("Entering loop");
     ServoDelegate *sd = static_cast<ServoDelegate *>(this);
-    mServo = std::make_unique<Servo>(mInitialURL, mArgs, panelWidth, panelHeight, mDPI,
-                                     *sd);
+    mServo = std::make_unique<Servo>(mInitialURL, mArgs, panelWidth,
+                                     panelHeight, mDPI, *sd);
   } else {
     // FIXME: this will fail since create_task didn't pick the thread
     // where Servo was running initially.
