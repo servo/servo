@@ -1877,10 +1877,13 @@ impl PropertyId {
             return Ok(match *id {
                 StaticId::Longhand(id) => PropertyId::Longhand(id),
                 StaticId::Shorthand(id) => {
-                    // We want to count `zoom` even if disabled.
-                    if matches!(id, ShorthandId::Zoom) {
-                        if let Some(counters) = use_counters {
-                            counters.non_custom_properties.record(id.into());
+                    #[cfg(feature = "gecko")]
+                    {
+                        // We want to count `zoom` even if disabled.
+                        if matches!(id, ShorthandId::Zoom) {
+                            if let Some(counters) = use_counters {
+                                counters.non_custom_properties.record(id.into());
+                            }
                         }
                     }
 
