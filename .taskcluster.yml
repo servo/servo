@@ -47,7 +47,18 @@ tasks:
             $if: "event.ref[:11] == 'refs/heads/'"
             then: "${event.ref[11:]}"
         in:
-          $if: "branch in ['auto', 'try', 'master'] || branch[:4] == 'try-'"
+          $if: >-
+            (
+              taskcluster_root_url == 'https://community-tc.services.mozilla.com' &&
+              branch == 'try-communitytc'
+            ) || (
+              taskcluster_root_url == 'https://taskcluster.net' &&
+              branch != 'try-communitytc' &&
+              (
+                branch in ['auto', 'try', 'master'] ||
+                branch[:4] == 'try-'
+              )
+            )
           then:
             $mergeDeep:
               - {$eval: "task_common"}
