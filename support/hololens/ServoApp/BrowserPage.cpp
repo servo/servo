@@ -7,6 +7,7 @@
 #include "BrowserPage.h"
 #include "BrowserPage.g.cpp"
 
+using namespace std::placeholders;
 using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::UI::Xaml;
 using namespace winrt::Windows::UI::Core;
@@ -50,6 +51,17 @@ void BrowserPage::BindServoEvents() {
   });
   servoControl().OnCaptureGesturesEnded(
       [=] { navigationBar().IsHitTestVisible(true); });
+  urlTextbox().GotFocus(std::bind(&BrowserPage::OnURLFocused, this, _1));
+}
+
+void BrowserPage::OnURLFocused(Windows::Foundation::IInspectable const &) {
+  urlTextbox().SelectAll();
+}
+
+void BrowserPage::OnURLKeyboardAccelerator(
+    Windows::Foundation::IInspectable const &,
+    Windows::UI::Xaml::Input::KeyboardAcceleratorInvokedEventArgs const &) {
+  urlTextbox().Focus(FocusState::Programmatic);
 }
 
 void BrowserPage::LoadServoURI(Uri uri) {

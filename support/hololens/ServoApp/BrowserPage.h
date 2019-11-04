@@ -26,6 +26,10 @@ public:
                            Windows::UI::Xaml::RoutedEventArgs const &);
   void OnURLEdited(Windows::Foundation::IInspectable const &,
                    Windows::UI::Xaml::Input::KeyRoutedEventArgs const &);
+  void OnURLFocused(Windows::Foundation::IInspectable const &);
+  void OnURLKeyboardAccelerator(
+      Windows::Foundation::IInspectable const &,
+      Windows::UI::Xaml::Input::KeyboardAcceleratorInvokedEventArgs const &);
   void Shutdown();
   void LoadServoURI(Windows::Foundation::Uri uri);
   void SetTransientMode(bool);
