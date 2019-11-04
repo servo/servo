@@ -64,7 +64,7 @@
   void cancelAnimationFrame(unsigned long handle);
 
   [Throws]
-  void postMessage(any message, USVString targetOrigin, optional sequence<object> transfer /*= []*/);
+  void postMessage(any message, USVString targetOrigin, optional sequence<object> transfer = []);
   [Throws]
   void postMessage(any message, optional WindowPostMessageOptions options = {});
 
@@ -175,7 +175,6 @@ partial interface Window {
    readonly attribute unsigned long runningAnimationCount;
 };
 
-dictionary WindowPostMessageOptions {
+dictionary WindowPostMessageOptions : PostMessageOptions {
    USVString targetOrigin = "/";
-   sequence<object> transfer;
 };

@@ -164,7 +164,7 @@ impl Bluetooth {
         &self,
         p: &Rc<Promise>,
         filters: &Option<Vec<BluetoothLEScanFilterInit>>,
-        optional_services: &Option<Vec<BluetoothServiceUUID>>,
+        optional_services: &[BluetoothServiceUUID],
         sender: IpcSender<BluetoothResponseResult>,
     ) {
         // TODO: Step 1: Triggered by user activation.
@@ -197,23 +197,21 @@ impl Bluetooth {
         }
 
         let mut optional_services_uuids = vec![];
-        if let &Some(ref opt_services) = optional_services {
-            for opt_service in opt_services {
-                // Step 2.5 - 2.6.
-                let uuid = match BluetoothUUID::service(opt_service.clone()) {
-                    Ok(u) => u.to_string(),
-                    Err(e) => {
-                        p.reject_error(e);
-                        return;
-                    },
-                };
+        for opt_service in optional_services {
+            // Step 2.5 - 2.6.
+            let uuid = match BluetoothUUID::service(opt_service.clone()) {
+                Ok(u) => u.to_string(),
+                Err(e) => {
+                    p.reject_error(e);
+                    return;
+                },
+            };
 
-                // Step 2.7.
-                // Note: What we are doing here, is adding the not blocklisted UUIDs to the result vector,
-                // instead of removing them from an already filled vector.
-                if !uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
-                    optional_services_uuids.push(uuid);
-                }
+            // Step 2.7.
+            // Note: What we are doing here, is adding the not blocklisted UUIDs to the result vector,
+            // instead of removing them from an already filled vector.
+            if !uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
+                optional_services_uuids.push(uuid);
             }
         }
 
