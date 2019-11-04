@@ -598,8 +598,7 @@ lazy_static! {
             atom!("device-pixel-ratio"),
             AllowsRanges::Yes,
             Evaluator::Float(eval_device_pixel_ratio),
-            ParsingRequirements::WEBKIT_PREFIX |
-                ParsingRequirements::WEBKIT_DEVICE_PIXEL_RATIO_PREF_ENABLED,
+            ParsingRequirements::WEBKIT_PREFIX,
         ),
         // -webkit-transform-3d.
         feature!(

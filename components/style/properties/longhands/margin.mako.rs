@@ -34,7 +34,6 @@
         "Length",
         "computed::Length::zero()",
         engines="gecko",
-        gecko_pref="layout.css.scroll-snap-v1.enabled",
         logical=side[1],
         logical_group="scroll-margin",
         spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-%s" % side[0],

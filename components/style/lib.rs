@@ -78,7 +78,6 @@ extern crate parking_lot;
 extern crate precomputed_hash;
 extern crate rayon;
 extern crate selectors;
-#[cfg(feature = "servo")]
 #[macro_use]
 extern crate serde;
 pub extern crate servo_arc;

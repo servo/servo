@@ -12,7 +12,6 @@ use std::fmt;
 use style_traits::{CssWriter, ToCss};
 
 /// A computed percentage.
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
     Animate,
     Clone,
@@ -20,9 +19,11 @@ use style_traits::{CssWriter, ToCss};
     Copy,
     Debug,
     Default,
+    Deserialize,
     MallocSizeOf,
     PartialEq,
     PartialOrd,
+    Serialize,
     SpecifiedValueInfo,
     ToAnimatedValue,
     ToAnimatedZero,

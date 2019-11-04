@@ -276,11 +276,6 @@ impl ComputedValuesInner {
     pub fn get_raw_visited_style(&self) -> &Option<RawOffsetArc<ComputedValues>> {
         &self.visited_style
     }
-
-    #[allow(non_snake_case)]
-    pub fn has_moz_binding(&self) -> bool {
-        !self.get_box().gecko.mBinding.is_none()
-    }
 }
 
 <%def name="declare_style_struct(style_struct)">

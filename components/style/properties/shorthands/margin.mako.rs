@@ -38,7 +38,6 @@ ${helpers.four_sides_shorthand(
     "specified::Length::parse",
     engines="gecko",
     spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin",
-    gecko_pref="layout.css.scroll-snap-v1.enabled",
 )}
 
 ${helpers.two_properties_shorthand(
@@ -48,7 +47,6 @@ ${helpers.two_properties_shorthand(
     "specified::Length::parse",
     engines="gecko",
     spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-block",
-    gecko_pref="layout.css.scroll-snap-v1.enabled",
 )}
 
 ${helpers.two_properties_shorthand(
@@ -58,5 +56,4 @@ ${helpers.two_properties_shorthand(
     "specified::Length::parse",
     engines="gecko",
     spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-inline",
-    gecko_pref="layout.css.scroll-snap-v1.enabled",
 )}

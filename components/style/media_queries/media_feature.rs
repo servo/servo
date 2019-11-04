@@ -123,9 +123,6 @@ bitflags! {
         const CHROME_AND_UA_ONLY = 1 << 0;
         /// The feature requires a -webkit- prefix.
         const WEBKIT_PREFIX = 1 << 1;
-        /// The feature requires the webkit-device-pixel-ratio preference to be
-        /// enabled.
-        const WEBKIT_DEVICE_PIXEL_RATIO_PREF_ENABLED = 1 << 2;
     }
 }
 

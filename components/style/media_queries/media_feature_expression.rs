@@ -242,6 +242,17 @@ fn consume_operation_or_colon(input: &mut Parser) -> Result<Option<Operator>, ()
     }))
 }
 
+#[allow(unused_variables)]
+fn disabled_by_pref(feature: &Atom) -> bool {
+    #[cfg(feature = "gecko")]
+    {
+        if *feature == atom!("-moz-touch-enabled") {
+            return !static_prefs::pref!("layout.css.moz-touch-enabled.enabled");
+        }
+    }
+    false
+}
+
 impl MediaFeatureExpression {
     fn new(
         feature_index: usize,
@@ -279,81 +290,53 @@ impl MediaFeatureExpression {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        // FIXME: remove extra indented block when lifetimes are non-lexical
-        let feature_index;
-        let feature;
-        let range;
+        let mut requirements = ParsingRequirements::empty();
+        let location = input.current_source_location();
+        let ident = input.expect_ident()?;
+
+        if context.in_ua_or_chrome_sheet() {
+            requirements.insert(ParsingRequirements::CHROME_AND_UA_ONLY);
+        }
+
+        let mut feature_name = &**ident;
+
+        if starts_with_ignore_ascii_case(feature_name, "-webkit-") {
+            feature_name = &feature_name[8..];
+            requirements.insert(ParsingRequirements::WEBKIT_PREFIX);
+        }
+
+        let range = if starts_with_ignore_ascii_case(feature_name, "min-") {
+            feature_name = &feature_name[4..];
+            Some(Range::Min)
+        } else if starts_with_ignore_ascii_case(feature_name, "max-") {
+            feature_name = &feature_name[4..];
+            Some(Range::Max)
+        } else {
+            None
+        };
+
+        let atom = Atom::from(string_as_ascii_lowercase(feature_name));
+
+        let (feature_index, feature) = match MEDIA_FEATURES
+            .iter()
+            .enumerate()
+            .find(|(_, f)| f.name == atom)
         {
-            let location = input.current_source_location();
-            let ident = input.expect_ident()?;
-
-            let mut requirements = ParsingRequirements::empty();
-
-            if context.in_ua_or_chrome_sheet() {
-                requirements.insert(ParsingRequirements::CHROME_AND_UA_ONLY);
-            }
-
-            let result = {
-                let mut feature_name = &**ident;
-
-                #[cfg(feature = "gecko")]
-                {
-                    if starts_with_ignore_ascii_case(feature_name, "-webkit-") {
-                        feature_name = &feature_name[8..];
-                        requirements.insert(ParsingRequirements::WEBKIT_PREFIX);
-                        if static_prefs::pref!("layout.css.prefixes.device-pixel-ratio-webkit") {
-                            requirements.insert(
-                                ParsingRequirements::WEBKIT_DEVICE_PIXEL_RATIO_PREF_ENABLED,
-                            );
-                        }
-                    }
-                }
-
-                let range = if starts_with_ignore_ascii_case(feature_name, "min-") {
-                    feature_name = &feature_name[4..];
-                    Some(Range::Min)
-                } else if starts_with_ignore_ascii_case(feature_name, "max-") {
-                    feature_name = &feature_name[4..];
-                    Some(Range::Max)
-                } else {
-                    None
-                };
-
-                let atom = Atom::from(string_as_ascii_lowercase(feature_name));
-                match MEDIA_FEATURES
-                    .iter()
-                    .enumerate()
-                    .find(|(_, f)| f.name == atom)
-                {
-                    Some((i, f)) => Ok((i, f, range)),
-                    None => Err(()),
-                }
-            };
-
-            match result {
-                Ok((i, f, r)) => {
-                    feature_index = i;
-                    feature = f;
-                    range = r;
-                },
-                Err(()) => {
-                    return Err(location.new_custom_error(
-                        StyleParseErrorKind::MediaQueryExpectedFeatureName(ident.clone()),
-                    ));
-                },
-            }
-
-            if !(feature.requirements & !requirements).is_empty() {
+            Some((i, f)) => (i, f),
+            None => {
                 return Err(location.new_custom_error(
                     StyleParseErrorKind::MediaQueryExpectedFeatureName(ident.clone()),
-                ));
-            }
+                ))
+            },
+        };
 
-            if range.is_some() && !feature.allows_ranges() {
-                return Err(location.new_custom_error(
-                    StyleParseErrorKind::MediaQueryExpectedFeatureName(ident.clone()),
-                ));
-            }
+        if disabled_by_pref(&feature.name) ||
+            !requirements.contains(feature.requirements) ||
+            (range.is_some() && !feature.allows_ranges())
+        {
+            return Err(location.new_custom_error(
+                StyleParseErrorKind::MediaQueryExpectedFeatureName(ident.clone()),
+            ));
         }
 
         let operator = input.try(consume_operation_or_colon);

@@ -189,15 +189,6 @@ where
         }
     }
 
-    /// Override the quirks mode we're matching against.
-    ///
-    /// FIXME(emilio): This is a hack for XBL quirks-mode mismatches.
-    #[inline]
-    pub fn set_quirks_mode(&mut self, quirks_mode: QuirksMode) {
-        self.quirks_mode = quirks_mode;
-        self.classes_and_ids_case_sensitivity = quirks_mode.classes_and_ids_case_sensitivity();
-    }
-
     /// Whether we're matching a nested selector.
     #[inline]
     pub fn is_nested(&self) -> bool {

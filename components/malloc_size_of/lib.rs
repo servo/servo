@@ -837,6 +837,7 @@ malloc_size_of_is_0!(app_units::Au);
 
 malloc_size_of_is_0!(cssparser::RGBA, cssparser::TokenSerializationType);
 
+#[cfg(feature = "servo")]
 malloc_size_of_is_0!(csp::Destination);
 
 #[cfg(feature = "url")]

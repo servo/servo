@@ -46,7 +46,7 @@ impl SVGPathData {
 
     /// Create a normalized copy of this path by converting each relative
     /// command to an absolute command.
-    fn normalize(&self) -> Box<[PathCommand]> {
+    pub fn normalize(&self) -> Self {
         let mut state = PathTraversalState {
             subpath_start: CoordPair::new(0.0, 0.0),
             pos: CoordPair::new(0.0, 0.0),
@@ -56,7 +56,8 @@ impl SVGPathData {
             .iter()
             .map(|seg| seg.normalize(&mut state))
             .collect::<Vec<_>>();
-        result.into_boxed_slice()
+
+        SVGPathData(crate::ArcSlice::from_iter(result.into_iter()))
     }
 }
 
@@ -119,8 +120,9 @@ impl Animate for SVGPathData {
         // re-normalize again.
         let result = self
             .normalize()
+            .0
             .iter()
-            .zip(other.normalize().iter())
+            .zip(other.normalize().0.iter())
             .map(|(a, b)| a.animate(&b, procedure))
             .collect::<Result<Vec<_>, _>>()?;
 
@@ -134,8 +136,9 @@ impl ComputeSquaredDistance for SVGPathData {
             return Err(());
         }
         self.normalize()
+            .0
             .iter()
-            .zip(other.normalize().iter())
+            .zip(other.normalize().0.iter())
             .map(|(this, other)| this.compute_squared_distance(&other))
             .sum()
     }

@@ -13,7 +13,6 @@
 #    "offset"
 COUNTED_UNKNOWN_PROPERTIES = [
     "-webkit-font-smoothing",
-    "zoom",
     "-webkit-tap-highlight-color",
     "speak",
     "text-size-adjust",

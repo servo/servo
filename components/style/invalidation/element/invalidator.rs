@@ -28,7 +28,7 @@ where
 
     /// Whether the invalidation processor only cares about light-tree
     /// descendants of a given element, that is, doesn't invalidate
-    /// pseudo-elements, NAC, or XBL anon content.
+    /// pseudo-elements, NAC, shadow dom...
     fn light_tree_only(&self) -> bool {
         false
     }
@@ -455,11 +455,6 @@ where
 
         let mut sibling_invalidations = InvalidationVector::new();
         for child in parent.dom_children() {
-            // TODO(emilio): We handle <xbl:children> fine, because they appear
-            // in selector-matching (note bug 1374247, though).
-            //
-            // This probably needs a shadow root check on `child` here, and
-            // recursing if that's the case.
             let child = match child.as_element() {
                 Some(e) => e,
                 None => continue,
@@ -572,13 +567,6 @@ where
         // doc, but we could fix that invalidating per subtree.
         if let Some(root) = self.element.shadow_root() {
             any_descendant |= self.invalidate_dom_descendants_of(root.as_node(), invalidations);
-        }
-
-        // This is needed for XBL (technically) unconditionally, because XBL
-        // bindings do not block combinators in any way. However this is kinda
-        // broken anyway, since we should be looking at XBL rules too.
-        if let Some(anon_content) = self.element.xbl_binding_anonymous_content() {
-            any_descendant |= self.invalidate_dom_descendants_of(anon_content, invalidations);
         }
 
         if let Some(marker) = self.element.marker_pseudo_element() {

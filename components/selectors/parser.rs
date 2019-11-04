@@ -607,7 +607,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
     }
 
     #[inline]
-    pub fn part(&self) -> Option<&Impl::PartName> {
+    pub fn parts(&self) -> Option<&[Impl::PartName]> {
         if !self.is_part() {
             return None;
         }
@@ -1013,7 +1013,7 @@ pub enum Component<Impl: SelectorImpl> {
     Slotted(Selector<Impl>),
     /// The `::part` pseudo-element.
     ///   https://drafts.csswg.org/css-shadow-parts/#part
-    Part(#[shmem(field_bound)] Impl::PartName),
+    Part(#[shmem(field_bound)] Box<[Impl::PartName]>),
     /// The `:host` pseudo-class:
     ///
     /// https://drafts.csswg.org/css-scoping/#host-selector
@@ -1302,9 +1302,14 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
                 selector.to_css(dest)?;
                 dest.write_char(')')
             },
-            Part(ref part_name) => {
+            Part(ref part_names) => {
                 dest.write_str("::part(")?;
-                display_to_css_identifier(part_name, dest)?;
+                for (i, name) in part_names.iter().enumerate() {
+                    if i != 0 {
+                        dest.write_char(' ')?;
+                    }
+                    display_to_css_identifier(name, dest)?;
+                }
                 dest.write_char(')')
             },
             PseudoElement(ref p) => p.to_css(dest),
@@ -1626,7 +1631,7 @@ enum SimpleSelectorParseResult<Impl: SelectorImpl> {
     SimpleSelector(Component<Impl>),
     PseudoElement(Impl::PseudoElement),
     SlottedPseudo(Selector<Impl>),
-    PartPseudo(Impl::PartName),
+    PartPseudo(Box<[Impl::PartName]>),
 }
 
 #[derive(Debug)]
@@ -2029,10 +2034,10 @@ where
             SimpleSelectorParseResult::SimpleSelector(s) => {
                 builder.push_simple_selector(s);
             },
-            SimpleSelectorParseResult::PartPseudo(part_name) => {
+            SimpleSelectorParseResult::PartPseudo(part_names) => {
                 state.insert(SelectorParsingState::AFTER_PART);
                 builder.push_combinator(Combinator::Part);
-                builder.push_simple_selector(Component::Part(part_name));
+                builder.push_simple_selector(Component::Part(part_names));
             },
             SimpleSelectorParseResult::SlottedPseudo(selector) => {
                 state.insert(SelectorParsingState::AFTER_SLOTTED);
@@ -2193,10 +2198,15 @@ where
                                 input.new_custom_error(SelectorParseErrorKind::InvalidState)
                             );
                         }
-                        let name = input.parse_nested_block(|input| {
-                            Ok(input.expect_ident()?.as_ref().into())
+                        let names = input.parse_nested_block(|input| {
+                            let mut result = Vec::with_capacity(1);
+                            result.push(input.expect_ident()?.as_ref().into());
+                            while !input.is_exhausted() {
+                                result.push(input.expect_ident()?.as_ref().into());
+                            }
+                            Ok(result.into_boxed_slice())
                         })?;
-                        return Ok(Some(SimpleSelectorParseResult::PartPseudo(name)));
+                        return Ok(Some(SimpleSelectorParseResult::PartPseudo(names)));
                     }
                     if P::parse_slotted(parser) && name.eq_ignore_ascii_case("slotted") {
                         if !state.allows_slotted() {
@@ -3051,8 +3061,7 @@ pub mod tests {
 
         assert!(parse("::part()").is_err());
         assert!(parse("::part(42)").is_err());
-        // Though note https://github.com/w3c/csswg-drafts/issues/3502
-        assert!(parse("::part(foo bar)").is_err());
+        assert!(parse("::part(foo bar)").is_ok());
         assert!(parse("::part(foo):hover").is_ok());
         assert!(parse("::part(foo) + bar").is_err());
 
