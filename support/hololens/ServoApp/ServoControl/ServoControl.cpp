@@ -149,7 +149,7 @@ void ServoControl::OnSurfacePointerPressed(
 
 void ServoControl::OnSurfacePointerCanceled(
     IInspectable const &, Input::PointerRoutedEventArgs const &e) {
-    mPressedMouseButton = {};
+  mPressedMouseButton = {};
 }
 
 void ServoControl::OnSurfacePointerMoved(
