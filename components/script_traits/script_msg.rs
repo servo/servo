@@ -30,6 +30,7 @@ use net_traits::storage_thread::StorageType;
 use net_traits::CoreResourceMsg;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
+use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
@@ -114,6 +115,17 @@ pub enum HistoryEntryReplacement {
 /// Messages from the script to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum ScriptMsg {
+    /// Request to complete the transfer of a set of ports to a router.
+    CompleteMessagePortTransfer(MessagePortRouterId, Vec<MessagePortId>),
+    /// The results of attempting to complete the transfer of a batch of ports.
+    MessagePortTransferResult(
+        /* The router whose transfer of ports succeeded, if any */
+        Option<MessagePortRouterId>,
+        /* The ids of ports transferred successfully */
+        Vec<MessagePortId>,
+        /* The ids, and buffers, of ports whose transfer failed */
+        HashMap<MessagePortId, VecDeque<PortMessageTask>>,
+    ),
     /// A new message-port was created or transferred, with corresponding control-sender.
     NewMessagePort(MessagePortRouterId, MessagePortId),
     /// A global has started managing message-ports
@@ -248,6 +260,8 @@ impl fmt::Debug for ScriptMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         use self::ScriptMsg::*;
         let variant = match *self {
+            CompleteMessagePortTransfer(..) => "CompleteMessagePortTransfer",
+            MessagePortTransferResult(..) => "MessagePortTransferResult",
             NewMessagePortRouter(..) => "NewMessagePortRouter",
             RemoveMessagePortRouter(..) => "RemoveMessagePortRouter",
             NewMessagePort(..) => "NewMessagePort",
