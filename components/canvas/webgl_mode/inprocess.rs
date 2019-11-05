@@ -17,6 +17,7 @@ use std::sync::{Arc, Mutex};
 use surfman::platform::generic::universal::context::Context;
 use surfman::platform::generic::universal::device::Device;
 use surfman::platform::generic::universal::surface::SurfaceTexture;
+use surfman::SurfaceInfo;
 use surfman_chains::SwapChains;
 use webrender_traits::{WebrenderExternalImageApi, WebrenderExternalImageRegistry};
 use webxr_api::SwapChainId as WebXRSwapChainId;
@@ -105,8 +106,12 @@ impl WebGLExternalImages {
         debug!("... locking chain {:?}", id);
         let front_buffer = self.swap_chains.get(id)?.take_surface()?;
 
-        debug!("... getting texture for surface {:?}", front_buffer.id());
-        let size = front_buffer.size();
+        let SurfaceInfo {
+            id: front_buffer_id,
+            size,
+            ..
+        } = self.device.surface_info(&front_buffer);
+        debug!("... getting texture for surface {:?}", front_buffer_id);
         let front_buffer_texture = self
             .device
             .create_surface_texture(&mut self.context, front_buffer)

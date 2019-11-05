@@ -66,6 +66,7 @@ use surfman::ContextAttributeFlags;
 use surfman::ContextAttributes;
 use surfman::GLVersion;
 use surfman::SurfaceAccess;
+use surfman::SurfaceInfo;
 use surfman::SurfaceType;
 use surfman_chains::SwapChains;
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
@@ -437,8 +438,13 @@ impl WebGLThread {
 
         let mut ctx = self
             .device
-            .create_context(&context_descriptor, surface_access, &surface_type)
+            .create_context(&context_descriptor)
             .expect("Failed to create the GL context!");
+        let surface = self
+            .device
+            .create_surface(&ctx, surface_access, &surface_type)
+            .expect("Failed to create the initial surface!");
+        self.device.bind_surface_to_context(&mut ctx, surface).unwrap();
         // https://github.com/pcwalton/surfman/issues/7
         self.device
             .make_context_current(&ctx)
@@ -489,8 +495,10 @@ impl WebGLThread {
         self.device.make_context_current(&ctx).unwrap();
         let framebuffer = self
             .device
-            .context_surface_framebuffer_object(&ctx)
-            .unwrap();
+            .context_surface_info(&ctx)
+            .unwrap()
+            .unwrap()
+            .framebuffer_object;
         gl.bind_framebuffer(gl::FRAMEBUFFER, framebuffer);
         gl.viewport(0, 0, size.width as i32, size.height as i32);
         gl.scissor(0, 0, size.width as i32, size.height as i32);
@@ -694,14 +702,12 @@ impl WebGLThread {
             debug!("Rebinding {:?}", swap_id);
             framebuffer_rebinding_info.apply(&self.device, &data.ctx, &*data.gl);
 
-            let framebuffer = self
-                .device
-                .context_surface_framebuffer_object(&data.ctx)
-                .unwrap();
+            let SurfaceInfo { framebuffer_object, id, .. } =
+                self.device.context_surface_info(&data.ctx).unwrap().unwrap();
             debug!(
                 "... rebound framebuffer {}, new back buffer surface is {:?}",
-                framebuffer,
-                self.device.context_surface_id(&data.ctx).unwrap()
+                framebuffer_object,
+                id
             );
         }
 
@@ -1371,14 +1377,18 @@ impl WebGLImpl {
             },
             WebGLCommand::DrawingBufferWidth(ref sender) => {
                 let size = device
-                    .context_surface_size(&ctx)
-                    .expect("Where's the front buffer?");
+                    .context_surface_info(&ctx)
+                    .unwrap()
+                    .expect("Where's the front buffer?")
+                    .size;
                 sender.send(size.width).unwrap()
             },
             WebGLCommand::DrawingBufferHeight(ref sender) => {
                 let size = device
-                    .context_surface_size(&ctx)
-                    .expect("Where's the front buffer?");
+                    .context_surface_info(&ctx)
+                    .unwrap()
+                    .expect("Where's the front buffer?")
+                    .size;
                 sender.send(size.height).unwrap()
             },
             WebGLCommand::Finish(ref sender) => Self::finish(gl, sender),
@@ -2119,8 +2129,10 @@ impl WebGLImpl {
             },
             WebGLFramebufferBindingRequest::Explicit(WebGLFramebufferId::Opaque(_)) |
             WebGLFramebufferBindingRequest::Default => device
-                .context_surface_framebuffer_object(ctx)
-                .expect("No surface attached!"),
+                .context_surface_info(ctx)
+                .unwrap()
+                .expect("No surface attached!")
+                .framebuffer_object,
         };
 
         debug!("WebGLImpl::bind_framebuffer: {:?}", id);
@@ -2576,7 +2588,7 @@ impl FramebufferRebindingInfo {
             gl.get_integer_v(gl::DRAW_FRAMEBUFFER_BINDING, &mut draw_framebuffer);
 
             let context_surface_framebuffer =
-                device.context_surface_framebuffer_object(context).unwrap();
+                device.context_surface_info(context).unwrap().unwrap().framebuffer_object;
 
             let mut flags = FramebufferRebindingFlags::empty();
             if context_surface_framebuffer == read_framebuffer[0] as GLuint {
@@ -2599,7 +2611,7 @@ impl FramebufferRebindingInfo {
         }
 
         let context_surface_framebuffer =
-            device.context_surface_framebuffer_object(context).unwrap();
+            device.context_surface_info(context).unwrap().unwrap().framebuffer_object;
         if self
             .flags
             .contains(FramebufferRebindingFlags::REBIND_READ_FRAMEBUFFER)
