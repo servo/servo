@@ -84,12 +84,12 @@ impl Backend for RaqoteBackend {
 
 impl<'a> CanvasPaintState<'a> {
     pub fn new(_antialias: AntialiasMode) -> CanvasPaintState<'a> {
-        let solid_src = raqote::SolidSource {
-            r: 0,
-            g: 0,
-            b: 0,
-            a: 255,
-        };
+        let solid_src = raqote::SolidSource::from_unpremultiplied_argb(
+            255,
+            0,
+            0,
+            0,
+        );
         CanvasPaintState {
             draw_options: DrawOptions::Raqote(raqote::DrawOptions::new()),
             fill_style: Pattern::Raqote(raqote::Source::Solid(solid_src)),
@@ -99,12 +99,12 @@ impl<'a> CanvasPaintState<'a> {
             shadow_offset_x: 0.0,
             shadow_offset_y: 0.0,
             shadow_blur: 0.0,
-            shadow_color: Color::Raqote(raqote::SolidSource {
-                r: 0,
-                g: 0,
-                b: 0,
-                a: 0,
-            }),
+            shadow_color: Color::Raqote(raqote::SolidSource::from_unpremultiplied_argb(
+                0,
+                0,
+                0,
+                0,
+            )),
         }
     }
 }
@@ -221,12 +221,12 @@ impl GenericDrawTarget for raqote::DrawTarget {
         raqote::DrawTarget::fill(
             self,
             &pb.finish(),
-            &raqote::Source::Solid(raqote::SolidSource {
-                r: 0,
-                g: 0,
-                b: 0,
-                a: 0,
-            }),
+            &raqote::Source::Solid(raqote::SolidSource::from_unpremultiplied_argb(
+                0,
+                0,
+                0,
+                0,
+            )),
             &options,
         );
     }
@@ -652,12 +652,12 @@ impl<'a> ToRaqoteSource<'a> for FillOrStrokeStyle {
         use canvas_traits::canvas::FillOrStrokeStyle::*;
 
         match self {
-            Color(rgba) => Some(raqote::Source::Solid(raqote::SolidSource {
-                r: rgba.red,
-                g: rgba.green,
-                b: rgba.blue,
-                a: rgba.alpha,
-            })),
+            Color(rgba) => Some(raqote::Source::Solid(raqote::SolidSource::from_unpremultiplied_argb(
+                rgba.alpha,
+                rgba.red,
+                rgba.green,
+                rgba.blue,
+            ))),
             LinearGradient(style) => {
                 let stops = style.stops.into_iter().map(|s| s.to_raqote()).collect();
                 let gradient = raqote::Gradient { stops };
@@ -715,12 +715,12 @@ impl ToRaqoteStyle for RGBA {
     type Target = raqote::SolidSource;
 
     fn to_raqote_style(self) -> Self::Target {
-        raqote::SolidSource {
-            r: self.red,
-            g: self.green,
-            b: self.blue,
-            a: self.alpha,
-        }
+        raqote::SolidSource::from_unpremultiplied_argb(
+            self.alpha,
+            self.red,
+            self.green,
+            self.blue,
+        )
     }
 }
 
