@@ -288,7 +288,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
             data: unsafe {
                 std::slice::from_raw_parts(
                     v.as_ptr() as *const u32,
-                    v.len() * std::mem::size_of::<u8>(),
+                    v.len() / std::mem::size_of::<u32>(),
                 )
             },
         };
