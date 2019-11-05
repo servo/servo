@@ -5069,7 +5069,7 @@ dependencies = [
 [[package]]
 name = "surfman"
 version = "0.23.0"
-source = "git+https://github.com/pcwalton/surfman#9d8b8062fba129f058b47388f4f0262a19ff65c3"
+source = "git+https://github.com/jdm/rust-offscreen-rendering-context?branch=servo#dc5cf4369105f566fe95daac75bce748ae1a1c41"
 dependencies = [
  "bitflags",
  "cgl 0.3.2",
@@ -5995,7 +5995,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#94bf6c6f64007a42d74ee4d1d162a5ed4d32d12a"
+source = "git+https://github.com/jdm/webxr?branch=no-gl-readback2#12e04bafc2c692bce303b2a9fa5e811e76fbaa0e"
 dependencies = [
  "bindgen",
  "euclid",
@@ -6014,7 +6014,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#94bf6c6f64007a42d74ee4d1d162a5ed4d32d12a"
+source = "git+https://github.com/jdm/webxr?branch=no-gl-readback2#12e04bafc2c692bce303b2a9fa5e811e76fbaa0e"
 dependencies = [
  "euclid",
  "ipc-channel",
