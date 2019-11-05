@@ -591,7 +591,7 @@ class PackageCommands(CommandBase):
         def get_taskcluster_secret(name):
             url = (
                 os.environ.get("TASKCLUSTER_PROXY_URL", "http://taskcluster") +
-                "/secrets/v1/secret/project/servo/" +
+                "/api/secrets/v1/secret/project/servo/" +
                 name
             )
             return json.load(urllib.request.urlopen(url))["secret"]

@@ -22,7 +22,8 @@ tasks:
       payload:
         maxRunTime: {$eval: '20 * 60'}
         # https://github.com/servo/taskcluster-bootstrap-docker-images#decision-task
-        image: "servobrowser/taskcluster-bootstrap:decision-task@sha256:28045b7ec0485ef363f8cb14f194008b47e9ede99f2ea40a1e945e921fce976e"
+        image: "servobrowser/taskcluster-bootstrap:decision-task@\
+            sha256:7471a998e4462638c8d3e2cf0b4a99c9a5c8ca9f2ec0ae01cc069473b35cde10"
         features:
           taskclusterProxy: true
         env:
@@ -47,18 +48,7 @@ tasks:
             $if: "event.ref[:11] == 'refs/heads/'"
             then: "${event.ref[11:]}"
         in:
-          $if: >-
-            (
-              taskcluster_root_url == 'https://community-tc.services.mozilla.com' &&
-              branch == 'try-communitytc'
-            ) || (
-              taskcluster_root_url == 'https://taskcluster.net' &&
-              branch != 'try-communitytc' &&
-              (
-                branch in ['auto', 'try', 'master'] ||
-                branch[:4] == 'try-'
-              )
-            )
+          $if: "branch in ['auto', 'try', 'master'] || branch[:4] == 'try-'"
           then:
             $mergeDeep:
               - {$eval: "task_common"}

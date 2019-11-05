@@ -57,8 +57,8 @@ class Config:
         self.git_ref = os.environ.get("GIT_REF")
         self.git_sha = os.environ.get("GIT_SHA")
 
-        root_url = os.environ.get("TASKCLUSTER_ROOT_URL")
-        self.legacy_tc_deployment = root_url == "https://taskcluster.net"
+        self.tc_root_url = os.environ.get("TASKCLUSTER_ROOT_URL")
+        self.legacy_tc_deployment = self.tc_root_url == "https://taskcluster.net"
 
         if self.legacy_tc_deployment:
             self.default_provisioner_id = "aws-provisioner-v1"
@@ -99,10 +99,9 @@ class Shared:
         self.now = datetime.datetime.utcnow()
         self.found_or_created_indexed_tasks = {}
 
-        # taskclusterProxy URLs:
-        # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/features
-        self.queue_service = taskcluster.Queue(options={"baseUrl": "http://taskcluster/queue/v1/"})
-        self.index_service = taskcluster.Index(options={"baseUrl": "http://taskcluster/index/v1/"})
+        options = {"rootUrl": os.environ["TASKCLUSTER_PROXY_URL"]}
+        self.queue_service = taskcluster.Queue(options)
+        self.index_service = taskcluster.Index(options)
 
     def from_now_json(self, offset):
         """
@@ -256,7 +255,7 @@ class Task:
             extra=self.extra,
         )
 
-        task_id = taskcluster.slugId().decode("utf8")
+        task_id = taskcluster.slugId()
         SHARED.queue_service.createTask(task_id, queue_payload)
         print("Scheduled %s: %s" % (task_id, self.name))
         return task_id
@@ -483,7 +482,7 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         git += """
             git fetch {depth} %GIT_URL% %GIT_REF%
             git reset --hard %GIT_SHA%
-        """.format(depth="--depth 1" if shallow else "")
+        """.format(depth="--depth 100" if shallow else "")
         return self \
         .with_git() \
         .with_script(git) \
@@ -605,7 +604,7 @@ class UnixTaskMixin(Task):
             cd repo
             git fetch {depth} "$GIT_URL" "$GIT_REF"
             git reset --hard "$GIT_SHA"
-        """.format(depth="--depth 1" if shallow else ""))
+        """.format(depth="--depth 100" if shallow else ""))
 
     def with_curl_script(self, url, file_path):
         self.curl_scripts_count += 1
@@ -621,11 +620,14 @@ class UnixTaskMixin(Task):
         """.format(n=n))
 
     def with_curl_artifact_script(self, task_id, artifact_name, out_directory=""):
+        if CONFIG.legacy_tc_deployment:
+            queue_service = "https://queue.taskcluster.net"
+        else:  # pragma: no cover
+            queue_service = CONFIG.tc_root_url + "/api/queue"
         return self \
         .with_dependencies(task_id) \
         .with_curl_script(
-            "https://queue.taskcluster.net/v1/task/%s/artifacts/public/%s"
-                % (task_id, artifact_name),
+            queue_service + "/v1/task/%s/artifacts/public/%s" % (task_id, artifact_name),
             os.path.join(out_directory, url_basename(artifact_name)),
         )
 

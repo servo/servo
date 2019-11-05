@@ -24,6 +24,10 @@ def main(task_for):
     magicleap_nightly = lambda: None
 
     if task_for == "github-push":
+        if not CONFIG.legacy_tc_deployment:  # pragma: no cover
+            # Do nothing (other than the decision task itsef) on community-tc by default for now
+            return
+
         # FIXME https://github.com/servo/servo/issues/22187
         # In-emulator testing is disabled for now. (Instead we only compile.)
         # This local variable shadows the module-level function of the same name.
@@ -238,7 +242,8 @@ def upload_docs():
         .with_scopes("secrets:get:project/servo/doc.servo.org")
         .with_env(PY="""if 1:
             import urllib, json
-            url = "http://taskcluster/secrets/v1/secret/project/servo/doc.servo.org"
+            root_url = os.environ["TASKCLUSTER_PROXY_URL"]
+            url = root_url + "/api/secrets/v1/secret/project/servo/doc.servo.org"
             token = json.load(urllib.urlopen(url))["secret"]["token"]
             open("/root/.git-credentials", "w").write("https://git:%s@github.com/" % token)
         """)
