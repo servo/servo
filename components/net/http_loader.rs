@@ -1462,11 +1462,8 @@ fn http_network_fetch(
             _ => false,
         });
 
-    let is_same_origin = request.url_list.iter().any(|url| match request.origin {
-        SpecificOrigin(ref immutable_request_origin) => {
-            url.clone().into_url().origin().ascii_serialization() ==
-                immutable_request_origin.ascii_serialization()
-        },
+    let is_same_origin = request.url_list.iter().all(|url| match request.origin {
+        SpecificOrigin(ref immutable_request_origin) => url.origin() == *immutable_request_origin,
         _ => false,
     });
 
