@@ -4188,7 +4188,7 @@ checksum = "dd5927936723a9e8b715d37d7e4b390455087c4bdf25b9f702309460577b14f9"
 [[package]]
 name = "raqote"
 version = "0.7.5-alpha.0"
-source = "git+https://github.com/jrmuizel/raqote#053e0d75cf21d93543b6213016569025c4333b97"
+source = "git+https://github.com/jrmuizel/raqote#6a68a5486e605fc84ad9461f29a230119f4caff4"
 dependencies = [
  "euclid",
  "font-kit",
