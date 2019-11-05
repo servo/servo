@@ -238,7 +238,8 @@ def upload_docs():
         .with_scopes("secrets:get:project/servo/doc.servo.org")
         .with_env(PY="""if 1:
             import urllib, json
-            url = "http://taskcluster/secrets/v1/secret/project/servo/doc.servo.org"
+            root_url = os.environ["TASKCLUSTER_PROXY_URL"]
+            url = root_url + "/api/secrets/v1/secret/project/servo/doc.servo.org"
             token = json.load(urllib.urlopen(url))["secret"]["token"]
             open("/root/.git-credentials", "w").write("https://git:%s@github.com/" % token)
         """)

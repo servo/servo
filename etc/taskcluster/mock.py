@@ -45,6 +45,7 @@ sys.dont_write_bytecode = True
 os.environ.update(**{k: k for k in "TASK_ID TASK_OWNER TASK_SOURCE GIT_URL GIT_SHA".split()})
 os.environ["GIT_REF"] = "refs/heads/auto"
 os.environ["TASKCLUSTER_ROOT_URL"] = "https://taskcluster.net"
+os.environ["TASKCLUSTER_PROXY_URL"] = "http://taskcluster"
 import decision_task
 
 print("\n# Push:")
