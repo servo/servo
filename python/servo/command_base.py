@@ -562,8 +562,10 @@ class CommandBase(object):
 
         return self.get_executable(destination_folder)
 
-    def needs_gstreamer_env(self, target, env, uwp=False):
+    def needs_gstreamer_env(self, target, env, uwp=False, features=None):
         if uwp:
+            return False
+        if "media-dummy" in features:
             return False
         try:
             if check_gstreamer_lib():
@@ -620,7 +622,7 @@ install them, let us know by filing a bug!")
             'vcdir': vcinstalldir,
         }
 
-    def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False, uwp=False):
+    def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False, uwp=False, features=None):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
         if sys.platform == "win32" and type(env['PATH']) == unicode:
@@ -670,7 +672,7 @@ install them, let us know by filing a bug!")
             # Always build harfbuzz from source
             env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
-        if is_build and self.needs_gstreamer_env(target or host_triple(), env, uwp):
+        if is_build and self.needs_gstreamer_env(target or host_triple(), env, uwp, features):
             gstpath = gstreamer_root(target or host_triple(), env, self.get_top_dir())
             extra_path += [path.join(gstpath, "bin")]
             libpath = path.join(gstpath, "lib")

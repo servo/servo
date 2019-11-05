@@ -260,7 +260,7 @@ class MachCommands(CommandBase):
                 check_call(["rustup" + BIN_SUFFIX, "target", "add",
                             "--toolchain", self.toolchain(), target])
 
-        env = self.build_env(target=target, is_build=True, uwp=uwp)
+        env = self.build_env(target=target, is_build=True, uwp=uwp, features=features)
         self.ensure_bootstrapped(target=target)
         self.ensure_clobbered()
 
