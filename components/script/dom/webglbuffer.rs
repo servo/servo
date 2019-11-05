@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
+use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants;
 use crate::dom::bindings::codegen::Bindings::WebGLBufferBinding;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants;
 use crate::dom::bindings::inheritance::Castable;
@@ -15,6 +16,11 @@ use canvas_traits::webgl::{WebGLBufferId, WebGLCommand, WebGLError, WebGLResult}
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use std::cell::Cell;
+
+fn target_is_copy_buffer(target: u32) -> bool {
+    target == WebGL2RenderingContextConstants::COPY_READ_BUFFER ||
+        target == WebGL2RenderingContextConstants::COPY_WRITE_BUFFER
+}
 
 #[dom_struct]
 pub struct WebGLBuffer {
@@ -65,7 +71,7 @@ impl WebGLBuffer {
         self.id
     }
 
-    pub fn buffer_data(&self, data: &[u8], usage: u32) -> WebGLResult<()> {
+    pub fn buffer_data(&self, target: u32, data: &[u8], usage: u32) -> WebGLResult<()> {
         match usage {
             WebGLRenderingContextConstants::STREAM_DRAW |
             WebGLRenderingContextConstants::STATIC_DRAW |
@@ -78,11 +84,7 @@ impl WebGLBuffer {
         let (sender, receiver) = ipc::bytes_channel().unwrap();
         self.upcast::<WebGLObject>()
             .context()
-            .send_command(WebGLCommand::BufferData(
-                self.target.get().unwrap(),
-                receiver,
-                usage,
-            ));
+            .send_command(WebGLCommand::BufferData(target, receiver, usage));
         sender.send(data).unwrap();
         Ok(())
     }
@@ -124,11 +126,24 @@ impl WebGLBuffer {
         self.target.get()
     }
 
-    pub fn set_target(&self, target: u32) -> WebGLResult<()> {
-        if self.target.get().map_or(false, |t| t != target) {
+    fn can_bind_to(&self, new_target: u32) -> bool {
+        if let Some(current_target) = self.target.get() {
+            if [current_target, new_target]
+                .contains(&WebGLRenderingContextConstants::ELEMENT_ARRAY_BUFFER)
+            {
+                return target_is_copy_buffer(new_target) || new_target == current_target;
+            }
+        }
+        true
+    }
+
+    pub fn set_target_maybe(&self, target: u32) -> WebGLResult<()> {
+        if !self.can_bind_to(target) {
             return Err(WebGLError::InvalidOperation);
         }
-        self.target.set(Some(target));
+        if !target_is_copy_buffer(target) {
+            self.target.set(Some(target));
+        }
         Ok(())
     }
 
