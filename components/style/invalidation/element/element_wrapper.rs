@@ -270,7 +270,10 @@ where
     }
 
     fn is_link(&self) -> bool {
-        self.element.is_link()
+        match self.snapshot().and_then(|s| s.state()) {
+            Some(state) => state.intersects(ElementState::IN_VISITED_OR_UNVISITED_STATE),
+            None => self.element.is_link(),
+        }
     }
 
     fn opaque(&self) -> OpaqueElement {

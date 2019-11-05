@@ -159,14 +159,10 @@ where
         // doesn't depend on the actual visited state at all, so we can't look
         // at matching results to decide what to do for this case.
         //
-        // TODO(emilio): This should be contains(), to avoid doing subtree
-        // restyles when adding or removing an href attribute, but invalidation
-        // for that case is broken right now (bug 1591987).
-        //
-        // This piece of code should be removed when
+        // TODO(emilio): This piece of code should be removed when
         // layout.css.always-repaint-on-unvisited is true, since we cannot get
         // into this situation in that case.
-        if state_changes.intersects(ElementState::IN_VISITED_OR_UNVISITED_STATE) {
+        if state_changes.contains(ElementState::IN_VISITED_OR_UNVISITED_STATE) {
             trace!(" > visitedness change, force subtree restyle");
             // We can't just return here because there may also be attribute
             // changes as well that imply additional hints for siblings.

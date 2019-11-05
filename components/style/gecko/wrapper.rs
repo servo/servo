@@ -2191,8 +2191,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     #[inline]
     fn is_link(&self) -> bool {
-        self.state()
-            .intersects(NonTSPseudoClass::AnyLink.state_flag())
+        self.state().intersects(ElementState::IN_VISITED_OR_UNVISITED_STATE)
     }
 
     #[inline]
