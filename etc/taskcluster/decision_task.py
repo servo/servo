@@ -24,6 +24,10 @@ def main(task_for):
     magicleap_nightly = lambda: None
 
     if task_for == "github-push":
+        if not CONFIG.legacy_tc_deployment:  # pragma: no cover
+            # Do nothing (other than the decision task itsef) on community-tc by default for now
+            return
+
         # FIXME https://github.com/servo/servo/issues/22187
         # In-emulator testing is disabled for now. (Instead we only compile.)
         # This local variable shadows the module-level function of the same name.
