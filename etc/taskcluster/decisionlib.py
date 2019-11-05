@@ -255,7 +255,7 @@ class Task:
             extra=self.extra,
         )
 
-        task_id = taskcluster.slugId().decode("utf8")
+        task_id = taskcluster.slugId()
         SHARED.queue_service.createTask(task_id, queue_payload)
         print("Scheduled %s: %s" % (task_id, self.name))
         return task_id
