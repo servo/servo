@@ -209,9 +209,6 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
 
     /// True to translate mouse input into touch events.
     convert_mouse_to_touch: bool,
-
-    /// Ratio of device pixels per px at the default scale.
-    device_pixels_per_px: Option<f32>,
 }
 
 #[derive(Clone, Copy)]
@@ -284,7 +281,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         is_running_problem_test: bool,
         exit_after_load: bool,
         convert_mouse_to_touch: bool,
-        device_pixels_per_px: Option<f32>,
     ) -> Self {
         let composite_target = match output_file {
             Some(_) => CompositeTarget::PngFile,
@@ -327,7 +323,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             is_running_problem_test,
             exit_after_load,
             convert_mouse_to_touch,
-            device_pixels_per_px,
         }
     }
 
@@ -338,7 +333,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         is_running_problem_test: bool,
         exit_after_load: bool,
         convert_mouse_to_touch: bool,
-        device_pixels_per_px: Option<f32>,
     ) -> Self {
         let mut compositor = IOCompositor::new(
             window,
@@ -347,7 +341,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             is_running_problem_test,
             exit_after_load,
             convert_mouse_to_touch,
-            device_pixels_per_px,
         );
 
         // Set the size of the root layer.
@@ -1081,13 +1074,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        match self.device_pixels_per_px {
-            Some(device_pixels_per_px) => Scale::new(device_pixels_per_px),
-            None => match self.output_file {
-                Some(_) => Scale::new(1.0),
-                None => self.embedder_coordinates.hidpi_factor,
-            },
+        if self.output_file.is_some() {
+            return Scale::new(1.0);
         }
+        self.embedder_coordinates.hidpi_factor
     }
 
     fn device_pixels_per_page_px(&self) -> Scale<f32, CSSPixel, DevicePixel> {

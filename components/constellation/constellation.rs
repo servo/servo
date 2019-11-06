@@ -112,7 +112,7 @@ use compositing::SendableFrameTree;
 use crossbeam_channel::{after, never, unbounded, Receiver, Sender};
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use embedder_traits::{Cursor, EmbedderMsg, EmbedderProxy, EventLoopWaker};
-use euclid::{default::Size2D as UntypedSize2D, Scale, Size2D};
+use euclid::{default::Size2D as UntypedSize2D, Size2D};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -157,7 +157,6 @@ use script_traits::{MessagePortMsg, PortMessageTask, StructuredSerializedData};
 use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WebDriverCommandMsg};
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
-use servo_geometry::DeviceIndependentPixel;
 use servo_rand::{random, Rng, ServoRng, SliceRandom};
 use servo_remutex::ReentrantMutex;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
@@ -463,10 +462,6 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// Mechanism to force the compositor to process events.
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
-
-    /// The ratio of device pixels per px at the default scale. If unspecified, will use the
-    /// platform default setting.
-    device_pixels_per_px: Option<f32>,
 }
 
 /// State needed to construct a constellation.
@@ -523,10 +518,6 @@ pub struct InitialConstellationState {
 
     /// Mechanism to force the compositor to process events.
     pub event_loop_waker: Option<Box<dyn EventLoopWaker>>,
-
-    /// The ratio of device pixels per px at the default scale. If unspecified, will use the
-    /// platform default setting.
-    pub device_pixels_per_px: Option<f32>,
 }
 
 /// Data needed for webdriver
@@ -702,8 +693,7 @@ where
     /// Create a new constellation thread.
     pub fn start(
         state: InitialConstellationState,
-        initial_window_size: Size2D<u32, DeviceIndependentPixel>,
-        device_pixels_per_px: Option<f32>,
+        initial_window_size: WindowSizeData,
         random_pipeline_closure_probability: Option<f32>,
         random_pipeline_closure_seed: Option<usize>,
         is_running_problem_test: bool,
@@ -811,10 +801,7 @@ where
                     next_pipeline_namespace_id: PipelineNamespaceId(2),
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan,
-                    window_size: WindowSizeData {
-                        initial_viewport: initial_window_size.to_f32() * Scale::new(1.0),
-                        device_pixel_ratio: Scale::new(device_pixels_per_px.unwrap_or(1.0)),
-                    },
+                    window_size: initial_window_size,
                     phantom: PhantomData,
                     webdriver: WebDriverData::new(),
                     timer_scheduler: TimerScheduler::new(),
@@ -844,7 +831,6 @@ where
                     glplayer_threads: state.glplayer_threads,
                     player_context: state.player_context,
                     event_loop_waker: state.event_loop_waker,
-                    device_pixels_per_px,
                 };
 
                 constellation.run();
@@ -1074,10 +1060,12 @@ where
             resource_threads,
             time_profiler_chan: self.time_profiler_chan.clone(),
             mem_profiler_chan: self.mem_profiler_chan.clone(),
-            window_size: initial_window_size,
+            window_size: WindowSizeData {
+                initial_viewport: initial_window_size,
+                device_pixel_ratio: self.window_size.device_pixel_ratio,
+            },
             event_loop,
             load_data,
-            device_pixel_ratio: self.window_size.device_pixel_ratio,
             prev_visibility: is_visible,
             webrender_api_sender: self.webrender_api_sender.clone(),
             webrender_document: self.webrender_document,
@@ -1089,7 +1077,6 @@ where
             webxr_registry: self.webxr_registry.clone(),
             player_context: self.player_context.clone(),
             event_loop_waker: self.event_loop_waker.as_ref().map(|w| (*w).clone_box()),
-            device_pixels_per_px: self.device_pixels_per_px,
         });
 
         let pipeline = match result {
