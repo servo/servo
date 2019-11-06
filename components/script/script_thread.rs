@@ -3696,6 +3696,15 @@ impl ScriptThread {
         };
 
         let window = document.window();
+        if window.window_size() == new_size {
+            return;
+        }
+        debug!(
+            "resizing pipeline {:?} from {:?} to {:?}",
+            pipeline_id,
+            window.window_size(),
+            new_size
+        );
         window.set_window_size(new_size);
         window.force_reflow(ReflowGoal::Full, ReflowReason::WindowResize);
 
