@@ -66,7 +66,10 @@ public:
 
   void Reload() { capi::reload(); }
   void Stop() { capi::stop(); }
-  void LoadUri(hstring uri) { capi::load_uri(*hstring2char(uri)); }
+  bool LoadUri(hstring uri) { return capi::load_uri(*hstring2char(uri)); }
+  bool IsUriValid(hstring uri) {
+    return capi::is_uri_valid(*hstring2char(uri));
+  }
   void Scroll(float dx, float dy, float x, float y) {
     capi::scroll((int32_t)dx, (int32_t)dy, (int32_t)x, (int32_t)y);
   }

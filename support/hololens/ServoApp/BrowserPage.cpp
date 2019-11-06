@@ -116,7 +116,7 @@ void BrowserPage::OnURLEdited(IInspectable const &,
     servoControl().Focus(FocusState::Programmatic);
     auto input = urlTextbox().Text();
     auto uri = servoControl().LoadURIOrSearch(input);
-    urlTextbox().Text(uri.ToString());
+    urlTextbox().Text(uri);
   }
 }
 

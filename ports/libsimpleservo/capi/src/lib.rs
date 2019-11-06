@@ -186,16 +186,17 @@ fn do_redirect_stdout_stderr() -> Result<(), ()> {
     Ok(())
 }
 
-fn call<F>(f: F)
+fn call<T, F>(f: F) -> T
 where
-    F: Fn(&mut ServoGlue) -> Result<(), &'static str>,
+    F: Fn(&mut ServoGlue) -> Result<T, &'static str>,
 {
-    if let Err(e) = SERVO.with(|s| match s.borrow_mut().as_mut() {
+    match SERVO.with(|s| match s.borrow_mut().as_mut() {
         Some(ref mut s) => (f)(s),
         None => Err("Servo not available in this thread"),
     }) {
-        panic!(e);
-    };
+        Err(e) => panic!(e),
+        Ok(r) => r,
+    }
 }
 
 /// Callback used by Servo internals
@@ -430,13 +431,23 @@ pub extern "C" fn perform_updates() {
 }
 
 #[no_mangle]
-pub extern "C" fn load_uri(url: *const c_char) {
+pub extern "C" fn is_uri_valid(url: *const c_char) -> bool {
+    catch_any_panic(|| {
+        debug!("is_uri_valid");
+        let url = unsafe { CStr::from_ptr(url) };
+        let url = url.to_str().expect("Can't read string");
+        simpleservo::is_uri_valid(url)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn load_uri(url: *const c_char) -> bool {
     catch_any_panic(|| {
         debug!("load_url");
         let url = unsafe { CStr::from_ptr(url) };
         let url = url.to_str().expect("Can't read string");
-        call(|s| s.load_uri(url));
-    });
+        call(|s| Ok(s.load_uri(url).is_ok()))
+    })
 }
 
 #[no_mangle]
