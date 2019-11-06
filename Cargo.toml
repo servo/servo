@@ -29,12 +29,3 @@ opt-level = 3
 mio = { git = "https://github.com/servo/mio.git", branch = "servo" }
 # https://github.com/retep998/winapi-rs/pull/816
 winapi = { git = "https://github.com/servo/winapi-rs", branch = "patch-1" }
-
-
-# temporary
-[patch."https://github.com/pcwalton/surfman"]
-surfman = { git = "https://github.com/jdm/rust-offscreen-rendering-context", branch = "servo" }
-
-[patch."https://github.com/servo/webxr"]
-webxr = { git = "https://github.com/jdm/webxr", branch = "no-gl-readback2" }
-webxr-api = { git = "https://github.com/jdm/webxr", branch = "no-gl-readback2" }
