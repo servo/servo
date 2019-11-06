@@ -153,8 +153,8 @@ use script_traits::{
     IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerSchedulerMsg,
 };
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
-use script_traits::{MessagePortMsg, PortMessageTask, StructuredSerializedData};
 use script_traits::{MediaSessionActionType, MouseEventType};
+use script_traits::{MessagePortMsg, PortMessageTask, StructuredSerializedData};
 use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WebDriverCommandMsg};
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
@@ -475,7 +475,7 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// Mechanism to force the compositor to process events.
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
-    
+
     /// Browing context ID of the active media session.
     active_media_session: Option<BrowsingContextId>,
 }

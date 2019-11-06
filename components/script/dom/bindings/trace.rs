@@ -94,7 +94,7 @@ use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::rpc::LayoutRPC;
 use script_layout_interface::OpaqueStyleAndLayoutData;
 use script_traits::transferable::MessagePortImpl;
-use script_traits::{DocumentActivity, DrawAPaintImageResult;
+use script_traits::{DocumentActivity, DrawAPaintImageResult};
 use script_traits::{MediaSessionActionType, ScriptToConstellationChan, TimerEventId, TimerSource};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use selectors::matching::ElementSelectorFlags;

@@ -1058,6 +1058,7 @@ pub enum MessagePortMsg {
     RemoveMessagePort(MessagePortId),
     /// Handle a new port-message-task.
     NewTask(MessagePortId, PortMessageTask),
+}
 
 /// The type of MediaSession action.
 /// https://w3c.github.io/mediasession/#enumdef-mediasessionaction

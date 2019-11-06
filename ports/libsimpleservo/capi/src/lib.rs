@@ -17,7 +17,8 @@ use env_logger;
 use log::LevelFilter;
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
 use simpleservo::{
-    Coordinates, EventLoopWaker, HostTrait, InitOptions, MediaSessionEvent, MouseButton, VRInitOptions,
+    Coordinates, EventLoopWaker, HostTrait, InitOptions, MediaSessionEvent, MouseButton,
+    VRInitOptions,
 };
 use std::ffi::{CStr, CString};
 #[cfg(target_os = "windows")]

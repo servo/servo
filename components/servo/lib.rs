@@ -270,7 +270,6 @@ pub struct Servo<Window: WindowMethods + 'static + ?Sized> {
     embedder_receiver: EmbedderReceiver,
     embedder_events: Vec<(Option<BrowserId>, EmbedderMsg)>,
     profiler_enabled: bool,
-    webgl_thread_data: Option<Rc<WebGLMainThread>>,
 }
 
 #[derive(Clone)]
@@ -556,7 +555,6 @@ where
             embedder_receiver: embedder_receiver,
             embedder_events: Vec::new(),
             profiler_enabled: false,
-            webgl_thread_data,
         }
     }
 

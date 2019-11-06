@@ -8,7 +8,6 @@ use crate::DocumentState;
 use crate::IFrameLoadInfoWithData;
 use crate::LayoutControlMsg;
 use crate::LoadData;
-use crate::MediaSessionEvent;
 use crate::MessagePortMsg;
 use crate::PortMessageTask;
 use crate::StructuredSerializedData;
@@ -255,6 +254,9 @@ pub enum ScriptMsg {
     GetScreenSize(IpcSender<DeviceIntSize>),
     /// Get the available screen size (pixel)
     GetScreenAvailSize(IpcSender<DeviceIntSize>),
+    /// Notifies the constellation about media session events
+    /// (i.e. when there is metadata for the active media session, playback state changes...).
+    MediaSessionEvent(BrowsingContextId, MediaSessionEvent)
 }
 
 impl fmt::Debug for ScriptMsg {
