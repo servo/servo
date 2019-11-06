@@ -3995,7 +3995,6 @@ where
                     new_context_info.is_visible,
                 );
                 self.update_activity(change.new_pipeline_id);
-                self.notify_history_changed(change.top_level_browsing_context_id);
             },
             Some(old_pipeline_id) => {
                 if let Some(pipeline) = self.pipelines.get(&old_pipeline_id) {
@@ -4087,8 +4086,6 @@ where
                         );
                     }
                 }
-
-                self.notify_history_changed(change.top_level_browsing_context_id);
             },
         }
 
