@@ -6,7 +6,7 @@
 
    idlharness
    testharness-api
-   testdriver-tutorial
+   testdriver-extension-tutorial
    testdriver
 ```
 
