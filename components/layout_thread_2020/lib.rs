@@ -523,6 +523,7 @@ impl LayoutThread {
                 text_index_response: TextIndexResponse(None),
                 nodes_from_point_response: vec![],
                 element_inner_text_response: String::new(),
+                inner_window_dimensions_response: None,
             })),
             timer: if pref!(layout.animations.test.enabled) {
                 Timer::test_mode()
@@ -937,6 +938,9 @@ impl LayoutThread {
                         &QueryMsg::ElementInnerTextQuery(_) => {
                             rw_data.element_inner_text_response = String::new();
                         },
+                        &QueryMsg::InnerWindowDimensionsQuery(_) => {
+                            rw_data.inner_window_dimensions_response = None;
+                        },
                     },
                     ReflowGoal::Full | ReflowGoal::TickAnimations => {},
                 }
@@ -1188,6 +1192,11 @@ impl LayoutThread {
                 &QueryMsg::ElementInnerTextQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.element_inner_text_response = process_element_inner_text_query(node);
+                },
+                &QueryMsg::InnerWindowDimensionsQuery(_browsing_context_id) => {
+                    // TODO(jdm): port the iframe sizing code from layout2013's display
+                    //            builder in order to support query iframe sizing.
+                    rw_data.inner_window_dimensions_response = None;
                 },
             },
             ReflowGoal::Full | ReflowGoal::TickAnimations => {},

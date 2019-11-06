@@ -16,6 +16,7 @@ use crate::sequential;
 use crate::wrapper::LayoutNodeLayoutData;
 use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D, Vector2D};
+use euclid::Size2D as TypedSize2D;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use script_layout_interface::rpc::TextIndexResponse;
@@ -40,7 +41,7 @@ use style::dom::TElement;
 use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection, WritingMode};
 use style::properties::{style_structs, LonghandId, PropertyDeclarationId, PropertyId};
 use style::selector_parser::PseudoElement;
-use style_traits::ToCss;
+use style_traits::{CSSPixel, ToCss};
 use webrender_api::ExternalScrollId;
 
 /// Mutable data belonging to the LayoutThread.
@@ -90,6 +91,9 @@ pub struct LayoutThreadData {
 
     /// A queued response for the inner text of a given element.
     pub element_inner_text_response: String,
+
+    /// A queued response for the viewport dimensions for a given browsing context.
+    pub inner_window_dimensions_response: Option<TypedSize2D<f32, CSSPixel>>,
 }
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutThreadData>>);
@@ -192,6 +196,12 @@ impl LayoutRPC for LayoutRPCImpl {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.element_inner_text_response.clone()
+    }
+
+    fn inner_window_dimensions(&self) -> Option<TypedSize2D<f32, CSSPixel>> {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        rw_data.inner_window_dimensions_response.clone()
     }
 }
 

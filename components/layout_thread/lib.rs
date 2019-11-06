@@ -609,6 +609,7 @@ impl LayoutThread {
                 text_index_response: TextIndexResponse(None),
                 nodes_from_point_response: vec![],
                 element_inner_text_response: String::new(),
+                inner_window_dimensions_response: None,
             })),
             webrender_image_cache: Arc::new(RwLock::new(FnvHashMap::default())),
             timer: if pref!(layout.animations.test.enabled) {
@@ -1333,6 +1334,9 @@ impl LayoutThread {
                         &QueryMsg::ElementInnerTextQuery(_) => {
                             rw_data.element_inner_text_response = String::new();
                         },
+                        &QueryMsg::InnerWindowDimensionsQuery(_) => {
+                            rw_data.inner_window_dimensions_response = None;
+                        },
                     },
                     ReflowGoal::Full | ReflowGoal::TickAnimations => {},
                 }
@@ -1684,6 +1688,13 @@ impl LayoutThread {
                     let node = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.element_inner_text_response =
                         process_element_inner_text_query(node, &rw_data.indexable_text);
+                },
+                &QueryMsg::InnerWindowDimensionsQuery(browsing_context_id) => {
+                    rw_data.inner_window_dimensions_response = self
+                        .last_iframe_sizes
+                        .borrow()
+                        .get(&browsing_context_id)
+                        .cloned();
                 },
             },
             ReflowGoal::Full | ReflowGoal::TickAnimations => {},
