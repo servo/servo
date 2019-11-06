@@ -9,7 +9,7 @@ namespace ServoApp {
       void GoForward();
       void Reload();
       void Stop();
-      Windows.Foundation.Uri LoadURIOrSearch(String url);
+      String LoadURIOrSearch(String url);
       void SetTransientMode(Boolean transient);
       void SetArgs(String args);
       void Shutdown();

@@ -195,25 +195,43 @@ void ServoControl::Reload() {
 void ServoControl::Stop() {
   RunOnGLThread([=] { mServo->Stop(); });
 }
-Uri ServoControl::LoadURIOrSearch(hstring input) {
-  auto uri = TryParseURI(input);
-  if (uri == std::nullopt) {
-    bool has_dot = wcsstr(input.c_str(), L".") != nullptr;
-    hstring input2 = L"https://" + input;
-    uri = TryParseURI(input2);
-    if (uri == std::nullopt || !has_dot) {
-      hstring input3 =
-          L"https://duckduckgo.com/html/?q=" + Uri::EscapeComponent(input);
-      uri = TryParseURI(input3);
-    }
+hstring ServoControl::LoadURIOrSearch(hstring input) {
+  // Initial input is valid
+  if (mServo->IsUriValid(input)) {
+    TryLoadUri(input);
+    return input;
   }
-  auto finalUri = uri.value();
+
+  // Not valid. Maybe it's just missing the scheme.
+  hstring with_scheme = L"https://" + input;
+  // If the user only types "mozilla" we don't want to go to
+  // https://mozilla even though it's a valid url.
+  bool has_dot = wcsstr(input.c_str(), L".") != nullptr;
+  if (mServo->IsUriValid(with_scheme) && has_dot) {
+    TryLoadUri(with_scheme);
+    return with_scheme;
+  }
+
+  // Doesn't look like a URI. Let's search for the string.
+  hstring searchUri =
+      L"https://duckduckgo.com/html/?q=" + Uri::EscapeComponent(input);
+  TryLoadUri(searchUri);
+  return searchUri;
+}
+
+void ServoControl::TryLoadUri(hstring input) {
   if (!mLooping) {
-    mInitialURL = finalUri.ToString();
+    mInitialURL = input;
   } else {
-    RunOnGLThread([=] { mServo->LoadUri(finalUri.ToString()); });
+    RunOnGLThread([=] {
+      if (!mServo->LoadUri(input)) {
+        RunOnUIThread([=] {
+          Windows::UI::Popups::MessageDialog msg{L"URI not valid"};
+          msg.ShowAsync();
+        });
+      }
+    });
   }
-  return finalUri;
 }
 
 void ServoControl::RunOnGLThread(std::function<void()> task) {

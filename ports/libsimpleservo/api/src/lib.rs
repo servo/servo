@@ -152,6 +152,12 @@ pub fn servo_version() -> String {
     servo::config::servo_version()
 }
 
+/// Test if a url is valid.
+pub fn is_uri_valid(url: &str) -> bool {
+    info!("load_uri: {}", url);
+    ServoUrl::parse(url).is_ok()
+}
+
 /// Initialize Servo. At that point, we need a valid GL context.
 /// In the future, this will be done in multiple steps.
 pub fn init(

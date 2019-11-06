@@ -14,7 +14,7 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
   void Reload();
   void Stop();
   void Shutdown();
-  Windows::Foundation::Uri LoadURIOrSearch(hstring);
+  hstring LoadURIOrSearch(hstring);
 
   void OnLoaded(IInspectable const &,
                 Windows::UI::Xaml::RoutedEventArgs const &);
@@ -110,14 +110,6 @@ private:
   void StopRenderLoop();
   void Loop();
 
-  std::optional<Windows::Foundation::Uri> TryParseURI(hstring input) {
-    try {
-      return Windows::Foundation::Uri(input);
-    } catch (hresult_invalid_argument const &) {
-      return {};
-    }
-  }
-
   void OnSurfaceTapped(IInspectable const &,
                        Windows::UI::Xaml::Input::TappedRoutedEventArgs const &);
 
@@ -146,6 +138,8 @@ private:
 
   template <typename Callable> void RunOnUIThread(Callable);
   void RunOnGLThread(std::function<void()>);
+
+  void TryLoadUri(hstring);
 
   std::unique_ptr<servo::Servo> mServo;
   EGLSurface mRenderSurface{EGL_NO_SURFACE};
