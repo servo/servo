@@ -1366,7 +1366,7 @@ pub fn encode_multipart_form_data(
         }
     }
 
-    let mut boundary_bytes = format!("\r\n--{}--", boundary).into_bytes();
+    let mut boundary_bytes = format!("\r\n--{}--\r\n", boundary).into_bytes();
     result.append(&mut boundary_bytes);
 
     result

@@ -21,7 +21,7 @@ def main(request, response):
     boundary = content_type[1].strip("boundary=")
 
     body = "--" + boundary + "\r\nContent-Disposition: form-data; name=\"file-input\"; filename=\"upload.txt\""
-    body += "\r\n" + "content-type: text/plain\r\n\r\nHello\r\n--" + boundary + "--"
+    body += "\r\n" + "content-type: text/plain\r\n\r\nHello\r\n--" + boundary + "--\r\n"
 
     if body != request.body:
         return fail("request body doesn't match: " + body + "+++++++" + request.body)
