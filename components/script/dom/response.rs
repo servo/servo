@@ -403,6 +403,7 @@ impl Response {
             Some(hyper_headers) => hyper_headers.into_inner(),
             None => HyperHeaders::new(),
         });
+        *self.mime_type.borrow_mut() = self.Headers().extract_mime_type();
     }
 
     pub fn set_raw_status(&self, status: Option<(u16, Vec<u8>)>) {
