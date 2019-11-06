@@ -739,6 +739,8 @@ pub struct IFrameLoadInfoWithData {
     pub old_pipeline_id: Option<PipelineId>,
     /// Sandbox type of this iframe
     pub sandbox: IFrameSandboxState,
+    /// The initial viewport size for this iframe.
+    pub window_size: WindowSizeData,
 }
 
 /// Specifies whether the script or layout thread needs to be ticked for animation.
@@ -760,7 +762,7 @@ pub struct ScrollState {
 }
 
 /// Data about the window size.
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct WindowSizeData {
     /// The size of the initial layout viewport, before parsing an
     /// <http://www.w3.org/TR/css-device-adapt/#initial-viewport>

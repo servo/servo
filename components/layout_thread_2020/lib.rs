@@ -67,13 +67,12 @@ use script_layout_interface::rpc::{LayoutRPC, OffsetParentResponse, StyleRespons
 use script_traits::Painter;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{DrawAPaintImageResult, PaintWorkletError};
-use script_traits::{ScrollState, UntrustedNodeAddress};
+use script_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
 use selectors::Element;
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_config::opts;
 use servo_config::pref;
-use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -212,13 +211,6 @@ pub struct LayoutThread {
     /// Load web fonts synchronously to avoid non-deterministic network-driven reflows.
     load_webfonts_synchronously: bool,
 
-    /// The initial request size of the window
-    initial_window_size: Size2D<u32, DeviceIndependentPixel>,
-
-    /// The ratio of device pixels per px at the default scale.
-    /// If unspecified, will use the platform default setting.
-    device_pixels_per_px: Option<f32>,
-
     /// Emits notifications when there is a relayout.
     relayout_event: bool,
 }
@@ -246,8 +238,7 @@ impl LayoutThreadFactory for LayoutThread {
         paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,
         load_webfonts_synchronously: bool,
-        initial_window_size: Size2D<u32, DeviceIndependentPixel>,
-        device_pixels_per_px: Option<f32>,
+        window_size: WindowSizeData,
         _dump_display_list: bool,
         _dump_display_list_json: bool,
         _dump_style_tree: bool,
@@ -294,8 +285,7 @@ impl LayoutThreadFactory for LayoutThread {
                         paint_time_metrics,
                         busy,
                         load_webfonts_synchronously,
-                        initial_window_size,
-                        device_pixels_per_px,
+                        window_size,
                         relayout_event,
                     );
 
@@ -457,16 +447,15 @@ impl LayoutThread {
         paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,
         load_webfonts_synchronously: bool,
-        initial_window_size: Size2D<u32, DeviceIndependentPixel>,
-        device_pixels_per_px: Option<f32>,
+        window_size: WindowSizeData,
         relayout_event: bool,
     ) -> LayoutThread {
         // The device pixel ratio is incorrect (it does not have the hidpi value),
         // but it will be set correctly when the initial reflow takes place.
         let device = Device::new(
             MediaType::screen(),
-            initial_window_size.to_f32() * Scale::new(1.0),
-            Scale::new(device_pixels_per_px.unwrap_or(1.0)),
+            window_size.initial_viewport,
+            window_size.device_pixel_ratio,
         );
 
         // Create the channel on which new animations can be sent.
@@ -533,8 +522,6 @@ impl LayoutThread {
             paint_time_metrics: paint_time_metrics,
             busy,
             load_webfonts_synchronously,
-            initial_window_size,
-            device_pixels_per_px,
             relayout_event,
         }
     }
@@ -820,8 +807,7 @@ impl LayoutThread {
             info.paint_time_metrics,
             info.layout_is_busy,
             self.load_webfonts_synchronously,
-            self.initial_window_size,
-            self.device_pixels_per_px,
+            info.window_size,
             false, // dump_display_list
             false, // dump_display_list_json
             false, // dump_style_tree

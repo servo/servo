@@ -346,9 +346,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         // Set the size of the root layer.
         compositor.update_zoom_transform();
 
-        // Tell the constellation about the initial window size.
-        compositor.send_window_size(WindowSizeType::Initial);
-
         compositor
     }
 
@@ -637,8 +634,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             .send_transaction(self.webrender_document, txn);
 
         self.create_pipeline_details_for_frame_tree(&frame_tree);
-
-        self.send_window_size(WindowSizeType::Initial);
 
         self.frame_tree_id.next();
     }

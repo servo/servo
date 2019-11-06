@@ -230,4 +230,5 @@ pub struct LayoutThreadInit {
     pub image_cache: Arc<dyn ImageCache>,
     pub paint_time_metrics: PaintTimeMetrics,
     pub layout_is_busy: Arc<AtomicBool>,
+    pub window_size: WindowSizeData,
 }
