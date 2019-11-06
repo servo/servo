@@ -979,19 +979,13 @@ impl WindowMethods for Window {
         cx: JSContext,
         message: HandleValue,
         target_origin: USVString,
-        mut transfer: CustomAutoRooterGuard<Option<Vec<*mut JSObject>>>,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
         let incumbent = GlobalScope::incumbent().expect("no incumbent global?");
         let source = incumbent.as_window();
         let source_origin = source.Document().origin().immutable().clone();
 
-        if transfer.is_some() {
-            let mut rooted = CustomAutoRooter::new(transfer.take().unwrap());
-            let transfer = Some(CustomAutoRooterGuard::new(*cx, &mut rooted));
-            self.post_message_impl(&target_origin, source_origin, source, cx, message, transfer)
-        } else {
-            self.post_message_impl(&target_origin, source_origin, source, cx, message, None)
-        }
+        self.post_message_impl(&target_origin, source_origin, source, cx, message, transfer)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
@@ -1003,14 +997,13 @@ impl WindowMethods for Window {
     ) -> ErrorResult {
         let mut rooted = CustomAutoRooter::new(
             options
+                .parent
                 .transfer
-                .as_ref()
-                .unwrap_or(&Vec::with_capacity(0))
                 .iter()
                 .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
                 .collect(),
         );
-        let transfer = Some(CustomAutoRooterGuard::new(*cx, &mut rooted));
+        let transfer = CustomAutoRooterGuard::new(*cx, &mut rooted);
 
         let incumbent = GlobalScope::incumbent().expect("no incumbent global?");
         let source = incumbent.as_window();
@@ -1330,10 +1323,10 @@ impl Window {
         source: &Window,
         cx: JSContext,
         message: HandleValue,
-        transfer: Option<CustomAutoRooterGuard<Vec<*mut JSObject>>>,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
         // Step 1-2, 6-8.
-        let data = structuredclone::write(cx, message, transfer)?;
+        let data = structuredclone::write(cx, message, Some(transfer))?;
 
         // Step 3-5.
         let target_origin = match target_origin.0[..].as_ref() {

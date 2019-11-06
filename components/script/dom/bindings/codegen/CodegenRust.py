@@ -6388,8 +6388,11 @@ class CGDictionary(CGThing):
     def struct(self):
         d = self.dictionary
         if d.parent:
-            inheritance = "    pub parent: %s::%s,\n" % (self.makeModuleName(d.parent),
-                                                         self.makeClassName(d.parent))
+            typeName = "%s::%s" % (self.makeModuleName(d.parent),
+                                   self.makeClassName(d.parent))
+            if type_needs_tracing(d.parent):
+                typeName = "RootedTraceableBox<%s>" % typeName
+            inheritance = "    pub parent: %s,\n" % typeName
         else:
             inheritance = ""
         memberDecls = ["    pub %s: %s," %
@@ -6520,10 +6523,7 @@ class CGDictionary(CGThing):
             })
 
     def membersNeedTracing(self):
-        for member, _ in self.memberInfo:
-            if type_needs_tracing(member.type):
-                return True
-        return False
+        return type_needs_tracing(self.dictionary)
 
     @staticmethod
     def makeDictionaryName(dictionary):

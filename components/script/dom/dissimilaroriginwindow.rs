@@ -141,15 +141,9 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
         cx: JSContext,
         message: HandleValue,
         target_origin: USVString,
-        mut transfer: CustomAutoRooterGuard<Option<Vec<*mut JSObject>>>,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
-        if transfer.is_some() {
-            let mut rooted = CustomAutoRooter::new(transfer.take().unwrap());
-            let transfer = Some(CustomAutoRooterGuard::new(*cx, &mut rooted));
-            self.post_message_impl(&target_origin, cx, message, transfer)
-        } else {
-            self.post_message_impl(&target_origin, cx, message, None)
-        }
+        self.post_message_impl(&target_origin, cx, message, transfer)
     }
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-postmessage-options
@@ -161,14 +155,13 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
     ) -> ErrorResult {
         let mut rooted = CustomAutoRooter::new(
             options
+                .parent
                 .transfer
-                .as_ref()
-                .unwrap_or(&Vec::with_capacity(0))
                 .iter()
                 .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
                 .collect(),
         );
-        let transfer = Some(CustomAutoRooterGuard::new(*cx, &mut rooted));
+        let transfer = CustomAutoRooterGuard::new(*cx, &mut rooted);
 
         self.post_message_impl(&options.targetOrigin, cx, message, transfer)
     }
@@ -208,10 +201,10 @@ impl DissimilarOriginWindow {
         target_origin: &USVString,
         cx: JSContext,
         message: HandleValue,
-        transfer: Option<CustomAutoRooterGuard<Vec<*mut JSObject>>>,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
         // Step 6-7.
-        let data = structuredclone::write(cx, message, transfer)?;
+        let data = structuredclone::write(cx, message, Some(transfer))?;
 
         self.post_message(target_origin, data)
     }
