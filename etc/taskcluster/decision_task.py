@@ -24,10 +24,6 @@ def main(task_for):
     magicleap_nightly = lambda: None
 
     if task_for == "github-push":
-        if not CONFIG.legacy_tc_deployment:  # pragma: no cover
-            # Do nothing (other than the decision task itsef) on community-tc by default for now
-            return
-
         # FIXME https://github.com/servo/servo/issues/22187
         # In-emulator testing is disabled for now. (Instead we only compile.)
         # This local variable shadows the module-level function of the same name.
@@ -75,6 +71,25 @@ def main(task_for):
                 android_x86_wpt
             ],
         }
+        if not CONFIG.legacy_tc_deployment:  # pragma: no cover
+            by_branch_name = {
+                "auto": [
+                    # Everything not running on macOS,
+                    # which only has one worker on Community-TC for now
+                    linux_tidy_unit_docs,
+                    windows_unit,
+                    windows_arm64,
+                    windows_uwp_x64,
+                    android_arm32_dev,
+                    android_arm32_release,
+                    android_x86_wpt,
+                    linux_wpt,
+                    linux_release,
+                ],
+                "master": [
+                    upload_docs,
+                ],
+            }
         for function in by_branch_name.get(branch, []):
             function()
 
@@ -472,7 +487,7 @@ def windows_unit(worker_type=None, cached=True):
     if cached:
         return task.find_or_create("build.windows_x64_dev." + CONFIG.task_id())
     else:
-        return task.create()
+        return task.create() 
 
 
 def windows_release():
