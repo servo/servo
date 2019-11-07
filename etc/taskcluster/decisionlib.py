@@ -60,9 +60,9 @@ class Config:
         self.tc_root_url = os.environ.get("TASKCLUSTER_ROOT_URL")
         self.legacy_tc_deployment = self.tc_root_url == "https://taskcluster.net"
 
-        if self.legacy_tc_deployment:
+        if self.legacy_tc_deployment:  # pragma: no cover
             self.default_provisioner_id = "aws-provisioner-v1"
-        else:  # pragma: no cover
+        else:
             self.default_provisioner_id = "proj-example"
 
 
@@ -620,9 +620,9 @@ class UnixTaskMixin(Task):
         """.format(n=n))
 
     def with_curl_artifact_script(self, task_id, artifact_name, out_directory=""):
-        if CONFIG.legacy_tc_deployment:
+        if CONFIG.legacy_tc_deployment:  # pragma: no cover
             queue_service = "https://queue.taskcluster.net"
-        else:  # pragma: no cover
+        else:
             queue_service = CONFIG.tc_root_url + "/api/queue"
         return self \
         .with_dependencies(task_id) \
