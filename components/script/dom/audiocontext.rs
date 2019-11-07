@@ -97,6 +97,10 @@ impl AudioContext {
             self.context.resume();
         }
     }
+
+    pub fn base(&self) -> DomRoot<BaseAudioContext> {
+        DomRoot::from_ref(&self.context)
+    }
 }
 
 impl AudioContextMethods for AudioContext {

@@ -394,6 +394,7 @@ pub mod inputevent;
 pub mod keyboardevent;
 pub mod location;
 pub mod mediadevices;
+pub mod mediaelementaudiosourcenode;
 pub mod mediaerror;
 pub mod mediafragmentparser;
 pub mod medialist;
