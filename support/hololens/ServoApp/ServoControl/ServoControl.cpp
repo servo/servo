@@ -283,7 +283,6 @@ void ServoControl::Loop() {
     mServo->PerformUpdates();
   }
   mServo->DeInit();
-  cancel_current_task();
 }
 
 void ServoControl::StartRenderLoop() {
