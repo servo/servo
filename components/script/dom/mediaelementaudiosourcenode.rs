@@ -26,7 +26,6 @@ pub struct MediaElementAudioSourceNode {
 impl MediaElementAudioSourceNode {
     #[allow(unrooted_must_root)]
     fn new_inherited(
-        window: &Window,
         context: &AudioContext,
         options: &MediaElementAudioSourceOptions,
     ) -> Fallible<MediaElementAudioSourceNode> {
@@ -42,9 +41,8 @@ impl MediaElementAudioSourceNode {
             MediaElementSourceNodeMessage::GetAudioRenderer(sender),
         ));
         let audio_renderer = receiver.recv().unwrap();
-        // XXX set audio renderer in player.
-        let media_element = &options.mediaElement;
-        let media_element = Dom::from_ref(&**media_element);
+        options.mediaElement.set_audio_renderer(audio_renderer);
+        let media_element = Dom::from_ref(&*options.mediaElement);
         Ok(MediaElementAudioSourceNode {
             node,
             media_element,
@@ -57,7 +55,7 @@ impl MediaElementAudioSourceNode {
         context: &AudioContext,
         options: &MediaElementAudioSourceOptions,
     ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
-        let node = MediaElementAudioSourceNode::new_inherited(window, context, options)?;
+        let node = MediaElementAudioSourceNode::new_inherited(context, options)?;
         Ok(reflect_dom_object(
             Box::new(node),
             window,
