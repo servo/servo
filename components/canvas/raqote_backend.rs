@@ -191,7 +191,7 @@ impl Path {
         self.as_raqote()
             .clone()
             .transform(path_transform)
-            .contains_point(0., x as f32, y as f32)
+            .contains_point(0.1, x as f32, y as f32)
     }
 
     pub fn copy_to_builder(&self) -> Box<dyn GenericPathBuilder> {
