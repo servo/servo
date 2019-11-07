@@ -638,7 +638,11 @@ def macos_release_build(args=""):
 def macos_wpt():
     build_task = macos_release_build("--with-debug-assertions")
     def macos_run_task(name):
-        task = macos_task(name).with_python2()
+        task = (
+            macos_task(name)
+            .with_python2()
+            .with_env(PKG_CONFIG_PATH="homebrew/lib/pkgconfig")
+        )
         return with_homebrew(task, ["etc/taskcluster/macos/Brewfile-gstreamer"])
     wpt_chunks("macOS x64", macos_run_task, build_task, repo_dir="repo",
                total_chunks=6, processes=4)
