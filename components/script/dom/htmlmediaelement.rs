@@ -325,7 +325,7 @@ pub struct HTMLMediaElement {
     #[ignore_malloc_size_of = "servo_media"]
     player: DomRefCell<Option<Arc<Mutex<dyn Player>>>>,
     #[ignore_malloc_size_of = "Arc"]
-    frame_renderer: Arc<Mutex<MediaFrameRenderer>>,
+    video_renderer: Arc<Mutex<MediaFrameRenderer>>,
     /// https://html.spec.whatwg.org/multipage/#show-poster-flag
     show_poster: Cell<bool>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-duration
@@ -410,7 +410,7 @@ impl HTMLMediaElement {
             pending_play_promises: Default::default(),
             in_flight_play_promises_queue: Default::default(),
             player: Default::default(),
-            frame_renderer: Arc::new(Mutex::new(MediaFrameRenderer::new(
+            video_renderer: Arc::new(Mutex::new(MediaFrameRenderer::new(
                 document.window().get_webrender_api_sender(),
             ))),
             show_poster: Cell::new(true),
@@ -1293,7 +1293,7 @@ impl HTMLMediaElement {
 
         // Step 6.
         if let ImageResponse::Loaded(image, _) = image {
-            self.frame_renderer
+            self.video_renderer
                 .lock()
                 .unwrap()
                 .render_poster_frame(image);
@@ -1327,7 +1327,7 @@ impl HTMLMediaElement {
         let (action_sender, action_receiver) = ipc::channel::<PlayerEvent>().unwrap();
         let renderer: Option<Arc<Mutex<dyn VideoFrameRenderer>>> = match self.media_type_id() {
             HTMLMediaElementTypeId::HTMLAudioElement => None,
-            HTMLMediaElementTypeId::HTMLVideoElement => Some(self.frame_renderer.clone()),
+            HTMLMediaElementTypeId::HTMLVideoElement => Some(self.video_renderer.clone()),
         };
 
         let pipeline_id = window
@@ -1386,7 +1386,7 @@ impl HTMLMediaElement {
             .unwrap_or((0, None));
 
         self.id.set(player_id);
-        self.frame_renderer.lock().unwrap().player_id = Some(player_id);
+        self.video_renderer.lock().unwrap().player_id = Some(player_id);
 
         if let Some(image_receiver) = image_receiver {
             let trusted_node = Trusted::new(self);
@@ -1401,11 +1401,11 @@ impl HTMLMediaElement {
                     if let Err(err) = task_source.queue_with_canceller(
                         task!(handle_glplayer_message: move || {
                             trace!("GLPlayer message {:?}", msg);
-                            let frame_renderer = this.root().frame_renderer.clone();
+                            let video_renderer = this.root().video_renderer.clone();
 
                             match msg {
                                 GLPlayerMsgForward::Lock(sender) => {
-                                    frame_renderer
+                                    video_renderer
                                         .lock()
                                         .unwrap()
                                         .current_frame_holder
@@ -1416,7 +1416,7 @@ impl HTMLMediaElement {
                                         });
                                 },
                                 GLPlayerMsgForward::Unlock() => {
-                                    frame_renderer
+                                    video_renderer
                                         .lock()
                                         .unwrap()
                                         .current_frame_holder
@@ -1857,7 +1857,7 @@ impl HTMLMediaElement {
     }
 
     pub fn get_current_frame(&self) -> Option<VideoFrame> {
-        match self.frame_renderer.lock().unwrap().current_frame_holder {
+        match self.video_renderer.lock().unwrap().current_frame_holder {
             Some(ref holder) => Some(holder.get_frame()),
             None => return None,
         }
@@ -2366,7 +2366,7 @@ impl LayoutHTMLMediaElementHelpers for LayoutDom<HTMLMediaElement> {
     fn data(&self) -> HTMLMediaData {
         let media = unsafe { &*self.unsafe_get() };
         HTMLMediaData {
-            current_frame: media.frame_renderer.lock().unwrap().current_frame.clone(),
+            current_frame: media.video_renderer.lock().unwrap().current_frame.clone(),
         }
     }
 }
