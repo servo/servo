@@ -4188,7 +4188,7 @@ checksum = "dd5927936723a9e8b715d37d7e4b390455087c4bdf25b9f702309460577b14f9"
 [[package]]
 name = "raqote"
 version = "0.7.5-alpha.0"
-source = "git+https://github.com/jrmuizel/raqote#6a68a5486e605fc84ad9461f29a230119f4caff4"
+source = "git+https://github.com/jrmuizel/raqote#34d9d0b1ff37d25c69ab92faaba6b9c529cc0a9c"
 dependencies = [
  "euclid",
  "font-kit",
@@ -5527,9 +5527,9 @@ checksum = "c666f0fed8e1e20e057af770af9077d72f3d5a33157b8537c1475dd8ffd6d32b"
 
 [[package]]
 name = "sw-composite"
-version = "0.7.1"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26278512d0de15b0578a75cb45f98ab39dfee7877151e5cb0d08e4e29898f7d5"
+checksum = "50a36f1738c7e57fec506df8c94719b2210816ab9de4d3dadeb9efb6bc71f1d2"
 
 [[package]]
 name = "swapper"
