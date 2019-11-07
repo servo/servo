@@ -79,7 +79,7 @@ use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseLis
 use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
 use script_layout_interface::HTMLMediaData;
 use servo_config::pref;
-use servo_media::player::frame::{Frame, FrameRenderer};
+use servo_media::player::video::{VideoFrame, VideoFrameRenderer};
 use servo_media::player::{PlaybackState, Player, PlayerError, PlayerEvent, SeekLock, StreamType};
 use servo_media::{ClientContextId, ServoMedia, SupportsMediaType};
 use servo_url::ServoUrl;
@@ -100,10 +100,10 @@ enum FrameStatus {
     Unlocked,
 }
 
-struct FrameHolder(FrameStatus, Frame);
+struct FrameHolder(FrameStatus, VideoFrame);
 
 impl FrameHolder {
-    fn new(frame: Frame) -> FrameHolder {
+    fn new(frame: VideoFrame) -> FrameHolder {
         FrameHolder(FrameStatus::Unlocked, frame)
     }
 
@@ -119,7 +119,7 @@ impl FrameHolder {
         };
     }
 
-    fn set(&mut self, new_frame: Frame) {
+    fn set(&mut self, new_frame: VideoFrame) {
         if self.0 == FrameStatus::Unlocked {
             self.1 = new_frame
         };
@@ -137,7 +137,7 @@ impl FrameHolder {
         }
     }
 
-    fn get_frame(&self) -> Frame {
+    fn get_frame(&self) -> VideoFrame {
         self.1.clone()
     }
 }
@@ -170,8 +170,8 @@ impl MediaFrameRenderer {
     }
 }
 
-impl FrameRenderer for MediaFrameRenderer {
-    fn render(&mut self, frame: Frame) {
+impl VideoFrameRenderer for MediaFrameRenderer {
+    fn render(&mut self, frame: VideoFrame) {
         let mut txn = Transaction::new();
 
         if let Some(old_image_key) = mem::replace(&mut self.very_old_frame, self.old_frame.take()) {
@@ -1325,7 +1325,7 @@ impl HTMLMediaElement {
 
         let window = window_from_node(self);
         let (action_sender, action_receiver) = ipc::channel::<PlayerEvent>().unwrap();
-        let renderer: Option<Arc<Mutex<dyn FrameRenderer>>> = match self.media_type_id() {
+        let renderer: Option<Arc<Mutex<dyn VideoFrameRenderer>>> = match self.media_type_id() {
             HTMLMediaElementTypeId::HTMLAudioElement => None,
             HTMLMediaElementTypeId::HTMLVideoElement => Some(self.frame_renderer.clone()),
         };
@@ -1340,6 +1340,7 @@ impl HTMLMediaElement {
             stream_type,
             action_sender,
             renderer,
+            None,
             Box::new(window.get_player_context()),
         );
 
@@ -1527,7 +1528,7 @@ impl HTMLMediaElement {
                 )));
                 self.upcast::<EventTarget>().fire_event(atom!("error"));
             },
-            PlayerEvent::FrameUpdated => {
+            PlayerEvent::VideoFrameUpdated => {
                 self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
             },
             PlayerEvent::MetadataUpdated(ref metadata) => {
@@ -1855,7 +1856,7 @@ impl HTMLMediaElement {
         }
     }
 
-    pub fn get_current_frame(&self) -> Option<Frame> {
+    pub fn get_current_frame(&self) -> Option<VideoFrame> {
         match self.frame_renderer.lock().unwrap().current_frame_holder {
             Some(ref holder) => Some(holder.get_frame()),
             None => return None,

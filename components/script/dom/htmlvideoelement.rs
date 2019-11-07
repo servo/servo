@@ -35,7 +35,7 @@ use net_traits::{
     CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, FetchResponseMsg,
 };
 use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
-use servo_media::player::frame::Frame;
+use servo_media::player::video::VideoFrame;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
@@ -58,8 +58,8 @@ pub struct HTMLVideoElement {
     /// is being fetched.
     load_blocker: DomRefCell<Option<LoadBlocker>>,
     /// A copy of the last frame
-    #[ignore_malloc_size_of = "Frame"]
-    last_frame: DomRefCell<Option<Frame>>,
+    #[ignore_malloc_size_of = "VideoFrame"]
+    last_frame: DomRefCell<Option<VideoFrame>>,
 }
 
 impl HTMLVideoElement {
