@@ -84,7 +84,7 @@ use constellation::{FromCompositorLogger, FromScriptLogger};
 use crossbeam_channel::{unbounded, Sender};
 use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use env_logger::Builder as EnvLoggerBuilder;
-use euclid::Size2D;
+use euclid::{Scale, Size2D};
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),
@@ -104,7 +104,9 @@ use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{ConstellationMsg, SWManagerSenders, ScriptToConstellationChan};
+use script_traits::{
+    ConstellationMsg, SWManagerSenders, ScriptToConstellationChan, WindowSizeData,
+};
 use servo_config::opts;
 use servo_config::{pref, prefs};
 use servo_media::player::context::GlContext;
@@ -313,11 +315,7 @@ impl<Window> Servo<Window>
 where
     Window: WindowMethods + 'static + ?Sized,
 {
-    pub fn new(
-        mut embedder: Box<dyn EmbedderMethods>,
-        window: Rc<Window>,
-        device_pixels_per_px: Option<f32>,
-    ) -> Servo<Window> {
+    pub fn new(mut embedder: Box<dyn EmbedderMethods>, window: Rc<Window>) -> Servo<Window> {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
@@ -358,6 +356,8 @@ where
         let devtools_chan = opts.devtools_port.map(|port| devtools::start_server(port));
 
         let coordinates = window.get_coordinates();
+        let device_pixel_ratio = coordinates.hidpi_factor.get();
+        let viewport_size = coordinates.viewport.size.to_f32() / device_pixel_ratio;
 
         let (mut webrender, webrender_api_sender) = {
             let renderer_kind = if opts::get().should_use_osmesa() {
@@ -380,12 +380,7 @@ where
             let render_notifier = Box::new(RenderNotifier::new(compositor_proxy.clone()));
 
             // Cast from `DeviceIndependentPixel` to `DevicePixel`
-            let device_pixel_ratio = coordinates.hidpi_factor.get();
-            let window_size = Size2D::from_untyped(
-                (opts.initial_window_size.to_f32() / device_pixel_ratio)
-                    .to_i32()
-                    .to_untyped(),
-            );
+            let window_size = Size2D::from_untyped(viewport_size.to_i32().to_untyped());
 
             webrender::Renderer::new(
                 window.gl(),
@@ -492,6 +487,13 @@ where
 
         let event_loop_waker = None;
 
+        // The division by 1 represents the page's default zoom of 100%,
+        // and gives us the appropriate CSSPixel type for the viewport.
+        let window_size = WindowSizeData {
+            initial_viewport: viewport_size / Scale::new(1.0),
+            device_pixel_ratio: Scale::new(device_pixel_ratio),
+        };
+
         // Create the constellation, which maintains the engine
         // pipelines, including the script and layout threads, as well
         // as the navigation context.
@@ -513,7 +515,7 @@ where
             webvr_constellation_sender,
             glplayer_threads,
             event_loop_waker,
-            device_pixels_per_px,
+            window_size,
         );
 
         // Send the constellation's swmanager sender to service worker manager thread
@@ -545,7 +547,6 @@ where
             opts.is_running_problem_test,
             opts.exit_after_load,
             opts.convert_mouse_to_touch,
-            device_pixels_per_px,
         );
 
         Servo {
@@ -828,7 +829,7 @@ fn create_constellation(
     webvr_constellation_sender: Option<Sender<Sender<ConstellationMsg>>>,
     glplayer_threads: Option<GLPlayerThreads>,
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
-    device_pixels_per_px: Option<f32>,
+    initial_window_size: WindowSizeData,
 ) -> (Sender<ConstellationMsg>, SWManagerSenders) {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
@@ -871,7 +872,6 @@ fn create_constellation(
         glplayer_threads,
         player_context,
         event_loop_waker,
-        device_pixels_per_px,
     };
     let (constellation_chan, from_swmanager_sender) = Constellation::<
         script_layout_interface::message::Msg,
@@ -879,8 +879,7 @@ fn create_constellation(
         script::script_thread::ScriptThread,
     >::start(
         initial_state,
-        opts.initial_window_size,
-        device_pixels_per_px,
+        initial_window_size,
         opts.random_pipeline_closure_probability,
         opts.random_pipeline_closure_seed,
         opts.is_running_problem_test,
