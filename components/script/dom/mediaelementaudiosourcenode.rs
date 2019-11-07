@@ -27,7 +27,7 @@ impl MediaElementAudioSourceNode {
     #[allow(unrooted_must_root)]
     fn new_inherited(
         context: &AudioContext,
-        options: &MediaElementAudioSourceOptions,
+        media_element: &HTMLMediaElement,
     ) -> Fallible<MediaElementAudioSourceNode> {
         let node = AudioNode::new_inherited(
             AudioNodeInit::MediaElementSourceNode,
@@ -41,8 +41,8 @@ impl MediaElementAudioSourceNode {
             MediaElementSourceNodeMessage::GetAudioRenderer(sender),
         ));
         let audio_renderer = receiver.recv().unwrap();
-        options.mediaElement.set_audio_renderer(audio_renderer);
-        let media_element = Dom::from_ref(&*options.mediaElement);
+        media_element.set_audio_renderer(audio_renderer);
+        let media_element = Dom::from_ref(media_element);
         Ok(MediaElementAudioSourceNode {
             node,
             media_element,
@@ -53,9 +53,9 @@ impl MediaElementAudioSourceNode {
     pub fn new(
         window: &Window,
         context: &AudioContext,
-        options: &MediaElementAudioSourceOptions,
+        media_element: &HTMLMediaElement,
     ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
-        let node = MediaElementAudioSourceNode::new_inherited(context, options)?;
+        let node = MediaElementAudioSourceNode::new_inherited(context, media_element)?;
         Ok(reflect_dom_object(
             Box::new(node),
             window,
@@ -68,11 +68,12 @@ impl MediaElementAudioSourceNode {
         context: &AudioContext,
         options: &MediaElementAudioSourceOptions,
     ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
-        MediaElementAudioSourceNode::new(window, context, options)
+        MediaElementAudioSourceNode::new(window, context, &*options.mediaElement)
     }
 }
 
 impl MediaElementAudioSourceNodeMethods for MediaElementAudioSourceNode {
+    /// https://webaudio.github.io/web-audio-api/#dom-mediaelementaudiosourcenode-mediaelement
     fn MediaElement(&self) -> DomRoot<HTMLMediaElement> {
         DomRoot::from_ref(&*self.media_element)
     }
