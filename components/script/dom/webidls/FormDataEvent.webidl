@@ -5,10 +5,10 @@
 // https://html.spec.whatwg.org/multipage/#the-formdataevent-interface
 [Exposed=Window]
 interface FormDataEvent : Event {
-  [Throws] constructor(DOMString type, optional FormDataEventInit eventInitDict = {});
+  [Throws] constructor(DOMString type, FormDataEventInit eventInitDict);
   readonly attribute FormData formData;
 };
 
 dictionary FormDataEventInit : EventInit {
-  /*required*/ FormData formData;
+  required FormData formData;
 };
