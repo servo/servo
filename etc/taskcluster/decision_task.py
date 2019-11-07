@@ -24,10 +24,6 @@ def main(task_for):
     magicleap_nightly = lambda: None
 
     if task_for == "github-push":
-        if not CONFIG.legacy_tc_deployment:  # pragma: no cover
-            # Do nothing (other than the decision task itsef) on community-tc by default for now
-            return
-
         # FIXME https://github.com/servo/servo/issues/22187
         # In-emulator testing is disabled for now. (Instead we only compile.)
         # This local variable shadows the module-level function of the same name.
@@ -75,6 +71,25 @@ def main(task_for):
                 android_x86_wpt
             ],
         }
+        if not CONFIG.legacy_tc_deployment:  # pragma: no cover
+            by_branch_name = {
+                "auto": [
+                    # Everything not running on macOS,
+                    # which only has one worker on Community-TC for now
+                    linux_tidy_unit_docs,
+                    windows_unit,
+                    windows_arm64,
+                    windows_uwp_x64,
+                    android_arm32_dev,
+                    android_arm32_release,
+                    android_x86_wpt,
+                    linux_wpt,
+                    linux_release,
+                ],
+                "master": [
+                    upload_docs,
+                ],
+            }
         for function in by_branch_name.get(branch, []):
             function()
 
@@ -89,6 +104,10 @@ def main(task_for):
         CONFIG.git_sha_is_current_head()
 
         linux_tidy_unit_untrusted()
+
+    elif task_for == "try-windows-ami":
+        CONFIG.git_sha_is_current_head()
+        windows_unit(os.environ["NEW_AMI_WORKER_TYPE"], cached=False)
 
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":
@@ -447,9 +466,9 @@ def uwp_nightly():
     )
 
 
-def windows_unit():
-    return (
-        windows_build_task("Dev build + unit tests")
+def windows_unit(worker_type=None, cached=True):
+    task = (
+        windows_build_task("Dev build + unit tests", worker_type=worker_type)
         .with_treeherder("Windows x64", "Unit")
         .with_script(
             # Not necessary as this would be done at the start of `build`,
@@ -464,8 +483,11 @@ def windows_unit():
         )
         .with_artifacts("repo/target/debug/msi/Servo.exe",
                         "repo/target/debug/msi/Servo.zip")
-        .find_or_create("build.windows_x64_dev." + CONFIG.task_id())
     )
+    if cached:
+        return task.find_or_create("build.windows_x64_dev." + CONFIG.task_id())
+    else:
+        return task.create() 
 
 
 def windows_release():
@@ -744,10 +766,12 @@ def linux_task(name):
     )
 
 
-def windows_task(name):
+def windows_task(name, worker_type=None):
+    if worker_type is None:
+        worker_type = "servo-win2016" if CONFIG.legacy_tc_deployment else "win2016"
     return (
         decisionlib.WindowsGenericWorkerTask(name)
-        .with_worker_type("servo-win2016" if CONFIG.legacy_tc_deployment else "win2016")
+        .with_worker_type(worker_type)
         .with_treeherder_required()
     )
 
@@ -799,7 +823,7 @@ def android_build_task(name):
     )
 
 
-def windows_build_task(name, package=True, arch="x86_64"):
+def windows_build_task(name, package=True, arch="x86_64", worker_type=None):
     hashes = {
         "devel": {
             "x86_64": "c136cbfb0330041d52fe6ec4e3e468563176333c857f6ed71191ebc37fc9d605",
@@ -813,7 +837,7 @@ def windows_build_task(name, package=True, arch="x86_64"):
     }
     version = "1.16.0"
     task = (
-        windows_task(name)
+        windows_task(name, worker_type=worker_type)
         .with_max_run_time_minutes(90)
         .with_env(
             **build_env,

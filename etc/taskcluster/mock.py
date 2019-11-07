@@ -46,6 +46,7 @@ os.environ.update(**{k: k for k in "TASK_ID TASK_OWNER TASK_SOURCE GIT_URL GIT_S
 os.environ["GIT_REF"] = "refs/heads/auto"
 os.environ["TASKCLUSTER_ROOT_URL"] = "https://taskcluster.net"
 os.environ["TASKCLUSTER_PROXY_URL"] = "http://taskcluster"
+os.environ["NEW_AMI_WORKER_TYPE"] = "-"
 import decision_task
 
 print("\n# Push:")
@@ -63,6 +64,9 @@ decision_task.main("github-push")
 
 print("\n# Daily:")
 decision_task.main("daily")
+
+print("\n# Try AMI:")
+decision_task.main("try-windows-ami")
 
 print("\n# PR:")
 decision_task.main("github-pull-request")
