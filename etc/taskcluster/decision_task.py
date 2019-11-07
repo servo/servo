@@ -153,7 +153,9 @@ linux_build_env = {
     "CC": "clang",
     "CXX": "clang++",
 }
-macos_build_env = {}
+macos_build_env = {
+    "PKG_CONFIG_PATH": "homebrew/lib/pkgconfig",
+}
 windows_build_env = {
     "x86_64": {
         "GSTREAMER_1_0_ROOT_X86_64": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\",
@@ -606,7 +608,6 @@ def update_wpt():
         .with_repo(shallow=False)
         .with_curl_artifact_script(build_task, "target.tar.gz")
         .with_script("""
-            export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
             tar -xzf target.tar.gz
             ./etc/ci/update-wpt-checkout fetch-and-update-expectations
             ./etc/ci/update-wpt-checkout open-pr
@@ -925,7 +926,6 @@ def macos_build_task(name):
         .with_script("""
             export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
             export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
-            export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
         """)
 
         .with_directory_mount(
