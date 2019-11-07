@@ -346,6 +346,8 @@ where
                     self.browsers.push(new_browser_id);
                     if self.browser_id.is_none() {
                         self.browser_id = Some(new_browser_id);
+                    } else {
+                        error!("Multiple top level browsing contexts not supported yet.");
                     }
                     self.event_queue
                         .push(WindowEvent::SelectBrowser(new_browser_id));
