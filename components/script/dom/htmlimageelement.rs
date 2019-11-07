@@ -921,6 +921,12 @@ impl HTMLImageElement {
         let src = elem.get_url_attribute(&local_name!("src"));
         let base_url = document.base_url();
 
+        {
+            if let Some(ref mut pending_request) = *self.pending_request.borrow_mut() {
+                pending_request.state = State::Unavailable;
+            }
+        }
+
         if !document.is_active() {
             // Step 1 (if the document is inactive)
             // TODO: use GlobalScope::enqueue_microtask,
