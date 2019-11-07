@@ -30,7 +30,8 @@ def main(task_for):
         android_x86_wpt = android_x86_release
 
         all_tests = [
-            linux_tidy_unit_docs,
+            linux_tidy_unit,
+            linux_docs_check,
             windows_unit,
             windows_arm64,
             windows_uwp_x64,
@@ -58,7 +59,7 @@ def main(task_for):
             # https://github.com/servo/saltfs/blob/master/homu/map.jinja
 
             "try-mac": [macos_unit],
-            "try-linux": [linux_tidy_unit_docs, linux_release],
+            "try-linux": [linux_tidy_unit, linux_docs_check, linux_release],
             "try-windows": [windows_unit, windows_arm64, windows_uwp_x64],
             "try-magicleap": [magicleap_dev],
             "try-arm": [windows_arm64],
@@ -76,7 +77,8 @@ def main(task_for):
                 "auto": [
                     # Everything not running on macOS,
                     # which only has one worker on Community-TC for now
-                    linux_tidy_unit_docs,
+                    linux_tidy_unit,
+                    linux_docs_check,
                     windows_unit,
                     windows_arm64,
                     windows_uwp_x64,
@@ -205,10 +207,10 @@ def linux_tidy_unit_untrusted():
     )
 
 
-def linux_tidy_unit_docs():
+def linux_tidy_unit():
     return (
-        linux_build_task("Tidy + dev build + unit tests + docs")
-        .with_treeherder("Linux x64", "Tidy+Unit+Doc")
+        linux_build_task("Tidy + dev build + unit tests")
+        .with_treeherder("Linux x64", "Tidy+Unit")
         .with_script("""
             ./mach test-tidy --no-progress --all
             ./mach build --dev
@@ -223,7 +225,16 @@ def linux_tidy_unit_docs():
             ./etc/taskcluster/mock.py
             ./etc/ci/lockfile_changed.sh
             ./etc/ci/check_no_panic.sh
+        """)
+        .find_or_create("linux_unit." + CONFIG.task_id())
+    )
 
+
+def linux_docs_check():
+    return (
+        linux_build_task("Docs + check")
+        .with_treeherder("Linux x64", "Doc+Check")
+        .with_script("""
             rustup component add rust-docs
             RUSTDOCFLAGS="--disable-minification" ./mach doc
             (
@@ -487,7 +498,7 @@ def windows_unit(worker_type=None, cached=True):
     if cached:
         return task.find_or_create("build.windows_x64_dev." + CONFIG.task_id())
     else:
-        return task.create() 
+        return task.create()
 
 
 def windows_release():
