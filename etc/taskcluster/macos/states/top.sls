@@ -1,3 +1,0 @@
-base:
-  'mac*':
-    - generic-worker
