@@ -38,11 +38,11 @@ pub enum DeviceIndependentPixel {}
 // See https://bugzilla.mozilla.org/show_bug.cgi?id=177805 for more info.
 
 pub trait MaxRect {
-    #[inline(always)]
     fn max_rect() -> Self;
 }
 
 impl MaxRect for Rect<Au> {
+    #[inline]
     fn max_rect() -> Rect<Au> {
         Rect::new(
             Point2D::new(MIN_AU / 2, MIN_AU / 2),
@@ -52,6 +52,7 @@ impl MaxRect for Rect<Au> {
 }
 
 impl MaxRect for LayoutRect {
+    #[inline]
     fn max_rect() -> LayoutRect {
         LayoutRect::new(
             LayoutPoint::new(f32::MIN / 2.0, f32::MIN / 2.0),

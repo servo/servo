@@ -239,9 +239,9 @@ pub enum ScriptMsg {
     /// Get Window Informations size and position
     GetClientWindow(IpcSender<(DeviceIntSize, DeviceIntPoint)>),
     /// Get the screen size (pixel)
-    GetScreenSize(IpcSender<(DeviceIntSize)>),
+    GetScreenSize(IpcSender<DeviceIntSize>),
     /// Get the available screen size (pixel)
-    GetScreenAvailSize(IpcSender<(DeviceIntSize)>),
+    GetScreenAvailSize(IpcSender<DeviceIntSize>),
 }
 
 impl fmt::Debug for ScriptMsg {

@@ -63,7 +63,7 @@ pub enum WebGLMsg {
         WebGLVersion,
         Size2D<u32>,
         GLContextAttributes,
-        WebGLSender<Result<(WebGLCreateContextResult), String>>,
+        WebGLSender<Result<WebGLCreateContextResult, String>>,
     ),
     /// Resizes a WebGLContext.
     ResizeContext(WebGLContextId, Size2D<u32>, WebGLSender<Result<(), String>>),
