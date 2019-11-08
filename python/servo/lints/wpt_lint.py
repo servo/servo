@@ -28,7 +28,7 @@ class Lint(LintRunner):
                 yield f[len(working_dir):]
 
     def run(self):
-        if self.stylo:
+        if self.stylo or self.no_wpt:
             return
 
         wpt_working_dir = os.path.abspath(os.path.join(WPT_PATH, "web-platform-tests"))

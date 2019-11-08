@@ -890,7 +890,7 @@ def check_spec(file_name, lines):
                     break
 
 
-def check_config_file(config_file, print_text=True):
+def check_config_file(config_file, print_text=True, no_wpt=False):
     # Check if config file exists
     if not os.path.exists(config_file):
         print("%s config file is required but was not found" % config_file)
@@ -914,6 +914,11 @@ def check_config_file(config_file, print_text=True):
 
     # Check for invalid listed ignored files
     invalid_files = [f for f in exclude.get("files", []) if not os.path.exists(f)]
+
+    # Do not check for the existense of ignored files under tests/wpts if --no-wpt is used
+    if no_wpt:
+        wpt_dir = './tests/wpt/'
+        invalid_files = [f for f in invalid_files if not os.path.commonprefix([wpt_dir, f]) == wpt_dir]
 
     current_table = ""
     for idx, line in enumerate(lines):
@@ -1052,12 +1057,14 @@ def check_dep_license_errors(filenames, progress=True):
 
 
 class LintRunner(object):
-    def __init__(self, lint_path=None, only_changed_files=True, exclude_dirs=[], progress=True, stylo=False):
+    def __init__(self, lint_path=None, only_changed_files=True,
+                 exclude_dirs=[], progress=True, stylo=False, no_wpt=False):
         self.only_changed_files = only_changed_files
         self.exclude_dirs = exclude_dirs
         self.progress = progress
         self.path = lint_path
         self.stylo = stylo
+        self.no_wpt = no_wpt
 
     def check(self):
         if not os.path.exists(self.path):
@@ -1079,7 +1086,7 @@ class LintRunner(object):
             return
 
         lint = module.Lint(self.path, self.only_changed_files,
-                           self.exclude_dirs, self.progress, stylo=self.stylo)
+                           self.exclude_dirs, self.progress, stylo=self.stylo, no_wpt=self.no_wpt)
         for error in lint.run():
             if type(error) is not tuple or (type(error) is tuple and len(error) != 3):
                 yield (self.path, 1, "errors should be a tuple of (path, line, reason)")
@@ -1095,19 +1102,19 @@ class LintRunner(object):
         yield (self.path, 0, "class 'Lint' should implement 'run' method")
 
 
-def run_lint_scripts(only_changed_files=False, progress=True, stylo=False):
-    runner = LintRunner(only_changed_files=only_changed_files, progress=progress, stylo=stylo)
+def run_lint_scripts(only_changed_files=False, progress=True, stylo=False, no_wpt=False):
+    runner = LintRunner(only_changed_files=only_changed_files, progress=progress, stylo=stylo, no_wpt=no_wpt)
     for path in config['lint-scripts']:
         runner.path = path
         for error in runner.check():
             yield error
 
 
-def scan(only_changed_files=False, progress=True, stylo=False):
+def scan(only_changed_files=False, progress=True, stylo=False, no_wpt=False):
     # check config file for errors
-    config_errors = check_config_file(CONFIG_FILE_PATH)
+    config_errors = check_config_file(CONFIG_FILE_PATH, no_wpt=no_wpt)
     # check ini directories exist
-    if os.path.isfile(WPT_MANIFEST_PATH):
+    if not no_wpt and os.path.isfile(WPT_MANIFEST_PATH):
         manifest_errors = check_manifest_dirs(WPT_MANIFEST_PATH)
     else:
         manifest_errors = ()
@@ -1122,7 +1129,7 @@ def scan(only_changed_files=False, progress=True, stylo=False):
     # check dependecy licenses
     dep_license_errors = check_dep_license_errors(get_dep_toml_files(only_changed_files), progress)
     # other lint checks
-    lint_errors = run_lint_scripts(only_changed_files, progress, stylo=stylo)
+    lint_errors = run_lint_scripts(only_changed_files, progress, stylo=stylo, no_wpt=no_wpt)
     # chain all the iterators
     errors = itertools.chain(config_errors, manifest_errors, directory_errors, lint_errors,
                              file_errors, dep_license_errors)
