@@ -20,6 +20,8 @@ impl GLLimitsDetect for GLLimits {
         let max_renderbuffer_size = gl.get_integer(gl::MAX_RENDERBUFFER_SIZE);
         let max_texture_image_units = gl.get_integer(gl::MAX_TEXTURE_IMAGE_UNITS);
         let max_vertex_texture_image_units = gl.get_integer(gl::MAX_VERTEX_TEXTURE_IMAGE_UNITS);
+        let max_transform_feedback_separate_attribs =
+            gl.get_integer(gl::MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS);
 
         // TODO: better value for this?
         let max_client_wait_timeout_webgl = std::time::Duration::new(1, 0);
@@ -67,6 +69,7 @@ impl GLLimitsDetect for GLLimits {
             max_vertex_texture_image_units,
             max_vertex_uniform_vectors,
             max_client_wait_timeout_webgl,
+            max_transform_feedback_separate_attribs,
         }
     }
 }

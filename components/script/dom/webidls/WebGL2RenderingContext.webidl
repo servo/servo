@@ -12,9 +12,6 @@ typedef long long GLint64;
 typedef unsigned long long GLuint64;
 
 
-// interface WebGLTransformFeedback : WebGLObject {
-// };
-
 // interface WebGLVertexArrayObject : WebGLObject {
 // };
 
@@ -544,7 +541,7 @@ interface mixin WebGL2RenderingContextBase
   any getSyncParameter(WebGLSync sync, GLenum pname);
 
   /* Transform Feedback */
-  /*WebGLTransformFeedback? createTransformFeedback();
+  WebGLTransformFeedback? createTransformFeedback();
   void deleteTransformFeedback(WebGLTransformFeedback? tf);
   [WebGLHandlesContextLoss] GLboolean isTransformFeedback(WebGLTransformFeedback? tf);
   void bindTransformFeedback (GLenum target, WebGLTransformFeedback? tf);
@@ -553,7 +550,7 @@ interface mixin WebGL2RenderingContextBase
   void transformFeedbackVaryings(WebGLProgram program, sequence<DOMString> varyings, GLenum bufferMode);
   WebGLActiveInfo? getTransformFeedbackVarying(WebGLProgram program, GLuint index);
   void pauseTransformFeedback();
-  void resumeTransformFeedback();*/
+  void resumeTransformFeedback();
 
   /* Uniform Buffer Objects and Transform Feedback Buffers */
   // void bindBufferBase(GLenum target, GLuint index, WebGLBuffer? buffer);

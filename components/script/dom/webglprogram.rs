@@ -34,6 +34,8 @@ pub struct WebGLProgram {
     vertex_shader: MutNullableDom<WebGLShader>,
     active_attribs: DomRefCell<Box<[ActiveAttribInfo]>>,
     active_uniforms: DomRefCell<Box<[ActiveUniformInfo]>>,
+    transform_feedback_varyings_length: Cell<i32>,
+    transform_feedback_mode: Cell<i32>,
 }
 
 impl WebGLProgram {
@@ -50,6 +52,8 @@ impl WebGLProgram {
             vertex_shader: Default::default(),
             active_attribs: DomRefCell::new(vec![].into()),
             active_uniforms: DomRefCell::new(vec![].into()),
+            transform_feedback_varyings_length: Default::default(),
+            transform_feedback_mode: Default::default(),
         }
     }
 
@@ -187,6 +191,10 @@ impl WebGLProgram {
 
         self.linked.set(link_info.linked);
         self.link_called.set(true);
+        self.transform_feedback_varyings_length
+            .set(link_info.transform_feedback_length);
+        self.transform_feedback_mode
+            .set(link_info.transform_feedback_mode);
         *self.active_attribs.borrow_mut() = link_info.active_attribs;
         *self.active_uniforms.borrow_mut() = link_info.active_uniforms;
         Ok(())
@@ -443,6 +451,14 @@ impl WebGLProgram {
 
     pub fn link_generation(&self) -> u64 {
         self.link_generation.get()
+    }
+
+    pub fn transform_feedback_varyings_length(&self) -> i32 {
+        self.transform_feedback_varyings_length.get()
+    }
+
+    pub fn transform_feedback_buffer_mode(&self) -> i32 {
+        self.transform_feedback_mode.get()
     }
 }
 

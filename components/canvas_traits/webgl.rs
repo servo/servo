@@ -292,6 +292,16 @@ pub enum WebGLCommand {
     GetProgramInfoLog(WebGLProgramId, WebGLSender<String>),
     GetFramebufferAttachmentParameter(u32, u32, u32, WebGLSender<i32>),
     GetRenderbufferParameter(u32, u32, WebGLSender<i32>),
+    CreateTransformFeedback(WebGLSender<u32>),
+    DeleteTransformFeedback(u32),
+    IsTransformFeedback(u32, WebGLSender<bool>),
+    BindTransformFeedback(u32, u32),
+    BeginTransformFeedback(u32),
+    EndTransformFeedback(),
+    PauseTransformFeedback(),
+    ResumeTransformFeedback(),
+    GetTransformFeedbackVarying(WebGLProgramId, u32, WebGLSender<(i32, u32, String)>),
+    TransformFeedbackVaryings(WebGLProgramId, Vec<String>, u32),
     PolygonOffset(f32, f32),
     RenderbufferStorage(u32, u32, i32, i32),
     ReadPixels(Rect<u32>, u32, u32, IpcBytesSender),
@@ -660,6 +670,10 @@ pub struct ProgramLinkInfo {
     pub active_attribs: Box<[ActiveAttribInfo]>,
     /// The list of active uniforms.
     pub active_uniforms: Box<[ActiveUniformInfo]>,
+    /// The number of varying variables
+    pub transform_feedback_length: i32,
+    /// The buffer mode used when transform feedback is active
+    pub transform_feedback_mode: i32,
 }
 
 /// Description of a single active attribute.
@@ -733,6 +747,8 @@ parameters! {
         Bool(ParameterBool {
             DepthWritemask = gl::DEPTH_WRITEMASK,
             SampleCoverageInvert = gl::SAMPLE_COVERAGE_INVERT,
+            TransformFeedbackActive = gl::TRANSFORM_FEEDBACK_ACTIVE,
+            TransformFeedbackPaused = gl::TRANSFORM_FEEDBACK_PAUSED,
         }),
         Bool4(ParameterBool4 {
             ColorWritemask = gl::COLOR_WRITEMASK,
@@ -774,6 +790,12 @@ parameters! {
             StencilValueMask = gl::STENCIL_VALUE_MASK,
             StencilWritemask = gl::STENCIL_WRITEMASK,
             SubpixelBits = gl::SUBPIXEL_BITS,
+            TransformFeedbackBinding = gl::TRANSFORM_FEEDBACK_BINDING,
+            MaxTransformFeedbackInterleavedComponents = gl::MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS,
+            MaxTransformFeedbackSeparateAttribs = gl::MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS,
+            MaxTransformFeedbackSeparateComponents = gl::MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS,
+            TransformFeedbackBufferSize = gl::TRANSFORM_FEEDBACK_BUFFER_SIZE,
+            TransformFeedbackBufferStart = gl::TRANSFORM_FEEDBACK_BUFFER_START,
         }),
         Int2(ParameterInt2 {
             MaxViewportDims = gl::MAX_VIEWPORT_DIMS,
@@ -968,4 +990,5 @@ pub struct GLLimits {
     pub max_vertex_texture_image_units: u32,
     pub max_vertex_uniform_vectors: u32,
     pub max_client_wait_timeout_webgl: std::time::Duration,
+    pub max_transform_feedback_separate_attribs: u32,
 }
