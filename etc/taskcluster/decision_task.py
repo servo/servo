@@ -10,6 +10,9 @@ from decisionlib import CONFIG, SHARED
 
 
 def main(task_for):
+    if CONFIG.legacy_tc_deployment:  # pragma: no cover
+        return
+
     if CONFIG.git_ref.startswith("refs/heads/"):
         branch = CONFIG.git_ref[len("refs/heads/"):]
         CONFIG.treeherder_repository_name = "servo-" + (
@@ -72,26 +75,6 @@ def main(task_for):
                 android_x86_wpt
             ],
         }
-        if not CONFIG.legacy_tc_deployment:  # pragma: no cover
-            by_branch_name = {
-                "auto": [
-                    # Everything not running on macOS,
-                    # which only has one worker on Community-TC for now
-                    linux_tidy_unit,
-                    linux_docs_check,
-                    windows_unit,
-                    windows_arm64,
-                    windows_uwp_x64,
-                    android_arm32_dev,
-                    android_arm32_release,
-                    android_x86_wpt,
-                    linux_wpt,
-                    linux_release,
-                ],
-                "master": [
-                    upload_docs,
-                ],
-            }
         for function in by_branch_name.get(branch, []):
             function()
 
@@ -913,7 +896,7 @@ def macos_build_task(name):
     build_task = (
         macos_task(name)
         # Allow long runtime in case the cache expired for all those Homebrew dependencies
-        .with_max_run_time_minutes(60 * 2)
+        .with_max_run_time_minutes(60 * 4)
         .with_env(**build_env, **unix_build_env, **macos_build_env)
         .with_repo()
         .with_python2()
@@ -1015,10 +998,10 @@ def magicleap_nightly():
 CONFIG.task_name_template = "Servo: %s"
 CONFIG.docker_images_expire_in = build_dependencies_artifacts_expire_in
 CONFIG.repacked_msi_files_expire_in = build_dependencies_artifacts_expire_in
-if CONFIG.legacy_tc_deployment:
+if CONFIG.legacy_tc_deployment:  # pragma: no cover
     CONFIG.index_prefix = "project.servo.servo"
     CONFIG.docker_image_build_worker_type = "servo-docker-worker"
-else:  # pragma: no cover
+else:
     CONFIG.index_prefix = "project.servo"
     CONFIG.default_provisioner_id = "proj-servo"
     CONFIG.docker_image_build_worker_type = "docker"
