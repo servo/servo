@@ -58,12 +58,7 @@ class Config:
         self.git_sha = os.environ.get("GIT_SHA")
 
         self.tc_root_url = os.environ.get("TASKCLUSTER_ROOT_URL")
-        self.legacy_tc_deployment = self.tc_root_url == "https://taskcluster.net"
-
-        if self.legacy_tc_deployment:  # pragma: no cover
-            self.default_provisioner_id = "aws-provisioner-v1"
-        else:
-            self.default_provisioner_id = "proj-example"
+        self.default_provisioner_id = "proj-example"
 
 
     def task_id(self):
@@ -620,10 +615,7 @@ class UnixTaskMixin(Task):
         """.format(n=n))
 
     def with_curl_artifact_script(self, task_id, artifact_name, out_directory=""):
-        if CONFIG.legacy_tc_deployment:  # pragma: no cover
-            queue_service = "https://queue.taskcluster.net"
-        else:
-            queue_service = CONFIG.tc_root_url + "/api/queue"
+        queue_service = CONFIG.tc_root_url + "/api/queue"
         return self \
         .with_dependencies(task_id) \
         .with_curl_script(
