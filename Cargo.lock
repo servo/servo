@@ -4883,9 +4883,9 @@ dependencies = [
 
 [[package]]
 name = "sparkle"
-version = "0.1.8"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25e193f97790240fc9208b077001c8331f4ccc801daa4df56efcb90e513c0989"
+checksum = "84b935631ddcc08b257a331ac645cc6831e52a4ff55d4c430142575c6757a094"
 dependencies = [
  "gl_generator 0.13.1",
 ]
@@ -5069,8 +5069,9 @@ dependencies = [
 
 [[package]]
 name = "surfman"
-version = "0.23.0"
-source = "git+https://github.com/pcwalton/surfman#ffc4e4fda0b58554d4029f0d3d9abe85b42307ed"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7131f4831a7c13f3e90b16b0d7389b8875cc53807312c2697547763bfe7782b8"
 dependencies = [
  "bitflags",
  "cgl 0.3.2",
@@ -5097,7 +5098,8 @@ dependencies = [
 [[package]]
 name = "surfman-chains"
 version = "0.1.0"
-source = "git+https://github.com/asajeffrey/surfman-chains#6b66ad3d4325e76ce9ffcbd79eaf5b5d518902fb"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab6ab2f8da08cd1ca6491fc0fd4c4aedc36adde0d6b3f64a6325b35dfce50ec5"
 dependencies = [
  "euclid",
  "fnv",
@@ -5996,7 +5998,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#6545972b8305642b384702726e11198ce5e96be8"
+source = "git+https://github.com/servo/webxr#4953e60dd9ff80324739eee22283d9b80f5c9559"
 dependencies = [
  "bindgen",
  "euclid",
@@ -6015,7 +6017,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#6545972b8305642b384702726e11198ce5e96be8"
+source = "git+https://github.com/servo/webxr#4953e60dd9ff80324739eee22283d9b80f5c9559"
 dependencies = [
  "euclid",
  "ipc-channel",

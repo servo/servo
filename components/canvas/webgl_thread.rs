@@ -588,6 +588,10 @@ impl WebGLThread {
             swap_chain
                 .resize(&mut self.device, &mut data.ctx, size.to_i32())
                 .expect("Failed to resize swap chain");
+            // temporary, till https://github.com/pcwalton/surfman/issues/35 is fixed
+            self.device
+                .make_context_current(&data.ctx)
+                .expect("Failed to make context current again");
             swap_chain
                 .clear_surface(&mut self.device, &mut data.ctx, &*data.gl)
                 .expect("Failed to clear resized swap chain");
