@@ -6,7 +6,6 @@
 #![feature(core_intrinsics)]
 #![feature(drain_filter)]
 #![feature(inner_deref)]
-#![feature(on_unimplemented)]
 #![feature(plugin)]
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
