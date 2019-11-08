@@ -11,6 +11,9 @@ from decisionlib import CONFIG, SHARED
 
 def main(task_for):
     if CONFIG.legacy_tc_deployment:  # pragma: no cover
+        1/0
+        return
+    else:
         return
 
     if CONFIG.git_ref.startswith("refs/heads/"):
