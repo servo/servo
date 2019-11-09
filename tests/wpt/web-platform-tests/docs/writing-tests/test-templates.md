@@ -95,6 +95,23 @@ ${2:Test body}
 
 Filename: `{test-topic}-###.html`
 
+### HTML with [testdriver automation](testdriver)
+``` html
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>${1:Test title}</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+${2:Test body}
+</script>
+```
+
+Filename: `{test-topic}-###.html`
+
 ### SVG
 
 ``` xml

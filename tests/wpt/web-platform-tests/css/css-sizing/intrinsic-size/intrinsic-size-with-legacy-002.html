@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS intrinsic-size: flex with legacy intrinsic dimensions</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="match" href="intrinsic-size-with-legacy-002-ref.html">
+<meta name="assert" content="intrinsic-size legacy is treated the same as if it was not specified.">
+
+<style>
+#flex {
+  display: flex;
+  flex-direction: column;
+  height: 500px;
+}
+.item {
+  width: max-content;
+}
+#one {
+  background: lightblue;
+  intrinsic-size: legacy 222px;
+  flex-grow: 3;
+}
+#two {
+  background: lightgreen;
+  intrinsic-size: 333px legacy;
+  flex-grow: 2;
+}
+#three {
+  background: lightgrey;
+  intrinsic-size: legacy 444px;
+  flex-grow: 1;
+}
+</style>
+
+<div id=flex>
+  <div class=item id=one>Lorem ipsum</div>
+  <div class=item id=two>dolor sit amet</div>
+  <div class=item id=three>consectetur adipiscing elit</div>
+</div>

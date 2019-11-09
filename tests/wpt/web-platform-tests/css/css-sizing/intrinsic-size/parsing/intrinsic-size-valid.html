@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Intrinsic Size Test: intrinsic-size with valid values</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<meta name="assert" content="intrinsic-size supports the full grammar '[auto | legacy | <length>]{1,2}'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("intrinsic-size", "auto");
+test_valid_value("intrinsic-size", "legacy");
+test_valid_value("intrinsic-size", "auto legacy");
+test_valid_value("intrinsic-size", "auto auto", "auto");
+test_valid_value("intrinsic-size", "legacy legacy", "legacy");
+test_valid_value("intrinsic-size", "1px");
+test_valid_value("intrinsic-size", "2em 3px");
+test_valid_value("intrinsic-size", "5px 5px", "5px");
+</script>
+</body>
+</html>
+

@@ -15,4 +15,8 @@ async_test(t => {
     t.done();
   }, 500);
 }, "Cross-Origin-Opener-Policy only works over secure contexts");
+
+test(() => {
+  assert_false(window.crossOriginIsolated);
+}, "Bonus: window.crossOriginIsolated");
 </script>

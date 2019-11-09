@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS intrinsic-size: grid definite size with legacy</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="match" href="intrinsic-size-with-legacy-005-ref.html">
+<meta name="assert" content="intrinsic-size legacy is treated the same as if it was not specified.">
+
+<style>
+.grid {
+  border: 3px solid black;
+  display: grid;
+  grid-template: 55px 66px / 77px 88px;
+  background: lightblue;
+  grid-gap: 5px;
+}
+.one {
+  intrinsic-size: legacy 80px;
+  width: 70px;
+}
+.two {
+  intrinsic-size: 70px legacy;
+  height: 80px;
+  width: min-content;
+}
+.item {
+  background: lightgreen;
+  opacity: 0.5;
+  height: 100%;
+}
+</style>
+
+<div class="grid one">
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+</div>
+<div class="grid two">
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+</div>

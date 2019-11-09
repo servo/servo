@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS intrinsic-size: sized div</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="match" href="intrinsic-size-018-ref.html">
+<meta name="assert" content="width / height ignore intrinsic-size">
+
+<style>
+#target {
+  background: lightblue;
+  width: 55px;
+  height: 66px;
+  intrinsic-size: 111px 222px;
+}
+</style>
+
+<div id=target></div>

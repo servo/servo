@@ -16,14 +16,14 @@ of a page, and where human interaction isn't required; these tests are
 written in JavaScript using a framework called `testharness.js`. It is
 documented in two sections:
 
-  * [testharness.js Documentation](testharness-api) — An introduction
+  * [testharness.js Documentation](testharness-api.md) — An introduction
     to the library and a detailed API reference.
 
-  * [idlharness.js Documentation](idlharness) — A library for testing
+  * [idlharness.js Documentation](idlharness.md) — A library for testing
      IDL interfaces using `testharness.js`.
 
-See [server features](server-features) for advanced testing features that are commonly used
-with testharness.js. See also the [general guidelines](general-guidelines) for all test types.
+See [server features](server-features.md) for advanced testing features that are commonly used
+with testharness.js. See also the [general guidelines](general-guidelines.md) for all test types.
 
 This page describes testharness.js exhaustively; [the tutorial on writing a
 testharness.js test](testharness-tutorial) provides a concise guide to writing

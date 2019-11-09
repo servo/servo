@@ -12,13 +12,13 @@
   }, 'NDEFReadingEvent constructor without init dict');
 
   test(() => {
-    const message = createMessage([createJsonRecord(test_json_data)]);
+    const message = createMessage([createMimeRecordFromJson(test_buffer_data)]);
     const event = new NDEFReadingEvent('type', {serialNumber: null, message: message});
     assert_equals(event.serialNumber, '', 'serialNumber');
   }, 'NDEFReadingEvent constructor with null serialNumber');
 
   test(() => {
-    const message = createMessage([createJsonRecord(test_json_data)]);
+    const message = createMessage([createMimeRecordFromJson(test_buffer_data)]);
     const event = new NDEFReadingEvent('type', {message: message});
     assert_equals(event.serialNumber, '', 'serialNumber');
   }, 'NDEFReadingEvent constructor with serialNumber not present');
@@ -30,7 +30,7 @@
   }, 'NDEFReadingEvent constructor with null message');
 
   test(() => {
-    const message = createMessage([createJsonRecord(test_json_data)]);
+    const message = createMessage([createMimeRecord(test_buffer_data)]);
     const event = new NDEFReadingEvent('type', {serialNumber: '', message: message});
     assert_equals(event.type, 'type', 'type');
     assert_equals(event.serialNumber, '', 'serialNumber');

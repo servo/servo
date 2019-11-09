@@ -16,3 +16,7 @@ if (self.GLOBAL.isWindow()) {
     assert_throws("DataCloneError", () => self.postMessage(sab));
   }, "SharedArrayBuffer over postMessage() without COOP+COEP");
 }
+
+test(() => {
+  assert_false(self.crossOriginIsolated);
+}, "Bonus: self.crossOriginIsolated");

@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS intrinsic-size: flex row, flex height based on children</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="match" href="intrinsic-size-021-ref.html">
+<meta name="assert" content="flex container is sized by the largest intrinsic-height of content, even with align-self: stretch">
+
+<style>
+#flex {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  width: 250px;
+}
+.item {
+  border: 1px solid black;
+}
+#one {
+  background: lightblue;
+  intrinsic-size: 55px 21px;
+}
+#two {
+  background: lightgreen;
+  intrinsic-size: 66px 42px;
+}
+#three {
+  background: lightgrey;
+  align-self: stretch;
+  intrinsic-size: 77px 63px;
+}
+</style>
+
+<div id=flex>
+  <div class=item id=one></div>
+  <div class=item id=two></div>
+  <div class=item id=three></div>
+</div>

@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS intrinsic-size: select multiple with legacy sizing</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+
+<style>
+#one {
+  box-sizing: content-box;
+  height: 222px;
+}
+#two {
+  box-sizing: content-box;
+  width: 111px;
+  overflow: visible;
+}
+</style>
+
+<select multiple id=one></select>
+<select multiple id=two></select>

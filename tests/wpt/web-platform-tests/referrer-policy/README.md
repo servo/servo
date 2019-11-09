@@ -1,4 +1,4 @@
-# Referrer-Policy Web Platform Tests
+# Referrer Policy Test Suite
 
 The Referrer-Policy tests are designed for testing browser implementations and conformance to the [W3 Referrer-Policy Specification](http://w3c.github.io/webappsec/specs/referrer-policy/).
 

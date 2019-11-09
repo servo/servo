@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS intrinsic-size: intrinsic-width auto</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+
+<style>
+body > div {
+  box-sizing: content-box;
+  border: 1px solid black;
+  width: max-content;
+  height: 111px;
+}
+#one {
+  overflow: hidden;
+  width: 0px;
+}
+#two {
+  overflow-x: scroll;
+  height: auto;
+}
+#two > div {
+  height: 111px;
+}
+#three {
+  height: auto;
+}
+#three > div {
+  height: 111px;
+}
+</style>
+
+<div id=one></div>
+<br>
+<div id=two><div></div></div>
+<br>
+<div id=three><div>Lorem ipsum</div></div>

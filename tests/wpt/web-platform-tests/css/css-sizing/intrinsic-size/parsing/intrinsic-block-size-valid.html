@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Intrinsic Size Test: intrinsic-block-size with valid values</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<meta name="assert" content="intrinsic-block-size supports the full grammar 'auto | legacy | <length>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("intrinsic-block-size", "auto");
+test_valid_value("intrinsic-block-size", "legacy");
+test_valid_value("intrinsic-block-size", "1px");
+test_valid_value("intrinsic-block-size", "2vw");
+</script>
+</body>
+</html>
+

@@ -30,13 +30,6 @@
     const decoder = new TextDecoder();
     assert_equals(decoder.decode(message.records[0].data), test_text_data,
         'data contains the same text content');
-    assert_true(typeof message.records[0].text() === 'string');
-    assert_equals(message.records[0].text(), test_text_data,
-        'text() contains the same text content');
-    assert_true(message.records[0].arrayBuffer() instanceof ArrayBuffer,
-        'arrayBuffer() returns an ArrayBuffer');
-    assert_equals(message.records[0].json(), null,
-        'json() returns null');
   }, 'NDEFMessage constructor with a text record');
 
 </script>

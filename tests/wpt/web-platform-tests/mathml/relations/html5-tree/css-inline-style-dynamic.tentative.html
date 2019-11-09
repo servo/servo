@@ -5,6 +5,7 @@
     <title>MathML 'ElementCSSInlineStyle` Dynamic Tests</title>
     <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#dom-and-javascript"/>
     <link rel="match" href="css-inline-style-dynamic.tentative-ref.html"/>
+    <script src="/mathml/support/feature-detection.js"></script>
     <style>
       #hidden  {
         visibility: hidden;
@@ -21,9 +22,17 @@
     <script type="text/javascript">
       function test()
       {
+        MathMLFeatureDetection.ensure_for_match_reftest("has_mspace");
         document.body.offsetTop; // Update layout
-        document.getElementById("hidden").style.visibility = "visible";
-        document.getElementById("red").style.backgroundColor = "green";
+
+        var mspace = document.getElementById("hidden");
+        if (mspace.style)
+          mspace.style.visibility = "visible";
+
+        mspace = document.getElementById("red");
+        if (mspace.style)
+          mspace.style.backgroundColor = "green";
+
         document.documentElement.className = "";
       }
     </script>

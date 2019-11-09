@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS intrinsic-size: select multiple with legacy sizing</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="match" href="intrinsic-size-with-legacy-003-ref.html">
+<meta name="assert" content="intrinsic-size legacy is treated the same as if it was not specified.">
+
+<style>
+#one {
+  intrinsic-size: legacy 222px;
+}
+#two {
+  intrinsic-size: 111px legacy;
+  overflow: visible;
+}
+</style>
+
+<select multiple id=one></select>
+<select multiple id=two></select>

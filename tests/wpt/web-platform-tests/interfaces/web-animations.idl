@@ -92,11 +92,12 @@ dictionary ComputedEffectTiming : EffectTiming {
 
 [Exposed=Window]
 interface KeyframeEffect : AnimationEffect {
-    constructor((Element or CSSPseudoElement)? target,
+    constructor(Element? target,
                 object? keyframes,
                 optional (unrestricted double or KeyframeEffectOptions) options = {});
     constructor(KeyframeEffect source);
-    attribute (Element or CSSPseudoElement)? target;
+    attribute Element? target;
+    attribute CSSOMString? pseudoElement;
     attribute CompositeOperation             composite;
     sequence<object> getKeyframes();
     void             setKeyframes(object? keyframes);
@@ -122,7 +123,8 @@ dictionary BaseKeyframe {
 };
 
 dictionary KeyframeEffectOptions : EffectTiming {
-    CompositeOperation          composite = "replace";
+    CompositeOperation composite = "replace";
+    CSSOMString?       pseudoElement = null;
 };
 
 enum CompositeOperation { "replace", "add", "accumulate" };
@@ -152,8 +154,6 @@ partial interface mixin DocumentOrShadowRoot {
 };
 
 Element includes Animatable;
-
-CSSPseudoElement includes Animatable;
 
 [Exposed=Window]
 interface AnimationPlaybackEvent : Event {

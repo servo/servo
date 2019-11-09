@@ -34,11 +34,11 @@ const WebContactsTest = (() => {
       };
     }
 
-    async select(multiple, includeNames, includeEmails, includeTel, includeAddresses) {
+    async select(multiple, includeNames, includeEmails, includeTel, includeAddresses, includeIcons) {
       if (this.selectedContacts_ === null)
         return {contacts: null};
 
-      const contactInfos = this.selectedContacts_.map(contact => {
+      const contactInfos = await Promise.all(this.selectedContacts_.map(async contact => {
         const contactInfo = new blink.mojom.ContactInfo();
         if (includeNames)
           contactInfo.name = contact.name || [];
@@ -47,11 +47,17 @@ const WebContactsTest = (() => {
         if (includeTel)
           contactInfo.tel = contact.tel || [];
         if (includeAddresses) {
-          contactInfo.address = contact.address || [];
-          contactInfo.address = contactInfo.address.map(address => this.formatAddress_(address));
+          contactInfo.address = (contact.address || []).map(address => this.formatAddress_(address));
+        }
+        if (includeIcons) {
+          contactInfo.icon = await Promise.all(
+            (contact.icon || []).map(async blob => ({
+              mimeType: blob.type,
+              data: (await blob.text()).split('').map(s => s.charCodeAt(0)),
+            })));
         }
         return contactInfo;
-      });
+      }));
 
       if (!contactInfos.length) return {contacts: []};
       if (!multiple) return {contacts: [contactInfos[0]]};

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<head>
+</head>
+<body>
+<p>Support page for trusted-types-navigation-report-only.*.html tests.</p>
+<a id="anchor" href="#">link</a>
+<script>
+  if (location.search == "?defaultpolicy") {
+    trustedTypes.createPolicy("default", {
+        createScript: s => s.replace("continue", "defaultpolicywashere"),
+    });
+  }
+
+  function bounceEventToOpener(e) {
+    const msg = {};
+    for (const field of ["effectiveDirective", "sample", "type"]) {
+      msg[field] = e[field];
+    }
+    msg["uri"] = location.href;
+    window.opener.postMessage(msg, "*");
+  }
+
+  // If a navigation is blocked by Trusted Types, we expect this window to
+  // throw a SecurityPolicyViolationEvent. If it's not blocked, we expect the
+  // loaded frame to through DOMContentLoaded. In either case there should be
+  // _some_ event that we can expect.
+  document.addEventListener("DOMContentLoaded", bounceEventToOpener);
+  document.addEventListener("securitypolicyviolation", bounceEventToOpener);
+
+  // Navigate to the non-report-only version of the test. That has the same
+  // event listening setup as this, but is a different target URI.
+  const target_script = `location.href='${location.href.replace("-report-only", "") + "#continue"}';`;
+  const target = `javascript:"<script>${target_script}</scri${""}pt>"`;
+
+  // Navigate the anchor, but only after the content is loaded (so that we
+  // won't disturb delivery of that event to the opener.
+  const anchor = document.getElementById("anchor");
+  anchor.href = target;
+  if (!location.hash) {
+    document.addEventListener("DOMContentLoaded", _ => anchor.click());
+  }
+</script>
+</body>
+
