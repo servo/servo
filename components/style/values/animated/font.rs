@@ -48,7 +48,7 @@ type ComputedVariationValue = VariationValue<Number>;
 
 // FIXME: Could do a rename, this is only used for font variations.
 struct FontSettingTagIterState<'a> {
-    tags: Vec<(&'a ComputedVariationValue)>,
+    tags: Vec<&'a ComputedVariationValue>,
     index: usize,
     prev_tag: FontTag,
 }

@@ -302,10 +302,8 @@ pub trait ToComputedValue {
 
     /// Convert a specified value to a computed value, using itself and the data
     /// inside the `Context`.
-    #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue;
 
-    #[inline]
     /// Convert a computed value to specified value form.
     ///
     /// This will be used for recascading during animation.

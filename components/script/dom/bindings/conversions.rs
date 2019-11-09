@@ -75,7 +75,6 @@ pub trait IDLInterface {
 }
 
 /// A trait to mark an IDL interface as deriving from another one.
-#[rustc_on_unimplemented(message = "The IDL interface `{Self}` is not derived from `{T}`.")]
 pub trait DerivedFrom<T: Castable>: Castable {}
 
 impl<T: Float + ToJSValConvertible> ToJSValConvertible for Finite<T> {
