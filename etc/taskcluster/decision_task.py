@@ -785,7 +785,7 @@ def macos_task(name):
     return (
         decisionlib.MacOsGenericWorkerTask(name)
         .with_provisioner_id("proj-servo")
-        .with_worker_type("macos")
+        .with_worker_type("macos-disabled-mac9")
         .with_treeherder_required()
     )
 
