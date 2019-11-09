@@ -26,7 +26,9 @@ use synstructure::{self, BindStyle, BindingInfo, VariantAst, VariantInfo};
 ///
 /// For example:
 ///
+/// ```ignore
 ///     <T as ToComputedValue>::ComputedValue: Zero,
+/// ```
 ///
 /// This needs to run before adding other bounds to the type parameters.
 pub fn propagate_clauses_to_output_type(
