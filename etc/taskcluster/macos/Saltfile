@@ -1,3 +1,0 @@
-salt-ssh:
-  config_dir: ./config
-  state_verbose: False
