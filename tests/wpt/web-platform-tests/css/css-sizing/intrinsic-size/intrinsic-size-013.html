@@ -1,0 +1,32 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>CSS intrinsic-size: intrinsic-size changes.</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="match" href="intrinsic-size-013-ref.html">
+<meta name="assert" content="changes in intrinsic-size cause reflow">
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+#border {
+  width: max-content;
+  border: 1px solid black;
+}
+#border > div {
+  intrinsic-size: 55px 66px;
+}
+</style>
+
+<div id=border><div id=target></div></div>
+
+<script>
+function changeStyle() {
+  document.getElementById("target").style = "intrinsic-size: 77px 88px;";
+  requestAnimationFrame(takeScreenshot);
+}
+
+onload = () => requestAnimationFrame(() => requestAnimationFrame(changeStyle));
+
+</script>
+</html>

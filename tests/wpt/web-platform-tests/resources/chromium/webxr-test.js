@@ -144,9 +144,20 @@ class MockVRService {
       // Find and return the first successful result.
       for (let i = 0; i < results.length; i++) {
         if (results[i].session) {
+          // Construct a dummy metrics recorder
+          let metricsRecorderPtr = new device.mojom.XRSessionMetricsRecorderPtr();
+          let metricsRecorderRequest = mojo.makeRequest(metricsRecorderPtr);
+          let metricsRecorderBinding = new mojo.Binding(
+              device.mojom.XRSessionMetricsRecorder, new MockXRSessionMetricsRecorder(), metricsRecorderRequest);
+
+          let success = {
+            session: results[i].session,
+            metricsRecorder: metricsRecorderPtr,
+          };
+
           return {
             result: {
-              session : results[i].session,
+              success : success,
               $tag :  0
             }
           };
@@ -161,6 +172,10 @@ class MockVRService {
         }
       };
     });
+  }
+
+  exitPresent() {
+    return Promise.resolve();
   }
 
   supportsSession(sessionOptions) {
@@ -622,6 +637,12 @@ class MockRuntime {
           !options.immersive || this.displayInfo_.capabilities.canPresent
     });
   };
+}
+
+class MockXRSessionMetricsRecorder {
+  reportFeatureUsed(feature) {
+    // Do nothing
+  }
 }
 
 class MockXRInputSource {

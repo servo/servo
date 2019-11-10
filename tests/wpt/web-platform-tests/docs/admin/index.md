@@ -21,18 +21,6 @@ infrastructure which makes the project possible.
 
 ## Secrets
 
-Some aspects of the infrastructure are only accessible to administrators.
-
-```eval_rst
-=========================  =========================  =========================
-Project                    Secret                     Owners
-=========================  =========================  =========================
-[results-collection]       root SSH keys              boaz@bocoup.com, mike@bocoup.com, rick@bocoup.com
-[results-collection]       Password for app secrets   boaz@bocoup.com, mike@bocoup.com, rick@bocoup.com
-=========================  =========================  =========================
-
-```
-
 SSL certificates for all HTTPS-enabled domains are retrieved via [Let's
 Encrypt](https://letsencrypt.org/), so that data does not represent an
 explicitly-managed secret.
@@ -68,10 +56,6 @@ explicitly-managed secret.
   - markdittmer@google.com
   - mike@bocoup.com
   - rick@bocoup.com
-- [Amazon AWS](https://aws.amazon.com/): results-collection infrastructure
-  - boaz@bocoup.com
-  - mike@bocoup.com
-  - rick@bocoup.com
 - E-mail address: wpt.pr.bot@gmail.com
   - boaz@bocoup.com
   - mike@bocoup.com
@@ -85,6 +69,5 @@ explicitly-managed secret.
   - mike@bocoup.com
   - simon@bocoup.com
 
-[results-collection]: https://github.com/web-platform-tests/results-collection
 [web-platform-tests]: https://github.com/e3c/web-platform-tests
 [wpt.fyi]: https://github.com/web-platform-tests/wpt.fyi

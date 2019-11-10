@@ -78,6 +78,8 @@ dictionary RTCInboundRtpStreamStats : RTCReceivedRtpStreamStats {
  double framesPerSecond;
  unsigned long long qpSum;
  double totalDecodeTime;
+ double totalInterFrameDelay;
+ double totalSquaredInterFrameDelay;
  boolean voiceActivityFlag;
  DOMHighResTimeStamp lastPacketReceivedTimestamp;
  double averageRtcpInterval;

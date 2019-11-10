@@ -4,7 +4,7 @@
 // Source: Resize Observer (https://drafts.csswg.org/resize-observer/)
 
 enum ResizeObserverBoxOptions {
-    "border-box", "content-box"
+    "border-box", "content-box", "device-pixel-content-box"
 };
 
 dictionary ResizeObserverOptions {
@@ -27,6 +27,7 @@ interface ResizeObserverEntry {
     readonly attribute DOMRectReadOnly contentRect;
     readonly attribute ResizeObserverSize borderBoxSize;
     readonly attribute ResizeObserverSize contentBoxSize;
+    readonly attribute ResizeObserverSize devicePixelContentBoxSize;
 };
 
 interface ResizeObserverSize {

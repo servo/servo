@@ -22,7 +22,8 @@ from .protocol import (BaseProtocolPart,
                        SendKeysProtocolPart,
                        ActionSequenceProtocolPart,
                        TestDriverProtocolPart,
-                       GenerateTestReportProtocolPart)
+                       GenerateTestReportProtocolPart,
+                       VirtualAuthenticatorProtocolPart)
 from ..testrunner import Stop
 
 import webdriver as client
@@ -202,6 +203,31 @@ class WebDriverGenerateTestReportProtocolPart(GenerateTestReportProtocolPart):
         json_message = {"message": message}
         self.webdriver.send_session_command("POST", "reporting/generate_test_report", json_message)
 
+class WebDriverVirtualAuthenticatorProtocolPart(VirtualAuthenticatorProtocolPart):
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    def add_virtual_authenticator(self, config):
+        return self.webdriver.send_session_command("POST", "webauthn/authenticator", config)
+
+    def remove_virtual_authenticator(self, authenticator_id):
+        return self.webdriver.send_session_command("DELETE", "webauthn/authenticator/%s" % authenticator_id)
+
+    def add_credential(self, authenticator_id, credential):
+        return self.webdriver.send_session_command("POST", "webauthn/authenticator/%s/credential" % authenticator_id, credential)
+
+    def get_credentials(self, authenticator_id):
+        return self.webdriver.send_session_command("GET", "webauthn/authenticator/%s/credentials" % authenticator_id)
+
+    def remove_credential(self, authenticator_id, credential_id):
+        return self.webdriver.send_session_command("DELETE", "webauthn/authenticator/%s/credentials/%s" % (authenticator_id, credential_id))
+
+    def remove_all_credentials(self, authenticator_id):
+        return self.webdriver.send_session_command("DELETE", "webauthn/authenticator/%s/credentials" % authenticator_id)
+
+    def set_user_verified(self, authenticator_id, uv):
+        return self.webdriver.send_session_command("POST", "webauthn/authenticator/%s/uv" % authenticator_id, uv)
+
 
 class WebDriverProtocol(Protocol):
     implements = [WebDriverBaseProtocolPart,
@@ -211,7 +237,8 @@ class WebDriverProtocol(Protocol):
                   WebDriverSendKeysProtocolPart,
                   WebDriverActionSequenceProtocolPart,
                   WebDriverTestDriverProtocolPart,
-                  WebDriverGenerateTestReportProtocolPart]
+                  WebDriverGenerateTestReportProtocolPart,
+                  WebDriverVirtualAuthenticatorProtocolPart]
 
     def __init__(self, executor, browser, capabilities, **kwargs):
         super(WebDriverProtocol, self).__init__(executor, browser)

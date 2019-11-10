@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Layout Instability: shift inside a transformed container</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+
+body { margin: 0; }
+#container { transform: translateX(-300px) translateY(-40px); }
+#shifter { position: relative; width: 600px; height: 140px; }
+
+</style>
+<div id="container">
+  <div id="shifter"></div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Modify the position of the div.
+  document.querySelector("#shifter").style = "top: 60px";
+
+  // The shifter has size 600 x 140, but the container's transform
+  // reduces its viewport overlap.
+  const expectedScore = computeExpectedScore(
+      (600 - 300) * (140 - 40 + 60), 60);
+
+  await watcher.promise;
+  assert_equals(watcher.score, expectedScore);
+}, 'Transformed container.');
+
+</script>

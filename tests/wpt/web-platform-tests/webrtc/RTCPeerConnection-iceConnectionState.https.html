@@ -371,4 +371,30 @@ promise_test(async t => {
   assert_array_equals(pc2.iceStates, ['new', 'checking', 'connected']);
 }, 'Responder ICE connection state behaves as expected');
 
+/*
+  Test case for step 11 of PeerConnection.close().
+  ...
+  11. Set connection's ICE connection state to "closed". This does not invoke
+      the "update the ICE connection state" procedure, and does not fire any
+      event.
+  ...
+*/
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  const stream = await getNoiseStream({ audio: true });
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+
+  stream.getTracks().forEach(track => pc1.addTrack(track, stream));
+  exchangeIceCandidates(pc1, pc2);
+  doSignalingHandshake(pc1, pc2);
+  await listenToIceConnected(pc2);
+
+  pc2.oniceconnectionstatechange = t.unreached_func();
+  pc2.close();
+  await Promise.resolve();
+  assert_true(pc2.iceConnectionState === 'closed');
+}, 'Closing a PeerConnection should not fire iceconnectionstatechange event');
+
 </script>

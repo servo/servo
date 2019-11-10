@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS intrinsic-size: replaced content with auto</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="match" href="intrinsic-size-with-auto-003-ref.html">
+<meta name="assert" content="intrinsic-size auto is treated as 0 when overflow is not 'visible'">
+
+<style>
+img {
+  border: 1px solid black;
+}
+#target1 {
+  intrinsic-size: auto 200px;
+}
+#target2 {
+  intrinsic-size: 100px auto;
+}
+#target3 {
+  intrinsic-size: auto 200px;
+  overflow: hidden;
+}
+#target4 {
+  intrinsic-size: 100px auto;
+  overflow: hidden;
+}
+</style>
+
+<img id=target1 src="resources/dice.png"></img>
+<img id=target2 src="resources/dice.png"></img>
+<img id=target3 src="resources/dice.png"></img>
+<img id=target4 src="resources/dice.png"></img>

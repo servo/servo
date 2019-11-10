@@ -16,56 +16,49 @@ const NDEFReaderOptionTests =
       desc: "Test that reading data succeed when NDEFScanOptions'" +
             " recordType is set to 'empty'.",
       scanOptions: {recordType: "empty"},
-      unmatchedScanOptions: {recordType: "json"},
+      unmatchedScanOptions: {recordType: "mime"},
       message: createMessage([createRecord('empty', '')])
     },
     {
       desc: "Test that reading data succeed when NDEFScanOptions'" +
-            " recordType is set to 'json'.",
-      scanOptions: {recordType: "json"},
+            " recordType is set to 'mime'.",
+      scanOptions: {recordType: "mime"},
       unmatchedScanOptions: {recordType: "url"},
-      message: createMessage([createJsonRecord(test_json_data)])
-    },
-    {
-      desc: "Test that reading data succeed when NDEFScanOptions'" +
-            " recordType is set to 'opaque'.",
-      scanOptions: {recordType: "opaque"},
-      unmatchedScanOptions: {recordType: "json"},
-      message: createMessage([createOpaqueRecord(test_buffer_data)])
+      message: createMessage([createMimeRecord(test_buffer_data)])
     },
     {
       desc: "Test that reading data succeed when NDEFScanOptions'" +
             " recordType is set to 'unknown'.",
       scanOptions: {recordType: "unknown"},
-      unmatchedScanOptions: {recordType: "json"},
+      unmatchedScanOptions: {recordType: "mime"},
       message: createMessage([createUnknownRecord(test_buffer_data)])
     },
     {
       desc: "Test that reading data succeed when NDEFScanOptions'" +
             " recordType is set to 'text'.",
       scanOptions: {recordType: "text"},
-      unmatchedScanOptions: {recordType: "json"},
+      unmatchedScanOptions: {recordType: "url"},
       message: createMessage([createTextRecord(test_text_data)])
     },
     {
       desc: "Test that reading data succeed when NDEFScanOptions'" +
             " recordType is set to 'url'.",
       scanOptions: {recordType: "url"},
-      unmatchedScanOptions: {recordType: "json"},
+      unmatchedScanOptions: {recordType: "absolute-url"},
       message: createMessage([createUrlRecord(test_url_data)])
     },
     {
       desc: "Test that reading data succeed when NDEFScanOptions'" +
             " recordType is set to 'absolute-url'.",
       scanOptions: {recordType: "absolute-url"},
-      unmatchedScanOptions: {recordType: "json"},
+      unmatchedScanOptions: {recordType: "url"},
       message: createMessage([createUrlRecord(test_url_data, true)])
     },
     {
       desc: "Test that reading data succeed when NDEFScanOptions'" +
             " recordType is set to a custom type for external type records.",
       scanOptions: {recordType: "w3.org:xyz"},
-      unmatchedScanOptions: {recordType: "opaque"},
+      unmatchedScanOptions: {recordType: "mime"},
       message: createMessage([createRecord('w3.org:xyz', 'application/octet-stream',
             test_buffer_data)])
     },
@@ -82,7 +75,7 @@ const NDEFReaderOptionTests =
             " sources correctly.",
       scanOptions: {mediaType: "application/octet-stream"},
       unmatchedScanOptions: {mediaType: "application/json"},
-      message: createMessage([createOpaqueRecord(test_buffer_data)])
+      message: createMessage([createMimeRecord(test_buffer_data)])
     }
   ];
 
@@ -93,21 +86,14 @@ const ReadMultiMessagesTests =
             " correctly with NDEFScanOptions' recordType is set to 'empty'.",
       scanOptions: {recordType: "empty"},
       message: createMessage([createRecord('empty', '')]),
-      unmatchedMessage: createMessage([createJsonRecord(test_json_data)]),
+      unmatchedMessage: createMessage([createMimeRecordFromJson(test_json_data)]),
     },
     {
-      desc: "Test that filtering 'json' record from different messages" +
-            " correctly with NDEFScanOptions' recordType is set to 'json'.",
-      scanOptions: {recordType: "json"},
-      message: createMessage([createJsonRecord(test_json_data)]),
-      unmatchedMessage: createMessage([createUrlRecord(test_url_data)])
-    },
-    {
-      desc: "Test that filtering 'opaque' record from different messages" +
-            " correctly with NDEFScanOptions' recordType is set to 'opaque'.",
-      scanOptions: {recordType: "opaque"},
-      message: createMessage([createOpaqueRecord(test_buffer_data)]),
-      unmatchedMessage: createMessage([createJsonRecord(test_json_data)])
+      desc: "Test that filtering 'mime' record from different messages" +
+            " correctly with NDEFScanOptions' recordType is set to 'mime'.",
+      scanOptions: {recordType: "mime"},
+      message: createMessage([createMimeRecord(test_buffer_data)]),
+      unmatchedMessage: createMessage([createUnknownRecord(test_buffer_data)])
     },
     {
       desc: "Test that filtering 'unknown' record from different messages" +
@@ -155,11 +141,11 @@ const ReadMultiMessagesTests =
           records: [createUrlRecord(test_url_data)]}
     },
     {
-      desc: "Test that filtering 'opaque' record from different messages" +
+      desc: "Test that filtering 'mime' record from different messages" +
             " correctly with NDEFScanOptions' mediaType set.",
       scanOptions: {mediaType: "application/octet-stream"},
-      message: createMessage([createOpaqueRecord(test_buffer_data)]),
-      unmatchedMessage: createMessage([createJsonRecord(test_json_data)])
+      message: createMessage([createMimeRecord(test_buffer_data)]),
+      unmatchedMessage: createMessage([createMimeRecordFromJson(test_json_data)])
     }
   ];
 

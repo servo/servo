@@ -1,1 +1,1 @@
-mozprocess == 0.26
+mozprocess==1.0.0

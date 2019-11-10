@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Switching animated target to an unknown element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg height="0">
+  <path id="path">
+    <animateMotion/>
+  </path>
+  <unknown id="unknown"></unknown>
+</svg>
+<script>
+  async_test(t => {
+    let path = document.getElementById("path");
+    let anim = path.firstElementChild;
+    t.step_timeout(() => {
+      path.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion'));
+      anim.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#unknown');
+      requestAnimationFrame(t.step_func(() => {
+        requestAnimationFrame(t.step_func_done());
+      }));
+    });
+  });
+</script>

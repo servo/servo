@@ -64,13 +64,15 @@ contactsTestWithUserActivation(async (test, setSelectedContacts) => {
     city: 'Scranton',
     addressLine: ['Schrute Farms'],
   };
+  const michaelIcons = [new Blob('image binary data'.split(''), {type: 'image/test'})];
+
   // Returns two contacts with all information available.
   setSelectedContacts([
       { name: ['Dwight Schrute'], email: ['dwight@schrutefarmsbnb.com'], tel: ['000-0000'], address: [dwightAddress] },
-      { name: ['Michael Scott', 'Prison Mike'], email: ['michael@dundermifflin.com'] },
+      { name: ['Michael Scott', 'Prison Mike'], email: ['michael@dundermifflin.com'], icon: michaelIcons },
   ]);
 
-  let results = await navigator.contacts.select(['name', 'email', 'tel', 'address'], { multiple: true });
+  let results = await navigator.contacts.select(['name', 'email', 'icon', 'tel', 'address'], { multiple: true });
   assert_equals(results.length, 2);
   results = results.sort((c1, c2) => JSON.stringify(c1) < JSON.stringify(c2) ? -1 : 1);
 
@@ -81,11 +83,17 @@ contactsTestWithUserActivation(async (test, setSelectedContacts) => {
     assert_own_property(michael, 'email');
     assert_own_property(michael, 'tel');
     assert_own_property(michael, 'address');
+    assert_own_property(michael, 'icon');
 
     assert_array_equals(michael.name, ['Michael Scott', 'Prison Mike']);
     assert_array_equals(michael.email, ['michael@dundermifflin.com']);
     assert_array_equals(michael.tel, []);
     assert_array_equals(michael.address, []);
+
+    assert_equals(michael.icon.length, michaelIcons.length);
+    assert_equals(michael.icon[0].type, michaelIcons[0].type);
+    assert_equals(michael.icon[0].size, michaelIcons[0].size);
+    assert_equals(await michael.icon[0].text(), await michaelIcons[0].text());
   }
 
   {
@@ -94,10 +102,12 @@ contactsTestWithUserActivation(async (test, setSelectedContacts) => {
     assert_own_property(dwight, 'email');
     assert_own_property(dwight, 'tel');
     assert_own_property(dwight, 'address');
+    assert_own_property(dwight, 'icon');
 
     assert_array_equals(dwight.name, ['Dwight Schrute']);
     assert_array_equals(dwight.email, ['dwight@schrutefarmsbnb.com']);
     assert_array_equals(dwight.tel, ['000-0000']);
+    assert_array_equals(dwight.icon, []);
 
     assert_equals(dwight.address.length, 1);
     const selectedAddress = dwight.address[0];

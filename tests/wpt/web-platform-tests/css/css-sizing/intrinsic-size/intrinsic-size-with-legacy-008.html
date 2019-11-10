@@ -1,0 +1,87 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS intrinsic-size: grid indefinite size, auto-fit with legacy</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="match" href="intrinsic-size-with-legacy-008-ref.html">
+<meta name="assert" content="intrinsic-size legacy is treated the same as if it was not specified.">
+
+<style>
+.grid {
+  border: 3px solid black;
+  display: grid;
+  background: lightblue;
+  grid-gap: 5px;
+}
+.one {
+  grid-template: repeat(auto-fit, 10px) / 3fr 4fr;
+}
+.two {
+  grid-template: 1fr 2fr / repeat(auto-fit, 15px);
+}
+.three {
+  grid-template: repeat(auto-fit, 10px) / repeat(auto-fit, 15px);
+}
+.width {
+  intrinsic-size: 70px legacy;
+  width: max-content;
+  height: 80px;
+}
+.height {
+  intrinsic-size: legacy 80px;
+  width: 70px;
+}
+.item {
+  background: green;
+  height: 100%;
+}
+</style>
+
+<div class="grid one width">
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+</div>
+<div class="grid two width">
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+</div>
+<div class="grid three width">
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+</div>
+<div class="grid one height">
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+</div>
+<div class="grid two height">
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+</div>
+<div class="grid three height">
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+</div>

@@ -1,0 +1,24 @@
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/feature-policy-navigation.js"></script>
+<script>
+(async () => {
+  await test_frame(
+    "HTTPS_REMOTE_ORIGIN",
+    "device-memory=false&dpr=false&viewport-width=false",
+    "",
+    "Client hints not loaded on cross-origin iframe request with no feature policy.");
+  await test_frame(
+    "HTTPS_ORIGIN",
+    "device-memory=true&dpr=true&viewport-width=true",
+    "",
+    "Client hints loaded on same-origin iframe request with no feature policy.");
+})();
+
+</script>
+</body>
+</html>
+

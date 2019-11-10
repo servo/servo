@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS intrinsic-size: flex row, items with size containment</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="match" href="intrinsic-size-016-ref.html">
+<meta name="assert" content="intrinsic-size take 'priority' over size-containment in flex">
+
+<style>
+#flex {
+  display: flex;
+  flex-direction: row;
+  width: 500px;
+  height: 100px;
+}
+.item {
+  border: 1px solid black;
+  contain: size;
+}
+#one {
+  background: lightblue;
+  intrinsic-size: 55px 11px;
+  flex-grow: 3;
+}
+#two {
+  background: lightgreen;
+  intrinsic-size: 66px 22px;
+  flex-grow: 2;
+}
+#three {
+  background: lightgrey;
+  intrinsic-size: 77px 33px;
+  flex-grow: 1;
+}
+</style>
+
+<div id=flex>
+  <div class=item id=one></div>
+  <div class=item id=two></div>
+  <div class=item id=three></div>
+</div>

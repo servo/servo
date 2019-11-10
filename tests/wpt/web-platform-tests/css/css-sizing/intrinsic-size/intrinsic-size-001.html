@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS intrinsic-size: unsized div</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="match" href="intrinsic-size-001-ref.html">
+<meta name="assert" content="intrinsic-size is used to size the div as if it had a single child of this size">
+
+<style>
+#target {
+  background: lightblue;
+  intrinsic-size: 111px 222px;
+}
+</style>
+
+<div id=target></div>

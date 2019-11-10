@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Layout Instability: simple block movement is detected</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+
+#shifter { position: relative; width: 300px; height: 100px; }
+
+</style>
+<div id="shifter"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Modify the position of the div.
+  document.querySelector("#shifter").style = "top: 60px";
+
+  // An element of size (300 x 100) has shifted by 60px.
+  const expectedScore = computeExpectedScore(300 * (100 + 60), 60);
+
+  // Observer fires after the frame is painted.
+  assert_equals(watcher.score, 0);
+  await watcher.promise;
+  assert_equals(watcher.score, expectedScore);
+}, 'Simple block movement.');
+
+</script>

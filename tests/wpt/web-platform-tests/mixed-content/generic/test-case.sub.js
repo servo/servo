@@ -1,5 +1,5 @@
 /**
- * @fileoverview Test case for mixed-content in Web Platform Tests.
+ * @fileoverview Test case for mixed-content in web-platform-tests.
  * @author burnik@google.com (Kristijan Burnik)
  */
 

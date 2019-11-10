@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS intrinsic-size: grid indefinite size, auto-fit</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+
+<style>
+.grid {
+  border: 3px solid black;
+  display: grid;
+  width: 70px;
+  height: 80px;
+  box-sizing: content-box;
+  background: lightblue;
+  grid-gap: 5px;
+}
+.one {
+  grid-template: repeat(auto-fit, 10px) / 3fr 4fr;
+}
+.two {
+  grid-template: 1fr 2fr / repeat(auto-fit, 15px);
+}
+.three {
+  grid-template: repeat(auto-fit, 10px) / repeat(auto-fit, 15px);
+}
+
+.item {
+  background: green;
+  height: 100%;
+}
+</style>
+
+<div class="grid one">
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+</div>
+<div class="grid two">
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+</div>
+<div class="grid three">
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+</div>

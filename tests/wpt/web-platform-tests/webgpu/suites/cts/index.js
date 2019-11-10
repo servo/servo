@@ -130,7 +130,7 @@ export const listing = [
     "description": "setViewport validation tests."
   },
   {
-    "path": "validation/vertex_input",
-    "description": "vertexInput validation tests."
+    "path": "validation/vertex_state",
+    "description": "vertexState validation tests."
   }
 ];

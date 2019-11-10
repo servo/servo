@@ -47,9 +47,7 @@ enum RTCRtcpMuxPolicy {
   "require"
 };
 
-dictionary RTCOfferAnswerOptions {
-  boolean voiceActivityDetection = true;
-};
+dictionary RTCOfferAnswerOptions {};
 
 dictionary RTCOfferOptions : RTCOfferAnswerOptions {
   boolean iceRestart = false;
@@ -111,7 +109,6 @@ interface RTCPeerConnection : EventTarget  {
   readonly attribute RTCPeerConnectionState connectionState;
   readonly attribute boolean? canTrickleIceCandidates;
   void restartIce();
-  static sequence<RTCIceServer> getDefaultIceServers();
   RTCConfiguration getConfiguration();
   void setConfiguration(RTCConfiguration configuration);
   void close();
@@ -266,7 +263,6 @@ dictionary RTCCertificateExpiration {
 [Exposed=Window, Serializable]
 interface RTCCertificate {
   readonly attribute DOMTimeStamp expires;
-  static sequence<AlgorithmIdentifier> getSupportedAlgorithms();
   sequence<RTCDtlsFingerprint> getFingerprints();
 };
 

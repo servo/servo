@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS intrinsic-size: replaced content with legacy</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="match" href="intrinsic-size-with-legacy-004-ref.html">
+<meta name="assert" content="intrinsic-size legacy is treated the same as if it was not specified.">
+
+<style>
+img {
+  border: 1px solid black;
+}
+#target1 {
+  intrinsic-size: legacy 200px;
+}
+#target2 {
+  intrinsic-size: 100px legacy;
+}
+</style>
+
+<img id=target1 src="resources/dice.png"></img>
+<img id=target2 src="resources/dice.png"></img>

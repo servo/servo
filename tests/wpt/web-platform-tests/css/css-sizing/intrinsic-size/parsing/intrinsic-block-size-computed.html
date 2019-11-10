@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Intrinsic Size Test: intrinsic-block-size with computed values</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<meta name="assert" content="intrinsic-block-size supports the full grammar 'auto | legacy | <length>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id=target></div>
+<div id=scratch></div>
+<script>
+
+function length_ref(length) {
+  document.getElementById("scratch").style.width = length;
+  return getComputedStyle(document.getElementById("scratch")).getPropertyValue("width");
+}
+
+test_computed_value("intrinsic-block-size", "auto");
+test_computed_value("intrinsic-block-size", "legacy");
+test_computed_value("intrinsic-block-size", "1px");
+test_computed_value("intrinsic-block-size", "2vw", length_ref("2vw"));
+</script>
+</body>
+</html>
+

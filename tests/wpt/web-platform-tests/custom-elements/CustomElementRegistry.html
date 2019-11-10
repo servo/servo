@@ -185,12 +185,15 @@ test(function () {
             var proxy = new Proxy(class extends HTMLElement { }, {
                 get: function (target, name) {
                     calls.push(name);
-                    iframe.contentWindow.customElements.define('another-custom-element', InnerCustomElement);
+                    if (name === "prototype") {
+                        iframe.contentWindow.customElements.define('another-custom-element', InnerCustomElement);
+                    }
                     return target[name];
                 }
             })
             customElements.define('element-with-inner-element-define', proxy);
-            assert_array_equals(calls, ['prototype'], 'customElements.define must get "prototype"');
+            assert_array_equals(calls, ['prototype', 'disabledFeatures', 'formAssociated'],
+                                'customElements.define must get "prototype", "disabledFeatures", and "formAssociated" on the constructor');
             assert_true(iframe.contentDocument.createElement('another-custom-element') instanceof InnerCustomElement);
         });
         document.body.removeChild(iframe);
@@ -226,8 +229,8 @@ test(function () {
         }
     });
     customElements.define('proxy-element', proxy);
-    assert_array_equals(calls, ['prototype']);
-}, 'customElements.define must get "prototype" property of the constructor');
+    assert_array_equals(calls, ['prototype', 'disabledFeatures', 'formAssociated']);
+}, 'customElements.define must get "prototype", "disabledFeatures", and "formAssociated" property of the constructor');
 
 test(function () {
     var proxy = new Proxy(class extends HTMLElement { }, {

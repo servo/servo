@@ -25,13 +25,15 @@ export class ValidationTest extends GPUTest {
     this.device.pushErrorScope('validation');
     fn();
     const promise = this.device.popErrorScope();
-    this.eventualAsyncExpectation(async () => {
+    this.eventualAsyncExpectation(async niceStack => {
       const gpuValidationError = await promise;
 
       if (!gpuValidationError) {
-        this.fail('Validation error was expected.');
+        niceStack.message = 'Validation error was expected.';
+        this.rec.fail(niceStack);
       } else if (gpuValidationError instanceof GPUValidationError) {
-        this.debug(`Captured validation error - ${gpuValidationError.message}`);
+        niceStack.message = `Captured validation error - ${gpuValidationError.message}`;
+        this.rec.debug(niceStack);
       }
     });
   }

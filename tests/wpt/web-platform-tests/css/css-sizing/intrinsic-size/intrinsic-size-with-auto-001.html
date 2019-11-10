@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS intrinsic-size: intrinsic-width auto</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="match" href="intrinsic-size-with-auto-001-ref.html">
+<meta name="assert" content="intrinsic-size auto is treated as 0 when overflow is not 'visible'">
+
+<style>
+div {
+  width: max-content;
+  intrinsic-size: auto 111px;
+  border: 1px solid black;
+}
+#one {
+  overflow: hidden;
+}
+#two {
+  overflow-x: scroll;
+}
+/* We can't have overflow-x: visible without overflow-y not being visible and vice versa
+   (see Computed value in https://www.w3.org/TR/css-overflow-3/#overflow-properties).
+   Hence, we set both overflow directions.
+*/
+#three {
+  overflow: visible;
+}
+</style>
+
+<div id=one>Lorem ipsum</div>
+<br>
+<div id=two>Lorem ipsum</div>
+<br>
+<div id=three>Lorem ipsum</div>

@@ -153,7 +153,7 @@ function testStaticImport(importMapString, importMapBaseURL, specifier, expected
     const script = document.createElement("script");
     script.setAttribute("type", "module");
     script.setAttribute("src",
-        "static-import.js?pipe=sub(none)&url=" +
+        "static-import.py?url=" +
         encodeURIComponent("${specifier}"));
     script.addEventListener("load", handlers[Handler.ScriptLoadEvent]);
     script.addEventListener("error", handlers[Handler.ScriptErrorEvent]);

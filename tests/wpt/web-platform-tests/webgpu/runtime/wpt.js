@@ -39,8 +39,9 @@ import { TestWorker } from './helper/test_worker.js';
           }
 
           this.step(() => {
+            // Unfortunately, it seems not possible to surface any logs for warn/skip.
             if (r.status === 'fail') {
-              throw (r.logs || []).join('\n');
+              throw (r.logs || []).map(s => s.toJSON()).join('\n\n');
             }
           });
           this.done();
