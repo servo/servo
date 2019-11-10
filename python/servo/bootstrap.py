@@ -385,7 +385,7 @@ def get_linux_distribution():
     elif distrib.lower() not in [
         'centos',
         'centos linux',
-        'debian',
+        'debian gnu/linux',
         'fedora',
     ]:
         raise Exception('mach bootstrap does not support %s, please file a bug' % distrib)
