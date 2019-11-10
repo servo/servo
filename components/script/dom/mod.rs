@@ -315,6 +315,8 @@ pub mod gamepadbuttonlist;
 pub mod gamepadevent;
 pub mod gamepadlist;
 pub mod globalscope;
+pub mod gpu;
+pub mod gpuadapter;
 pub mod hashchangeevent;
 pub mod headers;
 pub mod history;

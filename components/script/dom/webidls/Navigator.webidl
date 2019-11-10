@@ -75,3 +75,8 @@ partial interface Navigator {
 partial interface Navigator {
     [Pref="dom.gamepad.enabled"] GamepadList getGamepads();
 };
+
+[Exposed=Window]
+partial interface Navigator {
+    [SameObject, Pref="dom.webgpu.enabled"] readonly attribute GPU gpu;
+};

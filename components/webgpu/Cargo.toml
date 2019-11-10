@@ -1,0 +1,20 @@
+[package]
+name = "webgpu"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+name = "webgpu"
+path = "lib.rs"
+
+[dependencies]
+embedder_traits = {path = "../embedder_traits"}
+ipc-channel = "0.12"
+log = "0.4"
+malloc_size_of = { path = "../malloc_size_of" }
+serde = "1.0"
+servo_config = {path = "../config"}
+wgpu-native = { version = "0.4.0", features = ["serde"] }

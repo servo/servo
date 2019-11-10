@@ -47,6 +47,7 @@ servo_geometry = {path = "../geometry"}
 servo_rand = {path = "../rand"}
 servo_remutex = {path = "../remutex"}
 servo_url = {path = "../url"}
+webgpu = {path = "../webgpu"}
 webvr_traits = {path = "../webvr_traits"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
