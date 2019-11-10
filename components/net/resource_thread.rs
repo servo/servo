@@ -141,19 +141,31 @@ fn create_http_states(
         None => resources::read_string(Resource::SSLCertificates),
     };
 
-    let ssl_connector_builder = create_ssl_connector_builder(&certs);
     let http_state = HttpState {
+        hsts_list: RwLock::new(hsts_list),
         cookie_jar: RwLock::new(cookie_jar),
         auth_cache: RwLock::new(auth_cache),
+        history_states: RwLock::new(HashMap::new()),
         http_cache: RwLock::new(http_cache),
         http_cache_state: Mutex::new(HashMap::new()),
-        hsts_list: RwLock::new(hsts_list),
-        history_states: RwLock::new(HashMap::new()),
-        client: create_http_client(ssl_connector_builder, HANDLE.lock().unwrap().executor()),
+        client: create_http_client(
+            create_ssl_connector_builder(&certs),
+            HANDLE.lock().unwrap().executor(),
+        ),
     };
 
-    let private_ssl_client = create_ssl_connector_builder(&certs);
-    let private_http_state = HttpState::new(private_ssl_client);
+    let private_http_state = HttpState {
+        hsts_list: RwLock::new(HstsList::from_servo_preload()),
+        cookie_jar: RwLock::new(CookieStorage::new(150)),
+        auth_cache: RwLock::new(AuthCache::new()),
+        history_states: RwLock::new(HashMap::new()),
+        http_cache: RwLock::new(HttpCache::new()),
+        http_cache_state: Mutex::new(HashMap::new()),
+        client: create_http_client(
+            create_ssl_connector_builder(&certs),
+            HANDLE.lock().unwrap().executor(),
+        ),
+    };
 
     (Arc::new(http_state), Arc::new(private_http_state))
 }
