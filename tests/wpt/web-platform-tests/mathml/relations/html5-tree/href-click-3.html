@@ -19,10 +19,20 @@
       <mspace width="50px" height="10px" style="background: gray"></mspace>
     </math>
   </p>
+  <a id="badTarget" href="javascript:badHandler()">DON'T CLICK ME</a>
   <script>
     var t = async_test("Click element with href");
     function handler() { t.done(); }
-    test_driver.click(document.getElementById("target"));
+    function badHandler() {
+      t.step(() => { assert_unreached("Bad handler executed"); });
+      t.done();
+    }
+    test_driver.click(document.getElementById("target")).then(() => {
+      return test_driver.click(document.getElementById("badTarget"));
+    }).catch(() => {
+      t.step(() => { assert_unreached("Click failed"); });
+      t.done();
+    });
   </script>
 </body>
 </html>

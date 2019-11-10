@@ -5,14 +5,18 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <body>
 <script>
-async_test(t => {
-  test_driver.bless('speechSynthesis.speak', t.step_func(() => {
-    const utter = new SpeechSynthesisUtterance('test');
-    utter.onerror = t.unreached_func('error event');
-    speechSynthesis.speak(utter);
-    utter.onstart = t.step_func(() => {
-      utter.onend = t.step_func_done();
-    });
-  }));
+async function runStartEndTest(t, utterance) {
+  const eventWatcher = new EventWatcher(t, utterance, ['start', 'end', 'error']);
+  await test_driver.bless('speechSynthesis.speak',
+      () => speechSynthesis.speak(utterance));
+  await eventWatcher.wait_for(['start', 'end']);
+}
+promise_test(async (t) => {
+  const utterance = new SpeechSynthesisUtterance();
+  await runStartEndTest(t, utterance);
+}, 'speechSynthesis.speak() fires start and end events with empty utterance');
+promise_test(async (t) => {
+  const utterance = new SpeechSynthesisUtterance('test');
+  await runStartEndTest(t, utterance);
 }, 'speechSynthesis.speak() fires start and end events');
 </script>

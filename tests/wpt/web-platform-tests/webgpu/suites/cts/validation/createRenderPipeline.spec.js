@@ -38,7 +38,7 @@ class F extends ValidationTest {
 
   getVertexStage() {
     return {
-      module: this.device.createShaderModule({
+      module: this.createShaderModule({
         code:
         /* GLSL(
          *           'vertex',
@@ -74,7 +74,7 @@ class F extends ValidationTest {
       }
     `;
     return {
-      module: this.makeShaderModule('fragment', code),
+      module: this.makeShaderModuleFromGLSL('fragment', code),
       entryPoint: 'main'
     };
   }

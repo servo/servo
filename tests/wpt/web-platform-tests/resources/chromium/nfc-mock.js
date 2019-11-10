@@ -28,6 +28,10 @@ function toMojoNDEFRecord(record) {
   nfcRecord.recordType = record.recordType;
   nfcRecord.mediaType = record.mediaType;
   nfcRecord.data = toByteArray(record.data);
+  if (record.data != null && record.data.records !== undefined) {
+    // |record.data| may be an NDEFMessageInit, i.e. the payload is a message.
+    nfcRecord.payloadMessage = toMojoNDEFMessage(record.data);
+  }
   return nfcRecord;
 }
 
@@ -100,8 +104,7 @@ function assertNDEFReaderOptionsEqual(provided, received) {
     assert_equals(received.mediaType, '');
 
   if (provided.recordType !== undefined) {
-    assert_equals(!+received.record_filter, true);
-    assert_equals(provided.recordType, received.recordFilter.recordType);
+    assert_equals(provided.recordType, received.recordType);
   }
 }
 
@@ -111,8 +114,8 @@ function matchesWatchOptions(message, options) {
   if (!matchesWebNfcId(message.url, options.url)) return false;
 
   // Matches any record / media type.
-  if ((options.mediaType == null || options.mediaType === "")
-      && options.recordFilter == null) {
+  if ((options.mediaType == null || options.mediaType === '') &&
+      options.recordType == null) {
     return true;
   }
 
@@ -122,8 +125,8 @@ function matchesWatchOptions(message, options) {
         && options.mediaType !== record.mediaType) {
       return false;
     }
-    if (options.recordFilter != null &&
-        options.recordFilter.recordType !== record.recordType) {
+    if (options.recordType != null &&
+        options.recordType !== record.recordType) {
       return false;
     }
   }

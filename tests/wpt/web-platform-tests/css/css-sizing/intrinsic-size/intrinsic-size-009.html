@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS intrinsic-size: select multiple</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="match" href="intrinsic-size-009-ref.html">
+<meta name="assert" content="intrinsic-size sizes select multiple">
+
+<style>
+.border {
+  border: 1px solid blue;
+  width: max-content;
+  margin: 5px;
+}
+
+select {
+  intrinsic-size: 55px 66px;
+  background: lightblue;
+  overflow: visible;
+}
+</style>
+
+<select multiple></select>

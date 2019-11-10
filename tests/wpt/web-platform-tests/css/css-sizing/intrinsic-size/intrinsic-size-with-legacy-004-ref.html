@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS intrinsic-size: replaced content with legacy</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+
+<style>
+img {
+  border: 1px solid black;
+  box-sizing: content-box;
+}
+#target1 {
+  height: 200px;
+  /* the source img is 320x240, and the intrinsic size only adjusted the height */
+  width: 320px;
+}
+#target2 {
+  width: 100px;
+  /* the source img is 320x240, and the intrinsic size only adjusted the width */
+  height: 240px;
+}
+</style>
+
+<img id=target1 src="resources/dice.png"></img>
+<img id=target2 src="resources/dice.png"></img>

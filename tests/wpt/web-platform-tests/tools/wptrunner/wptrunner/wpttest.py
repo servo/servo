@@ -47,12 +47,12 @@ class SubtestResult(object):
 
 class TestharnessResult(Result):
     default_expected = "OK"
-    statuses = {"OK", "ERROR", "INTERNAL-ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT", "CRASH"}
+    statuses = {"OK", "ERROR", "INTERNAL-ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT", "CRASH", "PRECONDITION_FAILED"}
 
 
 class TestharnessSubtestResult(SubtestResult):
     default_expected = "PASS"
-    statuses = {"PASS", "FAIL", "TIMEOUT", "NOTRUN"}
+    statuses = {"PASS", "FAIL", "TIMEOUT", "NOTRUN", "PRECONDITION_FAILED"}
 
 
 class ReftestResult(Result):

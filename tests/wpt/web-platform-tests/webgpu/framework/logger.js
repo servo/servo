@@ -4,10 +4,39 @@
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
+import { SkipTestCase } from './fixture.js';
 import { makeQueryString } from './url_query.js';
 import { extractPublicParams } from './url_query.js';
 import { getStackTrace, now } from './util/index.js';
 import { version } from './version.js';
+
+class LogMessageWithStack extends Error {
+  constructor(name, ex) {
+    super(ex.message);
+    this.name = name;
+    this.stack = ex.stack;
+  }
+
+  toJSON() {
+    let m = this.name;
+
+    if (this.message) {
+      m += ': ' + this.message;
+    }
+
+    m += '\n' + getStackTrace(this);
+    return m;
+  }
+
+}
+
+class LogMessageWithoutStack extends LogMessageWithStack {
+  toJSON() {
+    return this.message;
+  }
+
+}
+
 export class Logger {
   constructor() {
     _defineProperty(this, "results", []);
@@ -49,13 +78,20 @@ export class TestSpecRecorder {
   }
 
 }
+var PassState;
+
+(function (PassState) {
+  PassState[PassState["pass"] = 0] = "pass";
+  PassState[PassState["skip"] = 1] = "skip";
+  PassState[PassState["warn"] = 2] = "warn";
+  PassState[PassState["fail"] = 3] = "fail";
+})(PassState || (PassState = {}));
+
 export class TestCaseRecorder {
   constructor(result) {
     _defineProperty(this, "result", void 0);
 
-    _defineProperty(this, "failed", false);
-
-    _defineProperty(this, "warned", false);
+    _defineProperty(this, "state", PassState.pass);
 
     _defineProperty(this, "startTime", -1);
 
@@ -69,8 +105,7 @@ export class TestCaseRecorder {
   start(debug = false) {
     this.startTime = now();
     this.logs = [];
-    this.failed = false;
-    this.warned = false;
+    this.state = PassState.pass;
     this.debugging = debug;
   }
 
@@ -82,50 +117,46 @@ export class TestCaseRecorder {
     const endTime = now(); // Round to next microsecond to avoid storing useless .xxxx00000000000002 in results.
 
     this.result.timems = Math.ceil((endTime - this.startTime) * 1000) / 1000;
-    this.result.status = this.failed ? 'fail' : this.warned ? 'warn' : 'pass';
+    this.result.status = PassState[this.state];
     this.result.logs = this.logs;
     this.debugging = false;
   }
 
-  debug(msg) {
+  debug(ex) {
     if (!this.debugging) {
       return;
     }
 
-    this.log('DEBUG: ' + msg);
+    this.logs.push(new LogMessageWithoutStack('DEBUG', ex));
   }
 
-  log(msg) {
-    this.logs.push(msg);
+  warn(ex) {
+    this.setState(PassState.warn);
+    this.logs.push(new LogMessageWithStack('WARN', ex));
   }
 
-  warn(msg) {
-    this.warned = true;
-    let m = 'WARN';
+  fail(ex) {
+    this.setState(PassState.fail);
+    this.logs.push(new LogMessageWithStack('FAIL', ex));
+  }
 
-    if (msg) {
-      m += ': ' + msg;
+  skipped(ex) {
+    this.setState(PassState.skip);
+    this.logs.push(new LogMessageWithStack('SKIP', ex));
+  }
+
+  threw(ex) {
+    if (ex instanceof SkipTestCase) {
+      this.skipped(ex);
+      return;
     }
 
-    m += ' ' + getStackTrace(new Error());
-    this.log(m);
+    this.setState(PassState.fail);
+    this.logs.push(new LogMessageWithStack('EXCEPTION', ex));
   }
 
-  fail(msg) {
-    this.failed = true;
-    let m = 'FAIL';
-
-    if (msg) {
-      m += ': ' + msg;
-    }
-
-    m += ' ' + getStackTrace(new Error());
-    this.log(m);
-  }
-
-  threw(e) {
-    this.failed = true;
-    this.log('EXCEPTION: ' + e.name + ': ' + e.message + '\n' + getStackTrace(e));
+  setState(state) {
+    this.state = Math.max(this.state, state);
   }
 
 }

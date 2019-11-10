@@ -24,10 +24,9 @@ export function getStackTrace(e) {
     }
 
     if (isSuites) {
+      stack.push(part);
       found = true;
     }
-
-    stack.push(part);
   }
 
   return stack.join('\n');

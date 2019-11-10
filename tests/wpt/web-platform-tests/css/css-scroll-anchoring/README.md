@@ -1,4 +1,4 @@
-## Scroll Anchoring Web Platform Tests
+## Scroll Anchoring Test Suite
 
 Scroll anchoring adjusts the scroll position to prevent visible jumps (or
 "reflows") when content changes above the viewport.

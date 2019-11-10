@@ -20,7 +20,7 @@ async_test(function(t) {
     assert_equals(iframe.contentDocument.body.textContent, "src");
 
     iframe.onload = t.step_func_done(function() {
-      assert_false(isAdded);
+      assert_true(isAdded);
       assert_equals(iframe.contentDocument.location.href, "about:srcdoc");
       assert_equals(iframe.contentDocument.body.textContent, "srcdoc");
     });
@@ -41,7 +41,7 @@ async_test(function(t) {
     assert_equals(iframe.contentDocument.body.textContent, "old");
 
     iframe.onload = t.step_func_done(function() {
-      assert_false(isChanged);
+      assert_true(isChanged);
       assert_equals(iframe.contentDocument.location.href, "about:srcdoc");
       assert_equals(iframe.contentDocument.body.textContent, "new");
     });
@@ -51,7 +51,7 @@ async_test(function(t) {
   });
 
   document.body.appendChild(iframe);
-}, "Changing `srcdoc` (via property) triggers attributes processing");
+}, "Setting `srcdoc` (via property) triggers attributes processing");
 
 async_test(function(t) {
   var iframe = createIFrameWithBlobSrc();
@@ -62,7 +62,7 @@ async_test(function(t) {
     assert_equals(iframe.contentDocument.body.textContent, "srcdoc");
 
     iframe.onload = t.step_func_done(function() {
-      assert_false(isRemoved);
+      assert_true(isRemoved);
       assert_equals(iframe.contentDocument.location.protocol, "blob:");
       assert_equals(iframe.contentDocument.body.textContent, "src");
     });

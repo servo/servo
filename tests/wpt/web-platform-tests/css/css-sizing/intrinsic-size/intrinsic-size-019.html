@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS intrinsic-size: div with fit-content width</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="match" href="intrinsic-size-019-ref.html">
+<meta name="assert" content="div is sized to intrinsic-width when width is fit-content">
+
+<style>
+#target {
+  background: lightblue;
+  intrinsic-size: 111px 222px;
+  width: fit-content;
+}
+</style>
+
+<div id=target></div>

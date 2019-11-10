@@ -3,18 +3,23 @@
     This test suite is built from the TypeScript sources at:
     https://github.com/gpuweb/cts
 
+    If you are debugging WebGPU conformance tests, it's highly recommended that
+    you use the standalone interactive runner in that repository, which
+    provides tools for easier debugging and editing (source maps, debug
+    logging, warn/skip functionality, etc.)
+
     NOTE:
-    The WPT version of this file is generated with *one test spec per variant*.
-    If your harness needs more fine-grained suppressions, you'll need to
+    The WPT version of this file is generated with *one variant per test spec
+    file*. If your harness needs more fine-grained suppressions, you'll need to
     generate your own variants list from your suppression list. For example, if
     test file cts:a/b: has 3 tests and you need to suppress a single case, you
     might break it out into the following variants:
 
-    - cts:a/b:test1~
-    - cts:a/b:test2={"x":1}
-    - cts:a/b:test2={"x":2}  // <- suppress this one
-    - cts:a/b:test2={"x":3}
-    - cts:a/b:test3~
+      - cts:a/b:test1~
+      - cts:a/b:test2={"x":1}
+      - cts:a/b:test2={"x":2}  // <- suppress this one
+      - cts:a/b:test2={"x":3}
+      - cts:a/b:test3~
 
     When run under browser CI, the original cts.html should be skipped, and
     this alternate version should be run instead, under a non-exported WPT test
@@ -33,6 +38,17 @@
     font-family: monospace;
     width: 100%;
     height: 15em;
+}
+
+/* Test Name column */
+#results > tbody > tr > td:nth-child(2) {
+    word-break: break-word;
+}
+
+/* Message column */
+#results > tbody > tr > td:nth-child(3) {
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 </style>
 
@@ -69,4 +85,4 @@
 <meta name=variant content='?q=cts:validation/setStencilReference:'>
 <meta name=variant content='?q=cts:validation/setVertexBuffer:'>
 <meta name=variant content='?q=cts:validation/setViewport:'>
-<meta name=variant content='?q=cts:validation/vertex_input:'>
+<meta name=variant content='?q=cts:validation/vertex_state:'>

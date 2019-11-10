@@ -40,4 +40,8 @@
     coop_coep_test(t, SAME_SITE, variant.coop, variant.coep, `same-site-${variant.title.replace(/ /g,"-")}`, false);
   }, `Same-site ${variant.title}`);
 });
+
+test(() => {
+  assert_true(window.crossOriginIsolated);
+}, "Bonus: window.crossOriginIsolated");
 </script>

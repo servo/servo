@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS intrinsic-size: grid definite size, large size</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+
+<style>
+#grid {
+  border: 3px solid black;
+  display: grid;
+  grid-template: 55px 66px / 77px 88px;
+  box-sizing: content-box;
+  width: 200px;
+  height: 300px;
+  background: lightblue;
+  grid-gap: 5px;
+}
+.item {
+  background: lightgreen;
+  opacity: 0.5;
+  height: 100%;
+}
+</style>
+
+<div id=grid>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+  <div class=item></div>
+</div>

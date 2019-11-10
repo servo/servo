@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS intrinsic-size: intrinsic-width legacy</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="match" href="intrinsic-size-with-legacy-001-ref.html">
+<meta name="assert" content="intrinsic-size legacy is treated the same as if it was not specified.">
+
+<style>
+#target {
+  background: lightblue;
+  width: max-content;
+  intrinsic-size: legacy 222px;
+}
+</style>
+
+<div id=target>Lorem ipsum</div>

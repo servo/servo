@@ -7,4 +7,8 @@ promise_test(t => {
   return testSharingViaIncrementerScript(t, worker, "parent worker", worker, "sub-worker");
 }, "postMessaging to a dedicated sub-worker allows them to see each others' modifications");
 
+test(() => {
+  assert_true(self.crossOriginIsolated);
+}, "Bonus: self.crossOriginIsolated");
+
 done();

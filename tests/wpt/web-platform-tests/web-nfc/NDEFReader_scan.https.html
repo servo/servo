@@ -183,6 +183,33 @@ nfc_test(async (t, mockNFC) => {
 
 }, "Synchronously signaled abort.");
 
+nfc_test(async (t, mockNFC) => {
+  const reader = new NDEFReader();
+  const controller = new AbortController();
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+
+  const payloadMessage = createMessage([createTextRecord(test_text_data)]);
+  const message = createMessage([createRecord('example.com:payloadIsMessage',
+          undefined, payloadMessage)]);
+  mockNFC.setReadingMessage(message);
+
+  reader.scan({signal : controller.signal});
+  const event = await readerWatcher.wait_for("reading");
+  controller.abort();
+  assert_true(event instanceof NDEFReadingEvent);
+  // The message contains only an external type record.
+  assert_equals(event.message.records.length, 1);
+  assert_equals(event.message.records[0].recordType, 'example.com:payloadIsMessage', 'recordType');
+  // The external type record's payload is a message, which contains only a text record.
+  const embeddedRecords = event.message.records[0].toRecords();
+  assert_equals(embeddedRecords.length, 1);
+  assert_equals(embeddedRecords[0].recordType, 'text', 'recordType');
+  assert_equals(embeddedRecords[0].mediaType, 'text/plain', 'mediaType');
+  const decoder = new TextDecoder();
+  assert_equals(decoder.decode(embeddedRecords[0].data), test_text_data,
+                  'data has the same content with the original dictionary');
+}, "NDEFRecord.toRecords returns its embedded records correctly.");
+
 test(() => {
   const reader = new NDEFReader();
   invalid_signals.forEach(invalid_signal => {

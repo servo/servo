@@ -1,5 +1,5 @@
 /**
- * @fileoverview Utilities for mixed-content in Web Platform Tests.
+ * @fileoverview Utilities for mixed-content in web-platform-tests.
  * @author burnik@google.com (Kristijan Burnik)
  * Disclaimer: Some methods of other authors are annotated in the corresponding
  *     method's JSDoc.
@@ -314,19 +314,6 @@ function createRequestViaElement(tagName, attrs, parentNode) {
   return createElement(tagName, attrs, parentNode, true).eventPromise;
 }
 
-/**
- * Creates a new empty iframe and appends it to {@code document.body} .
- * @param {string} name The name and ID of the new iframe.
- * @param {boolean} doBindEvents Whether to bind load and error events.
- * @return {DOMElement} The newly created iframe.
- */
-function createHelperIframe(name, doBindEvents) {
-  return createElement("iframe",
-                       {"name": name, "id": name},
-                       document.body,
-                       doBindEvents);
-}
-
 function wrapResult(server_data) {
   if (typeof(server_data) === "string") {
     throw server_data;
@@ -394,7 +381,7 @@ function wrapResult(server_data) {
   requestViaAudio                  3        -        Y       -
   requestViaDedicatedWorker        2        Y        Y       Y
   requestViaFetch                  2        Y        Y       -
-  requestViaForm                   3        -        Y       -
+  requestViaForm                   2        -        Y       -
   requestViaIframe                 1        Y        Y       -
   requestViaImage                  2        Y        Y       -
   requestViaLinkPrefetch           3        -        Y       -
@@ -583,18 +570,29 @@ function requestViaWorklet(type, url) {
 }
 
 /**
- * Sets the href attribute on a navigable DOM element and performs a navigation
- *     by clicking it. To avoid navigating away from the current execution
- *     context, a target attribute is set to point to a new helper iframe.
- * @param {DOMElement} navigableElement The navigable DOMElement
- * @param {string} url The href for the navigable element.
+ * Creates a navigable element with the name `navigableElementName`
+ * (<a>, <area>, or <form>) under `parentNode`, and
+ * performs a navigation by `trigger()` (e.g. clicking <a>).
+ * To avoid navigating away from the current execution context,
+ * a target attribute is set to point to a new helper iframe.
+ * @param {string} navigableElementName
+ * @param {object} additionalAttributes The attributes of the navigable element.
+ * @param {DOMElement} parentNode
+ * @param {function(DOMElement} trigger A callback called after the navigable
+ * element is inserted and should trigger navigation using the element.
  * @return {Promise} The promise for success/error events.
  */
-function requestViaNavigable(navigableElement, url) {
-  var iframe = createHelperIframe(guid(), false);
-  setAttributes(navigableElement,
-                {"href": url,
-                 "target": iframe.name});
+function requestViaNavigable(navigableElementName, additionalAttributes,
+                             parentNode, trigger) {
+  const name = guid();
+
+  const iframe =
+    createElement("iframe", {"name": name, "id": name}, parentNode, false);
+
+  const navigable = createElement(
+      navigableElementName,
+      Object.assign({"target": name}, additionalAttributes),
+      parentNode, false);
 
   const promise =
     bindEvents2(window, "message", iframe, "error", window, "error")
@@ -603,7 +601,7 @@ function requestViaNavigable(navigableElement, url) {
             return Promise.reject(new Error('Unexpected event.source'));
           return event.data;
         });
-  navigableElement.click();
+  trigger(navigable);
   return promise;
 }
 
@@ -614,12 +612,11 @@ function requestViaNavigable(navigableElement, url) {
  * @return {Promise} The promise for success/error events.
  */
 function requestViaAnchor(url, additionalAttributes) {
-  var a = createElement(
+  return requestViaNavigable(
       "a",
-      Object.assign({"innerHTML": "Link to resource"}, additionalAttributes),
-      document.body);
-
-  return requestViaNavigable(a, url);
+      Object.assign({"href": url, "innerHTML": "Link to resource"},
+                    additionalAttributes),
+      document.body, a => a.click());
 }
 
 /**
@@ -629,13 +626,11 @@ function requestViaAnchor(url, additionalAttributes) {
  * @return {Promise} The promise for success/error events.
  */
 function requestViaArea(url, additionalAttributes) {
-  var area = createElement(
-      "area",
-      Object.assign({}, additionalAttributes),
-      document.body);
-
   // TODO(kristijanburnik): Append to map and add image.
-  return requestViaNavigable(area, url);
+  return requestViaNavigable(
+      "area",
+      Object.assign({"href": url}, additionalAttributes),
+      document.body, area => area.click());
 }
 
 /**
@@ -661,17 +656,11 @@ function requestViaScript(url, additionalAttributes) {
  * @param {string} url The URL to submit to.
  * @return {Promise} The promise for success/error events.
  */
-function requestViaForm(url) {
-  var iframe = createHelperIframe(guid());
-  var form = createElement("form",
-                           {"action": url,
-                            "method": "POST",
-                            "target": iframe.name},
-                           document.body);
-  bindEvents(iframe);
-  form.submit();
-
-  return iframe.eventPromise;
+function requestViaForm(url, additionalAttributes) {
+  return requestViaNavigable(
+      "form",
+      Object.assign({"action": url, "method": "POST"}, additionalAttributes),
+      document.body, form => form.submit());
 }
 
 /**
@@ -866,7 +855,7 @@ const subresourceMap = {
     invoker: requestViaFetch,
   },
   "form-tag": {
-    path: "/common/security-features/subresource/empty.py",
+    path: "/common/security-features/subresource/document.py",
     invoker: requestViaForm,
   },
   "iframe-tag": {

@@ -347,6 +347,10 @@ class Chrome(BrowserSetup):
             kwargs["binary_args"].append("--enable-experimental-web-platform-features")
             # HACK(Hexcles): work around https://github.com/web-platform-tests/wpt/issues/16448
             kwargs["webdriver_args"].append("--disable-build-check")
+        if os.getenv("TASKCLUSTER_ROOT_URL"):
+            # We are on Taskcluster, where our Docker container does not have
+            # enough capabilities to run Chrome with sandboxing. (gh-20133)
+            kwargs["binary_args"].append("--no-sandbox")
 
 
 class ChromeAndroid(BrowserSetup):

@@ -39,10 +39,6 @@ const invalid_type_messages =
       // NDEFRecord.lang length for 'text' record must be lower than 64.
       createMessage([createTextRecord(test_text_data, undefined /* encoding */, [...Array(64)].map(_ => 'a'))]),
 
-      // https://w3c.github.io/web-nfc/#dfn-map-a-json-object-to-ndef
-      // NDEFRecord must have data.
-      createMessage([createJsonRecord()]),
-
       // https://w3c.github.io/web-nfc/#dfn-map-a-url-to-ndef
       // NDEFRecord must have data.
       createMessage([createUrlRecord()]),
@@ -63,12 +59,12 @@ const invalid_type_messages =
 
       // https://w3c.github.io/web-nfc/#dfn-map-binary-data-to-ndef
       // NDEFRecord must have data.
-      createMessage([createOpaqueRecord()]),
+      createMessage([createMimeRecord()]),
 
-      // NDEFRecord.data for 'opaque' record must be ArrayBuffer.
-      createMessage([createOpaqueRecord(test_text_data)]),
-      createMessage([createOpaqueRecord(test_number_data)]),
-      createMessage([createOpaqueRecord(test_json_data)]),
+      // NDEFRecord.data for 'mime' record must be BufferSource.
+      createMessage([createMimeRecord(test_text_data)]),
+      createMessage([createMimeRecord(test_number_data)]),
+      createMessage([createMimeRecord(test_json_data)]),
 
       // NDEFRecord must have data.
       createMessage([createUnknownRecord()]),
@@ -88,7 +84,7 @@ const invalid_type_messages =
       createMessage([createRecord('w3.org:xyz', '', test_json_data)]),
 
       // https://w3c.github.io/web-nfc/#the-ndefrecordtype-string
-      // The record type is neither a known type ('text', 'json' etc.) nor a
+      // The record type is neither a known type ('text', 'mime' etc.) nor a
       // valid custom type for an external type record.
       createMessage([createRecord('unmatched_type', '', test_buffer_data)])
     ];
@@ -102,12 +98,6 @@ const invalid_syntax_messages =
       // Data for 'url' or 'absolute-url' record, must be a valid URL.
       createMessage([createUrlRecord('Invalid URL:// Data')]),
       createMessage([createUrlRecord('Invalid URL:// Data', true)]),
-
-      // A JSON MIME type is any MIME type whose subtype ends in "+json" or
-      // whose essence is "application/json" or "text/json".
-      createMessage([createRecord('json', 'image/png', test_json_data)]),
-      createMessage([createRecord('json', 'application/x+y', test_json_data)]),
-      createMessage([createRecord('json', 'custom/app+jsonx', test_json_data)]),
     ];
 
 const invalid_signals = [
@@ -249,13 +239,6 @@ provided URL.");
 
 promise_test(async t => {
   const writer = new NDEFWriter();
-  const message = createMessage([createRecord('json','application/json',
-      { get x(){ return this; } })]);
-  await promise_rejects(t, new TypeError(), writer.push(message));
-}, "Reject promise with exceptions thrown from serializing the 'json' record data.");
-
-promise_test(async t => {
-  const writer = new NDEFWriter();
   await promise_rejects(
     t, new TypeError(), writer.push(test_text_data, {target: "invalid"}));
 }, "NDEFWriter.push should fail with TypeError when invalid target value is \
@@ -306,9 +289,8 @@ nfc_test(async () => {
 nfc_test(async (t, mockNFC) => {
   const writer = new NDEFWriter();
   let message = createMessage([createTextRecord(test_text_data),
-                               createJsonRecord(test_json_data),
-                               createJsonRecord(test_number_data),
-                               createOpaqueRecord(test_buffer_data),
+                               createMimeRecordFromJson(test_json_data),
+                               createMimeRecord(test_buffer_data),
                                createUnknownRecord(test_buffer_data),
                                createUrlRecord(test_url_data),
                                createUrlRecord(test_url_data, true),
@@ -316,7 +298,7 @@ nfc_test(async (t, mockNFC) => {
                                test_message_origin);
   await writer.push(message);
   assertNDEFMessagesEqual(message, mockNFC.pushedMessage());
-}, "NDEFWriter.push NDEFMessage containing text, json, opaque, unknown, url, absolute-url \
+}, "NDEFWriter.push NDEFMessage containing text, mime, unknown, url, absolute-url \
 and external records with default NDEFPushOptions.");
 
 nfc_test(async (t, mockNFC) => {
@@ -427,17 +409,8 @@ nfc_test(async (t, mockNFC) => {
   const writer = new NDEFWriter();
   await writer.push({ records: [{ data: test_buffer_data}] });
   assertNDEFMessagesEqual(test_buffer_data, mockNFC.pushedMessage());
-}, "Test that recordType should be set to 'opaque' if NDEFRecordInit.record's \
-recordType is undefined and NDEFRecordInit.record's data is ArrayBuffer.");
-
-nfc_test(async (t, mockNFC) => {
-  const writer = new NDEFWriter();
-  await writer.push({ records: [{ data: test_json_data }] });
-  const message = createMessage([createJsonRecord(test_json_data)]);
-  assertNDEFMessagesEqual(message, mockNFC.pushedMessage());
-}, "Test that recordType should be set to 'json' if NDEFRecordInit.record's \
-recordType is undefined and NDEFRecordInit.record's data is not DOMString or \
-ArrayBuffer.");
+}, "Test that recordType should be set to 'mime' if NDEFRecordInit.record's \
+recordType is undefined and NDEFRecordInit.record's data is not DOMString.");
 
 nfc_test(async (t, mockNFC) => {
   const writer = new NDEFWriter();
@@ -448,19 +421,10 @@ recordType is 'text' and NDEFRecordInit.record's mediaType is undefined.");
 
 nfc_test(async (t, mockNFC) => {
   const writer = new NDEFWriter();
-  await writer.push({ records: [{ recordType: "opaque", data: test_buffer_data }] });
+  await writer.push({ records: [{ recordType: "mime", data: test_buffer_data }] });
   assertNDEFMessagesEqual(test_buffer_data, mockNFC.pushedMessage());
 }, "Test that mediaType should be set to 'application/octet-stream' if \
-NDEFRecordInit.record's recordType is 'opaque' and NDEFRecordInit.record's \
-mediaType is undefined.");
-
-nfc_test(async (t, mockNFC) => {
-  const writer = new NDEFWriter();
-  await writer.push({ records: [{ recordType: "json", data: test_json_data }] });
-  const message = createMessage([createJsonRecord(test_json_data)]);
-  assertNDEFMessagesEqual(message, mockNFC.pushedMessage());
-}, "Test that mediaType should be set to 'application/json' if \
-NDEFRecordInit.record's recordType is 'json' and NDEFRecordInit.record's \
+NDEFRecordInit.record's recordType is 'mime' and NDEFRecordInit.record's \
 mediaType is undefined.");
 
 nfc_test(async (t, mockNFC) => {
