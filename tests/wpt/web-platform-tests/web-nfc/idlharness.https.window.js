@@ -7,7 +7,6 @@
 
 const record = {
   recordType: "text",
-  mediaType: "text/plain",
   data: "Hello World",
   id: "/custom/path"
 };

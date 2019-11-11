@@ -84,7 +84,7 @@ function createMessage(records) {
   }
 }
 
-function createRecord(recordType, mediaType, data, encoding, lang) {
+function createRecord(recordType, data, mediaType, encoding, lang) {
   let record = {};
   if (recordType !== undefined)
     record.recordType = recordType;
@@ -100,28 +100,28 @@ function createRecord(recordType, mediaType, data, encoding, lang) {
 }
 
 function createTextRecord(data, encoding, lang) {
-  return createRecord('text', 'text/plain', data, encoding, lang);
+  return createRecord('text', data, undefined, encoding, lang);
 }
 
 function createMimeRecordFromJson(json) {
   return createRecord(
-      'mime', 'application/json',
-      new TextEncoder('utf-8').encode(JSON.stringify(json)));
+      'mime', new TextEncoder('utf-8').encode(JSON.stringify(json)),
+      'application/json');
 }
 
 function createMimeRecord(buffer) {
-  return createRecord('mime', 'application/octet-stream', buffer);
+  return createRecord('mime', buffer, 'application/octet-stream');
 }
 
 function createUnknownRecord(buffer) {
-  return createRecord('unknown', '', buffer);
+  return createRecord('unknown', buffer);
 }
 
 function createUrlRecord(url, isAbsUrl) {
   if (isAbsUrl) {
-    return createRecord('absolute-url', 'text/plain', url);
+    return createRecord('absolute-url', url);
   }
-  return createRecord('url', 'text/plain', url);
+  return createRecord('url', url);
 }
 
 function createNDEFPushOptions(target, timeout, ignoreRead) {

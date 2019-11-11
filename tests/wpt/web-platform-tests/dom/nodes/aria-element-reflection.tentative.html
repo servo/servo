@@ -164,20 +164,27 @@
   <script>
 
   test(function(t) {
-    // Deleting an element set via the content attribute.
+    const idlAttrElement = document.getElementById("idlAttrElement");
+
     assert_equals(deletionParent.getAttribute("aria-activedescendant"), "contentAttrElement");
     assert_equals(deletionParent.ariaActiveDescendantElement, contentAttrElement);
 
+    // Deleting an element set via the content attribute.
     deletionParent.removeChild(contentAttrElement);
     assert_equals(deletionParent.getAttribute("aria-activedescendant"), "contentAttrElement");
+
+    // As it was not explitly set, the attr-associated-element is computed from the content attribute,
+    // and since descendant1 has been removed from the DOM, it is not valid.
     assert_equals(deletionParent.ariaActiveDescendantElement, null);
 
     // Deleting an element set via the IDL attribute.
     deletionParent.ariaActiveDescendantElement = idlAttrElement;
     assert_equals(deletionParent.getAttribute("aria-activedescendant"), "idlAttrElement");
 
+    // The element is still retrieved because it was explicitly set, and was at that point
+    // in a valid scope.
     deletionParent.removeChild(idlAttrElement);
-    assert_equals(deletionParent.ariaActiveDescendantElement, null);
+    assert_equals(deletionParent.ariaActiveDescendantElement, idlAttrElement);
 
     // The content attribute will still reflect the id.
     assert_equals(deletionParent.getAttribute("aria-activedescendant"), "idlAttrElement");
@@ -227,14 +234,16 @@
     lightParent.ariaActiveDescendantElement = lightElement;
     assert_equals(lightParent.ariaActiveDescendantElement, lightElement);
 
-    // Move the referenced element into shadow DOM.
+    // Move the referenced element into shadow DOM. As it was explicitly set,
+    // it is still able to be gotten even though it is in a different scope.
     shadowRoot.appendChild(lightElement);
-    assert_equals(lightParent.ariaActiveDescendantElement, null);
+    assert_equals(lightParent.ariaActiveDescendantElement, lightElement);
     assert_equals(lightParent.getAttribute("aria-activedescendant"), "lightElement");
 
     // Move the referenced element back into light DOM.
     lightParent.appendChild(lightElement);
     assert_equals(lightParent.ariaActiveDescendantElement, lightElement);
+    assert_equals(lightParent.getAttribute("aria-activedescendant"), "lightElement");
   }, "Reparenting an element into a descendant shadow scope nullifies the element reference.");
   </script>
 
@@ -250,6 +259,7 @@
 
   <script>
   test(function(t) {
+    const billingElement = document.getElementById("billingElement")
     assert_array_equals(input1.ariaLabelledByElements, [billingElement, nameElement], "parsed content attribute sets element references.");
     assert_equals(input2.ariaLabelledByElements, null, "Testing empty content attribute after parsing.");
 
@@ -257,8 +267,10 @@
     assert_array_equals(input2.ariaLabelledByElements, [billingElement, addressElement], "Testing IDL setter/getter.");
     assert_equals(input2.getAttribute("aria-labelledby"), "billingElement addressElement");
 
+    // Remove the element from the DOM, but as it was explicitly set whilst in a valid scope
+    // it can still be retrieved.
     billingElement.remove();
-    assert_array_equals(input2.ariaLabelledByElements, [addressElement]);
+    assert_array_equals(input2.ariaLabelledByElements, [billingElement, addressElement]);
 
     input2.ariaLabelledByElements = [];
     assert_array_equals(input2.ariaLabelledByElements, [], "Testing IDL setter/getter for empty array.");
@@ -451,9 +463,9 @@
     innerShadowRoot.appendChild(description1);
     innerShadowRoot.appendChild(description2);
 
-    // Explicitly set elements are still present, but are not retrieved.
-    // content attribute is still stale because all elements were in a valid scope when they were set.
-    assert_array_equals(describedElement.ariaDescribedByElements, []);
+    // Explicitly set elements are still retrieved, because they were in a valid scope when they were set.
+    // The content attribute still reflects the ids.
+    assert_array_equals(describedElement.ariaDescribedByElements, [description1, description2]);
     assert_equals(describedElement.getAttribute("aria-describedby"), "buttonDescription1 buttonDescription2");
 
     // Move into the same shadow scope as the explicitly set elements to test that the elements are gettable
@@ -494,10 +506,9 @@
       headingElement.ariaLabelledByElements = [headingLabel1, headingLabel2];
       assert_equals(headingElement.getAttribute("aria-labelledby"), "headingLabel1 headingLabel2", "Elements are set again, so the content attribute is updated.");
 
-      // Remove the referring element from the DOM, elements are not gettable.
-      // This behaviour is still under discussion.
+      // Remove the referring element from the DOM, elements are gettable.
       headingElement.remove();
-      assert_array_equals(headingElement.ariaLabelledByElements, [], "Element is no longer in the document, so references should not be gettable.");
+      assert_array_equals(headingElement.ariaLabelledByElements, [headingLabel1, headingLabel2], "Element is no longer in the document, but references should be gettable.");
       assert_equals(headingElement.getAttribute("aria-labelledby"), "headingLabel1 headingLabel2");
 
       // Insert it back in.
@@ -505,10 +516,10 @@
       assert_array_equals(headingElement.ariaLabelledByElements, [headingLabel1, headingLabel2]);
       assert_equals(headingElement.getAttribute("aria-labelledby"), "headingLabel1 headingLabel2");
 
-      // Remove everything from the DOM, nothing should be gettable.
+      // Remove everything from the DOM, everything is still gettable.
       headingLabel1.remove();
       headingLabel2.remove();
-      assert_array_equals(headingElement.ariaLabelledByElements, []);
+      assert_array_equals(headingElement.ariaLabelledByElements, [headingLabel1, headingLabel2]);
       assert_equals(headingElement.getAttribute("aria-labelledby"), "headingLabel1 headingLabel2");
       assert_equals(document.getElementById("headingLabel1"), null);
       assert_equals(document.getElementById("headingLabel2"), null);
