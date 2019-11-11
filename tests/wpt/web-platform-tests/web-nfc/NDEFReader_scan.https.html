@@ -190,7 +190,7 @@ nfc_test(async (t, mockNFC) => {
 
   const payloadMessage = createMessage([createTextRecord(test_text_data)]);
   const message = createMessage([createRecord('example.com:payloadIsMessage',
-          undefined, payloadMessage)]);
+          payloadMessage)]);
   mockNFC.setReadingMessage(message);
 
   reader.scan({signal : controller.signal});
@@ -204,7 +204,7 @@ nfc_test(async (t, mockNFC) => {
   const embeddedRecords = event.message.records[0].toRecords();
   assert_equals(embeddedRecords.length, 1);
   assert_equals(embeddedRecords[0].recordType, 'text', 'recordType');
-  assert_equals(embeddedRecords[0].mediaType, 'text/plain', 'mediaType');
+  assert_equals(embeddedRecords[0].mediaType, null, 'mediaType');
   const decoder = new TextDecoder();
   assert_equals(decoder.decode(embeddedRecords[0].data), test_text_data,
                   'data has the same content with the original dictionary');

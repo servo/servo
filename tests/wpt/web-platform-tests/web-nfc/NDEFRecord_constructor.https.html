@@ -17,9 +17,30 @@
   }, 'NDEFRecord constructor with null init dict');
 
   test(() => {
+    assert_throws(new TypeError, () => new NDEFRecord(
+          createRecord('empty', test_text_data, 'text/plain')),
+        'mediaType does not apply for empty record type.');
+    assert_throws(new TypeError, () => new NDEFRecord(
+          createRecord('text', test_text_data, 'text/plain')),
+        'mediaType does not apply for text record type.');
+    assert_throws(new TypeError, () => new NDEFRecord(
+          createRecord('url', test_url_data, 'text/plain')),
+        'mediaType does not apply for url record type.');
+    assert_throws(new TypeError, () => new NDEFRecord(
+          createRecord('absolute-url', test_url_data, 'text/plain')),
+        'mediaType does not apply for absolute-url record type.');
+    assert_throws(new TypeError, () => new NDEFRecord(
+          createRecord('unknown', test_buffer_data, 'application/octet-stream')),
+        'mediaType does not apply for unknown record type.');
+    assert_throws(new TypeError, () => new NDEFRecord(
+          createRecord('foo.example.com:bar', test_buffer_data, 'application/octet-stream')),
+        'mediaType does not apply for external record type.');
+  }, 'NDEFRecord constructor should only accept mediaType for mime record type');
+
+  test(() => {
     const record = new NDEFRecord(createTextRecord(test_text_data));
     assert_equals(record.recordType, 'text', 'recordType');
-    assert_equals(record.mediaType, 'text/plain', 'mediaType');
+    assert_equals(record.mediaType, null, 'mediaType');
     assert_equals(record.encoding, 'utf-8', 'encoding');
     assert_equals(record.lang, 'en', 'lang');
     const decoder = new TextDecoder();
@@ -32,7 +53,7 @@
     const uint8Array = encoder.encode(test_text_data);
     const record = new NDEFRecord(createTextRecord(uint8Array.buffer));
     assert_equals(record.recordType, 'text', 'recordType');
-    assert_equals(record.mediaType, 'text/plain', 'mediaType');
+    assert_equals(record.mediaType, null, 'mediaType');
     assert_equals(record.encoding, 'utf-8', 'encoding');
     assert_equals(record.lang, 'en', 'lang');
     const decoder = new TextDecoder();
@@ -45,7 +66,7 @@
     const uint8Array = encoder.encode(test_text_data);
     const record = new NDEFRecord(createTextRecord(uint8Array));
     assert_equals(record.recordType, 'text', 'recordType');
-    assert_equals(record.mediaType, 'text/plain', 'mediaType');
+    assert_equals(record.mediaType, null, 'mediaType');
     assert_equals(record.encoding, 'utf-8', 'encoding');
     assert_equals(record.lang, 'en', 'lang');
     const decoder = new TextDecoder();
@@ -59,7 +80,7 @@
       const lang = 'fr';
       const record = new NDEFRecord(createTextRecord(test_text_data, encoding, lang));
       assert_equals(record.recordType, 'text', 'recordType');
-      assert_equals(record.mediaType, 'text/plain', 'mediaType');
+      assert_equals(record.mediaType, null, 'mediaType');
       assert_equals(record.encoding, encoding, 'encoding');
       assert_equals(record.lang, lang, 'lang');
       const decoder = new TextDecoder();
@@ -77,7 +98,7 @@
     });
     const record = new NDEFRecord(createTextRecord(test_text_data));
     assert_equals(record.recordType, 'text', 'recordType');
-    assert_equals(record.mediaType, 'text/plain', 'mediaType');
+    assert_equals(record.mediaType, null, 'mediaType');
     assert_equals(record.encoding, 'utf-8', 'encoding');
     assert_equals(record.lang, test_lang, 'lang');
     const decoder = new TextDecoder();
@@ -88,7 +109,7 @@
   test(() => {
     const record = new NDEFRecord(createUrlRecord(test_url_data));
     assert_equals(record.recordType, 'url', 'recordType');
-    assert_equals(record.mediaType, 'text/plain', 'mediaType');
+    assert_equals(record.mediaType, null, 'mediaType');
     const decoder = new TextDecoder();
     assert_equals(decoder.decode(record.data), test_url_data,
         'data has the same content with the original dictionary');
@@ -97,7 +118,7 @@
   test(() => {
     const record = new NDEFRecord(createUrlRecord(test_url_data, true));
     assert_equals(record.recordType, 'absolute-url', 'recordType');
-    assert_equals(record.mediaType, 'text/plain', 'mediaType');
+    assert_equals(record.mediaType, null, 'mediaType');
     const decoder = new TextDecoder();
     assert_equals(decoder.decode(record.data), test_url_data,
         'data has the same content with the original dictionary');
@@ -166,9 +187,9 @@
     let buffer_view = new Uint8Array(buffer);
     let original_data = new Uint8Array([1, 2, 3, 4]);
     buffer_view.set(original_data);
-    const record = new NDEFRecord(createRecord('foo.eXamPle.coM:bAr*-', undefined, buffer));
+    const record = new NDEFRecord(createRecord('foo.eXamPle.coM:bAr*-', buffer));
     assert_equals(record.recordType, 'foo.example.com:bAr*-', 'recordType');
-    assert_equals(record.mediaType, 'application/octet-stream', 'mediaType');
+    assert_equals(record.mediaType, null, 'mediaType');
     assert_array_equals(new Uint8Array(record.data.buffer), original_data,
         'data has the same content with the original buffer');
   }, 'NDEFRecord constructor with external record type');
@@ -176,29 +197,27 @@
   test(() => {
     assert_throws(new TypeError, () => new NDEFRecord(createRecord('EMptY')),
         'Unknown record type.');
-    assert_throws(new TypeError, () => new NDEFRecord(createRecord('TeXt', '', test_text_data)),
+    assert_throws(new TypeError, () => new NDEFRecord(createRecord('TeXt', test_text_data)),
         'Unknown record type.');
-    assert_throws(new TypeError, () => new NDEFRecord(createRecord('uRL', '', test_url_data)),
+    assert_throws(new TypeError, () => new NDEFRecord(createRecord('uRL', test_url_data)),
         'Unknown record type.');
-    assert_throws(new TypeError, () => new NDEFRecord(createRecord('jSoN', '', test_json_data)),
+    assert_throws(new TypeError, () => new NDEFRecord(createRecord('Mime', test_buffer_data)),
         'Unknown record type.');
-    assert_throws(new TypeError, () => new NDEFRecord(createRecord('OpaQUE', '', test_buffer_data)),
-        'Unknown record type.');
-    assert_throws(new TypeError, () => new NDEFRecord(createRecord('sMart-PosTER', '', test_url_data)),
+    assert_throws(new TypeError, () => new NDEFRecord(createRecord('sMart-PosTER', test_url_data)),
         'Unknown record type.');
   }, 'NDEFRecord constructor with record type string being treated as case sensitive');
 
   test(() => {
     assert_throws(new TypeError, () => new NDEFRecord(createRecord(
-        ':xyz', '', test_buffer_data)), 'The domain should not be empty.');
+        ':xyz', test_buffer_data)), 'The domain should not be empty.');
     assert_throws(new TypeError, () => new NDEFRecord(createRecord(
-        '[:xyz', '', test_buffer_data)), '"[" is not a valid FQDN.');
+        '[:xyz', test_buffer_data)), '"[" is not a valid FQDN.');
     assert_throws(new TypeError, () => new NDEFRecord(createRecord(
-        'example.com:', '', test_buffer_data)), 'The type should not be empty.');
+        'example.com:', test_buffer_data)), 'The type should not be empty.');
     assert_throws(new TypeError, () => new NDEFRecord(createRecord(
-        'example.com:xyz~', '', test_buffer_data)), 'The type should not contain \'~\'.');
+        'example.com:xyz~', test_buffer_data)), 'The type should not contain \'~\'.');
     assert_throws(new TypeError, () => new NDEFRecord(createRecord(
-        'example.com:xyz/', '', test_buffer_data)), 'The type should not contain \'/\'.');
+        'example.com:xyz/', test_buffer_data)), 'The type should not contain \'/\'.');
   }, 'NDEFRecord constructor with invalid external record type');
 
 </script>

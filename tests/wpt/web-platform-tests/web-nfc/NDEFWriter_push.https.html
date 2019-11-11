@@ -76,25 +76,21 @@ const invalid_type_messages =
 
       // https://w3c.github.io/web-nfc/#dfn-map-external-data-to-ndef
       // NDEFRecord must have data.
-      createMessage([createRecord('w3.org:xyz', '', undefined)]),
+      createMessage([createRecord('w3.org:xyz')]),
 
       // NDEFRecord.data for external record must be ArrayBuffer.
-      createMessage([createRecord('w3.org:xyz', '', test_text_data)]),
-      createMessage([createRecord('w3.org:xyz', '', test_number_data)]),
-      createMessage([createRecord('w3.org:xyz', '', test_json_data)]),
+      createMessage([createRecord('w3.org:xyz', test_text_data)]),
+      createMessage([createRecord('w3.org:xyz', test_number_data)]),
+      createMessage([createRecord('w3.org:xyz', test_json_data)]),
 
       // https://w3c.github.io/web-nfc/#the-ndefrecordtype-string
       // The record type is neither a known type ('text', 'mime' etc.) nor a
       // valid custom type for an external type record.
-      createMessage([createRecord('unmatched_type', '', test_buffer_data)])
+      createMessage([createRecord('unmatched_type', test_buffer_data)])
     ];
 
 const invalid_syntax_messages =
     [
-      // NDEFRecord.mediaType for 'text' record must be 'text/*'.
-      createMessage([createRecord('text', 'application/json',
-          test_text_data)]),
-
       // Data for 'url' or 'absolute-url' record, must be a valid URL.
       createMessage([createUrlRecord('Invalid URL:// Data')]),
       createMessage([createUrlRecord('Invalid URL:// Data', true)]),
@@ -294,7 +290,7 @@ nfc_test(async (t, mockNFC) => {
                                createUnknownRecord(test_buffer_data),
                                createUrlRecord(test_url_data),
                                createUrlRecord(test_url_data, true),
-                               createRecord('w3.org:xyz', '', test_buffer_data)],
+                               createRecord('w3.org:xyz', test_buffer_data)],
                                test_message_origin);
   await writer.push(message);
   assertNDEFMessagesEqual(message, mockNFC.pushedMessage());
@@ -414,27 +410,10 @@ recordType is undefined and NDEFRecordInit.record's data is not DOMString.");
 
 nfc_test(async (t, mockNFC) => {
   const writer = new NDEFWriter();
-  await writer.push({ records: [{ recordType: "text", data: test_text_data }] });
-  assertNDEFMessagesEqual(test_text_data, mockNFC.pushedMessage());
-}, "Test that mediaType should be set to 'text/plain' if NDEFRecordInit.record's \
-recordType is 'text' and NDEFRecordInit.record's mediaType is undefined.");
-
-nfc_test(async (t, mockNFC) => {
-  const writer = new NDEFWriter();
   await writer.push({ records: [{ recordType: "mime", data: test_buffer_data }] });
   assertNDEFMessagesEqual(test_buffer_data, mockNFC.pushedMessage());
 }, "Test that mediaType should be set to 'application/octet-stream' if \
 NDEFRecordInit.record's recordType is 'mime' and NDEFRecordInit.record's \
-mediaType is undefined.");
-
-nfc_test(async (t, mockNFC) => {
-  const writer = new NDEFWriter();
-  await writer.push({ records: [{ recordType: "w3.org:xyz", data: test_buffer_data }] });
-  const message = createMessage([createRecord('w3.org:xyz', 'application/octet-stream',
-      test_buffer_data)]);
-  assertNDEFMessagesEqual(message, mockNFC.pushedMessage());
-}, "Test that mediaType should be set to 'application/octet-stream' if \
-NDEFRecordInit.record's recordType is external type and NDEFRecordInit.record's \
 mediaType is undefined.");
 
 nfc_test(async (t, mockNFC) => {

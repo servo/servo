@@ -59,11 +59,11 @@ function toByteArray(data) {
 function compareNDEFRecords(providedRecord, receivedRecord) {
   assert_equals(providedRecord.recordType, receivedRecord.recordType);
 
-  // Compares media types without charset.
-  // Charset should be compared when watch method is implemented, in order
-  // to check that written and read strings are equal.
-  assert_equals(providedRecord.mediaType,
-      receivedRecord.mediaType.substring(0, providedRecord.mediaType.length));
+  if (providedRecord.mediaType === undefined) {
+    assert_equals(null, receivedRecord.mediaType);
+  } else {
+    assert_equals(providedRecord.mediaType, receivedRecord.mediaType);
+  }
 
   assert_not_equals(providedRecord.recordType, 'empty');
 

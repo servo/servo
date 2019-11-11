@@ -22,7 +22,7 @@
         createMessage([createTextRecord(test_text_data)]));
     assert_equals(message.records.length, 1, 'one text record');
     assert_equals(message.records[0].recordType, 'text', 'messageType');
-    assert_equals(message.records[0].mediaType, 'text/plain', 'mediaType');
+    assert_equals(message.records[0].mediaType, null, 'mediaType');
     assert_equals(message.records[0].encoding, 'utf-8', 'encoding');
     assert_equals(message.records[0].lang, 'en', 'lang');
     assert_true(message.records[0].data instanceof DataView,
