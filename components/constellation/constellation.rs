@@ -2286,6 +2286,10 @@ where
             _ => event,
         };
 
+        if let MouseButtonEvent(MouseEventType::Click, ..) = event {
+            self.pressed_mouse_buttons = 0;
+        }
+
         let msg = ConstellationControlMsg::SendEvent(destination_pipeline_id, event);
         let result = match self.pipelines.get(&destination_pipeline_id) {
             None => {

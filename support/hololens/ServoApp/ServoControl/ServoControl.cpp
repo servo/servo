@@ -159,6 +159,7 @@ void ServoControl::OnSurfacePointerMoved(
     auto point = e.GetCurrentPoint(Panel());
     auto x = point.Position().X * mDPI;
     auto y = point.Position().Y * mDPI;
+    e.Handled(true);
     RunOnGLThread([=] { mServo->MouseMove(x, y); });
   }
 }
