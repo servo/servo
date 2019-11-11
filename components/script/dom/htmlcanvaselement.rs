@@ -28,6 +28,7 @@ use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
 use crate::dom::webglrenderingcontext::{
     LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext,
 };
+use crate::euclidext::Size2DExt;
 use crate::script_runtime::JSContext;
 use base64;
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
@@ -94,7 +95,9 @@ impl HTMLCanvasElement {
         let size = self.get_size();
         if let Some(ref context) = *self.context.borrow() {
             match *context {
-                CanvasContext::Context2d(ref context) => context.set_bitmap_dimensions(size),
+                CanvasContext::Context2d(ref context) => {
+                    context.set_canvas_bitmap_dimensions(size.to_u64())
+                },
                 CanvasContext::WebGL(ref context) => context.recreate(size),
                 CanvasContext::WebGL2(ref context) => context.recreate(size),
             }

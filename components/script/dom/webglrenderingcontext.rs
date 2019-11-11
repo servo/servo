@@ -2963,10 +2963,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let src_origin = Point2D::new(x, y);
         let src_size = Size2D::new(width as u32, height as u32);
         let fb_size = Size2D::new(fb_width as u32, fb_height as u32);
-        let src_rect = match pixels::clip(src_origin, src_size, fb_size) {
+        let src_rect = match pixels::clip(src_origin, src_size.to_u64(), fb_size.to_u64()) {
             Some(rect) => rect,
             None => return,
         };
+
+        // Note: we're casting a Rect<u64> back into a Rect<u32> here, but it's okay because
+        //  it used u32 data types to begin with. It just got converted to Rect<u64> in
+        //  pixels::clip
+        let src_rect = src_rect.to_u32();
 
         let mut dest_offset = 0;
         if x < 0 {
@@ -4483,5 +4488,15 @@ impl WebGLMessageSender {
 
     pub fn send_dom_to_texture(&self, command: DOMToTextureCommand) -> WebGLSendResult {
         self.wake_after_send(|| self.sender.send_dom_to_texture(command))
+    }
+}
+
+pub trait Size2DExt {
+    fn to_u64(&self) -> Size2D<u64>;
+}
+
+impl Size2DExt for Size2D<u32> {
+    fn to_u64(&self) -> Size2D<u64> {
+        return Size2D::new(self.width as u64, self.height as u64);
     }
 }

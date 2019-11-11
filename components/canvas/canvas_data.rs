@@ -13,7 +13,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::sync::Arc;
 use webrender::api::DirtyRect;
-use webrender_api::units::RectExt;
+use webrender_api::units::RectExt as RectExt_;
 
 /// The canvas data stores a state machine for the current status of
 /// the path data and any relevant transformations that are
@@ -449,7 +449,7 @@ impl<'a> CanvasData<'a> {
         let source_rect = source_rect.ceil();
         // It discards the extra pixels (if any) that won't be painted
         let image_data = if Rect::from_size(image_size).contains_rect(&source_rect) {
-            pixels::rgba8_get_rect(&image_data, image_size.to_u32(), source_rect.to_u32()).into()
+            pixels::rgba8_get_rect(&image_data, image_size.to_u64(), source_rect.to_u64()).into()
         } else {
             image_data.into()
         };
@@ -927,10 +927,10 @@ impl<'a> CanvasData<'a> {
         self.backend.set_global_composition(op, &mut self.state);
     }
 
-    pub fn recreate(&mut self, size: Size2D<u32>) {
+    pub fn recreate(&mut self, size: Size2D<u64>) {
         self.drawtarget = self
             .backend
-            .create_drawtarget(Size2D::new(size.width as u64, size.height as u64));
+            .create_drawtarget(Size2D::new(size.width, size.height));
         self.state = self.backend.recreate_paint_state(&self.state);
         self.saved_states.clear();
         // Webrender doesn't let images change size, so we clear the webrender image key.
@@ -997,7 +997,7 @@ impl<'a> CanvasData<'a> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
-    pub fn put_image_data(&mut self, mut imagedata: Vec<u8>, rect: Rect<u32>) {
+    pub fn put_image_data(&mut self, mut imagedata: Vec<u8>, rect: Rect<u64>) {
         assert_eq!(imagedata.len() % 4, 0);
         assert_eq!(rect.size.area() as usize, imagedata.len() / 4);
         pixels::rgba8_byte_swap_and_premultiply_inplace(&mut imagedata);
@@ -1082,7 +1082,7 @@ impl<'a> CanvasData<'a> {
     /// canvas_size: The size of the canvas we're reading from
     /// read_rect: The area of the canvas we want to read from
     #[allow(unsafe_code)]
-    pub fn read_pixels(&self, read_rect: Rect<u32>, canvas_size: Size2D<u32>) -> Vec<u8> {
+    pub fn read_pixels(&self, read_rect: Rect<u64>, canvas_size: Size2D<u64>) -> Vec<u8> {
         let canvas_rect = Rect::from_size(canvas_size);
         if canvas_rect
             .intersection(&read_rect)
@@ -1092,7 +1092,7 @@ impl<'a> CanvasData<'a> {
         }
 
         self.drawtarget.snapshot_data(&|bytes| {
-            pixels::rgba8_get_rect(bytes, canvas_size.to_u32(), read_rect.to_u32()).into_owned()
+            pixels::rgba8_get_rect(bytes, canvas_size, read_rect).into_owned()
         })
     }
 }
@@ -1187,5 +1187,37 @@ impl RectToi32 for Rect<f64> {
             Point2D::new(self.origin.x.ceil(), self.origin.y.ceil()),
             Size2D::new(self.size.width.ceil(), self.size.height.ceil()),
         )
+    }
+}
+
+pub trait Size2DExt {
+    fn to_u64(&self) -> Size2D<u64>;
+}
+
+impl Size2DExt for Size2D<f64> {
+    fn to_u64(&self) -> Size2D<u64> {
+        self.cast()
+    }
+}
+
+impl Size2DExt for Size2D<u32> {
+    fn to_u64(&self) -> Size2D<u64> {
+        self.cast()
+    }
+}
+
+pub trait RectExt {
+    fn to_u64(&self) -> Rect<u64>;
+}
+
+impl RectExt for Rect<f64> {
+    fn to_u64(&self) -> Rect<u64> {
+        self.cast()
+    }
+}
+
+impl RectExt for Rect<u32> {
+    fn to_u64(&self) -> Rect<u64> {
+        self.cast()
     }
 }

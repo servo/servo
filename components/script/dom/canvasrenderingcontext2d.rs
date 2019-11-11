@@ -22,9 +22,10 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::imagedata::ImageData;
 use crate::dom::textmetrics::TextMetrics;
+use crate::euclidext::Size2DExt;
 use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg};
 use dom_struct::dom_struct;
-use euclid::default::{Rect, Size2D};
+use euclid::default::{Point2D, Rect, Size2D};
 use ipc_channel::ipc::IpcSender;
 use servo_url::ServoUrl;
 use std::mem;
@@ -75,12 +76,13 @@ impl CanvasRenderingContext2D {
             .borrow()
             .get_ipc_renderer()
             .send(CanvasMsg::Recreate(
-                size,
+                size.to_u64(),
                 self.canvas_state.borrow().get_canvas_id(),
             ))
             .unwrap();
     }
 
+    //  TODO: This duplicates functionality in canvas state
     // https://html.spec.whatwg.org/multipage/#reset-the-rendering-context-to-its-default-state
     fn reset_to_initial_state(&self) {
         self.canvas_state
@@ -89,6 +91,15 @@ impl CanvasRenderingContext2D {
             .borrow_mut()
             .clear();
         *self.canvas_state.borrow().get_state().borrow_mut() = CanvasContextState::new();
+    }
+    /*
+        pub fn get_canvas_state(&self) -> Ref<CanvasState> {
+            self.canvas_state.borrow()
+        }
+    */
+
+    pub fn set_canvas_bitmap_dimensions(&self, size: Size2D<u64>) {
+        self.canvas_state.borrow().set_bitmap_dimensions(size);
     }
 
     pub fn mark_as_dirty(&self) {
@@ -116,6 +127,7 @@ impl CanvasRenderingContext2D {
         self.canvas_state.borrow().send_canvas_2d_msg(msg)
     }
 
+    // TODO: Remove this
     pub fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
         self.canvas_state.borrow().get_ipc_renderer().clone()
     }
@@ -125,10 +137,14 @@ impl CanvasRenderingContext2D {
     }
 
     pub fn get_rect(&self, rect: Rect<u32>) -> Vec<u8> {
+        let rect = Rect::new(
+            Point2D::new(rect.origin.x as u64, rect.origin.y as u64),
+            Size2D::new(rect.size.width as u64, rect.size.height as u64),
+        );
         self.canvas_state.borrow().get_rect(
             self.canvas
                 .as_ref()
-                .map_or(Size2D::zero(), |c| c.get_size()),
+                .map_or(Size2D::zero(), |c| c.get_size().to_u64()),
             rect,
         )
     }
@@ -469,7 +485,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         self.canvas_state.borrow().get_image_data(
             self.canvas
                 .as_ref()
-                .map_or(Size2D::zero(), |c| c.get_size()),
+                .map_or(Size2D::zero(), |c| c.get_size().to_u64()),
             &self.global(),
             sx,
             sy,
@@ -483,7 +499,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         self.canvas_state.borrow().put_image_data(
             self.canvas
                 .as_ref()
-                .map_or(Size2D::zero(), |c| c.get_size()),
+                .map_or(Size2D::zero(), |c| c.get_size().to_u64()),
             imagedata,
             dx,
             dy,
@@ -505,7 +521,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         self.canvas_state.borrow().put_image_data_(
             self.canvas
                 .as_ref()
-                .map_or(Size2D::zero(), |c| c.get_size()),
+                .map_or(Size2D::zero(), |c| c.get_size().to_u64()),
             imagedata,
             dx,
             dy,

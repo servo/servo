@@ -24,6 +24,7 @@ use crate::dom::imagedata::ImageData;
 use crate::dom::node::{Node, NodeDamage};
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::textmetrics::TextMetrics;
+use crate::euclidext::Size2DExt;
 use crate::unpremultiplytable::UNPREMULTIPLY_TABLE;
 use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg};
 use canvas_traits::canvas::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
@@ -180,6 +181,19 @@ impl CanvasState {
             .unwrap()
     }
 
+    // https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions
+    pub fn set_bitmap_dimensions(&self, size: Size2D<u64>) {
+        self.reset_to_initial_state();
+        self.ipc_renderer
+            .send(CanvasMsg::Recreate(size, self.get_canvas_id()))
+            .unwrap();
+    }
+
+    pub fn reset_to_initial_state(&self) {
+        self.saved_states.borrow_mut().clear();
+        *self.state.borrow_mut() = CanvasContextState::new();
+    }
+
     fn create_drawable_rect(&self, x: f64, y: f64, w: f64, h: f64) -> Option<Rect<f32>> {
         if !([x, y, w, h].iter().all(|val| val.is_finite())) {
             return None;
@@ -300,7 +314,7 @@ impl CanvasState {
         }
     }
 
-    pub fn get_rect(&self, canvas_size: Size2D<u32>, rect: Rect<u32>) -> Vec<u8> {
+    pub fn get_rect(&self, canvas_size: Size2D<u64>, rect: Rect<u64>) -> Vec<u8> {
         assert!(self.origin_is_clean());
 
         assert!(Rect::from_size(canvas_size).contains_rect(&rect));
@@ -1019,7 +1033,7 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
     pub fn get_image_data(
         &self,
-        canvas_size: Size2D<u32>,
+        canvas_size: Size2D<u64>,
         global: &GlobalScope,
         sx: i32,
         sy: i32,
@@ -1038,7 +1052,7 @@ impl CanvasState {
         }
 
         let (origin, size) = adjust_size_sign(Point2D::new(sx, sy), Size2D::new(sw, sh));
-        let read_rect = match pixels::clip(origin, size, canvas_size) {
+        let read_rect = match pixels::clip(origin, size.to_u64(), canvas_size) {
             Some(rect) => rect,
             None => {
                 // All the pixels are outside the canvas surface.
@@ -1057,7 +1071,7 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     pub fn put_image_data(
         &self,
-        canvas_size: Size2D<u32>,
+        canvas_size: Size2D<u64>,
         imagedata: &ImageData,
         dx: i32,
         dy: i32,
@@ -1078,7 +1092,7 @@ impl CanvasState {
     #[allow(unsafe_code)]
     pub fn put_image_data_(
         &self,
-        canvas_size: Size2D<u32>,
+        canvas_size: Size2D<u64>,
         imagedata: &ImageData,
         dx: i32,
         dy: i32,
@@ -1106,7 +1120,7 @@ impl CanvasState {
             Point2D::new(dirty_x, dirty_y),
             Size2D::new(dirty_width, dirty_height),
         );
-        let src_rect = match pixels::clip(src_origin, src_size, imagedata_size) {
+        let src_rect = match pixels::clip(src_origin, src_size.to_u64(), imagedata_size.to_u64()) {
             Some(rect) => rect,
             None => return,
         };

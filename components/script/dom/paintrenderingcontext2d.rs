@@ -21,6 +21,7 @@ use crate::dom::canvasgradient::CanvasGradient;
 use crate::dom::canvaspattern::CanvasPattern;
 use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
+use crate::euclidext::Size2DExt;
 use canvas_traits::canvas::CanvasImageData;
 use canvas_traits::canvas::CanvasMsg;
 use canvas_traits::canvas::FromLayoutMsg;
@@ -75,7 +76,7 @@ impl PaintRenderingContext2D {
         let size = size * device_pixel_ratio;
         self.device_pixel_ratio.set(device_pixel_ratio);
         self.context
-            .set_bitmap_dimensions(size.to_untyped().to_u32());
+            .set_canvas_bitmap_dimensions(size.to_untyped().to_u64());
         self.scale_by_device_pixel_ratio();
     }
 
