@@ -30,7 +30,6 @@ use rustc::hir::{self, ExprKind, HirId};
 use rustc::lint::{LateContext, LateLintPass, LintContext, LintPass};
 use rustc::ty;
 use rustc_driver::plugin::Registry;
-use syntax::feature_gate::AttributeType::Whitelisted;
 use syntax::source_map;
 use syntax::source_map::{ExpnKind, MacroKind, Span};
 use syntax::symbol::sym;
@@ -44,9 +43,6 @@ pub fn plugin_registrar(reg: &mut Registry) {
 
 fn registrar(reg: &mut Registry) {
     let symbols = Symbols::new();
-    reg.register_attribute(symbols.allow_unrooted_interior, Whitelisted);
-    reg.register_attribute(symbols.allow_unrooted_in_rc, Whitelisted);
-    reg.register_attribute(symbols.must_root, Whitelisted);
     reg.lint_store.register_lints(&[&UNROOTED_MUST_ROOT]);
     reg.lint_store
         .register_late_pass(move || Box::new(UnrootedPass::new(symbols.clone())));
