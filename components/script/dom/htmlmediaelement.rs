@@ -268,7 +268,7 @@ impl FrameRenderer for MediaFrameRenderer {
     }
 }
 
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 enum SrcObject {
     MediaStream(Dom<MediaStream>),

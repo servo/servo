@@ -140,7 +140,7 @@ impl WebGLExtensionFeatures {
 }
 
 /// Handles the list of implemented, supported and enabled WebGL extensions.
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct WebGLExtensions {
     extensions: DomRefCell<HashMap<String, Box<dyn WebGLExtensionWrapper>>>,

@@ -39,7 +39,7 @@ pub struct CSSStyleDeclaration {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub enum CSSStyleOwner {
     Element(Dom<Element>),
     CSSRule(

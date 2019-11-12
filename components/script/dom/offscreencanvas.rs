@@ -23,7 +23,7 @@ use ref_filter_map;
 use std::cell::Cell;
 use std::cell::Ref;
 
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub enum OffscreenCanvasContext {
     OffscreenContext2d(Dom<OffscreenCanvasRenderingContext2D>),
