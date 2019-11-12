@@ -112,6 +112,10 @@ public class MainActivity extends Activity implements Servo.Client {
             uri =  URLUtil.composeSearchUrl(text, "https://duckduckgo.com/html/?q=%s", "%s");
         } else {
             uri = URLUtil.guessUrl(text);
+
+            if (uri.startsWith("http://") && !text.startsWith("http://")) {
+                uri = uri.replaceFirst("http://", "https://");
+            }
         }
 
         mServoView.loadUri(Uri.parse(uri));
