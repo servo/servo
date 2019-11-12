@@ -130,10 +130,12 @@ impl HTMLIFrameElement {
 
         let document = document_from_node(self);
 
-        let mut load_blocker = self.load_blocker.borrow_mut();
-        // Any oustanding load is finished from the point of view of the blocked
-        // document; the new navigation will continue blocking it.
-        LoadBlocker::terminate(&mut load_blocker);
+        {
+            let mut load_blocker = self.load_blocker.borrow_mut();
+            // Any oustanding load is finished from the point of view of the blocked
+            // document; the new navigation will continue blocking it.
+            LoadBlocker::terminate(&mut load_blocker);
+        }
 
         if load_data.url.scheme() == "javascript" {
             let window_proxy = self.GetContentWindow();
@@ -150,6 +152,7 @@ impl HTMLIFrameElement {
         match load_data.js_eval_result {
             Some(JsEvalResult::NoContent) => (),
             _ => {
+                let mut load_blocker = self.load_blocker.borrow_mut();
                 *load_blocker = Some(LoadBlocker::new(
                     &*document,
                     LoadType::Subframe(load_data.url.clone()),
@@ -229,7 +232,30 @@ impl HTMLIFrameElement {
 
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
     fn process_the_iframe_attributes(&self, mode: ProcessingMode) {
-        // TODO: srcdoc
+        if self
+            .upcast::<Element>()
+            .has_attribute(&local_name!("srcdoc"))
+        {
+            let url = ServoUrl::parse("about:srcdoc").unwrap();
+            let document = document_from_node(self);
+            let window = window_from_node(self);
+            let pipeline_id = Some(window.upcast::<GlobalScope>().pipeline_id());
+            let mut load_data = LoadData::new(
+                LoadOrigin::Script(document.origin().immutable().clone()),
+                url,
+                pipeline_id,
+                Some(Referrer::ReferrerUrl(document.url())),
+                document.get_referrer_policy(),
+            );
+            let element = self.upcast::<Element>();
+            load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
+            self.navigate_or_reload_child_browsing_context(
+                load_data,
+                NavigationType::InitialAboutBlank,
+                HistoryEntryReplacement::Disabled,
+            );
+            return;
+        }
 
         let window = window_from_node(self);
 
@@ -480,6 +506,12 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // https://html.spec.whatwg.org/multipage/#dom-iframe-src
     make_url_setter!(SetSrc, "src");
 
+    // https://html.spec.whatwg.org/multipage/#dom-iframe-srcdoc
+    make_getter!(Srcdoc, "srcdoc");
+
+    // https://html.spec.whatwg.org/multipage/#dom-iframe-srcdoc
+    make_setter!(SetSrcdoc, "srcdoc");
+
     // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
     fn Sandbox(&self) -> DomRoot<DOMTokenList> {
         self.sandbox
@@ -580,13 +612,29 @@ impl VirtualMethods for HTMLIFrameElement {
                         modes
                     }));
             },
+            &local_name!("srcdoc") => {
+                // https://html.spec.whatwg.org/multipage/#the-iframe-element:the-iframe-element-9
+                // "Whenever an iframe element with a non-null nested browsing context has its
+                // srcdoc attribute set, changed, or removed, the user agent must process the
+                // iframe attributes."
+                // but we can't check that directly, since the child browsing context
+                // may be in a different script thread. Instead, we check to see if the parent
+                // is in a document tree and has a browsing context, which is what causes
+                // the child browsing context to be created.
+
+                // trigger the processing of iframe attributes whenever "srcdoc" attribute is set, changed or removed
+                if self.upcast::<Node>().is_connected_with_browsing_context() {
+                    debug!("iframe srcdoc modified while in browsing context.");
+                    self.process_the_iframe_attributes(ProcessingMode::NotFirstTime);
+                }
+            },
             &local_name!("src") => {
                 // https://html.spec.whatwg.org/multipage/#the-iframe-element
                 // "Similarly, whenever an iframe element with a non-null nested browsing context
                 // but with no srcdoc attribute specified has its src attribute set, changed, or removed,
                 // the user agent must process the iframe attributes,"
                 // but we can't check that directly, since the child browsing context
-                // may be in a different script thread. Instread, we check to see if the parent
+                // may be in a different script thread. Instead, we check to see if the parent
                 // is in a document tree and has a browsing context, which is what causes
                 // the child browsing context to be created.
                 if self.upcast::<Node>().is_connected_with_browsing_context() {

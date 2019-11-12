@@ -163,6 +163,9 @@ pub struct LoadData {
     pub referrer: Option<Referrer>,
     /// The referrer policy.
     pub referrer_policy: Option<ReferrerPolicy>,
+
+    /// The source to use instead of a network response for a srcdoc document.
+    pub srcdoc: String,
 }
 
 /// The result of evaluating a javascript scheme url.
@@ -194,6 +197,7 @@ impl LoadData {
             js_eval_result: None,
             referrer: referrer,
             referrer_policy: referrer_policy,
+            srcdoc: "".to_string(),
         }
     }
 }
