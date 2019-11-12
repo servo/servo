@@ -6425,7 +6425,8 @@ class CGDictionary(CGThing):
         mustRoot = ""
         if self.membersNeedTracing():
             mustRoot = "#[unrooted_must_root_lint::must_root]\n"
-            derive += ["Default"]
+            if not self.hasRequiredFields(self.dictionary):
+                derive += ["Default"]
 
         return (string.Template(
                 "#[derive(${derive})]\n"
@@ -6485,16 +6486,14 @@ class CGDictionary(CGThing):
         selfName = self.makeClassName(d)
         if self.membersNeedTracing():
             actualType = "RootedTraceableBox<%s>" % selfName
-            preInitial = "let mut dictionary = RootedTraceableBox::new(%s::default());\n" % selfName
-            initParent = initParent = ("dictionary.parent = %s;\n" % initParent) if initParent else ""
-            memberInits = CGList([memberInit(m, False) for m in self.memberInfo])
-            postInitial = ""
+            preInitial = "let dictionary = RootedTraceableBox::new(%s {\n" % selfName
+            postInitial = "});\n"
         else:
             actualType = selfName
             preInitial = "let dictionary = %s {\n" % selfName
             postInitial = "};\n"
-            initParent = ("parent: %s,\n" % initParent) if initParent else ""
-            memberInits = CGList([memberInit(m, True) for m in self.memberInfo])
+        initParent = ("parent: %s,\n" % initParent) if initParent else ""
+        memberInits = CGList([memberInit(m, True) for m in self.memberInfo])
 
         return string.Template(
             "impl ${selfName} {\n"
@@ -6540,8 +6539,8 @@ class CGDictionary(CGThing):
                 "initParent": CGIndenter(CGGeneric(initParent), indentLevel=16).define(),
                 "initMembers": CGIndenter(memberInits, indentLevel=16).define(),
                 "insertMembers": CGIndenter(memberInserts, indentLevel=8).define(),
-                "preInitial": CGIndenter(CGGeneric(preInitial), indentLevel=16).define(),
-                "postInitial": CGIndenter(CGGeneric(postInitial), indentLevel=16).define(),
+                "preInitial": CGIndenter(CGGeneric(preInitial), indentLevel=8).define(),
+                "postInitial": CGIndenter(CGGeneric(postInitial), indentLevel=8).define(),
             })
 
     def membersNeedTracing(self):
