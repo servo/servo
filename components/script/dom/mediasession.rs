@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::compartments::{AlreadyInCompartment, InCompartment};
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding;
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionAction;
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionActionHandler;
@@ -61,15 +63,38 @@ impl MediaSession {
         )
     }
 
+    pub fn register_media_instance(&self, media_instance: &HTMLMediaElement) {
+        self.media_instance.set(Some(media_instance));
+    }
+
     pub fn handle_action(&self, action: MediaSessionActionType) {
-        println!("HANDLE ACTION {:?}", action);
+        debug!("Handle media session action {:?} {:?}", action);
         if let Some(handler) = self.action_handlers.borrow().get(&action) {
             if handler.Call__(ExceptionHandling::Report).is_err() {
                 warn!("Error calling MediaSessionActionHandler callback");
             }
             return;
         }
-        // TODO default action.
+
+        // Default action.
+        if let Some(media) = self.media_instance.get() {
+            match action {
+                MediaSessionActionType::Play => {
+                    let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
+                    media.Play(InCompartment::Already(&in_compartment_proof));
+                },
+                MediaSessionActionType::Pause => {
+                    media.Pause();
+                },
+                MediaSessionActionType::SeekBackward => {},
+                MediaSessionActionType::SeekForward => {},
+                MediaSessionActionType::PreviousTrack => {},
+                MediaSessionActionType::NextTrack => {},
+                MediaSessionActionType::SkipAd => {},
+                MediaSessionActionType::Stop => {},
+                MediaSessionActionType::SeekTo => {},
+            }
+        }
     }
 
     pub fn send_event(&self, event: MediaSessionEvent) {
