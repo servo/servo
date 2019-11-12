@@ -206,7 +206,7 @@ class MachCommands(CommandBase):
         filename = path.join(self.context.topdir, "rust-toolchain")
         with open(filename, "w") as f:
             f.write(toolchain + "\n")
-        return call(["rustup" + BIN_SUFFIX, "install", toolchain])
+        return call(["rustup" + BIN_SUFFIX, "component", "add", "rustc-dev"])
 
     @Command('fetch',
              description='Fetch Rust, Cargo and Cargo dependencies',
