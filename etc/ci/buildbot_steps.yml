@@ -2,9 +2,9 @@ env:
   RUST_BACKTRACE: '1'
   RUSTFLAGS: -Dwarnings
   CARGO_INCREMENTAL: "0"
-  SCCACHE_IDLE_TIMEOUT: "1200"
   GST_DEBUG: '3'
-
+  SCCACHE_IDLE_TIMEOUT: "1200"
+  SCCACHE_MAX_FRAME_LENGTH": "100000000"  # 100 MB
 linux-rel-nogate:
  env:
    CC: clang-4.0
