@@ -44,4 +44,8 @@ impl Identities {
     pub fn create_adapter_id(&mut self) -> AdapterId {
         self.hub.adapters.alloc()
     }
+
+    pub fn create_device_id(&mut self) -> DeviceId {
+        self.hub.devices.alloc()
+    }
 }

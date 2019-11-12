@@ -10,5 +10,25 @@ interface GPUAdapter {
     //readonly attribute GPULimits limits; Don’t expose higher limits for now.
 
     // May reject with DOMException  // TODO: DOMException("OperationError")?
-    // Promise<GPUDevice> requestDevice(optional GPUDeviceDescriptor descriptor = {});
+    Promise<GPUDevice> requestDevice(optional GPUDeviceDescriptor descriptor = {});
+};
+
+dictionary GPUDeviceDescriptor : GPUObjectDescriptorBase {
+    GPUExtensions extensions = {};
+    GPULimits limits = {};
+};
+
+dictionary GPUExtensions {
+    boolean anisotropicFiltering = false;
+};
+
+dictionary GPULimits {
+    unsigned long maxBindGroups = 4;
+    unsigned long maxDynamicUniformBuffersPerPipelineLayout = 8;
+    unsigned long maxDynamicStorageBuffersPerPipelineLayout = 4;
+    unsigned long maxSampledTexturesPerShaderStage = 16;
+    unsigned long maxSamplersPerShaderStage = 16;
+    unsigned long maxStorageBuffersPerShaderStage = 4;
+    unsigned long maxStorageTexturesPerShaderStage = 4;
+    unsigned long maxUniformBuffersPerShaderStage = 12;
 };
