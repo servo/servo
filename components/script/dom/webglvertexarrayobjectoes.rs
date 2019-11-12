@@ -258,7 +258,7 @@ impl Drop for WebGLVertexArrayObjectOES {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub struct VertexAttribData {
     pub enabled_as_array: bool,
     pub size: u8,

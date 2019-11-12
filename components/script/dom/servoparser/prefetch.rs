@@ -32,7 +32,7 @@ use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub struct Tokenizer {
     #[ignore_malloc_size_of = "Defined in html5ever"]
     inner: HtmlTokenizer<PrefetchSink>,

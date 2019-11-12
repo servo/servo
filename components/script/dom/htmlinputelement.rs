@@ -237,7 +237,7 @@ pub struct HTMLInputElement {
 }
 
 #[derive(JSTraceable)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 #[derive(MallocSizeOf)]
 struct InputActivationState {
     indeterminate: bool,

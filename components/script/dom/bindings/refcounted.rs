@@ -151,7 +151,7 @@ impl TrustedPromise {
 /// shared among threads for use in asynchronous operations. The underlying
 /// DOM object is guaranteed to live at least as long as the last outstanding
 /// `Trusted<T>` instance.
-#[allow_unrooted_interior]
+#[unrooted_must_root_lint::allow_unrooted_interior]
 pub struct Trusted<T: DomObject> {
     /// A pointer to the Rust DOM object of type T, but void to allow
     /// sending `Trusted<T>` between threads, regardless of T's sendability.

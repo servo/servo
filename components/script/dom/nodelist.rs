@@ -13,7 +13,7 @@ use dom_struct::dom_struct;
 use std::cell::Cell;
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub enum NodeListType {
     Simple(Vec<Dom<Node>>),
     Children(ChildrenList),
@@ -119,7 +119,7 @@ impl NodeList {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub struct ChildrenList {
     node: Dom<Node>,
     #[ignore_malloc_size_of = "Defined in rust-mozjs"]

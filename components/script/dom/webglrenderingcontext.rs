@@ -4275,7 +4275,7 @@ capabilities! {
     STENCIL_TEST,
 }
 
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct Textures {
     active_unit: Cell<u32>,
@@ -4343,7 +4343,7 @@ impl Textures {
     }
 }
 
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 #[derive(Default, JSTraceable, MallocSizeOf)]
 struct TextureUnit {
     tex_2d: MutNullableDom<WebGLTexture>,
