@@ -64,16 +64,6 @@ ${helpers.single_keyword(
     spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/box-pack)",
 )}
 
-${helpers.single_keyword(
-    "-moz-stack-sizing",
-    "stretch-to-fit ignore ignore-horizontal ignore-vertical",
-    engines="gecko",
-    gecko_ffi_name="mStackSizing",
-    gecko_enum_prefix="StyleStackSizing",
-    animation_value_type="discrete",
-    spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-stack-sizing)",
-)}
-
 ${helpers.predefined_type(
     "-moz-box-ordinal-group",
     "Integer",

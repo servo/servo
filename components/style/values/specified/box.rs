@@ -109,8 +109,6 @@ pub enum DisplayInside {
     #[cfg(feature = "gecko")]
     MozGridLine,
     #[cfg(feature = "gecko")]
-    MozStack,
-    #[cfg(feature = "gecko")]
     MozDeck,
     #[cfg(feature = "gecko")]
     MozGroupbox,
@@ -242,8 +240,6 @@ impl Display {
     pub const MozGridGroup: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGridGroup);
     #[cfg(feature = "gecko")]
     pub const MozGridLine: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGridLine);
-    #[cfg(feature = "gecko")]
-    pub const MozStack: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozStack);
     #[cfg(feature = "gecko")]
     pub const MozDeck: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozDeck);
     #[cfg(feature = "gecko")]
@@ -668,8 +664,6 @@ impl Parse for Display {
             "-moz-grid-group" if moz_display_values_enabled(context) => Display::MozGridGroup,
             #[cfg(feature = "gecko")]
             "-moz-grid-line" if moz_display_values_enabled(context) => Display::MozGridLine,
-            #[cfg(feature = "gecko")]
-            "-moz-stack" if moz_display_values_enabled(context) => Display::MozStack,
             #[cfg(feature = "gecko")]
             "-moz-deck" if moz_display_values_enabled(context) => Display::MozDeck,
             #[cfg(feature = "gecko")]
