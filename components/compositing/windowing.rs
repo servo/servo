@@ -104,7 +104,7 @@ pub enum WindowEvent {
     ToggleSamplingProfiler(Duration, Duration),
     /// Sent when the user triggers a media action through the UA exposed media UI
     /// (play, pause, seek, etc.).
-    MediaSessionAction(TopLevelBrowsingContextId, MediaSessionActionType),
+    MediaSessionAction(MediaSessionActionType),
 }
 
 impl Debug for WindowEvent {

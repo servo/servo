@@ -16,10 +16,9 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::htmlmediaelement::HTMLMediaElement;
 use crate::dom::mediametadata::MediaMetadata;
 use crate::dom::window::Window;
-use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
 use embedder_traits::MediaSessionEvent;
-use msg::constellation_msg::BrowsingContextId;
+use msg::constellation_msg::PipelineId;
 use script_traits::MediaSessionActionType;
 use script_traits::ScriptMsg;
 use std::collections::HashMap;
@@ -42,7 +41,7 @@ pub struct MediaSession {
 
 impl MediaSession {
     #[allow(unrooted_must_root)]
-    fn new_inherited(browsing_context_id: BrowsingContextId) -> MediaSession {
+    fn new_inherited() -> MediaSession {
         let media_session = MediaSession {
             reflector_: Reflector::new(),
             metadata: Default::default(),
@@ -50,14 +49,12 @@ impl MediaSession {
             action_handlers: DomRefCell::new(HashMap::new()),
             media_instance: Default::default(),
         };
-        ScriptThread::register_media_session(&media_session, browsing_context_id);
         media_session
     }
 
     pub fn new(window: &Window) -> DomRoot<MediaSession> {
-        let browsing_context_id = window.window_proxy().browsing_context_id();
         reflect_dom_object(
-            Box::new(MediaSession::new_inherited(browsing_context_id)),
+            Box::new(MediaSession::new_inherited()),
             window,
             MediaSessionBinding::Wrap,
         )
@@ -68,7 +65,8 @@ impl MediaSession {
     }
 
     pub fn handle_action(&self, action: MediaSessionActionType) {
-        debug!("Handle media session action {:?} {:?}", action);
+        debug!("Handle media session action {:?}", action);
+
         if let Some(handler) = self.action_handlers.borrow().get(&action) {
             if handler.Call__(ExceptionHandling::Report).is_err() {
                 warn!("Error calling MediaSessionActionHandler callback");
@@ -100,8 +98,10 @@ impl MediaSession {
     pub fn send_event(&self, event: MediaSessionEvent) {
         let global = self.global();
         let window = global.as_window();
-        let browsing_context_id = window.window_proxy().browsing_context_id();
-        window.send_to_constellation(ScriptMsg::MediaSessionEvent(browsing_context_id, event));
+        let pipeline_id = window
+            .pipeline_id()
+            .expect("Cannot send media session event outside of a pipeline");
+        window.send_to_constellation(ScriptMsg::MediaSessionEvent(pipeline_id, event));
     }
 }
 
@@ -142,14 +142,6 @@ impl MediaSessionMethods for MediaSession {
                 .insert(action.into(), handler.clone()),
             None => self.action_handlers.borrow_mut().remove(&action.into()),
         };
-    }
-}
-
-impl Drop for MediaSession {
-    fn drop(&mut self) {
-        let global = self.global();
-        let browsing_context_id = global.as_window().window_proxy().browsing_context_id();
-        ScriptThread::remove_media_session(browsing_context_id);
     }
 }
 

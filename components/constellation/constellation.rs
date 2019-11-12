@@ -476,8 +476,8 @@ pub struct Constellation<Message, LTF, STF> {
     /// Mechanism to force the compositor to process events.
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
 
-    /// Browing context ID of the active media session.
-    active_media_session: Option<BrowsingContextId>,
+    /// Pipeline ID of the active media session.
+    active_media_session: Option<PipelineId>,
 }
 
 /// State needed to construct a constellation.
@@ -1546,8 +1546,8 @@ where
             FromCompositorMsg::ExitFullScreen(top_level_browsing_context_id) => {
                 self.handle_exit_fullscreen_msg(top_level_browsing_context_id);
             },
-            FromCompositorMsg::MediaSessionAction(top_level_browsing_context_id, action) => {
-                self.handle_media_session_action_msg(top_level_browsing_context_id, action);
+            FromCompositorMsg::MediaSessionAction(action) => {
+                self.handle_media_session_action_msg(action);
             },
         }
     }
@@ -1779,7 +1779,7 @@ where
                     new_value,
                 );
             },
-            FromScriptMsg::MediaSessionEvent(browsing_context_id, event) => {
+            FromScriptMsg::MediaSessionEvent(pipeline_id, event) => {
                 // Unlikely at this point, but we may receive events coming from
                 // different media sessions, so we set the active media session based
                 // on Playing events.
@@ -1797,7 +1797,7 @@ where
                         _ => (),
                     };
                 }
-                self.active_media_session = Some(browsing_context_id);
+                self.active_media_session = Some(pipeline_id);
                 self.embedder_proxy.send((
                     Some(source_top_ctx_id),
                     EmbedderMsg::MediaSessionEvent(event),
@@ -5052,33 +5052,28 @@ where
         }
     }
 
-    fn handle_media_session_action_msg(
-        &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-        action: MediaSessionActionType,
-    ) {
-        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
-        let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-            Some(browsing_context) => browsing_context.pipeline_id,
-            None => {
-                return warn!(
-                    "Browsing context {} got media session action request after closure.",
-                    browsing_context_id
-                );
-            },
-        };
-        let msg = ConstellationControlMsg::MediaSessionAction(browsing_context_id, action);
-        let result = match self.pipelines.get(&pipeline_id) {
-            None => {
-                return warn!(
-                    "Pipeline {} got media session action request after closure.",
-                    pipeline_id
-                )
-            },
-            Some(pipeline) => pipeline.event_loop.send(msg),
-        };
-        if let Err(e) = result {
-            self.handle_send_error(pipeline_id, e);
+    fn handle_media_session_action_msg(&mut self, action: MediaSessionActionType) {
+        if let Some(media_session_pipeline_id) = self.active_media_session {
+            let result = match self.pipelines.get(&media_session_pipeline_id) {
+                None => {
+                    return warn!(
+                        "Pipeline {} got media session action request after closure.",
+                        media_session_pipeline_id,
+                    )
+                },
+                Some(pipeline) => {
+                    let msg = ConstellationControlMsg::MediaSessionAction(
+                        media_session_pipeline_id,
+                        action,
+                    );
+                    pipeline.event_loop.send(msg)
+                },
+            };
+            if let Err(e) = result {
+                self.handle_send_error(media_session_pipeline_id, e);
+            }
+        } else {
+            error!("Got a media session action but no active media session is registered");
         }
     }
 }

@@ -51,7 +51,6 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::{HTMLIFrameElement, NavigationType};
-use crate::dom::mediasession::MediaSession;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::{
     from_untrusted_node_address, window_from_node, Node, NodeDamage, ShadowIncluding,
@@ -697,11 +696,6 @@ pub struct ScriptThread {
 
     /// Code is running as a consequence of a user interaction
     is_user_interacting: Cell<bool>,
-
-    /// The MediaSessions known by this thread, if any.
-    /// There can only be one active MediaSession.
-    /// The constellation has the BrowsingContextId of the active MediaSession, if any.
-    media_sessions: DomRefCell<HashMap<BrowsingContextId, Dom<MediaSession>>>,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -1371,7 +1365,6 @@ impl ScriptThread {
 
             node_ids: Default::default(),
             is_user_interacting: Cell::new(false),
-            media_sessions: DomRefCell::new(HashMap::new()),
         }
     }
 
@@ -1950,8 +1943,8 @@ impl ScriptThread {
             ConstellationControlMsg::PaintMetric(pipeline_id, metric_type, metric_value) => {
                 self.handle_paint_metric(pipeline_id, metric_type, metric_value)
             },
-            ConstellationControlMsg::MediaSessionAction(browsing_context_id, action) => {
-                self.handle_media_session_action(browsing_context_id, action)
+            ConstellationControlMsg::MediaSessionAction(pipeline_id, action) => {
+                self.handle_media_session_action(pipeline_id, action)
             },
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
@@ -3936,14 +3929,12 @@ impl ScriptThread {
         }
     }
 
-    fn handle_media_session_action(
-        &self,
-        browsing_context_id: BrowsingContextId,
-        action: MediaSessionActionType,
-    ) {
-        match self.media_sessions.borrow().get(&browsing_context_id) {
-            Some(session) => session.handle_action(action),
-            None => warn!("No MediaSession for this browsing context"),
+    fn handle_media_session_action(&self, pipeline_id: PipelineId, action: MediaSessionActionType) {
+        if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
+            let media_session = window.Navigator().MediaSession();
+            media_session.handle_action(action);
+        } else {
+            warn!("No MediaSession for this pipeline ID");
         };
     }
 
@@ -3969,42 +3960,6 @@ impl ScriptThread {
             |id| self.documents.borrow().find_global(id),
             globals,
         )
-    }
-
-    pub fn register_media_session(
-        media_session: &MediaSession,
-        browsing_context_id: BrowsingContextId,
-    ) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread
-                .media_sessions
-                .borrow_mut()
-                .insert(browsing_context_id, Dom::from_ref(media_session));
-        })
-    }
-
-    pub fn remove_media_session(browsing_context_id: BrowsingContextId) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread
-                .media_sessions
-                .borrow_mut()
-                .remove(&browsing_context_id);
-        })
-    }
-
-    pub fn get_media_session(
-        browsing_context_id: BrowsingContextId,
-    ) -> Option<DomRoot<MediaSession>> {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread
-                .media_sessions
-                .borrow()
-                .get(&browsing_context_id)
-                .map(|s| DomRoot::from_ref(&**s))
-        })
     }
 }
 

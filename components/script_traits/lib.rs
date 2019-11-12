@@ -389,7 +389,7 @@ pub enum ConstellationControlMsg {
     /// Notifies the script thread about a new recorded paint metric.
     PaintMetric(PipelineId, ProgressiveWebMetricType, u64),
     /// Notifies the media session about a user requested media session action.
-    MediaSessionAction(BrowsingContextId, MediaSessionActionType),
+    MediaSessionAction(PipelineId, MediaSessionActionType),
 }
 
 impl fmt::Debug for ConstellationControlMsg {
@@ -881,7 +881,7 @@ pub enum ConstellationMsg {
     /// Request to exit from fullscreen mode
     ExitFullScreen(TopLevelBrowsingContextId),
     /// Media session action.
-    MediaSessionAction(TopLevelBrowsingContextId, MediaSessionActionType),
+    MediaSessionAction(MediaSessionActionType),
 }
 
 impl fmt::Debug for ConstellationMsg {

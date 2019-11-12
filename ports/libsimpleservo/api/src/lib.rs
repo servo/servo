@@ -472,8 +472,7 @@ impl ServoGlue {
 
     pub fn media_session_action(&mut self, action: i32) -> Result<(), &'static str> {
         info!("Media session action {:?}", action);
-        let browser_id = self.get_browser_id()?;
-        self.process_event(WindowEvent::MediaSessionAction(browser_id, action.into()))
+        self.process_event(WindowEvent::MediaSessionAction(action.into()))
     }
 
     fn process_event(&mut self, event: WindowEvent) -> Result<(), &'static str> {
