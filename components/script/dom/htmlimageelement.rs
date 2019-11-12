@@ -922,8 +922,10 @@ impl HTMLImageElement {
         let base_url = document.base_url();
 
         {
-            if let Some(ref mut pending_request) = *self.pending_request.borrow_mut() {
-                pending_request.state = State::Unavailable;
+            // Reset pending_request to ensure a consistent `<img>.complete` state.
+            let mut pending_opt = self.pending_request.borrow_mut();
+            if pending_opt.is_none() {
+                *pending_opt = Some(ImageRequest::new());
             }
         }
 
