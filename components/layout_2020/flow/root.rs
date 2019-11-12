@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::context::LayoutContext;
 use crate::display_list::IsContentful;
 use crate::dom_traversal::{Contents, NodeExt};
 use crate::flow::construct::ContainsFloats;
@@ -98,7 +99,11 @@ fn construct_for_root_element<'dom>(
 }
 
 impl BoxTreeRoot {
-    pub fn layout(&self, viewport: geom::Size<CSSPixel>) -> FragmentTreeRoot {
+    pub fn layout(
+        &self,
+        layout_context: &LayoutContext,
+        viewport: geom::Size<CSSPixel>,
+    ) -> FragmentTreeRoot {
         let initial_containing_block_size = Vec2 {
             inline: Length::new(viewport.width),
             block: Length::new(viewport.height),
@@ -114,6 +119,7 @@ impl BoxTreeRoot {
         let dummy_tree_rank = 0;
         let mut absolutely_positioned_fragments = vec![];
         let mut flow_children = self.0.layout(
+            layout_context,
             &initial_containing_block,
             dummy_tree_rank,
             &mut absolutely_positioned_fragments,
@@ -126,7 +132,7 @@ impl BoxTreeRoot {
         flow_children.fragments.par_extend(
             absolutely_positioned_fragments
                 .par_iter()
-                .map(|a| a.layout(&initial_containing_block)),
+                .map(|a| a.layout(layout_context, &initial_containing_block)),
         );
         FragmentTreeRoot(flow_children.fragments)
     }

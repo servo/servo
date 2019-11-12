@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::context::LayoutContext;
 use crate::flow::float::FloatBox;
 use crate::flow::FlowChildren;
 use crate::fragments::{AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment};
@@ -81,6 +82,7 @@ struct LinesBoxes {
 impl InlineFormattingContext {
     pub(super) fn layout<'a>(
         &'a self,
+        layout_context: &LayoutContext,
         containing_block: &ContainingBlock,
         tree_rank: usize,
         absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
@@ -107,7 +109,7 @@ impl InlineFormattingContext {
                         let partial = inline.start_layout(&mut ifc);
                         ifc.partial_inline_boxes_stack.push(partial)
                     },
-                    InlineLevelBox::TextRun(run) => run.layout(&mut ifc),
+                    InlineLevelBox::TextRun(run) => run.layout(layout_context, &mut ifc),
                     InlineLevelBox::Atomic { style: _, contents } => {
                         // FIXME
                         match *contents {}
@@ -284,7 +286,7 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
 }
 
 impl TextRun {
-    fn layout(&self, _ifc: &mut InlineFormattingContextState) {
+    fn layout(&self, _layout_context: &LayoutContext, _ifc: &mut InlineFormattingContextState) {
         // TODO
     }
 }

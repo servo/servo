@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::context::LayoutContext;
 use crate::fragments::{AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::style_ext::{ComputedValuesExt, Direction, WritingMode};
@@ -94,6 +95,7 @@ impl AbsolutelyPositionedBox {
 
 impl<'a> AbsolutelyPositionedFragment<'a> {
     pub(crate) fn in_positioned_containing_block(
+        layout_context: &LayoutContext,
         absolute: &[Self],
         fragments: &mut Vec<Fragment>,
         content_rect_size: &Vec2<Length>,
@@ -116,14 +118,18 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
         fragments.push(Fragment::Anonymous(AnonymousFragment {
             children: absolute
                 .par_iter()
-                .map(|a| a.layout(&containing_block))
+                .map(|a| a.layout(layout_context, &containing_block))
                 .collect(),
             rect: padding_rect,
             mode,
         }))
     }
 
-    pub(crate) fn layout(&self, containing_block: &DefiniteContainingBlock) -> Fragment {
+    pub(crate) fn layout(
+        &self,
+        layout_context: &LayoutContext,
+        containing_block: &DefiniteContainingBlock,
+    ) -> Fragment {
         let style = &self.absolutely_positioned_box.style;
         let cbis = containing_block.size.inline;
         let cbbs = containing_block.size.block;
@@ -269,6 +275,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
         let dummy_tree_rank = 0;
         let mut absolutely_positioned_fragments = vec![];
         let mut flow_children = self.absolutely_positioned_box.contents.layout(
+            layout_context,
             &containing_block_for_children,
             dummy_tree_rank,
             &mut absolutely_positioned_fragments,
@@ -297,6 +304,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
         };
 
         AbsolutelyPositionedFragment::in_positioned_containing_block(
+            layout_context,
             &absolutely_positioned_fragments,
             &mut flow_children.fragments,
             &content_rect.size,

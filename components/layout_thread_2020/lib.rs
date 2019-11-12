@@ -1087,16 +1087,28 @@ impl LayoutThread {
             RecalcStyle::pre_traverse(element, shared)
         };
 
-        if token.should_traverse() {
+        let box_tree = if token.should_traverse() {
             driver::traverse_dom(&traversal, token, None);
 
             let shared = DomTraversal::<ServoLayoutElement>::shared_context(&traversal);
-            let box_tree =
-                BoxTreeRoot::construct(shared, document.root_element().unwrap().as_node());
-            let fragment_tree = box_tree.layout(Size2D::new(
-                self.viewport_size.width.to_f32_px(),
-                self.viewport_size.height.to_f32_px(),
-            ));
+            Some(BoxTreeRoot::construct(
+                shared,
+                document.root_element().unwrap().as_node(),
+            ))
+        } else {
+            None
+        };
+
+        layout_context = traversal.destroy();
+
+        if let Some(box_tree) = box_tree {
+            let fragment_tree = box_tree.layout(
+                &layout_context,
+                Size2D::new(
+                    self.viewport_size.width.to_f32_px(),
+                    self.viewport_size.height.to_f32_px(),
+                ),
+            );
             *self.box_tree_root.borrow_mut() = Some(box_tree);
             *self.fragment_tree_root.borrow_mut() = Some(fragment_tree);
         }
@@ -1104,8 +1116,6 @@ impl LayoutThread {
         for element in elements_with_snapshot {
             unsafe { element.unset_snapshot_flags() }
         }
-
-        layout_context = traversal.destroy();
 
         // GC the rule tree if some heuristics are met.
         unsafe {

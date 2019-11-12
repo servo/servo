@@ -4,6 +4,7 @@
 
 //! Flow layout, also known as block-and-inline layout.
 
+use crate::context::LayoutContext;
 use crate::flow::float::{FloatBox, FloatContext};
 use crate::flow::inline::InlineFormattingContext;
 use crate::fragments::{
@@ -67,6 +68,7 @@ struct CollapsibleWithParentStartMargin(bool);
 impl BlockFormattingContext {
     pub(super) fn layout<'a>(
         &'a self,
+        layout_context: &LayoutContext,
         containing_block: &ContainingBlock,
         tree_rank: usize,
         absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
@@ -79,6 +81,7 @@ impl BlockFormattingContext {
             None
         };
         let mut flow_children = self.contents.layout(
+            layout_context,
             containing_block,
             tree_rank,
             absolutely_positioned_fragments,
@@ -97,6 +100,7 @@ impl BlockFormattingContext {
 impl BlockContainer {
     fn layout<'a>(
         &'a self,
+        layout_context: &LayoutContext,
         containing_block: &ContainingBlock,
         tree_rank: usize,
         absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
@@ -105,6 +109,7 @@ impl BlockContainer {
     ) -> FlowChildren {
         match self {
             BlockContainer::BlockLevelBoxes(child_boxes) => layout_block_level_children(
+                layout_context,
                 child_boxes,
                 containing_block,
                 tree_rank,
@@ -112,14 +117,18 @@ impl BlockContainer {
                 float_context,
                 collapsible_with_parent_start_margin,
             ),
-            BlockContainer::InlineFormattingContext(ifc) => {
-                ifc.layout(containing_block, tree_rank, absolutely_positioned_fragments)
-            },
+            BlockContainer::InlineFormattingContext(ifc) => ifc.layout(
+                layout_context,
+                containing_block,
+                tree_rank,
+                absolutely_positioned_fragments,
+            ),
         }
     }
 }
 
 fn layout_block_level_children<'a>(
+    layout_context: &LayoutContext,
     child_boxes: &'a [Arc<BlockLevelBox>],
     containing_block: &ContainingBlock,
     tree_rank: usize,
@@ -201,6 +210,7 @@ fn layout_block_level_children<'a>(
             .enumerate()
             .map(|(tree_rank, box_)| {
                 let mut fragment = box_.layout(
+                    layout_context,
                     containing_block,
                     tree_rank,
                     absolutely_positioned_fragments,
@@ -218,6 +228,7 @@ fn layout_block_level_children<'a>(
                 absolutely_positioned_fragments,
                 |abspos_fragments, (tree_rank, box_)| {
                     box_.layout(
+                        layout_context,
                         containing_block,
                         tree_rank,
                         abspos_fragments,
@@ -255,6 +266,7 @@ fn layout_block_level_children<'a>(
 impl BlockLevelBox {
     fn layout<'a>(
         &'a self,
+        layout_context: &LayoutContext,
         containing_block: &ContainingBlock,
         tree_rank: usize,
         absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
@@ -263,12 +275,14 @@ impl BlockLevelBox {
         match self {
             BlockLevelBox::SameFormattingContextBlock { style, contents } => {
                 Fragment::Box(layout_in_flow_non_replaced_block_level(
+                    layout_context,
                     containing_block,
                     absolutely_positioned_fragments,
                     style,
                     BlockLevelKind::SameFormattingContextBlock,
                     |containing_block, nested_abspos, collapsible_with_parent_start_margin| {
                         contents.layout(
+                            layout_context,
                             containing_block,
                             tree_rank,
                             nested_abspos,
@@ -284,12 +298,13 @@ impl BlockLevelBox {
                     match *replaced {}
                 },
                 Err(contents) => Fragment::Box(layout_in_flow_non_replaced_block_level(
+                    layout_context,
                     containing_block,
                     absolutely_positioned_fragments,
                     style,
                     BlockLevelKind::EstablishesAnIndependentFormattingContext,
                     |containing_block, nested_abspos, _| {
-                        contents.layout(containing_block, tree_rank, nested_abspos)
+                        contents.layout(layout_context, containing_block, tree_rank, nested_abspos)
                     },
                 )),
             },
@@ -314,6 +329,7 @@ enum BlockLevelKind {
 /// https://drafts.csswg.org/css2/visudet.html#blockwidth
 /// https://drafts.csswg.org/css2/visudet.html#normal-block
 fn layout_in_flow_non_replaced_block_level<'a>(
+    layout_context: &LayoutContext,
     containing_block: &ContainingBlock,
     absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
     style: &Arc<ComputedValues>,
@@ -433,6 +449,7 @@ fn layout_in_flow_non_replaced_block_level<'a>(
     };
     if style.get_box().position == Position::Relative {
         AbsolutelyPositionedFragment::in_positioned_containing_block(
+            layout_context,
             &nested_abspos,
             &mut flow_children.fragments,
             &content_rect.size,
