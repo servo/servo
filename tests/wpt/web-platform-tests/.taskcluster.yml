@@ -73,7 +73,10 @@ tasks:
                   A subset of WPT's "${chunk[0]}" tests (chunk number ${chunk[1]}
                   of ${chunk[2]}), run in the ${browser.channel} release of
                   ${browser.name}.
-                owner: ${event.pusher.email}
+                owner:
+                  $if: '"@" in event.pusher.email'
+                  then: ${event.pusher.email}
+                  else: ${event.pusher.name}@users.noreply.github.com
                 source: ${event.repository.url}
               payload:
                 image:

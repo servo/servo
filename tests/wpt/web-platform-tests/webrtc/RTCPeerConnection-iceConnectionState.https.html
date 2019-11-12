@@ -393,8 +393,8 @@ promise_test(async t => {
 
   pc2.oniceconnectionstatechange = t.unreached_func();
   pc2.close();
-  await Promise.resolve();
   assert_true(pc2.iceConnectionState === 'closed');
+  await new Promise(r => t.step_timeout(r, 100));
 }, 'Closing a PeerConnection should not fire iceconnectionstatechange event');
 
 </script>

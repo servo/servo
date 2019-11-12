@@ -42,8 +42,6 @@ enum RTCBundlePolicy {
 };
 
 enum RTCRtcpMuxPolicy {
-  // At risk due to lack of implementers' interest.
-  "negotiate",
   "require"
 };
 
@@ -295,7 +293,6 @@ enum RTCRtpTransceiverDirection {
 interface RTCRtpSender {
   readonly attribute MediaStreamTrack? track;
   readonly attribute RTCDtlsTransport? transport;
-  readonly attribute RTCDtlsTransport? rtcpTransport;
   static RTCRtpCapabilities? getCapabilities(DOMString kind);
   Promise<void> setParameters(RTCRtpSendParameters parameters);
   RTCRtpSendParameters getParameters();
@@ -328,18 +325,10 @@ dictionary RTCRtpCodingParameters {
 dictionary RTCRtpDecodingParameters : RTCRtpCodingParameters {};
 
 dictionary RTCRtpEncodingParameters : RTCRtpCodingParameters {
-  octet codecPayloadType;
-  RTCDtxStatus dtx;
   boolean active = true;
-  unsigned long ptime;
   unsigned long maxBitrate;
   double maxFramerate;
   double scaleResolutionDownBy;
-};
-
-enum RTCDtxStatus {
-  "disabled",
-  "enabled"
 };
 
 enum RTCDegradationPreference {
@@ -387,7 +376,6 @@ dictionary RTCRtpHeaderExtensionCapability {
 interface RTCRtpReceiver {
   readonly attribute MediaStreamTrack track;
   readonly attribute RTCDtlsTransport? transport;
-  readonly attribute RTCDtlsTransport? rtcpTransport;
   static RTCRtpCapabilities? getCapabilities(DOMString kind);
   RTCRtpReceiveParameters getParameters();
   sequence<RTCRtpContributingSource> getContributingSources();

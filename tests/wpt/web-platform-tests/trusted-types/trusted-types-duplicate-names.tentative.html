@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <meta http-equiv="Content-Security-Policy" content="trusted-types *">
+</head>
+<body>
+<script>
+test(t => {
+  // We expect neither of these to throw.
+  trustedTypes.createPolicy("duplicatename", {});
+  trustedTypes.createPolicy("duplicatename", {});
+}, "policy - duplicate names");
+</script>
+</body>

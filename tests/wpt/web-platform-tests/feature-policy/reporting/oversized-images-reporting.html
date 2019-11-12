@@ -3,6 +3,7 @@
     <head>
         <script src='/resources/testharness.js'></script>
         <script src='/resources/testharnessreport.js'></script>
+        <script src='../resources/feature-policy-report-json.js'></script>
     </head>
     <body>
         <img src="./oversized.jpg" alt="oversized image" width="50" height="50">
@@ -19,6 +20,7 @@
                     assert_equals(rbody.sourceFile, document.getElementsByTagName('img')[0].src);
                     assert_equals(rbody.lineNumber, null);
                     assert_equals(rbody.columnNumber, null);
+                    check_report_json(reports[0]);
                 }),
                 {types: ['feature-policy-violation'], buffered: true}
             ).observe();
