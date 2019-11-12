@@ -450,6 +450,20 @@ impl LayoutThread {
         window_size: WindowSizeData,
         relayout_event: bool,
     ) -> LayoutThread {
+        // Let webrender know about this pipeline by sending an empty display list.
+        let mut epoch = Epoch(0);
+        let webrender_api = webrender_api_sender.create_api();
+        let mut txn = webrender_api::Transaction::new();
+        txn.set_display_list(
+            webrender_api::Epoch(epoch.0),
+            None,
+            Default::default(),
+            (id.to_webrender(), Default::default(), Default::default()),
+            false,
+        );
+        webrender_api.send_transaction(webrender_document, txn);
+        epoch.next();
+
         // The device pixel ratio is incorrect (it does not have the hidpi value),
         // but it will be set correctly when the initial reflow takes place.
         let device = Device::new(
