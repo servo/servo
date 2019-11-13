@@ -75,7 +75,7 @@ public class MediaSession {
             mContext.getResources().getString(R.string.media_channel_name);
           String description =
             mContext.getResources().getString(R.string.media_channel_description);
-          int importance = NotificationManager.IMPORTANCE_DEFAULT;
+          int importance = NotificationManager.IMPORTANCE_LOW;
           NotificationChannel channel =
             new NotificationChannel(MEDIA_CHANNEL_ID, name, importance);
           channel.setDescription(description);
