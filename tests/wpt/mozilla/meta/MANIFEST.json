@@ -18470,7 +18470,7 @@
    "testharness"
   ],
   "mozilla/animation-removed-node.html": [
-   "a2f9dfe284a22a6241290c86841172387dcdbeb6",
+   "d8845c873181c87cfde8bfdfbe31924ea6b73e59",
    "testharness"
   ],
   "mozilla/binding_keyword.html": [
@@ -18946,7 +18946,7 @@
    "testharness"
   ],
   "mozilla/inline-event-listener-panic.html": [
-   "2418893bc058666a018498dbf414faae2f22ffc5",
+   "acde98607ae4bfa19cf894ce7c81b2e6b7071e14",
    "testharness"
   ],
   "mozilla/inline_event_handler.html": [
@@ -18970,7 +18970,7 @@
    "testharness"
   ],
   "mozilla/interfaces.js": [
-   "786f6e12515ff71bc83f34e4ffa32e7e38b1cd26",
+   "c46c336f8a8a2db777f75d6236b1241c717a02dd",
    "support"
   ],
   "mozilla/interfaces.worker.js": [
@@ -19646,7 +19646,7 @@
    "testharness"
   ],
   "mozilla/window_requestAnimationFrame2.html": [
-   "237ef108c5ccaa842a165ee3a93df8fde1964b30",
+   "3227b28d5b249c683e8200cf70a6393181cec7f5",
    "testharness"
   ],
   "mozilla/window_resize_not_triggered_on_load.html": [
