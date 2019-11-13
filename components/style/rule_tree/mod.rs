@@ -681,12 +681,76 @@ pub enum CascadeLevel {
     /// User-agent important rules.
     UAImportant,
     /// Transitions
-    ///
-    /// NB: If this changes from being last, change from_byte below.
     Transitions,
 }
 
 impl CascadeLevel {
+    /// Pack this cascade level in a single byte.
+    ///
+    /// We have 10 levels, which we can represent with 4 bits, and then a
+    /// cascade order optionally, which we can clamp to three bits max, and
+    /// represent with a fourth bit for the sign.
+    ///
+    /// So this creates: SOOODDDD
+    ///
+    /// Where `S` is the sign of the order (one if negative, 0 otherwise), `O`
+    /// is the absolute value of the order, and `D`s are the discriminant.
+    #[inline]
+    pub fn to_byte_lossy(&self) -> u8 {
+        let (discriminant, order) = match *self {
+            Self::UANormal => (0, 0),
+            Self::UserNormal => (1, 0),
+            Self::PresHints => (2, 0),
+            Self::AuthorNormal { shadow_cascade_order } => (3, shadow_cascade_order.0),
+            Self::SMILOverride => (4, 0),
+            Self::Animations => (5, 0),
+            Self::AuthorImportant { shadow_cascade_order } => (6, shadow_cascade_order.0),
+            Self::UserImportant => (7, 0),
+            Self::UAImportant => (8, 0),
+            Self::Transitions => (9, 0),
+        };
+
+        debug_assert_eq!(discriminant & 0xf, discriminant);
+        if order == 0 {
+            return discriminant;
+        }
+
+        let negative = order < 0;
+        let value = std::cmp::min(order.abs() as u8, 0b111);
+        (negative as u8) << 7 | value << 4 | discriminant
+    }
+
+    /// Convert back from the single-byte representation of the cascade level
+    /// explained above.
+    #[inline]
+    pub fn from_byte(b: u8) -> Self {
+        let order = {
+            let abs = ((b & 0b01110000) >> 4) as i8;
+            let negative = b & 0b10000000 != 0;
+            if negative { -abs } else { abs }
+        };
+        let discriminant = b & 0xf;
+        let level = match discriminant {
+            0 => Self::UANormal,
+            1 => Self::UserNormal,
+            2 => Self::PresHints,
+            3 => return Self::AuthorNormal {
+                shadow_cascade_order: ShadowCascadeOrder(order),
+            },
+            4 => Self::SMILOverride,
+            5 => Self::Animations,
+            6 => return Self::AuthorImportant {
+                shadow_cascade_order: ShadowCascadeOrder(order),
+            },
+            7 => Self::UserImportant,
+            8 => Self::UAImportant,
+            9 => Self::Transitions,
+            _ => unreachable!("Didn't expect {} as a discriminant", discriminant),
+        };
+        debug_assert_eq!(order, 0, "Didn't expect an order value for {:?}", level);
+        level
+    }
+
     /// Select a lock guard for this level
     pub fn guard<'a>(&self, guards: &'a StylesheetGuards<'a>) -> &'a SharedRwLockReadGuard<'a> {
         match *self {
