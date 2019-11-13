@@ -18,7 +18,6 @@ use crate::dom::mediametadata::MediaMetadata;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use embedder_traits::MediaSessionEvent;
-use msg::constellation_msg::PipelineId;
 use script_traits::MediaSessionActionType;
 use script_traits::ScriptMsg;
 use std::collections::HashMap;

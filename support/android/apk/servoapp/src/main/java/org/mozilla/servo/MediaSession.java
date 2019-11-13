@@ -88,8 +88,6 @@ public class MediaSession {
       IntentFilter filter = new IntentFilter();
       filter.addAction(KEY_MEDIA_PAUSE);
       filter.addAction(KEY_MEDIA_STOP);
-      filter.addAction(KEY_MEDIA_PREV);
-      filter.addAction(KEY_MEDIA_NEXT);
 
       mMediaSessionActionReceiver = new BroadcastReceiver() {
         @Override
@@ -100,12 +98,6 @@ public class MediaSession {
           } else if (intent.getAction().equals(KEY_MEDIA_STOP)) {
             mView.mediaSessionAction(ACTION_STOP);
             Log.d("SERVOMEDIA", "STOP");
-          } else if (intent.getAction().equals(KEY_MEDIA_NEXT)) {
-            mView.mediaSessionAction(ACTION_NEXT_TRACK);
-            Log.d("SERVOMEDIA", "NEXT");
-          } else if (intent.getAction().equals(KEY_MEDIA_PREV)) {
-            mView.mediaSessionAction(ACTION_PREVIOUS_TRACK);
-            Log.d("SERVOMEDIA", "PREV");
           }
         }
       };
@@ -117,16 +109,6 @@ public class MediaSession {
         new Notification.Action(R.drawable.media_session_pause, "Pause",
           PendingIntent.getBroadcast(mContext, 0, pauseIntent, 0));
 
-      Intent nextIntent = new Intent(KEY_MEDIA_NEXT);
-      Notification.Action nextAction =
-        new Notification.Action(R.drawable.media_session_next, "Next",
-          PendingIntent.getBroadcast(mContext, 0, nextIntent, 0));
-
-      Intent prevIntent = new Intent(KEY_MEDIA_PREV);
-      Notification.Action prevAction =
-        new Notification.Action(R.drawable.media_session_prev, "Previous",
-          PendingIntent.getBroadcast(mContext, 0, prevIntent, 0));
-
       Intent stopIntent = new Intent(KEY_MEDIA_STOP);
       Notification.Action stopAction =
         new Notification.Action(R.drawable.media_session_stop, "Stop",
@@ -137,13 +119,11 @@ public class MediaSession {
         .setSmallIcon(R.drawable.media_session_icon)
         .setContentTitle("This is the notification title")
         .setVisibility(Notification.VISIBILITY_PUBLIC)
-        .addAction(prevAction)
         .addAction(pauseAction)
-        .addAction(nextAction)
         .addAction(stopAction)
         .setStyle(new Notification.MediaStyle()
-            .setShowActionsInCompactView(1 /* pause button */ )
-            .setShowActionsInCompactView(3 /* stop button */));
+            .setShowActionsInCompactView(0 /* pause button */ )
+            .setShowActionsInCompactView(1 /* stop button */));
 
       NotificationManager notificationManager =
         mContext.getSystemService(NotificationManager.class);
