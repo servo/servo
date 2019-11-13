@@ -1790,7 +1790,8 @@ where
                     match event {
                         MediaSessionEvent::PlaybackStateChange(ref state) => {
                             match state {
-                                MediaSessionPlaybackState::Playing => (),
+                                MediaSessionPlaybackState::Playing |
+                                MediaSessionPlaybackState::Paused => (),
                                 _ => return,
                             };
                         },

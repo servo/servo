@@ -49,6 +49,7 @@ public class MediaSession {
     private static final int ACTION_SEEK_TO = 9;
 
     private static final String MEDIA_CHANNEL_ID = "MediaNotificationChannel";
+    private static final String KEY_MEDIA_PLAY = "org.mozilla.servoview.MainActivity.play";
     private static final String KEY_MEDIA_PAUSE = "org.mozilla.servoview.MainActivity.pause";
     private static final String KEY_MEDIA_PREV = "org.mozilla.servoview.MainActivity.prev";
     private static final String KEY_MEDIA_NEXT = "org.mozilla.servoview.MainActivity.next";
@@ -84,9 +85,14 @@ public class MediaSession {
       }
     }
 
-    public void showMediaSessionControls() {
+    public void showMediaSessionControls(int playbackState) {
       IntentFilter filter = new IntentFilter();
-      filter.addAction(KEY_MEDIA_PAUSE);
+      if (playbackState == PLAYBACK_STATE_PAUSED) {
+        filter.addAction(KEY_MEDIA_PLAY);
+      }
+      if (playbackState == PLAYBACK_STATE_PLAYING) {
+        filter.addAction(KEY_MEDIA_PAUSE);
+      }
       filter.addAction(KEY_MEDIA_STOP);
 
       mMediaSessionActionReceiver = new BroadcastReceiver() {
@@ -95,6 +101,9 @@ public class MediaSession {
           if (intent.getAction().equals(KEY_MEDIA_PAUSE)) {
             mView.mediaSessionAction(ACTION_PAUSE);
             Log.d("SERVOMEDIA", "PAUSE");
+          } else if (intent.getAction().equals(KEY_MEDIA_PLAY)) {
+            mView.mediaSessionAction(ACTION_PLAY);
+            Log.d("SERVOMEDIA", "PLAY");
           } else if (intent.getAction().equals(KEY_MEDIA_STOP)) {
             mView.mediaSessionAction(ACTION_STOP);
             Log.d("SERVOMEDIA", "STOP");
@@ -103,11 +112,6 @@ public class MediaSession {
       };
 
       mContext.registerReceiver(mMediaSessionActionReceiver, filter);
-
-      Intent pauseIntent = new Intent(KEY_MEDIA_PAUSE);
-      Notification.Action pauseAction =
-        new Notification.Action(R.drawable.media_session_pause, "Pause",
-          PendingIntent.getBroadcast(mContext, 0, pauseIntent, 0));
 
       Intent stopIntent = new Intent(KEY_MEDIA_STOP);
       Notification.Action stopAction =
@@ -119,11 +123,24 @@ public class MediaSession {
         .setSmallIcon(R.drawable.media_session_icon)
         .setContentTitle("This is the notification title")
         .setVisibility(Notification.VISIBILITY_PUBLIC)
-        .addAction(pauseAction)
         .addAction(stopAction)
-        .setStyle(new Notification.MediaStyle()
-            .setShowActionsInCompactView(0 /* pause button */ )
-            .setShowActionsInCompactView(1 /* stop button */));
+        .setStyle(new Notification.MediaStyle());
+
+      if (playbackState == PLAYBACK_STATE_PAUSED) {
+        Intent playIntent = new Intent(KEY_MEDIA_PLAY);
+        Notification.Action playAction =
+          new Notification.Action(R.drawable.media_session_play, "Play",
+            PendingIntent.getBroadcast(mContext, 0, playIntent, 0));
+        builder.addAction(playAction);
+      }
+
+      if (playbackState == PLAYBACK_STATE_PLAYING) {
+        Intent pauseIntent = new Intent(KEY_MEDIA_PAUSE);
+        Notification.Action pauseAction =
+          new Notification.Action(R.drawable.media_session_pause, "Pause",
+            PendingIntent.getBroadcast(mContext, 0, pauseIntent, 0));
+        builder.addAction(pauseAction);
+      }
 
       NotificationManager notificationManager =
         mContext.getSystemService(NotificationManager.class);
