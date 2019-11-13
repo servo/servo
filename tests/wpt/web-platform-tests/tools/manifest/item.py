@@ -51,7 +51,7 @@ class ManifestItem(with_metaclass(ManifestItemMeta)):
 
     @abstractproperty
     def id(self):
-        # type: () -> Hashable
+        # type: () -> Text
         """The test's id (usually its url)"""
         pass
 

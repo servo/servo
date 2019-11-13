@@ -21,7 +21,9 @@
 
   test(t => {
     let a = 0;
-    eval(p.createScript('a="Hello transformed string"'));
+    assert_throws(new EvalError(), _ => {
+      eval(p.createScript('a="Hello transformed string"'));
+    });
     assert_equals(a, 0);
   }, "eval with TrustedScript throws (script-src blocks).");
 </script>

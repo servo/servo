@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Test: Synthesized baseline table cell</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#synthesize-baseline">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-export">
+<link rel="match" href="synthesized-baseline-table-cell-001-ref.html">
+<style>
+* { vertical-align: baseline; }
+table { display: inline-table; border: 3px solid; }
+td { width:10px; background-color:pink; background-clip:content-box; }
+.p { padding: 50px 10px 100px 0; }
+.size { height:80px; }
+</style>
+</head>
+<body>
+  X
+  <table border=5><tr><td class="p"></td></tr></table>
+  <table border=5><tr><td class="p"></td><td>X</td></tr></table>
+  <table border=2><tr><td          ></td></tr></table>
+  <table border=5><tr><td class="p size"></td></tr></table>
+  <table border=5><tr><td class="p size"></td><td>X</td></tr></table>
+  <table border=2><tr><td class="size"  ></td></tr></table>
+  <table border=2><tr><td style="height:10px"></td><td style="height:20px"></td></tr></table>
+  <table border=2><tr><td style="height:20px"></td><td rowspan=2></td></tr><tr><td style="height:20px"></td></tr></table>
+  <table border=2><tr><td>X</td><td rowspan=2></td></tr><tr><td style="height:20px"></td></tr></table>
+</body>
+</html>

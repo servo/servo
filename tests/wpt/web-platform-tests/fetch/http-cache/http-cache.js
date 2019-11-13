@@ -42,6 +42,12 @@ function makeTest (test) {
   return function () {
     var uuid = token()
     var requests = expandTemplates(test)
+    var fetchFunctions = makeFetchFunctions(requests, uuid)
+    return runTest(fetchFunctions, requests, uuid)
+  }
+}
+
+function makeFetchFunctions(requests, uuid) {
     var fetchFunctions = []
     for (let i = 0; i < requests.length; ++i) {
       fetchFunctions.push({
@@ -62,6 +68,10 @@ function makeTest (test) {
         pauseAfter: 'pause_after' in requests[i]
       })
     }
+    return fetchFunctions
+}
+
+function runTest(fetchFunctions, requests, uuid) {
     var idx = 0
     function runNextStep () {
       if (fetchFunctions.length) {
@@ -86,7 +96,6 @@ function makeTest (test) {
         checkRequests(requests, testState)
         return Promise.resolve()
       })
-  }
 }
 
 function expandTemplates (test) {
@@ -226,10 +235,14 @@ function pause () {
 
 function makeTestUrl (uuid, config) {
   var arg = ''
+  var base_url = ''
+  if ('base_url' in config) {
+    base_url = config.base_url
+  }
   if ('query_arg' in config) {
     arg = `&target=${config.query_arg}`
   }
-  return `resources/http-cache.py?dispatch=test&uuid=${uuid}${arg}`
+  return `${base_url}resources/http-cache.py?dispatch=test&uuid=${uuid}${arg}`
 }
 
 function getServerState (uuid) {
