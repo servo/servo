@@ -86,6 +86,7 @@ public class MediaSession {
     }
 
     public void showMediaSessionControls(int playbackState) {
+      Log.d("MediaSession", "showMediaSessionControls " + playbackState);
       IntentFilter filter = new IntentFilter();
       if (playbackState == PLAYBACK_STATE_PAUSED) {
         filter.addAction(KEY_MEDIA_PLAY);
@@ -95,21 +96,28 @@ public class MediaSession {
       }
       filter.addAction(KEY_MEDIA_STOP);
 
-      mMediaSessionActionReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-          if (intent.getAction().equals(KEY_MEDIA_PAUSE)) {
-            mView.mediaSessionAction(ACTION_PAUSE);
-            Log.d("SERVOMEDIA", "PAUSE");
-          } else if (intent.getAction().equals(KEY_MEDIA_PLAY)) {
-            mView.mediaSessionAction(ACTION_PLAY);
-            Log.d("SERVOMEDIA", "PLAY");
-          } else if (intent.getAction().equals(KEY_MEDIA_STOP)) {
-            mView.mediaSessionAction(ACTION_STOP);
-            Log.d("SERVOMEDIA", "STOP");
+      int id;
+      if (mMediaSessionActionReceiver == null) {
+        id = mNotificationID.getNext();
+
+        mMediaSessionActionReceiver = new BroadcastReceiver() {
+          @Override
+          public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(KEY_MEDIA_PAUSE)) {
+              mView.mediaSessionAction(ACTION_PAUSE);
+              Log.d("MediaSession", "PAUSE action");
+            } else if (intent.getAction().equals(KEY_MEDIA_PLAY)) {
+              mView.mediaSessionAction(ACTION_PLAY);
+              Log.d("MediaSession", "PLAY action");
+            } else if (intent.getAction().equals(KEY_MEDIA_STOP)) {
+              mView.mediaSessionAction(ACTION_STOP);
+              Log.d("MediaSession", "STOP action");
+            }
           }
-        }
-      };
+        };
+      } else {
+        id = mNotificationID.get();
+      }
 
       mContext.registerReceiver(mMediaSessionActionReceiver, filter);
 
@@ -144,14 +152,15 @@ public class MediaSession {
 
       NotificationManager notificationManager =
         mContext.getSystemService(NotificationManager.class);
-      notificationManager.notify(mNotificationID.getNext(), builder.build());
+      notificationManager.notify(id, builder.build());
     }
 
     public void hideMediaSessionControls() {
-      Log.d("SERVOMEDIA", "hideMediaSessionControls");
+      Log.d("MediaSession", "hideMediaSessionControls");
       NotificationManager notificationManager =
         mContext.getSystemService(NotificationManager.class);
       notificationManager.cancel(mNotificationID.get());
       mContext.unregisterReceiver(mMediaSessionActionReceiver);
+      mMediaSessionActionReceiver = null;
     }
 }

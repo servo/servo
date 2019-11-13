@@ -232,12 +232,12 @@ public class MainActivity extends Activity implements Servo.Client {
       if (mMediaSession == null) {
         mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
       }
-      Log.d("SERVOMEDIA", "METADATA");
+      Log.d("onMediaSessionMetadata", title + " " + artist + " " + album);
     }
 
     @Override
     public void onMediaSessionPlaybackStateChange(int state) {
-      Log.d("SERVOMEDIA", "PLAYBACK STATE CHANGED " + state);
+      Log.d("onMediaSessionPlaybackStateChange", String.valueOf(state));
       if (mMediaSession == null) {
         mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
       }
