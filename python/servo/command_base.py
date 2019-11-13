@@ -562,7 +562,7 @@ class CommandBase(object):
 
         return self.get_executable(destination_folder)
 
-    def needs_gstreamer_env(self, target, env, uwp=False, features=None):
+    def needs_gstreamer_env(self, target, env, uwp=False, features=[]):
         if uwp:
             return False
         if "media-dummy" in features:
