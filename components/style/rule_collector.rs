@@ -377,7 +377,7 @@ where
         }
     }
 
-    fn collect_style_attribute_and_animation_rules(&mut self) {
+    fn collect_style_attribute(&mut self) {
         if let Some(sa) = self.style_attribute {
             self.rules
                 .push(ApplicableDeclarationBlock::from_declarations(
@@ -385,7 +385,9 @@ where
                     CascadeLevel::StyleAttributeNormal,
                 ));
         }
+    }
 
+    fn collect_animation_rules(&mut self) {
         if let Some(so) = self.smil_override {
             self.rules
                 .push(ApplicableDeclarationBlock::from_declarations(
@@ -436,6 +438,7 @@ where
         self.collect_normal_rules_from_containing_shadow_tree();
         self.collect_document_author_rules();
         self.collect_part_rules();
-        self.collect_style_attribute_and_animation_rules();
+        self.collect_style_attribute();
+        self.collect_animation_rules();
     }
 }
