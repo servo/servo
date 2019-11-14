@@ -20,7 +20,7 @@
   "dom.serviceworker.timeout_seconds": 60,
   "dom.servoparser.async_html_tokenizer.enabled": false,
   "dom.shadowdom.enabled": false,
-  "dom.svg.enabled": false,
+  "dom.svg.enabled": true,
   "dom.testable_crash.enabled": false,
   "dom.testbinding.enabled": false,
   "dom.testing.htmlinputelement.select_files.enabled": false,
