@@ -237,7 +237,13 @@ impl Device {
     /// used for viewport unit resolution.
     pub fn au_viewport_size_for_viewport_unit_resolution(&self) -> Size2D<Au> {
         self.used_viewport_size.store(true, Ordering::Relaxed);
-        self.au_viewport_size()
+
+        let pc = match self.pres_context() {
+            Some(pc) => pc,
+            None => return Size2D::new(Au(0), Au(0)),
+        };
+        let size = &pc.mSizeForViewportUnits;
+        Size2D::new(Au(size.width), Au(size.height))
     }
 
     /// Returns whether we ever looked up the viewport size of the Device.
