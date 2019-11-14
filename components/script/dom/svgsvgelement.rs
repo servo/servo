@@ -41,7 +41,7 @@ pub struct SVGSVGElement {
     webgl_sender: Option<WebGLMsgSender>,
     share_mode: WebGLContextShareMode,
     #[ignore_malloc_size_of = "Just a string"]
-    htmlString: Cell<Option<String>>,
+    htmlString: DomRefCell<Option<String>>,
     #[ignore_malloc_size_of = "Defined in webrender"]
     webrender_image: Cell<Option<webrender_api::ImageKey>>
 }
@@ -85,7 +85,7 @@ impl SVGSVGElement {
                 svggraphicselement: SVGGraphicsElement::new_inherited(other_local_name, prefix, document),
                 webgl_sender: Some(webgl_sender),
                 share_mode: share_mode,
-                htmlString: Cell::new(None),
+                htmlString: DomRefCell::new(None),
                 webrender_image: Cell::new(None),
             }
         });
@@ -99,7 +99,7 @@ impl SVGSVGElement {
                     webgl_sender: None,
                     share_mode: WebGLContextShareMode::SharedTexture,
                     webrender_image: Cell::new(None),
-                    htmlString: Cell::new(None)
+                    htmlString: DomRefCell::new(None)
                 }
             }
         }
@@ -224,8 +224,7 @@ impl VirtualMethods for SVGSVGElement {
         let htmlString = self.upcast::<Element>().GetOuterHTML();
         match htmlString {
             Ok(domString) => {
-                let toStore = domString.to_string();
-                *self.htmlString.borrow_mut() = Cell::from(Some(toStore));
+                *self.htmlString.borrow_mut() = Some(domString.to_string());
             },
             _ => {}
         }
