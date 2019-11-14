@@ -28,7 +28,7 @@ gecko_profiler = []
 
 [dependencies]
 app_units = "0.7"
-arrayvec = "0.4.6"
+arrayvec = "0.5"
 atomic_refcell = "0.1"
 bitflags = "1.0"
 byteorder = "1.0"
@@ -74,7 +74,7 @@ thin-slice = "0.1.0"
 to_shmem = {path = "../to_shmem"}
 to_shmem_derive = {path = "../to_shmem_derive"}
 time = "0.1"
-uluru = "0.3"
+uluru = "0.4"
 unicode-bidi = "0.3"
 unicode-segmentation = "1.0"
 void = "1.0.2"
