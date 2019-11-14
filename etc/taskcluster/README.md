@@ -250,6 +250,13 @@ Servo has several, for the different environments a task can run in:
   There is a task-owned (but preserved across tasks) install of Homebrew,
   with `Brewfile`s [in this repository](macos/).
 
+  This [Workers] page lists the current state of each macOS worker.
+  (A similar page exists for other each worker pools, but as of this writing it has
+  [usability issues](https://github.com/taskcluster/taskcluster/issues/1972)
+  with short-lived workers.)
+
+[Workers]: https://community-tc.services.mozilla.com/provisioners/proj-servo/worker-types/macos
+
 
 ## Taskcluster − Treeherder integration
 
