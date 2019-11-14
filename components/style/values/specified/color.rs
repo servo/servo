@@ -36,9 +36,6 @@ pub enum Color {
     /// A system color
     #[cfg(feature = "gecko")]
     System(SystemColor),
-    /// A special color keyword value used in Gecko
-    #[cfg(feature = "gecko")]
-    Special(gecko::SpecialColorKeyword),
     /// Quirksmode-only rule for inheriting color from the body
     #[cfg(feature = "gecko")]
     InheritFromBodyQuirk,
@@ -143,6 +140,8 @@ pub enum SystemColor {
     Windowframe,
     Windowtext,
     MozButtondefault,
+    MozDefaultColor,
+    MozDefaultBackgroundColor,
     MozDialog,
     MozDialogtext,
     /// Used to highlight valid regions to drop something onto.
@@ -231,6 +230,10 @@ pub enum SystemColor {
     /// colors.
     MozNativehyperlinktext,
 
+    MozHyperlinktext,
+    MozActivehyperlinktext,
+    MozVisitedhyperlinktext,
+
     /// Combobox widgets
     MozComboboxtext,
     MozCombobox,
@@ -246,24 +249,24 @@ impl SystemColor {
     #[inline]
     fn compute(&self, cx: &Context) -> ComputedColor {
         use crate::gecko_bindings::bindings;
-        unsafe {
-            convert_nscolor_to_computedcolor(bindings::Gecko_GetLookAndFeelSystemColor(
-                *self as i32,
-                cx.device().document(),
-            ))
-        }
-    }
-}
 
-#[cfg(feature = "gecko")]
-mod gecko {
-    #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, ToCss, ToShmem)]
-    pub enum SpecialColorKeyword {
-        MozDefaultColor,
-        MozDefaultBackgroundColor,
-        MozHyperlinktext,
-        MozActivehyperlinktext,
-        MozVisitedhyperlinktext,
+        let prefs = cx.device().pref_sheet_prefs();
+
+        convert_nscolor_to_computedcolor(match *self {
+            SystemColor::MozDefaultColor => prefs.mDefaultColor,
+            SystemColor::MozDefaultBackgroundColor => prefs.mDefaultBackgroundColor,
+            SystemColor::MozHyperlinktext => prefs.mLinkColor,
+            SystemColor::MozActivehyperlinktext => prefs.mActiveLinkColor,
+            SystemColor::MozVisitedhyperlinktext => prefs.mVisitedLinkColor,
+
+            _ => unsafe {
+                bindings::Gecko_GetLookAndFeelSystemColor(
+                    *self as i32,
+                    cx.device().document()
+                )
+            }
+        })
+
     }
 }
 
@@ -364,10 +367,6 @@ impl Parse for Color {
                     if let Ok(system) = input.try(|i| SystemColor::parse(context, i)) {
                         return Ok(Color::System(system));
                     }
-
-                    if let Ok(c) = input.try(gecko::SpecialColorKeyword::parse) {
-                        return Ok(Color::Special(c));
-                    }
                 }
 
                 match e.kind {
@@ -400,8 +399,6 @@ impl ToCss for Color {
             Color::Complex(_) => Ok(()),
             #[cfg(feature = "gecko")]
             Color::System(system) => system.to_css(dest),
-            #[cfg(feature = "gecko")]
-            Color::Special(special) => special.to_css(dest),
             #[cfg(feature = "gecko")]
             Color::InheritFromBodyQuirk => Ok(()),
         }
@@ -552,18 +549,6 @@ impl Color {
             Color::Complex(ref complex) => *complex,
             #[cfg(feature = "gecko")]
             Color::System(system) => system.compute(_context?),
-            #[cfg(feature = "gecko")]
-            Color::Special(special) => {
-                use self::gecko::SpecialColorKeyword as Keyword;
-                let prefs = _context?.device().pref_sheet_prefs();
-                convert_nscolor_to_computedcolor(match special {
-                    Keyword::MozDefaultColor => prefs.mDefaultColor,
-                    Keyword::MozDefaultBackgroundColor => prefs.mDefaultBackgroundColor,
-                    Keyword::MozHyperlinktext => prefs.mLinkColor,
-                    Keyword::MozActivehyperlinktext => prefs.mActiveLinkColor,
-                    Keyword::MozVisitedhyperlinktext => prefs.mVisitedLinkColor,
-                })
-            },
             #[cfg(feature = "gecko")]
             Color::InheritFromBodyQuirk => {
                 ComputedColor::rgba(_context?.device().body_text_color())
