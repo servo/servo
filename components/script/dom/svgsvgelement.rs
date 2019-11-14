@@ -23,10 +23,13 @@ use std::cell::{Cell, RefCell, Ref};
 use euclid::Size2D;
 use crate::dom::window::Window;
 use crate::dom::bindings::cell::DomRefCell;
-use std::borrow::Borrow;
+use std::borrow::{Borrow, BorrowMut};
 use crate::dom::webglcontextevent::WebGLContextEvent;
 use crate::dom::event::{EventBubbles, EventCancelable, Event};
 use crate::dom::webglrenderingcontext::capture_webgl_backtrace;
+use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementBinding::ElementMethods;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::node::ChildrenMutation;
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
@@ -37,6 +40,8 @@ pub struct SVGSVGElement {
     #[ignore_malloc_size_of = "Channels are hard"]
     webgl_sender: Option<WebGLMsgSender>,
     share_mode: WebGLContextShareMode,
+    #[ignore_malloc_size_of = "Just a string"]
+    htmlString: Cell<Option<String>>,
     #[ignore_malloc_size_of = "Defined in webrender"]
     webrender_image: Cell<Option<webrender_api::ImageKey>>
 }
@@ -80,6 +85,7 @@ impl SVGSVGElement {
                 svggraphicselement: SVGGraphicsElement::new_inherited(other_local_name, prefix, document),
                 webgl_sender: Some(webgl_sender),
                 share_mode: share_mode,
+                htmlString: Cell::new(None),
                 webrender_image: Cell::new(None),
             }
         });
@@ -93,6 +99,7 @@ impl SVGSVGElement {
                     webgl_sender: None,
                     share_mode: WebGLContextShareMode::SharedTexture,
                     webrender_image: Cell::new(None),
+                    htmlString: Cell::new(None)
                 }
             }
         }
@@ -210,6 +217,17 @@ impl VirtualMethods for SVGSVGElement {
                 .super_type()
                 .unwrap()
                 .parse_plain_attribute(name, value),
+        }
+    }
+
+    fn children_changed(&self, mutation: &ChildrenMutation){
+        let htmlString = self.upcast::<Element>().GetOuterHTML();
+        match htmlString {
+            Ok(domString) => {
+                let toStore = domString.to_string();
+                *self.htmlString.borrow_mut() = Cell::from(Some(toStore));
+            },
+            _ => {}
         }
     }
 }

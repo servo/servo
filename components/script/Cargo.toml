@@ -113,6 +113,8 @@ webdriver = "0.40"
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr_traits = {path = "../webvr_traits"}
 webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
+usvg = "0.8.0"
+pathfinder_svg = { git = "https://github.com/servo/pathfinder", rev = "5d5d303" }
 
 [target.'cfg(not(target_os = "ios"))'.dependencies]
 mozangle = "0.2"
