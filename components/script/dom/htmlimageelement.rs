@@ -927,10 +927,7 @@ impl HTMLImageElement {
         *self.last_selected_source.borrow_mut() = selected_source.clone();
 
         // Step 6, check the list of available images
-        if !selected_source
-            .as_ref()
-            .map_or(false, |source| source.is_empty())
-        {
+        if let Some(src) = selected_source {
             if let Ok(img_url) = base_url.join(&src) {
                 let image_cache = window.image_cache();
                 let response = image_cache.find_image_or_metadata(
