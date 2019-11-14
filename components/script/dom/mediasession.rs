@@ -6,6 +6,8 @@ use crate::compartments::{AlreadyInCompartment, InCompartment};
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
+use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding::MediaMetadataInit;
+use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding::MediaMetadataMethods;
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding;
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionAction;
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionActionHandler;
@@ -13,10 +15,12 @@ use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionMe
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionPlaybackState;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
 use crate::dom::htmlmediaelement::HTMLMediaElement;
 use crate::dom::mediametadata::MediaMetadata;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use embedder_traits::MediaMetadata as EmbedderMediaMetadata;
 use embedder_traits::MediaSessionEvent;
 use script_traits::MediaSessionActionType;
 use script_traits::ScriptMsg;
@@ -27,7 +31,8 @@ use std::rc::Rc;
 pub struct MediaSession {
     reflector_: Reflector,
     /// https://w3c.github.io/mediasession/#dom-mediasession-metadata
-    metadata: MutNullableDom<MediaMetadata>,
+    #[ignore_malloc_size_of = "defined in embedder_traits"]
+    metadata: DomRefCell<Option<EmbedderMediaMetadata>>,
     /// https://w3c.github.io/mediasession/#dom-mediasession-playbackstate
     playback_state: DomRefCell<MediaSessionPlaybackState>,
     /// https://w3c.github.io/mediasession/#supported-media-session-actions
@@ -43,7 +48,7 @@ impl MediaSession {
     fn new_inherited() -> MediaSession {
         let media_session = MediaSession {
             reflector_: Reflector::new(),
-            metadata: Default::default(),
+            metadata: DomRefCell::new(None),
             playback_state: DomRefCell::new(MediaSessionPlaybackState::None),
             action_handlers: DomRefCell::new(HashMap::new()),
             media_instance: Default::default(),
@@ -95,6 +100,13 @@ impl MediaSession {
     }
 
     pub fn send_event(&self, event: MediaSessionEvent) {
+        match event {
+            MediaSessionEvent::SetMetadata(ref metadata) => {
+                *self.metadata.borrow_mut() = Some(metadata.clone());
+            },
+            _ => (),
+        }
+
         let global = self.global();
         let window = global.as_window();
         let pipeline_id = window
@@ -107,7 +119,16 @@ impl MediaSession {
 impl MediaSessionMethods for MediaSession {
     /// https://w3c.github.io/mediasession/#dom-mediasession-metadata
     fn GetMetadata(&self) -> Option<DomRoot<MediaMetadata>> {
-        self.metadata.get()
+        if let Some(ref metadata) = *self.metadata.borrow() {
+            let mut init = MediaMetadataInit::empty();
+            init.title = DOMString::from_string(metadata.title.clone());
+            init.artist = DOMString::from_string(metadata.artist.clone().unwrap_or("".to_owned()));
+            init.album = DOMString::from_string(metadata.album.clone().unwrap_or("".to_owned()));
+            let global = self.global();
+            Some(MediaMetadata::new(&global.as_window(), &init))
+        } else {
+            None
+        }
     }
 
     /// https://w3c.github.io/mediasession/#dom-mediasession-metadata
@@ -115,7 +136,13 @@ impl MediaSessionMethods for MediaSession {
         if let Some(ref metadata) = metadata {
             metadata.set_session(self);
         }
-        self.metadata.set(metadata);
+
+        let _metadata = metadata.map(|m| EmbedderMediaMetadata {
+            title: m.Title().into(),
+            artist: Some(m.Artist().into()),
+            album: Some(m.Album().into()),
+        });
+        *self.metadata.borrow_mut() = _metadata;
     }
 
     /// https://w3c.github.io/mediasession/#dom-mediasession-playbackstate
