@@ -131,9 +131,11 @@ linux_build_env = {
     "SHELL": "/bin/dash",  # For SpiderMonkey’s build system
     "CCACHE": "sccache",
     "RUSTC_WRAPPER": "sccache",
-    "SCCACHE_IDLE_TIMEOUT": "1200",
     "CC": "clang",
     "CXX": "clang++",
+    "SCCACHE_IDLE_TIMEOUT": "1200",
+    # https://github.com/servo/servo/issues/24714#issuecomment-552951519
+    "SCCACHE_MAX_FRAME_LENGTH": str(100 * 1024 * 1024),  # 100 MiB
 }
 macos_build_env = {}
 windows_build_env = {
