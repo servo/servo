@@ -1436,7 +1436,8 @@ impl Document {
 
         // https://w3c.github.io/uievents/#keys-cancelable-keys
         if keyboard_event.state == KeyState::Down &&
-            keyboard_event.key.legacy_charcode() != 0 &&
+            is_character_value_key(&(keyboard_event.key)) &&
+            !keyboard_event.is_composing &&
             cancel_state != EventDefault::Prevented
         {
             // https://w3c.github.io/uievents/#keypress-event-order
@@ -2514,6 +2515,13 @@ impl Document {
             .send(WebGLMsg::SwapBuffers(dirty_context_ids, sender))
             .unwrap();
         receiver.recv().unwrap();
+    }
+}
+
+fn is_character_value_key(key: &Key) -> bool {
+    match key {
+        Key::Character(_) | Key::Enter => true,
+        _ => false,
     }
 }
 
