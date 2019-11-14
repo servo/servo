@@ -2538,7 +2538,8 @@ impl ScriptThread {
         source_origin: ImmutableOrigin,
         data: StructuredSerializedData,
     ) {
-        match { self.documents.borrow().find_window(pipeline_id) } {
+        let window = self.documents.borrow().find_window(pipeline_id);
+        match window {
             None => return warn!("postMessage after target pipeline {} closed.", pipeline_id),
             Some(window) => {
                 // FIXME: synchronously talks to constellation.
@@ -2621,7 +2622,8 @@ impl ScriptThread {
         history_state_id: Option<HistoryStateId>,
         url: ServoUrl,
     ) {
-        match { self.documents.borrow().find_window(pipeline_id) } {
+        let window = self.documents.borrow().find_window(pipeline_id);
+        match window {
             None => {
                 return warn!(
                     "update history state after pipeline {} closed.",
@@ -2637,7 +2639,8 @@ impl ScriptThread {
         pipeline_id: PipelineId,
         history_states: Vec<HistoryStateId>,
     ) {
-        match { self.documents.borrow().find_window(pipeline_id) } {
+        let window = self.documents.borrow().find_window(pipeline_id);
+        match window {
             None => {
                 return warn!(
                     "update history state after pipeline {} closed.",
