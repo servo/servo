@@ -38,6 +38,9 @@ RUN \
         # sampling profiler
         libunwind-dev \
         #
+        # harfbuzz
+        ragel \
+        #
         #
     && \
     #
