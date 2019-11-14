@@ -27,6 +27,7 @@ tasks:
                 event.ref == "refs/heads/master": [{name: firefox, channel: nightly}, {name: chrome, channel: dev}],
                 event.ref == "refs/heads/epochs/daily": [{name: firefox, channel: stable}, {name: chrome, channel: stable}, {name: webkitgtk_minibrowser, channel: nightly}],
                 event.ref == "refs/heads/epochs/weekly": [{name: firefox, channel: beta}, {name: chrome, channel: beta}, {name: webkitgtk_minibrowser, channel: stable}],
+                event.ref == "refs/heads/epochs/three_hourly": [{name: firefox, channel: stable}, {name: chrome, channel: stable}, {name: webkitgtk_minibrowser, channel: nightly}],
                 event.ref == "refs/heads/triggers/chrome_stable": [{name: chrome, channel: stable}],
                 event.ref == "refs/heads/triggers/chrome_beta": [{name: chrome, channel: beta}],
                 event.ref == "refs/heads/triggers/chrome_dev": [{name: chrome, channel: dev}],
@@ -73,7 +74,10 @@ tasks:
                   A subset of WPT's "${chunk[0]}" tests (chunk number ${chunk[1]}
                   of ${chunk[2]}), run in the ${browser.channel} release of
                   ${browser.name}.
-                owner: ${event.pusher.email}
+                owner:
+                  $if: '"epochs/" in event.ref'
+                  then: web-platform-tests@users.noreply.github.com
+                  else: ${event.pusher.email}
                 source: ${event.repository.url}
               payload:
                 image:

@@ -3,6 +3,7 @@
   <head>
     <script src='/resources/testharness.js'></script>
     <script src='/resources/testharnessreport.js'></script>
+    <script src='../resources/feature-policy-report-json.js'></script>
   </head>
   <body>
     <script>
@@ -17,6 +18,7 @@ var check_report_format = (reports, observer) => {
   assert_equals(typeof report.body.lineNumber, "number");
   assert_equals(typeof report.body.columnNumber, "number");
   assert_equals(report.body.disposition, "enforce");
+  check_report_json(report);
 };
 
 new ReportingObserver(t.step_func_done(check_report_format),
