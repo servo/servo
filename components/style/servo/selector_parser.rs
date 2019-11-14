@@ -173,6 +173,12 @@ impl PseudoElement {
         false
     }
 
+    /// Whether this pseudo-element is the ::-moz-color-swatch pseudo.
+    #[inline]
+    pub fn is_color_swatch(&self) -> bool {
+        false
+    }
+
     /// Whether this pseudo-element is eagerly-cascaded.
     #[inline]
     pub fn is_eager(&self) -> bool {

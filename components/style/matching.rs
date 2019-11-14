@@ -137,12 +137,12 @@ trait PrivateMatchMethods: TElement {
             if replacements.contains(RestyleHint::RESTYLE_STYLE_ATTRIBUTE) {
                 let style_attribute = self.style_attribute();
                 result |= replace_rule_node(
-                    CascadeLevel::StyleAttributeNormal,
+                    CascadeLevel::same_tree_author_normal(),
                     style_attribute,
                     primary_rules,
                 );
                 result |= replace_rule_node(
-                    CascadeLevel::StyleAttributeImportant,
+                    CascadeLevel::same_tree_author_important(),
                     style_attribute,
                     primary_rules,
                 );

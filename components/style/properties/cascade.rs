@@ -346,16 +346,10 @@ fn should_ignore_declaration_when_ignoring_document_colors(
         return false;
     }
 
-    let is_style_attribute = matches!(
-        cascade_level,
-        CascadeLevel::StyleAttributeNormal | CascadeLevel::StyleAttributeImportant
-    );
-
-    // Don't override colors on pseudo-element's style attributes. The
-    // background-color on ::-moz-color-swatch is an example. Those are set
-    // as an author style (via the style attribute), but it's pretty
-    // important for it to show up for obvious reasons :)
-    if pseudo.is_some() && is_style_attribute {
+    // Don't override background-color on ::-moz-color-swatch. It is set as an
+    // author style (via the style attribute), but it's pretty important for it
+    // to show up for obvious reasons :)
+    if pseudo.map_or(false, |p| p.is_color_swatch()) && longhand_id == LonghandId::BackgroundColor {
         return false;
     }
 

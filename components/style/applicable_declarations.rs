@@ -5,11 +5,10 @@
 //! Applicable declarations management.
 
 use crate::properties::PropertyDeclarationBlock;
-use crate::rule_tree::{CascadeLevel, ShadowCascadeOrder, StyleSource};
+use crate::rule_tree::{CascadeLevel, StyleSource};
 use crate::shared_lock::Locked;
 use servo_arc::Arc;
 use smallvec::SmallVec;
-use std::fmt::{self, Debug};
 
 /// List of applicable declarations. This is a transient structure that shuttles
 /// declarations between selector matching and inserting into the rule tree, and
@@ -20,75 +19,27 @@ use std::fmt::{self, Debug};
 /// However, it may depend a lot on workload, and stack space is cheap.
 pub type ApplicableDeclarationList = SmallVec<[ApplicableDeclarationBlock; 16]>;
 
-/// Blink uses 18 bits to store source order, and does not check overflow [1].
-/// That's a limit that could be reached in realistic webpages, so we use
-/// 24 bits and enforce defined behavior in the overflow case.
-///
-/// [1] https://cs.chromium.org/chromium/src/third_party/WebKit/Source/core/css/
-///     RuleSet.h?l=128&rcl=90140ab80b84d0f889abc253410f44ed54ae04f3
-const SOURCE_ORDER_SHIFT: usize = 0;
-const SOURCE_ORDER_BITS: usize = 24;
-const SOURCE_ORDER_MAX: u32 = (1 << SOURCE_ORDER_BITS) - 1;
-const SOURCE_ORDER_MASK: u32 = SOURCE_ORDER_MAX << SOURCE_ORDER_SHIFT;
-
-/// We store up-to-15 shadow order levels.
-///
-/// You'd need an element slotted across 16 components with ::slotted rules to
-/// trigger this as of this writing, which looks... Unlikely.
-const SHADOW_CASCADE_ORDER_SHIFT: usize = SOURCE_ORDER_BITS;
-const SHADOW_CASCADE_ORDER_BITS: usize = 4;
-const SHADOW_CASCADE_ORDER_MAX: u8 = (1 << SHADOW_CASCADE_ORDER_BITS) - 1;
-const SHADOW_CASCADE_ORDER_MASK: u32 =
-    (SHADOW_CASCADE_ORDER_MAX as u32) << SHADOW_CASCADE_ORDER_SHIFT;
-
-const CASCADE_LEVEL_SHIFT: usize = SOURCE_ORDER_BITS + SHADOW_CASCADE_ORDER_BITS;
-const CASCADE_LEVEL_BITS: usize = 4;
-const CASCADE_LEVEL_MAX: u8 = (1 << CASCADE_LEVEL_BITS) - 1;
-const CASCADE_LEVEL_MASK: u32 = (CASCADE_LEVEL_MAX as u32) << CASCADE_LEVEL_SHIFT;
-
 /// Stores the source order of a block, the cascade level it belongs to, and the
 /// counter needed to handle Shadow DOM cascade order properly.
-#[derive(Clone, Copy, Eq, MallocSizeOf, PartialEq)]
-struct ApplicableDeclarationBits(u32);
+///
+/// FIXME(emilio): Optimize storage.
+#[derive(Clone, Copy, Eq, MallocSizeOf, PartialEq, Debug)]
+struct ApplicableDeclarationBits {
+    source_order: u32,
+    cascade_level: CascadeLevel,
+}
 
 impl ApplicableDeclarationBits {
-    fn new(
-        source_order: u32,
-        cascade_level: CascadeLevel,
-        shadow_cascade_order: ShadowCascadeOrder,
-    ) -> Self {
-        debug_assert!(
-            cascade_level as u8 <= CASCADE_LEVEL_MAX,
-            "Gotta find more bits!"
-        );
-        let mut bits = ::std::cmp::min(source_order, SOURCE_ORDER_MAX);
-        bits |= ((shadow_cascade_order & SHADOW_CASCADE_ORDER_MAX) as u32) <<
-            SHADOW_CASCADE_ORDER_SHIFT;
-        bits |= (cascade_level as u8 as u32) << CASCADE_LEVEL_SHIFT;
-        ApplicableDeclarationBits(bits)
+    fn new(source_order: u32, cascade_level: CascadeLevel) -> Self {
+        Self { source_order, cascade_level }
     }
 
     fn source_order(&self) -> u32 {
-        (self.0 & SOURCE_ORDER_MASK) >> SOURCE_ORDER_SHIFT
-    }
-
-    fn shadow_cascade_order(&self) -> ShadowCascadeOrder {
-        ((self.0 & SHADOW_CASCADE_ORDER_MASK) >> SHADOW_CASCADE_ORDER_SHIFT) as ShadowCascadeOrder
+        self.source_order
     }
 
     fn level(&self) -> CascadeLevel {
-        let byte = ((self.0 & CASCADE_LEVEL_MASK) >> CASCADE_LEVEL_SHIFT) as u8;
-        unsafe { CascadeLevel::from_byte(byte) }
-    }
-}
-
-impl Debug for ApplicableDeclarationBits {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("ApplicableDeclarationBits")
-            .field("source_order", &self.source_order())
-            .field("shadow_cascade_order", &self.shadow_cascade_order())
-            .field("level", &self.level())
-            .finish()
+        self.cascade_level
     }
 }
 
@@ -119,7 +70,7 @@ impl ApplicableDeclarationBlock {
     ) -> Self {
         ApplicableDeclarationBlock {
             source: StyleSource::from_declarations(declarations),
-            bits: ApplicableDeclarationBits::new(0, level, 0),
+            bits: ApplicableDeclarationBits::new(0, level),
             specificity: 0,
         }
     }
@@ -131,11 +82,10 @@ impl ApplicableDeclarationBlock {
         order: u32,
         level: CascadeLevel,
         specificity: u32,
-        shadow_cascade_order: ShadowCascadeOrder,
     ) -> Self {
         ApplicableDeclarationBlock {
             source,
-            bits: ApplicableDeclarationBits::new(order, level, shadow_cascade_order),
+            bits: ApplicableDeclarationBits::new(order, level),
             specificity,
         }
     }
@@ -155,9 +105,8 @@ impl ApplicableDeclarationBlock {
     /// Convenience method to consume self and return the right thing for the
     /// rule tree to iterate over.
     #[inline]
-    pub fn for_rule_tree(self) -> (StyleSource, CascadeLevel, ShadowCascadeOrder) {
+    pub fn for_rule_tree(self) -> (StyleSource, CascadeLevel) {
         let level = self.level();
-        let cascade_order = self.bits.shadow_cascade_order();
-        (self.source, level, cascade_order)
+        (self.source, level)
     }
 }

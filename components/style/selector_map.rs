@@ -10,7 +10,7 @@ use crate::context::QuirksMode;
 use crate::dom::TElement;
 use crate::hash::map as hash_map;
 use crate::hash::{HashMap, HashSet};
-use crate::rule_tree::{CascadeLevel, ShadowCascadeOrder};
+use crate::rule_tree::CascadeLevel;
 use crate::selector_parser::SelectorImpl;
 use crate::stylist::Rule;
 use crate::{Atom, LocalName, Namespace, WeakAtom};
@@ -171,7 +171,6 @@ impl SelectorMap<Rule> {
         context: &mut MatchingContext<E::Impl>,
         flags_setter: &mut F,
         cascade_level: CascadeLevel,
-        shadow_cascade_order: ShadowCascadeOrder,
     ) where
         E: TElement,
         F: FnMut(&E, ElementSelectorFlags),
@@ -190,7 +189,6 @@ impl SelectorMap<Rule> {
                 context,
                 flags_setter,
                 cascade_level,
-                shadow_cascade_order,
             );
         }
 
@@ -203,7 +201,6 @@ impl SelectorMap<Rule> {
                     context,
                     flags_setter,
                     cascade_level,
-                    shadow_cascade_order,
                 )
             }
         }
@@ -217,7 +214,6 @@ impl SelectorMap<Rule> {
                     context,
                     flags_setter,
                     cascade_level,
-                    shadow_cascade_order,
                 )
             }
         });
@@ -230,7 +226,6 @@ impl SelectorMap<Rule> {
                 context,
                 flags_setter,
                 cascade_level,
-                shadow_cascade_order,
             )
         }
 
@@ -242,7 +237,6 @@ impl SelectorMap<Rule> {
                 context,
                 flags_setter,
                 cascade_level,
-                shadow_cascade_order,
             )
         }
 
@@ -253,7 +247,6 @@ impl SelectorMap<Rule> {
             context,
             flags_setter,
             cascade_level,
-            shadow_cascade_order,
         );
     }
 
@@ -265,7 +258,6 @@ impl SelectorMap<Rule> {
         context: &mut MatchingContext<E::Impl>,
         flags_setter: &mut F,
         cascade_level: CascadeLevel,
-        shadow_cascade_order: ShadowCascadeOrder,
     ) where
         E: TElement,
         F: FnMut(&E, ElementSelectorFlags),
@@ -280,7 +272,7 @@ impl SelectorMap<Rule> {
                 flags_setter,
             ) {
                 matching_rules.push(
-                    rule.to_applicable_declaration_block(cascade_level, shadow_cascade_order),
+                    rule.to_applicable_declaration_block(cascade_level),
                 );
             }
         }

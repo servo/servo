@@ -18,7 +18,7 @@ use crate::properties::{self, CascadeMode, ComputedValues};
 use crate::properties::{AnimationRules, PropertyDeclarationBlock};
 use crate::rule_cache::{RuleCache, RuleCacheConditions};
 use crate::rule_collector::{containing_shadow_ignoring_svg_use, RuleCollector};
-use crate::rule_tree::{CascadeLevel, RuleTree, ShadowCascadeOrder, StrongRuleNode, StyleSource};
+use crate::rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet, SelectorMap, SelectorMapEntry};
 use crate::selector_parser::{PerPseudoElementMap, PseudoElement, SelectorImpl, SnapshotMap};
 use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
@@ -1324,7 +1324,7 @@ impl Stylist {
                 .declaration_importance_iter()
                 .map(|(declaration, importance)| {
                     debug_assert!(!importance.important());
-                    (declaration, CascadeLevel::StyleAttributeNormal)
+                    (declaration, CascadeLevel::same_tree_author_normal())
                 })
         };
 
@@ -1987,7 +1987,6 @@ impl CascadeData {
                                         self.rules_source_order,
                                         CascadeLevel::UANormal,
                                         selector.specificity(),
-                                        0,
                                     ));
                                 continue;
                             }
@@ -2323,7 +2322,6 @@ impl Rule {
     pub fn to_applicable_declaration_block(
         &self,
         level: CascadeLevel,
-        shadow_cascade_order: ShadowCascadeOrder,
     ) -> ApplicableDeclarationBlock {
         let source = StyleSource::from_rule(self.style_rule.clone());
         ApplicableDeclarationBlock::new(
@@ -2331,7 +2329,6 @@ impl Rule {
             self.source_order,
             level,
             self.specificity(),
-            shadow_cascade_order,
         )
     }
 

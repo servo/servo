@@ -169,15 +169,60 @@ const FREE_LIST_SENTINEL: *mut RuleNode = 0x01 as *mut RuleNode;
 /// another thread is currently adding an entry). We spin if we find this value.
 const FREE_LIST_LOCKED: *mut RuleNode = 0x02 as *mut RuleNode;
 
-/// A counter to track how many inner shadow roots rules deep we are.
-///
-/// This is used to handle:
+/// A counter to track how many shadow root rules deep we are. This is used to
+/// handle:
 ///
 /// https://drafts.csswg.org/css-scoping/#shadow-cascading
 ///
-/// In particular, it'd be `0` for the innermost shadow host, `1` for the next,
-/// and so on.
-pub type ShadowCascadeOrder = u8;
+/// See the static functions for the meaning of different values.
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd)]
+pub struct ShadowCascadeOrder(i8);
+
+impl ShadowCascadeOrder {
+    /// A level for the outermost shadow tree (the shadow tree we own, and the
+    /// ones from the slots we're slotted in).
+    #[inline]
+    pub fn for_outermost_shadow_tree() -> Self {
+        Self(-1)
+    }
+
+    /// A level for the element's tree.
+    #[inline]
+    fn for_same_tree() -> Self {
+        Self(0)
+    }
+
+    /// A level for the innermost containing tree (the one closest to the
+    /// element).
+    #[inline]
+    pub fn for_innermost_containing_tree() -> Self {
+        Self(1)
+    }
+
+    /// Decrement the level, moving inwards. We should only move inwards if
+    /// we're traversing slots.
+    #[inline]
+    pub fn dec(&mut self) {
+        debug_assert!(self.0 < 0);
+        self.0 = self.0.saturating_sub(1);
+    }
+
+    /// The level, moving inwards. We should only move inwards if we're
+    /// traversing slots.
+    #[inline]
+    pub fn inc(&mut self) {
+        debug_assert_ne!(self.0, -1);
+        self.0 = self.0.saturating_add(1);
+    }
+}
+
+impl std::ops::Neg for ShadowCascadeOrder {
+    type Output = Self;
+    #[inline]
+    fn neg(self) -> Self {
+        Self(self.0.neg())
+    }
+}
 
 impl RuleTree {
     /// Construct a new rule tree.
@@ -215,26 +260,20 @@ impl RuleTree {
         guards: &StylesheetGuards,
     ) -> StrongRuleNode
     where
-        I: Iterator<Item = (StyleSource, CascadeLevel, ShadowCascadeOrder)>,
+        I: Iterator<Item = (StyleSource, CascadeLevel)>,
     {
         use self::CascadeLevel::*;
         let mut current = self.root.clone();
-        let mut last_level = current.get().level;
 
         let mut found_important = false;
-        let mut important_style_attr = None;
 
-        let mut important_same_tree = SmallVec::<[StyleSource; 4]>::new();
-        let mut important_inner_shadow = SmallVec::<[SmallVec<[StyleSource; 4]>; 4]>::new();
-        important_inner_shadow.push(SmallVec::new());
+        let mut important_author = SmallVec::<[(StyleSource, ShadowCascadeOrder); 4]>::new();
 
         let mut important_user = SmallVec::<[StyleSource; 4]>::new();
         let mut important_ua = SmallVec::<[StyleSource; 4]>::new();
         let mut transition = None;
 
-        let mut last_cascade_order = 0;
-        for (source, level, shadow_cascade_order) in iter {
-            debug_assert!(level >= last_level, "Not really ordered");
+        for (source, level) in iter {
             debug_assert!(!level.is_important(), "Important levels handled internally");
             let any_important = {
                 let pdb = source.read(level.guard(guards));
@@ -244,29 +283,11 @@ impl RuleTree {
             if any_important {
                 found_important = true;
                 match level {
-                    InnerShadowNormal => {
-                        debug_assert!(
-                            shadow_cascade_order >= last_cascade_order,
-                            "Not really ordered"
-                        );
-                        if shadow_cascade_order > last_cascade_order &&
-                            !important_inner_shadow.last().unwrap().is_empty()
-                        {
-                            last_cascade_order = shadow_cascade_order;
-                            important_inner_shadow.push(SmallVec::new());
-                        }
-                        important_inner_shadow
-                            .last_mut()
-                            .unwrap()
-                            .push(source.clone())
+                    AuthorNormal { shadow_cascade_order } => {
+                        important_author.push((source.clone(), shadow_cascade_order));
                     },
-                    SameTreeAuthorNormal => important_same_tree.push(source.clone()),
                     UANormal => important_ua.push(source.clone()),
                     UserNormal => important_user.push(source.clone()),
-                    StyleAttributeNormal => {
-                        debug_assert!(important_style_attr.is_none());
-                        important_style_attr = Some(source.clone());
-                    },
                     _ => {},
                 };
             }
@@ -290,7 +311,6 @@ impl RuleTree {
             } else {
                 current = current.ensure_child(self.root.downgrade(), source, level);
             }
-            last_level = level;
         }
 
         // Early-return in the common case of no !important declarations.
@@ -298,23 +318,35 @@ impl RuleTree {
             return current;
         }
 
-        //
         // Insert important declarations, in order of increasing importance,
         // followed by any transition rule.
         //
-
-        for source in important_same_tree.drain() {
-            current = current.ensure_child(self.root.downgrade(), source, SameTreeAuthorImportant);
+        // Inner shadow wins over same-tree, which wins over outer-shadow.
+        //
+        // We negate the shadow cascade order to preserve the right PartialOrd
+        // behavior.
+        if !important_author.is_empty() &&
+            important_author.first().unwrap().1 != important_author.last().unwrap().1
+        {
+            // We only need to sort if the important rules come from
+            // different trees, but we need this sort to be stable.
+            //
+            // FIXME(emilio): This could maybe be smarter, probably by chunking
+            // the important rules while inserting, and iterating the outer
+            // chunks in reverse order.
+            //
+            // That is, if we have rules with levels like: -1 -1 -1 0 0 0 1 1 1,
+            // we're really only sorting the chunks, while keeping elements
+            // inside the same chunk already sorted. Seems like we could try to
+            // keep a SmallVec-of-SmallVecs with the chunks and just iterate the
+            // outer in reverse.
+            important_author.sort_by_key(|&(_, order)| -order);
         }
 
-        if let Some(source) = important_style_attr {
-            current = current.ensure_child(self.root.downgrade(), source, StyleAttributeImportant);
-        }
-
-        for mut list in important_inner_shadow.drain().rev() {
-            for source in list.drain() {
-                current = current.ensure_child(self.root.downgrade(), source, InnerShadowImportant);
-            }
+        for (source, shadow_cascade_order) in important_author.drain() {
+            current = current.ensure_child(self.root.downgrade(), source, AuthorImportant {
+                shadow_cascade_order: -shadow_cascade_order,
+            });
         }
 
         for source in important_user.drain() {
@@ -359,11 +391,8 @@ impl RuleTree {
         I: Iterator<Item = (StyleSource, CascadeLevel)>,
     {
         let mut current = from;
-        let mut last_level = current.get().level;
         for (source, level) in iter {
-            debug_assert!(last_level <= level, "Not really ordered");
             current = current.ensure_child(self.root.downgrade(), source, level);
-            last_level = level;
         }
         current
     }
@@ -439,7 +468,6 @@ impl RuleTree {
         guards: &StylesheetGuards,
         important_rules_changed: &mut bool,
     ) -> Option<StrongRuleNode> {
-        debug_assert!(level.is_unique_per_element());
         // TODO(emilio): Being smarter with lifetimes we could avoid a bit of
         // the refcount churn.
         let mut current = path.clone();
@@ -468,7 +496,16 @@ impl RuleTree {
         if current.get().level == level {
             *important_rules_changed |= level.is_important();
 
-            if let Some(pdb) = pdb {
+            let current_decls = current
+                .get()
+                .source
+                .as_ref()
+                .unwrap()
+                .as_declarations();
+
+            // If the only rule at the level we're replacing is exactly the
+            // same as `pdb`, we're done, and `path` is still valid.
+            if let (Some(ref pdb), Some(ref current_decls)) = (pdb, current_decls) {
                 // If the only rule at the level we're replacing is exactly the
                 // same as `pdb`, we're done, and `path` is still valid.
                 //
@@ -478,25 +515,17 @@ impl RuleTree {
                 // also equally valid. This is less likely, and would require an
                 // in-place mutation of the source, which is, at best, fiddly,
                 // so let's skip it for now.
-                let current_decls = current
-                    .get()
-                    .source
-                    .as_ref()
-                    .unwrap()
-                    .as_declarations()
-                    .expect("Replacing non-declarations style?");
-                let is_here_already = ArcBorrow::ptr_eq(&pdb, &current_decls);
+                let is_here_already = ArcBorrow::ptr_eq(pdb, current_decls);
                 if is_here_already {
                     debug!("Picking the fast path in rule replacement");
                     return None;
                 }
             }
-            current = current.parent().unwrap().clone();
+
+            if current_decls.is_some() {
+                current = current.parent().unwrap().clone();
+            }
         }
-        debug_assert!(
-            current.get().level != level,
-            "Multiple rules should've been replaced?"
-        );
 
         // Insert the rule if it's relevant at this level in the cascade.
         //
@@ -611,46 +640,42 @@ const RULE_TREE_GC_INTERVAL: usize = 300;
 /// tree may affect an element connected to the document or an "outer" shadow
 /// tree.
 ///
-/// We need to differentiate between rules from the same tree and "inner" shadow
-/// trees in order to be able to find the right position for the style attribute
-/// easily. Otherwise we wouldn't be able to avoid selector-matching when a
-/// style attribute is added or removed.
-///
 /// [1]: https://drafts.csswg.org/css-cascade/#cascade-origin
 /// [2]: https://drafts.csswg.org/css-cascade/#preshint
 /// [3]: https://html.spec.whatwg.org/multipage/#presentational-hints
 /// [4]: https://drafts.csswg.org/css-scoping/#shadow-cascading
 #[repr(u8)]
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, PartialOrd)]
 pub enum CascadeLevel {
     /// Normal User-Agent rules.
-    UANormal = 0,
+    UANormal,
     /// User normal rules.
     UserNormal,
     /// Presentational hints.
     PresHints,
-    /// Shadow DOM styles from "inner" shadow trees.
-    ///
-    /// See above for why this is needed instead of merging InnerShadowNormal,
-    /// SameTreeAuthorNormal and StyleAttributeNormal inside something like
-    /// AuthorNormal.
-    InnerShadowNormal,
-    /// Author normal rules from the same tree the element is in.
-    SameTreeAuthorNormal,
-    /// Style attribute normal rules.
-    StyleAttributeNormal,
+    /// Shadow DOM styles from author styles.
+    AuthorNormal {
+        /// The order in the shadow tree hierarchy. This number is relative to
+        /// the tree of the element, and thus the only invariants that need to
+        /// be preserved is:
+        ///
+        ///  * Zero is the same tree as the element that matched the rule. This
+        ///    is important so that we can optimize style attribute insertions.
+        ///
+        ///  * The levels are ordered in accordance with
+        ///    https://drafts.csswg.org/css-scoping/#shadow-cascading
+        shadow_cascade_order: ShadowCascadeOrder,
+    },
     /// SVG SMIL animations.
     SMILOverride,
     /// CSS animations and script-generated animations.
     Animations,
-    /// Author-supplied important rules from the same tree the element came
-    /// from.
-    SameTreeAuthorImportant,
-    /// Style attribute important rules.
-    StyleAttributeImportant,
-    /// Shadow DOM important rules.
-    InnerShadowImportant,
+    /// Author-supplied important rules.
+    AuthorImportant {
+        /// The order in the shadow tree hierarchy, inverted, so that PartialOrd
+        /// does the right thing.
+        shadow_cascade_order: ShadowCascadeOrder,
+    },
     /// User important rules.
     UserImportant,
     /// User-agent important rules.
@@ -662,12 +687,6 @@ pub enum CascadeLevel {
 }
 
 impl CascadeLevel {
-    /// Converts a raw byte to a CascadeLevel.
-    pub unsafe fn from_byte(byte: u8) -> Self {
-        debug_assert!(byte <= CascadeLevel::Transitions as u8);
-        mem::transmute(byte)
-    }
-
     /// Select a lock guard for this level
     pub fn guard<'a>(&self, guards: &'a StylesheetGuards<'a>) -> &'a SharedRwLockReadGuard<'a> {
         match *self {
@@ -679,16 +698,21 @@ impl CascadeLevel {
         }
     }
 
-    /// Returns whether this cascade level is unique per element, in which case
-    /// we can replace the path in the cascade without fear.
-    pub fn is_unique_per_element(&self) -> bool {
-        match *self {
-            CascadeLevel::Transitions |
-            CascadeLevel::Animations |
-            CascadeLevel::SMILOverride |
-            CascadeLevel::StyleAttributeNormal |
-            CascadeLevel::StyleAttributeImportant => true,
-            _ => false,
+    /// Returns the cascade level for author important declarations from the
+    /// same tree as the element.
+    #[inline]
+    pub fn same_tree_author_important() -> Self {
+        CascadeLevel::AuthorImportant {
+            shadow_cascade_order: ShadowCascadeOrder::for_same_tree(),
+        }
+    }
+
+    /// Returns the cascade level for author normal declarations from the same
+    /// tree as the element.
+    #[inline]
+    pub fn same_tree_author_normal() -> Self {
+        CascadeLevel::AuthorNormal {
+            shadow_cascade_order: ShadowCascadeOrder::for_same_tree(),
         }
     }
 
@@ -697,9 +721,7 @@ impl CascadeLevel {
     #[inline]
     pub fn is_important(&self) -> bool {
         match *self {
-            CascadeLevel::SameTreeAuthorImportant |
-            CascadeLevel::InnerShadowImportant |
-            CascadeLevel::StyleAttributeImportant |
+            CascadeLevel::AuthorImportant { .. } |
             CascadeLevel::UserImportant |
             CascadeLevel::UAImportant => true,
             _ => false,
@@ -724,14 +746,10 @@ impl CascadeLevel {
             CascadeLevel::UAImportant | CascadeLevel::UANormal => Origin::UserAgent,
             CascadeLevel::UserImportant | CascadeLevel::UserNormal => Origin::User,
             CascadeLevel::PresHints |
-            CascadeLevel::InnerShadowNormal |
-            CascadeLevel::SameTreeAuthorNormal |
-            CascadeLevel::StyleAttributeNormal |
+            CascadeLevel::AuthorNormal { .. } |
+            CascadeLevel::AuthorImportant { .. } |
             CascadeLevel::SMILOverride |
             CascadeLevel::Animations |
-            CascadeLevel::SameTreeAuthorImportant |
-            CascadeLevel::StyleAttributeImportant |
-            CascadeLevel::InnerShadowImportant |
             CascadeLevel::Transitions => Origin::Author,
         }
     }
@@ -1146,6 +1164,15 @@ impl StrongRuleNode {
     ) -> StrongRuleNode {
         use parking_lot::RwLockUpgradableReadGuard;
 
+        debug_assert!(
+            self.get().level <= level,
+            "Should be ordered (instead {:?} > {:?}), from {:?} and {:?}",
+            self.get().level,
+            level,
+            self.get().source,
+            source,
+        );
+
         let key = ChildKey(level, source.key());
 
         let read_guard = self.get().children.upgradable_read();
@@ -1448,55 +1475,40 @@ impl StrongRuleNode {
                     }
                 });
 
-                match node.cascade_level() {
-                    // Non-author rules:
-                    CascadeLevel::UANormal |
-                    CascadeLevel::UAImportant |
-                    CascadeLevel::UserNormal |
-                    CascadeLevel::UserImportant => {
-                        for (id, declaration) in longhands {
-                            if properties.contains(id) {
-                                // This property was set by a non-author rule.
-                                // Stop looking for it in this element's rule
-                                // nodes.
-                                properties.remove(id);
+                let is_author = node.cascade_level().origin() == Origin::Author;
+                for (id, declaration) in longhands {
+                    if !properties.contains(id) {
+                        continue;
+                    }
 
-                                // However, if it is inherited, then it might be
-                                // inherited from an author rule from an
-                                // ancestor element's rule nodes.
-                                if declaration.get_css_wide_keyword() ==
-                                    Some(CSSWideKeyword::Inherit)
-                                {
-                                    have_explicit_ua_inherit = true;
-                                    inherited_properties.insert(id);
-                                }
+                    if is_author {
+                        if !author_colors_allowed {
+                            // FIXME(emilio): this looks wrong, this should
+                            // do: if color is not transparent, then return
+                            // true, or something.
+                            if let PropertyDeclaration::BackgroundColor(ref color) =
+                                *declaration
+                            {
+                                return *color == Color::transparent();
                             }
                         }
-                    },
-                    // Author rules:
-                    CascadeLevel::PresHints |
-                    CascadeLevel::SameTreeAuthorNormal |
-                    CascadeLevel::InnerShadowNormal |
-                    CascadeLevel::StyleAttributeNormal |
-                    CascadeLevel::SMILOverride |
-                    CascadeLevel::Animations |
-                    CascadeLevel::SameTreeAuthorImportant |
-                    CascadeLevel::InnerShadowImportant |
-                    CascadeLevel::StyleAttributeImportant |
-                    CascadeLevel::Transitions => {
-                        for (id, declaration) in longhands {
-                            if properties.contains(id) {
-                                if !author_colors_allowed {
-                                    if let PropertyDeclaration::BackgroundColor(ref color) =
-                                        *declaration
-                                    {
-                                        return *color == Color::transparent();
-                                    }
-                                }
-                                return true;
-                            }
-                        }
-                    },
+                        return true;
+                    }
+
+                    // This property was set by a non-author rule.
+                    // Stop looking for it in this element's rule
+                    // nodes.
+                    properties.remove(id);
+
+                    // However, if it is inherited, then it might be
+                    // inherited from an author rule from an
+                    // ancestor element's rule nodes.
+                    if declaration.get_css_wide_keyword() ==
+                        Some(CSSWideKeyword::Inherit)
+                    {
+                        have_explicit_ua_inherit = true;
+                        inherited_properties.insert(id);
+                    }
                 }
             }
 
