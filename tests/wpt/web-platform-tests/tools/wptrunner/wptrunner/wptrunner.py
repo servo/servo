@@ -342,6 +342,7 @@ def start(**kwargs):
     handler = handlers.LogLevelFilter(logged_critical, "CRITICAL")
     logger.add_handler(handler)
 
+    rv = False
     try:
         if kwargs["list_test_groups"]:
             list_test_groups(**kwargs)
@@ -350,11 +351,12 @@ def start(**kwargs):
         elif kwargs["list_tests"]:
             list_tests(**kwargs)
         elif kwargs["verify"] or kwargs["stability"]:
-            return check_stability(**kwargs) or logged_critical.has_log
+            rv = check_stability(**kwargs) or logged_critical.has_log
         else:
-            return not run_tests(**kwargs) or logged_critical.has_log
+            rv = not run_tests(**kwargs) or logged_critical.has_log
     finally:
         logger.remove_handler(handler)
+    return rv
 
 
 def main():

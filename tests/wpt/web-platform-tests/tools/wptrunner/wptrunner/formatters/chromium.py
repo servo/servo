@@ -31,18 +31,26 @@ class ChromiumFormatter(base.BaseFormatter):
         # List of tests that have failing subtests.
         self.tests_with_subtest_fails = set()
 
-    def _append_test_message(self, test, subtest, status, message):
+    def _append_test_message(self, test, subtest, status, expected, message):
         """
         Appends the message data for a test.
         :param str test: the name of the test
         :param str subtest: the name of the subtest with the message
         :param str status: the subtest status
+        :param str expected: the expected subtest status
         :param str message: the string to append to the message for this test
+
+        Here's an example of a message:
+        [TIMEOUT expected FAIL] Test Name foo: assert_equals: expected 1 but got 2
         """
         if not message:
             return
         # Add the prefix, with the test status and subtest name (if available)
-        prefix = "[%s] " % status
+        prefix = "[%s" % status
+        if expected and expected != status:
+            prefix += " expected %s] " % expected
+        else:
+            prefix += "] "
         if subtest:
             prefix += "%s: " % subtest
         self.messages[test] += prefix + message + "\n"
@@ -112,11 +120,23 @@ class ChromiumFormatter(base.BaseFormatter):
 
     def test_status(self, data):
         test_name = data["test"]
-        if data["status"] != "PASS" and test_name not in self.tests_with_subtest_fails:
+        is_unexpected = None
+        actual_status = self._map_status_name(data["status"])
+        # mozlog will delete "expected" from |data| if it is the same as "status".
+        # So the presence of "expected" implies that "status" is unexpected.
+        # Conversely, the absence of "expected" implies the "status" is expected.
+        # So here we use the "expected" status if it's there or fall back to the
+        # actual status if it's not.
+        expected_status = (self._map_status_name(data["expected"])
+                           if "expected" in data else actual_status)
+
+        is_unexpected = actual_status != expected_status
+        if is_unexpected and test_name not in self.tests_with_subtest_fails:
             self.tests_with_subtest_fails.add(test_name)
         if "message" in data:
             self._append_test_message(test_name, data["subtest"],
-                                      data["status"], data["message"])
+                                      actual_status, expected_status,
+                                      data["message"])
 
     def test_end(self, data):
         expected_status = (self._map_status_name(data["expected"])
@@ -132,7 +152,7 @@ class ChromiumFormatter(base.BaseFormatter):
 
         if "message" in data:
             self._append_test_message(test_name, None, actual_status,
-                                      data["message"])
+                                      expected_status, data["message"])
         self._store_test_result(test_name, actual_status, expected_status,
                                 self.messages[test_name])
 

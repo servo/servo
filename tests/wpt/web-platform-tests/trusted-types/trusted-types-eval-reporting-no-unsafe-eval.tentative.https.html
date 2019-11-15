@@ -88,8 +88,7 @@
     let p = Promise.resolve()
         .then(promise_violation("script-src"))
         .then(promise_flush());
-    expect_throws(_ => eval('script_run_beacon="should not run"'));
-    eval(scriptyPolicy.createScript('script_run_beacon="i ran"'));
+    expect_throws(_ => eval(scriptyPolicy.createScript('script_run_beacon="i ran"')));
     flush();
     assert_not_equals(script_run_beacon, 'i ran'); // Code did not run.
     return p;

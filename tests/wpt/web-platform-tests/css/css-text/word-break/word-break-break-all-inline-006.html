@@ -11,4 +11,10 @@
 </style>
 <div>Test passes if the two boxes are the same.</div>
 <div class="testdiv">aaaa<span class="test">bbbbbbbbbbb</span>ccccc</div>
-<div class="testdiv">aaaabb<br>bbbbbb<br>bbbccccc</div>
+<!--
+Some browsers may decide to break before the last 'b', which is still conformant from the spec
+perspective. However, this test would fail in that case. Current spec states that behavior is
+undefined in the boundaries of the inline-box. See https://github.com/web-platform-tests/wpt/issues/19903
+and https://github.com/w3c/csswg-drafts/issues/3897 for details.
+-->
+<div class="testdiv">aaaabb<br>bbbbbb<br>bbb<br>ccccc</div>

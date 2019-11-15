@@ -80,11 +80,13 @@ exclude_patterns = [
     '.DS_Store'
 ]
 
+from docs.wpt_lint_rules import WPTLintRules
 # Enable inline reStructured Text within Markdown-formatted files
 # https://recommonmark.readthedocs.io/en/latest/auto_structify.html
 from recommonmark.transform import AutoStructify
 def setup(app):
     app.add_transform(AutoStructify)
+    app.add_directive('wpt-lint-rules', WPTLintRules)
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None

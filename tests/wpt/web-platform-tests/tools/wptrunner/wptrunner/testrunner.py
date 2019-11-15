@@ -572,10 +572,16 @@ class TestRunnerManager(threading.Thread):
         # Write the result of each subtest
         file_result, test_results = results
         subtest_unexpected = False
+        expect_any_subtest_status = test.expect_any_subtest_status()
+        if expect_any_subtest_status:
+            self.logger.debug("Ignoring subtest statuses for test %s" % test.id)
         for result in test_results:
             if test.disabled(result.name):
                 continue
-            expected = test.expected(result.name)
+            if expect_any_subtest_status:
+                expected = result.status
+            else:
+                expected = test.expected(result.name)
             known_intermittent = test.known_intermittent(result.name)
             is_unexpected = expected != result.status and result.status not in known_intermittent
 

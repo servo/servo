@@ -347,6 +347,17 @@ class Test(object):
         except KeyError:
             return []
 
+    def expect_any_subtest_status(self):
+        metadata = self._get_metadata()
+        if metadata is None:
+            return False
+        try:
+            # This key is used by the Blink CI to ignore subtest statuses
+            metadata.get("blink_expect_any_subtest_status")
+            return True
+        except KeyError:
+            return False
+
     def __repr__(self):
         return "<%s.%s %s>" % (self.__module__, self.__class__.__name__, self.id)
 

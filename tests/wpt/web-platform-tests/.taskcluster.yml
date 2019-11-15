@@ -73,7 +73,16 @@ tasks:
                   A subset of WPT's "${chunk[0]}" tests (chunk number ${chunk[1]}
                   of ${chunk[2]}), run in the ${browser.channel} release of
                   ${browser.name}.
-                owner: ${event.pusher.email}
+                owner:
+                  # event.pusher.email is null when it comes from a GitHub action, so it has to be null-checked,
+                  # and using the "in" operator causes an evaluation error when the right variable is null, if its
+                  # done on the same "if" statement than the null-check (with &&), therefore we use a nested "if" here.
+                  $if: 'event.pusher.email'
+                  then:
+                    $if: '"@" in event.pusher.email'
+                    then: ${event.pusher.email}
+                    else: web-platform-tests@users.noreply.github.com
+                  else: web-platform-tests@users.noreply.github.com
                 source: ${event.repository.url}
               payload:
                 image:

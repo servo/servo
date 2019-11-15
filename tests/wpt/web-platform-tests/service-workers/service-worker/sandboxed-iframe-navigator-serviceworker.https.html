@@ -8,10 +8,12 @@
 var lastCallbackId = 0;
 var callbacks = {};
 function postMessageAndWaitResult(frame) {
-  return new Promise(function(resolve) {
+  return new Promise(function(resolve, reject) {
     var id = ++lastCallbackId;
     callbacks[id] = resolve;
     frame.contentWindow.postMessage({id:id}, '*');
+    const timeout = 1000;
+    step_timeout(() => reject("no msg back after " + timeout + "ms"), timeout);
   });
 }
 
@@ -105,10 +107,13 @@ promise_test(function(t) {
           // It's not clear whether navigation subsequently creates a new
           // Document, but I'm assuming it wouldn't.
           // https://html.spec.whatwg.org/multipage/embedded-content.html#attr-iframe-sandbox
-          assert_equals(
-              result,
-              'navigator.serviceWorker failed: SecurityError');
-        });
+          assert_true(
+              false,
+              'should NOT get message back from a sandboxed frame where scripts are not allowed to execute');
+        })
+      .catch(msg => {
+        assert_true(msg.startsWith('no msg back'), 'expecting error message "no msg back"');
+      });
   }, 'Switching iframe sandbox attribute while loading the iframe');
 
 </script>

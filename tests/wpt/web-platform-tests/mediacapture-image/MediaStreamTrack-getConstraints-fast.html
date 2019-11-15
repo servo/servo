@@ -47,19 +47,17 @@ var makeAsyncTest = function(c) {
     videoTrack.applyConstraints(constraintsIn)
         .then(() => { /* ignore */ })
         .catch((e) => { /* ignore */ })
-        .then(() => {
+        .then(t.step_func(() => {
           const constraintsOut = videoTrack.getConstraints();
           assert_object_equals(constraintsOut, constraintsIn, "constraints");
-          t.done();
-        });
-
-    // Clear constraints by sending an empty constraint set.
-    videoTrack.applyConstraints({})
-        .then(() => {
+          // Clear constraints by sending an empty constraint set.
+          return videoTrack.applyConstraints({})
+        }))
+        .then(t.step_func(() => {
           const constraintsOut = videoTrack.getConstraints();
           assert_object_equals(constraintsOut, {}, "constraints");
           t.done();
-        });
+        }));
   });
 };
 

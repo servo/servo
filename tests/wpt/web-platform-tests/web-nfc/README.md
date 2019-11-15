@@ -14,7 +14,6 @@ The `WebNFCTest` interface is defined as:
     setHWStatus(number status); // Sets the hardware status.
     setReadingMessage(NDEFMessageInit message); // Sets message that is used to deliver NFC reading updates.
     setPendingPushCompleted(boolean result); // Sets if the pending push is completed.
-    setPushShouldTimeout(boolean result); // Sets flag to trigger the pending push to timeout.
     pushedMessage(); // Gets the pushed `NDEFMessageSource`.
     pushOptions(); // Gets the pushed `NDEFPushOptions`.
     setIsNDEFTech(boolean isNDEF); // Sets if the NFC device exposes NDEF technology.
