@@ -274,13 +274,7 @@ impl Device {
         if doc.mIsBeingUsedAsImage() {
             return true;
         }
-        let document_color_use = static_prefs::pref!("browser.display.document_color_use");
-        let prefs = self.pref_sheet_prefs();
-        match document_color_use {
-            1 => true,
-            2 => prefs.mIsChrome,
-            _ => !prefs.mUseAccessibilityTheme,
-        }
+        self.pref_sheet_prefs().mUseDocumentColors
     }
 
     /// Returns the default background color.
