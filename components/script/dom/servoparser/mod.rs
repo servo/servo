@@ -626,7 +626,7 @@ enum ParserKind {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 enum Tokenizer {
     Html(self::html::Tokenizer),
     AsyncHtml(self::async_html::Tokenizer),
@@ -945,7 +945,7 @@ fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<Dom<N
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub struct Sink {
     base_url: ServoUrl,
     document: Dom<Document>,

@@ -29,7 +29,7 @@ pub enum CompleteForRendering {
     MissingColorAttachment,
 }
 
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 enum WebGLFramebufferAttachment {
     Renderbuffer(Dom<WebGLRenderbuffer>),

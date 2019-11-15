@@ -53,7 +53,7 @@ use std::fmt;
 use std::str::FromStr;
 use std::sync::Arc;
 
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[allow(dead_code)]
 pub(crate) enum CanvasFillOrStrokeStyle {
@@ -62,7 +62,7 @@ pub(crate) enum CanvasFillOrStrokeStyle {
     Pattern(Dom<CanvasPattern>),
 }
 
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) struct CanvasContextState {
     global_alpha: f64,
@@ -103,7 +103,7 @@ impl CanvasContextState {
     }
 }
 
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct CanvasState {
     #[ignore_malloc_size_of = "Defined in ipc-channel"]

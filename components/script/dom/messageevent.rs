@@ -26,7 +26,7 @@ use js::jsval::JSVal;
 use js::rust::HandleValue;
 use servo_atoms::Atom;
 
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 enum SrcObject {
     WindowProxy(Dom<WindowProxy>),

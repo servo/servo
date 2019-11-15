@@ -16,7 +16,7 @@ use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::stylesheets::Stylesheet;
 
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 pub enum StyleSheetListOwner {
     Document(Dom<Document>),

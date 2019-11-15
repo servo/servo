@@ -20,7 +20,7 @@ use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
 
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 enum MediaTrack {
     Video(Dom<VideoTrack>),

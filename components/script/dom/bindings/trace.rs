@@ -883,7 +883,7 @@ impl<'a, T: JSTraceable + 'static> Drop for RootedTraceable<'a, T> {
 /// If you have GC things like *mut JSObject or JSVal, use rooted!.
 /// If you have an arbitrary number of DomObjects to root, use rooted_vec!.
 /// If you know what you're doing, use this.
-#[allow_unrooted_interior]
+#[unrooted_must_root_lint::allow_unrooted_interior]
 pub struct RootedTraceableBox<T: 'static + JSTraceable> {
     ptr: *mut T,
 }
@@ -954,7 +954,7 @@ impl<T: JSTraceable + 'static> Drop for RootedTraceableBox<T> {
 /// iterator of `DomRoot`s, `rooted_vec!(let v <- iterator);`.
 #[allow(unrooted_must_root)]
 #[derive(JSTraceable)]
-#[allow_unrooted_interior]
+#[unrooted_must_root_lint::allow_unrooted_interior]
 pub struct RootableVec<T: JSTraceable> {
     v: Vec<T>,
 }
@@ -967,7 +967,7 @@ impl<T: JSTraceable> RootableVec<T> {
 }
 
 /// A vector of items that are rooted for the lifetime 'a.
-#[allow_unrooted_interior]
+#[unrooted_must_root_lint::allow_unrooted_interior]
 pub struct RootedVec<'a, T: 'static + JSTraceable> {
     root: &'a mut RootableVec<T>,
 }

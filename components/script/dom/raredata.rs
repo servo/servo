@@ -15,7 +15,7 @@ use std::rc::Rc;
 //           storage.
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub struct NodeRareData {
     /// The shadow root the node belongs to.
     /// This is None if the node is not in a shadow tree or
@@ -28,7 +28,7 @@ pub struct NodeRareData {
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub struct ElementRareData {
     /// https://dom.spec.whatwg.org/#dom-element-shadowroot
     /// The ShadowRoot this element is host of.

@@ -133,7 +133,7 @@ enum ImageRequestPhase {
     Current,
 }
 #[derive(JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 struct ImageRequest {
     state: State,
     parsed_url: Option<ServoUrl>,

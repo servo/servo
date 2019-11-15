@@ -1011,7 +1011,7 @@ impl RangeMethods for Range {
 }
 
 #[derive(DenyPublicFields, JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub struct BoundaryPoint {
     node: MutDom<Node>,
     offset: Cell<u32>,
