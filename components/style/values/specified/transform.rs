@@ -421,17 +421,22 @@ impl Parse for Translate {
         if let Ok(ty) = input.try(|i| specified::LengthPercentage::parse(context, i)) {
             if let Ok(tz) = input.try(|i| specified::Length::parse(context, i)) {
                 // 'translate: <length-percentage> <length-percentage> <length>'
-                return Ok(generic::Translate::Translate3D(tx, ty, tz));
+                return Ok(generic::Translate::Translate(tx, ty, tz));
             }
 
             // translate: <length-percentage> <length-percentage>'
-            return Ok(generic::Translate::Translate(tx, ty));
+            return Ok(generic::Translate::Translate(
+                tx,
+                ty,
+                specified::Length::zero(),
+            ));
         }
 
         // 'translate: <length-percentage> '
         Ok(generic::Translate::Translate(
             tx,
             specified::LengthPercentage::zero(),
+            specified::Length::zero(),
         ))
     }
 }
@@ -452,14 +457,14 @@ impl Parse for Scale {
         if let Ok(sy) = input.try(|i| Number::parse(context, i)) {
             if let Ok(sz) = input.try(|i| Number::parse(context, i)) {
                 // 'scale: <number> <number> <number>'
-                return Ok(generic::Scale::Scale3D(sx, sy, sz));
+                return Ok(generic::Scale::Scale(sx, sy, sz));
             }
 
             // 'scale: <number> <number>'
-            return Ok(generic::Scale::Scale(sx, sy));
+            return Ok(generic::Scale::Scale(sx, sy, Number::new(1.0)));
         }
 
         // 'scale: <number>'
-        Ok(generic::Scale::Scale(sx, sx))
+        Ok(generic::Scale::Scale(sx, sx, Number::new(1.0)))
     }
 }

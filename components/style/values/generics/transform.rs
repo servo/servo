@@ -303,7 +303,7 @@ where
         match *self {
             Translate(..) | Translate3D(..) | TranslateX(..) | TranslateY(..) | TranslateZ(..) => {
                 true
-            },
+            }
             _ => false,
         }
     }
@@ -415,8 +415,8 @@ where
     fn is_3d(&self) -> bool {
         use self::TransformOperation::*;
         match *self {
-            Translate3D(..) | TranslateZ(..) | Rotate3D(..) | RotateX(..) | RotateY(..) |
-            RotateZ(..) | Scale3D(..) | ScaleZ(..) | Perspective(..) | Matrix3D(..) => true,
+            Translate3D(..) | TranslateZ(..) | Rotate3D(..) | RotateX(..) | RotateY(..)
+            | RotateZ(..) | Scale3D(..) | ScaleZ(..) | Perspective(..) | Matrix3D(..) => true,
             _ => false,
         }
     }
@@ -444,23 +444,23 @@ where
                     az as f64,
                     euclid::Angle::radians(theta),
                 )
-            },
+            }
             RotateX(theta) => {
                 let theta = euclid::Angle::radians(TWO_PI - theta.radians64());
                 Transform3D::create_rotation(1., 0., 0., theta)
-            },
+            }
             RotateY(theta) => {
                 let theta = euclid::Angle::radians(TWO_PI - theta.radians64());
                 Transform3D::create_rotation(0., 1., 0., theta)
-            },
+            }
             RotateZ(theta) | Rotate(theta) => {
                 let theta = euclid::Angle::radians(TWO_PI - theta.radians64());
                 Transform3D::create_rotation(0., 0., 1., theta)
-            },
+            }
             Perspective(ref d) => {
                 let m = create_perspective_matrix(d.to_pixel_length(None)?);
                 m.cast()
-            },
+            }
             Scale3D(sx, sy, sz) => Transform3D::create_scale(sx.into(), sy.into(), sz.into()),
             Scale(sx, sy) => Transform3D::create_scale(sx.into(), sy.into(), 1.),
             ScaleX(s) => Transform3D::create_scale(s.into(), 1., 1.),
@@ -470,23 +470,23 @@ where
                 let tx = tx.to_pixel_length(reference_width)? as f64;
                 let ty = ty.to_pixel_length(reference_height)? as f64;
                 Transform3D::create_translation(tx, ty, tz.to_pixel_length(None)? as f64)
-            },
+            }
             Translate(ref tx, ref ty) => {
                 let tx = tx.to_pixel_length(reference_width)? as f64;
                 let ty = ty.to_pixel_length(reference_height)? as f64;
                 Transform3D::create_translation(tx, ty, 0.)
-            },
+            }
             TranslateX(ref t) => {
                 let t = t.to_pixel_length(reference_width)? as f64;
                 Transform3D::create_translation(t, 0., 0.)
-            },
+            }
             TranslateY(ref t) => {
                 let t = t.to_pixel_length(reference_height)? as f64;
                 Transform3D::create_translation(0., t, 0.)
-            },
+            }
             TranslateZ(ref z) => {
                 Transform3D::create_translation(0., 0., z.to_pixel_length(None)? as f64)
-            },
+            }
             Skew(theta_x, theta_y) => Transform3D::create_skew(
                 euclid::Angle::radians(theta_x.radians64()),
                 euclid::Angle::radians(theta_y.radians64()),
@@ -509,7 +509,7 @@ where
                 // return an identity matrix.
                 // Note: DOMMatrix doesn't go into this arm.
                 Transform3D::identity()
-            },
+            }
         };
         Ok(matrix)
     }
@@ -676,7 +676,7 @@ where
                 }
                 dest.write_char(' ')?;
                 angle.to_css(dest)
-            },
+            }
         }
     }
 }
@@ -700,38 +700,50 @@ where
 pub enum GenericScale<Number> {
     /// 'none'
     None,
-    /// '<number>{1,2}'
-    Scale(Number, Number),
-    /// '<number>{3}'
-    Scale3D(Number, Number, Number),
+    /// '<number>{1,3}'
+    Scale(Number, Number, Number),
 }
 
 pub use self::GenericScale as Scale;
 
-impl<Number: ToCss + PartialEq> ToCss for Scale<Number> {
+impl<Number> ToCss for Scale<Number>
+where
+    Number: ToCss + PartialEq + Copy,
+    f32: From<Number>,
+{
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: fmt::Write,
+        f32: From<Number>,
     {
         match *self {
             Scale::None => dest.write_str("none"),
-            Scale::Scale(ref x, ref y) => {
+            Scale::Scale(ref x, ref y, ref z) => {
                 x.to_css(dest)?;
-                if x != y {
+
+                let is_3d = f32::from(*z) != 1.0;
+                if is_3d || x != y {
                     dest.write_char(' ')?;
                     y.to_css(dest)?;
                 }
+
+                if is_3d {
+                    dest.write_char(' ')?;
+                    z.to_css(dest)?;
+                }
                 Ok(())
-            },
-            Scale::Scale3D(ref x, ref y, ref z) => {
-                x.to_css(dest)?;
-                dest.write_char(' ')?;
-                y.to_css(dest)?;
-                dest.write_char(' ')?;
-                z.to_css(dest)
-            },
+            }
         }
     }
+}
+
+#[inline]
+fn y_axis_and_z_axis_are_zero<LengthPercentage: Zero, Length: Zero>(
+    _: &LengthPercentage,
+    y: &LengthPercentage,
+    z: &Length,
+) -> bool {
+    y.is_zero() && z.is_zero()
 }
 
 #[derive(
@@ -755,25 +767,24 @@ impl<Number: ToCss + PartialEq> ToCss for Scale<Number> {
 /// or two values (per usual, if the second value is 0px, the default, it must
 /// be omitted when serializing).
 ///
-/// If a 3d translation is specified, all three values must be serialized.
-///
-/// We don't omit the 3rd component even if it is 0px for now, and the
-/// related spec issue is https://github.com/w3c/csswg-drafts/issues/3305
+/// If a 3d translation is specified and the value can be expressed as 2d, we treat as 2d and
+/// serialize accoringly. Otherwise, we serialize all three values.
+/// https://github.com/w3c/csswg-drafts/issues/3305
 ///
 /// <https://drafts.csswg.org/css-transforms-2/#individual-transforms>
 pub enum GenericTranslate<LengthPercentage, Length>
 where
     LengthPercentage: Zero,
+    Length: Zero,
 {
     /// 'none'
     None,
-    /// '<length-percentage>' or '<length-percentage> <length-percentage>'
+    /// <length-percentage> [ <length-percentage> <length>? ]?
     Translate(
         LengthPercentage,
-        #[css(skip_if = "Zero::is_zero")] LengthPercentage,
+        #[css(contextual_skip_if = "y_axis_and_z_axis_are_zero")] LengthPercentage,
+        #[css(skip_if = "Zero::is_zero")] Length,
     ),
-    /// '<length-percentage> <length-percentage> <length>'
-    Translate3D(LengthPercentage, LengthPercentage, Length),
 }
 
 pub use self::GenericTranslate as Translate;
