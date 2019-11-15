@@ -223,7 +223,18 @@ class DummyContext(object):
     pass
 
 
+def is_firefox_checkout(topdir):
+    parentdir = os.path.normpath(os.path.join(topdir, '..'))
+    is_firefox = os.path.isfile(os.path.join(parentdir,
+                                             'build/mach_bootstrap.py'))
+    return is_firefox
+
+
 def bootstrap_command_only(topdir):
+    # we should activate the venv before importing servo.boostrap
+    # because the module requires non-standard python packages
+    _activate_virtualenv(topdir, is_firefox_checkout(topdir))
+
     from servo.bootstrap import bootstrap
 
     context = DummyContext()
@@ -265,10 +276,7 @@ def bootstrap(topdir):
         print('You are running Python', platform.python_version())
         sys.exit(1)
 
-    # See if we're inside a Firefox checkout.
-    parentdir = os.path.normpath(os.path.join(topdir, '..'))
-    is_firefox = os.path.isfile(os.path.join(parentdir,
-                                             'build/mach_bootstrap.py'))
+    is_firefox = is_firefox_checkout(topdir)
 
     _activate_virtualenv(topdir, is_firefox)
 
