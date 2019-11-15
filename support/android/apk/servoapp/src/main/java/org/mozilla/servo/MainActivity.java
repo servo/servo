@@ -233,6 +233,7 @@ public class MainActivity extends Activity implements Servo.Client {
         mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
       }
       Log.d("onMediaSessionMetadata", title + " " + artist + " " + album);
+      mMediaSession.updateMetadata(title, artist, album);
     }
 
     @Override
@@ -241,13 +242,16 @@ public class MainActivity extends Activity implements Servo.Client {
       if (mMediaSession == null) {
         mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
       }
+
+      mMediaSession.setPlaybackState(state);
+
       if (state == MediaSession.PLAYBACK_STATE_NONE) {
           mMediaSession.hideMediaSessionControls();
           return;
       }
       if (state == MediaSession.PLAYBACK_STATE_PLAYING ||
           state == MediaSession.PLAYBACK_STATE_PAUSED) {
-          mMediaSession.showMediaSessionControls(state);
+          mMediaSession.showMediaSessionControls();
           return;
       }
     }

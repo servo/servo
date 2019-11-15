@@ -58,8 +58,15 @@ public class MediaSession {
     ServoView mView;
     MainActivity mActivity;
     Context mContext;
+
     NotificationID mNotificationID;
     BroadcastReceiver mMediaSessionActionReceiver;
+
+    int mPlaybackState = PLAYBACK_STATE_PAUSED;
+
+    String mTitle;
+    String mArtist;
+    String mAlbum;
 
     public MediaSession(ServoView view, MainActivity activity, Context context) {
       mView = view;
@@ -85,13 +92,13 @@ public class MediaSession {
       }
     }
 
-    public void showMediaSessionControls(int playbackState) {
-      Log.d("MediaSession", "showMediaSessionControls " + playbackState);
+    public void showMediaSessionControls() {
+      Log.d("MediaSession", "showMediaSessionControls " + mPlaybackState);
       IntentFilter filter = new IntentFilter();
-      if (playbackState == PLAYBACK_STATE_PAUSED) {
+      if (mPlaybackState == PLAYBACK_STATE_PAUSED) {
         filter.addAction(KEY_MEDIA_PLAY);
       }
-      if (playbackState == PLAYBACK_STATE_PLAYING) {
+      if (mPlaybackState == PLAYBACK_STATE_PLAYING) {
         filter.addAction(KEY_MEDIA_PAUSE);
       }
       filter.addAction(KEY_MEDIA_STOP);
@@ -129,12 +136,28 @@ public class MediaSession {
       Notification.Builder builder = new Notification.Builder(mContext, this.MEDIA_CHANNEL_ID);
       builder
         .setSmallIcon(R.drawable.media_session_icon)
-        .setContentTitle("This is the notification title")
+        .setContentTitle(mTitle)
         .setVisibility(Notification.VISIBILITY_PUBLIC)
         .addAction(stopAction)
         .setStyle(new Notification.MediaStyle());
 
-      if (playbackState == PLAYBACK_STATE_PAUSED) {
+      String contentText = new String();
+      if (mArtist != null && !mArtist.isEmpty()) {
+        contentText = mArtist;
+      }
+      if (mAlbum != null && !mAlbum.isEmpty()) {
+        if (!contentText.isEmpty()) {
+          contentText += " - " + mAlbum;
+        } else {
+          contentText = mAlbum;
+        }
+      }
+
+      if (!contentText.isEmpty()) {
+        builder.setContentText(contentText);
+      }
+
+      if (mPlaybackState == PLAYBACK_STATE_PAUSED) {
         Intent playIntent = new Intent(KEY_MEDIA_PLAY);
         Notification.Action playAction =
           new Notification.Action(R.drawable.media_session_play, "Play",
@@ -142,7 +165,7 @@ public class MediaSession {
         builder.addAction(playAction);
       }
 
-      if (playbackState == PLAYBACK_STATE_PLAYING) {
+      if (mPlaybackState == PLAYBACK_STATE_PLAYING) {
         Intent pauseIntent = new Intent(KEY_MEDIA_PAUSE);
         Notification.Action pauseAction =
           new Notification.Action(R.drawable.media_session_pause, "Pause",
@@ -162,5 +185,19 @@ public class MediaSession {
       notificationManager.cancel(mNotificationID.get());
       mContext.unregisterReceiver(mMediaSessionActionReceiver);
       mMediaSessionActionReceiver = null;
+    }
+
+    public void setPlaybackState(int state) {
+      mPlaybackState = state;
+    }
+
+    public void updateMetadata(String title, String artist, String album) {
+      mTitle = title;
+      mArtist = artist;
+      mAlbum = album;
+
+      if (mMediaSessionActionReceiver != null) {
+        showMediaSessionControls();
+      }
     }
 }
