@@ -53,7 +53,7 @@ Note that you need to add at least one “Binding”,
 or the “Start Listening” button won’t do anything.
 
 [Pulse]: https://wiki.mozilla.org/Auto-tools/Projects/Pulse
-[Pulse Inspector]: https://tools.taskcluster.net/pulse-inspector
+[Pulse Inspector]: https://community-tc.services.mozilla.com/pulse-messages
 
 
 ### Push data
@@ -69,13 +69,13 @@ Treeherder consumes messages from the `exchange/taskcluster-github/v1/push` exch
 In Pulse Inspector, these messages for the Servo repository can be seen
 by specifying the [`primary.servo.servo`] routing key pattern.
 
-[taskcluster-github]: https://github.com/taskcluster/taskcluster-github
-[enabled]: https://github.com/apps/taskcluster
+[taskcluster-github]: https://github.com/taskcluster/taskcluster/tree/master/services/github
+[enabled]: https://github.com/apps/community-tc-integration/
 [webhooks]: https://developer.github.com/webhooks/
-[Pulse messages]: https://docs.taskcluster.net/docs/reference/integrations/taskcluster-github/references/events
-[`api.js`]: https://github.com/taskcluster/taskcluster-github/blob/master/src/api.js
+[Pulse messages]: https://community-tc.services.mozilla.com/docs/reference/integrations/github/exchanges
+[`api.js`]: https://github.com/taskcluster/taskcluster/blob/master/services/github/src/api.js
 [`push_loader.py`]: https://github.com/mozilla/treeherder/blob/master/treeherder/etl/push_loader.py
-[`primary.servo.servo`]: https://tools.taskcluster.net/pulse-inspector?bindings%5B0%5D%5Bexchange%5D=exchange%2Ftaskcluster-github%2Fv1%2Fpush&bindings%5B0%5D%5BroutingKeyPattern%5D=primary.servo.servo
+[`primary.servo.servo`]: https://community-tc.services.mozilla.com/pulse-messages?bindings%5B0%5D%5Bexchange%5D=exchange%2Ftaskcluster-github%2Fv1%2Fpush&bindings%5B0%5D%5BroutingKeyPattern%5D=primary.servo.servo
 
 
 ### (Taskcluster) job data
@@ -84,9 +84,8 @@ The Taskcluster Queue generates a number of [Pulse messages about tasks].
 Each value of the `routes` array in the task definition, with a `route.` prefix prepended,
 is additional routing key for those messages.
 
-The [taskcluster-treeherder] integration service reads those messages
+Treeherder reads those messages
 if they have an appropriate route ([see in Pulse inspector][inspector1]),
-and converts them into [other messages] ([see in Pulse inspector][inspector2]).
 However, it will drop an incoming message
 if the `extra.treeherder` object in the task definition doesn’t conform to the [schema].
 Such schema validation errors are logged, but those logs are not easy to access.
@@ -96,10 +95,9 @@ Finally, Treeherder reads that latter kind of message in [`job_loader.py`].
 
 
 
-[Pulse messages about tasks]: https://docs.taskcluster.net/docs/reference/platform/taskcluster-queue/references/events
+[Pulse messages about tasks]: https://community-tc.services.mozilla.com/docs/reference/platform/taskcluster-queue/references/events
 [taskcluster-treeherder]: https://github.com/taskcluster/taskcluster-treeherder/
-[other messages]: https://docs.taskcluster.net/docs/reference/integrations/taskcluster-treeherder#job-pulse-messages
+[other messages]: https://community-tc.services.mozilla.com/docs/reference/integrations/taskcluster-treeherder#job-pulse-messages
 [schema]: https://schemas.taskcluster.net/treeherder/v1/task-treeherder-config.json
 [`job_loader.py`]: https://github.com/mozilla/treeherder/blob/master/treeherder/etl/job_loader.py
 [inspector1]: https://tools.taskcluster.net/pulse-inspector?bindings%5B0%5D%5Bexchange%5D=exchange%2Ftaskcluster-queue%2Fv1%2Ftask-defined&bindings%5B0%5D%5BroutingKeyPattern%5D=route.tc-treeherder.%23
-[inspector2]: https://tools.taskcluster.net/pulse-inspector?bindings%5B0%5D%5Bexchange%5D=exchange%2Ftaskcluster-treeherder%2Fv1%2Fjobs&bindings%5B0%5D%5BroutingKeyPattern%5D=tc-treeherder.servo-auto._
