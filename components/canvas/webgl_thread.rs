@@ -70,6 +70,7 @@ use surfman::SurfaceAccess;
 use surfman::SurfaceInfo;
 use surfman::SurfaceType;
 use surfman_chains::SwapChains;
+use surfman_chains_api::SwapChainsAPI;
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 use webxr_api::SwapChainId as WebXRSwapChainId;
 

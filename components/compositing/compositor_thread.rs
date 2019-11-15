@@ -164,5 +164,5 @@ pub struct InitialCompositorState {
     pub webrender_document: webrender_api::DocumentId,
     pub webrender_api: webrender_api::RenderApi,
     pub webvr_heartbeats: Vec<Box<dyn WebVRMainThreadHeartbeat>>,
-    pub webxr_main_thread: webxr_api::MainThreadRegistry,
+    pub webxr_main_thread: webxr::MainThreadRegistry,
 }

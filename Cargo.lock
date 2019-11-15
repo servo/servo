@@ -454,6 +454,7 @@ dependencies = [
  "sparkle",
  "surfman",
  "surfman-chains",
+ "surfman-chains-api",
  "webrender",
  "webrender_api",
  "webrender_traits",
@@ -713,7 +714,7 @@ dependencies = [
  "webrender_api",
  "webvr",
  "webvr_traits",
- "webxr-api",
+ "webxr",
 ]
 
 [[package]]
@@ -2761,6 +2762,7 @@ dependencies = [
  "webrender_traits",
  "webvr",
  "webvr_traits",
+ "webxr",
  "webxr-api",
 ]
 
@@ -5100,16 +5102,23 @@ dependencies = [
 
 [[package]]
 name = "surfman-chains"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21b6bea161faead0c253302b3019c0d7f1133912c378b1e696b8f5fb359c8175"
+checksum = "43b0d399c15d8f4aad59cd98edbf58e4c96a3b711cf8daf1b006acab8aec97cb"
 dependencies = [
  "euclid",
  "fnv",
  "log",
  "sparkle",
  "surfman",
+ "surfman-chains-api",
 ]
+
+[[package]]
+name = "surfman-chains-api"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1005da1169286262ef5d9d130bc120a447a99bdd6bb29a06a79ac4cd149a39dc"
 
 [[package]]
 name = "svg_fmt"
@@ -6001,7 +6010,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#4953e60dd9ff80324739eee22283d9b80f5c9559"
+source = "git+https://github.com/servo/webxr#0ae9b56ef7e646c54382f75fe79012e0f889363d"
 dependencies = [
  "bindgen",
  "euclid",
@@ -6012,6 +6021,7 @@ dependencies = [
  "openxr",
  "serde",
  "surfman",
+ "surfman-chains",
  "webxr-api",
  "winapi",
  "wio",
@@ -6020,14 +6030,13 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#4953e60dd9ff80324739eee22283d9b80f5c9559"
+source = "git+https://github.com/servo/webxr#0ae9b56ef7e646c54382f75fe79012e0f889363d"
 dependencies = [
  "euclid",
  "ipc-channel",
  "log",
  "serde",
- "surfman",
- "surfman-chains",
+ "surfman-chains-api",
  "winit",
 ]
 

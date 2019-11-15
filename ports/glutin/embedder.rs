@@ -89,7 +89,7 @@ impl EmbedderMethods for EmbedderCallbacks {
         }
     }
 
-    fn register_webxr(&mut self, xr: &mut webxr_api::MainThreadRegistry) {
+    fn register_webxr(&mut self, xr: &mut webxr::MainThreadRegistry) {
         if pref!(dom.webxr.test) {
             xr.register_mock(webxr::headless::HeadlessMockDiscovery::new());
         } else if !opts::get().headless && pref!(dom.webxr.glwindow) {

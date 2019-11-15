@@ -19,6 +19,7 @@ use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
 use std::time::Duration;
 use style_traits::DevicePixel;
+
 use webrender_api::units::DevicePoint;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 use webrender_api::ScrollLocation;
@@ -176,7 +177,7 @@ pub trait EmbedderMethods {
     }
 
     /// Register services with a WebXR Registry.
-    fn register_webxr(&mut self, _: &mut webxr_api::MainThreadRegistry) {}
+    fn register_webxr(&mut self, _: &mut webxr::MainThreadRegistry) {}
 }
 
 #[derive(Clone, Copy, Debug)]
