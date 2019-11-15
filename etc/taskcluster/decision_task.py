@@ -89,7 +89,8 @@ def main(task_for):
 
     elif task_for == "try-windows-ami":
         CONFIG.git_sha_is_current_head()
-        windows_unit(os.environ["NEW_AMI_WORKER_TYPE"], cached=False)
+        CONFIG.windows_worker_type = os.environ["NEW_AMI_WORKER_TYPE"]
+        windows_unit(cached=False)
 
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":
@@ -455,9 +456,9 @@ def uwp_nightly():
     )
 
 
-def windows_unit(worker_type=None, cached=True):
+def windows_unit(cached=True):
     task = (
-        windows_build_task("Dev build + unit tests", worker_type=worker_type)
+        windows_build_task("Dev build + unit tests")
         .with_treeherder("Windows x64", "Unit")
         .with_script(
             # Not necessary as this would be done at the start of `build`,
@@ -755,12 +756,10 @@ def linux_task(name):
     )
 
 
-def windows_task(name, worker_type=None):
-    if worker_type is None:
-        worker_type = "win2016"
+def windows_task(name):
     return (
         decisionlib.WindowsGenericWorkerTask(name)
-        .with_worker_type(worker_type)
+        .with_worker_type(CONFIG.windows_worker_type)
         .with_treeherder_required()
     )
 
@@ -769,7 +768,7 @@ def macos_task(name):
     return (
         decisionlib.MacOsGenericWorkerTask(name)
         .with_provisioner_id("proj-servo")
-        .with_worker_type("macos")
+        .with_worker_type(CONFIG.macos_worker_type)
         .with_treeherder_required()
     )
 
@@ -812,7 +811,7 @@ def android_build_task(name):
     )
 
 
-def windows_build_task(name, package=True, arch="x86_64", worker_type=None):
+def windows_build_task(name, package=True, arch="x86_64"):
     hashes = {
         "devel": {
             "x86_64": "c136cbfb0330041d52fe6ec4e3e468563176333c857f6ed71191ebc37fc9d605",
@@ -826,7 +825,7 @@ def windows_build_task(name, package=True, arch="x86_64", worker_type=None):
     }
     version = "1.16.0"
     task = (
-        windows_task(name, worker_type=worker_type)
+        windows_task(name)
         .with_max_run_time_minutes(90)
         .with_env(
             **build_env,
@@ -990,6 +989,8 @@ CONFIG.index_prefix = "project.servo"
 CONFIG.default_provisioner_id = "proj-servo"
 CONFIG.docker_image_build_worker_type = "docker"
 
+CONFIG.windows_worker_type = "win2016"
+CONFIG.macos_worker_type = "macos"
 
 if __name__ == "__main__":  # pragma: no cover
     main(task_for=os.environ["TASK_FOR"])
