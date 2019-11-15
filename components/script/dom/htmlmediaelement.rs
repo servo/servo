@@ -1728,10 +1728,15 @@ impl HTMLMediaElement {
                     self.render_controls();
                 }
 
+                let global = self.global();
+                let window = global.as_window();
+
                 // Send a media session event with the obtained metadata.
                 self.send_media_session_event(MediaSessionEvent::SetMetadata(MediaMetadata {
-                    // TODO(ferjm) set url if no title.
-                    title: metadata.title.clone().unwrap_or("".to_string()),
+                    title: metadata
+                        .title
+                        .clone()
+                        .unwrap_or(window.get_url().into_string()),
                     artist: None,
                     album: None,
                 }));
