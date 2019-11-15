@@ -5,7 +5,7 @@
 use smallvec::SmallVec;
 use webgpu::wgpu::{
     hub::IdentityManager,
-    id::{AdapterId, DeviceId},
+    id::{AdapterId, BufferId, DeviceId},
     Backend,
 };
 
@@ -13,6 +13,7 @@ use webgpu::wgpu::{
 pub struct IdentityHub {
     adapters: IdentityManager,
     devices: IdentityManager,
+    buffers: IdentityManager,
     backend: Backend,
 }
 
@@ -21,6 +22,7 @@ impl IdentityHub {
         IdentityHub {
             adapters: IdentityManager::default(),
             devices: IdentityManager::default(),
+            buffers: IdentityManager::default(),
             backend,
         }
     }
@@ -31,6 +33,10 @@ impl IdentityHub {
 
     fn create_device_id(&mut self) -> DeviceId {
         self.devices.alloc(self.backend)
+    }
+
+    pub fn create_buffer_id(&mut self) -> BufferId {
+        self.buffers.alloc(self.backend)
     }
 }
 
@@ -98,5 +104,19 @@ impl Identities {
             ids.push(hub.create_adapter_id())
         }
         ids
+    }
+
+    pub fn create_buffer_id(&mut self, backend: Backend) -> BufferId {
+        match backend {
+            #[cfg(any(target_os = "linux", target_os = "windows"))]
+            Backend::Vulkan => self.vk_hub.create_buffer_id(),
+            #[cfg(target_os = "windows")]
+            Backend::Dx12 => self.dx12_hub.create_buffer_id(),
+            #[cfg(target_os = "windows")]
+            Backend::Dx11 => self.dx11_hub.create_buffer_id(),
+            #[cfg(any(target_os = "ios", target_os = "macos"))]
+            Backend::Metal => self.metal_hub.create_buffer_id(),
+            _ => self.dummy_hub.create_buffer_id(),
+        }
     }
 }

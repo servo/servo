@@ -45,6 +45,7 @@ packages = [
   "proc-macro2",
   "quote",
   "syn",
+  "smallvec",
   "unicode-xid",
   "wayland-sys",
 ]

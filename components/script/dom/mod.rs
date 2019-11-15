@@ -317,6 +317,8 @@ pub mod gamepadlist;
 pub mod globalscope;
 pub mod gpu;
 pub mod gpuadapter;
+pub mod gpubuffer;
+pub mod gpubufferusage;
 pub mod gpudevice;
 pub mod hashchangeevent;
 pub mod headers;
