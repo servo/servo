@@ -874,17 +874,9 @@ def windows_build_task(name, package=True, arch="x86_64", worker_type=None):
 
 
 def with_homebrew(task, brewfiles):
-        task = task.with_script("""
-            mkdir -p "$HOME/homebrew"
-            export PATH="$HOME/homebrew/bin:$PATH"
-            which brew || curl -L https://github.com/Homebrew/brew/tarball/master \
-                | tar xz --strip 1 -C "$HOME/homebrew"
-        """)
-        for brewfile in brewfiles:
-            task = task.with_script("""
-                time brew bundle install --no-upgrade --file={brewfile}
-            """.format(brewfile=brewfile))
-        return task
+    for brewfile in brewfiles:
+        task.with_script("time brew bundle install --no-upgrade --file=" + brewfile)
+    return task
 
 
 def macos_build_task(name):
