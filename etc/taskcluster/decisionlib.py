@@ -475,7 +475,7 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
                 type .git\\info\\sparse-checkout
             """
         git += """
-            git fetch {depth} %GIT_URL% %GIT_REF%
+            git fetch --no-tags {depth} %GIT_URL% %GIT_REF%
             git reset --hard %GIT_SHA%
         """.format(depth="--depth 30" if shallow else "")
         return self \
@@ -597,7 +597,7 @@ class UnixTaskMixin(Task):
         .with_early_script("""
             git init repo
             cd repo
-            time git fetch {depth} "$GIT_URL" "$GIT_REF"
+            time git fetch --no-tags {depth} "$GIT_URL" "$GIT_REF"
             time git reset --hard "$GIT_SHA"
         """.format(depth="--depth 30" if shallow else ""))
 
