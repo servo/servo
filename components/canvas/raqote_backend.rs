@@ -677,9 +677,16 @@ impl<'a> ToRaqoteSource<'a> for FillOrStrokeStyle {
             },
             RadialGradient(style) => {
                 let stops = style.stops.into_iter().map(|s| s.to_raqote()).collect();
-                let gradient = raqote::Gradient { stops };
+                let mut gradient = raqote::Gradient { stops };
                 let center1 = Point2D::new(style.x0 as f32, style.y0 as f32);
                 let center2 = Point2D::new(style.x1 as f32, style.y1 as f32);
+                let equal_centers = center1 == center2;
+                let equal_radius = style.r0 == style.r1;
+                if equal_centers && equal_radius {
+                    // TODO
+                    // hack to make Pattern::is_zero_size_gradient() return true
+                    gradient.stops.clear();
+                }
                 Some(raqote::Source::new_two_circle_radial_gradient(
                     gradient,
                     center1,
