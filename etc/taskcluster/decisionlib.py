@@ -477,7 +477,7 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         git += """
             git fetch {depth} %GIT_URL% %GIT_REF%
             git reset --hard %GIT_SHA%
-        """.format(depth="--depth 100" if shallow else "")
+        """.format(depth="--depth 30" if shallow else "")
         return self \
         .with_git() \
         .with_script(git) \
@@ -599,7 +599,7 @@ class UnixTaskMixin(Task):
             cd repo
             time git fetch {depth} "$GIT_URL" "$GIT_REF"
             time git reset --hard "$GIT_SHA"
-        """.format(depth="--depth 100" if shallow else ""))
+        """.format(depth="--depth 30" if shallow else ""))
 
     def with_curl_script(self, url, file_path):
         self.curl_scripts_count += 1
