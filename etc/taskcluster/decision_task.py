@@ -593,7 +593,7 @@ def update_wpt():
             "etc/taskcluster/macos/Brewfile-gstreamer",
         ])
         # Pushing the new changes to the git remote requires a full repo clone.
-        .with_repo(shallow=False)
+        .with_repo(shallow=False, alternate_object_dir="/var/cache/servo.git/objects")
         .with_curl_artifact_script(build_task, "target.tar.gz")
         .with_script("""
             export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
@@ -629,19 +629,26 @@ def macos_wpt():
     def macos_run_task(name):
         task = macos_task(name).with_python2()
         return with_homebrew(task, ["etc/taskcluster/macos/Brewfile-gstreamer"])
-    wpt_chunks("macOS x64", macos_run_task, build_task, repo_dir="repo",
-               total_chunks=6, processes=4)
+    wpt_chunks(
+        "macOS x64",
+        macos_run_task,
+        build_task,
+        repo_dir="repo",
+        repo_kwargs=dict(alternate_object_dir="/var/cache/servo.git/objects"),
+        total_chunks=6,
+        processes=4,
+    )
 
 
 def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
-               repo_dir, chunks="all"):
+               repo_dir, chunks="all", repo_kwargs={}):
     if chunks == "all":
         chunks = [n + 1 for n in range(total_chunks)]
     for this_chunk in chunks:
         task = (
             make_chunk_task("WPT chunk %s / %s" % (this_chunk, total_chunks))
             .with_treeherder(platform, "WPT-%s" % this_chunk)
-            .with_repo()
+            .with_repo(**repo_kwargs)
             .with_curl_artifact_script(build_task, "target.tar.gz")
             .with_script("tar -xzf target.tar.gz")
             .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
@@ -885,7 +892,7 @@ def macos_build_task(name):
         # https://github.com/servo/servo/issues/24735
         .with_max_run_time_minutes(60 * 2)
         .with_env(**build_env, **unix_build_env, **macos_build_env)
-        .with_repo()
+        .with_repo(alternate_object_dir="/var/cache/servo.git/objects")
         .with_python2()
         .with_rustup()
         # Since macOS workers are long-lived and ~/.rustup kept across tasks:

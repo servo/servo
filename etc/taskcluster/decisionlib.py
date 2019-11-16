@@ -579,7 +579,7 @@ class UnixTaskMixin(Task):
         super().__init__(*args, **kwargs)
         self.curl_scripts_count = 0
 
-    def with_repo(self, shallow=True):
+    def with_repo(self, shallow=True, alternate_object_dir=None):
         """
         Make a shallow clone the git repository at the start of the task.
         This uses `CONFIG.git_url`, `CONFIG.git_ref`, and `CONFIG.git_sha`
@@ -592,14 +592,25 @@ class UnixTaskMixin(Task):
           `git` and `ca-certificate` need to be installed in the Docker image.
 
         """
+        # Not using $GIT_ALTERNATE_OBJECT_DIRECTORIES since it causes
+        # "object not found - no match for id" errors when Cargo fetches git dependencies
+        if alternate_object_dir:
+            self.with_env(ALTERNATE_OBJDIR=alternate_object_dir)
         return self \
         .with_env(**git_env()) \
         .with_early_script("""
             git init repo
             cd repo
+            {alternate}
             time git fetch --no-tags {depth} "$GIT_URL" "$GIT_REF"
             time git reset --hard "$GIT_SHA"
-        """.format(depth="--depth 30" if shallow else ""))
+        """.format(
+            depth="--depth 30" if shallow else "",
+            alternate=(
+                """echo "$ALTERNATE_OBJDIR" > .git/objects/info/alternates"""
+                if alternate_object_dir else ""
+            )
+        ))
 
     def with_curl_script(self, url, file_path):
         self.curl_scripts_count += 1
