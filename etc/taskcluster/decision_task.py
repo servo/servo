@@ -874,7 +874,7 @@ def windows_build_task(name, package=True, arch="x86_64"):
 
 def with_homebrew(task, brewfiles):
     for brewfile in brewfiles:
-        task.with_script("time brew bundle install --no-upgrade --file=" + brewfile)
+        task.with_script("time brew bundle install --verbose --no-upgrade --file=" + brewfile)
     return task
 
 
