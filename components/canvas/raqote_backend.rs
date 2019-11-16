@@ -660,9 +660,14 @@ impl<'a> ToRaqoteSource<'a> for FillOrStrokeStyle {
             ))),
             LinearGradient(style) => {
                 let stops = style.stops.into_iter().map(|s| s.to_raqote()).collect();
-                let gradient = raqote::Gradient { stops };
+                let mut gradient = raqote::Gradient { stops };
                 let start = Point2D::new(style.x0 as f32, style.y0 as f32);
                 let end = Point2D::new(style.x1 as f32, style.y1 as f32);
+                if start == end {
+                    // TODO
+                    // hack to make Pattern::is_zero_size_gradient() return true
+                    gradient.stops.clear();
+                }
                 Some(raqote::Source::new_linear_gradient(
                     gradient,
                     start,
