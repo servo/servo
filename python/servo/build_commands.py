@@ -627,6 +627,9 @@ class MachCommands(CommandBase):
                     '-C', env["GSTREAMER_DIR"],
                 ])
 
+        # https://internals.rust-lang.org/t/exploring-crate-graph-build-times-with-cargo-build-ztimings/10975
+        opts += ["-Ztimings=info"]
+
         if very_verbose:
             print (["Calling", "cargo", "build"] + opts)
             for key in env:
