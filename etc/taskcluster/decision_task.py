@@ -643,7 +643,7 @@ def macos_wpt():
 def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                repo_dir, chunks="all", repo_kwargs={}):
     if chunks == "all":
-        chunks = [n + 1 for n in range(total_chunks)]
+        chunks = range(total_chunks + 1)
     for this_chunk in chunks:
         task = (
             make_chunk_task("WPT chunk %s / %s" % (this_chunk, total_chunks))
@@ -660,9 +660,10 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                 GST_DEBUG="3",
             )
         )
-        if this_chunk == chunks[-1]:
-            task.name += " + extra"
-            task.extra["treeherder"]["symbol"] += "+"
+        # `test-wpt` is piped into `cat` so that stdout is not a TTY
+        # and wptrunner does not use "interactive mode" formatting:
+        # https://github.com/servo/servo/issues/22438
+        if this_chunk == 0:
             task.with_script("""
                 ./mach test-wpt-failure
                 time ./mach test-wpt --release --binary-arg=--multiprocess \
@@ -695,26 +696,24 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                     --tracker-api default \
                     --reporter-api default
             """)
-        # `test-wpt` is piped into `cat` so that stdout is not a TTY
-        # and wptrunner does not use "interactive mode" formatting:
-        # https://github.com/servo/servo/issues/22438
-        task.with_script("""
-            ./mach test-wpt \
-                --release \
-                --processes $PROCESSES \
-                --total-chunks "$TOTAL_CHUNKS" \
-                --this-chunk "$THIS_CHUNK" \
-                --log-raw test-wpt.log \
-                --log-errorsummary wpt-errorsummary.log \
-                --always-succeed \
-                | cat
-            ./mach filter-intermittents \
-                wpt-errorsummary.log \
-                --log-intermittents intermittents.log \
-                --log-filteredsummary filtered-wpt-errorsummary.log \
-                --tracker-api default \
-                --reporter-api default
-        """)
+        else:
+            task.with_script("""
+                ./mach test-wpt \
+                    --release \
+                    --processes $PROCESSES \
+                    --total-chunks "$TOTAL_CHUNKS" \
+                    --this-chunk "$THIS_CHUNK" \
+                    --log-raw test-wpt.log \
+                    --log-errorsummary wpt-errorsummary.log \
+                    --always-succeed \
+                    | cat
+                ./mach filter-intermittents \
+                    wpt-errorsummary.log \
+                    --log-intermittents intermittents.log \
+                    --log-filteredsummary filtered-wpt-errorsummary.log \
+                    --tracker-api default \
+                    --reporter-api default
+            """)
         task.with_artifacts(*[
             "%s/%s" % (repo_dir, word)
             for script in task.scripts
