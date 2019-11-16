@@ -597,8 +597,8 @@ class UnixTaskMixin(Task):
         .with_early_script("""
             git init repo
             cd repo
-            git fetch {depth} "$GIT_URL" "$GIT_REF"
-            git reset --hard "$GIT_SHA"
+            time git fetch {depth} "$GIT_URL" "$GIT_REF"
+            time git reset --hard "$GIT_SHA"
         """.format(depth="--depth 100" if shallow else ""))
 
     def with_curl_script(self, url, file_path):
