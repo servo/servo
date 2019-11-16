@@ -881,8 +881,9 @@ def with_homebrew(task, brewfiles):
 def macos_build_task(name):
     build_task = (
         macos_task(name)
-        # Allow long runtime in case the cache expired for all those Homebrew dependencies
-        .with_max_run_time_minutes(60 * 4)
+        # Stray processes eating CPU can slow things down:
+        # https://github.com/servo/servo/issues/24735
+        .with_max_run_time_minutes(60 * 2)
         .with_env(**build_env, **unix_build_env, **macos_build_env)
         .with_repo()
         .with_python2()
