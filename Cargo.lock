@@ -5100,9 +5100,9 @@ dependencies = [
 
 [[package]]
 name = "surfman-chains"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab6ab2f8da08cd1ca6491fc0fd4c4aedc36adde0d6b3f64a6325b35dfce50ec5"
+checksum = "21b6bea161faead0c253302b3019c0d7f1133912c378b1e696b8f5fb359c8175"
 dependencies = [
  "euclid",
  "fnv",
