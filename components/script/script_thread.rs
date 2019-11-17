@@ -82,6 +82,7 @@ use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
 use crate::task_source::port_message::PortMessageQueue;
 use crate::task_source::remote_event::RemoteEventTaskSource;
+use crate::task_source::timer::TimerTaskSource;
 use crate::task_source::user_interaction::UserInteractionTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
 use crate::task_source::TaskSource;
@@ -140,8 +141,8 @@ use script_traits::{
 use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData, LoadOrigin};
 use script_traits::{MouseButton, MouseEventType, NewLayoutInfo};
 use script_traits::{Painter, ProgressiveWebMetricType, ScriptMsg, ScriptThreadFactory};
-use script_traits::{ScriptToConstellationChan, TimerEvent, TimerSchedulerMsg};
-use script_traits::{TimerSource, TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta};
+use script_traits::{ScriptToConstellationChan, TimerSchedulerMsg};
+use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta};
 use script_traits::{UpdatePipelineIdReason, WindowSizeData, WindowSizeType};
 use servo_atoms::Atom;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -263,7 +264,6 @@ enum MixedMessage {
     FromScript(MainThreadScriptMsg),
     FromDevtools(DevtoolScriptControlMsg),
     FromImageCache((PipelineId, PendingImageResponse)),
-    FromScheduler(TimerEvent),
 }
 
 /// Messages used to control the script event loop.
@@ -569,6 +569,8 @@ pub struct ScriptThread {
 
     port_message_sender: Box<dyn ScriptChan>,
 
+    timer_task_sender: Box<dyn ScriptChan>,
+
     remote_event_task_sender: Box<dyn ScriptChan>,
 
     /// A channel to hand out to threads that need to respond to a message from the script thread.
@@ -612,8 +614,6 @@ pub struct ScriptThread {
     closed_pipelines: DomRefCell<HashSet<PipelineId>>,
 
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
-    timer_event_chan: Sender<TimerEvent>,
-    timer_event_port: Receiver<TimerEvent>,
 
     content_process_shutdown_chan: Sender<()>,
 
@@ -1257,8 +1257,6 @@ impl ScriptThread {
         let devtools_port =
             ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(ipc_devtools_receiver);
 
-        let (timer_event_chan, timer_event_port) = unbounded();
-
         // Ask the router to proxy IPC messages from the control port to us.
         let control_port = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(state.control_port);
 
@@ -1302,6 +1300,7 @@ impl ScriptThread {
             port_message_sender: boxed_script_sender.clone(),
             file_reading_task_sender: boxed_script_sender.clone(),
             performance_timeline_task_sender: boxed_script_sender.clone(),
+            timer_task_sender: boxed_script_sender.clone(),
             remote_event_task_sender: boxed_script_sender.clone(),
 
             history_traversal_task_sender: chan.clone(),
@@ -1323,8 +1322,6 @@ impl ScriptThread {
             closed_pipelines: DomRefCell::new(HashSet::new()),
 
             scheduler_chan: state.scheduler_chan,
-            timer_event_chan: timer_event_chan,
-            timer_event_port: timer_event_port,
 
             content_process_shutdown_chan: state.content_process_shutdown_chan,
 
@@ -1386,8 +1383,8 @@ impl ScriptThread {
 
     /// Handle incoming control messages.
     fn handle_msgs(&self) -> bool {
+        use self::MixedMessage::FromScript;
         use self::MixedMessage::{FromConstellation, FromDevtools, FromImageCache};
-        use self::MixedMessage::{FromScheduler, FromScript};
 
         // Handle pending resize events.
         // Gather them first to avoid a double mut borrow on self.
@@ -1422,7 +1419,6 @@ impl ScriptThread {
                 FromScript(event)
             },
             recv(self.control_port) -> msg => FromConstellation(msg.unwrap()),
-            recv(self.timer_event_port) -> msg => FromScheduler(msg.unwrap()),
             recv(self.devtools_chan.as_ref().map(|_| &self.devtools_port).unwrap_or(&crossbeam_channel::never())) -> msg
                 => FromDevtools(msg.unwrap()),
             recv(self.image_cache_port) -> msg => FromImageCache(msg.unwrap()),
@@ -1520,15 +1516,12 @@ impl ScriptThread {
             // on and execute the sequential non-resize events we've seen.
             match self.control_port.try_recv() {
                 Err(_) => match self.task_queue.try_recv() {
-                    Err(_) => match self.timer_event_port.try_recv() {
-                        Err(_) => match self.devtools_port.try_recv() {
-                            Err(_) => match self.image_cache_port.try_recv() {
-                                Err(_) => break,
-                                Ok(ev) => event = FromImageCache(ev),
-                            },
-                            Ok(ev) => event = FromDevtools(ev),
+                    Err(_) => match self.devtools_port.try_recv() {
+                        Err(_) => match self.image_cache_port.try_recv() {
+                            Err(_) => break,
+                            Ok(ev) => event = FromImageCache(ev),
                         },
-                        Ok(ev) => event = FromScheduler(ev),
+                        Ok(ev) => event = FromDevtools(ev),
                     },
                     Ok(ev) => event = FromScript(ev),
                 },
@@ -1552,7 +1545,6 @@ impl ScriptThread {
                     },
                     FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
                     FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
-                    FromScheduler(inner_msg) => self.handle_timer_event(inner_msg),
                     FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
                     FromImageCache(inner_msg) => self.handle_msg_from_image_cache(inner_msg),
                 }
@@ -1625,7 +1617,6 @@ impl ScriptThread {
                 },
                 _ => ScriptThreadEventCategory::ScriptEvent,
             },
-            MixedMessage::FromScheduler(_) => ScriptThreadEventCategory::TimerEvent,
         }
     }
 
@@ -1728,13 +1719,6 @@ impl ScriptThread {
                 MainThreadScriptMsg::WakeUp => None,
             },
             MixedMessage::FromImageCache((pipeline_id, _)) => Some(pipeline_id),
-            MixedMessage::FromScheduler(ref timer_event) => {
-                let TimerEvent(source, _) = *timer_event;
-                match source {
-                    TimerSource::FromWindow(pipeline_id) => Some(pipeline_id),
-                    _ => None,
-                }
-            },
         }
     }
 
@@ -1974,36 +1958,6 @@ impl ScriptThread {
             MainThreadScriptMsg::Inactive => {},
             MainThreadScriptMsg::WakeUp => {},
         }
-    }
-
-    fn handle_timer_event(&self, timer_event: TimerEvent) {
-        let TimerEvent(source, id) = timer_event;
-
-        let pipeline_id = match source {
-            TimerSource::FromWindow(pipeline_id) => pipeline_id,
-            TimerSource::FromWorker => panic!("Worker timeouts must not be sent to script thread"),
-        };
-
-        let window = self.documents.borrow().find_window(pipeline_id);
-        let window = match window {
-            Some(w) => {
-                if w.Closed() {
-                    return warn!(
-                        "Received fire timer msg for a discarded browsing context whose pipeline is pending exit {}.",
-                        pipeline_id
-                    );
-                }
-                w
-            },
-            None => {
-                return warn!(
-                    "Received fire timer msg for a closed pipeline {}.",
-                    pipeline_id
-                );
-            },
-        };
-
-        window.handle_fire_timer(id);
     }
 
     fn handle_msg_from_devtools(&self, msg: DevtoolScriptControlMsg) {
@@ -2812,6 +2766,10 @@ impl ScriptThread {
         RemoteEventTaskSource(self.remote_event_task_sender.clone(), pipeline_id)
     }
 
+    pub fn timer_task_source(&self, pipeline_id: PipelineId) -> TimerTaskSource {
+        TimerTaskSource(self.timer_task_sender.clone(), pipeline_id)
+    }
+
     pub fn websocket_task_source(&self, pipeline_id: PipelineId) -> WebsocketTaskSource {
         WebsocketTaskSource(self.remote_event_task_sender.clone(), pipeline_id)
     }
@@ -3176,12 +3134,6 @@ impl ScriptThread {
 
         let MainThreadScriptChan(ref sender) = self.chan;
 
-        let (ipc_timer_event_chan, ipc_timer_event_port) = ipc::channel().unwrap();
-        ROUTER.route_ipc_receiver_to_crossbeam_sender(
-            ipc_timer_event_port,
-            self.timer_event_chan.clone(),
-        );
-
         let origin = if final_url.as_str() == "about:blank" || final_url.as_str() == "about:srcdoc"
         {
             incomplete.origin.clone()
@@ -3205,6 +3157,7 @@ impl ScriptThread {
             self.port_message_queue(incomplete.pipeline_id),
             self.user_interaction_task_source(incomplete.pipeline_id),
             self.remote_event_task_source(incomplete.pipeline_id),
+            self.timer_task_source(incomplete.pipeline_id),
             self.websocket_task_source(incomplete.pipeline_id),
         );
         // Create the window and document objects.
@@ -3222,7 +3175,6 @@ impl ScriptThread {
             script_to_constellation_chan,
             self.control_chan.clone(),
             self.scheduler_chan.clone(),
-            ipc_timer_event_chan,
             incomplete.layout_chan,
             incomplete.pipeline_id,
             incomplete.parent_info,

@@ -36,7 +36,7 @@ use crate::task_source::TaskSourceName;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JS_AddInterruptCallback;
 use js::jsapi::{Heap, JSContext, JSObject};
@@ -47,7 +47,7 @@ use net_traits::image_cache::ImageCache;
 use net_traits::request::{CredentialsMode, Destination, ParserMetadata};
 use net_traits::request::{Referrer, RequestBuilder, RequestMode};
 use net_traits::IpcSend;
-use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
+use script_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_rand::random;
 use servo_url::ServoUrl;
 use std::mem::replace;
@@ -92,7 +92,6 @@ pub enum DedicatedWorkerScriptMsg {
 
 pub enum MixedMessage {
     FromWorker(DedicatedWorkerScriptMsg),
-    FromScheduler((TrustedWorkerAddress, TimerEvent)),
     FromDevtools(DevtoolScriptControlMsg),
 }
 
@@ -173,8 +172,6 @@ pub struct DedicatedWorkerGlobalScope {
     task_queue: TaskQueue<DedicatedWorkerScriptMsg>,
     #[ignore_malloc_size_of = "Defined in std"]
     own_sender: Sender<DedicatedWorkerScriptMsg>,
-    #[ignore_malloc_size_of = "Defined in std"]
-    timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>,
     #[ignore_malloc_size_of = "Trusted<T> has unclear ownership like Dom<T>"]
     worker: DomRefCell<Option<TrustedWorkerAddress>>,
     #[ignore_malloc_size_of = "Can't measure trait objects"]
@@ -185,13 +182,8 @@ pub struct DedicatedWorkerGlobalScope {
 }
 
 impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
-    type TimerMsg = (TrustedWorkerAddress, TimerEvent);
     type WorkerMsg = DedicatedWorkerScriptMsg;
     type Event = MixedMessage;
-
-    fn timer_event_port(&self) -> &Receiver<(TrustedWorkerAddress, TimerEvent)> {
-        &self.timer_event_port
-    }
 
     fn task_queue(&self) -> &TaskQueue<DedicatedWorkerScriptMsg> {
         &self.task_queue
@@ -210,10 +202,6 @@ impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
         MixedMessage::FromWorker(msg)
     }
 
-    fn from_timer_msg(&self, msg: (TrustedWorkerAddress, TimerEvent)) -> MixedMessage {
-        MixedMessage::FromScheduler(msg)
-    }
-
     fn from_devtools_msg(&self, msg: DevtoolScriptControlMsg) -> MixedMessage {
         MixedMessage::FromDevtools(msg)
     }
@@ -230,8 +218,6 @@ impl DedicatedWorkerGlobalScope {
         parent_sender: Box<dyn ScriptChan + Send>,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
         receiver: Receiver<DedicatedWorkerScriptMsg>,
-        timer_event_chan: IpcSender<TimerEvent>,
-        timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>,
         closing: Arc<AtomicBool>,
         image_cache: Arc<dyn ImageCache>,
     ) -> DedicatedWorkerGlobalScope {
@@ -243,12 +229,10 @@ impl DedicatedWorkerGlobalScope {
                 worker_url,
                 runtime,
                 from_devtools_receiver,
-                timer_event_chan,
                 Some(closing),
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender: own_sender,
-            timer_event_port: timer_event_port,
             parent_sender: parent_sender,
             worker: DomRefCell::new(None),
             image_cache: image_cache,
@@ -266,8 +250,6 @@ impl DedicatedWorkerGlobalScope {
         parent_sender: Box<dyn ScriptChan + Send>,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
         receiver: Receiver<DedicatedWorkerScriptMsg>,
-        timer_event_chan: IpcSender<TimerEvent>,
-        timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>,
         closing: Arc<AtomicBool>,
         image_cache: Arc<dyn ImageCache>,
     ) -> DomRoot<DedicatedWorkerGlobalScope> {
@@ -282,8 +264,6 @@ impl DedicatedWorkerGlobalScope {
             parent_sender,
             own_sender,
             receiver,
-            timer_event_chan,
-            timer_event_port,
             closing,
             image_cache,
         ));
@@ -352,17 +332,6 @@ impl DedicatedWorkerGlobalScope {
                     devtools_mpsc_chan,
                 );
 
-                let (timer_tx, timer_rx) = unbounded();
-                let (timer_ipc_chan, timer_ipc_port) = ipc::channel().unwrap();
-                let worker_for_route = worker.clone();
-                ROUTER.add_route(
-                    timer_ipc_port.to_opaque(),
-                    Box::new(move |message| {
-                        let event = message.to().unwrap();
-                        timer_tx.send((worker_for_route.clone(), event)).unwrap();
-                    }),
-                );
-
                 let global = DedicatedWorkerGlobalScope::new(
                     init,
                     DOMString::from_string(worker_name),
@@ -373,8 +342,6 @@ impl DedicatedWorkerGlobalScope {
                     parent_sender.clone(),
                     own_sender,
                     receiver,
-                    timer_ipc_chan,
-                    timer_rx,
                     closing,
                     image_cache,
                 );
@@ -502,14 +469,6 @@ impl DedicatedWorkerGlobalScope {
                     devtools::handle_wants_live_notifications(self.upcast(), bool_val)
                 },
                 _ => debug!("got an unusable devtools control message inside the worker!"),
-            },
-            MixedMessage::FromScheduler((linked_worker, timer_event)) => match timer_event {
-                TimerEvent(TimerSource::FromWorker, id) => {
-                    let _ar = AutoWorkerReset::new(self, linked_worker);
-                    let scope = self.upcast::<WorkerGlobalScope>();
-                    scope.handle_fire_timer(id);
-                },
-                TimerEvent(_, _) => panic!("A worker received a TimerEvent from a window."),
             },
             MixedMessage::FromWorker(DedicatedWorkerScriptMsg::CommonWorker(
                 linked_worker,
