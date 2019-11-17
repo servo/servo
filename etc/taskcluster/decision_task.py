@@ -89,7 +89,8 @@ def main(task_for):
 
     elif task_for == "try-windows-ami":
         CONFIG.git_sha_is_current_head()
-        windows_unit(os.environ["NEW_AMI_WORKER_TYPE"], cached=False)
+        CONFIG.windows_worker_type = os.environ["NEW_AMI_WORKER_TYPE"]
+        windows_unit(cached=False)
 
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":
@@ -457,9 +458,9 @@ def uwp_nightly():
     )
 
 
-def windows_unit(worker_type=None, cached=True):
+def windows_unit(cached=True):
     task = (
-        windows_build_task("Dev build + unit tests", worker_type=worker_type)
+        windows_build_task("Dev build + unit tests")
         .with_treeherder("Windows x64", "Unit")
         .with_script(
             # Not necessary as this would be done at the start of `build`,
@@ -594,7 +595,7 @@ def update_wpt():
             "etc/taskcluster/macos/Brewfile-gstreamer",
         ])
         # Pushing the new changes to the git remote requires a full repo clone.
-        .with_repo(shallow=False)
+        .with_repo(shallow=False, alternate_object_dir="/var/cache/servo.git/objects")
         .with_curl_artifact_script(build_task, "target.tar.gz")
         .with_script("""
             export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
@@ -630,19 +631,26 @@ def macos_wpt():
     def macos_run_task(name):
         task = macos_task(name).with_python2()
         return with_homebrew(task, ["etc/taskcluster/macos/Brewfile-gstreamer"])
-    wpt_chunks("macOS x64", macos_run_task, build_task, repo_dir="repo",
-               total_chunks=6, processes=4)
+    wpt_chunks(
+        "macOS x64",
+        macos_run_task,
+        build_task,
+        repo_dir="repo",
+        repo_kwargs=dict(alternate_object_dir="/var/cache/servo.git/objects"),
+        total_chunks=6,
+        processes=4,
+    )
 
 
 def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
-               repo_dir, chunks="all"):
+               repo_dir, chunks="all", repo_kwargs={}):
     if chunks == "all":
         chunks = [n + 1 for n in range(total_chunks)]
     for this_chunk in chunks:
         task = (
             make_chunk_task("WPT chunk %s / %s" % (this_chunk, total_chunks))
             .with_treeherder(platform, "WPT-%s" % this_chunk)
-            .with_repo()
+            .with_repo(**repo_kwargs)
             .with_curl_artifact_script(build_task, "target.tar.gz")
             .with_script("tar -xzf target.tar.gz")
             .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
@@ -757,12 +765,10 @@ def linux_task(name):
     )
 
 
-def windows_task(name, worker_type=None):
-    if worker_type is None:
-        worker_type = "win2016"
+def windows_task(name):
     return (
         decisionlib.WindowsGenericWorkerTask(name)
-        .with_worker_type(worker_type)
+        .with_worker_type(CONFIG.windows_worker_type)
         .with_treeherder_required()
     )
 
@@ -771,7 +777,7 @@ def macos_task(name):
     return (
         decisionlib.MacOsGenericWorkerTask(name)
         .with_provisioner_id("proj-servo")
-        .with_worker_type("macos")
+        .with_worker_type(CONFIG.macos_worker_type)
         .with_treeherder_required()
     )
 
@@ -814,7 +820,7 @@ def android_build_task(name):
     )
 
 
-def windows_build_task(name, package=True, arch="x86_64", worker_type=None):
+def windows_build_task(name, package=True, arch="x86_64"):
     hashes = {
         "devel": {
             "x86_64": "c136cbfb0330041d52fe6ec4e3e468563176333c857f6ed71191ebc37fc9d605",
@@ -828,7 +834,7 @@ def windows_build_task(name, package=True, arch="x86_64", worker_type=None):
     }
     version = "1.16.0"
     task = (
-        windows_task(name, worker_type=worker_type)
+        windows_task(name)
         .with_max_run_time_minutes(90)
         .with_env(
             **build_env,
@@ -876,26 +882,19 @@ def windows_build_task(name, package=True, arch="x86_64", worker_type=None):
 
 
 def with_homebrew(task, brewfiles):
-        task = task.with_script("""
-            mkdir -p "$HOME/homebrew"
-            export PATH="$HOME/homebrew/bin:$PATH"
-            which brew || curl -L https://github.com/Homebrew/brew/tarball/master \
-                | tar xz --strip 1 -C "$HOME/homebrew"
-        """)
-        for brewfile in brewfiles:
-            task = task.with_script("""
-                time brew bundle install --no-upgrade --file={brewfile}
-            """.format(brewfile=brewfile))
-        return task
+    for brewfile in brewfiles:
+        task.with_script("time brew bundle install --verbose --no-upgrade --file=" + brewfile)
+    return task
 
 
 def macos_build_task(name):
     build_task = (
         macos_task(name)
-        # Allow long runtime in case the cache expired for all those Homebrew dependencies
-        .with_max_run_time_minutes(60 * 4)
+        # Stray processes eating CPU can slow things down:
+        # https://github.com/servo/servo/issues/24735
+        .with_max_run_time_minutes(60 * 2)
         .with_env(**build_env, **unix_build_env, **macos_build_env)
-        .with_repo()
+        .with_repo(alternate_object_dir="/var/cache/servo.git/objects")
         .with_python2()
         .with_rustup()
         # Since macOS workers are long-lived and ~/.rustup kept across tasks:
@@ -917,6 +916,7 @@ def macos_build_task(name):
             export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
             export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
             export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
+            export PKG_CONFIG_PATH="$(brew --prefix zlib)/lib/pkgconfig/:$PKG_CONFIG_PATH"
         """)
 
         .with_directory_mount(
@@ -999,6 +999,8 @@ CONFIG.index_prefix = "project.servo"
 CONFIG.default_provisioner_id = "proj-servo"
 CONFIG.docker_image_build_worker_type = "docker"
 
+CONFIG.windows_worker_type = "win2016"
+CONFIG.macos_worker_type = "macos"
 
 if __name__ == "__main__":  # pragma: no cover
     main(task_for=os.environ["TASK_FOR"])
