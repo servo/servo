@@ -7,7 +7,6 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };
-use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::HistoryBinding::HistoryBinding::HistoryMethods;
 use crate::dom::bindings::codegen::Bindings::MediaQueryListBinding::MediaQueryListBinding::MediaQueryListMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
@@ -16,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     self, FrameRequestCallback, WindowMethods, WindowPostMessageOptions,
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
-use crate::dom::bindings::codegen::UnionTypes::RequestOrUSVString;
+use crate::dom::bindings::codegen::UnionTypes::{RequestOrUSVString, StringOrFunction};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -817,28 +816,16 @@ impl WindowMethods for Window {
     fn SetTimeout(
         &self,
         _cx: JSContext,
-        callback: Rc<Function>,
+        callback: StringOrFunction,
         timeout: i32,
         args: Vec<HandleValue>,
     ) -> i32 {
+        let callback = match callback {
+            StringOrFunction::String(i) => TimerCallback::StringTimerCallback(i),
+            StringOrFunction::Function(i) => TimerCallback::FunctionTimerCallback(i),
+        };
         self.upcast::<GlobalScope>().set_timeout_or_interval(
-            TimerCallback::FunctionTimerCallback(callback),
-            args,
-            timeout,
-            IsInterval::NonInterval,
-        )
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
-    fn SetTimeout_(
-        &self,
-        _cx: JSContext,
-        callback: DOMString,
-        timeout: i32,
-        args: Vec<HandleValue>,
-    ) -> i32 {
-        self.upcast::<GlobalScope>().set_timeout_or_interval(
-            TimerCallback::StringTimerCallback(callback),
+            callback,
             args,
             timeout,
             IsInterval::NonInterval,
@@ -855,28 +842,16 @@ impl WindowMethods for Window {
     fn SetInterval(
         &self,
         _cx: JSContext,
-        callback: Rc<Function>,
+        callback: StringOrFunction,
         timeout: i32,
         args: Vec<HandleValue>,
     ) -> i32 {
+        let callback = match callback {
+            StringOrFunction::String(i) => TimerCallback::StringTimerCallback(i),
+            StringOrFunction::Function(i) => TimerCallback::FunctionTimerCallback(i),
+        };
         self.upcast::<GlobalScope>().set_timeout_or_interval(
-            TimerCallback::FunctionTimerCallback(callback),
-            args,
-            timeout,
-            IsInterval::Interval,
-        )
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    fn SetInterval_(
-        &self,
-        _cx: JSContext,
-        callback: DOMString,
-        timeout: i32,
-        args: Vec<HandleValue>,
-    ) -> i32 {
-        self.upcast::<GlobalScope>().set_timeout_or_interval(
-            TimerCallback::StringTimerCallback(callback),
+            callback,
             args,
             timeout,
             IsInterval::Interval,

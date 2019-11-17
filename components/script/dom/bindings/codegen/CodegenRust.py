@@ -2413,6 +2413,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'crate::dom::bindings::conversions::root_from_handlevalue',
         'crate::dom::bindings::conversions::windowproxy_from_handlevalue',
         'std::ptr::NonNull',
+        'std::rc::Rc',
         'crate::dom::bindings::record::Record',
         'crate::dom::bindings::num::Finite',
         'crate::dom::bindings::root::DomRoot',
@@ -2427,6 +2428,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'js::error::throw_type_error',
         'js::rust::HandleValue',
         'js::jsapi::Heap',
+        'js::jsapi::IsCallable',
         'js::jsapi::JSContext',
         'js::jsapi::JSObject',
         'js::rust::MutableHandleValue',
@@ -2442,9 +2444,10 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         if not t.isUnion():
             continue
         for memberType in t.flatMemberTypes:
-            if memberType.isDictionary() or memberType.isEnum():
+            if memberType.isDictionary() or memberType.isEnum() or memberType.isCallback():
                 memberModule = getModuleFromObject(memberType)
-                memberName = memberType.inner.identifier.name
+                memberName = (memberType.callback.identifier.name
+                              if memberType.isCallback() else memberType.inner.identifier.name)
                 imports.append("%s::%s" % (memberModule, memberName))
                 if memberType.isEnum():
                     imports.append("%s::%sValues" % (memberModule, memberName))
@@ -4384,6 +4387,9 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     elif is_typed_array(type):
         name = type.name
         typeName = "typedarray::Heap" + name
+    elif type.isCallback():
+        name = type.name
+        typeName = name
     else:
         raise TypeError("Can't handle %s in unions yet" % type)
 
@@ -4422,12 +4428,19 @@ class CGUnionStruct(CGThing):
         return False
 
     def define(self):
+        def getTypeWrapper(t):
+            if type_needs_tracing(t):
+                return "RootedTraceableBox"
+            if t.isCallback():
+                return "Rc"
+            return ""
+
         templateVars = map(lambda t: (getUnionTypeTemplateVars(t, self.descriptorProvider),
-                                      type_needs_tracing(t)),
+                                      getTypeWrapper(t)),
                            self.type.flatMemberTypes)
         enumValues = [
-            "    %s(%s)," % (v["name"], "RootedTraceableBox<%s>" % v["typeName"] if trace else v["typeName"])
-            for (v, trace) in templateVars
+            "    %s(%s)," % (v["name"], "%s<%s>" % (wrapper, v["typeName"]) if wrapper else v["typeName"])
+            for (v, wrapper) in templateVars
         ]
         enumConversions = [
             "            %s::%s(ref inner) => inner.to_jsval(cx, rval),"
@@ -4510,7 +4523,8 @@ class CGUnionConversionStruct(CGThing):
         callbackMemberTypes = filter(lambda t: t.isCallback() or t.isCallbackInterface(), memberTypes)
         if len(callbackMemberTypes) > 0:
             assert len(callbackMemberTypes) == 1
-            raise TypeError("Can't handle callbacks in unions.")
+            typeName = callbackMemberTypes[0].name
+            callbackObject = CGGeneric(get_match(typeName))
         else:
             callbackObject = None
 
@@ -4541,7 +4555,7 @@ class CGUnionConversionStruct(CGThing):
         else:
             mozMapObject = None
 
-        hasObjectTypes = object or interfaceObject or arrayObject or dateObject or mozMapObject
+        hasObjectTypes = object or interfaceObject or arrayObject or dateObject or callbackObject or mozMapObject
         if hasObjectTypes:
             # "object" is not distinguishable from other types
             assert not object or not (interfaceObject or arrayObject or dateObject or callbackObject or mozMapObject)
@@ -4552,6 +4566,8 @@ class CGUnionConversionStruct(CGThing):
                 templateBody.append(interfaceObject)
             if arrayObject:
                 templateBody.append(arrayObject)
+            if callbackObject:
+                templateBody.append(callbackObject)
             if mozMapObject:
                 templateBody.append(mozMapObject)
             conversions.append(CGIfWrapper("value.get().is_object()", templateBody))
@@ -4612,6 +4628,8 @@ class CGUnionConversionStruct(CGThing):
         actualType = templateVars["typeName"]
         if type_needs_tracing(t):
             actualType = "RootedTraceableBox<%s>" % actualType
+        if t.isCallback():
+            actualType = "Rc<%s>" % actualType
         returnType = "Result<Option<%s>, ()>" % actualType
         jsConversion = templateVars["jsConversion"]
 

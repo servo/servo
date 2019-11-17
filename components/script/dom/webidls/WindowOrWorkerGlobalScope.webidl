@@ -4,8 +4,7 @@
 
 // https://html.spec.whatwg.org/multipage/#windoworworkerglobalscope
 
-// FIXME(nox): https://github.com/servo/servo/issues/20700
-// typedef (DOMString or Function) TimerHandler;
+typedef (DOMString or Function) TimerHandler;
 
 [Exposed=(Window,Worker)]
 interface mixin WindowOrWorkerGlobalScope {
@@ -16,13 +15,9 @@ interface mixin WindowOrWorkerGlobalScope {
   [Throws] DOMString atob(DOMString data);
 
   // timers
-  // FIXME(nox): https://github.com/servo/servo/issues/20700
-  long setTimeout(Function handler, optional long timeout = 0, any... arguments);
-  long setTimeout(DOMString handler, optional long timeout = 0, any... arguments);
+  long setTimeout(TimerHandler handler, optional long timeout = 0, any... arguments);
   void clearTimeout(optional long handle = 0);
-  // FIXME(nox): https://github.com/servo/servo/issues/20700
-  long setInterval(Function handler, optional long timeout = 0, any... arguments);
-  long setInterval(DOMString handler, optional long timeout = 0, any... arguments);
+  long setInterval(TimerHandler handler, optional long timeout = 0, any... arguments);
   void clearInterval(optional long handle = 0);
 
   // ImageBitmap
