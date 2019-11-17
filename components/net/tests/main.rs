@@ -29,7 +29,7 @@ use hyper::server::conn::Http;
 use hyper::server::Server as HyperServer;
 use hyper::service::service_fn_ok;
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
-use net::connector::create_ssl_connector_builder;
+use net::connector::create_tls_config;
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
@@ -87,11 +87,10 @@ fn new_fetch_context(
     dc: Option<Sender<DevtoolsControlMsg>>,
     fc: Option<EmbedderProxy>,
 ) -> FetchContext {
-    let ssl_connector =
-        create_ssl_connector_builder(&resources::read_string(Resource::SSLCertificates));
+    let tls_config = create_tls_config(&resources::read_string(Resource::SSLCertificates));
     let sender = fc.unwrap_or_else(|| create_embedder_proxy());
     FetchContext {
-        state: Arc::new(HttpState::new(ssl_connector)),
+        state: Arc::new(HttpState::new(tls_config)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc,
         filemanager: FileManager::new(sender),

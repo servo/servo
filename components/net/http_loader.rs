@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::connector::{create_http_client, Connector};
+use crate::connector::{create_http_client, Connector, TlsConfig};
 use crate::cookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
@@ -46,7 +46,6 @@ use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
 use net_traits::{
     RedirectEndValue, RedirectStartValue, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
 };
-use openssl::ssl::SslConnectorBuilder;
 use servo_arc::Arc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::{HashMap, HashSet};
@@ -90,7 +89,7 @@ pub struct HttpState {
 }
 
 impl HttpState {
-    pub fn new(ssl_connector_builder: SslConnectorBuilder) -> HttpState {
+    pub fn new(tls_config: TlsConfig) -> HttpState {
         HttpState {
             hsts_list: RwLock::new(HstsList::new()),
             cookie_jar: RwLock::new(CookieStorage::new(150)),
@@ -98,7 +97,7 @@ impl HttpState {
             history_states: RwLock::new(HashMap::new()),
             http_cache: RwLock::new(HttpCache::new()),
             http_cache_state: Mutex::new(HashMap::new()),
-            client: create_http_client(ssl_connector_builder, HANDLE.lock().unwrap().executor()),
+            client: create_http_client(tls_config, HANDLE.lock().unwrap().executor()),
         }
     }
 }

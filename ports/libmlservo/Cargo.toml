@@ -18,6 +18,7 @@ canvas2d-raqote = ["simpleservo/canvas2d-raqote"]
 egl = ["simpleservo/egl"]
 layout-2013 = ["simpleservo/layout-2013"]
 layout-2020 = ["simpleservo/layout-2020"]
+rust-tls = ["simpleservo/rust-tls"]
 
 [dependencies]
 libservo = { path = "../../components/servo", features = ["no_static_freetype"] }

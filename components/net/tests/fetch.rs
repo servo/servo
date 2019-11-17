@@ -24,7 +24,7 @@ use hyper::body::Body;
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use mime::{self, Mime};
 use msg::constellation_msg::TEST_PIPELINE_ID;
-use net::connector::create_ssl_connector_builder;
+use net::connector::create_tls_config;
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
@@ -38,7 +38,7 @@ use net_traits::{
 };
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::Read;
 use std::iter::FromIterator;
 use std::path::Path;
@@ -653,15 +653,11 @@ fn test_fetch_with_hsts() {
         .unwrap();
     let (server, url) = make_ssl_server(handler, cert_path.clone(), key_path.clone());
 
-    let mut ca_content = String::new();
-    File::open(cert_path)
-        .unwrap()
-        .read_to_string(&mut ca_content)
-        .unwrap();
-    let ssl_client = create_ssl_connector_builder(&ca_content);
+    let certs = fs::read_to_string(cert_path).expect("Couldn't find certificate file");
+    let tls_config = create_tls_config(&certs);
 
     let mut context = FetchContext {
-        state: Arc::new(HttpState::new(ssl_client)),
+        state: Arc::new(HttpState::new(tls_config)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: FileManager::new(create_embedder_proxy()),

@@ -833,6 +833,7 @@ install them, let us know by filing a bug!")
                 help='Build with frame pointer enabled, used by the background hang monitor.',
             ),
             CommandArgument('--with-raqote', default=None, action='store_true'),
+            CommandArgument('--with-rustls', default=None, action='store_true'),
             CommandArgument('--with-layout-2020', default=None, action='store_true'),
             CommandArgument('--without-wgl', default=None, action='store_true'),
         ]
@@ -859,8 +860,8 @@ install them, let us know by filing a bug!")
         env=None, verbose=False,
         target=None, android=False, magicleap=False, libsimpleservo=False,
         features=None, debug_mozjs=False, with_debug_assertions=False,
-        with_frame_pointer=False, with_raqote=False, with_layout_2020=False, without_wgl=False,
-        uwp=False,
+        with_frame_pointer=False, with_raqote=False, with_rustls=False, with_layout_2020=False,
+        without_wgl=False, uwp=False,
     ):
         env = env or self.build_env()
         target, android = self.pick_target_triple(target, android, magicleap)
@@ -899,6 +900,8 @@ install them, let us know by filing a bug!")
             features.append("canvas2d-raqote")
         elif "canvas2d-raqote" not in features:
             features.append("canvas2d-azure")
+        if with_rustls:
+            features.append("rust-tls")
         if with_layout_2020 and "layout-2013" not in features:
             features.append("layout-2020")
         elif "layout-2020" not in features:

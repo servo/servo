@@ -4,7 +4,7 @@
 
 //! A thread that takes a URL and streams back the binary data.
 
-use crate::connector::{create_http_client, create_ssl_connector_builder};
+use crate::connector::{create_http_client, create_tls_config};
 use crate::cookie;
 use crate::cookie_storage::CookieStorage;
 use crate::fetch::cors_cache::CorsCache;
@@ -148,10 +148,7 @@ fn create_http_states(
         history_states: RwLock::new(HashMap::new()),
         http_cache: RwLock::new(http_cache),
         http_cache_state: Mutex::new(HashMap::new()),
-        client: create_http_client(
-            create_ssl_connector_builder(&certs),
-            HANDLE.lock().unwrap().executor(),
-        ),
+        client: create_http_client(create_tls_config(&certs), HANDLE.lock().unwrap().executor()),
     };
 
     let private_http_state = HttpState {
@@ -161,10 +158,7 @@ fn create_http_states(
         history_states: RwLock::new(HashMap::new()),
         http_cache: RwLock::new(HttpCache::new()),
         http_cache_state: Mutex::new(HashMap::new()),
-        client: create_http_client(
-            create_ssl_connector_builder(&certs),
-            HANDLE.lock().unwrap().executor(),
-        ),
+        client: create_http_client(create_tls_config(&certs), HANDLE.lock().unwrap().executor()),
     };
 
     (Arc::new(http_state), Arc::new(private_http_state))

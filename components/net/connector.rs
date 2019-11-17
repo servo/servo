@@ -7,9 +7,14 @@ use hyper::client::connect::{Connect, Destination};
 use hyper::client::HttpConnector as HyperHttpConnector;
 use hyper::rt::Future;
 use hyper::{Body, Client};
+#[cfg(not(feature = "rust-tls"))]
 use hyper_openssl::HttpsConnector;
+#[cfg(feature = "rust-tls")]
+use hyper_rustls::HttpsConnector;
 use openssl::ssl::{SslConnector, SslConnectorBuilder, SslMethod, SslOptions};
 use openssl::x509;
+#[cfg(feature = "rust-tls")]
+use rustls::{ClientConfig, ClientSessionMemoryCache};
 use tokio::prelude::future::Executor;
 
 pub const BUF_SIZE: usize = 32768;
@@ -43,6 +48,29 @@ impl Connect for HttpConnector {
 
 pub type Connector = HttpsConnector<HttpConnector>;
 
+#[cfg(feature = "rust-tls")]
+pub type TlsConfig = ClientConfig;
+#[cfg(not(feature = "rust-tls"))]
+pub type TlsConfig = SslConnectorBuilder;
+
+#[cfg(feature = "rust-tls")]
+pub fn create_tls_config(certs: &str) -> TlsConfig {
+    let mut cfg = ClientConfig::new();
+    cfg.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
+    cfg.ct_logs = Some(&ct_logs::LOGS);
+    cfg.set_persistence(ClientSessionMemoryCache::new(128));
+
+    let mut b = certs.as_bytes();
+    let _ = cfg.root_store.add_pem_file(&mut b);
+
+    cfg
+}
+#[cfg(not(feature = "rust-tls"))]
+pub fn create_tls_config(certs: &str) -> TlsConfig {
+    create_ssl_connector_builder(certs)
+}
+
+// This can be merged into create_tls_config() once the ws crate supports rustls.
 pub fn create_ssl_connector_builder(certs: &str) -> SslConnectorBuilder {
     // certs include multiple certificates. We could add all of them at once,
     // but if any of them were already added, openssl would fail to insert all
@@ -87,15 +115,15 @@ pub fn create_ssl_connector_builder(certs: &str) -> SslConnectorBuilder {
     ssl_connector_builder
 }
 
-pub fn create_http_client<E>(
-    ssl_connector_builder: SslConnectorBuilder,
-    executor: E,
-) -> Client<Connector, Body>
+pub fn create_http_client<E>(tls_config: TlsConfig, executor: E) -> Client<Connector, Body>
 where
     E: Executor<Box<dyn Future<Error = (), Item = ()> + Send + 'static>> + Sync + Send + 'static,
 {
-    let connector =
-        HttpsConnector::with_connector(HttpConnector::new(), ssl_connector_builder).unwrap();
+    #[cfg(feature = "rust-tls")]
+    let connector = HttpsConnector::from((HttpConnector::new(), tls_config));
+    #[cfg(not(feature = "rust-tls"))]
+    let connector = HttpsConnector::with_connector(HttpConnector::new(), tls_config).unwrap();
+
     Client::builder()
         .http1_title_case_headers(true)
         .executor(executor)
