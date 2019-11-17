@@ -38,8 +38,8 @@ promise_test(async t => {
 promise_test(async t => {
   const res = uniqueName(t);
 
-  // Grab a lock and hold it forever.
-  const never_settled = new Promise(resolve => { /* never */ });
+  // Grab a lock and hold it until this subtest completes.
+  const never_settled = new Promise(resolve => t.add_cleanup(resolve));
   navigator.locks.request(res, lock => never_settled);
 
   const controller = new AbortController();
@@ -67,8 +67,8 @@ promise_test(async t => {
 promise_test(async t => {
   const res = uniqueName(t);
 
-  // Grab a lock and hold it forever.
-  const never_settled = new Promise(resolve => { /* never */ });
+  // Grab a lock and hold it until this subtest completes.
+  const never_settled = new Promise(resolve => t.add_cleanup(resolve));
   navigator.locks.request(res, lock => never_settled);
 
   const controller = new AbortController();

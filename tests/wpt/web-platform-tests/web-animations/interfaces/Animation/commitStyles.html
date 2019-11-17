@@ -5,6 +5,11 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
+<style>
+.pseudo::before {content: '';}
+.pseudo::after {content: '';}
+.pseudo::marker {content: '';}
+</style>
 <body>
 <div id="log"></div>
 <script>
@@ -263,10 +268,12 @@ promise_test(async t => {
 }, 'Does NOT trigger mutation observers when the change to style is redundant');
 
 test(t => {
-  const pseudo = getPseudoElement(t, 'before');
-  const animation = pseudo.animate(
+
+  const div = createDiv(t);
+  div.classList.add('pseudo');
+  const animation = div.animate(
     { opacity: 0 },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1, fill: 'forwards', pseudoElement: '::before' }
   );
 
   assert_throws('NoModificationAllowedError', () => {
@@ -372,13 +379,14 @@ test(t => {
 }, 'Throws if the target effect is disconnected');
 
 test(t => {
-  const pseudo = getPseudoElement(t, 'before');
-  const animation = pseudo.animate(
+  const div = createDiv(t);
+  div.classList.add('pseudo');
+  const animation = div.animate(
     { opacity: 0 },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1, fill: 'forwards', pseudoElement: '::before' }
   );
 
-  pseudo.element.remove();
+  div.remove();
 
   assert_throws('NoModificationAllowedError', () => {
     animation.commitStyles();

@@ -195,10 +195,16 @@
      * Add a pause to the current tick
      *
      * @param {Number?} duration - Minimum length of the tick in ms.
+     * @param {String} sourceType - source type
+     * @param {String?} sourceName - Named key or pointer source to use or null for the default
+     *                               key or pointer source
      * @returns {Actions}
      */
-    pause: function(duration) {
-      this.getSource("none").addPause(this, duration);
+    pause: function(duration=0, sourceType="none", {sourceName=null}={}) {
+      if (sourceType=="none")
+        this.getSource("none").addPause(this, duration);
+      else
+        this.getSource(sourceType, sourceName).addPause(this, duration);
       return this;
     },
 
@@ -339,6 +345,14 @@
       }
       this.actions.set(tick, {type: "keyUp", value: key});
     },
+
+    addPause: function(actions, duration) {
+      let tick = actions.tickIdx;
+      if (this.actions.has(tick)) {
+        tick = actions.addTick().tickIdx;
+      }
+      this.actions.set(tick, {type: "pause", duration: duration});
+    },
   };
 
   function PointerSource(parameters={pointerType: "mouse"}) {
@@ -392,6 +406,14 @@
       if (duration) {
         this.actions.get(tick).duration = duration;
       }
+    },
+
+    addPause: function(actions, duration) {
+      let tick = actions.tickIdx;
+      if (this.actions.has(tick)) {
+        tick = actions.addTick().tickIdx;
+      }
+      this.actions.set(tick, {type: "pause", duration: duration});
     },
   };
 

@@ -6,6 +6,12 @@
 <script type="module">
   import { getOppositeOrientation } from "/screen-orientation/resources/orientation-utils.js";
   promise_test(async t => {
+    t.add_cleanup(async () => {
+      try {
+        await document.exitFullscreen();
+      } catch (e) {}
+      screen.orientation.unlock();
+    });
     await test_driver.bless("request full screen", () => {
       return document.documentElement.requestFullscreen();
     });
@@ -20,7 +26,5 @@
     });
     await promise_rejects(t, "AbortError", pMustReject);
     await pMustResolve;
-    screen.orientation.unlock();
-    return document.exitFullscreen();
   }, "Re-locking orientation during event dispatch must reject existing orientationPendingPromise");
 </script>

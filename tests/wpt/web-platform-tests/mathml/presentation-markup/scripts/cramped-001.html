@@ -124,13 +124,13 @@
 
       test(function() {
           assert_true(MathMLFeatureDetection.has_mspace());
-          assert_cramped("mover-003", true, "accent overscript");
+          assert_cramped("mover-003", false, "accent overscript");
           assert_cramped("mover-004", false, "accent superscript");
       }, "accent child of mover");
 
       test(function() {
           assert_true(MathMLFeatureDetection.has_mspace());
-          assert_cramped("munderover-004", true, "accent overscript");
+          assert_cramped("munderover-004", false, "accent overscript");
           assert_cramped("munderover-005", false, "accent superscript");
       }, "accent child of munderover");
 
@@ -201,14 +201,14 @@
 
       test(function() {
           assert_true(MathMLFeatureDetection.has_mspace());
-          assert_cramped("mover-013", true, "accent overscript");
+          assert_cramped("mover-013", false, "accent overscript");
           assert_cramped("mover-014", false, "accent superscript");
       }, "accent child of mover, from in-flow children");
 
 
       test(function() {
           assert_true(MathMLFeatureDetection.has_mspace());
-          assert_cramped("munderover-014", true, "accent overscript");
+          assert_cramped("munderover-014", false, "accent overscript");
           assert_cramped("munderover-015", false, "accent superscript");
       }, "accent child of munderover, from in-flow children");
 

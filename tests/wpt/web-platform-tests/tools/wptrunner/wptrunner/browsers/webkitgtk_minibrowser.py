@@ -1,4 +1,4 @@
-from .base import get_timeout_multiplier, maybe_add_args   # noqa: F401
+from .base import get_timeout_multiplier, maybe_add_args, certificate_domain_list  # noqa: F401
 from .webkit import WebKitBrowser
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executorwebdriver import (WebDriverTestharnessExecutor,  # noqa: F401
@@ -48,9 +48,7 @@ def capabilities(server_config, **kwargs):
         "webkitgtk:browserOptions": {
             "binary": kwargs["binary"],
             "args": args,
-            "certificates": [
-                {"host": server_config["browser_host"],
-                 "certificateFile": kwargs["host_cert_path"]}]}}
+            "certificates": certificate_domain_list(server_config.domains_set, kwargs["host_cert_path"])}}
 
 
 def executor_kwargs(test_type, server_config, cache_manager, run_info_data,

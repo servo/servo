@@ -182,28 +182,14 @@ directory_test(async (t, root_dir) => {
     t, root_dir, /*receiver=*/self, /*target=*/iframe.contentWindow,
     /*target_origin=*/'*', /*expected_has_source*/true,
     /*expected_origin=*/location.origin);
-
-  // https://crbug.com/1014248 Should sandboxed iframes expose the
-  // NativeFileSystem?
-  //
-  // await do_receive_message_error_test(
-  //   t, /*receiver=*/self, /*target=*/iframe.contentWindow,
-  //   /*target_origin=*/'*', /*expected_has_source=*/true,
-  //   /*expected_origin=*/kRemoteOrigin);
-}, 'Fail to send and receive messages using a sandboxed iframe.');
+}, 'Fail to send to a sandboxed iframe.');
 
 directory_test(async (t, root_dir) => {
   const iframe = await add_iframe(
     t, { src: kDocumentMessageTarget, sandbox: 'allow-scripts' });
   await do_send_message_port_error_test(
     t, root_dir, /*target=*/iframe.contentWindow, /*target_origin=*/'*');
-
-  // https://crbug.com/1014248 Should sandboxed iframes expose the
-  // NativeFileSystem?
-  //
-  // await do_receive_message_port_error_test(
-  //   t, /*target=*/iframe.contentWindow, /*target_origin=*/'*');
-}, 'Fail to send and receive messages using a message port in a sandboxed ' +
+}, 'Fail to send messages using a message port to a sandboxed ' +
 'iframe.');
 
 directory_test(async (t, root_dir) => {
@@ -246,15 +232,7 @@ directory_test(async (t, root_dir) => {
     t, root_dir, /*receiver=*/self, /*target=*/child_window,
     /*target_origin=*/'*', /*expected_has_source*/true,
     /*expected_origin=*/location.origin);
-
-  // https://crbug.com/1014248 Should sandboxed windows expose the
-  // NativeFileSystem?
-  //
-  // await do_receive_message_error_test(
-  //   t, /*receiver=*/self, /*target=*/child_window,
-  //   /*target_origin=*/'*', /*expected_has_source=*/true,
-  //   /*expected_origin=*/kRemoteOrigin);
-}, 'Fail to send and receive messages using a sandboxed window.');
+}, 'Fail to send messages to  a sandboxed window.');
 
 directory_test(async (t, root_dir) => {
   const url = `${kDocumentMessageTarget}?pipe=header(Content-Security-Policy` +
@@ -262,11 +240,5 @@ directory_test(async (t, root_dir) => {
   const child_window = await open_window(t, url);
   await do_send_message_port_error_test(
     t, root_dir, /*target=*/child_window, /*target_origin=*/'*');
-
-  // https://crbug.com/1014248 Should sandboxed windows expose the
-  // NativeFileSystem?
-  //
-  // await do_receive_message_port_error_test(
-  //   t, /*target=*/child_window, /*target_origin=*/'*');
-}, 'Fail to send and receive messages using a message port in a sandboxed ' +
+}, 'Fail to send messages using a message port to a sandboxed ' +
 'window.');

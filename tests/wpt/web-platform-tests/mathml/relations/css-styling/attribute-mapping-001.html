@@ -34,6 +34,10 @@
               assert_equals(style.getPropertyValue("direction"), "rtl", "attribute specified");
               element.setAttribute("dir", "RtL");
               assert_equals(style.getPropertyValue("direction"), "rtl", "case insensitive");
+              element.setAttribute("dir", "auto");
+              assert_equals(style.getPropertyValue("direction"), "ltr", "auto");
+              element.setAttribute("dir", "foo");
+              assert_equals(style.getPropertyValue("direction"), "ltr", "random value");
           }, `dir on the ${tag} element is mapped to CSS direction`)
 
           test(function() {

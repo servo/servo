@@ -54,9 +54,6 @@ W3C-TEST.ORG: .gitignore
 W3C-TEST.ORG: README.md
 W3C-TEST.ORG: */README.md
 W3C-TEST.ORG: docs/*
-SET TIMEOUT: docs/*
-WEB-PLATFORM.TEST:README.md
-WEB-PLATFORM.TEST:*/README.md
 WEB-PLATFORM.TEST:docs/*
 CR AT EOL, INDENT TABS:docs/make.bat
 INDENT TABS:docs/Makefile
@@ -106,7 +103,6 @@ PRINT STATEMENT: webdriver/tests/support/helpers.py
 CONSOLE: console/*
 CONSOLE: resources/check-layout-th.js
 CONSOLE: resources/chromium/*
-CONSOLE: resources/idlharness.js
 CONSOLE: streams/resources/test-utils.js
 CONSOLE: service-workers/service-worker/resources/navigation-redirect-other-origin.html
 CONSOLE: service-workers/service-worker/navigation-redirect.https.html
@@ -158,7 +154,6 @@ SET TIMEOUT: html/browsers/history/the-location-interface/*
 SET TIMEOUT: html/browsers/history/the-session-history-of-browsing-contexts/*
 SET TIMEOUT: html/browsers/offline/*
 SET TIMEOUT: html/browsers/the-window-object/*
-SET TIMEOUT: html/cross-origin/resources/*
 SET TIMEOUT: html/editing/dnd/*
 SET TIMEOUT: html/semantics/embedded-content/the-iframe-element/*
 SET TIMEOUT: html/semantics/embedded-content/the-img-element/*
@@ -186,16 +181,12 @@ SET TIMEOUT: portals/resources/portals-adopt-predecessor-portal.html
 SET TIMEOUT: preload/single-download-preload.html
 SET TIMEOUT: resize-observer/resources/iframe.html
 SET TIMEOUT: resource-timing/resources/nested-contexts.js
-SET TIMEOUT: resource-timing/TAO-null-opaque-origin.sub.html
-SET TIMEOUT: resource-timing/TAO-case-insensitive-null-opaque-origin.sub.html
-SET TIMEOUT: screen-orientation/onchange-event.html
 SET TIMEOUT: secure-contexts/basic-popup-and-iframe-tests.https.js
 SET TIMEOUT: service-workers/cache-storage/script-tests/cache-abort.js
 SET TIMEOUT: service-workers/service-worker/activation.https.html
 SET TIMEOUT: service-workers/service-worker/fetch-frame-resource.https.html
 SET TIMEOUT: service-workers/service-worker/fetch-request-redirect.https.html
 SET TIMEOUT: service-workers/service-worker/fetch-waits-for-activate.https.html
-SET TIMEOUT: service-workers/service-worker/ready.https.html
 SET TIMEOUT: service-workers/service-worker/update-recovery.https.html
 SET TIMEOUT: service-workers/service-worker/resources/extendable-event-async-waituntil.js
 SET TIMEOUT: service-workers/service-worker/resources/fetch-event-async-respond-with-worker.js
@@ -207,7 +198,6 @@ SET TIMEOUT: service-workers/service-worker/resources/resource-timing-worker.js
 SET TIMEOUT: shadow-dom/Document-prototype-currentScript.html
 SET TIMEOUT: shadow-dom/scroll-to-the-fragment-in-shadow-tree.html
 SET TIMEOUT: shadow-dom/slotchange-event.html
-SET TIMEOUT: shadow-dom/untriaged/html-elements-in-shadow-trees/html-forms/test-003.html
 SET TIMEOUT: trusted-types/block-string-assignment-to-DOMWindowTimers-setTimeout-setInterval.tentative.html
 SET TIMEOUT: trusted-types/DOMWindowTimers-setTimeout-setInterval.tentative.html
 SET TIMEOUT: user-timing/*
@@ -319,10 +309,6 @@ SET TIMEOUT: resources/testharness.js
 # setTimeout use in reftests
 SET TIMEOUT: acid/acid3/test.html
 
-# CI configuration
-WEB-PLATFORM.TEST: .azure-pipelines.yml
-WEB-PLATFORM.TEST: .travis.yml
-
 # Third party code
 *: css/tools/apiclient/*
 *: css/tools/w3ctestlib/*
@@ -333,11 +319,7 @@ WEB-PLATFORM.TEST: .travis.yml
 *: css/tools/_virtualenv/*
 
 ## Third party data files
-TRAILING WHITESPACE: css/css-writing-modes/tools/generators/ucd/Blocks.txt
 TRAILING WHITESPACE: resources/chromium/*
-
-## Test generation files
-CONSOLE: css/css-writing-modes/tools/generators/unicode-data.js
 
 ## Test plans and implementation reports
 *: css/*/test-plan/*
@@ -352,16 +334,13 @@ CONTENT-MANUAL: css/*
 SUPPORT-WRONG-DIR: css/requirements.txt
 SUPPORT-WRONG-DIR: css/README.md
 SUPPORT-WRONG-DIR: css/build-css-testsuites.sh
-SUPPORT-WRONG-DIR: css/OWNERS
 SUPPORT-WRONG-DIR: css/*/reftest.list
-SUPPORT-WRONG-DIR: css/*.headers
 SUPPORT-WRONG-DIR: css/*/README
 SUPPORT-WRONG-DIR: css/*/README.md
 SUPPORT-WRONG-DIR: css/*-README
 SUPPORT-WRONG-DIR: css/*/LICENSE
 SUPPORT-WRONG-DIR: css/*/LICENSE-*
 SUPPORT-WRONG-DIR: css/*/Makefile
-SUPPORT-WRONG-DIR: css/*/OWNERS
 
 # The selectors-3 testsuite has a weird build system
 SUPPORT-WRONG-DIR: css/selectors/*
@@ -385,8 +364,6 @@ SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/sync-test
 SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/sync-tests.sh
 SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/masking/blank.html
 SUPPORT-WRONG-DIR: css/WOFF2/testcaseindex.xht
-NON-EXISTENT-REF: css/css-masking/clip-path-svg-content/clip-path-clip-rule-008.svg
-NON-EXISTENT-REF: css/CSS2/normal-flow/blocks-017.xht
 
 
 ## Whitespace rules that we can't enforce yet
@@ -421,12 +398,9 @@ CONSOLE: css/css-regions/elements/support/Three.js
 CONSOLE: css/css-regions/interactivity/selection/support/js/selection-test-helper.js
 CONSOLE: css/css-regions/stacking-context/javascript-stacking-context-002.html
 CONSOLE: css/css-shapes/shape-outside/supported-shapes/support/test-utils.js
-CONSOLE: css/css-transitions/transition-delay-002.html
-CONSOLE: css/css-transitions/transition-delay-003.html
 CONSOLE: css/css-values/viewport-units-css2-001.html
 CONSOLE: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001*.html
 CONSOLE: css/css-writing-modes/tools/generators/gulpfile.js
-CONSOLE: css/css-writing-modes/tools/generators/text-orientation-generator.js
 
 TRAILING WHITESPACE: css/css-fonts/support/fonts/gsubtest-lookup3.ufo/features.fea
 TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/css21/pagination/moz-css21-float-page-break-inside-avoid-7.html
@@ -436,26 +410,12 @@ TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/css21/p
 TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/css21/pagination/moz-css21-float-page-break-inside-avoid-9.html
 TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/css21/pagination/moz-css21-float-page-break-inside-avoid-9-ref.html
 TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/flexbox/flexbox-mbp-horiz-001-rtl-reverse.xhtml
-TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/multicol3/moz-multicol3-column-balancing-break-inside-avoid-1.html
-TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/multicol3/moz-multicol3-column-balancing-break-inside-avoid-1-ref.html
 
 SET TIMEOUT: css/compositing/mix-blend-mode/mix-blend-mode-parent-with-3D-transform-and-transition.html
 SET TIMEOUT: css/compositing/mix-blend-mode/mix-blend-mode-sibling-with-3D-transform-and-transition.html
-SET TIMEOUT: css/css-animations/animation-display.html
-SET TIMEOUT: css/css-animations/animation-duration-001.html
-SET TIMEOUT: css/css-animations/animation-duration-003.html
-SET TIMEOUT: css/css-animations/animation-duration-004.html
-SET TIMEOUT: css/css-animations/animation-iteration-count-006.html
-SET TIMEOUT: css/css-animations/animation-name-001.html
-SET TIMEOUT: css/css-animations/animation-name-003.html
-SET TIMEOUT: css/css-animations/animation-name-004.html
-SET TIMEOUT: css/css-animations/animation-play-state-001.html
-SET TIMEOUT: css/css-shapes/spec-examples/support/spec-example-utils.js
-SET TIMEOUT: css/css-transitions/changing-while-transition.html
 SET TIMEOUT: css/css-transitions/events-007.html
 SET TIMEOUT: css/css-transitions/support/generalParallelTest.js
 SET TIMEOUT: css/css-transitions/support/runParallelAsyncHarness.js
-SET TIMEOUT: css/css-transitions/transitions-animatable-properties-01.html
 SET TIMEOUT: css/css-transitions/transitioncancel-001.html
 SET TIMEOUT: css/css-values/reference/vh_not_refreshing_on_chrome-ref.html
 SET TIMEOUT: css/css-values/reference/vh_not_refreshing_on_chrome_iframe-ref.html
@@ -511,9 +471,6 @@ CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox/support/200x200-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-grid/grid-items/support/200x200-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-regions/contentEditable/support/common.css
 CSS-COLLIDING-SUPPORT-NAME: css/css-regions/interactivity/full-screen/support/common.css
-CSS-COLLIDING-SUPPORT-NAME: css/css-writing-modes/support/pattern-gg-gr-100x100.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/support/pattern-gg-gr-100x100.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/visuren/support/pattern-gg-gr-100x100.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-multicol/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-transitions/support/pattern-grg-rgr-grg.png
@@ -626,8 +583,6 @@ CSS-COLLIDING-REF-NAME: css/CSS2/visufx/overflow-applies-to-001-ref.xht
 CSS-COLLIDING-REF-NAME: css/CSS2/ui/overflow-applies-to-001-ref.xht
 CSS-COLLIDING-REF-NAME: css/CSS2/visuren/inline-formatting-context-001-ref.xht
 CSS-COLLIDING-REF-NAME: css/CSS2/linebox/inline-formatting-context-001-ref.xht
-CSS-COLLIDING-REF-NAME: css/css-transforms/individual-transform/individual-transform-1-ref.html
-CSS-COLLIDING-REF-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/transforms/individual-transform-1-ref.html
 CSS-COLLIDING-REF-NAME: css/css-flexbox/reference/percentage-size-subitems-001-ref.html
 CSS-COLLIDING-REF-NAME: css/css-grid/grid-items/percentage-size-subitems-001-ref.html
 CSS-COLLIDING-REF-NAME: css/css-contain/reference/contain-size-button-001-ref.html
@@ -663,61 +618,6 @@ MISSING-LINK: css/css-fonts/variations/font-parse-numeric-stretch-style-weight.h
 MISSING-LINK: css/css-fonts/variations/variable-box-font.html
 MISSING-LINK: css/css-fonts/variations/variable-gpos-m2b.html
 MISSING-LINK: css/css-fonts/variations/variable-gsub.html
-MISSING-LINK: css/css-paint-api/background-image-alpha.https.html
-MISSING-LINK: css/css-paint-api/background-image-multiple.https.html
-MISSING-LINK: css/css-paint-api/background-image-tiled.https.html
-MISSING-LINK: css/css-paint-api/geometry-background-image-001.https.html
-MISSING-LINK: css/css-paint-api/geometry-background-image-002.https.html
-MISSING-LINK: css/css-paint-api/geometry-background-image-tiled-001.https.html
-MISSING-LINK: css/css-paint-api/geometry-background-image-tiled-002.https.html
-MISSING-LINK: css/css-paint-api/geometry-background-image-tiled-003.https.html
-MISSING-LINK: css/css-paint-api/geometry-border-image-001.https.html
-MISSING-LINK: css/css-paint-api/geometry-border-image-002.https.html
-MISSING-LINK: css/css-paint-api/geometry-border-image-003.https.html
-MISSING-LINK: css/css-paint-api/geometry-border-image-004.https.html
-MISSING-LINK: css/css-paint-api/invalid-image-constructor-error.https.html
-MISSING-LINK: css/css-paint-api/invalid-image-paint-error.https.html
-MISSING-LINK: css/css-paint-api/invalid-image-pending-script.https.html
-MISSING-LINK: css/css-paint-api/overdraw.https.html
-MISSING-LINK: css/css-paint-api/paint-arguments.https.html
-MISSING-LINK: css/css-paint-api/paint-function-arguments.https.html
-MISSING-LINK: css/css-paint-api/paint2d-composite.https.html
-MISSING-LINK: css/css-paint-api/paint2d-filter.https.html
-MISSING-LINK: css/css-paint-api/paint2d-gradient.https.html
-MISSING-LINK: css/css-paint-api/paint2d-image.https.html
-MISSING-LINK: css/css-paint-api/paint2d-paths.https.html
-MISSING-LINK: css/css-paint-api/paint2d-rects.https.html
-MISSING-LINK: css/css-paint-api/paint2d-shadows.https.html
-MISSING-LINK: css/css-paint-api/paint2d-transform.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-001.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-002.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-003.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-004.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-005.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-006.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-007.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-008.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-009.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-010.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-011.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-012.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-013.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-014.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-015.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-016.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-017.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-018.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-019.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-020.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-021.https.html
-MISSING-LINK: css/css-paint-api/parse-input-arguments-022.https.html
-MISSING-LINK: css/css-paint-api/registered-properties-in-custom-paint.https.html
-MISSING-LINK: css/css-paint-api/style-background-image.https.html
-MISSING-LINK: css/css-paint-api/style-before-pseudo.https.html
-MISSING-LINK: css/css-paint-api/style-first-letter-pseudo.https.html
-MISSING-LINK: css/css-paint-api/valid-image-after-load.https.html
-MISSING-LINK: css/css-paint-api/valid-image-before-load.https.html
-MISSING-LINK: css/css-paint-api/hidpi/device-pixel-ratio.https.html
 MISSING-LINK: css/css-scroll-anchoring/abspos-containing-block-outside-scroller.html
 MISSING-LINK: css/css-scroll-anchoring/abspos-contributes-to-static-parent-bounds.html
 MISSING-LINK: css/css-scroll-anchoring/ancestor-change-heuristic.html
@@ -756,11 +656,9 @@ MISSING-LINK: css/cssom-view/elementsFromPoint.html
 MISSING-LINK: css/cssom-view/historical.html
 MISSING-LINK: css/cssom-view/HTMLBody-ScrollArea_quirksmode.html
 SUPPORT-WRONG-DIR: css/cssom-view/iframe.html
-MISSING-LINK: css/cssom-view/MediaQueryList-with-empty-string.html
 MISSING-LINK: css/cssom-view/mouseEvent.html
 MISSING-LINK: css/cssom-view/negativeMargins.html
 MISSING-LINK: css/cssom-view/offsetTopLeftInScrollableParent.html
-MISSING-LINK: css/cssom-view/overscrollBehavior-manual.html
 MISSING-LINK: css/cssom-view/scrolling-no-browsing-context.html
 MISSING-LINK: css/cssom-view/scrolling-quirks-vs-nonquirks.html
 MISSING-LINK: css/cssom-view/scrollingElement.html
@@ -775,7 +673,6 @@ MISSING-LINK: css/filter-effects/*.any.js
 # Tests that use WebKit/Blink testing APIs
 LAYOUTTESTS APIS: css/css-regions/interactivity/*
 LAYOUTTESTS APIS: import-maps/resources/jest-test-helper.js
-LAYOUTTESTS APIS: permissions/test-background-fetch-permission.html
 LAYOUTTESTS APIS: resources/chromium/generic_sensor_mocks.js
 LAYOUTTESTS APIS: resources/chromium/webxr-test.js
 

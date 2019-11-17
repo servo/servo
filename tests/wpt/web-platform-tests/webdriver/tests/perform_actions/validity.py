@@ -12,7 +12,7 @@ def perform_actions(session, actions):
 
 @pytest.mark.parametrize("action_type", ["none", "key", "pointer"])
 def test_pause_positive_integer(session, action_type):
-    for valid_duration in [0, 1]:
+    for valid_duration in [0.0, 1]:
         actions = [{
             "type": action_type,
             "id": "foobar",
@@ -38,7 +38,7 @@ def test_pause_positive_integer(session, action_type):
 
 @pytest.mark.parametrize("action_type", ["none", "key", "pointer"])
 def test_pause_invalid_types(session, action_type):
-    for invalid_type in [0.0, None, "foo", True, [], {}]:
+    for invalid_type in [0.1, None, "foo", True, [], {}]:
         actions = [{
             "type": action_type,
             "id": "foobar",

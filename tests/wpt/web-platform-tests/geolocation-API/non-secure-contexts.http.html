@@ -57,7 +57,7 @@
       1,
       "Expected the value for PERMISSION_DENIED, which is 1."
     );
-  }, "When in a non-secure context, the getCurrentPosition() errorCallBack gets a PositionError with the correct error code.");
+  }, "When in a non-secure context, the getCurrentPosition() errorCallBack gets a GeolocationPositionError with the correct error code.");
 
   promise_test(async () => {
     const positionErrorPromise = new Promise(errorCallBack => {
@@ -78,5 +78,5 @@
       1,
       "Expected the value for PERMISSION_DENIED, which is 1."
     );
-  }, "When in a non-secure context, the watchPosition() errorCallBack gets a PositionError with the correct error code.");
+  }, "When in a non-secure context, the watchPosition() errorCallBack gets a GeolocationPositionError with the correct error code.");
 </script>

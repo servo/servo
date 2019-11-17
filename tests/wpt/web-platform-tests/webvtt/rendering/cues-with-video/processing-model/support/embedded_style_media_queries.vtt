@@ -1,0 +1,34 @@
+WEBVTT
+NOTE
+color: red; should not apply because it is overriden by color: green.
+color: green; should apply because the screen width is less than 1000px.
+background: green; should only apply in the resized test case where the screen is resized to 300px.
+background: red; should not apply because the screen width is greater than 100px.
+STYLE
+::cue
+{
+  color: red;
+}
+@media only screen and (max-height: 1000px) {
+  ::cue
+  {
+    color: green;
+  }
+}
+@media only screen and (max-height: 400px) {
+  ::cue
+  {
+    background: green;
+  }
+}
+}
+@media only screen and (max-height: 100px) {
+  ::cue
+  {
+    background: red;
+  }
+}
+00:00:00.000 --> 00:00:05.000
+<v Voice1>This <i>is</i> a <b>test</b> subtitle
+00:00:00.000 --> 00:00:05.000
+<v Voice2>Here <i>is</i> a <b>second</b> subtitle

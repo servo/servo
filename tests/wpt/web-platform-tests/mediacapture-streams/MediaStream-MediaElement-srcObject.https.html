@@ -281,6 +281,54 @@ promise_test(async t => {
     "currentTime does not skip ahead after pause");
 }, "Tests that a media element with an assigned MediaStream does not advance currentTime while paused");
 
+promise_test(async t => {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  const stream = canvas.captureStream();
+  t.add_cleanup(() => {
+    vid.srcObject = null;
+    stream.getTracks().forEach(track => track.stop());
+  });
+  vid.srcObject = stream;
+
+  vid.ontimeupdate = () =>
+    assert_unreached("No timeupdate until potentially playing");
+
+  vid.play();
+
+  await new Promise(r => t.step_timeout(r, 1000));
+  assert_equals(vid.readyState, vid.HAVE_NOTHING,
+    "Video dimensions not known yet");
+
+  const start = performance.now();
+  ctx.fillStyle = "green";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Wait for, and check, potentially playing
+  await new Promise(r => vid.oncanplay = r);
+  const canplayDuration = (performance.now() - start) / 1000;
+  // "canplay" was just dispatched from a task queued when the element became
+  // potentially playing. currentTime may not have progressed more than the time
+  // it took from becoming potentially playing to starting the
+  // canplay-dispatching task. Though the media clock and the js clock may be
+  // different, so we take double this duration, or 100ms, whichever is greater,
+  // as a safety margin.
+  const margin = Math.max(0.1, canplayDuration * 2);
+  assert_between_inclusive(vid.currentTime, 0, margin,
+    "currentTime has not advanced more than twice it took to dispatch canplay");
+  assert_false(vid.paused, "Media element is not paused");
+  assert_false(vid.ended, "Media element is not ended");
+  assert_equals(vid.error, null,
+    "Media element playback has not stopped due to errors");
+  assert_greater_than(vid.readyState, vid.HAVE_CURRENT_DATA,
+    "Media element playback is not blocked");
+  // Unclear how to check for "paused for user interaction" and "paused for
+  // in-band content".
+
+  await new Promise(r => vid.ontimeupdate = r);
+  assert_between_exclusive(vid.currentTime, 0, 1,
+    "currentTime advances while potentially playing");
+}, "Tests that a media element with an assigned MediaStream does not start advancing currentTime until potentially playing");
 
 promise_test(async t => {
   const stream = await navigator.mediaDevices.getUserMedia({video: true});
