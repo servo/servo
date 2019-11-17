@@ -238,8 +238,13 @@ class PostBuildCommands(CommandBase):
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to cargo doc")
+    @CommandArgument('--media-stack',
+                     default=None,
+                     choices=["gstreamer", "dummy"],
+                     help='Which media stack to use')
     @CommandBase.build_like_command_arguments
-    def doc(self, params, features, **kwargs):
+    def doc(self, params, features, target=None, android=False, magicleap=False,
+            media_stack=None, **kwargs):
         env = os.environ.copy()
         env["RUSTUP_TOOLCHAIN"] = self.toolchain()
         rustc_path = check_output(["rustup" + BIN_SUFFIX, "which", "rustc"], env=env)
@@ -268,6 +273,22 @@ class PostBuildCommands(CommandBase):
                         copy2(full_name, destination)
 
         features = features or []
+
+        target, android = self.pick_target_triple(target, android, magicleap)
+
+        # A guess about which platforms should use the gstreamer media stack
+        if not(media_stack):
+            if (
+                    not(target) or
+                    ("armv7" in target and "android" in target) or
+                    ("x86_64" in target)
+            ):
+                media_stack = "gstreamer"
+            else:
+                media_stack = "dummy"
+
+        features += ["media-" + media_stack]
+
         returncode = self.run_cargo_build_like_command("doc", params, features=features, **kwargs)
         if returncode:
             return returncode
