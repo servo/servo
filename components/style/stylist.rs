@@ -1322,16 +1322,17 @@ impl Stylist {
         let iter_declarations = || {
             block
                 .declaration_importance_iter()
-                .map(|(declaration, importance)| {
-                    debug_assert!(!importance.important());
-                    (declaration, CascadeLevel::same_tree_author_normal())
-                })
+                .map(|(declaration, _)| (declaration, Origin::Author))
         };
 
         let metrics = get_metrics_provider_for_product();
 
         // We don't bother inserting these declarations in the rule tree, since
         // it'd be quite useless and slow.
+        //
+        // TODO(emilio): Now that we fixed bug 1493420, we should consider
+        // reversing this as it shouldn't be slow anymore, and should avoid
+        // generating two instantiations of apply_declarations.
         properties::apply_declarations::<E, _, _>(
             &self.device,
             /* pseudo = */ None,

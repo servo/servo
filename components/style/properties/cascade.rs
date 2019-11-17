@@ -15,7 +15,7 @@ use crate::properties::{LonghandId, LonghandIdSet, CSSWideKeyword};
 use crate::properties::{PropertyDeclaration, PropertyDeclarationId, DeclarationImportanceIterator};
 use crate::properties::CASCADE_PROPERTY;
 use crate::rule_cache::{RuleCache, RuleCacheConditions};
-use crate::rule_tree::{CascadeLevel, StrongRuleNode};
+use crate::rule_tree::StrongRuleNode;
 use crate::selector_parser::PseudoElement;
 use crate::stylesheets::{Origin, PerOrigin};
 use servo_arc::Arc;
@@ -134,11 +134,15 @@ where
     let restriction = pseudo.and_then(|p| p.property_restriction());
     let iter_declarations = || {
         rule_node.self_and_ancestors().flat_map(|node| {
-            let cascade_level = node.cascade_level();
+            let origin = node.cascade_level().origin();
             let node_importance = node.importance();
+            let guard = match origin {
+                Origin::Author => guards.author,
+                Origin::User | Origin::UserAgent => guards.ua_or_user,
+            };
             let declarations = match node.style_source() {
                 Some(source) => source
-                    .read(cascade_level.guard(guards))
+                    .read(guard)
                     .declaration_importance_iter(),
                 None => DeclarationImportanceIterator::new(&[], &empty),
             };
@@ -153,14 +157,14 @@ where
                         // longhands are only allowed if they have our
                         // restriction flag set.
                         if let PropertyDeclarationId::Longhand(id) = declaration.id() {
-                            if !id.flags().contains(restriction) && cascade_level.origin() != Origin::UserAgent {
+                            if !id.flags().contains(restriction) && origin != Origin::UserAgent {
                                 return None;
                             }
                         }
                     }
 
                     if declaration_importance == node_importance {
-                        Some((declaration, cascade_level))
+                        Some((declaration, origin))
                     } else {
                         None
                     }
@@ -223,7 +227,7 @@ pub fn apply_declarations<'a, E, F, I>(
 where
     E: TElement,
     F: Fn() -> I,
-    I: Iterator<Item = (&'a PropertyDeclaration, CascadeLevel)>,
+    I: Iterator<Item = (&'a PropertyDeclaration, Origin)>,
 {
     debug_assert!(layout_parent_style.is_none() || parent_style.is_some());
     debug_assert_eq!(
@@ -242,17 +246,17 @@ where
 
     let inherited_style = parent_style.unwrap_or(device.default_computed_values());
 
-    let mut declarations = SmallVec::<[(&_, CascadeLevel); 32]>::new();
+    let mut declarations = SmallVec::<[(&_, Origin); 32]>::new();
     let custom_properties = {
         let mut builder = CustomPropertiesBuilder::new(
             inherited_style.custom_properties(),
             device.environment(),
         );
 
-        for (declaration, cascade_level) in iter_declarations() {
-            declarations.push((declaration, cascade_level));
+        for (declaration, origin) in iter_declarations() {
+            declarations.push((declaration, origin));
             if let PropertyDeclaration::Custom(ref declaration) = *declaration {
-                builder.cascade(declaration, cascade_level.origin());
+                builder.cascade(declaration, origin);
             }
         }
 
@@ -332,7 +336,7 @@ where
 fn should_ignore_declaration_when_ignoring_document_colors(
     device: &Device,
     longhand_id: LonghandId,
-    cascade_level: CascadeLevel,
+    origin: Origin,
     pseudo: Option<&PseudoElement>,
     declaration: &mut Cow<PropertyDeclaration>,
 ) -> bool {
@@ -340,8 +344,7 @@ fn should_ignore_declaration_when_ignoring_document_colors(
         return false;
     }
 
-    let is_ua_or_user_rule =
-        matches!(cascade_level.origin(), Origin::User | Origin::UserAgent);
+    let is_ua_or_user_rule = matches!(origin, Origin::User | Origin::UserAgent);
     if is_ua_or_user_rule {
         return false;
     }
@@ -446,7 +449,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         declarations: I,
     ) where
         Phase: CascadePhase,
-        I: Iterator<Item = (&'decls PropertyDeclaration, CascadeLevel)>,
+        I: Iterator<Item = (&'decls PropertyDeclaration, Origin)>,
     {
         let apply_reset = apply_reset == ApplyResetProperties::Yes;
 
@@ -459,9 +462,8 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
 
         let ignore_colors = !self.context.builder.device.use_document_colors();
 
-        for (declaration, cascade_level) in declarations {
+        for (declaration, origin) in declarations {
             let declaration_id = declaration.id();
-            let origin = cascade_level.origin();
             let longhand_id = match declaration_id {
                 PropertyDeclarationId::Longhand(id) => id,
                 PropertyDeclarationId::Custom(..) => continue,
@@ -509,7 +511,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 let should_ignore = should_ignore_declaration_when_ignoring_document_colors(
                     self.context.builder.device,
                     longhand_id,
-                    cascade_level,
+                    origin,
                     self.context.builder.pseudo,
                     &mut declaration,
                 );
