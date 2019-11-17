@@ -1682,6 +1682,13 @@ impl BlockFlow {
     /// Determines the type of formatting context this is. See the definition of
     /// `FormattingContextType`.
     pub fn formatting_context_type(&self) -> FormattingContextType {
+        if self
+            .base
+            .flags
+            .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
+        {
+            return FormattingContextType::Other;
+        }
         if self.is_inline_flex_item() || self.is_block_flex_item() {
             return FormattingContextType::Other;
         }

@@ -43,6 +43,18 @@
      {}
     ]
    ],
+   "css/absolute_block_format_ctx.html": [
+    [
+     "css/absolute_block_format_ctx.html",
+     [
+      [
+       "/_mozilla/css/absolute_block_format_ctx_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/absolute_clipping_of_own_contents.html": [
     [
      "css/absolute_clipping_of_own_contents.html",
@@ -7692,6 +7704,9 @@
    "css/abs_rel_explicit_height_ref.html": [
     []
    ],
+   "css/absolute_block_format_ctx_ref.html": [
+    []
+   ],
    "css/absolute_clipping_of_own_contents_ref.html": [
     []
    ],
@@ -13459,6 +13474,14 @@
   ],
   "css/abs_rel_explicit_height_ref.html": [
    "4e9833c29529e58690f5f26e546e0d66a22ca369",
+   "support"
+  ],
+  "css/absolute_block_format_ctx.html": [
+   "e7540c1cfe8eaab06e9c3b87214263d2c3abec34",
+   "reftest"
+  ],
+  "css/absolute_block_format_ctx_ref.html": [
+   "42420061724718702f611abd2ff4c61774fc4b86",
    "support"
   ],
   "css/absolute_clipping_of_own_contents.html": [
