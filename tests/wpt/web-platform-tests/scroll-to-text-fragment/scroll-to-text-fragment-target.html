@@ -3,7 +3,8 @@
 <script>
 function isInView(element) {
   let rect = element.getBoundingClientRect();
-  return rect.top >= 0 && rect.top <= window.innerHeight;
+  return rect.top >= 0 && rect.top <= window.innerHeight
+      && rect.left >= 0 && rect.left <= window.innerWidth;
 }
 
 function checkScroll() {
@@ -22,6 +23,12 @@ function checkScroll() {
     position = 'cross-node-context';
   else if (isInView(document.getElementById('text-directive-parameters')))
     position = 'text-directive-parameters';
+  else if (isInView(document.getElementById('shadow-parent')))
+    position = 'shadow-parent';
+  else if (isInView(document.getElementById('hidden')))
+    position = 'hidden';
+  else if (isInView(document.getElementById('horizontal-scroll')) && window.scrollX > 0)
+    position = 'horizontal-scroll';
 
   bc.postMessage({ scrollPosition: position, href: window.location.href });
   bc.close();
@@ -29,40 +36,38 @@ function checkScroll() {
 }
 </script>
 <style>
-  body {
-    height: 6200px;
+  .scroll-section {
+    /* 1000px margin on top and bottom so only one section can be in view. */
+    margin: 1000px 0px;
   }
-  #element {
-    position: absolute;
-    top: 2000px;
+  #hidden {
+    visibility: hidden;
   }
-  #text {
-    position: absolute;
-    top: 3000px;
+  #horizontal-scroll {
+    margin-left: 2000px;
   }
-  #more-text {
-    position: absolute;
-    top: 4000px;
-  }
-  #cross-node-context {
-    position: absolute;
-    top: 5000px;
-  }
-  #text-directive-parameters {
-    position: absolute;
-    top: 6000px;
+  #display-none {
+    display: none;
   }
 </style>
 <body onload="window.requestAnimationFrame(checkScroll)">
-  <div id="element">Element</div>
-  <p id="text">This is a test page !$'()*+./:;=?@_~ &,- &#x2665;</p>
-  <p id="more-text">More test page text</p>
-  <div id="cross-node-context">
+  <div id="element" class="scroll-section">Element</div>
+  <p id="text" class="scroll-section">This is a test page !$'()*+./:;=?@_~ &,- &#x30cd;&#x30b3;</p>
+  <p id="more-text" class="scroll-section">More test page text</p>
+  <div id="cross-node-context" class="scroll-section">
     <div>
       <p>prefix</p>
       <p>test page</p>
     </div>
     <div><p>suffix</p></div>
   </div>
-  <p id="text-directive-parameters">this,is,test,page</p>
+  <p id="text-directive-parameters" class="scroll-section">this,is,test,page</p>
+  <div id="shadow-parent" class="scroll-section"></div>
+  <script>
+    let shadow = document.getElementById("shadow-parent").attachShadow({mode: 'open'});
+    shadow.innerHTML = '<p>shadow text</p>';
+  </script>
+  <p id="hidden" class="scroll-section">hidden text</p>
+  <p id="horizontal-scroll" class="scroll-section">horizontally scrolled text</p>
+  <p id="display-none" class="scroll-section">display none</p>
 </body>

@@ -50,6 +50,14 @@ def maybe_add_args(required_args, current_args):
     return current_args
 
 
+def certificate_domain_list(list_of_domains, certificate_file):
+    """Build a list of domains where certificate_file should be used"""
+    cert_list = []
+    for domain in list_of_domains:
+        cert_list.append({"host": domain, "certificateFile": certificate_file})
+    return cert_list
+
+
 def get_free_port():
     """Get a random unbound port"""
     while True:

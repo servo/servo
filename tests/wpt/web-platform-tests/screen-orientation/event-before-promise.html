@@ -5,6 +5,12 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script>
   promise_test(async t => {
+    t.add_cleanup(async () => {
+      try {
+        await document.exitFullscreen();
+      } catch (e) {}
+      screen.orientation.unlock();
+    });
     await test_driver.bless("request full screen", () => {
       return document.documentElement.requestFullscreen();
     });
@@ -15,10 +21,9 @@
 
     const result = await Promise.race([
       screen.orientation.lock("landscape"),
-      promiseToChange
+      promiseToChange,
     ]);
 
     assert_true(result instanceof Event, "Expected an instance of Event");
-    return document.exitFullscreen();
   }, "The 'change' event must fire before the [[orientationPendingPromise]] is resolved.");
 </script>

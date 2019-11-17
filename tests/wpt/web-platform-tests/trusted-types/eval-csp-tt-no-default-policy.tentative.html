@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script nonce="abc" src="/resources/testharness.js"></script>
+  <script nonce="abc" src="/resources/testharnessreport.js"></script>
+  <script nonce="abc" src="support/helper.sub.js"></script>
+  <meta http-equiv="Content-Security-Policy" content="trusted-types *">
+</head>
+<body>
+<script>
+  const p = trustedTypes.createPolicy("p", {createScript: s => s});
+
+  test(t => {
+    assert_equals(eval(p.createScript('1+1')), 2);
+  }, "eval of TrustedScript works.");
+
+  test(t => {
+    assert_throws(new EvalError(), _ => eval('1+1'));
+  }, "eval of string fails.");
+
+  test(t => {
+    assert_equals(eval(42), 42);
+    assert_object_equals(eval({}), {});
+    assert_equals(eval(null), null);
+    assert_equals(eval(undefined), undefined);
+   }, "eval of !TrustedScript and !string works.");
+</script>
+

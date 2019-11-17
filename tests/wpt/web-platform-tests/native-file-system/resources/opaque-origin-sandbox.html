@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<script>
+  'use strict'
+
+  // Sends two messages to its creator:
+  // (1) The result of chooseFileSystemEntries().
+  // (2) The result of FileSystemDirectoryHandle.getSystemDirectory().
+
+  function post_message(data) {
+    if (window.parent !== null) {
+      window.parent.postMessage(data, { targetOrigin: '*' });
+    }
+    if (window.opener !== null) {
+      window.opener.postMessage(data, { targetOrigin: '*' });
+    }
+  }
+
+  try {
+    window.chooseFileSystemEntries({ type: 'openDirectory' })
+      .then(() => {
+        post_message('chooseFileSystemEntries(): FULFILLED');
+      }).catch(error => {
+        post_message(`chooseFileSystemEntries(): REJECTED: ${error.name}`);
+      });
+  } catch (error) {
+    post_message(`chooseFileSystemEntries(): EXCEPTION: ${error.name}`);
+  }
+
+  try {
+    window.FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' })
+      .then(() => {
+        post_message('getSystemDirectory(): FULFILLED');
+      }).catch(error => {
+        post_message(`getSystemDirectory(): REJECTED: ${error.name}`);
+      });
+  } catch (error) {
+    post_message(`getSystemDirectory(): EXCEPTION: ${error.name}`);
+  }
+</script>

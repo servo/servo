@@ -1,6 +1,0 @@
-{
-    "id": "http://example.org/anno1",
-  "type": "Annotation",
-  "label": "No context",
-  "target": "http://example.org/target"
-}

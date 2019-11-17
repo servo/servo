@@ -79,11 +79,6 @@ function assertNDEFPushOptionsEqual(provided, received) {
   else
     assert_equals(!!received.ignore_read, true);
 
-  if (provided.timeout !== undefined)
-    assert_equals(provided.timeout, received.timeout);
-  else
-    assert_equals(received.timeout, Infinity);
-
   if (provided.target !== undefined)
     assert_equals(toMojoNDEFPushTarget(provided.target), received.target);
   else
@@ -176,7 +171,6 @@ var WebNFCTest = (() => {
       this.push_options_ = null;
       this.pending_promise_func_ = null;
       this.push_completed_ = true;
-      this.push_should_timeout_ = false;
       this.client_ = null;
       this.watchers_ = [];
       this.reading_messages_ = [];
@@ -202,13 +196,8 @@ var WebNFCTest = (() => {
         this.pending_promise_func_ = resolve;
         if (this.operations_suspended_) {
           // Pends push operation if NFC operation is suspended.
-        } else if (options.timeout && options.timeout !== Infinity &&
-            !this.push_completed_) {
-          // Resolves with TimeoutError, else pend push operation.
-          if (this.push_should_timeout_) {
-            resolve(
-                createNDEFError(device.mojom.NDEFErrorType.TIMER_EXPIRED));
-          }
+        } else if (!this.push_completed_) {
+          // Leaves the push operating pending.
         } else if (!this.is_ndef_tech_) {
           // Resolves with NotSupportedError if the device does not expose
           // NDEF technology.
@@ -329,7 +318,6 @@ var WebNFCTest = (() => {
       this.pushed_message_ = null;
       this.push_options_ = null;
       this.pending_promise_func_ = null;
-      this.push_should_timeout_ = false;
       this.push_completed_ = true;
     }
 
@@ -351,10 +339,6 @@ var WebNFCTest = (() => {
               toMojoNDEFMessage(message));
         }
       }
-    }
-
-    setPushShouldTimeout(result) {
-      this.push_should_timeout_ = result;
     }
 
     // Suspends all pending NFC operations. Could be used when web page

@@ -124,8 +124,8 @@ function createUrlRecord(url, isAbsUrl) {
   return createRecord('url', url);
 }
 
-function createNDEFPushOptions(target, timeout, ignoreRead) {
-  return {target, timeout, ignoreRead};
+function createNDEFPushOptions(target, ignoreRead) {
+  return {target, ignoreRead};
 }
 
 // Compares NDEFMessageSource that was provided to the API

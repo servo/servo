@@ -4,6 +4,13 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script>
+async function cleanup() {
+  try {
+    await document.exitFullscreen();
+  } catch (e) {}
+  screen.orientation.unlock();
+}
+
 test(() => {
   screen.orientation.unlock();
 }, "Test that screen.orientation.unlock() doesn't throw when there is no lock");
@@ -14,15 +21,16 @@ test(() => {
 }, "Test that screen.orientation.unlock() returns a void value");
 
 promise_test(async t => {
+  t.add_cleanup(cleanup);
   await test_driver.bless("request full screen", () => {
     return document.documentElement.requestFullscreen();
   });
   const value = await screen.orientation.lock('any');
   assert_equals(value, undefined);
-  return document.exitFullscreen();
 }, "Test that screen.orientation.lock returns a promise which will be fulfilled with a void value.");
 
 promise_test(async t => {
+  t.add_cleanup(cleanup);
   await test_driver.bless("request full screen", () => {
     return document.documentElement.requestFullscreen();
   });
@@ -58,11 +66,10 @@ promise_test(async t => {
       break;
     }
   }
-  screen.orientation.unlock();
-  return document.exitFullscreen();
 }, "Test that screen.orientation.lock returns a pending promise.");
 
 promise_test(async t => {
+  t.add_cleanup(cleanup);
   await test_driver.bless("request full screen", () => {
     return document.documentElement.requestFullscreen();
   });
@@ -73,6 +80,5 @@ promise_test(async t => {
   assert_equals(screen.orientation.type, preType, "Must not change orientation until next spin of event loop");
   await p;
   assert_equals(screen.orientation.type, newType);
-  return document.exitFullscreen();
 }, "Test that screen.orientation.lock() is actually async");
 </script>

@@ -34,6 +34,7 @@ function assert_Instance(instance, expected_exports) {
 
   assert_equals(Object.getPrototypeOf(exports), null, "exports prototype");
   assert_false(Object.isExtensible(exports), "extensible exports");
+  assert_array_equals(Object.keys(exports), Object.keys(expected_exports), "matching export keys");
   for (const [key, expected] of Object.entries(expected_exports)) {
     const property = Object.getOwnPropertyDescriptor(exports, key);
     assert_equals(typeof property, "object", `${key} should be present`);

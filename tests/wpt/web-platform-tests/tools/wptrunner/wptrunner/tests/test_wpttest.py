@@ -68,6 +68,11 @@ test_6 = """\
   expected: [OK, FAIL]
 """
 
+test_7 = """\
+[7.html]
+  blink_expect_any_subtest_status: yep
+"""
+
 test_fuzzy = """\
 [fuzzy.html]
   fuzzy: fuzzy-ref.html:1;200
@@ -201,6 +206,14 @@ def test_known_intermittent():
     test_obj = make_test_object(test_6, "a/6.html", 6, ("test", "a", 7), None, False)
     assert test_obj.expected() == "OK"
     assert test_obj.known_intermittent() == ["FAIL"]
+
+
+@pytest.mark.xfail(sys.version[0] == "3",
+                   reason="bytes/text confusion in py3")
+def test_expect_any_subtest_status():
+    test_obj = make_test_object(test_7, "a/7.html", 7, ("test", "a", 8), None, False)
+    assert test_obj.expected() == "OK"
+    assert test_obj.expect_any_subtest_status() is True
 
 
 @pytest.mark.xfail(sys.version[0] == "3",

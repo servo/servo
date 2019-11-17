@@ -23,6 +23,11 @@ test(() => {
 }, "Test screen.orientation default values.");
 
 promise_test(async t => {
+  t.add_cleanup(async () => {
+    try {
+      await document.exitFullscreen();
+    } catch (e) {}
+  });
   await test_driver.bless("request full screen", () => {
     return document.documentElement.requestFullscreen();
   });
@@ -59,7 +64,6 @@ promise_test(async t => {
     "Secondary orientation 2 angle must be the opposite angle to primary orientation 2"
   );
   screen.orientation.unlock();
-  return document.exitFullscreen();
 }, "Test the orientations and associated angles");
 
 test(() => {
@@ -78,6 +82,12 @@ test(() => {
 }, "Test that screen.orientation is always the same object");
 
 promise_test(async t => {
+  t.add_cleanup(async () => {
+    try {
+      await document.exitFullscreen();
+    } catch (e) {}
+    screen.orientation.unlock();
+  });
   await test_driver.bless("request full screen", () => {
     return document.documentElement.requestFullscreen();
   });
@@ -98,7 +108,5 @@ promise_test(async t => {
   assert_equals(screen.orientation.angle, orientation.angle);
   assert_not_equals(screen.orientation.type, orientationType);
   assert_not_equals(screen.orientation.angle, orientationAngle);
-  screen.orientation.unlock();
-  return document.exitFullscreen();
 }, "Test that screen.orientation values change if the orientation changes");
 </script>

@@ -1,8 +1,0 @@
-_:b1 <http://www.w3.org/ns/oa#styleClass> "red" .
-_:b1 <http://www.w3.org/ns/oa#hasSource> <http://example.org/target1> .
-_:b0 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#CssStyle> .
-_:b0 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> ".red { color: red }" .
-<http://example.org/anno38> <http://www.w3.org/ns/oa#styledBy> _:b0 .
-<http://example.org/anno38> <http://www.w3.org/ns/oa#hasBody> <http://example.org/body1> .
-<http://example.org/anno38> <http://www.w3.org/ns/oa#hasTarget> _:b1 .
-<http://example.org/anno38> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#Annotation> .

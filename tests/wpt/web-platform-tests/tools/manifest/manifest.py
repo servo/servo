@@ -251,18 +251,18 @@ class Manifest(object):
         self.url_base = url_base  # type: Text
 
     def __iter__(self):
-        # type: () -> Iterable[Tuple[str, Text, Set[ManifestItem]]]
+        # type: () -> Iterator[Tuple[str, Text, Set[ManifestItem]]]
         return self.itertypes()
 
     def itertypes(self, *types):
-        # type: (*str) -> Iterable[Tuple[str, Text, Set[ManifestItem]]]
+        # type: (*str) -> Iterator[Tuple[str, Text, Set[ManifestItem]]]
         for item_type in (types or sorted(self._data.keys())):
             for path in sorted(self._data[item_type]):
                 tests = self._data[item_type][path]
                 yield item_type, path, tests
 
     def iterpath(self, path):
-        # type: (Text) -> Iterable[ManifestItem]
+        # type: (Text) -> Iterator[ManifestItem]
         for type_tests in self._data.values():
             i = type_tests.get(path, set())
             assert i is not None
@@ -270,7 +270,7 @@ class Manifest(object):
                 yield test
 
     def iterdir(self, dir_name):
-        # type: (Text) -> Iterable[ManifestItem]
+        # type: (Text) -> Iterator[ManifestItem]
         if not dir_name.endswith(os.path.sep):
             dir_name = dir_name + os.path.sep
         for type_tests in self._data.values():

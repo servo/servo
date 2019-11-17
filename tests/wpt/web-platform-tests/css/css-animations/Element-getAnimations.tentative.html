@@ -325,10 +325,13 @@ test(t => {
   assert_equals(animations[0].effect.target, target,
                 'The animation targeting the parent element ' +
                 'should be returned first');
-  assert_equals(animations[1].effect.target.type, '::before',
+  assert_equals(animations[0].effect.pseudoElement, null,
+                'The animation targeting the parent element ' +
+                'should be returned first')
+  assert_equals(animations[1].effect.pseudoElement, '::before',
                 'The animation targeting the ::before pseudo-element ' +
                 'should be returned second');
-  assert_equals(animations[2].effect.target.type, '::after',
+  assert_equals(animations[2].effect.pseudoElement, '::after',
                 'The animation targeting the ::after pesudo-element ' +
                 'should be returned last');
 }, '{ subtree: true } on a leaf element returns the element\'s animations'
@@ -366,34 +369,37 @@ test(t => {
 
   const animations = parent.getAnimations({ subtree: true });
   assert_equals(animations.length, 6,
-                'Should find all elements, pesudo-elements that parent has');
+                'Should find all elements, pseudo-elements that parent has');
 
   assert_equals(animations[0].effect.target, parent,
                 'The animation targeting the parent element ' +
                 'should be returned first');
-  assert_equals(animations[1].effect.target.type, '::before',
+  assert_equals(animations[0].effect.pseudoElement, null,
+                'The animation targeting the parent element ' +
+                'should be returned first');
+  assert_equals(animations[1].effect.pseudoElement, '::before',
                 'The animation targeting the ::before pseudo-element ' +
                 'should be returned second');
-  assert_equals(animations[1].effect.target.element, parent,
+  assert_equals(animations[1].effect.target, parent,
                 'This ::before element should be child of parent element');
-  assert_equals(animations[2].effect.target.type, '::after',
+  assert_equals(animations[2].effect.pseudoElement, '::after',
                 'The animation targeting the ::after pesudo-element ' +
                 'should be returned third');
-  assert_equals(animations[2].effect.target.element, parent,
+  assert_equals(animations[2].effect.target, parent,
                 'This ::after element should be child of parent element');
 
   assert_equals(animations[3].effect.target, child,
                 'The animation targeting the child element ' +
                 'should be returned fourth');
-  assert_equals(animations[4].effect.target.type, '::before',
+  assert_equals(animations[4].effect.pseudoElement, '::before',
                 'The animation targeting the ::before pseudo-element ' +
                 'should be returned fifth');
-  assert_equals(animations[4].effect.target.element, child,
+  assert_equals(animations[4].effect.target, child,
                 'This ::before element should be child of child element');
-  assert_equals(animations[5].effect.target.type, '::after',
+  assert_equals(animations[5].effect.pseudoElement, '::after',
                 'The animation targeting the ::after pesudo-element ' +
                 'should be returned last');
-  assert_equals(animations[5].effect.target.element, child,
+  assert_equals(animations[5].effect.target, child,
                 'This ::after element should be child of child element');
 }, '{ subtree: true } on an element with a child returns animations from the'
    + ' element, its pseudo-elements, its child and its child pseudo-elements');

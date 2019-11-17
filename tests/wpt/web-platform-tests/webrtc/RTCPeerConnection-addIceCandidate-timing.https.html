@@ -1,0 +1,95 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+'use strict';
+
+// In this test, the promises should resolve in the execution order
+// (setLocalDescription, setLocalDescription, addIceCandidate) as is ensured by
+// the Operations Chain; if an operation is pending, executing another operation
+// will queue it. This test will fail if an Operations Chain is not implemented,
+// but it gives the implementation some slack: it only ensures that
+// addIceCandidate() is not resolved first, allowing timing issues in resolving
+// promises where the test still passes even if addIceCandidate() is resolved
+// *before* the second setLocalDescription().
+//
+// This test covers Chrome issue (https://crbug.com/1019222), but does not
+// require setLocalDescription-promises to resolve immediately which is another
+// Chrome bug (https://crbug.com/1019232). The true order is covered by the next
+// test.
+// TODO(https://crbug.com/1019232): Delete this test when the next test passes
+// in Chrome.
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+  caller.addTransceiver('audio');
+
+  const candidatePromise = new Promise(resolve => {
+    caller.onicecandidate = e => resolve(e.candidate);
+  });
+  await caller.setLocalDescription(await caller.createOffer());
+  await callee.setRemoteDescription(caller.localDescription);
+  const candidate = await candidatePromise;
+
+  // Chain setLocalDescription(), setLocalDescription() and addIceCandidate()
+  // without performing await between the calls.
+  const pendingPromises = [];
+  const resolveOrder = [];
+  pendingPromises.push(callee.setLocalDescription().then(() => {
+    resolveOrder.push('setLocalDescription 1');
+  }));
+  pendingPromises.push(callee.setLocalDescription().then(() => {
+    resolveOrder.push('setLocalDescription 2');
+  }));
+  pendingPromises.push(callee.addIceCandidate(candidate).then(() => {
+    resolveOrder.push('addIceCandidate');
+  }));
+  await Promise.all(pendingPromises);
+
+  assert_equals(resolveOrder[0], 'setLocalDescription 1');
+}, 'addIceCandidate is not resolved first if 2x setLocalDescription ' +
+   'operations are pending');
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+  caller.addTransceiver('audio');
+
+  const candidatePromise = new Promise(resolve => {
+    caller.onicecandidate = e => resolve(e.candidate);
+  });
+  await caller.setLocalDescription(await caller.createOffer());
+  await callee.setRemoteDescription(caller.localDescription);
+  const candidate = await candidatePromise;
+
+  // Chain setLocalDescription(), setLocalDescription() and addIceCandidate()
+  // without performing await between the calls.
+  const pendingPromises = [];
+  const resolveOrder = [];
+  pendingPromises.push(callee.setLocalDescription().then(() => {
+    resolveOrder.push('setLocalDescription 1');
+  }));
+  pendingPromises.push(callee.setLocalDescription().then(() => {
+    resolveOrder.push('setLocalDescription 2');
+  }));
+  pendingPromises.push(callee.addIceCandidate(candidate).then(() => {
+    resolveOrder.push('addIceCandidate');
+  }));
+  await Promise.all(pendingPromises);
+
+  // This test verifies that both issues described in https://crbug.com/1019222
+  // and https://crbug.com/1019232 are fixed. If this test passes in Chrome, the
+  // ICE candidate exchange issues described in
+  // https://github.com/web-platform-tests/wpt/issues/19866 should be resolved.
+  assert_array_equals(
+      resolveOrder,
+      ['setLocalDescription 1', 'setLocalDescription 2', 'addIceCandidate']);
+}, 'addIceCandidate and setLocalDescription are resolved in the correct ' +
+   'order, as defined by the operations chain specification');
+
+</script>

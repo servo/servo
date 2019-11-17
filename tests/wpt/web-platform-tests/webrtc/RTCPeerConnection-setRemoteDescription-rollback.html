@@ -72,7 +72,7 @@
       assert_not_equals(pc.pendingRemoteDescription, null);
       assert_equals(pc.currentRemoteDescription, null);
 
-      return pc.setRemoteDescription({ type: 'rollback' });
+      return pc.setRemoteDescription({type: 'rollback'});
     })
     .then(() => {
       assert_equals(pc.signalingState, 'stable');
@@ -100,7 +100,7 @@
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     return promise_rejects(t, 'InvalidStateError',
-      pc.setRemoteDescription({ type: 'rollback' }));
+      pc.setRemoteDescription({type: 'rollback'}));
   }, `setRemoteDescription(rollback) from stable state should reject with InvalidStateError`);
 
   promise_test(t => {
@@ -138,7 +138,7 @@
     t.add_cleanup(() => pc1.close());
     t.add_cleanup(() => pc2.close());
 
-    const stream = await getNoiseStream({ video: true });
+    const stream = await getNoiseStream({video: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     pc1.addTrack(stream.getTracks()[0], stream);
 
@@ -158,5 +158,356 @@
     // Then try applying pc1's old offer
     await pc1.setLocalDescription(offer1);
   }, "local offer created before setRemoteDescription(remote offer) with different transceiver level assignments then rollback should still be usable");
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const stream = await getNoiseStream({video: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    pc1.addTrack(stream.getTracks()[0], stream);
+
+    await pc2.setRemoteDescription(await pc1.createOffer());
+    assert_equals(pc2.getTransceivers().length, 1);
+    await pc2.setRemoteDescription({type: "rollback"});
+    assert_equals(pc2.getTransceivers().length, 0);
+  }, "rollback of a remote offer should remove a transceiver");
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const stream = await getNoiseStream({video: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    pc1.addTrack(stream.getTracks()[0], stream);
+
+    await pc2.setRemoteDescription(await pc1.createOffer());
+    assert_equals(pc2.getTransceivers().length, 1);
+
+    const stream2 = await getNoiseStream({video: true});
+    t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
+    const track = stream2.getVideoTracks()[0];
+    await pc2.getTransceivers()[0].sender.replaceTrack(track);
+
+    await pc2.setRemoteDescription({type: "rollback"});
+    assert_equals(pc2.getTransceivers().length, 0);
+  }, "rollback of a remote offer should remove touched transceiver");
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const stream = await getNoiseStream({video: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    pc1.addTrack(stream.getTracks()[0], stream);
+
+    await pc2.setRemoteDescription(await pc1.createOffer());
+    assert_equals(pc2.getTransceivers().length, 1);
+
+    const stream2 = await getNoiseStream({video: true});
+    t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
+    pc2.addTrack(stream2.getTracks()[0], stream2);
+
+    await pc2.setRemoteDescription({type: "rollback"});
+    assert_equals(pc2.getTransceivers().length, 1);
+    assert_equals(pc2.getTransceivers()[0].mid, null)
+  }, "rollback of a remote offer should keep a transceiver");
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const stream = await getNoiseStream({video: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    pc1.addTrack(stream.getTracks()[0], stream);
+
+    await pc2.setRemoteDescription(await pc1.createOffer());
+    assert_equals(pc2.getTransceivers().length, 1);
+
+    const stream2 = await getNoiseStream({video: true});
+    t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
+    pc2.addTrack(stream2.getTracks()[0], stream2);
+    await pc2.getTransceivers()[0].sender.replaceTrack(null);
+    await pc2.setRemoteDescription({type: "rollback"});
+    assert_equals(pc2.getTransceivers().length, 1);
+  }, "rollback of a remote offer should keep a transceiver without tracks");
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const stream = await getNoiseStream({video: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    pc.addTrack(stream.getTracks()[0], stream);
+
+    const states = [];
+    const signalingstatechangeResolver = new Resolver();
+    pc.onsignalingstatechange = () => {
+      states.push(pc.signalingState);
+      signalingstatechangeResolver.resolve();
+    };
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    await pc.setRemoteDescription({type: "rollback"});
+    assert_equals(pc.getTransceivers().length, 1);
+    assert_equals(pc.getTransceivers()[0].mid, null)
+    await pc.setLocalDescription(offer);
+    assert_equals(pc.getTransceivers().length, 1);
+    await signalingstatechangeResolver.promise;
+    assert_array_equals(states, ['have-local-offer', 'stable', 'have-local-offer']);
+  }, "rollback local offer explicitly");
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const states = [];
+    const signalingstatechangeResolver = new Resolver();
+    pc1.onsignalingstatechange = () => {
+      states.push(pc1.signalingState);
+      signalingstatechangeResolver.resolve();
+    };
+    const stream1 = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream1.getTracks().forEach(track => track.stop()));
+    pc1.addTrack(stream1.getTracks()[0], stream1);
+
+    const stream2 = await getNoiseStream({video: true});
+    t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
+    pc2.addTrack(stream2.getTracks()[0], stream2);
+
+    await pc1.setLocalDescription(await pc1.createOffer());
+    var onnegotiationneededCount = 0;
+    const negotiationneededResolver = new Resolver();
+    pc1.onnegotiationneeded = () => {
+      onnegotiationneededCount += 1;
+      negotiationneededResolver.resolve();
+    };
+    await pc1.setRemoteDescription(await pc2.createOffer());
+    await pc1.setLocalDescription(await pc1.createAnswer());
+    await negotiationneededResolver.promise;
+    assert_equals(onnegotiationneededCount, 1);
+    await signalingstatechangeResolver.promise;
+    assert_array_equals(states, ['have-local-offer', 'stable', 'have-remote-offer', 'stable']);
+  }, "implicit rollback of a local offer should visit stable state and fire negotiationneeded");
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    const stream = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    pc1.addTrack(stream.getTracks()[0], stream);
+
+    await pc1.setLocalDescription(await pc1.createOffer());
+    await pc2.setRemoteDescription(pc1.pendingLocalDescription);
+
+    await pc2.setLocalDescription(await pc2.createAnswer());
+    await pc1.setRemoteDescription(pc2.localDescription);
+
+    // In stable state add video on both end and make sure video transceiver is not killed.
+
+    const stream1 = await getNoiseStream({video: true});
+    t.add_cleanup(() => stream1.getTracks().forEach(track => track.stop()));
+    pc1.addTrack(stream1.getTracks()[0], stream1);
+    await pc1.setLocalDescription(await pc1.createOffer());
+
+    const stream2 = await getNoiseStream({video: true});
+    t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
+    pc2.addTrack(stream2.getTracks()[0], stream2);
+    const offer2 = await pc2.createOffer();
+    await pc2.setRemoteDescription(pc1.pendingLocalDescription);
+    await pc2.setRemoteDescription({type: "rollback"});
+    assert_equals(pc2.getTransceivers().length, 2);
+    await pc2.setLocalDescription(offer2);
+  }, "rollback of a remote offer to negotiated stable state should enable " +
+     "applying of a local offer");
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    const stream = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    pc1.addTrack(stream.getTracks()[0], stream);
+
+    await pc1.setLocalDescription(await pc1.createOffer());
+    await pc2.setRemoteDescription(pc1.pendingLocalDescription);
+
+    await pc2.setLocalDescription(await pc2.createAnswer());
+    await pc1.setRemoteDescription(pc2.localDescription);
+
+    // Both ends want to add video at the same time. pc2 rolls back.
+
+    const stream2 = await getNoiseStream({video: true});
+    t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
+    pc2.addTrack(stream2.getTracks()[0], stream2);
+    await pc2.setLocalDescription(await pc2.createOffer());
+    assert_equals(pc2.getTransceivers().length, 2);
+    assert_not_equals(pc2.getTransceivers()[1].sender.transport, null);
+    await pc2.setRemoteDescription({type: "rollback"});
+    assert_equals(pc2.getTransceivers().length, 2);
+    // Rollback didn't touch audio transceiver and transport is intact.
+    assert_not_equals(pc2.getTransceivers()[0].sender.transport, null);
+    // Video transport got killed.
+    assert_equals(pc2.getTransceivers()[1].sender.transport, null);
+    const stream1 = await getNoiseStream({video: true});
+    t.add_cleanup(() => stream1.getTracks().forEach(track => track.stop()));
+    pc1.addTrack(stream1.getTracks()[0], stream1);
+    await pc1.setLocalDescription(await pc1.createOffer());
+    await pc2.setRemoteDescription(pc1.pendingLocalDescription);
+  }, "rollback of a local offer to negotiated stable state should enable " +
+     "applying of a remote offer");
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    const stream = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    pc1.addTrack(stream.getTracks()[0], stream);
+
+    await pc1.setLocalDescription(await pc1.createOffer());
+    await pc2.setRemoteDescription(pc1.pendingLocalDescription);
+
+    await pc2.setLocalDescription(await pc2.createAnswer());
+    await pc1.setRemoteDescription(pc2.localDescription);
+
+    // pc1 adds video and pc2 adds audio. pc2 rolls back.
+    assert_equals(pc2.getTransceivers()[0].direction, "recvonly");
+    const stream2 = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
+    pc2.addTrack(stream2.getTracks()[0], stream2);
+    assert_equals(pc2.getTransceivers()[0].direction, "sendrecv");
+    await pc2.setLocalDescription(await pc2.createOffer());
+    assert_equals(pc2.getTransceivers()[0].direction, "sendrecv");
+    await pc2.setRemoteDescription({type: "rollback"});
+    assert_equals(pc2.getTransceivers().length, 1);
+    // setLocalDescription didn't change direction. So direction remains "sendrecv"
+    assert_equals(pc2.getTransceivers()[0].direction, "sendrecv");
+    // Rollback didn't touch audio transceiver and transport is intact. Still can receive audio.
+    assert_not_equals(pc2.getTransceivers()[0].receiver.transport, null);
+    const stream1 = await getNoiseStream({video: true});
+    t.add_cleanup(() => stream1.getTracks().forEach(track => track.stop()));
+    pc1.addTrack(stream1.getTracks()[0], stream1);
+    await pc1.setLocalDescription(await pc1.createOffer());
+    await pc2.setRemoteDescription(pc1.pendingLocalDescription);
+  }, "rollback a local offer with audio direction change to negotiated " +
+     "stable state and then add video receiver");
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTransceiver('video', {direction: 'sendonly'});
+    pc2.addTransceiver('video', {direction: 'sendonly'});
+    await pc1.setLocalDescription(await pc1.createOffer());
+    const pc1FirstMid = pc1.getTransceivers()[0].mid;
+    await pc2.setLocalDescription(await pc2.createOffer());
+    const pc2FirstMid = pc2.getTransceivers()[0].mid;
+    // I don't think it is mandated that this has to be true, but any implementation I know of would
+    // have predictable mids (e.g. 0, 1, 2...) so pc1 and pc2 should offer with the same mids.
+    assert_equals(pc1FirstMid, pc2FirstMid);
+    await pc1.setRemoteDescription(pc2.pendingLocalDescription);
+    // We've implicitly rolled back and the SRD caused a second transceiver to be created.
+    // As such, the first transceiver's mid will now be null, and the second transceiver's mid will
+    // match the remote offer.
+    assert_equals(pc1.getTransceivers().length, 2);
+    assert_equals(pc1.getTransceivers()[0].mid, null);
+    assert_equals(pc1.getTransceivers()[1].mid, pc2FirstMid);
+    // If we now do an offer the first transceiver will get a different mid than in the first
+    // pc1.createOffer()!
+    pc1.setLocalDescription(await pc1.createAnswer());
+    await pc1.setLocalDescription(await pc1.createOffer());
+    assert_not_equals(pc1.getTransceivers()[0].mid, pc1FirstMid);
+  }, "two transceivers with same mids");
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+    const stream = await getNoiseStream({audio: true, video: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const audio = stream.getAudioTracks()[0];
+    pc1.addTrack(audio, stream);
+    const video = stream.getVideoTracks()[0];
+    pc1.addTrack(video, stream);
+
+    let remoteStream = null;
+    pc2.ontrack = e => { remoteStream = e.streams[0]; }
+    await pc2.setRemoteDescription(await pc1.createOffer());
+    assert_true(remoteStream != null);
+    let remoteTracks = remoteStream.getTracks();
+    const removedTracks = [];
+    remoteStream.onremovetrack = e => { removedTracks.push(e.track.id); }
+    await pc2.setRemoteDescription({type: "rollback"});
+    assert_equals(removedTracks.length, 2,
+                  "Rollback should have removed two tracks");
+    assert_true(removedTracks.includes(remoteTracks[0].id),
+                "First track should be removed");
+    assert_true(removedTracks.includes(remoteTracks[1].id),
+                "Second track should be removed");
+
+  }, "onremovetrack fires during remote rollback");
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const stream1 = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream1.getTracks().forEach(track => track.stop()));
+    pc1.addTrack(stream1.getTracks()[0], stream1);
+
+    const offer1 = await pc1.createOffer();
+
+    const remoteStreams = [];
+    pc2.ontrack = e => { remoteStreams.push(e.streams[0]); }
+
+    await pc1.setLocalDescription(offer1);
+    await pc2.setRemoteDescription(pc1.pendingLocalDescription);
+
+    await pc2.setLocalDescription(await pc2.createAnswer());
+    await pc1.setRemoteDescription(pc2.localDescription);
+
+    assert_equals(remoteStreams.length, 1, "Number of remote streams");
+    assert_equals(remoteStreams[0].getTracks().length, 1, "Number of remote tracks");
+    const track = remoteStreams[0].getTracks()[0];
+
+    const stream2 = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
+    pc1.getTransceivers()[0].sender.setStreams(stream2);
+
+    const offer2 = await pc1.createOffer();
+    await pc2.setRemoteDescription(offer2);
+
+    assert_equals(remoteStreams.length, 2);
+    assert_equals(remoteStreams[0].getTracks().length, 0);
+    assert_equals(remoteStreams[1].getTracks()[0].id, track.id);
+    await pc2.setRemoteDescription({type: "rollback"});
+    assert_equals(remoteStreams[0].getTracks().length, 1);
+    assert_equals(remoteStreams[0].getTracks()[0].id, track.id);
+
+  }, "rollback of a remote offer with stream changes");
 
 </script>

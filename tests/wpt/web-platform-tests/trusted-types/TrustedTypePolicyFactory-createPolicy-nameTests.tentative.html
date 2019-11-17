@@ -2,27 +2,47 @@
 <script src="/resources/testharness.js" ></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="support/helper.sub.js"></script>
+<meta http-equiv="Content-Security-Policy"
+      content="trusted-types SomeName SomeOtherName">
 <body>
 <script>
-  //Policy name test
+  // Policy name test
   test(t => {
-    let policy = window.trustedTypes.createPolicy('SomeName', { createHTML: s => s } );
+    let policy = trustedTypes.createPolicy('SomeName', {} );
     assert_true(policy instanceof TrustedTypePolicy);
     assert_equals(policy.name, 'SomeName');
   }, "policy.name = name");
 
-  //Duplicate names test
+  // Duplicate names test
   test(t => {
     assert_throws(new TypeError(), _ => {
-     window.trustedTypes.createPolicy('SomeName', { createURL: s => s } );
+     trustedTypes.createPolicy('SomeName', {} );
     });
   }, "duplicate policy name attempt throws");
 
-  //Retrieve policy names tests
+  // Retrieve policy names tests
   test(t => {
-    let policy = window.trustedTypes.createPolicy('SomeOtherName', { createURL: s => s } );
-    let names = window.trustedTypes.getPolicyNames();
+    let policy = trustedTypes.createPolicy('SomeOtherName', {} );
+    let names = trustedTypes.getPolicyNames();
     assert_true(names.includes('SomeName'));
     assert_true(names.includes('SomeOtherName'));
   }, "Retrieving policy names");
+
+  // Check error messages.
+  test(t => {
+    try {
+      trustedTypes.createPolicy("unknown name", {});
+    } catch (e) {
+      assert_true(e.toString().includes("disallowed"));
+      assert_false(e.toString().includes("already exists"));
+    }
+
+    try {
+      trustedTypes.createPolicy("SomeName", {});
+    } catch (e) {
+      assert_false(e.toString().includes("disallowed"));
+      assert_true(e.toString().includes("already exists"));
+    }
+  }, "Error messages for duplicates and unlisted policies should be different");
+
 </script>
