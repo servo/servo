@@ -1244,7 +1244,12 @@ impl ScriptThread {
         replace_surrogates: bool,
         user_agent: Cow<'static, str>,
     ) -> ScriptThread {
-        let runtime = new_rt_and_cx();
+        let boxed_script_sender = Box::new(MainThreadScriptChan(chan.clone()));
+
+        let runtime = new_rt_and_cx(Some(NetworkingTaskSource(
+            boxed_script_sender.clone(),
+            state.id,
+        )));
         let cx = runtime.cx();
 
         unsafe {
@@ -1261,8 +1266,6 @@ impl ScriptThread {
 
         // Ask the router to proxy IPC messages from the control port to us.
         let control_port = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(state.control_port);
-
-        let boxed_script_sender = Box::new(MainThreadScriptChan(chan.clone()));
 
         let (image_cache_channel, image_cache_port) = unbounded();
 
