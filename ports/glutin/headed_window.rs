@@ -540,13 +540,15 @@ impl webxr::glwindow::GlWindow for Window {
 
     fn size(&self) -> UntypedSize2D<gl::GLsizei> {
         let dpr = self.device_hidpi_factor().get() as f64;
-        let LogicalSize { width, height } = self
+        let size = self
             .gl_context
             .borrow()
             .window()
             .get_inner_size()
             .expect("Failed to get window inner size.");
-        Size2D::new(width * dpr, height *dpr).to_i32()
+        let size = size.to_physical(dpr);
+        let (w, h): (u32, u32) = size.into();
+        Size2D::new(w as i32, h as i32)
     }
 
     fn get_rotation(&self) -> Rotation3D<f32, UnknownUnit, UnknownUnit> {
