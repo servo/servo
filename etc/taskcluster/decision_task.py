@@ -579,7 +579,7 @@ def macos_nightly():
 
 
 def update_wpt():
-    build_task = macos_release_build()
+    build_task = macos_release_build_with_debug_assertions()
     update_task = (
         macos_task("WPT update")
         .with_python2()
@@ -608,12 +608,13 @@ def update_wpt():
     )
 
 
-def macos_release_build(args=""):
+def macos_release_build_with_debug_assertions(priority=None):
     return (
         macos_build_task("Release build")
         .with_treeherder("macOS x64", "Release")
+        .with_priority(priority)
         .with_script("\n".join([
-            "./mach build --release --verbose " + args,
+            "./mach build --release --verbose --with-debug-assertions",
             "./etc/ci/lockfile_changed.sh",
             "tar -czf target.tar.gz" +
             " target/release/servo" +
@@ -622,12 +623,13 @@ def macos_release_build(args=""):
             " target/release/build/osmesa-src-*/out/src/mapi/shared-glapi/.libs",
         ]))
         .with_artifacts("repo/target.tar.gz")
-        .find_or_create("build.macos_x64_release." + CONFIG.task_id())
+        .find_or_create("build.macos_x64_release_w_assertions." + CONFIG.task_id())
     )
 
 
 def macos_wpt():
-    build_task = macos_release_build("--with-debug-assertions")
+    priority = "high" if CONFIG.git_ref == "refs/heads/auto" else None
+    build_task = macos_release_build_with_debug_assertions(priority=priority)
     def macos_run_task(name):
         task = macos_task(name).with_python2()
         return with_homebrew(task, ["etc/taskcluster/macos/Brewfile-gstreamer"])
@@ -637,7 +639,7 @@ def macos_wpt():
         build_task,
         repo_dir="repo",
         repo_kwargs=dict(alternate_object_dir="/var/cache/servo.git/objects"),
-        total_chunks=6,
+        total_chunks=30,
         processes=4,
     )
 
@@ -645,10 +647,12 @@ def macos_wpt():
 def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                repo_dir, chunks="all", repo_kwargs={}):
     if chunks == "all":
-        chunks = [n + 1 for n in range(total_chunks)]
+        chunks = range(total_chunks + 1)
     for this_chunk in chunks:
         task = (
-            make_chunk_task("WPT chunk %s / %s" % (this_chunk, total_chunks))
+            make_chunk_task("WPT chunk {:0{width}} / {}".format(
+                this_chunk, total_chunks, width=len(str(total_chunks)),
+            ))
             .with_treeherder(platform, "WPT-%s" % this_chunk)
             .with_repo(**repo_kwargs)
             .with_curl_artifact_script(build_task, "target.tar.gz")
@@ -662,9 +666,10 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                 GST_DEBUG="3",
             )
         )
-        if this_chunk == chunks[-1]:
-            task.name += " + extra"
-            task.extra["treeherder"]["symbol"] += "+"
+        # `test-wpt` is piped into `cat` so that stdout is not a TTY
+        # and wptrunner does not use "interactive mode" formatting:
+        # https://github.com/servo/servo/issues/22438
+        if this_chunk == 0:
             task.with_script("""
                 ./mach test-wpt-failure
                 time ./mach test-wpt --release --binary-arg=--multiprocess \
@@ -697,26 +702,24 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                     --tracker-api default \
                     --reporter-api default
             """)
-        # `test-wpt` is piped into `cat` so that stdout is not a TTY
-        # and wptrunner does not use "interactive mode" formatting:
-        # https://github.com/servo/servo/issues/22438
-        task.with_script("""
-            ./mach test-wpt \
-                --release \
-                --processes $PROCESSES \
-                --total-chunks "$TOTAL_CHUNKS" \
-                --this-chunk "$THIS_CHUNK" \
-                --log-raw test-wpt.log \
-                --log-errorsummary wpt-errorsummary.log \
-                --always-succeed \
-                | cat
-            ./mach filter-intermittents \
-                wpt-errorsummary.log \
-                --log-intermittents intermittents.log \
-                --log-filteredsummary filtered-wpt-errorsummary.log \
-                --tracker-api default \
-                --reporter-api default
-        """)
+        else:
+            task.with_script("""
+                ./mach test-wpt \
+                    --release \
+                    --processes $PROCESSES \
+                    --total-chunks "$TOTAL_CHUNKS" \
+                    --this-chunk "$THIS_CHUNK" \
+                    --log-raw test-wpt.log \
+                    --log-errorsummary wpt-errorsummary.log \
+                    --always-succeed \
+                    | cat
+                ./mach filter-intermittents \
+                    wpt-errorsummary.log \
+                    --log-intermittents intermittents.log \
+                    --log-filteredsummary filtered-wpt-errorsummary.log \
+                    --tracker-api default \
+                    --reporter-api default
+            """)
         task.with_artifacts(*[
             "%s/%s" % (repo_dir, word)
             for script in task.scripts
