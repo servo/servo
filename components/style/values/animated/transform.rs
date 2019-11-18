@@ -1249,7 +1249,11 @@ impl Animate for ComputedRotate {
         match (self, other) {
             (&Rotate::None, &Rotate::None) => Ok(Rotate::None),
             (&Rotate::Rotate3D(fx, fy, fz, fa), &Rotate::None) => {
-                // No need to normalize `none`, so animate angle directly.
+                // We always normalize direction vector for rotate3d() first, so we should also
+                // apply the same rule for rotate property. In other words, we promote none into
+                // a 3d rotate, and normalize both direction vector first, and then do
+                // interpolation.
+                let (fx, fy, fz, fa) = transform::get_normalized_vector_and_angle(fx, fy, fz, fa);
                 Ok(Rotate::Rotate3D(
                     fx,
                     fy,
@@ -1258,7 +1262,8 @@ impl Animate for ComputedRotate {
                 ))
             }
             (&Rotate::None, &Rotate::Rotate3D(tx, ty, tz, ta)) => {
-                // No need to normalize `none`, so animate angle directly.
+                // Normalize direction vector first.
+                let (tx, ty, tz, ta) = transform::get_normalized_vector_and_angle(tx, ty, tz, ta);
                 Ok(Rotate::Rotate3D(
                     tx,
                     ty,
