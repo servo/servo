@@ -660,6 +660,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
             .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
             .with_max_run_time_minutes(90)
             .with_retry_on_exit_codes(TASKCLUSTER_RETRY_EXIT_CODE)
+            .with_max_auto_retries(1)  # This does not include the initial run
             .with_env(
                 TOTAL_CHUNKS=str(total_chunks),
                 THIS_CHUNK=str(this_chunk),
