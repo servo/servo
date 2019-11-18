@@ -648,7 +648,9 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
         chunks = range(total_chunks + 1)
     for this_chunk in chunks:
         task = (
-            make_chunk_task("WPT chunk %s / %s" % (this_chunk, total_chunks))
+            make_chunk_task("WPT chunk {:0{width}} / {}".format(
+                this_chunk, total_chunks, width=len(str(total_chunks)),
+            ))
             .with_treeherder(platform, "WPT-%s" % this_chunk)
             .with_repo(**repo_kwargs)
             .with_curl_artifact_script(build_task, "target.tar.gz")
