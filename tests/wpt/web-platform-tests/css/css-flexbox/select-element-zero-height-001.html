@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Select element in flexbox with zero height</title>
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1591925">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#content-size-suggestion">
+<link rel="match" href="select-element-zero-height-001-ref.html">
+<style>
+  .container {
+    display: flex;
+    flex-direction: column;
+    height: 0px;
+    border: 1px dotted black;
+  }
+</style>
+<body>
+  <div class="container">
+    <select><option>Hi</option></select>
+  </div>
+</body>
