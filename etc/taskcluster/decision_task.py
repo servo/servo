@@ -626,7 +626,8 @@ def macos_release_build_with_debug_assertions(priority=None):
 
 
 def macos_wpt():
-    build_task = macos_release_build_with_debug_assertions(priority="high")
+    priority = "high" if CONFIG.git_ref == "refs/heads/auto" else None
+    build_task = macos_release_build_with_debug_assertions(priority=priority)
     def macos_run_task(name):
         task = macos_task(name).with_python2()
         return with_homebrew(task, ["etc/taskcluster/macos/Brewfile-gstreamer"])
