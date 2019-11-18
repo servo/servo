@@ -9,7 +9,10 @@ use crate::context::GlContext;
 use crate::events_loop::EventsLoop;
 use crate::keyutils::keyboard_event_from_winit;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
-use euclid::{Angle, default::Size2D as UntypedSize2D, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D};
+use euclid::{
+    Angle, default::Size2D as UntypedSize2D, Point2D, Rotation3D, Scale, Size2D, UnknownUnit,
+    Vector2D, Vector3D,
+};
 use gleam::gl;
 use glutin::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
@@ -71,6 +74,7 @@ pub struct Window {
     fullscreen: Cell<bool>,
     gl: Rc<dyn gl::Gl>,
     xr_rotation: Cell<Rotation3D<f32, UnknownUnit, UnknownUnit>>,
+    xr_translation: Cell<Vector3D<f32, UnknownUnit>>,
     angle: bool,
     enable_vsync: bool,
     use_msaa: bool,
@@ -206,6 +210,7 @@ impl Window {
             primary_monitor,
             screen_size,
             xr_rotation: Cell::new(Rotation3D::identity()),
+            xr_translation: Cell::new(Vector3D::zero()),
             angle,
             enable_vsync,
             use_msaa,
@@ -240,6 +245,7 @@ impl Window {
             KeyboardEvent::default()
         };
         event.key = Key::Character(ch.to_string());
+        self.handle_xr_translation(&event);
         self.event_queue
             .borrow_mut()
             .push(WindowEvent::Keyboard(event));
@@ -257,6 +263,33 @@ impl Window {
                 .borrow_mut()
                 .push(WindowEvent::Keyboard(event));
         }
+    }
+
+    fn handle_xr_translation(&self, input: &KeyboardEvent) {
+        if input.state != KeyState::Down {
+            return;
+        }
+        const NORMAL_TRANSLATE: f32 = 0.1;
+        const QUICK_TRANSLATE: f32 = 1.0;
+        let mut x = 0.0;
+        let mut z = 0.0;
+        match input.key {
+            Key::Character(ref k) => match &**k {
+                "w" => z = -NORMAL_TRANSLATE,
+                "W" => z = -QUICK_TRANSLATE,
+                "s" => z = NORMAL_TRANSLATE,
+                "S" => z = QUICK_TRANSLATE,
+                "a" => x = -NORMAL_TRANSLATE,
+                "A" => x = -QUICK_TRANSLATE,
+                "d" => x = NORMAL_TRANSLATE,
+                "D" => x = QUICK_TRANSLATE,
+                _ => return,
+            },
+            _ => return,
+        };
+        let (old_x, old_y, old_z) = self.xr_translation.get().to_tuple();
+        let vec = Vector3D::new(x + old_x, old_y, z + old_z);
+        self.xr_translation.set(vec);
     }
 
     fn handle_xr_rotation(&self, input: &KeyboardInput) {
@@ -553,6 +586,10 @@ impl webxr::glwindow::GlWindow for Window {
 
     fn get_rotation(&self) -> Rotation3D<f32, UnknownUnit, UnknownUnit> {
         self.xr_rotation.get().clone()
+    }
+
+    fn get_translation(&self) -> Vector3D<f32, UnknownUnit> {
+        self.xr_translation.get().clone()
     }
 
     fn new_window(&self) -> Result<Rc<dyn webxr::glwindow::GlWindow>, ()> {
