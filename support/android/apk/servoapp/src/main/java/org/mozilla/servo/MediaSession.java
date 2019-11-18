@@ -101,7 +101,6 @@ public class MediaSession {
       if (mPlaybackState == PLAYBACK_STATE_PLAYING) {
         filter.addAction(KEY_MEDIA_PAUSE);
       }
-      filter.addAction(KEY_MEDIA_STOP);
 
       int id;
       if (mMediaSessionActionReceiver == null) {
@@ -116,9 +115,6 @@ public class MediaSession {
             } else if (intent.getAction().equals(KEY_MEDIA_PLAY)) {
               mView.mediaSessionAction(ACTION_PLAY);
               Log.d("MediaSession", "PLAY action");
-            } else if (intent.getAction().equals(KEY_MEDIA_STOP)) {
-              mView.mediaSessionAction(ACTION_STOP);
-              Log.d("MediaSession", "STOP action");
             }
           }
         };
@@ -128,18 +124,11 @@ public class MediaSession {
 
       mContext.registerReceiver(mMediaSessionActionReceiver, filter);
 
-      Intent stopIntent = new Intent(KEY_MEDIA_STOP);
-      Notification.Action stopAction =
-        new Notification.Action(R.drawable.media_session_stop, "Stop",
-          PendingIntent.getBroadcast(mContext, 0, stopIntent, 0));
-
       Notification.Builder builder = new Notification.Builder(mContext, this.MEDIA_CHANNEL_ID);
       builder
         .setSmallIcon(R.drawable.media_session_icon)
         .setContentTitle(mTitle)
-        .setVisibility(Notification.VISIBILITY_PUBLIC)
-        .addAction(stopAction)
-        .setStyle(new Notification.MediaStyle());
+        .setVisibility(Notification.VISIBILITY_PUBLIC);
 
       String contentText = new String();
       if (mArtist != null && !mArtist.isEmpty()) {
@@ -172,6 +161,9 @@ public class MediaSession {
             PendingIntent.getBroadcast(mContext, 0, pauseIntent, 0));
         builder.addAction(pauseAction);
       }
+
+      builder.setStyle(new Notification.MediaStyle()
+        .setShowActionsInCompactView(0));
 
       NotificationManager notificationManager =
         mContext.getSystemService(NotificationManager.class);
