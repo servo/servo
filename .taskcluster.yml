@@ -14,6 +14,7 @@ tasks:
         else: proj-servo
       created: {$fromNow: ''}
       deadline: {$fromNow: '1 day'}
+      priority: high
       extra:
         treeherder:
           machine: {platform: Linux}
