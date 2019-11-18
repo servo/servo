@@ -577,7 +577,7 @@ def macos_nightly():
 
 
 def update_wpt():
-    build_task = macos_release_build()
+    build_task = macos_release_build_with_debug_assertions()
     update_task = (
         macos_task("WPT update")
         .with_python2()
@@ -606,13 +606,13 @@ def update_wpt():
     )
 
 
-def macos_release_build(args="", priority=None):
+def macos_release_build_with_debug_assertions(priority=None):
     return (
         macos_build_task("Release build")
         .with_treeherder("macOS x64", "Release")
         .with_priority(priority)
         .with_script("\n".join([
-            "./mach build --release --verbose " + args,
+            "./mach build --release --verbose --with-debug-assertions",
             "./etc/ci/lockfile_changed.sh",
             "tar -czf target.tar.gz" +
             " target/release/servo" +
@@ -621,12 +621,12 @@ def macos_release_build(args="", priority=None):
             " target/release/build/osmesa-src-*/out/src/mapi/shared-glapi/.libs",
         ]))
         .with_artifacts("repo/target.tar.gz")
-        .find_or_create("build.macos_x64_release." + CONFIG.task_id())
+        .find_or_create("build.macos_x64_release_w_assertions." + CONFIG.task_id())
     )
 
 
 def macos_wpt():
-    build_task = macos_release_build("--with-debug-assertions", priority="high")
+    build_task = macos_release_build_with_debug_assertions(priority="high")
     def macos_run_task(name):
         task = macos_task(name).with_python2()
         return with_homebrew(task, ["etc/taskcluster/macos/Brewfile-gstreamer"])
