@@ -11296,6 +11296,32 @@
      {}
     ]
    ],
+   "mozilla/Channel_postMessage_with_second_transfer_in_timeout.window.js": [
+    [
+     "mozilla/Channel_postMessage_with_second_transfer_in_timeout.window.html",
+     {
+      "script_metadata": [
+       [
+        "script",
+        "/common/get-host-info.sub.js"
+       ]
+      ]
+     }
+    ]
+   ],
+   "mozilla/Channel_postMessage_with_second_transfer_in_timeout_with_delay.window.js": [
+    [
+     "mozilla/Channel_postMessage_with_second_transfer_in_timeout_with_delay.window.html",
+     {
+      "script_metadata": [
+       [
+        "script",
+        "/common/get-host-info.sub.js"
+       ]
+      ]
+     }
+    ]
+   ],
    "mozilla/DOMParser.html": [
     [
      "mozilla/DOMParser.html",
@@ -18431,6 +18457,14 @@
   "mozilla/2x2.png": [
    "276791c4348ada7e1da71041f2ccd383305e209c",
    "support"
+  ],
+  "mozilla/Channel_postMessage_with_second_transfer_in_timeout.window.js": [
+   "4ee3f64beb095963f06fc53c1d53dad2244109f9",
+   "testharness"
+  ],
+  "mozilla/Channel_postMessage_with_second_transfer_in_timeout_with_delay.window.js": [
+   "939995678895c07047709f6e265d0f6b7b705eb5",
+   "testharness"
   ],
   "mozilla/DOMParser.html": [
    "f386a3e0191af2c70dcb05790ce7db15dd5ccbf1",

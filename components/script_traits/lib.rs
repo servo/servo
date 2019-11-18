@@ -1042,8 +1042,12 @@ pub struct PortMessageTask {
 /// Messages for communication between the constellation and a global managing ports.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum MessagePortMsg {
-    /// Enables a port to catch-up on messages that were sent while the transfer was ongoing.
-    CompleteTransfer(MessagePortId, VecDeque<PortMessageTask>),
+    /// Complete the transfer for a batch of ports.
+    CompleteTransfer(HashMap<MessagePortId, VecDeque<PortMessageTask>>),
+    /// Complete the transfer of a single port,
+    /// whose transfer was pending because it had been requested
+    /// while a previous failed transfer was being rolled-back.
+    CompletePendingTransfer(MessagePortId, VecDeque<PortMessageTask>),
     /// Remove a port, the entangled one doesn't exists anymore.
     RemoveMessagePort(MessagePortId),
     /// Handle a new port-message-task.

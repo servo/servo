@@ -218,12 +218,48 @@ impl MessageListener {
     /// and we can only access the root from the event-loop.
     fn notify(&self, msg: MessagePortMsg) {
         match msg {
-            MessagePortMsg::CompleteTransfer(port_id, tasks) => {
+            MessagePortMsg::CompleteTransfer(ports) => {
                 let context = self.context.clone();
                 let _ = self.task_source.queue_with_canceller(
                     task!(process_complete_transfer: move || {
                         let global = context.root();
-                        global.complete_port_transfer(port_id, tasks);
+
+                        let router_id = match global.port_router_id() {
+                            Some(router_id) => router_id,
+                            None => {
+                                // If not managing any ports, no transfer can succeed,
+                                // so just send back everything.
+                                let _ = global.script_to_constellation_chan().send(
+                                    ScriptMsg::MessagePortTransferResult(None, vec![], ports),
+                                );
+                                return;
+                            }
+                        };
+
+                        let mut succeeded = vec![];
+                        let mut failed = HashMap::new();
+
+                        for (id, buffer) in ports.into_iter() {
+                            if global.is_managing_port(&id) {
+                                succeeded.push(id.clone());
+                                global.complete_port_transfer(id, buffer);
+                            } else {
+                                failed.insert(id, buffer);
+                            }
+                        }
+                        let _ = global.script_to_constellation_chan().send(
+                            ScriptMsg::MessagePortTransferResult(Some(router_id), succeeded, failed),
+                        );
+                    }),
+                    &self.canceller,
+                );
+            },
+            MessagePortMsg::CompletePendingTransfer(port_id, buffer) => {
+                let context = self.context.clone();
+                let _ = self.task_source.queue_with_canceller(
+                    task!(complete_pending: move || {
+                        let global = context.root();
+                        global.complete_port_transfer(port_id, buffer);
                     }),
                     &self.canceller,
                 );
@@ -294,6 +330,25 @@ impl GlobalScope {
         }
     }
 
+    /// The message-port router Id of the global, if any
+    fn port_router_id(&self) -> Option<MessagePortRouterId> {
+        if let MessagePortState::Managed(id, _message_ports) = &*self.message_port_state.borrow() {
+            Some(id.clone())
+        } else {
+            None
+        }
+    }
+
+    /// Is this global managing a given port?
+    fn is_managing_port(&self, port_id: &MessagePortId) -> bool {
+        if let MessagePortState::Managed(_router_id, message_ports) =
+            &*self.message_port_state.borrow()
+        {
+            return message_ports.contains_key(port_id);
+        }
+        false
+    }
+
     /// Complete the transfer of a message-port.
     fn complete_port_transfer(&self, port_id: MessagePortId, tasks: VecDeque<PortMessageTask>) {
         let should_start = if let MessagePortState::Managed(_id, message_ports) =
@@ -301,7 +356,7 @@ impl GlobalScope {
         {
             match message_ports.get_mut(&port_id) {
                 None => {
-                    panic!("CompleteTransfer msg received in a global not managing the port.");
+                    panic!("complete_port_transfer called for an unknown port.");
                 },
                 Some(ManagedMessagePort::Pending(_, _)) => {
                     panic!("CompleteTransfer msg received for a pending port.");
@@ -312,7 +367,7 @@ impl GlobalScope {
                 },
             }
         } else {
-            return warn!("CompleteTransfer msg received in a global not managing any ports.");
+            panic!("complete_port_transfer called for an unknown port.");
         };
         if should_start {
             self.start_message_port(&port_id);
@@ -554,22 +609,25 @@ impl GlobalScope {
                     _ => None,
                 })
                 .collect();
-            for id in to_be_added {
+            for id in to_be_added.iter() {
                 let (id, port_info) = message_ports
                     .remove_entry(&id)
                     .expect("Collected port-id to match an entry");
-                if let ManagedMessagePort::Pending(port_impl, dom_port) = port_info {
-                    let _ = self
-                        .script_to_constellation_chan()
-                        .send(ScriptMsg::NewMessagePort(
-                            router_id.clone(),
-                            port_impl.message_port_id().clone(),
-                        ));
-                    let new_port_info = ManagedMessagePort::Added(port_impl, dom_port);
-                    let present = message_ports.insert(id, new_port_info);
-                    assert!(present.is_none());
+                match port_info {
+                    ManagedMessagePort::Pending(port_impl, dom_port) => {
+                        let new_port_info = ManagedMessagePort::Added(port_impl, dom_port);
+                        let present = message_ports.insert(id, new_port_info);
+                        assert!(present.is_none());
+                    },
+                    _ => panic!("Only pending ports should be found in to_be_added"),
                 }
             }
+            let _ =
+                self.script_to_constellation_chan()
+                    .send(ScriptMsg::CompleteMessagePortTransfer(
+                        router_id.clone(),
+                        to_be_added,
+                    ));
         } else {
             warn!("maybe_add_pending_ports called on a global not managing any ports.");
         }
