@@ -659,6 +659,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
             .with_script("tar -xzf target.tar.gz")
             .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
             .with_max_run_time_minutes(90)
+            .with_retry_on_exit_codes(TASKCLUSTER_RETRY_EXIT_CODE)
             .with_env(
                 TOTAL_CHUNKS=str(total_chunks),
                 THIS_CHUNK=str(this_chunk),
@@ -1004,6 +1005,10 @@ CONFIG.docker_image_build_worker_type = "docker"
 
 CONFIG.windows_worker_type = "win2016"
 CONFIG.macos_worker_type = "macos"
+
+# Must match the constant with the same name in `python/servo/testing_commands.py`
+TASKCLUSTER_RETRY_EXIT_CODE = 17
+
 
 if __name__ == "__main__":  # pragma: no cover
     main(task_for=os.environ["TASK_FOR"])

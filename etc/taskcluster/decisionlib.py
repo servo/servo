@@ -315,10 +315,12 @@ class GenericWorkerTask(Task):
         self.features = {}
         self.mounts = []
         self.artifacts = []
+        self.retry_on_exit_codes = []
 
     with_max_run_time_minutes = chaining(setattr, "max_run_time_minutes")
     with_mounts = chaining(append_to_attr, "mounts")
     with_env = chaining(update_attr, "env")
+    with_retry_on_exit_codes = chaining(append_to_attr, "retry_on_exit_codes")
 
     def build_command(self):  # pragma: no cover
         """
@@ -337,6 +339,9 @@ class GenericWorkerTask(Task):
             "command": self.build_command(),
             "maxRunTime": self.max_run_time_minutes * 60
         }
+        # https://github.com/taskcluster/generic-worker/blob/a8fe0120f3/simple_posix.yml#L224-L249
+        if self.retry_on_exit_codes:
+            worker_payload["onExitStatus"] = {"retry": self.retry_on_exit_codes}
         return dict_update_if_truthy(
             worker_payload,
             env=self.env,

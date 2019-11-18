@@ -43,6 +43,10 @@ from update import updatecommandline
 from servo_tidy import tidy
 from servo_tidy_tests import test_tidy
 
+
+# Must match the constant with the same name in `etc/taskcluster/decision_task.py`
+TASKCLUSTER_RETRY_EXIT_CODE = 17
+
 SCRIPT_PATH = os.path.split(__file__)[0]
 PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
 WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "web-platform-tests")
@@ -577,7 +581,7 @@ class MachCommands(CommandBase):
 
         if len(actual_failures) == 0:
             return 0
-        return 1
+        return TASKCLUSTER_RETRY_EXIT_CODE
 
     @Command('test-android-startup',
              description='Extremely minimal testing of Servo for Android',
