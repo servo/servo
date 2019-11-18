@@ -144,6 +144,7 @@ class Task:
         self.routes = []
         self.extra = {}
         self.treeherder_required = False
+        self.priority = None  # Defaults to 'lowest'
 
     # All `with_*` methods return `self`, so multiple method calls can be chained.
     with_description = chaining(setattr, "description")
@@ -153,6 +154,7 @@ class Task:
     with_deadline_in = chaining(setattr, "deadline_in")
     with_expires_in = chaining(setattr, "expires_in")
     with_index_and_artifacts_expire_in = chaining(setattr, "index_and_artifacts_expire_in")
+    with_priority = chaining(setattr, "priority")
 
     with_dependencies = chaining(append_to_attr, "dependencies")
     with_scopes = chaining(append_to_attr, "scopes")
@@ -248,6 +250,7 @@ class Task:
             scopes=scopes,
             routes=routes,
             extra=self.extra,
+            priority=self.priority,
         )
 
         task_id = taskcluster.slugId()
