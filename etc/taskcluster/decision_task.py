@@ -606,10 +606,11 @@ def update_wpt():
     )
 
 
-def macos_release_build(args=""):
+def macos_release_build(args="", priority=None):
     return (
         macos_build_task("Release build")
         .with_treeherder("macOS x64", "Release")
+        .with_priority(priority)
         .with_script("\n".join([
             "./mach build --release --verbose " + args,
             "./etc/ci/lockfile_changed.sh",
@@ -625,7 +626,7 @@ def macos_release_build(args=""):
 
 
 def macos_wpt():
-    build_task = macos_release_build("--with-debug-assertions")
+    build_task = macos_release_build("--with-debug-assertions", priority="high")
     def macos_run_task(name):
         task = macos_task(name).with_python2()
         return with_homebrew(task, ["etc/taskcluster/macos/Brewfile-gstreamer"])
