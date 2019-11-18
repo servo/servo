@@ -100,19 +100,29 @@ impl MediaSession {
     }
 
     pub fn send_event(&self, event: MediaSessionEvent) {
-        match event {
-            MediaSessionEvent::SetMetadata(ref metadata) => {
-                *self.metadata.borrow_mut() = Some(metadata.clone());
-            },
-            _ => (),
-        }
-
         let global = self.global();
         let window = global.as_window();
         let pipeline_id = window
             .pipeline_id()
             .expect("Cannot send media session event outside of a pipeline");
         window.send_to_constellation(ScriptMsg::MediaSessionEvent(pipeline_id, event));
+    }
+
+    pub fn update_title(&self, title: String) {
+        let mut metadata = self.metadata.borrow_mut();
+        if let Some(ref mut metadata) = *metadata {
+            // We only update the title with the data provided by the media
+            // player and iff the user did not provide a title.
+            if !metadata.title.is_empty() {
+                return;
+            }
+            metadata.title = title;
+        } else {
+            *metadata = Some(EmbedderMediaMetadata::new(title));
+        }
+        self.send_event(MediaSessionEvent::SetMetadata(
+            metadata.as_ref().unwrap().clone(),
+        ));
     }
 }
 
@@ -122,8 +132,8 @@ impl MediaSessionMethods for MediaSession {
         if let Some(ref metadata) = *self.metadata.borrow() {
             let mut init = MediaMetadataInit::empty();
             init.title = DOMString::from_string(metadata.title.clone());
-            init.artist = DOMString::from_string(metadata.artist.clone().unwrap_or("".to_owned()));
-            init.album = DOMString::from_string(metadata.album.clone().unwrap_or("".to_owned()));
+            init.artist = DOMString::from_string(metadata.artist.clone());
+            init.album = DOMString::from_string(metadata.album.clone());
             let global = self.global();
             Some(MediaMetadata::new(&global.as_window(), &init))
         } else {
@@ -137,12 +147,27 @@ impl MediaSessionMethods for MediaSession {
             metadata.set_session(self);
         }
 
-        let _metadata = metadata.map(|m| EmbedderMediaMetadata {
-            title: m.Title().into(),
-            artist: Some(m.Artist().into()),
-            album: Some(m.Album().into()),
-        });
-        *self.metadata.borrow_mut() = _metadata;
+        let global = self.global();
+        let window = global.as_window();
+        let _metadata = match metadata {
+            Some(m) => {
+                let title = if m.Title().is_empty() {
+                    window.get_url().into_string()
+                } else {
+                    m.Title().into()
+                };
+                EmbedderMediaMetadata {
+                    title,
+                    artist: m.Artist().into(),
+                    album: m.Album().into(),
+                }
+            },
+            None => EmbedderMediaMetadata::new(window.get_url().into_string()),
+        };
+
+        *self.metadata.borrow_mut() = Some(_metadata.clone());
+
+        self.send_event(MediaSessionEvent::SetMetadata(_metadata));
     }
 
     /// https://w3c.github.io/mediasession/#dom-mediasession-playbackstate

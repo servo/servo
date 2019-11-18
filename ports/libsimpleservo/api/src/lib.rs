@@ -586,8 +586,8 @@ impl ServoGlue {
                         MediaSessionEvent::SetMetadata(metadata) => {
                             self.callbacks.host_callbacks.on_media_session_metadata(
                                 metadata.title,
-                                metadata.artist.unwrap_or("".to_owned()),
-                                metadata.album.unwrap_or("".to_owned()),
+                                metadata.artist,
+                                metadata.album,
                             )
                         },
                         MediaSessionEvent::PlaybackStateChange(state) => self

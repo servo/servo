@@ -213,9 +213,19 @@ pub struct MediaMetadata {
     /// Title
     pub title: String,
     /// Artist
-    pub artist: Option<String>,
+    pub artist: String,
     /// Album
-    pub album: Option<String>,
+    pub album: String,
+}
+
+impl MediaMetadata {
+    pub fn new(title: String) -> Self {
+        Self {
+            title,
+            artist: "".to_owned(),
+            album: "".to_owned(),
+        }
+    }
 }
 
 /// https://w3c.github.io/mediasession/#enumdef-mediasessionplaybackstate

@@ -67,7 +67,7 @@ use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource as EmbedderResource};
-use embedder_traits::{MediaMetadata, MediaSessionEvent, MediaSessionPlaybackState};
+use embedder_traits::{MediaSessionEvent, MediaSessionPlaybackState};
 use euclid::default::Size2D;
 use headers::{ContentLength, ContentRange, HeaderMapExt};
 use html5ever::{LocalName, Prefix};
@@ -1731,15 +1731,13 @@ impl HTMLMediaElement {
                 let global = self.global();
                 let window = global.as_window();
 
-                // Send a media session event with the obtained metadata.
-                self.send_media_session_event(MediaSessionEvent::SetMetadata(MediaMetadata {
-                    title: metadata
+                // Update the media session metadata title with the obtained metadata.
+                window.Navigator().MediaSession().update_title(
+                    metadata
                         .title
                         .clone()
                         .unwrap_or(window.get_url().into_string()),
-                    artist: None,
-                    album: None,
-                }));
+                );
             },
             PlayerEvent::NeedData => {
                 // The player needs more data.

@@ -68,7 +68,7 @@ impl MediaMetadataMethods for MediaMetadata {
     }
 
     /// https://w3c.github.io/mediasession/#dom-mediametadata-title
-    fn SetTitle(&self, value: DOMString) -> () {
+    fn SetTitle(&self, value: DOMString) {
         *self.title.borrow_mut() = value;
         self.queue_update_metadata_algorithm();
     }
@@ -79,7 +79,7 @@ impl MediaMetadataMethods for MediaMetadata {
     }
 
     /// https://w3c.github.io/mediasession/#dom-mediametadata-artist
-    fn SetArtist(&self, value: DOMString) -> () {
+    fn SetArtist(&self, value: DOMString) {
         *self.artist.borrow_mut() = value;
         self.queue_update_metadata_algorithm();
     }
@@ -90,7 +90,7 @@ impl MediaMetadataMethods for MediaMetadata {
     }
 
     /// https://w3c.github.io/mediasession/#dom-mediametadata-album
-    fn SetAlbum(&self, value: DOMString) -> () {
+    fn SetAlbum(&self, value: DOMString) {
         *self.album.borrow_mut() = value;
         self.queue_update_metadata_algorithm();
     }
