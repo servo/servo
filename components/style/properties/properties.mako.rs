@@ -1651,13 +1651,25 @@ impl UnparsedValue {
                     shorthands::${shorthand.ident}::parse_value(&context, input)
                     .map(|longhands| {
                         match longhand_id {
+                            <% seen = set() %>
                             % for property in shorthand.sub_properties:
-                                LonghandId::${property.camel_case} => {
-                                    PropertyDeclaration::${property.camel_case}(
-                                        longhands.${property.ident}
-                                    )
-                                }
+                            // When animating logical properties, we end up
+                            // physicalizing the value during the animation, but
+                            // the value still comes from the logical shorthand.
+                            //
+                            // So we need to handle the physical properties too.
+                            % for prop in [property] + property.all_physical_mapped_properties(data):
+                            % if prop.camel_case not in seen:
+                            LonghandId::${prop.camel_case} => {
+                                PropertyDeclaration::${prop.camel_case}(
+                                    longhands.${property.ident}
+                                )
+                            }
+                            <% seen.add(prop.camel_case) %>
+                            % endif
                             % endfor
+                            % endfor
+                            <% del seen %>
                             _ => unreachable!()
                         }
                     })
@@ -2176,14 +2188,12 @@ impl PropertyDeclaration {
         let mut ret = self.clone();
 
         % for prop in data.longhands:
-        % if prop.logical:
-        % for physical_property in prop.all_physical_mapped_properties():
-        % if data.longhands_by_name[physical_property].specified_type() != prop.specified_type():
+        % for physical_property in prop.all_physical_mapped_properties(data):
+        % if physical_property.specified_type() != prop.specified_type():
             <% raise "Logical property %s should share specified value with physical property %s" % \
-                     (prop.name, physical_property) %>
+                     (prop.name, physical_property.name) %>
         % endif
         % endfor
-        % endif
         % endfor
 
         unsafe {
