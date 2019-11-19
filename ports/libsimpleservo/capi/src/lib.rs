@@ -17,7 +17,7 @@ use env_logger;
 use log::LevelFilter;
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
 use simpleservo::{
-    Coordinates, EventLoopWaker, HostTrait, InitOptions, MediaSessionEvent, MouseButton,
+    Coordinates, EventLoopWaker, HostTrait, InitOptions, MouseButton,
     VRInitOptions,
 };
 use std::ffi::{CStr, CString};
@@ -716,16 +716,16 @@ impl HostTrait for HostCallbacks {
     fn on_media_session_metadata(
         &self,
         title: String,
-        artist: Option<String>,
-        album: Option<String>,
+        artist: String,
+        album: String,
     ) {
         debug!(
             "on_media_session_metadata ({:?} {:?} {:?})",
             title, artist, album
         );
         let title = CString::new(title).expect("Can't create string");
-        let artist = CString::new(artist.unwrap_or(String::new())).expect("Can't create string");
-        let album = CString::new(album.unwrap_or(String::new())).expect("Can't create string");
+        let artist = CString::new(artist).expect("Can't create string");
+        let album = CString::new(album).expect("Can't create string");
         (self.0.on_media_session_metadata)(title.as_ptr(), artist.as_ptr(), album.as_ptr());
     }
 
