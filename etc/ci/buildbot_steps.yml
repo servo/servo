@@ -18,45 +18,6 @@ linux-rel-nogate:
   - env RUSTFLAGS= bash ./etc/ci/mutation_test.sh
   - ./etc/ci/clean_build_artifacts.sh
 
-linux-rel-wpt:
-  env:
-    CCACHE: sccache
-    RUSTC_WRAPPER: sccache
-    CC: clang-4.0
-    CXX: clang++-4.0
-  commands:
-    - ./mach clean-nightlies --keep 3 --force
-    - ./mach clean-cargo-cache --keep 3 --force
-    - ./etc/ci/clean_build_artifacts.sh
-    - ./mach build --release --with-debug-assertions -p servo
-    - ./mach test-wpt-failure
-    - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
-    - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
-    - ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
-    - ./mach test-wpt --release --product=servodriver --headless tests/wpt/mozilla/tests/mozilla/DOMParser.html tests/wpt/mozilla/tests/css/per_glyph_font_fallback_a.html tests/wpt/mozilla/tests/css/img_simple.html tests/wpt/mozilla/tests/mozilla/secure.https.html
-    - ./mach test-wpt --release --product=servodriver --headless --log-raw test-bluetooth.log --log-errorsummary bluetooth-errorsummary.log bluetooth
-    - ./mach test-wpt --release --headless --timeout-multiplier=4 --log-raw test-wdspec.log --log-errorsummary wdspec-errorsummary.log --always-succeed webdriver
-    - ./mach filter-intermittents wdspec-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wdspec-errorsummary.log --tracker-api default --reporter-api default
-    - ./etc/ci/clean_build_artifacts.sh
-
-linux-rel-css:
-  env:
-    CCACHE: sccache
-    RUSTC_WRAPPER: sccache
-    CC: clang-4.0
-    CXX: clang++-4.0
-  commands:
-    - ./mach clean-nightlies --keep 3 --force
-    - ./mach clean-cargo-cache --keep 3 --force
-    - ./etc/ci/clean_build_artifacts.sh
-    - ./mach build --release --with-debug-assertions -p servo
-    - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
-    - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
-    - env SERVO_WEBGL_MAIN_THREAD=1 ./mach test-wpt --release --processes 24 --log-raw test-wpt-webgl.log --log-errorsummary webgl-errorsummary.log --always-succeed tests/wpt/webgl/tests/conformance
-    - ./mach filter-intermittents webgl-errorsummary.log --log-intermittents webgl-intermittents.log --log-filteredsummary filtered-webgl-errorsummary.log --tracker-api default --reporter-api default
-    - bash ./etc/ci/lockfile_changed.sh
-    - ./etc/ci/clean_build_artifacts.sh
-
 # Moved to Taskcluster
 linux-dev: []
 mac-dev-unit: []
@@ -76,6 +37,8 @@ mac-nightly: []
 magicleap-nightly: []
 magicleap: []
 linux-nightly: []
+linux-rel-wpt: []
+linux-rel-css: []
 
 # No longer maintained
 arm32: []

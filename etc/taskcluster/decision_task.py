@@ -16,9 +16,6 @@ def main(task_for):
             branch if not branch.startswith("try-") else "try"
         )
 
-
-    # Implemented but disabled for now:
-    linux_wpt = lambda: None  # Shadows the existing top-level function
     # The magicleap build is broken until there's a surfman back end
     magicleap_dev = lambda: None
     magicleap_nightly = lambda: None
@@ -110,7 +107,6 @@ def main(task_for):
 def mocked_only():
     windows_release()
     android_x86_wpt()
-    linux_wpt()
     magicleap_dev()
     magicleap_nightly()
     decisionlib.DockerWorkerTask("Indexed by task definition").find_or_create()
