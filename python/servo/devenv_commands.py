@@ -38,16 +38,34 @@ class MachCommands(CommandBase):
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to cargo check")
     @CommandBase.build_like_command_arguments
-    def check(self, params, **kwargs):
+    def check(self, params, features=[], media_stack=None, target=None,
+              android=False, magicleap=False, **kwargs):
         if not params:
             params = []
+
+        features = features or []
+
+        target, android = self.pick_target_triple(target, android, magicleap)
+
+        # A guess about which platforms should use the gstreamer media stack
+        if not(media_stack):
+            if (
+                    not(target) or
+                    ("armv7" in target and "android" in target) or
+                    ("x86_64" in target)
+            ):
+                media_stack = "gstreamer"
+            else:
+                media_stack = "dummy"
+
+        features += ["media-" + media_stack]
 
         self.ensure_bootstrapped()
         self.ensure_clobbered()
         env = self.build_env()
 
         build_start = time()
-        status = self.run_cargo_build_like_command("check", params, env=env, **kwargs)
+        status = self.run_cargo_build_like_command("check", params, env=env, features=features, **kwargs)
         elapsed = time() - build_start
 
         notify_build_done(self.config, elapsed, status == 0)

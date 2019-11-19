@@ -238,10 +238,6 @@ class PostBuildCommands(CommandBase):
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to cargo doc")
-    @CommandArgument('--media-stack',
-                     default=None,
-                     choices=["gstreamer", "dummy"],
-                     help='Which media stack to use')
     @CommandBase.build_like_command_arguments
     def doc(self, params, features, target=None, android=False, magicleap=False,
             media_stack=None, **kwargs):

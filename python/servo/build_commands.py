@@ -155,10 +155,6 @@ class MachCommands(CommandBase):
     @CommandArgument('--jobs', '-j',
                      default=None,
                      help='Number of jobs to run in parallel')
-    @CommandArgument('--media-stack',
-                     default=None,
-                     choices=["gstreamer", "dummy"],
-                     help='Which media stack to use')
     @CommandArgument('--no-package',
                      action='store_true',
                      help='For Android, disable packaging into a .apk after building')

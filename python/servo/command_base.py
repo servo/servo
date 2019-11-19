@@ -793,6 +793,12 @@ install them, let us know by filing a bug!")
                 help='Cross compile for given target platform',
             ),
             CommandArgument(
+                '--media-stack',
+                default=None,
+                choices=["gstreamer", "dummy"],
+                help='Which media stack to use',
+            ),
+            CommandArgument(
                 '--android',
                 default=None,
                 action='store_true',
