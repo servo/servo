@@ -479,9 +479,12 @@ impl GenericPathBuilder for PathBuilder {
         origin: Point2D<f32>,
         radius: f32,
         start_angle: f32,
-        end_angle: f32,
-        _anticlockwise: bool,
+        mut end_angle: f32,
+        anticlockwise: bool,
     ) {
+        if anticlockwise {
+            end_angle = -end_angle;
+        }
         self.0
             .as_mut()
             .unwrap()
