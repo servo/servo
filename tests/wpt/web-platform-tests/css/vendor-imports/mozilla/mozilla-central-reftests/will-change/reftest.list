@@ -9,6 +9,7 @@
 == will-change-stacking-context-position-1.html green-square-100-by-100-ref.html
 == will-change-stacking-context-transform-1.html green-square-100-by-100-ref.html
 == will-change-stacking-context-translate-1.html green-square-100-by-100-ref.html
+== will-change-stacking-context-offset-path-1.html green-square-100-by-100-ref.html
 == will-change-stacking-context-transform-style-1.html green-square-100-by-100-ref.html
 == will-change-stacking-context-z-index-1.html green-square-100-by-100-ref.html
 == will-change-fixpos-cb-contain-1.html green-square-100-by-100-offset-ref.html
@@ -18,4 +19,5 @@
 == will-change-fixpos-cb-position-1.html green-square-100-by-100-offset-ref.html
 == will-change-fixpos-cb-transform-1.html green-square-100-by-100-offset-ref.html
 == will-change-fixpos-cb-translate-1.html green-square-100-by-100-offset-ref.html
+== will-change-fixpos-cb-offset-path-1.html green-square-100-by-100-offset-ref.html
 == will-change-fixpos-cb-transform-style-1.html green-square-100-by-100-offset-ref.html
