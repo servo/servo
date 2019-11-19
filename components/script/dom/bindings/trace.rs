@@ -107,7 +107,8 @@ use servo_media::audio::context::AudioContext;
 use servo_media::audio::graph::NodeId;
 use servo_media::audio::panner_node::{DistanceModel, PanningModel};
 use servo_media::audio::param::ParamType;
-use servo_media::player::frame::Frame;
+use servo_media::player::audio::AudioRenderer;
+use servo_media::player::video::VideoFrame;
 use servo_media::player::Player;
 use servo_media::streams::registry::MediaStreamId;
 use servo_media::streams::MediaStreamType;
@@ -532,8 +533,9 @@ unsafe_no_jsmanaged_fields!(Point2D<f32>, Rect<Au>);
 unsafe_no_jsmanaged_fields!(Rect<f32>);
 unsafe_no_jsmanaged_fields!(CascadeData);
 unsafe_no_jsmanaged_fields!(WindowGLContext);
-unsafe_no_jsmanaged_fields!(Frame);
+unsafe_no_jsmanaged_fields!(VideoFrame);
 unsafe_no_jsmanaged_fields!(WebGLContextId);
+unsafe_no_jsmanaged_fields!(Arc<Mutex<dyn AudioRenderer>>);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]

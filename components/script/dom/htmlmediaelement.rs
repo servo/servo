@@ -79,7 +79,8 @@ use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseLis
 use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
 use script_layout_interface::HTMLMediaData;
 use servo_config::pref;
-use servo_media::player::frame::{Frame, FrameRenderer};
+use servo_media::player::audio::AudioRenderer;
+use servo_media::player::video::{VideoFrame, VideoFrameRenderer};
 use servo_media::player::{PlaybackState, Player, PlayerError, PlayerEvent, SeekLock, StreamType};
 use servo_media::{ClientContextId, ServoMedia, SupportsMediaType};
 use servo_url::ServoUrl;
@@ -100,10 +101,10 @@ enum FrameStatus {
     Unlocked,
 }
 
-struct FrameHolder(FrameStatus, Frame);
+struct FrameHolder(FrameStatus, VideoFrame);
 
 impl FrameHolder {
-    fn new(frame: Frame) -> FrameHolder {
+    fn new(frame: VideoFrame) -> FrameHolder {
         FrameHolder(FrameStatus::Unlocked, frame)
     }
 
@@ -119,7 +120,7 @@ impl FrameHolder {
         };
     }
 
-    fn set(&mut self, new_frame: Frame) {
+    fn set(&mut self, new_frame: VideoFrame) {
         if self.0 == FrameStatus::Unlocked {
             self.1 = new_frame
         };
@@ -137,7 +138,7 @@ impl FrameHolder {
         }
     }
 
-    fn get_frame(&self) -> Frame {
+    fn get_frame(&self) -> VideoFrame {
         self.1.clone()
     }
 }
@@ -170,8 +171,8 @@ impl MediaFrameRenderer {
     }
 }
 
-impl FrameRenderer for MediaFrameRenderer {
-    fn render(&mut self, frame: Frame) {
+impl VideoFrameRenderer for MediaFrameRenderer {
+    fn render(&mut self, frame: VideoFrame) {
         let mut txn = Transaction::new();
 
         if let Some(old_image_key) = mem::replace(&mut self.very_old_frame, self.old_frame.take()) {
@@ -325,7 +326,9 @@ pub struct HTMLMediaElement {
     #[ignore_malloc_size_of = "servo_media"]
     player: DomRefCell<Option<Arc<Mutex<dyn Player>>>>,
     #[ignore_malloc_size_of = "Arc"]
-    frame_renderer: Arc<Mutex<MediaFrameRenderer>>,
+    video_renderer: Arc<Mutex<MediaFrameRenderer>>,
+    #[ignore_malloc_size_of = "Arc"]
+    audio_renderer: DomRefCell<Option<Arc<Mutex<dyn AudioRenderer>>>>,
     /// https://html.spec.whatwg.org/multipage/#show-poster-flag
     show_poster: Cell<bool>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-duration
@@ -410,9 +413,10 @@ impl HTMLMediaElement {
             pending_play_promises: Default::default(),
             in_flight_play_promises_queue: Default::default(),
             player: Default::default(),
-            frame_renderer: Arc::new(Mutex::new(MediaFrameRenderer::new(
+            video_renderer: Arc::new(Mutex::new(MediaFrameRenderer::new(
                 document.window().get_webrender_api_sender(),
             ))),
+            audio_renderer: Default::default(),
             show_poster: Cell::new(true),
             duration: Cell::new(f64::NAN),
             playback_position: Cell::new(0.),
@@ -1293,7 +1297,7 @@ impl HTMLMediaElement {
 
         // Step 6.
         if let ImageResponse::Loaded(image, _) = image {
-            self.frame_renderer
+            self.video_renderer
                 .lock()
                 .unwrap()
                 .render_poster_frame(image);
@@ -1325,10 +1329,13 @@ impl HTMLMediaElement {
 
         let window = window_from_node(self);
         let (action_sender, action_receiver) = ipc::channel::<PlayerEvent>().unwrap();
-        let renderer: Option<Arc<Mutex<dyn FrameRenderer>>> = match self.media_type_id() {
+        let video_renderer: Option<Arc<Mutex<dyn VideoFrameRenderer>>> = match self.media_type_id()
+        {
             HTMLMediaElementTypeId::HTMLAudioElement => None,
-            HTMLMediaElementTypeId::HTMLVideoElement => Some(self.frame_renderer.clone()),
+            HTMLMediaElementTypeId::HTMLVideoElement => Some(self.video_renderer.clone()),
         };
+
+        let audio_renderer = self.audio_renderer.borrow().as_ref().map(|r| r.clone());
 
         let pipeline_id = window
             .pipeline_id()
@@ -1339,7 +1346,8 @@ impl HTMLMediaElement {
             &client_context_id,
             stream_type,
             action_sender,
-            renderer,
+            video_renderer,
+            audio_renderer,
             Box::new(window.get_player_context()),
         );
 
@@ -1385,7 +1393,7 @@ impl HTMLMediaElement {
             .unwrap_or((0, None));
 
         self.id.set(player_id);
-        self.frame_renderer.lock().unwrap().player_id = Some(player_id);
+        self.video_renderer.lock().unwrap().player_id = Some(player_id);
 
         if let Some(image_receiver) = image_receiver {
             let trusted_node = Trusted::new(self);
@@ -1400,11 +1408,11 @@ impl HTMLMediaElement {
                     if let Err(err) = task_source.queue_with_canceller(
                         task!(handle_glplayer_message: move || {
                             trace!("GLPlayer message {:?}", msg);
-                            let frame_renderer = this.root().frame_renderer.clone();
+                            let video_renderer = this.root().video_renderer.clone();
 
                             match msg {
                                 GLPlayerMsgForward::Lock(sender) => {
-                                    frame_renderer
+                                    video_renderer
                                         .lock()
                                         .unwrap()
                                         .current_frame_holder
@@ -1415,7 +1423,7 @@ impl HTMLMediaElement {
                                         });
                                 },
                                 GLPlayerMsgForward::Unlock() => {
-                                    frame_renderer
+                                    video_renderer
                                         .lock()
                                         .unwrap()
                                         .current_frame_holder
@@ -1527,7 +1535,7 @@ impl HTMLMediaElement {
                 )));
                 self.upcast::<EventTarget>().fire_event(atom!("error"));
             },
-            PlayerEvent::FrameUpdated => {
+            PlayerEvent::VideoFrameUpdated => {
                 self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
             },
             PlayerEvent::MetadataUpdated(ref metadata) => {
@@ -1855,10 +1863,24 @@ impl HTMLMediaElement {
         }
     }
 
-    pub fn get_current_frame(&self) -> Option<Frame> {
-        match self.frame_renderer.lock().unwrap().current_frame_holder {
+    pub fn get_current_frame(&self) -> Option<VideoFrame> {
+        match self.video_renderer.lock().unwrap().current_frame_holder {
             Some(ref holder) => Some(holder.get_frame()),
             None => return None,
+        }
+    }
+
+    /// By default the audio is rendered through the audio sink automatically
+    /// selected by the servo-media Player instance. However, in some cases, like
+    /// the WebAudio MediaElementAudioSourceNode, we need to set a custom audio
+    /// renderer.
+    pub fn set_audio_renderer(&self, audio_renderer: Arc<Mutex<dyn AudioRenderer>>) {
+        *self.audio_renderer.borrow_mut() = Some(audio_renderer);
+        if let Some(ref player) = *self.player.borrow() {
+            if let Err(e) = player.lock().unwrap().stop() {
+                eprintln!("Could not stop player {:?}", e);
+            }
+            self.media_element_load_algorithm();
         }
     }
 }
@@ -2365,7 +2387,7 @@ impl LayoutHTMLMediaElementHelpers for LayoutDom<HTMLMediaElement> {
     fn data(&self) -> HTMLMediaData {
         let media = unsafe { &*self.unsafe_get() };
         HTMLMediaData {
-            current_frame: media.frame_renderer.lock().unwrap().current_frame.clone(),
+            current_frame: media.video_renderer.lock().unwrap().current_frame.clone(),
         }
     }
 }

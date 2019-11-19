@@ -20,6 +20,8 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::htmlmediaelement::HTMLMediaElement;
+use crate::dom::mediaelementaudiosourcenode::MediaElementAudioSourceNode;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::task_source::TaskSource;
@@ -96,6 +98,10 @@ impl AudioContext {
             // Step 6.
             self.context.resume();
         }
+    }
+
+    pub fn base(&self) -> DomRoot<BaseAudioContext> {
+        DomRoot::from_ref(&self.context)
     }
 }
 
@@ -239,6 +245,16 @@ impl AudioContextMethods for AudioContext {
 
         // Step 6.
         promise
+    }
+
+    /// https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediaelementsource
+    fn CreateMediaElementSource(
+        &self,
+        media_element: &HTMLMediaElement,
+    ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
+        let global = self.global();
+        let window = global.as_window();
+        MediaElementAudioSourceNode::new(window, self, media_element)
     }
 }
 
