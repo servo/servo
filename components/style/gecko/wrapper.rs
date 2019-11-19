@@ -144,6 +144,13 @@ impl<'ld> TDocument for GeckoDocument<'ld> {
 #[derive(Clone, Copy)]
 pub struct GeckoShadowRoot<'lr>(pub &'lr structs::ShadowRoot);
 
+impl<'ln> fmt::Debug for GeckoShadowRoot<'ln> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // TODO(emilio): Maybe print the host or something?
+        write!(f, "<shadow-root> ({:#x})", self.as_node().opaque().0)
+    }
+}
+
 impl<'lr> PartialEq for GeckoShadowRoot<'lr> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
@@ -232,8 +239,8 @@ impl<'ln> fmt::Debug for GeckoNode<'ln> {
             return write!(f, "<document> ({:#x})", self.opaque().0);
         }
 
-        if self.is_shadow_root() {
-            return write!(f, "<shadow-root> ({:#x})", self.opaque().0);
+        if let Some(sr) = self.as_shadow_root() {
+            return sr.fmt(f);
         }
 
         write!(f, "<non-text node> ({:#x})", self.opaque().0)

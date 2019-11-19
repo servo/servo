@@ -331,7 +331,7 @@ where
 }
 
 /// The ShadowRoot trait.
-pub trait TShadowRoot: Sized + Copy + Clone + PartialEq {
+pub trait TShadowRoot: Sized + Copy + Clone + Debug + PartialEq {
     /// The concrete node type.
     type ConcreteNode: TNode<ConcreteShadowRoot = Self>;
 
