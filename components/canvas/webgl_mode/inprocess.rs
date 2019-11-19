@@ -19,6 +19,8 @@ use surfman::platform::generic::universal::device::Device;
 use surfman::platform::generic::universal::surface::SurfaceTexture;
 use surfman::SurfaceInfo;
 use surfman_chains::SwapChains;
+use surfman_chains_api::SwapChainAPI;
+use surfman_chains_api::SwapChainsAPI;
 use webrender_traits::{WebrenderExternalImageApi, WebrenderExternalImageRegistry};
 use webxr_api::SwapChainId as WebXRSwapChainId;
 

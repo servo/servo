@@ -422,7 +422,7 @@ where
 
         // For the moment, we enable use both the webxr crate and the rust-webvr crate,
         // but we are migrating over to just using webxr.
-        let mut webxr_main_thread = webxr_api::MainThreadRegistry::new(event_loop_waker)
+        let mut webxr_main_thread = webxr::MainThreadRegistry::new(event_loop_waker)
             .expect("Failed to create WebXR device registry");
         if pref!(dom.webxr.enabled) {
             embedder.register_webxr(&mut webxr_main_thread);
@@ -1010,7 +1010,7 @@ fn create_webgl_threads<W>(
     webrender: &mut webrender::Renderer,
     webrender_api_sender: webrender_api::RenderApiSender,
     webvr_compositor: Option<Box<WebVRCompositorHandler>>,
-    webxr_main_thread: &mut webxr_api::MainThreadRegistry,
+    webxr_main_thread: &mut webxr::MainThreadRegistry,
     external_image_handlers: &mut WebrenderExternalImageHandlers,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
 ) -> WebGLThreads

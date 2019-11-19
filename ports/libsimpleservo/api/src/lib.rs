@@ -49,7 +49,7 @@ pub struct InitOptions {
     pub coordinates: Coordinates,
     pub density: f32,
     pub vr_init: VRInitOptions,
-    pub xr_discovery: Option<Box<dyn webxr_api::Discovery>>,
+    pub xr_discovery: Option<webxr::Discovery>,
     pub enable_subpixel_text_antialiasing: bool,
     pub gl_context_pointer: Option<*const c_void>,
     pub native_display_pointer: Option<*const c_void>,
@@ -591,7 +591,7 @@ impl ServoGlue {
 
 struct ServoEmbedderCallbacks {
     waker: Box<dyn EventLoopWaker>,
-    xr_discovery: Option<Box<dyn webxr_api::Discovery>>,
+    xr_discovery: Option<webxr::Discovery>,
     vr_init: VRInitOptions,
     #[allow(unused)]
     gl: Rc<dyn gl::Gl>,
@@ -626,7 +626,7 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
     }
 
     #[cfg(feature = "uwp")]
-    fn register_webxr(&mut self, registry: &mut webxr_api::MainThreadRegistry) {
+    fn register_webxr(&mut self, registry: &mut webxr::MainThreadRegistry) {
         debug!("EmbedderMethods::register_xr");
         assert!(
             self.xr_discovery.is_none(),
@@ -638,7 +638,7 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
     }
 
     #[cfg(not(feature = "uwp"))]
-    fn register_webxr(&mut self, registry: &mut webxr_api::MainThreadRegistry) {
+    fn register_webxr(&mut self, registry: &mut webxr::MainThreadRegistry) {
         debug!("EmbedderMethods::register_xr");
         if let Some(discovery) = self.xr_discovery.take() {
             registry.register(discovery);

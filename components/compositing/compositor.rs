@@ -182,7 +182,7 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     webvr_heartbeats: Vec<Box<dyn WebVRMainThreadHeartbeat>>,
 
     /// Some XR devices want to run on the main thread.
-    pub webxr_main_thread: webxr_api::MainThreadRegistry,
+    pub webxr_main_thread: webxr::MainThreadRegistry,
 
     /// Map of the pending paint metrics per layout thread.
     /// The layout thread for each specific pipeline expects the compositor to
