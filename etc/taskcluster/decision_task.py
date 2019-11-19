@@ -549,12 +549,12 @@ def linux_wpt():
                 target/release/build/osmesa-src-*/out/lib/gallium
         """)
         .with_artifacts("/target.tar.gz")
-        .find_or_create("build.linux_x64_release~assertions" + CONFIG.task_id())
+        .find_or_create("build.linux_x64_release_w_assertions" + CONFIG.task_id())
     )
     def linux_run_task(name):
         return linux_task(name).with_dockerfile(dockerfile_path("run"))
     wpt_chunks("Linux x64", linux_run_task, release_build_task, repo_dir="/repo",
-               total_chunks=2, processes=24)
+               total_chunks=4, processes=12)
 
 
 def macos_nightly():
@@ -608,8 +608,8 @@ def update_wpt():
 
 def macos_release_build_with_debug_assertions(priority=None):
     return (
-        macos_build_task("Release build")
-        .with_treeherder("macOS x64", "Release")
+        macos_build_task("Release build, with debug assertions")
+        .with_treeherder("macOS x64", "Release+A")
         .with_priority(priority)
         .with_script("\n".join([
             "./mach build --release --verbose --with-debug-assertions",
