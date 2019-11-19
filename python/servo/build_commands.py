@@ -628,7 +628,9 @@ class MachCommands(CommandBase):
                 ])
 
         # https://internals.rust-lang.org/t/exploring-crate-graph-build-times-with-cargo-build-ztimings/10975
-        opts += ["-Ztimings=info"]
+        # Prepend so that e.g. `-Ztimings` (which means `-Ztimings=info,html`)
+        # given on the command line can override it
+        opts = ["-Ztimings=info"] + opts
 
         if very_verbose:
             print (["Calling", "cargo", "build"] + opts)
