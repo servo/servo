@@ -868,7 +868,7 @@ install them, let us know by filing a bug!")
         target=None, android=False, magicleap=False, libsimpleservo=False,
         features=None, debug_mozjs=False, with_debug_assertions=False,
         with_frame_pointer=False, with_raqote=False, with_layout_2020=False, without_wgl=False,
-        uwp=False,
+        uwp=False, media_stack=None,
     ):
         env = env or self.build_env()
         target, android = self.pick_target_triple(target, android, magicleap)
