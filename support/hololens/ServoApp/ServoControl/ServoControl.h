@@ -115,7 +115,8 @@ private:
 
   void OnSurfacePointerPressed(
       IInspectable const &,
-      Windows::UI::Xaml::Input::PointerRoutedEventArgs const &);
+      Windows::UI::Xaml::Input::PointerRoutedEventArgs const &,
+      bool);
 
   void OnSurfacePointerCanceled(
       IInspectable const &,

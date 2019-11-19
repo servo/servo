@@ -38,9 +38,9 @@ void ServoControl::OnLoaded(IInspectable const &, RoutedEventArgs const &) {
   auto panel = Panel();
   panel.Tapped(std::bind(&ServoControl::OnSurfaceTapped, this, _1, _2));
   panel.PointerPressed(
-      std::bind(&ServoControl::OnSurfacePointerPressed, this, _1, _2));
+      std::bind(&ServoControl::OnSurfacePointerPressed, this, _1, _2, true));
   panel.PointerReleased(
-      std::bind(&ServoControl::OnSurfacePointerPressed, this, _1, _2));
+      std::bind(&ServoControl::OnSurfacePointerPressed, this, _1, _2, false));
   panel.PointerCanceled(
       std::bind(&ServoControl::OnSurfacePointerCanceled, this, _1, _2));
   panel.PointerCaptureLost(
@@ -105,6 +105,7 @@ void ServoControl::OnSurfaceManipulationDelta(
 
 void ServoControl::OnSurfaceTapped(IInspectable const &,
                                    Input::TappedRoutedEventArgs const &e) {
+
   auto coords = e.GetPosition(Panel());
   auto x = coords.X * mDPI;
   auto y = coords.Y * mDPI;
@@ -113,9 +114,9 @@ void ServoControl::OnSurfaceTapped(IInspectable const &,
 }
 
 void ServoControl::OnSurfacePointerPressed(
-    IInspectable const &, Input::PointerRoutedEventArgs const &e) {
-  if (e.Pointer().PointerDeviceType() ==
-      Windows::Devices::Input::PointerDeviceType::Mouse) {
+    IInspectable const &, Input::PointerRoutedEventArgs const &e, bool down) {
+  auto ty = e.Pointer().PointerDeviceType();
+  if (ty == Windows::Devices::Input::PointerDeviceType::Mouse) {
     auto point = e.GetCurrentPoint(Panel());
 
     auto x = point.Position().X * mDPI;
@@ -144,23 +145,54 @@ void ServoControl::OnSurfacePointerPressed(
     }
 
     mPressedMouseButton = button;
+  } else if (ty == Windows::Devices::Input::PointerDeviceType::Touch) {
+    auto point = e.GetCurrentPoint(Panel());
+
+    auto x = point.Position().X * mDPI;
+    auto y = point.Position().Y * mDPI;
+
+    if (down) {
+      RunOnGLThread([=] { mServo->TouchDown(x, y, point.PointerId()); });
+    } else {
+      RunOnGLThread([=] { mServo->TouchUp(x, y, point.PointerId()); });
+    }
+    e.Handled(true);
   }
 }
 
 void ServoControl::OnSurfacePointerCanceled(
     IInspectable const &, Input::PointerRoutedEventArgs const &e) {
-  mPressedMouseButton = {};
+  auto ty = e.Pointer().PointerDeviceType();
+  if (ty == Windows::Devices::Input::PointerDeviceType::Mouse) {
+    mPressedMouseButton = {};
+  } else if (ty == Windows::Devices::Input::PointerDeviceType::Touch) {
+    auto point = e.GetCurrentPoint(Panel());
+    auto x = point.Position().X * mDPI;
+    auto y = point.Position().Y * mDPI;
+    RunOnGLThread([=] { mServo->TouchCancel(x, y, point.PointerId()); });
+  }
 }
 
 void ServoControl::OnSurfacePointerMoved(
     IInspectable const &, Input::PointerRoutedEventArgs const &e) {
-  if (e.Pointer().PointerDeviceType() ==
-      Windows::Devices::Input::PointerDeviceType::Mouse) {
+  auto ty = e.Pointer().PointerDeviceType();
+  if (ty == Windows::Devices::Input::PointerDeviceType::Mouse) {
     auto point = e.GetCurrentPoint(Panel());
     auto x = point.Position().X * mDPI;
     auto y = point.Position().Y * mDPI;
     e.Handled(true);
     RunOnGLThread([=] { mServo->MouseMove(x, y); });
+  } else if (ty == Windows::Devices::Input::PointerDeviceType::Touch) {
+    auto point = e.GetCurrentPoint(Panel());
+    // UWP triggers this event even when the finger is moved
+    // in front of the application without contact
+    if (point.IsInContact()) {
+      auto x = point.Position().X * mDPI;
+      auto y = point.Position().Y * mDPI;
+
+      RunOnGLThread([=] { mServo->TouchMove(x, y, point.PointerId()); });
+      e.Handled(true);
+    }
   }
 }
 
