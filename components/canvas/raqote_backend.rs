@@ -278,29 +278,39 @@ impl GenericDrawTarget for raqote::DrawTarget {
         surface: SourceSurface,
         dest: Rect<f64>,
         source: Rect<f64>,
-        _filter: Filter,
+        filter: Filter,
         draw_options: &DrawOptions,
     ) {
-        let v = surface.as_raqote();
+        let surface_data = surface.as_raqote();
         let image = raqote::Image {
             width: source.size.width as i32,
             height: source.size.height as i32,
             data: unsafe {
                 std::slice::from_raw_parts(
-                    v.as_ptr() as *const u32,
-                    v.len() / std::mem::size_of::<u32>(),
+                    surface_data.as_ptr() as *const u32,
+                    surface_data.len() / std::mem::size_of::<u32>(),
                 )
             },
         };
-        raqote::DrawTarget::draw_image_with_size_at(
-            self,
-            dest.size.width as f32,
-            dest.size.height as f32,
+        let mut pb = raqote::PathBuilder::new();
+        pb.rect(
             dest.origin.x as f32,
             dest.origin.y as f32,
-            &image,
-            draw_options.as_raqote(),
+            dest.size.width as f32,
+            dest.size.height as f32,
         );
+        let source = raqote::Source::Image(
+            image,
+            raqote::ExtendMode::Pad,
+            filter.to_raqote(),
+            raqote::Transform::create_translation(-dest.origin.x as f32, -dest.origin.y as f32)
+                .post_scale(
+                    image.width as f32 / dest.size.width as f32,
+                    image.height as f32 / dest.size.height as f32,
+                ),
+        );
+
+        self.fill(&pb.finish(), &source, draw_options.as_raqote());
     }
     fn draw_surface_with_shadow(
         &self,
@@ -442,6 +452,15 @@ impl GenericDrawTarget for raqote::DrawTarget {
                 v.len() * std::mem::size_of::<u32>(),
             )
             .into()
+        }
+    }
+}
+
+impl Filter {
+    fn to_raqote(&self) -> raqote::FilterMode {
+        match self {
+            Filter::Linear => raqote::FilterMode::Bilinear,
+            Filter::Point => raqote::FilterMode::Nearest,
         }
     }
 }
