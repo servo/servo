@@ -47,18 +47,7 @@ class MachCommands(CommandBase):
 
         target, android = self.pick_target_triple(target, android, magicleap)
 
-        # A guess about which platforms should use the gstreamer media stack
-        if not(media_stack):
-            if (
-                    not(target) or
-                    ("armv7" in target and "android" in target) or
-                    ("x86_64" in target)
-            ):
-                media_stack = "gstreamer"
-            else:
-                media_stack = "dummy"
-
-        features += ["media-" + media_stack]
+        features += self.pick_media_stack(media_stack, target)
 
         self.ensure_bootstrapped()
         self.ensure_clobbered()

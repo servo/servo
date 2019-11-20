@@ -191,18 +191,7 @@ class MachCommands(CommandBase):
         if not uwp:
             uwp = target and 'uwp' in target
 
-        # A guess about which platforms should use the gstreamer media stack
-        if not(media_stack):
-            if (
-                    not(target) or
-                    ("armv7" in target and "android" in target) or
-                    ("x86_64" in target)
-            ):
-                media_stack = "gstreamer"
-            else:
-                media_stack = "dummy"
-
-        features += ["media-" + media_stack]
+        features += self.pick_media_stack(media_stack, target)
 
         target_path = base_path = self.get_target_dir()
         if android:

@@ -862,6 +862,19 @@ install them, let us know by filing a bug!")
             android = self.handle_android_target(target)
         return target, android
 
+    # A guess about which platforms should use the gstreamer media stack
+    def pick_media_stack(self, media_stack, target):
+        if not(media_stack):
+            if (
+                    not(target) or
+                    ("armv7" in target and "android" in target) or
+                    ("x86_64" in target)
+            ):
+                media_stack = "gstreamer"
+            else:
+                media_stack = "dummy"
+        return ["media-" + media_stack]
+
     def run_cargo_build_like_command(
         self, command, cargo_args,
         env=None, verbose=False,
