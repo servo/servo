@@ -917,6 +917,8 @@ impl ResourceTimingListener for ModuleContext {
 impl PreInvoke for ModuleContext {}
 
 #[allow(unsafe_code)]
+/// A function to register module hooks (e.g. listening on resolving modules,
+/// getting module metadata, getting script private reference and resolving dynamic import)
 pub unsafe fn EnsureModuleHooksInitialized(rt: *mut JSRuntime) {
     if GetModuleResolveHook(rt).is_some() {
         return;
