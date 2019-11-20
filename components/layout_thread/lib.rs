@@ -532,6 +532,20 @@ impl LayoutThread {
         trace_layout: bool,
         dump_flow_tree: bool,
     ) -> LayoutThread {
+        // Let webrender know about this pipeline by sending an empty display list.
+        let mut epoch = Epoch(0);
+        let webrender_api = webrender_api_sender.create_api();
+        let mut txn = webrender_api::Transaction::new();
+        txn.set_display_list(
+            webrender_api::Epoch(epoch.0),
+            None,
+            Default::default(),
+            (id.to_webrender(), Default::default(), Default::default()),
+            false,
+        );
+        webrender_api.send_transaction(webrender_document, txn);
+        epoch.next();
+
         let device = Device::new(
             MediaType::screen(),
             window_size.initial_viewport,
@@ -576,9 +590,9 @@ impl LayoutThread {
             document_shared_lock: None,
             running_animations: ServoArc::new(RwLock::new(Default::default())),
             expired_animations: ServoArc::new(RwLock::new(Default::default())),
-            epoch: Cell::new(Epoch(0)),
+            epoch: Cell::new(epoch),
             viewport_size: Size2D::new(Au(0), Au(0)),
-            webrender_api: webrender_api_sender.create_api(),
+            webrender_api,
             webrender_document,
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
             rw_data: Arc::new(Mutex::new(LayoutThreadData {

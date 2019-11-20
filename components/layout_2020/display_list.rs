@@ -8,7 +8,7 @@ use crate::style_ext::ComputedValuesExt;
 use app_units::Au;
 use euclid::{self, SideOffsets2D};
 use style::values::computed::{BorderStyle, Length};
-use webrender_api::{self as wr, units, CommonItemProperties};
+use webrender_api::{self as wr, units, CommonItemProperties, PrimitiveFlags};
 
 pub struct DisplayListBuilder {
     pipeline_id: wr::PipelineId,
@@ -76,7 +76,7 @@ impl BoxFragment {
             spatial_id: wr::SpatialId::root_scroll_node(builder.pipeline_id),
             hit_info: None,
             // TODO(gw): Make use of the WR backface visibility functionality.
-            is_backface_visible: true,
+            flags: PrimitiveFlags::default(),
         };
 
         self.background_display_items(builder, &common);

@@ -67,7 +67,7 @@ use style::values::generics::image::{GradientKind, PaintWorklet};
 use style::values::specified::ui::CursorKind;
 use style::values::RGBA;
 use style_traits::ToCss;
-use webrender_api::units::{LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D};
+use webrender_api::units::{LayoutRect, LayoutTransform, LayoutVector2D};
 use webrender_api::{self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF};
 use webrender_api::{ColorU, ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LineStyle};
 use webrender_api::{NinePatchBorder, NinePatchBorderSource, NormalBorder};
@@ -357,9 +357,6 @@ impl<'a> DisplayListBuildState<'a> {
     }
 
     fn add_image_item(&mut self, base: BaseDisplayItem, item: webrender_api::ImageDisplayItem) {
-        if item.stretch_size == LayoutSize::zero() {
-            return;
-        }
         self.add_display_item(DisplayItem::Image(CommonDisplayItem::new(base, item)))
     }
 
@@ -833,6 +830,10 @@ impl Fragment {
             index,
         );
 
+        if placement.tile_size.is_empty_or_negative() {
+            return;
+        }
+
         state.clipping_and_scrolling_scope(|state| {
             if !placement.clip_radii.is_zero() {
                 let clip_id =
@@ -849,9 +850,9 @@ impl Fragment {
             );
 
             debug!("(building display list) adding background image.");
-            state.add_image_item(
+            let item = CommonDisplayItem::new(
                 base,
-                webrender_api::ImageDisplayItem {
+                webrender_api::RepeatingImageDisplayItem {
                     bounds: placement.bounds.to_f32_px(),
                     common: items::empty_common_item_properties(),
                     image_key: webrender_image.key.unwrap(),
@@ -862,6 +863,7 @@ impl Fragment {
                     color: webrender_api::ColorF::WHITE,
                 },
             );
+            state.add_display_item(DisplayItem::RepeatingImage(item))
         });
     }
 
@@ -1835,8 +1837,6 @@ impl Fragment {
                                 bounds: stacking_relative_content_box.to_layout(),
                                 common: items::empty_common_item_properties(),
                                 image_key: id,
-                                stretch_size: stacking_relative_content_box.size.to_layout(),
-                                tile_spacing: LayoutSize::zero(),
                                 image_rendering: self
                                     .style
                                     .get_inherited_box()
@@ -1858,8 +1858,6 @@ impl Fragment {
                             bounds: stacking_relative_content_box.to_layout(),
                             common: items::empty_common_item_properties(),
                             image_key: *image_key,
-                            stretch_size: stacking_relative_border_box.size.to_layout(),
-                            tile_spacing: LayoutSize::zero(),
                             image_rendering: ImageRendering::Auto,
                             alpha_type: webrender_api::AlphaType::PremultipliedAlpha,
                             color: webrender_api::ColorF::WHITE,
@@ -1891,8 +1889,6 @@ impl Fragment {
                     bounds: stacking_relative_border_box.to_layout(),
                     common: items::empty_common_item_properties(),
                     image_key,
-                    stretch_size: stacking_relative_content_box.size.to_layout(),
-                    tile_spacing: LayoutSize::zero(),
                     image_rendering: ImageRendering::Auto,
                     alpha_type: webrender_api::AlphaType::PremultipliedAlpha,
                     color: webrender_api::ColorF::WHITE,

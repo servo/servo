@@ -47,6 +47,7 @@ use net_traits::request::CorsSettings;
 use pixels::PixelFormat;
 use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
+use serde_bytes::ByteBuf;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::cell::Cell;
 use std::fmt;
@@ -505,7 +506,7 @@ impl CanvasState {
 
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
         self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
-            Some(image_data.into()),
+            Some(ByteBuf::from(image_data)),
             image_size,
             dest_rect,
             source_rect,
