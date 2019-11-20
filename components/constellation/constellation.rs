@@ -112,6 +112,7 @@ use compositing::SendableFrameTree;
 use crossbeam_channel::{after, never, unbounded, Receiver, Sender};
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use embedder_traits::{Cursor, EmbedderMsg, EmbedderProxy, EventLoopWaker};
+use embedder_traits::{MediaSessionEvent, MediaSessionPlaybackState};
 use euclid::{default::Size2D as UntypedSize2D, Size2D};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
@@ -139,7 +140,6 @@ use net_traits::{self, FetchResponseMsg, IpcSend, ResourceThreads};
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
-use script_traits::MouseEventType;
 use script_traits::{webdriver_msg, LogEntry, ScriptToConstellationChan, ServiceWorkerMsg};
 use script_traits::{
     AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo, CompositorEvent,
@@ -153,6 +153,7 @@ use script_traits::{
     IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerSchedulerMsg,
 };
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
+use script_traits::{MediaSessionActionType, MouseEventType};
 use script_traits::{MessagePortMsg, PortMessageTask, StructuredSerializedData};
 use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WebDriverCommandMsg};
 use serde::{Deserialize, Serialize};
@@ -474,6 +475,9 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// Mechanism to force the compositor to process events.
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
+
+    /// Pipeline ID of the active media session.
+    active_media_session: Option<PipelineId>,
 }
 
 /// State needed to construct a constellation.
@@ -843,6 +847,7 @@ where
                     glplayer_threads: state.glplayer_threads,
                     player_context: state.player_context,
                     event_loop_waker: state.event_loop_waker,
+                    active_media_session: None,
                 };
 
                 constellation.run();
@@ -1541,6 +1546,9 @@ where
             FromCompositorMsg::ExitFullScreen(top_level_browsing_context_id) => {
                 self.handle_exit_fullscreen_msg(top_level_browsing_context_id);
             },
+            FromCompositorMsg::MediaSessionAction(action) => {
+                self.handle_media_session_action_msg(action);
+            },
         }
     }
 
@@ -1770,6 +1778,31 @@ where
                     old_value,
                     new_value,
                 );
+            },
+            FromScriptMsg::MediaSessionEvent(pipeline_id, event) => {
+                // Unlikely at this point, but we may receive events coming from
+                // different media sessions, so we set the active media session based
+                // on Playing events.
+                // The last media session claiming to be in playing state is set to
+                // the active media session.
+                // Events coming from inactive media sessions are discarded.
+                if self.active_media_session.is_some() {
+                    match event {
+                        MediaSessionEvent::PlaybackStateChange(ref state) => {
+                            match state {
+                                MediaSessionPlaybackState::Playing |
+                                MediaSessionPlaybackState::Paused => (),
+                                _ => return,
+                            };
+                        },
+                        _ => (),
+                    };
+                }
+                self.active_media_session = Some(pipeline_id);
+                self.embedder_proxy.send((
+                    Some(source_top_ctx_id),
+                    EmbedderMsg::MediaSessionEvent(event),
+                ));
             },
         }
     }
@@ -5017,6 +5050,31 @@ where
             self.active_browser_id = Some(top_level_browsing_context_id);
             self.compositor_proxy
                 .send(ToCompositorMsg::SetFrameTree(frame_tree));
+        }
+    }
+
+    fn handle_media_session_action_msg(&mut self, action: MediaSessionActionType) {
+        if let Some(media_session_pipeline_id) = self.active_media_session {
+            let result = match self.pipelines.get(&media_session_pipeline_id) {
+                None => {
+                    return warn!(
+                        "Pipeline {} got media session action request after closure.",
+                        media_session_pipeline_id,
+                    )
+                },
+                Some(pipeline) => {
+                    let msg = ConstellationControlMsg::MediaSessionAction(
+                        media_session_pipeline_id,
+                        action,
+                    );
+                    pipeline.event_loop.send(msg)
+                },
+            };
+            if let Err(e) = result {
+                self.handle_send_error(media_session_pipeline_id, e);
+            }
+        } else {
+            error!("Got a media session action but no active media session is registered");
         }
     }
 }

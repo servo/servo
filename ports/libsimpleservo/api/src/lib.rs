@@ -15,7 +15,7 @@ use servo::compositing::windowing::{
     WindowMethods,
 };
 use servo::embedder_traits::resources::{self, Resource, ResourceReaderMethods};
-use servo::embedder_traits::EmbedderMsg;
+use servo::embedder_traits::{EmbedderMsg, MediaSessionEvent};
 use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::msg::constellation_msg::TraversalDirection;
@@ -126,10 +126,14 @@ pub trait HostTrait {
     fn on_shutdown_complete(&self);
     /// A text input is focused.
     fn on_ime_state_changed(&self, show: bool);
-    /// Gets sytem clipboard contents
+    /// Gets sytem clipboard contents.
     fn get_clipboard_contents(&self) -> Option<String>;
-    /// Sets system clipboard contents
+    /// Sets system clipboard contents.
     fn set_clipboard_contents(&self, contents: String);
+    /// Called when we get the media session metadata/
+    fn on_media_session_metadata(&self, title: String, artist: String, album: String);
+    /// Called when the media sessoin playback state changes.
+    fn on_media_session_playback_state_change(&self, state: i32);
 }
 
 pub struct ServoGlue {
@@ -466,6 +470,11 @@ impl ServoGlue {
         self.process_event(WindowEvent::Keyboard(key_event))
     }
 
+    pub fn media_session_action(&mut self, action: i32) -> Result<(), &'static str> {
+        info!("Media session action {:?}", action);
+        self.process_event(WindowEvent::MediaSessionAction(action.into()))
+    }
+
     fn process_event(&mut self, event: WindowEvent) -> Result<(), &'static str> {
         self.events.push(event);
         if !self.batch_mode {
@@ -571,6 +580,21 @@ impl ServoGlue {
                 },
                 EmbedderMsg::HideIME => {
                     self.callbacks.host_callbacks.on_ime_state_changed(false);
+                },
+                EmbedderMsg::MediaSessionEvent(event) => {
+                    match event {
+                        MediaSessionEvent::SetMetadata(metadata) => {
+                            self.callbacks.host_callbacks.on_media_session_metadata(
+                                metadata.title,
+                                metadata.artist,
+                                metadata.album,
+                            )
+                        },
+                        MediaSessionEvent::PlaybackStateChange(state) => self
+                            .callbacks
+                            .host_callbacks
+                            .on_media_session_playback_state_change(state as i32),
+                    };
                 },
                 EmbedderMsg::Status(..) |
                 EmbedderMsg::SelectFiles(..) |

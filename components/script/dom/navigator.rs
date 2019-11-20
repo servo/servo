@@ -12,6 +12,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bluetooth::Bluetooth;
 use crate::dom::gamepadlist::GamepadList;
 use crate::dom::mediadevices::MediaDevices;
+use crate::dom::mediasession::MediaSession;
 use crate::dom::mimetypearray::MimeTypeArray;
 use crate::dom::navigatorinfo;
 use crate::dom::permissions::Permissions;
@@ -34,6 +35,7 @@ pub struct Navigator {
     mediadevices: MutNullableDom<MediaDevices>,
     gamepads: MutNullableDom<GamepadList>,
     permissions: MutNullableDom<Permissions>,
+    mediasession: MutNullableDom<MediaSession>,
 }
 
 impl Navigator {
@@ -48,6 +50,7 @@ impl Navigator {
             mediadevices: Default::default(),
             gamepads: Default::default(),
             permissions: Default::default(),
+            mediasession: Default::default(),
         }
     }
 
@@ -185,5 +188,21 @@ impl NavigatorMethods for Navigator {
     fn MediaDevices(&self) -> DomRoot<MediaDevices> {
         self.mediadevices
             .or_init(|| MediaDevices::new(&self.global()))
+    }
+
+    /// https://w3c.github.io/mediasession/#dom-navigator-mediasession
+    fn MediaSession(&self) -> DomRoot<MediaSession> {
+        self.mediasession.or_init(|| {
+            // There is a single MediaSession instance per Pipeline
+            // and only one active MediaSession globally.
+            //
+            // MediaSession creation can happen in two cases:
+            //
+            // - If content gets `navigator.mediaSession`
+            // - If a media instance (HTMLMediaElement so far) starts playing media.
+            let global = self.global();
+            let window = global.as_window();
+            MediaSession::new(window)
+        })
     }
 }

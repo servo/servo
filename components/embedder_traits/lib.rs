@@ -162,6 +162,9 @@ pub enum EmbedderMsg {
     Shutdown,
     /// Report a complete sampled profile
     ReportProfile(Vec<u8>),
+    /// Notifies the embedder about media session events
+    /// (i.e. when there is metadata for the active media session, playback state changes...).
+    MediaSessionEvent(MediaSessionEvent),
 }
 
 impl Debug for EmbedderMsg {
@@ -194,6 +197,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::AllowOpeningBrowser(..) => write!(f, "AllowOpeningBrowser"),
             EmbedderMsg::BrowserCreated(..) => write!(f, "BrowserCreated"),
             EmbedderMsg::ReportProfile(..) => write!(f, "ReportProfile"),
+            EmbedderMsg::MediaSessionEvent(..) => write!(f, "MediaSessionEvent"),
         }
     }
 }
@@ -202,3 +206,45 @@ impl Debug for EmbedderMsg {
 /// the `String` content is expected to be extension (e.g, "doc", without the prefixing ".")
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FilterPattern(pub String);
+
+/// https://w3c.github.io/mediasession/#mediametadata
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MediaMetadata {
+    /// Title
+    pub title: String,
+    /// Artist
+    pub artist: String,
+    /// Album
+    pub album: String,
+}
+
+impl MediaMetadata {
+    pub fn new(title: String) -> Self {
+        Self {
+            title,
+            artist: "".to_owned(),
+            album: "".to_owned(),
+        }
+    }
+}
+
+/// https://w3c.github.io/mediasession/#enumdef-mediasessionplaybackstate
+#[repr(i32)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum MediaSessionPlaybackState {
+    /// The browsing context does not specify whether it’s playing or paused.
+    None_ = 1,
+    /// The browsing context is currently playing media and it can be paused.
+    Playing,
+    /// The browsing context has paused media and it can be resumed.
+    Paused,
+}
+
+/// Type of events sent from script to the embedder about the media session.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum MediaSessionEvent {
+    /// Indicates that the media metadata is available.
+    SetMetadata(MediaMetadata),
+    /// Indicates that the playback state has changed.
+    PlaybackStateChange(MediaSessionPlaybackState),
+}

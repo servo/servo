@@ -23,6 +23,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.util.Log;
 
+import org.mozilla.servo.MediaSession;
 import org.mozilla.servoview.ServoView;
 import org.mozilla.servoview.Servo;
 
@@ -41,6 +42,7 @@ public class MainActivity extends Activity implements Servo.Client {
     ProgressBar mProgressBar;
     TextView mIdleText;
     boolean mCanGoBack;
+    MediaSession mMediaSession;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,6 +85,12 @@ public class MainActivity extends Activity implements Servo.Client {
           mServoView.loadUri(intent.getData());
         }
         setupUrlField();
+    }
+
+    @Override
+    protected void onDestroy() {
+      super.onDestroy();
+      mMediaSession.hideMediaSessionControls();
     }
 
     private void setupUrlField() {
@@ -203,6 +211,7 @@ public class MainActivity extends Activity implements Servo.Client {
         mServoView.onPause();
         super.onPause();
     }
+
     @Override
     public void onResume() {
         mServoView.onResume();
@@ -216,5 +225,34 @@ public class MainActivity extends Activity implements Servo.Client {
         } else {
             super.onBackPressed();
         }
+    }
+
+    @Override
+    public void onMediaSessionMetadata(String title, String artist, String album) {
+      if (mMediaSession == null) {
+        mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
+      }
+      Log.d("onMediaSessionMetadata", title + " " + artist + " " + album);
+      mMediaSession.updateMetadata(title, artist, album);
+    }
+
+    @Override
+    public void onMediaSessionPlaybackStateChange(int state) {
+      Log.d("onMediaSessionPlaybackStateChange", String.valueOf(state));
+      if (mMediaSession == null) {
+        mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
+      }
+
+      mMediaSession.setPlaybackState(state);
+
+      if (state == MediaSession.PLAYBACK_STATE_NONE) {
+          mMediaSession.hideMediaSessionControls();
+          return;
+      }
+      if (state == MediaSession.PLAYBACK_STATE_PLAYING ||
+          state == MediaSession.PLAYBACK_STATE_PAUSED) {
+          mMediaSession.showMediaSessionControls();
+          return;
+      }
     }
 }

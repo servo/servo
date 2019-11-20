@@ -713,6 +713,16 @@ where
                     );
                 }
             },
+
+            WindowEvent::MediaSessionAction(a) => {
+                let msg = ConstellationMsg::MediaSessionAction(a);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!(
+                        "Sending MediaSessionAction message to constellation failed ({:?}).",
+                        e
+                    );
+                }
+            },
         }
     }
 

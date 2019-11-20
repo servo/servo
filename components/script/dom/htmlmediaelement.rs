@@ -15,8 +15,10 @@ use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaE
 use crate::dom::bindings::codegen::Bindings::HTMLSourceElementBinding::HTMLSourceElementMethods;
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConstants::*;
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
+use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackKind, TextTrackMode};
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId};
 use crate::dom::bindings::codegen::InheritTypes::{HTMLMediaElementTypeId, NodeTypeId};
 use crate::dom::bindings::codegen::UnionTypes::{
@@ -65,6 +67,7 @@ use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource as EmbedderResource};
+use embedder_traits::{MediaSessionEvent, MediaSessionPlaybackState};
 use euclid::default::Size2D;
 use headers::{ContentLength, ContentRange, HeaderMapExt};
 use html5ever::{LocalName, Prefix};
@@ -592,7 +595,6 @@ impl HTMLMediaElement {
         match (old_ready_state, ready_state) {
             (ReadyState::HaveNothing, ReadyState::HaveMetadata) => {
                 task_source.queue_simple_event(self.upcast(), atom!("loadedmetadata"), &window);
-
                 // No other steps are applicable in this case.
                 return;
             },
@@ -1725,6 +1727,17 @@ impl HTMLMediaElement {
                 if self.Controls() {
                     self.render_controls();
                 }
+
+                let global = self.global();
+                let window = global.as_window();
+
+                // Update the media session metadata title with the obtained metadata.
+                window.Navigator().MediaSession().update_title(
+                    metadata
+                        .title
+                        .clone()
+                        .unwrap_or(window.get_url().into_string()),
+                );
             },
             PlayerEvent::NeedData => {
                 // The player needs more data.
@@ -1782,13 +1795,33 @@ impl HTMLMediaElement {
                 };
                 ScriptThread::await_stable_state(Microtask::MediaElement(task));
             },
-            PlayerEvent::StateChanged(ref state) => match *state {
-                PlaybackState::Paused => {
-                    if self.ready_state.get() == ReadyState::HaveMetadata {
-                        self.change_ready_state(ReadyState::HaveEnoughData);
-                    }
-                },
-                _ => {},
+            PlayerEvent::StateChanged(ref state) => {
+                let mut media_session_playback_state = MediaSessionPlaybackState::None_;
+                match *state {
+                    PlaybackState::Paused => {
+                        media_session_playback_state = MediaSessionPlaybackState::Paused;
+                        if self.ready_state.get() == ReadyState::HaveMetadata {
+                            self.change_ready_state(ReadyState::HaveEnoughData);
+                        }
+                    },
+                    PlaybackState::Playing => {
+                        media_session_playback_state = MediaSessionPlaybackState::Playing;
+                    },
+                    PlaybackState::Buffering => {
+                        // Do not send the media session playback state change event
+                        // in this case as a None_ state is expected to clean up the
+                        // session.
+                        return;
+                    },
+                    _ => {},
+                };
+                debug!(
+                    "Sending media session event playback state changed to {:?}",
+                    media_session_playback_state
+                );
+                self.send_media_session_event(MediaSessionEvent::PlaybackStateChange(
+                    media_session_playback_state,
+                ));
             },
         }
     }
@@ -1882,6 +1915,15 @@ impl HTMLMediaElement {
             }
             self.media_element_load_algorithm();
         }
+    }
+
+    fn send_media_session_event(&self, event: MediaSessionEvent) {
+        let global = self.global();
+        let media_session = global.as_window().Navigator().MediaSession();
+
+        media_session.register_media_instance(&self);
+
+        media_session.send_event(event);
     }
 }
 

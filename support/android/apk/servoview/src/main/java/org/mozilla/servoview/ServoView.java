@@ -134,8 +134,12 @@ public class ServoView extends GLSurfaceView
         }
     }
 
+    public void mediaSessionAction(int action) {
+        mServo.mediaSessionAction(action);
+    }
+
     public void flushGLBuffers() {
-      requestRender();
+        requestRender();
     }
 
     // Scroll and click

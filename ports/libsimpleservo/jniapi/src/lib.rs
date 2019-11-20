@@ -333,6 +333,16 @@ pub fn Java_org_mozilla_servoview_JNIServo_click(env: JNIEnv, _: JClass, x: jint
     call(&env, |s| s.click(x as f32, y as f32));
 }
 
+#[no_mangle]
+pub fn Java_org_mozilla_servoview_JNIServo_mediaSessionAction(
+    env: JNIEnv,
+    _: JClass,
+    action: jint,
+) {
+    debug!("mediaSessionAction");
+    call(&env, |s| s.media_session_action(action as i32));
+}
+
 pub struct WakeupCallback {
     callback: GlobalRef,
     jvm: Arc<JavaVM>,
@@ -508,6 +518,48 @@ impl HostTrait for HostCallbacks {
     }
 
     fn set_clipboard_contents(&self, _contents: String) {}
+
+    fn on_media_session_metadata(&self, title: String, artist: String, album: String) {
+        info!("on_media_session_metadata");
+        let env = self.jvm.get_env().unwrap();
+        let title = match new_string(&env, &title) {
+            Ok(s) => s,
+            Err(_) => return,
+        };
+        let title = JValue::Object(JObject::from(title));
+
+        let artist = match new_string(&env, &artist) {
+            Ok(s) => s,
+            Err(_) => return,
+        };
+        let artist = JValue::Object(JObject::from(artist));
+
+        let album = match new_string(&env, &album) {
+            Ok(s) => s,
+            Err(_) => return,
+        };
+        let album = JValue::Object(JObject::from(album));
+        env.call_method(
+            self.callbacks.as_obj(),
+            "onMediaSessionMetadata",
+            "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
+            &[title, artist, album],
+        )
+        .unwrap();
+    }
+
+    fn on_media_session_playback_state_change(&self, state: i32) {
+        info!("on_media_session_playback_state_change {:?}", state);
+        let env = self.jvm.get_env().unwrap();
+        let state = JValue::Int(state as jint);
+        env.call_method(
+            self.callbacks.as_obj(),
+            "onMediaSessionPlaybackStateChange",
+            "(I)V",
+            &[state],
+        )
+        .unwrap();
+    }
 }
 
 fn initialize_android_glue(env: &JNIEnv, activity: JObject) {

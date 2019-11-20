@@ -57,7 +57,7 @@ use content_security_policy::CspList;
 use crossbeam_channel::{Receiver, Sender};
 use cssparser::RGBA;
 use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
-use embedder_traits::EventLoopWaker;
+use embedder_traits::{EventLoopWaker, MediaMetadata};
 use encoding_rs::{Decoder, Encoding};
 use euclid::default::{Point2D, Rect, Rotation3D, Transform2D, Transform3D};
 use euclid::Length as EuclidLength;
@@ -94,8 +94,8 @@ use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::rpc::LayoutRPC;
 use script_layout_interface::OpaqueStyleAndLayoutData;
 use script_traits::transferable::MessagePortImpl;
-use script_traits::DrawAPaintImageResult;
-use script_traits::{DocumentActivity, ScriptToConstellationChan, TimerEventId, TimerSource};
+use script_traits::{DocumentActivity, DrawAPaintImageResult};
+use script_traits::{MediaSessionActionType, ScriptToConstellationChan, TimerEventId, TimerSource};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use selectors::matching::ElementSelectorFlags;
 use serde::{Deserialize, Serialize};
@@ -536,6 +536,8 @@ unsafe_no_jsmanaged_fields!(WindowGLContext);
 unsafe_no_jsmanaged_fields!(VideoFrame);
 unsafe_no_jsmanaged_fields!(WebGLContextId);
 unsafe_no_jsmanaged_fields!(Arc<Mutex<dyn AudioRenderer>>);
+unsafe_no_jsmanaged_fields!(MediaSessionActionType);
+unsafe_no_jsmanaged_fields!(MediaMetadata);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]

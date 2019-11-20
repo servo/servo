@@ -138,7 +138,7 @@ use script_traits::{
     DiscardBrowsingContext, DocumentActivity, EventResult, HistoryEntryReplacement,
 };
 use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData, LoadOrigin};
-use script_traits::{MouseButton, MouseEventType, NewLayoutInfo};
+use script_traits::{MediaSessionActionType, MouseButton, MouseEventType, NewLayoutInfo};
 use script_traits::{Painter, ProgressiveWebMetricType, ScriptMsg, ScriptThreadFactory};
 use script_traits::{ScriptToConstellationChan, TimerEvent, TimerSchedulerMsg};
 use script_traits::{TimerSource, TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta};
@@ -1713,6 +1713,7 @@ impl ScriptThread {
                     WebVREvents(id, ..) => Some(id),
                     PaintMetric(..) => None,
                     ExitFullScreen(id, ..) => Some(id),
+                    MediaSessionAction(..) => None,
                 }
             },
             MixedMessage::FromDevtools(_) => None,
@@ -1941,6 +1942,9 @@ impl ScriptThread {
             },
             ConstellationControlMsg::PaintMetric(pipeline_id, metric_type, metric_value) => {
                 self.handle_paint_metric(pipeline_id, metric_type, metric_value)
+            },
+            ConstellationControlMsg::MediaSessionAction(pipeline_id, action) => {
+                self.handle_media_session_action(pipeline_id, action)
             },
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
@@ -3923,6 +3927,15 @@ impl ScriptThread {
                 true, /* buffer performance entry */
             );
         }
+    }
+
+    fn handle_media_session_action(&self, pipeline_id: PipelineId, action: MediaSessionActionType) {
+        if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
+            let media_session = window.Navigator().MediaSession();
+            media_session.handle_action(action);
+        } else {
+            warn!("No MediaSession for this pipeline ID");
+        };
     }
 
     pub fn enqueue_microtask(job: Microtask) {
