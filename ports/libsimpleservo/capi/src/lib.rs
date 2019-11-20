@@ -17,8 +17,7 @@ use env_logger;
 use log::LevelFilter;
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
 use simpleservo::{
-    Coordinates, EventLoopWaker, HostTrait, InitOptions, MouseButton,
-    VRInitOptions,
+    Coordinates, EventLoopWaker, HostTrait, InitOptions, MouseButton, VRInitOptions,
 };
 use std::ffi::{CStr, CString};
 #[cfg(target_os = "windows")]
@@ -713,12 +712,7 @@ impl HostTrait for HostCallbacks {
         (self.0.set_clipboard_contents)(contents.as_ptr());
     }
 
-    fn on_media_session_metadata(
-        &self,
-        title: String,
-        artist: String,
-        album: String,
-    ) {
+    fn on_media_session_metadata(&self, title: String, artist: String, album: String) {
         debug!(
             "on_media_session_metadata ({:?} {:?} {:?})",
             title, artist, album
