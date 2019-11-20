@@ -91,7 +91,6 @@ class Firefox(Browser):
 
     product = "firefox"
     binary = "browsers/firefox/firefox"
-    platform_ini = "browsers/firefox/platform.ini"
     requirements = "requirements_firefox.txt"
 
     platform = {

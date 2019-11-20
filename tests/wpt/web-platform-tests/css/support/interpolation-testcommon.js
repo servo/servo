@@ -260,8 +260,9 @@
     return expectations.map(function(expectation) {
       var actualTargetContainer = createTargetContainer(testContainer, 'actual');
       var expectedTargetContainer = createTargetContainer(testContainer, 'expected');
-      if (!isNeutralKeyframe(expectation.expect)) {
-        expectedTargetContainer.target.style.setProperty(property, expectation.expect);
+      var expectedStr = expectation.option || expectation.expect;
+      if (!isNeutralKeyframe(expectedStr)) {
+        expectedTargetContainer.target.style.setProperty(property, expectedStr);
       }
       var target = actualTargetContainer.target;
       interpolationMethod.setup(property, from, target);
@@ -284,7 +285,7 @@
           comparisonFunction(
               getComputedStyle(target).getPropertyValue(property),
               expectedValue);
-        }, `${testText} at (${expectation.at}) should be [${sanitizeUrls(expectation.expect)}]`);
+        }, `${testText} at (${expectation.at}) should be [${sanitizeUrls(expectedStr)}]`);
       };
       return target;
     });

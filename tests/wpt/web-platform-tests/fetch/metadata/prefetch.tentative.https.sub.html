@@ -21,7 +21,7 @@
       e.onload = t.step_func(e => {
         fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(t.step_func(response => response.text()))
-          .then(t.step_func_done(text => assert_header_equals(text, expected)))
+          .then(t.step_func_done(text => assert_header_equals(text, expected, `<link rel='prefetch' href='https://${host}/...'>`)))
           .catch(t.unreached_func("Fetching and verifying the results should succeed."));
       });
       e.onerror = t.unreached_func();
@@ -30,7 +30,7 @@
     }, `<link rel='prefetch' href='https://${host}/...'>`);
   }
 
-  create_test("{{host}}:{{ports[https][0]}}", {"site":"same-origin", "user":"", "mode": "cors"});
-  create_test("{{hosts[][www]}}:{{ports[https][0]}}", {"site":"same-site", "user":"", "mode": "cors"});
-  create_test("{{hosts[alt][www]}}:{{ports[https][0]}}", {"site":"cross-site", "user":"", "mode": "cors"});
+  create_test("{{host}}:{{ports[https][0]}}", {"site":"same-origin", "user":"", "mode": "cors", "dest": "empty"});
+  create_test("{{hosts[][www]}}:{{ports[https][0]}}", {"site":"same-site", "user":"", "mode": "cors", "dest": "empty"});
+  create_test("{{hosts[alt][www]}}:{{ports[https][0]}}", {"site":"cross-site", "user":"", "mode": "cors", "dest": "empty"});
 </script>

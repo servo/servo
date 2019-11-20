@@ -3,8 +3,9 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: DOM Parsing and Serialization (https://w3c.github.io/DOM-Parsing/)
 
-[Constructor, Exposed=Window]
+[Exposed=Window]
 interface DOMParser {
+  constructor();
   [NewObject] Document parseFromString(DOMString str, SupportedType type);
 };
 
@@ -16,20 +17,21 @@ enum SupportedType {
   "image/svg+xml"
 };
 
-[Constructor, Exposed=Window]
+[Exposed=Window]
 interface XMLSerializer {
+  constructor();
   DOMString serializeToString(Node root);
 };
 
 interface mixin InnerHTML {
-  [CEReactions, TreatNullAs=EmptyString] attribute DOMString innerHTML;
+  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString innerHTML;
 };
 
 Element includes InnerHTML;
 ShadowRoot includes InnerHTML;
 
 partial interface Element {
-  [CEReactions, TreatNullAs=EmptyString] attribute DOMString outerHTML;
+  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString outerHTML;
   [CEReactions] void insertAdjacentHTML(DOMString position, DOMString text);
 };
 

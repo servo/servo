@@ -9,15 +9,13 @@
 
 promise_test(async t => {
   const reader = new NDEFReader();
-  reader.scan();
   const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
-
-  return await new Promise((resolve, reject) => {
-    readerWatcher.wait_for("reading").then(event => {
-      if (document.hidden) reject();
-      resolve();
-    });
+  const promise = readerWatcher.wait_for("reading").then(event => {
+    if (document.hidden) reject();
+    resolve();
   });
+  await reader.scan();
+  await promise;
 }, "Test NDEFReader.onreading is not fired when document is hidden");
 
 </script>

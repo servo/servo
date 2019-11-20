@@ -18,7 +18,8 @@
         "site": "same-origin",
         "user": "",
         "mode": "navigate",
-      });
+        "dest": "document"
+      }, "Same-origin window, forced");
       t.done();
     }));
   }, "Same-origin window, forced");
@@ -34,7 +35,8 @@
         "site": "same-site",
         "user": "",
         "mode": "navigate",
-      });
+        "dest": "document"
+      }, "Same-site window, forced");
       t.done();
     }));
   }, "Same-site window, forced");
@@ -50,7 +52,8 @@
         "site": "cross-site",
         "user": "",
         "mode": "navigate",
-      });
+        "dest": "document"
+      }, "Cross-site window, forced");
       t.done();
     }));
   }, "Cross-site window, forced");
@@ -68,7 +71,8 @@
         "site": "same-origin",
         "user": "",
         "mode": "navigate",
-      });
+        "dest": "document"
+      }, "Same-origin window, forced, reloaded");
 
       if (messages == 1) {
         w.location.reload();
@@ -91,7 +95,8 @@
         "site": "same-site",
         "user": "",
         "mode": "navigate",
-      });
+        "dest": "document"
+      }, "Same-site window, forced, reloaded");
 
       if (messages == 1) {
         w.location.reload();
@@ -114,7 +119,8 @@
         "site": "cross-site",
         "user": "",
         "mode": "navigate",
-      });
+        "dest": "document"
+      }, "Cross-site window, forced, reloaded");
 
       if (messages == 1) {
         w.location.reload();
@@ -138,7 +144,8 @@
           "site": "same-origin",
           "user": "?1",
           "mode": "navigate",
-        });
+          "dest": "document"
+        }, "Same-origin window, user-activated");
         t.done();
       }));
     });
@@ -159,7 +166,8 @@
           "site": "same-site",
           "user": "?1",
           "mode": "navigate",
-        });
+          "dest": "document"
+        }, "Same-site window, user-activated");
         t.done();
       }));
     });
@@ -180,7 +188,8 @@
           "site": "cross-site",
           "user": "?1",
           "mode": "navigate",
-        });
+          "dest": "document"
+        }, "Cross-site window, user-activated");
         t.done();
       }));
     });

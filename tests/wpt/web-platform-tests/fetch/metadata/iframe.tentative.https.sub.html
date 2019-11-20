@@ -17,7 +17,7 @@
         if (e.source != i.contentWindow)
           return;
 
-        assert_header_equals(e.data, expectations);
+        assert_header_equals(e.data, expectations, `{{host}} -> ${host} iframe: ${user_activated ? "user-activated" : "forced"}`);
         t.done();
       }));
 
@@ -44,36 +44,42 @@
   create_test("{{host}}:{{ports[https][0]}}", FORCED, {
     "site": "same-origin",
     "user": "",
-    "mode": "navigate"
+    "mode": "navigate",
+    "dest": "iframe"
   });
 
   create_test("{{hosts[][www]}}:{{ports[https][0]}}", FORCED, {
     "site": "same-site",
     "user": "",
-    "mode": "navigate"
+    "mode": "navigate",
+    "dest": "iframe"
   });
 
   create_test("{{hosts[alt][www]}}:{{ports[https][0]}}", FORCED, {
     "site": "cross-site",
     "user": "",
-    "mode": "navigate"
+    "mode": "navigate",
+    "dest": "iframe"
   });
 
   create_test("{{host}}:{{ports[https][0]}}", USER, {
     "site": "same-origin",
     "user": "?1",
-    "mode": "navigate"
+    "mode": "navigate",
+    "dest": "iframe"
   });
 
   create_test("{{hosts[][www]}}:{{ports[https][0]}}", USER, {
     "site": "same-site",
     "user": "?1",
-    "mode": "navigate"
+    "mode": "navigate",
+    "dest": "iframe"
   });
 
   create_test("{{hosts[alt][www]}}:{{ports[https][0]}}", USER, {
     "site": "cross-site",
     "user": "?1",
-    "mode": "navigate"
+    "mode": "navigate",
+    "dest": "iframe"
   });
 </script>

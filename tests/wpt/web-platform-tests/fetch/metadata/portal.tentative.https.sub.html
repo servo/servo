@@ -14,7 +14,7 @@
     async_test(t => {
       let p = document.createElement('portal');
       p.addEventListener('message', t.step_func(e => {
-        assert_header_equals(e.data, expectations);
+        assert_header_equals(e.data, expectations, `{{host}} -> ${host} portal`);
         t.done();
       }));
 
@@ -27,18 +27,21 @@
   create_test("{{host}}:{{ports[https][0]}}", {
     "site": "same-origin",
     "user": "",
-    "mode": "navigate"
+    "mode": "navigate",
+    "dest": "document"
   });
 
   create_test("{{hosts[][www]}}:{{ports[https][0]}}", {
     "site": "same-site",
     "user": "",
-    "mode": "navigate"
+    "mode": "navigate",
+    "dest": "document"
   });
 
   create_test("{{hosts[alt][www]}}:{{ports[https][0]}}", {
     "site": "cross-site",
     "user": "",
-    "mode": "navigate"
+    "mode": "navigate",
+    "dest": "document"
   });
 </script>

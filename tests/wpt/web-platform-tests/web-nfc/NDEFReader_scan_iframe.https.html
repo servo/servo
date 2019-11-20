@@ -17,7 +17,7 @@ nfc_test(async (t, mockNFC) => {
     assert_true(event instanceof NDEFReadingEvent);
     controller.abort();
   });
-  reader.scan({ signal: controller.signal });
+  await reader.scan({ signal: controller.signal });
 
   const iframe = document.createElement('iframe');
   iframe.src = 'resources/support-iframe.html';

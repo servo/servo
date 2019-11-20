@@ -13,10 +13,8 @@
       let key = "worker-same-origin" + nonce;
       let w = new Worker("/fetch/metadata/resources/record-header.py?file=" + key);
       w.onmessage = e => {
-        let expected = {"site":"same-origin", "user":"", "mode": "same-origin"};
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-          .then(response => response.text())
-          .then(text => assert_header_equals(text, expected))
+        let expected = {"site":"same-origin", "user":"", "mode": "same-origin", "dest": "worker"};
+        validate_expectations(key, expected)
           .then(_ => resolve())
           .catch(e => reject(e));
       };

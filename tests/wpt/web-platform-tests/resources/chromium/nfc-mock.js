@@ -298,13 +298,10 @@ var WebNFCTest = (() => {
 
     reset() {
       this.hw_status_ = NFCHWStatus.ENABLED;
-      this.push_completed_ = true;
       this.watchers_ = [];
       this.reading_messages_ = [];
       this.operations_suspended_ = false;
       this.cancelPendingPushOperation();
-      this.bindingSet_.closeAllBindings();
-      this.interceptor_.stop();
       this.is_ndef_tech_ = true;
       this.is_formatted_tag_ = false;
     }
@@ -389,15 +386,16 @@ var WebNFCTest = (() => {
       if (testInternal.initialized)
         throw new Error('Call reset() before initialize().');
 
-      testInternal.mockNFC = new MockNFC;
+      if (testInternal.mockNFC == null) {
+        testInternal.mockNFC = new MockNFC();
+      }
       testInternal.initialized = true;
     }
-    // Resets state of nfc mocks between test runs.
+    // Reuses the nfc mock but resets its state between test runs.
     async reset() {
       if (!testInternal.initialized)
         throw new Error('Call initialize() before reset().');
       testInternal.mockNFC.reset();
-      testInternal.mockNFC = null;
       testInternal.initialized = false;
 
       await new Promise(resolve => setTimeout(resolve, 0));

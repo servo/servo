@@ -10,7 +10,7 @@
 function add_test(description, report_host, go_back_host, expectations) {
   async_test(t => {
     // STEP1: Navigate a new window to report_host/post-to-owner.py
-    const url_suffix = '/fetch/metadata/resources/post-to-owner.py'
+    const url_suffix = '/fetch/metadata/resources/post-to-owner.py';
     const url = `https://${report_host}${url_suffix}`;
     const w = window.open(url, '_blank');
 
@@ -22,14 +22,14 @@ function add_test(description, report_host, go_back_host, expectations) {
       if (msg_counter == 1) {
         // STEP2: Verify the headers (this is a sanity check that the same
         // headers are used here and in STEP5).
-        assert_header_equals(e.data, expectations);
+        assert_header_equals(e.data, expectations, description + " 1");
 
         // STEP3: Go to go_back_host/go-back.html (postponing this via
         // step_timeout ensures that go-back.html will get a separate
         // history entry - otherwise it might be treated as a client-side
         // redirect and we might end up with nowhere to go back to).
         t.step_timeout(() => {
-          const url_suffix = '/fetch/metadata/resources/go-back.html'
+          const url_suffix = '/fetch/metadata/resources/go-back.html';
           const url = `https://${go_back_host}${url_suffix}`;
           w.location = url;
         });
@@ -38,7 +38,7 @@ function add_test(description, report_host, go_back_host, expectations) {
       } else if (msg_counter == 2) {
         // STEP5: Verify the headers (this is the main verification and focus
         // of the test).
-        assert_header_equals(e.data, expectations);
+        assert_header_equals(e.data, expectations, description + " 2");
 
         // STEP6: Finish the test.
         t.done();
@@ -57,7 +57,9 @@ add_test(
   cross_site_host,  // go_back_host
   { "site": "same-origin",
     "user": "",
-    "mode": "navigate" });
+    "mode": "navigate",
+    "dest": "document"
+  });
 
 add_test(
   "back to same-site-initiated navigation",
@@ -65,7 +67,9 @@ add_test(
   cross_site_host,  // go_back_host
   { "site": "same-site",
     "user": "",
-    "mode": "navigate" });
+    "mode": "navigate",
+    "dest": "document"
+  });
 
 add_test(
   "back to cross-site-initiated navigation",
@@ -73,6 +77,8 @@ add_test(
   cross_site_host,  // go_back_host
   { "site": "cross-site",
     "user": "",
-    "mode": "navigate" });
+    "mode": "navigate",
+    "dest": "document"
+  });
 
 </script>

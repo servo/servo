@@ -1,0 +1,47 @@
+<!doctype html>
+<title>CSSOM View - scrollIntoView scrolls partially-visible element in both inline and block directions.</title>
+<meta charset="utf-8">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=203497">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=916631">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #scroller {
+    width: 200px;
+    height: 200px;
+    padding-top: 200px;
+    padding-left: 200px;
+    background: purple;
+    overflow: hidden;
+  }
+  #child {
+    width: 400px;
+    height: 400px;
+    background: green;
+  }
+</style>
+<div id="scroller">
+  <div id="child"></div>
+</div>
+<script>
+  test(function() {
+    let scroller = document.getElementById("scroller");
+    let child = document.getElementById("child");
+
+    scroller.scrollTop = 0;
+    scroller.scrollLeft = 0;
+
+    assert_equals(scroller.scrollTop, 0, "Precondition");
+    assert_equals(scroller.scrollLeft, 0, "Precondition");
+    assert_not_equals(scroller.scrollTopMax, 0, "Precondition")
+    assert_not_equals(scroller.scrollLeftMax, 0, "Precondition")
+
+    child.scrollIntoView();
+
+    assert_equals(scroller.scrollTop, 200, "Should have scrolled in the block direction");
+    assert_equals(scroller.scrollLeft, 200, "Should have scrolled in the inline direction");
+  }, "scrollIntoView scrolls partially-visible child in both axes");
+</script>

@@ -10,9 +10,7 @@
   function generate_test(expected, name) {
     async_test(t => {
       t.step_timeout(_ => {
-        return fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=report-" + name)
-            .then(response => response.text())
-            .then(text => assert_header_equals(text, expected))
+        return validate_expectations("report-" + name, expected, name + " report")
             .then(_ => t.done());
       }, 1000);
     }, name + " report");
@@ -22,9 +20,9 @@
   document.addEventListener("securitypolicyviolation", (e) => {
     counter++;
     if (counter == 3) {
-      generate_test({"site":"same-origin", "user":"", "mode": "no-cors"}, "same-origin");
-      generate_test({"site":"same-site", "user":"", "mode": "no-cors"}, "same-site");
-      generate_test({"site":"cross-site", "user":"", "mode": "no-cors"}, "cross-site");
+      generate_test({"site":"same-origin", "user":"", "mode": "no-cors", "dest": "report"}, "same-origin");
+      generate_test({"site":"same-site", "user":"", "mode": "no-cors", "dest": "report"}, "same-site");
+      generate_test({"site":"cross-site", "user":"", "mode": "no-cors", "dest": "report"}, "cross-site");
 
       done();
     }

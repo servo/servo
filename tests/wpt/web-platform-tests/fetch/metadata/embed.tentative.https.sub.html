@@ -23,7 +23,7 @@
         let el = document.createElement('embed');
         el.src = origins[site] + "/fetch/metadata/resources/record-header.py?file=" + key;
         el.onload = _ => {
-          let expected = {"dest": "embed", "site": site, "user": "", "mode":"no-cors"};
+          let expected = {"dest": "embed", "site": site, "user": "", "mode": "navigate"};
           validate_expectations(key, expected, site + " embed")
             .then(resolve)
             .catch(reject);
@@ -41,7 +41,7 @@
         el.src = "/common/blank.html";
         el.addEventListener("load", _ => {
           el.addEventListener("load", _ => {
-            let expected = {"dest": "embed", "site": site, "user":"", "mode":"no-cors"};
+            let expected = {"dest": "embed", "site": site, "user":"", "mode":"navigate"};
             validate_expectations(key, expected, "Navigate to " + site + " embed")
               .then(resolve)
               .catch(reject);

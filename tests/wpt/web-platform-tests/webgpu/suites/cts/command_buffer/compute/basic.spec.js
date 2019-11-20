@@ -84,7 +84,7 @@ g.test('memcpy', async t => {
   pass.setBindGroup(0, bg);
   pass.dispatch(1, 1, 1);
   pass.endPass();
-  t.device.getQueue().submit([encoder.finish()]);
+  t.device.defaultQueue.submit([encoder.finish()]);
   t.expectContents(dst, data);
 });
 //# sourceMappingURL=basic.spec.js.map

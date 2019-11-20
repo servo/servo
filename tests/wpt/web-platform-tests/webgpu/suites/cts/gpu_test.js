@@ -25,7 +25,7 @@ export class GPUTest extends Fixture {
     const gpu = getGPU();
     const adapter = await gpu.requestAdapter();
     this.device = await adapter.requestDevice();
-    this.queue = this.device.getQueue();
+    this.queue = this.device.defaultQueue;
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
     if (isSafari) {
