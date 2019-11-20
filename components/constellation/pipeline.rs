@@ -48,7 +48,6 @@ use std::process;
 use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use webgpu::WebGPU;
 use webvr_traits::WebVRMsg;
 
 /// A `Pipeline` is the constellation's view of a `Document`. Each pipeline has an
@@ -194,9 +193,6 @@ pub struct InitialPipelineState {
     /// A channel to the WebGL thread.
     pub webgl_chan: Option<WebGLPipeline>,
 
-    /// A channel to the WebGPU threads.
-    pub webgpu: Option<WebGPU>,
-
     /// A channel to the webvr thread.
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
 
@@ -309,7 +305,6 @@ impl Pipeline {
                     webrender_document: state.webrender_document,
                     webgl_chan: state.webgl_chan,
                     webvr_chan: state.webvr_chan,
-                    webgpu: state.webgpu,
                     webxr_registry: state.webxr_registry,
                     player_context: state.player_context,
                 };
@@ -516,7 +511,6 @@ pub struct UnprivilegedPipelineContent {
     webrender_image_api_sender: net_traits::WebrenderIpcSender,
     webrender_document: webrender_api::DocumentId,
     webgl_chan: Option<WebGLPipeline>,
-    webgpu: Option<WebGPU>,
     webvr_chan: Option<IpcSender<WebVRMsg>>,
     webxr_registry: webxr_api::Registry,
     player_context: WindowGLContext,
@@ -569,7 +563,6 @@ impl UnprivilegedPipelineContent {
                 pipeline_namespace_id: self.pipeline_namespace_id,
                 content_process_shutdown_chan: content_process_shutdown_chan,
                 webgl_chan: self.webgl_chan,
-                webgpu: self.webgpu,
                 webvr_chan: self.webvr_chan,
                 webxr_registry: self.webxr_registry,
                 webrender_document: self.webrender_document,

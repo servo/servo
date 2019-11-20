@@ -25,11 +25,13 @@ use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::typedarray::{ArrayBuffer, CreateWith};
 use std::ptr::{self, NonNull};
 use webgpu::wgpu::resource::{BufferDescriptor, BufferUsage};
-use webgpu::{WebGPUBuffer, WebGPUDevice, WebGPURequest};
+use webgpu::{WebGPU, WebGPUBuffer, WebGPUDevice, WebGPURequest};
 
 #[dom_struct]
 pub struct GPUDevice {
     eventtarget: EventTarget,
+    #[ignore_malloc_size_of = "channels are hard"]
+    channel: WebGPU,
     adapter: Dom<GPUAdapter>,
     #[ignore_malloc_size_of = "mozjs"]
     extensions: Heap<*mut JSObject>,
@@ -41,6 +43,7 @@ pub struct GPUDevice {
 
 impl GPUDevice {
     fn new_inherited(
+        channel: WebGPU,
         adapter: &GPUAdapter,
         extensions: Heap<*mut JSObject>,
         limits: Heap<*mut JSObject>,
@@ -48,6 +51,7 @@ impl GPUDevice {
     ) -> GPUDevice {
         Self {
             eventtarget: EventTarget::new_inherited(),
+            channel,
             adapter: Dom::from_ref(adapter),
             extensions,
             limits,
@@ -59,6 +63,7 @@ impl GPUDevice {
     #[allow(unsafe_code)]
     pub fn new(
         global: &GlobalScope,
+        channel: WebGPU,
         adapter: &GPUAdapter,
         extensions: Heap<*mut JSObject>,
         limits: Heap<*mut JSObject>,
@@ -66,7 +71,7 @@ impl GPUDevice {
     ) -> DomRoot<GPUDevice> {
         reflect_dom_object(
             Box::new(GPUDevice::new_inherited(
-                adapter, extensions, limits, device,
+                channel, adapter, extensions, limits, device,
             )),
             global,
             GPUDeviceBinding::Wrap,
@@ -78,7 +83,6 @@ impl GPUDevice {
     unsafe fn resolve_create_buffer_mapped(
         &self,
         cx: SafeJSContext,
-        channel: ipc_channel::ipc::IpcSender<WebGPURequest>,
         gpu_buffer: WebGPUBuffer,
         array_buffer: Vec<u8>,
         descriptor: BufferDescriptor,
@@ -95,7 +99,7 @@ impl GPUDevice {
 
         let buff = GPUBuffer::new(
             &self.global(),
-            channel,
+            self.channel.clone(),
             gpu_buffer,
             self.device,
             GPUBufferState::Mapped,
@@ -165,25 +169,18 @@ impl GPUDeviceMethods for GPUDevice {
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer
     fn CreateBuffer(&self, descriptor: &GPUBufferDescriptor) -> DomRoot<GPUBuffer> {
         let (valid, wgpu_descriptor) = self.validate_buffer_descriptor(descriptor);
-        let channel;
         let (sender, receiver) = ipc::channel().unwrap();
         if let Some(window) = self.global().downcast::<Window>() {
             let id = window.Navigator().create_buffer_id(self.device.0.backend());
-            match window.webgpu_channel() {
-                Some(thread) => {
-                    channel = thread.0.clone();
-                    thread
-                        .0
-                        .send(WebGPURequest::CreateBuffer(
-                            sender,
-                            self.device,
-                            id,
-                            wgpu_descriptor,
-                        ))
-                        .unwrap();
-                },
-                None => unimplemented!(),
-            }
+            self.channel
+                .0
+                .send(WebGPURequest::CreateBuffer(
+                    sender,
+                    self.device,
+                    id,
+                    wgpu_descriptor,
+                ))
+                .unwrap();
         } else {
             unimplemented!()
         };
@@ -192,7 +189,7 @@ impl GPUDeviceMethods for GPUDevice {
 
         GPUBuffer::new(
             &self.global(),
-            channel,
+            self.channel.clone(),
             buffer,
             self.device,
             GPUBufferState::Unmapped,
@@ -209,26 +206,19 @@ impl GPUDeviceMethods for GPUDevice {
         descriptor: &GPUBufferDescriptor,
     ) -> Vec<JSVal> {
         let (valid, wgpu_descriptor) = self.validate_buffer_descriptor(descriptor);
-        let channel;
         let (sender, receiver) = ipc::channel().unwrap();
         rooted!(in(*cx) let js_val = UndefinedValue());
         if let Some(window) = self.global().downcast::<Window>() {
             let id = window.Navigator().create_buffer_id(self.device.0.backend());
-            match window.webgpu_channel() {
-                Some(thread) => {
-                    channel = thread.0.clone();
-                    thread
-                        .0
-                        .send(WebGPURequest::CreateBufferMapped(
-                            sender,
-                            self.device,
-                            id,
-                            wgpu_descriptor.clone(),
-                        ))
-                        .unwrap()
-                },
-                None => return vec![js_val.get()],
-            }
+            self.channel
+                .0
+                .send(WebGPURequest::CreateBufferMapped(
+                    sender,
+                    self.device,
+                    id,
+                    wgpu_descriptor.clone(),
+                ))
+                .unwrap()
         } else {
             return vec![js_val.get()];
         };
@@ -236,14 +226,7 @@ impl GPUDeviceMethods for GPUDevice {
         let (buffer, array_buffer) = receiver.recv().unwrap();
 
         unsafe {
-            self.resolve_create_buffer_mapped(
-                cx,
-                channel,
-                buffer,
-                array_buffer,
-                wgpu_descriptor,
-                valid,
-            )
+            self.resolve_create_buffer_mapped(cx, buffer, array_buffer, wgpu_descriptor, valid)
         }
     }
 }

@@ -36,6 +36,7 @@ profile_traits = {path = "../profile_traits"}
 serde = "1.0"
 servo_atoms = {path = "../atoms"}
 servo_url = {path = "../url"}
+smallvec = "0.6"
 style_traits = {path = "../style_traits", features = ["servo"]}
 time = "0.1.12"
 url = "2.0"

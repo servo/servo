@@ -30,10 +30,12 @@ use net_traits::storage_thread::StorageType;
 use net_traits::CoreResourceMsg;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
+use smallvec::SmallVec;
 use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
+use webgpu::{wgpu, WebGPUResponseResult};
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 
 /// A particular iframe's size, associated with a browsing context.
@@ -257,6 +259,12 @@ pub enum ScriptMsg {
     /// Notifies the constellation about media session events
     /// (i.e. when there is metadata for the active media session, playback state changes...).
     MediaSessionEvent(PipelineId, MediaSessionEvent),
+    /// Create a WebGPU Adapter instance
+    RequestAdapter(
+        IpcSender<WebGPUResponseResult>,
+        wgpu::instance::RequestAdapterOptions,
+        SmallVec<[wgpu::id::AdapterId; 4]>,
+    ),
 }
 
 impl fmt::Debug for ScriptMsg {
@@ -309,6 +317,7 @@ impl fmt::Debug for ScriptMsg {
             GetScreenSize(..) => "GetScreenSize",
             GetScreenAvailSize(..) => "GetScreenAvailSize",
             MediaSessionEvent(..) => "MediaSessionEvent",
+            RequestAdapter(..) => "RequestAdapter",
         };
         write!(formatter, "ScriptMsg::{}", variant)
     }

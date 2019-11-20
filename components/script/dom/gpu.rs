@@ -19,9 +19,10 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
+use script_traits::ScriptMsg;
 use std::rc::Rc;
 use webgpu::wgpu;
-use webgpu::{WebGPU, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
+use webgpu::{WebGPUResponse, WebGPUResponseResult};
 
 #[dom_struct]
 pub struct GPU {
@@ -37,10 +38,6 @@ impl GPU {
 
     pub fn new(global: &GlobalScope) -> DomRoot<GPU> {
         reflect_dom_object(Box::new(GPU::new_inherited()), global, GPUBinding::Wrap)
-    }
-
-    fn wgpu_channel(&self) -> Option<WebGPU> {
-        self.global().as_window().webgpu_channel()
     }
 }
 
@@ -114,7 +111,8 @@ impl GPUMethods for GPU {
         options: &GPURequestAdapterOptions,
         comp: InCompartment,
     ) -> Rc<Promise> {
-        let promise = Promise::new_in_current_compartment(&self.global(), comp);
+        let global = &self.global();
+        let promise = Promise::new_in_current_compartment(global, comp);
         let sender = response_async(&promise, self);
         let power_preference = match options.powerPreference {
             Some(GPUPowerPreference::Low_power) => wgpu::instance::PowerPreference::LowPower,
@@ -123,21 +121,21 @@ impl GPUMethods for GPU {
             },
             None => wgpu::instance::PowerPreference::Default,
         };
-        let ids = self.global().as_window().Navigator().create_adapter_ids();
+        let ids = global.as_window().Navigator().create_adapter_ids();
 
-        match self.wgpu_channel() {
-            Some(channel) => {
-                channel
-                    .0
-                    .send(WebGPURequest::RequestAdapter(
-                        sender,
-                        wgpu::instance::RequestAdapterOptions { power_preference },
-                        ids,
-                    ))
-                    .unwrap();
-            },
-            None => promise.reject_error(Error::Type("No WebGPU thread...".to_owned())),
-        };
+        let script_to_constellation_chan = global.script_to_constellation_chan();
+        if script_to_constellation_chan
+            .send(ScriptMsg::RequestAdapter(
+                sender,
+                wgpu::instance::RequestAdapterOptions { power_preference },
+                ids,
+            ))
+            .is_err()
+        {
+            promise.reject_error(Error::Type(
+                "Failed to send adapter request to constellation...".to_owned(),
+            ));
+        }
         promise
     }
 }
@@ -145,9 +143,10 @@ impl GPUMethods for GPU {
 impl AsyncWGPUListener for GPU {
     fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
         match response {
-            WebGPUResponse::RequestAdapter(name, adapter) => {
+            WebGPUResponse::RequestAdapter(name, adapter, channel) => {
                 let adapter = GPUAdapter::new(
                     &self.global(),
+                    channel,
                     DOMString::from(format!("{} ({:?})", name, adapter.0.backend())),
                     Heap::default(),
                     adapter,

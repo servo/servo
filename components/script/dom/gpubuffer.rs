@@ -11,9 +11,8 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
-use webgpu::{WebGPUBuffer, WebGPUDevice, WebGPURequest};
+use webgpu::{WebGPU, WebGPUBuffer, WebGPUDevice, WebGPURequest};
 
 #[derive(MallocSizeOf)]
 pub enum GPUBufferState {
@@ -26,7 +25,7 @@ pub enum GPUBufferState {
 pub struct GPUBuffer {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "channels are hard"]
-    channel: IpcSender<WebGPURequest>,
+    channel: WebGPU,
     label: DomRefCell<Option<DOMString>>,
     size: GPUBufferSize,
     usage: u32,
@@ -38,7 +37,7 @@ pub struct GPUBuffer {
 
 impl GPUBuffer {
     fn new_inherited(
-        channel: IpcSender<WebGPURequest>,
+        channel: WebGPU,
         buffer: WebGPUBuffer,
         device: WebGPUDevice,
         state: GPUBufferState,
@@ -62,7 +61,7 @@ impl GPUBuffer {
     #[allow(unsafe_code)]
     pub fn new(
         global: &GlobalScope,
-        channel: IpcSender<WebGPURequest>,
+        channel: WebGPU,
         buffer: WebGPUBuffer,
         device: WebGPUDevice,
         state: GPUBufferState,
@@ -90,6 +89,7 @@ impl GPUBufferMethods for GPUBuffer {
     /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap
     fn Unmap(&self) {
         self.channel
+            .0
             .send(WebGPURequest::UnmapBuffer(self.buffer))
             .unwrap();
     }
@@ -103,6 +103,7 @@ impl GPUBufferMethods for GPUBuffer {
             _ => {},
         };
         self.channel
+            .0
             .send(WebGPURequest::DestroyBuffer(self.buffer))
             .unwrap();
         *self.state.borrow_mut() = GPUBufferState::Destroyed;

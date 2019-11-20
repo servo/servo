@@ -521,6 +521,7 @@ unsafe_no_jsmanaged_fields!(WebGLTextureId);
 unsafe_no_jsmanaged_fields!(WebGLVertexArrayId);
 unsafe_no_jsmanaged_fields!(WebGLVersion);
 unsafe_no_jsmanaged_fields!(WebGLSLVersion);
+unsafe_no_jsmanaged_fields!(RefCell<Option<WebGPU>>);
 unsafe_no_jsmanaged_fields!(RefCell<Identities>);
 unsafe_no_jsmanaged_fields!(WebGPU);
 unsafe_no_jsmanaged_fields!(WebGPUAdapter);

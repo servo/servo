@@ -16,7 +16,7 @@ use smallvec::SmallVec;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebGPUResponse {
-    RequestAdapter(String, WebGPUAdapter),
+    RequestAdapter(String, WebGPUAdapter, WebGPU),
     RequestDevice(WebGPUDevice, wgpu::instance::DeviceDescriptor),
 }
 
@@ -70,11 +70,12 @@ impl WebGPU {
                 return None;
             },
         };
+        let sender_clone = sender.clone();
 
         if let Err(e) = std::thread::Builder::new()
             .name("WGPU".to_owned())
             .spawn(move || {
-                WGPU::new(receiver).run();
+                WGPU::new(receiver, sender_clone).run();
             })
         {
             warn!("Failed to spwan WGPU thread ({})", e);
@@ -92,6 +93,7 @@ impl WebGPU {
 
 struct WGPU {
     receiver: IpcReceiver<WebGPURequest>,
+    sender: IpcSender<WebGPURequest>,
     global: wgpu::hub::Global<()>,
     adapters: Vec<WebGPUAdapter>,
     devices: Vec<WebGPUDevice>,
@@ -100,9 +102,10 @@ struct WGPU {
 }
 
 impl WGPU {
-    fn new(receiver: IpcReceiver<WebGPURequest>) -> Self {
+    fn new(receiver: IpcReceiver<WebGPURequest>, sender: IpcSender<WebGPURequest>) -> Self {
         WGPU {
             receiver,
+            sender,
             global: wgpu::hub::Global::new("wgpu-core"),
             adapters: Vec::new(),
             devices: Vec::new(),
@@ -118,30 +121,41 @@ impl WGPU {
         while let Ok(msg) = self.receiver.recv() {
             match msg {
                 WebGPURequest::RequestAdapter(sender, options, ids) => {
-                    let adapter_id = match self.global.pick_adapter(
-                        &options,
-                        wgpu::instance::AdapterInputs::IdSet(&ids, |id| id.backend()),
-                    ) {
-                        Some(id) => id,
-                        None => {
-                            if let Err(e) =
-                                sender.send(Err("Failed to get webgpu adapter".to_string()))
-                            {
-                                warn!(
-                                    "Failed to send response to WebGPURequest::RequestAdapter ({})",
-                                    e
-                                )
-                            }
-                            return;
-                        },
+                    let adapter_id = if let Some(pos) = self
+                        .adapters
+                        .iter()
+                        .position(|adapter| ids.contains(&adapter.0))
+                    {
+                        self.adapters[pos].0
+                    } else {
+                        let adapter_id = match self.global.pick_adapter(
+                            &options,
+                            wgpu::instance::AdapterInputs::IdSet(&ids, |id| id.backend()),
+                        ) {
+                            Some(id) => id,
+                            None => {
+                                if let Err(e) =
+                                    sender.send(Err("Failed to get webgpu adapter".to_string()))
+                                {
+                                    warn!(
+                                        "Failed to send response to WebGPURequest::RequestAdapter ({})",
+                                        e
+                                    )
+                                }
+                                return;
+                            },
+                        };
+                        adapter_id
                     };
                     let adapter = WebGPUAdapter(adapter_id);
                     self.adapters.push(adapter);
                     let global = &self.global;
                     let info = gfx_select!(adapter_id => global.adapter_get_info(adapter_id));
-                    if let Err(e) =
-                        sender.send(Ok(WebGPUResponse::RequestAdapter(info.name, adapter)))
-                    {
+                    if let Err(e) = sender.send(Ok(WebGPUResponse::RequestAdapter(
+                        info.name,
+                        adapter,
+                        WebGPU(self.sender.clone()),
+                    ))) {
                         warn!(
                             "Failed to send response to WebGPURequest::RequestAdapter ({})",
                             e

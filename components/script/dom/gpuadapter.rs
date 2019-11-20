@@ -23,11 +23,13 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use std::ptr::NonNull;
 use std::rc::Rc;
-use webgpu::{wgpu, WebGPUAdapter, WebGPURequest, WebGPUResponse};
+use webgpu::{wgpu, WebGPU, WebGPUAdapter, WebGPURequest, WebGPUResponse};
 
 #[dom_struct]
 pub struct GPUAdapter {
     reflector_: Reflector,
+    #[ignore_malloc_size_of = "channels are hard"]
+    channel: WebGPU,
     name: DOMString,
     #[ignore_malloc_size_of = "mozjs"]
     extensions: Heap<*mut JSObject>,
@@ -36,12 +38,14 @@ pub struct GPUAdapter {
 
 impl GPUAdapter {
     pub fn new_inherited(
+        channel: WebGPU,
         name: DOMString,
         extensions: Heap<*mut JSObject>,
         adapter: WebGPUAdapter,
     ) -> GPUAdapter {
         GPUAdapter {
             reflector_: Reflector::new(),
+            channel,
             name,
             extensions,
             adapter,
@@ -50,12 +54,15 @@ impl GPUAdapter {
 
     pub fn new(
         global: &GlobalScope,
+        channel: WebGPU,
         name: DOMString,
         extensions: Heap<*mut JSObject>,
         adapter: WebGPUAdapter,
     ) -> DomRoot<GPUAdapter> {
         reflect_dom_object(
-            Box::new(GPUAdapter::new_inherited(name, extensions, adapter)),
+            Box::new(GPUAdapter::new_inherited(
+                channel, name, extensions, adapter,
+            )),
             global,
             GPUAdapterBinding::Wrap,
         )
@@ -89,12 +96,15 @@ impl GPUAdapterMethods for GPUAdapter {
             let id = window
                 .Navigator()
                 .create_device_id(self.adapter.0.backend());
-            match window.webgpu_channel() {
-                Some(thread) => thread
-                    .0
-                    .send(WebGPURequest::RequestDevice(sender, self.adapter, desc, id))
-                    .unwrap(),
-                None => promise.reject_error(Error::Type("No WebGPU thread...".to_owned())),
+            if self
+                .channel
+                .0
+                .send(WebGPURequest::RequestDevice(sender, self.adapter, desc, id))
+                .is_err()
+            {
+                promise.reject_error(Error::Type(
+                    "Failed to send RequestDevice message...".to_owned(),
+                ));
             }
         } else {
             promise.reject_error(Error::Type("No WebGPU thread...".to_owned()))
@@ -109,6 +119,7 @@ impl AsyncWGPUListener for GPUAdapter {
             WebGPUResponse::RequestDevice(device_id, _descriptor) => {
                 let device = GPUDevice::new(
                     &self.global(),
+                    self.channel.clone(),
                     &self,
                     Heap::default(),
                     Heap::default(),
