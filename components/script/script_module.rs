@@ -265,7 +265,7 @@ pub enum ModuleStatus {
 
 impl ModuleTree {
     #[allow(unsafe_code)]
-    /// https://html.spec.whatwg.org/multipage/#creating-a-javascript-module-script
+    /// https://html.spec.whatwg.org/multipage/#creating-a-module-script
     /// Step 7-11.
     fn compile_module_script(
         &self,
