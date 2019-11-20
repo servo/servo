@@ -5,7 +5,7 @@
 //! A headless window implementation.
 
 use crate::window_trait::WindowPortsMethods;
-use euclid::{default::Size2D as UntypedSize2D, Point2D, Rotation3D, Scale, Size2D, UnknownUnit};
+use euclid::{default::Size2D as UntypedSize2D, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
 use gleam::gl;
 use glutin;
 use servo::compositing::windowing::{AnimationState, WindowEvent};
@@ -245,5 +245,9 @@ impl webxr::glwindow::GlWindow for Window {
     }
     fn get_rotation(&self) -> Rotation3D<f32, UnknownUnit, UnknownUnit> {
         Rotation3D::identity()
+    }
+
+    fn get_translation(&self) -> Vector3D<f32, UnknownUnit> {
+        Vector3D::zero()
     }
 }
