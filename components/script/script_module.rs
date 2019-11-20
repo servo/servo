@@ -684,11 +684,12 @@ impl ModuleOwner {
                     // FIXME: while having a `failed` descendant, the Promise all will
                     //        be rejected directly without waiting fetching descendants.
                     let descendant_urls = module_tree.get_descendant_urls().borrow();
-                    if descendant_urls.iter().any(|descendant_url| {
+                    let is_any_fetching = descendant_urls.iter().any(|descendant_url| {
                         let descendant_tree = module_map.get(&descendant_url.clone());
                         let descendant_status = descendant_tree.unwrap().get_status();
                         descendant_status < ModuleStatus::FetchFailed
-                    }) {
+                    });
+                    if is_any_fetching {
                         return;
                     }
                 }
@@ -1291,12 +1292,14 @@ fn fetch_module_descendants(
                                             ModuleStatus::Initial | ModuleStatus::Fetching => {},
                                             ModuleStatus::FetchingDescendants => {
                                                 let descendant_urls = module_tree.get_descendant_urls().borrow();
+                                                let all_gt_fetching_descendants =
+                                                    descendant_urls.iter().all(|descendant_url| {
+                                                        let descendant_tree = module_map.get(&descendant_url.clone());
+                                                        let descendant_status = descendant_tree.unwrap().get_status();
+                                                        descendant_status >= ModuleStatus::FetchingDescendants
+                                                    });
 
-                                                if descendant_urls.iter().all(|descendant_url| {
-                                                    let descendant_tree = module_map.get(&descendant_url.clone());
-                                                    let descendant_status = descendant_tree.unwrap().get_status();
-                                                    descendant_status >= ModuleStatus::FetchingDescendants
-                                                }) {
+                                                if all_gt_fetching_descendants {
                                                     let module_error = module_tree.get_error().borrow();
 
                                                     if module_error.is_some() {
