@@ -167,7 +167,7 @@ def linux_tidy_unit_untrusted():
     return (
         decisionlib.DockerWorkerTask("Tidy + dev build + unit tests")
         .with_worker_type("docker-untrusted")
-        .with_treeherder("Linux x64", "Tidy+Unit")
+        .with_treeherder("Linux", "Tidy+Unit")
         .with_max_run_time_minutes(60)
         .with_dockerfile(dockerfile_path("build"))
         .with_env(**build_env, **unix_build_env, **linux_build_env)
@@ -192,7 +192,7 @@ def linux_tidy_unit_untrusted():
 def linux_tidy_unit():
     return (
         linux_build_task("Tidy + dev build + unit tests")
-        .with_treeherder("Linux x64", "Tidy+Unit")
+        .with_treeherder("Linux", "Tidy+Unit")
         .with_script("""
             ./mach test-tidy --no-progress --all
             ./mach build --dev
@@ -215,7 +215,7 @@ def linux_tidy_unit():
 def linux_docs_check():
     return (
         linux_build_task("Docs + check")
-        .with_treeherder("Linux x64", "Doc+Check")
+        .with_treeherder("Linux", "Doc+Check")
         .with_script("""
             rustup component add rust-docs
             RUSTDOCFLAGS="--disable-minification" ./mach doc
@@ -247,7 +247,7 @@ def upload_docs():
     docs_build_task_id = decisionlib.Task.find("docs." + CONFIG.task_id())
     return (
         linux_task("Upload docs to GitHub Pages")
-        .with_treeherder("Linux x64", "DocUpload")
+        .with_treeherder("Linux", "DocUpload")
         .with_dockerfile(dockerfile_path("base"))
         .with_curl_artifact_script(docs_build_task_id, "docs.bundle")
         .with_features("taskclusterProxy")
@@ -273,7 +273,7 @@ def upload_docs():
 def macos_unit():
     return (
         macos_build_task("Dev build + unit tests")
-        .with_treeherder("macOS x64", "Unit")
+        .with_treeherder("macOS", "Unit")
         .with_script("""
             ./mach build --dev --verbose
             ./mach test-unit
@@ -293,7 +293,7 @@ def with_rust_nightly():
 
     return (
         linux_build_task("with Rust Nightly", build_env=modified_build_env, install_rustc_dev=False)
-        .with_treeherder("Linux x64", "RustNightly")
+        .with_treeherder("Linux", "RustNightly")
         .with_script("""
             echo "nightly" > rust-toolchain
             rustup component add rustc-dev
@@ -431,7 +431,7 @@ def windows_arm64():
 def windows_uwp_x64():
     return (
         windows_build_task("UWP dev build", package=False)
-        .with_treeherder("Windows x64")
+        .with_treeherder("Windows")
         .with_script(
             "python mach build --dev --target=x86_64-uwp-windows-msvc",
             "python mach package --dev --target=x86_64-uwp-windows-msvc --uwp=x64",
@@ -444,7 +444,7 @@ def windows_uwp_x64():
 def uwp_nightly():
     return (
         windows_build_task("Nightly UWP build and upload", package=False)
-        .with_treeherder("Windows x64", "UWP Nightly")
+        .with_treeherder("Windows", "UWP Nightly")
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/s3-upload-credentials")
         .with_script(
@@ -462,7 +462,7 @@ def uwp_nightly():
 def windows_unit(cached=True):
     task = (
         windows_build_task("Dev build + unit tests")
-        .with_treeherder("Windows x64", "Unit")
+        .with_treeherder("Windows", "Unit")
         .with_script(
             # Not necessary as this would be done at the start of `build`,
             # but this allows timing it separately.
@@ -486,7 +486,7 @@ def windows_unit(cached=True):
 def windows_release():
     return (
         windows_build_task("Release build")
-        .with_treeherder("Windows x64", "Release")
+        .with_treeherder("Windows", "Release")
         .with_script("mach build --release",
                      "mach package --release")
         .with_artifacts("repo/target/release/msi/Servo.exe",
@@ -498,7 +498,7 @@ def windows_release():
 def windows_nightly():
     return (
         windows_build_task("Nightly build and upload")
-        .with_treeherder("Windows x64", "Nightly")
+        .with_treeherder("Windows", "Nightly")
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/s3-upload-credentials")
         .with_script("mach fetch",
@@ -514,7 +514,7 @@ def windows_nightly():
 def linux_nightly():
     return (
         linux_build_task("Nightly build and upload")
-        .with_treeherder("Linux x64", "Nightly")
+        .with_treeherder("Linux", "Nightly")
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/s3-upload-credentials")
         # Not reusing the build made for WPT because it has debug assertions
@@ -531,7 +531,7 @@ def linux_nightly():
 def linux_release():
     return (
         linux_build_task("Release build")
-        .with_treeherder("Linux x64", "Release")
+        .with_treeherder("Linux", "Release")
         .with_script(
             "./mach build --release",
             "./mach package --release",
@@ -542,7 +542,7 @@ def linux_release():
 def linux_wpt():
     release_build_task = (
         linux_build_task("Release build, with debug assertions")
-        .with_treeherder("Linux x64", "Release+A")
+        .with_treeherder("Linux", "Release+A")
         .with_script("""
             ./mach build --release --with-debug-assertions -p servo
             ./etc/ci/lockfile_changed.sh
@@ -556,14 +556,14 @@ def linux_wpt():
     )
     def linux_run_task(name):
         return linux_task(name).with_dockerfile(dockerfile_path("run"))
-    wpt_chunks("Linux x64", linux_run_task, release_build_task, repo_dir="/repo",
+    wpt_chunks("Linux", linux_run_task, release_build_task, repo_dir="/repo",
                total_chunks=4, processes=12)
 
 
 def macos_nightly():
     return (
         macos_build_task("Nightly build and upload")
-        .with_treeherder("macOS x64", "Nightly")
+        .with_treeherder("macOS", "Nightly")
         .with_features("taskclusterProxy")
         .with_scopes(
             "secrets:get:project/servo/s3-upload-credentials",
@@ -584,7 +584,7 @@ def update_wpt():
     update_task = (
         macos_task("WPT update")
         .with_python2()
-        .with_treeherder("macOS x64", "WPT update")
+        .with_treeherder("macOS", "WPT update")
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/wpt-sync")
         .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
@@ -612,7 +612,7 @@ def update_wpt():
 def macos_release_build_with_debug_assertions(priority=None):
     return (
         macos_build_task("Release build, with debug assertions")
-        .with_treeherder("macOS x64", "Release+A")
+        .with_treeherder("macOS", "Release+A")
         .with_priority(priority)
         .with_script("\n".join([
             "./mach build --release --verbose --with-debug-assertions",
@@ -635,7 +635,7 @@ def macos_wpt():
         task = macos_task(name).with_python2()
         return with_homebrew(task, ["etc/taskcluster/macos/Brewfile-gstreamer"])
     wpt_chunks(
-        "macOS x64",
+        "macOS",
         macos_run_task,
         build_task,
         repo_dir="repo",
@@ -651,7 +651,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
         chunks = range(total_chunks + 1)
     for this_chunk in chunks:
         task = (
-            make_chunk_task("WPT chunk {:0{width}} / {}".format(
+            make_chunk_task("WPT {:0{width}} / {}".format(
                 this_chunk, total_chunks, width=len(str(total_chunks)),
             ))
             .with_treeherder(platform, "WPT-%s" % this_chunk)
@@ -996,7 +996,6 @@ def magicleap_nightly():
     )
 
 
-CONFIG.task_name_template = "Servo: %s"
 CONFIG.docker_images_expire_in = build_dependencies_artifacts_expire_in
 CONFIG.repacked_msi_files_expire_in = build_dependencies_artifacts_expire_in
 CONFIG.index_prefix = "project.servo"
