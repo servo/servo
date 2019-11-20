@@ -553,7 +553,7 @@ impl ModuleOwner {
     pub fn global(&self) -> DomRoot<GlobalScope> {
         match &self {
             ModuleOwner::Worker(worker) => (*worker.root().clone()).global(),
-            ModuleOwner::Window(script) => document_from_node(&*script.root()).global(),
+            ModuleOwner::Window(script) => (*script.root()).global(),
         }
     }
 
