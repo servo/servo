@@ -1,4 +1,5 @@
 version: 1
+reporting: checks-v1
 policy:
   # https://docs.taskcluster.net/docs/reference/integrations/taskcluster-github/docs/taskcluster-yml-v1#pull-requests
   pullRequests: public

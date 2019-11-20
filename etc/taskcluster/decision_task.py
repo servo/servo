@@ -20,6 +20,11 @@ def main(task_for):
     magicleap_dev = lambda: None
     magicleap_nightly = lambda: None
 
+    # Work around a tc-github bug/limitation:
+    # https://bugzilla.mozilla.org/show_bug.cgi?id=1533235#c0
+    if task_for.startswith("github"):
+        CONFIG.routes_for_all_subtasks.append("checks")
+
     if task_for == "github-push":
         # FIXME https://github.com/servo/servo/issues/22187
         # In-emulator testing is disabled for now. (Instead we only compile.)
