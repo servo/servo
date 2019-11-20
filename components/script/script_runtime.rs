@@ -32,17 +32,20 @@ use crate::dom::response::Response;
 use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
 use crate::script_thread::trace_thread;
 use crate::task::TaskBox;
+use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
-use js::glue::{CollectServoSizes, CreateJobQueue, DeleteJobQueue, JobQueueTraps, SetBuildId};
-use js::glue::{RUST_js_GetErrorMessage, StreamConsumerConsumeChunk, StreamConsumerStreamEnd};
-use js::glue::{StreamConsumerNoteResponseURLs, StreamConsumerStreamError};
+use js::glue::{CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchableRun};
+use js::glue::{JobQueueTraps, RUST_js_GetErrorMessage, SetBuildId, StreamConsumerConsumeChunk};
+use js::glue::{
+    StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd, StreamConsumerStreamError,
+};
 use js::jsapi::ContextOptionsRef;
-use js::jsapi::Dispatchable;
 use js::jsapi::InitConsumeStreamCallback;
 use js::jsapi::InitDispatchToEventLoop;
 use js::jsapi::MimeType;
 use js::jsapi::StreamConsumer as JSStreamConsumer;
 use js::jsapi::{BuildIdCharVector, DisableIncrementalGC, GCDescription, GCProgress};
+use js::jsapi::{Dispatchable as JSRunnable, Dispatchable_MaybeShuttingDown};
 use js::jsapi::{HandleObject, Heap, JobQueue};
 use js::jsapi::{JSContext as RawJSContext, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
 use js::jsapi::{JSGCInvocationKind, JSGCStatus, JS_AddExtraGCRootsTracer, JS_SetGCCallback};
@@ -397,17 +400,23 @@ lazy_static! {
 }
 
 #[allow(unsafe_code)]
-pub unsafe fn new_child_runtime(parent: ParentRuntime) -> Runtime {
-    new_rt_and_cx_with_parent(Some(parent))
+pub unsafe fn new_child_runtime(
+    parent: ParentRuntime,
+    networking_task_source: Option<NetworkingTaskSource>,
+) -> Runtime {
+    new_rt_and_cx_with_parent(Some(parent), networking_task_source)
 }
 
 #[allow(unsafe_code)]
-pub fn new_rt_and_cx() -> Runtime {
-    unsafe { new_rt_and_cx_with_parent(None) }
+pub fn new_rt_and_cx(networking_task_source: Option<NetworkingTaskSource>) -> Runtime {
+    unsafe { new_rt_and_cx_with_parent(None, networking_task_source) }
 }
 
 #[allow(unsafe_code)]
-unsafe fn new_rt_and_cx_with_parent(parent: Option<ParentRuntime>) -> Runtime {
+unsafe fn new_rt_and_cx_with_parent(
+    parent: Option<ParentRuntime>,
+    networking_task_source: Option<NetworkingTaskSource>,
+) -> Runtime {
     LiveDOMReferences::initialize();
     let runtime = if let Some(parent) = parent {
         RustRuntime::create_with_parent(parent)
@@ -436,12 +445,26 @@ unsafe fn new_rt_and_cx_with_parent(parent: Option<ParentRuntime>) -> Runtime {
     DisableIncrementalGC(cx);
 
     unsafe extern "C" fn dispatch_to_event_loop(
-        _closure: *mut c_void,
-        _dispatchable: *mut Dispatchable,
+        closure: *mut c_void,
+        dispatchable: *mut JSRunnable,
     ) -> bool {
-        false
+        let networking_task_src: &NetworkingTaskSource = &*(closure as *mut NetworkingTaskSource);
+        let runnable = Runnable(dispatchable);
+        let task = task!(dispatch_to_event_loop_message: move || {
+            runnable.run(RustRuntime::get(), Dispatchable_MaybeShuttingDown::NotShuttingDown);
+        });
+
+        networking_task_src.queue_unconditionally(task).is_ok()
     }
-    InitDispatchToEventLoop(cx, Some(dispatch_to_event_loop), ptr::null_mut());
+
+    if let Some(source) = networking_task_source {
+        let networking_task_src = Box::new(source);
+        InitDispatchToEventLoop(
+            cx,
+            Some(dispatch_to_event_loop),
+            Box::into_raw(networking_task_src) as *mut c_void,
+        );
+    }
 
     InitConsumeStreamCallback(cx, Some(consume_stream), Some(report_stream_error));
 
@@ -938,4 +961,20 @@ unsafe extern "C" fn report_stream_error(_cx: *mut RawJSContext, error_code: usi
         "Error initializing StreamConsumer: {:?}",
         RUST_js_GetErrorMessage(ptr::null_mut(), error_code as u32)
     );
+}
+
+pub struct Runnable(*mut JSRunnable);
+
+#[allow(unsafe_code)]
+unsafe impl Sync for Runnable {}
+#[allow(unsafe_code)]
+unsafe impl Send for Runnable {}
+
+#[allow(unsafe_code)]
+impl Runnable {
+    fn run(&self, cx: *mut RawJSContext, maybe_shutting_down: Dispatchable_MaybeShuttingDown) {
+        unsafe {
+            DispatchableRun(cx, self.0, maybe_shutting_down);
+        }
+    }
 }

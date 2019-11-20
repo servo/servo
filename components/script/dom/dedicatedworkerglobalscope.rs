@@ -32,6 +32,7 @@ use crate::script_runtime::{
     new_child_runtime, CommonScriptMsg, JSContext as SafeJSContext, Runtime, ScriptChan, ScriptPort,
 };
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
+use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::TaskSourceName;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::DevtoolScriptControlMsg;
@@ -344,7 +345,16 @@ impl DedicatedWorkerGlobalScope {
                     .referrer_policy(referrer_policy)
                     .origin(origin);
 
-                let runtime = unsafe { new_child_runtime(parent) };
+                let runtime = unsafe {
+                    if let Some(pipeline_id) = pipeline_id {
+                        new_child_runtime(
+                            parent,
+                            Some(NetworkingTaskSource(parent_sender.clone(), pipeline_id)),
+                        )
+                    } else {
+                        new_child_runtime(parent, None)
+                    }
+                };
 
                 let (devtools_mpsc_chan, devtools_mpsc_port) = unbounded();
                 ROUTER.route_ipc_receiver_to_crossbeam_sender(

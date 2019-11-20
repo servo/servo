@@ -315,7 +315,7 @@ impl ServiceWorkerGlobalScope {
                     },
                 };
 
-                let runtime = new_rt_and_cx();
+                let runtime = new_rt_and_cx(None);
 
                 let (devtools_mpsc_chan, devtools_mpsc_port) = unbounded();
                 ROUTER
