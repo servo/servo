@@ -26,6 +26,7 @@ use std::fmt::{self, Write};
 use std::hash::{Hash, Hasher};
 use std::iter::Cloned;
 use std::mem::{self, ManuallyDrop};
+use std::num::NonZeroUsize;
 use std::ops::Deref;
 use std::{slice, str};
 use style_traits::SpecifiedValueInfo;
@@ -54,7 +55,7 @@ macro_rules! local_name {
 /// or an offset from gGkAtoms to the nsStaticAtom object.
 #[derive(Eq, PartialEq)]
 #[repr(C)]
-pub struct Atom(usize);
+pub struct Atom(NonZeroUsize);
 
 /// An atom *without* a strong reference.
 ///
@@ -101,9 +102,9 @@ impl Deref for Atom {
     fn deref(&self) -> &WeakAtom {
         unsafe {
             let addr = if self.is_static() {
-                (&gGkAtoms as *const _ as usize) + (self.0 >> 1)
+                (&gGkAtoms as *const _ as usize) + (self.0.get() >> 1)
             } else {
-                self.0
+                self.0.get()
             };
             debug_assert!(!self.is_static() || valid_static_atom_addr(addr));
             WeakAtom::new(addr as *const nsAtom)
@@ -341,29 +342,29 @@ impl fmt::Display for WeakAtom {
 }
 
 #[inline]
-unsafe fn make_handle(ptr: *const nsAtom) -> usize {
+unsafe fn make_handle(ptr: *const nsAtom) -> NonZeroUsize {
     debug_assert!(!ptr.is_null());
     if !WeakAtom::new(ptr).is_static() {
-        ptr as usize
+        NonZeroUsize::new_unchecked(ptr as usize)
     } else {
         make_static_handle(ptr as *mut nsStaticAtom)
     }
 }
 
 #[inline]
-unsafe fn make_static_handle(ptr: *const nsStaticAtom) -> usize {
+unsafe fn make_static_handle(ptr: *const nsStaticAtom) -> NonZeroUsize {
     // FIXME(heycam): Use offset_from once it's stabilized.
     // https://github.com/rust-lang/rust/issues/41079
     debug_assert!(valid_static_atom_addr(ptr as usize));
     let base = &gGkAtoms as *const _;
     let offset = ptr as usize - base as usize;
-    (offset << 1) | 1
+    NonZeroUsize::new_unchecked((offset << 1) | 1)
 }
 
 impl Atom {
     #[inline]
     fn is_static(&self) -> bool {
-        self.0 & 1 == 1
+        self.0.get() & 1 == 1
     }
 
     /// Execute a callback with the atom represented by `ptr`.
