@@ -640,7 +640,7 @@ def macos_wpt():
         build_task,
         repo_dir="repo",
         repo_kwargs=dict(alternate_object_dir="/var/cache/servo.git/objects"),
-        total_chunks=30,
+        total_chunks=20,
         processes=4,
     )
 
