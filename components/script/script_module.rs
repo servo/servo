@@ -229,6 +229,7 @@ impl ModuleTree {
 pub enum ModuleStatus {
     Initial,
     Fetching,
+    FetchFailed,
     FetchingDescendants,
     Finished,
 }
@@ -785,6 +786,8 @@ impl FetchResponseListener for ModuleContext {
                 module_map.get(&self.url.clone()).unwrap().clone()
             };
 
+            module_tree.set_status(ModuleStatus::FetchFailed);
+
             module_tree.set_error(Some(ModuleError::Network(err)));
 
             let promise = module_tree.get_promise().borrow();
@@ -1257,7 +1260,7 @@ fn fetch_module_descendants(
                                                     }
                                                 }
                                             },
-                                            ModuleStatus::Finished => {
+                                            ModuleStatus::FetchFailed | ModuleStatus::Finished => {
                                                 let module_error = module_tree.get_error().borrow();
 
                                                 if module_error.is_some() {
