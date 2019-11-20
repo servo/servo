@@ -56,6 +56,7 @@ use net_traits::{FetchMetadata, Metadata};
 use net_traits::{FetchResponseListener, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_url::ServoUrl;
+use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::ffi;
 use std::marker::PhantomData;
@@ -95,6 +96,34 @@ impl ModuleObject {
 pub enum ModuleError {
     Network(NetworkError),
     RawException(RootedTraceableBox<Heap<JSVal>>),
+}
+
+impl Eq for ModuleError {}
+
+impl PartialEq for ModuleError {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Network(_), Self::RawException(_)) |
+            (Self::RawException(_), Self::Network(_)) => false,
+            _ => true,
+        }
+    }
+}
+
+impl Ord for ModuleError {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            (Self::Network(_), Self::RawException(_)) => Ordering::Greater,
+            (Self::RawException(_), Self::Network(_)) => Ordering::Less,
+            _ => Ordering::Equal,
+        }
+    }
+}
+
+impl PartialOrd for ModuleError {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl ModuleError {
@@ -516,7 +545,7 @@ impl ModuleTree {
                     module_error.clone()
                 })
             })
-            .next()
+            .max()
     }
 }
 
@@ -648,6 +677,19 @@ impl ModuleOwner {
 
                         (module_tree, load, LoadType::Script(base_url.clone()))
                     };
+
+                {
+                    // FIXME: while having a `failed` descendant, the Promise all will
+                    //        be rejected directly without waiting fetching descendants.
+                    let descendant_urls = module_tree.get_descendant_urls().borrow();
+                    if descendant_urls.iter().any(|descendant_url| {
+                        let descendant_tree = module_map.get(&descendant_url.clone());
+                        let descendant_status = descendant_tree.unwrap().get_status();
+                        descendant_status < ModuleStatus::FetchFailed
+                    }) {
+                        return;
+                    }
+                }
 
                 module_tree.set_status(ModuleStatus::Finished);
 
