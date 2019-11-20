@@ -388,6 +388,8 @@ impl ModuleTree {
         }
     }
 
+    /// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-a-module-script
+    /// Step 5.
     pub fn resolve_requested_modules(
         &self,
         global: &GlobalScope,
