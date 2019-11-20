@@ -19,8 +19,12 @@ RUN \
         python-pip \
         python-dev \
         #
+        # Compiling C modules when installing Python packages in a virtualenv
+        gcc \
+        #
         # Installing rustup and sccache (build dockerfile) or fetching build artifacts (run tasks)
-        curl && \
+        curl \
+    && \
     # Running mach
     pip install virtualenv
 
