@@ -21,6 +21,12 @@ def tasks(task_for):
             branch if not branch.startswith("try-") else "try"
         )
 
+    # Work around a tc-github bug/limitation:
+    # https://bugzilla.mozilla.org/show_bug.cgi?id=1548781#c4
+    if task_for.startswith("github"):
+        # https://github.com/taskcluster/taskcluster/blob/21f257dc8/services/github/config.yml#L14
+        CONFIG.routes_for_all_subtasks.append("statuses")
+
     # The magicleap build is broken until there's a surfman back end
     magicleap_dev = lambda: None
     magicleap_nightly = lambda: None
