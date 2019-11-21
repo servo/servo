@@ -2876,6 +2876,12 @@ impl ScriptThread {
                 }
             }
 
+            // Abort the parser, if any,
+            // to prevent any further incoming networking messages from being handled.
+            if let Some(parser) = document.get_current_parser() {
+                parser.abort();
+            }
+
             // We discard the browsing context after requesting layout shut down,
             // to avoid running layout on detached iframes.
             let window = document.window();
