@@ -39,7 +39,7 @@ class Index:
 
 stringDate = str
 slugId = b"<new id>".lower
-Queue = fromNow = MagicMock()
+sys.exit = Queue = fromNow = MagicMock()
 sys.modules["taskcluster"] = sys.modules[__name__]
 sys.dont_write_bytecode = True
 os.environ.update(**{k: k for k in "TASK_ID TASK_OWNER TASK_SOURCE GIT_URL GIT_SHA".split()})
@@ -48,6 +48,7 @@ os.environ["TASKCLUSTER_ROOT_URL"] = "https://community-tc.services.mozilla.com"
 os.environ["TASKCLUSTER_PROXY_URL"] = "http://taskcluster"
 os.environ["NEW_AMI_WORKER_TYPE"] = "-"
 import decision_task
+decision_task.decisionlib.subprocess = MagicMock()
 
 print("\n# Push:")
 decision_task.main("github-push")

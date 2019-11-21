@@ -10,6 +10,11 @@ from decisionlib import CONFIG, SHARED
 
 
 def main(task_for):
+    with decisionlib.make_repo_bundle():
+        tasks(task_for)
+
+
+def tasks(task_for):
     if CONFIG.git_ref.startswith("refs/heads/"):
         branch = CONFIG.git_ref[len("refs/heads/"):]
         CONFIG.treeherder_repository_name = "servo-" + (
