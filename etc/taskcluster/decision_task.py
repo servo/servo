@@ -587,8 +587,8 @@ def update_wpt():
     )
     return (
         with_homebrew(update_task, [
-            "etc/taskcluster/macos/Brewfile-wpt",
-            "etc/taskcluster/macos/Brewfile-gstreamer",
+            "etc/taskcluster/macos/Brewfile-wpt-update",
+            "etc/taskcluster/macos/Brewfile",
         ])
         # Pushing the new changes to the git remote requires a full repo clone.
         .with_repo(shallow=False, alternate_object_dir="/var/cache/servo.git/objects")
@@ -628,7 +628,7 @@ def macos_wpt():
     build_task = macos_release_build_with_debug_assertions(priority=priority)
     def macos_run_task(name):
         task = macos_task(name).with_python2()
-        return with_homebrew(task, ["etc/taskcluster/macos/Brewfile-gstreamer"])
+        return with_homebrew(task, ["etc/taskcluster/macos/Brewfile"])
     wpt_chunks(
         "macOS x64",
         macos_run_task,
@@ -909,7 +909,7 @@ def macos_build_task(name):
     return (
         with_homebrew(build_task, [
             "etc/taskcluster/macos/Brewfile",
-            "etc/taskcluster/macos/Brewfile-gstreamer",
+            "etc/taskcluster/macos/Brewfile-build",
         ])
         .with_script("""
             export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
