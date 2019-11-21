@@ -376,7 +376,7 @@ def android_x86_release():
 
 def android_x86_wpt():
     build_task = android_x86_release()
-    return (
+    task = (
         linux_task("WPT")
         .with_treeherder("Android x86")
         .with_provisioner_id("proj-servo")
@@ -385,7 +385,12 @@ def android_x86_wpt():
         .with_scopes("project:servo:docker-worker-kvm:capability:privileged")
         .with_dockerfile(dockerfile_path("run-android-emulator"))
         .with_repo()
-        .with_curl_artifact_script(build_task, "servoapp.apk", "target/android/i686-linux-android/release")
+    )
+    apk_dir = "target/android/i686-linux-android/release"
+    return (
+        task
+        .with_script("mkdir -p " + apk_dir)
+        .with_curl_artifact_script(build_task, "servoapp.apk", apk_dir)
         .with_script("""
             ./mach bootstrap-android --accept-all-licences --emulator-x86
             ./mach test-android-startup --release

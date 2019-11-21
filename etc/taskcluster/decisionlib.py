@@ -624,7 +624,6 @@ class UnixTaskMixin(Task):
             "CURL_%s_PATH" % n: file_path,
         }) \
         .with_script("""
-            mkdir -p $(dirname "$CURL_{n}_PATH")
             curl --retry 5 --connect-timeout 10 -Lf "$CURL_{n}_URL" -o "$CURL_{n}_PATH"
         """.format(n=n))
 
