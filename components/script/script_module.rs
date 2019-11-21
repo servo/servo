@@ -836,7 +836,7 @@ impl FetchResponseListener for ModuleContext {
             module_tree.set_error(Some(ModuleError::Network(err)));
 
             let promise = module_tree.get_promise().borrow();
-            promise.as_ref().unwrap().reject_native(&());
+            promise.as_ref().unwrap().resolve_native(&());
 
             return;
         }
@@ -863,7 +863,7 @@ impl FetchResponseListener for ModuleContext {
                     module_tree.set_error(Some(exception));
 
                     let promise = module_tree.get_promise().borrow();
-                    promise.as_ref().unwrap().reject_native(&());
+                    promise.as_ref().unwrap().resolve_native(&());
 
                     return;
                 },
@@ -1167,7 +1167,7 @@ pub fn fetch_inline_module_script(
         Err(exception) => {
             module_tree.set_error(Some(exception));
             global.set_inline_module_map(script_id, module_tree);
-            promise.reject_native(&());
+            promise.resolve_native(&());
         },
     }
 }
@@ -1303,7 +1303,7 @@ fn fetch_module_descendants(
                                                     let module_error = module_tree.get_error().borrow();
 
                                                     if module_error.is_some() {
-                                                        p.reject_native(&());
+                                                        p.resolve_native(&());
                                                     } else {
                                                         p.resolve_native(&());
                                                     }
@@ -1313,7 +1313,7 @@ fn fetch_module_descendants(
                                                 let module_error = module_tree.get_error().borrow();
 
                                                 if module_error.is_some() {
-                                                    p.reject_native(&());
+                                                    p.resolve_native(&());
                                                 } else {
                                                     p.resolve_native(&());
                                                 }
