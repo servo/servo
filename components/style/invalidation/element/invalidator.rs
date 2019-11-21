@@ -129,6 +129,10 @@ enum InvalidationKind {
 pub struct Invalidation<'a> {
     selector: &'a Selector<SelectorImpl>,
     /// The right shadow host from where the rule came from, if any.
+    ///
+    /// This is needed to ensure that we match the selector with the right
+    /// state, as whether some selectors like :host and ::part() match depends
+    /// on it.
     scope: Option<OpaqueElement>,
     /// The offset of the selector pointing to a compound selector.
     ///
@@ -479,6 +483,47 @@ where
         any_descendant
     }
 
+    fn invalidate_parts_in_shadow_tree(
+        &mut self,
+        shadow: <E::ConcreteNode as TNode>::ConcreteShadowRoot,
+        invalidations: &[Invalidation<'b>],
+    ) -> bool {
+        debug_assert!(!invalidations.is_empty());
+
+        let mut any = false;
+        let mut sibling_invalidations = InvalidationVector::new();
+
+        for node in shadow.as_node().dom_descendants() {
+            let element = match node.as_element() {
+                Some(e) => e,
+                None => continue,
+            };
+
+            if element.has_part_attr() {
+                any |= self.invalidate_child(
+                    element,
+                    invalidations,
+                    &mut sibling_invalidations,
+                    DescendantInvalidationKind::Part,
+                );
+                debug_assert!(
+                    sibling_invalidations.is_empty(),
+                    "::part() shouldn't have sibling combinators to the right, \
+                     this makes no sense! {:?}",
+                    sibling_invalidations
+                );
+            }
+
+            if let Some(shadow) = element.shadow_root() {
+                if element.exports_any_part() {
+                    any |= self.invalidate_parts_in_shadow_tree(shadow, invalidations)
+                }
+            }
+        }
+
+        any
+    }
+
     fn invalidate_parts(&mut self, invalidations: &[Invalidation<'b>]) -> bool {
         if invalidations.is_empty() {
             return false;
@@ -489,26 +534,7 @@ where
             None => return false,
         };
 
-        let mut any = false;
-        let mut sibling_invalidations = InvalidationVector::new();
-
-        // FIXME(emilio): We also need to invalidate parts in descendant shadow
-        // hosts that have exportparts attributes.
-        for element in shadow.parts() {
-            any |= self.invalidate_child(
-                *element,
-                invalidations,
-                &mut sibling_invalidations,
-                DescendantInvalidationKind::Part,
-            );
-            debug_assert!(
-                sibling_invalidations.is_empty(),
-                "::part() shouldn't have sibling combinators to the right, \
-                 this makes no sense! {:?}",
-                sibling_invalidations
-            );
-        }
-        any
+        self.invalidate_parts_in_shadow_tree(shadow, invalidations)
     }
 
     fn invalidate_slotted_elements(&mut self, invalidations: &[Invalidation<'b>]) -> bool {
@@ -733,7 +759,7 @@ where
         );
 
         let matching_result = {
-            let mut context = self.processor.matching_context();
+            let context = self.processor.matching_context();
             context.current_host = invalidation.scope;
 
             matches_compound_selector_from(

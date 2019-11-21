@@ -82,6 +82,26 @@ pub fn get_id(attrs: &[structs::AttrArray_InternalAttr]) -> Option<&WeakAtom> {
     Some(unsafe { get_id_from_attr(find_attr(attrs, &atom!("id"))?) })
 }
 
+#[inline(always)]
+pub(super) fn exported_part(attrs: &[structs::AttrArray_InternalAttr], name: &Atom) -> Option<Atom> {
+    let attr = find_attr(attrs, &atom!("exportparts"))?;
+    let atom = unsafe { bindings::Gecko_Element_ExportedPart(attr, name.as_ptr()) };
+    if atom.is_null() {
+        return None;
+    }
+    Some(unsafe { Atom::from_raw(atom) })
+}
+
+#[inline(always)]
+pub(super) fn imported_part(attrs: &[structs::AttrArray_InternalAttr], name: &Atom) -> Option<Atom> {
+    let attr = find_attr(attrs, &atom!("exportparts"))?;
+    let atom = unsafe { bindings::Gecko_Element_ImportedPart(attr, name.as_ptr()) };
+    if atom.is_null() {
+        return None;
+    }
+    Some(unsafe { Atom::from_raw(atom) })
+}
+
 /// Given a class or part name, a case sensitivity, and an array of attributes,
 /// returns whether the attribute has that name.
 #[inline(always)]

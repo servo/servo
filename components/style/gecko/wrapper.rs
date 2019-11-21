@@ -1244,8 +1244,12 @@ impl<'le> TElement for GeckoElement<'le> {
 
     #[inline]
     fn has_part_attr(&self) -> bool {
-        self.as_node()
-            .get_bool_flag(nsINode_BooleanFlag::ElementHasPart)
+        self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementHasPart)
+    }
+
+    #[inline]
+    fn exports_any_part(&self) -> bool {
+        snapshot_helpers::find_attr(self.attrs(), &atom!("exportparts")).is_some()
     }
 
     // FIXME(emilio): we should probably just return a reference to the Atom.
@@ -2217,25 +2221,13 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 
     #[inline]
-    fn imported_part(&self, name: &Atom) -> Option<Atom> {
-        let imported = unsafe {
-            bindings::Gecko_Element_ImportedPart(self.0, name.as_ptr())
-        };
-        if imported.is_null() {
-            return None;
-        }
-        Some(unsafe { Atom::from_raw(imported) })
+    fn exported_part(&self, name: &Atom) -> Option<Atom> {
+        snapshot_helpers::exported_part(self.attrs(), name)
     }
 
     #[inline]
-    fn exported_part(&self, name: &Atom) -> Option<Atom> {
-        let exported = unsafe {
-            bindings::Gecko_Element_ExportedPart(self.0, name.as_ptr())
-        };
-        if exported.is_null() {
-            return None;
-        }
-        Some(unsafe { Atom::from_raw(exported) })
+    fn imported_part(&self, name: &Atom) -> Option<Atom> {
+        snapshot_helpers::imported_part(self.attrs(), name)
     }
 
     #[inline(always)]
