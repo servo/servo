@@ -25,6 +25,7 @@ ${helpers.single_keyword(
     engines="gecko",
     animation_value_type="discrete",
     spec="https://www.w3.org/TR/SVG/text.html#TextAnchorProperty",
+    gecko_enum_prefix="StyleTextAnchor",
 )}
 
 // Section 11 - Painting: Filling, Stroking and Marker Symbols
