@@ -108,6 +108,7 @@ ${helpers.single_keyword(
     engines="gecko",
     animation_value_type="discrete",
     spec="https://www.w3.org/TR/SVG11/painting.html#StrokeLinecapProperty",
+    gecko_enum_prefix = "StyleStrokeLinecap",
 )}
 
 ${helpers.single_keyword(
