@@ -42,9 +42,9 @@ use js::jsapi::{AutoObjectVector, JSAutoRealm, JSObject, JSString};
 use js::jsapi::{GetModuleResolveHook, JSRuntime, SetModuleResolveHook};
 use js::jsapi::{GetRequestedModules, SetModuleMetadataHook};
 use js::jsapi::{GetWaitForAllPromise, ModuleEvaluate, ModuleInstantiate, SourceText};
-use js::jsapi::{Heap, JSContext, JS_ClearPendingException};
+use js::jsapi::{Heap, JSContext, JS_ClearPendingException, SetModulePrivate};
 use js::jsapi::{SetModuleDynamicImportHook, SetScriptPrivateReferenceHooks};
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::rust::jsapi_wrapped::{CompileModule, JS_GetArrayLength, JS_GetElement};
 use js::rust::jsapi_wrapped::{GetRequestedModuleSpecifier, JS_GetPendingException};
 use js::rust::wrappers::JS_SetPendingException;
@@ -65,7 +65,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use url::ParseError as UrlParseError;
 
-pub fn get_source_text(source: Vec<u16>) -> SourceText<u16> {
+pub fn get_source_text(source: &[u16]) -> SourceText<u16> {
     SourceText {
         units_: source.as_ptr() as *const _,
         length_: source.len() as u32,
@@ -145,6 +145,10 @@ impl Clone for ModuleError {
             )),
         }
     }
+}
+
+struct ModuleScript {
+    base_url: ServoUrl,
 }
 
 #[derive(JSTraceable)]
@@ -283,7 +287,7 @@ impl ModuleTree {
 
         rooted!(in(*global.get_cx()) let mut module_script = ptr::null_mut::<JSObject>());
 
-        let mut source = get_source_text(module);
+        let mut source = get_source_text(&module);
 
         unsafe {
             if !CompileModule(
@@ -305,6 +309,15 @@ impl ModuleTree {
                     Heap::boxed(exception.get()),
                 )));
             }
+
+            let module_script_data = Box::new(ModuleScript {
+                base_url: url.clone(),
+            });
+
+            SetModulePrivate(
+                module_script.get(),
+                &PrivateValue(Box::into_raw(module_script_data) as *const _),
+            );
         }
 
         println!("module script of {} compile done", url);
@@ -312,7 +325,7 @@ impl ModuleTree {
         self.resolve_requested_module_specifiers(
             &global,
             module_script.handle().into_handle(),
-            global.api_base_url().clone(),
+            url.clone(),
         )
         .map(|_| ModuleObject(Heap::boxed(*module_script)))
     }
@@ -406,7 +419,7 @@ impl ModuleTree {
             let valid_specifier_urls = self.resolve_requested_module_specifiers(
                 &global,
                 raw_record.handle(),
-                global.api_base_url().clone(),
+                self.url.clone(),
             );
 
             return valid_specifier_urls.map(|parsed_urls| {
@@ -937,15 +950,19 @@ pub unsafe fn EnsureModuleHooksInitialized(rt: *mut JSRuntime) {
 /// https://html.spec.whatwg.org/multipage/#hostresolveimportedmodule(referencingscriptormodule%2C-specifier)
 unsafe extern "C" fn HostResolveImportedModule(
     cx: *mut JSContext,
-    _reference_private: RawHandleValue,
+    reference_private: RawHandleValue,
     specifier: RawHandle<*mut JSString>,
 ) -> *mut JSObject {
     let global_scope = GlobalScope::from_context(cx);
 
     // Step 2.
-    let base_url = global_scope.api_base_url();
+    let mut base_url = global_scope.api_base_url();
 
-    // TODO: Step 3.
+    // Step 3.
+    let module_data = (reference_private.to_private() as *const ModuleScript).as_ref();
+    if let Some(data) = module_data {
+        base_url = data.base_url.clone();
+    }
 
     // Step 5.
     let url = ModuleTree::resolve_module_specifier(*global_scope.get_cx(), &base_url, specifier);
