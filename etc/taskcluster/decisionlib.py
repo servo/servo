@@ -14,6 +14,7 @@ Project-independent library for Taskcluster decision tasks
 """
 
 import base64
+import contextlib
 import datetime
 import hashlib
 import json
@@ -28,6 +29,7 @@ import taskcluster
 __all__ = [
     "CONFIG", "SHARED", "Task", "DockerWorkerTask",
     "GenericWorkerTask", "WindowsGenericWorkerTask", "MacOsGenericWorkerTask",
+    "make_repo_bundle",
 ]
 
 
@@ -839,3 +841,19 @@ def deindent(string):
 
 def url_basename(url):
     return url.rpartition("/")[-1]
+
+
+@contextlib.contextmanager
+def make_repo_bundle():
+    subprocess.check_call(["git", "config", "user.name", "Decision task"])
+    subprocess.check_call(["git", "config", "user.email", "nobody@mozilla.com"])
+    tree = subprocess.check_output(["git", "show", CONFIG.git_sha, "--pretty=%T", "--no-patch"])
+    message = "Shallow version of commit " + CONFIG.git_sha
+    commit = subprocess.check_output(["git", "commit-tree", tree.strip(), "-m", message])
+    subprocess.check_call(["git", "update-ref", "refs/heads/shallow", commit.strip()])
+    subprocess.check_call(["git", "show-ref"])
+    with subprocess.Popen(["git", "bundle", "create", "../repo.bundle", "refs/heads/shallow"]) as p:
+        yield
+        exit_code = p.wait()
+        if exit_code:
+            sys.exit(exit_code)

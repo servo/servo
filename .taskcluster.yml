@@ -27,6 +27,11 @@ tasks:
             sha256:7471a998e4462638c8d3e2cf0b4a99c9a5c8ca9f2ec0ae01cc069473b35cde10"
         features:
           taskclusterProxy: true
+        artifacts:
+          public/repo.bundle:
+            type: file
+            path: /repo.bundle
+            expires: {$fromNow: '1 day'}
         env:
           GIT_URL: ${event.repository.clone_url}
           TASK_FOR: ${tasks_for}
