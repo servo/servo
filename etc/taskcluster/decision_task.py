@@ -107,6 +107,7 @@ def tasks(task_for):
         daily_tasks_setup()
         with_rust_nightly()
         linux_nightly()
+        linux_dummy_nightly()
         android_nightly()
         windows_nightly()
         macos_nightly()
@@ -547,6 +548,23 @@ def linux_nightly():
         )
         .with_artifacts("/repo/target/release/servo-tech-demo.tar.gz")
         .find_or_create("build.linux_x64_nightly" + CONFIG.task_id())
+    )
+
+
+def linux_dummy_nightly():
+    return (
+        linux_build_task("Nightly media-stack-dummy build and upload")
+        .with_treeherder("Linux x64", "Nightly")
+        .with_features("taskclusterProxy")
+        .with_scopes("secrets:get:project/servo/s3-upload-credentials")
+        # Not reusing the build made for WPT because it has debug assertions
+        .with_script(
+            "./mach build --release",
+            "./mach package --release",
+            "./mach upload-nightly linux --secret-from-taskcluster",
+        )
+        .with_artifacts("/repo/target/release/servo-tech-demo.tar.gz")
+        .find_or_create("build.linux_x64_dummy_nightly" + CONFIG.task_id())
     )
 
 
