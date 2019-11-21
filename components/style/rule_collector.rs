@@ -4,6 +4,7 @@
 
 //! Collects a series of applicable rules for a given element.
 
+use crate::Atom;
 use crate::applicable_declarations::{ApplicableDeclarationBlock, ApplicableDeclarationList};
 use crate::dom::{TElement, TNode, TShadowRoot};
 use crate::properties::{AnimationRules, PropertyDeclarationBlock};
@@ -328,52 +329,75 @@ where
             return;
         }
 
-        let shadow = match self.rule_hash_target.containing_shadow() {
+        let mut inner_shadow = match self.rule_hash_target.containing_shadow() {
             Some(s) => s,
             None => return,
         };
 
-        let host = shadow.host();
-        let containing_shadow = host.containing_shadow();
-        let part_rules = match containing_shadow {
-            Some(shadow) => shadow
-                .style_data()
-                .and_then(|data| data.part_rules(self.pseudo_element)),
-            None => self
-                .stylist
-                .cascade_data()
-                .borrow_for_origin(Origin::Author)
-                .part_rules(self.pseudo_element),
-        };
+        let mut shadow_cascade_order = ShadowCascadeOrder::for_innermost_containing_tree();
 
-        // TODO(emilio): Cascade order will need to increment for each tree when
-        // we implement forwarding.
-        let shadow_cascade_order = ShadowCascadeOrder::for_innermost_containing_tree();
-        if let Some(part_rules) = part_rules {
-            let containing_host = containing_shadow.map(|s| s.host());
-            let element = self.element;
-            let rule_hash_target = self.rule_hash_target;
-            let rules = &mut self.rules;
-            let flags_setter = &mut self.flags_setter;
-            let cascade_level = CascadeLevel::AuthorNormal {
-                shadow_cascade_order,
+        let mut parts = SmallVec::<[Atom; 3]>::new();
+        self.rule_hash_target.each_part(|p| parts.push(p.clone()));
+
+        loop {
+            if parts.is_empty() {
+                return;
+            }
+
+            let outer_shadow = inner_shadow.host().containing_shadow();
+            let part_rules = match outer_shadow {
+                Some(shadow) => shadow
+                    .style_data()
+                    .and_then(|data| data.part_rules(self.pseudo_element)),
+                None => self
+                    .stylist
+                    .cascade_data()
+                    .borrow_for_origin(Origin::Author)
+                    .part_rules(self.pseudo_element),
             };
-            let start = rules.len();
-            self.context.with_shadow_host(containing_host, |context| {
-                rule_hash_target.each_part(|p| {
-                    if let Some(part_rules) = part_rules.get(p) {
-                        SelectorMap::get_matching_rules(
-                            element,
-                            &part_rules,
-                            rules,
-                            context,
-                            flags_setter,
-                            cascade_level,
-                        );
+
+            if let Some(part_rules) = part_rules {
+                let containing_host = outer_shadow.map(|s| s.host());
+                let element = self.element;
+                let rules = &mut self.rules;
+                let flags_setter = &mut self.flags_setter;
+                let cascade_level = CascadeLevel::AuthorNormal {
+                    shadow_cascade_order,
+                };
+                let start = rules.len();
+                self.context.with_shadow_host(containing_host, |context| {
+                    for p in &parts {
+                        if let Some(part_rules) = part_rules.get(p) {
+                            SelectorMap::get_matching_rules(
+                                element,
+                                &part_rules,
+                                rules,
+                                context,
+                                flags_setter,
+                                cascade_level,
+                            );
+                        }
                     }
                 });
+                sort_rules_from(rules, start);
+                shadow_cascade_order.inc();
+            }
+
+            let inner_shadow_host = inner_shadow.host();
+
+            inner_shadow = match outer_shadow {
+                Some(s) => s,
+                None => break, // Nowhere to export to.
+            };
+
+            parts.retain(|part| {
+                let exported_part = match inner_shadow_host.exported_part(part) {
+                    Some(part) => part,
+                    None => return false,
+                };
+                std::mem::replace(part, exported_part);
+                true
             });
-            sort_rules_from(rules, start);
         }
     }
 

@@ -457,6 +457,7 @@ where
 
         let invalidation = Invalidation::new(
             &dependency.selector,
+            self.matching_context.current_host.clone(),
             dependency.selector.len() - dependency.selector_offset + 1,
         );
 

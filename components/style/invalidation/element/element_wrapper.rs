@@ -365,6 +365,16 @@ where
         }
     }
 
+    fn exported_part(&self, name: &Atom) -> Option<Atom> {
+        // FIXME(emilio): Implement for proper invalidation.
+        self.element.exported_part(name)
+    }
+
+    fn imported_part(&self, name: &Atom) -> Option<Atom> {
+        // FIXME(emilio): Implement for proper invalidation.
+        self.element.imported_part(name)
+    }
+
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs() => snapshot.has_class(name, case_sensitivity),

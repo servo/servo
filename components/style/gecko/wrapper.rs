@@ -2216,6 +2216,28 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         snapshot_helpers::has_class_or_part(name, CaseSensitivity::CaseSensitive, attr)
     }
 
+    #[inline]
+    fn imported_part(&self, name: &Atom) -> Option<Atom> {
+        let imported = unsafe {
+            bindings::Gecko_Element_ImportedPart(self.0, name.as_ptr())
+        };
+        if imported.is_null() {
+            return None;
+        }
+        Some(unsafe { Atom::from_raw(imported) })
+    }
+
+    #[inline]
+    fn exported_part(&self, name: &Atom) -> Option<Atom> {
+        let exported = unsafe {
+            bindings::Gecko_Element_ExportedPart(self.0, name.as_ptr())
+        };
+        if exported.is_null() {
+            return None;
+        }
+        Some(unsafe { Atom::from_raw(exported) })
+    }
+
     #[inline(always)]
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         let attr = match self.get_class_attr() {

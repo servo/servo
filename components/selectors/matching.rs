@@ -8,6 +8,7 @@ use crate::nth_index_cache::NthIndexCacheInner;
 use crate::parser::{AncestorHashes, Combinator, Component, LocalName};
 use crate::parser::{NonTSPseudoClass, Selector, SelectorImpl, SelectorIter, SelectorList};
 use crate::tree::Element;
+use smallvec::SmallVec;
 use std::borrow::Borrow;
 use std::iter;
 
@@ -667,7 +668,41 @@ where
 
     match *selector {
         Component::Combinator(_) => unreachable!(),
-        Component::Part(ref parts) => parts.iter().all(|part| element.is_part(part)),
+        Component::Part(ref parts) => {
+            let mut hosts = SmallVec::<[E; 4]>::new();
+
+            let mut host = match element.containing_shadow_host() {
+                Some(h) => h,
+                None => return false,
+            };
+
+            loop {
+                let outer_host = host.containing_shadow_host();
+                if outer_host.as_ref().map(|h| h.opaque()) == context.shared.current_host {
+                    break;
+                }
+                let outer_host = match outer_host {
+                    Some(h) => h,
+                    None => return false,
+                };
+                // TODO(emilio): if worth it, we could early return if
+                // host doesn't have the exportparts attribute.
+                hosts.push(host);
+                host = outer_host;
+            }
+
+            // Translate the part into the right scope.
+            parts.iter().all(|part| {
+                let mut part = part.clone();
+                for host in hosts.iter().rev() {
+                    part = match host.imported_part(&part) {
+                        Some(p) => p,
+                        None => return false,
+                    };
+                }
+                element.is_part(&part)
+            })
+        },
         Component::Slotted(ref selector) => {
             // <slots> are never flattened tree slottables.
             !element.is_html_slot_element() &&
