@@ -4,11 +4,13 @@
 
 use crate::geom::flow_relative::{Rect, Sides};
 use crate::style_ext::{Direction, WritingMode};
-// use crate::text::ShapedSegment;
-use servo_arc::Arc;
+use gfx::text::glyph::GlyphStore;
+use servo_arc::Arc as ServoArc;
+use std::sync::Arc;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::Zero;
+use webrender_api::FontInstanceKey;
 
 pub(crate) enum Fragment {
     Box(BoxFragment),
@@ -17,7 +19,7 @@ pub(crate) enum Fragment {
 }
 
 pub(crate) struct BoxFragment {
-    pub style: Arc<ComputedValues>,
+    pub style: ServoArc<ComputedValues>,
     pub children: Vec<Fragment>,
 
     /// From the containing block’s start corner…?
@@ -52,9 +54,11 @@ pub(crate) struct AnonymousFragment {
 }
 
 pub(crate) struct TextFragment {
-    pub parent_style: Arc<ComputedValues>,
+    pub parent_style: ServoArc<ComputedValues>,
     pub content_rect: Rect<Length>,
-    // pub text: ShapedSegment,
+    pub ascent: Length,
+    pub font_key: FontInstanceKey,
+    pub glyphs: Vec<Arc<GlyphStore>>,
 }
 
 impl AnonymousFragment {

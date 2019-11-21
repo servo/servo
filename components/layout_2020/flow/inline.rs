@@ -5,7 +5,9 @@
 use crate::context::LayoutContext;
 use crate::flow::float::FloatBox;
 use crate::flow::FlowChildren;
-use crate::fragments::{AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment};
+use crate::fragments::{
+    AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment, TextFragment,
+};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{AbsolutelyPositionedBox, AbsolutelyPositionedFragment};
 use crate::replaced::ReplacedContent;
@@ -286,7 +288,139 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
 }
 
 impl TextRun {
-    fn layout(&self, _layout_context: &LayoutContext, _ifc: &mut InlineFormattingContextState) {
-        // TODO
+    fn layout(&self, layout_context: &LayoutContext, ifc: &mut InlineFormattingContextState) {
+        use gfx::font::{ShapingFlags, ShapingOptions};
+        use style::computed_values::text_rendering::T as TextRendering;
+        use style::computed_values::word_break::T as WordBreak;
+
+        let font_style = self.parent_style.clone_font();
+        let inherited_text_style = self.parent_style.get_inherited_text();
+        let letter_spacing = if inherited_text_style.letter_spacing.0.px() != 0. {
+            Some(app_units::Au::from(inherited_text_style.letter_spacing.0))
+        } else {
+            None
+        };
+
+        let mut flags = ShapingFlags::empty();
+        if letter_spacing.is_some() {
+            flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
+        }
+        if inherited_text_style.text_rendering == TextRendering::Optimizespeed {
+            flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
+            flags.insert(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)
+        }
+        if inherited_text_style.word_break == WordBreak::KeepAll {
+            flags.insert(ShapingFlags::KEEP_ALL_FLAG);
+        }
+
+        let shaping_options = gfx::font::ShapingOptions {
+            letter_spacing,
+            word_spacing: inherited_text_style.word_spacing.to_hash_key(),
+            script: unicode_script::Script::Common,
+            flags,
+        };
+
+        let (font_ascent, font_line_gap, font_key, runs) =
+            crate::context::with_thread_local_font_context(layout_context, |font_context| {
+                let font_group = font_context.font_group(font_style);
+                let font = font_group
+                    .borrow_mut()
+                    .first(font_context)
+                    .expect("could not find font");
+                let mut font = font.borrow_mut();
+
+                let (runs, _break_at_start) = gfx::text::text_run::TextRun::break_and_shape(
+                    &mut font,
+                    &self.text,
+                    &shaping_options,
+                    &mut None,
+                );
+
+                (
+                    font.metrics.ascent,
+                    font.metrics.line_gap,
+                    font.font_key,
+                    runs,
+                )
+            });
+
+        let font_size = self.parent_style.get_font().font_size.size.0;
+        let mut runs = runs.iter();
+        loop {
+            let mut glyphs = vec![];
+            let mut advance_width = Length::zero();
+            let mut last_break_opportunity = None;
+            loop {
+                let next = runs.next();
+                if next
+                    .as_ref()
+                    .map_or(true, |run| run.glyph_store.is_whitespace())
+                {
+                    if advance_width > ifc.containing_block.inline_size - ifc.inline_position {
+                        if let Some((len, width, iter)) = last_break_opportunity.take() {
+                            glyphs.truncate(len);
+                            advance_width = width;
+                            runs = iter;
+                        }
+                        break;
+                    }
+                }
+                if let Some(run) = next {
+                    if run.glyph_store.is_whitespace() {
+                        last_break_opportunity = Some((glyphs.len(), advance_width, runs.clone()));
+                    }
+                    glyphs.push(run.glyph_store.clone());
+                    advance_width += Length::from(run.glyph_store.total_advance());
+                } else {
+                    break;
+                }
+            }
+            // https://www.w3.org/TR/CSS2/visudet.html#propdef-line-height
+            // 'normal':
+            // “set the used value to a "reasonable" value based on the font of the element.”
+            let line_height = font_size * 1.2;
+            let content_rect = Rect {
+                start_corner: Vec2 {
+                    block: Length::zero(),
+                    inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
+                },
+                size: Vec2 {
+                    block: line_height,
+                    inline: advance_width,
+                },
+            };
+            ifc.inline_position += advance_width;
+            ifc.current_nesting_level
+                .max_block_size_of_fragments_so_far
+                .max_assign(line_height);
+            ifc.current_nesting_level
+                .fragments_so_far
+                .push(Fragment::Text(TextFragment {
+                    parent_style: self.parent_style.clone(),
+                    content_rect,
+                    ascent: font_ascent.into(),
+                    font_key,
+                    glyphs,
+                }));
+            if runs.is_empty() {
+                break;
+            } else {
+                // New line
+                ifc.current_nesting_level.inline_start = Length::zero();
+                let mut nesting_level = &mut ifc.current_nesting_level;
+                for partial in ifc.partial_inline_boxes_stack.iter_mut().rev() {
+                    partial.finish_layout(nesting_level, &mut ifc.inline_position, true);
+                    partial.start_corner.inline = Length::zero();
+                    partial.padding.inline_start = Length::zero();
+                    partial.border.inline_start = Length::zero();
+                    partial.margin.inline_start = Length::zero();
+                    partial.parent_nesting_level.inline_start = Length::zero();
+                    nesting_level = &mut partial.parent_nesting_level;
+                }
+                ifc.line_boxes
+                    .finish_line(nesting_level, ifc.containing_block);
+                ifc.inline_position = Length::zero();
+            }
+        }
     }
 }

@@ -7,6 +7,7 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 #![deny(unsafe_code)]
+#![feature(exact_size_is_empty)]
 
 #[macro_use]
 extern crate serde;
