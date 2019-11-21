@@ -306,6 +306,21 @@ class Task:
         SHARED.found_or_created_indexed_tasks[index_path] = task_id
         return task_id
 
+    def with_curl_script(self, url, file_path):
+        return self \
+        .with_script("""
+            curl --retry 5 --connect-timeout 10 -Lf "%s" -o "%s"
+        """ % (url, file_path))
+
+    def with_curl_artifact_script(self, task_id, artifact_name, out_directory=""):
+        queue_service = CONFIG.tc_root_url + "/api/queue"
+        return self \
+        .with_dependencies(task_id) \
+        .with_curl_script(
+            queue_service + "/v1/task/%s/artifacts/public/%s" % (task_id, artifact_name),
+            os.path.join(out_directory, url_basename(artifact_name)),
+        )
+
 
 class GenericWorkerTask(Task):
     """
@@ -508,6 +523,19 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
             path="git",
         )
 
+    def with_curl_script(self, url, file_path):
+        self.with_curl()
+        return super().with_curl_script(url, file_path)
+
+    def with_curl(self):
+        return self \
+        .with_path_from_homedir("curl\\curl-7.67.0-win64-mingw\\bin") \
+        .with_directory_mount(
+            "https://curl.haxx.se/windows/dl-7.67.0_4/curl-7.67.0_4-win64-mingw.zip",
+            sha256="1d50deeac7f945ed75149e6300f6d21f007a6b942ab851a119ed76cdef27d714",
+            path="curl",
+        )
+
     def with_rustup(self):
         """
         Download rustup.rs and make it available to task commands,
@@ -585,10 +613,6 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
 
 
 class UnixTaskMixin(Task):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.curl_scripts_count = 0
-
     def with_repo(self, shallow=True, alternate_object_dir=None):
         """
         Make a shallow clone the git repository at the start of the task.
@@ -621,27 +645,6 @@ class UnixTaskMixin(Task):
                 if alternate_object_dir else ""
             )
         ))
-
-    def with_curl_script(self, url, file_path):
-        self.curl_scripts_count += 1
-        n = self.curl_scripts_count
-        return self \
-        .with_env(**{
-            "CURL_%s_URL" % n: url,
-            "CURL_%s_PATH" % n: file_path,
-        }) \
-        .with_script("""
-            curl --retry 5 --connect-timeout 10 -Lf "$CURL_{n}_URL" -o "$CURL_{n}_PATH"
-        """.format(n=n))
-
-    def with_curl_artifact_script(self, task_id, artifact_name, out_directory=""):
-        queue_service = CONFIG.tc_root_url + "/api/queue"
-        return self \
-        .with_dependencies(task_id) \
-        .with_curl_script(
-            queue_service + "/v1/task/%s/artifacts/public/%s" % (task_id, artifact_name),
-            os.path.join(out_directory, url_basename(artifact_name)),
-        )
 
 
 class MacOsGenericWorkerTask(UnixTaskMixin, GenericWorkerTask):
