@@ -693,20 +693,6 @@ impl ModuleOwner {
                         (module_tree, load, LoadType::Script(base_url.clone()))
                     };
 
-                {
-                    // FIXME: while having a `failed` descendant, the Promise all will
-                    //        be rejected directly without waiting fetching descendants.
-                    let descendant_urls = module_tree.get_descendant_urls().borrow();
-                    let is_any_fetching = descendant_urls.iter().any(|descendant_url| {
-                        let descendant_tree = module_map.get(&descendant_url.clone());
-                        let descendant_status = descendant_tree.unwrap().get_status();
-                        descendant_status < ModuleStatus::FetchFailed
-                    });
-                    if is_any_fetching {
-                        return;
-                    }
-                }
-
                 module_tree.set_status(ModuleStatus::Finished);
 
                 if script_src == module_url {
@@ -1066,18 +1052,46 @@ pub fn fetch_single_module_script(
 
             module_tree.append_handler(owner.clone(), url.clone());
 
-            // Step 2.
-            if status == ModuleStatus::Fetching || status == ModuleStatus::FetchingDescendants {
-                // TODO: queue a network task ?
-                return promise.as_ref().unwrap().clone();
+            let promise = promise.as_ref().unwrap();
+
+            match status {
+                ModuleStatus::Initial => unreachable!(
+                    "We have the module in module map so its status should not be `initial`"
+                ),
+                // Step 2.
+                ModuleStatus::Fetching => return promise.clone(),
+                ModuleStatus::FetchingDescendants => {
+                    let descendant_urls = module_tree.get_descendant_urls().borrow();
+                    let all_gt_fetching_descendants =
+                        descendant_urls.iter().all(|descendant_url| {
+                            let descendant_tree = module_map.get(&descendant_url.clone());
+                            let descendant_status = descendant_tree.unwrap().get_status();
+                            descendant_status >= ModuleStatus::FetchingDescendants
+                        });
+
+                    if all_gt_fetching_descendants {
+                        let module_error = module_tree.get_error().borrow();
+
+                        if module_error.is_some() {
+                            promise.resolve_native(&());
+                        } else {
+                            promise.resolve_native(&());
+                        }
+                    }
+                },
+                // Step 3.
+                ModuleStatus::FetchFailed | ModuleStatus::Finished => {
+                    let module_error = module_tree.get_error().borrow();
+
+                    if module_error.is_some() {
+                        promise.resolve_native(&());
+                    } else {
+                        promise.resolve_native(&());
+                    }
+                },
             }
 
-            // Step 3.
-            if status == ModuleStatus::Finished {
-                //  asynchronously complete this algorithm with moduleMap[url], and abort these steps
-                let promise = promise.as_ref().unwrap();
-                return promise.clone();
-            }
+            return promise.clone();
         }
     }
 
@@ -1285,87 +1299,6 @@ fn fetch_module_descendants(
                 .iter()
                 .map(|requested_url| {
                     println!("Requested url: {}", requested_url);
-
-                    {
-                        let module_map = global.get_module_map().borrow();
-                        let descendant_tree = module_map.get(&requested_url.clone());
-                        if let Some(module_tree) = descendant_tree {
-                            let status = module_tree.get_status();
-                            let promise = module_tree.get_promise().borrow();
-
-                            println!("See existing descendant: {}", requested_url.clone());
-
-                            return match promise.as_ref() {
-                                Some(p) => {
-                                    println!(
-                                        "Visited array of requested url {}: it's visited {:?} and status is {:?}",
-                                        requested_url.clone(),
-                                        visited.contains(&requested_url.clone()),
-                                        status.clone()
-                                    );
-
-                                    if visited.contains(&requested_url.clone()) {
-                                        match status {
-                                            ModuleStatus::Initial | ModuleStatus::Fetching => {},
-                                            ModuleStatus::FetchingDescendants => {
-                                                let descendant_urls = module_tree.get_descendant_urls().borrow();
-                                                let all_gt_fetching_descendants =
-                                                    descendant_urls.iter().all(|descendant_url| {
-                                                        let descendant_tree = module_map.get(&descendant_url.clone());
-                                                        let descendant_status = descendant_tree.unwrap().get_status();
-                                                        descendant_status >= ModuleStatus::FetchingDescendants
-                                                    });
-
-                                                if all_gt_fetching_descendants {
-                                                    let module_error = module_tree.get_error().borrow();
-
-                                                    if module_error.is_some() {
-                                                        p.resolve_native(&());
-                                                    } else {
-                                                        p.resolve_native(&());
-                                                    }
-                                                }
-                                            },
-                                            ModuleStatus::FetchFailed | ModuleStatus::Finished => {
-                                                let module_error = module_tree.get_error().borrow();
-
-                                                if module_error.is_some() {
-                                                    p.resolve_native(&());
-                                                } else {
-                                                    p.resolve_native(&());
-                                                }
-                                            },
-                                        }
-                                    }
-
-                                    p.clone()
-                                },
-                                None => {
-                                    debug!("Got a None promise but it exists in module map");
-
-                                    rooted!(in(*global.get_cx()) let mut undefined_result = UndefinedValue());
-
-                                    let module_error = module_tree.get_error().borrow();
-
-                                    let p = if module_error.is_some() {
-                                        Promise::new_rejected(
-                                            &global,
-                                            global.get_cx(),
-                                            undefined_result.handle(),
-                                        )
-                                    } else {
-                                        Promise::new_resolved(
-                                            &global,
-                                            global.get_cx(),
-                                            undefined_result.handle(),
-                                        )
-                                    };
-
-                                    p.unwrap().clone()
-                                },
-                            };
-                        }
-                    }
 
                     perform_internal_module_script_fetch(
                         owner.clone(),
