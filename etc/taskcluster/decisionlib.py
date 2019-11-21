@@ -221,9 +221,14 @@ class Task:
         assert CONFIG.decision_task_id
         assert CONFIG.task_owner
         assert CONFIG.task_source
+
+        def dedup(xs):
+            seen = set()
+            return [x for x in xs if not (x in seen or seen.add(x))]
+
         queue_payload = {
             "taskGroupId": CONFIG.decision_task_id,
-            "dependencies": [CONFIG.decision_task_id] + self.dependencies,
+            "dependencies": dedup([CONFIG.decision_task_id] + self.dependencies),
             "schedulerId": self.scheduler_id,
             "provisionerId": self.provisioner_id,
             "workerType": self.worker_type,
