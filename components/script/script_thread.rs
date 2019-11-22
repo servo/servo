@@ -3125,7 +3125,8 @@ impl ScriptThread {
         opener: Option<BrowsingContextId>,
     ) -> DomRoot<WindowProxy> {
         if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
-            window_proxy.set_currently_active(&*window);
+            // Note: we do not set the window to be the currently-active one,
+            // this will be done instead when the script-thread handles the `SetDocumentActivity` msg.
             return DomRoot::from_ref(window_proxy);
         }
         let iframe = parent_info.and_then(|parent_id| {
