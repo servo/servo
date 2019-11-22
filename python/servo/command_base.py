@@ -562,8 +562,10 @@ class CommandBase(object):
 
         return self.get_executable(destination_folder)
 
-    def needs_gstreamer_env(self, target, env, uwp=False):
+    def needs_gstreamer_env(self, target, env, uwp=False, features=[]):
         if uwp:
+            return False
+        if "media-dummy" in features:
             return False
         try:
             if check_gstreamer_lib():
@@ -620,7 +622,7 @@ install them, let us know by filing a bug!")
             'vcdir': vcinstalldir,
         }
 
-    def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False, uwp=False):
+    def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False, uwp=False, features=None):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
         if sys.platform == "win32" and type(env['PATH']) == unicode:
@@ -670,7 +672,7 @@ install them, let us know by filing a bug!")
             # Always build harfbuzz from source
             env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
-        if is_build and self.needs_gstreamer_env(target or host_triple(), env, uwp):
+        if is_build and self.needs_gstreamer_env(target or host_triple(), env, uwp, features):
             gstpath = gstreamer_root(target or host_triple(), env, self.get_top_dir())
             extra_path += [path.join(gstpath, "bin")]
             libpath = path.join(gstpath, "lib")
@@ -791,6 +793,12 @@ install them, let us know by filing a bug!")
                 help='Cross compile for given target platform',
             ),
             CommandArgument(
+                '--media-stack',
+                default=None,
+                choices=["gstreamer", "dummy"],
+                help='Which media stack to use',
+            ),
+            CommandArgument(
                 '--android',
                 default=None,
                 action='store_true',
@@ -854,13 +862,26 @@ install them, let us know by filing a bug!")
             android = self.handle_android_target(target)
         return target, android
 
+    # A guess about which platforms should use the gstreamer media stack
+    def pick_media_stack(self, media_stack, target):
+        if not(media_stack):
+            if (
+                    not(target) or
+                    ("armv7" in target and "android" in target) or
+                    ("x86_64" in target)
+            ):
+                media_stack = "gstreamer"
+            else:
+                media_stack = "dummy"
+        return ["media-" + media_stack]
+
     def run_cargo_build_like_command(
         self, command, cargo_args,
         env=None, verbose=False,
         target=None, android=False, magicleap=False, libsimpleservo=False,
         features=None, debug_mozjs=False, with_debug_assertions=False,
         with_frame_pointer=False, with_raqote=False, with_layout_2020=False, without_wgl=False,
-        uwp=False,
+        uwp=False, media_stack=None,
     ):
         env = env or self.build_env()
         target, android = self.pick_target_triple(target, android, magicleap)

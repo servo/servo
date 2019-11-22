@@ -36,6 +36,8 @@ webgl_backtrace = [
     "canvas_traits/webgl_backtrace",
 ]
 vslatestinstalled = ["script/vslatestinstalled"]
+media-dummy = ["servo-media-dummy"]
+media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
 
 [dependencies]
 background_hang_monitor = {path = "../background_hang_monitor"}
@@ -71,6 +73,8 @@ script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}
 servo_geometry = {path = "../geometry"}
 servo-media = {git = "https://github.com/servo/media"}
+servo-media-dummy = {git = "https://github.com/servo/media", optional = true}
+servo-media-gstreamer = {git = "https://github.com/servo/media", optional = true}
 servo_url = {path = "../url"}
 sparkle = "0.1"
 style = {path = "../style", features = ["servo"]}
@@ -84,16 +88,10 @@ webvr_traits = {path = "../webvr_traits"}
 webxr-api = {git = "https://github.com/servo/webxr"}
 webxr = {git = "https://github.com/servo/webxr"}
 surfman = { version = "0.1", features = ["sm-osmesa"] }
+gstreamer = { version = "0.14.5", optional = true }
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_arch="arm"), not(target_arch="aarch64")))'.dependencies]
 gaol = "0.2.1"
-
-[target.'cfg(any(target_os = "android", target_arch = "x86_64", target_os = "windows"))'.dependencies]
-gstreamer = "0.14.5"
-servo-media-gstreamer= {git = "https://github.com/servo/media"}
-
-[target.'cfg(not(any(target_os = "android", target_arch = "x86_64", target_os = "windows")))'.dependencies.servo-media-dummy]
-git = "https://github.com/servo/media"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 mozangle = {version = "0.2"}

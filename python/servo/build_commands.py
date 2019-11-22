@@ -171,7 +171,7 @@ class MachCommands(CommandBase):
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     @CommandBase.build_like_command_arguments
-    def build(self, release=False, dev=False, jobs=None, params=None,
+    def build(self, release=False, dev=False, jobs=None, params=None, media_stack=None,
               no_package=False, verbose=False, very_verbose=False,
               target=None, android=False, magicleap=False, libsimpleservo=False,
               features=None, uwp=False, win_arm64=False, **kwargs):
@@ -190,6 +190,8 @@ class MachCommands(CommandBase):
         # Infer UWP build if only provided a target.
         if not uwp:
             uwp = target and 'uwp' in target
+
+        features += self.pick_media_stack(media_stack, target)
 
         target_path = base_path = self.get_target_dir()
         if android:
@@ -243,7 +245,7 @@ class MachCommands(CommandBase):
                 check_call(["rustup" + BIN_SUFFIX, "target", "add",
                             "--toolchain", self.toolchain(), target])
 
-        env = self.build_env(target=target, is_build=True, uwp=uwp)
+        env = self.build_env(target=target, is_build=True, uwp=uwp, features=features)
         self.ensure_bootstrapped(target=target)
         self.ensure_clobbered()
 

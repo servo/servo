@@ -135,7 +135,7 @@ pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 pub use servo_config as config;
 pub use servo_url as url;
 
-#[cfg(any(target_os = "android", target_arch = "x86_64", target_os = "windows",))]
+#[cfg(feature = "media-gstreamer")]
 mod media_platform {
     use super::ServoMedia;
     use servo_media_gstreamer::GStreamerBackend;
@@ -245,7 +245,7 @@ mod media_platform {
     }
 }
 
-#[cfg(not(any(target_os = "android", target_arch = "x86_64", target_os = "windows",)))]
+#[cfg(feature = "media-dummy")]
 mod media_platform {
     use super::ServoMedia;
     pub fn init() {

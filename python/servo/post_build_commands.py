@@ -239,7 +239,8 @@ class PostBuildCommands(CommandBase):
         'params', nargs='...',
         help="Command-line arguments to be passed through to cargo doc")
     @CommandBase.build_like_command_arguments
-    def doc(self, params, features, **kwargs):
+    def doc(self, params, features, target=None, android=False, magicleap=False,
+            media_stack=None, **kwargs):
         env = os.environ.copy()
         env["RUSTUP_TOOLCHAIN"] = self.toolchain()
         rustc_path = check_output(["rustup" + BIN_SUFFIX, "which", "rustc"], env=env)
@@ -268,6 +269,11 @@ class PostBuildCommands(CommandBase):
                         copy2(full_name, destination)
 
         features = features or []
+
+        target, android = self.pick_target_triple(target, android, magicleap)
+
+        features += self.pick_media_stack(media_stack, target)
+
         returncode = self.run_cargo_build_like_command("doc", params, features=features, **kwargs)
         if returncode:
             return returncode
