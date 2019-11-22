@@ -35,8 +35,8 @@ with open(sys.argv[1]) as f:
                     thread = None
         else:
             if ("action" in entry and
-                entry["action"] == "test_start" and
-                entry["test"] == sys.argv[2]):
+                    entry["action"] == "test_start" and
+                    entry["test"] == sys.argv[2]):
                 thread = entry["thread"]
                 print(json.dumps(entry))
             elif (full_search and
