@@ -9,6 +9,15 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+# Usage: python wpt-summarize.py /wpt/test/url.html [--full]
+#
+# Extract all log lines for a particular test file from a WPT
+# logs, outputting invidual JSON objects that can be manipulated
+# with tools like jq. If a particular URL results in no output,
+# the URL is likely used as a reference test's reference file,
+# so passing `--full` will find any output from Servo process
+# command lines that include the URL.
+
 import sys
 import json
 
