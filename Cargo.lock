@@ -394,12 +394,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39092a32794787acd8525ee150305ff051b0aa6cc2abaf193924f5ab05425f39"
 
 [[package]]
-name = "bumpalo"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad807f2fc2bf185eeb98ff3a901bd46dc5ad58163d0fa4577ba0d25674d71708"
-
-[[package]]
 name = "byte-slice-cast"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2616,15 +2610,6 @@ checksum = "0dfe27a6c0dabd772d0f9b9f8701c4ca12c4d1eebcadf2be1f6f70396f6a1434"
 dependencies = [
  "byteorder",
  "rayon",
-]
-
-[[package]]
-name = "js-sys"
-version = "0.3.25"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da3ea71161651a4cd97d999b2da139109c537b15ab33abc8ae4ead38deac8a03"
-dependencies = [
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -5179,12 +5164,9 @@ dependencies = [
 [[package]]
 name = "spirv_cross"
 version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fbbe441b3ac8ec0ae6a4f05234239bd372a241ce15793eef694e8b24afc267bb"
+source = "git+https://github.com/kvark/spirv_cross?branch=wgpu#636677bad724797789239c16e6d332e9b4d97b86"
 dependencies = [
  "cc",
- "js-sys",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -6071,59 +6053,6 @@ name = "wasi"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b89c3ce4ce14bdc6fb6beaf9ec7928ca331de5df7e5ea278375642a2f478570d"
-
-[[package]]
-name = "wasm-bindgen"
-version = "0.2.48"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4de97fa1806bb1a99904216f6ac5e0c050dc4f8c676dc98775047c38e5c01b55"
-dependencies = [
- "wasm-bindgen-macro",
-]
-
-[[package]]
-name = "wasm-bindgen-backend"
-version = "0.2.48"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d82c170ef9f5b2c63ad4460dfcee93f3ec04a9a36a4cc20bc973c39e59ab8e3"
-dependencies = [
- "bumpalo",
- "lazy_static",
- "log",
- "proc-macro2 0.4.26",
- "quote 0.6.12",
- "syn 0.15.39",
- "wasm-bindgen-shared",
-]
-
-[[package]]
-name = "wasm-bindgen-macro"
-version = "0.2.48"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f07d50f74bf7a738304f6b8157f4a581e1512cd9e9cdb5baad8c31bbe8ffd81d"
-dependencies = [
- "quote 0.6.12",
- "wasm-bindgen-macro-support",
-]
-
-[[package]]
-name = "wasm-bindgen-macro-support"
-version = "0.2.48"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95cf8fe77e45ba5f91bc8f3da0c3aa5d464b3d8ed85d84f4d4c7cc106436b1d7"
-dependencies = [
- "proc-macro2 0.4.26",
- "quote 0.6.12",
- "syn 0.15.39",
- "wasm-bindgen-backend",
- "wasm-bindgen-shared",
-]
-
-[[package]]
-name = "wasm-bindgen-shared"
-version = "0.2.48"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9c2d4d4756b2e46d3a5422e06277d02e4d3e1d62d138b76a4c681e925743623"
 
 [[package]]
 name = "wayland-client"
