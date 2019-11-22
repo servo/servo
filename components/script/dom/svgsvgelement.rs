@@ -39,11 +39,10 @@ pub struct SVGSVGElement {
     svggraphicselement: SVGGraphicsElement,
     #[ignore_malloc_size_of = "Channels are hard"]
     webgl_sender: Option<WebGLMsgSender>,
-    share_mode: WebGLContextShareMode,
     #[ignore_malloc_size_of = "Just a string"]
-    htmlString: DomRefCell<Option<String>>,
+    html_string: DomRefCell<Option<String>>,
     #[ignore_malloc_size_of = "Defined in webrender"]
-    webrender_image: Cell<Option<webrender_api::ImageKey>>
+    webrender_image: Option<webrender_api::ImageKey>
 }
 
 impl SVGSVGElement {
@@ -72,7 +71,7 @@ impl SVGSVGElement {
         };
         let size = Size2D::new(DEFAULT_WIDTH, DEFAULT_HEIGHT);
         webgl_chan
-            .send(WebGLMsg::CreateContext(WebGLVersion::WebGL1, size, attrs, sender))
+            .send(WebGLMsg::CreateContext(WebGLVersion::WebGL1, size, attrs, sender, true))
             .unwrap();
         let result = receiver.recv().unwrap();
         let other_prefix = prefix.clone();
@@ -80,13 +79,11 @@ impl SVGSVGElement {
 
         let mapped = result.map(|ctx_data| {
             let webgl_sender = ctx_data.sender;
-            let share_mode = ctx_data.share_mode;
             SVGSVGElement{
                 svggraphicselement: SVGGraphicsElement::new_inherited(other_local_name, prefix, document),
                 webgl_sender: Some(webgl_sender),
-                share_mode: share_mode,
-                htmlString: DomRefCell::new(None),
-                webrender_image: Cell::new(None),
+                html_string: DomRefCell::new(None),
+                webrender_image: Some(ctx_data.image_key)
             }
         });
 
@@ -97,9 +94,8 @@ impl SVGSVGElement {
                 SVGSVGElement{
                     svggraphicselement: SVGGraphicsElement::new_inherited(local_name, other_prefix, document),
                     webgl_sender: None,
-                    share_mode: WebGLContextShareMode::SharedTexture,
-                    webrender_image: Cell::new(None),
-                    htmlString: DomRefCell::new(None)
+                    webrender_image: None,
+                    html_string: DomRefCell::new(None)
                 }
             }
         }
@@ -130,8 +126,8 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
             let SVG = &*self.unsafe_get();
 
             let sender = &SVG.webgl_sender;
-            let share_mode = SVG.share_mode;
             let webrender_image = &SVG.webrender_image;
+            let html_string_option = SVG.html_string.borrow_for_layout().as_ref();
             let width_attr = SVG
                 .upcast::<Element>()
                 .get_attr_for_layout(&ns!(), &local_name!("width"));
@@ -141,14 +137,6 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
             let width = width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint());
             let height = height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint());
 
-            //set up clear color command to make context Red
-            let clearColorCommand = WebGLCommand::ClearColor(1 as f32,
-                                                             0 as f32,
-                                                             0 as f32,
-                                                             1 as f32);
-            //Set up clear command to target colors
-            let clearCommand = WebGLCommand::Clear(constants::COLOR_BUFFER_BIT);
-
             match sender {
                 Some(webgl_sender) => {
                     let (resize_sender, resize_receiver) = webgl_channel().unwrap();
@@ -156,36 +144,17 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
                     if let Err(msg) = resize_receiver.recv().unwrap(){
                         panic!("PANIC: Error resizing rendering context for SVG: {}", msg);
                     }
-                    webgl_sender
-                        .send(clearColorCommand, capture_webgl_backtrace(SVG))
-                        .unwrap();
-                    webgl_sender
-                        .send(clearCommand, capture_webgl_backtrace(SVG))
-                        .unwrap();
-
-
-                    let image_key = match share_mode {
-                        WebGLContextShareMode::SharedTexture => {
-                            webrender_image.get().unwrap_or_else(|| {
-                                let (update_sender, update_receiver) = webgl_channel().unwrap();
-                                webgl_sender.send_update_wr_image(update_sender).unwrap();
-                                let key = update_receiver.recv().unwrap();
-                                SVG.webrender_image.set(Some(key));
-                                key
-                            })
+                    match html_string_option {
+                        Some(svg_string) => {
+                            webgl_sender.send_rebuild_svg(svg_string.parse().unwrap()).unwrap();
                         },
-                        WebGLContextShareMode::Readback => {
-                            // WR using Readback requires to update WR image every frame
-                            // in order to send the new raw pixels.
-                            let (update_sender, update_receiver) = webgl_channel().unwrap();
-                            webgl_sender.send_update_wr_image(update_sender).unwrap();
-                            update_receiver.recv().unwrap()
-                        },
-                    };
+                        _ => {},
+                    }
+
                     SVGSVGData{
                         width,
                         height,
-                        image_key: Some(image_key),
+                        image_key: *webrender_image,
                     }
                 },
                 _ => {
@@ -224,7 +193,13 @@ impl VirtualMethods for SVGSVGElement {
         let htmlString = self.upcast::<Element>().GetOuterHTML();
         match htmlString {
             Ok(domString) => {
-                *self.htmlString.borrow_mut() = Some(domString.to_string());
+                let svg_string = domString.to_string();
+                let cloned_svg_string = svg_string.clone();
+                let webgl_sender = &self.webgl_sender;
+                *self.html_string.borrow_mut() = Some(svg_string);
+                if let Some(webgl_sender) = webgl_sender {
+                    webgl_sender.send_rebuild_svg(cloned_svg_string).unwrap();
+                }
             },
             _ => {}
         }

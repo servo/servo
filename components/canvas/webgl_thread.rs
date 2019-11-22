@@ -22,10 +22,13 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
+use rand::prelude::*;
+use pathfinder_gl::{GLDevice, GLVersion};
 
 /// WebGL Threading API entry point that lives in the constellation.
 /// It allows to get a WebGLThread handle for each script pipeline.
 pub use crate::webgl_mode::{ThreadMode, WebGLThreads};
+use pathfinder_renderer::gpu::renderer::Renderer;
 
 struct GLContextData {
     ctx: GLContextWrapper,
@@ -63,6 +66,11 @@ impl Default for GLState {
     }
 }
 
+struct PathfinderContext{
+    renderer: Renderer<GLDevice>,
+    gl_device: GLDevice,
+}
+
 /// A WebGLThread manages the life cycle and message multiplexing of
 /// a set of WebGLContexts living in the same thread.
 pub(crate) struct WebGLThread {
@@ -74,6 +82,8 @@ pub(crate) struct WebGLThread {
     contexts: FnvHashMap<WebGLContextId, GLContextData>,
     /// Cached information for WebGLContexts.
     cached_context_info: FnvHashMap<WebGLContextId, WebGLContextInfo>,
+    /// Map of WebGLContextId -> Pathfinder contexts
+    pathfinder_contexts : FnvHashMap<WebGLContextId, PathfinderContext>,
     /// Current bound context.
     bound_context_id: Option<WebGLContextId>,
     /// Handler user to send WebVR commands.
@@ -159,6 +169,7 @@ impl WebGLThread {
             webrender_api: webrender_api_sender.create_api(),
             contexts: Default::default(),
             cached_context_info: Default::default(),
+            pathfinder_contexts: Default::default(),
             bound_context_id: None,
             webvr_compositor,
             dom_outputs: Default::default(),
@@ -235,7 +246,7 @@ impl WebGLThread {
     fn handle_msg(&mut self, msg: WebGLMsg, webgl_chan: &WebGLChan) -> bool {
         trace!("processing {:?}", msg);
         match msg {
-            WebGLMsg::CreateContext(version, size, attributes, result_sender) => {
+            WebGLMsg::CreateContext(version, size, attributes, result_sender, is_pathfinder_context) => {
                 let result = self.create_webgl_context(version, size, attributes);
                 result_sender
                     .send(result.map(|(id, limits, share_mode, framebuffer_format)| {
@@ -276,6 +287,11 @@ impl WebGLThread {
                             }
                         }
 
+                        if is_pathfinder_context {
+                            let framebuffer = data.ctx.framebuffer();
+                            let gl_device = GLDevice::new(GLVersion::GLES3,framebuffer);
+                        }
+
                         WebGLCreateContextResult {
                             sender: WebGLMsgSender::new(id, webgl_chan.clone()),
                             limits,
@@ -311,6 +327,9 @@ impl WebGLThread {
             },
             WebGLMsg::SwapBuffers(context_ids, sender) => {
                 self.handle_swap_buffers(context_ids, sender);
+            },
+            WebGLMsg::RebuildSVG(ctx_id, svg_string) => {
+                self.handle_rebuild_svg(ctx_id, svg_string);
             },
             WebGLMsg::Exit => {
                 return true;
@@ -628,6 +647,23 @@ impl WebGLThread {
         }
 
         let _ = completed_sender.send(());
+    }
+
+    fn handle_rebuild_svg(&mut self, context_id: WebGLContextId, svg_string: String){
+        let data = Self::make_current_if_needed_mut(
+            context_id,
+            &mut self.contexts,
+            &mut self.bound_context_id,
+        );
+        if let Some(data) = data {
+            let mut rng = rand::thread_rng();
+            let r: f32 = rng.gen();
+            let b: f32 = rng.gen();
+            let g: f32 = rng.gen();
+            data.ctx.gl().bind_framebuffer(gl::FRAMEBUFFER, data.ctx.framebuffer());
+            data.ctx.gl().clear_color(r, g, b, 0 as f32);
+            data.ctx.gl().clear(gl::COLOR_BUFFER_BIT);
+        }
     }
 
     fn handle_dom_to_texture(&mut self, command: DOMToTextureCommand) {

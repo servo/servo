@@ -44,6 +44,7 @@ pub enum WebGLMsg {
         Size2D<u32>,
         GLContextAttributes,
         WebGLSender<Result<(WebGLCreateContextResult), String>>,
+        bool,
     ),
     /// Resizes a WebGLContext.
     ResizeContext(WebGLContextId, Size2D<u32>, WebGLSender<Result<(), String>>),
@@ -68,6 +69,8 @@ pub enum WebGLMsg {
     DOMToTextureCommand(DOMToTextureCommand),
     /// Performs a buffer swap.
     SwapBuffers(Vec<WebGLContextId>, WebGLSender<()>),
+    /// Rebuild SVG from earlier
+    RebuildSVG(WebGLContextId, String),
     /// Frees all resources and closes the thread.
     Exit,
 }
@@ -174,6 +177,11 @@ impl WebGLMsgSender {
     #[inline]
     pub fn send_remove(&self) -> WebGLSendResult {
         self.sender.send(WebGLMsg::RemoveContext(self.ctx_id))
+    }
+
+    #[inline]
+    pub fn send_rebuild_svg(&self, svg_string: String) -> WebGLSendResult{
+        self.sender.send(WebGLMsg::RebuildSVG(self.ctx_id, svg_string))
     }
 
     pub fn send_dom_to_texture(&self, command: DOMToTextureCommand) -> WebGLSendResult {
