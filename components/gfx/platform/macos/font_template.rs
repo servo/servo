@@ -5,6 +5,7 @@
 use app_units::Au;
 use core_graphics::data_provider::CGDataProvider;
 use core_graphics::font::CGFont;
+use core_text::font_descriptor::TraitAccessors;
 use core_text::font::CTFont;
 use serde::de::{Error, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -102,6 +103,7 @@ impl FontTemplateData {
                         }; // [1.0, 9.0], centered on 4.0
                         info!("weight for new ctfont is {}", normalized as f32 * 100.);
                     }
+                    ctfont
                 }
             };
             if let Some(ctfont) = ctfont {
