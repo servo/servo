@@ -9,6 +9,21 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+# Usage: python wpt-timing.py [path/to/wpt.log] ...
+#
+# Given a series of WPT log files as arguments, this script
+# extracts the status of each test file (ok; error; timeout; etc.)
+# and how long it took to ran, then creates three CSV files, each
+# sorted by runtime:
+#
+# - longest_ok.csv: all tests that passed
+# - longest_err.csv: all tests that failed or had an error
+# - timeouts.csv: all tests that timed out
+#
+# This information can be used to quickly determine the longest-running
+# tests in the WPT testsuite in order to improve the overall testsuite
+# runtime on CI.
+
 import sys
 import json
 import collections
