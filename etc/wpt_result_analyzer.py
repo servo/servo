@@ -9,7 +9,6 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-import configparser
 import os
 
 test_root = os.path.join('tests', 'wpt', 'web-platform-tests')
