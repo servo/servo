@@ -6,12 +6,12 @@
 
 [Exposed=(Window,Worker)]
 interface PromiseRejectionEvent : Event {
-  [Throws] constructor(DOMString type, optional PromiseRejectionEventInit eventInitDict = {});
+  [Throws] constructor(DOMString type, PromiseRejectionEventInit eventInitDict);
   readonly attribute Promise<any> promise;
   readonly attribute any reason;
 };
 
 dictionary PromiseRejectionEventInit : EventInit {
-  /* required */ Promise<any> promise;
+  required Promise<any> promise;
   any reason;
 };
