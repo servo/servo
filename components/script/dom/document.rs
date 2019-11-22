@@ -506,62 +506,69 @@ impl Document {
     pub fn set_activity(&self, activity: DocumentActivity) {
         // This function should only be called on documents with a browsing context
         assert!(self.has_browsing_context);
-        // Set the document's activity level, reflow if necessary, and suspend or resume timers.
-        if activity != self.activity.get() {
-            self.activity.set(activity);
-            let media = ServoMedia::get().unwrap();
-            let pipeline_id = self.window().pipeline_id().expect("doc with no pipeline");
-            let client_context_id =
-                ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
-            if activity == DocumentActivity::FullyActive {
-                self.title_changed();
-                self.dirty_all_nodes();
-                self.window()
-                    .reflow(ReflowGoal::Full, ReflowReason::CachedPageNeededReflow);
-                self.window().resume();
-                media.resume(&client_context_id);
-                // html.spec.whatwg.org/multipage/#history-traversal
-                // Step 4.6
-                if self.ready_state.get() == DocumentReadyState::Complete {
-                    let document = Trusted::new(self);
-                    self.window
-                        .task_manager()
-                        .dom_manipulation_task_source()
-                        .queue(
-                            task!(fire_pageshow_event: move || {
-                                let document = document.root();
-                                let window = document.window();
-                                // Step 4.6.1
-                                if document.page_showing.get() {
-                                    return;
-                                }
-                                // Step 4.6.2
-                                document.page_showing.set(true);
-                                // Step 4.6.4
-                                let event = PageTransitionEvent::new(
-                                    window,
-                                    atom!("pageshow"),
-                                    false, // bubbles
-                                    false, // cancelable
-                                    true, // persisted
-                                );
-                                let event = event.upcast::<Event>();
-                                event.set_trusted(true);
-                                // FIXME(nox): Why are errors silenced here?
-                                let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
-                                    document.upcast(),
-                                    &event,
-                                );
-                            }),
-                            self.window.upcast(),
-                        )
-                        .unwrap();
-                }
-            } else {
-                self.window().suspend();
-                media.suspend(&client_context_id);
-            }
+        if activity == self.activity.get() {
+            return;
         }
+
+        // Set the document's activity level, reflow if necessary, and suspend or resume timers.
+        self.activity.set(activity);
+        let media = ServoMedia::get().unwrap();
+        let pipeline_id = self.window().pipeline_id().expect("doc with no pipeline");
+        let client_context_id =
+            ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
+
+        if activity != DocumentActivity::FullyActive {
+            self.window().suspend();
+            media.suspend(&client_context_id);
+            return;
+        }
+
+        self.title_changed();
+        self.dirty_all_nodes();
+        self.window()
+            .reflow(ReflowGoal::Full, ReflowReason::CachedPageNeededReflow);
+        self.window().resume();
+        media.resume(&client_context_id);
+
+        if self.ready_state.get() != DocumentReadyState::Complete {
+            return;
+        }
+
+        // html.spec.whatwg.org/multipage/#history-traversal
+        // Step 4.6
+        let document = Trusted::new(self);
+        self.window
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(
+                task!(fire_pageshow_event: move || {
+                    let document = document.root();
+                    let window = document.window();
+                    // Step 4.6.1
+                    if document.page_showing.get() {
+                        return;
+                    }
+                    // Step 4.6.2
+                    document.page_showing.set(true);
+                    // Step 4.6.4
+                    let event = PageTransitionEvent::new(
+                        window,
+                        atom!("pageshow"),
+                        false, // bubbles
+                        false, // cancelable
+                        true, // persisted
+                    );
+                    let event = event.upcast::<Event>();
+                    event.set_trusted(true);
+                    // FIXME(nox): Why are errors silenced here?
+                    let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
+                        document.upcast(),
+                        &event,
+                    );
+                }),
+                self.window.upcast(),
+            )
+            .unwrap();
     }
 
     pub fn origin(&self) -> &MutableOrigin {
