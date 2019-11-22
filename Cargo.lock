@@ -820,7 +820,7 @@ checksum = "6ff9c56c9fb2a49c05ef0e431485a22400af20d33226dc0764d891d09e724127"
 [[package]]
 name = "core-foundation"
 version = "0.6.4"
-source = "git+https://github.com/servo/core-foundation-rs/?branch=mac-font#12d2dc0f19931b3f0391651cdf4e89ed2101e576"
+source = "git+https://github.com/servo/core-foundation-rs/?branch=mac-font#17da0010b3b7fcea880ff088ad43399901f5d05b"
 dependencies = [
  "core-foundation-sys",
  "libc",
@@ -829,12 +829,12 @@ dependencies = [
 [[package]]
 name = "core-foundation-sys"
 version = "0.6.2"
-source = "git+https://github.com/servo/core-foundation-rs/?branch=mac-font#12d2dc0f19931b3f0391651cdf4e89ed2101e576"
+source = "git+https://github.com/servo/core-foundation-rs/?branch=mac-font#17da0010b3b7fcea880ff088ad43399901f5d05b"
 
 [[package]]
 name = "core-graphics"
 version = "0.17.3"
-source = "git+https://github.com/servo/core-foundation-rs/?branch=mac-font#b4e39229e2a85ac460601f334b7afbb71de9b6e1"
+source = "git+https://github.com/servo/core-foundation-rs/?branch=mac-font#17da0010b3b7fcea880ff088ad43399901f5d05b"
 dependencies = [
  "bitflags",
  "core-foundation",
@@ -845,7 +845,7 @@ dependencies = [
 [[package]]
 name = "core-text"
 version = "13.3.2"
-source = "git+https://github.com/servo/core-foundation-rs/?branch=mac-font#12d2dc0f19931b3f0391651cdf4e89ed2101e576"
+source = "git+https://github.com/servo/core-foundation-rs/?branch=mac-font#17da0010b3b7fcea880ff088ad43399901f5d05b"
 dependencies = [
  "core-foundation",
  "core-graphics",
@@ -2540,7 +2540,7 @@ dependencies = [
 [[package]]
 name = "io-surface"
 version = "0.12.1"
-source = "git+https://github.com/servo/core-foundation-rs/?branch=mac-font#12d2dc0f19931b3f0391651cdf4e89ed2101e576"
+source = "git+https://github.com/servo/core-foundation-rs/?branch=mac-font#17da0010b3b7fcea880ff088ad43399901f5d05b"
 dependencies = [
  "cgl 0.2.3",
  "core-foundation",
