@@ -11,9 +11,9 @@
 
 import sys
 import json
-import itertools
 import collections
 import csv
+
 
 def process_log(data):
     tests = {}
@@ -73,7 +73,7 @@ longest_fail = sorted(
 with open('longest_err.csv', 'w') as csv_file:
     writer = csv.writer(csv_file)
     writer.writerows(csv_data + longest_fail)
-    
+
 longest_timeout = sorted(test_results["TIMEOUT"], key=lambda x: x[1], reverse=True)
 with open('timeouts.csv', 'w') as csv_file:
     writer = csv.writer(csv_file)
