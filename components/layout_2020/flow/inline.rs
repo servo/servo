@@ -292,6 +292,7 @@ impl TextRun {
         use gfx::font::{ShapingFlags, ShapingOptions};
         use style::computed_values::text_rendering::T as TextRendering;
         use style::computed_values::word_break::T as WordBreak;
+        use style::values::generics::text::LineHeight;
 
         let font_style = self.parent_style.clone_font();
         let inherited_text_style = self.parent_style.get_inherited_text();
@@ -375,10 +376,11 @@ impl TextRun {
                     break;
                 }
             }
-            // https://www.w3.org/TR/CSS2/visudet.html#propdef-line-height
-            // 'normal':
-            // “set the used value to a "reasonable" value based on the font of the element.”
-            let line_height = font_size * 1.2;
+            let line_height = match self.parent_style.get_inherited_text().line_height {
+                LineHeight::Normal => font_line_gap.into(),
+                LineHeight::Number(n) => font_size * n.0,
+                LineHeight::Length(l) => l.0,
+            };
             let content_rect = Rect {
                 start_corner: Vec2 {
                     block: Length::zero(),
