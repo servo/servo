@@ -9,6 +9,15 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+# Usage: python etc/wpt_result_analyzer.py
+#
+# Analyze the state of WPT tests in Servo by walking all of the
+# test directories, counting the number of tests present, and
+# counting the number of ini files present in the corresponding
+# test result directory. Prints out a list of directories that
+# have non-zero failure counts, ordered by overall number of tests
+# and percentage of tests that fail.
+
 import os
 
 test_root = os.path.join('tests', 'wpt', 'web-platform-tests')
