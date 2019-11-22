@@ -218,16 +218,22 @@ impl XRSession {
                 let event = XRSessionEvent::new(&self.global(), atom!("end"), false, false, self);
                 event.upcast::<Event>().fire(self.upcast());
             },
-            XREvent::Select(input, kind, frame) => {
+            XREvent::Select(input, is_squeeze, kind, frame) => {
+                use servo_atoms::Atom;
+                const START_ATOMS: [Atom; 2] = [atom!("selectstart"), atom!("squeezestart")];
+                const EVENT_ATOMS: [Atom; 2] = [atom!("select"), atom!("squeeze")];
+                const END_ATOMS: [Atom; 2] = [atom!("selectend"), atom!("squeezeend")];
+
                 // https://immersive-web.github.io/webxr/#primary-action
                 let source = self.input_sources.find(input);
+                let atom_index = if is_squeeze { 1 } else { 0 };
                 if let Some(source) = source {
                     let frame = XRFrame::new(&self.global(), self, frame);
                     frame.set_active(true);
                     if kind == SelectEvent::Start {
                         let event = XRInputSourceEvent::new(
                             &self.global(),
-                            atom!("selectstart"),
+                            START_ATOMS[atom_index],
                             false,
                             false,
                             &frame,
@@ -238,7 +244,7 @@ impl XRSession {
                         if kind == SelectEvent::Select {
                             let event = XRInputSourceEvent::new(
                                 &self.global(),
-                                atom!("select"),
+                                EVENT_ATOMS[atom_index],
                                 false,
                                 false,
                                 &frame,
@@ -248,7 +254,7 @@ impl XRSession {
                         }
                         let event = XRInputSourceEvent::new(
                             &self.global(),
-                            atom!("selectend"),
+                            END_ATOMS[atom_index],
                             false,
                             false,
                             &frame,
@@ -352,6 +358,15 @@ impl XRSessionMethods for XRSession {
 
     /// https://immersive-web.github.io/webxr/#eventdef-xrsession-selectend
     event_handler!(selectend, GetOnselectend, SetOnselectend);
+
+    /// https://immersive-web.github.io/webxr/#eventdef-xrsession-squeeze
+    event_handler!(squeeze, GetOnsqueeze, SetOnsqueeze);
+
+    /// https://immersive-web.github.io/webxr/#eventdef-xrsession-squeezestart
+    event_handler!(squeezestart, GetOnsqueezestart, SetOnsqueezestart);
+
+    /// https://immersive-web.github.io/webxr/#eventdef-xrsession-squeezeend
+    event_handler!(squeezeend, GetOnsqueezeend, SetOnsqueezeend);
 
     /// https://immersive-web.github.io/webxr/#eventdef-xrsession-visibilitychange
     event_handler!(
