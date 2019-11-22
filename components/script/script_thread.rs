@@ -2847,6 +2847,14 @@ impl ScriptThread {
 
         let document = self.documents.borrow_mut().remove(id);
 
+        // Abort the parser, if any,
+        // to prevent any further incoming networking messages from being handled.
+        if let Some(document) = document.as_ref() {
+            if let Some(parser) = document.get_current_parser() {
+                parser.abort();
+            }
+        }
+
         // We should never have a pipeline that's still an incomplete load,
         // but also has a Document.
         debug_assert!(idx.is_none() || document.is_none());
