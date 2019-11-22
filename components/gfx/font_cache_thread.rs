@@ -270,7 +270,7 @@ impl FontCache {
                             *response_valid.lock().unwrap() = meta_result.is_ok();
                         },
                         FetchResponseMsg::ProcessResponseChunk(new_bytes) => {
-                            trace!("@font-face {} chunk={:?}", family_name, new_bytes);
+                            //trace!("@font-face {} chunk={:?}", family_name, new_bytes);
                             if *response_valid.lock().unwrap() {
                                 bytes.lock().unwrap().extend(new_bytes.into_iter())
                             }
