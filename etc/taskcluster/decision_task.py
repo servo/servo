@@ -593,7 +593,7 @@ def update_wpt():
         .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
         .with_max_run_time_minutes(6 * 60)
         # Not using the bundle, pushing the new changes to the git remote requires a full repo.
-        .with_repo(shallow=False, alternate_object_dir="/var/cache/servo.git/objects")
+        .with_repo(alternate_object_dir="/var/cache/servo.git/objects")
     )
     return (
         with_homebrew(update_task, [
