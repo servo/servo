@@ -2840,6 +2840,14 @@ impl ScriptThread {
 
         let document = self.documents.borrow_mut().remove(id);
 
+        // Abort the parser, if any,
+        // to prevent any further incoming networking messages from being handled.
+        if let Some(document) = document.as_ref() {
+            if let Some(parser) = document.get_current_parser() {
+                parser.abort();
+            }
+        }
+
         // We should never have a pipeline that's still an incomplete load,
         // but also has a Document.
         debug_assert!(idx.is_none() || document.is_none());
@@ -2874,12 +2882,6 @@ impl ScriptThread {
                 if target.upcast::<Node>().owner_doc() == document {
                     self.topmost_mouse_over_target.set(None);
                 }
-            }
-
-            // Abort the parser, if any,
-            // to prevent any further incoming networking messages from being handled.
-            if let Some(parser) = document.get_current_parser() {
-                parser.abort();
             }
 
             // We discard the browsing context after requesting layout shut down,
