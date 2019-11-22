@@ -487,9 +487,9 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
             self.with_early_script("set PATH=%HOMEDRIVE%%HOMEPATH%\\{};%PATH%".format(p))
         return self
 
-    def with_repo(self, sparse_checkout=None, shallow=True):
+    def with_repo(self, sparse_checkout=None):
         """
-        Make a shallow clone the git repository at the start of the task.
+        Make a clone the git repository at the start of the task.
         This uses `CONFIG.git_url`, `CONFIG.git_ref`, and `CONFIG.git_sha`,
         and creates the clone in a `repo` directory in the task’s home directory.
 
@@ -512,13 +512,12 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
                 type .git\\info\\sparse-checkout
             """
         git += """
-            git fetch --no-tags {depth} {} {}
+            git fetch --no-tags {} {}
             git reset --hard {}
         """.format(
             assert_truthy(self.git_fetch_url),
             assert_truthy(self.git_fetch_ref),
             assert_truthy(self.git_checkout_sha),
-            depth="--depth 30" if shallow else "",
         )
         return self \
         .with_git() \
@@ -629,9 +628,9 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
 
 
 class UnixTaskMixin(Task):
-    def with_repo(self, shallow=True, alternate_object_dir=""):
+    def with_repo(self, alternate_object_dir=""):
         """
-        Make a shallow clone the git repository at the start of the task.
+        Make a clone the git repository at the start of the task.
         This uses `CONFIG.git_url`, `CONFIG.git_ref`, and `CONFIG.git_sha`
 
         * generic-worker: creates the clone in a `repo` directory
@@ -649,13 +648,12 @@ class UnixTaskMixin(Task):
             git init repo
             cd repo
             echo "{alternate}" > .git/objects/info/alternates
-            time git fetch --no-tags {depth} {} {}
+            time git fetch --no-tags {} {}
             time git reset --hard {}
         """.format(
             assert_truthy(self.git_fetch_url),
             assert_truthy(self.git_fetch_ref),
             assert_truthy(self.git_checkout_sha),
-            depth="--depth 30" if shallow else "",
             alternate=alternate_object_dir,
         ))
 
