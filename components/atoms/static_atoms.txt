@@ -107,6 +107,9 @@ selectend
 selectstart
 serif
 signalingstatechange
+squeeze
+squeezeend
+squeezestart
 srclang
 statechange
 stroke
