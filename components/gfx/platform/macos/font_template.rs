@@ -92,7 +92,16 @@ impl FontTemplateData {
                 },
                 None => {
                     info!("getting ctfont from name");
-                    core_text::font::new_from_name(&*self.identifier, clamped_pt_size).ok()
+                    let ctfont = core_text::font::new_from_name(&*self.identifier, clamped_pt_size).ok();
+                    if let Some(ref ctfont) = ctfont {
+                        let normalized = ctfont.all_traits().normalized_weight();
+                        let normalized = if normalized <= 0.0 {
+                            4.0 + normalized * 3.0 // [1.0, 4.0]
+                        } else {
+                            4.0 + normalized * 5.0 // [4.0, 9.0]
+                        }; // [1.0, 9.0], centered on 4.0
+                        info!("weight for new ctfont is {}", normalized as f32 * 100.);
+                    }
                 }
             };
             if let Some(ctfont) = ctfont {
