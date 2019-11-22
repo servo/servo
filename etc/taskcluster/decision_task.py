@@ -169,7 +169,7 @@ def linux_tidy_unit_untrusted():
         .with_max_run_time_minutes(60)
         .with_dockerfile(dockerfile_path("build"))
         .with_env(**build_env, **unix_build_env, **linux_build_env)
-        .with_repo()
+        .with_repo_bundle()
         .with_script("rustup set profile minimal")
         # required by components/script_plugins:
         .with_script("rustup component add rustc-dev")
@@ -389,7 +389,7 @@ def android_x86_wpt():
         .with_capabilities(privileged=True)
         .with_scopes("project:servo:docker-worker-kvm:capability:privileged")
         .with_dockerfile(dockerfile_path("run-android-emulator"))
-        .with_repo()
+        .with_repo_bundle()
     )
     apk_dir = "target/android/i686-linux-android/release"
     return (
@@ -558,7 +558,7 @@ def linux_wpt():
         .find_or_create("build.linux_x64_release_w_assertions" + CONFIG.task_id())
     )
     def linux_run_task(name):
-        return linux_task(name).with_dockerfile(dockerfile_path("run"))
+        return linux_task(name).with_dockerfile(dockerfile_path("run")).with_repo_bundle()
     wpt_chunks("Linux x64", linux_run_task, release_build_task, repo_dir="/repo",
                total_chunks=4, processes=12)
 
@@ -592,14 +592,14 @@ def update_wpt():
         .with_scopes("secrets:get:project/servo/wpt-sync")
         .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
         .with_max_run_time_minutes(6 * 60)
+        # Not using the bundle, pushing the new changes to the git remote requires a full repo.
+        .with_repo(shallow=False, alternate_object_dir="/var/cache/servo.git/objects")
     )
     return (
         with_homebrew(update_task, [
             "etc/taskcluster/macos/Brewfile-wpt-update",
             "etc/taskcluster/macos/Brewfile",
         ])
-        # Pushing the new changes to the git remote requires a full repo clone.
-        .with_repo(shallow=False, alternate_object_dir="/var/cache/servo.git/objects")
         .with_curl_artifact_script(build_task, "target.tar.gz")
         .with_script("""
             export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
@@ -635,21 +635,21 @@ def macos_wpt():
     priority = "high" if CONFIG.git_ref == "refs/heads/auto" else None
     build_task = macos_release_build_with_debug_assertions(priority=priority)
     def macos_run_task(name):
-        task = macos_task(name).with_python2()
+        task = macos_task(name).with_python2() \
+            .with_repo_bundle(alternate_object_dir="/var/cache/servo.git/objects")
         return with_homebrew(task, ["etc/taskcluster/macos/Brewfile"])
     wpt_chunks(
         "macOS x64",
         macos_run_task,
         build_task,
         repo_dir="repo",
-        repo_kwargs=dict(alternate_object_dir="/var/cache/servo.git/objects"),
         total_chunks=30,
         processes=4,
     )
 
 
 def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
-               repo_dir, chunks="all", repo_kwargs={}):
+               repo_dir, chunks="all"):
     if chunks == "all":
         chunks = range(total_chunks + 1)
     for this_chunk in chunks:
@@ -658,7 +658,6 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                 this_chunk, total_chunks, width=len(str(total_chunks)),
             ))
             .with_treeherder(platform, "WPT-%s" % this_chunk)
-            .with_repo(**repo_kwargs)
             .with_curl_artifact_script(build_task, "target.tar.gz")
             .with_script("tar -xzf target.tar.gz")
             .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
@@ -805,7 +804,7 @@ def linux_build_task(name, *, build_env=build_env, install_rustc_dev=True):
         .with_max_run_time_minutes(60)
         .with_dockerfile(dockerfile_path("build"))
         .with_env(**build_env, **unix_build_env, **linux_build_env)
-        .with_repo()
+        .with_repo_bundle()
         .with_script("rustup set profile minimal")
     )
     if install_rustc_dev:
@@ -848,7 +847,7 @@ def windows_build_task(name, package=True, arch="x86_64"):
             **windows_build_env[arch],
             **windows_build_env["all"]
         )
-        .with_repo(sparse_checkout=windows_sparse_checkout)
+        .with_repo_bundle(sparse_checkout=windows_sparse_checkout)
         .with_python2()
         .with_directory_mount(
             "https://www.python.org/ftp/python/3.7.3/python-3.7.3-embed-amd64.zip",
@@ -901,7 +900,7 @@ def macos_build_task(name):
         # https://github.com/servo/servo/issues/24735
         .with_max_run_time_minutes(60 * 2)
         .with_env(**build_env, **unix_build_env, **macos_build_env)
-        .with_repo(alternate_object_dir="/var/cache/servo.git/objects")
+        .with_repo_bundle(alternate_object_dir="/var/cache/servo.git/objects")
         .with_python2()
         .with_rustup()
         # Since macOS workers are long-lived and ~/.rustup kept across tasks:

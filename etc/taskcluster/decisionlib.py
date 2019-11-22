@@ -58,6 +58,7 @@ class Config:
         self.git_url = os.environ.get("GIT_URL")
         self.git_ref = os.environ.get("GIT_REF")
         self.git_sha = os.environ.get("GIT_SHA")
+        self.git_bundle_shallow_ref = "refs/heads/shallow"
 
         self.tc_root_url = os.environ.get("TASKCLUSTER_ROOT_URL")
         self.default_provisioner_id = "proj-example"
@@ -147,6 +148,9 @@ class Task:
         self.extra = {}
         self.treeherder_required = False
         self.priority = None  # Defaults to 'lowest'
+        self.git_fetch_url = CONFIG.git_url
+        self.git_fetch_ref = CONFIG.git_ref
+        self.git_checkout_sha = CONFIG.git_sha
 
     # All `with_*` methods return `self`, so multiple method calls can be chained.
     with_description = chaining(setattr, "description")
@@ -320,6 +324,14 @@ class Task:
             queue_service + "/v1/task/%s/artifacts/public/%s" % (task_id, artifact_name),
             os.path.join(out_directory, url_basename(artifact_name)),
         )
+
+    def with_repo_bundle(self, **kwargs):
+        self.git_fetch_url = "../repo.bundle"
+        self.git_fetch_ref = CONFIG.git_bundle_shallow_ref
+        self.git_checkout_sha = "FETCH_HEAD"
+        return self \
+        .with_curl_artifact_script(CONFIG.decision_task_id, "repo.bundle") \
+        .with_repo(**kwargs)
 
 
 class GenericWorkerTask(Task):
@@ -500,13 +512,17 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
                 type .git\\info\\sparse-checkout
             """
         git += """
-            git fetch --no-tags {depth} %GIT_URL% %GIT_REF%
-            git reset --hard %GIT_SHA%
-        """.format(depth="--depth 30" if shallow else "")
+            git fetch --no-tags {depth} {} {}
+            git reset --hard {}
+        """.format(
+            assert_truthy(self.git_fetch_url),
+            assert_truthy(self.git_fetch_ref),
+            assert_truthy(self.git_checkout_sha),
+            depth="--depth 30" if shallow else "",
+        )
         return self \
         .with_git() \
-        .with_script(git) \
-        .with_env(**git_env())
+        .with_script(git)
 
     def with_git(self):
         """
@@ -613,7 +629,7 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
 
 
 class UnixTaskMixin(Task):
-    def with_repo(self, shallow=True, alternate_object_dir=None):
+    def with_repo(self, shallow=True, alternate_object_dir=""):
         """
         Make a shallow clone the git repository at the start of the task.
         This uses `CONFIG.git_url`, `CONFIG.git_ref`, and `CONFIG.git_sha`
@@ -628,22 +644,19 @@ class UnixTaskMixin(Task):
         """
         # Not using $GIT_ALTERNATE_OBJECT_DIRECTORIES since it causes
         # "object not found - no match for id" errors when Cargo fetches git dependencies
-        if alternate_object_dir:
-            self.with_env(ALTERNATE_OBJDIR=alternate_object_dir)
         return self \
-        .with_env(**git_env()) \
-        .with_early_script("""
+        .with_script("""
             git init repo
             cd repo
-            {alternate}
-            time git fetch --no-tags {depth} "$GIT_URL" "$GIT_REF"
-            time git reset --hard "$GIT_SHA"
+            echo "{alternate}" > .git/objects/info/alternates
+            time git fetch --no-tags {depth} {} {}
+            time git reset --hard {}
         """.format(
+            assert_truthy(self.git_fetch_url),
+            assert_truthy(self.git_fetch_ref),
+            assert_truthy(self.git_checkout_sha),
             depth="--depth 30" if shallow else "",
-            alternate=(
-                """echo "$ALTERNATE_OBJDIR" > .git/objects/info/alternates"""
-                if alternate_object_dir else ""
-            )
+            alternate=alternate_object_dir,
         ))
 
 
@@ -821,15 +834,10 @@ def expand_dockerfile(dockerfile):
     return b"\n".join([expand_dockerfile(path), rest])
 
 
-def git_env():
-    assert CONFIG.git_url
-    assert CONFIG.git_ref
-    assert CONFIG.git_sha
-    return {
-        "GIT_URL": CONFIG.git_url,
-        "GIT_REF": CONFIG.git_ref,
-        "GIT_SHA": CONFIG.git_sha,
-    }
+def assert_truthy(x):
+    assert x
+    return x
+
 
 def dict_update_if_truthy(d, **kwargs):
     for key, value in kwargs.items():
@@ -853,9 +861,10 @@ def make_repo_bundle():
     tree = subprocess.check_output(["git", "show", CONFIG.git_sha, "--pretty=%T", "--no-patch"])
     message = "Shallow version of commit " + CONFIG.git_sha
     commit = subprocess.check_output(["git", "commit-tree", tree.strip(), "-m", message])
-    subprocess.check_call(["git", "update-ref", "refs/heads/shallow", commit.strip()])
+    subprocess.check_call(["git", "update-ref", CONFIG.git_bundle_shallow_ref, commit.strip()])
     subprocess.check_call(["git", "show-ref"])
-    with subprocess.Popen(["git", "bundle", "create", "../repo.bundle", "refs/heads/shallow"]) as p:
+    create = ["git", "bundle", "create", "../repo.bundle", CONFIG.git_bundle_shallow_ref]
+    with subprocess.Popen(create) as p:
         yield
         exit_code = p.wait()
         if exit_code:
