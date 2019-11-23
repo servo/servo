@@ -31,7 +31,7 @@ class F extends Fixture {
 
     }); // TODO: Remove when chrome does it automatically.
 
-    this.device.getQueue().submit([]);
+    this.device.defaultQueue.submit([]);
   } // Expect an uncapturederror event to occur. Note: this MUST be awaited, because
   // otherwise it could erroneously pass by capturing an error from later in the test.
 

@@ -39,7 +39,6 @@
     destUrl += '&cross_origin=' + get_host_info().HTTP_REMOTE_ORIGIN;
     destUrl += '&final_resource=' + "/resource-timing/resources/blank-with-tao.html";
     destUrl += '&tao_steps=3';
-    destUrl += '&timing_allow=1';
     const frameContext = document.getElementById('frameContext');
     frameContext.onload = onload_test;
     frameContext.src = destUrl;

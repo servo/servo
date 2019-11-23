@@ -1,10 +1,9 @@
-import urlparse
-
-import error
-import protocol
-import transport
+from . import error
+from . import protocol
+from . import transport
 
 from six import string_types
+from six.moves.urllib import parse as urlparse
 
 
 def command(func):

@@ -213,7 +213,7 @@ class MarionetteTestharnessProtocolPart(TestharnessProtocolPart):
                 handles = self.marionette.window_handles
                 if len(handles) == 2:
                     test_window = next(iter(set(handles) - {parent}))
-                elif handles[0] == parent and len(handles) > 2:
+                elif len(handles) > 2 and handles[0] == parent:
                     # Hope the first one here is the test window
                     test_window = handles[1]
 

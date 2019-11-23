@@ -64,8 +64,8 @@ const NDEFReaderOptionTests =
     {
       desc: "Test that the url of NDEFScanOptions filters relevant data" +
             " sources correctly.",
-      scanOptions: {url: `${location.origin}/custom/path`},
-      unmatchedScanOptions: {url: `${location.origin}/custom/invalid`},
+      scanOptions: {id: `${location.origin}/custom/path`},
+      unmatchedScanOptions: {id: `${location.origin}/custom/invalid`},
       message: {url: `${location.origin}/custom/path/update`,
           records: [createTextRecord(test_text_data)]}
     },
@@ -132,7 +132,7 @@ const ReadMultiMessagesTests =
     {
       desc: "Test that filtering 'text' record from different messages" +
             " correctly with NDEFScanOptions' url set.",
-      scanOptions: {url: `${location.origin}/custom/path`},
+      scanOptions: {id: `${location.origin}/custom/path`},
       message: {url: `${location.origin}/custom/path/update`,
           records: [createTextRecord(test_text_data)]},
       unmatchedMessage: {url: `${location.origin}/custom/invalid`,

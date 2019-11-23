@@ -5,10 +5,11 @@
 	<html:link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com"/>
 	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-clipping-paths"/>
 	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#ClipPathElement"/>
-	<html:link rel="match" href="reference/clip-path-invisible-ref.svg" />
+	<html:link rel="match" href="reference/clip-path-recursion-002-ref.svg" />
 	<metadata class="flags">svg</metadata>
-	<desc class="assert">A clipPath recursion counts as invalid clipping
-	path and makes the element disappear. You should see nothing.</desc>
+  <desc class="assert">
+    A clipPath recursion counts as invalid clipping path.
+  </desc>
 </g>
 <defs>
 	<rect x="50" y="150" width="50" height="50" id="rect" fill="none" clip-path="url(#clipPath_1)"/>

@@ -27,7 +27,7 @@
     }, 'metadata for service worker scripts');
 
     async function retrieve_and_assert_headers(key, tag) {
-      let expected = { "site": "same-origin", "user": "", "mode": "same-origin" };
+      let expected = { "site": "same-origin", "user": "", "mode": "same-origin", "dest": "serviceworker" };
       const response = await fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key);
       const text = await response.text();
       assert_header_equals(text, expected, tag);

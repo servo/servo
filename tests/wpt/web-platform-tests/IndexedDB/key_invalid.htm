@@ -124,6 +124,8 @@
     var recursive3 = [recursive];
     invalid_key('array member contains self', recursive3);
 
+    invalid_key('proxy of an array', new Proxy([1,2,3], {}));
+
 </script>
 
 <div id=log></div>

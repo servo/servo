@@ -21,7 +21,7 @@ test(() => {
 }, 'the unregisterProtocolHandler method should exist on the navigator object');
 
 /* URL argument */
-const vaild_urls = [
+const valid_urls = [
   '%s',
   location.href + '/%s',
   location.href + '#%s',
@@ -31,7 +31,7 @@ const vaild_urls = [
   location.href + '/%s/bar/baz/?foo=1337&bar#baz',
   location.href + '/%s/foo/%s/',
 ];
-for (const url of vaild_urls) {
+for (const url of valid_urls) {
   test(() => {
     navigator.registerProtocolHandler('tel', url, 'foo');
   }, 'registerProtocolHandler: Valid URL "' + url + '" should work.');
@@ -61,7 +61,7 @@ for (const url of invalid_urls1) {
   }, 'unregisterProtocolHandler: Invalid URL "' + url + '" should throw SYNTAX_ERR.');
 }
 
-const invaild_urls2 = [
+const invalid_urls2 = [
   'http://%s.com',
   'http://%s.example.com',
   'http://example.com/%s',
@@ -70,7 +70,7 @@ const invaild_urls2 = [
   'mailto:%s@example.com',
   'mailto:%s',
 ];
-for (const url of invaild_urls2) {
+for (const url of invalid_urls2) {
   test(() => {
     assert_throws('SECURITY_ERR', () => { navigator.registerProtocolHandler('mailto', url, 'foo'); });
   }, 'registerProtocolHandler: Invalid URL "' + url + '" should throw SECURITY_ERR.');
@@ -84,7 +84,7 @@ for (const url of invaild_urls2) {
 
 /* Overriding any of the following protocols must never be allowed. That would
  * break the browser. */
-const blacklist = [
+const denylist = [
   'about',
   'attachment',
   'blob',
@@ -124,13 +124,13 @@ const blacklist = [
   'tel:sip',
   'web+',
 ];
-for (const scheme of blacklist) {
+for (const scheme of denylist) {
   test(() => {
     assert_throws('SECURITY_ERR', () => { navigator.registerProtocolHandler(scheme, location.href + '/%s', 'foo'); });
   }, 'registerProtocolHandler: Attempting to override the "' + scheme + '" protocol should throw SECURITY_ERR.');
 
   test(() => {
-    assert_throws('SECURITY_ERR', () => { navigator.unregisterProtocolHandler(scheme, location.href + '/%s', 'foo'); });
+    assert_throws('SECURITY_ERR', () => { navigator.unregisterProtocolHandler(scheme, location.href + '/%s'); });
   }, 'unregisterProtocolHandler: Attempting to override the "' + scheme + '" protocol should throw SECURITY_ERR.');
 }
 
@@ -161,7 +161,7 @@ const safelist = [
   'webcal',
   'wtai',
   'xmpp',
-  /*other vaild schemes*/
+  /*other valid schemes*/
   'BitcoIn',
   'Irc',
   'MagneT',

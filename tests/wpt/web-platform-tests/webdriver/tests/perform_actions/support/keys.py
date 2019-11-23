@@ -379,7 +379,7 @@ ALL_EVENTS = {
         "value": u"\ue012",
     },
     "META": {
-        "code": "OSLeft",
+        "code": "MetaLeft",
         "ctrl": False,
         "key": "Meta",
         "location": 1,
@@ -631,7 +631,7 @@ ALL_EVENTS = {
         "value": u"\ue05c",
     },
     "R_META": {
-        "code": "OSRight",
+        "code": "MetaRight",
         "ctrl": False,
         "key": "Meta",
         "location": 2,

@@ -13,26 +13,11 @@
     if (e.source != w)
       return;
 
+    // Only testing same-origin XSLT because same-site and cross-site XSLT is blocked.
     promise_test(t => {
-      let expected = {"site":"same-origin", "user":"", "mode": "same-origin"};
-      return fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=xslt-same-origin" + nonce)
-          .then(response => response.text())
-          .then(text => assert_header_equals(text, expected));
+      let expected = {"site":"same-origin", "user":"", "mode": "same-origin", "dest": "xslt"};
+      return validate_expectations("xslt-same-origin" + nonce, expected);
     }, "Same-Origin xslt");
-
-    promise_test(t => {
-      let expected = {"site":"same-site", "user":"", "mode": "no-cors"};
-      return fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=xslt-same-site" + nonce)
-          .then(response => response.text())
-          .then(text => assert_header_equals(text, expected));
-    }, "Same-site xslt");
-
-    promise_test(t => {
-      let expected = {"site":"cross-site", "user":"", "mode": "no-cors"};
-      return fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=xslt-cross-site" + nonce)
-          .then(response => response.text())
-          .then(text => assert_header_equals(text, expected));
-    }, "Cross-site xslt");
 
     w.close();
   });

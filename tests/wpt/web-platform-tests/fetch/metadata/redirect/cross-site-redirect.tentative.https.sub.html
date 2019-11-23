@@ -15,18 +15,14 @@
 
       let e = document.createElement('img');
       e.src = "https://{{hosts[alt][www]}}:{{ports[https][0]}}/xhr/resources/redirect.py?location=https://{{host}}:{{ports[https][0]}}/fetch/metadata/resources/record-header.py?file=" + key;
-      let expected = {"site":"cross-site", "user":"", "mode": "no-cors"};
+      let expected = {"site":"cross-site", "user":"", "mode": "no-cors", "dest": "image"};
       e.onload = e => {
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-          .then(response => response.text())
-          .then(text => assert_header_equals(text, expected))
+        validate_expectations(key, expected, "Cross-Site -> Same-Origin redirect")
           .then(_ => resolve())
           .catch(e => reject(e));
       };
       e.onerror = e => {
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-          .then(response => response.text())
-          .then(text => assert_header_equals(text, expected))
+        validate_expectations(key, expected, "Cross-Site -> Same-Origin redirect")
           .then(_ => resolve())
           .catch(e => reject(e));
       };
@@ -41,18 +37,14 @@
 
       let e = document.createElement('img');
       e.src = "https://{{hosts[alt][www]}}:{{ports[https][0]}}/xhr/resources/redirect.py?location=https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/metadata/resources/record-header.py?file=" + key;
-      let expected = {"site":"cross-site", "user":"", "mode": "no-cors"};
+      let expected = {"site":"cross-site", "user":"", "mode": "no-cors", "dest": "image"};
       e.onload = e => {
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-          .then(response => response.text())
-          .then(text => assert_header_equals(text, expected))
+        validate_expectations(key, expected, "Cross-Site -> Same-Site redirect")
           .then(_ => resolve())
           .catch(e => reject(e));
       };
       e.onerror = e => {
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-          .then(response => response.text())
-          .then(text => assert_header_equals(text, expected))
+        validate_expectations(key, expected, "Cross-Site -> Same-Site redirect")
           .then(_ => resolve())
           .catch(e => reject(e));
       };
@@ -67,18 +59,14 @@
 
       let e = document.createElement('img');
       e.src = "https://{{hosts[alt][www]}}:{{ports[https][0]}}/xhr/resources/redirect.py?location=https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/metadata/resources/record-header.py?file=" + key;
-      let expected = {"site":"cross-site", "user":"", "mode": "no-cors"};
+      let expected = {"site":"cross-site", "user":"", "mode": "no-cors", "dest": "image"};
       e.onload = e => {
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-          .then(response => response.text())
-          .then(text => assert_header_equals(text, expected))
+        validate_expectations(key, expected, "Cross-Site -> Cross-Site redirect")
           .then(_ => resolve())
           .catch(e => reject(e));
       };
       e.onerror = e => {
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-          .then(response => response.text())
-          .then(text => assert_header_equals(text, expected))
+        validate_expectations(key, expected, "Cross-Site -> Cross-Site redirect")
           .then(_ => resolve())
           .catch(e => reject(e));
       };

@@ -17,19 +17,15 @@
       e.src = "https://{{host}}:{{ports[https][0]}}/xhr/resources/redirect.py?location=" +// same-origin
       "https://{{hosts[][www]}}:{{ports[https][0]}}/xhr/resources/redirect.py?location=" +// same-site
       "https://{{host}}:{{ports[https][0]}}/fetch/metadata/resources/record-header.py?file=" + key;// same-origin
-      let expected = {"site":"same-site", "user":"", "mode": "no-cors"};
+      let expected = {"site":"same-site", "user":"", "mode": "no-cors", "dest": "image"};
 
       e.onload = e => {
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-          .then(response => response.text())
-          .then(text => assert_header_equals(text, expected))
+        validate_expectations(key, expected)
           .then(_ => resolve())
           .catch(e => reject(e));
       };
       e.onerror = e => {
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-          .then(response => response.text())
-          .then(text => assert_header_equals(text, expected))
+        validate_expectations(key, expected)
           .then(_ => resolve())
           .catch(e => reject(e));
       };

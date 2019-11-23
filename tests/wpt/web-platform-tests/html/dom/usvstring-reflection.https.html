@@ -107,12 +107,12 @@ test(() => {
 test(() => {
   // This shouldn't throw an exception.
   window.navigator.registerProtocolHandler('web+myprotocol', "custom-scheme\uD800/url=%s", "title");
-}, "RegisterPtotocolHandler URL: unpaired surrogate codepoint should not make any exceptions.")
+}, "RegisterProtocolHandler URL: unpaired surrogate codepoint should not make any exceptions.")
 
 test(() => {
   // This shouldn't throw an exception.
   window.navigator.unregisterProtocolHandler('web+myprotocol', "custom-scheme\uD800/url=%s");
-}, "UnregisterPtotocolHandler URL: unpaired surrogate codepoint should not make any exceptions.")
+}, "UnregisterProtocolHandler URL: unpaired surrogate codepoint should not make any exceptions.")
 
 test(() => {
   var w = window.open("about:blank#\uD800");

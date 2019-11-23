@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointer Events pointer lock tests</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+        <style>
+          #testContainer {
+            touch-action: none;
+            user-select: none;
+            position: relative;
+          }
+        </style>
+        <script>
+            var lock_change_count = 0;
+            var move_event_count = 0;
+            var mouseeventMovements = []
+            var pointereventMovements = []
+
+            function resetTestState() {
+            }
+
+            function run() {
+                var test_pointerEvent = setup_pointerevent_test("pointermove getPredictedEvents when lock test", ['mouse']);
+                var div1 = document.getElementById("target");
+
+                on_event(div1, 'pointerdown', function(event) {
+                    div1.requestPointerLock();
+                });
+                on_event(div1, 'pointermove', function(event) {
+                    if (document.pointerLockElement == div1) {
+                        test_pointerEvent.step(function() {
+                            if (event.getPredictedEvents().length > 0) {
+                                 for (var i=0; i<event.getPredictedEvents().length; i++) {
+                                    var predictedEvent = event.getPredictedEvents()[i];
+                                    test_pointerEvent.step(function() {
+                                        assert_equals(predictedEvent.pointerId, event.pointerId, "getPredictedEvents()[" + i + "].pointerId");
+                                        assert_equals(predictedEvent.pointerType, event.pointerType, "getPredictedEvents()[" + i + "].pointerType");
+                                        assert_equals(predictedEvent.target, document.pointerLockElement, "getPredictedEvents()[" + i + "].target");
+                                        assert_equals(predictedEvent.clientX, event.clientX, "getPredictedEvents()[" + i + "].clientX");
+                                        assert_equals(predictedEvent.clientY, event.clientY, "getPredictedEvents()[" + i + "].clientY");
+                                    });
+                                }
+                                document.exitPointerLock();
+                                test_pointerEvent.done();
+                            } else {
+                                assert_less_than(++move_event_count, 20, "pointermove have no predicted event in 20 moves")
+                            }
+                        });
+                    }
+                });
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>PointerMove getPredictedEvent in locked state test</h1>
+        <h2 id="pointerTypeDescription"></h2>
+        <h4>
+            Test Description: This test checks if pointerevent.getPredictedEvent work correctly when pointer is locked.
+            <ol>
+                 <li>Press left button down on the green rectangle to lock pointer.</li>
+                 <li>Move the mouse</li>
+            </ol>
+            </ol>
+
+            Test passes if the proper behavior of the events is observed.
+        </h4>
+        <div id="testContainer">
+            <div id="target" style="width:800px;height:250px;background:green"></div>
+        </div>
+        <div class="spacer"></div>
+    </body>
+</html>

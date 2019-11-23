@@ -302,6 +302,18 @@ test(t => {
 test(t => {
   const div = addDiv(t);
   const anim = div.animate(
+    {
+      insetBlock: ['var(--200px)', 'var(--300px)'],
+    },
+    1000
+  );
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(div).insetBlockStart, '250px');
+}, 'Logical shorthand with variable references animates correctly');
+
+test(t => {
+  const div = addDiv(t);
+  const anim = div.animate(
     { writingMode: 'vertical-rl' },
     { duration: 1, easing: 'step-start' }
   );

@@ -1,3 +1,4 @@
+// META: timeout=long
 'use strict';
 
 // Minimal VideoConfiguration that will be allowed per spec. All optional
@@ -129,7 +130,7 @@ promise_test(t => {
 }, "Test that decodingInfo rejects if the video configuration contentType has one parameter that isn't codecs");
 
 promise_test(t => {
-  return navigator.mediaCapabilities.decodingInfo({
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
     type: 'file',
     video: {
       contentType: 'video/webm; codecs="vp09.00.10.08"',
@@ -138,8 +139,8 @@ promise_test(t => {
       bitrate: 3000,
       framerate: '24000/1001',
     }
-  });
-}, "Test that decodingInfo() accepts framerate in the form of x/y");
+  }));
+}, "Test that decodingInfo() rejects framerate in the form of x/y");
 
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
@@ -205,32 +206,6 @@ promise_test(t => {
     }
   }));
 }, "Test that decodingInfo() rejects framerate in the form of x/");
-
-promise_test(t => {
-  return navigator.mediaCapabilities.decodingInfo({
-    type: 'file',
-    video: {
-      contentType: 'video/webm; codecs="vp09.00.10.08"',
-      width: 800,
-      height: 600,
-      bitrate: 3000,
-      framerate: '24000/1e4',
-    }
-  });
-}, "Test that decodingInfo() accepts framerate with 'e'");
-
-promise_test(t => {
-  return navigator.mediaCapabilities.decodingInfo({
-    type: 'file',
-    video: {
-      contentType: 'video/webm; codecs="vp09.00.10.08"',
-      width: 800,
-      height: 600,
-      bitrate: 3000,
-      framerate: '24/1.0001',
-    }
-  });
-}, "Test that decodingInfo() accepts framerate as fraction with decimals");
 
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({

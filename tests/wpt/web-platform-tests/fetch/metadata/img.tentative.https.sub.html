@@ -15,7 +15,8 @@
         got = {
           "mode": headers["sec-fetch-mode"],
           "site": headers["sec-fetch-site"],
-          "user": headers["sec-fetch-user"]
+          "user": headers["sec-fetch-user"],
+          "dest": headers["sec-fetch-dest"]
         };
         assert_header_equals(got, {
           "site": "same-origin",
@@ -23,7 +24,8 @@
           // that `image.py` encodes data.
           "user": undefined,
           "mode": "cors", // Because `loadImageInWindow` tacks on `crossorigin`
-        });
+          "dest": "image"
+        }, "Same-origin image");
       }),
     "Same-origin image");
 
@@ -35,7 +37,8 @@
         got = {
           "mode": headers["sec-fetch-mode"],
           "site": headers["sec-fetch-site"],
-          "user": headers["sec-fetch-user"]
+          "user": headers["sec-fetch-user"],
+          "dest": headers["sec-fetch-dest"]
         };
         assert_header_equals(got, {
           "site": "same-site",
@@ -43,7 +46,8 @@
           // that `image.py` encodes data.
           "user": undefined,
           "mode": "cors", // Because `loadImageInWindow` tacks on `crossorigin`
-        });
+          "dest": "image"
+        }, "Same-site image");
       }),
     "Same-site image");
 
@@ -55,7 +59,8 @@
         got = {
           "mode": headers["sec-fetch-mode"],
           "site": headers["sec-fetch-site"],
-          "user": headers["sec-fetch-user"]
+          "user": headers["sec-fetch-user"],
+          "dest": headers["sec-fetch-dest"]
         };
         assert_header_equals(got, {
           "site": "cross-site",
@@ -63,7 +68,8 @@
           // that `image.py` encodes data.
           "user": undefined,
           "mode": "cors", // Because `loadImageInWindow` tacks on `crossorigin`
-        });
+          "dest": "image"
+        }, "Cross-site image");
       }),
     "Cross-site image");
 </script>

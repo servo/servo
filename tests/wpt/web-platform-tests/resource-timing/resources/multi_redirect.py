@@ -4,11 +4,13 @@ def main(request, response):
         2. Redirect to cross-origin URL
         3. Redirect to same-origin URL
         4. Final URL containing the final same-origin resource.
-    The request has three mandatory and one optional query parameters:
+    Mandatory parameters:
     page_origin - The page origin, used for redirection and to set TAO. This is a mandatory parameter.
     cross_origin - The cross origin used to make this a cross-origin redirect. This is a mandatory parameter.
     final_resource - Path of the final resource, without origin. This is a mandatory parameter.
-    timing_allow - Whether TAO should be set or not in the redirect chain. This is an optional parameter. Default: not set.
+    Optional parameters:
+    tao_steps - Number of redirects for which the TAO header will be present (a number 0 - 3 makes the most sense). Default value is 0.
+    tao_value - The value of the TAO header, when present. Default value is "*".
     Note that |step| is a parameter used internally for the multi-redirect. It's the step we're at in the redirect chain.
     """
     step = 1
@@ -22,23 +24,24 @@ def main(request, response):
     page_origin = request.GET.first("page_origin")
     cross_origin = request.GET.first("cross_origin")
     final_resource = request.GET.first("final_resource")
+
+    tao_value = "*";
+    if "tao_value" in request.GET:
+        tao_value = request.GET.first("tao_value")
     tao_steps = 0
     if "tao_steps" in request.GET:
         tao_steps = int(request.GET.first("tao_steps"))
-    timing_allow = "0"
-    if "timing_allow" in request.GET:
-        timing_allow = request.GET.first("timing_allow")
 
     next_tao_steps = tao_steps - 1
     redirect_url_path = "/resource-timing/resources/multi_redirect.py?"
     redirect_url_path += "page_origin=" + page_origin
     redirect_url_path += "&cross_origin=" + cross_origin
     redirect_url_path += "&final_resource=" + final_resource
-    redirect_url_path += "&timing_allow=" + timing_allow
+    redirect_url_path += "&tao_value=" + tao_value
     redirect_url_path += "&tao_steps=" + str(next_tao_steps)
     redirect_url_path += "&step="
-    if timing_allow != "0" and tao_steps > 0:
-        response.headers.set("timing-allow-origin", page_origin)
+    if tao_steps > 0:
+        response.headers.set("timing-allow-origin", tao_value)
 
     if step == 1:
         # On the first request, redirect to a cross origin URL

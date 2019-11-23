@@ -1,9 +1,9 @@
-import httplib
 import json
 import select
-import urlparse
+from six.moves.urllib import parse as urlparse
+from six.moves import http_client as httplib
 
-import error
+from . import error
 
 from six import text_type
 

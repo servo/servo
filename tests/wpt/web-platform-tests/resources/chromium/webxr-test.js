@@ -11,8 +11,6 @@ default_standing.matrix = [1, 0, 0, 0,
                            0, 1.65, 0, 1];
 const default_stage_parameters = {
   standingTransform: default_standing,
-  sizeX: 0,
-  sizeZ: 0,
   bounds: null
 };
 

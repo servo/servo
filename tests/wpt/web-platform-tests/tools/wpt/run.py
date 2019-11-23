@@ -476,8 +476,8 @@ class EdgeChromium(BrowserSetup):
                 kwargs["webdriver_binary"] = webdriver_binary
             else:
                 raise WptrunError("Unable to locate or install msedgedriver binary")
-        if browser_channel == "dev":
-            logger.info("Automatically turning on experimental features for Edge Dev")
+        if browser_channel in ("dev", "canary"):
+            logger.info("Automatically turning on experimental features for Edge Dev/Canary")
             kwargs["binary_args"].append("--enable-experimental-web-platform-features")
 
 

@@ -2,32 +2,44 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>inert inside ShadowRoot affects slotted content</title>
+    <title>inert on Shadow host affects content in shadow</title>
     <link rel="author" title="Alice Boxhall" href="aboxhall@chromium.org">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
 </head>
 <body>
-  <div>Button 1 should be inert, and Button 2 should not be inert.</div>
-  <div id="shadow-host">
-    <button slot="slot-1" id="button-1">Button 1 (inert)</button>
-    <button slot="slot-2" id="button-2">Button 2 (not inert)</button>
+  <div>Buttons 1 and 2 should be inert.</div>
+  <div id="shadow-host" inert>
+    <button id="button-1">Button 1 (inert)</button>
   </div>
   <script>
+    /*
+    Eventual flattened tree structure:
+
+    <div id="shadow-host" inert>
+      #shadow-root (open)
+      | <slot>
+      :   <button id="button-1">Button 1 (inert)</button> <!-- slotted -->
+      | </slot>
+      | <button id="button-2">Button 2 (inert)</button>   <!-- in shadow -->
+    </div>
+    */
+
     const shadowHost = document.getElementById("shadow-host");
     const shadowRoot = shadowHost.attachShadow({ mode: "open" });
-    const inertDiv = document.createElement("div");
-    inertDiv.inert = true;
-    shadowRoot.appendChild(inertDiv);
-    const slot1 = document.createElement("slot");
-    slot1.name = "slot-1";
-    inertDiv.appendChild(slot1);
-    const slot2 = document.createElement("slot");
-    slot2.name = "slot-2";
-    shadowRoot.appendChild(slot2);
 
-    function testCanFocus(selector, canFocus) {
-      const element = document.querySelector(selector);
+    // Button 1 will be slotted
+    const slot = document.createElement("slot");
+    shadowRoot.appendChild(slot);
+
+    const button2 = document.createElement("button");
+    button2.id = "button-2";
+    button2.textContent = "Button 2 (inert)";
+    shadowRoot.appendChild(button2);
+
+    function testCanFocus(selector, canFocus, opt_context) {
+      let context = opt_context || document;
+      const element = context.querySelector(selector);
       let focusedElement = null;
       element.addEventListener("focus", function() { focusedElement = element; }, false);
       element.focus();
@@ -36,8 +48,8 @@
 
     test(() => {
       testCanFocus("#button-1", false);
-      testCanFocus("#button-2", true);
-    }, "inert inside ShadowRoot affects slotted content");
+      testCanFocus("#button-2", false, shadowRoot);
+    }, "inert on Shadow host affects content in shadow");
   </script>
 </body>
 </html>

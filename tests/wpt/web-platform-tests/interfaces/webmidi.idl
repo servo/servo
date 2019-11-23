@@ -14,21 +14,21 @@ dictionary MIDIOptions {
 };
 
 [SecureContext, Exposed=Window] interface MIDIInputMap {
-  readonly maplike<DOMString, MIDIInput>;
+  readonly maplike <DOMString, MIDIInput>;
 };
 
 [SecureContext, Exposed=Window] interface MIDIOutputMap {
-  readonly maplike<DOMString, MIDIOutput>;
+  readonly maplike <DOMString, MIDIOutput>;
 };
 
-[SecureContext, Exposed=Window] interface MIDIAccess : EventTarget {
+[SecureContext, Exposed=Window] interface MIDIAccess: EventTarget {
   readonly attribute MIDIInputMap inputs;
   readonly attribute MIDIOutputMap outputs;
   attribute EventHandler onstatechange;
   readonly attribute boolean sysexEnabled;
 };
 
-[SecureContext, Exposed=Window] interface MIDIPort : EventTarget {
+[SecureContext, Exposed=Window] interface MIDIPort: EventTarget {
   readonly attribute DOMString id;
   readonly attribute DOMString? manufacturer;
   readonly attribute DOMString? name;
@@ -37,11 +37,11 @@ dictionary MIDIOptions {
   readonly attribute MIDIPortDeviceState state;
   readonly attribute MIDIPortConnectionState connection;
   attribute EventHandler onstatechange;
-  Promise<MIDIPort> open();
-  Promise<MIDIPort> close();
+  Promise <MIDIPort> open();
+  Promise <MIDIPort> close();
 };
 
-[SecureContext, Exposed=Window] interface MIDIInput : MIDIPort {
+[SecureContext, Exposed=Window] interface MIDIInput: MIDIPort {
   attribute EventHandler onmidimessage;
 };
 
@@ -72,7 +72,7 @@ interface MIDIMessageEvent : Event {
   readonly attribute Uint8Array data;
 };
 
-dictionary MIDIMessageEventInit : EventInit {
+dictionary MIDIMessageEventInit: EventInit {
   Uint8Array data;
 };
 
@@ -82,6 +82,6 @@ interface MIDIConnectionEvent : Event {
   readonly attribute MIDIPort port;
 };
 
-dictionary MIDIConnectionEventInit : EventInit {
+dictionary MIDIConnectionEventInit: EventInit {
   MIDIPort port;
 };

@@ -11,13 +11,11 @@ idl_test(
   idlArray => {
     const isServiceWorker = location.pathname.includes('.serviceworker.');
     if (isServiceWorker) {
-      idl_array.add_objects({
-        ServiceWorkerGlobalScope: ['self', 'onsync', 'onperiodicsync'],
+      idlArray.add_objects({
+        ServiceWorkerGlobalScope: ['self', 'onsync'],
         ServiceWorkerRegistration: ['registration'],
         SyncManager: ['registration.sync'],
-        PeriodicSyncManager: ['registration.periodicSync'],
-        SyncEevnt: ['new SyncEvent("tag", "lastChance")'],
-        PeriodicSyncEevnt: ['new PeriodicSyncEvent("tag")'],
+        SyncEvent: ['new SyncEvent("tag", "lastChance")'],
       });
   }
 }
