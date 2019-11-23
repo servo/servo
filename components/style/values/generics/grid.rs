@@ -58,7 +58,7 @@ pub use self::GenericGridLine as GridLine;
 
 impl<Integer> GridLine<Integer>
 where
-    Integer: Zero,
+    Integer: PartialEq + Zero,
 {
     /// The `auto` value.
     pub fn auto() -> Self {
@@ -73,11 +73,27 @@ where
     pub fn is_auto(&self) -> bool {
         self.ident == atom!("") && self.line_num.is_zero() && !self.is_span
     }
+
+    /// Check whether this `<grid-line>` represents a `<custom-ident>` value.
+    pub fn is_ident_only(&self) -> bool {
+        self.ident != atom!("") && self.line_num.is_zero() && !self.is_span
+    }
+
+    /// Check if `self` makes `other` omittable according to the rules at:
+    /// https://drafts.csswg.org/css-grid/#propdef-grid-column
+    /// https://drafts.csswg.org/css-grid/#propdef-grid-area
+    pub fn can_omit(&self, other: &Self) -> bool {
+        if self.is_ident_only() {
+            self == other
+        } else {
+            other.is_auto()
+        }
+    }
 }
 
 impl<Integer> ToCss for GridLine<Integer>
 where
-    Integer: ToCss + Zero,
+    Integer: ToCss + PartialEq + Zero,
 {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where

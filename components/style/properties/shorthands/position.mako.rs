@@ -181,8 +181,18 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
+        // Return the shortest possible serialization of the `grid-${kind}-[start/end]` values.
+        // This function exploits the opportunities to omit the end value per this spec text:
+        //
+        // https://drafts.csswg.org/css-grid/#propdef-grid-column
+        // "When the second value is omitted, if the first value is a <custom-ident>,
+        // the grid-row-end/grid-column-end longhand is also set to that <custom-ident>;
+        // otherwise, it is set to auto."
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.grid_${kind}_start.to_css(dest)?;
+            if self.grid_${kind}_start.can_omit(self.grid_${kind}_end) {
+                return Ok(());  // the end value is redundant
+            }
             dest.write_str(" / ")?;
             self.grid_${kind}_end.to_css(dest)
         }
@@ -247,14 +257,39 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
+        // Return the shortest possible serialization of the `grid-[column/row]-[start/end]` values.
+        // This function exploits the opportunities to omit trailing values per this spec text:
+        //
+        // https://drafts.csswg.org/css-grid/#propdef-grid-area
+        // "If four <grid-line> values are specified, grid-row-start is set to the first value,
+        // grid-column-start is set to the second value, grid-row-end is set to the third value,
+        // and grid-column-end is set to the fourth value.
+        //
+        // When grid-column-end is omitted, if grid-column-start is a <custom-ident>,
+        // grid-column-end is set to that <custom-ident>; otherwise, it is set to auto.
+        //
+        // When grid-row-end is omitted, if grid-row-start is a <custom-ident>, grid-row-end is
+        // set to that <custom-ident>; otherwise, it is set to auto.
+        //
+        // When grid-column-start is omitted, if grid-row-start is a <custom-ident>, all four
+        // longhands are set to that value. Otherwise, it is set to auto."
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.grid_row_start.to_css(dest)?;
+            let mut trailing_values = 3;
+            if self.grid_column_start.can_omit(self.grid_column_end) {
+                trailing_values -= 1;
+                if self.grid_row_start.can_omit(self.grid_row_end) {
+                    trailing_values -= 1;
+                    if self.grid_row_start.can_omit(self.grid_column_start) {
+                        trailing_values -= 1;
+                    }
+                }
+            }
             let values = [&self.grid_column_start, &self.grid_row_end, &self.grid_column_end];
-            for value in &values {
+            for value in values.iter().take(trailing_values) {
                 dest.write_str(" / ")?;
                 value.to_css(dest)?;
             }
-
             Ok(())
         }
     }
