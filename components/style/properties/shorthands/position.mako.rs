@@ -301,27 +301,37 @@
         % endfor
 
         let first_line_names = input.try(parse_line_names).unwrap_or_default();
-        if let Ok(mut string) = input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned().into())) {
+        if let Ok(string) = input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned().into())) {
             let mut strings = vec![];
             let mut values = vec![];
             let mut line_names = vec![];
-            let mut names = first_line_names;
+            line_names.push(first_line_names);
+            strings.push(string);
             loop {
-                line_names.push(names);
-                strings.push(string);
                 let size = input.try(|i| TrackSize::parse(context, i)).unwrap_or_default();
                 values.push(TrackListValue::TrackSize(size));
-                names = input.try(parse_line_names).unwrap_or_default();
-                if let Ok(v) = input.try(parse_line_names) {
-                    let mut names_vec = names.into_vec();
-                    names_vec.extend(v.into_iter());
-                    names = names_vec.into();
-                }
+                let mut names = input.try(parse_line_names).unwrap_or_default();
+                let more_names = input.try(parse_line_names);
 
-                string = match input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned().into())) {
-                    Ok(s) => s,
-                    _ => {      // only the named area determines whether we should bail out
-                        line_names.push(names.into());
+                match input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned().into())) {
+                    Ok(string) => {
+                        strings.push(string);
+                        if let Ok(v) = more_names {
+                            // We got `[names] [more_names] "string"` - merge the two name lists.
+                            let mut names_vec = names.into_vec();
+                            names_vec.extend(v.into_iter());
+                            names = names_vec.into();
+                        }
+                        line_names.push(names);
+                    },
+                    Err(e) => {
+                        if more_names.is_ok() {
+                            // We've parsed `"string" [names] [more_names]` but then failed to parse another `"string"`.
+                            // The grammar doesn't allow two trailing `<line-names>` so this is an invalid value.
+                            return Err(e.into());
+                        }
+                        // only the named area determines whether we should bail out
+                        line_names.push(names);
                         break
                     },
                 };
