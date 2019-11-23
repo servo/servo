@@ -360,7 +360,7 @@
 
                 value
             } else {
-                GenericGridTemplateComponent::None
+                GridTemplateComponent::default()
             };
 
             Ok((
@@ -409,6 +409,9 @@
         W: Write {
         match *template_areas {
             GridTemplateAreas::None => {
+                if template_rows.is_initial() && template_columns.is_initial() {
+                    return GridTemplateComponent::default().to_css(dest);
+                }
                 template_rows.to_css(dest)?;
                 dest.write_str(" / ")?;
                 template_columns.to_css(dest)
@@ -465,8 +468,12 @@
                     }
 
                     string.to_css(dest)?;
-                    dest.write_str(" ")?;
-                    value.to_css(dest)?;
+
+                    // If the track size is the initial value then it's redundant here.
+                    if !value.is_initial() {
+                        dest.write_str(" ")?;
+                        value.to_css(dest)?;
+                    }
                 }
 
                 if let Some(names) = names_iter.next() {
@@ -513,8 +520,8 @@
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
-        let mut temp_rows = GridTemplateComponent::None;
-        let mut temp_cols = GridTemplateComponent::None;
+        let mut temp_rows = GridTemplateComponent::default();
+        let mut temp_cols = GridTemplateComponent::default();
         let mut temp_areas = GridTemplateAreas::None;
         let mut auto_rows = ImplicitGridTracks::default();
         let mut auto_cols = ImplicitGridTracks::default();
@@ -587,8 +594,8 @@
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             if *self.grid_template_areas != GridTemplateAreas::None ||
-               (*self.grid_template_rows != GridTemplateComponent::None &&
-                   *self.grid_template_columns != GridTemplateComponent::None) ||
+               (!self.grid_template_rows.is_initial() &&
+                !self.grid_template_columns.is_initial()) ||
                self.is_grid_template() {
                 return super::grid_template::serialize_grid_template(self.grid_template_rows,
                                                                      self.grid_template_columns,
@@ -598,7 +605,7 @@
             if self.grid_auto_flow.autoflow == AutoFlow::Column {
                 // It should fail to serialize if other branch of the if condition's values are set.
                 if !self.grid_auto_rows.is_initial() ||
-                   *self.grid_template_columns != GridTemplateComponent::None {
+                    !self.grid_template_columns.is_initial() {
                     return Ok(());
                 }
 
@@ -622,7 +629,7 @@
             } else {
                 // It should fail to serialize if other branch of the if condition's values are set.
                 if !self.grid_auto_columns.is_initial() ||
-                   *self.grid_template_rows != GridTemplateComponent::None {
+                    !self.grid_template_rows.is_initial() {
                     return Ok(());
                 }
 
