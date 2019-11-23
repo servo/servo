@@ -19,12 +19,12 @@ partial interface WorkerNavigator {
   [SameObject] readonly attribute WakeLock wakeLock;
 };
 
-[SecureContext, Exposed=(DedicatedWorker,Window)]
+[SecureContext, Exposed=(DedicatedWorker, Window)]
 interface WakeLock {
   Promise<WakeLockSentinel> request(WakeLockType type);
 };
 
-[SecureContext, Exposed=(DedicatedWorker,Window)]
+[SecureContext, Exposed=(DedicatedWorker, Window)]
 interface WakeLockSentinel : EventTarget {
   readonly attribute WakeLockType type;
   Promise<void> release();

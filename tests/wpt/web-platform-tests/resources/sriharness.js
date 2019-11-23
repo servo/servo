@@ -1,5 +1,3 @@
-// TODO(domfarolino): Refactor SRIScriptTest to just be a function instead of a
-// constructor, since there is no need to produce another object.
 var SRIScriptTest = function(pass, name, src, integrityValue, crossoriginValue, nonce) {
     this.pass = pass;
     this.name = "Script: " + name;

@@ -46,6 +46,8 @@
     const decoder = new TextDecoder();
     assert_equals(decoder.decode(record.data), test_text_data,
         'data has the same content with the original dictionary');
+    assert_throws('NotSupportedError', () => record.toRecords(),
+        'Only smart-poster records and external type records could have embedded records.');
   }, 'NDEFRecord constructor with text record type and string data');
 
   test(() => {
@@ -59,6 +61,8 @@
     const decoder = new TextDecoder();
     assert_equals(decoder.decode(record.data), test_text_data,
         'data has the same content with the original dictionary');
+    assert_throws('NotSupportedError', () => record.toRecords(),
+        'Only smart-poster records and external type records could have embedded records.');
   }, 'NDEFRecord constructor with text record type and arrayBuffer data');
 
   test(() => {
@@ -72,6 +76,8 @@
     const decoder = new TextDecoder();
     assert_equals(decoder.decode(record.data), test_text_data,
         'data has the same content with the original dictionary');
+    assert_throws('NotSupportedError', () => record.toRecords(),
+        'Only smart-poster records and external type records could have embedded records.');
   }, 'NDEFRecord constructor with text record type and arrayBufferView data');
 
   test(() => {
@@ -113,6 +119,8 @@
     const decoder = new TextDecoder();
     assert_equals(decoder.decode(record.data), test_url_data,
         'data has the same content with the original dictionary');
+    assert_throws('NotSupportedError', () => record.toRecords(),
+        'Only smart-poster records and external type records could have embedded records.');
   }, 'NDEFRecord constructor with url record type');
 
   test(() => {
@@ -122,6 +130,8 @@
     const decoder = new TextDecoder();
     assert_equals(decoder.decode(record.data), test_url_data,
         'data has the same content with the original dictionary');
+    assert_throws('NotSupportedError', () => record.toRecords(),
+        'Only smart-poster records and external type records could have embedded records.');
   }, 'NDEFRecord constructor with absolute-url record type');
 
   test(() => {
@@ -138,6 +148,8 @@
       assert_equals(record.mediaType, 'application/octet-stream', 'mediaType');
       assert_array_equals(new Uint8Array(record.data.buffer), [1, 2, 3, 4],
           'data has the same content with the original buffer');
+      assert_throws('NotSupportedError', () => record.toRecords(),
+          'Only smart-poster records and external type records could have embedded records.');
     }
     // Feed ArrayBufferView.
     {
@@ -146,6 +158,8 @@
       assert_equals(record.recordType, 'mime', 'recordType');
       assert_array_equals(new Uint8Array(record.data.buffer), [2, 3, 4],
           'data has the same content with the original buffer view');
+      assert_throws('NotSupportedError', () => record.toRecords(),
+          'Only smart-poster records and external type records could have embedded records.');
     }
   }, 'NDEFRecord constructor with mime record type and stream data');
 
@@ -156,6 +170,8 @@
     assert_object_equals(JSON.parse(new TextDecoder().decode(record.data)),
         test_json_data,
         'data has the same content with the original json');
+    assert_throws('NotSupportedError', () => record.toRecords(),
+        'Only smart-poster records and external type records could have embedded records.');
   }, 'NDEFRecord constructor with mime record type and json data');
 
   test(() => {
@@ -171,6 +187,8 @@
       assert_equals(record.recordType, 'unknown', 'recordType');
       assert_array_equals(new Uint8Array(record.data.buffer), [1, 2, 3, 4],
           'data has the same content with the original buffer');
+      assert_throws('NotSupportedError', () => record.toRecords(),
+          'Only smart-poster records and external type records could have embedded records.');
     }
     // Feed ArrayBufferView.
     {
@@ -179,19 +197,39 @@
       assert_equals(record.recordType, 'unknown', 'recordType');
       assert_array_equals(new Uint8Array(record.data.buffer), [2, 3, 4],
           'data has the same content with the original buffer view');
+      assert_throws('NotSupportedError', () => record.toRecords(),
+          'Only smart-poster records and external type records could have embedded records.');
     }
   }, 'NDEFRecord constructor with unknown record type');
 
   test(() => {
+    assert_throws(new TypeError, () => new NDEFRecord(
+        createRecord('foo.eXamPle.coM:bAr*-', "A string is not a BufferSource or NDEFMessage")),
+        'Only BufferSource and NDEFMessage are allowed to be the record data.');
+
     let buffer = new ArrayBuffer(4);
-    let buffer_view = new Uint8Array(buffer);
-    let original_data = new Uint8Array([1, 2, 3, 4]);
-    buffer_view.set(original_data);
-    const record = new NDEFRecord(createRecord('foo.eXamPle.coM:bAr*-', buffer));
-    assert_equals(record.recordType, 'foo.example.com:bAr*-', 'recordType');
-    assert_equals(record.mediaType, null, 'mediaType');
-    assert_array_equals(new Uint8Array(record.data.buffer), original_data,
-        'data has the same content with the original buffer');
+    new Uint8Array(buffer).set([1, 2, 3, 4]);
+    // Feed ArrayBuffer.
+    {
+      const record = new NDEFRecord(createRecord('foo.eXamPle.coM:bAr*-', buffer));
+      assert_equals(record.recordType, 'foo.example.com:bAr*-', 'recordType');
+      assert_equals(record.mediaType, null, 'mediaType');
+      assert_array_equals(new Uint8Array(record.data.buffer), [1, 2, 3, 4],
+          'data has the same content with the original buffer');
+      assert_equals(record.toRecords(), null,
+          'toRecords() returns null if the payload is not an NDEF message.');
+    }
+    // Feed ArrayBufferView.
+    {
+      let buffer_view = new Uint8Array(buffer, 1);
+      const record = new NDEFRecord(createRecord('foo.eXamPle.coM:bAr*-', buffer_view));
+      assert_equals(record.recordType, 'foo.example.com:bAr*-', 'recordType');
+      assert_equals(record.mediaType, null, 'mediaType');
+      assert_array_equals(new Uint8Array(record.data.buffer), [2, 3, 4],
+          'data has the same content with the original buffer view');
+      assert_equals(record.toRecords(), null,
+          'toRecords() returns null if the payload is not an NDEF message.');
+    }
   }, 'NDEFRecord constructor with external record type');
 
   test(() => {

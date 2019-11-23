@@ -36,11 +36,10 @@
         expected = {
           "site": "same-origin",
           "user": "",
-          "mode": "cors" // Because the `video` element has `crossorigin`
+          "mode": "cors", // Because the `video` element has `crossorigin`
+          "dest": "track"
         };
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-            .then(response => response.text())
-            .then(text => assert_header_equals(text, expected))
+        validate_expectations(key, expected, "Same-Origin track")
             .then(_ => resolve());
       });
       video.appendChild(el);
@@ -58,11 +57,10 @@
         expected = {
           "site": "same-site",
           "user": "",
-          "mode": "cors" // Because the `video` element has `crossorigin`
+          "mode": "cors", // Because the `video` element has `crossorigin`
+          "dest": "track"
         };
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-            .then(response => response.text())
-            .then(text => assert_header_equals(text, expected))
+        validate_expectations(key, expected, "Same-Site track")
             .then(resolve)
             .catch(reject);
 
@@ -82,11 +80,10 @@
         expected = {
           "site": "cross-site",
           "user": "",
-          "mode": "cors" // Because the `video` element has `crossorigin`
+          "mode": "cors", // Because the `video` element has `crossorigin`
+          "dest": "track"
         };
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-            .then(response => response.text())
-            .then(text => assert_header_equals(text, expected))
+        validate_expectations(key, expected,"Cross-Site track")
             .then(resolve)
             .catch(reject);
       });
@@ -109,11 +106,10 @@
         expected = {
           "site":"same-origin",
           "user":"",
-          "mode": "same-origin"
+          "mode": "same-origin",
+          "dest": "track"
         };
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-            .then(response => response.text())
-            .then(text => assert_header_equals(text, expected))
+        validate_expectations(key, expected, "Same-Origin, CORS track")
             .then(_ => resolve());
       });
       video.appendChild(el);

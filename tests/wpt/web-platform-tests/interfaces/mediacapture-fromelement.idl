@@ -4,14 +4,14 @@
 // Source: Media Capture from DOM Elements (https://w3c.github.io/mediacapture-fromelement/)
 
 partial interface HTMLMediaElement {
-    MediaStream captureStream();
+    MediaStream captureStream ();
 };
 
 partial interface HTMLCanvasElement {
-    MediaStream captureStream(optional double frameRequestRate);
+    MediaStream captureStream (optional double frameRequestRate);
 };
 
 [Exposed=Window] interface CanvasCaptureMediaStreamTrack : MediaStreamTrack {
     readonly        attribute HTMLCanvasElement canvas;
-    void requestFrame();
+    void requestFrame ();
 };

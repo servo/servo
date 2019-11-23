@@ -11,9 +11,7 @@
 # project is required:
 #  - The "Build pull requests from forks of this repository" setting must be
 #    enabled: https://docs.microsoft.com/en-us/azure/devops/pipelines/repos/github#validate-contributions-from-forks
-#  - Self-hosted agents for Windows 10 are used:
-#    - 'Hosted Windows Client' is the latest Windows 10
-#    - 'Hosted Windows Client Next' is Windows 10 Insider Preview
+#  - A self-hosted Windows 10 agent pool named 'Hosted Windows Client'.
 #    Documention for the setup of these agents:
 #    https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/v2-windows
 

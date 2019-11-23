@@ -538,8 +538,12 @@ policies and contribution forms [3].
      */
     function test(func, name, properties)
     {
+        if (tests.promise_setup_called) {
+            tests.status.status = tests.status.ERROR;
+            tests.status.message = '`test` invoked after `promise_setup`';
+            tests.complete();
+        }
         var test_name = name ? name : test_environment.next_default_test_name();
-        properties = properties ? properties : {};
         var test_obj = new Test(test_name, properties);
         var value = test_obj.step(func, test_obj, test_obj);
 
@@ -564,13 +568,17 @@ policies and contribution forms [3].
 
     function async_test(func, name, properties)
     {
+        if (tests.promise_setup_called) {
+            tests.status.status = tests.status.ERROR;
+            tests.status.message = '`async_test` invoked after `promise_setup`';
+            tests.complete();
+        }
         if (typeof func !== "function") {
             properties = name;
             name = func;
             func = null;
         }
         var test_name = name ? name : test_environment.next_default_test_name();
-        properties = properties ? properties : {};
         var test_obj = new Test(test_name, properties);
         if (func) {
             test_obj.step(func, test_obj, test_obj);
@@ -579,7 +587,13 @@ policies and contribution forms [3].
     }
 
     function promise_test(func, name, properties) {
-        var test = async_test(name, properties);
+        if (typeof func !== "function") {
+            properties = name;
+            name = func;
+            func = null;
+        }
+        var test_name = name ? name : test_environment.next_default_test_name();
+        var test = new Test(test_name, properties);
         test._is_promise_test = true;
 
         // If there is no promise tests queue make one.
@@ -790,6 +804,44 @@ policies and contribution forms [3].
         test_environment.on_new_harness_properties(properties);
     }
 
+    function promise_setup(func, maybe_properties)
+    {
+        if (typeof func !== "function") {
+            tests.set_status(tests.status.ERROR,
+                             "promise_test invoked without a function");
+            tests.complete();
+            return;
+        }
+        tests.promise_setup_called = true;
+
+        if (!tests.promise_tests) {
+            tests.promise_tests = Promise.resolve();
+        }
+
+        tests.promise_tests = tests.promise_tests
+            .then(function()
+                  {
+                      var properties = maybe_properties || {};
+                      var result;
+
+                      tests.setup(null, properties);
+                      result = func();
+                      test_environment.on_new_harness_properties(properties);
+
+                      if (!result || typeof result.then !== "function") {
+                          throw "Non-thenable returned by function passed to `promise_setup`";
+                      }
+                      return result;
+                  })
+            .catch(function(e)
+                   {
+                       tests.set_status(tests.status.ERROR,
+                                        String(e),
+                                        e && e.stack);
+                       tests.complete();
+                   });
+    }
+
     function done() {
         if (tests.tests.length === 0) {
             // `done` is invoked after handling uncaught exceptions, so if the
@@ -852,6 +904,7 @@ policies and contribution forms [3].
     expose(promise_rejects_exactly, 'promise_rejects_exactly');
     expose(generate_tests, 'generate_tests');
     expose(setup, 'setup');
+    expose(promise_setup, 'promise_setup');
     expose(done, 'done');
     expose(on_event, 'on_event');
     expose(step_timeout, 'step_timeout');
@@ -1842,7 +1895,7 @@ policies and contribution forms [3].
         this.timeout_id = null;
         this.index = null;
 
-        this.properties = properties;
+        this.properties = properties || {};
         this.timeout_length = settings.test_timeout;
         if (this.timeout_length !== null) {
             this.timeout_length *= tests.timeout_multiplier;
@@ -2450,6 +2503,10 @@ policies and contribution forms [3].
         this.allow_uncaught_exception = false;
 
         this.file_is_test = false;
+        // This value is lazily initialized in order to avoid introducing a
+        // dependency on ECMAScript 2015 Promises to all tests.
+        this.promise_tests = null;
+        this.promise_setup_called = false;
 
         this.timeout_multiplier = 1;
         this.timeout_length = test_environment.test_timeout();

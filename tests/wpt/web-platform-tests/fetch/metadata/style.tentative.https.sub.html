@@ -17,10 +17,8 @@
       e.rel = "stylesheet";
       e.href = "https://{{host}}:{{ports[https][0]}}/fetch/metadata/resources/record-header.py?file=" + key;
       e.onload = e => {
-        let expected = {"site":"same-origin", "user":"", "mode": "no-cors"};
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-          .then(response => response.text())
-          .then(text => assert_header_equals(text, expected))
+        let expected = {"site":"same-origin", "user":"", "mode": "no-cors", "dest": "style"};
+        validate_expectations(key, expected, "Same-Origin style")
           .then(_ => resolve())
           .catch(e => reject(e));
       };
@@ -37,10 +35,8 @@
       e.rel = "stylesheet";
       e.href = "https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/metadata/resources/record-header.py?file=" + key;
       e.onload = e => {
-        let expected = {"site":"same-site", "user":"", "mode": "no-cors"};
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-          .then(response => response.text())
-          .then(text => assert_header_equals(text, expected))
+        let expected = {"site":"same-site", "user":"", "mode": "no-cors", "dest": "style"};
+        validate_expectations(key, expected, "Same-Site style")
           .then(_ => resolve())
           .catch(e => reject(e));
       };
@@ -57,10 +53,8 @@
       e.rel = "stylesheet";
       e.href = "https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/metadata/resources/record-header.py?file=" + key;
       e.onload = e => {
-        let expected = {"site":"cross-site", "user":"", "mode": "no-cors"};
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-          .then(response => response.text())
-          .then(text => assert_header_equals(text, expected))
+        let expected = {"site":"cross-site", "user":"", "mode": "no-cors", "dest": "style"};
+        validate_expectations(key, expected, "Cross-Site style")
           .then(_ => resolve())
           .catch(e => reject(e));
       };
@@ -78,10 +72,8 @@
       e.href = "https://{{host}}:{{ports[https][0]}}/fetch/metadata/resources/record-header.py?file=" + key;
       e.crossOrigin = "anonymous";
       e.onload = e => {
-        let expected = {"site":"same-origin", "user":"", "mode": "cors"};
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-          .then(response => response.text())
-          .then(text => assert_header_equals(text, expected))
+        let expected = {"site":"same-origin", "user":"", "mode": "cors", "dest": "style"};
+        validate_expectations(key, expected, "Same-Origin, cors style")
           .then(_ => resolve())
           .catch(e => reject(e));
       };

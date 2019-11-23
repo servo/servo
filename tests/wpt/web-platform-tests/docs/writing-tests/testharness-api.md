@@ -430,18 +430,38 @@ not possible to make the test reliable in some other way.
 
 ## Setup ##
 
-Sometimes tests require non-trivial setup that may fail. For this purpose
-there is a `setup()` function, that may be called with one or two arguments.
-The two argument version is:
+Sometimes tests require non-trivial setup that may fail. testharness.js
+provides two global functions for this purpose, `setup` and `promise_setup`.
+
+`setup()` may be called with one or two arguments. The two argument version is:
 
 ```js
 setup(func, properties)
 ```
 
-The one argument versions may omit either argument.
-func is a function to be run synchronously. `setup()` becomes a no-op once
-any tests have returned results. Properties are global properties of the test
-harness. Currently recognised properties are:
+The one argument version may omit either argument. `func` is a function to be
+run synchronously. `setup()` becomes a no-op once any tests have returned
+results. `properties` is an object which specifies global properties of the
+test harness (enumerated in the following section).
+
+`promise_setup()` allows authors to pause testing until some asynchronous
+operation has completed. It has the following signature:
+
+```js
+promise_setup(func, properties)
+```
+
+Here, the `func` argument is required. This argument must be a function which
+returns an object with a `then` method (e.g. an ECMAScript Promise instance);
+the harness will wait for the fulfillment of this value before executing any
+additional subtests defined with the `promise_test` function. If the value is
+rejected, the harness will report an error and cancel the remaining tests.
+`properties` may optionally be provided as an object which specifies global
+properties of the test harness (enumerated in the following section).
+
+### Setup properties ##
+
+Both setup functions recognize the following properties:
 
 `explicit_done` - Wait for an explicit call to done() before declaring all
 tests complete (see below; implicitly true for single page tests)

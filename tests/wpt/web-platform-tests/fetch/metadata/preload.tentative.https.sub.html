@@ -44,8 +44,8 @@
   ];
 
   as_tests.forEach(item => {
-    create_test("{{host}}:{{ports[https][0]}}", item[0], {"site":"same-origin", "user":"", "mode": "cors"});
-    create_test("{{hosts[][www]}}:{{ports[https][0]}}", item[0], {"site":"same-site", "user":"", "mode": "cors"});
-    create_test("{{hosts[alt][www]}}:{{ports[https][0]}}", item[0], {"site":"cross-site", "user":"", "mode": "cors"});
+    create_test("{{host}}:{{ports[https][0]}}", item[0], {"site":"same-origin", "user":"", "mode": "cors", "dest": item[1]});
+    create_test("{{hosts[][www]}}:{{ports[https][0]}}", item[0], {"site":"same-site", "user":"", "mode": "cors", "dest": item[1]});
+    create_test("{{hosts[alt][www]}}:{{ports[https][0]}}", item[0], {"site":"cross-site", "user":"", "mode": "cors", "dest": item[1]});
   });
 </script>

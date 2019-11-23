@@ -1,17 +1,27 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
 <body>
-  <script src=/resources/testharness.js></script>
-  <script src=/resources/testharnessreport.js></script>
-  <script src=/common/get-host-info.sub.js></script>
-  <script src=/feature-policy/resources/featurepolicy.js></script>
+  <button id="button">User gesture</button>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="/feature-policy/resources/featurepolicy.js"></script>
   <script>
   'use strict';
 
-  async function gDM({audio, video}) {
+  async function getDisplayMedia(constraints) {
+    const p = new Promise(r => button.onclick = r);
+    await test_driver.click(button);
+    await p;
+    return navigator.mediaDevices.getDisplayMedia(constraints);
+  }
+
+  async function testGDM({audio, video}) {
     let stream;
     try {
-      stream = await navigator.mediaDevices.getDisplayMedia({audio, video});
+      stream = await getDisplayMedia({audio, video});
       if (stream.getVideoTracks().length == 0) {
         throw {name: `requested video track must be present with ` +
                      `audio ${audio} and video ${video}, or fail`};
@@ -29,9 +39,9 @@
     'display-capture',
     'NotAllowedError',
     async () => {
-      await gDM({video: true});
-      await gDM({audio: true, video: true});
-      await gDM({audio: true});
+      await testGDM({video: true});
+      await testGDM({audio: true, video: true});
+      await testGDM({audio: true});
     }
   );
   </script>

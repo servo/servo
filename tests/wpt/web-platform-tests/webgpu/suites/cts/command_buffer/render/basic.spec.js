@@ -54,7 +54,7 @@ g.test('clear', async t => {
     height: 1,
     depth: 1
   });
-  t.device.getQueue().submit([encoder.finish()]);
+  t.device.defaultQueue.submit([encoder.finish()]);
   t.expectContents(dst, new Uint8Array([0x00, 0xff, 0x00, 0xff]));
 });
 //# sourceMappingURL=basic.spec.js.map

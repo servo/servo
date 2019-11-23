@@ -98,7 +98,7 @@ g.test('storeOp controls whether 1x1 drawn quad is stored', async t => {
     height: 1,
     depth: 1
   });
-  t.device.getQueue().submit([encoder.finish()]); // expect the buffer to be clear
+  t.device.defaultQueue.submit([encoder.finish()]); // expect the buffer to be clear
 
   const expectedContent = new Uint32Array([t.params._expected]);
   t.expectContents(dstBuffer, expectedContent);

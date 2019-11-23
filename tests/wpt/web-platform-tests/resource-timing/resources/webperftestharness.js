@@ -3,7 +3,7 @@ author: W3C http://www.w3.org/
 help: http://www.w3.org/TR/navigation-timing/#sec-window.performance-attribute
 */
 //
-// Helper Functions for NavigationTiming W3C tests
+// Helper Functions for ResourceTiming W3C tests
 //
 
 var performanceNamespace = window.performance;
@@ -149,4 +149,18 @@ function test_greater_or_equals(value, greater_than, msg, properties)
 function test_not_equals(value, notequals, msg, properties)
 {
     wp_test(function() { assert_true(value !== notequals, msg); }, msg, properties);
+}
+
+function test_tao_pass(entry) {
+    test_greater_than(entry.redirectStart, 0, 'redirectStart > 0 in cross-origin redirect with Timing-Allow-Origin.');
+    test_greater_than(entry.redirectEnd, 0, 'redirectEnd > 0 in cross-origin redirect with Timing-Allow-Origin.');
+    test_greater_than(entry.fetchStart, 0, 'fetchStart > 0 in cross-origin redirect with Timing-Allow-Origin.');
+    test_greater_than(entry.fetchStart, entry.startTime, 'startTime < fetchStart in cross-origin redirect with Timing-Allow-Origin.');
+}
+
+function test_tao_fail(entry) {
+    test_equals(entry.redirectStart, 0, 'redirectStart == 0 in cross-origin redirect with failing Timing-Allow-Origin.');
+    test_equals(entry.redirectEnd, 0, 'redirectEnd == 0 in cross-origin redirect with failing Timing-Allow-Origin.');
+    test_greater_than(entry.fetchStart, 0, 'fetchStart > 0 in cross-origin redirect with failing Timing-Allow-Origin.');
+    test_equals(entry.fetchStart, entry.startTime, 'startTime == fetchStart in cross-origin redirect with failing Timing-Allow-Origin.');
 }

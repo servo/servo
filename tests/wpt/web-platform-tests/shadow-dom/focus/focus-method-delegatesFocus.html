@@ -236,5 +236,52 @@ test(() => {
   assert_equals(shadowRoot.activeElement, belowSlots);
 }, "focus() on host with delegatesFocus and already-focused non-first shadow descendant");
 
+function createNestedHosts(innerDelegatesFocus) {
+  // Structure:
+  // <div> outerHost
+  //   <input> outerLightChild
+  //   #shadowRoot outerShadow delegatesFocus=true
+  //     <span> innerHost
+  //       #shadowRoot inneShadow delegatesFocus=true/false
+  //         <input> innerShadowChild
+  //     <input> outerShadowChild
+  const outerHost = document.createElement('div');
+  const outerLightChild = document.createElement('input');
+  outerHost.appendChild(outerLightChild);
+  const innerHost = document.createElement('span');
+  const outerShadow = outerHost.attachShadow({mode: 'closed', delegatesFocus:true});
+  outerShadow.appendChild(innerHost);
+  const outerShadowChild = document.createElement('input');
+  outerShadow.appendChild(outerShadowChild);
+
+  const innerShadow = innerHost.attachShadow({mode: 'closed', delegatesFocus:innerDelegatesFocus});
+  const innerShadowChild = document.createElement('input');
+  innerShadow.appendChild(innerShadowChild);
+
+  document.body.insertBefore(outerHost, document.body.firstChild);
+  return {outerHost: outerHost,
+      outerLightChild: outerLightChild,
+      outerShadow: outerShadow,
+      outerShadowChild: outerShadowChild,
+      innerHost: innerHost,
+      innerShadow: innerShadow,
+      innerShadowChild: innerShadowChild};
+}
+
+test(() => {
+  const dom = createNestedHosts(false);
+  dom.outerHost.focus();
+  assert_equals(document.activeElement, dom.outerHost);
+  assert_equals(dom.outerShadow.activeElement, dom.innerHost);
+  assert_equals(dom.innerShadow.activeElement, dom.innerShadowChild);
+}, 'focus() on host with delegatesFocus with another host with no delegatesFocus and a focusable child');
+
+test(() => {
+  const dom = createNestedHosts(true);
+  dom.outerHost.focus();
+  assert_equals(document.activeElement, dom.outerHost);
+  assert_equals(dom.outerShadow.activeElement, dom.innerHost);
+  assert_equals(dom.innerShadow.activeElement, dom.innerShadowChild);
+}, 'focus() on host with delegatesFocus with another host with delegatesFocus and a focusable child');
 </script>
 

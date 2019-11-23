@@ -197,6 +197,19 @@ test(t => {
 }, 'Animations update when the writing-mode is changed through a CSS variable');
 
 test(t => {
+  addStyle(t, { ':root': '--200px: 200px; --300px: 300px' });
+  addStyle(t, {
+    '@keyframes anim': 'from { inset-block: var(--200px) } to { inset-block: var(--300px) }',
+  });
+  const div = addDiv(t, {
+    style:
+      'animation: anim 10s -5s paused linear;'
+      + ' width: 0px; height: 0px;'
+  });
+  assert_equals(getComputedStyle(div).insetBlockStart, '250px');
+}, 'Logical shorthand with variable references animates correctly');
+
+test(t => {
   addStyle(t, {
     '@keyframes anim':
       'from { margin-inline-start: 0px } to { margin-inline-start: 100px }',

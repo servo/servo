@@ -585,7 +585,7 @@ dictionary AudioWorkletNodeOptions : AudioNodeOptions {
 
 [Exposed=AudioWorklet]
 interface AudioWorkletProcessor {
-  constructor (optional AudioWorkletNodeOptions options = {});
+  constructor ();
   readonly attribute MessagePort port;
 };
 

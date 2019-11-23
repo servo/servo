@@ -14,7 +14,8 @@
           .then(t.step_func_done(text => assert_header_equals(text, {
             "site": "same-origin",
             "user": "",
-            "mode": "no-cors"
+            "mode": "no-cors",
+            "dest": ""
           })))
           .catch(t.unreached_func("Fetching and verifying the results should succeed."));
 });

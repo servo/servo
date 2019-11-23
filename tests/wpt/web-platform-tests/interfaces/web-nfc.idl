@@ -19,7 +19,7 @@ interface NDEFRecord {
 
   readonly attribute USVString recordType;
   readonly attribute USVString? mediaType;
-  readonly attribute USVString id;
+  readonly attribute USVString? id;
   readonly attribute DataView? data;
 
   readonly attribute USVString? encoding;

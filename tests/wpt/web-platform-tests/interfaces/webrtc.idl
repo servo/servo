@@ -15,18 +15,11 @@ dictionary RTCConfiguration {
 
 enum RTCIceCredentialType {
   "password",
-  "oauth"
-};
-
-dictionary RTCOAuthCredential {
-  required DOMString macKey;
-  required DOMString accessToken;
 };
 
 dictionary RTCIceServer {
   required (DOMString or sequence<DOMString>) urls;
   DOMString username;
-  (DOMString or RTCOAuthCredential) credential;
   RTCIceCredentialType credentialType = "password";
 };
 
@@ -242,13 +235,6 @@ dictionary RTCPeerConnectionIceErrorEventInit : EventInit {
   USVString statusText;
 };
 
-enum RTCPriorityType {
-  "very-low",
-  "low",
-  "medium",
-  "high"
-};
-
 partial interface RTCPeerConnection {
   static Promise<RTCCertificate>
       generateCertificate(AlgorithmIdentifier keygenAlgorithm);
@@ -311,7 +297,6 @@ dictionary RTCRtpSendParameters : RTCRtpParameters {
   required DOMString transactionId;
   required sequence<RTCRtpEncodingParameters> encodings;
   RTCDegradationPreference degradationPreference = "balanced";
-  RTCPriorityType priority = "low";
 };
 
 dictionary RTCRtpReceiveParameters : RTCRtpParameters {
@@ -327,7 +312,6 @@ dictionary RTCRtpDecodingParameters : RTCRtpCodingParameters {};
 dictionary RTCRtpEncodingParameters : RTCRtpCodingParameters {
   boolean active = true;
   unsigned long maxBitrate;
-  double maxFramerate;
   double scaleResolutionDownBy;
 };
 
@@ -527,7 +511,6 @@ interface RTCDataChannel : EventTarget {
   readonly attribute USVString protocol;
   readonly attribute boolean negotiated;
   readonly attribute unsigned short? id;
-  readonly attribute RTCPriorityType priority;
   readonly attribute RTCDataChannelState readyState;
   readonly attribute unsigned long bufferedAmount;
   [EnforceRange] attribute unsigned long bufferedAmountLowThreshold;
@@ -552,7 +535,6 @@ dictionary RTCDataChannelInit {
   USVString protocol = "";
   boolean negotiated = false;
   [EnforceRange] unsigned short id;
-  RTCPriorityType priority = "low";
 };
 
 enum RTCDataChannelState {

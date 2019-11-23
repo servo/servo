@@ -19,7 +19,7 @@
     <div id="fontTest">Upgraded font</div>
     <script>
   let nonce = "{{$id}}";
-  let expected = { "site": "cross-site", "user": "", "mode": "cors" };
+  let expected = { "site": "cross-site", "user": "", "mode": "cors", "dest": "" };
 
   // Validate various scenarios handle a request that redirects from http => https correctly and add the proper Sec- headers.
   RunCommonRedirectTests("Http upgrade", upgradeRedirectTo, expected);
@@ -28,9 +28,7 @@
     promise_test(t => {
       return new Promise((resolve, reject) => {
         let key = "font-https-upgrade{{$id}}";
-        fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
-          .then(response => response.text())
-          .then(text => assert_header_equals(text, expected))
+        validate_expectations(key, expected, "Http upgrade font => No headers")
           .then(_ => resolve())
           .catch(e => reject(e));
       });
@@ -44,7 +42,8 @@
          got = {
            "mode": headers["sec-fetch-mode"],
            "site": headers["sec-fetch-site"],
-           "user": headers["sec-fetch-user"]
+           "user": headers["sec-fetch-user"],
+           "dest": headers["sec-fetch-dest"]
          };
          assert_header_equals(got, {
            // Note that we're using `undefined` here, as opposed to "" elsewhere because of the way
@@ -52,7 +51,8 @@
            "site": "cross-site",
            "user": undefined,
            "mode": "cors",
-         });
+           "dest": undefined,
+         }, "Http upgrade image => No headers");
       });
   }, "Http upgrade image => No headers");
 </script>
@@ -61,7 +61,7 @@
 <script>
   test(t => {
     t.add_cleanup(_ => { header = null; });
-    assert_header_equals(header, { "site": "cross-site", "user": "", "mode": "no-cors" });
+    assert_header_equals(header, { "site": "cross-site", "user": "", "mode": "no-cors", "dest": "" }, "Http upgrade script => No headers");
   }, "Http upgrade script => No headers");
 </script>
 </body>

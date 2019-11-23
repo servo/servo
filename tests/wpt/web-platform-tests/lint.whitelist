@@ -304,6 +304,7 @@ SET TIMEOUT: resources/test/tests/functional/worker.js
 SET TIMEOUT: resources/test/tests/functional/worker-uncaught-allow.js
 SET TIMEOUT: resources/test/tests/unit/exceptional-cases.html
 SET TIMEOUT: resources/test/tests/unit/exceptional-cases-timeouts.html
+SET TIMEOUT: resources/test/tests/unit/promise_setup.html
 SET TIMEOUT: resources/testharness.js
 
 # setTimeout use in reftests
@@ -469,6 +470,7 @@ CSS-COLLIDING-SUPPORT-NAME: css/*/LOCK
 # These are all the current "merge mismatch" errors the build system produces
 CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox/support/200x200-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-grid/grid-items/support/200x200-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-scroll-snap/support/common.css
 CSS-COLLIDING-SUPPORT-NAME: css/css-regions/contentEditable/support/common.css
 CSS-COLLIDING-SUPPORT-NAME: css/css-regions/interactivity/full-screen/support/common.css
 CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/pattern-grg-rgr-grg.png
@@ -674,7 +676,11 @@ MISSING-LINK: css/filter-effects/*.any.js
 LAYOUTTESTS APIS: css/css-regions/interactivity/*
 LAYOUTTESTS APIS: import-maps/resources/jest-test-helper.js
 LAYOUTTESTS APIS: resources/chromium/generic_sensor_mocks.js
+LAYOUTTESTS APIS: resources/chromium/nfc-mock.js
 LAYOUTTESTS APIS: resources/chromium/webxr-test.js
+LAYOUTTESTS APIS: web-nfc/NDEFReader-document-hidden-manual.https.html
+LAYOUTTESTS APIS: web-nfc/NDEFReader_scan.https.html
+LAYOUTTESTS APIS: web-nfc/NDEFWriter_push.https.html
 
 # Signed Exchange files have hard-coded URLs in the certUrl field
 WEB-PLATFORM.TEST:signed-exchange/resources/*.sxg

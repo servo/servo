@@ -1166,9 +1166,10 @@ dictionary SubmitEventInit : EventInit {
   HTMLElement? submitter = null;
 };
 
-[Exposed=Window,
- Constructor(DOMString type, optional FormDataEventInit eventInitDict = {})]
+[Exposed=Window]
 interface FormDataEvent : Event {
+  constructor(DOMString type, FormDataEventInit eventInitDict);
+
   readonly attribute FormData formData;
 };
 
@@ -2011,8 +2012,8 @@ interface mixin NavigatorLanguage {
 };
 
 interface mixin NavigatorContentUtils {
-  void registerProtocolHandler(DOMString scheme, USVString url, DOMString title);
-  void unregisterProtocolHandler(DOMString scheme, USVString url);
+  [SecureContext] void registerProtocolHandler(DOMString scheme, USVString url, DOMString title);
+  [SecureContext] void unregisterProtocolHandler(DOMString scheme, USVString url);
 };
 
 interface mixin NavigatorCookies {

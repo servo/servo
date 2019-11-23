@@ -114,6 +114,24 @@ class ChromiumFormatter(base.BaseFormatter):
         # Any other status just gets returned as-is.
         return status
 
+    def _get_expected_status_from_data(self, actual_status, data):
+        """
+        Gets the expected status from a |data| dictionary.
+
+        If there is no expected status in data, the actual status is returned.
+        This is because mozlog will delete "expected" from |data| if it is the
+        same as "status". So the presence of "expected" implies that "status" is
+        unexpected. Conversely, the absence of "expected" implies the "status"
+        is expected. So we use the "expected" status if it's there or fall back
+        to the actual status if it's not.
+
+        :param str actual_status: the actual status of the test
+        :param data: a data dictionary to extract expected status from
+        :return str: the expected status
+        """
+        return (self._map_status_name(data["expected"])
+                if "expected" in data else actual_status)
+
     def suite_start(self, data):
         self.start_timestamp_seconds = (data["time"] if "time" in data
                                         else time.time())
@@ -122,13 +140,7 @@ class ChromiumFormatter(base.BaseFormatter):
         test_name = data["test"]
         is_unexpected = None
         actual_status = self._map_status_name(data["status"])
-        # mozlog will delete "expected" from |data| if it is the same as "status".
-        # So the presence of "expected" implies that "status" is unexpected.
-        # Conversely, the absence of "expected" implies the "status" is expected.
-        # So here we use the "expected" status if it's there or fall back to the
-        # actual status if it's not.
-        expected_status = (self._map_status_name(data["expected"])
-                           if "expected" in data else actual_status)
+        expected_status = self._get_expected_status_from_data(actual_status, data)
 
         is_unexpected = actual_status != expected_status
         if is_unexpected and test_name not in self.tests_with_subtest_fails:
@@ -139,8 +151,6 @@ class ChromiumFormatter(base.BaseFormatter):
                                       data["message"])
 
     def test_end(self, data):
-        expected_status = (self._map_status_name(data["expected"])
-                           if "expected" in data else "PASS")
         test_name = data["test"]
         actual_status = self._map_status_name(data["status"])
         if actual_status == "PASS" and test_name in self.tests_with_subtest_fails:
@@ -150,6 +160,7 @@ class ChromiumFormatter(base.BaseFormatter):
             # Clean up the test list to avoid accumulating too many.
             self.tests_with_subtest_fails.remove(test_name)
 
+        expected_status = self._get_expected_status_from_data(actual_status, data)
         if "message" in data:
             self._append_test_message(test_name, None, actual_status,
                                       expected_status, data["message"])

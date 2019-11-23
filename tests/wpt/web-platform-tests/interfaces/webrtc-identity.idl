@@ -3,9 +3,10 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Identity for WebRTC 1.0 (https://w3c.github.io/webrtc-identity/identity.html)
 
-[Global, Exposed=RTCIdentityProviderGlobalScope]
+[Global,
+ Exposed=RTCIdentityProviderGlobalScope]
 interface RTCIdentityProviderGlobalScope : WorkerGlobalScope {
-    readonly        attribute RTCIdentityProviderRegistrar rtcIdentityProvider;
+    readonly attribute RTCIdentityProviderRegistrar rtcIdentityProvider;
 };
 
 [Exposed=RTCIdentityProviderGlobalScope]
@@ -18,13 +19,16 @@ dictionary RTCIdentityProvider {
     required ValidateAssertionCallback validateAssertion;
 };
 
-callback GenerateAssertionCallback = Promise<RTCIdentityAssertionResult> (DOMString contents, DOMString origin, RTCIdentityProviderOptions options);
+callback GenerateAssertionCallback = Promise<RTCIdentityAssertionResult> (DOMString contents,
+DOMString origin,
+RTCIdentityProviderOptions options);
 
-callback ValidateAssertionCallback = Promise<RTCIdentityValidationResult> (DOMString assertion, DOMString origin);
+callback ValidateAssertionCallback = Promise<RTCIdentityValidationResult> (DOMString assertion,
+DOMString origin);
 
 dictionary RTCIdentityAssertionResult {
     required RTCIdentityProviderDetails idp;
-    required DOMString assertion;
+    required DOMString                  assertion;
 };
 
 dictionary RTCIdentityProviderDetails {
