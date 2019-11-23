@@ -414,7 +414,7 @@ where
 
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
-        script::init();
+        let script_shutdown_sender = script::init();
 
         if pref!(dom.webxr.enabled) && pref!(dom.webvr.enabled) {
             panic!("We don't currently support running both WebVR and WebXR");
@@ -516,6 +516,7 @@ where
             glplayer_threads,
             event_loop_waker,
             window_size,
+            script_shutdown_sender,
         );
 
         // Send the constellation's swmanager sender to service worker manager thread
@@ -840,6 +841,7 @@ fn create_constellation(
     glplayer_threads: Option<GLPlayerThreads>,
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
     initial_window_size: WindowSizeData,
+    script_shutdown_sender: IpcSender<()>,
 ) -> (Sender<ConstellationMsg>, SWManagerSenders) {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
@@ -882,6 +884,7 @@ fn create_constellation(
         glplayer_threads,
         player_context,
         event_loop_waker,
+        script_shutdown_sender,
     };
     let (constellation_chan, from_swmanager_sender) = Constellation::<
         script_layout_interface::message::Msg,
@@ -976,8 +979,8 @@ pub fn run_content_process(token: String) {
 
     // send the required channels to the service worker manager
     let sw_senders = unprivileged_content.swmanager_senders();
-    script::init();
     script::init_service_workers(sw_senders);
+    script::init_with_shutdown_receiver(unprivileged_content.script_shutdown_receiver());
 
     media_platform::init();
 

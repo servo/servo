@@ -478,6 +478,9 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// Pipeline ID of the active media session.
     active_media_session: Option<PipelineId>,
+
+    /// A list of senders to content process script shutdown threads.
+    script_shutdown_senders: Vec<IpcSender<()>>,
 }
 
 /// State needed to construct a constellation.
@@ -534,6 +537,9 @@ pub struct InitialConstellationState {
 
     /// Mechanism to force the compositor to process events.
     pub event_loop_waker: Option<Box<dyn EventLoopWaker>>,
+
+    /// A channel to the initial content process' script shutdown thread.
+    pub script_shutdown_sender: IpcSender<()>,
 }
 
 /// Data needed for webdriver
@@ -848,6 +854,7 @@ where
                     player_context: state.player_context,
                     event_loop_waker: state.event_loop_waker,
                     active_media_session: None,
+                    script_shutdown_senders: vec![state.script_shutdown_sender],
                 };
 
                 constellation.run();
@@ -1101,8 +1108,11 @@ where
             Err(e) => return self.handle_send_error(pipeline_id, e),
         };
 
-        if let Some(sampler_chan) = pipeline.sampler_control_chan {
-            self.sampling_profiler_control.push(sampler_chan);
+        if let Some(content_data) = pipeline.content_data {
+            self.sampling_profiler_control
+                .push(content_data.sampler_control_chan);
+            self.script_shutdown_senders
+                .push(content_data.script_shutdown_sender);
         }
 
         if let Some(host) = host {
@@ -2378,6 +2388,10 @@ where
         }
         if let Err(e) = storage_receiver.recv() {
             warn!("Exit storage thread failed ({})", e);
+        }
+
+        for sender in &self.script_shutdown_senders {
+            let _ = sender.send(());
         }
 
         debug!("Asking compositor to complete shutdown.");

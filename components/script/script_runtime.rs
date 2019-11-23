@@ -34,6 +34,9 @@ use crate::script_thread::trace_thread;
 use crate::task::TaskBox;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
+use crossbeam_channel::{select, unbounded, Sender};
+use ipc_channel::ipc::IpcReceiver;
+use ipc_channel::router::ROUTER;
 use js::glue::{CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchableRun};
 use js::glue::{JobQueueTraps, RUST_js_GetErrorMessage, SetBuildId, StreamConsumerConsumeChunk};
 use js::glue::{
@@ -61,9 +64,9 @@ use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
 use js::rust::Handle;
 use js::rust::HandleObject as RustHandleObject;
 use js::rust::IntoHandle;
-use js::rust::JSEngine;
 use js::rust::ParentRuntime;
 use js::rust::Runtime as RustRuntime;
+use js::rust::{JSEngine, JSEngineHandle};
 use malloc_size_of::MallocSizeOfOps;
 use msg::constellation_msg::PipelineId;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
@@ -79,7 +82,9 @@ use std::os::raw::c_void;
 use std::panic::AssertUnwindSafe;
 use std::ptr;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
 use style::thread_state::{self, ThreadState};
 use time::{now, Tm};
 
@@ -396,7 +401,72 @@ impl Deref for Runtime {
 }
 
 lazy_static! {
-    static ref JS_ENGINE: Arc<JSEngine> = JSEngine::init().unwrap();
+    /// A single global channel for communicating with the long-lived JS engine thread
+    /// to obtain proof that the engine has been initialized and is running.
+    static ref JS_BOOTSTRAPPER: Arc<Mutex<Option<Sender<Sender<JSEngineHandle>>>>> =
+        Arc::new(Mutex::new(None));
+}
+
+pub(crate) fn setup_js_engine(ipc_shutdown_receiver: IpcReceiver<()>) {
+    let (shutdown_sender, shutdown_receiver) = unbounded();
+    ROUTER.route_ipc_receiver_to_crossbeam_sender(ipc_shutdown_receiver, shutdown_sender);
+
+    // This thread is long-lived, and exists only to initialize SpiderMonkey and shut
+    // it down in the same thread once all other users of the JS engine have been
+    // cleaned up.
+    thread::spawn(move || {
+        let js_engine = JSEngine::init().unwrap();
+
+        // Initialize the global channel so script threads can use it
+        // to communicate with this thread.
+        let (bootstrap_sender, bootstrap_receiver) = unbounded();
+        *JS_BOOTSTRAPPER.lock().unwrap() = Some(bootstrap_sender);
+
+        loop {
+            select! {
+                recv(shutdown_receiver) -> _msg => {
+                    // The browser is shutting down; time to
+                    // clean up the JS engine.
+                    break;
+                }
+                recv(bootstrap_receiver) -> msg => {
+                    // A script thread needs proof that the JS engine
+                    // is initialized in order to create a new runtime.
+                    if let Ok(sender) = msg {
+                        let _ = sender.send(js_engine.handle());
+                    }
+                }
+            }
+        }
+
+        // It is unsafe to shut down the JS engine while any other threads
+        // are still using it. The constellation closes all pipelines' script
+        // threads, but cannot wait for them to report completion without
+        // risking deadlocks. Under the assumption that given enough time all
+        // threads using the engine will either shut down or panic, we just
+        // need to outlive them.
+        while !js_engine.can_shutdown() {
+            thread::sleep(Duration::from_millis(10));
+        }
+
+        // We're done with the engine. Time to die.
+        drop(js_engine);
+    });
+}
+
+/// Acquire a token providing that the JS engine has been initialized.
+/// Requires performing a synchronous communication with the thread that
+/// initialized the JS engine.
+fn get_js_handle() -> JSEngineHandle {
+    let (tx, rx) = unbounded();
+    JS_BOOTSTRAPPER
+        .lock()
+        .unwrap()
+        .as_ref()
+        .expect("no JS bootstrap channel")
+        .send(tx)
+        .expect("JS bootstrap thread is missing");
+    rx.recv().expect("JS bootstrap thread response is missing")
 }
 
 #[allow(unsafe_code)]
@@ -421,7 +491,7 @@ unsafe fn new_rt_and_cx_with_parent(
     let runtime = if let Some(parent) = parent {
         RustRuntime::create_with_parent(parent)
     } else {
-        RustRuntime::new(JS_ENGINE.clone())
+        RustRuntime::new(get_js_handle())
     };
     let cx = runtime.cx();
 

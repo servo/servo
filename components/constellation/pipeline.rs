@@ -201,9 +201,14 @@ pub struct InitialPipelineState {
     pub event_loop_waker: Option<Box<dyn EventLoopWaker>>,
 }
 
+pub struct ContentData {
+    pub sampler_control_chan: IpcSender<SamplerControlMsg>,
+    pub script_shutdown_sender: IpcSender<()>,
+}
+
 pub struct NewPipeline {
     pub pipeline: Pipeline,
-    pub sampler_control_chan: Option<IpcSender<SamplerControlMsg>>,
+    pub content_data: Option<ContentData>,
 }
 
 impl Pipeline {
@@ -218,7 +223,7 @@ impl Pipeline {
         // probably requires a general low-memory strategy.
         let (pipeline_chan, pipeline_port) = ipc::channel().expect("Pipeline main chan");
 
-        let (script_chan, sampler_chan) = match state.event_loop {
+        let (script_chan, content_data) = match state.event_loop {
             Some(script_chan) => {
                 let new_layout_info = NewLayoutInfo {
                     parent_info: state.parent_pipeline_id,
@@ -301,16 +306,24 @@ impl Pipeline {
                     webvr_chan: state.webvr_chan,
                     webxr_registry: state.webxr_registry,
                     player_context: state.player_context,
+                    script_shutdown_receiver: None,
                 };
 
                 // Spawn the child process.
                 //
                 // Yes, that's all there is to it!
-                let sampler_chan = if opts::multiprocess() {
+                let content_data = if opts::multiprocess() {
                     let (sampler_chan, sampler_port) = ipc::channel().expect("Sampler chan");
                     unprivileged_pipeline_content.sampling_profiler_port = Some(sampler_port);
+                    let (script_shutdown_sender, script_shutdown_receiver) =
+                        ipc::channel().unwrap();
+                    unprivileged_pipeline_content.script_shutdown_receiver =
+                        Some(script_shutdown_receiver);
                     let _ = unprivileged_pipeline_content.spawn_multiprocess()?;
-                    Some(sampler_chan)
+                    Some(ContentData {
+                        sampler_control_chan: sampler_chan,
+                        script_shutdown_sender,
+                    })
                 } else {
                     // Should not be None in single-process mode.
                     let register = state
@@ -324,7 +337,7 @@ impl Pipeline {
                     None
                 };
 
-                (EventLoop::new(script_chan), sampler_chan)
+                (EventLoop::new(script_chan), content_data)
             },
         };
 
@@ -341,7 +354,7 @@ impl Pipeline {
         );
         Ok(NewPipeline {
             pipeline,
-            sampler_control_chan: sampler_chan,
+            content_data,
         })
     }
 
@@ -507,6 +520,7 @@ pub struct UnprivilegedPipelineContent {
     webvr_chan: Option<IpcSender<WebVRMsg>>,
     webxr_registry: webxr_api::Registry,
     player_context: WindowGLContext,
+    script_shutdown_receiver: Option<IpcReceiver<()>>,
 }
 
 impl UnprivilegedPipelineContent {
@@ -730,6 +744,12 @@ impl UnprivilegedPipelineContent {
                 .take()
                 .expect("no sampling profiler?"),
         )
+    }
+
+    pub fn script_shutdown_receiver(&mut self) -> IpcReceiver<()> {
+        self.script_shutdown_receiver
+            .take()
+            .expect("no shutdown receiver?")
     }
 
     pub fn script_to_constellation_chan(&self) -> &ScriptToConstellationChan {

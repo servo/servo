@@ -29,3 +29,6 @@ opt-level = 3
 mio = { git = "https://github.com/servo/mio.git", branch = "servo" }
 # https://github.com/retep998/winapi-rs/pull/816
 winapi = { git = "https://github.com/servo/winapi-rs", branch = "patch-1" }
+
+[patch."https://github.com/servo/rust-mozjs"]
+mozjs = { git = "https://github.com/jdm/rust-mozjs", branch = "shutdown" }

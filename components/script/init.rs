@@ -4,7 +4,9 @@
 
 use crate::dom::bindings::codegen::RegisterBindings;
 use crate::dom::bindings::proxyhandler;
+use crate::script_runtime::setup_js_engine;
 use crate::serviceworker_manager::ServiceWorkerManager;
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use script_traits::SWManagerSenders;
 
 #[cfg(target_os = "linux")]
@@ -55,8 +57,10 @@ pub fn init_service_workers(sw_senders: SWManagerSenders) {
     ServiceWorkerManager::spawn_manager(sw_senders);
 }
 
+/// Initialize the global script state, and listen for a shutdown signal
+/// on the provided receiver.
 #[allow(unsafe_code)]
-pub fn init() {
+pub fn init_with_shutdown_receiver(shutdown_receiver: IpcReceiver<()>) {
     unsafe {
         proxyhandler::init();
 
@@ -66,4 +70,14 @@ pub fn init() {
     }
 
     perform_platform_specific_initialization();
+
+    setup_js_engine(shutdown_receiver)
+}
+
+/// Initialize the global script state, and return a sender that will
+/// initiate shutdown procedures.
+pub fn init() -> IpcSender<()> {
+    let (shutdown_sender, shutdown_receiver) = ipc::channel().unwrap();
+    init_with_shutdown_receiver(shutdown_receiver);
+    shutdown_sender
 }

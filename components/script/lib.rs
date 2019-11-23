@@ -112,7 +112,7 @@ mod unpremultiplytable;
 #[warn(deprecated)]
 mod webdriver_handlers;
 
-pub use init::{init, init_service_workers};
+pub use init::{init, init_service_workers, init_with_shutdown_receiver};
 
 /// A module with everything layout can use from script.
 ///
