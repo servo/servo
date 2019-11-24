@@ -159,6 +159,9 @@ mod gen {
                 },
             },
             dom: {
+                webgpu: {
+                    enabled: bool,
+                },
                 bluetooth: {
                     enabled: bool,
                     testing: {

@@ -88,7 +88,7 @@ use style::context::{SharedStyleContext, ThreadLocalStyleContextCreationInfo};
 use style::dom::{TDocument, TElement, TNode};
 use style::driver;
 use style::error_reporting::RustLogReporter;
-use style::global_style_data::GLOBAL_STYLE_DATA;
+use style::global_style_data::{GLOBAL_STYLE_DATA, STYLE_THREAD_POOL};
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::PropertyId;
@@ -1087,16 +1087,29 @@ impl LayoutThread {
             RecalcStyle::pre_traverse(element, shared)
         };
 
-        if token.should_traverse() {
+        let rayon_pool = STYLE_THREAD_POOL.pool();
+        let rayon_pool = rayon_pool.as_ref().unwrap();
+
+        let box_tree = if token.should_traverse() {
             driver::traverse_dom(&traversal, token, None);
 
             let shared = DomTraversal::<ServoLayoutElement>::shared_context(&traversal);
-            let box_tree =
-                BoxTreeRoot::construct(shared, document.root_element().unwrap().as_node());
-            let fragment_tree = box_tree.layout(Size2D::new(
+            let root_node = document.root_element().unwrap().as_node();
+            let box_tree = rayon_pool.install(|| BoxTreeRoot::construct(shared, root_node));
+            Some(box_tree)
+        } else {
+            None
+        };
+
+        layout_context = traversal.destroy();
+
+        if let Some(box_tree) = box_tree {
+            let viewport_size = Size2D::new(
                 self.viewport_size.width.to_f32_px(),
                 self.viewport_size.height.to_f32_px(),
-            ));
+            );
+            let fragment_tree =
+                rayon_pool.install(|| box_tree.layout(&layout_context, viewport_size));
             *self.box_tree_root.borrow_mut() = Some(box_tree);
             *self.fragment_tree_root.borrow_mut() = Some(fragment_tree);
         }
@@ -1104,8 +1117,6 @@ impl LayoutThread {
         for element in elements_with_snapshot {
             unsafe { element.unset_snapshot_flags() }
         }
-
-        layout_context = traversal.destroy();
 
         // GC the rule tree if some heuristics are met.
         unsafe {

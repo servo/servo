@@ -136,6 +136,7 @@ use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::CssRuleType;
 use style_traits::{CSSPixel, DevicePixel, ParsingMode};
 use url::Position;
+use webgpu::WebGPU;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId, RenderApiSender};
 use webvr_traits::WebVRMsg;
@@ -266,6 +267,10 @@ pub struct Window {
     /// A handle for communicating messages to the WebGL thread, if available.
     #[ignore_malloc_size_of = "channels are hard"]
     webgl_chan: Option<WebGLChan>,
+
+    #[ignore_malloc_size_of = "channels are hard"]
+    /// A handle for communicating messages to the WebGPU threads.
+    webgpu: Option<WebGPU>,
 
     /// A handle for communicating messages to the webvr thread, if available.
     #[ignore_malloc_size_of = "channels are hard"]
@@ -460,6 +465,10 @@ impl Window {
         self.webgl_chan
             .as_ref()
             .map(|chan| WebGLCommandSender::new(chan.clone(), self.get_event_loop_waker()))
+    }
+
+    pub fn webgpu_channel(&self) -> Option<WebGPU> {
+        self.webgpu.clone()
     }
 
     pub fn webvr_thread(&self) -> Option<IpcSender<WebVRMsg>> {
@@ -2206,6 +2215,7 @@ impl Window {
         navigation_start: u64,
         navigation_start_precise: u64,
         webgl_chan: Option<WebGLChan>,
+        webgpu: Option<WebGPU>,
         webvr_chan: Option<IpcSender<WebVRMsg>>,
         webxr_registry: webxr_api::Registry,
         microtask_queue: Rc<MicrotaskQueue>,
@@ -2285,6 +2295,7 @@ impl Window {
             media_query_lists: DOMTracker::new(),
             test_runner: Default::default(),
             webgl_chan,
+            webgpu,
             webvr_chan,
             webxr_registry,
             permission_state_invocation_results: Default::default(),

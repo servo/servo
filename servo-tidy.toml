@@ -27,6 +27,7 @@ rand = [
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
+  "arrayvec",
   "cgl",
   "cocoa",
   "gleam",

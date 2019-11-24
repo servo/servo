@@ -163,6 +163,7 @@ use style::dom::OpaqueNode;
 use style::thread_state::{self, ThreadState};
 use time::{at_utc, get_time, precise_time_ns, Timespec};
 use url::Position;
+use webgpu::WebGPU;
 use webrender_api::units::LayoutPixel;
 use webrender_api::{DocumentId, RenderApiSender};
 use webvr_traits::{WebVREvent, WebVRMsg};
@@ -628,6 +629,9 @@ pub struct ScriptThread {
 
     /// A handle to the WebGL thread
     webgl_chan: Option<WebGLPipeline>,
+
+    /// A handle to the WebGPU threads
+    webgpu: Option<WebGPU>,
 
     /// A handle to the webvr thread, if available
     webvr_chan: Option<IpcSender<WebVRMsg>>,
@@ -1338,6 +1342,7 @@ impl ScriptThread {
             layout_to_constellation_chan: state.layout_to_constellation_chan,
 
             webgl_chan: state.webgl_chan,
+            webgpu: state.webgpu,
             webvr_chan: state.webvr_chan,
             webxr_registry: state.webxr_registry,
 
@@ -3247,6 +3252,7 @@ impl ScriptThread {
             incomplete.navigation_start,
             incomplete.navigation_start_precise,
             self.webgl_chan.as_ref().map(|chan| chan.channel()),
+            self.webgpu.clone(),
             self.webvr_chan.clone(),
             self.webxr_registry.clone(),
             self.microtask_queue.clone(),

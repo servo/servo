@@ -172,6 +172,7 @@ use std::sync::Arc;
 use std::thread;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
+use webgpu::WebGPU;
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, HistoryEntryReplacement)>;
@@ -440,6 +441,10 @@ pub struct Constellation<Message, LTF, STF> {
     /// Entry point to create and get channels to a WebGLThread.
     webgl_threads: Option<WebGLThreads>,
 
+    /// An IPC channel for the constellation to send messages to the
+    /// WebGPU threads.
+    webgpu: Option<WebGPU>,
+
     /// A channel through which messages can be sent to the webvr thread.
     webvr_chan: Option<IpcSender<WebVRMsg>>,
 
@@ -520,6 +525,9 @@ pub struct InitialConstellationState {
 
     /// Entry point to create and get channels to a WebGLThread.
     pub webgl_threads: Option<WebGLThreads>,
+
+    /// A channel to the WebGPU threads.
+    pub webgpu: Option<WebGPU>,
 
     /// A channel to the webgl thread.
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
@@ -836,6 +844,7 @@ where
                         (rng, prob)
                     }),
                     webgl_threads: state.webgl_threads,
+                    webgpu: state.webgpu,
                     webvr_chan: state.webvr_chan,
                     webxr_registry: state.webxr_registry,
                     canvas_chan: CanvasPaintThread::start(),
@@ -1090,6 +1099,7 @@ where
                 .webgl_threads
                 .as_ref()
                 .map(|threads| threads.pipeline()),
+            webgpu: self.webgpu.clone(),
             webvr_chan: self.webvr_chan.clone(),
             webxr_registry: self.webxr_registry.clone(),
             player_context: self.player_context.clone(),
@@ -2352,6 +2362,17 @@ where
             debug!("Exiting WebGL thread.");
             if let Err(e) = webgl_threads.exit() {
                 warn!("Exit WebGL Thread failed ({})", e);
+            }
+        }
+
+        if let Some(webgpu) = self.webgpu.as_ref() {
+            debug!("Exiting WebGPU thread.");
+            let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
+            if let Err(e) = webgpu.exit(sender) {
+                warn!("Exit WebGPU Thread failed ({})", e);
+            }
+            if let Err(e) = receiver.recv() {
+                warn!("Failed to receive exit response from WebGPU ({})", e);
             }
         }
 

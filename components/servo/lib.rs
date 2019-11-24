@@ -49,6 +49,7 @@ pub use servo_geometry;
 pub use servo_url;
 pub use style;
 pub use style_traits;
+pub use webgpu;
 pub use webrender_api;
 pub use webrender_traits;
 pub use webvr;
@@ -863,6 +864,8 @@ fn create_constellation(
 
     let resource_sender = public_resource_threads.sender();
 
+    let webgpu = webgpu::WebGPU::new();
+
     let initial_state = InitialConstellationState {
         compositor_proxy,
         embedder_proxy,
@@ -877,6 +880,7 @@ fn create_constellation(
         webrender_document,
         webrender_api_sender,
         webgl_threads,
+        webgpu,
         webvr_chan,
         webxr_registry,
         glplayer_threads,

@@ -29,3 +29,5 @@ opt-level = 3
 mio = { git = "https://github.com/servo/mio.git", branch = "servo" }
 # https://github.com/retep998/winapi-rs/pull/816
 winapi = { git = "https://github.com/servo/winapi-rs", branch = "patch-1" }
+spirv_cross = { git = "https://github.com/kvark/spirv_cross", branch = "wgpu" }
+wgpu-native = { git = "https://github.com/zakorgy/wgpu", branch = "v0.4" }

@@ -7,6 +7,7 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 #![deny(unsafe_code)]
+#![feature(exact_size_is_empty)]
 
 #[macro_use]
 extern crate serde;
@@ -33,6 +34,7 @@ pub mod wrapper;
 
 pub use flow::{BoxTreeRoot, FragmentTreeRoot};
 
+use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeExt};
 use crate::flow::{BlockFormattingContext, FlowChildren};
 use crate::geom::flow_relative::Vec2;
@@ -87,13 +89,19 @@ impl IndependentFormattingContext {
 
     fn layout<'a>(
         &'a self,
+        layout_context: &LayoutContext,
         containing_block: &ContainingBlock,
         tree_rank: usize,
         absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
     ) -> FlowChildren {
         match self.as_replaced() {
             Ok(replaced) => match *replaced {},
-            Err(ifc) => ifc.layout(containing_block, tree_rank, absolutely_positioned_fragments),
+            Err(ifc) => ifc.layout(
+                layout_context,
+                containing_block,
+                tree_rank,
+                absolutely_positioned_fragments,
+            ),
         }
     }
 }
@@ -101,14 +109,18 @@ impl IndependentFormattingContext {
 impl<'a> NonReplacedIFC<'a> {
     fn layout(
         &self,
+        layout_context: &LayoutContext,
         containing_block: &ContainingBlock,
         tree_rank: usize,
         absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
     ) -> FlowChildren {
         match self {
-            NonReplacedIFC::Flow(bfc) => {
-                bfc.layout(containing_block, tree_rank, absolutely_positioned_fragments)
-            },
+            NonReplacedIFC::Flow(bfc) => bfc.layout(
+                layout_context,
+                containing_block,
+                tree_rank,
+                absolutely_positioned_fragments,
+            ),
         }
     }
 }
