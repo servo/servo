@@ -6327,8 +6327,7 @@ dependencies = [
 [[package]]
 name = "wgpu-native"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d94a72d634c7c69f37da2bf9adc1d801a7504ad784cc03dc254902bd720c84c"
+source = "git+https://github.com/zakorgy/wgpu?branch=v0.4#128a16b9887a60a087a9d41ff68b20ce07cf6265"
 dependencies = [
  "arrayvec 0.5.1",
  "bitflags",
