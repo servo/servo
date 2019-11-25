@@ -286,9 +286,17 @@ function bindEvents2(resolveObject, resolveEventName, rejectObject, rejectEventN
 function createElement(tagName, attrs, parentNode, doBindEvents) {
   var element = document.createElement(tagName);
 
-  if (doBindEvents)
+  if (doBindEvents) {
     bindEvents(element);
-
+    if (element.tagName == "IFRAME" && !('srcdoc' in attrs || 'src' in attrs)) {
+      // If we're loading a frame, ensure we spin the event loop after load to
+      // paper over the different event timing in Gecko vs Blink/WebKit
+      // see https://github.com/whatwg/html/issues/4965
+      element.eventPromise = element.eventPromise.then(() => {
+        return new Promise(resolve => setTimeout(resolve, 0))
+      });
+    }
+  }
   // We set the attributes after binding to events to catch any
   // event-triggering attribute changes. E.g. form submission.
   //
