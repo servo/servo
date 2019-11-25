@@ -284,7 +284,7 @@ impl Drop for BoxSlot<'_> {
     }
 }
 
-pub trait NodeExt<'dom>: 'dom + Copy + LayoutNode + Send + Sync {
+pub(crate) trait NodeExt<'dom>: 'dom + Copy + LayoutNode + Send + Sync {
     fn is_element(self) -> bool;
     fn as_text(self) -> Option<String>;
     fn first_child(self) -> Option<Self>;
