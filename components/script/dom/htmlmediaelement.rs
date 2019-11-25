@@ -81,6 +81,7 @@ use net_traits::request::{Destination, Referrer};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata};
 use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
 use script_layout_interface::HTMLMediaData;
+use script_traits::WebrenderIpcSender;
 use servo_config::pref;
 use servo_media::player::audio::AudioRenderer;
 use servo_media::player::video::{VideoFrame, VideoFrameRenderer};
@@ -95,8 +96,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use time::{self, Duration, Timespec};
 use webrender_api::{ExternalImageData, ExternalImageId, ExternalImageType, TextureTarget};
-use webrender_api::{ImageData, ImageDescriptor, ImageFormat, ImageKey, RenderApi};
-use webrender_api::{RenderApiSender, Transaction};
+use webrender_api::{ImageData, ImageDescriptor, ImageFormat, ImageKey, Transaction};
 
 #[derive(PartialEq)]
 enum FrameStatus {
@@ -148,7 +148,7 @@ impl FrameHolder {
 
 pub struct MediaFrameRenderer {
     player_id: Option<u64>,
-    api: RenderApi,
+    api: WebrenderIpcSender,
     current_frame: Option<(ImageKey, i32, i32)>,
     old_frame: Option<ImageKey>,
     very_old_frame: Option<ImageKey>,
@@ -156,10 +156,10 @@ pub struct MediaFrameRenderer {
 }
 
 impl MediaFrameRenderer {
-    fn new(render_api_sender: RenderApiSender) -> Self {
+    fn new(render_api_sender: WebrenderIpcSender) -> Self {
         Self {
             player_id: None,
-            api: render_api_sender.create_api(),
+            api: render_api_sender,
             current_frame: None,
             old_frame: None,
             very_old_frame: None,

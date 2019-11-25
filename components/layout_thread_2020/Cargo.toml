@@ -46,4 +46,4 @@ servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
-webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_api = {git = "https://github.com/servo/webrender"}

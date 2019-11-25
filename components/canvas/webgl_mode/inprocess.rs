@@ -28,7 +28,7 @@ pub struct WebGLComm {
     pub webgl_threads: WebGLThreads,
     pub webxr_swap_chains: SwapChains<WebXRSwapChainId>,
     pub image_handler: Box<dyn WebrenderExternalImageApi>,
-    pub output_handler: Option<Box<dyn webrender::OutputImageHandler>>,
+    pub output_handler: Option<Box<dyn webrender_api::OutputImageHandler>>,
 }
 
 impl WebGLComm {
@@ -168,7 +168,7 @@ impl OutputHandler {
 }
 
 /// Bridge between the WR frame outputs and WebGL to implement DOMToTexture synchronization.
-impl webrender::OutputImageHandler for OutputHandler {
+impl webrender_api::OutputImageHandler for OutputHandler {
     fn lock(
         &mut self,
         id: webrender_api::PipelineId,

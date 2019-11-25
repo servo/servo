@@ -20,7 +20,7 @@ malloc_size_of_derive = "0.1"
 parking_lot = "0.9"
 serde = "1.0.60"
 servo_url = {path = "../url"}
-webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_api = {git = "https://github.com/servo/webrender"}
 
 [dev-dependencies]
 size_of_test = {path = "../size_of_test"}

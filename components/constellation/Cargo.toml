@@ -49,7 +49,7 @@ servo_remutex = {path = "../remutex"}
 servo_url = {path = "../url"}
 webgpu = {path = "../webgpu"}
 webvr_traits = {path = "../webvr_traits"}
-webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_api = {git = "https://github.com/servo/webrender"}
 webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_arch="arm"), not(target_arch="aarch64")))'.dependencies]

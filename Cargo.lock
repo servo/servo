@@ -270,9 +270,9 @@ dependencies = [
 
 [[package]]
 name = "bitflags"
-version = "1.1.0"
+version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d155346769a6855b86399e9bc3814ab343cd3d62c7e985113d46a0ec3c281fd"
+checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
 name = "block"
@@ -460,6 +460,7 @@ dependencies = [
  "bitflags",
  "byteorder",
  "canvas_traits",
+ "crossbeam-channel",
  "cssparser",
  "embedder_traits",
  "euclid",
@@ -3833,7 +3834,7 @@ dependencies = [
 [[package]]
 name = "peek-poke"
 version = "0.2.0"
-source = "git+https://github.com/servo/webrender#4f2d78adb6e07e3e5ab2da9765613ecf9e07eee0"
+source = "git+https://github.com/servo/webrender#edac864107cf43732ec66a9d3288e869a70ce1de"
 dependencies = [
  "euclid",
  "peek-poke-derive",
@@ -3842,7 +3843,7 @@ dependencies = [
 [[package]]
 name = "peek-poke-derive"
 version = "0.2.1"
-source = "git+https://github.com/servo/webrender#4f2d78adb6e07e3e5ab2da9765613ecf9e07eee0"
+source = "git+https://github.com/servo/webrender#edac864107cf43732ec66a9d3288e869a70ce1de"
 dependencies = [
  "proc-macro2 1.0.1",
  "quote 1.0.2",
@@ -4598,6 +4599,7 @@ dependencies = [
  "ipc-channel",
  "keyboard-types",
  "libc",
+ "log",
  "malloc_size_of",
  "malloc_size_of_derive",
  "media",
@@ -6274,7 +6276,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.60.0"
-source = "git+https://github.com/servo/webrender#4f2d78adb6e07e3e5ab2da9765613ecf9e07eee0"
+source = "git+https://github.com/servo/webrender#edac864107cf43732ec66a9d3288e869a70ce1de"
 dependencies = [
  "base64",
  "bincode",
@@ -6315,7 +6317,7 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.60.0"
-source = "git+https://github.com/servo/webrender#4f2d78adb6e07e3e5ab2da9765613ecf9e07eee0"
+source = "git+https://github.com/servo/webrender#edac864107cf43732ec66a9d3288e869a70ce1de"
 dependencies = [
  "app_units",
  "bitflags",
@@ -6324,7 +6326,6 @@ dependencies = [
  "core-graphics",
  "derive_more",
  "euclid",
- "ipc-channel",
  "malloc_size_of_derive",
  "peek-poke",
  "serde",
@@ -6337,7 +6338,7 @@ dependencies = [
 [[package]]
 name = "webrender_build"
 version = "0.0.1"
-source = "git+https://github.com/servo/webrender#4f2d78adb6e07e3e5ab2da9765613ecf9e07eee0"
+source = "git+https://github.com/servo/webrender#edac864107cf43732ec66a9d3288e869a70ce1de"
 dependencies = [
  "sha2",
 ]
@@ -6347,7 +6348,6 @@ name = "webrender_traits"
 version = "0.0.1"
 dependencies = [
  "euclid",
- "webrender",
  "webrender_api",
 ]
 
@@ -6528,7 +6528,7 @@ dependencies = [
 [[package]]
 name = "wr_malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/webrender#4f2d78adb6e07e3e5ab2da9765613ecf9e07eee0"
+source = "git+https://github.com/servo/webrender#edac864107cf43732ec66a9d3288e869a70ce1de"
 dependencies = [
  "app_units",
  "euclid",

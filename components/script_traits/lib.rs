@@ -31,11 +31,12 @@ use euclid::{default::Point2D, Length, Rect, Scale, Size2D, UnknownUnit, Vector2
 use gfx_traits::Epoch;
 use http::HeaderMap;
 use hyper::Method;
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::Error as IpcError;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
 use libc::c_void;
+use log::warn;
 use media::WindowGLContext;
 use msg::constellation_msg::BackgroundHangMonitorRegister;
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, MessagePortId, PipelineId};
@@ -61,8 +62,11 @@ use std::time::Duration;
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
 use webgpu::WebGPU;
-use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel};
-use webrender_api::{DocumentId, ExternalScrollId, ImageKey, RenderApiSender};
+use webrender_api::units::{
+    DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint, LayoutSize, WorldPoint,
+};
+use webrender_api::{BuiltDisplayList, DocumentId, ExternalScrollId, ImageKey, ScrollClamping};
+use webrender_api::{BuiltDisplayListDescriptor, HitTestFlags, HitTestResult, ResourceUpdate};
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub use crate::script_msg::{
@@ -666,7 +670,7 @@ pub struct InitialScriptState {
     /// The Webrender document ID associated with this thread.
     pub webrender_document: DocumentId,
     /// FIXME(victor): The Webrender API sender in this constellation's pipeline
-    pub webrender_api_sender: RenderApiSender,
+    pub webrender_api_sender: WebrenderIpcSender,
     /// Flag to indicate if the layout thread is busy handling a request.
     pub layout_is_busy: Arc<AtomicBool>,
     /// Application window's GL Context for Media player
@@ -1105,6 +1109,135 @@ impl From<i32> for MediaSessionActionType {
             8 => MediaSessionActionType::Stop,
             9 => MediaSessionActionType::SeekTo,
             _ => panic!("Unknown MediaSessionActionType"),
+        }
+    }
+}
+
+/// The set of WebRender operations that can be initiated by the content process.
+#[derive(Deserialize, Serialize)]
+pub enum WebrenderMsg {
+    /// Inform WebRender of the existence of this pipeline.
+    SendInitialTransaction(DocumentId, webrender_api::PipelineId),
+    /// Perform a scroll operation.
+    SendScrollNode(DocumentId, LayoutPoint, ExternalScrollId, ScrollClamping),
+    /// Inform WebRender of a new display list for the given pipeline.
+    SendDisplayList(
+        DocumentId,
+        webrender_api::Epoch,
+        LayoutSize,
+        webrender_api::PipelineId,
+        LayoutSize,
+        Vec<u8>,
+        BuiltDisplayListDescriptor,
+    ),
+    /// Perform a hit test operation. The result will be returned via
+    /// the provided channel sender.
+    HitTest(
+        DocumentId,
+        Option<webrender_api::PipelineId>,
+        WorldPoint,
+        HitTestFlags,
+        IpcSender<HitTestResult>,
+    ),
+    /// Create a new image key. The result will be returned via the
+    /// provided channel sender.
+    GenerateImageKey(IpcSender<ImageKey>),
+    /// Perform a resource update operation.
+    UpdateResources(Vec<ResourceUpdate>),
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+/// A mechanism to communicate with the parent process' WebRender instance.
+pub struct WebrenderIpcSender(IpcSender<WebrenderMsg>);
+
+impl WebrenderIpcSender {
+    /// Create a new WebrenderIpcSender object that wraps the provided channel sender.
+    pub fn new(sender: IpcSender<WebrenderMsg>) -> Self {
+        Self(sender)
+    }
+
+    /// Inform WebRender of the existence of this pipeline.
+    pub fn send_initial_transaction(
+        &self,
+        document: DocumentId,
+        pipeline: webrender_api::PipelineId,
+    ) {
+        if let Err(e) = self
+            .0
+            .send(WebrenderMsg::SendInitialTransaction(document, pipeline))
+        {
+            warn!("Error sending initial transaction: {}", e);
+        }
+    }
+
+    /// Perform a scroll operation.
+    pub fn send_scroll_node(
+        &self,
+        document: DocumentId,
+        point: LayoutPoint,
+        scroll_id: ExternalScrollId,
+        clamping: ScrollClamping,
+    ) {
+        if let Err(e) = self.0.send(WebrenderMsg::SendScrollNode(
+            document, point, scroll_id, clamping,
+        )) {
+            warn!("Error sending scroll node: {}", e);
+        }
+    }
+
+    /// Inform WebRender of a new display list for the given pipeline.
+    pub fn send_display_list(
+        &self,
+        document: DocumentId,
+        epoch: Epoch,
+        size: LayoutSize,
+        (pipeline, size2, list): (webrender_api::PipelineId, LayoutSize, BuiltDisplayList),
+    ) {
+        let (data, descriptor) = list.into_data();
+        if let Err(e) = self.0.send(WebrenderMsg::SendDisplayList(
+            document,
+            webrender_api::Epoch(epoch.0),
+            size,
+            pipeline,
+            size2,
+            data,
+            descriptor,
+        )) {
+            warn!("Error sending display list: {}", e);
+        }
+    }
+
+    /// Perform a hit test operation. Blocks until the operation is complete and
+    /// and a result is available.
+    pub fn hit_test(
+        &self,
+        document: DocumentId,
+        pipeline: Option<webrender_api::PipelineId>,
+        point: WorldPoint,
+        flags: HitTestFlags,
+    ) -> HitTestResult {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.0
+            .send(WebrenderMsg::HitTest(
+                document, pipeline, point, flags, sender,
+            ))
+            .expect("error sending hit test");
+        receiver.recv().expect("error receiving hit test result")
+    }
+
+    /// Create a new image key. Blocks until the key is available.
+    pub fn generate_image_key(&self) -> ImageKey {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.0
+            .send(WebrenderMsg::GenerateImageKey(sender))
+            .expect("error sending image key generation");
+        receiver.recv().expect("error receiving image key result")
+    }
+
+    /// Perform a resource update operation.
+    pub fn update_resources(&self, updates: Vec<ResourceUpdate>) {
+        if let Err(e) = self.0.send(WebrenderMsg::UpdateResources(updates)) {
+            warn!("error sending resource updates: {}", e);
         }
     }
 }

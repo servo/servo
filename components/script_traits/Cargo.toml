@@ -25,6 +25,7 @@ hyper_serde = "0.11"
 ipc-channel = "0.12"
 keyboard-types = "0.4.3"
 libc = "0.2"
+log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = "0.1"
 media = {path = "../media"}
@@ -40,6 +41,6 @@ time = "0.1.12"
 url = "2.0"
 webdriver = "0.40"
 webgpu = {path = "../webgpu"}
-webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_api = {git = "https://github.com/servo/webrender"}
 webvr_traits = {path = "../webvr_traits"}
 webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}

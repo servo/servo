@@ -9,7 +9,9 @@ use net_traits::image_cache::{CanRequestImages, CorsStatus, ImageCache, ImageRes
 use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse, ImageState};
 use net_traits::image_cache::{PendingImageId, UsePlaceholder};
 use net_traits::request::CorsSettings;
-use net_traits::{FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError};
+use net_traits::{
+    FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError, WebrenderIpcSender,
+};
 use pixels::PixelFormat;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -43,7 +45,7 @@ fn decode_bytes_sync(key: LoadKey, bytes: &[u8], cors: CorsStatus) -> DecoderMsg
 }
 
 fn get_placeholder_image(
-    webrender_api: &webrender_api::RenderApi,
+    webrender_api: &WebrenderIpcSender,
     data: &[u8],
 ) -> io::Result<Arc<Image>> {
     let mut image = load_from_memory(&data, CorsStatus::Unsafe).unwrap();
@@ -51,7 +53,7 @@ fn get_placeholder_image(
     Ok(Arc::new(image))
 }
 
-fn set_webrender_image_key(webrender_api: &webrender_api::RenderApi, image: &mut Image) {
+fn set_webrender_image_key(webrender_api: &WebrenderIpcSender, image: &mut Image) {
     if image.id.is_some() {
         return;
     }
@@ -337,7 +339,7 @@ struct ImageCacheStore {
     placeholder_url: ServoUrl,
 
     // Webrender API instance.
-    webrender_api: webrender_api::RenderApi,
+    webrender_api: WebrenderIpcSender,
 }
 
 impl ImageCacheStore {
@@ -423,7 +425,7 @@ pub struct ImageCacheImpl {
 }
 
 impl ImageCache for ImageCacheImpl {
-    fn new(webrender_api: webrender_api::RenderApi) -> ImageCacheImpl {
+    fn new(webrender_api: WebrenderIpcSender) -> ImageCacheImpl {
         debug!("New image cache");
 
         let rippy_data = resources::read_bytes(Resource::RippyPNG);

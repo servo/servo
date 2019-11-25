@@ -18,7 +18,9 @@ use msg::constellation_msg::{BackgroundHangMonitorRegister, PipelineId};
 use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
 use script_traits::LayoutMsg as ConstellationMsg;
-use script_traits::{ConstellationControlMsg, LayoutControlMsg, WindowSizeData};
+use script_traits::{
+    ConstellationControlMsg, LayoutControlMsg, WebrenderIpcSender, WindowSizeData,
+};
 use servo_url::ServoUrl;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
@@ -41,7 +43,7 @@ pub trait LayoutThreadFactory {
         font_cache_thread: FontCacheThread,
         time_profiler_chan: time::ProfilerChan,
         mem_profiler_chan: mem::ProfilerChan,
-        webrender_api_sender: webrender_api::RenderApiSender,
+        webrender_api_sender: WebrenderIpcSender,
         webrender_document: webrender_api::DocumentId,
         paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,

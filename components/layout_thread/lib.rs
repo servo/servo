@@ -83,9 +83,9 @@ use script_layout_interface::message::{QueryMsg, ReflowComplete, ReflowGoal, Scr
 use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::rpc::{LayoutRPC, OffsetParentResponse, StyleResponse};
 use script_layout_interface::wrapper_traits::LayoutNode;
-use script_traits::Painter;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{DrawAPaintImageResult, IFrameSizeMsg, PaintWorkletError, WindowSizeType};
+use script_traits::{Painter, WebrenderIpcSender};
 use script_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
 use selectors::Element;
 use servo_arc::Arc as ServoArc;
@@ -230,7 +230,7 @@ pub struct LayoutThread {
     registered_painters: RegisteredPaintersImpl,
 
     /// Webrender interface.
-    webrender_api: webrender_api::RenderApi,
+    webrender_api: WebrenderIpcSender,
 
     /// Webrender document.
     webrender_document: webrender_api::DocumentId,
@@ -299,7 +299,7 @@ impl LayoutThreadFactory for LayoutThread {
         font_cache_thread: FontCacheThread,
         time_profiler_chan: profile_time::ProfilerChan,
         mem_profiler_chan: profile_mem::ProfilerChan,
-        webrender_api_sender: webrender_api::RenderApiSender,
+        webrender_api_sender: WebrenderIpcSender,
         webrender_document: webrender_api::DocumentId,
         paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,
@@ -517,7 +517,7 @@ impl LayoutThread {
         font_cache_thread: FontCacheThread,
         time_profiler_chan: profile_time::ProfilerChan,
         mem_profiler_chan: profile_mem::ProfilerChan,
-        webrender_api_sender: webrender_api::RenderApiSender,
+        webrender_api: WebrenderIpcSender,
         webrender_document: webrender_api::DocumentId,
         paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,
@@ -533,18 +533,7 @@ impl LayoutThread {
         dump_flow_tree: bool,
     ) -> LayoutThread {
         // Let webrender know about this pipeline by sending an empty display list.
-        let mut epoch = Epoch(0);
-        let webrender_api = webrender_api_sender.create_api();
-        let mut txn = webrender_api::Transaction::new();
-        txn.set_display_list(
-            webrender_api::Epoch(epoch.0),
-            None,
-            Default::default(),
-            (id.to_webrender(), Default::default(), Default::default()),
-            false,
-        );
-        webrender_api.send_transaction(webrender_document, txn);
-        epoch.next();
+        webrender_api.send_initial_transaction(webrender_document, id.to_webrender());
 
         let device = Device::new(
             MediaType::screen(),
@@ -590,7 +579,8 @@ impl LayoutThread {
             document_shared_lock: None,
             running_animations: ServoArc::new(RwLock::new(Default::default())),
             expired_animations: ServoArc::new(RwLock::new(Default::default())),
-            epoch: Cell::new(epoch),
+            // Epoch starts at 1 because of the initial display list for epoch 0 that we send to WR
+            epoch: Cell::new(Epoch(1)),
             viewport_size: Size2D::new(Au(0), Au(0)),
             webrender_api,
             webrender_document,
@@ -829,14 +819,12 @@ impl LayoutThread {
                     .insert(state.scroll_id, state.scroll_offset);
 
                 let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
-                let mut txn = webrender_api::Transaction::new();
-                txn.scroll_node_with_id(
+                self.webrender_api.send_scroll_node(
+                    self.webrender_document,
                     webrender_api::units::LayoutPoint::from_untyped(point),
                     state.scroll_id,
                     webrender_api::ScrollClamping::ToContentBounds,
                 );
-                self.webrender_api
-                    .send_transaction(self.webrender_document, txn);
             },
             Msg::ReapStyleAndLayoutData(dead_data) => unsafe {
                 drop_style_and_layout_data(dead_data)
@@ -949,7 +937,7 @@ impl LayoutThread {
             self.font_cache_thread.clone(),
             self.time_profiler_chan.clone(),
             self.mem_profiler_chan.clone(),
-            self.webrender_api.clone_sender(),
+            self.webrender_api.clone(),
             self.webrender_document,
             info.paint_time_metrics,
             info.layout_is_busy,
@@ -1253,17 +1241,12 @@ impl LayoutThread {
                 self.paint_time_metrics
                     .maybe_observe_paint_time(self, epoch, is_contentful.0);
 
-                let mut txn = webrender_api::Transaction::new();
-                txn.set_display_list(
-                    webrender_api::Epoch(epoch.0),
-                    None,
+                self.webrender_api.send_display_list(
+                    self.webrender_document,
+                    epoch,
                     viewport_size,
                     builder.finalize(),
-                    true,
                 );
-                txn.generate_frame();
-                self.webrender_api
-                    .send_transaction(self.webrender_document, txn);
             },
         );
     }

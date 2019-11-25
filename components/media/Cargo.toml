@@ -19,5 +19,5 @@ log = "0.4"
 serde = "1.0"
 servo_config = {path = "../config"}
 servo-media = {git = "https://github.com/servo/media"}
-webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_api = {git = "https://github.com/servo/webrender"}
 webrender_traits = {path = "../webrender_traits"}
