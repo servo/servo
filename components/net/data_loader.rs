@@ -44,11 +44,13 @@ pub fn decode(url: &ServoUrl) -> Result<DecodeData, DecodeError> {
 
     let mut bytes = percent_decode(parts[1].as_bytes()).collect::<Vec<_>>();
     if is_base64 {
-        // FIXME(#2909): It’s unclear what to do with non-alphabet characters,
-        // but Acid 3 apparently depends on spaces being ignored.
+        // FIXME(#2909):
+	// infra.spec.whatwg.org/#forgiving-base64-decode does a pretty good
+	// job of telling us what to do here. Most WPT tests are working;
+	// the base64 string "ab=" in particular is not.
         bytes = bytes
             .into_iter()
-            .filter(|&b| b != b' ')
+            .filter(|&b| b != b' ' && b!= b'\x0C' && b!= b'\n' && b!=b'\r' && b!=b'\t') 
             .collect::<Vec<u8>>();
         match base64::decode_config(&bytes, base64::STANDARD.decode_allow_trailing_bits(true)) {
             Err(..) => return Err(DecodeError::NonBase64DataUri),
