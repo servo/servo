@@ -331,6 +331,7 @@ ${helpers.single_keyword(
     engines="gecko",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-images/#propdef-object-fit",
+    gecko_enum_prefix = "StyleObjectFit",
 )}
 
 ${helpers.predefined_type(
