@@ -282,6 +282,7 @@ GENERATE_TESTS: shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/w
 GENERATE_TESTS: shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/window-named-properties-003.html
 
 # Intentional use of setTimeout
+SET TIMEOUT: common/security-features/resources/common.sub.js
 SET TIMEOUT: css/css-fonts/font-display/font-display.html
 SET TIMEOUT: css/css-fonts/font-display/font-display-change.html
 SET TIMEOUT: css/css-fonts/font-display/font-display-change-ref.html
