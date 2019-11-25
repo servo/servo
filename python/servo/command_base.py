@@ -583,10 +583,10 @@ class CommandBase(object):
                 return True
             else:
                 raise Exception("Your system's gstreamer libraries are out of date \
-(we need at least 1.12). Please run ./mach bootstrap-gstreamer")
+(we need at least 1.16). Please run ./mach bootstrap-gstreamer")
         else:
                 raise Exception("Your system's gstreamer libraries are out of date \
-(we need at least 1.12). If you're unable to \
+(we need at least 1.16). If you're unable to \
 install them, let us know by filing a bug!")
         return False
 
@@ -679,7 +679,7 @@ install them, let us know by filing a bug!")
             # we append in the reverse order so that system gstreamer libraries
             # do not get precedence
             extra_path = [libpath] + extra_path
-            extra_lib = [libpath] + extra_path
+            extra_lib = [libpath] + extra_lib
             append_to_path_env(path.join(libpath, "pkgconfig"), env, "PKG_CONFIG_PATH")
 
         if sys.platform == "linux2":
