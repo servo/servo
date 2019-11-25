@@ -1,0 +1,16 @@
+<video controls>
+  <source src="http://localhost:8080/" type="video/ogg">
+</video>
+
+<p>Start the video stream with:</p>
+
+<pre>
+  gst-launch-1.0 servosrc \
+    ! queue \
+    ! video/x-raw,framerate=25/1,width=512,height=512 \
+    ! videoconvert \
+    ! videoflip video-direction=vert \
+    ! theoraenc \
+    ! oggmux \
+    ! tcpserversink host=127.0.0.1 port=8080
+</pre>

@@ -184,6 +184,7 @@ def linux_tidy_unit_untrusted():
         .with_script("""
             ./mach test-tidy --no-progress --all
             ./mach test-tidy --no-progress --self-test
+            ./mach bootstrap-gstreamer
             ./mach build --dev
             ./mach test-unit
 
@@ -207,6 +208,7 @@ def linux_tidy_unit():
             ./mach build --dev --features canvas2d-raqote
             ./mach build --dev --features layout-2020
             ./mach build --dev --libsimpleservo
+            ./mach build --dev -p servo-gst-plugin
             ./mach test-tidy --no-progress --self-test
 
             ./etc/memory_reports_over_time.py --test
@@ -485,6 +487,8 @@ def windows_unit(cached=True):
             "mach smoketest --angle",
             "mach package --dev",
             "mach build --dev --libsimpleservo",
+            "mach build --dev -p servo-gst-plugin",
+
         )
         .with_artifacts("repo/target/debug/msi/Servo.exe",
                         "repo/target/debug/msi/Servo.zip")
@@ -814,7 +818,10 @@ def linux_build_task(name, *, build_env=build_env, install_rustc_dev=True):
         .with_dockerfile(dockerfile_path("build"))
         .with_env(**build_env, **unix_build_env, **linux_build_env)
         .with_repo_bundle()
-        .with_script("rustup set profile minimal")
+        .with_script("""
+            rustup set profile minimal
+            ./mach bootstrap-gstreamer
+        """)
     )
     if install_rustc_dev:
         # required by components/script_plugins:
