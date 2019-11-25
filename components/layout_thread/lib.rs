@@ -1344,9 +1344,9 @@ impl LayoutThread {
             Some(x) => x,
         };
 
-        debug!(
-            "layout: processing reflow request for: {:?} ({}) (query={:?})",
-            element, self.url, data.reflow_goal
+        info!(
+            "layout: processing reflow request for: {:?} ({}) (query={:?}) {:?}",
+            element, self.url, data.reflow_goal, self.viewport_size,
         );
         trace!("{:?}", ShowSubtree(element.as_node()));
 
@@ -1381,7 +1381,7 @@ impl LayoutThread {
             self.stylist
                 .viewport_constraints()
                 .map_or(current_screen_size, |constraints| {
-                    debug!("Viewport constraints: {:?}", constraints);
+                    info!("Viewport constraints: {:?}", constraints);
 
                     // other rules are evaluated against the actual viewport
                     Size2D::new(
@@ -1392,6 +1392,7 @@ impl LayoutThread {
 
         let viewport_size_changed = self.viewport_size != old_viewport_size;
         if viewport_size_changed {
+            info!("new viewport size: {:?}", self.viewport_size);
             if let Some(constraints) = self.stylist.viewport_constraints() {
                 // let the constellation know about the viewport constraints
                 rw_data

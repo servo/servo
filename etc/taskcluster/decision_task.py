@@ -676,6 +676,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                 THIS_CHUNK=str(this_chunk),
                 PROCESSES=str(processes),
                 GST_DEBUG="3",
+                RUST_LOG="layout_thread=info",
             )
         )
         # `test-wpt` is piped into `cat` so that stdout is not a TTY
