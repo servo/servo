@@ -61,9 +61,9 @@ use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
 use js::rust::Handle;
 use js::rust::HandleObject as RustHandleObject;
 use js::rust::IntoHandle;
-use js::rust::JSEngine;
 use js::rust::ParentRuntime;
 use js::rust::Runtime as RustRuntime;
+use js::rust::{JSEngine, JSEngineHandle};
 use malloc_size_of::MallocSizeOfOps;
 use msg::constellation_msg::PipelineId;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
@@ -79,7 +79,9 @@ use std::os::raw::c_void;
 use std::panic::AssertUnwindSafe;
 use std::ptr;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::Mutex;
+use std::thread;
+use std::time::Duration;
 use style::thread_state::{self, ThreadState};
 use time::{now, Tm};
 
@@ -395,8 +397,28 @@ impl Deref for Runtime {
     }
 }
 
+pub struct JSEngineSetup(JSEngine);
+
+impl JSEngineSetup {
+    pub fn new() -> Self {
+        let engine = JSEngine::init().unwrap();
+        *JS_ENGINE.lock().unwrap() = Some(engine.handle());
+        Self(engine)
+    }
+}
+
+impl Drop for JSEngineSetup {
+    fn drop(&mut self) {
+        *JS_ENGINE.lock().unwrap() = None;
+
+        while !self.0.can_shutdown() {
+            thread::sleep(Duration::from_millis(50));
+        }
+    }
+}
+
 lazy_static! {
-    static ref JS_ENGINE: Arc<JSEngine> = JSEngine::init().unwrap();
+    static ref JS_ENGINE: Mutex<Option<JSEngineHandle>> = Mutex::new(None);
 }
 
 #[allow(unsafe_code)]
@@ -421,7 +443,7 @@ unsafe fn new_rt_and_cx_with_parent(
     let runtime = if let Some(parent) = parent {
         RustRuntime::create_with_parent(parent)
     } else {
-        RustRuntime::new(JS_ENGINE.clone())
+        RustRuntime::new(JS_ENGINE.lock().unwrap().as_ref().unwrap().clone())
     };
     let cx = runtime.cx();
 
