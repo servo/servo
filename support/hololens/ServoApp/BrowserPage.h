@@ -5,6 +5,7 @@
 #pragma once
 
 #include "BrowserPage.g.h"
+#include "XRPkgChecker.h"
 #include "ServoControl\ServoControl.h"
 
 namespace winrt::ServoApp::implementation {
@@ -34,9 +35,14 @@ public:
   void LoadServoURI(Windows::Foundation::Uri uri);
   void SetTransientMode(bool);
   void SetArgs(hstring);
+  void OnXRPkgWarningInstallClick(Windows::Foundation::IInspectable const &,
+                                  Windows::UI::Xaml::RoutedEventArgs const &);
+  void OnXRPkgWarningDismissClick(Windows::Foundation::IInspectable const &,
+                                  Windows::UI::Xaml::RoutedEventArgs const &);
 
 private:
   void BindServoEvents();
+  XRPkgChecker xrPkgChecker;
 };
 } // namespace winrt::ServoApp::implementation
 
