@@ -59,7 +59,7 @@ ${helpers.single_keyword(
     "none default menu tooltip sheet",
     engines="gecko",
     gecko_ffi_name="mWindowShadow",
-    gecko_constant_prefix="NS_STYLE_WINDOW_SHADOW",
+    gecko_enum_prefix="StyleWindowShadow",
     animation_value_type="discrete",
     enabled_in="chrome",
     spec="None (Nonstandard internal property)",
