@@ -75,7 +75,7 @@ sudo apt install git curl autoconf libx11-dev \
     libssl-dev libbz2-dev liblzma-dev libosmesa6-dev libxmu6 libxmu-dev \
     libglu1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev \
     libharfbuzz-dev ccache clang libunwind-dev \
-    libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev autoconf2.13
+    libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev autoconf2.13 llvm-dev
 ```
 
 Additionally, you'll need a local copy of GStreamer with a version later than 12.0. You can place it in `support/linux/gstreamer/gst`, or run `./mach bootstrap-gstreamer` to set it up.
