@@ -65,14 +65,24 @@ impl GLLimitsDetect for GLLimits {
         };
 
         let (
+            max_uniform_block_size,
             max_uniform_buffer_bindings,
             min_program_texel_offset,
             max_program_texel_offset,
             max_transform_feedback_separate_attribs,
             max_draw_buffers,
             max_color_attachments,
+            max_combined_uniform_blocks,
+            max_combined_vertex_uniform_components,
+            max_combined_fragment_uniform_components,
+            max_vertex_uniform_blocks,
+            max_vertex_uniform_components,
+            max_fragment_uniform_blocks,
+            max_fragment_uniform_components,
+            uniform_buffer_offset_alignment,
         );
         if webgl_version == WebGLVersion::WebGL2 {
+            max_uniform_block_size = gl.get_integer(gl::MAX_UNIFORM_BLOCK_SIZE);
             max_uniform_buffer_bindings = gl.get_integer(gl::MAX_UNIFORM_BUFFER_BINDINGS);
             min_program_texel_offset = gl.get_integer(gl::MIN_PROGRAM_TEXEL_OFFSET);
             max_program_texel_offset = gl.get_integer(gl::MAX_PROGRAM_TEXEL_OFFSET);
@@ -81,14 +91,33 @@ impl GLLimitsDetect for GLLimits {
             max_color_attachments = gl.get_integer(gl::MAX_COLOR_ATTACHMENTS);
             max_draw_buffers = gl
                 .get_integer(gl::MAX_DRAW_BUFFERS)
-                .min(max_color_attachments)
+                .min(max_color_attachments);
+            max_combined_uniform_blocks = gl.get_integer(gl::MAX_COMBINED_UNIFORM_BLOCKS);
+            max_combined_vertex_uniform_components =
+                gl.get_integer(gl::MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS);
+            max_combined_fragment_uniform_components =
+                gl.get_integer(gl::MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS);
+            max_vertex_uniform_blocks = gl.get_integer(gl::MAX_VERTEX_UNIFORM_BLOCKS);
+            max_vertex_uniform_components = gl.get_integer(gl::MAX_VERTEX_UNIFORM_COMPONENTS);
+            max_fragment_uniform_blocks = gl.get_integer(gl::MAX_FRAGMENT_UNIFORM_BLOCKS);
+            max_fragment_uniform_components = gl.get_integer(gl::MAX_FRAGMENT_UNIFORM_COMPONENTS);
+            uniform_buffer_offset_alignment = gl.get_integer(gl::UNIFORM_BUFFER_OFFSET_ALIGNMENT);
         } else {
+            max_uniform_block_size = 0;
             max_uniform_buffer_bindings = 0;
             min_program_texel_offset = 0;
             max_program_texel_offset = 0;
             max_transform_feedback_separate_attribs = 0;
             max_color_attachments = 1;
             max_draw_buffers = 1;
+            max_combined_uniform_blocks = 0;
+            max_combined_vertex_uniform_components = 0;
+            max_combined_fragment_uniform_components = 0;
+            max_vertex_uniform_blocks = 0;
+            max_vertex_uniform_components = 0;
+            max_fragment_uniform_blocks = 0;
+            max_fragment_uniform_components = 0;
+            uniform_buffer_offset_alignment = 0;
         }
 
         GLLimits {
@@ -111,6 +140,15 @@ impl GLLimitsDetect for GLLimits {
             max_program_texel_offset,
             max_color_attachments,
             max_draw_buffers,
+            max_uniform_block_size,
+            max_combined_uniform_blocks,
+            max_combined_vertex_uniform_components,
+            max_combined_fragment_uniform_components,
+            max_vertex_uniform_blocks,
+            max_vertex_uniform_components,
+            max_fragment_uniform_blocks,
+            max_fragment_uniform_components,
+            uniform_buffer_offset_alignment,
         }
     }
 }

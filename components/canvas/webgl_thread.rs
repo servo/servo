@@ -6,6 +6,7 @@ use crate::webgl_limits::GLLimitsDetect;
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use canvas_traits::webgl;
 use canvas_traits::webgl::ActiveAttribInfo;
+use canvas_traits::webgl::ActiveUniformBlockInfo;
 use canvas_traits::webgl::ActiveUniformInfo;
 use canvas_traits::webgl::AlphaTreatment;
 use canvas_traits::webgl::DOMToTextureCommand;
@@ -1744,6 +1745,40 @@ impl WebGLImpl {
                 }
                 sender.send(value).unwrap();
             },
+            WebGLCommand::GetUniformBlockIndex(program_id, ref name, ref sender) => {
+                let name = to_name_in_compiled_shader(name);
+                let index = gl.get_uniform_block_index(program_id.get(), &name);
+                sender.send(index).unwrap();
+            },
+            WebGLCommand::GetUniformIndices(program_id, ref names, ref sender) => {
+                let names = names
+                    .iter()
+                    .map(|name| to_name_in_compiled_shader(name))
+                    .collect::<Vec<_>>();
+                let name_strs = names.iter().map(|name| name.as_str()).collect::<Vec<_>>();
+                let indices = gl.get_uniform_indices(program_id.get(), &name_strs);
+                sender.send(indices).unwrap();
+            },
+            WebGLCommand::GetActiveUniforms(program_id, ref indices, pname, ref sender) => {
+                let results = gl.get_active_uniforms_iv(program_id.get(), indices, pname);
+                sender.send(results).unwrap();
+            },
+            WebGLCommand::GetActiveUniformBlockName(program_id, block_idx, ref sender) => {
+                let name = gl.get_active_uniform_block_name(program_id.get(), block_idx);
+                sender.send(name).unwrap();
+            },
+            WebGLCommand::GetActiveUniformBlockParameter(
+                program_id,
+                block_idx,
+                pname,
+                ref sender,
+            ) => {
+                let results = gl.get_active_uniform_block_iv(program_id.get(), block_idx, pname);
+                sender.send(results).unwrap();
+            },
+            WebGLCommand::UniformBlockBinding(program_id, block_idx, block_binding) => {
+                gl.uniform_block_binding(program_id.get(), block_idx, block_binding)
+            },
             WebGLCommand::InitializeFramebuffer {
                 color,
                 depth,
@@ -1790,6 +1825,16 @@ impl WebGLImpl {
                 let value = gl.get_sampler_parameter_fv(sampler_id.get(), pname)[0];
                 sender.send(value).unwrap();
             },
+            WebGLCommand::BindBufferBase(target, index, id) => {
+                gl.bind_buffer_base(target, index, id.map_or(0, WebGLBufferId::get))
+            },
+            WebGLCommand::BindBufferRange(target, index, id, offset, size) => gl.bind_buffer_range(
+                target,
+                index,
+                id.map_or(0, WebGLBufferId::get),
+                offset as isize,
+                size as isize,
+            ),
         }
 
         // If debug asertions are enabled, then check the error state.
@@ -1890,6 +1935,7 @@ impl WebGLImpl {
                 linked: false,
                 active_attribs: vec![].into(),
                 active_uniforms: vec![].into(),
+                active_uniform_blocks: vec![].into(),
                 transform_feedback_length: Default::default(),
                 transform_feedback_mode: Default::default(),
             };
@@ -1945,6 +1991,26 @@ impl WebGLImpl {
             })
             .collect::<Vec<_>>()
             .into();
+
+        let mut num_active_uniform_blocks = [0];
+        unsafe {
+            gl.get_program_iv(
+                program.get(),
+                gl::ACTIVE_UNIFORM_BLOCKS,
+                &mut num_active_uniform_blocks,
+            );
+        }
+        let active_uniform_blocks = (0..num_active_uniform_blocks[0] as u32)
+            .map(|i| {
+                let name = gl.get_active_uniform_block_name(program.get(), i);
+                let size =
+                    gl.get_active_uniform_block_iv(program.get(), i, gl::UNIFORM_BLOCK_DATA_SIZE)
+                        [0];
+                ActiveUniformBlockInfo { name, size }
+            })
+            .collect::<Vec<_>>()
+            .into();
+
         let mut transform_feedback_length = [0];
         unsafe {
             gl.get_program_iv(
@@ -1965,6 +2031,7 @@ impl WebGLImpl {
             linked: true,
             active_attribs,
             active_uniforms,
+            active_uniform_blocks,
             transform_feedback_length: transform_feedback_length[0],
             transform_feedback_mode: transform_feedback_mode[0],
         }
