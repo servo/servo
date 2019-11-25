@@ -178,8 +178,7 @@ impl SupportsCondition {
         while input.try(Parser::expect_whitespace).is_ok() {}
         let pos = input.position();
         let location = input.current_source_location();
-        // FIXME: remove clone() when lifetimes are non-lexical
-        match input.next()?.clone() {
+        match *input.next()? {
             Token::ParenthesisBlock => {
                 let nested =
                     input.try(|input| input.parse_nested_block(parse_condition_or_declaration));
@@ -187,7 +186,8 @@ impl SupportsCondition {
                     return nested;
                 }
             },
-            Token::Function(ident) => {
+            Token::Function(ref ident) => {
+                let ident = ident.clone();
                 let nested = input.try(|input| {
                     input.parse_nested_block(|input| {
                         SupportsCondition::parse_functional(&ident, input)
@@ -197,7 +197,7 @@ impl SupportsCondition {
                     return nested;
                 }
             },
-            t => return Err(location.new_unexpected_token_error(t)),
+            ref t => return Err(location.new_unexpected_token_error(t.clone())),
         }
         input.parse_nested_block(consume_any_value)?;
         Ok(SupportsCondition::FutureSyntax(

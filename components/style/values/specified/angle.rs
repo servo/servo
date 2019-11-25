@@ -208,24 +208,34 @@ impl Angle {
         input: &mut Parser<'i, 't>,
         allow_unitless_zero: AllowUnitlessZeroAngle,
     ) -> Result<Self, ParseError<'i>> {
-        // FIXME: remove clone() when lifetimes are non-lexical
-        let token = input.next()?.clone();
-        match token {
+        let t = input.next()?;
+        match *t {
             Token::Dimension {
                 value, ref unit, ..
             } => {
-                Angle::parse_dimension(value, unit, /* from_calc = */ false)
+                match Angle::parse_dimension(value, unit, /* from_calc = */ false) {
+                    Ok(angle) => Ok(angle),
+                    Err(()) => {
+                        let t = t.clone();
+                        Err(input.new_unexpected_token_error(t))
+                    }
+                }
             },
             Token::Number { value, .. } if value == 0. => match allow_unitless_zero {
                 AllowUnitlessZeroAngle::Yes => Ok(Angle::zero()),
-                AllowUnitlessZeroAngle::No => Err(()),
+                AllowUnitlessZeroAngle::No => {
+                    let t = t.clone();
+                    Err(input.new_unexpected_token_error(t))
+                },
             },
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 return input.parse_nested_block(|i| CalcNode::parse_angle(context, i));
             },
-            _ => Err(()),
+            ref t => {
+                let t = t.clone();
+                Err(input.new_unexpected_token_error(t))
+            }
         }
-        .map_err(|()| input.new_unexpected_token_error(token.clone()))
     }
 }
 

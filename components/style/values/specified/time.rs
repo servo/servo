@@ -83,27 +83,26 @@ impl Time {
         use style_traits::ParsingMode;
 
         let location = input.current_source_location();
-        // FIXME: remove early returns when lifetimes are non-lexical
-        match input.next() {
+        match *input.next()? {
             // Note that we generally pass ParserContext to is_ok() to check
             // that the ParserMode of the ParserContext allows all numeric
             // values for SMIL regardless of clamping_mode, but in this Time
             // value case, the value does not animate for SMIL at all, so we use
             // ParsingMode::DEFAULT directly.
-            Ok(&Token::Dimension {
+            Token::Dimension {
                 value, ref unit, ..
-            }) if clamping_mode.is_ok(ParsingMode::DEFAULT, value) => {
-                return Time::parse_dimension(value, unit, /* from_calc = */ false).map_err(|()| {
+            } if clamping_mode.is_ok(ParsingMode::DEFAULT, value) => {
+                Time::parse_dimension(value, unit, /* from_calc = */ false).map_err(|()| {
                     location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                });
+                })
             },
-            Ok(&Token::Function(ref name)) if name.eq_ignore_ascii_case("calc") => {},
-            Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
-            Err(e) => return Err(e.into()),
-        }
-        match input.parse_nested_block(|i| CalcNode::parse_time(context, i)) {
-            Ok(time) if clamping_mode.is_ok(ParsingMode::DEFAULT, time.seconds) => Ok(time),
-            _ => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+                match input.parse_nested_block(|i| CalcNode::parse_time(context, i)) {
+                    Ok(time) if clamping_mode.is_ok(ParsingMode::DEFAULT, time.seconds) => Ok(time),
+                    _ => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+                }
+            },
+            ref t => return Err(location.new_unexpected_token_error(t.clone())),
         }
     }
 

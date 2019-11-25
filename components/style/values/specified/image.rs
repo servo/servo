@@ -192,62 +192,57 @@ impl Parse for Gradient {
             Radial,
         }
 
-        // FIXME: remove clone() when lifetimes are non-lexical
-        let func = input.expect_function()?.clone();
-        let result = match_ignore_ascii_case! { &func,
+        let func = input.expect_function()?;
+        let (shape, repeating, mut compat_mode) = match_ignore_ascii_case! { &func,
             "linear-gradient" => {
-                Some((Shape::Linear, false, GradientCompatMode::Modern))
+                (Shape::Linear, false, GradientCompatMode::Modern)
             },
             "-webkit-linear-gradient" => {
-                Some((Shape::Linear, false, GradientCompatMode::WebKit))
+                (Shape::Linear, false, GradientCompatMode::WebKit)
             },
             #[cfg(feature = "gecko")]
             "-moz-linear-gradient" => {
-                Some((Shape::Linear, false, GradientCompatMode::Moz))
+                (Shape::Linear, false, GradientCompatMode::Moz)
             },
             "repeating-linear-gradient" => {
-                Some((Shape::Linear, true, GradientCompatMode::Modern))
+                (Shape::Linear, true, GradientCompatMode::Modern)
             },
             "-webkit-repeating-linear-gradient" => {
-                Some((Shape::Linear, true, GradientCompatMode::WebKit))
+                (Shape::Linear, true, GradientCompatMode::WebKit)
             },
             #[cfg(feature = "gecko")]
             "-moz-repeating-linear-gradient" => {
-                Some((Shape::Linear, true, GradientCompatMode::Moz))
+                (Shape::Linear, true, GradientCompatMode::Moz)
             },
             "radial-gradient" => {
-                Some((Shape::Radial, false, GradientCompatMode::Modern))
+                (Shape::Radial, false, GradientCompatMode::Modern)
             },
             "-webkit-radial-gradient" => {
-                Some((Shape::Radial, false, GradientCompatMode::WebKit))
+                (Shape::Radial, false, GradientCompatMode::WebKit)
             },
             #[cfg(feature = "gecko")]
             "-moz-radial-gradient" => {
-                Some((Shape::Radial, false, GradientCompatMode::Moz))
+                (Shape::Radial, false, GradientCompatMode::Moz)
             },
             "repeating-radial-gradient" => {
-                Some((Shape::Radial, true, GradientCompatMode::Modern))
+                (Shape::Radial, true, GradientCompatMode::Modern)
             },
             "-webkit-repeating-radial-gradient" => {
-                Some((Shape::Radial, true, GradientCompatMode::WebKit))
+                (Shape::Radial, true, GradientCompatMode::WebKit)
             },
             #[cfg(feature = "gecko")]
             "-moz-repeating-radial-gradient" => {
-                Some((Shape::Radial, true, GradientCompatMode::Moz))
+                (Shape::Radial, true, GradientCompatMode::Moz)
             },
             "-webkit-gradient" => {
                 return input.parse_nested_block(|i| {
                     Self::parse_webkit_gradient_argument(context, i)
                 });
             },
-            _ => None,
-        };
-
-        let (shape, repeating, mut compat_mode) = match result {
-            Some(result) => result,
-            None => {
+            _ => {
+                let func = func.clone();
                 return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedFunction(func)));
-            },
+            }
         };
 
         let (kind, items) = input.parse_nested_block(|i| {

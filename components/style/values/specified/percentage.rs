@@ -111,25 +111,24 @@ impl Percentage {
         num_context: AllowedNumericType,
     ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
-        // FIXME: remove early returns when lifetimes are non-lexical
         match *input.next()? {
             Token::Percentage { unit_value, .. }
                 if num_context.is_ok(context.parsing_mode, unit_value) =>
             {
-                return Ok(Percentage::new(unit_value));
+                Ok(Percentage::new(unit_value))
             }
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {},
-            ref t => return Err(location.new_unexpected_token_error(t.clone())),
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+                let result = input.parse_nested_block(|i| CalcNode::parse_percentage(context, i))?;
+
+                // TODO(emilio): -moz-image-rect is the only thing that uses
+                // the clamping mode... I guess we could disallow it...
+                Ok(Percentage {
+                    value: result,
+                    calc_clamping_mode: Some(num_context),
+                })
+            },
+            ref t => Err(location.new_unexpected_token_error(t.clone())),
         }
-
-        let result = input.parse_nested_block(|i| CalcNode::parse_percentage(context, i))?;
-
-        // TODO(emilio): -moz-image-rect is the only thing that uses
-        // the clamping mode... I guess we could disallow it...
-        Ok(Percentage {
-            value: result,
-            calc_clamping_mode: Some(num_context),
-        })
     }
 
     /// Parses a percentage token, but rejects it if it's negative.

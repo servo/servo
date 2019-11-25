@@ -63,7 +63,10 @@ fn parse_counters<'i, 't>(
         let location = input.current_source_location();
         let name = match input.next() {
             Ok(&Token::Ident(ref ident)) => CustomIdent::from_ident(location, ident, &["none"])?,
-            Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
+            Ok(t) => {
+                let t = t.clone();
+                return Err(location.new_unexpected_token_error(t));
+            },
             Err(_) => break,
         };
 
@@ -147,57 +150,60 @@ impl Parse for Content {
                     continue;
                 }
             }
-            // FIXME: remove clone() when lifetimes are non-lexical
-            match input.next().map(|t| t.clone()) {
-                Ok(Token::QuotedString(ref value)) => {
+            match input.next() {
+                Ok(&Token::QuotedString(ref value)) => {
                     content.push(generics::ContentItem::String(
                         value.as_ref().to_owned().into_boxed_str(),
                     ));
                 },
-                Ok(Token::Function(ref name)) => {
+                Ok(&Token::Function(ref name)) => {
                     let result = match_ignore_ascii_case! { &name,
-                        "counter" => Some(input.parse_nested_block(|input| {
+                        "counter" => input.parse_nested_block(|input| {
                             let location = input.current_source_location();
                             let name = CustomIdent::from_ident(location, input.expect_ident()?, &[])?;
                             let style = Content::parse_counter_style(context, input);
                             Ok(generics::ContentItem::Counter(name, style))
-                        })),
-                        "counters" => Some(input.parse_nested_block(|input| {
+                        }),
+                        "counters" => input.parse_nested_block(|input| {
                             let location = input.current_source_location();
                             let name = CustomIdent::from_ident(location, input.expect_ident()?, &[])?;
                             input.expect_comma()?;
                             let separator = input.expect_string()?.as_ref().to_owned().into_boxed_str();
                             let style = Content::parse_counter_style(context, input);
                             Ok(generics::ContentItem::Counters(name, separator, style))
-                        })),
+                        }),
                         #[cfg(feature = "gecko")]
-                        "attr" => Some(input.parse_nested_block(|input| {
+                        "attr" => input.parse_nested_block(|input| {
                             Ok(generics::ContentItem::Attr(Attr::parse_function(context, input)?))
-                        })),
-                        _ => None
-                    };
-                    match result {
-                        Some(result) => content.push(result?),
-                        None => {
+                        }),
+                        _ => {
+                            let name = name.clone();
                             return Err(input.new_custom_error(
-                                StyleParseErrorKind::UnexpectedFunction(name.clone()),
-                            ));
-                        },
-                    }
+                                StyleParseErrorKind::UnexpectedFunction(name),
+                            ))
+                        }
+                    }?;
+                    content.push(result);
                 },
-                Ok(Token::Ident(ref ident)) => {
+                Ok(&Token::Ident(ref ident)) => {
                     content.push(match_ignore_ascii_case! { &ident,
                         "open-quote" => generics::ContentItem::OpenQuote,
                         "close-quote" => generics::ContentItem::CloseQuote,
                         "no-open-quote" => generics::ContentItem::NoOpenQuote,
                         "no-close-quote" => generics::ContentItem::NoCloseQuote,
-                        _ => return Err(input.new_custom_error(
-                            SelectorParseErrorKind::UnexpectedIdent(ident.clone())
-                        ))
+                        _ =>{
+                            let ident = ident.clone();
+                            return Err(input.new_custom_error(
+                                SelectorParseErrorKind::UnexpectedIdent(ident)
+                            ));
+                        }
                     });
                 },
                 Err(_) => break,
-                Ok(t) => return Err(input.new_unexpected_token_error(t)),
+                Ok(t) => {
+                    let t = t.clone();
+                    return Err(input.new_unexpected_token_error(t));
+                }
             }
         }
         if content.is_empty() {

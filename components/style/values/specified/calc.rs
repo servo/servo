@@ -163,9 +163,8 @@ impl CalcNode {
         expected_unit: CalcUnit,
     ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
-        // FIXME: remove early returns when lifetimes are non-lexical
         match (input.next()?, expected_unit) {
-            (&Token::Number { value, .. }, _) => return Ok(CalcNode::Number(value)),
+            (&Token::Number { value, .. }, _) => Ok(CalcNode::Number(value)),
             (
                 &Token::Dimension {
                     value, ref unit, ..
@@ -178,11 +177,11 @@ impl CalcNode {
                 },
                 CalcUnit::LengthPercentage,
             ) => {
-                return NoCalcLength::parse_dimension(context, value, unit)
+                NoCalcLength::parse_dimension(context, value, unit)
                     .map(CalcNode::Length)
                     .map_err(|()| {
                         location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                    });
+                    })
             },
             (
                 &Token::Dimension {
@@ -190,11 +189,11 @@ impl CalcNode {
                 },
                 CalcUnit::Angle,
             ) => {
-                return Angle::parse_dimension(value, unit, /* from_calc = */ true)
+                Angle::parse_dimension(value, unit, /* from_calc = */ true)
                     .map(CalcNode::Angle)
                     .map_err(|()| {
                         location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                    });
+                    })
             },
             (
                 &Token::Dimension {
@@ -202,21 +201,24 @@ impl CalcNode {
                 },
                 CalcUnit::Time,
             ) => {
-                return Time::parse_dimension(value, unit, /* from_calc = */ true)
+                Time::parse_dimension(value, unit, /* from_calc = */ true)
                     .map(CalcNode::Time)
                     .map_err(|()| {
                         location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                    });
+                    })
             },
             (&Token::Percentage { unit_value, .. }, CalcUnit::LengthPercentage) |
             (&Token::Percentage { unit_value, .. }, CalcUnit::Percentage) => {
-                return Ok(CalcNode::Percentage(unit_value));
+                Ok(CalcNode::Percentage(unit_value))
             },
-            (&Token::ParenthesisBlock, _) => {},
-            (&Token::Function(ref name), _) if name.eq_ignore_ascii_case("calc") => {},
-            (t, _) => return Err(location.new_unexpected_token_error(t.clone())),
+            (&Token::ParenthesisBlock, _) => {
+                input.parse_nested_block(|i| CalcNode::parse(context, i, expected_unit))
+            },
+            (&Token::Function(ref name), _) if name.eq_ignore_ascii_case("calc") => {
+                input.parse_nested_block(|i| CalcNode::parse(context, i, expected_unit))
+            },
+            (t, _) => Err(location.new_unexpected_token_error(t.clone())),
         }
-        input.parse_nested_block(|i| CalcNode::parse(context, i, expected_unit))
     }
 
     /// Parse a top-level `calc` expression, with all nested sub-expressions.
@@ -236,8 +238,7 @@ impl CalcNode {
                     if input.is_exhausted() {
                         break; // allow trailing whitespace
                     }
-                    // FIXME: remove clone() when lifetimes are non-lexical
-                    match input.next()?.clone() {
+                    match *input.next()? {
                         Token::Delim('+') => {
                             let rhs = Self::parse_product(context, input, expected_unit)?;
                             let new_root = CalcNode::Sum(Box::new(root), Box::new(rhs));
@@ -248,7 +249,10 @@ impl CalcNode {
                             let new_root = CalcNode::Sub(Box::new(root), Box::new(rhs));
                             root = new_root;
                         },
-                        t => return Err(input.new_unexpected_token_error(t)),
+                        ref t => {
+                            let t = t.clone();
+                            return Err(input.new_unexpected_token_error(t));
+                        }
                     }
                 },
                 _ => {

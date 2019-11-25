@@ -1213,64 +1213,66 @@ impl Parse for FontVariantAlternates {
             )
         );
         while let Ok(_) = input.try(|input| {
-            // FIXME: remove clone() when lifetimes are non-lexical
-            match input.next()?.clone() {
+            match *input.next()? {
                 Token::Ident(ref value) if value.eq_ignore_ascii_case("historical-forms") => {
                     check_if_parsed!(input, VariantAlternatesParsingFlags::HISTORICAL_FORMS);
                     alternates.push(VariantAlternates::HistoricalForms);
                     Ok(())
                 },
-                Token::Function(ref name) => input.parse_nested_block(|i| {
-                    match_ignore_ascii_case! { &name,
-                        "swash" => {
-                            check_if_parsed!(i, VariantAlternatesParsingFlags::SWASH);
-                            let location = i.current_source_location();
-                            let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
-                            alternates.push(VariantAlternates::Swash(ident));
-                            Ok(())
-                        },
-                        "stylistic" => {
-                            check_if_parsed!(i, VariantAlternatesParsingFlags::STYLISTIC);
-                            let location = i.current_source_location();
-                            let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
-                            alternates.push(VariantAlternates::Stylistic(ident));
-                            Ok(())
-                        },
-                        "ornaments" => {
-                            check_if_parsed!(i, VariantAlternatesParsingFlags::ORNAMENTS);
-                            let location = i.current_source_location();
-                            let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
-                            alternates.push(VariantAlternates::Ornaments(ident));
-                            Ok(())
-                        },
-                        "annotation" => {
-                            check_if_parsed!(i, VariantAlternatesParsingFlags::ANNOTATION);
-                            let location = i.current_source_location();
-                            let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
-                            alternates.push(VariantAlternates::Annotation(ident));
-                            Ok(())
-                        },
-                        "styleset" => {
-                            check_if_parsed!(i, VariantAlternatesParsingFlags::STYLESET);
-                            let idents = i.parse_comma_separated(|i| {
+                Token::Function(ref name) => {
+                    let name = name.clone();
+                    input.parse_nested_block(|i| {
+                        match_ignore_ascii_case! { &name,
+                            "swash" => {
+                                check_if_parsed!(i, VariantAlternatesParsingFlags::SWASH);
                                 let location = i.current_source_location();
-                                CustomIdent::from_ident(location, i.expect_ident()?, &[])
-                            })?;
-                            alternates.push(VariantAlternates::Styleset(idents.into()));
-                            Ok(())
-                        },
-                        "character-variant" => {
-                            check_if_parsed!(i, VariantAlternatesParsingFlags::CHARACTER_VARIANT);
-                            let idents = i.parse_comma_separated(|i| {
+                                let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
+                                alternates.push(VariantAlternates::Swash(ident));
+                                Ok(())
+                            },
+                            "stylistic" => {
+                                check_if_parsed!(i, VariantAlternatesParsingFlags::STYLISTIC);
                                 let location = i.current_source_location();
-                                CustomIdent::from_ident(location, i.expect_ident()?, &[])
-                            })?;
-                            alternates.push(VariantAlternates::CharacterVariant(idents.into()));
-                            Ok(())
-                        },
-                        _ => return Err(i.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
-                    }
-                }),
+                                let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
+                                alternates.push(VariantAlternates::Stylistic(ident));
+                                Ok(())
+                            },
+                            "ornaments" => {
+                                check_if_parsed!(i, VariantAlternatesParsingFlags::ORNAMENTS);
+                                let location = i.current_source_location();
+                                let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
+                                alternates.push(VariantAlternates::Ornaments(ident));
+                                Ok(())
+                            },
+                            "annotation" => {
+                                check_if_parsed!(i, VariantAlternatesParsingFlags::ANNOTATION);
+                                let location = i.current_source_location();
+                                let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
+                                alternates.push(VariantAlternates::Annotation(ident));
+                                Ok(())
+                            },
+                            "styleset" => {
+                                check_if_parsed!(i, VariantAlternatesParsingFlags::STYLESET);
+                                let idents = i.parse_comma_separated(|i| {
+                                    let location = i.current_source_location();
+                                    CustomIdent::from_ident(location, i.expect_ident()?, &[])
+                                })?;
+                                alternates.push(VariantAlternates::Styleset(idents.into()));
+                                Ok(())
+                            },
+                            "character-variant" => {
+                                check_if_parsed!(i, VariantAlternatesParsingFlags::CHARACTER_VARIANT);
+                                let idents = i.parse_comma_separated(|i| {
+                                    let location = i.current_source_location();
+                                    CustomIdent::from_ident(location, i.expect_ident()?, &[])
+                                })?;
+                                alternates.push(VariantAlternates::CharacterVariant(idents.into()));
+                                Ok(())
+                            },
+                            _ => return Err(i.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+                        }
+                    })
+                },
                 _ => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
             }
         }) {}
