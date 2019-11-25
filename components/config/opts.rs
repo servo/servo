@@ -713,6 +713,12 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         "A preference to set to enable",
         "dom.bluetooth.enabled",
     );
+    opts.optmulti(
+        "",
+        "pref",
+        "A preference to set to enable",
+        "dom.webgpu.enabled",
+    );
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
     opts.optflag("w", "webrender", "Use webrender backend");
     opts.optopt("G", "graphics", "Select graphics backend (gl or es2)", "gl");

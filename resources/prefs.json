@@ -26,6 +26,7 @@
   "dom.testing.htmlinputelement.select_files.enabled": false,
   "dom.webgl.dom_to_texture.enabled": false,
   "dom.webgl2.enabled": false,
+  "dom.webgpu.enabled": false,
   "dom.webrtc.enabled": false,
   "dom.webvr.enabled": false,
   "dom.webvr.event_polling_interval": 500,

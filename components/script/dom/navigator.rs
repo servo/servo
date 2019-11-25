@@ -11,6 +11,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bluetooth::Bluetooth;
 use crate::dom::gamepadlist::GamepadList;
+use crate::dom::gpu::GPU;
 use crate::dom::mediadevices::MediaDevices;
 use crate::dom::mediasession::MediaSession;
 use crate::dom::mimetypearray::MimeTypeArray;
@@ -36,6 +37,7 @@ pub struct Navigator {
     gamepads: MutNullableDom<GamepadList>,
     permissions: MutNullableDom<Permissions>,
     mediasession: MutNullableDom<MediaSession>,
+    gpu: MutNullableDom<GPU>,
 }
 
 impl Navigator {
@@ -51,6 +53,7 @@ impl Navigator {
             gamepads: Default::default(),
             permissions: Default::default(),
             mediasession: Default::default(),
+            gpu: Default::default(),
         }
     }
 
@@ -204,5 +207,10 @@ impl NavigatorMethods for Navigator {
             let window = global.as_window();
             MediaSession::new(window)
         })
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu
+    fn Gpu(&self) -> DomRoot<GPU> {
+        self.gpu.or_init(|| GPU::new(&self.global()))
     }
 }
