@@ -15,6 +15,7 @@ ${helpers.single_keyword(
     "ime-mode",
     "auto normal active disabled inactive",
     engines="gecko",
+    gecko_enum_prefix="StyleImeMode",
     gecko_ffi_name="mIMEMode",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-ui/#input-method-editor",
