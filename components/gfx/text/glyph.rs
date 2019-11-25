@@ -453,6 +453,11 @@ impl<'a> GlyphStore {
     }
 
     #[inline]
+    pub fn total_advance(&self) -> Au {
+        self.total_advance
+    }
+
+    #[inline]
     pub fn len(&self) -> ByteIndex {
         ByteIndex(self.entry_buffer.len() as isize)
     }

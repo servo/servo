@@ -8,7 +8,6 @@
 <%helpers:shorthand
     name="font"
     engines="gecko servo-2013 servo-2020"
-    servo_2020_pref="layout.2020.unimplemented"
     sub_properties="
         font-style
         font-variant-caps

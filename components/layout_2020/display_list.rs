@@ -6,7 +6,10 @@ use crate::fragments::{BoxFragment, Fragment};
 use crate::geom::physical::{Rect, Vec2};
 use crate::style_ext::ComputedValuesExt;
 use app_units::Au;
-use euclid::{self, SideOffsets2D};
+use euclid::{Point2D, SideOffsets2D};
+use gfx::text::glyph::GlyphStore;
+use servo_geometry::MaxRect;
+use std::sync::Arc;
 use style::values::computed::{BorderStyle, Length};
 use webrender_api::{self as wr, units, CommonItemProperties, PrimitiveFlags};
 
@@ -50,9 +53,30 @@ impl Fragment {
                     child.build_display_list(builder, is_contentful, &rect)
                 }
             },
-            Fragment::Text(_) => {
+            Fragment::Text(t) => {
                 is_contentful.0 = true;
-                // FIXME
+                let rect = t
+                    .content_rect
+                    .to_physical(t.parent_style.writing_mode(), containing_block)
+                    .translate(&containing_block.top_left);
+                let mut baseline_origin = rect.top_left.clone();
+                baseline_origin.y += t.ascent;
+                let common = CommonItemProperties {
+                    clip_rect: rect.clone().into(),
+                    clip_id: wr::ClipId::root(builder.pipeline_id),
+                    spatial_id: wr::SpatialId::root_scroll_node(builder.pipeline_id),
+                    hit_info: None,
+                    // TODO(gw): Make use of the WR backface visibility functionality.
+                    flags: PrimitiveFlags::default(),
+                };
+                let glyphs = glyphs(&t.glyphs, baseline_origin);
+                if glyphs.is_empty() {
+                    return;
+                }
+                let color = t.parent_style.clone_color();
+                builder
+                    .wr
+                    .push_text(&common, rect.into(), &glyphs, t.font_key, rgba(color), None);
             },
         }
     }
@@ -153,4 +177,29 @@ fn rgba(rgba: cssparser::RGBA) -> wr::ColorF {
         rgba.blue_f32(),
         rgba.alpha_f32(),
     )
+}
+
+fn glyphs(glyph_runs: &[Arc<GlyphStore>], mut origin: Vec2<Length>) -> Vec<wr::GlyphInstance> {
+    use gfx_traits::ByteIndex;
+    use range::Range;
+
+    let mut glyphs = vec![];
+    for run in glyph_runs {
+        for glyph in run.iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), run.len())) {
+            if !run.is_whitespace() {
+                let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
+                let point = units::LayoutPoint::new(
+                    origin.x.px() + glyph_offset.x.to_f32_px(),
+                    origin.y.px() + glyph_offset.y.to_f32_px(),
+                );
+                let glyph = wr::GlyphInstance {
+                    index: glyph.id(),
+                    point,
+                };
+                glyphs.push(glyph);
+            }
+            origin.x += Length::from(glyph.advance());
+        }
+    }
+    glyphs
 }
