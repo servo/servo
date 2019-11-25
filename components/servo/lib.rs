@@ -510,7 +510,7 @@ where
             webrender_api_sender,
             webxr_main_thread.registry(),
             player_context,
-            Some(webgl_threads),
+            webgl_threads,
             webvr_chan,
             webvr_constellation_sender,
             glplayer_threads,
@@ -1023,7 +1023,7 @@ fn create_webgl_threads<W>(
     webxr_main_thread: &mut webxr::MainThreadRegistry,
     external_image_handlers: &mut WebrenderExternalImageHandlers,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
-) -> WebGLThreads
+) -> Option<WebGLThreads>
 where
     W: WindowMethods + 'static + ?Sized,
 {
@@ -1033,18 +1033,33 @@ where
     #[cfg(not(target_os = "windows"))]
     let (device, context) = unsafe {
         if opts::get().headless {
-            let (device, context) = SWDevice::from_current_context()
-                .expect("Failed to create software graphics context!");
+            let (device, context) = match SWDevice::from_current_context() {
+                Ok(a) => a,
+                Err(e) => {
+                    warn!("Failed to create software graphics context: {:?}", e);
+                    return None;
+                },
+            };
             (Device::Software(device), Context::Software(context))
         } else {
-            let (device, context) = HWDevice::from_current_context()
-                .expect("Failed to create hardware graphics context!");
+            let (device, context) = match HWDevice::from_current_context() {
+                Ok(a) => a,
+                Err(e) => {
+                    warn!("Failed to create hardware graphics context: {:?}", e);
+                    return None;
+                },
+            };
             (Device::Hardware(device), Context::Hardware(context))
         }
     };
     #[cfg(target_os = "windows")]
-    let (device, context) =
-        unsafe { Device::from_current_context().expect("Failed to create graphics context!") };
+    let (device, context) = match unsafe { Device::from_current_context() } {
+        Ok(a) => a,
+        Err(e) => {
+            warn!("Failed to create graphics context: {:?}", e);
+            return None;
+        },
+    };
 
     let gl_type = match window.gl().get_type() {
         gleam::gl::GlType::Gl => sparkle::gl::GlType::Gl,
@@ -1077,5 +1092,5 @@ where
         webrender.set_output_image_handler(output_handler);
     }
 
-    webgl_threads
+    Some(webgl_threads)
 }
