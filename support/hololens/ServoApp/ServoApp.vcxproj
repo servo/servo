@@ -133,6 +133,7 @@
     <ClInclude Include="ServoControl\Servo.h" />
     <ClInclude Include="ServoControl\ServoControl.h" />
     <ClInclude Include="DefaultUrl.h" />
+    <ClInclude Include="XRPkgChecker.h" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
@@ -928,6 +929,7 @@
     <ClCompile Include="ServoControl\OpenGLES.cpp" />
     <ClCompile Include="ServoControl\Servo.cpp" />
     <ClCompile Include="ServoControl\ServoControl.cpp" />
+    <ClCompile Include="XRPkgChecker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Midl Include="App.idl">

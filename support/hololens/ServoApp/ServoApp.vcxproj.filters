@@ -22,6 +22,7 @@
     <ClCompile Include="ServoControl\ServoControl.cpp">
       <Filter>ServoControl</Filter>
     </ClCompile>
+    <ClCompile Include="XRPkgChecker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -38,6 +39,7 @@
       <Filter>ServoControl</Filter>
     </ClInclude>
     <ClInclude Include="DefaultUrl.h" />
+    <ClInclude Include="XRPkgChecker.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
