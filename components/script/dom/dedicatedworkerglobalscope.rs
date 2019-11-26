@@ -347,10 +347,14 @@ impl DedicatedWorkerGlobalScope {
 
                 let runtime = unsafe {
                     if let Some(pipeline_id) = pipeline_id {
-                        new_child_runtime(
-                            parent,
-                            Some(NetworkingTaskSource(parent_sender.clone(), pipeline_id)),
-                        )
+                        let task_source = NetworkingTaskSource(
+                            Box::new(WorkerThreadWorkerChan {
+                                sender: own_sender.clone(),
+                                worker: worker.clone(),
+                            }),
+                            pipeline_id,
+                        );
+                        new_child_runtime(parent, Some(task_source))
                     } else {
                         new_child_runtime(parent, None)
                     }
