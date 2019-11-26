@@ -10,6 +10,7 @@ pub mod networking;
 pub mod performance_timeline;
 pub mod port_message;
 pub mod remote_event;
+pub mod timer;
 pub mod user_interaction;
 pub mod websocket;
 
@@ -34,6 +35,7 @@ pub enum TaskSourceName {
     RemoteEvent,
     MediaElement,
     Websocket,
+    Timer,
 }
 
 impl TaskSourceName {

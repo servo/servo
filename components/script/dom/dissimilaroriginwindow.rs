@@ -15,7 +15,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy::WindowProxy;
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use ipc_channel::ipc;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
@@ -48,8 +47,6 @@ impl DissimilarOriginWindow {
     #[allow(unsafe_code)]
     pub fn new(global_to_clone_from: &GlobalScope, window_proxy: &WindowProxy) -> DomRoot<Self> {
         let cx = global_to_clone_from.get_cx();
-        // Any timer events fired on this window are ignored.
-        let (timer_event_chan, _) = ipc::channel().unwrap();
         let win = Box::new(Self {
             globalscope: GlobalScope::new_inherited(
                 PipelineId::new(),
@@ -59,7 +56,6 @@ impl DissimilarOriginWindow {
                 global_to_clone_from.script_to_constellation_chan().clone(),
                 global_to_clone_from.scheduler_chan().clone(),
                 global_to_clone_from.resource_threads().clone(),
-                timer_event_chan,
                 global_to_clone_from.origin().clone(),
                 // FIXME(nox): The microtask queue is probably not important
                 // here, but this whole DOM interface is a hack anyway.

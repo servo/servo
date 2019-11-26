@@ -106,8 +106,7 @@ use script_layout_interface::{PendingImageState, TrustedNodeAddress};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{ConstellationControlMsg, DocumentState, HistoryEntryReplacement, LoadData};
 use script_traits::{
-    ScriptMsg, ScriptToConstellationChan, ScrollState, StructuredSerializedData, TimerEvent,
-    TimerEventId,
+    ScriptMsg, ScriptToConstellationChan, ScrollState, StructuredSerializedData, TimerEventId,
 };
 use script_traits::{TimerSchedulerMsg, WindowSizeData, WindowSizeType};
 use selectors::attr::CaseSensitivity;
@@ -2206,7 +2205,6 @@ impl Window {
         constellation_chan: ScriptToConstellationChan,
         control_chan: IpcSender<ConstellationControlMsg>,
         scheduler_chan: IpcSender<TimerSchedulerMsg>,
-        timer_event_chan: IpcSender<TimerEvent>,
         layout_chan: Sender<Msg>,
         pipelineid: PipelineId,
         parent_info: Option<PipelineId>,
@@ -2250,7 +2248,6 @@ impl Window {
                 constellation_chan,
                 scheduler_chan,
                 resource_threads,
-                timer_event_chan,
                 origin,
                 microtask_queue,
                 is_headless,

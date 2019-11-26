@@ -28,24 +28,22 @@ use crate::script_runtime::{
 };
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use crossbeam_channel::{after, unbounded, Receiver, Sender};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JSContext, JS_AddInterruptCallback};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
 use net_traits::request::{CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder};
 use net_traits::{CustomResponseMediator, IpcSend};
-use script_traits::{
-    ScopeThings, ServiceWorkerMsg, TimerEvent, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
-};
+use script_traits::{ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_config::pref;
 use servo_rand::random;
 use servo_url::ServoUrl;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use style::thread_state::{self, ThreadState};
 
 /// Messages used to control service worker event loop
@@ -118,7 +116,6 @@ impl QueuedTaskConversion for ServiceWorkerScriptMsg {
 pub enum MixedMessage {
     FromServiceWorker(ServiceWorkerScriptMsg),
     FromDevtools(DevtoolScriptControlMsg),
-    FromTimeoutThread(()),
 }
 
 #[derive(Clone, JSTraceable)]
@@ -147,25 +144,29 @@ unsafe_no_jsmanaged_fields!(TaskQueue<ServiceWorkerScriptMsg>);
 #[dom_struct]
 pub struct ServiceWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
+
     #[ignore_malloc_size_of = "Defined in std"]
     task_queue: TaskQueue<ServiceWorkerScriptMsg>,
+
     #[ignore_malloc_size_of = "Defined in std"]
     own_sender: Sender<ServiceWorkerScriptMsg>,
+
+    /// A port on which a single "time-out" message can be received,
+    /// indicating the sw should stop running,
+    /// while still draining the task-queue
+    // and running all enqueued, and not cancelled, tasks.
     #[ignore_malloc_size_of = "Defined in std"]
-    timer_event_port: Receiver<()>,
+    time_out_port: Receiver<Instant>,
+
     #[ignore_malloc_size_of = "Defined in std"]
     swmanager_sender: IpcSender<ServiceWorkerMsg>,
+
     scope_url: ServoUrl,
 }
 
 impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
-    type TimerMsg = ();
     type WorkerMsg = ServiceWorkerScriptMsg;
     type Event = MixedMessage;
-
-    fn timer_event_port(&self) -> &Receiver<()> {
-        &self.timer_event_port
-    }
 
     fn task_queue(&self) -> &TaskQueue<ServiceWorkerScriptMsg> {
         &self.task_queue
@@ -183,10 +184,6 @@ impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
         MixedMessage::FromServiceWorker(msg)
     }
 
-    fn from_timer_msg(&self, msg: ()) -> MixedMessage {
-        MixedMessage::FromTimeoutThread(msg)
-    }
-
     fn from_devtools_msg(&self, msg: DevtoolScriptControlMsg) -> MixedMessage {
         MixedMessage::FromDevtools(msg)
     }
@@ -200,8 +197,7 @@ impl ServiceWorkerGlobalScope {
         runtime: Runtime,
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
-        timer_event_chan: IpcSender<TimerEvent>,
-        timer_event_port: Receiver<()>,
+        time_out_port: Receiver<Instant>,
         swmanager_sender: IpcSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
     ) -> ServiceWorkerGlobalScope {
@@ -213,12 +209,11 @@ impl ServiceWorkerGlobalScope {
                 worker_url,
                 runtime,
                 from_devtools_receiver,
-                timer_event_chan,
                 None,
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
-            timer_event_port: timer_event_port,
             own_sender: own_sender,
+            time_out_port,
             swmanager_sender: swmanager_sender,
             scope_url: scope_url,
         }
@@ -232,8 +227,7 @@ impl ServiceWorkerGlobalScope {
         runtime: Runtime,
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
-        timer_event_chan: IpcSender<TimerEvent>,
-        timer_event_port: Receiver<()>,
+        time_out_port: Receiver<Instant>,
         swmanager_sender: IpcSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
     ) -> DomRoot<ServiceWorkerGlobalScope> {
@@ -245,8 +239,7 @@ impl ServiceWorkerGlobalScope {
             runtime,
             own_sender,
             receiver,
-            timer_event_chan,
-            timer_event_port,
+            time_out_port,
             swmanager_sender,
             scope_url,
         ));
@@ -320,9 +313,12 @@ impl ServiceWorkerGlobalScope {
                 let (devtools_mpsc_chan, devtools_mpsc_port) = unbounded();
                 ROUTER
                     .route_ipc_receiver_to_crossbeam_sender(devtools_receiver, devtools_mpsc_chan);
-                // TODO XXXcreativcoder use this timer_ipc_port, when we have a service worker instance here
-                let (timer_ipc_chan, _timer_ipc_port) = ipc::channel().unwrap();
-                let (timer_chan, timer_port) = unbounded();
+
+                // Service workers are time limited
+                // https://w3c.github.io/ServiceWorker/#service-worker-lifetime
+                let sw_lifetime_timeout = pref!(dom.serviceworker.timeout_seconds) as u64;
+                let time_out_port = after(Duration::new(sw_lifetime_timeout, 0));
+
                 let global = ServiceWorkerGlobalScope::new(
                     init,
                     url,
@@ -330,8 +326,7 @@ impl ServiceWorkerGlobalScope {
                     runtime,
                     own_sender,
                     receiver,
-                    timer_ipc_chan,
-                    timer_port,
+                    time_out_port,
                     swmanager_sender,
                     scope_url,
                 );
@@ -343,15 +338,6 @@ impl ServiceWorkerGlobalScope {
                 }
 
                 scope.execute_script(DOMString::from(source));
-                // Service workers are time limited
-                thread::Builder::new()
-                    .name("SWTimeoutThread".to_owned())
-                    .spawn(move || {
-                        let sw_lifetime_timeout = pref!(dom.serviceworker.timeout_seconds) as u64;
-                        thread::sleep(Duration::new(sw_lifetime_timeout, 0));
-                        let _ = timer_chan.send(());
-                    })
-                    .expect("Thread spawning failed");
 
                 global.dispatch_activate();
                 let reporter_name = format!("service-worker-reporter-{}", random::<u64>());
@@ -364,8 +350,9 @@ impl ServiceWorkerGlobalScope {
                             // by inside settings until it is destroyed.
                             // The worker processing model remains on this step
                             // until the event loop is destroyed,
-                            // which happens after the closing flag is set to true.
-                            while !scope.is_closing() {
+                            // which happens after the closing flag is set to true,
+                            // or until the worker has run beyond its allocated time.
+                            while !scope.is_closing() || !global.has_timed_out() {
                                 run_worker_event_loop(&*global, None);
                             }
                         },
@@ -398,13 +385,19 @@ impl ServiceWorkerGlobalScope {
                 self.handle_script_event(msg);
                 true
             },
-            MixedMessage::FromTimeoutThread(_) => {
-                let _ = self
-                    .swmanager_sender
-                    .send(ServiceWorkerMsg::Timeout(self.scope_url.clone()));
-                false
-            },
         }
+    }
+
+    fn has_timed_out(&self) -> bool {
+        // Note: this should be included in the `select` inside `run_worker_event_loop`,
+        // otherwise a block on the select can prevent the timeout.
+        if self.time_out_port.try_recv().is_ok() {
+            let _ = self
+                .swmanager_sender
+                .send(ServiceWorkerMsg::Timeout(self.scope_url.clone()));
+            return true;
+        }
+        false
     }
 
     fn handle_script_event(&self, msg: ServiceWorkerScriptMsg) {

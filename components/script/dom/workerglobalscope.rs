@@ -34,6 +34,7 @@ use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
 use crate::task_source::port_message::PortMessageQueue;
 use crate::task_source::remote_event::RemoteEventTaskSource;
+use crate::task_source::timer::TimerTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
 use crate::timers::{IsInterval, TimerCallback};
 use crossbeam_channel::Receiver;
@@ -50,7 +51,6 @@ use net_traits::request::{
 };
 use net_traits::IpcSend;
 use script_traits::WorkerGlobalScopeInit;
-use script_traits::{TimerEvent, TimerEventId};
 use servo_url::{MutableOrigin, ServoUrl};
 use std::cell::Ref;
 use std::default::Default;
@@ -120,7 +120,6 @@ impl WorkerGlobalScope {
         worker_url: ServoUrl,
         runtime: Runtime,
         from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
-        timer_event_chan: IpcSender<TimerEvent>,
         closing: Option<Arc<AtomicBool>>,
     ) -> Self {
         // Install a pipeline-namespace in the current thread.
@@ -134,7 +133,6 @@ impl WorkerGlobalScope {
                 init.script_to_constellation_chan,
                 init.scheduler_chan,
                 init.resource_threads,
-                timer_event_chan,
                 MutableOrigin::new(init.origin),
                 runtime.microtask_queue.clone(),
                 init.is_headless,
@@ -437,6 +435,10 @@ impl WorkerGlobalScope {
         PortMessageQueue(self.script_chan(), self.pipeline_id())
     }
 
+    pub fn timer_task_source(&self) -> TimerTaskSource {
+        TimerTaskSource(self.script_chan(), self.pipeline_id())
+    }
+
     pub fn remote_event_task_source(&self) -> RemoteEventTaskSource {
         RemoteEventTaskSource(self.script_chan(), self.pipeline_id())
     }
@@ -464,10 +466,6 @@ impl WorkerGlobalScope {
                 reports_chan.send(reports);
             },
         }
-    }
-
-    pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
-        self.upcast::<GlobalScope>().fire_timer(timer_id);
     }
 
     pub fn close(&self) {
