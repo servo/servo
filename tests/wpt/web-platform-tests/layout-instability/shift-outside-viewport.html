@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Layout Instability: shift outside viewport</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+
+body { margin: 0; }
+#j { position: relative; width: 600px; height: 200px; top: 600px; }
+
+</style>
+<div id='j'></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  document.querySelector("#j").style.top = "800px";
+
+  // Since the element moves entirely outside of the viewport, it shouldn't
+  // generate a score.
+  await waitForAnimationFrames(3);
+  assert_equals(watcher.score, 0);
+}, "Shift outside viewport.");
+
+</script>
+
+

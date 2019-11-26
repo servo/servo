@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Navigation resulted download in sandbox is allowed by allow-downloads-without-user-activation.</title>
+<title>Navigation resulted download in sandbox is allowed by allow-downloads.</title>
 <meta name="timeout" content="long" />
 <link rel="help" href="https://html.spec.whatwg.org/multipage/#attr-iframe-sandbox">
 <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-iframe-element">
@@ -15,7 +15,7 @@ async_test(t => {
     const token = "{{$id:uuid()}}";
     var iframe = document.createElement("iframe");
     iframe.srcdoc = "<a>Download</a>";
-    iframe.sandbox = "allow-same-origin allow-downloads-without-user-activation";
+    iframe.sandbox = "allow-same-origin allow-downloads";
     iframe.onload = t.step_func(function () {
         iframe.contentWindow.addEventListener(
             "unload", t.unreached_func("Unexpected navigation."));
@@ -29,6 +29,6 @@ async_test(t => {
     });
 
     document.body.appendChild(iframe);
-}, "Navigation resulted download in sandbox is allowed by allow-downloads-without-user-activation.");
+}, "Navigation resulted download in sandbox is allowed by allow-downloads.");
 </script>
 </body>

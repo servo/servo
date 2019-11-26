@@ -8,7 +8,7 @@ const SmsProvider = (() => {
       this.mojoReceiver_ = new blink.mojom.SmsReceiverReceiver(this);
 
       this.interceptor_ = new MojoInterfaceInterceptor(
-          blink.mojom.SmsReceiver.$interfaceName, "context", true)
+          blink.mojom.SmsReceiver.$interfaceName, "context", true);
 
       this.interceptor_.oninterfacerequest = (e) => {
         this.mojoReceiver_.$.bindHandle(e.handle);
@@ -18,14 +18,15 @@ const SmsProvider = (() => {
       this.returnValues_ = {};
     }
 
-    receive() {
+    async receive() {
       let call = this.returnValues_.receive ?
           this.returnValues_.receive.shift() : null;
-      if (!call) {
-        throw new Error("Unexpected call.");
-      }
+      if (!call)
+        return;
       return call();
     }
+
+    async abort() {}
 
     pushReturnValuesForTesting(callName, value) {
       this.returnValues_[callName] = this.returnValues_[callName] || [];

@@ -7,7 +7,7 @@ const ignore_features_for_auxilary_context = ["popups", "scripts"];
 
 // Feature-policies that represent specific sandbox flags.
 const sandbox_features = [
-    "downloads-without-user-activation", "forms", "modals", "orientation-lock",
+    "downloads", "forms", "modals", "orientation-lock",
     "pointer-lock", "popups", "presentation", "scripts", "top-navigation"];
 
 // TODO(ekaramad): Figure out different inheritance requirements for different

@@ -114,4 +114,21 @@ promise_test(async t => {
   }
 }, 'Deal with cancelled requests');
 
+promise_test(async t => {
+  const controller = new AbortController();
+  const signal = controller.signal;
+
+  controller.abort();
+  await promise_rejects(t, 'AbortError', navigator.sms.receive({signal}));
+}, 'Should abort request');
+
+promise_test(async t => {
+  const controller = new AbortController();
+  const signal = controller.signal;
+
+  let error = navigator.sms.receive({signal});
+  controller.abort();
+  await promise_rejects(t, 'AbortError', error);
+}, 'Should abort request even while request is in progress.');
+
 </script>
