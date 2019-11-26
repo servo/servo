@@ -274,7 +274,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
         );
         let dummy_tree_rank = 0;
         let mut absolutely_positioned_fragments = vec![];
-        let mut flow_children = self.absolutely_positioned_box.contents.layout(
+        let mut independent_layout = self.absolutely_positioned_box.contents.layout(
             layout_context,
             &containing_block_for_children,
             dummy_tree_rank,
@@ -286,7 +286,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             Anchor::End(end) => cbbs - end - pb.inline_end - margin.inline_end - inline_size,
         };
 
-        let block_size = block_size.auto_is(|| flow_children.block_size);
+        let block_size = block_size.auto_is(|| independent_layout.content_block_size);
         let block_start = match block_anchor {
             Anchor::Start(start) => start + pb.block_start + margin.block_start,
             Anchor::End(end) => cbbs - end - pb.block_end - margin.block_end - block_size,
@@ -306,7 +306,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
         AbsolutelyPositionedFragment::in_positioned_containing_block(
             layout_context,
             &absolutely_positioned_fragments,
-            &mut flow_children.fragments,
+            &mut independent_layout.fragments,
             &content_rect.size,
             &padding,
             containing_block_for_children.mode,
@@ -314,7 +314,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
 
         Fragment::Box(BoxFragment {
             style: style.clone(),
-            children: flow_children.fragments,
+            children: independent_layout.fragments,
             content_rect,
             padding,
             border,

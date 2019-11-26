@@ -4,7 +4,7 @@
 
 use crate::context::LayoutContext;
 use crate::flow::float::FloatBox;
-use crate::flow::FlowChildren;
+use crate::flow::FlowLayout;
 use crate::fragments::{
     AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment, TextFragment,
 };
@@ -88,7 +88,7 @@ impl InlineFormattingContext {
         containing_block: &ContainingBlock,
         tree_rank: usize,
         absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
-    ) -> FlowChildren {
+    ) -> FlowLayout {
         let mut ifc = InlineFormattingContextState {
             containing_block,
             partial_inline_boxes_stack: Vec::new(),
@@ -156,9 +156,9 @@ impl InlineFormattingContext {
             } else {
                 ifc.line_boxes
                     .finish_line(&mut ifc.current_nesting_level, containing_block);
-                return FlowChildren {
+                return FlowLayout {
                     fragments: ifc.line_boxes.boxes,
-                    block_size: ifc.line_boxes.next_line_block_position,
+                    content_block_size: ifc.line_boxes.next_line_block_position,
                     collapsible_margins_in_children: CollapsedBlockMargins::zero(),
                 };
             }

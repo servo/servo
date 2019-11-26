@@ -33,7 +33,7 @@ pub use flow::{BoxTreeRoot, FragmentTreeRoot};
 
 use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeExt};
-use crate::flow::{BlockFormattingContext, FlowChildren};
+use crate::flow::BlockFormattingContext;
 use crate::geom::flow_relative::Vec2;
 use crate::positioned::AbsolutelyPositionedFragment;
 use crate::replaced::ReplacedContent;

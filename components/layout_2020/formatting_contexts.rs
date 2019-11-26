@@ -4,7 +4,8 @@
 
 use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeExt};
-use crate::flow::{BlockFormattingContext, FlowChildren};
+use crate::flow::BlockFormattingContext;
+use crate::fragments::Fragment;
 use crate::geom::flow_relative::Vec2;
 use crate::positioned::AbsolutelyPositionedFragment;
 use crate::replaced::ReplacedContent;
@@ -14,12 +15,18 @@ use servo_arc::Arc;
 use std::convert::TryInto;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
+use style::values::computed::Length;
 
 /// https://drafts.csswg.org/css-display/#independent-formatting-context
 #[derive(Debug)]
 pub(crate) struct IndependentFormattingContext {
     pub style: Arc<ComputedValues>,
     contents: IndependentFormattingContextContents,
+}
+
+pub(crate) struct IndependentLayout {
+    pub fragments: Vec<Fragment>,
+    pub content_block_size: Length,
 }
 
 // Private so that code outside of this module cannot match variants.
@@ -74,7 +81,7 @@ impl IndependentFormattingContext {
         containing_block: &ContainingBlock,
         tree_rank: usize,
         absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
-    ) -> FlowChildren {
+    ) -> IndependentLayout {
         match self.as_replaced() {
             Ok(replaced) => match *replaced {},
             Err(ifc) => ifc.layout(
@@ -94,7 +101,7 @@ impl<'a> NonReplacedIFC<'a> {
         containing_block: &ContainingBlock,
         tree_rank: usize,
         absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
-    ) -> FlowChildren {
+    ) -> IndependentLayout {
         match &self.0 {
             NonReplacedIFCKind::Flow(bfc) => bfc.layout(
                 layout_context,

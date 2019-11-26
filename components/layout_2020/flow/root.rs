@@ -31,10 +31,7 @@ pub struct BoxTreeRoot(BlockFormattingContext);
 pub struct FragmentTreeRoot(Vec<Fragment>);
 
 impl BoxTreeRoot {
-    pub fn construct<'dom, Node>(
-        context: &SharedStyleContext<'_>,
-        root_element: Node,
-    ) -> Self
+    pub fn construct<'dom, Node>(context: &SharedStyleContext<'_>, root_element: Node) -> Self
     where
         Node: 'dom + Copy + LayoutNode + Send + Sync,
     {
@@ -124,7 +121,7 @@ impl BoxTreeRoot {
         };
         let dummy_tree_rank = 0;
         let mut absolutely_positioned_fragments = vec![];
-        let mut flow_children = self.0.layout(
+        let mut independent_layout = self.0.layout(
             layout_context,
             &initial_containing_block,
             dummy_tree_rank,
@@ -135,12 +132,12 @@ impl BoxTreeRoot {
             size: initial_containing_block_size,
             mode: initial_containing_block.mode,
         };
-        flow_children.fragments.par_extend(
+        independent_layout.fragments.par_extend(
             absolutely_positioned_fragments
                 .par_iter()
                 .map(|a| a.layout(layout_context, &initial_containing_block)),
         );
-        FragmentTreeRoot(flow_children.fragments)
+        FragmentTreeRoot(independent_layout.fragments)
     }
 }
 
