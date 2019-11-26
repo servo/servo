@@ -321,6 +321,7 @@ class CommandBase(object):
         self.config.setdefault("build", {})
         self.config["build"].setdefault("android", False)
         self.config["build"].setdefault("mode", "")
+        self.config["build"].setdefault("debug-assertions", False)
         self.config["build"].setdefault("debug-mozjs", False)
         self.config["build"].setdefault("ccache", "")
         self.config["build"].setdefault("rustflags", "")
@@ -933,7 +934,7 @@ install them, let us know by filing a bug!")
             features.append("webgl-backtrace")
         if self.config["build"]["dom-backtrace"]:
             features.append("dom-backtrace")
-        if with_debug_assertions:
+        if with_debug_assertions or self.config["build"]["debug-assertions"]:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
 
         assert "--features" not in cargo_args

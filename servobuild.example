@@ -29,6 +29,9 @@ rustc-with-gold = true
 # Set "android = true" or use `mach build --android` to build the Android app.
 android = false
 
+# Enable `debug_assert!` macros in release mode
+debug-assertions = false
+
 # Set "debug-mozjs" or use `mach build --debug-mozjs` to build a debug spidermonkey.
 debug-mozjs = false
 
