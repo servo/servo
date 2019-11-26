@@ -305,6 +305,7 @@ pub enum WebGLCommand {
     PolygonOffset(f32, f32),
     RenderbufferStorage(u32, u32, i32, i32),
     ReadPixels(Rect<u32>, u32, u32, IpcBytesSender),
+    ReadPixelsPP(Rect<i32>, u32, u32, usize),
     SampleCoverage(f32, bool),
     Scissor(i32, i32, u32, u32),
     StencilFunc(u32, i32, u32),

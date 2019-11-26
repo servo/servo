@@ -25,7 +25,7 @@ use crate::dom::webglprogram::WebGLProgram;
 use crate::dom::webglquery::WebGLQuery;
 use crate::dom::webglrenderbuffer::WebGLRenderbuffer;
 use crate::dom::webglrenderingcontext::{
-    LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext,
+    LayoutCanvasWebGLRenderingContextHelpers, Size2DExt, WebGLRenderingContext,
 };
 use crate::dom::webglsampler::{WebGLSampler, WebGLSamplerValue};
 use crate::dom::webglshader::WebGLShader;
@@ -42,13 +42,15 @@ use canvas_traits::webgl::{
     webgl_channel, GLContextAttributes, WebGLCommand, WebGLResult, WebGLVersion,
 };
 use dom_struct::dom_struct;
-use euclid::default::Size2D;
+use euclid::default::{Point2D, Rect, Size2D};
 use ipc_channel::ipc;
 use js::jsapi::{JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UInt32Value};
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBufferView;
 use script_layout_interface::HTMLCanvasDataSource;
+use std::cell::Cell;
+use std::cmp;
 use std::ptr::NonNull;
 
 #[dom_struct]
@@ -65,6 +67,9 @@ pub struct WebGL2RenderingContext {
     bound_transform_feedback_buffer: MutNullableDom<WebGLBuffer>,
     bound_uniform_buffer: MutNullableDom<WebGLBuffer>,
     current_transform_feedback: MutNullableDom<WebGLTransformFeedback>,
+    texture_pack_row_length: Cell<usize>,
+    texture_pack_skip_pixels: Cell<usize>,
+    texture_pack_skip_rows: Cell<usize>,
 }
 
 fn typedarray_elem_size(typeid: Type) -> usize {
@@ -75,6 +80,17 @@ fn typedarray_elem_size(typeid: Type) -> usize {
         Type::Int64 | Type::Float64 => 8,
         Type::MaxTypedArrayViewType => unreachable!(),
     }
+}
+
+struct ReadPixelsAllowedFormats<'a> {
+    array_types: &'a [Type],
+    channels: usize,
+}
+
+struct ReadPixelsSizes {
+    row_stride: usize,
+    skipped_bytes: usize,
+    size: usize,
 }
 
 impl WebGL2RenderingContext {
@@ -104,6 +120,9 @@ impl WebGL2RenderingContext {
             bound_transform_feedback_buffer: MutNullableDom::new(None),
             bound_uniform_buffer: MutNullableDom::new(None),
             current_transform_feedback: MutNullableDom::new(None),
+            texture_pack_row_length: Cell::new(0),
+            texture_pack_skip_pixels: Cell::new(0),
+            texture_pack_skip_rows: Cell::new(0),
         })
     }
 
@@ -145,6 +164,213 @@ impl WebGL2RenderingContext {
         if slot.get().map_or(false, |b| buffer == &*b) {
             buffer.decrement_attached_counter();
             slot.set(None);
+        }
+    }
+
+    fn calc_read_pixel_formats(
+        &self,
+        pixel_type: u32,
+        format: u32,
+    ) -> WebGLResult<ReadPixelsAllowedFormats> {
+        let array_types = match pixel_type {
+            constants::BYTE => &[Type::Int8][..],
+            constants::SHORT => &[Type::Int16][..],
+            constants::INT => &[Type::Int32][..],
+            constants::UNSIGNED_BYTE => &[Type::Uint8, Type::Uint8Clamped][..],
+            constants::UNSIGNED_SHORT |
+            constants::UNSIGNED_SHORT_4_4_4_4 |
+            constants::UNSIGNED_SHORT_5_5_5_1 |
+            constants::UNSIGNED_SHORT_5_6_5 => &[Type::Uint16][..],
+            constants::UNSIGNED_INT |
+            constants::UNSIGNED_INT_2_10_10_10_REV |
+            constants::UNSIGNED_INT_10F_11F_11F_REV |
+            constants::UNSIGNED_INT_5_9_9_9_REV => &[Type::Uint32][..],
+            constants::FLOAT => &[Type::Float32][..],
+            constants::HALF_FLOAT => &[Type::Uint16][..],
+            _ => return Err(InvalidEnum),
+        };
+        let channels = match format {
+            constants::ALPHA | constants::RED | constants::RED_INTEGER => 1,
+            constants::RG | constants::RG_INTEGER => 2,
+            constants::RGB | constants::RGB_INTEGER => 3,
+            constants::RGBA | constants::RGBA_INTEGER => 4,
+            _ => return Err(InvalidEnum),
+        };
+        Ok(ReadPixelsAllowedFormats {
+            array_types,
+            channels,
+        })
+    }
+
+    fn calc_read_pixel_sizes(
+        &self,
+        width: i32,
+        height: i32,
+        bytes_per_pixel: usize,
+    ) -> WebGLResult<ReadPixelsSizes> {
+        if width < 0 || height < 0 {
+            return Err(InvalidValue);
+        }
+
+        // See also https://www.khronos.org/registry/webgl/specs/latest/2.0/#5.36
+        let pixels_per_row = if self.texture_pack_row_length.get() > 0 {
+            self.texture_pack_row_length.get()
+        } else {
+            width as usize
+        };
+        if self.texture_pack_skip_pixels.get() + width as usize > pixels_per_row {
+            return Err(InvalidOperation);
+        }
+
+        let bytes_per_row = pixels_per_row
+            .checked_mul(bytes_per_pixel)
+            .ok_or(InvalidOperation)?;
+        let row_padding_bytes = {
+            let pack_alignment = self.base.get_texture_packing_alignment() as usize;
+            match bytes_per_row % pack_alignment {
+                0 => 0,
+                remainder => pack_alignment - remainder,
+            }
+        };
+        let row_stride = bytes_per_row + row_padding_bytes;
+        let size = if width == 0 || height == 0 {
+            0
+        } else {
+            let full_row_bytes = row_stride
+                .checked_mul(height as usize - 1)
+                .ok_or(InvalidOperation)?;
+            let last_row_bytes = bytes_per_pixel
+                .checked_mul(width as usize)
+                .ok_or(InvalidOperation)?;
+            let result = full_row_bytes
+                .checked_add(last_row_bytes)
+                .ok_or(InvalidOperation)?;
+            result
+        };
+        let skipped_bytes = {
+            let skipped_row_bytes = self
+                .texture_pack_skip_rows
+                .get()
+                .checked_mul(row_stride)
+                .ok_or(InvalidOperation)?;
+            let skipped_pixel_bytes = self
+                .texture_pack_skip_pixels
+                .get()
+                .checked_mul(bytes_per_pixel)
+                .ok_or(InvalidOperation)?;
+            let result = skipped_row_bytes
+                .checked_add(skipped_pixel_bytes)
+                .ok_or(InvalidOperation)?;
+            result
+        };
+        Ok(ReadPixelsSizes {
+            row_stride,
+            skipped_bytes,
+            size,
+        })
+    }
+
+    #[allow(unsafe_code)]
+    fn read_pixels_into(
+        &self,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        format: u32,
+        pixel_type: u32,
+        dst: &mut ArrayBufferView,
+        dst_elem_offset: u32,
+    ) {
+        handle_potential_webgl_error!(self.base, self.base.validate_framebuffer(), return);
+
+        if self.bound_pixel_pack_buffer.get().is_some() {
+            return self.base.webgl_error(InvalidOperation);
+        }
+
+        let dst_byte_offset = {
+            let dst_elem_size = typedarray_elem_size(dst.get_array_type());
+            dst_elem_offset as usize * dst_elem_size
+        };
+        if dst_byte_offset > dst.len() {
+            return self.base.webgl_error(InvalidValue);
+        }
+
+        let dst_array_type = dst.get_array_type();
+        let ReadPixelsAllowedFormats {
+            array_types: allowed_array_types,
+            channels,
+        } = match self.calc_read_pixel_formats(pixel_type, format) {
+            Ok(result) => result,
+            Err(error) => return self.base.webgl_error(error),
+        };
+        if !allowed_array_types.contains(&dst_array_type) {
+            return self.base.webgl_error(InvalidOperation);
+        }
+        if format != constants::RGBA || pixel_type != constants::UNSIGNED_BYTE {
+            return self.base.webgl_error(InvalidOperation);
+        }
+
+        let bytes_per_pixel = typedarray_elem_size(dst_array_type) * channels;
+        let ReadPixelsSizes {
+            row_stride,
+            skipped_bytes,
+            size,
+        } = match self.calc_read_pixel_sizes(width, height, bytes_per_pixel) {
+            Ok(result) => result,
+            Err(error) => return self.base.webgl_error(error),
+        };
+        let dst_end = dst_byte_offset + skipped_bytes + size;
+        let dst_pixels = unsafe { dst.as_mut_slice() };
+        if dst_pixels.len() < dst_end {
+            return self.base.webgl_error(InvalidOperation);
+        }
+
+        let dst_byte_offset = {
+            let margin_left = cmp::max(0, -x) as usize;
+            let margin_top = cmp::max(0, -y) as usize;
+            dst_byte_offset +
+                skipped_bytes +
+                margin_left * bytes_per_pixel +
+                margin_top * row_stride
+        };
+        let src_rect = {
+            let (fb_width, fb_height) = handle_potential_webgl_error!(
+                self.base,
+                self.base
+                    .get_current_framebuffer_size()
+                    .ok_or(InvalidOperation),
+                return
+            );
+            let src_origin = Point2D::new(x, y);
+            let src_size = Size2D::new(width as u32, height as u32);
+            let fb_size = Size2D::new(fb_width as u32, fb_height as u32);
+            match pixels::clip(src_origin, src_size.to_u64(), fb_size.to_u64()) {
+                Some(rect) => rect.to_u32(),
+                None => return,
+            }
+        };
+        let src_row_bytes = handle_potential_webgl_error!(
+            self.base,
+            src_rect
+                .size
+                .width
+                .checked_mul(bytes_per_pixel as u32)
+                .ok_or(InvalidOperation),
+            return
+        );
+
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        self.base.send_command(WebGLCommand::ReadPixels(
+            src_rect, format, pixel_type, sender,
+        ));
+        let src = receiver.recv().unwrap();
+
+        for i in 0..src_rect.size.height as usize {
+            let src_start = i * src_row_bytes as usize;
+            let dst_start = dst_byte_offset + i * row_stride;
+            dst_pixels[dst_start..dst_start + src_row_bytes as usize]
+                .copy_from_slice(&src[src_start..src_start + src_row_bytes as usize]);
         }
     }
 }
@@ -936,9 +1162,18 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.LineWidth(width)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.2
     fn PixelStorei(&self, param_name: u32, param_value: i32) {
-        self.base.PixelStorei(param_name, param_value)
+        if param_value < 0 {
+            return self.base.webgl_error(InvalidValue);
+        }
+
+        match param_name {
+            constants::PACK_ROW_LENGTH => self.texture_pack_row_length.set(param_value as _),
+            constants::PACK_SKIP_PIXELS => self.texture_pack_skip_pixels.set(param_value as _),
+            constants::PACK_SKIP_ROWS => self.texture_pack_skip_rows.set(param_value as _),
+            _ => self.base.PixelStorei(param_name, param_value),
+        }
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -955,10 +1190,128 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         height: i32,
         format: u32,
         pixel_type: u32,
-        pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
+        mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
     ) {
-        self.base
-            .ReadPixels(x, y, width, height, format, pixel_type, pixels)
+        let pixels =
+            handle_potential_webgl_error!(self.base, pixels.as_mut().ok_or(InvalidValue), return);
+
+        self.read_pixels_into(x, y, width, height, format, pixel_type, pixels, 0)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.10
+    fn ReadPixels_(
+        &self,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        format: u32,
+        pixel_type: u32,
+        dst_byte_offset: i64,
+    ) {
+        handle_potential_webgl_error!(self.base, self.base.validate_framebuffer(), return);
+
+        let dst = match self.bound_pixel_pack_buffer.get() {
+            Some(buffer) => buffer,
+            None => return self.base.webgl_error(InvalidOperation),
+        };
+
+        if dst_byte_offset < 0 {
+            return self.base.webgl_error(InvalidValue);
+        }
+        let dst_byte_offset = dst_byte_offset as usize;
+        if dst_byte_offset > dst.capacity() {
+            return self.base.webgl_error(InvalidOperation);
+        }
+
+        let ReadPixelsAllowedFormats {
+            array_types: _,
+            channels: bytes_per_pixel,
+        } = match self.calc_read_pixel_formats(pixel_type, format) {
+            Ok(result) => result,
+            Err(error) => return self.base.webgl_error(error),
+        };
+        if format != constants::RGBA || pixel_type != constants::UNSIGNED_BYTE {
+            return self.base.webgl_error(InvalidOperation);
+        }
+
+        let ReadPixelsSizes {
+            row_stride: _,
+            skipped_bytes,
+            size,
+        } = match self.calc_read_pixel_sizes(width, height, bytes_per_pixel) {
+            Ok(result) => result,
+            Err(error) => return self.base.webgl_error(error),
+        };
+        let dst_end = dst_byte_offset + skipped_bytes + size;
+        if dst.capacity() < dst_end {
+            return self.base.webgl_error(InvalidOperation);
+        }
+
+        {
+            let (fb_width, fb_height) = handle_potential_webgl_error!(
+                self.base,
+                self.base
+                    .get_current_framebuffer_size()
+                    .ok_or(InvalidOperation),
+                return
+            );
+            let src_origin = Point2D::new(x, y);
+            let src_size = Size2D::new(width as u32, height as u32);
+            let fb_size = Size2D::new(fb_width as u32, fb_height as u32);
+            if pixels::clip(src_origin, src_size.to_u64(), fb_size.to_u64()).is_none() {
+                return;
+            }
+        }
+        let src_rect = Rect::new(Point2D::new(x, y), Size2D::new(width, height));
+
+        self.base.send_command(WebGLCommand::PixelStorei(
+            constants::PACK_ALIGNMENT,
+            self.base.get_texture_packing_alignment() as _,
+        ));
+        self.base.send_command(WebGLCommand::PixelStorei(
+            constants::PACK_ROW_LENGTH,
+            self.texture_pack_row_length.get() as _,
+        ));
+        self.base.send_command(WebGLCommand::PixelStorei(
+            constants::PACK_SKIP_ROWS,
+            self.texture_pack_skip_rows.get() as _,
+        ));
+        self.base.send_command(WebGLCommand::PixelStorei(
+            constants::PACK_SKIP_PIXELS,
+            self.texture_pack_skip_pixels.get() as _,
+        ));
+        self.base.send_command(WebGLCommand::ReadPixelsPP(
+            src_rect,
+            format,
+            pixel_type,
+            dst_byte_offset,
+        ));
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.10
+    #[allow(unsafe_code)]
+    fn ReadPixels__(
+        &self,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        format: u32,
+        pixel_type: u32,
+        mut dst: CustomAutoRooterGuard<ArrayBufferView>,
+        dst_elem_offset: u32,
+    ) {
+        self.read_pixels_into(
+            x,
+            y,
+            width,
+            height,
+            format,
+            pixel_type,
+            &mut dst,
+            dst_elem_offset,
+        )
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3

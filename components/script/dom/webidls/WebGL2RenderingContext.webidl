@@ -497,10 +497,10 @@ interface mixin WebGL2RenderingContextBase
   void readPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type,
                   /*[AllowShared]*/ ArrayBufferView? dstData);
   // WebGL2:
-  // void readPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type,
-  //                 GLintptr offset);
-  // void readPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type,
-  //                 [AllowShared] ArrayBufferView dstData, GLuint dstOffset);
+  void readPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type,
+                  GLintptr offset);
+  void readPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type,
+                  /*[AllowShared]*/ ArrayBufferView dstData, GLuint dstOffset);
 
   /* Multiple Render Targets */
   // void drawBuffers(sequence<GLenum> buffers);
