@@ -560,6 +560,8 @@ def linux_wpt():
         linux_build_task("Release build, with debug assertions")
         .with_treeherder("Linux x64", "Release+A")
         .with_script("""
+            time ./mach rustc -V
+            time ./mach fetch
             ./mach build --release --with-debug-assertions -p servo
             ./etc/ci/lockfile_changed.sh
             tar -czf /target.tar.gz \
