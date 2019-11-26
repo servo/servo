@@ -10,7 +10,6 @@ use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::style_ext::{DisplayGeneratingBox, DisplayInside, DisplayOutside};
-use crate::take;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
@@ -381,7 +380,7 @@ where
                         // The fragmented boxes before the block level element
                         // are obviously not the last fragment.
                         last_fragment: false,
-                        children: take(&mut ongoing.children),
+                        children: std::mem::take(&mut ongoing.children),
                     };
                     ongoing.first_fragment = false;
                     fragmented
@@ -516,7 +515,7 @@ where
 
         let box_ = IntermediateBlockLevelBox::SameFormattingContextBlock {
             style: anonymous_style.clone(),
-            contents: IntermediateBlockContainer::InlineFormattingContext(take(
+            contents: IntermediateBlockContainer::InlineFormattingContext(std::mem::take(
                 &mut self.ongoing_inline_formatting_context,
             )),
         };

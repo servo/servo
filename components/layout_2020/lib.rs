@@ -81,12 +81,3 @@ fn relative_adjustement(
         block: adjust(box_offsets.block_start, box_offsets.block_end),
     }
 }
-
-// FIXME: use std::mem::take when it’s stable.
-// https://github.com/rust-lang/rust/issues/61129
-fn take<T>(x: &mut T) -> T
-where
-    T: Default,
-{
-    std::mem::replace(x, Default::default())
-}

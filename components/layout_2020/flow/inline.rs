@@ -12,7 +12,7 @@ use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{AbsolutelyPositionedBox, AbsolutelyPositionedFragment};
 use crate::replaced::ReplacedContent;
 use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside};
-use crate::{relative_adjustement, take, ContainingBlock};
+use crate::{relative_adjustement, ContainingBlock};
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
@@ -185,7 +185,7 @@ impl LinesBoxes {
         };
         self.next_line_block_position += size.block;
         self.boxes.push(Fragment::Anonymous(AnonymousFragment {
-            children: take(&mut top_nesting_level.fragments_so_far),
+            children: std::mem::take(&mut top_nesting_level.fragments_so_far),
             rect: Rect { start_corner, size },
             mode: containing_block.mode,
         }))
@@ -250,7 +250,7 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
     ) {
         let mut fragment = BoxFragment {
             style: self.style.clone(),
-            children: take(&mut nesting_level.fragments_so_far),
+            children: std::mem::take(&mut nesting_level.fragments_so_far),
             content_rect: Rect {
                 size: Vec2 {
                     inline: *inline_position - self.start_corner.inline,
