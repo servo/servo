@@ -555,28 +555,6 @@ def linux_release():
         .find_or_create("build.linux_x64_release" + CONFIG.task_id())
     )
 
-def linux_wpt():
-    release_build_task = (
-        linux_build_task("Release build, with debug assertions")
-        .with_treeherder("Linux x64", "Release+A")
-        .with_script("""
-            time ./mach rustc -V
-            time ./mach fetch
-            ./mach build --release --with-debug-assertions -p servo
-            ./etc/ci/lockfile_changed.sh
-            tar -czf /target.tar.gz \
-                target/release/servo \
-                target/release/build/osmesa-src-*/output \
-                target/release/build/osmesa-src-*/out/lib/gallium
-        """)
-        .with_artifacts("/target.tar.gz")
-        .find_or_create("build.linux_x64_release_w_assertions" + CONFIG.task_id())
-    )
-    def linux_run_task(name):
-        return linux_task(name).with_dockerfile(dockerfile_path("run")).with_repo_bundle()
-    wpt_chunks("Linux x64", linux_run_task, release_build_task, repo_dir="/repo",
-               total_chunks=4, processes=12)
-
 
 def macos_nightly():
     return (
@@ -663,16 +641,70 @@ def macos_wpt():
     )
 
 
+def linux_wpt():
+    linux_wpt_one_config(total_chunks=4, layout_2020=False)
+    linux_wpt_one_config(total_chunks=1, layout_2020=True)
+
+
+def linux_wpt_one_config(total_chunks, layout_2020):
+    if layout_2020:
+        name_prefix = "Layout 2020 "
+        build_args = "--with-layout-2020"
+        index_key_suffix = "_2020"
+    else:
+        name_prefix = ""
+        build_args = ""
+        index_key_suffix = ""
+    release_build_task = (
+        linux_build_task(name_prefix + "Release build, with debug assertions")
+        .with_treeherder("Linux x64", "Release+A")
+        .with_script("""
+            time ./mach rustc -V
+            time ./mach fetch
+            ./mach build --release --with-debug-assertions %s -p servo
+            ./etc/ci/lockfile_changed.sh
+            tar -czf /target.tar.gz \
+                target/release/servo \
+                target/release/build/osmesa-src-*/output \
+                target/release/build/osmesa-src-*/out/lib/gallium
+            sccache --show-stats
+        """ % build_args)
+        .with_artifacts("/target.tar.gz")
+        .find_or_create("build.linux_x64%s_release_w_assertions.%s" % (
+            index_key_suffix,
+            CONFIG.task_id(),
+        ))
+    )
+    def linux_run_task(name):
+        return linux_task(name).with_dockerfile(dockerfile_path("run")).with_repo_bundle()
+    wpt_chunks("Linux x64", linux_run_task, release_build_task, repo_dir="/repo",
+               processes=12, total_chunks=total_chunks, layout_2020=layout_2020)
+
+
 def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
-               repo_dir, chunks="all"):
+               repo_dir, chunks="all", layout_2020=False):
+    if layout_2020:
+        start = 1  # Skip the "extra" WPT testing, a.k.a. chunk 0
+        name_prefix = "Layout 2020 "
+        job_id_prefix = "2020-"
+        args = "--layout-2020"
+    else:
+        start = 0
+        name_prefix = ""
+        job_id_prefix = ""
+        args = ""
+
     if chunks == "all":
-        chunks = range(total_chunks + 1)
+        chunks = range(start, total_chunks + 1)
     for this_chunk in chunks:
         task = (
-            make_chunk_task("WPT chunk {:0{width}} / {}".format(
-                this_chunk, total_chunks, width=len(str(total_chunks)),
+            make_chunk_task("{}WPT chunk {:0{width}} / {}".format(
+                name_prefix,
+                this_chunk,
+                total_chunks,
+                width=len(str(total_chunks)),
             ))
-            .with_treeherder(platform, "WPT-%s" % this_chunk)
+            .with_treeherder(platform, "%sWPT-%s" % (job_id_prefix, this_chunk))
             .with_curl_artifact_script(build_task, "target.tar.gz")
             .with_script("tar -xzf target.tar.gz")
             .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
@@ -681,6 +713,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                 TOTAL_CHUNKS=str(total_chunks),
                 THIS_CHUNK=str(this_chunk),
                 PROCESSES=str(processes),
+                WPT_ARGS=args,
                 GST_DEBUG="3",
             )
         )
@@ -724,6 +757,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
             task.with_script("""
                 ./mach test-wpt \
                     --release \
+                    $WPT_ARGS \
                     --processes $PROCESSES \
                     --total-chunks "$TOTAL_CHUNKS" \
                     --this-chunk "$THIS_CHUNK" \
@@ -744,8 +778,12 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
             for word in script.split()
             if word.endswith(".log")
         ])
-        platform_id = platform.replace(" ", "_").lower()
-        task.find_or_create("%s_wpt_%s.%s" % (platform_id, this_chunk, CONFIG.task_id()))
+        task.find_or_create("%s_%swpt_%s.%s" % (
+            platform.replace(" ", "_").lower(),
+            job_id_prefix.replace("-", "_"),
+            this_chunk,
+            CONFIG.task_id(),
+        ))
 
 
 def daily_tasks_setup():
