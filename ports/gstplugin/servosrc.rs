@@ -485,11 +485,6 @@ impl BaseSrcImpl for ServoSrc {
     fn set_caps(&self, _src: &BaseSrc, outcaps: &Caps) -> Result<(), LoggableError> {
         let info = VideoInfo::from_caps(outcaps)
             .ok_or_else(|| gst_loggable_error!(CATEGORY, "Failed to get video info"))?;
-        let size = Size2D::new(info.width(), info.height()).to_i32();
-        debug!("Setting servosrc buffer size to {}", size,);
-        self.sender
-            .send(ServoSrcMsg::Resize(size))
-            .map_err(|_| gst_loggable_error!(CATEGORY, "Failed to send video info"))?;
         *self.info.lock().unwrap() = Some(info);
         Ok(())
     }
@@ -534,6 +529,7 @@ impl BaseSrcImpl for ServoSrc {
         })?;
         let height = frame.height() as i32;
         let width = frame.width() as i32;
+        let size = Size2D::new(width, height);
         let format = frame.format();
         debug!(
             "Filling servosrc buffer {}x{} {:?} {:?}",
@@ -545,6 +541,13 @@ impl BaseSrcImpl for ServoSrc {
             let mut gfx = gfx.borrow_mut();
             let gfx = &mut *gfx;
             if let Some(surface) = self.swap_chain.take_surface() {
+                let surface_size = Size2D::from_untyped(gfx.device.surface_info(&surface).size);
+                if size != surface_size {
+                    // If we're being asked to fill frames that are a different size than servo is providing,
+                    // ask it to change size.
+                    let _ = self.sender.send(ServoSrcMsg::Resize(size));
+                }
+
                 gfx.device.make_context_current(&gfx.context).unwrap();
                 debug_assert_eq!(
                     (
