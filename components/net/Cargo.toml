@@ -20,6 +20,7 @@ bytes = "0.4"
 content-security-policy = {version = "0.3.0", features = ["serde"]}
 cookie_rs = {package = "cookie", version = "0.11"}
 crossbeam-channel = "0.3"
+data-url = "0.1.0"
 devtools_traits = {path = "../devtools_traits"}
 embedder_traits = { path = "../embedder_traits" }
 flate2 = "1"

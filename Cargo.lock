@@ -1022,6 +1022,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "data-url"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d33fe99ccedd6e84bc035f1931bb2e6be79739d6242bd895e7311c886c50dc9c"
+dependencies = [
+ "matches",
+]
+
+[[package]]
 name = "dbus"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3460,6 +3469,7 @@ dependencies = [
  "content-security-policy",
  "cookie",
  "crossbeam-channel",
+ "data-url",
  "devtools_traits",
  "embedder_traits",
  "flate2",
