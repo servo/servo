@@ -51,6 +51,7 @@ ${helpers.single_keyword(
     "mixed upright sideways",
     engines="gecko",
     gecko_aliases="sideways-right=sideways",
+    gecko_enum_prefix="StyleTextOrientation",
     animation_value_type="none",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-text-orientation",
 )}
