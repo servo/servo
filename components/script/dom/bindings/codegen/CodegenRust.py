@@ -7408,7 +7408,16 @@ class CGIterableMethodGenerator(CGGeneric):
                 rooted!(in(*cx) let mut call_arg2 = UndefinedValue());
                 let mut call_args = vec![UndefinedValue(), UndefinedValue(), ObjectValue(*_obj)];
                 rooted!(in(*cx) let mut ignoredReturnVal = UndefinedValue());
-                for i in 0..(*this).get_iterable_length() {
+
+                // This has to be a while loop since get_iterable_length() may change during
+                // the callback, and we need to avoid iterator invalidation.
+                //
+                // It is possible for this to loop infinitely, but that matches the spec
+                // and other browsers.
+                //
+                // https://heycam.github.io/webidl/#es-forEach
+                let mut i = 0;
+                while i < (*this).get_iterable_length() {
                   (*this).get_value_at_index(i).to_jsval(*cx, call_arg1.handle_mut());
                   (*this).get_key_at_index(i).to_jsval(*cx, call_arg2.handle_mut());
                   call_args[0] = call_arg1.handle().get();
@@ -7418,6 +7427,8 @@ class CGIterableMethodGenerator(CGGeneric):
                            ignoredReturnVal.handle_mut()) {
                     return false;
                   }
+
+                  i += 1;
                 }
 
                 let result = ();
