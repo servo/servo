@@ -24,18 +24,19 @@ To run locally:
 ```
 GST_PLUGIN_PATH=target/gstplugins \
   gst-launch-1.0 servosrc \
-    ! queue \
-    ! video/x-raw,framerate=25/1,width=512,height=512 \
-    ! videoflip video-direction=vert \
-    ! autovideosink
+    ! videorate \
+    ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=1920,height=1080,format=RGBA \
+    ! glimagesink rotate-method=vertical-flip
 ```
+
+*Note*: the following don't work, for some reason the pipeline isn't providing GLMemory.
 
 To stream over the network:
 ```
-GST_PLUGIN_PATH=target/gstplugins \
   gst-launch-1.0 servosrc \
-    ! queue \
-    ! video/x-raw,framerate=25/1,width=512,height=512 \
+    ! videorate \
+    ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=1920,height=1080,format=RGBA \
+    ! gldownload \
     ! videoconvert \
     ! videoflip video-direction=vert \
     ! theoraenc \
@@ -46,9 +47,9 @@ GST_PLUGIN_PATH=target/gstplugins \
 To  save to a file:
 ```
 GST_PLUGIN_PATH=target/gstplugins \
-  gst-launch-1.0 servosrc num-buffers=2000 \
-    ! queue \
-    ! video/x-raw,framerate=25/1,width=512,height=512 \
+    ! videorate \
+    ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=1920,height=1080,format=RGBA \
+    ! gldownload \
     ! videoconvert \
     ! videoflip video-direction=vert \
     ! theoraenc \
