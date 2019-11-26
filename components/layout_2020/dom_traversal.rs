@@ -30,7 +30,7 @@ pub(super) enum Contents<Node> {
     /// <https://drafts.csswg.org/css2/conform.html#replaced-element>
     Replaced(ReplacedContent),
 
-    /// Content of a `::before` or `::after` pseudo-element this is being generated.
+    /// Content of a `::before` or `::after` pseudo-element that is being generated.
     /// <https://drafts.csswg.org/css2/generate.html#content>
     OfPseudoElement(Vec<PseudoElementContentItem>),
 }

@@ -8,6 +8,7 @@ use crate::dom_traversal::{Contents, NodeExt};
 use crate::flow::construct::ContainsFloats;
 use crate::flow::float::FloatBox;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
+use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::Fragment;
 use crate::geom;
 use crate::geom::flow_relative::Vec2;
@@ -16,7 +17,7 @@ use crate::replaced::ReplacedContent;
 use crate::style_ext::{
     Direction, Display, DisplayGeneratingBox, DisplayInside, DisplayOutside, WritingMode,
 };
-use crate::{ContainingBlock, DefiniteContainingBlock, IndependentFormattingContext};
+use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefIterator, ParallelExtend, ParallelIterator};
 use servo_arc::Arc;
 use style::context::SharedStyleContext;
@@ -69,31 +70,32 @@ fn construct_for_root_element<'dom>(
         }
     }
 
+    let position = box_style.position;
+    let float = box_style.float;
     let contents = IndependentFormattingContext::construct(
         context,
-        &style,
+        style,
         display_inside,
         Contents::OfElement(root_element),
     );
-    if box_style.position.is_absolutely_positioned() {
+    if position.is_absolutely_positioned() {
         (
             ContainsFloats::No,
             vec![Arc::new(BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                AbsolutelyPositionedBox { style, contents },
+                AbsolutelyPositionedBox { contents },
             ))],
         )
-    } else if box_style.float.is_floating() {
+    } else if float.is_floating() {
         (
             ContainsFloats::Yes,
             vec![Arc::new(BlockLevelBox::OutOfFlowFloatBox(FloatBox {
                 contents,
-                style,
             }))],
         )
     } else {
         (
             ContainsFloats::No,
-            vec![Arc::new(BlockLevelBox::Independent { style, contents })],
+            vec![Arc::new(BlockLevelBox::Independent(contents))],
         )
     }
 }

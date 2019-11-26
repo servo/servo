@@ -7,6 +7,7 @@
 use crate::context::LayoutContext;
 use crate::flow::float::{FloatBox, FloatContext};
 use crate::flow::inline::InlineFormattingContext;
+use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::{
     AnonymousFragment, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment,
 };
@@ -15,7 +16,7 @@ use crate::positioned::{
     adjust_static_positions, AbsolutelyPositionedBox, AbsolutelyPositionedFragment,
 };
 use crate::style_ext::{ComputedValuesExt, Position};
-use crate::{relative_adjustement, ContainingBlock, IndependentFormattingContext};
+use crate::{relative_adjustement, ContainingBlock};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
@@ -50,10 +51,7 @@ pub(crate) enum BlockLevelBox {
     },
     OutOfFlowAbsolutelyPositionedBox(AbsolutelyPositionedBox),
     OutOfFlowFloatBox(FloatBox),
-    Independent {
-        style: Arc<ComputedValues>,
-        contents: IndependentFormattingContext,
-    },
+    Independent(IndependentFormattingContext),
 }
 
 pub(super) struct FlowChildren {
@@ -292,19 +290,24 @@ impl BlockLevelBox {
                     },
                 ))
             },
-            BlockLevelBox::Independent { style, contents } => match contents.as_replaced() {
+            BlockLevelBox::Independent(contents) => match contents.as_replaced() {
                 Ok(replaced) => {
                     // FIXME
                     match *replaced {}
                 },
-                Err(contents) => Fragment::Box(layout_in_flow_non_replaced_block_level(
+                Err(non_replaced) => Fragment::Box(layout_in_flow_non_replaced_block_level(
                     layout_context,
                     containing_block,
                     absolutely_positioned_fragments,
-                    style,
+                    &contents.style,
                     BlockLevelKind::EstablishesAnIndependentFormattingContext,
                     |containing_block, nested_abspos, _| {
-                        contents.layout(layout_context, containing_block, tree_rank, nested_abspos)
+                        non_replaced.layout(
+                            layout_context,
+                            containing_block,
+                            tree_rank,
+                            nested_abspos,
+                        )
                     },
                 )),
             },

@@ -118,7 +118,7 @@ impl InlineFormattingContext {
                     },
                     InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
                         let initial_start_corner =
-                            match Display::from(box_.style.get_box().original_display) {
+                            match Display::from(box_.contents.style.get_box().original_display) {
                                 Display::GeneratingBox(DisplayGeneratingBox::OutsideInside {
                                     outside,
                                     inside: _,

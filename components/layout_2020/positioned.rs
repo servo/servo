@@ -3,10 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::context::LayoutContext;
+use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::{AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::style_ext::{ComputedValuesExt, Direction, WritingMode};
-use crate::{ContainingBlock, DefiniteContainingBlock, IndependentFormattingContext};
+use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use servo_arc::Arc;
 use style::properties::ComputedValues;
@@ -15,7 +16,6 @@ use style::Zero;
 
 #[derive(Debug)]
 pub(crate) struct AbsolutelyPositionedBox {
-    pub style: Arc<ComputedValues>,
     pub contents: IndependentFormattingContext,
 }
 
@@ -49,7 +49,7 @@ impl AbsolutelyPositionedBox {
         initial_start_corner: Vec2<Length>,
         tree_rank: usize,
     ) -> AbsolutelyPositionedFragment {
-        let style = &self.style;
+        let style = &self.contents.style;
         let box_offsets = style.box_offsets();
         let box_size = style.box_size();
 
@@ -130,7 +130,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
         layout_context: &LayoutContext,
         containing_block: &DefiniteContainingBlock,
     ) -> Fragment {
-        let style = &self.absolutely_positioned_box.style;
+        let style = &self.absolutely_positioned_box.contents.style;
         let cbis = containing_block.size.inline;
         let cbbs = containing_block.size.block;
 
