@@ -11,6 +11,7 @@ extern crate log;
 extern crate sig;
 
 mod app;
+mod backtrace;
 mod browser;
 mod context;
 mod embedder;
@@ -23,7 +24,6 @@ mod skia_symbols;
 mod window_trait;
 
 use app::App;
-use backtrace::Backtrace;
 use getopts::Options;
 use servo::config::opts::{self, ArgumentParsingResult};
 use servo::config::servo_version;
@@ -49,17 +49,21 @@ fn install_crash_handler() {}
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 fn install_crash_handler() {
-    use backtrace::Backtrace;
     use libc::_exit;
     use sig::ffi::Sig;
     use std::thread;
 
     extern "C" fn handler(sig: i32) {
-        let name = thread::current()
-            .name()
-            .map(|n| format!(" for thread \"{}\"", n))
-            .unwrap_or("".to_owned());
-        println!("Stack trace{}\n{:?}", name, Backtrace::new());
+        use std::sync::atomic;
+        static BEEN_HERE_BEFORE: atomic::AtomicBool = atomic::AtomicBool::new(false);
+        if !BEEN_HERE_BEFORE.swap(true, atomic::Ordering::SeqCst) {
+            print!("Stack trace");
+            if let Some(name) = thread::current().name() {
+                print!(" for thread \"{}\"", name);
+            }
+            println!();
+            backtrace::print();
+        }
         unsafe {
             _exit(sig);
         }
@@ -139,7 +143,7 @@ pub fn main() {
             println!("{} (thread {})", msg, name);
         }
         if env::var("RUST_BACKTRACE").is_ok() {
-            println!("{:?}", Backtrace::new());
+            backtrace::print();
         }
 
         error!("{}", msg);
