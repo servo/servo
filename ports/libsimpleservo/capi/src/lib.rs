@@ -219,6 +219,8 @@ pub struct CHostCallbacks {
     pub on_media_session_metadata:
         extern "C" fn(title: *const c_char, album: *const c_char, artist: *const c_char),
     pub on_media_session_playback_state_change: extern "C" fn(state: i32),
+    pub on_media_session_set_position_state:
+        extern "C" fn(duration: f64, position: f64, playback_rate: f64),
 }
 
 /// Servo options
@@ -726,5 +728,18 @@ impl HostTrait for HostCallbacks {
     fn on_media_session_playback_state_change(&self, state: i32) {
         debug!("on_media_session_playback_state_change {:?}", state);
         (self.0.on_media_session_playback_state_change)(state);
+    }
+
+    fn on_media_session_set_position_state(
+        &self,
+        duration: f64,
+        position: f64,
+        playback_rate: f64,
+    ) {
+        debug!(
+            "on_media_session_set_position_state ({:?} {:?} {:?})",
+            duration, position, playback_rate
+        );
+        (self.0.on_media_session_set_position_state)(duration, position, playback_rate);
     }
 }

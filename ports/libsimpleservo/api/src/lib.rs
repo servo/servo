@@ -132,8 +132,10 @@ pub trait HostTrait {
     fn set_clipboard_contents(&self, contents: String);
     /// Called when we get the media session metadata/
     fn on_media_session_metadata(&self, title: String, artist: String, album: String);
-    /// Called when the media sessoin playback state changes.
+    /// Called when the media session playback state changes.
     fn on_media_session_playback_state_change(&self, state: i32);
+    /// Called when the media session position state is set.
+    fn on_media_session_set_position_state(&self, duration: f64, position: f64, playback_rate: f64);
 }
 
 pub struct ServoGlue {
@@ -594,6 +596,14 @@ impl ServoGlue {
                             .callbacks
                             .host_callbacks
                             .on_media_session_playback_state_change(state as i32),
+                        MediaSessionEvent::SetPositionState(position_state) => self
+                            .callbacks
+                            .host_callbacks
+                            .on_media_session_set_position_state(
+                                position_state.duration,
+                                position_state.position,
+                                position_state.playback_rate,
+                            ),
                     };
                 },
                 EmbedderMsg::Status(..) |

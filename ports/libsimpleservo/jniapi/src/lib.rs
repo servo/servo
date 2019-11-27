@@ -560,6 +560,30 @@ impl HostTrait for HostCallbacks {
         )
         .unwrap();
     }
+
+    fn on_media_session_set_position_state(
+        &self,
+        duration: f64,
+        position: f64,
+        playback_rate: f64,
+    ) {
+        info!(
+            "on_media_session_playback_state_change ({:?}, {:?}, {:?})",
+            duration, position, playback_rate
+        );
+        let env = self.jvm.get_env().unwrap();
+        let duration = JValue::Float(duration as jfloat);
+        let position = JValue::Float(position as jfloat);
+        let playback_rate = JValue::Float(playback_rate as jfloat);
+
+        env.call_method(
+            self.callbacks.as_obj(),
+            "onMediaSessionSetPositionState",
+            "(FFF)V",
+            &[duration, position, playback_rate],
+        )
+        .unwrap();
+    }
 }
 
 fn initialize_android_glue(env: &JNIEnv, activity: JObject) {

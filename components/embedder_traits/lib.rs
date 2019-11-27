@@ -243,9 +243,9 @@ pub enum MediaSessionPlaybackState {
 /// https://w3c.github.io/mediasession/#dictdef-mediapositionstate
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct MediaPositionState {
-    pub duration: Option<f64>,
-    pub playback_rate: Option<f64>,
-    pub position: Option<f64>,
+    pub duration: f64,
+    pub playback_rate: f64,
+    pub position: f64,
 }
 
 impl MediaPositionState {
