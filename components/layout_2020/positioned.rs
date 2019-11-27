@@ -4,7 +4,7 @@
 
 use crate::context::LayoutContext;
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragments::{AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment};
+use crate::fragments::{AnonymousFragment, BoxFragment, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::style_ext::{ComputedValuesExt, Direction, WritingMode};
 use crate::{ContainingBlock, DefiniteContainingBlock};
@@ -319,7 +319,6 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             padding,
             border,
             margin,
-            block_margins_collapsed_with_children: CollapsedBlockMargins::zero(),
         })
     }
 }

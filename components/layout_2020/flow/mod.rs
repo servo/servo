@@ -138,10 +138,15 @@ fn layout_block_level_children<'a>(
     float_context: Option<&mut FloatContext>,
     collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
 ) -> FlowLayout {
-    fn place_block_level_fragment(fragment: &mut Fragment, placement_state: &mut PlacementState) {
+    fn place_block_level_fragment(
+        fragment: FragmentForBlockLevelBox,
+        placement_state: &mut PlacementState,
+    ) -> Fragment {
         match fragment {
-            Fragment::Box(fragment) => {
-                let fragment_block_margins = &fragment.block_margins_collapsed_with_children;
+            FragmentForBlockLevelBox::Box {
+                box_fragment: mut fragment,
+                block_margins_collapsed_with_children: fragment_block_margins,
+            } => {
                 let fragment_block_size = fragment.padding.block_sum() +
                     fragment.border.block_sum() +
                     fragment.content_rect.size.block;
@@ -155,7 +160,7 @@ fn layout_block_level_children<'a>(
                         placement_state
                             .start_margin
                             .adjoin_assign(&fragment_block_margins.end);
-                        return;
+                        return Fragment::Box(fragment);
                     }
                     placement_state.next_in_flow_margin_collapses_with_parent_start_margin = false;
                 } else {
@@ -169,21 +174,22 @@ fn layout_block_level_children<'a>(
                     placement_state
                         .current_margin
                         .adjoin_assign(&fragment_block_margins.end);
-                    return;
+                    return Fragment::Box(fragment);
                 }
                 placement_state.current_block_direction_position +=
                     placement_state.current_margin.solve() + fragment_block_size;
                 placement_state.current_margin = fragment_block_margins.end;
+                Fragment::Box(fragment)
             },
-            Fragment::Anonymous(fragment) => {
+            FragmentForBlockLevelBox::Anonymous(mut fragment) => {
                 // FIXME(nox): Margin collapsing for hypothetical boxes of
                 // abspos elements is probably wrong.
                 assert!(fragment.children.is_empty());
                 assert_eq!(fragment.rect.size.block, Length::zero());
                 fragment.rect.start_corner.block +=
                     placement_state.current_block_direction_position;
+                Fragment::Anonymous(fragment)
             },
-            _ => unreachable!(),
         }
     }
 
@@ -211,19 +217,18 @@ fn layout_block_level_children<'a>(
             .iter()
             .enumerate()
             .map(|(tree_rank, box_)| {
-                let mut fragment = box_.layout(
+                let fragment = box_.layout(
                     layout_context,
                     containing_block,
                     tree_rank,
                     absolutely_positioned_fragments,
                     Some(float_context),
                 );
-                place_block_level_fragment(&mut fragment, &mut placement_state);
-                fragment
+                place_block_level_fragment(fragment, &mut placement_state)
             })
             .collect()
     } else {
-        fragments = child_boxes
+        let box_level_fragments: Vec<_> = child_boxes
             .par_iter()
             .enumerate()
             .mapfold_reduce_into(
@@ -242,9 +247,10 @@ fn layout_block_level_children<'a>(
                 },
             )
             .collect();
-        for fragment in &mut fragments {
-            place_block_level_fragment(fragment, &mut placement_state)
-        }
+        fragments = box_level_fragments
+            .into_iter()
+            .map(|fragment| place_block_level_fragment(fragment, &mut placement_state))
+            .collect()
     }
 
     adjust_static_positions(
@@ -265,6 +271,14 @@ fn layout_block_level_children<'a>(
     }
 }
 
+enum FragmentForBlockLevelBox {
+    Box {
+        box_fragment: BoxFragment,
+        block_margins_collapsed_with_children: CollapsedBlockMargins,
+    },
+    Anonymous(AnonymousFragment),
+}
+
 impl BlockLevelBox {
     fn layout<'a>(
         &'a self,
@@ -273,10 +287,10 @@ impl BlockLevelBox {
         tree_rank: usize,
         absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
         float_context: Option<&mut FloatContext>,
-    ) -> Fragment {
+    ) -> FragmentForBlockLevelBox {
         match self {
             BlockLevelBox::SameFormattingContextBlock { style, contents } => {
-                Fragment::Box(layout_in_flow_non_replaced_block_level(
+                layout_in_flow_non_replaced_block_level(
                     layout_context,
                     containing_block,
                     absolutely_positioned_fragments,
@@ -292,14 +306,14 @@ impl BlockLevelBox {
                             collapsible_with_parent_start_margin,
                         )
                     },
-                ))
+                )
             },
             BlockLevelBox::Independent(contents) => match contents.as_replaced() {
                 Ok(replaced) => {
                     // FIXME
                     match *replaced {}
                 },
-                Err(non_replaced) => Fragment::Box(layout_in_flow_non_replaced_block_level(
+                Err(non_replaced) => layout_in_flow_non_replaced_block_level(
                     layout_context,
                     containing_block,
                     absolutely_positioned_fragments,
@@ -318,15 +332,15 @@ impl BlockLevelBox {
                             collapsible_margins_in_children: CollapsedBlockMargins::zero(),
                         }
                     },
-                )),
+                ),
             },
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
                 absolutely_positioned_fragments.push(box_.layout(Vec2::zero(), tree_rank));
-                Fragment::Anonymous(AnonymousFragment::no_op(containing_block.mode))
+                FragmentForBlockLevelBox::Anonymous(AnonymousFragment::no_op(containing_block.mode))
             },
             BlockLevelBox::OutOfFlowFloatBox(_box_) => {
                 // TODO
-                Fragment::Anonymous(AnonymousFragment::no_op(containing_block.mode))
+                FragmentForBlockLevelBox::Anonymous(AnonymousFragment::no_op(containing_block.mode))
             },
         }
     }
@@ -351,7 +365,7 @@ fn layout_in_flow_non_replaced_block_level<'a>(
         &mut Vec<AbsolutelyPositionedFragment<'a>>,
         CollapsibleWithParentStartMargin,
     ) -> FlowLayout,
-) -> BoxFragment {
+) -> FragmentForBlockLevelBox {
     let cbis = containing_block.inline_size;
     let padding = style.padding().percentages_relative_to(cbis);
     let border = style.border_width();
@@ -469,13 +483,16 @@ fn layout_in_flow_non_replaced_block_level<'a>(
             containing_block_for_children.mode,
         )
     }
-    BoxFragment {
+    let box_fragment = BoxFragment {
         style: style.clone(),
         children: flow_layout.fragments,
         content_rect,
         padding,
         border,
         margin,
+    };
+    FragmentForBlockLevelBox::Box {
+        box_fragment,
         block_margins_collapsed_with_children,
     }
 }

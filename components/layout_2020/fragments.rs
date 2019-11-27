@@ -30,8 +30,6 @@ pub(crate) struct BoxFragment {
     pub padding: Sides<Length>,
     pub border: Sides<Length>,
     pub margin: Sides<Length>,
-
-    pub block_margins_collapsed_with_children: CollapsedBlockMargins,
 }
 
 pub(crate) struct CollapsedBlockMargins {
