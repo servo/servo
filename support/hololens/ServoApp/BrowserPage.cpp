@@ -143,4 +143,11 @@ void BrowserPage::OnURLEdited(IInspectable const &,
   }
 }
 
+void BrowserPage::OnMediaControlsPlayClicked(
+    Windows::Foundation::IInspectable const &,
+    Windows::UI::Xaml::RoutedEventArgs const &) {}
+void BrowserPage::OnMediaControlsPauseClicked(
+    Windows::Foundation::IInspectable const &,
+    Windows::UI::Xaml::RoutedEventArgs const &) {}
+
 } // namespace winrt::ServoApp::implementation

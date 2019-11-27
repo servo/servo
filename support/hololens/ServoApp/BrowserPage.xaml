@@ -137,5 +137,14 @@
                 <Button Margin="0,10,10,0" Click="OnXRPkgWarningDismissClick">Dismiss</Button>
             </StackPanel>
         </StackPanel>
+        <CommandBar Grid.Row="3" Visibility="Collapsed">
+            <AppBarButton Icon="Play" Label="Play" Click="OnMediaControlsPlayClicked"/>
+            <AppBarButton Icon="Pause" Label="Pause" Click="OnMediaControlsPauseClicked"/>
+
+            <CommandBar.Content>
+                <TextBlock Text="Now playing..." Margin="12,14"/>
+            </CommandBar.Content>
+        </CommandBar>
     </Grid>
+
 </Page>
