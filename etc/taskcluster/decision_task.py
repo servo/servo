@@ -113,6 +113,7 @@ def tasks(task_for):
         update_wpt()
         magicleap_nightly()
         uwp_nightly()
+        webrender_nightly()
 
 
 # These are disabled in a "real" decision task,
@@ -529,6 +530,10 @@ def windows_nightly():
     )
 
 
+def webrender_nightly():
+    return linux_wpt_common(total_chunks=4, layout_2020=False, webrender_nightly=True)
+
+    
 def linux_nightly():
     return (
         linux_build_task("Nightly build and upload")
@@ -644,14 +649,14 @@ def macos_wpt():
 
 
 def linux_wpt():
-    linux_wpt_common(total_chunks=4, layout_2020=False)
+    linux_wpt_common(total_chunks=4, layout_2020=False, webrender_nightly=False)
 
 
 def linux_wpt_layout_2020():
-    linux_wpt_common(total_chunks=1, layout_2020=True)
+    linux_wpt_common(total_chunks=1, layout_2020=True, webrender_nightly=False)
 
 
-def linux_wpt_common(total_chunks, layout_2020):
+def linux_wpt_common(total_chunks, layout_2020, webrender_nightly):
     if layout_2020:
         name_prefix = "Layout 2020 "
         build_args = "--with-layout-2020"
@@ -660,20 +665,28 @@ def linux_wpt_common(total_chunks, layout_2020):
         name_prefix = ""
         build_args = ""
         index_key_suffix = ""
+
+    if webrender_nightly:
+        name_prefix += "WebRender nightly "
+        index_key_suffix += "_webrender"
+        pre_script = "cargo update -p webrender"
+    else:
+        pre_script = ""
+        
     release_build_task = (
         linux_build_task(name_prefix + "Release build, with debug assertions")
         .with_treeherder("Linux x64", "Release+A")
         .with_script("""
+            %s
             time ./mach rustc -V
             time ./mach fetch
             ./mach build --release --with-debug-assertions %s -p servo
-            ./etc/ci/lockfile_changed.sh
             tar -czf /target.tar.gz \
                 target/release/servo \
                 target/release/build/osmesa-src-*/output \
                 target/release/build/osmesa-src-*/out/lib/gallium
             sccache --show-stats
-        """ % build_args)
+        """ % (pre_script, build_args))
         .with_artifacts("/target.tar.gz")
         .find_or_create("build.linux_x64%s_release_w_assertions.%s" % (
             index_key_suffix,
