@@ -3,10 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::context::LayoutContext;
+use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::{AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::style_ext::{ComputedValuesExt, Direction, WritingMode};
-use crate::{ContainingBlock, DefiniteContainingBlock, IndependentFormattingContext};
+use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use servo_arc::Arc;
 use style::properties::ComputedValues;
@@ -15,7 +16,6 @@ use style::Zero;
 
 #[derive(Debug)]
 pub(crate) struct AbsolutelyPositionedBox {
-    pub style: Arc<ComputedValues>,
     pub contents: IndependentFormattingContext,
 }
 
@@ -49,7 +49,7 @@ impl AbsolutelyPositionedBox {
         initial_start_corner: Vec2<Length>,
         tree_rank: usize,
     ) -> AbsolutelyPositionedFragment {
-        let style = &self.style;
+        let style = &self.contents.style;
         let box_offsets = style.box_offsets();
         let box_size = style.box_size();
 
@@ -130,7 +130,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
         layout_context: &LayoutContext,
         containing_block: &DefiniteContainingBlock,
     ) -> Fragment {
-        let style = &self.absolutely_positioned_box.style;
+        let style = &self.absolutely_positioned_box.contents.style;
         let cbis = containing_block.size.inline;
         let cbbs = containing_block.size.block;
 
@@ -274,7 +274,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
         );
         let dummy_tree_rank = 0;
         let mut absolutely_positioned_fragments = vec![];
-        let mut flow_children = self.absolutely_positioned_box.contents.layout(
+        let mut independent_layout = self.absolutely_positioned_box.contents.layout(
             layout_context,
             &containing_block_for_children,
             dummy_tree_rank,
@@ -286,7 +286,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             Anchor::End(end) => cbbs - end - pb.inline_end - margin.inline_end - inline_size,
         };
 
-        let block_size = block_size.auto_is(|| flow_children.block_size);
+        let block_size = block_size.auto_is(|| independent_layout.content_block_size);
         let block_start = match block_anchor {
             Anchor::Start(start) => start + pb.block_start + margin.block_start,
             Anchor::End(end) => cbbs - end - pb.block_end - margin.block_end - block_size,
@@ -306,7 +306,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
         AbsolutelyPositionedFragment::in_positioned_containing_block(
             layout_context,
             &absolutely_positioned_fragments,
-            &mut flow_children.fragments,
+            &mut independent_layout.fragments,
             &content_rect.size,
             &padding,
             containing_block_for_children.mode,
@@ -314,7 +314,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
 
         Fragment::Box(BoxFragment {
             style: style.clone(),
-            children: flow_children.fragments,
+            children: independent_layout.fragments,
             content_rect,
             padding,
             border,

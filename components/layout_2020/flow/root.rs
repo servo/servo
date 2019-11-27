@@ -8,6 +8,7 @@ use crate::dom_traversal::{Contents, NodeExt};
 use crate::flow::construct::ContainsFloats;
 use crate::flow::float::FloatBox;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
+use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::Fragment;
 use crate::geom;
 use crate::geom::flow_relative::Vec2;
@@ -16,8 +17,9 @@ use crate::replaced::ReplacedContent;
 use crate::style_ext::{
     Direction, Display, DisplayGeneratingBox, DisplayInside, DisplayOutside, WritingMode,
 };
-use crate::{ContainingBlock, DefiniteContainingBlock, IndependentFormattingContext};
+use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefIterator, ParallelExtend, ParallelIterator};
+use script_layout_interface::wrapper_traits::LayoutNode;
 use servo_arc::Arc;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
@@ -29,10 +31,10 @@ pub struct BoxTreeRoot(BlockFormattingContext);
 pub struct FragmentTreeRoot(Vec<Fragment>);
 
 impl BoxTreeRoot {
-    pub fn construct<'dom>(
-        context: &SharedStyleContext<'_>,
-        root_element: impl NodeExt<'dom>,
-    ) -> Self {
+    pub fn construct<'dom, Node>(context: &SharedStyleContext<'_>, root_element: Node) -> Self
+    where
+        Node: 'dom + Copy + LayoutNode + Send + Sync,
+    {
         let (contains_floats, boxes) = construct_for_root_element(&context, root_element);
         Self(BlockFormattingContext {
             contains_floats: contains_floats == ContainsFloats::Yes,
@@ -69,31 +71,32 @@ fn construct_for_root_element<'dom>(
         }
     }
 
+    let position = box_style.position;
+    let float = box_style.float;
     let contents = IndependentFormattingContext::construct(
         context,
-        &style,
+        style,
         display_inside,
         Contents::OfElement(root_element),
     );
-    if box_style.position.is_absolutely_positioned() {
+    if position.is_absolutely_positioned() {
         (
             ContainsFloats::No,
             vec![Arc::new(BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                AbsolutelyPositionedBox { style, contents },
+                AbsolutelyPositionedBox { contents },
             ))],
         )
-    } else if box_style.float.is_floating() {
+    } else if float.is_floating() {
         (
             ContainsFloats::Yes,
             vec![Arc::new(BlockLevelBox::OutOfFlowFloatBox(FloatBox {
                 contents,
-                style,
             }))],
         )
     } else {
         (
             ContainsFloats::No,
-            vec![Arc::new(BlockLevelBox::Independent { style, contents })],
+            vec![Arc::new(BlockLevelBox::Independent(contents))],
         )
     }
 }
@@ -118,7 +121,7 @@ impl BoxTreeRoot {
         };
         let dummy_tree_rank = 0;
         let mut absolutely_positioned_fragments = vec![];
-        let mut flow_children = self.0.layout(
+        let mut independent_layout = self.0.layout(
             layout_context,
             &initial_containing_block,
             dummy_tree_rank,
@@ -129,12 +132,12 @@ impl BoxTreeRoot {
             size: initial_containing_block_size,
             mode: initial_containing_block.mode,
         };
-        flow_children.fragments.par_extend(
+        independent_layout.fragments.par_extend(
             absolutely_positioned_fragments
                 .par_iter()
                 .map(|a| a.layout(layout_context, &initial_containing_block)),
         );
-        FragmentTreeRoot(flow_children.fragments)
+        FragmentTreeRoot(independent_layout.fragments)
     }
 }
 

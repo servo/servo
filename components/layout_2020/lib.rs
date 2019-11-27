@@ -12,16 +12,13 @@
 #[macro_use]
 extern crate serde;
 
-use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthOrAuto};
-use style::Zero;
-
 pub mod context;
 pub mod data;
 pub mod display_list;
 mod dom_traversal;
 mod element_data;
 mod flow;
+mod formatting_contexts;
 mod fragments;
 mod geom;
 mod opaque_node;
@@ -36,94 +33,16 @@ pub use flow::{BoxTreeRoot, FragmentTreeRoot};
 
 use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeExt};
-use crate::flow::{BlockFormattingContext, FlowChildren};
+use crate::flow::BlockFormattingContext;
 use crate::geom::flow_relative::Vec2;
 use crate::positioned::AbsolutelyPositionedFragment;
 use crate::replaced::ReplacedContent;
 use crate::style_ext::{ComputedValuesExt, Direction, DisplayInside, Position, WritingMode};
 use servo_arc::Arc;
 use std::convert::TryInto;
-use style::context::SharedStyleContext;
-
-/// https://drafts.csswg.org/css-display/#independent-formatting-context
-#[derive(Debug)]
-enum IndependentFormattingContext {
-    Flow(BlockFormattingContext),
-
-    // Not called FC in specs, but behaves close enough
-    Replaced(ReplacedContent),
-    // Other layout modes go here
-}
-
-enum NonReplacedIFC<'a> {
-    Flow(&'a BlockFormattingContext),
-}
-
-impl IndependentFormattingContext {
-    fn construct<'dom, 'style>(
-        context: &SharedStyleContext<'style>,
-        style: &Arc<ComputedValues>,
-        display_inside: DisplayInside,
-        contents: Contents<impl NodeExt<'dom>>,
-    ) -> Self {
-        match contents.try_into() {
-            Ok(non_replaced) => match display_inside {
-                DisplayInside::Flow | DisplayInside::FlowRoot => {
-                    IndependentFormattingContext::Flow(BlockFormattingContext::construct(
-                        context,
-                        style,
-                        non_replaced,
-                    ))
-                },
-            },
-            Err(replaced) => IndependentFormattingContext::Replaced(replaced),
-        }
-    }
-
-    fn as_replaced(&self) -> Result<&ReplacedContent, NonReplacedIFC> {
-        match self {
-            IndependentFormattingContext::Replaced(r) => Ok(r),
-            IndependentFormattingContext::Flow(f) => Err(NonReplacedIFC::Flow(f)),
-        }
-    }
-
-    fn layout<'a>(
-        &'a self,
-        layout_context: &LayoutContext,
-        containing_block: &ContainingBlock,
-        tree_rank: usize,
-        absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
-    ) -> FlowChildren {
-        match self.as_replaced() {
-            Ok(replaced) => match *replaced {},
-            Err(ifc) => ifc.layout(
-                layout_context,
-                containing_block,
-                tree_rank,
-                absolutely_positioned_fragments,
-            ),
-        }
-    }
-}
-
-impl<'a> NonReplacedIFC<'a> {
-    fn layout(
-        &self,
-        layout_context: &LayoutContext,
-        containing_block: &ContainingBlock,
-        tree_rank: usize,
-        absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
-    ) -> FlowChildren {
-        match self {
-            NonReplacedIFC::Flow(bfc) => bfc.layout(
-                layout_context,
-                containing_block,
-                tree_rank,
-                absolutely_positioned_fragments,
-            ),
-        }
-    }
-}
+use style::properties::ComputedValues;
+use style::values::computed::{Length, LengthOrAuto};
+use style::Zero;
 
 struct ContainingBlock {
     inline_size: Length,
@@ -161,13 +80,4 @@ fn relative_adjustement(
         inline: adjust(box_offsets.inline_start, box_offsets.inline_end),
         block: adjust(box_offsets.block_start, box_offsets.block_end),
     }
-}
-
-// FIXME: use std::mem::take when it’s stable.
-// https://github.com/rust-lang/rust/issues/61129
-fn take<T>(x: &mut T) -> T
-where
-    T: Default,
-{
-    std::mem::replace(x, Default::default())
 }

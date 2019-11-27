@@ -4,7 +4,7 @@
 
 use crate::context::LayoutContext;
 use crate::flow::float::FloatBox;
-use crate::flow::FlowChildren;
+use crate::flow::FlowLayout;
 use crate::fragments::{
     AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment, TextFragment,
 };
@@ -12,7 +12,7 @@ use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{AbsolutelyPositionedBox, AbsolutelyPositionedFragment};
 use crate::replaced::ReplacedContent;
 use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside};
-use crate::{relative_adjustement, take, ContainingBlock};
+use crate::{relative_adjustement, ContainingBlock};
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
@@ -88,7 +88,7 @@ impl InlineFormattingContext {
         containing_block: &ContainingBlock,
         tree_rank: usize,
         absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
-    ) -> FlowChildren {
+    ) -> FlowLayout {
         let mut ifc = InlineFormattingContextState {
             containing_block,
             partial_inline_boxes_stack: Vec::new(),
@@ -118,7 +118,7 @@ impl InlineFormattingContext {
                     },
                     InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
                         let initial_start_corner =
-                            match Display::from(box_.style.get_box().original_display) {
+                            match Display::from(box_.contents.style.get_box().original_display) {
                                 Display::GeneratingBox(DisplayGeneratingBox::OutsideInside {
                                     outside,
                                     inside: _,
@@ -156,9 +156,9 @@ impl InlineFormattingContext {
             } else {
                 ifc.line_boxes
                     .finish_line(&mut ifc.current_nesting_level, containing_block);
-                return FlowChildren {
+                return FlowLayout {
                     fragments: ifc.line_boxes.boxes,
-                    block_size: ifc.line_boxes.next_line_block_position,
+                    content_block_size: ifc.line_boxes.next_line_block_position,
                     collapsible_margins_in_children: CollapsedBlockMargins::zero(),
                 };
             }
@@ -185,7 +185,7 @@ impl LinesBoxes {
         };
         self.next_line_block_position += size.block;
         self.boxes.push(Fragment::Anonymous(AnonymousFragment {
-            children: take(&mut top_nesting_level.fragments_so_far),
+            children: std::mem::take(&mut top_nesting_level.fragments_so_far),
             rect: Rect { start_corner, size },
             mode: containing_block.mode,
         }))
@@ -250,7 +250,7 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
     ) {
         let mut fragment = BoxFragment {
             style: self.style.clone(),
-            children: take(&mut nesting_level.fragments_so_far),
+            children: std::mem::take(&mut nesting_level.fragments_so_far),
             content_rect: Rect {
                 size: Vec2 {
                     inline: *inline_position - self.start_corner.inline,

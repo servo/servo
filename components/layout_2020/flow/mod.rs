@@ -7,15 +7,16 @@
 use crate::context::LayoutContext;
 use crate::flow::float::{FloatBox, FloatContext};
 use crate::flow::inline::InlineFormattingContext;
+use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout};
 use crate::fragments::{
     AnonymousFragment, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment,
 };
-use crate::geom::flow_relative::{Rect, Vec2};
+use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{
     adjust_static_positions, AbsolutelyPositionedBox, AbsolutelyPositionedFragment,
 };
 use crate::style_ext::{ComputedValuesExt, Position};
-use crate::{relative_adjustement, ContainingBlock, IndependentFormattingContext};
+use crate::{relative_adjustement, ContainingBlock};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
@@ -50,15 +51,12 @@ pub(crate) enum BlockLevelBox {
     },
     OutOfFlowAbsolutelyPositionedBox(AbsolutelyPositionedBox),
     OutOfFlowFloatBox(FloatBox),
-    Independent {
-        style: Arc<ComputedValues>,
-        contents: IndependentFormattingContext,
-    },
+    Independent(IndependentFormattingContext),
 }
 
-pub(super) struct FlowChildren {
+struct FlowLayout {
     pub fragments: Vec<Fragment>,
-    pub block_size: Length,
+    pub content_block_size: Length,
     pub collapsible_margins_in_children: CollapsedBlockMargins,
 }
 
@@ -72,7 +70,7 @@ impl BlockFormattingContext {
         containing_block: &ContainingBlock,
         tree_rank: usize,
         absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
-    ) -> FlowChildren {
+    ) -> IndependentLayout {
         let mut float_context;
         let float_context = if self.contains_floats {
             float_context = FloatContext::new();
@@ -80,7 +78,7 @@ impl BlockFormattingContext {
         } else {
             None
         };
-        let mut flow_children = self.contents.layout(
+        let flow_layout = self.contents.layout(
             layout_context,
             containing_block,
             tree_rank,
@@ -88,12 +86,16 @@ impl BlockFormattingContext {
             float_context,
             CollapsibleWithParentStartMargin(false),
         );
-        flow_children.block_size += flow_children.collapsible_margins_in_children.end.solve();
-        flow_children
-            .collapsible_margins_in_children
-            .collapsed_through = false;
-        flow_children.collapsible_margins_in_children.end = CollapsedMargin::zero();
-        flow_children
+        assert!(
+            !flow_layout
+                .collapsible_margins_in_children
+                .collapsed_through
+        );
+        IndependentLayout {
+            fragments: flow_layout.fragments,
+            content_block_size: flow_layout.content_block_size +
+                flow_layout.collapsible_margins_in_children.end.solve(),
+        }
     }
 }
 
@@ -106,7 +108,7 @@ impl BlockContainer {
         absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
         float_context: Option<&mut FloatContext>,
         collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
-    ) -> FlowChildren {
+    ) -> FlowLayout {
         match self {
             BlockContainer::BlockLevelBoxes(child_boxes) => layout_block_level_children(
                 layout_context,
@@ -135,7 +137,7 @@ fn layout_block_level_children<'a>(
     absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
     float_context: Option<&mut FloatContext>,
     collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
-) -> FlowChildren {
+) -> FlowLayout {
     fn place_block_level_fragment(fragment: &mut Fragment, placement_state: &mut PlacementState) {
         match fragment {
             Fragment::Box(fragment) => {
@@ -251,9 +253,9 @@ fn layout_block_level_children<'a>(
         tree_rank,
     );
 
-    FlowChildren {
+    FlowLayout {
         fragments,
-        block_size: placement_state.current_block_direction_position,
+        content_block_size: placement_state.current_block_direction_position,
         collapsible_margins_in_children: CollapsedBlockMargins {
             collapsed_through: placement_state
                 .next_in_flow_margin_collapses_with_parent_start_margin,
@@ -292,19 +294,29 @@ impl BlockLevelBox {
                     },
                 ))
             },
-            BlockLevelBox::Independent { style, contents } => match contents.as_replaced() {
+            BlockLevelBox::Independent(contents) => match contents.as_replaced() {
                 Ok(replaced) => {
                     // FIXME
                     match *replaced {}
                 },
-                Err(contents) => Fragment::Box(layout_in_flow_non_replaced_block_level(
+                Err(non_replaced) => Fragment::Box(layout_in_flow_non_replaced_block_level(
                     layout_context,
                     containing_block,
                     absolutely_positioned_fragments,
-                    style,
+                    &contents.style,
                     BlockLevelKind::EstablishesAnIndependentFormattingContext,
                     |containing_block, nested_abspos, _| {
-                        contents.layout(layout_context, containing_block, tree_rank, nested_abspos)
+                        let independent_layout = non_replaced.layout(
+                            layout_context,
+                            containing_block,
+                            tree_rank,
+                            nested_abspos,
+                        );
+                        FlowLayout {
+                            fragments: independent_layout.fragments,
+                            content_block_size: independent_layout.content_block_size,
+                            collapsible_margins_in_children: CollapsedBlockMargins::zero(),
+                        }
                     },
                 )),
             },
@@ -338,7 +350,7 @@ fn layout_in_flow_non_replaced_block_level<'a>(
         &ContainingBlock,
         &mut Vec<AbsolutelyPositionedFragment<'a>>,
         CollapsibleWithParentStartMargin,
-    ) -> FlowChildren,
+    ) -> FlowLayout,
 ) -> BoxFragment {
     let cbis = containing_block.inline_size;
     let padding = style.padding().percentages_relative_to(cbis);
@@ -397,7 +409,7 @@ fn layout_in_flow_non_replaced_block_level<'a>(
             LengthOrAuto::Auto,
         );
     let mut nested_abspos = vec![];
-    let mut flow_children = layout_contents(
+    let mut flow_layout = layout_contents(
         &containing_block_for_children,
         if style.get_box().position == Position::Relative {
             &mut nested_abspos
@@ -409,15 +421,15 @@ fn layout_in_flow_non_replaced_block_level<'a>(
     if this_start_margin_can_collapse_with_children.0 {
         block_margins_collapsed_with_children
             .start
-            .adjoin_assign(&flow_children.collapsible_margins_in_children.start);
-        if flow_children
+            .adjoin_assign(&flow_layout.collapsible_margins_in_children.start);
+        if flow_layout
             .collapsible_margins_in_children
             .collapsed_through
         {
             block_margins_collapsed_with_children
                 .start
                 .adjoin_assign(&std::mem::replace(
-                    &mut flow_children.collapsible_margins_in_children.end,
+                    &mut flow_layout.collapsible_margins_in_children.end,
                     CollapsedMargin::zero(),
                 ));
         }
@@ -425,18 +437,18 @@ fn layout_in_flow_non_replaced_block_level<'a>(
     if this_end_margin_can_collapse_with_children {
         block_margins_collapsed_with_children
             .end
-            .adjoin_assign(&flow_children.collapsible_margins_in_children.end);
+            .adjoin_assign(&flow_layout.collapsible_margins_in_children.end);
     } else {
-        flow_children.block_size += flow_children.collapsible_margins_in_children.end.solve();
+        flow_layout.content_block_size += flow_layout.collapsible_margins_in_children.end.solve();
     }
     block_margins_collapsed_with_children.collapsed_through =
         this_start_margin_can_collapse_with_children.0 &&
             this_end_margin_can_collapse_with_children &&
-            flow_children
+            flow_layout
                 .collapsible_margins_in_children
                 .collapsed_through;
     let relative_adjustement = relative_adjustement(style, inline_size, block_size);
-    let block_size = block_size.auto_is(|| flow_children.block_size);
+    let block_size = block_size.auto_is(|| flow_layout.content_block_size);
     let content_rect = Rect {
         start_corner: Vec2 {
             block: pb.block_start + relative_adjustement.block,
@@ -451,7 +463,7 @@ fn layout_in_flow_non_replaced_block_level<'a>(
         AbsolutelyPositionedFragment::in_positioned_containing_block(
             layout_context,
             &nested_abspos,
-            &mut flow_children.fragments,
+            &mut flow_layout.fragments,
             &content_rect.size,
             &padding,
             containing_block_for_children.mode,
@@ -459,7 +471,7 @@ fn layout_in_flow_non_replaced_block_level<'a>(
     }
     BoxFragment {
         style: style.clone(),
-        children: flow_children.fragments,
+        children: flow_layout.fragments,
         content_rect,
         padding,
         border,

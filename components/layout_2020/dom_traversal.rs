@@ -8,7 +8,7 @@ use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOuts
 use crate::wrapper::GetRawData;
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
-use servo_arc::Arc;
+use servo_arc::Arc as ServoArc;
 use std::convert::TryInto;
 use std::marker::PhantomData as marker;
 use style::context::SharedStyleContext;
@@ -30,7 +30,7 @@ pub(super) enum Contents<Node> {
     /// <https://drafts.csswg.org/css2/conform.html#replaced-element>
     Replaced(ReplacedContent),
 
-    /// Content of a `::before` or `::after` pseudo-element this is being generated.
+    /// Content of a `::before` or `::after` pseudo-element that is being generated.
     /// <https://drafts.csswg.org/css2/generate.html#content>
     OfPseudoElement(Vec<PseudoElementContentItem>),
 }
@@ -49,12 +49,12 @@ pub(super) trait TraversalHandler<'dom, Node>
 where
     Node: 'dom,
 {
-    fn handle_text(&mut self, text: String, parent_style: &Arc<ComputedValues>);
+    fn handle_text(&mut self, text: String, parent_style: &ServoArc<ComputedValues>);
 
     /// Or pseudo-element
     fn handle_element(
         &mut self,
-        style: &Arc<ComputedValues>,
+        style: &ServoArc<ComputedValues>,
         display: DisplayGeneratingBox,
         contents: Contents<Node>,
         box_slot: BoxSlot<'dom>,
@@ -144,7 +144,7 @@ fn traverse_pseudo_element<'dom, Node>(
 }
 
 fn traverse_pseudo_element_contents<'dom, Node>(
-    pseudo_element_style: &Arc<ComputedValues>,
+    pseudo_element_style: &ServoArc<ComputedValues>,
     context: &SharedStyleContext,
     handler: &mut impl TraversalHandler<'dom, Node>,
     items: Vec<PseudoElementContentItem>,
@@ -213,7 +213,7 @@ where
 {
     pub(crate) fn traverse(
         self,
-        inherited_style: &Arc<ComputedValues>,
+        inherited_style: &ServoArc<ComputedValues>,
         context: &SharedStyleContext,
         handler: &mut impl TraversalHandler<'dom, Node>,
     ) {
@@ -230,7 +230,7 @@ fn pseudo_element_style<'dom, Node>(
     _which: WhichPseudoElement,
     _element: Node,
     _context: &SharedStyleContext,
-) -> Option<Arc<ComputedValues>>
+) -> Option<ServoArc<ComputedValues>>
 where
     Node: NodeExt<'dom>,
 {
@@ -253,12 +253,12 @@ where
 }
 
 pub struct BoxSlot<'dom> {
-    slot: Option<Arc<AtomicRefCell<Option<LayoutBox>>>>,
+    slot: Option<ServoArc<AtomicRefCell<Option<LayoutBox>>>>,
     marker: marker<&'dom ()>,
 }
 
 impl BoxSlot<'_> {
-    pub(crate) fn new(slot: Arc<AtomicRefCell<Option<LayoutBox>>>) -> Self {
+    pub(crate) fn new(slot: ServoArc<AtomicRefCell<Option<LayoutBox>>>) -> Self {
         *slot.borrow_mut() = None;
         let slot = Some(slot);
         Self { slot, marker }
@@ -284,13 +284,13 @@ impl Drop for BoxSlot<'_> {
     }
 }
 
-pub trait NodeExt<'dom>: 'dom + Copy + LayoutNode + Send + Sync {
+pub(crate) trait NodeExt<'dom>: 'dom + Copy + LayoutNode + Send + Sync {
     fn is_element(self) -> bool;
     fn as_text(self) -> Option<String>;
     fn first_child(self) -> Option<Self>;
     fn next_sibling(self) -> Option<Self>;
     fn parent_node(self) -> Option<Self>;
-    fn style(self, context: &SharedStyleContext) -> Arc<ComputedValues>;
+    fn style(self, context: &SharedStyleContext) -> ServoArc<ComputedValues>;
 
     fn layout_data_mut(&self) -> AtomicRefMut<LayoutDataForElement>;
     fn element_box_slot(&self) -> BoxSlot<'dom>;
@@ -327,7 +327,7 @@ where
         TNode::parent_node(&self)
     }
 
-    fn style(self, context: &SharedStyleContext) -> Arc<ComputedValues> {
+    fn style(self, context: &SharedStyleContext) -> ServoArc<ComputedValues> {
         self.to_threadsafe().style(context)
     }
 

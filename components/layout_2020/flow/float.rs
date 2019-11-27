@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::IndependentFormattingContext;
+use crate::formatting_contexts::IndependentFormattingContext;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 
 #[derive(Debug)]
 pub(crate) struct FloatBox {
-    pub style: Arc<ComputedValues>,
     pub contents: IndependentFormattingContext,
 }
 
