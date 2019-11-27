@@ -1260,12 +1260,12 @@ impl LonghandId {
             LonghandId::Stroke |
             LonghandId::CaretColor |
             % endif
-            % if engine in ["gecko", "servo-2013"]:
             LonghandId::BackgroundColor |
             LonghandId::BorderTopColor |
             LonghandId::BorderRightColor |
             LonghandId::BorderBottomColor |
             LonghandId::BorderLeftColor |
+            % if engine in ["gecko", "servo-2013"]:
             LonghandId::OutlineColor |
             % endif
             LonghandId::Color
@@ -1315,14 +1315,12 @@ impl LonghandId {
             LonghandId::MozScriptLevel |
             % endif
 
-            % if engine in ["gecko", "servo-2013"]:
             // Needed to compute the first available font, in order to
             // compute font-relative units correctly.
             LonghandId::FontSize |
             LonghandId::FontWeight |
             LonghandId::FontStretch |
             LonghandId::FontStyle |
-            % endif
             LonghandId::FontFamily |
 
             // Needed to properly compute the writing mode, to resolve logical
