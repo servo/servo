@@ -659,10 +659,16 @@ install them, let us know by filing a bug!")
             env["OPENSSL_LIB_DIR"] = path.join(openssl_base_dir, "lib")
             env["OPENSSL_LIBS"] = "libssl:libcrypto"
             # Link moztools, used for building SpiderMonkey
-            env["MOZTOOLS_PATH"] = os.pathsep.join([
+            moztools_paths = [
                 path.join(self.msvc_package_dir("moztools"), "bin"),
                 path.join(self.msvc_package_dir("moztools"), "msys", "bin"),
-            ])
+            ]
+            # In certain cases we need to ensure that tools with conflicting MSYS versions
+            # can be placed in the PATH ahead of the moztools directories.
+            moztools_path_prepend = env.get("MOZTOOLS_PATH_PREPEND", None)
+            if moztools_path_prepend:
+                moztools_paths.insert(0, moztools_path_prepend)
+            env["MOZTOOLS_PATH"] = os.pathsep.join(moztools_paths)
             # Link autoconf 2.13, used for building SpiderMonkey
             env["AUTOCONF"] = path.join(self.msvc_package_dir("moztools"), "msys", "local", "bin", "autoconf-2.13")
             # Link LLVM
