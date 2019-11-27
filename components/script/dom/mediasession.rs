@@ -9,10 +9,13 @@ use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaE
 use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding::MediaMetadataInit;
 use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding::MediaMetadataMethods;
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding;
+use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaPositionState;
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionAction;
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionActionHandler;
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionMethods;
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionPlaybackState;
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
@@ -193,6 +196,62 @@ impl MediaSessionMethods for MediaSession {
                 .insert(action.into(), handler.clone()),
             None => self.action_handlers.borrow_mut().remove(&action.into()),
         };
+    }
+
+    /// https://w3c.github.io/mediasession/#dom-mediasession-setpositionstate
+    fn SetPositionState(&self, state: &MediaPositionState) -> Fallible<()> {
+        // If the state is an empty dictionary then clear the position state.
+        if state.duration.is_none() && state.position.is_none() && state.playbackRate.is_none() {
+            if let Some(media_instance) = self.media_instance.get() {
+                media_instance.reset();
+            }
+            return Ok(());
+        }
+
+        // If the duration is not present or its value is null, throw a TypeError.
+        if state.duration.is_none() {
+            return Err(Error::Type(
+                "duration is not present or its value is null".to_owned(),
+            ));
+        }
+
+        // If the duration is negative, throw a TypeError.
+        if let Some(state_duration) = state.duration {
+            if *state_duration < 0.0 {
+                return Err(Error::Type("duration is negative".to_owned()));
+            }
+        }
+
+        // If the position is negative or greater than duration, throw a TypeError.
+        if let Some(state_position) = state.position {
+            if *state_position < 0.0 {
+                return Err(Error::Type("position is negative".to_owned()));
+            }
+            if let Some(state_duration) = state.duration {
+                if *state_position > *state_duration {
+                    return Err(Error::Type("position is greater than duration".to_owned()));
+                }
+            }
+        }
+
+        // If the playbackRate is zero throw a TypeError.
+        if let Some(state_playback_rate) = state.playbackRate {
+            if *state_playback_rate <= 0.0 {
+                return Err(Error::Type("playbackRate is zero".to_owned()));
+            }
+        }
+
+        // Update the position state and last position updated time.
+        if let Some(media_instance) = self.media_instance.get() {
+            media_instance.set_duration(state.duration.map(|v| *v).unwrap());
+            // If the playbackRate is not present or its value is null, set it to 1.0.
+            let _ =
+                media_instance.SetPlaybackRate(state.playbackRate.unwrap_or(Finite::wrap(1.0)))?;
+            // If the position is not present or its value is null, set it to zero.
+            media_instance.SetCurrentTime(state.position.unwrap_or(Finite::wrap(0.0)));
+        }
+
+        Ok(())
     }
 }
 

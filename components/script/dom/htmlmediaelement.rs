@@ -1925,6 +1925,18 @@ impl HTMLMediaElement {
 
         media_session.send_event(event);
     }
+
+    pub fn set_duration(&self, duration: f64) {
+        self.duration.set(duration);
+    }
+
+    pub fn reset(&self) {
+        if let Some(ref player) = *self.player.borrow() {
+            if let Err(e) = player.lock().unwrap().stop() {
+                eprintln!("Could not stop player {:?}", e);
+            }
+        }
+    }
 }
 
 // XXX Placeholder for [https://github.com/servo/servo/issues/22293]
