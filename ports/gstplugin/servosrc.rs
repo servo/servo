@@ -16,11 +16,17 @@ use glib::glib_bool_error;
 use glib::glib_object_impl;
 use glib::glib_object_subclass;
 use glib::object::Cast;
+use glib::object::Object;
+use glib::subclass::object::ObjectClassSubclassExt;
 use glib::subclass::object::ObjectImpl;
 use glib::subclass::object::ObjectImplExt;
+use glib::subclass::object::Property;
 use glib::subclass::simple::ClassStruct;
 use glib::subclass::types::ObjectSubclass;
+use glib::value::Value;
+use glib::ParamSpec;
 use gstreamer::gst_element_error;
+use gstreamer::gst_error_msg;
 use gstreamer::gst_loggable_error;
 use gstreamer::subclass::element::ElementClassSubclassExt;
 use gstreamer::subclass::element::ElementImpl;
@@ -39,6 +45,7 @@ use gstreamer::LoggableError;
 use gstreamer::PadDirection;
 use gstreamer::PadPresence;
 use gstreamer::PadTemplate;
+use gstreamer::ResourceError;
 use gstreamer_base::subclass::base_src::BaseSrcImpl;
 use gstreamer_base::BaseSrc;
 use gstreamer_base::BaseSrcExt;
@@ -81,6 +88,7 @@ use std::thread;
 pub struct ServoSrc {
     sender: Sender<ServoSrcMsg>,
     swap_chain: SwapChain,
+    url: Mutex<Option<String>>,
     info: Mutex<Option<VideoInfo>>,
 }
 
@@ -175,10 +183,11 @@ thread_local! {
 
 #[derive(Debug)]
 enum ServoSrcMsg {
+    Start(ServoUrl),
     GetSwapChain(Sender<SwapChain>),
     Resize(Size2D<i32, DevicePixel>),
     Heartbeat,
-    Quit,
+    Stop,
 }
 
 const DEFAULT_URL: &'static str =
@@ -204,24 +213,23 @@ impl ServoThread {
     }
 
     fn run(&mut self) {
-        self.new_browser();
         while let Ok(msg) = self.receiver.recv() {
             debug!("Servo thread handling message {:?}", msg);
             match msg {
+                ServoSrcMsg::Start(url) => self.new_browser(url),
                 ServoSrcMsg::GetSwapChain(sender) => sender
                     .send(self.swap_chain.clone())
                     .expect("Failed to send swap chain"),
                 ServoSrcMsg::Resize(size) => self.resize(size),
                 ServoSrcMsg::Heartbeat => self.servo.handle_events(vec![]),
-                ServoSrcMsg::Quit => break,
+                ServoSrcMsg::Stop => break,
             }
         }
         self.servo.handle_events(vec![WindowEvent::Quit]);
     }
 
-    fn new_browser(&mut self) {
+    fn new_browser(&mut self, url: ServoUrl) {
         let id = TopLevelBrowsingContextId::new();
-        let url = ServoUrl::parse(DEFAULT_URL).unwrap();
         self.servo
             .handle_events(vec![WindowEvent::NewBrowser(url, id)]);
     }
@@ -414,6 +422,16 @@ impl WindowMethods for ServoSrcWindow {
     }
 }
 
+static PROPERTIES: [Property; 1] = [Property("url", |name| {
+    ParamSpec::string(
+        name,
+        "URL",
+        "Initial URL",
+        Some(DEFAULT_URL),
+        glib::ParamFlags::READWRITE,
+    )
+})];
+
 impl ObjectSubclass for ServoSrc {
     const NAME: &'static str = "ServoSrc";
     // gstreamer-gl doesn't have support for GLBaseSrc yet
@@ -429,10 +447,12 @@ impl ObjectSubclass for ServoSrc {
         let _ = sender.send(ServoSrcMsg::GetSwapChain(acks));
         let swap_chain = ackr.recv().expect("Failed to get swap chain");
         let info = Mutex::new(None);
+        let url = Mutex::new(None);
         Self {
             sender,
             swap_chain,
             info,
+            url,
         }
     }
 
@@ -462,6 +482,7 @@ impl ObjectSubclass for ServoSrc {
         let src_pad_template =
             PadTemplate::new("src", PadDirection::Src, PadPresence::Always, &src_caps).unwrap();
         klass.add_pad_template(src_pad_template);
+        klass.install_properties(&PROPERTIES);
     }
 
     glib_object_subclass!();
@@ -476,6 +497,29 @@ impl ObjectImpl for ServoSrc {
         basesrc.set_live(true);
         basesrc.set_format(Format::Time);
         basesrc.set_do_timestamp(true);
+    }
+
+    fn set_property(&self, _obj: &Object, id: usize, value: &Value) {
+        let prop = &PROPERTIES[id];
+        match *prop {
+            Property("url", ..) => {
+                let mut guard = self.url.lock().expect("Failed to lock mutex");
+                let url = value.get().expect("Failed to get url value");
+                *guard = Some(url);
+            },
+            _ => unimplemented!(),
+        }
+    }
+
+    fn get_property(&self, _obj: &Object, id: usize) -> Result<Value, ()> {
+        let prop = &PROPERTIES[id];
+        match *prop {
+            Property("url", ..) => {
+                let guard = self.url.lock().expect("Failed to lock mutex");
+                Ok(Value::from(guard.as_ref()))
+            },
+            _ => unimplemented!(),
+        }
     }
 }
 
@@ -495,12 +539,20 @@ impl BaseSrcImpl for ServoSrc {
 
     fn start(&self, _src: &BaseSrc) -> Result<(), ErrorMessage> {
         info!("Starting");
+        let guard = self
+            .url
+            .lock()
+            .map_err(|_| gst_error_msg!(ResourceError::Settings, ["Failed to lock mutex"]))?;
+        let url = guard.as_ref().map(|s| &**s).unwrap_or(DEFAULT_URL);
+        let url = ServoUrl::parse(url)
+            .map_err(|_| gst_error_msg!(ResourceError::Settings, ["Failed to parse url"]))?;
+        let _ = self.sender.send(ServoSrcMsg::Start(url));
         Ok(())
     }
 
     fn stop(&self, _src: &BaseSrc) -> Result<(), ErrorMessage> {
         info!("Stopping");
-        let _ = self.sender.send(ServoSrcMsg::Quit);
+        let _ = self.sender.send(ServoSrcMsg::Stop);
         Ok(())
     }
 
