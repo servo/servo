@@ -31,7 +31,6 @@ use servo::servo_config::pref;
 use std::env;
 use std::panic;
 use std::process;
-use std::sync::atomic;
 use std::thread;
 
 pub mod platform {
@@ -55,12 +54,16 @@ fn install_crash_handler() {
     use std::thread;
 
     extern "C" fn handler(sig: i32) {
-        print!("Stack trace");
-        if let Some(name) = thread::current().name() {
-            print!(" for thread \"{}\"", name);
+        use std::sync::atomic;
+        static BEEN_HERE_BEFORE: atomic::AtomicBool = atomic::AtomicBool::new(false);
+        if !BEEN_HERE_BEFORE.swap(true, atomic::Ordering::SeqCst) {
+            print!("Stack trace");
+            if let Some(name) = thread::current().name() {
+                print!(" for thread \"{}\"", name);
+            }
+            println!();
+            backtrace::print();
         }
-        println!();
-        backtrace::print();
         unsafe {
             _exit(sig);
         }
