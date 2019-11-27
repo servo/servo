@@ -50,6 +50,7 @@ def tasks(task_for):
             android_arm32_release,
             android_x86_wpt,
             linux_wpt,
+            linux_wpt_layout_2020,
             linux_release,
             macos_wpt,
         ]
@@ -72,6 +73,7 @@ def tasks(task_for):
             "try-magicleap": [magicleap_dev],
             "try-arm": [windows_arm64],
             "try-wpt": [linux_wpt],
+            "try-wpt-2020": [linux_wpt_layout_2020],
             "try-wpt-mac": [macos_wpt],
             "try-wpt-android": [android_x86_wpt],
             "try-android": [
@@ -642,11 +644,14 @@ def macos_wpt():
 
 
 def linux_wpt():
-    linux_wpt_one_config(total_chunks=4, layout_2020=False)
-    linux_wpt_one_config(total_chunks=1, layout_2020=True)
+    linux_wpt_common(total_chunks=4, layout_2020=False)
 
 
-def linux_wpt_one_config(total_chunks, layout_2020):
+def linux_wpt_layout_2020():
+    linux_wpt_common(total_chunks=1, layout_2020=True)
+
+
+def linux_wpt_common(total_chunks, layout_2020):
     if layout_2020:
         name_prefix = "Layout 2020 "
         build_args = "--with-layout-2020"
