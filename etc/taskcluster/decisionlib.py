@@ -533,8 +533,8 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         .with_path_from_homedir("git\\cmd") \
         .with_directory_mount(
             "https://github.com/git-for-windows/git/releases/download/" +
-                "v2.19.0.windows.1/MinGit-2.19.0-64-bit.zip",
-            sha256="424d24b5fc185a9c5488d7872262464f2facab4f1d4693ea8008196f14a3c19b",
+                "v2.24.0.windows.2/MinGit-2.24.0.2-64-bit.zip",
+            sha256="c33aec6ae68989103653ca9fb64f12cabccf6c61d0dde30c50da47fc15cf66e2",
             path="git",
         )
 
