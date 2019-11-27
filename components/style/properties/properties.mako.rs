@@ -1813,8 +1813,8 @@ pub enum CountedUnknownProperty {
 }
 
 impl CountedUnknownProperty {
-    /// Parse the counted unknown property.
-    pub fn parse_for_test(property_name: &str) -> Option<Self> {
+    /// Parse the counted unknown property, for testing purposes only.
+    pub fn parse_for_testing(property_name: &str) -> Option<Self> {
         ascii_case_insensitive_phf_map! {
             unknown_id -> CountedUnknownProperty = {
                 % for property in data.counted_unknown_properties:
@@ -1826,6 +1826,7 @@ impl CountedUnknownProperty {
     }
 
     /// Returns the underlying index, used for use counter.
+    #[inline]
     pub fn bit(self) -> usize {
         self as usize
     }
@@ -1842,9 +1843,16 @@ impl PropertyId {
         })
     }
 
-    /// Returns a given property from the string `s`.
+    /// Returns a given property from the given name, _regardless of whether it
+    /// is enabled or not_, or Err(()) for unknown properties.
     ///
-    /// Returns Err(()) for unknown properties.
+    /// Do not use for non-testing purposes.
+    pub fn parse_unchecked_for_testing(name: &str) -> Result<Self, ()> {
+        Self::parse_unchecked(name, None)
+    }
+
+    /// Returns a given property from the given name, _regardless of whether it
+    /// is enabled or not_, or Err(()) for unknown properties.
     fn parse_unchecked(
         property_name: &str,
         use_counters: Option< &UseCounters>,
