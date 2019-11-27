@@ -25,47 +25,52 @@ struct Print {
 
 impl fmt::Debug for Print {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        let mut print_fn_frame = 0;
-        let mut frame_count = 0;
-        backtrace::trace(|frame| {
-            let found = frame.symbol_address() as usize == self.print_fn_address;
-            if found {
-                print_fn_frame = frame_count;
-            }
-            frame_count += 1;
-            !found
-        });
-
-        let mode = PrintFmt::Short;
-        let mut p = print_path;
-        let mut f = backtrace::BacktraceFmt::new(fmt, mode, &mut p);
-        f.add_context()?;
-        let mut result = Ok(());
-        let mut frame_count = 0;
-        backtrace::trace(|frame| {
-            let skip = frame_count < print_fn_frame;
-            frame_count += 1;
-            if skip {
-                return true
-            }
-
-            let mut frame_fmt = f.frame();
-            let mut any_symbol = false;
-            backtrace::resolve_frame(frame, |symbol| {
-                any_symbol = true;
-                if let Err(e) = frame_fmt.symbol(frame, symbol) {
-                    result = Err(e)
+        // Safety: we’re in a signal handler that is about to call `libc::_exit`.
+        // Potential data races from using `*_unsynchronized` functions are perhaps
+        // less bad than potential deadlocks?
+        unsafe {
+            let mut print_fn_frame = 0;
+            let mut frame_count = 0;
+            backtrace::trace_unsynchronized(|frame| {
+                let found = frame.symbol_address() as usize == self.print_fn_address;
+                if found {
+                    print_fn_frame = frame_count;
                 }
+                frame_count += 1;
+                !found
             });
-            if !any_symbol {
-                if let Err(e) = frame_fmt.print_raw(frame.ip(), None, None, None) {
-                    result = Err(e)
+
+            let mode = PrintFmt::Short;
+            let mut p = print_path;
+            let mut f = backtrace::BacktraceFmt::new(fmt, mode, &mut p);
+            f.add_context()?;
+            let mut result = Ok(());
+            let mut frame_count = 0;
+            backtrace::trace_unsynchronized(|frame| {
+                let skip = frame_count < print_fn_frame;
+                frame_count += 1;
+                if skip {
+                    return true
                 }
-            }
-            result.is_ok()
-        });
-        result?;
-        f.finish()
+
+                let mut frame_fmt = f.frame();
+                let mut any_symbol = false;
+                backtrace::resolve_frame_unsynchronized(frame, |symbol| {
+                    any_symbol = true;
+                    if let Err(e) = frame_fmt.symbol(frame, symbol) {
+                        result = Err(e)
+                    }
+                });
+                if !any_symbol {
+                    if let Err(e) = frame_fmt.print_raw(frame.ip(), None, None, None) {
+                        result = Err(e)
+                    }
+                }
+                result.is_ok()
+            });
+            result?;
+            f.finish()
+        }
     }
 }
 
