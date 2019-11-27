@@ -648,7 +648,7 @@ impl HostTrait for HostCallbacks {
     }
 
     fn on_load_started(&self) {
-        debug!("on_load_ended");
+        debug!("on_load_started");
         (self.0.on_load_started)();
     }
 
