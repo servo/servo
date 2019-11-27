@@ -67,7 +67,7 @@ use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource as EmbedderResource};
-use embedder_traits::{MediaSessionEvent, MediaSessionPlaybackState};
+use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
 use euclid::default::Size2D;
 use headers::{ContentLength, ContentRange, HeaderMapExt};
 use html5ever::{LocalName, Prefix};
@@ -1780,6 +1780,15 @@ impl HTMLMediaElement {
                     .add(self.playback_position.get(), position);
                 self.playback_position.set(position);
                 self.time_marches_on();
+                let media_position_state =
+                    MediaPositionState::new(self.duration.get(), self.playbackRate.get(), position);
+                debug!(
+                    "Sending media session event set position state {:?}",
+                    media_position_state
+                );
+                self.send_media_session_event(MediaSessionEvent::SetPositionState(
+                    media_position_state,
+                ));
             },
             PlayerEvent::SeekData(p, ref seek_lock) => {
                 self.fetch_request(Some(p), Some(seek_lock.clone()));

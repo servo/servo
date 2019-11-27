@@ -240,6 +240,24 @@ pub enum MediaSessionPlaybackState {
     Paused,
 }
 
+/// https://w3c.github.io/mediasession/#dictdef-mediapositionstate
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MediaPositionState {
+    pub duration: Option<f64>,
+    pub playback_rate: Option<f64>,
+    pub position: Option<f64>,
+}
+
+impl MediaPositionState {
+    pub fn new(duration: f64, playback_rate: f64, position: f64) -> Self {
+        Self {
+            duration,
+            playback_rate,
+            position,
+        }
+    }
+}
+
 /// Type of events sent from script to the embedder about the media session.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum MediaSessionEvent {
@@ -247,4 +265,6 @@ pub enum MediaSessionEvent {
     SetMetadata(MediaMetadata),
     /// Indicates that the playback state has changed.
     PlaybackStateChange(MediaSessionPlaybackState),
+    /// Indicates that the position state is set.
+    SetPositionState(MediaPositionState),
 }
