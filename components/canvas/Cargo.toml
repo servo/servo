@@ -41,3 +41,4 @@ webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
 rand = "0.7.2"
 pathfinder_gl = {git = "https://github.com/servo/pathfinder"}
 pathfinder_renderer = {git = "https://github.com/servo/pathfinder"}
+pathfinder_gpu = {git = "https://github.com/servo/pathfinder"}

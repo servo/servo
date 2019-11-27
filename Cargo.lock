@@ -454,6 +454,7 @@ dependencies = [
  "num-traits",
  "offscreen_gl_context",
  "pathfinder_gl",
+ "pathfinder_gpu 0.1.0 (git+https://github.com/servo/pathfinder)",
  "pathfinder_renderer 0.1.0 (git+https://github.com/servo/pathfinder)",
  "pixels",
  "rand 0.7.2",

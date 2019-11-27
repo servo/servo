@@ -13,6 +13,9 @@
             display: block;
         }
     </style>
+    <script>
+        setInterval(() => { document.querySelector('svg').appendChild(document.createElement('rect')); console.log(document.querySelector('svg').outerHTML); }, 1000);
+    </script>
 </head>
 <body>
 <!--<p>The test passes if there is a green square and no red.</p>-->

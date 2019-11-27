@@ -11,7 +11,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use crate::dom::node::{Node, window_from_node};
+use crate::dom::node::{Node, window_from_node, document_from_node};
 use crate::dom::svggraphicselement::SVGGraphicsElement;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -30,6 +30,7 @@ use crate::dom::webglrenderingcontext::capture_webgl_backtrace;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementBinding::ElementMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::node::ChildrenMutation;
+use crate::dom::node::NodeDamage;
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
@@ -144,12 +145,6 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
                     if let Err(msg) = resize_receiver.recv().unwrap(){
                         panic!("PANIC: Error resizing rendering context for SVG: {}", msg);
                     }
-                    match html_string_option {
-                        Some(svg_string) => {
-                            webgl_sender.send_rebuild_svg(svg_string.parse().unwrap()).unwrap();
-                        },
-                        _ => {},
-                    }
 
                     SVGSVGData{
                         width,
@@ -199,6 +194,7 @@ impl VirtualMethods for SVGSVGElement {
                 *self.html_string.borrow_mut() = Some(svg_string);
                 if let Some(webgl_sender) = webgl_sender {
                     webgl_sender.send_rebuild_svg(cloned_svg_string).unwrap();
+                    document_from_node(self).add_dirty_canvas(self.webgl_sender.as_ref().context_id());
                 }
             },
             _ => {}

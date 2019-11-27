@@ -24,6 +24,9 @@ use std::thread;
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 use rand::prelude::*;
 use pathfinder_gl::{GLDevice, GLVersion};
+use pathfinder_renderer::gpu::resources::FilesystemResourceLoader;
+use pathfinder_renderer::gpu::resources::ResourceLoader;
+use pathfinder_renderer::gpu::options::{DestFramebuffer, RendererOptions};
 
 /// WebGL Threading API entry point that lives in the constellation.
 /// It allows to get a WebGLThread handle for each script pipeline.
@@ -290,6 +293,13 @@ impl WebGLThread {
                         if is_pathfinder_context {
                             let framebuffer = data.ctx.framebuffer();
                             let gl_device = GLDevice::new(GLVersion::GLES3,framebuffer);
+                            let resource_loader = FilesystemResourceLoader::locate();
+                            let renderer = Renderer::new(gl_device, resource_loader, DestFramebuffer::Other(framebuffer), RendererOptions { background_color: Some(ColorF::white())});
+                            let pathfinder_context = PathfinderContext{
+                                renderer,
+                                gl_device
+                            };
+                            self.pathfinder_contexts.insert(id, pathfinder_context);
                         }
 
                         WebGLCreateContextResult {
@@ -660,8 +670,7 @@ impl WebGLThread {
             let r: f32 = rng.gen();
             let b: f32 = rng.gen();
             let g: f32 = rng.gen();
-            data.ctx.gl().bind_framebuffer(gl::FRAMEBUFFER, data.ctx.framebuffer());
-            data.ctx.gl().clear_color(r, g, b, 0 as f32);
+            data.ctx.gl().clear_color(r, g, b, 1.0 as f32);
             data.ctx.gl().clear(gl::COLOR_BUFFER_BIT);
         }
     }
