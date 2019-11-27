@@ -105,6 +105,7 @@ use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
+use script::JSEngineSetup;
 use script_traits::{
     ConstellationMsg, SWManagerSenders, ScriptToConstellationChan, WindowSizeData,
 };
@@ -271,6 +272,10 @@ pub struct Servo<Window: WindowMethods + 'static + ?Sized> {
     embedder_receiver: EmbedderReceiver,
     embedder_events: Vec<(Option<BrowserId>, EmbedderMsg)>,
     profiler_enabled: bool,
+    /// For single-process Servo instances, this field controls the initialization
+    /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
+    /// own instance that exists in the content process instead.
+    _js_engine_setup: Option<JSEngineSetup>,
 }
 
 #[derive(Clone)]
@@ -415,7 +420,11 @@ where
 
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
-        script::init();
+        let js_engine_setup = if !opts.multiprocess {
+            Some(script::init())
+        } else {
+            None
+        };
 
         if pref!(dom.webxr.enabled) && pref!(dom.webvr.enabled) {
             panic!("We don't currently support running both WebVR and WebXR");
@@ -556,6 +565,7 @@ where
             embedder_receiver: embedder_receiver,
             embedder_events: Vec::new(),
             profiler_enabled: false,
+            _js_engine_setup: js_engine_setup,
         }
     }
 
@@ -980,7 +990,7 @@ pub fn run_content_process(token: String) {
 
     // send the required channels to the service worker manager
     let sw_senders = unprivileged_content.swmanager_senders();
-    script::init();
+    let _js_engine_setup = script::init();
     script::init_service_workers(sw_senders);
 
     media_platform::init();

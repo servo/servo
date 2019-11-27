@@ -4,6 +4,7 @@
 
 use crate::dom::bindings::codegen::RegisterBindings;
 use crate::dom::bindings::proxyhandler;
+use crate::script_runtime::JSEngineSetup;
 use crate::serviceworker_manager::ServiceWorkerManager;
 use script_traits::SWManagerSenders;
 
@@ -56,7 +57,7 @@ pub fn init_service_workers(sw_senders: SWManagerSenders) {
 }
 
 #[allow(unsafe_code)]
-pub fn init() {
+pub fn init() -> JSEngineSetup {
     unsafe {
         proxyhandler::init();
 
@@ -66,4 +67,6 @@ pub fn init() {
     }
 
     perform_platform_specific_initialization();
+
+    JSEngineSetup::new()
 }

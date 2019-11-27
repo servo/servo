@@ -113,6 +113,7 @@ mod unpremultiplytable;
 mod webdriver_handlers;
 
 pub use init::{init, init_service_workers};
+pub use script_runtime::JSEngineSetup;
 
 /// A module with everything layout can use from script.
 ///
