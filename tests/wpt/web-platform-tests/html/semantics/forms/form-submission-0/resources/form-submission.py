@@ -6,5 +6,7 @@ def main(request, response):
     else:
         result = request.POST.first('foo') == 'bar'
 
+    result = result and request.url_parts.query == 'query=1'
+
     return ([("Content-Type", "text/plain")],
             "OK" if result else "FAIL")

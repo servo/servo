@@ -2,6 +2,7 @@
 <title>Tests passing of data along with portal activation</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/open-blank-host.js"></script>
 <body>
 <canvas id="canvas"></canvas>
 <script>
@@ -12,7 +13,7 @@ function nextMessage(target) {
 }
 
 async function openPortalAndActivate(logic, activateOptions) {
-  const w = window.open();
+  const w = await openBlankPortalHost();
   try {
     const portal = w.document.createElement('portal');
     portal.src = new URL('resources/portal-activate-data-portal.html?logic=' + encodeURIComponent(logic), location.href);

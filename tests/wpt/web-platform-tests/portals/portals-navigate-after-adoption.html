@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/open-blank-host.js"></script>
 <script>
 function nextMessage(target) {
   return new Promise((resolve, reject) => {
@@ -10,7 +11,7 @@ function nextMessage(target) {
 
 async function openPortalAndActivate(logic) {
   let {port1, port2} = new MessageChannel();
-  const w = window.open();
+  const w = await openBlankPortalHost();
   try {
     const portal = w.document.createElement('portal');
     portal.src = new URL('resources/eval-portal.html?logic=' + encodeURIComponent(logic), location.href);

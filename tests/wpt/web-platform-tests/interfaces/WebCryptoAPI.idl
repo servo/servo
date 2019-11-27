@@ -4,7 +4,7 @@
 // Source: Web Cryptography API (https://w3c.github.io/webcrypto/Overview.html)
 
 partial interface mixin WindowOrWorkerGlobalScope {
-  readonly attribute Crypto crypto;
+  [SameObject] readonly attribute Crypto crypto;
 };
 
 [Exposed=(Window,Worker)]
@@ -160,7 +160,7 @@ dictionary RsaHashedImportParams : Algorithm {
 
 dictionary RsaPssParams : Algorithm {
   // The desired length of the random salt
-  [EnforceRange] required unsigned long saltLength;
+  required [EnforceRange] unsigned long saltLength;
 };
 
 dictionary RsaOaepParams : Algorithm {
@@ -206,7 +206,7 @@ dictionary AesCtrParams : Algorithm {
   required BufferSource counter;
   // The length, in bits, of the rightmost part of the counter block
   // that is incremented.
-  [EnforceRange] required octet length;
+  required [EnforceRange] octet length;
 };
 
 dictionary AesKeyAlgorithm : KeyAlgorithm {
@@ -216,12 +216,12 @@ dictionary AesKeyAlgorithm : KeyAlgorithm {
 
 dictionary AesKeyGenParams : Algorithm {
   // The length, in bits, of the key.
-  [EnforceRange] required unsigned short length;
+  required [EnforceRange] unsigned short length;
 };
 
 dictionary AesDerivedKeyParams : Algorithm {
   // The length, in bits, of the key.
-  [EnforceRange] required unsigned short length;
+  required [EnforceRange] unsigned short length;
 };
 
 dictionary AesCbcParams : Algorithm {
@@ -272,6 +272,6 @@ dictionary HkdfParams : Algorithm {
 
 dictionary Pbkdf2Params : Algorithm {
   required BufferSource salt;
-  [EnforceRange] required unsigned long iterations;
+  required [EnforceRange] unsigned long iterations;
   required HashAlgorithmIdentifier hash;
 };

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/open-blank-host.js"></script>
 <script>
 function nextMessage(target) {
   return new Promise((resolve, reject) => {
@@ -9,7 +10,7 @@ function nextMessage(target) {
 }
 
 promise_test(async () => {
-  const w = window.open();
+  const w = await openBlankPortalHost();
   try {
     const portal = w.document.createElement('portal');
     portal.src = new URL('resources/simple-portal-adopts-predecessor.html', location.href);

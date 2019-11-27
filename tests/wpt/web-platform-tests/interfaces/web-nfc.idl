@@ -85,7 +85,7 @@ enum NDEFPushTarget {
 };
 
 dictionary NDEFScanOptions {
-  USVString id = "";
+  USVString id;
   USVString recordType;
   USVString mediaType = "";
   AbortSignal? signal;

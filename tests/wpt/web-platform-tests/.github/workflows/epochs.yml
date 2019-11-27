@@ -7,7 +7,7 @@ on:
 jobs:
   update:
     # Do not run this job on forks.
-    if: github.repository == "web-platform-tests/wpt"
+    if: github.repository == 'web-platform-tests/wpt'
     runs-on: ubuntu-18.04
     steps:
     - name: Checkout
