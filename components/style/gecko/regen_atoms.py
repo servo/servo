@@ -132,7 +132,7 @@ PRELUDE = '''
 RULE_TEMPLATE = '''
     ("{atom}") => {{{{
         #[allow(unsafe_code)] #[allow(unused_unsafe)]
-        unsafe {{ $crate::string_cache::Atom::from_index({index}) }}
+        unsafe {{ $crate::string_cache::Atom::from_index_unchecked({index}) }}
     }}}};
 '''[1:]
 
