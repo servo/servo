@@ -449,7 +449,7 @@ where
             let box_ = Arc::new(InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(
                 AbsolutelyPositionedBox {
                     contents: IndependentFormattingContext::construct(
-                        unimplemented!(),
+                        self.context,
                         style,
                         display_inside,
                         contents,
