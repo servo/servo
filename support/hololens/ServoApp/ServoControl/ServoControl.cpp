@@ -432,6 +432,15 @@ void ServoControl::OnServoIMEStateChanged(bool aShow) {
   // https://docs.microsoft.com/en-us/windows/win32/winauto/uiauto-implementingtextandtextrange
 }
 
+void ServoControl::OnServoMediaSessionMetadata(hstring title, hstring artist,
+                                               hstring album) {
+  RunOnUIThread([=] { mOnMediaSessionMetadataEvent(title, artist, album); });
+}
+
+void ServoControl::OnServoMediaSessionPlaybackStateChange(int state) {
+  RunOnUIThread([=] { mOnMediaSessionPlaybackStateChangeEvent(*this, state); });
+}
+
 template <typename Callable> void ServoControl::RunOnUIThread(Callable cb) {
   Dispatcher().RunAsync(CoreDispatcherPriority::High, cb);
 }

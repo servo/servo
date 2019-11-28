@@ -36,6 +36,8 @@ public:
   virtual void OnServoIMEStateChanged(bool) = 0;
   virtual void Flush() = 0;
   virtual void MakeCurrent() = 0;
+  virtual void OnServoMediaSessionMetadata(hstring, hstring, hstring) = 0;
+  virtual void OnServoMediaSessionPlaybackStateChange(int) = 0;
 
 protected:
   virtual ~ServoDelegate(){};

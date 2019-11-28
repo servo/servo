@@ -70,6 +70,20 @@ void BrowserPage::BindServoEvents() {
   servoControl().OnCaptureGesturesEnded(
       [=] { navigationBar().IsHitTestVisible(true); });
   urlTextbox().GotFocus(std::bind(&BrowserPage::OnURLFocused, this, _1));
+  servoControl().OnMediaSessionMetadata(
+      [=](hstring title, hstring artist, hstring album) {});
+  servoControl().OnMediaSessionPlaybackStateChange([=](const auto &,
+                                                       int state) {
+    if (state == 1 /* none */) {
+      mediaControls().Visibility(Visibility::Collapsed);
+      return;
+    }
+    mediaControls().Visibility(Visibility::Visible);
+    playButton().Visibility(state == 3 /* paused */ ? Visibility::Visible
+                                                    : Visibility::Collapsed);
+    pauseButton().Visibility(state == 3 /* paused */ ? Visibility::Collapsed
+                                                     : Visibility::Visible);
+  });
 }
 
 void BrowserPage::OnURLFocused(Windows::Foundation::IInspectable const &) {

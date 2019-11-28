@@ -56,6 +56,16 @@ const char *get_clipboard_contents() {
   return nullptr;
 }
 
+void on_media_session_metadata(const char *title, const char *album,
+                               const char *artist) {
+  return sServo->Delegate().OnServoMediaSessionMetadata(
+      char2hstring(title), char2hstring(album), char2hstring(artist));
+}
+
+void on_media_session_playback_state_change(const int state) {
+  return sServo->Delegate().OnServoMediaSessionPlaybackStateChange(state);
+}
+
 Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
              float dpi, ServoDelegate &aDelegate)
     : mWindowHeight(height), mWindowWidth(width), mDelegate(aDelegate) {
@@ -63,7 +73,8 @@ Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
   capi::CInitOptions o;
   hstring defaultPrefs = L" --pref dom.webxr.enabled";
   o.args = *hstring2char(args + defaultPrefs);
-  o.url = *hstring2char(url);
+  o.url =
+      "https://ferjm.github.io/web-api-tests/video/mp4.html"; //*hstring2char(url);
   o.width = mWindowWidth;
   o.height = mWindowHeight;
   o.density = dpi;
@@ -110,6 +121,9 @@ Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
   c.on_ime_state_changed = &on_ime_state_changed;
   c.get_clipboard_contents = &get_clipboard_contents;
   c.set_clipboard_contents = &set_clipboard_contents;
+  c.on_media_session_metadata = &on_media_session_metadata;
+  c.on_media_session_playback_state_change =
+      &on_media_session_playback_state_change;
 
   capi::register_panic_handler(&on_panic);
 
