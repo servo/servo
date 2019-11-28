@@ -5,6 +5,7 @@
 use crate::compartments::InCompartment;
 use crate::dom::bindings::codegen::Bindings::GPUBinding::GPURequestAdapterOptions;
 use crate::dom::bindings::codegen::Bindings::GPUBinding::{self, GPUMethods, GPUPowerPreference};
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -120,6 +121,7 @@ impl GPUMethods for GPU {
             Some(GPUPowerPreference::High_performance) => wgpu::PowerPreference::HighPerformance,
             None => wgpu::PowerPreference::Default,
         };
+        let id = self.global().as_window().Navigator().create_adapter_id();
 
         match self.wgpu_channel() {
             Some(channel) => {
@@ -128,6 +130,7 @@ impl GPUMethods for GPU {
                     .send(WebGPURequest::RequestAdapter(
                         sender,
                         wgpu::RequestAdapterOptions { power_preference },
+                        id,
                     ))
                     .unwrap();
             },

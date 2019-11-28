@@ -39,6 +39,7 @@ use crate::dom::bindings::utils::WindowProxyHandler;
 use crate::dom::document::PendingRestyle;
 use crate::dom::htmlimageelement::SourceSet;
 use crate::dom::htmlmediaelement::{HTMLMediaElementFetchContext, MediaFrameRenderer};
+use crate::dom::identityhub::Identities;
 use crate::task::TaskBox;
 use app_units::Au;
 use canvas_traits::canvas::{
@@ -504,6 +505,7 @@ unsafe_no_jsmanaged_fields!(WebGLVertexArrayId);
 unsafe_no_jsmanaged_fields!(WebGLVersion);
 unsafe_no_jsmanaged_fields!(WebGLSLVersion);
 unsafe_no_jsmanaged_fields!(WebGPU);
+unsafe_no_jsmanaged_fields!(RefCell<Identities>);
 unsafe_no_jsmanaged_fields!(WebGPUAdapter);
 unsafe_no_jsmanaged_fields!(WebXRSwapChainId);
 unsafe_no_jsmanaged_fields!(MediaList);
