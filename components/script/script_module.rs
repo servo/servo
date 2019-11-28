@@ -223,7 +223,7 @@ impl ModuleTree {
         self.descendant_urls.borrow_mut().extend(descendant_urls);
     }
 
-    pub fn append_handler(&self, owner: ModuleOwner, module_url: ServoUrl) {
+    pub fn append_handler(&self, owner: ModuleOwner, module_url: ServoUrl, is_top_level: bool) {
         let promise = self.promise.borrow();
 
         let resolve_this = owner.clone();
@@ -237,13 +237,13 @@ impl ModuleTree {
             Some(ModuleHandler::new(Box::new(
                 task!(fetched_resolve: move || {
                     println!("fetched: {}", resolved_url.clone());
-                    resolve_this.finish_module_load(Some(resolved_url));
+                    resolve_this.finish_module_load(Some(resolved_url), is_top_level);
                 }),
             ))),
             Some(ModuleHandler::new(Box::new(
                 task!(failure_reject: move || {
                     println!("failed");
-                    reject_this.finish_module_load(Some(rejected_url));
+                    reject_this.finish_module_load(Some(rejected_url), is_top_level);
                 }),
             ))),
         );
@@ -602,7 +602,7 @@ impl ModuleOwner {
         }
     }
 
-    fn gen_promise_with_final_handler(&self, module_url: Option<ServoUrl>) -> Rc<Promise> {
+    fn gen_promise_with_final_handler(&self, module_url: Option<ServoUrl>, is_top_level: bool) -> Rc<Promise> {
         let resolve_this = self.clone();
         let reject_this = self.clone();
 
@@ -614,13 +614,13 @@ impl ModuleOwner {
             Some(ModuleHandler::new(Box::new(
                 task!(fetched_resolve: move || {
                     println!("fetched");
-                    resolve_this.finish_module_load(resolved_url);
+                    resolve_this.finish_module_load(resolved_url, is_top_level);
                 }),
             ))),
             Some(ModuleHandler::new(Box::new(
                 task!(failure_reject: move || {
                     println!("failed");
-                    reject_this.finish_module_load(rejected_url);
+                    reject_this.finish_module_load(rejected_url, is_top_level);
                 }),
             ))),
         );
@@ -638,7 +638,7 @@ impl ModuleOwner {
 
     /// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script
     /// step 4-7.
-    pub fn finish_module_load(&self, module_url: Option<ServoUrl>) {
+    pub fn finish_module_load(&self, module_url: Option<ServoUrl>, is_top_level: bool) {
         match &self {
             ModuleOwner::Worker(_) => unimplemented!(),
             ModuleOwner::Window(script) => {
@@ -650,15 +650,15 @@ impl ModuleOwner {
 
                 let module_map = global.get_module_map().borrow();
 
-                let script_src = script
+                /*let script_src = script
                     .root()
                     .upcast::<Element>()
                     .get_attribute(&ns!(), &local_name!("src"))
                     .map(|attr| base_url.join(&attr.value()).ok())
-                    .unwrap_or(None);
+                    .unwrap_or(None);*/
 
-                let (module_tree, mut load, load_type) =
-                    if let Some(script_src) = script_src.clone() {
+                let (module_tree, mut load/*, load_type*/) =
+                    if let Some(script_src) = module_url.clone() {
                         let module_tree = module_map.get(&script_src.clone()).unwrap().clone();
 
                         let load = Ok(ScriptOrigin::external(
@@ -672,7 +672,9 @@ impl ModuleOwner {
                             script_src.clone()
                         );
 
-                        (module_tree, load, LoadType::Script(script_src.clone()))
+                        document.finish_load(LoadType::Script(script_src.clone()));
+
+                        (module_tree, load)
                     } else {
                         let module_tree = {
                             let inline_module_map = global.get_inline_module_map().borrow();
@@ -690,12 +692,12 @@ impl ModuleOwner {
 
                         println!("Going to finish internal script from {}", base_url.clone());
 
-                        (module_tree, load, LoadType::Script(base_url.clone()))
+                        (module_tree, load/*, LoadType::Script(base_url.clone())*/)
                     };
 
                 module_tree.set_status(ModuleStatus::Finished);
 
-                if script_src == module_url {
+                //if script_src == module_url {
                     let module_error =
                         ModuleTree::find_first_parse_error(&*module_map, &module_tree);
 
@@ -723,6 +725,7 @@ impl ModuleOwner {
                         },
                     };
 
+                if is_top_level {
                     let r#async = script
                         .root()
                         .upcast::<Element>()
@@ -735,8 +738,6 @@ impl ModuleOwner {
                     } else {
                         document.asap_script_loaded(&*script.root(), load);
                     };
-
-                    document.finish_load(load_type);
                 }
             },
         }
@@ -1050,7 +1051,7 @@ pub fn fetch_single_module_script(
 
             assert!(promise.is_some());
 
-            module_tree.append_handler(owner.clone(), url.clone());
+            module_tree.append_handler(owner.clone(), url.clone(), top_level_module_fetch);
 
             let promise = promise.as_ref().unwrap();
 
@@ -1100,7 +1101,7 @@ pub fn fetch_single_module_script(
     let module_tree = ModuleTree::new(url.clone());
     module_tree.set_status(ModuleStatus::Fetching);
 
-    let promise = owner.gen_promise_with_final_handler(Some(url.clone()));
+    let promise = owner.gen_promise_with_final_handler(Some(url.clone()), top_level_module_fetch);
 
     module_tree.set_promise(promise.clone());
 
@@ -1171,7 +1172,7 @@ pub fn fetch_inline_module_script(
 
     let module_tree = ModuleTree::new(url.clone());
 
-    let promise = owner.gen_promise_with_final_handler(None);
+    let promise = owner.gen_promise_with_final_handler(None, true);
 
     module_tree.set_promise(promise.clone());
 
@@ -1307,7 +1308,7 @@ fn fetch_module_descendants(
                         visited.clone(),
                         Referrer::Client,
                         ParserMetadata::NotParserInserted,
-                        true,
+                        false,
                     )
                 })
                 .collect()
