@@ -5,12 +5,12 @@
 use crate::context::LayoutContext;
 use crate::flow::float::FloatBox;
 use crate::flow::FlowLayout;
+use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::{
     AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment, TextFragment,
 };
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{AbsolutelyPositionedBox, AbsolutelyPositionedFragment};
-use crate::replaced::ReplacedContent;
 use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside};
 use crate::{relative_adjustement, ContainingBlock};
 use servo_arc::Arc;
@@ -29,11 +29,7 @@ pub(crate) enum InlineLevelBox {
     TextRun(TextRun),
     OutOfFlowAbsolutelyPositionedBox(AbsolutelyPositionedBox),
     OutOfFlowFloatBox(FloatBox),
-    Atomic {
-        style: Arc<ComputedValues>,
-        // FIXME: this should be IndependentFormattingContext:
-        contents: ReplacedContent,
-    },
+    Atomic(IndependentFormattingContext),
 }
 
 #[derive(Debug)]
@@ -112,9 +108,9 @@ impl InlineFormattingContext {
                         ifc.partial_inline_boxes_stack.push(partial)
                     },
                     InlineLevelBox::TextRun(run) => run.layout(layout_context, &mut ifc),
-                    InlineLevelBox::Atomic { style: _, contents } => {
-                        // FIXME
-                        match *contents {}
+                    InlineLevelBox::Atomic(_independent) => {
+                        // TODO
+                        continue;
                     },
                     InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
                         let initial_start_corner =
