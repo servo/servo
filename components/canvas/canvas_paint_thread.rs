@@ -3,9 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::canvas_data::*;
+use crate::ConstellationCanvasMsg;
 use canvas_traits::canvas::*;
+use crossbeam_channel::{select, unbounded, Sender};
 use euclid::default::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::thread;
@@ -30,53 +33,69 @@ impl<'a> CanvasPaintThread<'a> {
 
     /// Creates a new `CanvasPaintThread` and returns an `IpcSender` to
     /// communicate with it.
-    pub fn start() -> IpcSender<CanvasMsg> {
-        let (sender, receiver) = ipc::channel::<CanvasMsg>().unwrap();
+    pub fn start() -> (Sender<ConstellationCanvasMsg>, IpcSender<CanvasMsg>) {
+        let (ipc_sender, ipc_receiver) = ipc::channel::<CanvasMsg>().unwrap();
+        let msg_receiver = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(ipc_receiver);
+        let (create_sender, create_receiver) = unbounded();
         thread::Builder::new()
             .name("CanvasThread".to_owned())
             .spawn(move || {
                 let mut canvas_paint_thread = CanvasPaintThread::new();
                 loop {
-                    match receiver.recv() {
-                        Ok(msg) => match msg {
-                            CanvasMsg::Canvas2d(message, canvas_id) => {
-                                canvas_paint_thread.process_canvas_2d_message(message, canvas_id);
-                            },
-                            CanvasMsg::Close(canvas_id) => {
-                                canvas_paint_thread.canvases.remove(&canvas_id);
-                            },
-                            CanvasMsg::Create(creator, size, webrenderer_api_sender, antialias) => {
-                                let canvas_id = canvas_paint_thread.create_canvas(
+                    select! {
+                        recv(msg_receiver) -> msg => {
+                            match msg {
+                                Ok(CanvasMsg::Canvas2d(message, canvas_id)) => {
+                                    canvas_paint_thread.process_canvas_2d_message(message, canvas_id);
+                                },
+                                Ok(CanvasMsg::Close(canvas_id)) => {
+                                    canvas_paint_thread.canvases.remove(&canvas_id);
+                                },
+                                Ok(CanvasMsg::Recreate(size, canvas_id)) => {
+                                    canvas_paint_thread.canvas(canvas_id).recreate(size);
+                                },
+                                Ok(CanvasMsg::FromScript(message, canvas_id)) => match message {
+                                    FromScriptMsg::SendPixels(chan) => {
+                                        canvas_paint_thread.canvas(canvas_id).send_pixels(chan);
+                                    },
+                                },
+                                Ok(CanvasMsg::FromLayout(message, canvas_id)) => match message {
+                                    FromLayoutMsg::SendData(chan) => {
+                                        canvas_paint_thread.canvas(canvas_id).send_data(chan);
+                                    },
+                                },
+                                Err(e) => {
+                                    warn!("Error on CanvasPaintThread receive ({})", e);
+                                },
+                            }
+                        }
+                        recv(create_receiver) -> msg => {
+                            match msg {
+                                Ok(ConstellationCanvasMsg::Create {
+                                    id_sender: creator,
                                     size,
-                                    webrenderer_api_sender,
-                                    antialias,
-                                );
-                                creator.send(canvas_id).unwrap();
-                            },
-                            CanvasMsg::Recreate(size, canvas_id) => {
-                                canvas_paint_thread.canvas(canvas_id).recreate(size);
-                            },
-                            CanvasMsg::FromScript(message, canvas_id) => match message {
-                                FromScriptMsg::SendPixels(chan) => {
-                                    canvas_paint_thread.canvas(canvas_id).send_pixels(chan);
+                                    webrender_sender: webrenderer_api_sender,
+                                    antialias
+                                }) => {
+                                    let canvas_id = canvas_paint_thread.create_canvas(
+                                        size,
+                                        webrenderer_api_sender,
+                                        antialias,
+                                    );
+                                    creator.send(canvas_id).unwrap();
                                 },
-                            },
-                            CanvasMsg::FromLayout(message, canvas_id) => match message {
-                                FromLayoutMsg::SendData(chan) => {
-                                    canvas_paint_thread.canvas(canvas_id).send_data(chan);
+                                Ok(ConstellationCanvasMsg::Exit) => break,
+                                Err(e) => {
+                                    warn!("Error on CanvasPaintThread receive ({})", e);
                                 },
-                            },
-                            CanvasMsg::Exit => break,
-                        },
-                        Err(e) => {
-                            warn!("Error on CanvasPaintThread receive ({})", e);
-                        },
+                            }
+                        }
                     }
                 }
             })
             .expect("Thread spawning failed");
 
-        sender
+        (create_sender, ipc_sender)
     }
 
     pub fn create_canvas(

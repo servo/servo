@@ -108,7 +108,7 @@ use script_traits::{ConstellationControlMsg, DocumentState, HistoryEntryReplacem
 use script_traits::{
     ScriptMsg, ScriptToConstellationChan, ScrollState, StructuredSerializedData, TimerEventId,
 };
-use script_traits::{TimerSchedulerMsg, WindowSizeData, WindowSizeType};
+use script_traits::{TimerSchedulerMsg, WebrenderIpcSender, WindowSizeData, WindowSizeType};
 use selectors::attr::CaseSensitivity;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
 use servo_url::{Host, ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -137,7 +137,7 @@ use style_traits::{CSSPixel, DevicePixel, ParsingMode};
 use url::Position;
 use webgpu::WebGPU;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize, LayoutPixel};
-use webrender_api::{DocumentId, ExternalScrollId, RenderApiSender};
+use webrender_api::{DocumentId, ExternalScrollId};
 use webvr_traits::WebVRMsg;
 
 /// Current state of the window object
@@ -303,8 +303,8 @@ pub struct Window {
     exists_mut_observer: Cell<bool>,
 
     /// Webrender API Sender
-    #[ignore_malloc_size_of = "defined in webrender_api"]
-    webrender_api_sender: RenderApiSender,
+    #[ignore_malloc_size_of = "Wraps an IpcSender"]
+    webrender_api_sender: WebrenderIpcSender,
 
     /// Indicate whether a SetDocumentStatus message has been sent after a reflow is complete.
     /// It is used to avoid sending idle message more than once, which is unneccessary.
@@ -513,7 +513,7 @@ impl Window {
         self.add_pending_reflow();
     }
 
-    pub fn get_webrender_api_sender(&self) -> RenderApiSender {
+    pub fn get_webrender_api_sender(&self) -> WebrenderIpcSender {
         self.webrender_api_sender.clone()
     }
 
@@ -2218,7 +2218,7 @@ impl Window {
         webxr_registry: webxr_api::Registry,
         microtask_queue: Rc<MicrotaskQueue>,
         webrender_document: DocumentId,
-        webrender_api_sender: RenderApiSender,
+        webrender_api_sender: WebrenderIpcSender,
         layout_is_busy: Arc<AtomicBool>,
         relayout_event: bool,
         prepare_for_screenshot: bool,

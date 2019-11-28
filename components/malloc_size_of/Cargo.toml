@@ -44,6 +44,6 @@ string_cache = { version = "0.8", optional = true }
 thin-slice = "0.1.0"
 time = { version = "0.1.17", optional = true }
 url = { version = "2.0", optional = true }
-webrender_api = { git = "https://github.com/servo/webrender", features = ["ipc"], optional = true }
+webrender_api = { git = "https://github.com/servo/webrender", optional = true }
 xml5ever = { version = "0.16", optional = true }
 void = "1.0.2"

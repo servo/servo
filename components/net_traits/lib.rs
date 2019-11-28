@@ -33,6 +33,7 @@ use msg::constellation_msg::HistoryStateId;
 use servo_url::ServoUrl;
 use std::error::Error;
 use time::precise_time_ns;
+use webrender_api::ImageKey;
 
 pub mod blob_url_store;
 pub mod filemanager_thread;
@@ -754,4 +755,33 @@ pub fn http_percent_encode(bytes: &[u8]) -> String {
         .add(b'}');
 
     percent_encoding::percent_encode(bytes, HTTP_VALUE).to_string()
+}
+
+#[derive(Deserialize, Serialize)]
+pub enum WebrenderImageMsg {
+    UpdateResources(Vec<webrender_api::ResourceUpdate>),
+    GenerateImageKey(IpcSender<ImageKey>),
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub struct WebrenderIpcSender(IpcSender<WebrenderImageMsg>);
+
+impl WebrenderIpcSender {
+    pub fn new(sender: IpcSender<WebrenderImageMsg>) -> Self {
+        Self(sender)
+    }
+
+    pub fn generate_image_key(&self) -> ImageKey {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.0
+            .send(WebrenderImageMsg::GenerateImageKey(sender))
+            .expect("error sending image key generation");
+        receiver.recv().expect("error receiving image key result")
+    }
+
+    pub fn update_resources(&self, updates: Vec<webrender_api::ResourceUpdate>) {
+        if let Err(e) = self.0.send(WebrenderImageMsg::UpdateResources(updates)) {
+            warn!("Error sending image update: {}", e);
+        }
+    }
 }

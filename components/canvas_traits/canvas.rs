@@ -21,17 +21,10 @@ pub struct CanvasId(pub u64);
 #[derive(Deserialize, Serialize)]
 pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg, CanvasId),
-    Create(
-        IpcSender<CanvasId>,
-        Size2D<u64>,
-        webrender_api::RenderApiSender,
-        bool,
-    ),
     FromLayout(FromLayoutMsg, CanvasId),
     FromScript(FromScriptMsg, CanvasId),
     Recreate(Size2D<u64>, CanvasId),
     Close(CanvasId),
-    Exit,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

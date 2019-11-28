@@ -21,6 +21,7 @@ azure = {git = "https://github.com/servo/rust-azure", optional = true}
 bitflags = "1.0"
 byteorder = "1"
 canvas_traits = {path = "../canvas_traits"}
+crossbeam-channel = "0.3"
 cssparser = "0.27.1"
 embedder_traits = {path = "../embedder_traits"}
 euclid = "0.20"
@@ -35,7 +36,7 @@ pixels = {path = "../pixels"}
 servo_config = {path = "../config"}
 sparkle = "0.1.12"
 webrender = {git = "https://github.com/servo/webrender"}
-webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_api = {git = "https://github.com/servo/webrender"}
 webrender_traits = {path = "../webrender_traits"}
 webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
 # NOTE: the sm-angle feature only enables angle on windows, not other platforms!

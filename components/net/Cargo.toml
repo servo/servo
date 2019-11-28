@@ -57,7 +57,7 @@ tokio = "0.1"
 time = "0.1.17"
 url = "2.0"
 uuid = {version = "0.8", features = ["v4"]}
-webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_api = {git = "https://github.com/servo/webrender"}
 ws = { version = "0.9", features = ["ssl"] }
 
 [dev-dependencies]

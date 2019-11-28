@@ -114,7 +114,7 @@ uuid = {version = "0.8", features = ["v4"]}
 xml5ever = "0.16"
 webdriver = "0.40"
 webgpu = {path = "../webgpu"}
-webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_api = {git = "https://github.com/servo/webrender"}
 webvr_traits = {path = "../webvr_traits"}
 webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
 
