@@ -587,7 +587,7 @@ def update_wpt():
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/wpt-sync")
         .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
-        .with_max_run_time_minutes(6 * 60)
+        .with_max_run_time_minutes(8 * 60)
         # Not using the bundle, pushing the new changes to the git remote requires a full repo.
         .with_repo(alternate_object_dir="/var/cache/servo.git/objects")
     )
