@@ -71,9 +71,10 @@ ${helpers.single_keyword(
 ${helpers.single_keyword(
     "image-rendering",
     "auto crisp-edges",
-    engines="gecko servo-2013",
+    engines="gecko servo-2013 servo-2020",
     extra_gecko_values="optimizespeed optimizequality",
     extra_servo_2013_values="pixelated",
+    extra_servo_2020_values="pixelated",
     gecko_aliases="-moz-crisp-edges=crisp-edges",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-images/#propdef-image-rendering",

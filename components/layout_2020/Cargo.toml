@@ -22,6 +22,7 @@ gfx_traits = {path = "../gfx_traits"}
 ipc-channel = "0.12"
 libc = "0.2"
 msg = {path = "../msg"}
+net_traits = {path = "../net_traits"}
 range = {path = "../range"}
 rayon = "1"
 rayon_croissant = "0.1.1"

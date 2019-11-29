@@ -3,18 +3,22 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::element_data::{LayoutBox, LayoutDataForElement};
+use crate::geom::physical::Vec2;
 use crate::replaced::ReplacedContent;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOutside};
 use crate::wrapper::GetRawData;
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
+use net_traits::image::base::{Image as NetImage, ImageMetadata};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_arc::Arc as ServoArc;
 use std::convert::TryInto;
 use std::marker::PhantomData as marker;
+use std::sync::Arc;
 use style::context::SharedStyleContext;
 use style::dom::TNode;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
+use style::values::computed::Length;
 
 #[derive(Clone, Copy)]
 pub enum WhichPseudoElement {
@@ -90,11 +94,12 @@ fn traverse_element<'dom, Node>(
 ) where
     Node: NodeExt<'dom>,
 {
+    let replaced = ReplacedContent::for_element(element);
     let style = element.style(context);
     match Display::from(style.get_box().display) {
         Display::None => element.unset_boxes_in_subtree(),
         Display::Contents => {
-            if ReplacedContent::for_element(element, context).is_some() {
+            if replaced.is_some() {
                 // `display: content` on a replaced element computes to `display: none`
                 // <https://drafts.csswg.org/css-display-3/#valdef-display-contents>
                 element.unset_boxes_in_subtree()
@@ -107,10 +112,7 @@ fn traverse_element<'dom, Node>(
             handler.handle_element(
                 &style,
                 display,
-                match ReplacedContent::for_element(element, context) {
-                    Some(replaced) => Contents::Replaced(replaced),
-                    None => Contents::OfElement(element),
-                },
+                replaced.map_or(Contents::OfElement(element), Contents::Replaced),
                 element.element_box_slot(),
             );
         },
@@ -287,6 +289,7 @@ impl Drop for BoxSlot<'_> {
 pub(crate) trait NodeExt<'dom>: 'dom + Copy + LayoutNode + Send + Sync {
     fn is_element(self) -> bool;
     fn as_text(self) -> Option<String>;
+    fn as_image(self) -> Option<(Option<Arc<NetImage>>, Vec2<Length>)>;
     fn first_child(self) -> Option<Self>;
     fn next_sibling(self) -> Option<Self>;
     fn parent_node(self) -> Option<Self>;
@@ -313,6 +316,26 @@ where
         } else {
             None
         }
+    }
+
+    fn as_image(self) -> Option<(Option<Arc<NetImage>>, Vec2<Length>)> {
+        let node = self.to_threadsafe();
+        let (resource, metadata) = node.image_data()?;
+        let (width, height) = resource
+            .as_ref()
+            .map(|image| (image.width, image.height))
+            .or_else(|| metadata.map(|metadata| (metadata.width, metadata.height)))
+            .unwrap_or((0, 0));
+        let (mut width, mut height) = (width as f32, height as f32);
+        if let Some(density) = node.image_density().filter(|density| *density != 1.) {
+            width = (width as f64 / density) as f32;
+            height = (height as f64 / density) as f32;
+        }
+        let size = Vec2 {
+            x: Length::new(width),
+            y: Length::new(height),
+        };
+        Some((resource, size))
     }
 
     fn first_child(self) -> Option<Self> {

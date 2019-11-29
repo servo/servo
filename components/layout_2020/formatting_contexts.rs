@@ -83,7 +83,7 @@ impl IndependentFormattingContext {
         absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
     ) -> IndependentLayout {
         match self.as_replaced() {
-            Ok(replaced) => match *replaced {},
+            Ok(replaced) => replaced.layout(layout_context, &self.style, containing_block),
             Err(ifc) => ifc.layout(
                 layout_context,
                 containing_block,

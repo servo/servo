@@ -10,12 +10,13 @@ use std::sync::Arc;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::Zero;
-use webrender_api::FontInstanceKey;
+use webrender_api::{FontInstanceKey, ImageKey};
 
 pub(crate) enum Fragment {
     Box(BoxFragment),
     Anonymous(AnonymousFragment),
     Text(TextFragment),
+    Image(ImageFragment),
 }
 
 pub(crate) struct BoxFragment {
@@ -59,6 +60,12 @@ pub(crate) struct TextFragment {
     pub ascent: Length,
     pub font_key: FontInstanceKey,
     pub glyphs: Vec<Arc<GlyphStore>>,
+}
+
+pub(crate) struct ImageFragment {
+    pub style: ServoArc<ComputedValues>,
+    pub content_rect: Rect<Length>,
+    pub image_key: ImageKey,
 }
 
 impl AnonymousFragment {
