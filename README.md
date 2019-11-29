@@ -58,7 +58,7 @@ Xcode version 10.2 or above is recommended.
 
 ``` sh
 brew bundle install --file=etc/taskcluster/macos/Brewfile
-brew bundle install --file=etc/taskcluster/macos/Brewfile-gstreamer
+brew bundle install --file=etc/taskcluster/macos/Brewfile-build
 pip install virtualenv
 ```
 
