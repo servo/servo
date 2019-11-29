@@ -369,16 +369,13 @@ fn layout_in_flow_non_replaced_block_level<'a>(
                 *s = LengthOrAuto::LengthPercentage(inline_margins / 2.);
                 *e = LengthOrAuto::LengthPercentage(inline_margins / 2.);
             },
-            (s @ &mut LengthOrAuto::Auto, _) => {
-                *s = LengthOrAuto::LengthPercentage(inline_margins);
+            (s @ &mut LengthOrAuto::Auto, &mut LengthOrAuto::LengthPercentage(e)) => {
+                *s = LengthOrAuto::LengthPercentage(inline_margins - e);
             },
-            (_, e @ &mut LengthOrAuto::Auto) => {
-                *e = LengthOrAuto::LengthPercentage(inline_margins);
-            },
-            (_, e @ _) => {
+            (&mut LengthOrAuto::LengthPercentage(s), e) => {
                 // Either the inline-end margin is auto,
                 // or we’re over-constrained and we do as if it were.
-                *e = LengthOrAuto::LengthPercentage(inline_margins);
+                *e = LengthOrAuto::LengthPercentage(inline_margins - s);
             },
         }
     }
