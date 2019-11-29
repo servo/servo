@@ -12,6 +12,8 @@ interface HTMLScriptElement : HTMLElement {
   [CEReactions]
            attribute DOMString type;
   [CEReactions]
+           attribute boolean noModule;
+  [CEReactions]
            attribute DOMString charset;
   [CEReactions]
            attribute boolean async;

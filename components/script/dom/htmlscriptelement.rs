@@ -447,7 +447,10 @@ impl HTMLScriptElement {
             return;
         }
 
-        // TODO: Step 12: nomodule content attribute
+        // Step 12
+        if element.has_attribute(&local_name!("nomodule")) && script_type == ScriptType::Classic {
+            return;
+        }
 
         // Step 13.
         if !element.has_attribute(&local_name!("src")) &&
@@ -1061,6 +1064,11 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
     make_bool_getter!(Defer, "defer");
     // https://html.spec.whatwg.org/multipage/#dom-script-defer
     make_bool_setter!(SetDefer, "defer");
+
+    // https://html.spec.whatwg.org/multipage/#dom-script-nomodule
+    make_bool_getter!(NoModule, "nomodule");
+    // https://html.spec.whatwg.org/multipage/#dom-script-nomodule
+    make_bool_setter!(SetNoModule, "nomodule");
 
     // https://html.spec.whatwg.org/multipage/#dom-script-integrity
     make_getter!(Integrity, "integrity");
