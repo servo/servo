@@ -1076,17 +1076,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "derivative"
-version = "1.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6073e9676dbebdddeabaeb63e3b7cefd23c86f5c41d381ee1237cc77b1079898"
-dependencies = [
- "proc-macro2 0.4.26",
- "quote 0.6.12",
- "syn 0.15.39",
-]
-
-[[package]]
 name = "derive_common"
 version = "0.0.1"
 dependencies = [
@@ -1850,16 +1839,15 @@ checksum = "8be18de09a56b60ed0edf84bc9df007e30040691af7acd1c41874faac5895bfb"
 
 [[package]]
 name = "glutin"
-version = "0.21.1"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "938ce7a2b1bbfe1535166133bea3f9c1b46350d2794b49561303575e9e1b9949"
+checksum = "5371b35b309dace06be1b81b5f6adb1c9de578b7dbe1e74bf7e4ef762cf6febd"
 dependencies = [
  "android_glue",
  "cgl 0.2.3",
  "cocoa 0.18.4",
  "core-foundation",
  "core-graphics",
- "derivative",
  "glutin_egl_sys",
  "glutin_emscripten_sys",
  "glutin_gles2_sys",
