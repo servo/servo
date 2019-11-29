@@ -73,8 +73,7 @@ Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
   capi::CInitOptions o;
   hstring defaultPrefs = L" --pref dom.webxr.enabled";
   o.args = *hstring2char(args + defaultPrefs);
-  o.url =
-      "https://ferjm.github.io/web-api-tests/video/mp4.html"; //*hstring2char(url);
+  o.url = *hstring2char(url);
   o.width = mWindowWidth;
   o.height = mWindowHeight;
   o.density = dpi;

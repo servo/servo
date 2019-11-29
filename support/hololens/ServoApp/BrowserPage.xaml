@@ -140,10 +140,6 @@
         <CommandBar Grid.Row="3" x:Name="mediaControls" Visibility="Collapsed">
             <AppBarButton Icon="Play" Label="Play" x:Name="playButton" Visibility="Collapsed" Click="OnMediaControlsPlayClicked"/>
             <AppBarButton Icon="Pause" Label="Pause" x:Name="pauseButton" Click="OnMediaControlsPauseClicked"/>
-
-            <CommandBar.Content>
-                <TextBlock Text="Now playing..." Margin="12,14"/>
-            </CommandBar.Content>
         </CommandBar>
     </Grid>
 

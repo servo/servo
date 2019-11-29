@@ -607,6 +607,14 @@ pub extern "C" fn click(x: f32, y: f32) {
     });
 }
 
+#[no_mangle]
+pub extern "C" fn media_session_action(action: i32) {
+    catch_any_panic(|| {
+        debug!("media_session_action");
+        call(|s| s.media_session_action(action));
+    });
+}
+
 pub struct WakeupCallback(extern "C" fn());
 
 impl WakeupCallback {

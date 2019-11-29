@@ -3,6 +3,7 @@
 #include "OpenGLES.h"
 #include "Servo.h"
 #include "DefaultUrl.h"
+#include "MediaSession.h"
 
 namespace winrt::ServoApp::implementation {
 struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
@@ -15,6 +16,7 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
   void Stop();
   void Shutdown();
   hstring LoadURIOrSearch(hstring);
+  void SendMediaSessionAction(int32_t);
 
   void OnLoaded(IInspectable const &,
                 Windows::UI::Xaml::RoutedEventArgs const &);

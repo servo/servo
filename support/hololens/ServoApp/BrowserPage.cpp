@@ -7,6 +7,7 @@
 #include "BrowserPage.h"
 #include "BrowserPage.g.cpp"
 #include "DefaultUrl.h"
+#include "MediaSession.h"
 
 using namespace std::placeholders;
 using namespace winrt::Windows::Foundation;
@@ -72,18 +73,20 @@ void BrowserPage::BindServoEvents() {
   urlTextbox().GotFocus(std::bind(&BrowserPage::OnURLFocused, this, _1));
   servoControl().OnMediaSessionMetadata(
       [=](hstring title, hstring artist, hstring album) {});
-  servoControl().OnMediaSessionPlaybackStateChange([=](const auto &,
-                                                       int state) {
-    if (state == 1 /* none */) {
-      mediaControls().Visibility(Visibility::Collapsed);
-      return;
-    }
-    mediaControls().Visibility(Visibility::Visible);
-    playButton().Visibility(state == 3 /* paused */ ? Visibility::Visible
-                                                    : Visibility::Collapsed);
-    pauseButton().Visibility(state == 3 /* paused */ ? Visibility::Collapsed
-                                                     : Visibility::Visible);
-  });
+  servoControl().OnMediaSessionPlaybackStateChange(
+      [=](const auto &, int state) {
+        if (state == servo::PlaybackState::NONE) {
+          mediaControls().Visibility(Visibility::Collapsed);
+          return;
+        }
+        mediaControls().Visibility(Visibility::Visible);
+        playButton().Visibility(state == servo::PlaybackState::PAUSED
+                                    ? Visibility::Visible
+                                    : Visibility::Collapsed);
+        pauseButton().Visibility(state == servo::PlaybackState::PAUSED
+                                     ? Visibility::Collapsed
+                                     : Visibility::Visible);
+      });
 }
 
 void BrowserPage::OnURLFocused(Windows::Foundation::IInspectable const &) {
@@ -159,9 +162,15 @@ void BrowserPage::OnURLEdited(IInspectable const &,
 
 void BrowserPage::OnMediaControlsPlayClicked(
     Windows::Foundation::IInspectable const &,
-    Windows::UI::Xaml::RoutedEventArgs const &) {}
+    Windows::UI::Xaml::RoutedEventArgs const &) {
+  servoControl().SendMediaSessionAction(
+      static_cast<int32_t>(servo::MediaSessionAction::PLAY));
+}
 void BrowserPage::OnMediaControlsPauseClicked(
     Windows::Foundation::IInspectable const &,
-    Windows::UI::Xaml::RoutedEventArgs const &) {}
+    Windows::UI::Xaml::RoutedEventArgs const &) {
+  servoControl().SendMediaSessionAction(
+      static_cast<int32_t>(servo::MediaSessionAction::PAUSE));
+}
 
 } // namespace winrt::ServoApp::implementation

@@ -88,6 +88,9 @@ public:
       capi::resize(mWindowWidth, mWindowHeight);
     }
   }
+  void SendMediaSessionAction(int32_t action) {
+    capi::media_session_action(action);
+  }
 
 private:
   ServoDelegate &mDelegate;
