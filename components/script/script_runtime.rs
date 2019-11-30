@@ -853,26 +853,30 @@ pub struct StreamConsumer(*mut JSStreamConsumer);
 
 #[allow(unsafe_code)]
 impl StreamConsumer {
-    fn consume_chunk(&self, stream: &[u8]) -> bool {
+    pub fn consume_chunk(&self, stream: &[u8]) -> bool {
         unsafe {
             let stream_ptr = stream.as_ptr();
             return StreamConsumerConsumeChunk(self.0, stream_ptr, stream.len());
         }
     }
 
-    fn stream_end(&self) {
+    pub fn stream_end(&self) {
         unsafe {
             StreamConsumerStreamEnd(self.0);
         }
     }
 
-    fn stream_error(&self, error_code: usize) {
+    pub fn stream_error(&self, error_code: usize) {
         unsafe {
             StreamConsumerStreamError(self.0, error_code);
         }
     }
 
-    fn note_response_urls(&self, maybe_url: Option<String>, maybe_source_map_url: Option<String>) {
+    pub fn note_response_urls(
+        &self,
+        maybe_url: Option<String>,
+        maybe_source_map_url: Option<String>,
+    ) {
         unsafe {
             let maybe_url = maybe_url.map(|url| CString::new(url).unwrap());
             let maybe_source_map_url = maybe_source_map_url.map(|url| CString::new(url).unwrap());
@@ -965,6 +969,7 @@ unsafe extern "C" fn consume_stream(
             );
             return false;
         }
+        unwrapped_source.set_stream_consumer(Some(StreamConsumer(_consumer)));
     } else {
         //Step 3 Upon rejection of source, return with reason.
         throw_dom_exception(

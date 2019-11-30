@@ -260,6 +260,7 @@ impl FetchResponseListener for FetchContext {
     }
 
     fn process_response_chunk(&mut self, mut chunk: Vec<u8>) {
+        self.response_object.root().stream_chunk(chunk.as_slice());
         self.body.append(&mut chunk);
     }
 
