@@ -310,7 +310,12 @@ impl GenericDrawTarget for raqote::DrawTarget {
                 ),
         );
 
-        self.fill(&pb.finish(), &source, draw_options.as_raqote());
+        GenericDrawTarget::fill(
+            self,
+            &Path::Raqote(pb.finish()),
+            Pattern::Raqote(source),
+            draw_options,
+        );
     }
     fn draw_surface_with_shadow(
         &self,
@@ -324,11 +329,36 @@ impl GenericDrawTarget for raqote::DrawTarget {
         warn!("no support for drawing shadows");
     }
     fn fill(&mut self, path: &Path, pattern: Pattern, draw_options: &DrawOptions) {
-        self.fill(
-            path.as_raqote(),
-            pattern.as_raqote(),
-            draw_options.as_raqote(),
-        );
+        match draw_options.as_raqote().blend_mode {
+            raqote::BlendMode::Src => {
+                self.clear(raqote::SolidSource::from_unpremultiplied_argb(0, 0, 0, 0));
+                self.fill(
+                    path.as_raqote(),
+                    pattern.as_raqote(),
+                    draw_options.as_raqote(),
+                );
+            },
+            raqote::BlendMode::DstIn |
+            raqote::BlendMode::DstAtop |
+            raqote::BlendMode::SrcIn |
+            raqote::BlendMode::SrcOut => {
+                self.push_layer(1.);
+                self.clear(raqote::SolidSource::from_unpremultiplied_argb(0, 0, 0, 0));
+                self.fill(
+                    path.as_raqote(),
+                    pattern.as_raqote(),
+                    draw_options.as_raqote(),
+                );
+                self.pop_layer();
+            },
+            _ => {
+                self.fill(
+                    path.as_raqote(),
+                    pattern.as_raqote(),
+                    draw_options.as_raqote(),
+                );
+            },
+        }
     }
     fn fill_rect(
         &mut self,
@@ -349,7 +379,12 @@ impl GenericDrawTarget for raqote::DrawTarget {
             raqote::DrawOptions::new()
         };
 
-        raqote::DrawTarget::fill(self, &pb.finish(), pattern.as_raqote(), &draw_options);
+        GenericDrawTarget::fill(
+            self,
+            &Path::Raqote(pb.finish()),
+            pattern,
+            &DrawOptions::Raqote(draw_options),
+        );
     }
     fn get_format(&self) -> SurfaceFormat {
         SurfaceFormat::Raqote(())
