@@ -303,7 +303,7 @@ where
         match *self {
             Translate(..) | Translate3D(..) | TranslateX(..) | TranslateY(..) | TranslateZ(..) => {
                 true
-            }
+            },
             _ => false,
         }
     }
@@ -415,8 +415,8 @@ where
     fn is_3d(&self) -> bool {
         use self::TransformOperation::*;
         match *self {
-            Translate3D(..) | TranslateZ(..) | Rotate3D(..) | RotateX(..) | RotateY(..)
-            | RotateZ(..) | Scale3D(..) | ScaleZ(..) | Perspective(..) | Matrix3D(..) => true,
+            Translate3D(..) | TranslateZ(..) | Rotate3D(..) | RotateX(..) | RotateY(..) |
+            RotateZ(..) | Scale3D(..) | ScaleZ(..) | Perspective(..) | Matrix3D(..) => true,
             _ => false,
         }
     }
@@ -444,23 +444,23 @@ where
                     az as f64,
                     euclid::Angle::radians(theta),
                 )
-            }
+            },
             RotateX(theta) => {
                 let theta = euclid::Angle::radians(TWO_PI - theta.radians64());
                 Transform3D::create_rotation(1., 0., 0., theta)
-            }
+            },
             RotateY(theta) => {
                 let theta = euclid::Angle::radians(TWO_PI - theta.radians64());
                 Transform3D::create_rotation(0., 1., 0., theta)
-            }
+            },
             RotateZ(theta) | Rotate(theta) => {
                 let theta = euclid::Angle::radians(TWO_PI - theta.radians64());
                 Transform3D::create_rotation(0., 0., 1., theta)
-            }
+            },
             Perspective(ref d) => {
                 let m = create_perspective_matrix(d.to_pixel_length(None)?);
                 m.cast()
-            }
+            },
             Scale3D(sx, sy, sz) => Transform3D::create_scale(sx.into(), sy.into(), sz.into()),
             Scale(sx, sy) => Transform3D::create_scale(sx.into(), sy.into(), 1.),
             ScaleX(s) => Transform3D::create_scale(s.into(), 1., 1.),
@@ -470,23 +470,23 @@ where
                 let tx = tx.to_pixel_length(reference_width)? as f64;
                 let ty = ty.to_pixel_length(reference_height)? as f64;
                 Transform3D::create_translation(tx, ty, tz.to_pixel_length(None)? as f64)
-            }
+            },
             Translate(ref tx, ref ty) => {
                 let tx = tx.to_pixel_length(reference_width)? as f64;
                 let ty = ty.to_pixel_length(reference_height)? as f64;
                 Transform3D::create_translation(tx, ty, 0.)
-            }
+            },
             TranslateX(ref t) => {
                 let t = t.to_pixel_length(reference_width)? as f64;
                 Transform3D::create_translation(t, 0., 0.)
-            }
+            },
             TranslateY(ref t) => {
                 let t = t.to_pixel_length(reference_height)? as f64;
                 Transform3D::create_translation(0., t, 0.)
-            }
+            },
             TranslateZ(ref z) => {
                 Transform3D::create_translation(0., 0., z.to_pixel_length(None)? as f64)
-            }
+            },
             Skew(theta_x, theta_y) => Transform3D::create_skew(
                 euclid::Angle::radians(theta_x.radians64()),
                 euclid::Angle::radians(theta_y.radians64()),
@@ -509,7 +509,7 @@ where
                 // return an identity matrix.
                 // Note: DOMMatrix doesn't go into this arm.
                 Transform3D::identity()
-            }
+            },
         };
         Ok(matrix)
     }
@@ -676,7 +676,7 @@ where
                 }
                 dest.write_char(' ')?;
                 angle.to_css(dest)
-            }
+            },
         }
     }
 }
@@ -732,7 +732,7 @@ where
                     z.to_css(dest)?;
                 }
                 Ok(())
-            }
+            },
         }
     }
 }

@@ -92,9 +92,8 @@ impl Time {
             Token::Dimension {
                 value, ref unit, ..
             } if clamping_mode.is_ok(ParsingMode::DEFAULT, value) => {
-                Time::parse_dimension(value, unit, /* from_calc = */ false).map_err(|()| {
-                    location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                })
+                Time::parse_dimension(value, unit, /* from_calc = */ false)
+                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
             },
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 match input.parse_nested_block(|i| CalcNode::parse_time(context, i)) {

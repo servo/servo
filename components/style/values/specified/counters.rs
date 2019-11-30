@@ -203,7 +203,7 @@ impl Parse for Content {
                 Ok(t) => {
                     let t = t.clone();
                     return Err(input.new_unexpected_token_error(t));
-                }
+                },
             }
         }
         if content.is_empty() {

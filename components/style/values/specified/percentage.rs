@@ -116,9 +116,10 @@ impl Percentage {
                 if num_context.is_ok(context.parsing_mode, unit_value) =>
             {
                 Ok(Percentage::new(unit_value))
-            }
+            },
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let result = input.parse_nested_block(|i| CalcNode::parse_percentage(context, i))?;
+                let result =
+                    input.parse_nested_block(|i| CalcNode::parse_percentage(context, i))?;
 
                 // TODO(emilio): -moz-image-rect is the only thing that uses
                 // the clamping mode... I guess we could disallow it...

@@ -392,7 +392,8 @@ impl Atom {
         // though.
         //
         // debug_assert!((index as usize) < STATIC_ATOM_COUNT);
-        let offset = (index as usize) * std::mem::size_of::<nsStaticAtom>() + kGkAtomsArrayOffset as usize;
+        let offset =
+            (index as usize) * std::mem::size_of::<nsStaticAtom>() + kGkAtomsArrayOffset as usize;
         Atom(NonZeroUsize::new_unchecked((offset << 1) | 1))
     }
 

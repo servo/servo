@@ -218,7 +218,7 @@ impl Angle {
                     Err(()) => {
                         let t = t.clone();
                         Err(input.new_unexpected_token_error(t))
-                    }
+                    },
                 }
             },
             Token::Number { value, .. } if value == 0. => match allow_unitless_zero {
@@ -234,7 +234,7 @@ impl Angle {
             ref t => {
                 let t = t.clone();
                 Err(input.new_unexpected_token_error(t))
-            }
+            },
         }
     }
 }

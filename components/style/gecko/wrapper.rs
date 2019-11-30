@@ -1244,7 +1244,8 @@ impl<'le> TElement for GeckoElement<'le> {
 
     #[inline]
     fn has_part_attr(&self) -> bool {
-        self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementHasPart)
+        self.as_node()
+            .get_bool_flag(nsINode_BooleanFlag::ElementHasPart)
     }
 
     #[inline]
@@ -2193,7 +2194,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     #[inline]
     fn is_link(&self) -> bool {
-        self.state().intersects(ElementState::IN_VISITED_OR_UNVISITED_STATE)
+        self.state()
+            .intersects(ElementState::IN_VISITED_OR_UNVISITED_STATE)
     }
 
     #[inline]

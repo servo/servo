@@ -271,9 +271,7 @@ impl SelectorMap<Rule> {
                 context,
                 flags_setter,
             ) {
-                matching_rules.push(
-                    rule.to_applicable_declaration_block(cascade_level),
-                );
+                matching_rules.push(rule.to_applicable_declaration_block(cascade_level));
             }
         }
     }

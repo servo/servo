@@ -543,7 +543,10 @@ impl<L, I> TrackListValue<L, I> {
 
     /// Returns true if `self` is the initial value.
     pub fn is_initial(&self) -> bool {
-        matches!(*self, TrackListValue::TrackSize(TrackSize::Breadth(TrackBreadth::Auto))) // FIXME: can't use Self::INITIAL_VALUE here yet: https://github.com/rust-lang/rust/issues/66585
+        matches!(
+            *self,
+            TrackListValue::TrackSize(TrackSize::Breadth(TrackBreadth::Auto))
+        ) // FIXME: can't use Self::INITIAL_VALUE here yet: https://github.com/rust-lang/rust/issues/66585
     }
 }
 

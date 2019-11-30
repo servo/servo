@@ -176,13 +176,9 @@ impl CalcNode {
                     value, ref unit, ..
                 },
                 CalcUnit::LengthPercentage,
-            ) => {
-                NoCalcLength::parse_dimension(context, value, unit)
-                    .map(CalcNode::Length)
-                    .map_err(|()| {
-                        location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                    })
-            },
+            ) => NoCalcLength::parse_dimension(context, value, unit)
+                .map(CalcNode::Length)
+                .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
             (
                 &Token::Dimension {
                     value, ref unit, ..
@@ -191,9 +187,7 @@ impl CalcNode {
             ) => {
                 Angle::parse_dimension(value, unit, /* from_calc = */ true)
                     .map(CalcNode::Angle)
-                    .map_err(|()| {
-                        location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                    })
+                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
             },
             (
                 &Token::Dimension {
@@ -203,9 +197,7 @@ impl CalcNode {
             ) => {
                 Time::parse_dimension(value, unit, /* from_calc = */ true)
                     .map(CalcNode::Time)
-                    .map_err(|()| {
-                        location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                    })
+                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
             },
             (&Token::Percentage { unit_value, .. }, CalcUnit::LengthPercentage) |
             (&Token::Percentage { unit_value, .. }, CalcUnit::Percentage) => {
@@ -252,7 +244,7 @@ impl CalcNode {
                         ref t => {
                             let t = t.clone();
                             return Err(input.new_unexpected_token_error(t));
-                        }
+                        },
                     }
                 },
                 _ => {

@@ -602,20 +602,17 @@ impl Length {
                     !context.parsing_mode.allows_unitless_lengths() &&
                     !allow_quirks.allowed(context.quirks_mode)
                 {
-                    return Err(
-                        location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                    );
+                    return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
                 Ok(Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(
                     value,
                 ))))
             },
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                input.parse_nested_block(|input| {
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => input
+                .parse_nested_block(|input| {
                     CalcNode::parse_length(context, input, num_context)
                         .map(|calc| Length::Calc(Box::new(calc)))
-                })
-            },
+                }),
             ref token => return Err(location.new_unexpected_token_error(token.clone())),
         }
     }

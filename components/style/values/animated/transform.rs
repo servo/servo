@@ -139,10 +139,10 @@ impl ComputeSquaredDistance for MatrixDecomposed2D {
         const RAD_PER_DEG: f64 = std::f64::consts::PI / 180.0;
         let angle1 = self.angle as f64 * RAD_PER_DEG;
         let angle2 = other.angle as f64 * RAD_PER_DEG;
-        Ok(self.translate.compute_squared_distance(&other.translate)?
-            + self.scale.compute_squared_distance(&other.scale)?
-            + angle1.compute_squared_distance(&angle2)?
-            + self.matrix.compute_squared_distance(&other.matrix)?)
+        Ok(self.translate.compute_squared_distance(&other.translate)? +
+            self.scale.compute_squared_distance(&other.scale)? +
+            angle1.compute_squared_distance(&angle2)? +
+            self.matrix.compute_squared_distance(&other.matrix)?)
     }
 }
 
@@ -316,9 +316,9 @@ impl ComputeSquaredDistance for Skew {
     // ComputeSquaredDistance manually.
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        Ok(self.0.atan().compute_squared_distance(&other.0.atan())?
-            + self.1.atan().compute_squared_distance(&other.1.atan())?
-            + self.2.atan().compute_squared_distance(&other.2.atan())?)
+        Ok(self.0.atan().compute_squared_distance(&other.0.atan())? +
+            self.1.atan().compute_squared_distance(&other.1.atan())? +
+            self.2.atan().compute_squared_distance(&other.2.atan())?)
     }
 }
 
@@ -394,9 +394,9 @@ impl Animate for Quaternion {
         debug_assert!(
             // Doule EPSILON since both this_weight and other_weght have calculation errors
             // which are approximately equal to EPSILON.
-            (this_weight + other_weight - 1.0f64).abs() <= f64::EPSILON * 2.0
-                || other_weight == 1.0f64
-                || other_weight == 0.0f64,
+            (this_weight + other_weight - 1.0f64).abs() <= f64::EPSILON * 2.0 ||
+                other_weight == 1.0f64 ||
+                other_weight == 0.0f64,
             "animate should only be used for interpolating or accumulating transforms"
         );
 
@@ -830,17 +830,17 @@ fn is_matched_operation(
     second: &ComputedTransformOperation,
 ) -> bool {
     match (first, second) {
-        (&TransformOperation::Matrix(..), &TransformOperation::Matrix(..))
-        | (&TransformOperation::Matrix3D(..), &TransformOperation::Matrix3D(..))
-        | (&TransformOperation::Skew(..), &TransformOperation::Skew(..))
-        | (&TransformOperation::SkewX(..), &TransformOperation::SkewX(..))
-        | (&TransformOperation::SkewY(..), &TransformOperation::SkewY(..))
-        | (&TransformOperation::Rotate(..), &TransformOperation::Rotate(..))
-        | (&TransformOperation::Rotate3D(..), &TransformOperation::Rotate3D(..))
-        | (&TransformOperation::RotateX(..), &TransformOperation::RotateX(..))
-        | (&TransformOperation::RotateY(..), &TransformOperation::RotateY(..))
-        | (&TransformOperation::RotateZ(..), &TransformOperation::RotateZ(..))
-        | (&TransformOperation::Perspective(..), &TransformOperation::Perspective(..)) => true,
+        (&TransformOperation::Matrix(..), &TransformOperation::Matrix(..)) |
+        (&TransformOperation::Matrix3D(..), &TransformOperation::Matrix3D(..)) |
+        (&TransformOperation::Skew(..), &TransformOperation::Skew(..)) |
+        (&TransformOperation::SkewX(..), &TransformOperation::SkewX(..)) |
+        (&TransformOperation::SkewY(..), &TransformOperation::SkewY(..)) |
+        (&TransformOperation::Rotate(..), &TransformOperation::Rotate(..)) |
+        (&TransformOperation::Rotate3D(..), &TransformOperation::Rotate3D(..)) |
+        (&TransformOperation::RotateX(..), &TransformOperation::RotateX(..)) |
+        (&TransformOperation::RotateY(..), &TransformOperation::RotateY(..)) |
+        (&TransformOperation::RotateZ(..), &TransformOperation::RotateZ(..)) |
+        (&TransformOperation::Perspective(..), &TransformOperation::Perspective(..)) => true,
         // Match functions that have the same primitive transform function
         (a, b) if a.is_translate() && b.is_translate() => true,
         (a, b) if a.is_scale() && b.is_scale() => true,
@@ -895,21 +895,21 @@ impl Animate for ComputedTransform {
                 Procedure::Add => {
                     debug_assert!(false, "Should have already dealt with add by the point");
                     return Err(());
-                }
+                },
                 Procedure::Interpolate { progress } => {
                     result.push(TransformOperation::InterpolateMatrix {
                         from_list: Transform(this_remainder.to_vec().into()),
                         to_list: Transform(other_remainder.to_vec().into()),
                         progress: Percentage(progress as f32),
                     });
-                }
+                },
                 Procedure::Accumulate { count } => {
                     result.push(TransformOperation::AccumulateMatrix {
                         from_list: Transform(this_remainder.to_vec().into()),
                         to_list: Transform(other_remainder.to_vec().into()),
                         count: cmp::min(count, i32::max_value() as u64) as i32,
                     });
-                }
+                },
             },
             // If there is a remainder from just one list, then one list must be shorter but
             // completely match the type of the corresponding functions in the longer list.
@@ -925,8 +925,8 @@ impl Animate for ComputedTransform {
                             match transform {
                                 // We can't interpolate/accumulate ___Matrix types directly with a
                                 // matrix. Instead we need to wrap it in another ___Matrix type.
-                                TransformOperation::AccumulateMatrix { .. }
-                                | TransformOperation::InterpolateMatrix { .. } => {
+                                TransformOperation::AccumulateMatrix { .. } |
+                                TransformOperation::InterpolateMatrix { .. } => {
                                     let transform_list = Transform(vec![transform.clone()].into());
                                     let identity_list = Transform(vec![identity].into());
                                     let (from_list, to_list) = if fill_right {
@@ -943,7 +943,7 @@ impl Animate for ComputedTransform {
                                                 to_list,
                                                 progress: Percentage(progress as f32),
                                             })
-                                        }
+                                        },
                                         Procedure::Accumulate { count } => {
                                             Ok(TransformOperation::AccumulateMatrix {
                                                 from_list,
@@ -951,9 +951,9 @@ impl Animate for ComputedTransform {
                                                 count: cmp::min(count, i32::max_value() as u64)
                                                     as i32,
                                             })
-                                        }
+                                        },
                                     }
-                                }
+                                },
                                 _ => {
                                     let (lhs, rhs) = if fill_right {
                                         (transform, &identity)
@@ -961,13 +961,13 @@ impl Animate for ComputedTransform {
                                         (&identity, transform)
                                     };
                                     lhs.animate(rhs, procedure)
-                                }
+                                },
                             }
                         })
                         .collect::<Result<Vec<_>, _>>()?,
                 );
-            }
-            (None, None) => {}
+            },
+            (None, None) => {},
         }
 
         Ok(Transform(result.into()))
@@ -999,10 +999,10 @@ impl Animate for ComputedTransformOperation {
                 Ok(TransformOperation::Matrix3D(
                     this.animate(other, procedure)?,
                 ))
-            }
+            },
             (&TransformOperation::Matrix(ref this), &TransformOperation::Matrix(ref other)) => {
                 Ok(TransformOperation::Matrix(this.animate(other, procedure)?))
-            }
+            },
             (
                 &TransformOperation::Skew(ref fx, ref fy),
                 &TransformOperation::Skew(ref tx, ref ty),
@@ -1012,10 +1012,10 @@ impl Animate for ComputedTransformOperation {
             )),
             (&TransformOperation::SkewX(ref f), &TransformOperation::SkewX(ref t)) => {
                 Ok(TransformOperation::SkewX(f.animate(t, procedure)?))
-            }
+            },
             (&TransformOperation::SkewY(ref f), &TransformOperation::SkewY(ref t)) => {
                 Ok(TransformOperation::SkewY(f.animate(t, procedure)?))
-            }
+            },
             (
                 &TransformOperation::Translate3D(ref fx, ref fy, ref fz),
                 &TransformOperation::Translate3D(ref tx, ref ty, ref tz),
@@ -1033,13 +1033,13 @@ impl Animate for ComputedTransformOperation {
             )),
             (&TransformOperation::TranslateX(ref f), &TransformOperation::TranslateX(ref t)) => {
                 Ok(TransformOperation::TranslateX(f.animate(t, procedure)?))
-            }
+            },
             (&TransformOperation::TranslateY(ref f), &TransformOperation::TranslateY(ref t)) => {
                 Ok(TransformOperation::TranslateY(f.animate(t, procedure)?))
-            }
+            },
             (&TransformOperation::TranslateZ(ref f), &TransformOperation::TranslateZ(ref t)) => {
                 Ok(TransformOperation::TranslateZ(f.animate(t, procedure)?))
-            }
+            },
             (
                 &TransformOperation::Scale3D(ref fx, ref fy, ref fz),
                 &TransformOperation::Scale3D(ref tx, ref ty, ref tz),
@@ -1072,25 +1072,25 @@ impl Animate for ComputedTransformOperation {
                     .animate(&Rotate::Rotate3D(tx, ty, tz, ta), procedure)?;
                 let (fx, fy, fz, fa) = ComputedRotate::resolve(&animated);
                 Ok(TransformOperation::Rotate3D(fx, fy, fz, fa))
-            }
+            },
             (&TransformOperation::RotateX(fa), &TransformOperation::RotateX(ta)) => {
                 Ok(TransformOperation::RotateX(fa.animate(&ta, procedure)?))
-            }
+            },
             (&TransformOperation::RotateY(fa), &TransformOperation::RotateY(ta)) => {
                 Ok(TransformOperation::RotateY(fa.animate(&ta, procedure)?))
-            }
+            },
             (&TransformOperation::RotateZ(fa), &TransformOperation::RotateZ(ta)) => {
                 Ok(TransformOperation::RotateZ(fa.animate(&ta, procedure)?))
-            }
+            },
             (&TransformOperation::Rotate(fa), &TransformOperation::Rotate(ta)) => {
                 Ok(TransformOperation::Rotate(fa.animate(&ta, procedure)?))
-            }
+            },
             (&TransformOperation::Rotate(fa), &TransformOperation::RotateZ(ta)) => {
                 Ok(TransformOperation::Rotate(fa.animate(&ta, procedure)?))
-            }
+            },
             (&TransformOperation::RotateZ(fa), &TransformOperation::Rotate(ta)) => {
                 Ok(TransformOperation::Rotate(fa.animate(&ta, procedure)?))
-            }
+            },
             (
                 &TransformOperation::Perspective(ref fd),
                 &TransformOperation::Perspective(ref td),
@@ -1120,13 +1120,13 @@ impl Animate for ComputedTransformOperation {
                 Ok(TransformOperation::Perspective(CSSPixelLength::new(
                     used_value,
                 )))
-            }
+            },
             _ if self.is_translate() && other.is_translate() => self
                 .to_translate_3d()
                 .animate(&other.to_translate_3d(), procedure),
             _ if self.is_scale() && other.is_scale() => {
                 self.to_scale_3d().animate(&other.to_scale_3d(), procedure)
-            }
+            },
             _ if self.is_rotate() && other.is_rotate() => self
                 .to_rotate_3d()
                 .animate(&other.to_rotate_3d(), procedure),
@@ -1144,20 +1144,20 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
         match (self, other) {
             (&TransformOperation::Matrix3D(ref this), &TransformOperation::Matrix3D(ref other)) => {
                 this.compute_squared_distance(other)
-            }
+            },
             (&TransformOperation::Matrix(ref this), &TransformOperation::Matrix(ref other)) => {
                 let this: Matrix3D = (*this).into();
                 let other: Matrix3D = (*other).into();
                 this.compute_squared_distance(&other)
-            }
+            },
             (
                 &TransformOperation::Skew(ref fx, ref fy),
                 &TransformOperation::Skew(ref tx, ref ty),
             ) => Ok(fx.compute_squared_distance(&tx)? + fy.compute_squared_distance(&ty)?),
-            (&TransformOperation::SkewX(ref f), &TransformOperation::SkewX(ref t))
-            | (&TransformOperation::SkewY(ref f), &TransformOperation::SkewY(ref t)) => {
+            (&TransformOperation::SkewX(ref f), &TransformOperation::SkewX(ref t)) |
+            (&TransformOperation::SkewY(ref f), &TransformOperation::SkewY(ref t)) => {
                 f.compute_squared_distance(&t)
-            }
+            },
             (
                 &TransformOperation::Translate3D(ref fx, ref fy, ref fz),
                 &TransformOperation::Translate3D(ref tx, ref ty, ref tz),
@@ -1173,33 +1173,33 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
                 let tx = tx.length_component().px();
                 let ty = ty.length_component().px();
 
-                Ok(fx.compute_squared_distance(&tx)?
-                    + fy.compute_squared_distance(&ty)?
-                    + fz.compute_squared_distance(&tz)?)
-            }
+                Ok(fx.compute_squared_distance(&tx)? +
+                    fy.compute_squared_distance(&ty)? +
+                    fz.compute_squared_distance(&tz)?)
+            },
             (
                 &TransformOperation::Scale3D(ref fx, ref fy, ref fz),
                 &TransformOperation::Scale3D(ref tx, ref ty, ref tz),
-            ) => Ok(fx.compute_squared_distance(&tx)?
-                + fy.compute_squared_distance(&ty)?
-                + fz.compute_squared_distance(&tz)?),
+            ) => Ok(fx.compute_squared_distance(&tx)? +
+                fy.compute_squared_distance(&ty)? +
+                fz.compute_squared_distance(&tz)?),
             (
                 &TransformOperation::Rotate3D(fx, fy, fz, fa),
                 &TransformOperation::Rotate3D(tx, ty, tz, ta),
             ) => Rotate::Rotate3D(fx, fy, fz, fa)
                 .compute_squared_distance(&Rotate::Rotate3D(tx, ty, tz, ta)),
-            (&TransformOperation::RotateX(fa), &TransformOperation::RotateX(ta))
-            | (&TransformOperation::RotateY(fa), &TransformOperation::RotateY(ta))
-            | (&TransformOperation::RotateZ(fa), &TransformOperation::RotateZ(ta))
-            | (&TransformOperation::Rotate(fa), &TransformOperation::Rotate(ta)) => {
+            (&TransformOperation::RotateX(fa), &TransformOperation::RotateX(ta)) |
+            (&TransformOperation::RotateY(fa), &TransformOperation::RotateY(ta)) |
+            (&TransformOperation::RotateZ(fa), &TransformOperation::RotateZ(ta)) |
+            (&TransformOperation::Rotate(fa), &TransformOperation::Rotate(ta)) => {
                 fa.compute_squared_distance(&ta)
-            }
+            },
             (
                 &TransformOperation::Perspective(ref fd),
                 &TransformOperation::Perspective(ref td),
             ) => fd.compute_squared_distance(td),
-            (&TransformOperation::Perspective(ref p), &TransformOperation::Matrix3D(ref m))
-            | (&TransformOperation::Matrix3D(ref m), &TransformOperation::Perspective(ref p)) => {
+            (&TransformOperation::Perspective(ref p), &TransformOperation::Matrix3D(ref m)) |
+            (&TransformOperation::Matrix3D(ref m), &TransformOperation::Perspective(ref p)) => {
                 // FIXME(emilio): Is this right? Why interpolating this with
                 // Perspective but not with anything else?
                 let mut p_matrix = Matrix3D::identity();
@@ -1207,7 +1207,7 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
                     p_matrix.m34 = -1. / p.px();
                 }
                 p_matrix.compute_squared_distance(&m)
-            }
+            },
             // Gecko cross-interpolates amongst all translate and all scale
             // functions (See ToPrimitive in layout/style/StyleAnimationValue.cpp)
             // without falling back to InterpolateMatrix
@@ -1260,7 +1260,7 @@ impl Animate for ComputedRotate {
                     fz,
                     fa.animate(&Angle::zero(), procedure)?,
                 ))
-            }
+            },
             (&Rotate::None, &Rotate::Rotate3D(tx, ty, tz, ta)) => {
                 // Normalize direction vector first.
                 let (tx, ty, tz, ta) = transform::get_normalized_vector_and_angle(tx, ty, tz, ta);
@@ -1270,7 +1270,7 @@ impl Animate for ComputedRotate {
                     tz,
                     Angle::zero().animate(&ta, procedure)?,
                 ))
-            }
+            },
             (&Rotate::Rotate3D(_, ..), _) | (_, &Rotate::Rotate3D(_, ..)) => {
                 let (from, to) = (self.resolve(), other.resolve());
                 let (mut fx, mut fy, mut fz, fa) =
@@ -1306,12 +1306,12 @@ impl Animate for ComputedRotate {
                 );
 
                 Ok(Rotate::Rotate3D(x, y, z, Angle::from_radians(angle)))
-            }
+            },
             (&Rotate::Rotate(_), _) | (_, &Rotate::Rotate(_)) => {
                 // If this is a 2D rotation, we just animate the <angle>
                 let (from, to) = (self.resolve().3, other.resolve().3);
                 Ok(Rotate::Rotate(from.animate(&to, procedure)?))
-            }
+            },
         }
     }
 }
@@ -1321,10 +1321,10 @@ impl ComputeSquaredDistance for ComputedRotate {
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         match (self, other) {
             (&Rotate::None, &Rotate::None) => Ok(SquaredDistance::from_sqrt(0.)),
-            (&Rotate::Rotate3D(_, _, _, a), &Rotate::None)
-            | (&Rotate::None, &Rotate::Rotate3D(_, _, _, a)) => {
+            (&Rotate::Rotate3D(_, _, _, a), &Rotate::None) |
+            (&Rotate::None, &Rotate::Rotate3D(_, _, _, a)) => {
                 a.compute_squared_distance(&Angle::zero())
-            }
+            },
             (&Rotate::Rotate3D(_, ..), _) | (_, &Rotate::Rotate3D(_, ..)) => {
                 let (from, to) = (self.resolve(), other.resolve());
                 let (mut fx, mut fy, mut fz, angle1) =
@@ -1351,7 +1351,7 @@ impl ComputeSquaredDistance for ComputedRotate {
                     let q2 = Quaternion::from_direction_and_angle(&v2, angle2.radians64());
                     q1.compute_squared_distance(&q2)
                 }
-            }
+            },
             (&Rotate::Rotate(_), _) | (_, &Rotate::Rotate(_)) => self
                 .resolve()
                 .3
@@ -1390,7 +1390,7 @@ impl Animate for ComputedTranslate {
                     from.1.animate(&to.1, procedure)?,
                     from.2.animate(&to.2, procedure)?,
                 ))
-            }
+            },
         }
     }
 }
@@ -1399,9 +1399,9 @@ impl ComputeSquaredDistance for ComputedTranslate {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         let (from, to) = (self.resolve(), other.resolve());
-        Ok(from.0.compute_squared_distance(&to.0)?
-            + from.1.compute_squared_distance(&to.1)?
-            + from.2.compute_squared_distance(&to.2)?)
+        Ok(from.0.compute_squared_distance(&to.0)? +
+            from.1.compute_squared_distance(&to.1)? +
+            from.2.compute_squared_distance(&to.2)?)
     }
 }
 
@@ -1439,7 +1439,7 @@ impl Animate for ComputedScale {
                     animate_multiplicative_factor(from.1, to.1, procedure)?,
                     animate_multiplicative_factor(from.2, to.2, procedure)?,
                 ))
-            }
+            },
         }
     }
 }
@@ -1448,8 +1448,8 @@ impl ComputeSquaredDistance for ComputedScale {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         let (from, to) = (self.resolve(), other.resolve());
-        Ok(from.0.compute_squared_distance(&to.0)?
-            + from.1.compute_squared_distance(&to.1)?
-            + from.2.compute_squared_distance(&to.2)?)
+        Ok(from.0.compute_squared_distance(&to.0)? +
+            from.1.compute_squared_distance(&to.1)? +
+            from.2.compute_squared_distance(&to.2)?)
     }
 }

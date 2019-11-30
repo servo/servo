@@ -283,7 +283,9 @@ impl RuleTree {
             if any_important {
                 found_important = true;
                 match level {
-                    AuthorNormal { shadow_cascade_order } => {
+                    AuthorNormal {
+                        shadow_cascade_order,
+                    } => {
                         important_author.push((source.clone(), shadow_cascade_order));
                     },
                     UANormal => important_ua.push(source.clone()),
@@ -344,9 +346,13 @@ impl RuleTree {
         }
 
         for (source, shadow_cascade_order) in important_author.drain() {
-            current = current.ensure_child(self.root.downgrade(), source, AuthorImportant {
-                shadow_cascade_order: -shadow_cascade_order,
-            });
+            current = current.ensure_child(
+                self.root.downgrade(),
+                source,
+                AuthorImportant {
+                    shadow_cascade_order: -shadow_cascade_order,
+                },
+            );
         }
 
         for source in important_user.drain() {
@@ -496,12 +502,7 @@ impl RuleTree {
         if current.get().level == level {
             *important_rules_changed |= level.is_important();
 
-            let current_decls = current
-                .get()
-                .source
-                .as_ref()
-                .unwrap()
-                .as_declarations();
+            let current_decls = current.get().source.as_ref().unwrap().as_declarations();
 
             // If the only rule at the level we're replacing is exactly the
             // same as `pdb`, we're done, and `path` is still valid.
@@ -701,10 +702,14 @@ impl CascadeLevel {
             Self::UANormal => (0, 0),
             Self::UserNormal => (1, 0),
             Self::PresHints => (2, 0),
-            Self::AuthorNormal { shadow_cascade_order } => (3, shadow_cascade_order.0),
+            Self::AuthorNormal {
+                shadow_cascade_order,
+            } => (3, shadow_cascade_order.0),
             Self::SMILOverride => (4, 0),
             Self::Animations => (5, 0),
-            Self::AuthorImportant { shadow_cascade_order } => (6, shadow_cascade_order.0),
+            Self::AuthorImportant {
+                shadow_cascade_order,
+            } => (6, shadow_cascade_order.0),
             Self::UserImportant => (7, 0),
             Self::UAImportant => (8, 0),
             Self::Transitions => (9, 0),
@@ -727,20 +732,28 @@ impl CascadeLevel {
         let order = {
             let abs = ((b & 0b01110000) >> 4) as i8;
             let negative = b & 0b10000000 != 0;
-            if negative { -abs } else { abs }
+            if negative {
+                -abs
+            } else {
+                abs
+            }
         };
         let discriminant = b & 0xf;
         let level = match discriminant {
             0 => Self::UANormal,
             1 => Self::UserNormal,
             2 => Self::PresHints,
-            3 => return Self::AuthorNormal {
-                shadow_cascade_order: ShadowCascadeOrder(order),
+            3 => {
+                return Self::AuthorNormal {
+                    shadow_cascade_order: ShadowCascadeOrder(order),
+                }
             },
             4 => Self::SMILOverride,
             5 => Self::Animations,
-            6 => return Self::AuthorImportant {
-                shadow_cascade_order: ShadowCascadeOrder(order),
+            6 => {
+                return Self::AuthorImportant {
+                    shadow_cascade_order: ShadowCascadeOrder(order),
+                }
             },
             7 => Self::UserImportant,
             8 => Self::UAImportant,
@@ -1550,9 +1563,7 @@ impl StrongRuleNode {
                             // FIXME(emilio): this looks wrong, this should
                             // do: if color is not transparent, then return
                             // true, or something.
-                            if let PropertyDeclaration::BackgroundColor(ref color) =
-                                *declaration
-                            {
+                            if let PropertyDeclaration::BackgroundColor(ref color) = *declaration {
                                 return *color == Color::transparent();
                             }
                         }
@@ -1567,9 +1578,7 @@ impl StrongRuleNode {
                     // However, if it is inherited, then it might be
                     // inherited from an author rule from an
                     // ancestor element's rule nodes.
-                    if declaration.get_css_wide_keyword() ==
-                        Some(CSSWideKeyword::Inherit)
-                    {
+                    if declaration.get_css_wide_keyword() == Some(CSSWideKeyword::Inherit) {
                         have_explicit_ua_inherit = true;
                         inherited_properties.insert(id);
                     }

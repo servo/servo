@@ -36,12 +36,15 @@ const CASCADE_LEVEL_SHIFT: usize = SOURCE_ORDER_BITS;
 
 /// Stores the source order of a block, the cascade level it belongs to, and the
 /// counter needed to handle Shadow DOM cascade order properly.
-#[derive(Clone, Copy, Eq, MallocSizeOf, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
 struct ApplicableDeclarationBits(u32);
 
 impl ApplicableDeclarationBits {
     fn new(source_order: u32, cascade_level: CascadeLevel) -> Self {
-        Self((source_order & SOURCE_ORDER_MASK) | ((cascade_level.to_byte_lossy() as u32) << CASCADE_LEVEL_SHIFT))
+        Self(
+            (source_order & SOURCE_ORDER_MASK) |
+                ((cascade_level.to_byte_lossy() as u32) << CASCADE_LEVEL_SHIFT),
+        )
     }
 
     fn source_order(&self) -> u32 {
@@ -87,12 +90,7 @@ impl ApplicableDeclarationBlock {
 
     /// Constructs an applicable declaration block from the given components
     #[inline]
-    pub fn new(
-        source: StyleSource,
-        order: u32,
-        level: CascadeLevel,
-        specificity: u32,
-    ) -> Self {
+    pub fn new(source: StyleSource, order: u32, level: CascadeLevel, specificity: u32) -> Self {
         ApplicableDeclarationBlock {
             source,
             bits: ApplicableDeclarationBits::new(order, level),

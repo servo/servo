@@ -83,7 +83,10 @@ pub fn get_id(attrs: &[structs::AttrArray_InternalAttr]) -> Option<&WeakAtom> {
 }
 
 #[inline(always)]
-pub(super) fn exported_part(attrs: &[structs::AttrArray_InternalAttr], name: &Atom) -> Option<Atom> {
+pub(super) fn exported_part(
+    attrs: &[structs::AttrArray_InternalAttr],
+    name: &Atom,
+) -> Option<Atom> {
     let attr = find_attr(attrs, &atom!("exportparts"))?;
     let atom = unsafe { bindings::Gecko_Element_ExportedPart(attr, name.as_ptr()) };
     if atom.is_null() {
@@ -93,7 +96,10 @@ pub(super) fn exported_part(attrs: &[structs::AttrArray_InternalAttr], name: &At
 }
 
 #[inline(always)]
-pub(super) fn imported_part(attrs: &[structs::AttrArray_InternalAttr], name: &Atom) -> Option<Atom> {
+pub(super) fn imported_part(
+    attrs: &[structs::AttrArray_InternalAttr],
+    name: &Atom,
+) -> Option<Atom> {
     let attr = find_attr(attrs, &atom!("exportparts"))?;
     let atom = unsafe { bindings::Gecko_Element_ImportedPart(attr, name.as_ptr()) };
     if atom.is_null() {

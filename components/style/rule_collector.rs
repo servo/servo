@@ -4,7 +4,6 @@
 
 //! Collects a series of applicable rules for a given element.
 
-use crate::Atom;
 use crate::applicable_declarations::{ApplicableDeclarationBlock, ApplicableDeclarationList};
 use crate::dom::{TElement, TNode, TShadowRoot};
 use crate::properties::{AnimationRules, PropertyDeclarationBlock};
@@ -14,6 +13,7 @@ use crate::selector_parser::PseudoElement;
 use crate::shared_lock::Locked;
 use crate::stylesheets::Origin;
 use crate::stylist::{AuthorStylesEnabled, Rule, RuleInclusion, Stylist};
+use crate::Atom;
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode};
 use servo_arc::ArcBorrow;
 use smallvec::SmallVec;
@@ -261,7 +261,9 @@ where
             self.collect_rules_in_shadow_tree(
                 shadow.host(),
                 slotted_rules,
-                CascadeLevel::AuthorNormal { shadow_cascade_order },
+                CascadeLevel::AuthorNormal {
+                    shadow_cascade_order,
+                },
             );
         }
     }
@@ -312,7 +314,9 @@ where
         self.collect_rules_in_shadow_tree(
             rule_hash_target,
             host_rules,
-            CascadeLevel::AuthorNormal { shadow_cascade_order },
+            CascadeLevel::AuthorNormal {
+                shadow_cascade_order,
+            },
         );
     }
 

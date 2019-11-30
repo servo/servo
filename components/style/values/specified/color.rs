@@ -260,13 +260,9 @@ impl SystemColor {
             SystemColor::MozVisitedhyperlinktext => prefs.mVisitedLinkColor,
 
             _ => unsafe {
-                bindings::Gecko_GetLookAndFeelSystemColor(
-                    *self as i32,
-                    cx.device().document()
-                )
-            }
+                bindings::Gecko_GetLookAndFeelSystemColor(*self as i32, cx.device().document())
+            },
         })
-
     }
 }
 

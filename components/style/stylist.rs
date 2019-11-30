@@ -2325,12 +2325,7 @@ impl Rule {
         level: CascadeLevel,
     ) -> ApplicableDeclarationBlock {
         let source = StyleSource::from_rule(self.style_rule.clone());
-        ApplicableDeclarationBlock::new(
-            source,
-            self.source_order,
-            level,
-            self.specificity(),
-        )
+        ApplicableDeclarationBlock::new(source, self.source_order, level, self.specificity())
     }
 
     /// Creates a new Rule.

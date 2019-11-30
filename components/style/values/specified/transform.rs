@@ -12,7 +12,9 @@ use crate::values::generics::transform::{Matrix, Matrix3D};
 use crate::values::specified::position::{
     HorizontalPositionKeyword, Side, VerticalPositionKeyword,
 };
-use crate::values::specified::{self, Angle, Integer, Length, LengthPercentage, Number, NumberOrPercentage};
+use crate::values::specified::{
+    self, Angle, Integer, Length, LengthPercentage, Number, NumberOrPercentage,
+};
 use crate::Zero;
 use cssparser::Parser;
 use style_traits::{ParseError, StyleParseErrorKind};

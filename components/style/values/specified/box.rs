@@ -1153,7 +1153,7 @@ fn change_bits_for_longhand(longhand: LonghandId) -> WillChangeBits {
         #[cfg(feature = "gecko")]
         LonghandId::Translate | LonghandId::Rotate | LonghandId::Scale | LonghandId::OffsetPath => {
             WillChangeBits::TRANSFORM
-        }
+        },
         _ => WillChangeBits::empty(),
     };
 
