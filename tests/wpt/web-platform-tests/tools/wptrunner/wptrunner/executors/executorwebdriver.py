@@ -1,7 +1,6 @@
 import json
 import os
 import socket
-import sys
 import threading
 import time
 import traceback
@@ -12,7 +11,7 @@ from .base import (CallbackHandler,
                    RefTestExecutor,
                    RefTestImplementation,
                    TestharnessExecutor,
-                   extra_timeout,
+                   TimedRunner,
                    strip_server)
 from .protocol import (BaseProtocolPart,
                        TestharnessProtocolPart,
@@ -256,7 +255,6 @@ class WebDriverProtocol(Protocol):
         self.webdriver = client.Session(host, port, capabilities=capabilities)
         self.webdriver.start()
 
-
     def teardown(self):
         self.logger.debug("Hanging up on WebDriver session")
         try:
@@ -281,42 +279,15 @@ class WebDriverProtocol(Protocol):
         self.testharness.load_runner(self.executor.last_environment["protocol"])
 
 
-class WebDriverRun(object):
-    def __init__(self, func, protocol, url, timeout):
-        self.func = func
-        self.result = None
-        self.protocol = protocol
-        self.url = url
-        self.timeout = timeout
-        self.result_flag = threading.Event()
-
-    def run(self):
-        timeout = self.timeout
-
+class WebDriverRun(TimedRunner):
+    def set_timeout(self):
         try:
-            self.protocol.base.set_timeout(timeout + extra_timeout)
+            self.protocol.base.set_timeout(self.timeout + self.extra_timeout)
         except client.UnknownErrorException:
             self.logger.error("Lost WebDriver connection")
             return Stop
 
-        executor = threading.Thread(target=self._run)
-        executor.start()
-
-        flag = self.result_flag.wait(timeout + 2 * extra_timeout)
-        if self.result is None:
-            if flag:
-                # flag is True unless we timeout; this *shouldn't* happen, but
-                # it can if self._run fails to set self.result due to raising
-                self.result = False, ("INTERNAL-ERROR", "self._run didn't set a result")
-            else:
-                message = "Waiting on browser:\n"
-                # get a traceback for the current stack of the executor thread
-                message += "".join(traceback.format_stack(sys._current_frames()[executor.ident]))
-                self.result = False, ("EXTERNAL-TIMEOUT", message)
-
-        return self.result
-
-    def _run(self):
+    def run_func(self):
         try:
             self.result = True, self.func(self.protocol, self.url, self.timeout)
         except (client.TimeoutException, client.ScriptTimeoutException):
@@ -366,10 +337,12 @@ class WebDriverTestharnessExecutor(TestharnessExecutor):
     def do_test(self, test):
         url = self.test_url(test)
 
-        success, data = WebDriverRun(self.do_testharness,
-                                    self.protocol,
-                                    url,
-                                    test.timeout * self.timeout_multiplier).run()
+        success, data = WebDriverRun(self.logger,
+                                     self.do_testharness,
+                                     self.protocol,
+                                     url,
+                                     test.timeout * self.timeout_multiplier,
+                                     self.extra_timeout).run()
 
         if success:
             return self.convert_result(test, data)
@@ -485,10 +458,12 @@ class WebDriverRefTestExecutor(RefTestExecutor):
         assert viewport_size is None
         assert dpi is None
 
-        return WebDriverRun(self._screenshot,
-                           self.protocol,
-                           self.test_url(test),
-                           test.timeout).run()
+        return WebDriverRun(self.logger,
+                            self._screenshot,
+                            self.protocol,
+                            self.test_url(test),
+                            test.timeout,
+                            self.extra_timeout).run()
 
     def _screenshot(self, protocol, url, timeout):
         webdriver = protocol.webdriver

@@ -8,30 +8,48 @@
 </script>
 <script src='resources/helpers.js'></script>
 <script>
-const worker_url = 'serviceworker_cookieStore_subscriptions_reset.sub.js';
-const scope = '/cookie-store/';
-
-async function getSubscriptionCount(serviceWorker) {
-  return sendMessageOverChannel('', serviceWorker);
-}
+'use strict';
 
 promise_test(async t => {
   const registration = await service_worker_unregister_and_register(
-      t, worker_url, scope);
+      t, 'resources/empty_sw.js', 'resources/does/not/exist');
   t.add_cleanup(() => registration.unregister());
   await wait_for_state(t, registration.installing, 'activated');
-  assert_equals(await getSubscriptionCount(registration.active), 1,
+  await registration.cookies.subscribe(
+      [{ name: 'cookie-name', matchType: 'equals' }]);
+  const original_subscriptions = await registration.cookies.getSubscriptions();
+  assert_equals(original_subscriptions.length, 1,
                 'subscription count before unregistration');
 
   await registration.unregister();
 
   const new_registration = await navigator.serviceWorker.register(
-      worker_url, { scope });
+    'resources/empty_sw.js', { scope: 'resources/does/not/exist' });
   t.add_cleanup(() => new_registration.unregister());
   await wait_for_state(t, new_registration.installing, 'activated');
 
-  assert_equals(await getSubscriptionCount(new_registration.active), 1,
+  const new_subscriptions = await new_registration.cookies.getSubscriptions();
+  assert_equals(new_subscriptions.length, 0,
                 'subscription count after unregistration');
-}, `cookiechange subscription list resets across service worker
-    unregistrations`);
+}, 'cookiechange subscriptions reset across service worker unregistrations');
+
+promise_test(async t => {
+  const registration = await service_worker_unregister_and_register(
+      t, 'resources/always_changing_sw.sub.js', 'resources/does/not/exist');
+  t.add_cleanup(() => registration.unregister());
+  await wait_for_state(t, registration.installing, 'activated');
+  await registration.cookies.subscribe(
+      [{ name: 'cookie-name', matchType: 'equals' }]);
+  const original_subscriptions = await registration.cookies.getSubscriptions();
+  assert_equals(original_subscriptions.length, 1,
+                'subscription count before update');
+
+  await registration.update();
+  const worker = await wait_for_update(t, registration);
+  await wait_for_state(t, worker, 'activated');
+
+  const update_subscriptions = await registration.cookies.getSubscriptions();
+  assert_equals(update_subscriptions.length, 1,
+                'subscription count after update');
+}, 'cookiechange subscriptions persist across service worker updates');
 </script>

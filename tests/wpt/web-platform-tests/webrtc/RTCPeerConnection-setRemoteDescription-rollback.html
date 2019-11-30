@@ -216,8 +216,32 @@
 
     await pc2.setRemoteDescription({type: "rollback"});
     assert_equals(pc2.getTransceivers().length, 1);
-    assert_equals(pc2.getTransceivers()[0].mid, null)
+    assert_equals(pc2.getTransceivers()[0].mid, null);
+    assert_equals(pc2.getTransceivers()[0].receiver.transport, null);
   }, "rollback of a remote offer should keep a transceiver");
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const stream = await getNoiseStream({video: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    pc1.addTrack(stream.getTracks()[0], stream);
+
+    const stream2 = await getNoiseStream({video: true});
+    t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
+    pc2.addTrack(stream2.getTracks()[0], stream2);
+
+    await pc2.setRemoteDescription(await pc1.createOffer());
+    assert_equals(pc2.getTransceivers().length, 1);
+
+    await pc2.setRemoteDescription({type: "rollback"});
+    assert_equals(pc2.getTransceivers().length, 1);
+    assert_equals(pc2.getTransceivers()[0].mid, null);
+    assert_equals(pc2.getTransceivers()[0].receiver.transport, null);
+  }, "rollback of a remote offer should keep a transceiver created by addtrack");
 
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();
@@ -257,14 +281,16 @@
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
+    assert_not_equals(pc.getTransceivers()[0].sender.transport, null);
     await pc.setRemoteDescription({type: "rollback"});
     assert_equals(pc.getTransceivers().length, 1);
     assert_equals(pc.getTransceivers()[0].mid, null)
+    assert_equals(pc.getTransceivers()[0].sender.transport, null);
     await pc.setLocalDescription(offer);
     assert_equals(pc.getTransceivers().length, 1);
     await signalingstatechangeResolver.promise;
     assert_array_equals(states, ['have-local-offer', 'stable', 'have-local-offer']);
-  }, "rollback local offer explicitly");
+  }, "explicit rollback of local offer should remove transceivers and transport");
 
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();
@@ -486,7 +512,6 @@
 
     await pc1.setLocalDescription(offer1);
     await pc2.setRemoteDescription(pc1.pendingLocalDescription);
-
     await pc2.setLocalDescription(await pc2.createAnswer());
     await pc1.setRemoteDescription(pc2.localDescription);
 
@@ -505,8 +530,11 @@
     assert_equals(remoteStreams[0].getTracks().length, 0);
     assert_equals(remoteStreams[1].getTracks()[0].id, track.id);
     await pc2.setRemoteDescription({type: "rollback"});
-    assert_equals(remoteStreams[0].getTracks().length, 1);
-    assert_equals(remoteStreams[0].getTracks()[0].id, track.id);
+    assert_equals(remoteStreams.length, 3);
+    assert_equals(remoteStreams[0].id, remoteStreams[2].id);
+    assert_equals(remoteStreams[1].getTracks().length, 0);
+    assert_equals(remoteStreams[2].getTracks().length, 1);
+    assert_equals(remoteStreams[2].getTracks()[0].id, track.id);
 
   }, "rollback of a remote offer with stream changes");
 

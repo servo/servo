@@ -4,26 +4,6 @@ self.GLOBAL = {
 };
 importScripts("/resources/testharness.js");
 
-self.addEventListener('install', (event) => {
-  event.waitUntil((async () => {
-    // The subscribeToChanges calls are not done in parallel on purpose. Having
-    // multiple in-flight requests introduces failure modes aside from the
-    // cookie change logic that this test aims to cover.
-    try {
-      await cookieStore.subscribeToChanges([
-        { name: 'cookie-name1', matchType: 'equals', url: '/cookie-store/path1' }]);
-      await cookieStore.subscribeToChanges([
-        { },  // Test the default values for subscription properties.
-        { name: 'cookie-prefix', matchType: 'starts-with' },
-      ]);
-
-      // If the worker enters the "redundant" state, the UA may terminate it
-      // before all tests have been reported to the client. Stifle errors in
-      // order to avoid this and ensure all tests are consistently reported.
-    } catch (err) {}
-  })());
-});
-
 // Resolves when the service worker receives the 'activate' event.
 const kServiceWorkerActivatedPromise = new Promise(resolve => {
   self.addEventListener('activate', event => { resolve(); });
@@ -41,7 +21,23 @@ function CompareStrings(a, b) {
 promise_test(async testCase => {
   await kServiceWorkerActivatedPromise;
 
-  const subscriptions = await cookieStore.getChangeSubscriptions();
+  {
+    const subscriptions = [
+      { name: 'cookie-name1', matchType: 'equals', url: '/cookie-store/path1' },
+    ];
+    await registration.cookies.subscribe(subscriptions);
+    testCase.add_cleanup(() => registration.cookies.unsubscribe(subscriptions));
+  }
+  {
+    const subscriptions = [
+      { },  // Test the default values for subscription properties.
+      { name: 'cookie-prefix', matchType: 'starts-with' },
+    ];
+    await registration.cookies.subscribe(subscriptions);
+    testCase.add_cleanup(() => registration.cookies.unsubscribe(subscriptions));
+  }
+
+  const subscriptions = await registration.cookies.getSubscriptions();
   assert_equals(subscriptions.length, 3);
 
   subscriptions.sort((a, b) => CompareStrings(`${a.name}`, `${b.name}`));
@@ -54,20 +50,13 @@ promise_test(async testCase => {
 
   assert_false('name' in subscriptions[2]);
   assert_equals('starts-with', subscriptions[2].matchType);
-}, 'getChangeSubscriptions returns subscriptions passed to subscribeToChanges');
-
-promise_test(async testCase => {
-  promise_rejects(
-      testCase, new TypeError(),
-      cookieStore.subscribeToChanges([{ name: 'cookie-name2' }]));
-}, 'subscribeToChanges rejects when called outside the install handler');
-
+}, 'getSubscriptions returns subscriptions passed to subscribe');
 
 // Accumulates cookiechange events dispatched to the service worker.
 let g_cookie_changes = [];
 
 // Resolved when a cookiechange event is received. Rearmed by
-// ResetCookieChangeReceivedPromise().
+// RearmCookieChangeReceivedPromise().
 let g_cookie_change_received_promise = null;
 let g_cookie_change_received_promise_resolver = null;
 self.addEventListener('cookiechange', (event) => {
@@ -84,6 +73,22 @@ RearmCookieChangeReceivedPromise();
 
 promise_test(async testCase => {
   await kServiceWorkerActivatedPromise;
+
+  {
+    const subscriptions = [
+      { name: 'cookie-name1', matchType: 'equals', url: '/cookie-store/path1' },
+    ];
+    await registration.cookies.subscribe(subscriptions);
+    testCase.add_cleanup(() => registration.cookies.unsubscribe(subscriptions));
+  }
+  {
+    const subscriptions = [
+      { },  // Test the default values for subscription properties.
+      { name: 'cookie-prefix', matchType: 'starts-with' },
+    ];
+    await registration.cookies.subscribe(subscriptions);
+    testCase.add_cleanup(() => registration.cookies.unsubscribe(subscriptions));
+  }
 
   await cookieStore.set('cookie-name', 'cookie-value');
   testCase.add_cleanup(async () => {

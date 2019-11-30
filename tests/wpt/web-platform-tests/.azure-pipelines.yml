@@ -16,8 +16,13 @@
 #    https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/v2-windows
 
 trigger:
-- epochs/*
-- triggers/*
+# These are all the branches referenced in the jobs that follow.
+- epochs/daily
+- epochs/three_hourly
+- triggers/edge_dev
+- triggers/edge_canary
+- triggers/safari_stable
+- triggers/safari_preview
 
 jobs:
 # The affected tests jobs are unconditional for speed, as most PRs have one or

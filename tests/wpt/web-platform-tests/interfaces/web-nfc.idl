@@ -13,6 +13,8 @@ dictionary NDEFMessageInit {
   required sequence<NDEFRecordInit> records;
 };
 
+typedef (DOMString or BufferSource or NDEFMessageInit) NDEFRecordDataSource;
+
 [Exposed=Window]
 interface NDEFRecord {
   constructor(NDEFRecordInit recordInit);
@@ -36,7 +38,7 @@ dictionary NDEFRecordInit {
   USVString encoding;
   USVString lang;
 
-  any data;
+  NDEFRecordDataSource data;
 };
 
 typedef (DOMString or BufferSource or NDEFMessageInit) NDEFMessageSource;

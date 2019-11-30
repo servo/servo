@@ -1,0 +1,370 @@
+components:
+  wpt-base:
+    provisionerId: proj-wpt
+    workerType: ci
+    schedulerId: taskcluster-github
+    deadline: "24 hours"
+    image: harjgam/web-platform-tests:0.33
+    maxRunTime: 7200
+    artifacts:
+      public/results:
+        path: /home/test/artifacts
+        type: directory
+
+  wpt-testharness:
+    chunks: 16
+    vars:
+      test-type: testharness
+
+  wpt-reftest:
+    chunks: 5
+    vars:
+      test-type: reftest
+
+  wpt-wdspec:
+    chunks: 1
+    vars:
+      test-type: wdspec
+
+  run-options:
+    options:
+      xvfb: true
+      oom-killer: true
+      hosts: true
+      install-certificates: true
+
+  wpt-run:
+    name: wpt-${vars.browser}-${vars.channel}-${vars.suite}-${chunks.id}
+    options:
+      browser:
+        - ${vars.browser}
+      channel: ${vars.channel}
+    command: >-
+      ./tools/ci/taskcluster-run.py
+      ${vars.browser}
+      --
+      --channel=${vars.channel}
+      --log-wptreport=../artifacts/wpt_report.json
+      --log-wptscreenshot=../artifacts/wpt_screenshot.txt
+      --no-fail-on-unexpected
+      --this-chunk=${chunks.id}
+      --total-chunks=${chunks.total}
+      --test-type=${vars.suite}
+  trigger-master:
+    trigger:
+      branch:
+        - master
+
+  trigger-push:
+    trigger:
+      branch:
+        - triggers/${vars.browser}_${vars.channel}
+
+  trigger-daily:
+    trigger:
+      branch:
+        - epochs/daily
+
+  trigger-weekly:
+    trigger:
+      branch:
+        - epochs/weekly
+
+  trigger-pr:
+    trigger:
+      pull-request:
+
+  browser-firefox:
+    depends-on:
+      - download-firefox-${vars.channel}
+
+  browser-webkitgtk_minibrowser: {}
+
+  browser-chrome: {}
+
+  tox-python2:
+    env:
+      TOXENV: py27
+      PY_COLORS: 0
+
+  tox-python3:
+    env:
+      TOXENV: py36
+      PY_COLORS: 0
+    install:
+      - python3-pip
+
+  tests-affected:
+    options:
+      browser:
+        - ${vars.browser}
+      channel: ${vars.channel}
+    schedule-if:
+      run-job:
+        - affected_tests
+
+tasks:
+  # Run full suites on push
+  - $map:
+      for:
+        - vars:
+            suite: testharness
+        - vars:
+            suite: reftest
+        - vars:
+            suite: wdspec
+      do:
+        $map:
+          for:
+            - vars:
+                browser: firefox
+                channel: nightly
+              use:
+                - trigger-master
+                - trigger-push
+            - vars:
+                browser: firefox
+                channel: beta
+              use:
+                - trigger-weekly
+                - trigger-push
+            - vars:
+                browser: firefox
+                channel: stable
+              use:
+                - trigger-daily
+                - trigger-push
+            - vars:
+                browser: chrome
+                channel: dev
+              use:
+                - trigger-master
+                - trigger-push
+            - vars:
+                browser: chrome
+                channel: beta
+              use:
+                - trigger-weekly
+                - trigger-push
+            - vars:
+                browser: chrome
+                channel: stable
+              use:
+                - trigger-daily
+                - trigger-push
+            - vars:
+                browser: webkitgtk_minibrowser
+                channel: nightly
+              use:
+                - trigger-daily
+                - trigger-push
+            - vars:
+                browser: webkitgtk_minibrowser
+                channel: stable
+              use:
+                - trigger-weekly
+                - trigger-push
+
+          do:
+            - ${vars.browser}-${vars.channel}-${vars.suite}:
+                use:
+                  - wpt-base
+                  - run-options
+                  - wpt-run
+                  - browser-${vars.browser}
+                  - wpt-${vars.suite}
+                description: >-
+                  A subset of WPT's "${vars.suite}" tests (chunk number ${chunks.id}
+                  of ${chunks.total}), run in the ${vars.channel} release of
+                  ${vars.browser}.
+
+  - $map:
+      for:
+        - vars:
+            browser: firefox
+            channel: nightly
+        - vars:
+            browser: chrome
+            channel: dev
+      do:
+        - wpt-${vars.browser}-${vars.channel}-stability:
+            use:
+              - wpt-base
+              - run-options
+              - browser-${vars.browser}
+              - trigger-pr
+              - tests-affected
+            description: >-
+              Verify that all tests affected by a pull request are stable
+              when executed in ${vars.browser}.
+            command: >-
+              ./tools/ci/taskcluster-run.py
+              --commit-range base_head
+              ${vars.browser}
+              --
+              --channel=${vars.channel}
+              --verify
+
+        - wpt-${vars.browser}-${vars.channel}-results:
+            use:
+              - wpt-base
+              - run-options
+              - browser-${vars.browser}
+              - trigger-pr
+              - tests-affected
+            description: >-
+              Collect results for all tests affected by a pull request in
+              ${vars.browser}.
+            command: >-
+              ./tools/ci/taskcluster-run.py
+              --commit-range base_head
+              ${vars.browser}
+              --
+              --channel=${vars.channel}
+              --no-fail-on-unexpected
+              --log-wptreport=../artifacts/wpt_report.json
+              --log-wptscreenshot=../artifacts/wpt_screenshot.txt
+
+        - wpt-${vars.browser}-${vars.channel}-results-without-changes:
+            use:
+              - wpt-base
+              - run-options
+              - browser-${vars.browser}
+              - trigger-pr
+              - tests-affected
+            options:
+              checkout: base_head
+            description: >-
+              Collect results for all tests affected by a pull request in
+              ${vars.browser} but without the changes in the PR.
+            command: >-
+              ./tools/ci/taskcluster-run.py
+              --commit-range task_head
+              ${vars.browser}
+              --
+              --channel=${vars.channel}
+              --no-fail-on-unexpected
+              --log-wptreport=../artifacts/wpt_report.json
+              --log-wptscreenshot=../artifacts/wpt_screenshot.txt
+  - $map:
+      for:
+        - vars:
+            channel: nightly
+        - vars:
+            channel: beta
+        - vars:
+            channel: stable
+      do:
+        download-firefox-${vars.channel}:
+          use:
+            - wpt-base
+          command: "./wpt install --download-only --destination /home/test/artifacts/ --channel=${vars.channel} firefox browser"
+
+  - lint:
+      use:
+        - wpt-base
+        - trigger-master
+        - trigger-pr
+      description: >-
+        Lint for wpt-specific requirements
+      command: "./wpt lint --all"
+
+  - update-built:
+      use:
+        - wpt-base
+        - trigger-pr
+      schedule-if:
+        run-job:
+          - update_built
+      command: "./tools/ci/ci_built_diff.sh"
+
+  - tools/ unittests (Python 2):
+      use:
+        - wpt-base
+        - trigger-pr
+        - tox-python2
+      description: >-
+        Unit tests for tools running under Python 2.7, excluding wptrunner
+      command: ./tools/ci/ci_tools_unittest.sh
+      env:
+        HYPOTHESIS_PROFILE: ci
+      schedule-if:
+        run-job:
+          - tools_unittest
+
+  - tools/ unittests (Python 3):
+      description: >-
+        Unit tests for tools running under Python 3, excluding wptrunner
+      use:
+        - wpt-base
+        - trigger-pr
+        - tox-python3
+      command: ./tools/ci/ci_tools_unittest.sh
+      env:
+        HYPOTHESIS_PROFILE: ci
+      schedule-if:
+        run-job:
+          - tools_unittest
+
+  - tools/wpt/ tests:
+      description: >-
+        Integration tests for wpt commands
+      use:
+        - wpt-base
+        - trigger-pr
+        - tox-python2
+      command: ./tools/ci/ci_wpt.sh
+      install:
+        - libnss3-tools
+      options:
+        oom-killer: true
+        browser:
+          - firefox
+          - chrome
+        channel: experimental
+        xvfb: true
+        hosts: true
+      schedule-if:
+        run-job:
+          - wpt_integration
+
+  - resources/ tests:
+      description: >-
+        Tests for testharness.js and other files in resources/
+      use:
+        - wpt-base
+        - trigger-pr
+        - tox-python2
+      command: ./tools/ci/ci_resources_unittest.sh
+      options:
+        browser:
+          - firefox
+        xvfb: true
+        hosts: true
+      schedule-if:
+        run-job:
+          - resources_unittest
+
+  - infrastructure/ tests:
+      description: >-
+        Smoketests for wptrunner
+      use:
+        - wpt-base
+        - trigger-pr
+        - tox-python2
+      command: ./tools/ci/ci_wptrunner_infrastructure.sh
+      install:
+        - libnss3-tools
+        - libappindicator1
+        - fonts-liberation
+      options:
+        oom-killer: true
+        browser:
+          - firefox
+          - chrome
+        channel: experimental
+        xvfb: true
+        hosts: false
+      schedule-if:
+        run-job:
+          - wptrunner_infrastructure

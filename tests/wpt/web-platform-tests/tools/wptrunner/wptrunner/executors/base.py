@@ -7,6 +7,7 @@ import os
 import threading
 import traceback
 import socket
+import sys
 from six.moves.urllib.parse import urljoin, urlsplit, urlunsplit
 from abc import ABCMeta, abstractmethod
 
@@ -14,10 +15,6 @@ from ..testrunner import Stop
 from .protocol import Protocol, BaseProtocolPart
 
 here = os.path.split(__file__)[0]
-
-# Extra timeout to use after internal test timeout at which the harness
-# should force a timeout
-extra_timeout = 5  # seconds
 
 
 def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
@@ -130,6 +127,61 @@ class ExecutorException(Exception):
         self.message = message
 
 
+class TimedRunner(object):
+    def __init__(self, logger, func, protocol, url, timeout, extra_timeout):
+        self.func = func
+        self.result = None
+        self.protocol = protocol
+        self.url = url
+        self.timeout = timeout
+        self.extra_timeout = extra_timeout
+        self.result_flag = threading.Event()
+
+    def run(self):
+        if self.set_timeout() is Stop:
+            return Stop
+
+        if self.before_run() is Stop:
+            return Stop
+
+        executor = threading.Thread(target=self.run_func)
+        executor.start()
+
+        # Add twice the timeout multiplier since the called function is expected to
+        # wait at least self.timeout + self.extra_timeout and this gives some leeway
+        finished = self.result_flag.wait(self.timeout + 2 * self.extra_timeout)
+        if self.result is None:
+            if finished:
+                # flag is True unless we timeout; this *shouldn't* happen, but
+                # it can if self.run_func fails to set self.result due to raising
+                self.result = False, ("INTERNAL-ERROR", "%s.run_func didn't set a result" %
+                                      self.__class__.__name__)
+            else:
+                message = "Executor hit external timeout (this may indicate a hang)\n"
+                # get a traceback for the current stack of the executor thread
+                message += "".join(traceback.format_stack(sys._current_frames()[executor.ident]))
+                self.result = False, ("EXTERNAL-TIMEOUT", message)
+        elif self.result[1] is None:
+            # We didn't get any data back from the test, so check if the
+            # browser is still responsive
+            if self.protocol.is_alive:
+                self.result = False, ("INTERNAL-ERROR", None)
+            else:
+                self.logger.info("Browser not responding, setting status to CRASH")
+                self.result = False, ("CRASH", None)
+
+        return self.result
+
+    def set_timeout(self):
+        raise NotImplementedError
+
+    def before_run(self):
+        pass
+
+    def run_func(self):
+        raise NotImplementedError
+
+
 class TestExecutor(object):
     """Abstract Base class for object that actually executes the tests in a
     specific browser. Typically there will be a different TestExecutor
@@ -148,6 +200,10 @@ class TestExecutor(object):
     convert_result = None
     supports_testdriver = False
     supports_jsshell = False
+    # Extra timeout to use after internal test timeout at which the harness
+    # should force a timeout
+    extra_timeout = 5  # seconds
+
 
     def __init__(self, browser, server_config, timeout_multiplier=1,
                  debug_info=None, **kwargs):
@@ -441,7 +497,7 @@ class WdspecExecutor(TestExecutor):
         pass
 
     def do_test(self, test):
-        timeout = test.timeout * self.timeout_multiplier + extra_timeout
+        timeout = test.timeout * self.timeout_multiplier + self.extra_timeout
 
         success, data = WdspecRun(self.do_wdspec,
                                   self.protocol.session_config,

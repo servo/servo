@@ -96,16 +96,31 @@ leaf nodes.)
 
 ## Controlling When Comparison Occurs
 
-By default reftest screenshots are taken after the `load` event has
-fired, and web fonts (if any) are loaded. In some cases it is
-necessary to delay the screenshot later than this, for example because
-some DOM manipulation is required to set up the desired test
-conditions. To enable this, the test may have a `class="reftest-wait"`
-attribute specified on the root element. This will cause the
-screenshot to be delayed until the `load` event has fired and the
-`reftest-wait` class has been removed from the root element. Note that
-in neither case is exact timing of the screenshot guaranteed: it is
-only guaranteed to be after those events.
+By default, reftest screenshots are taken after the following
+conditions are met:
+
+* The `load` event has fired
+* Web fonts (if any) are loaded
+* Pending paints have completed
+
+In some cases it is necessary to delay the screenshot later than this,
+for example because some DOM manipulation is required to set up the
+desired test conditions. To enable this, the test may have a
+`class="reftest-wait"` attribute specified on the root element. In
+this case the harness will run the following sequence of steps:
+
+* Wait for the `load` event to fire and fonts to load.
+* Wait for pending paints to complete.
+* Fire an event named `TestRendered` at the root element, with the
+  `bubbles` attribute set to true.
+* Wait for the `reftest-wait` class to be removed from the root
+  element.
+* Wait for pending paints to complete.
+* Screenshot the viewport.
+
+The `TestRendered` event provides a hook for tests to make
+modifications to the test document that are not batched into the
+initial layout/paint.
 
 ## Fuzzy Matching
 

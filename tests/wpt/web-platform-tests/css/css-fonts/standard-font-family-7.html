@@ -19,6 +19,10 @@
     src: local("ui-rounded");
 }
 @font-face {
+    font-family: "AppleSystemUISansSerif";
+    src: local("ui-sans-serif");
+}
+@font-face {
     font-family: "DotAppleSystemUIFontSerif";
     src: local(".AppleSystemUIFontSerif");
 }
@@ -34,6 +38,10 @@
     font-family: "DotAppleSystemUIFontRounded";
     src: local(".AppleSystemUIFontRounded");
 }
+@font-face {
+    font-family: "DotAppleSystemUIFont";
+    src: local(".AppleSystemUIFont");
+}
 </style>
 </head>
 <body>
@@ -42,10 +50,12 @@ This test makes sure that the bold versions of the design system UI fonts work i
 <div style="display: inline-block; font: bold 72px 'AppleSystemUISerif'; font-synthesis: none;">HeJllo</div>
 <div style="display: inline-block; font: bold 72px 'AppleSystemUIMonospaced'; font-synthesis: none;">HeJllo</div>
 <div style="display: inline-block; font: bold 72px 'AppleSystemUIRounded'; font-synthesis: none;">HeJllo</div>
+<div style="display: inline-block; font: bold 72px 'AppleSystemUISansSerif'; font-synthesis: none;">HeJllo</div>
 <div style="display: inline-block; font: bold 72px 'DotAppleSystemUIFontSerif'; font-synthesis: none;">HeJllo</div>
 <div style="display: inline-block; font: bold 72px 'DotSFNSMono'; font-synthesis: none;">HeJllo</div>
 <div style="display: inline-block; font: bold 72px 'DotSFUIMono'; font-synthesis: none;">HeJllo</div>
 <div style="display: inline-block; font: bold 72px 'DotAppleSystemUIFontRounded'; font-synthesis: none;">HeJllo</div>
+<div style="display: inline-block; font: bold 72px 'DotAppleSystemUIFont'; font-synthesis: none;">HeJllo</div>
 </div>
 </body>
 </html>
