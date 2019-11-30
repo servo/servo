@@ -4,20 +4,6 @@ self.GLOBAL = {
 };
 importScripts("/resources/testharness.js");
 
-self.addEventListener('install', (event) => {
-  event.waitUntil((async () => {
-    try {
-      await cookieStore.subscribeToChanges([
-        { name: 'cookie-name', matchType: 'equals',
-          url: '/cookie-store/scope/path' }]);
-
-      // If the worker enters the "redundant" state, the UA may terminate it
-      // before all tests have been reported to the client. Stifle errors in
-      // order to avoid this and ensure all tests are consistently reported.
-    } catch (err) {}
-  })());
-});
-
 // Resolves when the service worker receives the 'activate' event.
 const kServiceWorkerActivatedPromise = new Promise((resolve) => {
   self.addEventListener('activate', event => { resolve(); });
@@ -31,6 +17,12 @@ const kCookieChangeReceivedPromise = new Promise((resolve) => {
 
 promise_test(async testCase => {
   await kServiceWorkerActivatedPromise;
+
+  const subscriptions = [
+    { name: 'cookie-name', matchType: 'equals',
+      url: '/cookie-store/scope/path' }];
+  await registration.cookies.subscribe(subscriptions);
+  testCase.add_cleanup(() => registration.cookies.unsubscribe(subscriptions));
 
   await cookieStore.set('cookie-name', 'cookie-value');
   testCase.add_cleanup(async () => {

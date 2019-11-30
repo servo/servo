@@ -64,5 +64,14 @@
         });
       });
     }
+    if (test == "adopt-to-disconnected-node") {
+      var portal = e.adoptPredecessor();
+      document.body.appendChild(portal);
+      var node = document.createElement("div");
+      node.appendChild(portal);
+      var bc_test = new BroadcastChannel(`test-${test}`);
+      bc_test.postMessage("passed");
+      bc_test.close();
+    }
   }
 </script>

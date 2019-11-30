@@ -334,6 +334,8 @@ class TestRunnerManager(threading.Thread):
         # This may not really be what we want
         self.daemon = True
 
+        self.timer = None
+
         self.max_restarts = 5
 
         self.browser = None
@@ -559,7 +561,22 @@ class TestRunnerManager(threading.Thread):
             self.logger.info("Run %d/%d" % (self.run_count, self.rerun))
             self.send_message("reset")
         self.run_count += 1
+        # Factor of 3 on the extra timeout here is based on allowing the executor
+        # at least test.timeout + 2 * extra_timeout to complete,
+        # which in turn is based on having several layers of timeout inside the executor
+        wait_timeout = (self.state.test.timeout * self.executor_kwargs['timeout_multiplier'] +
+                        3 * self.executor_cls.extra_timeout)
+        self.timer = threading.Timer(wait_timeout, self._timeout)
         self.send_message("run_test", self.state.test)
+        self.timer.start()
+
+    def _timeout(self):
+        self.logger.info("Got timeout in harness")
+        test = self.state.test
+        self.test_ended(test,
+                        (test.result_cls("EXTERNAL-TIMEOUT",
+                                         "TestRunner hit external timeout "
+                                         "(this may indicate a hang)"), []))
 
     def test_ended(self, test, results):
         """Handle the end of a test.
@@ -569,6 +586,7 @@ class TestRunnerManager(threading.Thread):
         """
         assert isinstance(self.state, RunnerManagerState.running)
         assert test == self.state.test
+        self.timer.cancel()
         # Write the result of each subtest
         file_result, test_results = results
         subtest_unexpected = False

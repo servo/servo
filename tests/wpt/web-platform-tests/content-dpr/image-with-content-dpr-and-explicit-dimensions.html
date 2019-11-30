@@ -1,0 +1,12 @@
+<html>
+  <head>
+    <title>Content-DPR: with size attributes</title>
+    <link rel="author" title="Noam Rosenthal" href="noam@webkit.org">
+    <link rel="match" href="image-with-content-dpr-and-explicit-dimensions-ref.html" />
+    <meta name="assert" content="Assert explicit width/height attributes to supercede content-dpr">
+  </head>
+  <body>
+    <img src="resources/dpr.py?name=square.png&mimeType=image/png&dpr=4.0" width="100px" height="120px" />
+    <img src="resources/dpr.py?name=square.png&mimeType=image/png&dpr=4.0" style="width: 100px; height: 120px;" />
+  </body>
+</html>

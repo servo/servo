@@ -1,7 +1,3 @@
-function wrap_by_tag(tag, text) {
-  return tag ? `${tag}: ${text}`: text;
-}
-
 function validate_expectations(key, expected, tag) {
   return fetch("/fetch/metadata/resources/record-header.py?retrieve=true&file=" + key)
     .then(response => response.text())

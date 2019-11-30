@@ -287,7 +287,7 @@ A more complex manifest with conditional properties might be::
 
   [canvas_test.html]
     expected:
-      if os == "osx": FAIL
+      if os == "mac": FAIL
       if os == "windows" and version == "XP": FAIL
       PASS
 

@@ -12,16 +12,14 @@ in this web page, and two in the other web pages.
 <script>
 
 // This test fetches resources/accept_ch.html. The response headers to
-// that webpage contains only the Accept-CH header. Due to the missing
-// Accept-CH-Lifetime header, the user-agent should not persist origin
-// preferences for the client hints specified in Accept-CH header.
+// that webpage contains only the Accept-CH header. These preferences should be
+// stored so that the next request to the same origin is sent with the
+// requested client hint headers.
 
-// Next, to verify that the origin preferences were not persisted by the user
-// agent, this test fetches resources/do_not_expect_client_hints_headers.html
-// in a new window. Fetching of
-// resources/do_not_expect_client_hints_headers.html
-// verifies that the user agent does not send the client hints in the request
-// headers.
+// Next, to verify that the origin preferences were persisted by the user
+// agent, this test fetches resources/expect_client_hints_headers.html in a new
+// window. Fetching of resources/expect_client_hints_headers.html verifies that
+// the user agent does send the client hints in the request headers.
 
 // Test is marked as tentative until https://github.com/whatwg/fetch/issues/726
 // is resolved.
@@ -39,7 +37,7 @@ promise_test(t => {
 
 async_test(t => {
   window.addEventListener('message', t.step_func(function(e) {
-    if(!e.source.location.pathname.includes("do_not_expect_client_hints_headers.html")) {
+    if(!e.source.location.pathname.includes("expect_client_hints_headers.html")) {
       return;
     }
     if(typeof e.data != "string")
@@ -47,12 +45,12 @@ async_test(t => {
     assert_equals(e.data, "PASS");
     t.done();
   }));
-}, "Loading of resources/do_not_expect_client_hints_headers.html did not finish.");
+}, "Loading of resources/expect_client_hints_headers.html did not finish.");
 
 function acceptChLoaded() {
   // Open a new window. Verify that the user agent does not attach the client
   // hints.
-  var verify_win = window.open("resources/do_not_expect_client_hints_headers.html");
+  var verify_win = window.open("resources/expect_client_hints_headers.html");
   assert_not_equals(verify_win, null, "Popup windows not allowed?");
 }
 

@@ -1,4 +1,3 @@
-# META: timeout=long
 import pytest
 
 from webdriver.transport import Response

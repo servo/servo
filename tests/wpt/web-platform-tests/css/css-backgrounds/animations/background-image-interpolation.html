@@ -38,19 +38,26 @@ test_interpolation({
 }, [
   {at: -0.3, expect: from},
   {at: 0, expect: from},
-  {at: 0.3, expect: 'cross-fade(' + from + ', ' + to + ', 0.3)'},
-  {at: 0.6, expect: 'cross-fade(' + from + ', ' + to + ', 0.6)'},
+  {at: 0.3, expect: from},
+  {at: 0.6, expect: to},
   {at: 1, expect: to},
   {at: 1.5, expect: to},
 ]);
 
 // initial to image
 to = 'url(../resources/green-100.png)';
-test_no_interpolation({
+test_interpolation({
   property: 'background-image',
   from: 'initial',
   to: to,
-});
+}, [
+  {at: -0.3, expect: 'none'},
+  {at: 0, expect: 'none'},
+  {at: 0.3, expect: 'none'},
+  {at: 0.6, expect: to},
+  {at: 1, expect: to},
+  {at: 1.5, expect: to},
+]);
 
 // inherit to image
 from = 'url(../resources/blue-100.png)';
@@ -62,18 +69,25 @@ test_interpolation({
 }, [
   {at: -0.3, expect: from},
   {at: 0, expect: from},
-  {at: 0.3, expect: 'cross-fade(' + from + ', ' + to + ', 0.3)'},
-  {at: 0.6, expect: 'cross-fade(' + from + ', ' + to + ', 0.6)'},
+  {at: 0.3, expect: from},
+  {at: 0.6, expect: to},
   {at: 1, expect: to},
   {at: 1.5, expect: to},
 ]);
 
 // unset to image
-test_no_interpolation({
+test_interpolation({
   property: 'background-image',
   from: 'unset',
   to: to,
-});
+}, [
+  {at: -0.3, expect: 'none'},
+  {at: 0, expect: 'none'},
+  {at: 0.3, expect: 'none'},
+  {at: 0.6, expect: to},
+  {at: 1, expect: to},
+  {at: 1.5, expect: to},
+]);
 
 // Image to image
 from = 'url(../resources/blue-100.png)';
@@ -85,8 +99,8 @@ test_interpolation({
 }, [
   {at: -0.3, expect: from},
   {at: 0, expect: from},
-  {at: 0.3, expect: 'cross-fade(' + from + ', ' + to + ', 0.3)'},
-  {at: 0.6, expect: 'cross-fade(' + from + ', ' + to + ', 0.6)'},
+  {at: 0.3, expect: from},
+  {at: 0.6, expect: to},
   {at: 1, expect: to},
   {at: 1.5, expect: to},
 ]);
@@ -94,38 +108,66 @@ test_interpolation({
 // Image to gradient
 from = 'url(../resources/blue-100.png)';
 to = 'linear-gradient(45deg, blue, orange)';
-test_no_interpolation({
+test_interpolation({
   property: 'background-image',
   from: from,
   to: to,
-});
+}, [
+  {at: -0.3, expect: from},
+  {at: 0, expect: from},
+  {at: 0.3, expect: from},
+  {at: 0.6, expect: to},
+  {at: 1, expect: to},
+  {at: 1.5, expect: to},
+]);
 
 // Image to crossfade
 from = 'url(../resources/blue-100.png)';
 to = 'cross-fade(url(../resources/green-100.png), url(../resources/stripes-100.png), 0.5)';
-test_no_interpolation({
+test_interpolation({
   property: 'background-image',
   from: from,
   to: to,
-});
+}, [
+  {at: -0.3, expect: from},
+  {at: 0, expect: from},
+  {at: 0.3, expect: from},
+  {at: 0.6, expect: to},
+  {at: 1, expect: to},
+  {at: 1.5, expect: to},
+]);
 
 // Gradient to gradient
 from = 'linear-gradient(-45deg, red, yellow)';
 to = 'linear-gradient(45deg, blue, orange)';
-test_no_interpolation({
+test_interpolation({
   property: 'background-image',
   from: from,
   to: to,
-});
+}, [
+  {at: -0.3, expect: from},
+  {at: 0, expect: from},
+  {at: 0.3, expect: from},
+  {at: 0.6, expect: to},
+  {at: 1, expect: to},
+  {at: 1.5, expect: to},
+]);
 
 // Keyword to image
 from = 'none';
 to = 'url(../resources/green-100.png)';
-test_no_interpolation({
+test_interpolation({
   property: 'background-image',
   from: from,
   to: to,
-});
+}, [
+  {at: -0.3, expect: from},
+  {at: 0, expect: from},
+  {at: 0.3, expect: from},
+  {at: 0.6, expect: to},
+  {at: 1, expect: to},
+  {at: 1.5, expect: to},
+]);
 
 // Multiple to multiple
 var fromA = 'url(../resources/stripes-100.png)';
@@ -141,8 +183,8 @@ test_interpolation({
 }, [
   {at: -0.3, expect: from},
   {at: 0, expect: from},
-  {at: 0.3, expect: 'cross-fade(' + fromA + ', ' + toA + ', 0.3), cross-fade(' + fromB + ', ' + toB + ', 0.3)'},
-  {at: 0.6, expect: 'cross-fade(' + fromA + ', ' + toA + ', 0.6), cross-fade(' + fromB + ', ' + toB + ', 0.6)'},
+  {at: 0.3, expect: from},
+  {at: 0.6, expect: to},
   {at: 1, expect: to},
   {at: 1.5, expect: to},
 ]);
@@ -161,10 +203,10 @@ test_interpolation({
   // Animating background-image is not specified to be possible however we do it for backwards compatibility.
   // With this in mind we kept the implementation simple at the expense of this corner case because there is
   // no official specification to support.
-  {at: -0.3, expect: from + ', ' + from},
+  {at: -0.3, expect: from},
   {at: 0, expect: from},
-  {at: 0.3, expect: 'cross-fade(' + from + ', ' + toA + ', 0.3), cross-fade(' + from + ', ' + toB + ', 0.3)'},
-  {at: 0.6, expect: 'cross-fade(' + from + ', ' + toA + ', 0.6), cross-fade(' + from + ', ' + toB + ', 0.6)'},
+  {at: 0.3, expect: from},
+  {at: 0.6, expect: to},
   {at: 1, expect: to},
   {at: 1.5, expect: to},
 ]);
@@ -172,10 +214,17 @@ test_interpolation({
 // Multiple mismatched types
 from = 'url(../resources/blue-100.png), none';
 to = 'url(../resources/stripes-100.png), url(../resources/green-100.png)';
-test_no_interpolation({
+test_interpolation({
   property: 'background-image',
   from: from,
   to: to,
-});
+}, [
+  {at: -0.3, expect: from},
+  {at: 0, expect: from},
+  {at: 0.3, expect: from},
+  {at: 0.6, expect: to},
+  {at: 1, expect: to},
+  {at: 1.5, expect: to},
+]);
 </script>
 </body>

@@ -39,15 +39,17 @@ dictionary ModuleImportDescriptor {
   required ImportExportKind kind;
 };
 
-[LegacyNamespace=WebAssembly, Constructor(BufferSource bytes), Exposed=(Window,Worker,Worklet)]
+[LegacyNamespace=WebAssembly, Exposed=(Window,Worker,Worklet)]
 interface Module {
+  constructor(BufferSource bytes);
   static sequence<ModuleExportDescriptor> exports(Module moduleObject);
   static sequence<ModuleImportDescriptor> imports(Module moduleObject);
   static sequence<ArrayBuffer> customSections(Module moduleObject, DOMString sectionName);
 };
 
-[LegacyNamespace=WebAssembly, Constructor(Module module, optional object importObject), Exposed=(Window,Worker,Worklet)]
+[LegacyNamespace=WebAssembly, Exposed=(Window,Worker,Worklet)]
 interface Instance {
+  constructor(Module module, optional object importObject);
   readonly attribute object exports;
 };
 
@@ -56,8 +58,9 @@ dictionary MemoryDescriptor {
   [EnforceRange] unsigned long maximum;
 };
 
-[LegacyNamespace=WebAssembly, Constructor(MemoryDescriptor descriptor), Exposed=(Window,Worker,Worklet)]
+[LegacyNamespace=WebAssembly, Exposed=(Window,Worker,Worklet)]
 interface Memory {
+  constructor(MemoryDescriptor descriptor);
   unsigned long grow([EnforceRange] unsigned long delta);
   readonly attribute ArrayBuffer buffer;
 };
@@ -74,8 +77,9 @@ dictionary TableDescriptor {
   [EnforceRange] unsigned long maximum;
 };
 
-[LegacyNamespace=WebAssembly, Constructor(TableDescriptor descriptor), Exposed=(Window,Worker,Worklet)]
+[LegacyNamespace=WebAssembly, Exposed=(Window,Worker,Worklet)]
 interface Table {
+  constructor(TableDescriptor descriptor);
   unsigned long grow([EnforceRange] unsigned long delta);
   Function? get([EnforceRange] unsigned long index);
   void set([EnforceRange] unsigned long index, Function? value);
@@ -94,8 +98,9 @@ dictionary GlobalDescriptor {
   boolean mutable = false;
 };
 
-[LegacyNamespace=WebAssembly, Constructor(GlobalDescriptor descriptor, optional any v), Exposed=(Window,Worker,Worklet)]
+[LegacyNamespace=WebAssembly, Exposed=(Window,Worker,Worklet)]
 interface Global {
+  constructor(GlobalDescriptor descriptor, optional any v);
   any valueOf();
   attribute any value;
 };

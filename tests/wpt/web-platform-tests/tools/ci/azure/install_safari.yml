@@ -5,7 +5,7 @@ parameters:
 steps:
 - ${{ if eq(parameters.channel, 'preview') }}:
   - script: |
-      HOMEBREW_NO_AUTO_UPDATE=1 brew cask install https://raw.githubusercontent.com/Homebrew/homebrew-cask-versions/master/Casks/safari-technology-preview.rb
+      HOMEBREW_NO_AUTO_UPDATE=1 brew cask install tools/ci/azure/safari-technology-preview.rb
       sudo "/Applications/Safari Technology Preview.app/Contents/MacOS/safaridriver" --enable
       defaults write com.apple.SafariTechnologyPreview WebKitJavaScriptCanOpenWindowsAutomatically 1
       defaults write com.apple.SafariTechnologyPreview ExperimentalServerTimingEnabled 1

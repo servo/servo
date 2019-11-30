@@ -19,12 +19,6 @@ interface CookieStore : EventTarget {
   Promise<void> delete(USVString name);
   Promise<void> delete(CookieStoreDeleteOptions options);
 
-  [Exposed=ServiceWorker]
-  Promise<void> subscribeToChanges(sequence<CookieStoreGetOptions> subscriptions);
-
-  [Exposed=ServiceWorker]
-  Promise<sequence<CookieStoreGetOptions>> getChangeSubscriptions();
-
   [Exposed=Window]
   attribute EventHandler onchange;
 };
@@ -77,8 +71,7 @@ dictionary CookieListItem {
 
 typedef sequence<CookieListItem> CookieList;
 
-[Exposed=Window,
- SecureContext]
+[Exposed=Window, SecureContext]
 interface CookieChangeEvent : Event {
   constructor(DOMString type, optional CookieChangeEventInit eventInitDict = {});
   readonly attribute CookieList changed;
@@ -90,8 +83,8 @@ dictionary CookieChangeEventInit : EventInit {
   CookieList deleted;
 };
 
-[Exposed=ServiceWorker
-] interface ExtendableCookieChangeEvent : ExtendableEvent {
+[Exposed=ServiceWorker]
+interface ExtendableCookieChangeEvent : ExtendableEvent {
   constructor(DOMString type, optional ExtendableCookieChangeEventInit eventInitDict = {});
   readonly attribute CookieList changed;
   readonly attribute CookieList deleted;
@@ -102,6 +95,13 @@ dictionary ExtendableCookieChangeEventInit : ExtendableEventInit {
   CookieList deleted;
 };
 
+[Exposed=(ServiceWorker,Window), SecureContext]
+interface CookieStoreManager {
+  Promise<void> subscribe(sequence<CookieStoreGetOptions> subscriptions);
+  Promise<sequence<CookieStoreGetOptions>> getSubscriptions();
+  Promise<void> unsubscribe(sequence<CookieStoreGetOptions> subscriptions);
+};
+
 [SecureContext]
 partial interface Window {
   [Replaceable, SameObject] readonly attribute CookieStore cookieStore;
@@ -109,6 +109,10 @@ partial interface Window {
 
 partial interface ServiceWorkerGlobalScope {
   [Replaceable, SameObject] readonly attribute CookieStore cookieStore;
-
   attribute EventHandler oncookiechange;
+};
+
+[Exposed=(ServiceWorker,Window), SecureContext]
+partial interface ServiceWorkerRegistration {
+  readonly attribute CookieStoreManager cookies;
 };

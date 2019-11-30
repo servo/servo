@@ -62,4 +62,14 @@
     });
     window.open(`resources/portals-adopt-predecessor.html?test=${test}`);
   }, "Tests that the adopted predecessor is destroyed if it isn't inserted");
+
+  async_test(t => {
+    var test = "adopt-to-disconnected-node";
+    var bc = new BroadcastChannel(`test-${test}`);
+    bc.onmessage = t.step_func_done(function(e) {
+      assert_equals(e.data, "passed");
+      bc.close();
+    });
+    window.open(`resources/portals-adopt-predecessor.html?test=${test}`);
+  }, "Tests that an adopted portal can be inserted into a disconnected node.");
 </script>

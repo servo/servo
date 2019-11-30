@@ -4,359 +4,66 @@ policy:
 tasks:
   $let:
     event_str: {$json: {$eval: event}}
-    provisionerId:
-      $if: 'taskcluster_root_url == "https://taskcluster.net"'
-      then: aws-provisioner-v1
-      else: proj-wpt
-    workerType:
-      $if: 'taskcluster_root_url == "https://taskcluster.net"'
+    scopes:
+      $if: 'tasks_for == "github-push"'
       then:
-        $if: event.repository.full_name == 'web-platform-tests/wpt'
+        $let:
+          branch:
+            $if: "event.ref[:11] == 'refs/heads/'"
+            then: "${event.ref[11:]}"
+            else: "${event.ref}"
+        in: "assume:repo:github.com/${event.repository.full_name}:branch:${branch}"
+      else: "assume:repo:github.com/${event.repository.full_name}:pull-request"
+    run_task:
+      $if: 'tasks_for == "github-push"'
+      then:
+        $if: 'event.ref in ["refs/heads/master", "refs/heads/epochs/daily", "refs/heads/epochs/weekly", "refs/heads/triggers/chrome_stable", "refs/heads/triggers/chrome_beta", "refs/heads/triggers/chrome_dev", "refs/heads/triggers/firefox_stable", "refs/heads/triggers/firefox_beta", "refs/heads/triggers/firefox_nightly", "refs/heads/triggers/webkitgtk_minibrowser_stable", "refs/heads/triggers/webkitgtk_minibrowser_nightly"]'
+        then: true
+        else: false
+      else:
+        $if: 'tasks_for == "github-pull-request"'
         then:
-          wpt-docker-worker
-        else:
-          github-worker
-      else: ci
+          $if: 'event.action in ["opened", "reopened", "synchronize", "ready_for_review"]  && !(event.pull_request.draft)'
+          then: true
+          else: false
+        else: false
+    rev:
+      $if: 'tasks_for == "github-pull-request"'
+      then: "refs/pull/${event.number}/merge"
+      else: "${event.after}"
   in:
-    $flattenDeep:
-      - $if: tasks_for == "github-push"
-        then:
-          $map:
-            $flatten:
-              $match: {
-                event.ref == "refs/heads/master": [{name: firefox, channel: nightly}, {name: chrome, channel: dev}],
-                event.ref == "refs/heads/epochs/daily": [{name: firefox, channel: stable}, {name: chrome, channel: stable}, {name: webkitgtk_minibrowser, channel: nightly}],
-                event.ref == "refs/heads/epochs/weekly": [{name: firefox, channel: beta}, {name: chrome, channel: beta}, {name: webkitgtk_minibrowser, channel: stable}],
-                event.ref == "refs/heads/triggers/chrome_stable": [{name: chrome, channel: stable}],
-                event.ref == "refs/heads/triggers/chrome_beta": [{name: chrome, channel: beta}],
-                event.ref == "refs/heads/triggers/chrome_dev": [{name: chrome, channel: dev}],
-                event.ref == "refs/heads/triggers/firefox_stable": [{name: firefox, channel: stable}],
-                event.ref == "refs/heads/triggers/firefox_beta": [{name: firefox, channel: beta}],
-                event.ref == "refs/heads/triggers/firefox_nightly": [{name: firefox, channel: nightly}],
-                event.ref == "refs/heads/triggers/webkitgtk_minibrowser_stable": [{name: webkitgtk_minibrowser, channel: stable}],
-                event.ref == "refs/heads/triggers/webkitgtk_minibrowser_nightly": [{name: webkitgtk_minibrowser, channel: nightly}]
-              }
-          each(browser):
-            $map:
-              - [testharness, 1, 16]
-              - [testharness, 2, 16]
-              - [testharness, 3, 16]
-              - [testharness, 4, 16]
-              - [testharness, 5, 16]
-              - [testharness, 6, 16]
-              - [testharness, 7, 16]
-              - [testharness, 8, 16]
-              - [testharness, 9, 16]
-              - [testharness, 10, 16]
-              - [testharness, 11, 16]
-              - [testharness, 12, 16]
-              - [testharness, 13, 16]
-              - [testharness, 14, 16]
-              - [testharness, 15, 16]
-              - [testharness, 16, 16]
-              - [reftest, 1, 5]
-              - [reftest, 2, 5]
-              - [reftest, 3, 5]
-              - [reftest, 4, 5]
-              - [reftest, 5, 5]
-              - [wdspec, 1, 1]
-            each(chunk):
-              taskId: {$eval: 'as_slugid(browser.name + browser.channel + chunk[0] + str(chunk[1]))'}
-              taskGroupId: {$eval: 'as_slugid("task group")'}
-              created: {$fromNow: ''}
-              deadline: {$fromNow: '24 hours'}
-              provisionerId: ${provisionerId}
-              workerType: ${workerType}
-              metadata:
-                name: wpt-${browser.name}-${browser.channel}-${chunk[0]}-${chunk[1]}
-                description: >-
-                  A subset of WPT's "${chunk[0]}" tests (chunk number ${chunk[1]}
-                  of ${chunk[2]}), run in the ${browser.channel} release of
-                  ${browser.name}.
-                owner:
-                  # event.pusher.email is null when it comes from a GitHub action, so it has to be null-checked,
-                  # and using the "in" operator causes an evaluation error when the right variable is null, if its
-                  # done on the same "if" statement than the null-check (with &&), therefore we use a nested "if" here.
-                  $if: 'event.pusher.email'
-                  then:
-                    $if: '"@" in event.pusher.email'
-                    then: ${event.pusher.email}
-                    else: web-platform-tests@users.noreply.github.com
-                  else: web-platform-tests@users.noreply.github.com
-                source: ${event.repository.url}
-              payload:
-                image:
-                    harjgam/web-platform-tests:0.33
-                maxRunTime: 7200
-                artifacts:
-                  public/results:
-                    path: /home/test/artifacts
-                    type: directory
-                command:
-                  - /bin/bash
-                  - --login
-                  - -c
-                  - set -ex;
-                    echo "wpt-${browser.name}-${browser.channel}-${chunk[0]}-${chunk[1]}";
-                    ~/start.sh
-                      ${event.repository.url}
-                      ${event.ref};
-                    cd ~/web-platform-tests;
-                    sudo cp tools/certs/cacert.pem
-                        /usr/local/share/ca-certificates/cacert.crt;
-                    sudo update-ca-certificates;
-                    ./tools/ci/run_tc.py
-                      --checkout=${event.after}
-                      --oom-killer
-                      --hosts
-                      --browser=${browser.name}
-                      --channel=${browser.channel}
-                      --xvfb
-                      run-all
-                      ./tools/ci/taskcluster-run.py
-                        ${browser.name}
-                        --
-                        --channel=${browser.channel}
-                        --log-wptreport=../artifacts/wpt_report.json
-                        --log-wptscreenshot=../artifacts/wpt_screenshot.txt
-                        --no-fail-on-unexpected
-                        --test-type=${chunk[0]}
-                        --this-chunk=${chunk[1]}
-                        --total-chunks=${chunk[2]};
-              extra:
-                github_event: "${event_str}"
+    - $if: run_task
+      then:
+        created: {$fromNow: ''}
+        deadline: {$fromNow: '24 hours'}
+        provisionerId: proj-wpt
+        workerType: ci
+        metadata:
+          name: "wpt-decision-task"
+          description: "The task that creates all of the other tasks in the task graph"
+          owner: "${event.sender.login}@users.noreply.github.com"
+          source: ${event.repository.clone_url}
+        payload:
+          image: harjgam/web-platform-tests:0.33
+          maxRunTime: 7200
+          artifacts:
+            public/results:
+              path: /home/test/artifacts
+              type: directory
+          command:
+            - /bin/bash
+            - --login
+            - -c
+            - set -ex;
+              ~/start.sh
+                ${event.repository.clone_url}
+                ${rev};
+              cd ~/web-platform-tests;
+              ./wpt tc-decision --tasks-path=/home/test/artifacts/tasks.json
+          features :
+            taskclusterProxy: true
+        scopes:
+          - ${scopes}
+        extra:
+          github_event: "${event_str}"
 
-      - $if: tasks_for == "github-pull-request"
-        # PR tasks that run the tests in various configurations
-        then:
-          # Taskcluster responds to a number of events issued by the GitHub API
-          # which should not trigger re-validation.
-          $if: event.action in ['opened', 'reopened', 'synchronize']
-          then:
-            $map: [{name: firefox, channel: nightly}, {name: chrome, channel: dev}]
-            each(browser):
-              $map:
-                # This is the main place to define new stability checks
-                - name: wpt-${browser.name}-${browser.channel}-stability
-                  job_name: stability
-                  checkout: task_head
-                  diff_base: base_head
-                  description: >-
-                    Verify that all tests affected by a pull request are stable
-                    when executed in ${browser.name}.
-                  extra_args: '--verify'
-                - name: wpt-${browser.name}-${browser.channel}-results
-                  job_name: affected_tests
-                  checkout: task_head
-                  diff_base: base_head
-                  description: >-
-                    Collect results for all tests affected by a pull request in
-                    ${browser.name}.
-                  extra_args: >-
-                    --no-fail-on-unexpected
-                    --log-wptreport=../artifacts/wpt_report.json
-                    --log-wptscreenshot=../artifacts/wpt_screenshot.txt
-                - name: wpt-${browser.name}-${browser.channel}-results-without-changes
-                  job_name: affected_tests
-                  checkout: base_head
-                  diff_base: task_head
-                  description: >-
-                    Collect results for all tests affected by a pull request in
-                    ${browser.name} but without the changes in the PR.
-                  extra_args: >-
-                    --no-fail-on-unexpected
-                    --log-wptreport=../artifacts/wpt_report.json
-                    --log-wptscreenshot=../artifacts/wpt_screenshot.txt
-              each(operation):
-                taskId: {$eval: 'as_slugid(operation.name)'}
-                taskGroupId: {$eval: 'as_slugid("task group")'}
-                created: {$fromNow: ''}
-                deadline: {$fromNow: '24 hours'}
-                provisionerId: ${provisionerId}
-                workerType: ${workerType}
-                metadata:
-                  name: ${operation.name}
-                  description: ${operation.description}
-                  owner: ${event.pull_request.user.login}@users.noreply.github.com
-                  source: ${event.repository.url}
-                payload:
-                  image: harjgam/web-platform-tests:0.33
-                  maxRunTime: 7200
-                  artifacts:
-                    public/results:
-                      path: /home/test/artifacts
-                      type: directory
-                  # Fetch the GitHub-provided merge commit (rather than the pull
-                  # request branch) so that the tasks simulate the behavior of the
-                  # submitted patch after it is merged. Using the merge commit also
-                  # simplifies detection of modified files because the first parent
-                  # of the merge commit can consistently be used to summarize the
-                  # changes.
-                  command:
-                    - /bin/bash
-                    - --login
-                    - -c
-                    - set -ex;
-                      echo "${operation.name}";
-                      ~/start.sh
-                        ${event.repository.clone_url}
-                        refs/pull/${event.number}/merge;
-                      cd web-platform-tests;
-                      ./tools/ci/run_tc.py
-                        --checkout=${operation.checkout}
-                        --oom-killer
-                        --browser=${browser.name}
-                        --channel=${browser.channel}
-                        --xvfb
-                        ${operation.job_name}
-                        ./tools/ci/taskcluster-run.py
-                          --commit-range ${operation.diff_base}
-                          ${browser.name}
-                          --
-                          --channel=${browser.channel}
-                          ${operation.extra_args};
-                extra:
-                  github_event: "${event_str}"
-
-      - $map:
-          # This is the main point to define new CI checks other than stability checks
-        - name: lint
-          description: >-
-            Lint for wpt-specific requirements
-          script: >-
-            ./tools/ci/run_tc.py \
-              --no-hosts \
-              lint \
-             ./wpt lint --all
-          conditions:
-            push
-            pull-request
-        - name: update built tests
-          description: >-
-            Ensure test suites that require a build step are updated
-          script: >-
-            ./tools/ci/run_tc.py \
-             --no-hosts \
-             update_built \
-             tools/ci/ci_built_diff.sh
-          conditions:
-            pull-request
-        - name: tools/ unittests (Python 2)
-          description: >-
-            Unit tests for tools running under Python 2.7, excluding wptrunner
-          script: >-
-            export TOXENV=py27;
-            export HYPOTHESIS_PROFILE=ci;
-            export PY_COLORS=0;
-            ./tools/ci/run_tc.py \
-              tools_unittest \
-              tools/ci/ci_tools_unittest.sh
-          conditions:
-            push
-            pull-request
-        - name: tools/ unittests (Python 3)
-          description: >-
-            Unit tests for tools running under Python 3, excluding wptrunner
-          script: >-
-            export TOXENV=py36;
-            export HYPOTHESIS_PROFILE=ci;
-            export PY_COLORS=0;
-            sudo apt update -qqy;
-            sudo apt install -qqy python3-pip;
-            ./tools/ci/run_tc.py \
-              tools_unittest \
-              tools/ci/ci_tools_unittest.sh
-          conditions:
-            push
-            pull-request
-        - name: tools/wpt/ tests
-          description: >-
-            Integration tests for wpt commands
-          script: >-
-            export TOXENV=py27;
-            sudo apt update -qqy;
-            sudo apt install -qqy libnss3-tools;
-            ./tools/ci/run_tc.py \
-              --oom-killer \
-              --browser=firefox \
-              --browser=chrome \
-              --channel=experimental \
-              --xvfb \
-              wpt_integration \
-              tools/ci/ci_wpt.sh
-          conditions:
-            pull-request
-        - name: resources/ tests
-          description: >-
-            Tests for testharness.js and other files in resources/
-          script: >-
-            export TOXENV=py27;
-            ./tools/ci/run_tc.py \
-              --browser=firefox \
-              --xvfb \
-              resources_unittest \
-              tools/ci/ci_resources_unittest.sh
-          conditions:
-            pull-request
-        - name: infrastructure/ tests
-          description: >-
-            Smoketests for wptrunner
-          script: >-
-            sudo apt update -qqy;
-            sudo apt install -qqy libnss3-tools libappindicator1 fonts-liberation;
-            ./tools/ci/run_tc.py \
-              --oom-killer \
-              --browser=firefox \
-              --browser=chrome \
-              --channel=experimental \
-              --no-hosts \
-              --xvfb \
-              wptrunner_infrastructure \
-              tools/ci/ci_wptrunner_infrastructure.sh
-          conditions:
-            pull-request
-        each(operation):
-          # Note: jsone doesn't short-circuit evaluation so all parts of the conditional are evaluated
-          # Accessing properties using the [] notation allows them to evaluate as null in case they're undefined
-          # TODO: Allow running pushes on branches other than master
-          - $if: ("push" in operation.conditions && tasks_for == "github-push" && event['ref'] == "refs/heads/master") || ("pull-request" in operation.conditions && tasks_for == "github-pull-request" && event['action'] in ['opened', 'reopened', 'synchronize'])
-            then:
-              $let:
-                checkout_ref:
-                  $if: tasks_for == "github-push"
-                  then:
-                    ${event.ref}
-                  else:
-                    refs/pull/${event.number}/merge
-              in:
-                taskId: {$eval: 'as_slugid(operation.name)'}
-                taskGroupId: {$eval: 'as_slugid("task group")'}
-                created: {$fromNow: ''}
-                deadline: {$fromNow: '24 hours'}
-                provisionerId: ${provisionerId}
-                workerType: ${workerType}
-                metadata:
-                  name: ${operation.name}
-                  description: ${operation.description}
-                  owner: ${event.sender.login}@users.noreply.github.com
-                  source: ${event.repository.url}
-                payload:
-                  image: harjgam/web-platform-tests:0.33
-                  maxRunTime: 7200
-                  artifacts:
-                    public/results:
-                      path: /home/test/artifacts
-                      type: directory
-                  command:
-                    - /bin/bash
-                    - --login
-                    - -c
-                    - set -ex;
-                      echo "${operation.name}";
-                      ~/start.sh
-                        ${event.repository.clone_url}
-                        ${checkout_ref};
-                      cd ~/web-platform-tests;
-                      ${operation.script};
-                extra:
-                  github_event: "${event_str}"

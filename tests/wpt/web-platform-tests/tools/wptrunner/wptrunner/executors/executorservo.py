@@ -24,7 +24,6 @@ from ..webdriver_server import ServoDriverServer
 pytestrunner = None
 webdriver = None
 
-extra_timeout = 5  # seconds
 
 def write_hosts_file(config):
     hosts_fd, hosts_path = tempfile.mkstemp()

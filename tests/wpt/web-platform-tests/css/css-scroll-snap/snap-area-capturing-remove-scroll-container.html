@@ -80,16 +80,14 @@ test(() => {
   const middle_scroller = document.getElementById("middle-scroller");
   const document_scroller = document.scrollingElement;
 
+  // Inner scroller should snap to its captured area.
   // Middle scroller doesn't snap.
   // Document scroller should snap to its only captured area.
-  document_scroller.scrollBy(0, 100);
+  inner_scroller.scrollBy(0,10);
   middle_scroller.scrollBy(0, 10);
-  assert_equals(inner_scroller.scrollTop, 0);
-  assert_equals(middle_scroller.scrollTop, 10);
-  assert_equals(document_scroller.scrollTop, 500);
-
-  // Inner scroller snaps.
-  inner_scroller.scrollBy(0, 10);
+  // Scroll to (0,600), where we would expect the inner snap area to be relative
+  // to the document scroller.
+  document_scroller.scrollTo(0, 600);
   assert_equals(inner_scroller.scrollTop, 300);
   assert_equals(middle_scroller.scrollTop, 10);
   assert_equals(document_scroller.scrollTop, 500);

@@ -2187,7 +2187,7 @@
     "html/media-queries/011-novalid.html": "Bad value \u201cscreen and (min-width: 400dpi)\u201d for attribute \u201cmedia\u201d on element \u201clink\u201d: Bad media query: \u201c400dpi\u201d is not a \u201cwidth\u201d value",
     "html/media-queries/013-novalid.html": "Bad value \u201cscreen and (min-width:\u201d for attribute \u201cmedia\u201d on element \u201clink\u201d: Bad media query: Parse Error.",
     "html/media-queries/014-novalid.html": "Bad value \u201cscreen and (min-width: 400px) and\u201d for attribute \u201cmedia\u201d on element \u201clink\u201d: Bad media query: Parse Error.",
-    "html/media-queries/019-novalid.html": "Bad value \u201cscreen and (color: 1em)\u201d for attribute \u201cmedia\u201d on element \u201clink\u201d: Bad media query: Too many values or values are not recognized",
+    "html/media-queries/019-novalid.html": "Bad value \u201cscreen and (color: 1em)\u201d for attribute \u201cmedia\u201d on element \u201clink\u201d: Bad media query: \u201c1em\u201d is not a \u201ccolor\u201d value",
     "html/media-queries/020-novalid.html": "Bad value \u201c,\u201d for attribute \u201cmedia\u201d on element \u201clink\u201d: Bad media query: Parse Error.",
     "html/media-queries/021-novalid.html": "Bad value \u201cscreen,,print\u201d for attribute \u201cmedia\u201d on element \u201clink\u201d: Bad media query: Parse Error.",
     "html/media-queries/022-novalid.html": "Bad value \u201cscreen,\u201d for attribute \u201cmedia\u201d on element \u201clink\u201d: Bad media query: Parse Error.",

@@ -18,6 +18,7 @@
 
   var cssAnimationsInterpolation = {
     name: 'CSS Animations',
+    isSupported: function() {return true;},
     supportsProperty: function() {return true;},
     supportsValue: function() {return true;},
     setup: function() {},
@@ -43,6 +44,7 @@
 
   var cssTransitionsInterpolation = {
     name: 'CSS Transitions',
+    isSupported: function() {return true;},
     supportsProperty: function() {return true;},
     supportsValue: function() {return true;},
     setup: function(property, from, target) {
@@ -64,6 +66,7 @@
 
   var cssTransitionAllInterpolation = {
     name: 'CSS Transitions with transition: all',
+    isSupported: function() {return true;},
     // The 'all' value doesn't cover custom properties.
     supportsProperty: function(property) {return property.indexOf('--') !== 0;},
     supportsValue: function() {return true;},
@@ -86,6 +89,7 @@
 
   var webAnimationsInterpolation = {
     name: 'Web Animations',
+    isSupported: function() {return 'animate' in Element.prototype;},
     supportsProperty: function(property) {return true;},
     supportsValue: function(value) {return value !== '';},
     setup: function() {},
@@ -96,6 +100,10 @@
       this.interpolateComposite(property, from, 'replace', to, 'replace', at, target);
     },
     interpolateComposite: function(property, from, fromComposite, to, toComposite, at, target) {
+      // This case turns into a test error later on.
+      if (!this.isSupported())
+        return;
+
       // Convert standard properties to camelCase.
       if (!property.startsWith('--')) {
         for (var i = property.length - 2; i > 0; --i) {
@@ -272,6 +280,8 @@
       target.measure = function() {
         var expectedValue = getComputedStyle(expectedTargetContainer.target).getPropertyValue(property);
         test(function() {
+          assert_true(interpolationMethod.isSupported(), `${interpolationMethod.name} should be supported`);
+
           if (from && from !== neutralKeyframe) {
             assert_true(CSS.supports(property, from), '\'from\' value should be supported');
           }

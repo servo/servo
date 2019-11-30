@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Web NFC: NDEFReader.scan() filter tests</title>
+<link rel="author" title="Intel" href="http://www.intel.com"/>
+<link rel="help" href="https://w3c.github.io/web-nfc/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/nfc-helpers.js"></script>
+<script>
+
+'use strict';
+
+const multiScanOptionsTests =
+  [
+    {
+      desc: "Test that reading data succeed when NDEFScanOptions'" +
+            " recordType is set to 'empty'.",
+      scanOptions: {recordType: "empty"},
+      unmatchedScanOptions: {recordType: "mime"},
+      message: createMessage([createRecord('empty')])
+    },
+    {
+      desc: "Test that reading data succeed when NDEFScanOptions'" +
+            " recordType is set to 'mime'.",
+      scanOptions: {recordType: "mime"},
+      unmatchedScanOptions: {recordType: "url"},
+      message: createMessage([createMimeRecord(test_buffer_data)])
+    },
+    {
+      desc: "Test that reading data succeed when NDEFScanOptions'" +
+            " recordType is set to 'unknown'.",
+      scanOptions: {recordType: "unknown"},
+      unmatchedScanOptions: {recordType: "mime"},
+      message: createMessage([createUnknownRecord(test_buffer_data)])
+    },
+    {
+      desc: "Test that reading data succeed when NDEFScanOptions'" +
+            " recordType is set to 'text'.",
+      scanOptions: {recordType: "text"},
+      unmatchedScanOptions: {recordType: "url"},
+      message: createMessage([createTextRecord(test_text_data)])
+    },
+    {
+      desc: "Test that reading data succeed when NDEFScanOptions'" +
+            " recordType is set to 'url'.",
+      scanOptions: {recordType: "url"},
+      unmatchedScanOptions: {recordType: "absolute-url"},
+      message: createMessage([createUrlRecord(test_url_data)])
+    },
+    {
+      desc: "Test that reading data succeed when NDEFScanOptions'" +
+            " recordType is set to 'absolute-url'.",
+      scanOptions: {recordType: "absolute-url"},
+      unmatchedScanOptions: {recordType: "url"},
+      message: createMessage([createUrlRecord(test_url_data, true)])
+    },
+    {
+      desc: "Test that reading data succeed when NDEFScanOptions'" +
+            " recordType is set to a custom type for external type records.",
+      scanOptions: {recordType: "w3.org:xyz"},
+      unmatchedScanOptions: {recordType: "mime"},
+      message: createMessage([createRecord('w3.org:xyz', test_buffer_data)])
+    },
+    {
+      desc: "Test that the url of NDEFScanOptions filters relevant data" +
+            " sources correctly.",
+      scanOptions: {id: `${location.origin}/custom/path`},
+      unmatchedScanOptions: {id: `${location.origin}/custom/invalid`},
+      message: {url: `${location.origin}/custom/path/update`,
+          records: [createTextRecord(test_text_data)]}
+    },
+    {
+      desc: "Test that the mediaType of NDEFScanOptions filters relevant data" +
+            " sources correctly.",
+      scanOptions: {mediaType: "application/octet-stream"},
+      unmatchedScanOptions: {mediaType: "application/json"},
+      message: createMessage([createMimeRecord(test_buffer_data)])
+    }
+  ];
+
+const multiMessagesTests =
+  [
+    {
+      desc: "Test that filtering 'empty' record from different messages" +
+            " correctly with NDEFScanOptions' recordType is set to 'empty'.",
+      scanOptions: {recordType: "empty"},
+      message: createMessage([createRecord('empty')]),
+      unmatchedMessage: createMessage([createMimeRecordFromJson(test_json_data)]),
+    },
+    {
+      desc: "Test that filtering 'mime' record from different messages" +
+            " correctly with NDEFScanOptions' recordType is set to 'mime'.",
+      scanOptions: {recordType: "mime"},
+      message: createMessage([createMimeRecord(test_buffer_data)]),
+      unmatchedMessage: createMessage([createUnknownRecord(test_buffer_data)])
+    },
+    {
+      desc: "Test that filtering 'unknown' record from different messages" +
+            " correctly with NDEFScanOptions' recordType is set to 'unknown'.",
+      scanOptions: {recordType: "unknown"},
+      message: createMessage([createUnknownRecord(test_buffer_data)]),
+      unmatchedMessage: createMessage([createUrlRecord(test_url_data)])
+    },
+    {
+      desc: "Test that filtering 'text' record from different messages" +
+            " correctly with NDEFScanOptions' recordType is set to 'text'.",
+      scanOptions: {recordType: "text"},
+      message: createMessage([createTextRecord(test_text_data)]),
+      unmatchedMessage: createMessage([createUrlRecord(test_url_data)])
+    },
+    {
+      desc: "Test that filtering 'url' record from different messages" +
+            " correctly with NDEFScanOptions' recordType is set to 'url'.",
+      scanOptions: {recordType: "url"},
+      message: createMessage([createUrlRecord(test_url_data)]),
+      unmatchedMessage: createMessage([createTextRecord(test_text_data)])
+    },
+    {
+      desc: "Test that filtering 'absolute-url' record from different messages" +
+            " correctly with NDEFScanOptions' recordType is set to 'absolute-url'.",
+      scanOptions: {recordType: "absolute-url"},
+      message: createMessage([createUrlRecord(test_url_data, true)]),
+      unmatchedMessage: createMessage([createTextRecord(test_text_data)])
+    },
+    {
+      desc: "Test that filtering external record from different messages" +
+            " correctly with NDEFScanOptions' recordType is set to the custom type.",
+      scanOptions: {recordType: "w3.org:xyz"},
+      message: createMessage([createRecord('w3.org:xyz', test_buffer_data)]),
+      unmatchedMessage: createMessage([createTextRecord(test_text_data)])
+    },
+    {
+      desc: "Test that filtering 'text' record from different messages" +
+            " correctly with NDEFScanOptions' url set.",
+      scanOptions: {id: `${location.origin}/custom/path`},
+      message: {url: `${location.origin}/custom/path/update`,
+          records: [createTextRecord(test_text_data)]},
+      unmatchedMessage: {url: `${location.origin}/custom/invalid`,
+          records: [createUrlRecord(test_url_data)]}
+    },
+    {
+      desc: "Test that filtering 'mime' record from different messages" +
+            " correctly with NDEFScanOptions' mediaType set.",
+      scanOptions: {mediaType: "application/octet-stream"},
+      message: createMessage([createMimeRecord(test_buffer_data)]),
+      unmatchedMessage: createMessage([createMimeRecordFromJson(test_json_data)])
+    }
+  ];
+
+for (let multiScanOptionsTest of multiScanOptionsTests) {
+  testMultiScanOptions(
+    multiScanOptionsTest.message,
+    multiScanOptionsTest.scanOptions,
+    multiScanOptionsTest.unmatchedScanOptions,
+    multiScanOptionsTest.desc
+  );
+}
+
+for (let multiMessagesTest of multiMessagesTests) {
+  testMultiMessages(
+    multiMessagesTest.message,
+    multiMessagesTest.scanOptions,
+    multiMessagesTest.unmatchedMessage,
+    multiMessagesTest.desc
+  );
+}
+
+nfc_test(async (t, mockNFC) => {
+  const reader = new NDEFReader();
+  const controller = new AbortController();
+  const signal = controller.signal;
+  const textMsg = createMessage([createTextRecord(test_text_data)]);
+  const urlMsg = createMessage([createUrlRecord(test_url_data)]);
+  const mimeMsg = createMessage([createMimeRecord(test_buffer_data)]);
+
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const promise = readerWatcher.wait_for("reading").then(event => {
+    controller.abort();
+    assertWebNDEFMessagesEqual(event.message, new NDEFMessage(mimeMsg));
+  });
+
+  const scanOptions1 = { recordType: "text", signal: signal };
+  const scanOptions2 = {recordType: "url", signal: signal };
+  const scanOptions3 = {recordType: "mime", signal: signal };
+
+  await reader.scan(scanOptions1);
+  await reader.scan(scanOptions2);
+  // There is maximum one filter for an NDEFReader object,
+  // last filter will replace all previous ones.
+  await reader.scan(scanOptions3);
+
+  mockNFC.setReadingMessage(textMsg);
+  mockNFC.setReadingMessage(urlMsg);
+  mockNFC.setReadingMessage(mimeMsg);
+  await promise;
+}, "Multiple scan() from the same NDEFReader object with new options should \
+replace existing filters.");
+
+</script>

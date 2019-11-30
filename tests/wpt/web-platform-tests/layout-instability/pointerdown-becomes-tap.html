@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>Layout Instability: shift in pointerdown becoming tap</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+
+body { margin: 0; height: 2000px; }
+#box {
+  left: 0px;
+  top: 0px;
+  width: 400px;
+  height: 500px;
+  background: yellow;
+  position: relative;
+}
+
+</style>
+<div id="box"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+const box = document.querySelector("#box");
+box.addEventListener("pointerdown", (e) => {
+  // Generate a layout shift before we know what type of input this pointer
+  // event sequence will become.
+  box.style.top = "100px";
+  e.preventDefault();
+});
+
+generateTapSequence = () => new test_driver.Actions()
+    .addPointer("tp1", "touch")
+    .pointerMove(0, 0, {sourceName: "tp1"})
+    .pointerDown({sourceName: "tp1"})
+    .pause(100)
+    .pointerUp({sourceName: "tp1"})
+    .pause(100);
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Send pointer events for a tap.
+  await generateTapSequence().send();
+
+  // The box is 400 x 500 and moves by 100px.
+  const expectedExcludedScore = computeExpectedScore(400 * (500 + 100), 100);
+
+  // Only the score that ignores hadRecentInput should increase.
+  assert_equals(watcher.score, expectedExcludedScore);
+  assert_equals(watcher.scoreWithInputExclusion, 0);
+
+}, "Shift in pointerdown excluded when it becomes a tap.");
+
+</script>

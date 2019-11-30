@@ -168,7 +168,7 @@ function assertWebNDEFMessagesEqual(message, expectedMessage) {
   }
 }
 
-function testNDEFScanOptions(message, scanOptions, unmatchedScanOptions, desc) {
+function testMultiScanOptions(message, scanOptions, unmatchedScanOptions, desc) {
   nfc_test(async (t, mockNFC) => {
     const reader1 = new NDEFReader();
     const reader2 = new NDEFReader();
@@ -192,8 +192,7 @@ function testNDEFScanOptions(message, scanOptions, unmatchedScanOptions, desc) {
   }, desc);
 }
 
-function testReadingMultiMessages(
-    message, scanOptions, unmatchedMessage, desc) {
+function testMultiMessages(message, scanOptions, unmatchedMessage, desc) {
   nfc_test(async (t, mockNFC) => {
     const reader = new NDEFReader();
     const controller = new AbortController();

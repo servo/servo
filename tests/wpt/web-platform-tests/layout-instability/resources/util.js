@@ -47,6 +47,7 @@ ScoreWatcher = function() {
   if (PerformanceObserver.supportedEntryTypes.indexOf("layout-shift") == -1)
     throw new Error("Layout Instability API not supported");
   this.score = 0;
+  this.scoreWithInputExclusion = 0;
   const resetPromise = () => {
     this.promise = new Promise(resolve => {
       this.resolve = () => {
@@ -59,6 +60,8 @@ ScoreWatcher = function() {
   const observer = new PerformanceObserver(list => {
     list.getEntries().forEach(entry => {
       this.score += entry.value;
+      if (!entry.hadRecentInput)
+        this.scoreWithInputExclusion += entry.value;
       this.resolve();
     });
   });
