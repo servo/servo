@@ -158,7 +158,11 @@ where
         // If we the visited state changed, we force a restyle here. Matching
         // doesn't depend on the actual visited state at all, so we can't look
         // at matching results to decide what to do for this case.
-        if state_changes.intersects(ElementState::IN_VISITED_OR_UNVISITED_STATE) {
+        //
+        // TODO(emilio): This piece of code should be removed when
+        // layout.css.always-repaint-on-unvisited is true, since we cannot get
+        // into this situation in that case.
+        if state_changes.contains(ElementState::IN_VISITED_OR_UNVISITED_STATE) {
             trace!(" > visitedness change, force subtree restyle");
             // We can't just return here because there may also be attribute
             // changes as well that imply additional hints for siblings.
@@ -453,6 +457,7 @@ where
 
         let invalidation = Invalidation::new(
             &dependency.selector,
+            self.matching_context.current_host.clone(),
             dependency.selector.len() - dependency.selector_offset + 1,
         );
 

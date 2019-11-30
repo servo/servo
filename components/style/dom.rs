@@ -331,7 +331,7 @@ where
 }
 
 /// The ShadowRoot trait.
-pub trait TShadowRoot: Sized + Copy + Clone + PartialEq {
+pub trait TShadowRoot: Sized + Copy + Clone + Debug + PartialEq {
     /// The concrete node type.
     type ConcreteNode: TNode<ConcreteShadowRoot = Self>;
 
@@ -522,6 +522,9 @@ pub trait TElement:
 
     /// Returns whether this element has a `part` attribute.
     fn has_part_attr(&self) -> bool;
+
+    /// Returns whether this element exports any part from its shadow tree.
+    fn exports_any_part(&self) -> bool;
 
     /// The ID for this element.
     fn id(&self) -> Option<&WeakAtom>;

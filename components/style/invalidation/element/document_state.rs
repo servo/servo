@@ -79,7 +79,13 @@ where
                     continue;
                 }
 
-                self_invalidations.push(Invalidation::new(&dependency.selector, 0));
+                // We pass `None` as a scope, as document state selectors aren't
+                // affected by the current scope.
+                self_invalidations.push(Invalidation::new(
+                    &dependency.selector,
+                    /* scope = */ None,
+                    0,
+                ));
             }
         }
 

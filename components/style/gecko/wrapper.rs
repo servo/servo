@@ -144,6 +144,13 @@ impl<'ld> TDocument for GeckoDocument<'ld> {
 #[derive(Clone, Copy)]
 pub struct GeckoShadowRoot<'lr>(pub &'lr structs::ShadowRoot);
 
+impl<'ln> fmt::Debug for GeckoShadowRoot<'ln> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // TODO(emilio): Maybe print the host or something?
+        write!(f, "<shadow-root> ({:#x})", self.as_node().opaque().0)
+    }
+}
+
 impl<'lr> PartialEq for GeckoShadowRoot<'lr> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
@@ -232,8 +239,8 @@ impl<'ln> fmt::Debug for GeckoNode<'ln> {
             return write!(f, "<document> ({:#x})", self.opaque().0);
         }
 
-        if self.is_shadow_root() {
-            return write!(f, "<shadow-root> ({:#x})", self.opaque().0);
+        if let Some(sr) = self.as_shadow_root() {
+            return sr.fmt(f);
         }
 
         write!(f, "<non-text node> ({:#x})", self.opaque().0)
@@ -300,7 +307,10 @@ impl<'ln> GeckoNode<'ln> {
     fn flattened_tree_parent_is_parent(&self) -> bool {
         use crate::gecko_bindings::structs::*;
         let flags = self.flags();
-        if flags & (NODE_MAY_BE_IN_BINDING_MNGR as u32 | NODE_IS_IN_SHADOW_TREE as u32) != 0 {
+
+        // FIXME(emilio): The shadow tree condition seems it shouldn't be needed
+        // anymore, if we check for slots.
+        if self.is_in_shadow_tree() {
             return false;
         }
 
@@ -758,23 +768,11 @@ impl<'le> GeckoElement<'le> {
         data.damage |= damage;
     }
 
-    /// This logic is duplicated in Gecko's nsIContent::IsRootOfAnonymousSubtree.
-    #[inline]
-    fn is_root_of_anonymous_subtree(&self) -> bool {
-        use crate::gecko_bindings::structs::NODE_IS_ANONYMOUS_ROOT;
-        self.flags() & (NODE_IS_ANONYMOUS_ROOT as u32) != 0
-    }
-
     /// This logic is duplicated in Gecko's nsIContent::IsRootOfNativeAnonymousSubtree.
     #[inline]
     fn is_root_of_native_anonymous_subtree(&self) -> bool {
         use crate::gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS_ROOT;
         return self.flags() & (NODE_IS_NATIVE_ANONYMOUS_ROOT as u32) != 0;
-    }
-
-    #[inline]
-    fn is_in_anonymous_subtree(&self) -> bool {
-        unsafe { bindings::Gecko_IsInAnonymousSubtree(self.0) }
     }
 
     /// Returns true if this node is the shadow root of an use-element shadow tree.
@@ -1025,7 +1023,7 @@ impl<'le> TElement for GeckoElement<'le> {
         // StyleChildrenIterator::IsNeeded does, except that it might return
         // true if we used to (but no longer) have anonymous content from
         // ::before/::after, or nsIAnonymousContentCreators.
-        if self.is_in_anonymous_subtree() ||
+        if self.is_in_native_anonymous_subtree() ||
             self.is_html_slot_element() ||
             self.shadow_root().is_some() ||
             self.may_have_anonymous_children()
@@ -1248,6 +1246,11 @@ impl<'le> TElement for GeckoElement<'le> {
     fn has_part_attr(&self) -> bool {
         self.as_node()
             .get_bool_flag(nsINode_BooleanFlag::ElementHasPart)
+    }
+
+    #[inline]
+    fn exports_any_part(&self) -> bool {
+        snapshot_helpers::find_attr(self.attrs(), &atom!("exportparts")).is_some()
     }
 
     // FIXME(emilio): we should probably just return a reference to the Atom.
@@ -2192,7 +2195,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     #[inline]
     fn is_link(&self) -> bool {
         self.state()
-            .intersects(NonTSPseudoClass::AnyLink.state_flag())
+            .intersects(ElementState::IN_VISITED_OR_UNVISITED_STATE)
     }
 
     #[inline]
@@ -2219,6 +2222,16 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         snapshot_helpers::has_class_or_part(name, CaseSensitivity::CaseSensitive, attr)
     }
 
+    #[inline]
+    fn exported_part(&self, name: &Atom) -> Option<Atom> {
+        snapshot_helpers::exported_part(self.attrs(), name)
+    }
+
+    #[inline]
+    fn imported_part(&self, name: &Atom) -> Option<Atom> {
+        snapshot_helpers::imported_part(self.attrs(), name)
+    }
+
     #[inline(always)]
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         let attr = match self.get_class_attr() {
@@ -2241,7 +2254,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     #[inline]
     fn ignores_nth_child_selectors(&self) -> bool {
-        self.is_root_of_anonymous_subtree()
+        self.is_root_of_native_anonymous_subtree()
     }
 }
 

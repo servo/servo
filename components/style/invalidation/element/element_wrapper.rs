@@ -62,6 +62,12 @@ pub trait ElementSnapshot: Sized {
     /// called if `has_attrs()` returns true.
     fn is_part(&self, name: &Atom) -> bool;
 
+    /// See Element::exported_part.
+    fn exported_part(&self, name: &Atom) -> Option<Atom>;
+
+    /// See Element::imported_part.
+    fn imported_part(&self, name: &Atom) -> Option<Atom>;
+
     /// A callback that should be called for each class of the snapshot. Should
     /// only be called if `has_attrs()` returns true.
     fn each_class<F>(&self, _: F)
@@ -270,7 +276,10 @@ where
     }
 
     fn is_link(&self) -> bool {
-        self.element.is_link()
+        match self.snapshot().and_then(|s| s.state()) {
+            Some(state) => state.intersects(ElementState::IN_VISITED_OR_UNVISITED_STATE),
+            None => self.element.is_link(),
+        }
     }
 
     fn opaque(&self) -> OpaqueElement {
@@ -359,6 +368,20 @@ where
         match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs() => snapshot.is_part(name),
             _ => self.element.is_part(name),
+        }
+    }
+
+    fn exported_part(&self, name: &Atom) -> Option<Atom> {
+        match self.snapshot() {
+            Some(snapshot) if snapshot.has_attrs() => snapshot.exported_part(name),
+            _ => self.element.exported_part(name),
+        }
+    }
+
+    fn imported_part(&self, name: &Atom) -> Option<Atom> {
+        match self.snapshot() {
+            Some(snapshot) if snapshot.has_attrs() => snapshot.imported_part(name),
+            _ => self.element.imported_part(name),
         }
     }
 

@@ -3073,6 +3073,14 @@ impl<'a> SelectorsElement for DomRoot<Element> {
         false
     }
 
+    fn exported_part(&self, _: &Atom) -> Option<Atom> {
+        None
+    }
+
+    fn imported_part(&self, _: &Atom) -> Option<Atom> {
+        None
+    }
+
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         Element::has_class(&**self, name, case_sensitivity)
     }

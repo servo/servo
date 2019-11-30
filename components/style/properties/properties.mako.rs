@@ -1651,13 +1651,25 @@ impl UnparsedValue {
                     shorthands::${shorthand.ident}::parse_value(&context, input)
                     .map(|longhands| {
                         match longhand_id {
+                            <% seen = set() %>
                             % for property in shorthand.sub_properties:
-                                LonghandId::${property.camel_case} => {
-                                    PropertyDeclaration::${property.camel_case}(
-                                        longhands.${property.ident}
-                                    )
-                                }
+                            // When animating logical properties, we end up
+                            // physicalizing the value during the animation, but
+                            // the value still comes from the logical shorthand.
+                            //
+                            // So we need to handle the physical properties too.
+                            % for prop in [property] + property.all_physical_mapped_properties(data):
+                            % if prop.camel_case not in seen:
+                            LonghandId::${prop.camel_case} => {
+                                PropertyDeclaration::${prop.camel_case}(
+                                    longhands.${property.ident}
+                                )
+                            }
+                            <% seen.add(prop.camel_case) %>
+                            % endif
                             % endfor
+                            % endfor
+                            <% del seen %>
                             _ => unreachable!()
                         }
                     })
@@ -1801,8 +1813,8 @@ pub enum CountedUnknownProperty {
 }
 
 impl CountedUnknownProperty {
-    /// Parse the counted unknown property.
-    pub fn parse_for_test(property_name: &str) -> Option<Self> {
+    /// Parse the counted unknown property, for testing purposes only.
+    pub fn parse_for_testing(property_name: &str) -> Option<Self> {
         ascii_case_insensitive_phf_map! {
             unknown_id -> CountedUnknownProperty = {
                 % for property in data.counted_unknown_properties:
@@ -1814,6 +1826,7 @@ impl CountedUnknownProperty {
     }
 
     /// Returns the underlying index, used for use counter.
+    #[inline]
     pub fn bit(self) -> usize {
         self as usize
     }
@@ -1830,9 +1843,16 @@ impl PropertyId {
         })
     }
 
-    /// Returns a given property from the string `s`.
+    /// Returns a given property from the given name, _regardless of whether it
+    /// is enabled or not_, or Err(()) for unknown properties.
     ///
-    /// Returns Err(()) for unknown properties.
+    /// Do not use for non-testing purposes.
+    pub fn parse_unchecked_for_testing(name: &str) -> Result<Self, ()> {
+        Self::parse_unchecked(name, None)
+    }
+
+    /// Returns a given property from the given name, _regardless of whether it
+    /// is enabled or not_, or Err(()) for unknown properties.
     fn parse_unchecked(
         property_name: &str,
         use_counters: Option< &UseCounters>,
@@ -2176,14 +2196,12 @@ impl PropertyDeclaration {
         let mut ret = self.clone();
 
         % for prop in data.longhands:
-        % if prop.logical:
-        % for physical_property in prop.all_physical_mapped_properties():
-        % if data.longhands_by_name[physical_property].specified_type() != prop.specified_type():
+        % for physical_property in prop.all_physical_mapped_properties(data):
+        % if physical_property.specified_type() != prop.specified_type():
             <% raise "Logical property %s should share specified value with physical property %s" % \
-                     (prop.name, physical_property) %>
+                     (prop.name, physical_property.name) %>
         % endif
         % endfor
-        % endif
         % endfor
 
         unsafe {

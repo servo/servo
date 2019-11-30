@@ -58,7 +58,7 @@ pub use self::GenericGridLine as GridLine;
 
 impl<Integer> GridLine<Integer>
 where
-    Integer: Zero,
+    Integer: PartialEq + Zero,
 {
     /// The `auto` value.
     pub fn auto() -> Self {
@@ -73,11 +73,27 @@ where
     pub fn is_auto(&self) -> bool {
         self.ident == atom!("") && self.line_num.is_zero() && !self.is_span
     }
+
+    /// Check whether this `<grid-line>` represents a `<custom-ident>` value.
+    pub fn is_ident_only(&self) -> bool {
+        self.ident != atom!("") && self.line_num.is_zero() && !self.is_span
+    }
+
+    /// Check if `self` makes `other` omittable according to the rules at:
+    /// https://drafts.csswg.org/css-grid/#propdef-grid-column
+    /// https://drafts.csswg.org/css-grid/#propdef-grid-area
+    pub fn can_omit(&self, other: &Self) -> bool {
+        if self.is_ident_only() {
+            self == other
+        } else {
+            other.is_auto()
+        }
+    }
 }
 
 impl<Integer> ToCss for GridLine<Integer>
 where
-    Integer: ToCss + Zero,
+    Integer: ToCss + PartialEq + Zero,
 {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
@@ -261,6 +277,19 @@ pub enum GenericTrackSize<L> {
 pub use self::GenericTrackSize as TrackSize;
 
 impl<L> TrackSize<L> {
+    /// The initial value.
+    const INITIAL_VALUE: Self = TrackSize::Breadth(TrackBreadth::Auto);
+
+    /// Returns the initial value.
+    pub const fn initial_value() -> Self {
+        Self::INITIAL_VALUE
+    }
+
+    /// Returns true if `self` is the initial value.
+    pub fn is_initial(&self) -> bool {
+        matches!(*self, TrackSize::Breadth(TrackBreadth::Auto)) // FIXME: can't use Self::INITIAL_VALUE here yet: https://github.com/rust-lang/rust/issues/66585
+    }
+
     /// Check whether this is a `<fixed-size>`
     ///
     /// <https://drafts.csswg.org/css-grid/#typedef-fixed-size>
@@ -286,17 +315,9 @@ impl<L> TrackSize<L> {
     }
 }
 
-impl<L: PartialEq> TrackSize<L> {
-    /// Return true if it is `auto`.
-    #[inline]
-    pub fn is_auto(&self) -> bool {
-        *self == TrackSize::Breadth(TrackBreadth::Auto)
-    }
-}
-
 impl<L> Default for TrackSize<L> {
     fn default() -> Self {
-        TrackSize::Breadth(TrackBreadth::Auto)
+        Self::initial_value()
     }
 }
 
@@ -513,8 +534,26 @@ pub enum GenericTrackListValue<LengthPercentage, Integer> {
 pub use self::GenericTrackListValue as TrackListValue;
 
 impl<L, I> TrackListValue<L, I> {
+    // FIXME: can't use TrackSize::initial_value() here b/c rustc error "is not yet stable as a const fn"
+    const INITIAL_VALUE: Self = TrackListValue::TrackSize(TrackSize::Breadth(TrackBreadth::Auto));
+
     fn is_repeat(&self) -> bool {
         matches!(*self, TrackListValue::TrackRepeat(..))
+    }
+
+    /// Returns true if `self` is the initial value.
+    pub fn is_initial(&self) -> bool {
+        matches!(
+            *self,
+            TrackListValue::TrackSize(TrackSize::Breadth(TrackBreadth::Auto))
+        ) // FIXME: can't use Self::INITIAL_VALUE here yet: https://github.com/rust-lang/rust/issues/66585
+    }
+}
+
+impl<L, I> Default for TrackListValue<L, I> {
+    #[inline]
+    fn default() -> Self {
+        Self::INITIAL_VALUE
     }
 }
 
@@ -755,11 +794,26 @@ pub enum GenericGridTemplateComponent<L, I> {
 pub use self::GenericGridTemplateComponent as GridTemplateComponent;
 
 impl<L, I> GridTemplateComponent<L, I> {
+    /// The initial value.
+    const INITIAL_VALUE: Self = Self::None;
+
     /// Returns length of the <track-list>s <track-size>
     pub fn track_list_len(&self) -> usize {
         match *self {
             GridTemplateComponent::TrackList(ref tracklist) => tracklist.values.len(),
             _ => 0,
         }
+    }
+
+    /// Returns true if `self` is the initial value.
+    pub fn is_initial(&self) -> bool {
+        matches!(*self, Self::None) // FIXME: can't use Self::INITIAL_VALUE here yet: https://github.com/rust-lang/rust/issues/66585
+    }
+}
+
+impl<L, I> Default for GridTemplateComponent<L, I> {
+    #[inline]
+    fn default() -> Self {
+        Self::INITIAL_VALUE
     }
 }

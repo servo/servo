@@ -26,6 +26,7 @@ use std::fmt::{self, Write};
 use std::hash::{Hash, Hasher};
 use std::iter::Cloned;
 use std::mem::{self, ManuallyDrop};
+use std::num::NonZeroUsize;
 use std::ops::Deref;
 use std::{slice, str};
 use style_traits::SpecifiedValueInfo;
@@ -48,13 +49,18 @@ macro_rules! local_name {
     };
 }
 
-/// A handle to a Gecko atom.
+/// A handle to a Gecko atom. This is a type that can represent either:
 ///
-/// This is either a strong reference to a dynamic atom (an nsAtom pointer),
-/// or an offset from gGkAtoms to the nsStaticAtom object.
+///  * A strong reference to a dynamic atom (an `nsAtom` pointer), in which case
+///    the `usize` just holds the pointer value.
+///
+///  * A byte offset from `gGkAtoms` to the `nsStaticAtom` object (shifted to
+///    the left one bit, and with the lower bit set to `1` to differentiate it
+///    from the above), so `(offset << 1 | 1)`.
+///
 #[derive(Eq, PartialEq)]
 #[repr(C)]
-pub struct Atom(usize);
+pub struct Atom(NonZeroUsize);
 
 /// An atom *without* a strong reference.
 ///
@@ -86,7 +92,7 @@ fn static_atoms() -> &'static [nsStaticAtom; STATIC_ATOM_COUNT] {
 fn valid_static_atom_addr(addr: usize) -> bool {
     unsafe {
         let atoms = static_atoms();
-        let start = atoms.get_unchecked(0) as *const _;
+        let start = atoms.as_ptr();
         let end = atoms.get_unchecked(STATIC_ATOM_COUNT) as *const _;
         let in_range = addr >= start as usize && addr < end as usize;
         let aligned = addr % mem::align_of::<nsStaticAtom>() == 0;
@@ -101,9 +107,9 @@ impl Deref for Atom {
     fn deref(&self) -> &WeakAtom {
         unsafe {
             let addr = if self.is_static() {
-                (&gGkAtoms as *const _ as usize) + (self.0 >> 1)
+                (&gGkAtoms as *const _ as usize) + (self.0.get() >> 1)
             } else {
-                self.0
+                self.0.get()
             };
             debug_assert!(!self.is_static() || valid_static_atom_addr(addr));
             WeakAtom::new(addr as *const nsAtom)
@@ -341,29 +347,29 @@ impl fmt::Display for WeakAtom {
 }
 
 #[inline]
-unsafe fn make_handle(ptr: *const nsAtom) -> usize {
+unsafe fn make_handle(ptr: *const nsAtom) -> NonZeroUsize {
     debug_assert!(!ptr.is_null());
     if !WeakAtom::new(ptr).is_static() {
-        ptr as usize
+        NonZeroUsize::new_unchecked(ptr as usize)
     } else {
         make_static_handle(ptr as *mut nsStaticAtom)
     }
 }
 
 #[inline]
-unsafe fn make_static_handle(ptr: *const nsStaticAtom) -> usize {
+unsafe fn make_static_handle(ptr: *const nsStaticAtom) -> NonZeroUsize {
     // FIXME(heycam): Use offset_from once it's stabilized.
     // https://github.com/rust-lang/rust/issues/41079
     debug_assert!(valid_static_atom_addr(ptr as usize));
     let base = &gGkAtoms as *const _;
     let offset = ptr as usize - base as usize;
-    (offset << 1) | 1
+    NonZeroUsize::new_unchecked((offset << 1) | 1)
 }
 
 impl Atom {
     #[inline]
     fn is_static(&self) -> bool {
-        self.0 & 1 == 1
+        self.0.get() & 1 == 1
     }
 
     /// Execute a callback with the atom represented by `ptr`.
@@ -378,17 +384,17 @@ impl Atom {
     }
 
     /// Creates a static atom from its index in the static atom table, without
-    /// checking in release builds.
+    /// checking.
     #[inline]
-    pub unsafe fn from_index(index: u16) -> Self {
-        let ptr = static_atoms().get_unchecked(index as usize) as *const _;
-        let handle = make_static_handle(ptr);
-        let atom = Atom(handle);
-        debug_assert!(valid_static_atom_addr(ptr as usize));
-        debug_assert!(atom.is_static());
-        debug_assert!((*atom).is_static());
-        debug_assert!(handle == make_handle(atom.as_ptr()));
-        atom
+    pub const unsafe fn from_index_unchecked(index: u16) -> Self {
+        // FIXME(emilio): No support for debug_assert! in const fn for now. Note
+        // that violating this invariant will debug-assert in the `Deref` impl
+        // though.
+        //
+        // debug_assert!((index as usize) < STATIC_ATOM_COUNT);
+        let offset =
+            (index as usize) * std::mem::size_of::<nsStaticAtom>() + kGkAtomsArrayOffset as usize;
+        Atom(NonZeroUsize::new_unchecked((offset << 1) | 1))
     }
 
     /// Creates an atom from an atom pointer.

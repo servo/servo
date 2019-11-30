@@ -172,7 +172,11 @@ where
         };
 
         for selector in self.selector_list.0.iter() {
-            target_vector.push(Invalidation::new(selector, 0))
+            target_vector.push(Invalidation::new(
+                selector,
+                self.matching_context.current_host.clone(),
+                0,
+            ))
         }
 
         false

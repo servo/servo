@@ -136,24 +136,22 @@ fn parse_number_with_clamping_mode<'i, 't>(
     clamping_mode: AllowedNumericType,
 ) -> Result<Number, ParseError<'i>> {
     let location = input.current_source_location();
-    // FIXME: remove early returns when lifetimes are non-lexical
     match *input.next()? {
         Token::Number { value, .. } if clamping_mode.is_ok(context.parsing_mode, value) => {
-            return Ok(Number {
+            Ok(Number {
                 value: value.min(f32::MAX).max(f32::MIN),
                 calc_clamping_mode: None,
-            });
+            })
         },
-        Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {},
-        ref t => return Err(location.new_unexpected_token_error(t.clone())),
+        Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+            let result = input.parse_nested_block(|i| CalcNode::parse_number(context, i))?;
+            Ok(Number {
+                value: result.min(f32::MAX).max(f32::MIN),
+                calc_clamping_mode: Some(clamping_mode),
+            })
+        },
+        ref t => Err(location.new_unexpected_token_error(t.clone())),
     }
-
-    let result = input.parse_nested_block(|i| CalcNode::parse_number(context, i))?;
-
-    Ok(Number {
-        value: result.min(f32::MAX).max(f32::MIN),
-        calc_clamping_mode: Some(clamping_mode),
-    })
 }
 
 /// A CSS `<number>` specified value.
@@ -540,19 +538,16 @@ impl Parse for Integer {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
-
-        // FIXME: remove early returns when lifetimes are non-lexical
         match *input.next()? {
             Token::Number {
                 int_value: Some(v), ..
-            } => return Ok(Integer::new(v)),
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {},
-            ref t => return Err(location.new_unexpected_token_error(t.clone())),
+            } => Ok(Integer::new(v)),
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+                let result = input.parse_nested_block(|i| CalcNode::parse_integer(context, i))?;
+                Ok(Integer::from_calc(result))
+            },
+            ref t => Err(location.new_unexpected_token_error(t.clone())),
         }
-
-        let result = input.parse_nested_block(|i| CalcNode::parse_integer(context, i))?;
-
-        Ok(Integer::from_calc(result))
     }
 }
 

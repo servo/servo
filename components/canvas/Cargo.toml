@@ -22,7 +22,7 @@ bitflags = "1.0"
 byteorder = "1"
 canvas_traits = {path = "../canvas_traits"}
 crossbeam-channel = "0.3"
-cssparser = "0.27.1"
+cssparser = "0.27"
 embedder_traits = {path = "../embedder_traits"}
 euclid = "0.20"
 fnv = "1.0"

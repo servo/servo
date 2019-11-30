@@ -16,11 +16,24 @@ use style_traits::{ParseError, StyleParseErrorKind};
 /// The specified value of `offset-path`.
 pub type OffsetPath = GenericOffsetPath<Angle>;
 
+#[cfg(feature = "gecko")]
+fn is_ray_enabled() -> bool {
+    static_prefs::pref!("layout.css.motion-path-ray.enabled")
+}
+#[cfg(feature = "servo")]
+fn is_ray_enabled() -> bool {
+    false
+}
+
 impl Parse for RayFunction<Angle> {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
+        if !is_ray_enabled() {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+
         let mut angle = None;
         let mut size = None;
         let mut contain = false;

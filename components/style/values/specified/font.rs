@@ -1212,15 +1212,15 @@ impl Parse for FontVariantAlternates {
                 parsed_alternates |= $flag;
             )
         );
-        while let Ok(_) = input.try(|input| {
-            // FIXME: remove clone() when lifetimes are non-lexical
-            match input.next()?.clone() {
-                Token::Ident(ref value) if value.eq_ignore_ascii_case("historical-forms") => {
-                    check_if_parsed!(input, VariantAlternatesParsingFlags::HISTORICAL_FORMS);
-                    alternates.push(VariantAlternates::HistoricalForms);
-                    Ok(())
-                },
-                Token::Function(ref name) => input.parse_nested_block(|i| {
+        while let Ok(_) = input.try(|input| match *input.next()? {
+            Token::Ident(ref value) if value.eq_ignore_ascii_case("historical-forms") => {
+                check_if_parsed!(input, VariantAlternatesParsingFlags::HISTORICAL_FORMS);
+                alternates.push(VariantAlternates::HistoricalForms);
+                Ok(())
+            },
+            Token::Function(ref name) => {
+                let name = name.clone();
+                input.parse_nested_block(|i| {
                     match_ignore_ascii_case! { &name,
                         "swash" => {
                             check_if_parsed!(i, VariantAlternatesParsingFlags::SWASH);
@@ -1270,9 +1270,9 @@ impl Parse for FontVariantAlternates {
                         },
                         _ => return Err(i.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
                     }
-                }),
-                _ => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
-            }
+                })
+            },
+            _ => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
         }) {}
 
         if parsed_alternates.is_empty() {

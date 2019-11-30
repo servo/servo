@@ -26,9 +26,7 @@ pub struct RuleCacheConditions {
 impl RuleCacheConditions {
     /// Sets the style as depending in the font-size value.
     pub fn set_font_size_dependency(&mut self, font_size: NonNegativeLength) {
-        if let Some(f) = &self.font_size {
-            debug_assert_eq!(*f, font_size);
-        }
+        debug_assert!(self.font_size.map_or(true, |f| f == font_size));
         self.font_size = Some(font_size);
     }
 

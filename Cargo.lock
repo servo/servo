@@ -5333,7 +5333,7 @@ name = "style"
 version = "0.0.1"
 dependencies = [
  "app_units",
- "arrayvec 0.4.6",
+ "arrayvec 0.5.1",
  "atomic_refcell",
  "bindgen",
  "bitflags",
@@ -5941,11 +5941,11 @@ checksum = "fd2be2d6639d0f8fe6cdda291ad456e23629558d466e2789d2c3e9892bda285d"
 
 [[package]]
 name = "uluru"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2606e9192f308ddc4f0b3c5d1bf3400e28a70fff956e9d9f46d23b094746d9f"
+checksum = "6d7b39d0c32eba57d52d334e4bdd150df6e755264eefaa1ae2e7cd125f35e1ca"
 dependencies = [
- "arrayvec 0.4.6",
+ "arrayvec 0.5.1",
 ]
 
 [[package]]

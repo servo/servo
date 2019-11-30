@@ -140,6 +140,12 @@ impl PseudoElement {
         *self == PseudoElement::FieldsetContent
     }
 
+    /// Whether this pseudo-element is the ::-moz-color-swatch pseudo.
+    #[inline]
+    pub fn is_color_swatch(&self) -> bool {
+        *self == PseudoElement::MozColorSwatch
+    }
+
     /// Whether this pseudo-element is lazily-cascaded.
     #[inline]
     pub fn is_lazy(&self) -> bool {

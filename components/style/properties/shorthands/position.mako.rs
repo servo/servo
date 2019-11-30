@@ -181,8 +181,18 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
+        // Return the shortest possible serialization of the `grid-${kind}-[start/end]` values.
+        // This function exploits the opportunities to omit the end value per this spec text:
+        //
+        // https://drafts.csswg.org/css-grid/#propdef-grid-column
+        // "When the second value is omitted, if the first value is a <custom-ident>,
+        // the grid-row-end/grid-column-end longhand is also set to that <custom-ident>;
+        // otherwise, it is set to auto."
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.grid_${kind}_start.to_css(dest)?;
+            if self.grid_${kind}_start.can_omit(self.grid_${kind}_end) {
+                return Ok(());  // the end value is redundant
+            }
             dest.write_str(" / ")?;
             self.grid_${kind}_end.to_css(dest)
         }
@@ -247,14 +257,39 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
+        // Return the shortest possible serialization of the `grid-[column/row]-[start/end]` values.
+        // This function exploits the opportunities to omit trailing values per this spec text:
+        //
+        // https://drafts.csswg.org/css-grid/#propdef-grid-area
+        // "If four <grid-line> values are specified, grid-row-start is set to the first value,
+        // grid-column-start is set to the second value, grid-row-end is set to the third value,
+        // and grid-column-end is set to the fourth value.
+        //
+        // When grid-column-end is omitted, if grid-column-start is a <custom-ident>,
+        // grid-column-end is set to that <custom-ident>; otherwise, it is set to auto.
+        //
+        // When grid-row-end is omitted, if grid-row-start is a <custom-ident>, grid-row-end is
+        // set to that <custom-ident>; otherwise, it is set to auto.
+        //
+        // When grid-column-start is omitted, if grid-row-start is a <custom-ident>, all four
+        // longhands are set to that value. Otherwise, it is set to auto."
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.grid_row_start.to_css(dest)?;
+            let mut trailing_values = 3;
+            if self.grid_column_start.can_omit(self.grid_column_end) {
+                trailing_values -= 1;
+                if self.grid_row_start.can_omit(self.grid_row_end) {
+                    trailing_values -= 1;
+                    if self.grid_row_start.can_omit(self.grid_column_start) {
+                        trailing_values -= 1;
+                    }
+                }
+            }
             let values = [&self.grid_column_start, &self.grid_row_end, &self.grid_column_end];
-            for value in &values {
+            for value in values.iter().take(trailing_values) {
                 dest.write_str(" / ")?;
                 value.to_css(dest)?;
             }
-
             Ok(())
         }
     }
@@ -301,27 +336,37 @@
         % endfor
 
         let first_line_names = input.try(parse_line_names).unwrap_or_default();
-        if let Ok(mut string) = input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned().into())) {
+        if let Ok(string) = input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned().into())) {
             let mut strings = vec![];
             let mut values = vec![];
             let mut line_names = vec![];
-            let mut names = first_line_names;
+            line_names.push(first_line_names);
+            strings.push(string);
             loop {
-                line_names.push(names);
-                strings.push(string);
                 let size = input.try(|i| TrackSize::parse(context, i)).unwrap_or_default();
                 values.push(TrackListValue::TrackSize(size));
-                names = input.try(parse_line_names).unwrap_or_default();
-                if let Ok(v) = input.try(parse_line_names) {
-                    let mut names_vec = names.into_vec();
-                    names_vec.extend(v.into_iter());
-                    names = names_vec.into();
-                }
+                let mut names = input.try(parse_line_names).unwrap_or_default();
+                let more_names = input.try(parse_line_names);
 
-                string = match input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned().into())) {
-                    Ok(s) => s,
-                    _ => {      // only the named area determines whether we should bail out
-                        line_names.push(names.into());
+                match input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned().into())) {
+                    Ok(string) => {
+                        strings.push(string);
+                        if let Ok(v) = more_names {
+                            // We got `[names] [more_names] "string"` - merge the two name lists.
+                            let mut names_vec = names.into_vec();
+                            names_vec.extend(v.into_iter());
+                            names = names_vec.into();
+                        }
+                        line_names.push(names);
+                    },
+                    Err(e) => {
+                        if more_names.is_ok() {
+                            // We've parsed `"string" [names] [more_names]` but then failed to parse another `"string"`.
+                            // The grammar doesn't allow two trailing `<line-names>` so this is an invalid value.
+                            return Err(e.into());
+                        }
+                        // only the named area determines whether we should bail out
+                        line_names.push(names);
                         break
                     },
                 };
@@ -350,7 +395,7 @@
 
                 value
             } else {
-                GenericGridTemplateComponent::None
+                GridTemplateComponent::default()
             };
 
             Ok((
@@ -399,6 +444,9 @@
         W: Write {
         match *template_areas {
             GridTemplateAreas::None => {
+                if template_rows.is_initial() && template_columns.is_initial() {
+                    return GridTemplateComponent::default().to_css(dest);
+                }
                 template_rows.to_css(dest)?;
                 dest.write_str(" / ")?;
                 template_columns.to_css(dest)
@@ -455,8 +503,12 @@
                     }
 
                     string.to_css(dest)?;
-                    dest.write_str(" ")?;
-                    value.to_css(dest)?;
+
+                    // If the track size is the initial value then it's redundant here.
+                    if !value.is_initial() {
+                        dest.write_str(" ")?;
+                        value.to_css(dest)?;
+                    }
                 }
 
                 if let Some(names) = names_iter.next() {
@@ -503,8 +555,8 @@
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
-        let mut temp_rows = GridTemplateComponent::None;
-        let mut temp_cols = GridTemplateComponent::None;
+        let mut temp_rows = GridTemplateComponent::default();
+        let mut temp_cols = GridTemplateComponent::default();
         let mut temp_areas = GridTemplateAreas::None;
         let mut auto_rows = ImplicitGridTracks::default();
         let mut auto_cols = ImplicitGridTracks::default();
@@ -577,8 +629,8 @@
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             if *self.grid_template_areas != GridTemplateAreas::None ||
-               (*self.grid_template_rows != GridTemplateComponent::None &&
-                   *self.grid_template_columns != GridTemplateComponent::None) ||
+               (!self.grid_template_rows.is_initial() &&
+                !self.grid_template_columns.is_initial()) ||
                self.is_grid_template() {
                 return super::grid_template::serialize_grid_template(self.grid_template_rows,
                                                                      self.grid_template_columns,
@@ -588,7 +640,7 @@
             if self.grid_auto_flow.autoflow == AutoFlow::Column {
                 // It should fail to serialize if other branch of the if condition's values are set.
                 if !self.grid_auto_rows.is_initial() ||
-                   *self.grid_template_columns != GridTemplateComponent::None {
+                    !self.grid_template_columns.is_initial() {
                     return Ok(());
                 }
 
@@ -612,7 +664,7 @@
             } else {
                 // It should fail to serialize if other branch of the if condition's values are set.
                 if !self.grid_auto_columns.is_initial() ||
-                   *self.grid_template_rows != GridTemplateComponent::None {
+                    !self.grid_template_rows.is_initial() {
                     return Ok(());
                 }
 

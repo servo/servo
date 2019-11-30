@@ -257,10 +257,12 @@ class Longhand(object):
     def type():
         return "longhand"
 
-    # For a given logical property return all the physical
-    # property names corresponding to it.
-    def all_physical_mapped_properties(self):
-        assert self.logical
+    # For a given logical property return all the physical property names
+    # corresponding to it.
+    def all_physical_mapped_properties(self, data):
+        if not self.logical:
+            return []
+
         candidates = [s for s in LOGICAL_SIDES + LOGICAL_SIZES + LOGICAL_CORNERS
                       if s in self.name] + [s for s in LOGICAL_AXES if self.name.endswith(s)]
         assert(len(candidates) == 1)
@@ -270,7 +272,7 @@ class Longhand(object):
             else PHYSICAL_SIZES if logical_side in LOGICAL_SIZES \
             else PHYSICAL_AXES if logical_side in LOGICAL_AXES \
             else LOGICAL_CORNERS
-        return [to_phys(self.name, logical_side, physical_side)
+        return [data.longhands_by_name[to_phys(self.name, logical_side, physical_side)]
                 for physical_side in physical]
 
     def experimental(self, engine):
