@@ -14,7 +14,7 @@ path = "lib.rs"
 webgl_backtrace = []
 
 [dependencies]
-cssparser = "0.27.1"
+cssparser = "0.27"
 euclid = "0.20"
 ipc-channel = "0.12"
 lazy_static = "1"

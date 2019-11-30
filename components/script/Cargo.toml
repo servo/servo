@@ -43,7 +43,7 @@ content-security-policy = {version = "0.3.0", features = ["serde"]}
 cookie = "0.11"
 chrono = "0.4"
 crossbeam-channel = "0.3"
-cssparser = "0.27.1"
+cssparser = "0.27"
 deny_public_fields = {path = "../deny_public_fields"}
 devtools_traits = {path = "../devtools_traits"}
 dom_struct = {path = "../dom_struct"}

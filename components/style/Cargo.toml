@@ -32,7 +32,7 @@ arrayvec = "0.5"
 atomic_refcell = "0.1"
 bitflags = "1.0"
 byteorder = "1.0"
-cssparser = "0.27.1"
+cssparser = "0.27"
 crossbeam-channel = { version = "0.3", optional = true }
 derive_more = "0.13"
 new_debug_unreachable = "1.0"
