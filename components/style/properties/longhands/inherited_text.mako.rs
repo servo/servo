@@ -332,6 +332,7 @@ ${helpers.single_keyword(
     "space-around start center space-between",
     engines="gecko",
     animation_value_type="discrete",
+    gecko_enum_prefix="StyleRubyAlign",
     spec="https://drafts.csswg.org/css-ruby/#ruby-align-property",
 )}
 
