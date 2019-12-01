@@ -147,10 +147,11 @@ class ServoFormatter(base.BaseFormatter):
 
         lines = [u"%s%s %s" % (status, expected_text, test_name)]
         if message:
-            lines.append(u"  \u2192 %s" % message)
+            for message_line in message.splitlines():
+                lines.append(u"  \u2192 %s" % message_line)
         if stack:
             lines.append("")
-            lines += [stackline for stackline in stack.splitlines()]
+            lines.extend(stack.splitlines())
         return lines
 
     def get_output_for_unexpected_subtests(self, test_name, unexpected_subtests):
