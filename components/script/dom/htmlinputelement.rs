@@ -1213,7 +1213,16 @@ impl HTMLInputElement {
                     value.push_str(sanitized.as_str());
                 }
             },
-            _ => (),
+            // The following inputs don't have a value sanitization algorithm.
+            // See https://html.spec.whatwg.org/multipage/#value-sanitization-algorithm
+            InputType::Button |
+            InputType::Checkbox |
+            InputType::File |
+            InputType::Hidden |
+            InputType::Image |
+            InputType::Radio |
+            InputType::Reset |
+            InputType::Submit => (),
         }
     }
 
