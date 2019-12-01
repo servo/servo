@@ -4,6 +4,7 @@
 
 from mozlog.formatters import base
 import collections
+import json
 import os
 import sys
 import subprocess
@@ -14,7 +15,7 @@ DEFAULT_MOVE_UP_CODE = u"\x1b[A"
 DEFAULT_CLEAR_EOL_CODE = u"\x1b[K"
 
 
-class GroupingFormatter(base.BaseFormatter):
+class ServoFormatter(base.BaseFormatter):
     """Formatter designed to produce unexpected test results grouped
        together in a readable format."""
     def __init__(self):
@@ -77,7 +78,7 @@ class GroupingFormatter(base.BaseFormatter):
         return ((self.move_up + self.clear_eol) *
                 self.current_display.count('\n'))
 
-    def generate_output(self, text=None, new_display=None):
+    def generate_output(self, text=None, new_display=None, unexpected_in_test=None):
         if not self.interactive:
             return text
 
@@ -230,7 +231,8 @@ class GroupingFormatter(base.BaseFormatter):
                                                               subtest_failures)
         self.test_failure_text += output
 
-        return self.generate_output(text=output, new_display=new_display)
+        return self.generate_output(text=output, new_display=new_display,
+                                    unexpected_in_test=test_name)
 
     def test_status(self, data):
         if "expected" in data:
@@ -289,3 +291,16 @@ class GroupingFormatter(base.BaseFormatter):
 
         if data['level'] in ('CRITICAL', 'ERROR'):
             return self.generate_output(text=data['message'] + "\n")
+
+
+class ServoJsonFormatter(ServoFormatter):
+    def suite_start(self, data):
+        ServoFormatter.suite_start(self, data)
+        # Don't forward the return value
+
+    def generate_output(self, text=None, new_display=None, unexpected_in_test=None):
+        if unexpected_in_test:
+            return "%s\n" % json.dumps({"test": unexpected_in_test, "output": text})
+
+    def log(self, _):
+        return

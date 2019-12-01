@@ -68,6 +68,7 @@ TEST_SUITES_BY_PREFIX = {path: k for k, v in iteritems(TEST_SUITES) if "paths" i
 
 
 def create_parser_wpt():
+    import mozlog.commandline
     parser = wptcommandline.create_parser()
     parser.add_argument('--release', default=False, action="store_true",
                         help="Run with a release build of servo")
@@ -77,6 +78,8 @@ def create_parser_wpt():
                         help="Pass preferences to servo")
     parser.add_argument('--layout-2020', default=False, action="store_true",
                         help="Use expected results for the 2020 layout engine")
+    parser.add_argument('--log-servojson', action="append", type=mozlog.commandline.log_file,
+                        help="Servo's JSON logger of unexpected results")
     parser.add_argument('--always-succeed', default=False, action="store_true",
                         help="Always yield exit code of zero")
     return parser
@@ -511,7 +514,7 @@ class MachCommands(CommandBase):
              description='Given a WPT error summary file, filter out intermittents and other cruft.',
              category='testing')
     @CommandArgument('summary',
-                     help="Error summary log to take un")
+                     help="Error summary log to take in")
     @CommandArgument('--log-filteredsummary', default=None,
                      help='Print filtered log to file')
     @CommandArgument('--log-intermittents', default=None,
@@ -529,10 +532,7 @@ class MachCommands(CommandBase):
                 encoded_auth = base64.encodestring(file.read().strip()).replace('\n', '')
         failures = []
         with open(summary, "r") as file:
-            for line in file:
-                line_json = json.loads(line)
-                if 'status' in line_json:
-                    failures += [line_json]
+            failures = [json.loads(line) for line in file]
         actual_failures = []
         intermittents = []
         for failure in failures:
@@ -546,10 +546,7 @@ class MachCommands(CommandBase):
                 request = urllib.request.Request("%s/query.py?name=%s" % (tracker_api, query))
                 search = urllib.request.urlopen(request)
                 data = json.load(search)
-                if len(data) == 0:
-                    actual_failures += [failure]
-                else:
-                    intermittents += [failure]
+                is_intermittent = len(data) > 0
             else:
                 qstr = "repo:servo/servo+label:I-intermittent+type:issue+state:open+%s" % failure['test']
                 # we want `/` to get quoted, but not `+` (github's API doesn't like that), so we set `safe` to `+`
@@ -559,28 +556,30 @@ class MachCommands(CommandBase):
                     request.add_header("Authorization", "Basic %s" % encoded_auth)
                 search = urllib.request.urlopen(request)
                 data = json.load(search)
-                if data['total_count'] == 0:
-                    actual_failures += [failure]
-                else:
-                    intermittents += [failure]
+                is_intermittent = data['total_count'] > 0
+
+            if is_intermittent:
+                intermittents.append(failure["output"])
+            else:
+                actual_failures.append(failure["output"])
+
+        def format(outputs, description, file=sys.stdout):
+            print(len(outputs), description + ":\n", file=file)
+            file.write('\n'.join(outputs).encode("utf-8"))
 
         if log_intermittents:
-            with open(log_intermittents, "w") as intermittents_file:
-                for intermittent in intermittents:
-                    json.dump(intermittent, intermittents_file, indent=4)
-                    print("\n", end='', file=intermittents_file)
+            with open(log_intermittents, "wb") as file:
+                format(intermittents, "known-intermittent unexpected results", file)
 
-        output = open(log_filteredsummary, "w") if log_filteredsummary else sys.stdout
-        for failure in actual_failures:
-            json.dump(failure, output, indent=4)
-            print("\n", end='', file=output)
+        description = "unexpected results that are NOT known-intermittents"
+        if log_filteredsummary:
+            with open(log_filteredsummary, "wb") as file:
+                format(actual_failures, description, file)
 
-        if output is not sys.stdout:
-            output.close()
+        if actual_failures:
+            format(actual_failures, description)
 
-        if len(actual_failures) == 0:
-            return 0
-        return 1
+        return bool(actual_failures)
 
     @Command('test-android-startup',
              description='Extremely minimal testing of Servo for Android',
