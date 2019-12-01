@@ -24,7 +24,7 @@ ${helpers.single_keyword(
     "-moz-top-layer",
     "none top",
     engines="gecko",
-    gecko_constant_prefix="NS_STYLE_TOP_LAYER",
+    gecko_enum_prefix="StyleTopLayer",
     gecko_ffi_name="mTopLayer",
     animation_value_type="none",
     enabled_in="ua",
