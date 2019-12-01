@@ -89,11 +89,14 @@ class ServoFormatter(base.BaseFormatter):
             self.current_display = new_display
         return output + self.current_display
 
-    def build_status_line(self):
+    def test_counter(self):
         if self.number_of_tests == 0:
-            new_display = "  [%i] " % self.completed_tests
+            return "  [%i] " % self.completed_tests
         else:
-            new_display = "  [%i/%i] " % (self.completed_tests, self.number_of_tests)
+            return "  [%i/%i] " % (self.completed_tests, self.number_of_tests)
+
+    def build_status_line(self):
+        new_display = self.test_counter()
 
         if self.running_tests:
             indent = " " * len(new_display)
@@ -117,8 +120,8 @@ class ServoFormatter(base.BaseFormatter):
 
     def test_start(self, data):
         self.running_tests[data['thread']] = data['test']
-        return self.generate_output(text=None,
-                                    new_display=self.build_status_line())
+        if self.interactive:
+            return self.generate_output(new_display=self.build_status_line())
 
     def wrap_and_indent_lines(self, lines, indent):
         assert(len(lines) > 0)
@@ -197,15 +200,14 @@ class ServoFormatter(base.BaseFormatter):
         subtest_failures = self.subtest_failures.pop(test_name, [])
 
         del self.running_tests[data['thread']]
-        new_display = self.build_status_line()
 
         if not had_unexpected_test_result and not subtest_failures:
             self.expected[test_status] += 1
             if self.interactive:
-                return self.generate_output(text=None, new_display=new_display)
+                new_display = self.build_status_line()
+                return self.generate_output(new_display=new_display)
             else:
-                return self.generate_output(text="  %s\n" % test_name,
-                                            new_display=new_display)
+                return self.generate_output(text="%s%s\n" % (self.test_counter(), test_name))
 
         # If the test crashed or timed out, we also include any process output,
         # because there is a good chance that the test produced a stack trace
@@ -232,6 +234,7 @@ class ServoFormatter(base.BaseFormatter):
                                                               subtest_failures)
         self.test_failure_text += output
 
+        new_display = self.build_status_line()
         return self.generate_output(text=output, new_display=new_display,
                                     unexpected_in_test=test_name)
 
