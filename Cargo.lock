@@ -2723,6 +2723,7 @@ dependencies = [
  "ipc-channel",
  "libc",
  "msg",
+ "net_traits",
  "range",
  "rayon",
  "rayon_croissant",

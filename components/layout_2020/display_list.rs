@@ -78,6 +78,34 @@ impl Fragment {
                     .wr
                     .push_text(&common, rect.into(), &glyphs, t.font_key, rgba(color), None);
             },
+            Fragment::Image(i) => {
+                use style::computed_values::image_rendering::T as ImageRendering;
+                is_contentful.0 = true;
+                let rect = i
+                    .content_rect
+                    .to_physical(i.style.writing_mode(), containing_block)
+                    .translate(&containing_block.top_left);
+                let common = CommonItemProperties {
+                    clip_rect: rect.clone().into(),
+                    clip_id: wr::ClipId::root(builder.pipeline_id),
+                    spatial_id: wr::SpatialId::root_scroll_node(builder.pipeline_id),
+                    hit_info: None,
+                    // TODO(gw): Make use of the WR backface visibility functionality.
+                    flags: PrimitiveFlags::default(),
+                };
+                builder.wr.push_image(
+                    &common,
+                    rect.into(),
+                    match i.style.get_inherited_box().image_rendering {
+                        ImageRendering::Auto => wr::ImageRendering::Auto,
+                        ImageRendering::CrispEdges => wr::ImageRendering::CrispEdges,
+                        ImageRendering::Pixelated => wr::ImageRendering::Pixelated,
+                    },
+                    wr::AlphaType::PremultipliedAlpha,
+                    i.image_key,
+                    wr::ColorF::WHITE,
+                );
+            },
         }
     }
 }

@@ -325,10 +325,14 @@ where
         contents: Contents<Node>,
     ) -> Arc<InlineLevelBox> {
         let box_ = match contents.try_into() {
-            Err(replaced) => Arc::new(InlineLevelBox::Atomic {
-                style: style.clone(),
-                contents: replaced,
-            }),
+            Err(replaced) => Arc::new(InlineLevelBox::Atomic(
+                IndependentFormattingContext::construct(
+                    self.context,
+                    style.clone(),
+                    display_inside,
+                    <Contents<Node>>::Replaced(replaced),
+                ),
+            )),
             Ok(non_replaced) => match display_inside {
                 DisplayInside::Flow |
                 // TODO: Properly implement display: inline-block.
@@ -449,7 +453,7 @@ where
             let box_ = Arc::new(InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(
                 AbsolutelyPositionedBox {
                     contents: IndependentFormattingContext::construct(
-                        unimplemented!(),
+                        self.context,
                         style,
                         display_inside,
                         contents,

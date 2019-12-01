@@ -48,7 +48,7 @@ fn construct_for_root_element<'dom>(
     root_element: impl NodeExt<'dom>,
 ) -> (ContainsFloats, Vec<Arc<BlockLevelBox>>) {
     let style = root_element.style(context);
-    let replaced = ReplacedContent::for_element(root_element, context);
+    let replaced = ReplacedContent::for_element(root_element);
     let box_style = style.get_box();
 
     let display_inside = match Display::from(box_style.display) {
@@ -63,21 +63,13 @@ fn construct_for_root_element<'dom>(
         Display::GeneratingBox(DisplayGeneratingBox::OutsideInside { inside, .. }) => inside,
     };
 
-    if let Some(replaced) = replaced {
-        let _box = match replaced {};
-        #[allow(unreachable_code)]
-        {
-            return (ContainsFloats::No, vec![Arc::new(_box)]);
-        }
-    }
-
     let position = box_style.position;
     let float = box_style.float;
     let contents = IndependentFormattingContext::construct(
         context,
         style,
         display_inside,
-        Contents::OfElement(root_element),
+        replaced.map_or(Contents::OfElement(root_element), Contents::Replaced),
     );
     if position.is_absolutely_positioned() {
         (

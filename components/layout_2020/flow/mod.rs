@@ -15,6 +15,7 @@ use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{
     adjust_static_positions, AbsolutelyPositionedBox, AbsolutelyPositionedFragment,
 };
+use crate::replaced::ReplacedContent;
 use crate::style_ext::{ComputedValuesExt, Position};
 use crate::{relative_adjustement, ContainingBlock};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -295,10 +296,12 @@ impl BlockLevelBox {
                 ))
             },
             BlockLevelBox::Independent(contents) => match contents.as_replaced() {
-                Ok(replaced) => {
-                    // FIXME
-                    match *replaced {}
-                },
+                Ok(replaced) => Fragment::Box(layout_in_flow_replaced_block_level(
+                    layout_context,
+                    containing_block,
+                    &contents.style,
+                    replaced,
+                )),
                 Err(non_replaced) => Fragment::Box(layout_in_flow_non_replaced_block_level(
                     layout_context,
                     containing_block,
@@ -360,27 +363,15 @@ fn layout_in_flow_non_replaced_block_level<'a>(
     let box_size = style.box_size();
     let inline_size = box_size.inline.percentage_relative_to(cbis);
     if let LengthOrAuto::LengthPercentage(is) = inline_size {
-        let inline_margins = cbis - is - pb.inline_sum();
-        match (
-            &mut computed_margin.inline_start,
-            &mut computed_margin.inline_end,
-        ) {
-            (s @ &mut LengthOrAuto::Auto, e @ &mut LengthOrAuto::Auto) => {
-                *s = LengthOrAuto::LengthPercentage(inline_margins / 2.);
-                *e = LengthOrAuto::LengthPercentage(inline_margins / 2.);
-            },
-            (s @ &mut LengthOrAuto::Auto, _) => {
-                *s = LengthOrAuto::LengthPercentage(inline_margins);
-            },
-            (_, e @ &mut LengthOrAuto::Auto) => {
-                *e = LengthOrAuto::LengthPercentage(inline_margins);
-            },
-            (_, e @ _) => {
-                // Either the inline-end margin is auto,
-                // or we’re over-constrained and we do as if it were.
-                *e = LengthOrAuto::LengthPercentage(inline_margins);
-            },
-        }
+        let (margin_inline_start, margin_inline_end) = solve_inline_margins_for_in_flow_block_level(
+            containing_block,
+            pb.inline_sum(),
+            computed_margin.inline_start,
+            computed_margin.inline_end,
+            is,
+        );
+        computed_margin.inline_start = LengthOrAuto::LengthPercentage(margin_inline_start);
+        computed_margin.inline_end = LengthOrAuto::LengthPercentage(margin_inline_end);
     }
     let margin = computed_margin.auto_is(Length::zero);
     let mut block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
@@ -477,5 +468,106 @@ fn layout_in_flow_non_replaced_block_level<'a>(
         border,
         margin,
         block_margins_collapsed_with_children,
+    }
+}
+
+/// https://drafts.csswg.org/css2/visudet.html#block-replaced-width
+/// https://drafts.csswg.org/css2/visudet.html#inline-replaced-width
+/// https://drafts.csswg.org/css2/visudet.html#inline-replaced-height
+fn layout_in_flow_replaced_block_level<'a>(
+    layout_context: &LayoutContext,
+    containing_block: &ContainingBlock,
+    style: &Arc<ComputedValues>,
+    replaced: &ReplacedContent,
+) -> BoxFragment {
+    let cbis = containing_block.inline_size;
+    let padding = style.padding().percentages_relative_to(cbis);
+    let border = style.border_width();
+    let computed_margin = style.margin().percentages_relative_to(cbis);
+    let pb = &padding + &border;
+    let mode = style.writing_mode();
+    // FIXME(nox): We shouldn't pretend we always have a fully known intrinsic size.
+    let intrinsic_size = replaced.intrinsic_size.size_to_flow_relative(mode);
+    // FIXME(nox): This can divide by zero.
+    let intrinsic_ratio = intrinsic_size.inline.px() / intrinsic_size.block.px();
+    let box_size = style.box_size();
+    let inline_size = box_size.inline.percentage_relative_to(cbis);
+    let block_size = box_size
+        .block
+        .maybe_percentage_relative_to(containing_block.block_size.non_auto());
+    let (inline_size, block_size) = match (inline_size, block_size) {
+        (LengthOrAuto::LengthPercentage(inline), LengthOrAuto::LengthPercentage(block)) => {
+            (inline, block)
+        },
+        (LengthOrAuto::LengthPercentage(inline), LengthOrAuto::Auto) => {
+            (inline, inline / intrinsic_ratio)
+        },
+        (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(block)) => {
+            (block * intrinsic_ratio, block)
+        },
+        (LengthOrAuto::Auto, LengthOrAuto::Auto) => (intrinsic_size.inline, intrinsic_size.block),
+    };
+    let (margin_inline_start, margin_inline_end) = solve_inline_margins_for_in_flow_block_level(
+        containing_block,
+        pb.inline_sum(),
+        computed_margin.inline_start,
+        computed_margin.inline_end,
+        inline_size,
+    );
+    let margin = Sides {
+        inline_start: margin_inline_start,
+        inline_end: margin_inline_end,
+        block_start: computed_margin.block_start.auto_is(Length::zero),
+        block_end: computed_margin.block_end.auto_is(Length::zero),
+    };
+    let containing_block_for_children = ContainingBlock {
+        inline_size,
+        block_size: LengthOrAuto::LengthPercentage(block_size),
+        mode,
+    };
+    // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
+    assert_eq!(
+        containing_block.mode, containing_block_for_children.mode,
+        "Mixed writing modes are not supported yet"
+    );
+    let independent_layout = replaced.layout(layout_context, style, &containing_block_for_children);
+    let relative_adjustement = relative_adjustement(
+        style,
+        inline_size,
+        LengthOrAuto::LengthPercentage(block_size),
+    );
+    let content_rect = Rect {
+        start_corner: Vec2 {
+            block: pb.block_start + relative_adjustement.block,
+            inline: pb.inline_start + relative_adjustement.inline + margin.inline_start,
+        },
+        size: Vec2 {
+            block: block_size,
+            inline: inline_size,
+        },
+    };
+    BoxFragment {
+        style: style.clone(),
+        children: independent_layout.fragments,
+        content_rect,
+        padding,
+        border,
+        block_margins_collapsed_with_children: CollapsedBlockMargins::from_margin(&margin),
+        margin,
+    }
+}
+
+fn solve_inline_margins_for_in_flow_block_level(
+    containing_block: &ContainingBlock,
+    padding_border_inline_sum: Length,
+    computed_margin_inline_start: LengthOrAuto,
+    computed_margin_inline_end: LengthOrAuto,
+    inline_size: Length,
+) -> (Length, Length) {
+    let inline_margins = containing_block.inline_size - padding_border_inline_sum - inline_size;
+    match (computed_margin_inline_start, computed_margin_inline_end) {
+        (LengthOrAuto::Auto, LengthOrAuto::Auto) => (inline_margins / 2., inline_margins / 2.),
+        (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => (inline_margins - end, end),
+        (LengthOrAuto::LengthPercentage(start), _) => (start, inline_margins - start),
     }
 }
