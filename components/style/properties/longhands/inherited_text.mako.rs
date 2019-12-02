@@ -342,6 +342,7 @@ ${helpers.single_keyword(
     engines="gecko",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-ruby/#ruby-position-property",
+    gecko_enum_prefix="StyleRubyPosition",
 )}
 
 // CSS Writing Modes Module Level 3
