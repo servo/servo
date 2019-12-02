@@ -6,9 +6,8 @@ use crate::context::LayoutContext;
 use crate::flow::float::FloatBox;
 use crate::flow::FlowLayout;
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragments::{
-    AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment, TextFragment,
-};
+use crate::fragments::CollapsedBlockMargins;
+use crate::fragments::{AnonymousFragment, BoxFragment, Fragment, TextFragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{AbsolutelyPositionedBox, AbsolutelyPositionedFragment};
 use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside};
@@ -285,7 +284,7 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
 
 impl TextRun {
     fn layout(&self, layout_context: &LayoutContext, ifc: &mut InlineFormattingContextState) {
-        use gfx::font::{ShapingFlags, ShapingOptions};
+        use gfx::font::ShapingFlags;
         use style::computed_values::text_rendering::T as TextRendering;
         use style::computed_values::word_break::T as WordBreak;
         use style::values::generics::text::LineHeight;

@@ -5,10 +5,8 @@
 use crate::fragments::{BoxFragment, Fragment};
 use crate::geom::physical::{Rect, Vec2};
 use crate::style_ext::ComputedValuesExt;
-use app_units::Au;
 use euclid::{Point2D, SideOffsets2D};
 use gfx::text::glyph::GlyphStore;
-use servo_geometry::MaxRect;
 use std::sync::Arc;
 use style::values::computed::{BorderStyle, Length};
 use webrender_api::{self as wr, units, CommonItemProperties, PrimitiveFlags};

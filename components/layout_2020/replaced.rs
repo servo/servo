@@ -2,20 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::context::LayoutContext;
 use crate::dom_traversal::NodeExt;
 use crate::formatting_contexts::IndependentLayout;
 use crate::fragments::{Fragment, ImageFragment};
 use crate::geom::{flow_relative, physical};
-use crate::positioned::AbsolutelyPositionedFragment;
 use crate::ContainingBlock;
 use net_traits::image::base::Image;
 use servo_arc::Arc as ServoArc;
 use std::sync::Arc;
-use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
-use style::Zero;
 
 #[derive(Debug)]
 pub(crate) struct ReplacedContent {
@@ -41,7 +37,6 @@ impl ReplacedContent {
 
     pub fn layout<'a>(
         &'a self,
-        layout_context: &LayoutContext,
         style: &ServoArc<ComputedValues>,
         containing_block: &ContainingBlock,
     ) -> IndependentLayout {

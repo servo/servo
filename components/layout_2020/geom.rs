@@ -141,17 +141,6 @@ impl flow_relative::Vec2<Length> {
     }
 }
 
-impl flow_relative::Sides<Length> {
-    pub fn zero() -> Self {
-        Self {
-            inline_start: Length::zero(),
-            inline_end: Length::zero(),
-            block_start: Length::zero(),
-            block_end: Length::zero(),
-        }
-    }
-}
-
 impl flow_relative::Rect<Length> {
     pub fn zero() -> Self {
         Self {
@@ -243,16 +232,6 @@ impl<T> flow_relative::Sides<T> {
         T: Add + Copy,
     {
         self.block_start + self.block_end
-    }
-
-    pub fn start_corner(&self) -> flow_relative::Vec2<T>
-    where
-        T: Clone,
-    {
-        flow_relative::Vec2 {
-            inline: self.inline_start.clone(),
-            block: self.block_start.clone(),
-        }
     }
 }
 

@@ -6,10 +6,9 @@ use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeExt};
 use crate::flow::BlockFormattingContext;
 use crate::fragments::Fragment;
-use crate::geom::flow_relative::Vec2;
 use crate::positioned::AbsolutelyPositionedFragment;
 use crate::replaced::ReplacedContent;
-use crate::style_ext::{ComputedValuesExt, Direction, DisplayInside, Position, WritingMode};
+use crate::style_ext::DisplayInside;
 use crate::ContainingBlock;
 use servo_arc::Arc;
 use std::convert::TryInto;
@@ -83,7 +82,7 @@ impl IndependentFormattingContext {
         absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
     ) -> IndependentLayout {
         match self.as_replaced() {
-            Ok(replaced) => replaced.layout(layout_context, &self.style, containing_block),
+            Ok(replaced) => replaced.layout(&self.style, containing_block),
             Err(ifc) => ifc.layout(
                 layout_context,
                 containing_block,

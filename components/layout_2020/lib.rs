@@ -2,15 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![allow(dead_code)]
-#![allow(unreachable_code)]
-#![allow(unused_imports)]
-#![allow(unused_variables)]
 #![deny(unsafe_code)]
 #![feature(exact_size_is_empty)]
-
-#[macro_use]
-extern crate serde;
 
 pub mod context;
 pub mod data;
@@ -31,15 +24,8 @@ pub mod wrapper;
 
 pub use flow::{BoxTreeRoot, FragmentTreeRoot};
 
-use crate::context::LayoutContext;
-use crate::dom_traversal::{Contents, NodeExt};
-use crate::flow::BlockFormattingContext;
 use crate::geom::flow_relative::Vec2;
-use crate::positioned::AbsolutelyPositionedFragment;
-use crate::replaced::ReplacedContent;
-use crate::style_ext::{ComputedValuesExt, Direction, DisplayInside, Position, WritingMode};
-use servo_arc::Arc;
-use std::convert::TryInto;
+use crate::style_ext::{ComputedValuesExt, Direction, Position, WritingMode};
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto};
 use style::Zero;
