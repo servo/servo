@@ -492,9 +492,10 @@ impl GenericPathBuilder for PathBuilder {
         mut end_angle: f32,
         anticlockwise: bool,
     ) {
-        if anticlockwise {
+        if (anticlockwise && end_angle > 0.) || (!anticlockwise && end_angle < 0.) {
             end_angle = -end_angle;
         }
+
         self.0
             .as_mut()
             .unwrap()
