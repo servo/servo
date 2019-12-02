@@ -186,6 +186,16 @@ impl LengthPercentage {
         }
     }
 
+    /// Returns the length component if this could be represented as a
+    /// non-calc length.
+    pub fn as_length(&self) -> Option<Length> {
+        if !self.has_percentage {
+            Some(self.length_component())
+        } else {
+            None
+        }
+    }
+
     /// Returns the percentage component if this could be represented as a
     /// non-calc percentage.
     pub fn as_percentage(&self) -> Option<Percentage> {
