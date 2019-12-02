@@ -783,8 +783,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             if !first {
                 vec.extend(", ".as_bytes());
             }
-            first = false;
-            vec.extend(value.as_bytes());
+            if let Ok(v) = str::from_utf8(value.as_bytes()).map(|s| s.trim().as_bytes()) {
+                vec.extend(v);
+                first = false;
+            }
             vec
         });
 
