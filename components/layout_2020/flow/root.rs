@@ -19,7 +19,6 @@ use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefIterator, ParallelExtend, ParallelIterator};
 use script_layout_interface::wrapper_traits::LayoutNode;
 use servo_arc::Arc;
-use style::context::SharedStyleContext;
 use style::values::computed::{Length, LengthOrAuto};
 use style::Zero;
 use style_traits::CSSPixel;
@@ -28,7 +27,7 @@ pub struct BoxTreeRoot(BlockFormattingContext);
 pub struct FragmentTreeRoot(Vec<Fragment>);
 
 impl BoxTreeRoot {
-    pub fn construct<'dom, Node>(context: &SharedStyleContext<'_>, root_element: Node) -> Self
+    pub fn construct<'dom, Node>(context: &LayoutContext, root_element: Node) -> Self
     where
         Node: 'dom + Copy + LayoutNode + Send + Sync,
     {
@@ -41,7 +40,7 @@ impl BoxTreeRoot {
 }
 
 fn construct_for_root_element<'dom>(
-    context: &SharedStyleContext<'_>,
+    context: &LayoutContext,
     root_element: impl NodeExt<'dom>,
 ) -> (ContainsFloats, Vec<Arc<BlockLevelBox>>) {
     let style = root_element.style(context);

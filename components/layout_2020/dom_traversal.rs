@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::context::LayoutContext;
 use crate::element_data::{LayoutBox, LayoutDataForElement};
 use crate::geom::physical::Vec2;
 use crate::replaced::ReplacedContent;
@@ -13,7 +14,6 @@ use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_arc::Arc as ServoArc;
 use std::marker::PhantomData as marker;
 use std::sync::Arc;
-use style::context::SharedStyleContext;
 use style::dom::TNode;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
@@ -66,7 +66,7 @@ where
 
 fn traverse_children_of<'dom, Node>(
     parent_element: Node,
-    context: &SharedStyleContext,
+    context: &LayoutContext,
     handler: &mut impl TraversalHandler<'dom, Node>,
 ) where
     Node: NodeExt<'dom>,
@@ -88,7 +88,7 @@ fn traverse_children_of<'dom, Node>(
 
 fn traverse_element<'dom, Node>(
     element: Node,
-    context: &SharedStyleContext,
+    context: &LayoutContext,
     handler: &mut impl TraversalHandler<'dom, Node>,
 ) where
     Node: NodeExt<'dom>,
@@ -121,7 +121,7 @@ fn traverse_element<'dom, Node>(
 fn traverse_pseudo_element<'dom, Node>(
     which: WhichPseudoElement,
     element: Node,
-    context: &SharedStyleContext,
+    context: &LayoutContext,
     handler: &mut impl TraversalHandler<'dom, Node>,
 ) where
     Node: NodeExt<'dom>,
@@ -146,7 +146,7 @@ fn traverse_pseudo_element<'dom, Node>(
 
 fn traverse_pseudo_element_contents<'dom, Node>(
     pseudo_element_style: &ServoArc<ComputedValues>,
-    context: &SharedStyleContext,
+    context: &LayoutContext,
     handler: &mut impl TraversalHandler<'dom, Node>,
     items: Vec<PseudoElementContentItem>,
 ) where
@@ -159,9 +159,10 @@ fn traverse_pseudo_element_contents<'dom, Node>(
             PseudoElementContentItem::Replaced(contents) => {
                 let item_style = anonymous_style.get_or_insert_with(|| {
                     context
+                        .shared_context()
                         .stylist
                         .style_for_anonymous::<Node::ConcreteElement>(
-                            &context.guards,
+                            &context.shared_context().guards,
                             &PseudoElement::ServoText,
                             &pseudo_element_style,
                         )
@@ -215,7 +216,7 @@ where
     pub(crate) fn traverse(
         self,
         inherited_style: &ServoArc<ComputedValues>,
-        context: &SharedStyleContext,
+        context: &LayoutContext,
         handler: &mut impl TraversalHandler<'dom, Node>,
     ) {
         match self {
@@ -230,7 +231,7 @@ where
 fn pseudo_element_style<'dom, Node>(
     _which: WhichPseudoElement,
     _element: Node,
-    _context: &SharedStyleContext,
+    _context: &LayoutContext,
 ) -> Option<ServoArc<ComputedValues>>
 where
     Node: NodeExt<'dom>,
@@ -243,7 +244,7 @@ where
 fn generate_pseudo_element_content<'dom, Node>(
     _pseudo_element_style: &ComputedValues,
     _element: Node,
-    _context: &SharedStyleContext,
+    _context: &LayoutContext,
 ) -> Vec<PseudoElementContentItem>
 where
     Node: NodeExt<'dom>,
@@ -292,7 +293,7 @@ pub(crate) trait NodeExt<'dom>: 'dom + Copy + LayoutNode + Send + Sync {
     fn first_child(self) -> Option<Self>;
     fn next_sibling(self) -> Option<Self>;
     fn parent_node(self) -> Option<Self>;
-    fn style(self, context: &SharedStyleContext) -> ServoArc<ComputedValues>;
+    fn style(self, context: &LayoutContext) -> ServoArc<ComputedValues>;
 
     fn layout_data_mut(&self) -> AtomicRefMut<LayoutDataForElement>;
     fn element_box_slot(&self) -> BoxSlot<'dom>;
@@ -349,8 +350,8 @@ where
         TNode::parent_node(&self)
     }
 
-    fn style(self, context: &SharedStyleContext) -> ServoArc<ComputedValues> {
-        self.to_threadsafe().style(context)
+    fn style(self, context: &LayoutContext) -> ServoArc<ComputedValues> {
+        self.to_threadsafe().style(context.shared_context())
     }
 
     fn layout_data_mut(&self) -> AtomicRefMut<LayoutDataForElement> {

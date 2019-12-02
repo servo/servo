@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::context::LayoutContext;
 use crate::dom_traversal::{BoxSlot, Contents, NodeExt, NonReplacedContents, TraversalHandler};
 use crate::element_data::LayoutBox;
 use crate::flow::float::FloatBox;
@@ -14,13 +15,12 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
 use std::convert::TryInto;
-use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 
 impl BlockFormattingContext {
     pub fn construct<'dom>(
-        context: &SharedStyleContext<'_>,
+        context: &LayoutContext,
         style: &Arc<ComputedValues>,
         contents: NonReplacedContents<impl NodeExt<'dom>>,
     ) -> Self {
@@ -71,7 +71,7 @@ enum IntermediateBlockContainer<Node> {
 /// This builder starts from the first child of a given DOM node
 /// and does a preorder traversal of all of its inclusive siblings.
 struct BlockContainerBuilder<'dom, 'style, Node> {
-    context: &'style SharedStyleContext<'style>,
+    context: &'style LayoutContext<'style>,
 
     block_container_style: &'style Arc<ComputedValues>,
 
@@ -123,11 +123,11 @@ struct BlockContainerBuilder<'dom, 'style, Node> {
 }
 
 impl BlockContainer {
-    pub fn construct<'dom, 'style>(
-        context: &SharedStyleContext<'style>,
+    pub fn construct<'dom>(
+        context: &LayoutContext,
         block_container_style: &Arc<ComputedValues>,
         contents: NonReplacedContents<impl NodeExt<'dom>>,
-        //        intrinsic_sizes_requested: bool,
+        //intrinsic_sizes_requested: bool,
     ) -> (BlockContainer, ContainsFloats) {
         let mut builder = BlockContainerBuilder {
             context,
@@ -510,9 +510,10 @@ where
         let block_container_style = self.block_container_style;
         let anonymous_style = self.anonymous_style.get_or_insert_with(|| {
             context
+                .shared_context()
                 .stylist
                 .style_for_anonymous::<Node::ConcreteElement>(
-                    &context.guards,
+                    &context.shared_context().guards,
                     &PseudoElement::ServoText,
                     &block_container_style,
                 )
@@ -547,9 +548,9 @@ impl<'dom, Node> IntermediateBlockLevelBox<Node>
 where
     Node: NodeExt<'dom>,
 {
-    fn finish<'style>(
+    fn finish(
         self,
-        context: &SharedStyleContext<'style>,
+        context: &LayoutContext,
     ) -> (Arc<BlockLevelBox>, ContainsFloats) {
         match self {
             IntermediateBlockLevelBox::SameFormattingContextBlock { style, contents } => {
@@ -614,9 +615,9 @@ impl<'dom, Node> IntermediateBlockContainer<Node>
 where
     Node: NodeExt<'dom>,
 {
-    fn finish<'style>(
+    fn finish(
         self,
-        context: &SharedStyleContext<'style>,
+        context: &LayoutContext,
         style: &Arc<ComputedValues>,
     ) -> (BlockContainer, ContainsFloats) {
         match self {

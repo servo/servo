@@ -12,7 +12,6 @@ use crate::style_ext::DisplayInside;
 use crate::ContainingBlock;
 use servo_arc::Arc;
 use std::convert::TryInto;
-use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
 
@@ -46,8 +45,8 @@ enum NonReplacedIFCKind<'a> {
 }
 
 impl IndependentFormattingContext {
-    pub fn construct<'dom, 'style>(
-        context: &SharedStyleContext<'style>,
+    pub fn construct<'dom>(
+        context: &LayoutContext,
         style: Arc<ComputedValues>,
         display_inside: DisplayInside,
         contents: Contents<impl NodeExt<'dom>>,
