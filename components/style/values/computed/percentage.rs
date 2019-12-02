@@ -64,6 +64,12 @@ impl Zero for Percentage {
     }
 }
 
+impl std::ops::AddAssign for Percentage {
+    fn add_assign(&mut self, other: Self) {
+        self.0 += other.0
+    }
+}
+
 impl ToCss for Percentage {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where

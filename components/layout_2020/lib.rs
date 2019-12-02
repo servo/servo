@@ -14,6 +14,7 @@ mod flow;
 mod formatting_contexts;
 mod fragments;
 mod geom;
+mod intrinsic;
 mod opaque_node;
 mod positioned;
 pub mod query;

@@ -170,6 +170,12 @@ impl LengthPercentage {
         self.length
     }
 
+    /// Returns the percentage component of this `calc()`
+    #[inline]
+    pub fn percentage_component(&self) -> Percentage {
+        Percentage(self.clamping_mode.clamp(self.percentage.0))
+    }
+
     /// Return the percentage value as CSSFloat.
     #[inline]
     pub fn percentage(&self) -> CSSFloat {

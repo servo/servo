@@ -9,13 +9,17 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::CollapsedBlockMargins;
 use crate::fragments::{AnonymousFragment, BoxFragment, Fragment, TextFragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
+use crate::intrinsic::{outer_intrinsic_inline_sizes, IntrinsicSizes};
 use crate::positioned::{AbsolutelyPositionedBox, AbsolutelyPositionedFragment};
 use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside};
 use crate::{relative_adjustement, ContainingBlock};
+use app_units::Au;
+use gfx::text::text_run::GlyphRun;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
-use style::values::computed::Length;
+use style::values::computed::{Length, Percentage};
 use style::Zero;
+use webrender_api::FontInstanceKey;
 
 #[derive(Debug, Default)]
 pub(crate) struct InlineFormattingContext {
@@ -77,6 +81,119 @@ struct LinesBoxes {
 }
 
 impl InlineFormattingContext {
+    // This works on an already-constructed `InlineFormattingContext`,
+    // Which would have to change if/when
+    // `BlockContainer::construct` parallelize their construction.
+    #[allow(unused)]
+    pub(super) fn intrinsic_sizes(&self, layout_context: &LayoutContext) -> IntrinsicSizes {
+        struct Computation {
+            paragraph: IntrinsicSizes,
+            current_line: IntrinsicSizes,
+            current_line_percentages: Percentage,
+        }
+        impl Computation {
+            fn traverse(
+                &mut self,
+                layout_context: &LayoutContext,
+                inline_level_boxes: &[Arc<InlineLevelBox>],
+            ) {
+                for inline_level_box in inline_level_boxes {
+                    match &**inline_level_box {
+                        InlineLevelBox::InlineBox(inline_box) => {
+                            let padding = inline_box.style.padding();
+                            let border = inline_box.style.border_width();
+                            let margin = inline_box.style.margin();
+                            macro_rules! add_length {
+                                ($x: expr) => {{
+                                    let length = $x;
+                                    self.current_line.min_content += length;
+                                    self.current_line.max_content += length;
+                                }};
+                            }
+                            macro_rules! add_lengthpercentage {
+                                ($x: expr) => {{
+                                    add_length!($x.length_component());
+                                    self.current_line_percentages += $x.percentage_component();
+                                }};
+                            }
+                            macro_rules! add {
+                                ($condition: ident, $side: ident) => {
+                                    if inline_box.$condition {
+                                        add_lengthpercentage!(padding.$side);
+                                        add_length!(border.$side);
+                                        margin.$side.non_auto().map(|x| add_lengthpercentage!(x));
+                                    }
+                                };
+                            }
+
+                            add!(first_fragment, inline_start);
+                            self.traverse(layout_context, &inline_box.children);
+                            add!(last_fragment, inline_end);
+                        },
+                        InlineLevelBox::TextRun(text_run) => {
+                            let (_, _, _, runs, break_at_start) =
+                                text_run.break_and_shape(layout_context);
+                            if break_at_start {
+                                self.line_break_opportunity()
+                            }
+                            for run in &runs {
+                                let advance = Length::from(run.glyph_store.total_advance());
+                                if run.glyph_store.is_whitespace() {
+                                    self.line_break_opportunity()
+                                } else {
+                                    self.current_line.min_content += advance
+                                }
+                                self.current_line.max_content += advance
+                            }
+                        },
+                        InlineLevelBox::Atomic(atomic) => {
+                            let inner = || {
+                                // atomic
+                                // .intrinsic_inline_sizes
+                                // .as_ref()
+                                // .expect("Accessing intrinsic size that was not requested")
+                                // .clone()
+                                todo!()
+                            };
+                            let (outer, pc) = outer_intrinsic_inline_sizes(&atomic.style, &inner);
+                            self.current_line.min_content += outer.min_content;
+                            self.current_line.max_content += outer.max_content;
+                            self.current_line_percentages += pc;
+                        },
+                        InlineLevelBox::OutOfFlowFloatBox(_) |
+                        InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => {},
+                    }
+                }
+            }
+
+            fn line_break_opportunity(&mut self) {
+                self.paragraph
+                    .min_content
+                    .max_assign(take(&mut self.current_line.min_content));
+            }
+
+            fn forced_line_break(&mut self) {
+                self.line_break_opportunity();
+                self.current_line
+                    .adjust_for_pbm_percentages(take(&mut self.current_line_percentages));
+                self.paragraph
+                    .max_content
+                    .max_assign(take(&mut self.current_line.max_content));
+            }
+        }
+        fn take<T: Zero>(x: &mut T) -> T {
+            std::mem::replace(x, T::zero())
+        }
+        let mut computation = Computation {
+            paragraph: IntrinsicSizes::zero(),
+            current_line: IntrinsicSizes::zero(),
+            current_line_percentages: Percentage::zero(),
+        };
+        computation.traverse(layout_context, &self.inline_level_boxes);
+        computation.forced_line_break();
+        computation.paragraph
+    }
+
     pub(super) fn layout<'a>(
         &'a self,
         layout_context: &LayoutContext,
@@ -283,11 +400,13 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
 }
 
 impl TextRun {
-    fn layout(&self, layout_context: &LayoutContext, ifc: &mut InlineFormattingContextState) {
+    fn break_and_shape(
+        &self,
+        layout_context: &LayoutContext,
+    ) -> (Au, Au, FontInstanceKey, Vec<GlyphRun>, bool) {
         use gfx::font::ShapingFlags;
         use style::computed_values::text_rendering::T as TextRendering;
         use style::computed_values::word_break::T as WordBreak;
-        use style::values::generics::text::LineHeight;
 
         let font_style = self.parent_style.clone_font();
         let inherited_text_style = self.parent_style.get_inherited_text();
@@ -316,30 +435,35 @@ impl TextRun {
             flags,
         };
 
-        let (font_ascent, font_line_gap, font_key, runs) =
-            crate::context::with_thread_local_font_context(layout_context, |font_context| {
-                let font_group = font_context.font_group(font_style);
-                let font = font_group
-                    .borrow_mut()
-                    .first(font_context)
-                    .expect("could not find font");
-                let mut font = font.borrow_mut();
+        crate::context::with_thread_local_font_context(layout_context, |font_context| {
+            let font_group = font_context.font_group(font_style);
+            let font = font_group
+                .borrow_mut()
+                .first(font_context)
+                .expect("could not find font");
+            let mut font = font.borrow_mut();
 
-                let (runs, _break_at_start) = gfx::text::text_run::TextRun::break_and_shape(
-                    &mut font,
-                    &self.text,
-                    &shaping_options,
-                    &mut None,
-                );
+            let (runs, break_at_start) = gfx::text::text_run::TextRun::break_and_shape(
+                &mut font,
+                &self.text,
+                &shaping_options,
+                &mut None,
+            );
 
-                (
-                    font.metrics.ascent,
-                    font.metrics.line_gap,
-                    font.font_key,
-                    runs,
-                )
-            });
+            (
+                font.metrics.ascent,
+                font.metrics.line_gap,
+                font.font_key,
+                runs,
+                break_at_start,
+            )
+        })
+    }
 
+    fn layout(&self, layout_context: &LayoutContext, ifc: &mut InlineFormattingContextState) {
+        use style::values::generics::text::LineHeight;
+
+        let (font_ascent, font_line_gap, font_key, runs, _) = self.break_and_shape(layout_context);
         let font_size = self.parent_style.get_font().font_size.size.0;
         let mut runs = runs.iter();
         loop {

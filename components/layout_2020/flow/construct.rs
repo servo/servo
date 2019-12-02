@@ -127,6 +127,7 @@ impl BlockContainer {
         context: &SharedStyleContext<'style>,
         block_container_style: &Arc<ComputedValues>,
         contents: NonReplacedContents<impl NodeExt<'dom>>,
+        //        intrinsic_sizes_requested: bool,
     ) -> (BlockContainer, ContainsFloats) {
         let mut builder = BlockContainerBuilder {
             context,
