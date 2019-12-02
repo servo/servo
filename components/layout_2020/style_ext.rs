@@ -43,6 +43,8 @@ pub(crate) enum DisplayInside {
 
 pub(crate) trait ComputedValuesExt {
     fn writing_mode(&self) -> (WritingMode, Direction);
+    fn writing_mode_is_horizontal(&self) -> bool;
+    fn inline_size_is_auto(&self) -> bool;
     fn box_offsets(&self) -> flow_relative::Sides<LengthPercentageOrAuto>;
     fn box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto>;
     fn padding(&self) -> flow_relative::Sides<LengthPercentage>;
@@ -56,6 +58,23 @@ impl ComputedValuesExt for ComputedValues {
         let writing_mode = inherited_box.writing_mode;
         let direction = inherited_box.direction;
         (writing_mode, direction)
+    }
+
+    fn writing_mode_is_horizontal(&self) -> bool {
+        match self.get_inherited_box().writing_mode {
+            WritingMode::HorizontalTb => true,
+            WritingMode::VerticalLr | WritingMode::VerticalRl => false,
+        }
+    }
+
+    fn inline_size_is_auto(&self) -> bool {
+        let position = self.get_position();
+        let size = if self.writing_mode_is_horizontal() {
+            position.width
+        } else {
+            position.height
+        };
+        matches!(size, Size::Auto)
     }
 
     #[inline]

@@ -4,6 +4,7 @@
 
 #![deny(unsafe_code)]
 #![feature(exact_size_is_empty)]
+#![feature(matches_macro)]
 
 pub mod context;
 pub mod data;
