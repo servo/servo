@@ -14,14 +14,28 @@
 test_valid_value("scale", "none");
 
 test_valid_value("scale", "1");
+test_valid_value("scale", "1%", "0.01");
 
 test_valid_value("scale", "100");
+test_valid_value("scale", "100%", "1");
 test_valid_value("scale", "100 100", "100");
+test_valid_value("scale", "100% 100%", "1");
 test_valid_value("scale", "100 100 1", "100");
+test_valid_value("scale", "100% 100% 1", "1");
+
+test_valid_value("scale", "-100");
+test_valid_value("scale", "-100%", "-1");
+test_valid_value("scale", "-100 -100", "-100");
+test_valid_value("scale", "-100% -100%", "-1");
+test_valid_value("scale", "-100 -100 1", "-100");
+test_valid_value("scale", "-100% -100% 1", "-1");
 
 test_valid_value("scale", "100 200");
+test_valid_value("scale", "100% 200%", "1 2");
 test_valid_value("scale", "100 200 1", "100 200");
+test_valid_value("scale", "100% 200% 1", "1 2");
 test_valid_value("scale", "100 200 300");
+
 </script>
 </body>
 </html>
