@@ -9,7 +9,7 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::CollapsedBlockMargins;
 use crate::fragments::{AnonymousFragment, BoxFragment, Fragment, TextFragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
-use crate::intrinsic::{outer_intrinsic_inline_sizes, IntrinsicSizes};
+use crate::sizing::{outer_inline_content_sizes, ContentSizes};
 use crate::positioned::{AbsolutelyPositionedBox, AbsolutelyPositionedFragment};
 use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside};
 use crate::{relative_adjustement, ContainingBlock};
@@ -85,10 +85,10 @@ impl InlineFormattingContext {
     // Which would have to change if/when
     // `BlockContainer::construct` parallelize their construction.
     #[allow(unused)]
-    pub(super) fn intrinsic_sizes(&self, layout_context: &LayoutContext) -> IntrinsicSizes {
+    pub(super) fn content_sizes(&self, layout_context: &LayoutContext) -> ContentSizes {
         struct Computation {
-            paragraph: IntrinsicSizes,
-            current_line: IntrinsicSizes,
+            paragraph: ContentSizes,
+            current_line: ContentSizes,
             current_line_percentages: Percentage,
         }
         impl Computation {
@@ -149,13 +149,13 @@ impl InlineFormattingContext {
                         InlineLevelBox::Atomic(atomic) => {
                             let inner = || {
                                 // atomic
-                                // .intrinsic_inline_sizes
+                                // .inline_content_sizes
                                 // .as_ref()
-                                // .expect("Accessing intrinsic size that was not requested")
+                                // .expect("Accessing content size that was not requested")
                                 // .clone()
                                 todo!()
                             };
-                            let (outer, pc) = outer_intrinsic_inline_sizes(&atomic.style, &inner);
+                            let (outer, pc) = outer_inline_content_sizes(&atomic.style, &inner);
                             self.current_line.min_content += outer.min_content;
                             self.current_line.max_content += outer.max_content;
                             self.current_line_percentages += pc;
@@ -185,8 +185,8 @@ impl InlineFormattingContext {
             std::mem::replace(x, T::zero())
         }
         let mut computation = Computation {
-            paragraph: IntrinsicSizes::zero(),
-            current_line: IntrinsicSizes::zero(),
+            paragraph: ContentSizes::zero(),
+            current_line: ContentSizes::zero(),
             current_line_percentages: Percentage::zero(),
         };
         computation.traverse(layout_context, &self.inline_level_boxes);

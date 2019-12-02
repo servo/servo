@@ -1,15 +1,22 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+//! https://drafts.csswg.org/css-sizing/
+
 use crate::style_ext::ComputedValuesExt;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage, Percentage};
 use style::Zero;
 
-#[derive(Debug, Clone)]
-pub(crate) struct IntrinsicSizes {
+#[derive(Clone, Debug)]
+pub(crate) struct ContentSizes {
     pub min_content: Length,
     pub max_content: Length,
 }
 
-impl IntrinsicSizes {
+/// https://drafts.csswg.org/css-sizing/#intrinsic-sizes
+impl ContentSizes {
     pub fn zero() -> Self {
         Self {
             min_content: Length::zero(),
@@ -32,10 +39,10 @@ impl IntrinsicSizes {
 }
 
 /// https://dbaron.org/css/intrinsic/#outer-intrinsic
-pub(crate) fn outer_intrinsic_inline_sizes(
+pub(crate) fn outer_inline_content_sizes(
     style: &ComputedValues,
-    get_inner_intrinsic_sizes: &dyn Fn() -> IntrinsicSizes,
-) -> (IntrinsicSizes, Percentage) {
+    get_inner_intrinsic_sizes: &dyn Fn() -> ContentSizes,
+) -> (ContentSizes, Percentage) {
     // FIXME: account for 'min-width', 'max-width', 'box-sizing'
 
     let specified = style.box_size().inline;
@@ -44,7 +51,7 @@ pub(crate) fn outer_intrinsic_inline_sizes(
     // The (inner) min/max-content are only used for 'auto'
     let mut outer = match specified.non_auto().flatten() {
         None => get_inner_intrinsic_sizes(),
-        Some(length) => IntrinsicSizes {
+        Some(length) => ContentSizes {
             min_content: length,
             max_content: length,
         },
