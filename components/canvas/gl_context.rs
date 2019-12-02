@@ -190,6 +190,13 @@ impl GLContextWrapper {
         }
     }
 
+    pub fn get_proc_address(&self, addr: &str) -> *const () {
+        match *self{
+            GLContextWrapper::Native(ref ctx) => GLContext::<NativeGLContext>::get_proc_address(addr),
+            GLContextWrapper::OSMesa(ref ctx) => GLContext::<OSMesaContext>::get_proc_address(addr),
+        }
+    }
+
     pub fn get_info(&self) -> (Size2D<i32>, u32, GLLimits, GLFormats) {
         match *self {
             GLContextWrapper::Native(ref ctx) => {

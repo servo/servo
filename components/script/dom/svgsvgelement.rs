@@ -194,7 +194,8 @@ impl VirtualMethods for SVGSVGElement {
                 *self.html_string.borrow_mut() = Some(svg_string);
                 if let Some(webgl_sender) = webgl_sender {
                     webgl_sender.send_rebuild_svg(cloned_svg_string).unwrap();
-                    document_from_node(self).add_dirty_canvas(self.webgl_sender.as_ref().context_id());
+                    self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                    document_from_node(self).add_dirty_canvas(webgl_sender.context_id());
                 }
             },
             _ => {}

@@ -100,7 +100,7 @@ pub trait ThreadSafeLayoutNodeHelpers {
 
 impl<T: ThreadSafeLayoutNode> ThreadSafeLayoutNodeHelpers for T {
     fn flags(self) -> LayoutDataFlags {
-        self.borrow_layout_data().as_ref().unwrap().flags
+        self.borrow_layout_data().as_ref().map_or(LayoutDataFlags::empty(), |d| d.flags)
     }
 
     fn insert_flags(self, new_flags: LayoutDataFlags) {

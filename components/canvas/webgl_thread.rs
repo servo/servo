@@ -23,15 +23,182 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 use rand::prelude::*;
-use pathfinder_gl::{GLDevice, GLVersion};
-use pathfinder_renderer::gpu::resources::FilesystemResourceLoader;
-use pathfinder_renderer::gpu::resources::ResourceLoader;
+use pathfinder_gl::{GLDevice, GLVersion,GLFramebuffer, GLTexture};
+use pathfinder_gpu::resources::{FilesystemResourceLoader};
+use pathfinder_gpu::{TextureFormat, Device};
 use pathfinder_renderer::gpu::options::{DestFramebuffer, RendererOptions};
+use pathfinder_renderer::options::BuildOptions;
+use pathfinder_content::color::ColorF;
+use usvg::{Tree,Options};
+use pathfinder_svg::BuiltSVG;
 
 /// WebGL Threading API entry point that lives in the constellation.
 /// It allows to get a WebGLThread handle for each script pipeline.
 pub use crate::webgl_mode::{ThreadMode, WebGLThreads};
 use pathfinder_renderer::gpu::renderer::Renderer;
+use pathfinder_geometry::vector::Vector2I;
+use pathfinder_renderer::concurrent::rayon::RayonExecutor;
+use pathfinder_renderer::concurrent::scene_proxy::SceneProxy;
+
+/*struct ServoGLDevice{
+    ctx_id: WebGLContextId,
+    #[ignore_malloc_size_of = "channels are hard"]
+    sender: WebGLChan,
+}
+
+impl ServoGLDevice{
+    #[inline]
+    pub fn new(ctx_id: WebGLContextId, chan: WebGLChan) -> ServoGLDevice{
+        ServoGLDevice{
+            ctx_id: ctx_id,
+            sender: chan,
+        }
+    }
+}
+
+impl Device for ServoGLDevice{
+    type Buffer = gl::GLuint;
+    type Framebuffer = gl::GLuint;
+    type Program = gl::GLuint;
+    type Shader = gl::GLuint;
+    type Texture = WebGLTextureId;
+    type TimerQuery = gl::GLuint;
+    type Uniform = gl::GLint;
+    type VertexArray = gl::GLuint;
+    type VertexAttr = gl::GLuint;
+
+    fn create_texture(&self, format: TextureFormat, size: Vector2I) -> Self::Texture{
+        let (sender, receiver) = webgl_channel().unwrap();
+        let create_texture_msg = WebGLMsg::WebGLCommand(self.ctx_id, WebGLCommand::CreateTexture(sender), capture_webgl_backtrace(self));
+        self.sender.send(create_texture_msg).unwrap();
+        let texture_id = WebGLTextureId::from(receiver.recv().unwrap());
+        let load_texture_msg = WebGLMsg::WebGLCommand(self.ctx_id, WebGLCommand::TexImage2D(), capture_webgl_backtrace(self));
+    };
+    fn create_texture_from_data(&self, size: Vector2I, data: &[u8]) -> Self::Texture{
+
+    };
+    fn create_shader(&self, resources: &dyn ResourceLoader, name: &str, kind: ShaderKind)
+                     -> Self::Shader{
+
+    };
+    fn create_shader_from_source(&self, name: &str, source: &[u8], kind: ShaderKind)
+                                 -> Self::Shader{
+
+    };
+    fn create_vertex_array(&self) -> Self::VertexArray{
+
+    };
+    fn create_program_from_shaders(
+        &self,
+        resources: &dyn ResourceLoader,
+        name: &str,
+        vertex_shader: Self::Shader,
+        fragment_shader: Self::Shader,
+    ) -> Self::Program{
+
+    };
+    fn get_vertex_attr(&self, program: &Self::Program, name: &str) -> Option<Self::VertexAttr>{
+
+    };
+    fn get_uniform(&self, program: &Self::Program, name: &str) -> Self::Uniform{
+
+    };
+    fn bind_buffer(&self,
+                   vertex_array: &Self::VertexArray,
+                   buffer: &Self::Buffer,
+                   target: BufferTarget){
+
+    };
+    fn configure_vertex_attr(&self,
+                             vertex_array: &Self::VertexArray,
+                             attr: &Self::VertexAttr,
+                             descriptor: &VertexAttrDescriptor){
+
+    };
+    fn create_framebuffer(&self, texture: Self::Texture) -> Self::Framebuffer{
+
+    };
+    fn create_buffer(&self) -> Self::Buffer{
+
+    };
+    fn allocate_buffer<T>(
+        &self,
+        buffer: &Self::Buffer,
+        data: BufferData<T>,
+        target: BufferTarget,
+        mode: BufferUploadMode,
+    ){
+
+    };
+    fn framebuffer_texture<'f>(&self, framebuffer: &'f Self::Framebuffer) -> &'f Self::Texture{
+
+    };
+    fn texture_size(&self, texture: &Self::Texture) -> Vector2I{
+
+    };
+    fn upload_to_texture(&self, texture: &Self::Texture, size: Vector2I, data: &[u8]){
+
+    };
+    fn read_pixels(&self, target: &RenderTarget<Self>, viewport: RectI) -> TextureData{
+
+    };
+    fn begin_commands(&self){
+
+    };
+    fn end_commands(&self){
+
+    };
+    fn draw_arrays(&self, index_count: u32, render_state: &RenderState<Self>){
+
+    };
+    fn draw_elements(&self, index_count: u32, render_state: &RenderState<Self>){
+
+    };
+    fn draw_elements_instanced(&self,
+                               index_count: u32,
+                               instance_count: u32,
+                               render_state: &RenderState<Self>){
+
+    };
+    fn create_timer_query(&self) -> Self::TimerQuery{
+
+    };
+    fn begin_timer_query(&self, query: &Self::TimerQuery){
+
+    };
+    fn end_timer_query(&self, query: &Self::TimerQuery){
+
+    };
+    fn get_timer_query(&self, query: &Self::TimerQuery) -> Option<Duration>{
+
+    };
+
+    fn create_texture_from_png(&self, resources: &dyn ResourceLoader, name: &str) -> Self::Texture {
+        let data = resources.slurp(&format!("textures/{}.png", name)).unwrap();
+        let image = image::load_from_memory_with_format(&data, ImageFormat::PNG)
+            .unwrap()
+            .to_luma();
+        let size = Vector2I::new(image.width() as i32, image.height() as i32);
+        self.create_texture_from_data(size, &image)
+    }
+
+    fn create_program_from_shader_names(
+        &self,
+        resources: &dyn ResourceLoader,
+        program_name: &str,
+        vertex_shader_name: &str,
+        fragment_shader_name: &str,
+    ) -> Self::Program {
+        let vertex_shader = self.create_shader(resources, vertex_shader_name, ShaderKind::Vertex);
+        let fragment_shader =
+            self.create_shader(resources, fragment_shader_name, ShaderKind::Fragment);
+        self.create_program_from_shaders(resources, program_name, vertex_shader, fragment_shader)
+    }
+
+    fn create_program(&self, resources: &dyn ResourceLoader, name: &str) -> Self::Program {
+        self.create_program_from_shader_names(resources, name, name, name)
+    }
+}*/
 
 struct GLContextData {
     ctx: GLContextWrapper,
@@ -71,7 +238,7 @@ impl Default for GLState {
 
 struct PathfinderContext{
     renderer: Renderer<GLDevice>,
-    gl_device: GLDevice,
+    scene_proxy: SceneProxy,
 }
 
 /// A WebGLThread manages the life cycle and message multiplexing of
@@ -292,13 +459,17 @@ impl WebGLThread {
 
                         if is_pathfinder_context {
                             let framebuffer = data.ctx.framebuffer();
+                            let (real_size,texture_id,limits,formats) = data.ctx.get_info();
+                            GLDevice::load_with(|name| data.ctx.get_proc_address(name) as *const _);
                             let gl_device = GLDevice::new(GLVersion::GLES3,framebuffer);
+                            let real_size_as_vector = Vector2I::new(real_size.width, real_size.height);
+                            let texture = gl_device.create_texture_from_existing_texture(texture_id, TextureFormat::RGBA8, real_size_as_vector);
+                            let gl_framebuffer = GLFramebuffer{gl_framebuffer: framebuffer, texture };
+                            let dest_framebuffer = DestFramebuffer::Other(gl_framebuffer);
                             let resource_loader = FilesystemResourceLoader::locate();
-                            let renderer = Renderer::new(gl_device, resource_loader, DestFramebuffer::Other(framebuffer), RendererOptions { background_color: Some(ColorF::white())});
-                            let pathfinder_context = PathfinderContext{
-                                renderer,
-                                gl_device
-                            };
+                            let renderer = Renderer::new(gl_device, &resource_loader, dest_framebuffer, RendererOptions { background_color: Some(ColorF::white())});
+                            let scene_proxy = SceneProxy::new(RayonExecutor{});
+                            let pathfinder_context = PathfinderContext{renderer: renderer, scene_proxy: scene_proxy};
                             self.pathfinder_contexts.insert(id, pathfinder_context);
                         }
 
@@ -665,13 +836,16 @@ impl WebGLThread {
             &mut self.contexts,
             &mut self.bound_context_id,
         );
-        if let Some(data) = data {
-            let mut rng = rand::thread_rng();
-            let r: f32 = rng.gen();
-            let b: f32 = rng.gen();
-            let g: f32 = rng.gen();
-            data.ctx.gl().clear_color(r, g, b, 1.0 as f32);
-            data.ctx.gl().clear(gl::COLOR_BUFFER_BIT);
+        let mut pathfinder_context = self.pathfinder_contexts.get_mut(&context_id);
+        if let Some(_data) = data {
+            if let Some(pathfinder_context) = pathfinder_context{
+                let svg_tree = Tree::from_str(svg_string.as_ref(), &Options::default()).unwrap();
+                let built_svg = BuiltSVG::from_tree(svg_tree);
+                pathfinder_context.scene_proxy.replace_scene(built_svg.scene);
+                pathfinder_context.scene_proxy.build_and_render(&mut pathfinder_context.renderer, BuildOptions::default())
+            }else{
+                panic!("Could not extract Pathfinder context");
+            }
         }
     }
 
