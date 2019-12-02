@@ -219,7 +219,7 @@ pub struct CHostCallbacks {
     pub set_clipboard_contents: extern "C" fn(contents: *const c_char),
     pub on_media_session_metadata:
         extern "C" fn(title: *const c_char, album: *const c_char, artist: *const c_char),
-	pub on_media_session_playback_state_change: extern "C" fn(state: CMediaSessionPlaybackState),
+    pub on_media_session_playback_state_change: extern "C" fn(state: CMediaSessionPlaybackState),
     pub on_media_session_set_position_state:
         extern "C" fn(duration: f64, position: f64, playback_rate: f64),
 }

@@ -74,17 +74,19 @@ void BrowserPage::BindServoEvents() {
       [=](hstring title, hstring artist, hstring album) {});
   servoControl().OnMediaSessionPlaybackStateChange(
       [=](const auto &, int state) {
-        if (state == servo::PlaybackState::NONE) {
+        if (state == servo::Servo::MediaSessionPlaybackState::None) {
           mediaControls().Visibility(Visibility::Collapsed);
           return;
         }
         mediaControls().Visibility(Visibility::Visible);
-        playButton().Visibility(state == servo::PlaybackState::PAUSED
-                                    ? Visibility::Visible
-                                    : Visibility::Collapsed);
-        pauseButton().Visibility(state == servo::PlaybackState::PAUSED
-                                     ? Visibility::Collapsed
-                                     : Visibility::Visible);
+        playButton().Visibility(
+            state == servo::Servo::MediaSessionPlaybackState::Paused
+                ? Visibility::Visible
+                : Visibility::Collapsed);
+        pauseButton().Visibility(
+            state == servo::Servo::MediaSessionPlaybackState::Paused
+                ? Visibility::Collapsed
+                : Visibility::Visible);
       });
 }
 
@@ -163,13 +165,13 @@ void BrowserPage::OnMediaControlsPlayClicked(
     Windows::Foundation::IInspectable const &,
     Windows::UI::Xaml::RoutedEventArgs const &) {
   servoControl().SendMediaSessionAction(
-      static_cast<int32_t>(servo::MediaSessionAction::PLAY));
+      static_cast<int32_t>(servo::Servo::MediaSessionActionType::Play));
 }
 void BrowserPage::OnMediaControlsPauseClicked(
     Windows::Foundation::IInspectable const &,
     Windows::UI::Xaml::RoutedEventArgs const &) {
   servoControl().SendMediaSessionAction(
-      static_cast<int32_t>(servo::MediaSessionAction::PAUSE));
+      static_cast<int32_t>(servo::Servo::MediaSessionActionType::Pause));
 }
 
 } // namespace winrt::ServoApp::implementation

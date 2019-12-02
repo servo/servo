@@ -15,7 +15,9 @@ use jni::{errors, JNIEnv, JavaVM};
 use libc::{dup2, pipe, read};
 use log::Level;
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
-use simpleservo::{Coordinates, EventLoopWaker, HostTrait, InitOptions, VRInitOptions};
+use simpleservo::{
+    Coordinates, EventLoopWaker, HostTrait, InitOptions, MediaSessionPlaybackState, VRInitOptions,
+};
 use std::os::raw::{c_char, c_int, c_void};
 use std::ptr::{null, null_mut};
 use std::sync::Arc;
@@ -340,7 +342,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_mediaSessionAction(
     action: jint,
 ) {
     debug!("mediaSessionAction");
-    call(&env, |s| s.media_session_action(action as i32));
+    call(&env, |s| s.media_session_action((action as i32).into()));
 }
 
 pub struct WakeupCallback {
@@ -548,9 +550,10 @@ impl HostTrait for HostCallbacks {
         .unwrap();
     }
 
-    fn on_media_session_playback_state_change(&self, state: i32) {
+    fn on_media_session_playback_state_change(&self, state: MediaSessionPlaybackState) {
         info!("on_media_session_playback_state_change {:?}", state);
         let env = self.jvm.get_env().unwrap();
+        let state = state as i32;
         let state = JValue::Int(state as jint);
         env.call_method(
             self.callbacks.as_obj(),

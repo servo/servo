@@ -134,7 +134,7 @@ pub trait HostTrait {
     /// Called when we get the media session metadata/
     fn on_media_session_metadata(&self, title: String, artist: String, album: String);
     /// Called when the media session playback state changes.
-	fn on_media_session_playback_state_change(&self, state: MediaSessionPlaybackState);
+    fn on_media_session_playback_state_change(&self, state: MediaSessionPlaybackState);
     /// Called when the media session position state is set.
     fn on_media_session_set_position_state(&self, duration: f64, position: f64, playback_rate: f64);
 }
