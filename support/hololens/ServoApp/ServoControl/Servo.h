@@ -50,6 +50,8 @@ public:
   ServoDelegate &Delegate() { return mDelegate; }
 
   typedef capi::CMouseButton MouseButton;
+  typedef capi::CMediaSessionActionType MediaSessionActionType;
+  typedef capi::CMediaSessionPlaybackState MediaSessionPlaybackState;
 
   void PerformUpdates() { capi::perform_updates(); }
   void DeInit() { capi::deinit(); }
@@ -88,7 +90,7 @@ public:
       capi::resize(mWindowWidth, mWindowHeight);
     }
   }
-  void SendMediaSessionAction(int32_t action) {
+  void SendMediaSessionAction(capi::CMediaSessionActionType action) {
     capi::media_session_action(action);
   }
 

@@ -62,7 +62,8 @@ void on_media_session_metadata(const char *title, const char *album,
       char2hstring(title), char2hstring(album), char2hstring(artist));
 }
 
-void on_media_session_playback_state_change(const int state) {
+void on_media_session_playback_state_change(
+    const capi::CMediaSessionPlaybackState state) {
   return sServo->Delegate().OnServoMediaSessionPlaybackStateChange(state);
 }
 

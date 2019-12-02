@@ -272,7 +272,10 @@ hstring ServoControl::LoadURIOrSearch(hstring input) {
 }
 
 void ServoControl::SendMediaSessionAction(int32_t action) {
-  RunOnGLThread([=] { mServo->SendMediaSessionAction(action); });
+  RunOnGLThread([=] {
+    mServo->SendMediaSessionAction(
+        static_cast<Servo::MediaSessionActionType>(action));
+  });
 }
 
 void ServoControl::TryLoadUri(hstring input) {

@@ -40,9 +40,6 @@
     </ClInclude>
     <ClInclude Include="DefaultUrl.h" />
     <ClInclude Include="XRPkgChecker.h" />
-    <ClInclude Include="MediaSession.h">
-      <Filter>ServoControl</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">

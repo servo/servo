@@ -7,7 +7,6 @@
 #include "BrowserPage.h"
 #include "BrowserPage.g.cpp"
 #include "DefaultUrl.h"
-#include "MediaSession.h"
 
 using namespace std::placeholders;
 using namespace winrt::Windows::Foundation;

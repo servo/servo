@@ -3,7 +3,6 @@
 #include "OpenGLES.h"
 #include "Servo.h"
 #include "DefaultUrl.h"
-#include "MediaSession.h"
 
 namespace winrt::ServoApp::implementation {
 struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
