@@ -53,7 +53,7 @@ ${helpers.single_keyword(
     "-moz-text-size-adjust",
     "auto none",
     engines="gecko",
-    gecko_constant_prefix="NS_STYLE_TEXT_SIZE_ADJUST",
+    gecko_enum_prefix="StyleTextSizeAdjust",
     gecko_ffi_name="mTextSizeAdjust",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-size-adjust/#adjustment-control",
