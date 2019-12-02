@@ -329,36 +329,11 @@ impl GenericDrawTarget for raqote::DrawTarget {
         warn!("no support for drawing shadows");
     }
     fn fill(&mut self, path: &Path, pattern: Pattern, draw_options: &DrawOptions) {
-        match draw_options.as_raqote().blend_mode {
-            raqote::BlendMode::Src => {
-                self.clear(raqote::SolidSource::from_unpremultiplied_argb(0, 0, 0, 0));
-                self.fill(
-                    path.as_raqote(),
-                    pattern.as_raqote(),
-                    draw_options.as_raqote(),
-                );
-            },
-            raqote::BlendMode::DstIn |
-            raqote::BlendMode::DstAtop |
-            raqote::BlendMode::SrcIn |
-            raqote::BlendMode::SrcOut => {
-                self.push_layer(1.);
-                self.clear(raqote::SolidSource::from_unpremultiplied_argb(0, 0, 0, 0));
-                self.fill(
-                    path.as_raqote(),
-                    pattern.as_raqote(),
-                    draw_options.as_raqote(),
-                );
-                self.pop_layer();
-            },
-            _ => {
-                self.fill(
-                    path.as_raqote(),
-                    pattern.as_raqote(),
-                    draw_options.as_raqote(),
-                );
-            },
-        }
+        let mut options = draw_options.as_raqote().clone();
+        self.push_layer_with_blend(1., options.blend_mode);
+        options.blend_mode = raqote::BlendMode::SrcOver;
+        self.fill(path.as_raqote(), pattern.as_raqote(), &options);
+        self.pop_layer();
     }
     fn fill_rect(
         &mut self,
