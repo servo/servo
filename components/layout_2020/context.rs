@@ -5,7 +5,7 @@
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
 use msg::constellation_msg::PipelineId;
-use std::cell::{RefCell, RefMut};
+use std::cell::RefCell;
 use std::sync::Mutex;
 use style::context::SharedStyleContext;
 

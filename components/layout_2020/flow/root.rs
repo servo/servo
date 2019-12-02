@@ -14,15 +14,12 @@ use crate::geom;
 use crate::geom::flow_relative::Vec2;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::replaced::ReplacedContent;
-use crate::style_ext::{
-    Direction, Display, DisplayGeneratingBox, DisplayInside, DisplayOutside, WritingMode,
-};
+use crate::style_ext::{Direction, Display, DisplayGeneratingBox, DisplayInside, WritingMode};
 use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefIterator, ParallelExtend, ParallelIterator};
 use script_layout_interface::wrapper_traits::LayoutNode;
 use servo_arc::Arc;
 use style::context::SharedStyleContext;
-use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto};
 use style::Zero;
 use style_traits::CSSPixel;
@@ -137,7 +134,6 @@ impl FragmentTreeRoot {
     pub fn build_display_list(
         &self,
         builder: &mut crate::display_list::DisplayListBuilder,
-        pipeline_id: msg::constellation_msg::PipelineId,
         viewport_size: webrender_api::units::LayoutSize,
     ) -> IsContentful {
         let containing_block = geom::physical::Rect {

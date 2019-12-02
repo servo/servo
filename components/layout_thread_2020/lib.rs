@@ -1281,8 +1281,7 @@ impl LayoutThread {
             self.viewport_size.height.to_f32_px(),
         ));
         let mut display_list = DisplayListBuilder::new(self.id.to_webrender(), viewport_size);
-        let is_contentful =
-            fragment_tree.build_display_list(&mut display_list, self.id, viewport_size);
+        let is_contentful = fragment_tree.build_display_list(&mut display_list, viewport_size);
 
         debug!("Layout done!");
 

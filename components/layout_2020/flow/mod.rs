@@ -8,13 +8,11 @@ use crate::context::LayoutContext;
 use crate::flow::float::{FloatBox, FloatContext};
 use crate::flow::inline::InlineFormattingContext;
 use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout};
-use crate::fragments::{
-    AnonymousFragment, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment,
-};
+use crate::fragments::{AnonymousFragment, BoxFragment, Fragment};
+use crate::fragments::{CollapsedBlockMargins, CollapsedMargin};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
-use crate::positioned::{
-    adjust_static_positions, AbsolutelyPositionedBox, AbsolutelyPositionedFragment,
-};
+use crate::positioned::adjust_static_positions;
+use crate::positioned::{AbsolutelyPositionedBox, AbsolutelyPositionedFragment};
 use crate::replaced::ReplacedContent;
 use crate::style_ext::{ComputedValuesExt, Position};
 use crate::{relative_adjustement, ContainingBlock};
@@ -297,7 +295,6 @@ impl BlockLevelBox {
             },
             BlockLevelBox::Independent(contents) => match contents.as_replaced() {
                 Ok(replaced) => Fragment::Box(layout_in_flow_replaced_block_level(
-                    layout_context,
                     containing_block,
                     &contents.style,
                     replaced,
@@ -475,7 +472,6 @@ fn layout_in_flow_non_replaced_block_level<'a>(
 /// https://drafts.csswg.org/css2/visudet.html#inline-replaced-width
 /// https://drafts.csswg.org/css2/visudet.html#inline-replaced-height
 fn layout_in_flow_replaced_block_level<'a>(
-    layout_context: &LayoutContext,
     containing_block: &ContainingBlock,
     style: &Arc<ComputedValues>,
     replaced: &ReplacedContent,
@@ -530,7 +526,7 @@ fn layout_in_flow_replaced_block_level<'a>(
         containing_block.mode, containing_block_for_children.mode,
         "Mixed writing modes are not supported yet"
     );
-    let independent_layout = replaced.layout(layout_context, style, &containing_block_for_children);
+    let independent_layout = replaced.layout(style, &containing_block_for_children);
     let relative_adjustement = relative_adjustement(
         style,
         inline_size,

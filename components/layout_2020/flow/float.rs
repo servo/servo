@@ -3,8 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::formatting_contexts::IndependentFormattingContext;
-use servo_arc::Arc;
-use style::properties::ComputedValues;
 
 #[derive(Debug)]
 pub(crate) struct FloatBox {

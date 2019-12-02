@@ -9,8 +9,6 @@ use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::style_ext::{ComputedValuesExt, Direction, WritingMode};
 use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use servo_arc::Arc;
-use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
 use style::Zero;
 
