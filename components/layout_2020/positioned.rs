@@ -3,12 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::context::LayoutContext;
+use crate::dom_traversal::{Contents, NodeExt};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::{AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
-use crate::style_ext::{ComputedValuesExt, Direction, WritingMode};
+use crate::style_ext::{ComputedValuesExt, Direction, DisplayInside, WritingMode};
 use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use servo_arc::Arc;
+use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
 use style::Zero;
 
@@ -42,6 +45,25 @@ pub(crate) enum AbsoluteBoxOffsets<NonStatic> {
 }
 
 impl AbsolutelyPositionedBox {
+    pub fn construct<'dom>(
+        context: &LayoutContext,
+        style: Arc<ComputedValues>,
+        display_inside: DisplayInside,
+        contents: Contents<impl NodeExt<'dom>>,
+    ) -> Self {
+        let request_content_sizes =
+            style.inline_size_is_auto() && !style.inline_box_offsets_are_both_auto();
+        Self {
+            contents: IndependentFormattingContext::construct(
+                context,
+                style,
+                display_inside,
+                contents,
+                request_content_sizes,
+            ),
+        }
+    }
+
     pub(crate) fn layout<'a>(
         &'a self,
         initial_start_corner: Vec2<Length>,

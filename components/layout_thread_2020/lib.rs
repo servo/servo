@@ -1082,7 +1082,8 @@ impl LayoutThread {
             driver::traverse_dom(&traversal, token, Some(rayon_pool));
 
             let root_node = document.root_element().unwrap().as_node();
-            let box_tree = rayon_pool.install(|| BoxTreeRoot::construct(traversal.context(), root_node));
+            let box_tree =
+                rayon_pool.install(|| BoxTreeRoot::construct(traversal.context(), root_node));
             Some(box_tree)
         } else {
             None

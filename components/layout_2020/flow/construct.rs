@@ -10,7 +10,7 @@ use crate::flow::inline::{InlineBox, InlineFormattingContext, InlineLevelBox, Te
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::positioned::AbsolutelyPositionedBox;
-use crate::style_ext::{DisplayGeneratingBox, DisplayInside, DisplayOutside};
+use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox, DisplayInside, DisplayOutside};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
@@ -158,6 +158,7 @@ impl BlockContainer {
         }
 
         let mut contains_floats = builder.contains_floats;
+        let request_content_sizes = false; // FIXME
         let container = BlockContainer::BlockLevelBoxes(
             builder
                 .block_level_boxes
@@ -165,7 +166,7 @@ impl BlockContainer {
                 .mapfold_reduce_into(
                     &mut contains_floats,
                     |contains_floats, (intermediate, box_slot): (IntermediateBlockLevelBox<_>, BoxSlot<'_>)| {
-                        let (block_level_box, box_contains_floats) = intermediate.finish(context);
+                        let (block_level_box, box_contains_floats) = intermediate.finish(context, request_content_sizes);
                         *contains_floats |= box_contains_floats;
                         box_slot.set(LayoutBox::BlockLevel(block_level_box.clone()));
                         block_level_box
@@ -332,6 +333,7 @@ where
                     style.clone(),
                     display_inside,
                     <Contents<Node>>::Replaced(replaced),
+                    false, // ignored
                 ),
             )),
             Ok(non_replaced) => match display_inside {
@@ -452,14 +454,7 @@ where
             self.block_level_boxes.push((box_, box_slot));
         } else {
             let box_ = Arc::new(InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                AbsolutelyPositionedBox {
-                    contents: IndependentFormattingContext::construct(
-                        self.context,
-                        style,
-                        display_inside,
-                        contents,
-                    ),
-                },
+                AbsolutelyPositionedBox::construct(self.context, style, display_inside, contents),
             ));
             self.current_inline_level_boxes().push(box_.clone());
             box_slot.set(LayoutBox::InlineLevel(box_))
@@ -483,14 +478,12 @@ where
             };
             self.block_level_boxes.push((box_, box_slot));
         } else {
-            let box_ = Arc::new(InlineLevelBox::OutOfFlowFloatBox(FloatBox {
-                contents: IndependentFormattingContext::construct(
-                    self.context,
-                    style,
-                    display_inside,
-                    contents,
-                ),
-            }));
+            let box_ = Arc::new(InlineLevelBox::OutOfFlowFloatBox(FloatBox::construct(
+                self.context,
+                style,
+                display_inside,
+                contents,
+            )));
             self.current_inline_level_boxes().push(box_.clone());
             box_slot.set(LayoutBox::InlineLevel(box_))
         }
@@ -551,6 +544,7 @@ where
     fn finish(
         self,
         context: &LayoutContext,
+        parent_requests_outer_content_sizes: bool,
     ) -> (Arc<BlockLevelBox>, ContainsFloats) {
         match self {
             IntermediateBlockLevelBox::SameFormattingContextBlock { style, contents } => {
@@ -564,11 +558,14 @@ where
                 display_inside,
                 contents,
             } => {
+                let request_content_sizes =
+                    parent_requests_outer_content_sizes && style.inline_size_is_auto();
                 let contents = IndependentFormattingContext::construct(
                     context,
                     style,
                     display_inside,
                     contents,
+                    request_content_sizes,
                 );
                 (
                     Arc::new(BlockLevelBox::Independent(contents)),
@@ -581,14 +578,7 @@ where
                 contents,
             } => {
                 let block_level_box = Arc::new(BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                    AbsolutelyPositionedBox {
-                        contents: IndependentFormattingContext::construct(
-                            context,
-                            style,
-                            display_inside,
-                            contents,
-                        ),
-                    },
+                    AbsolutelyPositionedBox::construct(context, style, display_inside, contents),
                 ));
                 (block_level_box, ContainsFloats::No)
             },
@@ -597,14 +587,9 @@ where
                 display_inside,
                 contents,
             } => {
-                let contents = IndependentFormattingContext::construct(
-                    context,
-                    style,
-                    display_inside,
-                    contents,
-                );
-                let block_level_box =
-                    Arc::new(BlockLevelBox::OutOfFlowFloatBox(FloatBox { contents }));
+                let block_level_box = Arc::new(BlockLevelBox::OutOfFlowFloatBox(
+                    FloatBox::construct(context, style, display_inside, contents),
+                ));
                 (block_level_box, ContainsFloats::Yes)
             },
         }

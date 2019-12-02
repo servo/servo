@@ -50,6 +50,7 @@ impl IndependentFormattingContext {
         style: Arc<ComputedValues>,
         display_inside: DisplayInside,
         contents: Contents<impl NodeExt<'dom>>,
+        _request_content_sizes: bool, // Ignored for replaced content
     ) -> Self {
         use self::IndependentFormattingContextContents as Contents;
         let contents = match contents.try_into() {

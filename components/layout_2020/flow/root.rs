@@ -59,32 +59,33 @@ fn construct_for_root_element<'dom>(
         Display::GeneratingBox(DisplayGeneratingBox::OutsideInside { inside, .. }) => inside,
     };
 
-    let position = box_style.position;
-    let float = box_style.float;
-    let contents = IndependentFormattingContext::construct(
-        context,
-        style,
-        display_inside,
-        replaced.map_or(Contents::OfElement(root_element), Contents::Replaced),
-    );
-    if position.is_absolutely_positioned() {
+    let contents = replaced.map_or(Contents::OfElement(root_element), Contents::Replaced);
+    if box_style.position.is_absolutely_positioned() {
         (
             ContainsFloats::No,
             vec![Arc::new(BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                AbsolutelyPositionedBox { contents },
+                AbsolutelyPositionedBox::construct(context, style, display_inside, contents),
             ))],
         )
-    } else if float.is_floating() {
+    } else if box_style.float.is_floating() {
         (
             ContainsFloats::Yes,
-            vec![Arc::new(BlockLevelBox::OutOfFlowFloatBox(FloatBox {
-                contents,
-            }))],
+            vec![Arc::new(BlockLevelBox::OutOfFlowFloatBox(
+                FloatBox::construct(context, style, display_inside, contents),
+            ))],
         )
     } else {
         (
             ContainsFloats::No,
-            vec![Arc::new(BlockLevelBox::Independent(contents))],
+            vec![Arc::new(BlockLevelBox::Independent(
+                IndependentFormattingContext::construct(
+                    context,
+                    style,
+                    display_inside,
+                    contents,
+                    /* request_content_sizes */ false,
+                ),
+            ))],
         )
     }
 }

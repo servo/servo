@@ -45,6 +45,7 @@ pub(crate) trait ComputedValuesExt {
     fn writing_mode(&self) -> (WritingMode, Direction);
     fn writing_mode_is_horizontal(&self) -> bool;
     fn inline_size_is_auto(&self) -> bool;
+    fn inline_box_offsets_are_both_auto(&self) -> bool;
     fn box_offsets(&self) -> flow_relative::Sides<LengthPercentageOrAuto>;
     fn box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto>;
     fn padding(&self) -> flow_relative::Sides<LengthPercentage>;
@@ -75,6 +76,19 @@ impl ComputedValuesExt for ComputedValues {
             position.height
         };
         matches!(size, Size::Auto)
+    }
+
+    fn inline_box_offsets_are_both_auto(&self) -> bool {
+        let position = self.get_position();
+        let offsets = if self.writing_mode_is_horizontal() {
+            (position.left, position.right)
+        } else {
+            (position.top, position.bottom)
+        };
+        matches!(
+            offsets,
+            (LengthPercentageOrAuto::Auto, LengthPercentageOrAuto::Auto)
+        )
     }
 
     #[inline]
