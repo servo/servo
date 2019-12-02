@@ -488,10 +488,17 @@ impl GenericPathBuilder for PathBuilder {
         &mut self,
         origin: Point2D<f32>,
         radius: f32,
-        start_angle: f32,
+        mut start_angle: f32,
         mut end_angle: f32,
         anticlockwise: bool,
     ) {
+        if (!anticlockwise && start_angle > end_angle + 2. * PI) ||
+            (anticlockwise && end_angle > start_angle + 2. * PI)
+        {
+            start_angle = start_angle % (2. * PI);
+            end_angle = end_angle % (2. * PI);
+        }
+
         if (anticlockwise && end_angle > 0.) || (!anticlockwise && end_angle < 0.) {
             end_angle = -end_angle;
         }
