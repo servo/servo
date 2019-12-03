@@ -188,6 +188,17 @@ fn traverse_pseudo_element_contents<'dom, Node>(
     }
 }
 
+impl<Node> Contents<Node> {
+    /// Returns true iff the `try_from` impl below would return `Err(_)`
+    pub fn is_replaced(&self) -> bool {
+        match self {
+            Contents::OfElement(_) |
+            Contents::OfPseudoElement(_) => false,
+            Contents::Replaced(_) => true,
+        }
+    }
+}
+
 impl<Node> std::convert::TryFrom<Contents<Node>> for NonReplacedContents<Node> {
     type Error = ReplacedContent;
 

@@ -15,7 +15,7 @@ use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox, DisplayInside, D
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 
@@ -355,39 +355,37 @@ where
         display_inside: DisplayInside,
         contents: Contents<Node>,
     ) -> Arc<InlineLevelBox> {
-        let box_ = match contents.try_into() {
-            Err(replaced) => Arc::new(InlineLevelBox::Atomic(
+        let box_ = if display_inside == DisplayInside::Flow && !contents.is_replaced() {
+            // We found un inline box.
+            // Whatever happened before, all we need to do before recurring
+            // is to remember this ongoing inline level box.
+            self.ongoing_inline_boxes_stack.push(InlineBox {
+                style: style.clone(),
+                first_fragment: true,
+                last_fragment: false,
+                children: vec![],
+            });
+
+            // `unwrap` doesn’t panic here because `is_replaced` returned `false`.
+            NonReplacedContents::try_from(contents).unwrap().traverse(&style, self.context, self);
+
+            let mut inline_box = self
+                .ongoing_inline_boxes_stack
+                .pop()
+                .expect("no ongoing inline level box found");
+            inline_box.last_fragment = true;
+            Arc::new(InlineLevelBox::InlineBox(inline_box))
+        } else {
+            let request_content_sizes = style.inline_size_is_auto();
+            Arc::new(InlineLevelBox::Atomic(
                 IndependentFormattingContext::construct(
                     self.context,
                     style.clone(),
                     display_inside,
-                    <Contents<Node>>::Replaced(replaced),
-                    false, // ignored
+                    contents,
+                    request_content_sizes,
                 ),
-            )),
-            Ok(non_replaced) => match display_inside {
-                DisplayInside::Flow |
-                // TODO: Properly implement display: inline-block.
-                DisplayInside::FlowRoot => {
-                    // Whatever happened before, we just found an inline level element, so
-                    // all we need to do is to remember this ongoing inline level box.
-                    self.ongoing_inline_boxes_stack.push(InlineBox {
-                        style: style.clone(),
-                        first_fragment: true,
-                        last_fragment: false,
-                        children: vec![],
-                    });
-
-                    NonReplacedContents::traverse(non_replaced, &style, self.context, self);
-
-                    let mut inline_box = self
-                        .ongoing_inline_boxes_stack
-                        .pop()
-                        .expect("no ongoing inline level box found");
-                    inline_box.last_fragment = true;
-                    Arc::new(InlineLevelBox::InlineBox(inline_box))
-                },
-            },
+            ))
         };
         self.current_inline_level_boxes().push(box_.clone());
         box_
