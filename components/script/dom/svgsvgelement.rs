@@ -140,11 +140,11 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
 
             match sender {
                 Some(webgl_sender) => {
-                    /*let (resize_sender, resize_receiver) = webgl_channel().unwrap();
-                    webgl_sender.send_resize(Size2D::new(width, height), resize_sender).unwrap();
+                    let (resize_sender, resize_receiver) = webgl_channel().unwrap();
+                    webgl_sender.send_resize(Size2D::new(width, height), resize_sender, true).unwrap();
                     if let Err(msg) = resize_receiver.recv().unwrap(){
                         panic!("PANIC: Error resizing rendering context for SVG: {}", msg);
-                    }*/
+                    }
 
                     SVGSVGData{
                         width,

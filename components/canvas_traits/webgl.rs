@@ -47,7 +47,7 @@ pub enum WebGLMsg {
         bool,
     ),
     /// Resizes a WebGLContext.
-    ResizeContext(WebGLContextId, Size2D<u32>, WebGLSender<Result<(), String>>),
+    ResizeContext(WebGLContextId, Size2D<u32>, WebGLSender<Result<(), String>>, bool),
     /// Drops a WebGLContext.
     RemoveContext(WebGLContextId),
     /// Runs a WebGLCommand in a specific WebGLContext.
@@ -169,9 +169,10 @@ impl WebGLMsgSender {
         &self,
         size: Size2D<u32>,
         sender: WebGLSender<Result<(), String>>,
+        is_pathfinder_context: bool
     ) -> WebGLSendResult {
         self.sender
-            .send(WebGLMsg::ResizeContext(self.ctx_id, size, sender))
+            .send(WebGLMsg::ResizeContext(self.ctx_id, size, sender, is_pathfinder_context))
     }
 
     #[inline]

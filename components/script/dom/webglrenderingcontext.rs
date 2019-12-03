@@ -4415,7 +4415,7 @@ impl WebGLMessageSender {
         size: Size2D<u32>,
         sender: WebGLSender<Result<(), String>>,
     ) -> WebGLSendResult {
-        self.wake_after_send(|| self.sender.send_resize(size, sender))
+        self.wake_after_send(|| self.sender.send_resize(size, sender, false))
     }
 
     pub fn send_remove(&self) -> WebGLSendResult {

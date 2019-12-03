@@ -485,8 +485,8 @@ impl WebGLThread {
                     }))
                     .unwrap();
             },
-            WebGLMsg::ResizeContext(ctx_id, size, sender) => {
-                self.resize_webgl_context(ctx_id, size, sender);
+            WebGLMsg::ResizeContext(ctx_id, size, sender,is_pathfinder_context) => {
+                self.resize_webgl_context(ctx_id, size, sender, is_pathfinder_context);
             },
             WebGLMsg::RemoveContext(ctx_id) => {
                 self.remove_webgl_context(ctx_id);
@@ -730,6 +730,7 @@ impl WebGLThread {
         context_id: WebGLContextId,
         size: Size2D<u32>,
         sender: WebGLSender<Result<(), String>>,
+        is_pathfinder_context: bool
     ) {
         let data = Self::make_current_if_needed_mut(
             context_id,
@@ -769,6 +770,29 @@ impl WebGLThread {
                         );
                     },
                     _ => {},
+                }
+
+                if is_pathfinder_context{
+                    let pathfinder_context = self.pathfinder_contexts.get(&context_id);
+                    if let Some(pathfinder_context) = pathfinder_context{
+                        let scene = pathfinder_context.scene_proxy.copy_scene();
+                        let framebuffer = data.ctx.framebuffer();
+                        let (real_size,texture_id,limits,formats) = data.ctx.get_info();
+                        GLDevice::load_with(|name| data.ctx.get_proc_address(name) as *const _);
+                        let gl_device = GLDevice::new(GLVersion::GL3,framebuffer);
+                        let real_size_as_vector = Vector2I::new(real_size.width, real_size.height);
+                        let texture = gl_device.create_texture_from_existing_texture(texture_id, TextureFormat::RGBA8, real_size_as_vector);
+                        let gl_framebuffer = GLFramebuffer{gl_framebuffer: framebuffer, texture };
+                        let dest_framebuffer = DestFramebuffer::Other(gl_framebuffer);
+                        let resource_loader = FilesystemResourceLoader::locate();
+                        let mut renderer = Renderer::new(gl_device, &resource_loader, dest_framebuffer, RendererOptions { background_color: Some(ColorF::white())});
+                        let scene_proxy = SceneProxy::from_scene(scene,RayonExecutor{});
+                        scene_proxy.build_and_render(&mut renderer, BuildOptions::default());
+                        let new_pathfinder_context = PathfinderContext{renderer, scene_proxy };
+                        self.pathfinder_contexts.insert(context_id, new_pathfinder_context);
+                    }else{
+                        panic!("Could not extract Pathfinder context");
+                    }
                 }
 
                 sender.send(Ok(())).unwrap();
