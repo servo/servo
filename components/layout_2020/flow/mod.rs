@@ -21,6 +21,7 @@ use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto};
+use style::values::generics::length::MaxSize;
 use style::Zero;
 
 mod construct;
@@ -353,29 +354,76 @@ fn layout_in_flow_non_replaced_block_level<'a>(
     ) -> FlowLayout,
 ) -> BoxFragment {
     let cbis = containing_block.inline_size;
+    let cbbs = containing_block.block_size.non_auto();
     let padding = style.padding().percentages_relative_to(cbis);
     let border = style.border_width();
-    let mut computed_margin = style.margin().percentages_relative_to(cbis);
+    let margin = style.margin().percentages_relative_to(cbis);
     let pb = &padding + &border;
+    let pb_inline_sum = pb.inline_sum();
+
     let box_size = style.box_size();
-    let inline_size = box_size.inline.percentage_relative_to(cbis);
-    if let LengthOrAuto::LengthPercentage(is) = inline_size {
-        let (margin_inline_start, margin_inline_end) = solve_inline_margins_for_in_flow_block_level(
+    let max_box_size = style.max_box_size();
+    let min_box_size = style.min_box_size();
+
+    // https://drafts.csswg.org/css2/visudet.html#min-max-widths
+    let solve_inline_margins = |inline_size| {
+        solve_inline_margins_for_in_flow_block_level(
             containing_block,
-            pb.inline_sum(),
-            computed_margin.inline_start,
-            computed_margin.inline_end,
-            is,
-        );
-        computed_margin.inline_start = LengthOrAuto::LengthPercentage(margin_inline_start);
-        computed_margin.inline_end = LengthOrAuto::LengthPercentage(margin_inline_end);
+            pb_inline_sum,
+            margin.inline_start,
+            margin.inline_end,
+            inline_size,
+        )
+    };
+    let (mut inline_size, mut inline_margins) =
+        if let Some(inline_size) = box_size.inline.percentage_relative_to(cbis).non_auto() {
+            (inline_size, solve_inline_margins(inline_size))
+        } else {
+            let margin_inline_start = margin.inline_start.auto_is(Length::zero);
+            let margin_inline_end = margin.inline_end.auto_is(Length::zero);
+            let margin_inline_sum = margin_inline_start + margin_inline_end;
+            let inline_size = cbis - pb_inline_sum - margin_inline_sum;
+            (inline_size, (margin_inline_start, margin_inline_end))
+        };
+    if let MaxSize::LengthPercentage(max_inline_size) = max_box_size.inline {
+        let max_inline_size = max_inline_size.percentage_relative_to(cbis);
+        if inline_size > max_inline_size {
+            inline_size = max_inline_size;
+            inline_margins = solve_inline_margins(inline_size);
+        }
     }
-    let margin = computed_margin.auto_is(Length::zero);
-    let mut block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
-    let inline_size = inline_size.auto_is(|| cbis - pb.inline_sum() - margin.inline_sum());
-    let block_size = box_size
+    let min_inline_size = min_box_size
+        .inline
+        .percentage_relative_to(cbis)
+        .auto_is(Length::zero);
+    if inline_size < min_inline_size {
+        inline_size = min_inline_size;
+        inline_margins = solve_inline_margins(inline_size);
+    }
+
+    let margin = Sides {
+        inline_start: inline_margins.0,
+        inline_end: inline_margins.1,
+        block_start: margin.block_start.auto_is(Length::zero),
+        block_end: margin.block_end.auto_is(Length::zero),
+    };
+
+    // https://drafts.csswg.org/css2/visudet.html#min-max-heights
+    let max_block_size = match max_box_size.block {
+        MaxSize::LengthPercentage(max_block_size) => {
+            max_block_size.maybe_percentage_relative_to(cbbs)
+        },
+        MaxSize::None => None,
+    };
+    let min_block_size = min_box_size
         .block
-        .maybe_percentage_relative_to(containing_block.block_size.non_auto());
+        .maybe_percentage_relative_to(cbbs)
+        .auto_is(Length::zero);
+    let mut block_size = box_size.block.maybe_percentage_relative_to(cbbs);
+    if let LengthOrAuto::LengthPercentage(ref mut block_size) = block_size {
+        *block_size = clamp_between_extremums(*block_size, min_block_size, max_block_size);
+    }
+
     let containing_block_for_children = ContainingBlock {
         inline_size,
         block_size,
@@ -386,16 +434,15 @@ fn layout_in_flow_non_replaced_block_level<'a>(
         containing_block.mode, containing_block_for_children.mode,
         "Mixed writing modes are not supported yet"
     );
+
     let this_start_margin_can_collapse_with_children = CollapsibleWithParentStartMargin(
         block_level_kind == BlockLevelKind::SameFormattingContextBlock &&
             pb.block_start == Length::zero(),
     );
-    let this_end_margin_can_collapse_with_children = (block_level_kind, pb.block_end, block_size) ==
-        (
-            BlockLevelKind::SameFormattingContextBlock,
-            Length::zero(),
-            LengthOrAuto::Auto,
-        );
+    let this_end_margin_can_collapse_with_children = block_size == LengthOrAuto::Auto &&
+        min_block_size == Length::zero() &&
+        pb.block_end == Length::zero() &&
+        block_level_kind == BlockLevelKind::SameFormattingContextBlock;
     let mut nested_abspos = vec![];
     let mut flow_layout = layout_contents(
         &containing_block_for_children,
@@ -406,6 +453,7 @@ fn layout_in_flow_non_replaced_block_level<'a>(
         },
         this_start_margin_can_collapse_with_children,
     );
+    let mut block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
     if this_start_margin_can_collapse_with_children.0 {
         block_margins_collapsed_with_children
             .start
@@ -436,7 +484,13 @@ fn layout_in_flow_non_replaced_block_level<'a>(
                 .collapsible_margins_in_children
                 .collapsed_through;
     let relative_adjustement = relative_adjustement(style, inline_size, block_size);
-    let block_size = block_size.auto_is(|| flow_layout.content_block_size);
+    let block_size = block_size.auto_is(|| {
+        clamp_between_extremums(
+            flow_layout.content_block_size,
+            min_block_size,
+            max_block_size,
+        )
+    });
     let content_rect = Rect {
         start_corner: Vec2 {
             block: pb.block_start + relative_adjustement.block,
@@ -477,6 +531,7 @@ fn layout_in_flow_replaced_block_level<'a>(
     replaced: &ReplacedContent,
 ) -> BoxFragment {
     let cbis = containing_block.inline_size;
+    let cbbs = containing_block.block_size.non_auto();
     let padding = style.padding().percentages_relative_to(cbis);
     let border = style.border_width();
     let computed_margin = style.margin().percentages_relative_to(cbis);
@@ -486,23 +541,155 @@ fn layout_in_flow_replaced_block_level<'a>(
     let intrinsic_size = replaced.intrinsic_size.size_to_flow_relative(mode);
     // FIXME(nox): This can divide by zero.
     let intrinsic_ratio = intrinsic_size.inline.px() / intrinsic_size.block.px();
+
     let box_size = style.box_size();
+    let min_box_size = style.min_box_size();
+    let max_box_size = style.max_box_size();
+
     let inline_size = box_size.inline.percentage_relative_to(cbis);
-    let block_size = box_size
+    let min_inline_size = min_box_size
+        .inline
+        .percentage_relative_to(cbis)
+        .auto_is(Length::zero);
+    let max_inline_size = match max_box_size.inline {
+        MaxSize::LengthPercentage(max_inline_size) => {
+            Some(max_inline_size.percentage_relative_to(cbis))
+        },
+        MaxSize::None => None,
+    };
+    let block_size = box_size.block.maybe_percentage_relative_to(cbbs);
+    let min_block_size = min_box_size
         .block
-        .maybe_percentage_relative_to(containing_block.block_size.non_auto());
+        .maybe_percentage_relative_to(cbbs)
+        .auto_is(Length::zero);
+    let max_block_size = match max_box_size.block {
+        MaxSize::LengthPercentage(max_block_size) => {
+            max_block_size.maybe_percentage_relative_to(cbbs)
+        },
+        MaxSize::None => None,
+    };
+    let clamp = |inline_size, block_size| {
+        (
+            clamp_between_extremums(inline_size, min_inline_size, max_inline_size),
+            clamp_between_extremums(block_size, min_block_size, max_block_size),
+        )
+    };
+    // https://drafts.csswg.org/css2/visudet.html#min-max-widths
+    // https://drafts.csswg.org/css2/visudet.html#min-max-heights
     let (inline_size, block_size) = match (inline_size, block_size) {
         (LengthOrAuto::LengthPercentage(inline), LengthOrAuto::LengthPercentage(block)) => {
-            (inline, block)
+            clamp(inline, block)
         },
         (LengthOrAuto::LengthPercentage(inline), LengthOrAuto::Auto) => {
-            (inline, inline / intrinsic_ratio)
+            clamp(inline, inline / intrinsic_ratio)
         },
         (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(block)) => {
-            (block * intrinsic_ratio, block)
+            clamp(block * intrinsic_ratio, block)
         },
-        (LengthOrAuto::Auto, LengthOrAuto::Auto) => (intrinsic_size.inline, intrinsic_size.block),
+        (LengthOrAuto::Auto, LengthOrAuto::Auto) => {
+            enum Violation {
+                None,
+                Below(Length),
+                Above(Length),
+            }
+            let violation = |size, min_size, mut max_size: Option<Length>| {
+                if let Some(max) = max_size.as_mut() {
+                    max.max_assign(min_size);
+                }
+                if size < min_size {
+                    return Violation::Below(min_size);
+                }
+                match max_size {
+                    Some(max_size) if size > max_size => Violation::Above(max_size),
+                    _ => Violation::None,
+                }
+            };
+            match (
+                violation(intrinsic_size.inline, min_inline_size, max_inline_size),
+                violation(intrinsic_size.block, min_block_size, max_block_size),
+            ) {
+                // Row 1.
+                (Violation::None, Violation::None) => (intrinsic_size.inline, intrinsic_size.block),
+                // Row 2.
+                (Violation::Above(max_inline_size), Violation::None) => {
+                    let block_size = (max_inline_size / intrinsic_ratio).max(min_block_size);
+                    (max_inline_size, block_size)
+                },
+                // Row 3.
+                (Violation::Below(min_inline_size), Violation::None) => {
+                    let mut block_size = min_inline_size / intrinsic_ratio;
+                    if let Some(max_block_size) = max_block_size {
+                        if block_size > max_block_size {
+                            block_size = max_block_size;
+                        }
+                    }
+                    (min_inline_size, block_size)
+                },
+                // Row 4.
+                (Violation::None, Violation::Above(max_block_size)) => {
+                    let inline_size = (max_block_size * intrinsic_ratio).max(min_inline_size);
+                    (inline_size, max_block_size)
+                },
+                // Row 5.
+                (Violation::None, Violation::Below(min_block_size)) => {
+                    let mut inline_size = min_block_size * intrinsic_ratio;
+                    if let Some(max_inline_size) = max_inline_size {
+                        if inline_size > max_inline_size {
+                            inline_size = max_inline_size;
+                        }
+                    }
+                    (inline_size, min_block_size)
+                },
+                // Rows 6-7.
+                (Violation::Above(max_inline_size), Violation::Above(max_block_size)) => {
+                    if max_inline_size.px() / intrinsic_size.inline.px() <=
+                        max_block_size.px() / intrinsic_size.block.px()
+                    {
+                        // Row 6.
+                        let block_size = (max_inline_size / intrinsic_ratio).max(min_block_size);
+                        (max_inline_size, block_size)
+                    } else {
+                        // Row 7.
+                        let inline_size = (max_block_size * intrinsic_ratio).max(min_inline_size);
+                        (inline_size, max_block_size)
+                    }
+                },
+                // Rows 8-9.
+                (Violation::Below(min_inline_size), Violation::Below(min_block_size)) => {
+                    if min_inline_size.px() / intrinsic_size.inline.px() <=
+                        min_block_size.px() / intrinsic_size.block.px()
+                    {
+                        // Row 8.
+                        let mut inline_size = min_block_size * intrinsic_ratio;
+                        if let Some(max_inline_size) = max_inline_size {
+                            if inline_size > max_inline_size {
+                                inline_size = max_inline_size;
+                            }
+                        }
+                        (inline_size, min_block_size)
+                    } else {
+                        // Row 9.
+                        let mut block_size = min_inline_size / intrinsic_ratio;
+                        if let Some(max_block_size) = max_block_size {
+                            if block_size > max_block_size {
+                                block_size = max_block_size;
+                            }
+                        }
+                        (min_inline_size, block_size)
+                    }
+                },
+                // Row 10.
+                (Violation::Below(min_inline_size), Violation::Above(max_block_size)) => {
+                    (min_inline_size, max_block_size)
+                },
+                // Row 11.
+                (Violation::Above(max_inline_size), Violation::Below(min_block_size)) => {
+                    (max_inline_size, min_block_size)
+                },
+            }
+        },
     };
+
     let (margin_inline_start, margin_inline_end) = solve_inline_margins_for_in_flow_block_level(
         containing_block,
         pb.inline_sum(),
@@ -566,4 +753,13 @@ fn solve_inline_margins_for_in_flow_block_level(
         (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => (inline_margins - end, end),
         (LengthOrAuto::LengthPercentage(start), _) => (start, inline_margins - start),
     }
+}
+
+fn clamp_between_extremums(mut size: Length, min_size: Length, max_size: Option<Length>) -> Length {
+    if let Some(max_size) = max_size {
+        if size > max_size {
+            size = max_size;
+        }
+    }
+    size.max(min_size)
 }

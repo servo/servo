@@ -4,7 +4,9 @@
 
 use crate::geom::{flow_relative, physical};
 use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthPercentage, LengthPercentageOrAuto, Size};
+use style::values::computed::{Length, LengthPercentage, LengthPercentageOrAuto};
+use style::values::computed::{NonNegativeLengthPercentage, Size};
+use style::values::generics::length::MaxSize;
 use style::values::specified::box_ as stylo;
 
 pub use style::computed_values::direction::T as Direction;
@@ -45,6 +47,8 @@ pub(crate) trait ComputedValuesExt {
     fn writing_mode(&self) -> (WritingMode, Direction);
     fn box_offsets(&self) -> flow_relative::Sides<LengthPercentageOrAuto>;
     fn box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto>;
+    fn min_box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto>;
+    fn max_box_size(&self) -> flow_relative::Vec2<MaxSize<LengthPercentage>>;
     fn padding(&self) -> flow_relative::Sides<LengthPercentage>;
     fn border_width(&self) -> flow_relative::Sides<Length>;
     fn margin(&self) -> flow_relative::Sides<LengthPercentageOrAuto>;
@@ -76,6 +80,30 @@ impl ComputedValuesExt for ComputedValues {
         physical::Vec2 {
             x: size_to_length(position.width),
             y: size_to_length(position.height),
+        }
+        .size_to_flow_relative(self.writing_mode())
+    }
+
+    #[inline]
+    fn min_box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto> {
+        let position = self.get_position();
+        physical::Vec2 {
+            x: size_to_length(position.min_width),
+            y: size_to_length(position.min_height),
+        }
+        .size_to_flow_relative(self.writing_mode())
+    }
+
+    #[inline]
+    fn max_box_size(&self) -> flow_relative::Vec2<MaxSize<LengthPercentage>> {
+        let unwrap = |max_size: MaxSize<NonNegativeLengthPercentage>| match max_size {
+            MaxSize::LengthPercentage(length) => MaxSize::LengthPercentage(length.0),
+            MaxSize::None => MaxSize::None,
+        };
+        let position = self.get_position();
+        physical::Vec2 {
+            x: unwrap(position.max_width),
+            y: unwrap(position.max_height),
         }
         .size_to_flow_relative(self.writing_mode())
     }
