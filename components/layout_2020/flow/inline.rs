@@ -10,7 +10,7 @@ use crate::fragments::CollapsedBlockMargins;
 use crate::fragments::{AnonymousFragment, BoxFragment, Fragment, TextFragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{AbsolutelyPositionedBox, AbsolutelyPositionedFragment};
-use crate::sizing::{outer_inline_content_sizes, ContentSizes};
+use crate::sizing::{outer_inline_content_sizes_and_percentages, ContentSizes};
 use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside};
 use crate::{relative_adjustement, ContainingBlock};
 use app_units::Au;
@@ -148,14 +148,11 @@ impl InlineFormattingContext {
                         },
                         InlineLevelBox::Atomic(atomic) => {
                             let inner = || {
-                                // atomic
-                                // .inline_content_sizes
-                                // .as_ref()
-                                // .expect("Accessing content size that was not requested")
-                                // .clone()
+                                // &atomic.inline_content_sizes
                                 todo!()
                             };
-                            let (outer, pc) = outer_inline_content_sizes(&atomic.style, &inner);
+                            let (outer, pc) = outer_inline_content_sizes_and_percentages(
+                                &atomic.style, inner());
                             self.current_line.min_content += outer.min_content;
                             self.current_line.max_content += outer.max_content;
                             self.current_line_percentages += pc;

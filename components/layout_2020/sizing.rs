@@ -24,6 +24,11 @@ impl ContentSizes {
         }
     }
 
+    pub fn max_assign(&mut self, other: &Self) {
+        self.min_content.max_assign(other.min_content);
+        self.max_content.max_assign(other.max_content);
+    }
+
     /// Relevant to outer intrinsic inline sizes, for percentages from padding and margin.
     pub fn adjust_for_pbm_percentages(&mut self, percentages: Percentage) {
         // " Note that this may yield an infinite result, but undefined results
@@ -41,7 +46,17 @@ impl ContentSizes {
 /// https://dbaron.org/css/intrinsic/#outer-intrinsic
 pub(crate) fn outer_inline_content_sizes(
     style: &ComputedValues,
-    get_inner_intrinsic_sizes: &dyn Fn() -> ContentSizes,
+    inner_content_sizes: &Option<ContentSizes>,
+) -> ContentSizes {
+    let (mut outer, percentages) =
+        outer_inline_content_sizes_and_percentages(style, inner_content_sizes);
+    outer.adjust_for_pbm_percentages(percentages);
+    outer
+}
+
+pub(crate) fn outer_inline_content_sizes_and_percentages(
+    style: &ComputedValues,
+    inner_content_sizes: &Option<ContentSizes>,
 ) -> (ContentSizes, Percentage) {
     // FIXME: account for 'min-width', 'max-width', 'box-sizing'
 
@@ -50,7 +65,7 @@ pub(crate) fn outer_inline_content_sizes(
     let specified = specified.map(|lp| lp.as_length());
     // The (inner) min/max-content are only used for 'auto'
     let mut outer = match specified.non_auto().flatten() {
-        None => get_inner_intrinsic_sizes(),
+        None => inner_content_sizes.as_ref().expect("Accessing content size that was not requested").clone(),
         Some(length) => ContentSizes {
             min_content: length,
             max_content: length,
