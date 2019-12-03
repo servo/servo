@@ -30,7 +30,6 @@ const invalid_type_messages =
       // NDEFRecord.data for 'text' record must be either a string,
       // an arrayBuffer, or an arrayBufferView.
       createMessage([createTextRecord(test_json_data)]),
-      createMessage([createTextRecord(test_number_data)]),
 
       // NDEFRecord.encoding for 'text' record must be either "utf-8",
       // "utf-16", "utf-16le" or "utf-16be".
@@ -49,12 +48,10 @@ const invalid_type_messages =
 
       // NDEFRecord.data for 'url' record must be string.
       createMessage([createUrlRecord(test_buffer_data)]),
-      createMessage([createUrlRecord(test_number_data)]),
       createMessage([createUrlRecord(test_json_data)]),
 
       // NDEFRecord.data for 'absolute-url' record must be string.
       createMessage([createUrlRecord(test_buffer_data, true)]),
-      createMessage([createUrlRecord(test_number_data, true)]),
       createMessage([createUrlRecord(test_json_data, true)]),
 
       // https://w3c.github.io/web-nfc/#dfn-map-binary-data-to-ndef

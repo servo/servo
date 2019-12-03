@@ -18,29 +18,56 @@
 
   test(() => {
     assert_throws(new TypeError, () => new NDEFRecord(
-          createRecord('empty', test_text_data, 'text/plain')),
+          createRecord('empty', test_text_data, test_record_id, 'text/plain')),
         'mediaType does not apply for empty record type.');
     assert_throws(new TypeError, () => new NDEFRecord(
-          createRecord('text', test_text_data, 'text/plain')),
+          createRecord('text', test_text_data, test_record_id, 'text/plain')),
         'mediaType does not apply for text record type.');
     assert_throws(new TypeError, () => new NDEFRecord(
-          createRecord('url', test_url_data, 'text/plain')),
+          createRecord('url', test_url_data, test_record_id, 'text/plain')),
         'mediaType does not apply for url record type.');
     assert_throws(new TypeError, () => new NDEFRecord(
-          createRecord('absolute-url', test_url_data, 'text/plain')),
+          createRecord('absolute-url', test_url_data, test_record_id, 'text/plain')),
         'mediaType does not apply for absolute-url record type.');
     assert_throws(new TypeError, () => new NDEFRecord(
-          createRecord('unknown', test_buffer_data, 'application/octet-stream')),
+          createRecord('unknown', test_buffer_data, test_record_id, 'application/octet-stream')),
         'mediaType does not apply for unknown record type.');
     assert_throws(new TypeError, () => new NDEFRecord(
-          createRecord('foo.example.com:bar', test_buffer_data, 'application/octet-stream')),
+          createRecord('foo.example.com:bar', test_buffer_data, test_record_id, 'application/octet-stream')),
         'mediaType does not apply for external record type.');
   }, 'NDEFRecord constructor should only accept mediaType for mime record type');
+
+  test(() => {
+    {
+      const record = new NDEFRecord(createRecord('text', test_text_data));
+      assert_equals(record.id, null, 'id');
+    }
+    {
+      const record = new NDEFRecord(createRecord('text', test_text_data, ''));
+      assert_equals(record.id, '', 'id');
+    }
+    {
+      const dummy_id = 'https://dummy_host/mypath/myid';
+      const record = new NDEFRecord(createRecord('text', test_text_data, dummy_id));
+      assert_equals(record.id, dummy_id, 'id');
+    }
+    {
+      const dummy_id = 'http://dummy_host/mypath/myid';
+      const record = new NDEFRecord(createRecord('text', test_text_data, dummy_id));
+      assert_equals(record.id, dummy_id, 'id');
+    }
+    {
+      const dummy_id = 'mypath/myid';
+      const record = new NDEFRecord(createRecord('text', test_text_data, dummy_id));
+      assert_equals(record.id, dummy_id, 'id');
+    }
+  }, 'NDEFRecord constructor with custom record ids');
 
   test(() => {
     const record = new NDEFRecord(createTextRecord(test_text_data));
     assert_equals(record.recordType, 'text', 'recordType');
     assert_equals(record.mediaType, null, 'mediaType');
+    assert_equals(record.id, test_record_id, 'id');
     assert_equals(record.encoding, 'utf-8', 'encoding');
     assert_equals(record.lang, 'en', 'lang');
     const decoder = new TextDecoder();
@@ -56,6 +83,7 @@
     const record = new NDEFRecord(createTextRecord(uint8Array.buffer));
     assert_equals(record.recordType, 'text', 'recordType');
     assert_equals(record.mediaType, null, 'mediaType');
+    assert_equals(record.id, test_record_id, 'id');
     assert_equals(record.encoding, 'utf-8', 'encoding');
     assert_equals(record.lang, 'en', 'lang');
     const decoder = new TextDecoder();
@@ -71,6 +99,7 @@
     const record = new NDEFRecord(createTextRecord(uint8Array));
     assert_equals(record.recordType, 'text', 'recordType');
     assert_equals(record.mediaType, null, 'mediaType');
+    assert_equals(record.id, test_record_id, 'id');
     assert_equals(record.encoding, 'utf-8', 'encoding');
     assert_equals(record.lang, 'en', 'lang');
     const decoder = new TextDecoder();
@@ -87,6 +116,7 @@
       const record = new NDEFRecord(createTextRecord(test_text_data, encoding, lang));
       assert_equals(record.recordType, 'text', 'recordType');
       assert_equals(record.mediaType, null, 'mediaType');
+    assert_equals(record.id, test_record_id, 'id');
       assert_equals(record.encoding, encoding, 'encoding');
       assert_equals(record.lang, lang, 'lang');
       const decoder = new TextDecoder();
@@ -105,6 +135,7 @@
     const record = new NDEFRecord(createTextRecord(test_text_data));
     assert_equals(record.recordType, 'text', 'recordType');
     assert_equals(record.mediaType, null, 'mediaType');
+    assert_equals(record.id, test_record_id, 'id');
     assert_equals(record.encoding, 'utf-8', 'encoding');
     assert_equals(record.lang, test_lang, 'lang');
     const decoder = new TextDecoder();
@@ -116,6 +147,7 @@
     const record = new NDEFRecord(createUrlRecord(test_url_data));
     assert_equals(record.recordType, 'url', 'recordType');
     assert_equals(record.mediaType, null, 'mediaType');
+    assert_equals(record.id, test_record_id, 'id');
     const decoder = new TextDecoder();
     assert_equals(decoder.decode(record.data), test_url_data,
         'data has the same content with the original dictionary');
@@ -127,6 +159,7 @@
     const record = new NDEFRecord(createUrlRecord(test_url_data, true));
     assert_equals(record.recordType, 'absolute-url', 'recordType');
     assert_equals(record.mediaType, null, 'mediaType');
+    assert_equals(record.id, test_record_id, 'id');
     const decoder = new TextDecoder();
     assert_equals(decoder.decode(record.data), test_url_data,
         'data has the same content with the original dictionary');
@@ -146,6 +179,7 @@
       const record = new NDEFRecord(createMimeRecord(buffer));
       assert_equals(record.recordType, 'mime', 'recordType');
       assert_equals(record.mediaType, 'application/octet-stream', 'mediaType');
+      assert_equals(record.id, test_record_id, 'id');
       assert_array_equals(new Uint8Array(record.data.buffer), [1, 2, 3, 4],
           'data has the same content with the original buffer');
       assert_throws('NotSupportedError', () => record.toRecords(),
@@ -156,6 +190,7 @@
       let buffer_view = new Uint8Array(buffer, 1);
       const record = new NDEFRecord(createMimeRecord(buffer_view));
       assert_equals(record.recordType, 'mime', 'recordType');
+      assert_equals(record.id, test_record_id, 'id');
       assert_array_equals(new Uint8Array(record.data.buffer), [2, 3, 4],
           'data has the same content with the original buffer view');
       assert_throws('NotSupportedError', () => record.toRecords(),
@@ -167,6 +202,7 @@
     const record = new NDEFRecord(createMimeRecordFromJson(test_json_data));
     assert_equals(record.recordType, 'mime', 'recordType');
     assert_equals(record.mediaType, 'application/json', 'mediaType');
+    assert_equals(record.id, test_record_id, 'id');
     assert_object_equals(JSON.parse(new TextDecoder().decode(record.data)),
         test_json_data,
         'data has the same content with the original json');
@@ -185,6 +221,7 @@
     {
       const record = new NDEFRecord(createUnknownRecord(buffer));
       assert_equals(record.recordType, 'unknown', 'recordType');
+      assert_equals(record.id, test_record_id, 'id');
       assert_array_equals(new Uint8Array(record.data.buffer), [1, 2, 3, 4],
           'data has the same content with the original buffer');
       assert_throws('NotSupportedError', () => record.toRecords(),
@@ -195,6 +232,7 @@
       let buffer_view = new Uint8Array(buffer, 1);
       const record = new NDEFRecord(createUnknownRecord(buffer_view));
       assert_equals(record.recordType, 'unknown', 'recordType');
+      assert_equals(record.id, test_record_id, 'id');
       assert_array_equals(new Uint8Array(record.data.buffer), [2, 3, 4],
           'data has the same content with the original buffer view');
       assert_throws('NotSupportedError', () => record.toRecords(),
@@ -211,9 +249,10 @@
     new Uint8Array(buffer).set([1, 2, 3, 4]);
     // Feed ArrayBuffer.
     {
-      const record = new NDEFRecord(createRecord('foo.eXamPle.coM:bAr*-', buffer));
+      const record = new NDEFRecord(createRecord('foo.eXamPle.coM:bAr*-', buffer, test_record_id));
       assert_equals(record.recordType, 'foo.example.com:bAr*-', 'recordType');
       assert_equals(record.mediaType, null, 'mediaType');
+      assert_equals(record.id, test_record_id, 'id');
       assert_array_equals(new Uint8Array(record.data.buffer), [1, 2, 3, 4],
           'data has the same content with the original buffer');
       assert_equals(record.toRecords(), null,
@@ -222,9 +261,11 @@
     // Feed ArrayBufferView.
     {
       let buffer_view = new Uint8Array(buffer, 1);
-      const record = new NDEFRecord(createRecord('foo.eXamPle.coM:bAr*-', buffer_view));
+      const record = new NDEFRecord(createRecord(
+            'foo.eXamPle.coM:bAr*-', buffer_view, test_record_id));
       assert_equals(record.recordType, 'foo.example.com:bAr*-', 'recordType');
       assert_equals(record.mediaType, null, 'mediaType');
+      assert_equals(record.id, test_record_id, 'id');
       assert_array_equals(new Uint8Array(record.data.buffer), [2, 3, 4],
           'data has the same content with the original buffer view');
       assert_equals(record.toRecords(), null,
