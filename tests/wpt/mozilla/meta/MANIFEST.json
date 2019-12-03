@@ -7511,6 +7511,18 @@
      {}
     ]
    ],
+   "mozilla/text-overflow-ellipsis-stacking-context.html": [
+    [
+     "mozilla/text-overflow-ellipsis-stacking-context.html",
+     [
+      [
+       "/_mozilla/mozilla/text-overflow-ellipsis-stacking-context-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "mozilla/textarea_placeholder.html": [
     [
      "mozilla/textarea_placeholder.html",
@@ -9731,6 +9743,9 @@
     []
    ],
    "mozilla/test.txt": [
+    []
+   ],
+   "mozilla/text-overflow-ellipsis-stacking-context-ref.html": [
     []
    ],
    "mozilla/textarea_placeholder_ref.html": [
@@ -19497,6 +19512,14 @@
   "mozilla/test.txt": [
    "9235007d960cc6c804a93c89f24881bedc3613c3",
    "support"
+  ],
+  "mozilla/text-overflow-ellipsis-stacking-context-ref.html": [
+   "14215e780ab4a0cf00ef23b8472636a393aeacf1",
+   "support"
+  ],
+  "mozilla/text-overflow-ellipsis-stacking-context.html": [
+   "791f028522972f0bffd31b6663369c896b39c088",
+   "reftest"
   ],
   "mozilla/textarea_placeholder.html": [
    "6dd1f1e1e0c8250532db1afc1f6b876bfa1b6f8c",
