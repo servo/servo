@@ -64,7 +64,7 @@ impl XRReferenceSpace {
 impl XRReferenceSpaceMethods for XRReferenceSpace {
     /// https://immersive-web.github.io/webxr/#dom-xrreferencespace-getoffsetreferencespace
     fn GetOffsetReferenceSpace(&self, new: &XRRigidTransform) -> DomRoot<Self> {
-        let offset = new.transform().pre_transform(&self.offset.transform());
+        let offset = self.offset.transform().pre_transform(&new.transform());
         let offset = XRRigidTransform::new(&self.global(), offset);
         Self::new_offset(
             &self.global(),
@@ -82,9 +82,6 @@ impl XRReferenceSpace {
     /// however we specialize it to be efficient
     pub fn get_viewer_pose(&self, base_pose: &Frame) -> ApiViewerPose {
         let pose = self.get_unoffset_viewer_pose(base_pose);
-
-        // This may change, see https://github.com/immersive-web/webxr/issues/567
-
         // in column-vector notation,
         // get_viewer_pose(space) = get_pose(space).inverse() * get_pose(viewer_space)
         //                        = (get_unoffset_pose(space) * offset).inverse() * get_pose(viewer_space)
@@ -139,10 +136,12 @@ impl XRReferenceSpace {
     /// with other spaces
     pub fn get_pose(&self, base_pose: &Frame) -> ApiPose {
         let pose = self.get_unoffset_pose(base_pose);
-
-        // This may change, see https://github.com/immersive-web/webxr/issues/567
         let offset = self.offset.transform();
-        offset.post_transform(&pose)
+        // pose is a transform from the unoffset space to native space,
+        // offset is a transform from offset space to unoffset space,
+        // we want a transform from unoffset space to native space,
+        // which is pose * offset in column vector notation
+        pose.pre_transform(&offset)
     }
 
     /// Gets pose represented by this space
