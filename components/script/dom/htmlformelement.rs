@@ -64,6 +64,8 @@ use std::cell::Cell;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 
+use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
+
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
 
@@ -252,6 +254,79 @@ impl HTMLFormElementMethods for HTMLFormElement {
     fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element>> {
         let elements = self.Elements();
         elements.IndexedGetter(index)
+    }
+
+    fn NamedGetter(&self, name: DOMString) -> Option<RadioNodeListOrElement> {
+        // return Option::Some::<RadioNodeListOrElement>;
+        unimplemented!();
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#the-form-element:supported-property-names
+    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+
+        enum SourcedNameSource {
+            Id,
+            Name,
+            Past(std::time::Duration)
+        }
+
+        struct SourcedName {
+            name: DOMString,
+            element: DomRoot<Element>,
+            source: SourcedNameSource,
+        }
+
+        // vector to store sourced names tuple information
+        let mut sourcedNamesVec: Vec<SourcedName> = Vec::new();
+
+        // let controls = self.controls.borrow_mut(); - line 849 → unsure of which "borrow" to use
+        let controls = self.controls.borrow(); // line 807 in this file
+
+        // controls - list of form elements
+        // check all listed elements first, push to sourcedNamesVec as per spec
+        for child in controls.iter() {
+
+            if child.is_html_element() { // if child.is_listed()
+
+                if child.has_attribute(&local_name!("id")) {
+                    // https://learning-rust.github.io/docs/b2.structs.html
+                    let entry = SourcedName {name: child.get_string_attribute(&local_name!("id")), element: child.root_element(), source: SourcedNameSource::Id};
+                    sourcedNamesVec.push(entry);
+                }
+                else if child.has_attribute(&local_name!("name")) {
+                    let entry = SourcedName {name: child.get_string_attribute(&local_name!("name")), element: child.root_element(), source: SourcedNameSource::Name};
+                    sourcedNamesVec.push(entry);
+                }
+            }
+        }
+
+        // check img elements now, push to sourcedNamesVec as per spec
+        for child in controls.iter() {
+            // https://doc.servo.org/src/script/dom/htmlelement.rs.html#645-665
+            // if child.get_string_attribute(&local_name!("type")) == "image" {
+
+            // https://users.rust-lang.org/t/how-check-type-of-variable/33845/7
+            if child.is::<HTMLImageElement>() {
+
+                if child.has_attribute(&local_name!("id")) {
+                    // https://learning-rust.github.io/docs/b2.structs.html
+                    let entry = SourcedName {name: child.get_string_attribute(&local_name!("id")), element: child.root_element(), source: SourcedNameSource::Id};
+                    sourcedNamesVec.push(entry);
+                }
+                else if child.has_attribute(&local_name!("name")) {
+                    let entry = SourcedName {name: child.get_string_attribute(&local_name!("name")), element: child.root_element(), source: SourcedNameSource::Name};
+                    sourcedNamesVec.push(entry);
+                }
+            }
+        }
+
+        // return list of names
+        let mut namesVec: Vec<DOMString> = Vec::new();
+        for elem in sourcedNamesVec.iter() {
+            namesVec.push(elem.name.clone());
+        }
+
+        return namesVec;
     }
 }
 
