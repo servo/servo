@@ -6269,7 +6269,8 @@ dependencies = [
  "malloc_size_of",
  "serde",
  "servo_config",
- "wgpu-native",
+ "smallvec",
+ "wgpu-core",
 ]
 
 [[package]]
@@ -6412,9 +6413,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "wgpu-native"
-version = "0.4.0"
-source = "git+https://github.com/zakorgy/wgpu?branch=v0.4#128a16b9887a60a087a9d41ff68b20ce07cf6265"
+name = "wgpu-core"
+version = "0.1.0"
+source = "git+https://github.com/gfx-rs/wgpu#4fdb54d33a38632ee111465e4c8282dc95994aa8"
 dependencies = [
  "arrayvec 0.5.1",
  "bitflags",

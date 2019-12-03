@@ -24,9 +24,13 @@ use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
 use crate::dom::window::Window;
 use crate::dom::xr::XR;
 use dom_struct::dom_struct;
+use smallvec::SmallVec;
 use std::cell::RefCell;
 use std::rc::Rc;
-use webgpu::wgpu::{AdapterId, DeviceId};
+use webgpu::wgpu::{
+    id::{AdapterId, DeviceId},
+    Backend,
+};
 
 #[dom_struct]
 pub struct Navigator {
@@ -73,12 +77,12 @@ impl Navigator {
 }
 
 impl Navigator {
-    pub fn create_adapter_id(&self) -> AdapterId {
-        self.gpu_id_hub.borrow_mut().create_adapter_id()
+    pub fn create_adapter_ids(&self) -> SmallVec<[AdapterId; 4]> {
+        self.gpu_id_hub.borrow_mut().create_adapter_ids()
     }
 
-    pub fn create_device_id(&self) -> DeviceId {
-        self.gpu_id_hub.borrow_mut().create_device_id()
+    pub fn create_device_id(&self, backend: Backend) -> DeviceId {
+        self.gpu_id_hub.borrow_mut().create_device_id(backend)
     }
 }
 
