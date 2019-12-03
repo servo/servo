@@ -563,9 +563,12 @@ class MachCommands(CommandBase):
             else:
                 actual_failures.append(failure["output"])
 
-        def format(outputs, description, file=sys.stdout):
-            print(len(outputs), description + ":\n", file=file)
-            file.write('\n'.join(outputs).encode("utf-8"))
+        def format(outputs, description, file=None):
+            formatted = "%s %s:\n%s" % (len(outputs), description, "\n".join(outputs))
+            if file:
+                file.write(formatted.encode("utf-8"))
+            else:
+                print(formatted)
 
         if log_intermittents:
             with open(log_intermittents, "wb") as file:
