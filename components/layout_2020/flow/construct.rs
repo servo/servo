@@ -157,25 +157,29 @@ impl BlockContainer {
             builder.end_ongoing_inline_formatting_context();
         }
 
-        let mut contains_floats = builder.contains_floats;
+        type Intermediate<Node> = IntermediateBlockLevelBox<Node>;
+        #[derive(Default)]
+        struct Target {
+            contains_floats: ContainsFloats,
+        }
+        let mut target = Target {
+            contains_floats: builder.contains_floats,
+        };
         let request_content_sizes = false; // FIXME
-        let container = BlockContainer::BlockLevelBoxes(
-            builder
-                .block_level_boxes
-                .into_par_iter()
-                .mapfold_reduce_into(
-                    &mut contains_floats,
-                    |contains_floats, (intermediate, box_slot): (IntermediateBlockLevelBox<_>, BoxSlot<'_>)| {
-                        let (block_level_box, box_contains_floats) = intermediate.finish(context, request_content_sizes);
-                        *contains_floats |= box_contains_floats;
-                        box_slot.set(LayoutBox::BlockLevel(block_level_box.clone()));
-                        block_level_box
-                    },
-                    |left, right| *left |= right,
-                )
-                .collect(),
+        let iter = builder.block_level_boxes.into_par_iter();
+        let iter = iter.mapfold_reduce_into(
+            &mut target,
+            |target, (intermediate, box_slot): (Intermediate<_>, BoxSlot<'_>)| {
+                let (block_level_box, box_contains_floats) =
+                    intermediate.finish(context, request_content_sizes);
+                target.contains_floats |= box_contains_floats;
+                box_slot.set(LayoutBox::BlockLevel(block_level_box.clone()));
+                block_level_box
+            },
+            |left, right| left.contains_floats |= right.contains_floats,
         );
-        (container, contains_floats)
+        let container = BlockContainer::BlockLevelBoxes(iter.collect());
+        (container, target.contains_floats)
     }
 }
 
