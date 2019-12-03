@@ -194,9 +194,10 @@ cd web-platform-tests;
 
 
 def get_owner(event):
-    pusher = event.get("pusher", {}).get("email", "")
-    if "@" in pusher:
-        return pusher
+    if "pusher" in event:
+        pusher = event.get("pusher", {}).get("email", "")
+        if pusher and "@" in pusher:
+            return pusher
     return "web-platform-tests@users.noreply.github.com"
 
 

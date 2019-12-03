@@ -27,6 +27,7 @@ function toMojoNDEFRecord(record) {
   let nfcRecord = new device.mojom.NDEFRecord();
   nfcRecord.recordType = record.recordType;
   nfcRecord.mediaType = record.mediaType;
+  nfcRecord.id = record.id;
   nfcRecord.data = toByteArray(record.data);
   if (record.data != null && record.data.records !== undefined) {
     // |record.data| may be an NDEFMessageInit, i.e. the payload is a message.
@@ -58,6 +59,12 @@ function toByteArray(data) {
 // see spec changes at https://github.com/w3c/web-nfc/pull/243.
 function compareNDEFRecords(providedRecord, receivedRecord) {
   assert_equals(providedRecord.recordType, receivedRecord.recordType);
+
+  if (providedRecord.id === undefined) {
+    assert_equals(null, receivedRecord.id);
+  } else {
+    assert_equals(providedRecord.id, receivedRecord.id);
+  }
 
   if (providedRecord.mediaType === undefined) {
     assert_equals(null, receivedRecord.mediaType);

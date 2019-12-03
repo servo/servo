@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Mutating the 'begin' attribute after the element has started</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <rect width="100" height="100" fill="blue">
+    <animate id="anim" attributeName="x" values="100; 0"
+             begin="0s" dur="50ms" fill="freeze"/>
+  </rect>
+</svg>
+<script>
+  async_test(function(t) {
+    let anim = document.getElementById("anim");
+    anim.endEventsReceived = 0;
+    anim.addEventListener('endEvent', t.step_func(function() {
+      anim.endEventsReceived++;
+      if (anim.endEventsReceived)
+        t.done();
+    }));
+    onload = function() {
+      // Allow some time to pass before mutating 'begin'. This should ensure
+      // that the element has started.
+      requestAnimationFrame(function() {
+        anim.ownerSVGElement.setCurrentTime(0);
+        anim.setAttribute("begin", "50ms");
+      });
+    };
+  });
+</script>
