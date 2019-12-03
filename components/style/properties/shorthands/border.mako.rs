@@ -179,6 +179,16 @@ pub fn parse_border<'i, 't>(
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            use crate::properties::longhands;
+
+            // If any of the border-image longhands differ from their initial specified values we should not
+            // invoke serialize_directional_border(), so there is no point in continuing on to compute all_equal.
+            % for name in "outset repeat slice source width".split():
+                if *self.border_image_${name} != longhands::border_image_${name}::get_initial_specified_value() {
+                    return Ok(());
+                }
+            % endfor
+
             let all_equal = {
                 % for side in PHYSICAL_SIDES:
                   let border_${side}_width = self.border_${side}_width;
