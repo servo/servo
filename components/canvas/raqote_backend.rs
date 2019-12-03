@@ -329,11 +329,42 @@ impl GenericDrawTarget for raqote::DrawTarget {
         warn!("no support for drawing shadows");
     }
     fn fill(&mut self, path: &Path, pattern: Pattern, draw_options: &DrawOptions) {
-        let mut options = draw_options.as_raqote().clone();
-        self.push_layer_with_blend(1., options.blend_mode);
-        options.blend_mode = raqote::BlendMode::SrcOver;
-        self.fill(path.as_raqote(), pattern.as_raqote(), &options);
-        self.pop_layer();
+        match draw_options.as_raqote().blend_mode {
+            raqote::BlendMode::Src => {
+                self.clear(raqote::SolidSource::from_unpremultiplied_argb(0, 0, 0, 0));
+                self.fill(
+                    path.as_raqote(),
+                    pattern.as_raqote(),
+                    draw_options.as_raqote(),
+                );
+            },
+            raqote::BlendMode::SrcAtop |
+            raqote::BlendMode::DstOut |
+            raqote::BlendMode::Add |
+            raqote::BlendMode::Xor |
+            raqote::BlendMode::DstOver |
+            raqote::BlendMode::SrcOver => {
+                self.fill(
+                    path.as_raqote(),
+                    pattern.as_raqote(),
+                    draw_options.as_raqote(),
+                );
+            },
+            raqote::BlendMode::SrcIn |
+            raqote::BlendMode::SrcOut |
+            raqote::BlendMode::DstIn |
+            raqote::BlendMode::DstAtop => {
+                let mut options = draw_options.as_raqote().clone();
+                self.push_layer_with_blend(1., options.blend_mode);
+                options.blend_mode = raqote::BlendMode::SrcOver;
+                self.fill(path.as_raqote(), pattern.as_raqote(), &options);
+                self.pop_layer();
+            },
+            _ => warn!(
+                "unrecognized blend mode: {:?}",
+                draw_options.as_raqote().blend_mode
+            ),
+        }
     }
     fn fill_rect(
         &mut self,
