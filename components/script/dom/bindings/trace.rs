@@ -40,6 +40,7 @@ use crate::dom::document::PendingRestyle;
 use crate::dom::htmlimageelement::SourceSet;
 use crate::dom::htmlmediaelement::{HTMLMediaElementFetchContext, MediaFrameRenderer};
 use crate::dom::identityhub::Identities;
+use crate::script_runtime::StreamConsumer;
 use crate::task::TaskBox;
 use app_units::Au;
 use canvas_traits::canvas::{
@@ -543,6 +544,7 @@ unsafe_no_jsmanaged_fields!(Arc<Mutex<dyn AudioRenderer>>);
 unsafe_no_jsmanaged_fields!(MediaSessionActionType);
 unsafe_no_jsmanaged_fields!(MediaMetadata);
 unsafe_no_jsmanaged_fields!(WebrenderIpcSender);
+unsafe_no_jsmanaged_fields!(StreamConsumer);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]

@@ -19,6 +19,7 @@ use crate::dom::headers::{is_obs_text, is_vchar};
 use crate::dom::headers::{Guard, Headers};
 use crate::dom::promise::Promise;
 use crate::dom::xmlhttprequest::Extractable;
+use crate::script_runtime::StreamConsumer;
 use dom_struct::dom_struct;
 use http::header::HeaderMap as HyperHeaders;
 use hyper::StatusCode;
@@ -48,6 +49,8 @@ pub struct Response {
     body: DomRefCell<NetTraitsResponseBody>,
     #[ignore_malloc_size_of = "Rc"]
     body_promise: DomRefCell<Option<(Rc<Promise>, BodyType)>>,
+    #[ignore_malloc_size_of = "StreamConsumer"]
+    stream_consumer: DomRefCell<Option<StreamConsumer>>,
 }
 
 impl Response {
@@ -64,6 +67,7 @@ impl Response {
             url_list: DomRefCell::new(vec![]),
             body: DomRefCell::new(NetTraitsResponseBody::Empty),
             body_promise: DomRefCell::new(None),
+            stream_consumer: DomRefCell::new(None),
         }
     }
 
@@ -441,11 +445,24 @@ impl Response {
         }
     }
 
+    pub fn set_stream_consumer(&self, sc: Option<StreamConsumer>) {
+        *self.stream_consumer.borrow_mut() = sc;
+    }
+
+    pub fn stream_chunk(&self, stream: &[u8]) {
+        if let Some(stream_consumer) = self.stream_consumer.borrow_mut().as_ref() {
+            stream_consumer.consume_chunk(stream);
+        }
+    }
+
     #[allow(unrooted_must_root)]
     pub fn finish(&self, body: Vec<u8>) {
         *self.body.borrow_mut() = NetTraitsResponseBody::Done(body);
         if let Some((p, body_type)) = self.body_promise.borrow_mut().take() {
             consume_body_with_promise(self, body_type, &p);
+        }
+        if let Some(stream_consumer) = self.stream_consumer.borrow_mut().take() {
+            stream_consumer.stream_end();
         }
     }
 }
