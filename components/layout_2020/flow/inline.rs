@@ -17,7 +17,7 @@ use app_units::Au;
 use gfx::text::text_run::GlyphRun;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthOrAuto, Percentage};
+use style::values::computed::{Length, Percentage};
 use style::Zero;
 use webrender_api::FontInstanceKey;
 
@@ -418,29 +418,13 @@ fn layout_atomic<'box_tree>(
     let fragment = match atomic.as_replaced() {
         Ok(replaced) => {
             // FIXME: implement https://drafts.csswg.org/css2/visudet.html#inline-replaced-width
-            let inline_size = Length::zero();
-            let block_size = Length::zero();
-            let containing_block_for_children = ContainingBlock {
-                inline_size,
-                block_size: LengthOrAuto::LengthPercentage(block_size),
-                mode: atomic.style.writing_mode(),
-            };
-            // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
-            assert_eq!(
-                ifc.containing_block.mode, containing_block_for_children.mode,
-                "Mixed writing modes are not supported yet"
-            );
-            let independent_layout = replaced.layout(&atomic.style, &containing_block_for_children);
-            let content_rect = Rect {
-                start_corner,
-                size: Vec2 {
-                    block: independent_layout.content_block_size,
-                    inline: inline_size,
-                },
-            };
+            // and https://drafts.csswg.org/css2/visudet.html#inline-replaced-height
+            let size = Vec2::zero();
+            let fragments = replaced.make_fragments(&atomic.style, size.clone());
+            let content_rect = Rect { start_corner, size };
             BoxFragment {
                 style: atomic.style.clone(),
-                children: independent_layout.fragments,
+                children: fragments,
                 content_rect,
                 padding,
                 border,

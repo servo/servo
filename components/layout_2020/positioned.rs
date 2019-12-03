@@ -302,24 +302,35 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             }
         });
 
-        let containing_block_for_children = ContainingBlock {
-            inline_size,
-            block_size,
-            mode: style.writing_mode(),
-        };
-        // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
-        assert_eq!(
-            containing_block.mode, containing_block_for_children.mode,
-            "Mixed writing modes are not supported yet"
-        );
         let mut absolutely_positioned_fragments = Vec::new();
         let mut independent_layout = match self.absolutely_positioned_box.contents.as_replaced() {
-            // FIXME: implement https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
-            Ok(replaced) => replaced.layout(
-                &self.absolutely_positioned_box.contents.style,
-                &containing_block_for_children,
-            ),
+            Ok(replaced) => {
+                // FIXME: implement https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
+                // and https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
+                let block_size = block_size.auto_is(|| Length::zero());
+                let fragments = replaced.make_fragments(
+                    &self.absolutely_positioned_box.contents.style,
+                    Vec2 {
+                        inline: inline_size,
+                        block: block_size,
+                    },
+                );
+                crate::formatting_contexts::IndependentLayout {
+                    fragments,
+                    content_block_size: block_size,
+                }
+            },
             Err(non_replaced) => {
+                let containing_block_for_children = ContainingBlock {
+                    inline_size,
+                    block_size,
+                    mode: style.writing_mode(),
+                };
+                // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
+                assert_eq!(
+                    containing_block.mode, containing_block_for_children.mode,
+                    "Mixed writing modes are not supported yet"
+                );
                 let dummy_tree_rank = 0;
                 non_replaced.layout(
                     layout_context,
@@ -358,7 +369,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             &mut independent_layout.fragments,
             &content_rect.size,
             &padding,
-            containing_block_for_children.mode,
+            style.writing_mode(),
         );
 
         Fragment::Box(BoxFragment {

@@ -516,17 +516,11 @@ fn layout_in_flow_replaced_block_level<'a>(
         block_start: computed_margin.block_start.auto_is(Length::zero),
         block_end: computed_margin.block_end.auto_is(Length::zero),
     };
-    let containing_block_for_children = ContainingBlock {
-        inline_size,
-        block_size: LengthOrAuto::LengthPercentage(block_size),
-        mode,
+    let size = Vec2 {
+        block: block_size,
+        inline: inline_size,
     };
-    // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
-    assert_eq!(
-        containing_block.mode, containing_block_for_children.mode,
-        "Mixed writing modes are not supported yet"
-    );
-    let independent_layout = replaced.layout(style, &containing_block_for_children);
+    let fragments = replaced.make_fragments(style, size.clone());
     let relative_adjustement = relative_adjustement(
         style,
         inline_size,
@@ -537,14 +531,11 @@ fn layout_in_flow_replaced_block_level<'a>(
             block: pb.block_start + relative_adjustement.block,
             inline: pb.inline_start + relative_adjustement.inline + margin.inline_start,
         },
-        size: Vec2 {
-            block: block_size,
-            inline: inline_size,
-        },
+        size,
     };
     BoxFragment {
         style: style.clone(),
-        children: independent_layout.fragments,
+        children: fragments,
         content_rect,
         padding,
         border,
