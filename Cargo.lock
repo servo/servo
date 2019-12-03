@@ -453,12 +453,12 @@ dependencies = [
  "log 0.4.8",
  "num-traits",
  "offscreen_gl_context",
- "pathfinder_content 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
- "pathfinder_geometry 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
+ "pathfinder_content 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
+ "pathfinder_geometry 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
  "pathfinder_gl",
- "pathfinder_gpu 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
- "pathfinder_renderer 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
- "pathfinder_svg 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
+ "pathfinder_gpu 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
+ "pathfinder_renderer 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
+ "pathfinder_svg 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
  "pixels",
  "rand 0.7.2",
  "raqote",
@@ -3648,13 +3648,13 @@ dependencies = [
 [[package]]
 name = "pathfinder_content"
 version = "0.1.0"
-source = "git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c#86ce73cf767ed3847ad6191ef5e5b47979d51d15"
+source = "git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88#7896a881b5b5bce1cecf88fb31355683ec71df1c"
 dependencies = [
  "arrayvec",
  "bitflags",
  "log 0.4.8",
- "pathfinder_geometry 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
- "pathfinder_simd 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
+ "pathfinder_geometry 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
+ "pathfinder_simd 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
  "smallvec",
 ]
 
@@ -3670,22 +3670,22 @@ dependencies = [
 [[package]]
 name = "pathfinder_geometry"
 version = "0.3.0"
-source = "git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c#86ce73cf767ed3847ad6191ef5e5b47979d51d15"
+source = "git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88#7896a881b5b5bce1cecf88fb31355683ec71df1c"
 dependencies = [
  "log 0.4.8",
- "pathfinder_simd 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
+ "pathfinder_simd 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
 ]
 
 [[package]]
 name = "pathfinder_gl"
 version = "0.1.0"
-source = "git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c#86ce73cf767ed3847ad6191ef5e5b47979d51d15"
+source = "git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88#7896a881b5b5bce1cecf88fb31355683ec71df1c"
 dependencies = [
  "gl",
  "log 0.4.8",
- "pathfinder_geometry 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
- "pathfinder_gpu 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
- "pathfinder_simd 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
+ "pathfinder_geometry 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
+ "pathfinder_gpu 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
+ "pathfinder_simd 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
 ]
 
 [[package]]
@@ -3702,12 +3702,12 @@ dependencies = [
 [[package]]
 name = "pathfinder_gpu"
 version = "0.1.0"
-source = "git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c#86ce73cf767ed3847ad6191ef5e5b47979d51d15"
+source = "git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88#7896a881b5b5bce1cecf88fb31355683ec71df1c"
 dependencies = [
  "image 0.21.3",
- "pathfinder_content 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
- "pathfinder_geometry 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
- "pathfinder_simd 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
+ "pathfinder_content 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
+ "pathfinder_geometry 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
+ "pathfinder_simd 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
 ]
 
 [[package]]
@@ -3733,17 +3733,17 @@ dependencies = [
 [[package]]
 name = "pathfinder_renderer"
 version = "0.1.0"
-source = "git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c#86ce73cf767ed3847ad6191ef5e5b47979d51d15"
+source = "git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88#7896a881b5b5bce1cecf88fb31355683ec71df1c"
 dependencies = [
  "bitflags",
  "byteorder",
  "hashbrown",
  "log 0.4.8",
- "pathfinder_content 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
- "pathfinder_geometry 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
- "pathfinder_gpu 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
- "pathfinder_simd 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
- "pathfinder_ui 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
+ "pathfinder_content 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
+ "pathfinder_geometry 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
+ "pathfinder_gpu 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
+ "pathfinder_simd 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
+ "pathfinder_ui 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
  "rayon",
  "serde",
  "serde_json",
@@ -3761,7 +3761,7 @@ dependencies = [
 [[package]]
 name = "pathfinder_simd"
 version = "0.3.0"
-source = "git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c#86ce73cf767ed3847ad6191ef5e5b47979d51d15"
+source = "git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88#7896a881b5b5bce1cecf88fb31355683ec71df1c"
 dependencies = [
  "rustc_version",
 ]
@@ -3781,12 +3781,12 @@ dependencies = [
 [[package]]
 name = "pathfinder_svg"
 version = "0.1.0"
-source = "git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c#86ce73cf767ed3847ad6191ef5e5b47979d51d15"
+source = "git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88#7896a881b5b5bce1cecf88fb31355683ec71df1c"
 dependencies = [
  "bitflags",
- "pathfinder_content 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
- "pathfinder_geometry 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
- "pathfinder_renderer 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
+ "pathfinder_content 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
+ "pathfinder_geometry 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
+ "pathfinder_renderer 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
  "usvg 0.7.0",
 ]
 
@@ -3808,13 +3808,13 @@ dependencies = [
 [[package]]
 name = "pathfinder_ui"
 version = "0.1.0"
-source = "git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c#86ce73cf767ed3847ad6191ef5e5b47979d51d15"
+source = "git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88#7896a881b5b5bce1cecf88fb31355683ec71df1c"
 dependencies = [
  "hashbrown",
- "pathfinder_content 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
- "pathfinder_geometry 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
- "pathfinder_gpu 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
- "pathfinder_simd 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=86ce73c)",
+ "pathfinder_content 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
+ "pathfinder_geometry 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
+ "pathfinder_gpu 0.1.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
+ "pathfinder_simd 0.3.0 (git+https://github.com/RestitutorOrbis/pathfinder?rev=7896a88)",
  "serde",
  "serde_derive",
  "serde_json",

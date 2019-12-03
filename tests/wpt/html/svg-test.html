@@ -14,12 +14,13 @@
         }
     </style>
     <script>
-        setInterval(() => { document.querySelector('svg').appendChild(document.createElement('rect')); console.log(document.querySelector('svg').outerHTML); }, 1000);
+        //setInterval(() => { document.querySelector('svg').appendChild(document.createElement('rect')); console.log(document.querySelector('svg').outerHTML); }, 1000);
     </script>
 </head>
 <body>
 <!--<p>The test passes if there is a green square and no red.</p>-->
-<svg>
+<!-- Needs xmlns, width, and height for usvg to parse -->
+<svg width="480" height="360" xmlns="http://www.w3.org/2000/svg">
     <rect x="50" y="50" width="100" height="100" fill="green"/>
 </svg>
 </body>

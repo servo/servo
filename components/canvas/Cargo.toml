@@ -39,10 +39,10 @@ webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webrender_traits = {path = "../webrender_traits"}
 webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
 rand = "0.7.2"
-pathfinder_gl = {git = "https://github.com/RestitutorOrbis/pathfinder", rev="86ce73c"}
-pathfinder_renderer = {git = "https://github.com/RestitutorOrbis/pathfinder", rev="86ce73c"}
-pathfinder_gpu = {git = "https://github.com/RestitutorOrbis/pathfinder", rev="86ce73c"}
-pathfinder_content = {git = "https://github.com/RestitutorOrbis/pathfinder",rev="86ce73c"}
-pathfinder_geometry = {git = "https://github.com/RestitutorOrbis/pathfinder",rev="86ce73c"}
-pathfinder_svg = {git = "https://github.com/RestitutorOrbis/pathfinder",rev="86ce73c"}
+pathfinder_gl = {git = "https://github.com/RestitutorOrbis/pathfinder", rev="7896a88"}
+pathfinder_renderer = {git = "https://github.com/RestitutorOrbis/pathfinder", rev="7896a88"}
+pathfinder_gpu = {git = "https://github.com/RestitutorOrbis/pathfinder", rev="7896a88"}
+pathfinder_content = {git = "https://github.com/RestitutorOrbis/pathfinder",rev="7896a88"}
+pathfinder_geometry = {git = "https://github.com/RestitutorOrbis/pathfinder",rev="7896a88"}
+pathfinder_svg = {git = "https://github.com/RestitutorOrbis/pathfinder",rev="7896a88"}
 usvg = "0.7.0"

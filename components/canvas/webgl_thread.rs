@@ -461,7 +461,7 @@ impl WebGLThread {
                             let framebuffer = data.ctx.framebuffer();
                             let (real_size,texture_id,limits,formats) = data.ctx.get_info();
                             GLDevice::load_with(|name| data.ctx.get_proc_address(name) as *const _);
-                            let gl_device = GLDevice::new(GLVersion::GLES3,framebuffer);
+                            let gl_device = GLDevice::new(GLVersion::GL3,framebuffer);
                             let real_size_as_vector = Vector2I::new(real_size.width, real_size.height);
                             let texture = gl_device.create_texture_from_existing_texture(texture_id, TextureFormat::RGBA8, real_size_as_vector);
                             let gl_framebuffer = GLFramebuffer{gl_framebuffer: framebuffer, texture };
@@ -469,7 +469,7 @@ impl WebGLThread {
                             let resource_loader = FilesystemResourceLoader::locate();
                             let renderer = Renderer::new(gl_device, &resource_loader, dest_framebuffer, RendererOptions { background_color: Some(ColorF::white())});
                             let scene_proxy = SceneProxy::new(RayonExecutor{});
-                            let pathfinder_context = PathfinderContext{renderer: renderer, scene_proxy: scene_proxy};
+                            let pathfinder_context = PathfinderContext{renderer, scene_proxy };
                             self.pathfinder_contexts.insert(id, pathfinder_context);
                         }
 
@@ -839,10 +839,19 @@ impl WebGLThread {
         let mut pathfinder_context = self.pathfinder_contexts.get_mut(&context_id);
         if let Some(_data) = data {
             if let Some(pathfinder_context) = pathfinder_context{
-                let svg_tree = Tree::from_str(svg_string.as_ref(), &Options::default()).unwrap();
-                let built_svg = BuiltSVG::from_tree(svg_tree);
-                pathfinder_context.scene_proxy.replace_scene(built_svg.scene);
-                pathfinder_context.scene_proxy.build_and_render(&mut pathfinder_context.renderer, BuildOptions::default())
+                let svg_tree = Tree::from_str(svg_string.as_ref(), &Options::default());
+                if let Ok(svg_tree) = svg_tree{
+                    let built_svg = BuiltSVG::from_tree(svg_tree);
+                    if built_svg.result_flags.is_empty(){
+                        println!("Build Result Flags is Empty!");
+                    }else {
+                        println!("Build Result Flags:{}", built_svg.result_flags);
+                    }
+                    pathfinder_context.scene_proxy.replace_scene(built_svg.scene);
+                    pathfinder_context.scene_proxy.build_and_render(&mut pathfinder_context.renderer, BuildOptions::default())
+                }else{
+                    error!("Could not parse SVG string!: {}", svg_string);
+                }
             }else{
                 panic!("Could not extract Pathfinder context");
             }

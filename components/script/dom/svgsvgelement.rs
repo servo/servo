@@ -72,7 +72,7 @@ impl SVGSVGElement {
         };
         let size = Size2D::new(DEFAULT_WIDTH, DEFAULT_HEIGHT);
         webgl_chan
-            .send(WebGLMsg::CreateContext(WebGLVersion::WebGL1, size, attrs, sender, true))
+            .send(WebGLMsg::CreateContext(WebGLVersion::WebGL2, size, attrs, sender, true))
             .unwrap();
         let result = receiver.recv().unwrap();
         let other_prefix = prefix.clone();
@@ -140,11 +140,11 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
 
             match sender {
                 Some(webgl_sender) => {
-                    let (resize_sender, resize_receiver) = webgl_channel().unwrap();
+                    /*let (resize_sender, resize_receiver) = webgl_channel().unwrap();
                     webgl_sender.send_resize(Size2D::new(width, height), resize_sender).unwrap();
                     if let Err(msg) = resize_receiver.recv().unwrap(){
                         panic!("PANIC: Error resizing rendering context for SVG: {}", msg);
-                    }
+                    }*/
 
                     SVGSVGData{
                         width,
