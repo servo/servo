@@ -91,24 +91,6 @@ impl IndependentFormattingContext {
             Contents::Flow(f) => Err(NR(Kind::Flow(f))),
         }
     }
-
-    pub fn layout<'a>(
-        &'a self,
-        layout_context: &LayoutContext,
-        containing_block: &ContainingBlock,
-        tree_rank: usize,
-        absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
-    ) -> IndependentLayout {
-        match self.as_replaced() {
-            Ok(replaced) => replaced.layout(&self.style, containing_block),
-            Err(ifc) => ifc.layout(
-                layout_context,
-                containing_block,
-                tree_rank,
-                absolutely_positioned_fragments,
-            ),
-        }
-    }
 }
 
 impl<'a> NonReplacedIFC<'a> {

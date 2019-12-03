@@ -292,14 +292,23 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             containing_block.mode, containing_block_for_children.mode,
             "Mixed writing modes are not supported yet"
         );
-        let dummy_tree_rank = 0;
-        let mut absolutely_positioned_fragments = vec![];
-        let mut independent_layout = self.absolutely_positioned_box.contents.layout(
-            layout_context,
-            &containing_block_for_children,
-            dummy_tree_rank,
-            &mut absolutely_positioned_fragments,
-        );
+        let mut absolutely_positioned_fragments = Vec::new();
+        let mut independent_layout = match self.absolutely_positioned_box.contents.as_replaced() {
+            // FIXME: implement https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
+            Ok(replaced) => replaced.layout(
+                &self.absolutely_positioned_box.contents.style,
+                &containing_block_for_children,
+            ),
+            Err(non_replaced) => {
+                let dummy_tree_rank = 0;
+                non_replaced.layout(
+                    layout_context,
+                    &containing_block_for_children,
+                    dummy_tree_rank,
+                    &mut absolutely_positioned_fragments,
+                )
+            },
+        };
 
         let inline_start = match inline_anchor {
             Anchor::Start(start) => start + pb.inline_start + margin.inline_start,
