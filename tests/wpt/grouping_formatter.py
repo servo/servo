@@ -4,6 +4,7 @@
 
 from mozlog.formatters import base
 import collections
+import json
 import os
 import sys
 import subprocess
@@ -14,7 +15,7 @@ DEFAULT_MOVE_UP_CODE = u"\x1b[A"
 DEFAULT_CLEAR_EOL_CODE = u"\x1b[K"
 
 
-class GroupingFormatter(base.BaseFormatter):
+class ServoFormatter(base.BaseFormatter):
     """Formatter designed to produce unexpected test results grouped
        together in a readable format."""
     def __init__(self):
@@ -77,7 +78,7 @@ class GroupingFormatter(base.BaseFormatter):
         return ((self.move_up + self.clear_eol) *
                 self.current_display.count('\n'))
 
-    def generate_output(self, text=None, new_display=None):
+    def generate_output(self, text=None, new_display=None, unexpected_in_test=None):
         if not self.interactive:
             return text
 
@@ -88,11 +89,14 @@ class GroupingFormatter(base.BaseFormatter):
             self.current_display = new_display
         return output + self.current_display
 
-    def build_status_line(self):
+    def test_counter(self):
         if self.number_of_tests == 0:
-            new_display = "  [%i] " % self.completed_tests
+            return "  [%i] " % self.completed_tests
         else:
-            new_display = "  [%i/%i] " % (self.completed_tests, self.number_of_tests)
+            return "  [%i/%i] " % (self.completed_tests, self.number_of_tests)
+
+    def build_status_line(self):
+        new_display = self.test_counter()
 
         if self.running_tests:
             indent = " " * len(new_display)
@@ -116,8 +120,8 @@ class GroupingFormatter(base.BaseFormatter):
 
     def test_start(self, data):
         self.running_tests[data['thread']] = data['test']
-        return self.generate_output(text=None,
-                                    new_display=self.build_status_line())
+        if self.interactive:
+            return self.generate_output(new_display=self.build_status_line())
 
     def wrap_and_indent_lines(self, lines, indent):
         assert(len(lines) > 0)
@@ -146,10 +150,11 @@ class GroupingFormatter(base.BaseFormatter):
 
         lines = [u"%s%s %s" % (status, expected_text, test_name)]
         if message:
-            lines.append(u"  \u2192 %s" % message)
+            for message_line in message.splitlines():
+                lines.append(u"  \u2192 %s" % message_line)
         if stack:
             lines.append("")
-            lines += [stackline for stackline in stack.splitlines()]
+            lines.extend(stack.splitlines())
         return lines
 
     def get_output_for_unexpected_subtests(self, test_name, unexpected_subtests):
@@ -195,15 +200,14 @@ class GroupingFormatter(base.BaseFormatter):
         subtest_failures = self.subtest_failures.pop(test_name, [])
 
         del self.running_tests[data['thread']]
-        new_display = self.build_status_line()
 
         if not had_unexpected_test_result and not subtest_failures:
             self.expected[test_status] += 1
             if self.interactive:
-                return self.generate_output(text=None, new_display=new_display)
+                new_display = self.build_status_line()
+                return self.generate_output(new_display=new_display)
             else:
-                return self.generate_output(text="  %s\n" % test_name,
-                                            new_display=new_display)
+                return self.generate_output(text="%s%s\n" % (self.test_counter(), test_name))
 
         # If the test crashed or timed out, we also include any process output,
         # because there is a good chance that the test produced a stack trace
@@ -230,7 +234,9 @@ class GroupingFormatter(base.BaseFormatter):
                                                               subtest_failures)
         self.test_failure_text += output
 
-        return self.generate_output(text=output, new_display=new_display)
+        new_display = self.build_status_line()
+        return self.generate_output(text=output, new_display=new_display,
+                                    unexpected_in_test=test_name)
 
     def test_status(self, data):
         if "expected" in data:
@@ -289,3 +295,16 @@ class GroupingFormatter(base.BaseFormatter):
 
         if data['level'] in ('CRITICAL', 'ERROR'):
             return self.generate_output(text=data['message'] + "\n")
+
+
+class ServoJsonFormatter(ServoFormatter):
+    def suite_start(self, data):
+        ServoFormatter.suite_start(self, data)
+        # Don't forward the return value
+
+    def generate_output(self, text=None, new_display=None, unexpected_in_test=None):
+        if unexpected_in_test:
+            return "%s\n" % json.dumps({"test": unexpected_in_test, "output": text})
+
+    def log(self, _):
+        return

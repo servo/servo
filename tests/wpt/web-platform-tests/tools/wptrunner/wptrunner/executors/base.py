@@ -358,17 +358,17 @@ class RefTestImplementation(object):
     def reset(self):
         self.screenshot_cache.clear()
 
-    def is_pass(self, hashes, screenshots, relation, fuzzy):
+    def is_pass(self, hashes, screenshots, urls, relation, fuzzy):
         assert relation in ("==", "!=")
         if not fuzzy or fuzzy == ((0,0), (0,0)):
             equal = hashes[0] == hashes[1]
             # sometimes images can have different hashes, but pixels can be identical.
             if not equal:
                 self.logger.info("Image hashes didn't match, checking pixel differences")
-                max_per_channel, pixels_different = self.get_differences(screenshots)
+                max_per_channel, pixels_different = self.get_differences(screenshots, urls)
                 equal = pixels_different == 0 and max_per_channel == 0
         else:
-            max_per_channel, pixels_different = self.get_differences(screenshots)
+            max_per_channel, pixels_different = self.get_differences(screenshots, urls)
             allowed_per_channel, allowed_different = fuzzy
             self.logger.info("Allowed %s pixels different, maximum difference per channel %s" %
                              ("-".join(str(item) for item in allowed_different),
@@ -379,11 +379,13 @@ class RefTestImplementation(object):
                       allowed_different[0] <= pixels_different <= allowed_different[1]))
         return equal if relation == "==" else not equal
 
-    def get_differences(self, screenshots):
+    def get_differences(self, screenshots, urls):
         from PIL import Image, ImageChops, ImageStat
 
         lhs = Image.open(io.BytesIO(base64.b64decode(screenshots[0]))).convert("RGB")
         rhs = Image.open(io.BytesIO(base64.b64decode(screenshots[1]))).convert("RGB")
+        self.check_if_solid_color(lhs, urls[0])
+        self.check_if_solid_color(rhs, urls[1])
         diff = ImageChops.difference(lhs, rhs)
         minimal_diff = diff.crop(diff.getbbox())
         mask = minimal_diff.convert("L", dither=None)
@@ -393,6 +395,12 @@ class RefTestImplementation(object):
         self.logger.info("Found %s pixels different, maximum difference per channel %s" %
                          (count, per_channel))
         return per_channel, count
+
+    def check_if_solid_color(self, image, url):
+        extrema = image.getextrema()
+        if all(min == max for min, max in extrema):
+            color = ''.join('%02X' % value for value, _ in extrema)
+            self.message.append("Screenshot is solid color 0x%s for %s\n" % (color, url))
 
     def run_test(self, test):
         viewport_size = test.viewport_size
@@ -406,6 +414,7 @@ class RefTestImplementation(object):
         while stack:
             hashes = [None, None]
             screenshots = [None, None]
+            urls = [None, None]
 
             nodes, relation = stack.pop()
             fuzzy = self.get_fuzzy(test, nodes, relation)
@@ -416,8 +425,9 @@ class RefTestImplementation(object):
                     return {"status": data[0], "message": data[1]}
 
                 hashes[i], screenshots[i] = data
+                urls[i] = node.url
 
-            if self.is_pass(hashes, screenshots, relation, fuzzy):
+            if self.is_pass(hashes, screenshots, urls, relation, fuzzy):
                 fuzzy = self.get_fuzzy(test, nodes, relation)
                 if nodes[1].references:
                     stack.extend(list(((nodes[1], item[0]), item[1]) for item in reversed(nodes[1].references)))
