@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! The `ByteString` struct.
-
 use chrono::prelude::{Utc, Weekday};
 use chrono::{Datelike, TimeZone};
 use cssparser::CowRcStr;
 use html5ever::{LocalName, Namespace};
+use regex::Regex;
 use servo_atoms::Atom;
 use std::borrow::{Borrow, Cow, ToOwned};
 use std::default::Default;
@@ -337,11 +337,11 @@ impl DOMString {
 
     /// https://html.spec.whatwg.org/multipage/#valid-floating-point-number
     pub fn is_valid_floating_point_number_string(&self) -> bool {
-        // for the case that `parse_floating_point_number` cannot handle
-        if self.0.contains(" ") {
-            return false;
+        lazy_static! {
+            static ref RE: Regex =
+                Regex::new(r"^-?(?:\d+\.\d+|\d+|\.\d+)(?:(e|E)(\+|\-)?\d+)?$").unwrap();
         }
-        parse_floating_point_number(&self.0).is_ok()
+        RE.is_match(&self.0) && parse_floating_point_number(&self.0).is_ok()
     }
 
     /// https://html.spec.whatwg.org/multipage/#best-representation-of-the-number-as-a-floating-point-number
