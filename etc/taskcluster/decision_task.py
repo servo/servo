@@ -683,8 +683,14 @@ def linux_wpt_common(total_chunks, layout_2020):
     )
     def linux_run_task(name):
         return linux_task(name).with_dockerfile(dockerfile_path("run")).with_repo_bundle()
+
+    # https://github.com/mozilla/community-tc-config/blob/828ad7624/config/projects.yml#L336
+    cpu_count = 16
+    # Processes may be idle waiting on a timeout: https://github.com/servo/servo/issues/24880
+    processes = cpu_count * 3
+
     wpt_chunks("Linux x64", linux_run_task, release_build_task, repo_dir="/repo",
-               processes=12, total_chunks=total_chunks, layout_2020=layout_2020)
+               processes=processes, total_chunks=total_chunks, layout_2020=layout_2020)
 
 
 def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
