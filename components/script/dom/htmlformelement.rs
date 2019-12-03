@@ -256,18 +256,18 @@ impl HTMLFormElementMethods for HTMLFormElement {
         elements.IndexedGetter(index)
     }
 
+    // https://html.spec.whatwg.org/multipage/#the-form-element%3Adetermine-the-value-of-a-named-property
     fn NamedGetter(&self, name: DOMString) -> Option<RadioNodeListOrElement> {
         // return Option::Some::<RadioNodeListOrElement>;
         unimplemented!();
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#the-form-element:supported-property-names
+    // https://html.spec.whatwg.org/multipage/#the-form-element:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-
         enum SourcedNameSource {
             Id,
             Name,
-            Past(std::time::Duration)
+            Past(std::time::Duration),
         }
 
         struct SourcedName {
@@ -285,16 +285,23 @@ impl HTMLFormElementMethods for HTMLFormElement {
         // controls - list of form elements
         // check all listed elements first, push to sourcedNamesVec as per spec
         for child in controls.iter() {
-
-            if child.is_html_element() { // if child.is_listed()
+            if child.is_html_element() {
+                // if child.is_listed()
 
                 if child.has_attribute(&local_name!("id")) {
                     // https://learning-rust.github.io/docs/b2.structs.html
-                    let entry = SourcedName {name: child.get_string_attribute(&local_name!("id")), element: child.root_element(), source: SourcedNameSource::Id};
+                    let entry = SourcedName {
+                        name: child.get_string_attribute(&local_name!("id")),
+                        element: child.root_element(),
+                        source: SourcedNameSource::Id,
+                    };
                     sourcedNamesVec.push(entry);
-                }
-                else if child.has_attribute(&local_name!("name")) {
-                    let entry = SourcedName {name: child.get_string_attribute(&local_name!("name")), element: child.root_element(), source: SourcedNameSource::Name};
+                } else if child.has_attribute(&local_name!("name")) {
+                    let entry = SourcedName {
+                        name: child.get_string_attribute(&local_name!("name")),
+                        element: child.root_element(),
+                        source: SourcedNameSource::Name,
+                    };
                     sourcedNamesVec.push(entry);
                 }
             }
@@ -307,14 +314,20 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
             // https://users.rust-lang.org/t/how-check-type-of-variable/33845/7
             if child.is::<HTMLImageElement>() {
-
                 if child.has_attribute(&local_name!("id")) {
                     // https://learning-rust.github.io/docs/b2.structs.html
-                    let entry = SourcedName {name: child.get_string_attribute(&local_name!("id")), element: child.root_element(), source: SourcedNameSource::Id};
+                    let entry = SourcedName {
+                        name: child.get_string_attribute(&local_name!("id")),
+                        element: child.root_element(),
+                        source: SourcedNameSource::Id,
+                    };
                     sourcedNamesVec.push(entry);
-                }
-                else if child.has_attribute(&local_name!("name")) {
-                    let entry = SourcedName {name: child.get_string_attribute(&local_name!("name")), element: child.root_element(), source: SourcedNameSource::Name};
+                } else if child.has_attribute(&local_name!("name")) {
+                    let entry = SourcedName {
+                        name: child.get_string_attribute(&local_name!("name")),
+                        element: child.root_element(),
+                        source: SourcedNameSource::Name,
+                    };
                     sourcedNamesVec.push(entry);
                 }
             }
