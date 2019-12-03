@@ -10,14 +10,14 @@ use crate::fragments::CollapsedBlockMargins;
 use crate::fragments::{AnonymousFragment, BoxFragment, Fragment, TextFragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{AbsolutelyPositionedBox, AbsolutelyPositionedFragment};
-use crate::sizing::{outer_inline_content_sizes_and_percentages, ContentSizes};
+use crate::sizing::{outer_inline_content_sizes_and_percentages, shrink_to_fit, ContentSizes};
 use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside};
 use crate::{relative_adjustement, ContainingBlock};
 use app_units::Au;
 use gfx::text::text_run::GlyphRun;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, Percentage};
+use style::values::computed::{Length, LengthOrAuto, Percentage};
 use style::Zero;
 use webrender_api::FontInstanceKey;
 
@@ -67,8 +67,9 @@ struct PartialInlineBoxFragment<'box_tree> {
     parent_nesting_level: InlineNestingLevelState<'box_tree>,
 }
 
-struct InlineFormattingContextState<'box_tree, 'cb> {
-    containing_block: &'cb ContainingBlock,
+struct InlineFormattingContextState<'box_tree, 'a> {
+    absolutely_positioned_fragments: &'a mut Vec<AbsolutelyPositionedFragment<'box_tree>>,
+    containing_block: &'a ContainingBlock,
     line_boxes: LinesBoxes,
     inline_position: Length,
     partial_inline_boxes_stack: Vec<PartialInlineBoxFragment<'box_tree>>,
@@ -196,6 +197,7 @@ impl InlineFormattingContext {
         absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
     ) -> FlowLayout {
         let mut ifc = InlineFormattingContextState {
+            absolutely_positioned_fragments,
             containing_block,
             partial_inline_boxes_stack: Vec::new(),
             line_boxes: LinesBoxes {
@@ -218,10 +220,7 @@ impl InlineFormattingContext {
                         ifc.partial_inline_boxes_stack.push(partial)
                     },
                     InlineLevelBox::TextRun(run) => run.layout(layout_context, &mut ifc),
-                    InlineLevelBox::Atomic(_independent) => {
-                        // TODO
-                        continue;
-                    },
+                    InlineLevelBox::Atomic(a) => layout_atomic(layout_context, &mut ifc, a),
                     InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
                         let initial_start_corner =
                             match Display::from(box_.contents.style.get_box().original_display) {
@@ -242,12 +241,11 @@ impl InlineFormattingContext {
                                     panic!("display:none does not generate an abspos box")
                                 },
                             };
-                        absolutely_positioned_fragments
+                        ifc.absolutely_positioned_fragments
                             .push(box_.layout(initial_start_corner, tree_rank));
                     },
                     InlineLevelBox::OutOfFlowFloatBox(_box_) => {
                         // TODO
-                        continue;
                     },
                 }
             } else
@@ -391,6 +389,118 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
             .fragments_so_far
             .push(Fragment::Box(fragment));
     }
+}
+
+fn layout_atomic<'box_tree>(
+    layout_context: &LayoutContext,
+    ifc: &mut InlineFormattingContextState<'box_tree, '_>,
+    atomic: &'box_tree IndependentFormattingContext,
+) {
+    let cbis = ifc.containing_block.inline_size;
+    let padding = atomic.style.padding().percentages_relative_to(cbis);
+    let border = atomic.style.border_width();
+    let margin = atomic
+        .style
+        .margin()
+        .percentages_relative_to(cbis)
+        .auto_is(Length::zero);
+    ifc.inline_position += padding.inline_start + border.inline_start + margin.inline_start;
+    let mut start_corner = Vec2 {
+        block: padding.block_start + border.block_start + margin.block_start,
+        inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
+    };
+    start_corner += &relative_adjustement(
+        &atomic.style,
+        ifc.containing_block.inline_size,
+        ifc.containing_block.block_size,
+    );
+
+    let fragment = match atomic.as_replaced() {
+        Ok(replaced) => {
+            // FIXME: implement https://drafts.csswg.org/css2/visudet.html#inline-replaced-width
+            let inline_size = Length::zero();
+            let block_size = Length::zero();
+            let containing_block_for_children = ContainingBlock {
+                inline_size,
+                block_size: LengthOrAuto::LengthPercentage(block_size),
+                mode: atomic.style.writing_mode(),
+            };
+            // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
+            assert_eq!(
+                ifc.containing_block.mode, containing_block_for_children.mode,
+                "Mixed writing modes are not supported yet"
+            );
+            let independent_layout = replaced.layout(&atomic.style, &containing_block_for_children);
+            let content_rect = Rect {
+                start_corner,
+                size: Vec2 {
+                    block: independent_layout.content_block_size,
+                    inline: inline_size,
+                },
+            };
+            BoxFragment {
+                style: atomic.style.clone(),
+                children: independent_layout.fragments,
+                content_rect,
+                padding,
+                border,
+                margin,
+                block_margins_collapsed_with_children: CollapsedBlockMargins::zero(),
+            }
+        },
+        Err(non_replaced) => {
+            let box_size = atomic.style.box_size();
+            let inline_size = box_size.inline.percentage_relative_to(cbis).auto_is(|| {
+                let available_size =
+                    cbis - padding.inline_sum() - border.inline_sum() - margin.inline_sum();
+                shrink_to_fit(&atomic.inline_content_sizes, available_size)
+            });
+            let block_size = box_size
+                .block
+                .maybe_percentage_relative_to(ifc.containing_block.block_size.non_auto());
+            let containing_block_for_children = ContainingBlock {
+                inline_size,
+                block_size,
+                mode: atomic.style.writing_mode(),
+            };
+            assert_eq!(
+                ifc.containing_block.mode, containing_block_for_children.mode,
+                "Mixed writing modes are not supported yet"
+            );
+            // FIXME is this correct?
+            let dummy_tree_rank = 0;
+            // FIXME: Do we need to call `adjust_static_positions` somewhere near here?
+            let independent_layout = non_replaced.layout(
+                layout_context,
+                &containing_block_for_children,
+                dummy_tree_rank,
+                ifc.absolutely_positioned_fragments,
+            );
+            let block_size = block_size.auto_is(|| independent_layout.content_block_size);
+            let content_rect = Rect {
+                start_corner,
+                size: Vec2 {
+                    block: block_size,
+                    inline: inline_size,
+                },
+            };
+            BoxFragment {
+                style: atomic.style.clone(),
+                children: independent_layout.fragments,
+                content_rect,
+                padding,
+                border,
+                margin,
+                block_margins_collapsed_with_children: CollapsedBlockMargins::zero(),
+            }
+        },
+    };
+
+    ifc.inline_position +=
+        fragment.padding.inline_end + fragment.border.inline_end + fragment.margin.inline_end;
+    ifc.current_nesting_level
+        .fragments_so_far
+        .push(Fragment::Box(fragment));
 }
 
 impl TextRun {
