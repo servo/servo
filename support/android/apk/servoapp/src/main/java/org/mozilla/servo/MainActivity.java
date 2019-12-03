@@ -255,4 +255,15 @@ public class MainActivity extends Activity implements Servo.Client {
           return;
       }
     }
+
+    @Override
+    public void onMediaSessionSetPositionState(float duration, float position, float playbackRate) {
+        Log.d("onMediaSessionSetPositionState", duration + " " + position + " " + playbackRate);
+        if (mMediaSession == null) {
+            mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
+        }
+
+        mMediaSession.setPositionState(duration, position, playbackRate);
+        return;
+    }
 }

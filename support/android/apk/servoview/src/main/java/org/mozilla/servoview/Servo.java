@@ -192,6 +192,8 @@ public class Servo {
         void onMediaSessionMetadata(String title, String artist, String album);
 
         void onMediaSessionPlaybackStateChange(int state);
+
+        void onMediaSessionSetPositionState(float duration, float position, float playbackRate);
     }
 
     public interface RunCallback {
@@ -284,6 +286,10 @@ public class Servo {
 
         public void onMediaSessionPlaybackStateChange(int state) {
             mRunCallback.inUIThread(() -> mClient.onMediaSessionPlaybackStateChange(state));
+        }
+
+        public void onMediaSessionSetPositionState(float duration, float position, float playbackRate) {
+            mRunCallback.inUIThread(() -> mClient.onMediaSessionSetPositionState(duration, position, playbackRate));
         }
     }
 }

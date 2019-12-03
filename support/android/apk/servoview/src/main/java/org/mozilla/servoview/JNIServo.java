@@ -115,6 +115,8 @@ public class JNIServo {
         void onMediaSessionMetadata(String title, String artist, String album);
 
         void onMediaSessionPlaybackStateChange(int state);
+
+        void onMediaSessionSetPositionState(float duration, float position, float playbackRate);
     }
 }
 

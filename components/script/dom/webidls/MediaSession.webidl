@@ -42,6 +42,12 @@ dictionary MediaSessionSeekToActionDetails : MediaSessionActionDetails {
   boolean? fastSeek;
 };
 
+dictionary MediaPositionState {
+  double duration;
+  double playbackRate;
+  double position;
+};
+
 callback MediaSessionActionHandler = void(/*MediaSessionActionDetails details*/);
 
 [Exposed=Window]
@@ -52,6 +58,5 @@ interface MediaSession {
 
   void setActionHandler(MediaSessionAction action, MediaSessionActionHandler? handler);
 
-  //void setPositionState(optional MediaPositionState? state);
+  [Throws] void setPositionState(optional MediaPositionState state = {});
 };
-
