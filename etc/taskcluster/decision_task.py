@@ -664,8 +664,8 @@ def macos_wpt():
         macos_run_task,
         build_task,
         repo_dir="repo",
-        total_chunks=30,
-        processes=4,
+        total_chunks=20,
+        processes=8,
     )
 
 
