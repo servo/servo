@@ -65,7 +65,10 @@ pub(crate) fn outer_inline_content_sizes_and_percentages(
     let specified = specified.map(|lp| lp.as_length());
     // The (inner) min/max-content are only used for 'auto'
     let mut outer = match specified.non_auto().flatten() {
-        None => inner_content_sizes.as_ref().expect("Accessing content size that was not requested").clone(),
+        None => inner_content_sizes
+            .as_ref()
+            .expect("Accessing content size that was not requested")
+            .clone(),
         Some(length) => ContentSizes {
             min_content: length,
             max_content: length,

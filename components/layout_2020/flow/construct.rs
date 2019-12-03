@@ -24,14 +24,17 @@ impl BlockFormattingContext {
         context: &LayoutContext,
         style: &Arc<ComputedValues>,
         contents: NonReplacedContents<impl NodeExt<'dom>>,
-    ) -> Self {
-        let (contents, contains_floats) = BlockContainer::construct(context, style, contents);
+        request_content_sizes: bool,
+    ) -> (Self, Option<ContentSizes>) {
+        let (contents, contains_floats, content_sizes) =
+            BlockContainer::construct(context, style, contents, request_content_sizes);
         // FIXME: add contribution to `content_sizes` of floats in this formatting context
         // https://dbaron.org/css/intrinsic/#intrinsic
-        Self {
+        let bfc = Self {
             contents,
             contains_floats: contains_floats == ContainsFloats::Yes,
-        }
+        };
+        (bfc, content_sizes)
     }
 }
 
@@ -130,9 +133,8 @@ impl BlockContainer {
         context: &LayoutContext,
         block_container_style: &Arc<ComputedValues>,
         contents: NonReplacedContents<impl NodeExt<'dom>>,
-        //request_content_sizes: bool,
-    ) -> (BlockContainer, ContainsFloats) {
-        let request_content_sizes = false; // FIXME
+        request_content_sizes: bool,
+    ) -> (BlockContainer, ContainsFloats, Option<ContentSizes>) {
         let mut builder = BlockContainerBuilder {
             context,
             block_container_style,
@@ -153,10 +155,19 @@ impl BlockContainer {
             .is_empty()
         {
             if builder.block_level_boxes.is_empty() {
+                let content_sizes = if request_content_sizes {
+                    Some(
+                        builder
+                            .ongoing_inline_formatting_context
+                            .inline_content_sizes(context),
+                    )
+                } else {
+                    None
+                };
                 let container = BlockContainer::InlineFormattingContext(
                     builder.ongoing_inline_formatting_context,
                 );
-                return (container, builder.contains_floats);
+                return (container, builder.contains_floats, content_sizes);
             }
             builder.end_ongoing_inline_formatting_context();
         }
@@ -204,7 +215,12 @@ impl BlockContainer {
             },
         );
         let container = BlockContainer::BlockLevelBoxes(iter.collect());
-        (container, target.contains_floats)
+        let content_sizes = if request_content_sizes {
+            Some(target.outer_content_sizes_of_children)
+        } else {
+            None
+        };
+        (container, target.contains_floats, content_sizes)
     }
 }
 
@@ -367,7 +383,9 @@ where
             });
 
             // `unwrap` doesn’t panic here because `is_replaced` returned `false`.
-            NonReplacedContents::try_from(contents).unwrap().traverse(&style, self.context, self);
+            NonReplacedContents::try_from(contents)
+                .unwrap()
+                .traverse(&style, self.context, self);
 
             let mut inline_box = self
                 .ongoing_inline_boxes_stack
@@ -575,13 +593,12 @@ where
     ) -> (Arc<BlockLevelBox>, ContainsFloats) {
         match self {
             IntermediateBlockLevelBox::SameFormattingContextBlock { style, contents } => {
-                let request_content_sizes =
-                    max_assign_in_flow_outer_content_sizes_to.is_some() &&
+                let request_content_sizes = max_assign_in_flow_outer_content_sizes_to.is_some() &&
                     style.inline_size_is_auto();
-                let (contents, contains_floats) = contents.finish(context, &style, request_content_sizes);
+                let (contents, contains_floats, content_sizes) =
+                    contents.finish(context, &style, request_content_sizes);
                 if let Some(to) = max_assign_in_flow_outer_content_sizes_to {
-                    let get_content_size = || todo!();
-                    to.max_assign(&outer_inline_content_sizes(&style, get_content_size()))
+                    to.max_assign(&outer_inline_content_sizes(&style, &content_sizes))
                 }
                 let block_level_box =
                     Arc::new(BlockLevelBox::SameFormattingContextBlock { contents, style });
@@ -592,8 +609,7 @@ where
                 display_inside,
                 contents,
             } => {
-                let request_content_sizes =
-                    max_assign_in_flow_outer_content_sizes_to.is_some() &&
+                let request_content_sizes = max_assign_in_flow_outer_content_sizes_to.is_some() &&
                     style.inline_size_is_auto();
                 let contents = IndependentFormattingContext::construct(
                     context,
@@ -603,8 +619,10 @@ where
                     request_content_sizes,
                 );
                 if let Some(to) = max_assign_in_flow_outer_content_sizes_to {
-                    let get_content_size = || todo!();
-                    to.max_assign(&outer_inline_content_sizes(&contents.style, get_content_size()))
+                    to.max_assign(&outer_inline_content_sizes(
+                        &contents.style,
+                        &contents.inline_content_sizes,
+                    ))
                 }
                 (
                     Arc::new(BlockLevelBox::Independent(contents)),
@@ -643,19 +661,25 @@ where
         self,
         context: &LayoutContext,
         style: &Arc<ComputedValues>,
-        _request_content_sizes: bool,
-    ) -> (BlockContainer, ContainsFloats) {
+        request_content_sizes: bool,
+    ) -> (BlockContainer, ContainsFloats, Option<ContentSizes>) {
         match self {
             IntermediateBlockContainer::Deferred { contents } => {
-                BlockContainer::construct(context, style, contents)
+                BlockContainer::construct(context, style, contents, request_content_sizes)
             },
             IntermediateBlockContainer::InlineFormattingContext(ifc) => {
+                let content_sizes = if request_content_sizes {
+                    Some(ifc.inline_content_sizes(context))
+                } else {
+                    None
+                };
                 // If that inline formatting context contained any float, those
                 // were already taken into account during the first phase of
                 // box construction.
                 (
                     BlockContainer::InlineFormattingContext(ifc),
                     ContainsFloats::No,
+                    content_sizes,
                 )
             },
         }

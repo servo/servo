@@ -84,8 +84,7 @@ impl InlineFormattingContext {
     // This works on an already-constructed `InlineFormattingContext`,
     // Which would have to change if/when
     // `BlockContainer::construct` parallelize their construction.
-    #[allow(unused)]
-    pub(super) fn content_sizes(&self, layout_context: &LayoutContext) -> ContentSizes {
+    pub(super) fn inline_content_sizes(&self, layout_context: &LayoutContext) -> ContentSizes {
         struct Computation {
             paragraph: ContentSizes,
             current_line: ContentSizes,
@@ -147,12 +146,10 @@ impl InlineFormattingContext {
                             }
                         },
                         InlineLevelBox::Atomic(atomic) => {
-                            let inner = || {
-                                // &atomic.inline_content_sizes
-                                todo!()
-                            };
                             let (outer, pc) = outer_inline_content_sizes_and_percentages(
-                                &atomic.style, inner());
+                                &atomic.style,
+                                &atomic.inline_content_sizes,
+                            );
                             self.current_line.min_content += outer.min_content;
                             self.current_line.max_content += outer.max_content;
                             self.current_line_percentages += pc;
