@@ -65,10 +65,7 @@ pub(crate) fn outer_inline_content_sizes_and_percentages(
     let specified = specified.map(|lp| lp.as_length());
     // The (inner) min/max-content are only used for 'auto'
     let mut outer = match specified.non_auto().flatten() {
-        None => inner_content_sizes
-            .as_ref()
-            .expect("Accessing content size that was not requested")
-            .clone(),
+        None => expect(inner_content_sizes).clone(),
         Some(length) => ContentSizes {
             min_content: length,
             max_content: length,
@@ -95,4 +92,21 @@ pub(crate) fn outer_inline_content_sizes_and_percentages(
     outer.max_content += pbm_lengths;
 
     (outer, pbm_percentages)
+}
+
+/// https://drafts.csswg.org/css2/visudet.html#shrink-to-fit-float
+pub(crate) fn shrink_to_fit(
+    content_sizes: &Option<ContentSizes>,
+    available_size: Length,
+) -> Length {
+    let content_sizes = expect(content_sizes);
+    available_size
+        .max(content_sizes.min_content)
+        .min(content_sizes.max_content)
+}
+
+fn expect(content_sizes: &Option<ContentSizes>) -> &ContentSizes {
+    content_sizes
+        .as_ref()
+        .expect("Accessing content size that was not requested")
 }

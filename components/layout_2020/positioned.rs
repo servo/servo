@@ -7,6 +7,7 @@ use crate::dom_traversal::{Contents, NodeExt};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::{AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
+use crate::sizing::shrink_to_fit;
 use crate::style_ext::{ComputedValuesExt, Direction, DisplayInside, WritingMode};
 use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -51,8 +52,15 @@ impl AbsolutelyPositionedBox {
         display_inside: DisplayInside,
         contents: Contents<impl NodeExt<'dom>>,
     ) -> Self {
-        let request_content_sizes =
-            style.inline_size_is_auto() && !style.inline_box_offsets_are_both_auto();
+        // "Shrink-to-fit" in https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
+        let request_content_sizes = {
+            // If inline-size is non-auto, that value is used without shrink-to-fit
+            style.inline_size_is_auto() &&
+            // If it is, then the only case where shrink-to-fit is *not* used is
+            // if both offsets are non-auto, leaving inline-size as the only variable
+            // in the constraint equation.
+            !style.inline_box_offsets_are_both_non_auto()
+        };
         Self {
             contents: IndependentFormattingContext::construct(
                 context,
@@ -278,8 +286,20 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
                 Anchor::End(end) => cbis - end - pb.inline_sum() - margin.inline_sum(),
             };
 
-            // FIXME(nox): shrink-to-fit.
-            available_size
+            if self
+                .absolutely_positioned_box
+                .contents
+                .as_replaced()
+                .is_ok()
+            {
+                // FIXME: implement https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
+                available_size
+            } else {
+                shrink_to_fit(
+                    &self.absolutely_positioned_box.contents.inline_content_sizes,
+                    available_size,
+                )
+            }
         });
 
         let containing_block_for_children = ContainingBlock {
