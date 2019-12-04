@@ -141,6 +141,15 @@ impl flow_relative::Vec2<Length> {
     }
 }
 
+impl flow_relative::Vec2<LengthOrAuto> {
+    pub fn auto_is(&self, f: impl Fn() -> Length) -> flow_relative::Vec2<Length> {
+        flow_relative::Vec2 {
+            inline: self.inline.auto_is(&f),
+            block: self.block.auto_is(&f),
+        }
+    }
+}
+
 impl flow_relative::Rect<Length> {
     pub fn zero() -> Self {
         Self {
