@@ -6,6 +6,7 @@
 #include "logs.h"
 #include "BrowserPage.h"
 #include "BrowserPage.g.cpp"
+#include "DefaultUrl.h"
 
 using namespace std::placeholders;
 using namespace winrt::Windows::Foundation;
@@ -125,6 +126,11 @@ void BrowserPage::OnReloadButtonClicked(IInspectable const &,
 void BrowserPage::OnStopButtonClicked(IInspectable const &,
                                       RoutedEventArgs const &) {
   servoControl().Stop();
+}
+
+void BrowserPage::OnHomeButtonClicked(IInspectable const &,
+                                      RoutedEventArgs const &) {
+  servoControl().LoadURIOrSearch(DEFAULT_URL);
 }
 
 void BrowserPage::OnURLEdited(IInspectable const &,
