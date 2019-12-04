@@ -7,7 +7,7 @@ use crate::dom_traversal::{Contents, NodeExt};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::{AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
-use crate::sizing::{shrink_to_fit, ContentSizesRequest};
+use crate::sizing::ContentSizesRequest;
 use crate::style_ext::{ComputedValuesExt, Direction, DisplayInside, WritingMode};
 use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -295,10 +295,10 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
                 // FIXME: implement https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                 available_size
             } else {
-                shrink_to_fit(
-                    &self.absolutely_positioned_box.contents.inline_content_sizes,
-                    available_size,
-                )
+                self.absolutely_positioned_box
+                    .contents
+                    .content_sizes
+                    .shrink_to_fit(available_size)
             }
         });
 

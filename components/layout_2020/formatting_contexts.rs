@@ -8,7 +8,7 @@ use crate::flow::BlockFormattingContext;
 use crate::fragments::Fragment;
 use crate::positioned::AbsolutelyPositionedFragment;
 use crate::replaced::ReplacedContent;
-use crate::sizing::{ContentSizes, ContentSizesRequest};
+use crate::sizing::{BoxContentSizes, ContentSizesRequest};
 use crate::style_ext::DisplayInside;
 use crate::ContainingBlock;
 use servo_arc::Arc;
@@ -22,7 +22,7 @@ pub(crate) struct IndependentFormattingContext {
     pub style: Arc<ComputedValues>,
 
     /// If it was requested during construction
-    pub inline_content_sizes: Option<ContentSizes>,
+    pub content_sizes: BoxContentSizes,
 
     contents: IndependentFormattingContextContents,
 }
@@ -58,27 +58,30 @@ impl IndependentFormattingContext {
         content_sizes: ContentSizesRequest,
     ) -> Self {
         use self::IndependentFormattingContextContents as Contents;
-        let (contents, inline_content_sizes) = match contents.try_into() {
+        let (contents, content_sizes) = match contents.try_into() {
             Ok(non_replaced) => match display_inside {
                 DisplayInside::Flow | DisplayInside::FlowRoot => {
-                    let (bfc, inline_content_sizes) = BlockFormattingContext::construct(
+                    let (bfc, box_content_sizes) = BlockFormattingContext::construct(
                         context,
                         &style,
                         non_replaced,
                         content_sizes,
                     );
-                    (Contents::Flow(bfc), inline_content_sizes)
+                    (Contents::Flow(bfc), box_content_sizes)
                 },
             },
             Err(replaced) => {
-                let inline_content_sizes = None; // Unused by layout code
-                (Contents::Replaced(replaced), inline_content_sizes)
+                // The `content_sizes` field is not used by layout code:
+                (
+                    Contents::Replaced(replaced),
+                    BoxContentSizes::NoneWereRequested,
+                )
             },
         };
         Self {
             style,
             contents,
-            inline_content_sizes,
+            content_sizes,
         }
     }
 

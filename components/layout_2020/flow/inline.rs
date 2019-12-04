@@ -10,7 +10,7 @@ use crate::fragments::CollapsedBlockMargins;
 use crate::fragments::{AnonymousFragment, BoxFragment, Fragment, TextFragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{AbsolutelyPositionedBox, AbsolutelyPositionedFragment};
-use crate::sizing::{outer_inline_content_sizes_and_percentages, shrink_to_fit, ContentSizes};
+use crate::sizing::ContentSizes;
 use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside};
 use crate::{relative_adjustement, ContainingBlock};
 use app_units::Au;
@@ -139,10 +139,9 @@ impl InlineFormattingContext {
                             }
                         },
                         InlineLevelBox::Atomic(atomic) => {
-                            let (outer, pc) = outer_inline_content_sizes_and_percentages(
-                                &atomic.style,
-                                &atomic.inline_content_sizes,
-                            );
+                            let (outer, pc) = atomic
+                                .content_sizes
+                                .outer_inline_and_percentages(&atomic.style);
                             self.current_line.min_content += outer.min_content;
                             self.current_line.max_content += outer.max_content;
                             self.current_line_percentages += pc;
@@ -439,7 +438,7 @@ fn layout_atomic<'box_tree>(
             let box_size = atomic.style.box_size();
             let inline_size = box_size.inline.percentage_relative_to(cbis).auto_is(|| {
                 let available_size = cbis - pbm.inline_sum();
-                shrink_to_fit(&atomic.inline_content_sizes, available_size)
+                atomic.content_sizes.shrink_to_fit(available_size)
             });
             let block_size = box_size
                 .block

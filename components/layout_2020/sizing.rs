@@ -38,6 +38,13 @@ impl ContentSizesRequest {
             Self::None => None,
         }
     }
+
+    pub fn compute(self, compute_inline: impl FnOnce() -> ContentSizes) -> BoxContentSizes {
+        match self {
+            Self::Inline => BoxContentSizes::Inline(compute_inline()),
+            Self::None => BoxContentSizes::NoneWereRequested,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -74,69 +81,72 @@ impl ContentSizes {
     }
 }
 
-/// https://dbaron.org/css/intrinsic/#outer-intrinsic
-pub(crate) fn outer_inline_content_sizes(
-    style: &ComputedValues,
-    inner_content_sizes: &Option<ContentSizes>,
-) -> ContentSizes {
-    let (mut outer, percentages) =
-        outer_inline_content_sizes_and_percentages(style, inner_content_sizes);
-    outer.adjust_for_pbm_percentages(percentages);
-    outer
+/// Optional min/max-content for storage in the box tree
+#[derive(Debug)]
+pub(crate) enum BoxContentSizes {
+    NoneWereRequested, // … during box construction
+    Inline(ContentSizes),
 }
 
-pub(crate) fn outer_inline_content_sizes_and_percentages(
-    style: &ComputedValues,
-    inner_content_sizes: &Option<ContentSizes>,
-) -> (ContentSizes, Percentage) {
-    // FIXME: account for 'min-width', 'max-width', 'box-sizing'
+impl BoxContentSizes {
+    fn expect_inline(&self) -> &ContentSizes {
+        match self {
+            Self::NoneWereRequested => panic!("Accessing content size that was not requested"),
+            Self::Inline(s) => s,
+        }
+    }
 
-    let inline_size = style.box_size().inline;
-    // Percentages for 'width' are treated as 'auto'
-    let inline_size = inline_size.map(|lp| lp.as_length());
-    // The (inner) min/max-content are only used for 'auto'
-    let mut outer = match inline_size.non_auto().flatten() {
-        None => expect(inner_content_sizes).clone(),
-        Some(length) => ContentSizes {
-            min_content: length,
-            max_content: length,
-        },
-    };
+    /// https://dbaron.org/css/intrinsic/#outer-intrinsic
+    pub fn outer_inline(&self, style: &ComputedValues) -> ContentSizes {
+        let (mut outer, percentages) = self.outer_inline_and_percentages(style);
+        outer.adjust_for_pbm_percentages(percentages);
+        outer
+    }
 
-    let mut pbm_lengths = Length::zero();
-    let mut pbm_percentages = Percentage::zero();
-    let padding = style.padding();
-    let border = style.border_width();
-    let margin = style.margin();
-    pbm_lengths += border.inline_sum();
-    let mut add = |x: LengthPercentage| {
-        pbm_lengths += x.length_component();
-        pbm_percentages += x.percentage_component();
-    };
-    add(padding.inline_start);
-    add(padding.inline_end);
-    margin.inline_start.non_auto().map(&mut add);
-    margin.inline_end.non_auto().map(&mut add);
+    pub(crate) fn outer_inline_and_percentages(
+        &self,
+        style: &ComputedValues,
+    ) -> (ContentSizes, Percentage) {
+        // FIXME: account for 'min-width', 'max-width', 'box-sizing'
 
-    outer.min_content += pbm_lengths;
-    outer.max_content += pbm_lengths;
+        let inline_size = style.box_size().inline;
+        // Percentages for 'width' are treated as 'auto'
+        let inline_size = inline_size.map(|lp| lp.as_length());
+        // The (inner) min/max-content are only used for 'auto'
+        let mut outer = match inline_size.non_auto().flatten() {
+            None => self.expect_inline().clone(),
+            Some(length) => ContentSizes {
+                min_content: length,
+                max_content: length,
+            },
+        };
 
-    (outer, pbm_percentages)
-}
+        let mut pbm_lengths = Length::zero();
+        let mut pbm_percentages = Percentage::zero();
+        let padding = style.padding();
+        let border = style.border_width();
+        let margin = style.margin();
+        pbm_lengths += border.inline_sum();
+        let mut add = |x: LengthPercentage| {
+            pbm_lengths += x.length_component();
+            pbm_percentages += x.percentage_component();
+        };
+        add(padding.inline_start);
+        add(padding.inline_end);
+        margin.inline_start.non_auto().map(&mut add);
+        margin.inline_end.non_auto().map(&mut add);
 
-/// https://drafts.csswg.org/css2/visudet.html#shrink-to-fit-float
-pub(crate) fn shrink_to_fit(
-    content_sizes: &Option<ContentSizes>,
-    available_size: Length,
-) -> Length {
-    let content_sizes = expect(content_sizes);
-    available_size
-        .max(content_sizes.min_content)
-        .min(content_sizes.max_content)
-}
+        outer.min_content += pbm_lengths;
+        outer.max_content += pbm_lengths;
 
-fn expect(content_sizes: &Option<ContentSizes>) -> &ContentSizes {
-    content_sizes
-        .as_ref()
-        .expect("Accessing content size that was not requested")
+        (outer, pbm_percentages)
+    }
+
+    /// https://drafts.csswg.org/css2/visudet.html#shrink-to-fit-float
+    pub(crate) fn shrink_to_fit(&self, available_size: Length) -> Length {
+        let inline = self.expect_inline();
+        available_size
+            .max(inline.min_content)
+            .min(inline.max_content)
+    }
 }
