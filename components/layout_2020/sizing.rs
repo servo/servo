@@ -62,9 +62,9 @@ pub(crate) fn outer_inline_content_sizes_and_percentages(
 
     let inline_size = style.box_size().inline;
     // Percentages for 'width' are treated as 'auto'
-    let inline_size = specified.map(|lp| lp.as_length());
+    let inline_size = inline_size.map(|lp| lp.as_length());
     // The (inner) min/max-content are only used for 'auto'
-    let mut outer = match specified.non_auto().flatten() {
+    let mut outer = match inline_size.non_auto().flatten() {
         None => expect(inner_content_sizes).clone(),
         Some(length) => ContentSizes {
             min_content: length,
@@ -77,8 +77,7 @@ pub(crate) fn outer_inline_content_sizes_and_percentages(
     let padding = style.padding();
     let border = style.border_width();
     let margin = style.margin();
-    pbm_lengths += border.inline_start;
-    pbm_lengths += border.inline_end;
+    pbm_lengths += border.inline_sum();
     let mut add = |x: LengthPercentage| {
         pbm_lengths += x.length_component();
         pbm_percentages += x.percentage_component();
