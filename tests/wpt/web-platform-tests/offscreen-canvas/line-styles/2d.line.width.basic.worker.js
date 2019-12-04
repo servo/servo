@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("lineWidth determines the width of line strokes");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -45,7 +49,6 @@ _assertPixel(offscreenCanvas, 75,25, 0,255,0,255, "75,25", "0,255,0,255");
 _assertPixel(offscreenCanvas, 84,25, 0,255,0,255, "84,25", "0,255,0,255");
 _assertPixel(offscreenCanvas, 85,25, 0,255,0,255, "85,25", "0,255,0,255");
 _assertPixel(offscreenCanvas, 86,25, 0,255,0,255, "86,25", "0,255,0,255");
-
 t.done();
 
 });

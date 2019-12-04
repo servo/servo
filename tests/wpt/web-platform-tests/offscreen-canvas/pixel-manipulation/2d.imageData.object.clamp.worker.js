@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("ImageData.data clamps numbers to [0, 255]");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -37,7 +41,6 @@ _assertSame(imgdata.data[0], 0, "imgdata.data[\""+(0)+"\"]", "0");
 imgdata.data[0] = 100;
 imgdata.data[0] = Infinity;
 _assertSame(imgdata.data[0], 255, "imgdata.data[\""+(0)+"\"]", "255");
-
 t.done();
 
 });

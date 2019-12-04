@@ -7,23 +7,24 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("The empty string has zero width for OffscreenCanvas");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
 var ctx = offscreenCanvas.getContext('2d');
 
-deferTest();
 var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
 let fonts = (self.fonts ? self.fonts : document.fonts);
 fonts.add(f);
 fonts.ready.then(() => {
-    step_timeout(t.step_func_done(function () {
-        ctx.font = '50px CanvasTest';
-        _assertSame(ctx.measureText("").width, 0, "ctx.measureText(\"\").width", "0");
-    }), 500);
-});
-
-t.done();
+    return new Promise(function(resolve) { step_timeout(resolve, 500); });
+}).then(function() {
+    ctx.font = '50px CanvasTest';
+    _assertSame(ctx.measureText("").width, 0, "ctx.measureText(\"\").width", "0");
+}).then(t_pass, t_fail);
 
 });
 done();

@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("Setting miterLimit to valid values works");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -20,7 +24,6 @@ ctx.miterLimit = 1/1024;
 _assertSame(ctx.miterLimit, 1/1024, "ctx.miterLimit", "1/1024");
 ctx.miterLimit = 1000;
 _assertSame(ctx.miterLimit, 1000, "ctx.miterLimit", "1000");
-
 t.done();
 
 });

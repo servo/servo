@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -19,7 +23,6 @@ ctx.globalCompositeOperation = 'source-atop';
 ctx.fillStyle = 'rgba(0, 0, 255, 0.75)';
 ctx.fillRect(0, 0, 100, 50);
 _assertPixelApprox(offscreenCanvas, 50,25, 0,64,191,128, "50,25", "0,64,191,128", 5);
-
 t.done();
 
 });

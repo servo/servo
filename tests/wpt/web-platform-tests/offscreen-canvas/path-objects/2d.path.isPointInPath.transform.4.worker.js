@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("isPointInPath() handles transformations correctly");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -18,7 +22,6 @@ ctx.translate(0, 50);
 _assertSame(ctx.isPointInPath(60, 10), false, "ctx.isPointInPath(60, 10)", "false");
 _assertSame(ctx.isPointInPath(110, 10), true, "ctx.isPointInPath(110, 10)", "true");
 _assertSame(ctx.isPointInPath(110, 60), false, "ctx.isPointInPath(110, 60)", "false");
-
 t.done();
 
 });

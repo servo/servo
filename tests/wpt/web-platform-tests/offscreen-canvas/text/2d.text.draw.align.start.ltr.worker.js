@@ -7,14 +7,18 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("textAlign start with ltr is the left edge");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
 var ctx = offscreenCanvas.getContext('2d');
 
 ctx.font = '50px CanvasTest';
-deferTest();
-step_timeout(t.step_func_done(function () {
+new Promise(function(resolve) { step_timeout(resolve, 500); })
+  .then(function() {
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
     ctx.fillStyle = '#0f0';
@@ -26,9 +30,7 @@ step_timeout(t.step_func_done(function () {
     _assertPixelApprox(offscreenCanvas, 75,25, 0,255,0,255, "75,25", "0,255,0,255", 2);
     _assertPixelApprox(offscreenCanvas, 5,45, 0,255,0,255, "5,45", "0,255,0,255", 2);
     _assertPixelApprox(offscreenCanvas, 95,45, 0,255,0,255, "95,45", "0,255,0,255", 2);
-}), 500);
-
-t.done();
+  }).then(t_pass, t_fail);
 
 });
 done();

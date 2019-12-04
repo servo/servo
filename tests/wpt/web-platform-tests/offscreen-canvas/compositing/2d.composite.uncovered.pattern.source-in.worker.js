@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("Pattern fill() draws pixels not covered by the source object as (0,0,0,0), and does not leave the pixels unchanged.");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -29,9 +33,7 @@ promise.then(function(response) {
     ctx.fillStyle = ctx.createPattern(response, 'no-repeat');
     ctx.fillRect(0, 50, 100, 50);
     _assertPixelApprox(offscreenCanvas, 50,25, 0,0,0,0, "50,25", "0,0,0,0", 5);
-});
-
-t.done();
+}).then(t_pass, t_fail);
 
 });
 done();

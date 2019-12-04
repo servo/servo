@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("drawImage with zero-sized source rectangle throws INDEX_SIZE_ERR");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -28,9 +32,7 @@ promise.then(function(response) {
     assert_throws("INDEX_SIZE_ERR", function() { ctx.drawImage(response, 10, 10, 1, 0, 0, 0, 100, 50); });
     assert_throws("INDEX_SIZE_ERR", function() { ctx.drawImage(response, 10, 10, 0, 0, 0, 0, 100, 50); });
     _assertPixelApprox(offscreenCanvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255", 2);
-});
-
-t.done();
+}).then(t_pass, t_fail);
 
 });
 done();

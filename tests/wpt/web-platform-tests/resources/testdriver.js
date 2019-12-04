@@ -211,6 +211,33 @@
         },
 
         /**
+         * Sets the state of a permission
+         *
+         * This function simulates a user setting a permission into a particular state as described
+         * in {@link https://w3c.github.io/permissions/#set-permission-command}
+         *
+         * @param {String} name - the name of the permission
+         * @param {String} state - the state of the permission
+         * @param {boolean} one_realm - Optional. Whether the permission applies to only one realm
+         *
+         * The above params are used to create a [PermissionSetParameters]{@link
+         * https://w3c.github.io/permissions/#dictdef-permissionsetparameters} object
+         *
+         * @returns {Promise} fulfilled after the permission is set, or rejected if setting the
+         *                    permission fails
+         */
+        set_permission: function(name, state, one_realm) {
+            let permission_params = {
+              descriptor: {
+                name: name
+              },
+              state: state,
+              oneRealm: one_realm,
+            };
+            return window.test_driver_internal.set_permission(permission_params);
+        },
+
+        /**
          * Creates a virtual authenticator
          *
          * This function creates a virtual authenticator for use with the U2F
@@ -424,6 +451,23 @@
          *                    rejected if the report generation fails
          */
         generate_test_report: function(message) {
+            return Promise.reject(new Error("unimplemented"));
+        },
+
+
+        /**
+         * Sets the state of a permission
+         *
+         * This function simulates a user setting a permission into a particular state as described
+         * in {@link https://w3c.github.io/permissions/#set-permission-command}
+         *
+         * @param {Object} permission_params - a [PermissionSetParameters]{@lint
+         *                                     https://w3c.github.io/permissions/#dictdef-permissionsetparameters}
+         *                                     object
+         * @returns {Promise} fulfilled after the permission is set, or rejected if setting the
+         *                    permission fails
+         */
+        set_permission: function(permission_params) {
             return Promise.reject(new Error("unimplemented"));
         },
 

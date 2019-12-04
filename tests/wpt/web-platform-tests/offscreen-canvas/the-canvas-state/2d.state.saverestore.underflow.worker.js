@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("restore() with an empty stack has no effect");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -17,7 +21,6 @@ for (var i = 0; i < 16; ++i)
 ctx.lineWidth = 0.5;
 ctx.restore();
 _assertSame(ctx.lineWidth, 0.5, "ctx.lineWidth", "0.5");
-
 t.done();
 
 });

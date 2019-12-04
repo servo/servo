@@ -19,10 +19,10 @@
 <script>
   async_test(function(t) {
     let a = document.getElementById('a');
-    a.ended = 0;
-    a.addEventListener('endEvent', t.step_func(function() {
-      a.ended++;
-      if (a.ended === 2)
+    a.begun = 0;
+    a.addEventListener('beginEvent', t.step_func(function() {
+      a.begun++;
+      if (a.begun === 2)
         t.done();
     }));
   });
