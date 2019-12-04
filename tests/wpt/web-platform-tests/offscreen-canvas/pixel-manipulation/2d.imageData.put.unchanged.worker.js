@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("putImageData(getImageData(...), ...) has no effect");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -28,7 +32,6 @@ var imgdata2 = ctx.getImageData(0.1, 0.2, 15.8, 15.9);
 for (var i = 0; i < imgdata2.data.length; ++i) {
     _assertSame(olddata[i], imgdata2.data[i], "olddata[\""+(i)+"\"]", "imgdata2.data[\""+(i)+"\"]");
 }
-
 t.done();
 
 });

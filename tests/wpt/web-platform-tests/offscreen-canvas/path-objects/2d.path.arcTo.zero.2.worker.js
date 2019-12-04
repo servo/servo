@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("arcTo() with zero radius draws a straight line from P0 to P1, even when all points are collinear");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -26,7 +30,6 @@ ctx.moveTo(100, 25);
 ctx.arcTo(200, 25, 50, 25, 0);
 ctx.stroke();
 _assertPixel(offscreenCanvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
-
 t.done();
 
 });

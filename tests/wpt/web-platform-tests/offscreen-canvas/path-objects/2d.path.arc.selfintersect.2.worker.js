@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("arc() with lineWidth > 2*radius is drawn sensibly");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -28,7 +32,6 @@ _assertPixel(offscreenCanvas, 97,1, 0,255,0,255, "97,1", "0,255,0,255");
 _assertPixel(offscreenCanvas, 97,2, 0,255,0,255, "97,2", "0,255,0,255");
 _assertPixel(offscreenCanvas, 97,3, 0,255,0,255, "97,3", "0,255,0,255");
 _assertPixel(offscreenCanvas, 2,48, 0,255,0,255, "2,48", "0,255,0,255");
-
 t.done();
 
 });

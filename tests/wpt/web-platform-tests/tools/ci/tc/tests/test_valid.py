@@ -1,5 +1,6 @@
 import json
 import os
+from io import open
 
 import jsone
 import mock
@@ -24,14 +25,14 @@ def data_path(filename):
                    "https://github.com/taskcluster/json-e/issues/338")
 def test_verify_taskcluster_yml():
     """Verify that the json-e in the .taskcluster.yml is valid"""
-    with open(os.path.join(root, ".taskcluster.yml")) as f:
+    with open(os.path.join(root, ".taskcluster.yml"), encoding="utf8") as f:
         template = yaml.safe_load(f)
 
     events = [("pr_event.json", "github-pull-request", "Pull Request"),
               ("master_push_event.json", "github-push", "Push to master")]
 
     for filename, tasks_for, title in events:
-        with open(data_path(filename)) as f:
+        with open(data_path(filename), encoding="utf8") as f:
             event = json.load(f)
 
         context = {"tasks_for": tasks_for,
@@ -60,7 +61,7 @@ def test_verify_payload():
             "wptrunner_unittest"]
 
     for filename in ["pr_event.json", "master_push_event.json"]:
-        with open(data_path(filename)) as f:
+        with open(data_path(filename), encoding="utf8") as f:
             event = json.load(f)
 
         with mock.patch("tools.ci.tc.decision.get_fetch_rev", return_value=(event["after"], None)):
@@ -141,12 +142,80 @@ def test_verify_payload():
       'wpt-chrome-dev-results',
       'wpt-chrome-dev-results-without-changes',
       'lint'}),
+    ("epochs_daily_push_event.json", False, None,
+     {'download-firefox-stable',
+      'wpt-chrome-stable-reftest-1',
+      'wpt-chrome-stable-reftest-2',
+      'wpt-chrome-stable-reftest-3',
+      'wpt-chrome-stable-reftest-4',
+      'wpt-chrome-stable-reftest-5',
+      'wpt-chrome-stable-testharness-1',
+      'wpt-chrome-stable-testharness-10',
+      'wpt-chrome-stable-testharness-11',
+      'wpt-chrome-stable-testharness-12',
+      'wpt-chrome-stable-testharness-13',
+      'wpt-chrome-stable-testharness-14',
+      'wpt-chrome-stable-testharness-15',
+      'wpt-chrome-stable-testharness-16',
+      'wpt-chrome-stable-testharness-2',
+      'wpt-chrome-stable-testharness-3',
+      'wpt-chrome-stable-testharness-4',
+      'wpt-chrome-stable-testharness-5',
+      'wpt-chrome-stable-testharness-6',
+      'wpt-chrome-stable-testharness-7',
+      'wpt-chrome-stable-testharness-8',
+      'wpt-chrome-stable-testharness-9',
+      'wpt-chrome-stable-wdspec-1',
+      'wpt-firefox-stable-reftest-1',
+      'wpt-firefox-stable-reftest-2',
+      'wpt-firefox-stable-reftest-3',
+      'wpt-firefox-stable-reftest-4',
+      'wpt-firefox-stable-reftest-5',
+      'wpt-firefox-stable-testharness-1',
+      'wpt-firefox-stable-testharness-10',
+      'wpt-firefox-stable-testharness-11',
+      'wpt-firefox-stable-testharness-12',
+      'wpt-firefox-stable-testharness-13',
+      'wpt-firefox-stable-testharness-14',
+      'wpt-firefox-stable-testharness-15',
+      'wpt-firefox-stable-testharness-16',
+      'wpt-firefox-stable-testharness-2',
+      'wpt-firefox-stable-testharness-3',
+      'wpt-firefox-stable-testharness-4',
+      'wpt-firefox-stable-testharness-5',
+      'wpt-firefox-stable-testharness-6',
+      'wpt-firefox-stable-testharness-7',
+      'wpt-firefox-stable-testharness-8',
+      'wpt-firefox-stable-testharness-9',
+      'wpt-firefox-stable-wdspec-1',
+      'wpt-webkitgtk_minibrowser-nightly-reftest-1',
+      'wpt-webkitgtk_minibrowser-nightly-reftest-2',
+      'wpt-webkitgtk_minibrowser-nightly-reftest-3',
+      'wpt-webkitgtk_minibrowser-nightly-reftest-4',
+      'wpt-webkitgtk_minibrowser-nightly-reftest-5',
+      'wpt-webkitgtk_minibrowser-nightly-testharness-1',
+      'wpt-webkitgtk_minibrowser-nightly-testharness-10',
+      'wpt-webkitgtk_minibrowser-nightly-testharness-11',
+      'wpt-webkitgtk_minibrowser-nightly-testharness-12',
+      'wpt-webkitgtk_minibrowser-nightly-testharness-13',
+      'wpt-webkitgtk_minibrowser-nightly-testharness-14',
+      'wpt-webkitgtk_minibrowser-nightly-testharness-15',
+      'wpt-webkitgtk_minibrowser-nightly-testharness-16',
+      'wpt-webkitgtk_minibrowser-nightly-testharness-2',
+      'wpt-webkitgtk_minibrowser-nightly-testharness-3',
+      'wpt-webkitgtk_minibrowser-nightly-testharness-4',
+      'wpt-webkitgtk_minibrowser-nightly-testharness-5',
+      'wpt-webkitgtk_minibrowser-nightly-testharness-6',
+      'wpt-webkitgtk_minibrowser-nightly-testharness-7',
+      'wpt-webkitgtk_minibrowser-nightly-testharness-8',
+      'wpt-webkitgtk_minibrowser-nightly-testharness-9',
+      'wpt-webkitgtk_minibrowser-nightly-wdspec-1'})
 ])
 def test_schedule_tasks(event_path, is_pr, files_changed, expected):
     with mock.patch("tools.ci.tc.decision.get_fetch_rev", return_value=(is_pr, None)):
         with mock.patch("tools.wpt.testfiles.repo_files_changed",
                         return_value=files_changed):
-            with open(data_path(event_path)) as event_file:
+            with open(data_path(event_path), encoding="utf8") as event_file:
                 event = json.load(event_file)
                 scheduled = decision.decide(event)
                 assert set(scheduled.keys()) == expected

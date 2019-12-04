@@ -2,7 +2,7 @@
 <body>
   <script src=/resources/testharness.js></script>
   <script src=/resources/testharnessreport.js></script>
-  <iframe allow="document-access 'none'" src="resources/child.html"></iframe>
+  <iframe disallowdocumentaccess src="resources/child.html"></iframe>
   <script>
     async_test(function (t) {
       // Ensure post message works correctly.

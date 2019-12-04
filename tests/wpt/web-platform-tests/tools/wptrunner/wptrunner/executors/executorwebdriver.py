@@ -22,6 +22,7 @@ from .protocol import (BaseProtocolPart,
                        ActionSequenceProtocolPart,
                        TestDriverProtocolPart,
                        GenerateTestReportProtocolPart,
+                       SetPermissionProtocolPart,
                        VirtualAuthenticatorProtocolPart)
 from ..testrunner import Stop
 
@@ -202,6 +203,23 @@ class WebDriverGenerateTestReportProtocolPart(GenerateTestReportProtocolPart):
         json_message = {"message": message}
         self.webdriver.send_session_command("POST", "reporting/generate_test_report", json_message)
 
+
+class WebDriverSetPermissionProtocolPart(SetPermissionProtocolPart):
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    def set_permission(self, name, state, one_realm):
+        permission_params_dict = {
+            "descriptor": {
+                "name": name
+            },
+            "state": state,
+        }
+        if one_realm is not None:
+            permission_params_dict["oneRealm"] = one_realm
+        self.webdriver.send_session_command("POST", "permissions", permission_params_dict)
+
+
 class WebDriverVirtualAuthenticatorProtocolPart(VirtualAuthenticatorProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
@@ -237,6 +255,7 @@ class WebDriverProtocol(Protocol):
                   WebDriverActionSequenceProtocolPart,
                   WebDriverTestDriverProtocolPart,
                   WebDriverGenerateTestReportProtocolPart,
+                  WebDriverSetPermissionProtocolPart,
                   WebDriverVirtualAuthenticatorProtocolPart]
 
     def __init__(self, executor, browser, capabilities, **kwargs):

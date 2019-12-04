@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("lineCap 'round' is rendered correctly");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -51,7 +55,6 @@ _assertPixel(offscreenCanvas, 82,6, 0,255,0,255, "82,6", "0,255,0,255");
 _assertPixel(offscreenCanvas, 67,43, 0,255,0,255, "67,43", "0,255,0,255");
 _assertPixel(offscreenCanvas, 75,43, 0,255,0,255, "75,43", "0,255,0,255");
 _assertPixel(offscreenCanvas, 82,43, 0,255,0,255, "82,43", "0,255,0,255");
-
 t.done();
 
 });

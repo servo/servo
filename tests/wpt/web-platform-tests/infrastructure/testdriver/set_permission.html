@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver set_permission method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+promise_test(t => {
+  return test_driver.set_permission("ambient-light-sensor", "granted", true);
+}, "Grant Permission for one realm");
+
+promise_test(t => {
+  return test_driver.set_permission("ambient-light-sensor", "denied");
+}, "Deny Permission, omit one realm");
+</script>

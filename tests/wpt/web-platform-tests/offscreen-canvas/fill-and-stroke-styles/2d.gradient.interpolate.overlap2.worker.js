@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -28,7 +32,6 @@ _assertPixel(offscreenCanvas, 30,25, 0,255,0,255, "30,25", "0,255,0,255");
 _assertPixel(offscreenCanvas, 40,25, 0,255,0,255, "40,25", "0,255,0,255");
 _assertPixel(offscreenCanvas, 60,25, 0,255,0,255, "60,25", "0,255,0,255");
 _assertPixel(offscreenCanvas, 80,25, 0,255,0,255, "80,25", "0,255,0,255");
-
 t.done();
 
 });

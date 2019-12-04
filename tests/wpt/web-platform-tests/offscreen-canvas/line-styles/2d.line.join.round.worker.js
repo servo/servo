@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("lineJoin 'round' is rendered correctly");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -53,7 +57,6 @@ _assertPixel(offscreenCanvas, 86,13, 0,255,0,255, "86,13", "0,255,0,255");
 _assertPixel(offscreenCanvas, 87,13, 0,255,0,255, "87,13", "0,255,0,255");
 _assertPixel(offscreenCanvas, 88,13, 0,255,0,255, "88,13", "0,255,0,255");
 _assertPixel(offscreenCanvas, 88,12, 0,255,0,255, "88,12", "0,255,0,255");
-
 t.done();
 
 });

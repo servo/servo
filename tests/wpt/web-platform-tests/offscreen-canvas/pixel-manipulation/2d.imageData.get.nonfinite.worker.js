@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("getImageData() throws TypeError if arguments are not finite");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -61,7 +65,6 @@ assert_throws(new TypeError(), function() { ctx.getImageData(10, posinfobj, posi
 assert_throws(new TypeError(), function() { ctx.getImageData(10, posinfobj, posinfobj, posinfobj); });
 assert_throws(new TypeError(), function() { ctx.getImageData(10, posinfobj, 10, posinfobj); });
 assert_throws(new TypeError(), function() { ctx.getImageData(10, 10, posinfobj, posinfobj); });
-
 t.done();
 
 });

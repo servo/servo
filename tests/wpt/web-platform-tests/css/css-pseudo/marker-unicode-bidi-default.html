@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>::marker has 'unicode-bidi: isolate' by default</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="match" href="marker-unicode-bidi-default-ref.html">
+<link rel="mismatch" href="marker-unicode-bidi-normal-ref.html">
+<meta name="assert" content="Checks that the markers are isolated from the list items by the bidi algorithm">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+ol {
+  float: left;
+  list-style-position: inside;
+}
+.rtl {
+  direction: rtl;
+}
+
+li:nth-child(1) { --marker: "\627 \644 " }
+li:nth-child(2) { --marker: "\61 \627 \644 " }
+li:nth-child(3) { --marker: "\627 \644 \62 " }
+li:nth-child(4) { --marker: "\61 \627 \644 \62 " }
+li:nth-child(5) { --marker: "\61 \62 \627 \644 " }
+li:nth-child(6) { --marker: "\627 \644 \61 \62 " }
+li:nth-child(7) { --marker: "\31 \627 \644 " }
+li:nth-child(8) { --marker: "\627 \644 \32 " }
+li:nth-child(9) { --marker: "\31 \627 \644 \32 " }
+
+.string > li {
+  list-style-type: var(--marker);
+}
+.marker > li::marker {
+  content: var(--marker);
+}
+::marker {
+  color: blue;
+}
+span {
+  background: yellow;
+}
+</style>
+<ol class="string ltr">
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+</ol>
+<ol class="string rtl">
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+</ol>
+<ol class="marker ltr">
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+</ol>
+<ol class="marker rtl">
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+  <li><span>0</span></li>
+</ol>

@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("Shadow offsets are not affected by transformations");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -19,7 +23,6 @@ ctx.shadowColor = '#0f0';
 ctx.rotate(Math.PI)
 ctx.fillRect(-100, 0, 100, 50);
 _assertPixel(offscreenCanvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
-
 t.done();
 
 });

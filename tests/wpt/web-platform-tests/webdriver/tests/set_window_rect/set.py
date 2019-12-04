@@ -135,9 +135,9 @@ def test_fully_exit_fullscreen(session):
     session.window.fullscreen()
     assert is_fullscreen(session)
 
-    response = set_window_rect(session, {"width": 400, "height": 400})
+    response = set_window_rect(session, {"width": 600, "height": 400})
     value = assert_success(response)
-    assert value["width"] == 400
+    assert value["width"] == 600
     assert value["height"] == 400
 
     assert not is_fullscreen(session)

@@ -1,0 +1,24 @@
+<!doctype html>
+<title>CSSImportRule has different sheets even if referencing the same URL</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-cssimportrule-interface">
+<link rel="stylesheet" href="support/import-rule.css">
+<link rel="stylesheet" href="support/import-rule.css">
+<script>
+let t = async_test("CSSImportRule has different sheets even if referencing the same URL");
+window.onload = t.step_func_done(function() {
+  let sheet1 = document.styleSheets[0];
+  let sheet2 = document.styleSheets[1];
+
+  assert_not_equals(sheet1, sheet2);
+
+  let childSheet1 = sheet1.cssRules[0].styleSheet;
+  let childSheet2 = sheet2.cssRules[0].styleSheet;
+
+  assert_not_equals(childSheet1, null);
+  assert_not_equals(childSheet2, null);
+  assert_not_equals(childSheet1, childSheet2, "@import pointing to the same URL shouldn't point to the same StyleSheet object");
+});
+</script>

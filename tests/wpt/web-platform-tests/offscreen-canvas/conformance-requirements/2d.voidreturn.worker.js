@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("void methods return undefined");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -43,7 +47,6 @@ if (ctx.putImageData) {
 }
 _assertSame(ctx.drawImage(offscreenCanvas, 0, 0, 1, 1, 0, 0, 0, 0), undefined, "ctx.drawImage(offscreenCanvas, 0, 0, 1, 1, 0, 0, 0, 0)", "undefined");
 _assertSame(ctx.createLinearGradient(0, 0, 0, 0).addColorStop(0, 'white'), undefined, "ctx.createLinearGradient(0, 0, 0, 0).addColorStop(0, 'white')", "undefined");
-
 t.done();
 
 });

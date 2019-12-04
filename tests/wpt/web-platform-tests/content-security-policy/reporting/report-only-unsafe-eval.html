@@ -16,13 +16,14 @@ Content-Security-Policy-Report-Only: script-src 'unsafe-inline' 'nonce-abc'; rep
       document.addEventListener('securitypolicyviolation', t_spv.step_func(e => {
         assert_equals(e.violatedDirective, "script-src");
         assert_equals(e.blockedURI, "eval");
+        t_spv.done();
       }));
 
       try {
         eval("t.done()");
       } catch {
         t.step(t.unreached_func("The eval should have executed succesfully"));
-        t_spv.step(tsv_unreached_func("The eval execution should have triggered a securitypolicyviolation event"));
+        t_spv.step(t_spv.unreached_func("The eval execution should have triggered a securitypolicyviolation event"));
       }
     </script>
     <script nonce='abc' async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=script-src%20%27unsafe-inline%27'></script>

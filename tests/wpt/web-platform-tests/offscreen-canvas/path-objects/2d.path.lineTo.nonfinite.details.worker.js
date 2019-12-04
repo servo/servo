@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("lineTo() with Infinity/NaN for first arg still converts the second arg");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -17,7 +21,6 @@ for (var arg1 of [Infinity, -Infinity, NaN]) {
   ctx.lineTo(arg1, { valueOf: function() { converted = true; return 0; } });
   _assert(converted, "converted");
 }
-
 t.done();
 
 });

@@ -677,6 +677,7 @@ MISSING-LINK: css/filter-effects/*.any.js
 # Tests that use WebKit/Blink testing APIs
 LAYOUTTESTS APIS: css/css-regions/interactivity/*
 LAYOUTTESTS APIS: import-maps/resources/jest-test-helper.js
+LAYOUTTESTS APIS: import-maps/common/resources/common-test-helper.js
 LAYOUTTESTS APIS: resources/chromium/generic_sensor_mocks.js
 LAYOUTTESTS APIS: resources/chromium/nfc-mock.js
 LAYOUTTESTS APIS: resources/chromium/webxr-test.js

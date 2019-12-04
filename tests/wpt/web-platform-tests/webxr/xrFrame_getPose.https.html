@@ -25,6 +25,23 @@ let testFunction = function(session, fakeDeviceController, t) {
       let space1 = spaces[0];
       let space2 = spaces[1];
 
+      let offset = new XRRigidTransform(
+        DOMPointReadOnly.fromPoint({
+          x: 2,
+          y: 3,
+          z: 4,
+          w: 1,
+        }));
+
+      let translatedSpace1 = space1.getOffsetReferenceSpace(offset);
+      let translated_from_base = xrFrame.getPose(translatedSpace1, space1);
+
+      // Getting the transform of an offset space from the space it was based on
+      // should be the same as the initially applied offset.
+      t.step(() => {
+        assert_matrix_approx_equals(translated_from_base.transform.matrix, offset.matrix, FLOAT_EPSILON);
+      });
+
       // Rotate 90 degrees about x axis, then move 1 meter along y axis.
       space1 = space1.getOffsetReferenceSpace(new XRRigidTransform(
         DOMPointReadOnly.fromPoint({
@@ -57,14 +74,17 @@ let testFunction = function(session, fakeDeviceController, t) {
         })
       ));
 
-      let space1_from_space2 = xrFrame.getPose(space1, space2);
+      let space2_from_space1 = xrFrame.getPose(space1, space2);
       const EXPECTED_POSE_MATRIX = [
-        0, 0, -1, 0, // 1st column
-        -1, 0, 0, 0, // 2nd column
-        0, 1, 0, 0, // 3rd column
-        1, 0, 1, 1 // 4th column
+         0, -1, 0, 0, // 1st column
+         0,  0, 1, 0, // 2nd column
+        -1,  0, 0, 0, // 3rd column
+         1,  1, 0, 1 // 4th column
       ];
-      assert_matrix_approx_equals(space1_from_space2.transform.matrix, EXPECTED_POSE_MATRIX, FLOAT_EPSILON);
+
+      t.step(() => {
+        assert_matrix_approx_equals(space2_from_space1.transform.matrix, EXPECTED_POSE_MATRIX, FLOAT_EPSILON);
+      });
 
       // Finished test.
       resolve();
