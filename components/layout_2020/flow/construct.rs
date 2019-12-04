@@ -189,14 +189,13 @@ impl BlockContainer {
             contains_floats: builder.contains_floats,
             outer_content_sizes_of_children: ContentSizes::zero(),
         };
-        let request_childrens_outer_content_sizes = request_content_sizes;
         let iter = builder.block_level_boxes.into_par_iter();
         let iter = iter.mapfold_reduce_into(
             &mut target,
             |target, (intermediate, box_slot): (Intermediate<_>, BoxSlot<'_>)| {
                 let (block_level_box, box_contains_floats) = intermediate.finish(
                     context,
-                    if request_childrens_outer_content_sizes {
+                    if request_content_sizes {
                         Some(&mut target.outer_content_sizes_of_children)
                     } else {
                         None

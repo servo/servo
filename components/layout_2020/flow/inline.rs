@@ -406,9 +406,10 @@ fn layout_atomic<'box_tree>(
         .margin()
         .percentages_relative_to(cbis)
         .auto_is(Length::zero);
-    ifc.inline_position += padding.inline_start + border.inline_start + margin.inline_start;
+    let pbm = &(&padding + &border) + &margin;
+    ifc.inline_position += pbm.inline_start;
     let mut start_corner = Vec2 {
-        block: padding.block_start + border.block_start + margin.block_start,
+        block: pbm.block_start,
         inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
     };
     start_corner += &relative_adjustement(
@@ -437,8 +438,7 @@ fn layout_atomic<'box_tree>(
         Err(non_replaced) => {
             let box_size = atomic.style.box_size();
             let inline_size = box_size.inline.percentage_relative_to(cbis).auto_is(|| {
-                let available_size =
-                    cbis - padding.inline_sum() - border.inline_sum() - margin.inline_sum();
+                let available_size = cbis - pbm.inline_sum();
                 shrink_to_fit(&atomic.inline_content_sizes, available_size)
             });
             let block_size = box_size
@@ -482,8 +482,7 @@ fn layout_atomic<'box_tree>(
         },
     };
 
-    ifc.inline_position +=
-        fragment.padding.inline_end + fragment.border.inline_end + fragment.margin.inline_end;
+    ifc.inline_position += pbm.inline_end;
     ifc.current_nesting_level
         .fragments_so_far
         .push(Fragment::Box(fragment));

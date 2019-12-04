@@ -307,7 +307,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             Ok(replaced) => {
                 // FIXME: implement https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                 // and https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
-                let block_size = block_size.auto_is(|| Length::zero());
+                let block_size = block_size.auto_is(Length::zero);
                 let fragments = replaced.make_fragments(
                     &self.absolutely_positioned_box.contents.style,
                     Vec2 {
