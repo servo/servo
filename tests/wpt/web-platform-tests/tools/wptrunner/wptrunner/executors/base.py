@@ -666,6 +666,7 @@ class CallbackHandler(object):
             "send_keys": SendKeysAction(self.logger, self.protocol),
             "action_sequence": ActionSequenceAction(self.logger, self.protocol),
             "generate_test_report": GenerateTestReportAction(self.logger, self.protocol),
+            "set_permission": SetPermissionAction(self.logger, self.protocol),
             "add_virtual_authenticator": AddVirtualAuthenticatorAction(self.logger, self.protocol),
             "remove_virtual_authenticator": RemoveVirtualAuthenticatorAction(self.logger, self.protocol),
             "add_credential": AddCredentialAction(self.logger, self.protocol),
@@ -767,6 +768,20 @@ class GenerateTestReportAction(object):
         message = payload["message"]
         self.logger.debug("Generating test report: %s" % message)
         self.protocol.generate_test_report.generate_test_report(message)
+
+class SetPermissionAction(object):
+    def __init__(self, logger, protocol):
+        self.logger = logger
+        self.protocol = protocol
+
+    def __call__(self, payload):
+        permission_params = payload["permission_params"]
+        descriptor = permission_params["descriptor"]
+        name = descriptor["name"]
+        state = permission_params["state"]
+        one_realm = permission_params.get("oneRealm", False)
+        self.logger.debug("Setting permission %s to %s, oneRealm=%s" % (name, state, one_realm))
+        self.protocol.set_permission.set_permission(name, state, one_realm)
 
 class AddVirtualAuthenticatorAction(object):
     def __init__(self, logger, protocol):

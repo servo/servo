@@ -1,6 +1,8 @@
 The web-platform-tests Project
 ==============================
 
+[![Taskcluster CI Status](https://community-tc.services.mozilla.com/api/github/v1/repository/web-platform-tests/wpt/master/badge.svg)](https://community-tc.services.mozilla.com/api/github/v1/repository/web-platform-tests/wpt/master/latest)
+
 The web-platform-tests Project is a W3C-coordinated attempt to build a
 cross-browser test suite for the Web-platform stack. Writing tests in a way
 that allows them to be run in all browsers gives browser projects

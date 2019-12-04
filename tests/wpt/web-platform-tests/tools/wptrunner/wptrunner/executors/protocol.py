@@ -305,6 +305,22 @@ class GenerateTestReportProtocolPart(ProtocolPart):
         pass
 
 
+class SetPermissionProtocolPart(ProtocolPart):
+    """Protocol part for setting permissions"""
+    __metaclass__ = ABCMeta
+
+    name = "set_permission"
+
+    @abstractmethod
+    def set_permission(self, name, state, one_realm=False):
+        """Set permission state.
+
+        :param name: The name of the permission to set.
+        :param state: The state to set the permission to.
+        :param one_realm: Whether to set the permission for only one realm."""
+        pass
+
+
 class ActionSequenceProtocolPart(ProtocolPart):
     """Protocol part for performing trusted clicks"""
     __metaclass__ = ABCMeta

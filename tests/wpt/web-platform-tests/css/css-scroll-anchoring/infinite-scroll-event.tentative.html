@@ -33,6 +33,7 @@ onscroll = t.step_func(function() {
   }));
 });
 window.onload = t.step_func(function() {
-  window.scrollTo(0, document.scrollingElement.scrollTopMax - 200);
+  window.scrollTo(0, document.documentElement.scrollHeight);
+  window.scrollBy(0, -200);
 });
 </script>

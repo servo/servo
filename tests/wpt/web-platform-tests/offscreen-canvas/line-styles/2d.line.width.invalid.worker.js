@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("Setting lineWidth to invalid values is ignored");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -29,7 +33,6 @@ _assertSame(ctx.lineWidth, 1.5, "ctx.lineWidth", "1.5");
 ctx.lineWidth = 1.5;
 ctx.lineWidth = NaN;
 _assertSame(ctx.lineWidth, 1.5, "ctx.lineWidth", "1.5");
-
 t.done();
 
 });

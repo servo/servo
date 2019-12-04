@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("Multiple scale()s combine");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -19,7 +23,6 @@ ctx.scale(Math.sqrt(2), Math.sqrt(2));
 ctx.fillStyle = '#0f0';
 ctx.fillRect(0, 0, 50, 25);
 _assertPixel(offscreenCanvas, 90,40, 0,255,0,255, "90,40", "0,255,0,255");
-
 t.done();
 
 });

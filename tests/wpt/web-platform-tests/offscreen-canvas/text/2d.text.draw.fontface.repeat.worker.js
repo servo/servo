@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("Draw with the font immediately, then wait a bit until and draw again. (This crashes some version of WebKit.)");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -17,16 +21,14 @@ ctx.fillRect(0, 0, 100, 50);
 ctx.font = '67px CanvasTest';
 ctx.fillStyle = '#0f0';
 ctx.fillText('AA', 0, 50);
-deferTest();
-step_timeout(t.step_func_done(function () {
+new Promise(function(resolve) { step_timeout(resolve, 500); })
+  .then(function() {
     ctx.fillText('AA', 0, 50);
     _assertPixelApprox(offscreenCanvas, 5,5, 0,255,0,255, "5,5", "0,255,0,255", 2);
     _assertPixelApprox(offscreenCanvas, 95,5, 0,255,0,255, "95,5", "0,255,0,255", 2);
     _assertPixelApprox(offscreenCanvas, 25,25, 0,255,0,255, "25,25", "0,255,0,255", 2);
     _assertPixelApprox(offscreenCanvas, 75,25, 0,255,0,255, "75,25", "0,255,0,255", 2);
-}), 500);
-
-t.done();
+  }).then(t_pass, t_fail);
 
 });
 done();

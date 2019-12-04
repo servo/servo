@@ -17,6 +17,12 @@ var minimalAudioConfiguration = {
   contentType: 'audio/webm; codecs="opus"',
 };
 
+// AudioConfiguration with optional spatialRendering param.
+var audioConfigurationWithSpatialRendering = {
+  contentType: 'audio/webm; codecs="opus"',
+  spatialRendering: true,
+};
+
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo());
 }, "Test that decodingInfo rejects if it doesn't get a configuration");
@@ -296,3 +302,15 @@ async_test(t => {
     }
   }), t.unreached_func('Promise.all should not reject for valid types'));
 }, "Test that decodingInfo rejects if the MediaConfiguration does not have a valid type");
+
+promise_test(t => {
+  return navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    audio: audioConfigurationWithSpatialRendering,
+  }).then(ability => {
+    assert_equals(typeof ability.supported, "boolean");
+    assert_equals(typeof ability.smooth, "boolean");
+    assert_equals(typeof ability.powerEfficient, "boolean");
+    assert_equals(typeof ability.keySystemAccess, "object");
+  });
+}, "Test that decodingInfo with spatialRendering set returns a valid MediaCapabilitiesInfo objects");

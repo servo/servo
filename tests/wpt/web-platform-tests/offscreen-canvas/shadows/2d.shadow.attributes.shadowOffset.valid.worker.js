@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -32,7 +36,6 @@ ctx.shadowOffsetX = 1e6;
 ctx.shadowOffsetY = 1e6;
 _assertSame(ctx.shadowOffsetX, 1e6, "ctx.shadowOffsetX", "1e6");
 _assertSame(ctx.shadowOffsetY, 1e6, "ctx.shadowOffsetY", "1e6");
-
 t.done();
 
 });

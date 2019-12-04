@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("arcTo joins up to the last subpath point correctly");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -30,7 +34,6 @@ _assertPixel(offscreenCanvas, 99,25, 0,255,0,255, "99,25", "0,255,0,255");
 _assertPixel(offscreenCanvas, 0,49, 0,255,0,255, "0,49", "0,255,0,255");
 _assertPixel(offscreenCanvas, 50,49, 0,255,0,255, "50,49", "0,255,0,255");
 _assertPixel(offscreenCanvas, 99,49, 0,255,0,255, "99,49", "0,255,0,255");
-
 t.done();
 
 });

@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("Setting lineCap to valid values works");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -18,7 +22,6 @@ ctx.lineCap = 'round';
 _assertSame(ctx.lineCap, 'round', "ctx.lineCap", "'round'");
 ctx.lineCap = 'square';
 _assertSame(ctx.lineCap, 'square', "ctx.lineCap", "'square'");
-
 t.done();
 
 });

@@ -7,6 +7,10 @@ importScripts("/resources/testharness.js");
 importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("save()/restore() works for shadowColor");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -27,7 +31,6 @@ old = ctx.shadowColor;
 ctx.save();
 _assertSame(ctx.shadowColor, old, "ctx.shadowColor", "old");
 ctx.restore();
-
 t.done();
 
 });
