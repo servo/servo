@@ -14,9 +14,9 @@
             <Setter Property="BorderBrush" Value="{ThemeResource ButtonBorderBrush}"/>
             <Setter Property="BorderThickness" Value="{ThemeResource ButtonBorderThemeThickness}"/>
             <Setter Property="Padding" Value="0"/>
-            <Setter Property="Margin" Value="10,2"/>
-            <Setter Property="MinWidth" Value="30"/>
-            <Setter Property="MinHeight" Value="30"/>
+            <Setter Property="Margin" Value="5,0"/>
+            <Setter Property="MinWidth" Value="40"/>
+            <Setter Property="MinHeight" Value="40"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="FontFamily" Value="{ThemeResource ContentControlThemeFontFamily}"/>
@@ -94,31 +94,34 @@
             </Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" Grid.Column="0">
                 <Button Style="{StaticResource NavigationBarButton}" x:Name="backButton" IsTabStop="true" IsEnabled="false" Click="OnBackButtonClicked" AutomationProperties.Name="Back" ToolTipService.ToolTip="Back">
-                    <Image Source="Assets/UI/back.png" Height="12"></Image>
+                    <Image Source="Assets/UI/back.png" Height="18"></Image>
                     <Button.KeyboardAccelerators>
                         <KeyboardAccelerator Key="Left" Modifiers="Menu" />
                     </Button.KeyboardAccelerators>
                 </Button>
                 <Button Style="{StaticResource NavigationBarButton}" x:Name="forwardButton" IsTabStop="true" IsEnabled="false" Click="OnForwardButtonClicked" AutomationProperties.Name="Forward" ToolTipService.ToolTip="Forward">
-                    <Image Source="Assets/UI/forward.png" Height="12"></Image>
+                    <Image Source="Assets/UI/forward.png" Height="18"></Image>
                     <Button.KeyboardAccelerators>
                         <KeyboardAccelerator Key="Right" Modifiers="Menu" />
                     </Button.KeyboardAccelerators>
                 </Button>
                 <Button Style="{StaticResource NavigationBarButton}" x:Name="reloadButton" IsTabStop="true" IsEnabled="false" Visibility="Visible" Click="OnReloadButtonClicked" AutomationProperties.Name="Reload" ToolTipService.ToolTip="Reload">
-                    <Image Source="Assets/UI/reload.png" Height="12"></Image>
+                    <Image Source="Assets/UI/reload.png" Height="18"></Image>
                     <Button.KeyboardAccelerators>
                         <KeyboardAccelerator Key="R" Modifiers="Control" />
                     </Button.KeyboardAccelerators>
                 </Button>
                 <Button Style="{StaticResource NavigationBarButton}" x:Name="stopButton" IsTabStop="true" IsEnabled="false" Visibility="Collapsed" Click="OnStopButtonClicked" AutomationProperties.Name="Stop" ToolTipService.ToolTip="Stop">
-                    <Image Source="Assets/UI/stop.png" Height="12"></Image>
+                    <Image Source="Assets/UI/stop.png" Height="18"></Image>
                     <Button.KeyboardAccelerators>
                         <KeyboardAccelerator Key="Escape" Modifiers="None" />
                     </Button.KeyboardAccelerators>
                 </Button>
+                <Button Style="{StaticResource NavigationBarButton}" x:Name="homeButton" IsTabStop="true" Click="OnHomeButtonClicked" AutomationProperties.Name="Home" ToolTipService.ToolTip="Home">
+                    <Image Source="Assets/UI/home.png" Height="18"></Image>
+                </Button>
             </StackPanel>
-            <TextBox Text="" IsTabStop="true" InputScope="Url" PlaceholderText="Type a URL" x:Name="urlTextbox" Grid.Column="1" KeyUp="OnURLEdited" IsSpellCheckEnabled="False" Margin="3,0" KeyboardAcceleratorPlacementMode="Hidden">
+            <TextBox Text="" IsTabStop="true" InputScope="Url" PlaceholderText="Type a URL" x:Name="urlTextbox" VerticalAlignment="Center" Grid.Column="1" KeyUp="OnURLEdited" IsSpellCheckEnabled="False" Margin="3,0" KeyboardAcceleratorPlacementMode="Hidden">
                 <TextBox.KeyboardAccelerators>
                     <KeyboardAccelerator Key="L" Modifiers="Control" Invoked="OnURLKeyboardAccelerator"/>
                 </TextBox.KeyboardAccelerators>
