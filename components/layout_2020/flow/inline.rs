@@ -17,7 +17,7 @@ use app_units::Au;
 use gfx::text::text_run::GlyphRun;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, Percentage};
+use style::values::computed::{Length, LengthPercentage, Percentage};
 use style::Zero;
 use webrender_api::FontInstanceKey;
 
@@ -103,25 +103,14 @@ impl InlineFormattingContext {
                             let padding = inline_box.style.padding();
                             let border = inline_box.style.border_width();
                             let margin = inline_box.style.margin();
-                            macro_rules! add_length {
-                                ($x: expr) => {{
-                                    let length = $x;
-                                    self.current_line.min_content += length;
-                                    self.current_line.max_content += length;
-                                }};
-                            }
-                            macro_rules! add_lengthpercentage {
-                                ($x: expr) => {{
-                                    add_length!($x.length_component());
-                                    self.current_line_percentages += $x.percentage_component();
-                                }};
-                            }
                             macro_rules! add {
                                 ($condition: ident, $side: ident) => {
                                     if inline_box.$condition {
-                                        add_lengthpercentage!(padding.$side);
-                                        add_length!(border.$side);
-                                        margin.$side.non_auto().map(|x| add_lengthpercentage!(x));
+                                        self.add_lengthpercentage(padding.$side);
+                                        self.add_length(border.$side);
+                                        if let Some(lp) = margin.$side.non_auto() {
+                                            self.add_lengthpercentage(lp)
+                                        }
                                     }
                                 };
                             }
@@ -159,6 +148,16 @@ impl InlineFormattingContext {
                         InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => {},
                     }
                 }
+            }
+
+            fn add_lengthpercentage(&mut self, lp: LengthPercentage) {
+                self.add_length(lp.length_component());
+                self.current_line_percentages += lp.percentage_component();
+            }
+
+            fn add_length(&mut self, l: Length) {
+                self.current_line.min_content += l;
+                self.current_line.max_content += l;
             }
 
             fn line_break_opportunity(&mut self) {
