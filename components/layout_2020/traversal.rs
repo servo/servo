@@ -20,6 +20,10 @@ impl<'a> RecalcStyle<'a> {
         RecalcStyle { context: context }
     }
 
+    pub fn context(&self) -> &LayoutContext<'a> {
+        &self.context
+    }
+
     pub fn destroy(self) -> LayoutContext<'a> {
         self.context
     }

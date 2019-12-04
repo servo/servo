@@ -4,6 +4,7 @@
 
 #![deny(unsafe_code)]
 #![feature(exact_size_is_empty)]
+#![feature(matches_macro)]
 
 pub mod context;
 pub mod data;
@@ -18,6 +19,7 @@ mod opaque_node;
 mod positioned;
 pub mod query;
 mod replaced;
+mod sizing;
 mod style_ext;
 pub mod traversal;
 pub mod wrapper;

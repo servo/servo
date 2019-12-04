@@ -3,12 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::context::LayoutContext;
+use crate::dom_traversal::{Contents, NodeExt};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::{AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
-use crate::style_ext::{ComputedValuesExt, Direction, WritingMode};
+use crate::sizing::ContentSizesRequest;
+use crate::style_ext::{ComputedValuesExt, Direction, DisplayInside, WritingMode};
 use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use servo_arc::Arc;
+use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
 use style::Zero;
 
@@ -42,6 +46,32 @@ pub(crate) enum AbsoluteBoxOffsets<NonStatic> {
 }
 
 impl AbsolutelyPositionedBox {
+    pub fn construct<'dom>(
+        context: &LayoutContext,
+        style: Arc<ComputedValues>,
+        display_inside: DisplayInside,
+        contents: Contents<impl NodeExt<'dom>>,
+    ) -> Self {
+        // "Shrink-to-fit" in https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
+        let content_sizes = ContentSizesRequest::inline_if(
+            // If inline-size is non-auto, that value is used without shrink-to-fit
+            style.inline_size_is_auto() &&
+            // If it is, then the only case where shrink-to-fit is *not* used is
+            // if both offsets are non-auto, leaving inline-size as the only variable
+            // in the constraint equation.
+            !style.inline_box_offsets_are_both_non_auto(),
+        );
+        Self {
+            contents: IndependentFormattingContext::construct(
+                context,
+                style,
+                display_inside,
+                contents,
+                content_sizes,
+            ),
+        }
+    }
+
     pub(crate) fn layout<'a>(
         &'a self,
         initial_start_corner: Vec2<Length>,
@@ -256,28 +286,60 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
                 Anchor::End(end) => cbis - end - pb.inline_sum() - margin.inline_sum(),
             };
 
-            // FIXME(nox): shrink-to-fit.
-            available_size
+            if self
+                .absolutely_positioned_box
+                .contents
+                .as_replaced()
+                .is_ok()
+            {
+                // FIXME: implement https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
+                available_size
+            } else {
+                self.absolutely_positioned_box
+                    .contents
+                    .content_sizes
+                    .shrink_to_fit(available_size)
+            }
         });
 
-        let containing_block_for_children = ContainingBlock {
-            inline_size,
-            block_size,
-            mode: style.writing_mode(),
+        let mut absolutely_positioned_fragments = Vec::new();
+        let mut independent_layout = match self.absolutely_positioned_box.contents.as_replaced() {
+            Ok(replaced) => {
+                // FIXME: implement https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
+                // and https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
+                let block_size = block_size.auto_is(Length::zero);
+                let fragments = replaced.make_fragments(
+                    &self.absolutely_positioned_box.contents.style,
+                    Vec2 {
+                        inline: inline_size,
+                        block: block_size,
+                    },
+                );
+                crate::formatting_contexts::IndependentLayout {
+                    fragments,
+                    content_block_size: block_size,
+                }
+            },
+            Err(non_replaced) => {
+                let containing_block_for_children = ContainingBlock {
+                    inline_size,
+                    block_size,
+                    mode: style.writing_mode(),
+                };
+                // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
+                assert_eq!(
+                    containing_block.mode, containing_block_for_children.mode,
+                    "Mixed writing modes are not supported yet"
+                );
+                let dummy_tree_rank = 0;
+                non_replaced.layout(
+                    layout_context,
+                    &containing_block_for_children,
+                    dummy_tree_rank,
+                    &mut absolutely_positioned_fragments,
+                )
+            },
         };
-        // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
-        assert_eq!(
-            containing_block.mode, containing_block_for_children.mode,
-            "Mixed writing modes are not supported yet"
-        );
-        let dummy_tree_rank = 0;
-        let mut absolutely_positioned_fragments = vec![];
-        let mut independent_layout = self.absolutely_positioned_box.contents.layout(
-            layout_context,
-            &containing_block_for_children,
-            dummy_tree_rank,
-            &mut absolutely_positioned_fragments,
-        );
 
         let inline_start = match inline_anchor {
             Anchor::Start(start) => start + pb.inline_start + margin.inline_start,
@@ -307,7 +369,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             &mut independent_layout.fragments,
             &content_rect.size,
             &padding,
-            containing_block_for_children.mode,
+            style.writing_mode(),
         );
 
         Fragment::Box(BoxFragment {

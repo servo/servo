@@ -14,12 +14,12 @@ use crate::geom;
 use crate::geom::flow_relative::Vec2;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::replaced::ReplacedContent;
+use crate::sizing::ContentSizesRequest;
 use crate::style_ext::{Direction, Display, DisplayGeneratingBox, DisplayInside, WritingMode};
 use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefIterator, ParallelExtend, ParallelIterator};
 use script_layout_interface::wrapper_traits::LayoutNode;
 use servo_arc::Arc;
-use style::context::SharedStyleContext;
 use style::values::computed::{Length, LengthOrAuto};
 use style::Zero;
 use style_traits::CSSPixel;
@@ -28,7 +28,7 @@ pub struct BoxTreeRoot(BlockFormattingContext);
 pub struct FragmentTreeRoot(Vec<Fragment>);
 
 impl BoxTreeRoot {
-    pub fn construct<'dom, Node>(context: &SharedStyleContext<'_>, root_element: Node) -> Self
+    pub fn construct<'dom, Node>(context: &LayoutContext, root_element: Node) -> Self
     where
         Node: 'dom + Copy + LayoutNode + Send + Sync,
     {
@@ -41,7 +41,7 @@ impl BoxTreeRoot {
 }
 
 fn construct_for_root_element<'dom>(
-    context: &SharedStyleContext<'_>,
+    context: &LayoutContext,
     root_element: impl NodeExt<'dom>,
 ) -> (ContainsFloats, Vec<Arc<BlockLevelBox>>) {
     let style = root_element.style(context);
@@ -60,32 +60,33 @@ fn construct_for_root_element<'dom>(
         Display::GeneratingBox(DisplayGeneratingBox::OutsideInside { inside, .. }) => inside,
     };
 
-    let position = box_style.position;
-    let float = box_style.float;
-    let contents = IndependentFormattingContext::construct(
-        context,
-        style,
-        display_inside,
-        replaced.map_or(Contents::OfElement(root_element), Contents::Replaced),
-    );
-    if position.is_absolutely_positioned() {
+    let contents = replaced.map_or(Contents::OfElement(root_element), Contents::Replaced);
+    if box_style.position.is_absolutely_positioned() {
         (
             ContainsFloats::No,
             vec![Arc::new(BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                AbsolutelyPositionedBox { contents },
+                AbsolutelyPositionedBox::construct(context, style, display_inside, contents),
             ))],
         )
-    } else if float.is_floating() {
+    } else if box_style.float.is_floating() {
         (
             ContainsFloats::Yes,
-            vec![Arc::new(BlockLevelBox::OutOfFlowFloatBox(FloatBox {
-                contents,
-            }))],
+            vec![Arc::new(BlockLevelBox::OutOfFlowFloatBox(
+                FloatBox::construct(context, style, display_inside, contents),
+            ))],
         )
     } else {
         (
             ContainsFloats::No,
-            vec![Arc::new(BlockLevelBox::Independent(contents))],
+            vec![Arc::new(BlockLevelBox::Independent(
+                IndependentFormattingContext::construct(
+                    context,
+                    style,
+                    display_inside,
+                    contents,
+                    ContentSizesRequest::None,
+                ),
+            ))],
         )
     }
 }

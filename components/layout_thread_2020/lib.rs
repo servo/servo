@@ -1081,9 +1081,9 @@ impl LayoutThread {
         let box_tree = if token.should_traverse() {
             driver::traverse_dom(&traversal, token, Some(rayon_pool));
 
-            let shared = DomTraversal::<ServoLayoutElement>::shared_context(&traversal);
             let root_node = document.root_element().unwrap().as_node();
-            let box_tree = rayon_pool.install(|| BoxTreeRoot::construct(shared, root_node));
+            let box_tree =
+                rayon_pool.install(|| BoxTreeRoot::construct(traversal.context(), root_node));
             Some(box_tree)
         } else {
             None

@@ -10,12 +10,16 @@ use crate::fragments::CollapsedBlockMargins;
 use crate::fragments::{AnonymousFragment, BoxFragment, Fragment, TextFragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{AbsolutelyPositionedBox, AbsolutelyPositionedFragment};
+use crate::sizing::ContentSizes;
 use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside};
 use crate::{relative_adjustement, ContainingBlock};
+use app_units::Au;
+use gfx::text::text_run::GlyphRun;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
-use style::values::computed::Length;
+use style::values::computed::{Length, LengthPercentage, Percentage};
 use style::Zero;
+use webrender_api::FontInstanceKey;
 
 #[derive(Debug, Default)]
 pub(crate) struct InlineFormattingContext {
@@ -63,8 +67,9 @@ struct PartialInlineBoxFragment<'box_tree> {
     parent_nesting_level: InlineNestingLevelState<'box_tree>,
 }
 
-struct InlineFormattingContextState<'box_tree, 'cb> {
-    containing_block: &'cb ContainingBlock,
+struct InlineFormattingContextState<'box_tree, 'a> {
+    absolutely_positioned_fragments: &'a mut Vec<AbsolutelyPositionedFragment<'box_tree>>,
+    containing_block: &'a ContainingBlock,
     line_boxes: LinesBoxes,
     inline_position: Length,
     partial_inline_boxes_stack: Vec<PartialInlineBoxFragment<'box_tree>>,
@@ -77,6 +82,114 @@ struct LinesBoxes {
 }
 
 impl InlineFormattingContext {
+    // This works on an already-constructed `InlineFormattingContext`,
+    // Which would have to change if/when
+    // `BlockContainer::construct` parallelize their construction.
+    pub(super) fn inline_content_sizes(&self, layout_context: &LayoutContext) -> ContentSizes {
+        struct Computation {
+            paragraph: ContentSizes,
+            current_line: ContentSizes,
+            current_line_percentages: Percentage,
+        }
+        impl Computation {
+            fn traverse(
+                &mut self,
+                layout_context: &LayoutContext,
+                inline_level_boxes: &[Arc<InlineLevelBox>],
+            ) {
+                for inline_level_box in inline_level_boxes {
+                    match &**inline_level_box {
+                        InlineLevelBox::InlineBox(inline_box) => {
+                            let padding = inline_box.style.padding();
+                            let border = inline_box.style.border_width();
+                            let margin = inline_box.style.margin();
+                            macro_rules! add {
+                                ($condition: ident, $side: ident) => {
+                                    if inline_box.$condition {
+                                        self.add_lengthpercentage(padding.$side);
+                                        self.add_length(border.$side);
+                                        if let Some(lp) = margin.$side.non_auto() {
+                                            self.add_lengthpercentage(lp)
+                                        }
+                                    }
+                                };
+                            }
+
+                            add!(first_fragment, inline_start);
+                            self.traverse(layout_context, &inline_box.children);
+                            add!(last_fragment, inline_end);
+                        },
+                        InlineLevelBox::TextRun(text_run) => {
+                            let BreakAndShapeResult {
+                                runs,
+                                break_at_start,
+                                ..
+                            } = text_run.break_and_shape(layout_context);
+                            if break_at_start {
+                                self.line_break_opportunity()
+                            }
+                            for run in &runs {
+                                let advance = Length::from(run.glyph_store.total_advance());
+                                if run.glyph_store.is_whitespace() {
+                                    self.line_break_opportunity()
+                                } else {
+                                    self.current_line.min_content += advance
+                                }
+                                self.current_line.max_content += advance
+                            }
+                        },
+                        InlineLevelBox::Atomic(atomic) => {
+                            let (outer, pc) = atomic
+                                .content_sizes
+                                .outer_inline_and_percentages(&atomic.style);
+                            self.current_line.min_content += outer.min_content;
+                            self.current_line.max_content += outer.max_content;
+                            self.current_line_percentages += pc;
+                        },
+                        InlineLevelBox::OutOfFlowFloatBox(_) |
+                        InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => {},
+                    }
+                }
+            }
+
+            fn add_lengthpercentage(&mut self, lp: LengthPercentage) {
+                self.add_length(lp.length_component());
+                self.current_line_percentages += lp.percentage_component();
+            }
+
+            fn add_length(&mut self, l: Length) {
+                self.current_line.min_content += l;
+                self.current_line.max_content += l;
+            }
+
+            fn line_break_opportunity(&mut self) {
+                self.paragraph
+                    .min_content
+                    .max_assign(take(&mut self.current_line.min_content));
+            }
+
+            fn forced_line_break(&mut self) {
+                self.line_break_opportunity();
+                self.current_line
+                    .adjust_for_pbm_percentages(take(&mut self.current_line_percentages));
+                self.paragraph
+                    .max_content
+                    .max_assign(take(&mut self.current_line.max_content));
+            }
+        }
+        fn take<T: Zero>(x: &mut T) -> T {
+            std::mem::replace(x, T::zero())
+        }
+        let mut computation = Computation {
+            paragraph: ContentSizes::zero(),
+            current_line: ContentSizes::zero(),
+            current_line_percentages: Percentage::zero(),
+        };
+        computation.traverse(layout_context, &self.inline_level_boxes);
+        computation.forced_line_break();
+        computation.paragraph
+    }
+
     pub(super) fn layout<'a>(
         &'a self,
         layout_context: &LayoutContext,
@@ -85,6 +198,7 @@ impl InlineFormattingContext {
         absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
     ) -> FlowLayout {
         let mut ifc = InlineFormattingContextState {
+            absolutely_positioned_fragments,
             containing_block,
             partial_inline_boxes_stack: Vec::new(),
             line_boxes: LinesBoxes {
@@ -107,10 +221,7 @@ impl InlineFormattingContext {
                         ifc.partial_inline_boxes_stack.push(partial)
                     },
                     InlineLevelBox::TextRun(run) => run.layout(layout_context, &mut ifc),
-                    InlineLevelBox::Atomic(_independent) => {
-                        // TODO
-                        continue;
-                    },
+                    InlineLevelBox::Atomic(a) => layout_atomic(layout_context, &mut ifc, a),
                     InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
                         let initial_start_corner =
                             match Display::from(box_.contents.style.get_box().original_display) {
@@ -131,12 +242,11 @@ impl InlineFormattingContext {
                                     panic!("display:none does not generate an abspos box")
                                 },
                             };
-                        absolutely_positioned_fragments
+                        ifc.absolutely_positioned_fragments
                             .push(box_.layout(initial_start_corner, tree_rank));
                     },
                     InlineLevelBox::OutOfFlowFloatBox(_box_) => {
                         // TODO
-                        continue;
                     },
                 }
             } else
@@ -282,12 +392,114 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
     }
 }
 
+fn layout_atomic<'box_tree>(
+    layout_context: &LayoutContext,
+    ifc: &mut InlineFormattingContextState<'box_tree, '_>,
+    atomic: &'box_tree IndependentFormattingContext,
+) {
+    let cbis = ifc.containing_block.inline_size;
+    let padding = atomic.style.padding().percentages_relative_to(cbis);
+    let border = atomic.style.border_width();
+    let margin = atomic
+        .style
+        .margin()
+        .percentages_relative_to(cbis)
+        .auto_is(Length::zero);
+    let pbm = &(&padding + &border) + &margin;
+    ifc.inline_position += pbm.inline_start;
+    let mut start_corner = Vec2 {
+        block: pbm.block_start,
+        inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
+    };
+    start_corner += &relative_adjustement(
+        &atomic.style,
+        ifc.containing_block.inline_size,
+        ifc.containing_block.block_size,
+    );
+
+    let fragment = match atomic.as_replaced() {
+        Ok(replaced) => {
+            // FIXME: implement https://drafts.csswg.org/css2/visudet.html#inline-replaced-width
+            // and https://drafts.csswg.org/css2/visudet.html#inline-replaced-height
+            let size = Vec2::zero();
+            let fragments = replaced.make_fragments(&atomic.style, size.clone());
+            let content_rect = Rect { start_corner, size };
+            BoxFragment {
+                style: atomic.style.clone(),
+                children: fragments,
+                content_rect,
+                padding,
+                border,
+                margin,
+                block_margins_collapsed_with_children: CollapsedBlockMargins::zero(),
+            }
+        },
+        Err(non_replaced) => {
+            let box_size = atomic.style.box_size();
+            let inline_size = box_size.inline.percentage_relative_to(cbis).auto_is(|| {
+                let available_size = cbis - pbm.inline_sum();
+                atomic.content_sizes.shrink_to_fit(available_size)
+            });
+            let block_size = box_size
+                .block
+                .maybe_percentage_relative_to(ifc.containing_block.block_size.non_auto());
+            let containing_block_for_children = ContainingBlock {
+                inline_size,
+                block_size,
+                mode: atomic.style.writing_mode(),
+            };
+            assert_eq!(
+                ifc.containing_block.mode, containing_block_for_children.mode,
+                "Mixed writing modes are not supported yet"
+            );
+            // FIXME is this correct?
+            let dummy_tree_rank = 0;
+            // FIXME: Do we need to call `adjust_static_positions` somewhere near here?
+            let independent_layout = non_replaced.layout(
+                layout_context,
+                &containing_block_for_children,
+                dummy_tree_rank,
+                ifc.absolutely_positioned_fragments,
+            );
+            let block_size = block_size.auto_is(|| independent_layout.content_block_size);
+            let content_rect = Rect {
+                start_corner,
+                size: Vec2 {
+                    block: block_size,
+                    inline: inline_size,
+                },
+            };
+            BoxFragment {
+                style: atomic.style.clone(),
+                children: independent_layout.fragments,
+                content_rect,
+                padding,
+                border,
+                margin,
+                block_margins_collapsed_with_children: CollapsedBlockMargins::zero(),
+            }
+        },
+    };
+
+    ifc.inline_position += pbm.inline_end;
+    ifc.current_nesting_level
+        .fragments_so_far
+        .push(Fragment::Box(fragment));
+}
+
+struct BreakAndShapeResult {
+    font_ascent: Au,
+    font_line_gap: Au,
+    font_key: FontInstanceKey,
+    runs: Vec<GlyphRun>,
+    break_at_start: bool,
+}
+
 impl TextRun {
-    fn layout(&self, layout_context: &LayoutContext, ifc: &mut InlineFormattingContextState) {
+    fn break_and_shape(&self, layout_context: &LayoutContext) -> BreakAndShapeResult {
         use gfx::font::ShapingFlags;
         use style::computed_values::text_rendering::T as TextRendering;
         use style::computed_values::word_break::T as WordBreak;
-        use style::values::generics::text::LineHeight;
 
         let font_style = self.parent_style.clone_font();
         let inherited_text_style = self.parent_style.get_inherited_text();
@@ -316,30 +528,41 @@ impl TextRun {
             flags,
         };
 
-        let (font_ascent, font_line_gap, font_key, runs) =
-            crate::context::with_thread_local_font_context(layout_context, |font_context| {
-                let font_group = font_context.font_group(font_style);
-                let font = font_group
-                    .borrow_mut()
-                    .first(font_context)
-                    .expect("could not find font");
-                let mut font = font.borrow_mut();
+        crate::context::with_thread_local_font_context(layout_context, |font_context| {
+            let font_group = font_context.font_group(font_style);
+            let font = font_group
+                .borrow_mut()
+                .first(font_context)
+                .expect("could not find font");
+            let mut font = font.borrow_mut();
 
-                let (runs, _break_at_start) = gfx::text::text_run::TextRun::break_and_shape(
-                    &mut font,
-                    &self.text,
-                    &shaping_options,
-                    &mut None,
-                );
+            let (runs, break_at_start) = gfx::text::text_run::TextRun::break_and_shape(
+                &mut font,
+                &self.text,
+                &shaping_options,
+                &mut None,
+            );
 
-                (
-                    font.metrics.ascent,
-                    font.metrics.line_gap,
-                    font.font_key,
-                    runs,
-                )
-            });
+            BreakAndShapeResult {
+                font_ascent: font.metrics.ascent,
+                font_line_gap: font.metrics.line_gap,
+                font_key: font.font_key,
+                runs,
+                break_at_start,
+            }
+        })
+    }
 
+    fn layout(&self, layout_context: &LayoutContext, ifc: &mut InlineFormattingContextState) {
+        use style::values::generics::text::LineHeight;
+
+        let BreakAndShapeResult {
+            font_ascent,
+            font_line_gap,
+            font_key,
+            runs,
+            break_at_start: _,
+        } = self.break_and_shape(layout_context);
         let font_size = self.parent_style.get_font().font_size.size.0;
         let mut runs = runs.iter();
         loop {

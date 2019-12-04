@@ -8,11 +8,11 @@ use crate::flow::BlockFormattingContext;
 use crate::fragments::Fragment;
 use crate::positioned::AbsolutelyPositionedFragment;
 use crate::replaced::ReplacedContent;
+use crate::sizing::{BoxContentSizes, ContentSizesRequest};
 use crate::style_ext::DisplayInside;
 use crate::ContainingBlock;
 use servo_arc::Arc;
 use std::convert::TryInto;
-use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
 
@@ -20,6 +20,10 @@ use style::values::computed::Length;
 #[derive(Debug)]
 pub(crate) struct IndependentFormattingContext {
     pub style: Arc<ComputedValues>,
+
+    /// If it was requested during construction
+    pub content_sizes: BoxContentSizes,
+
     contents: IndependentFormattingContextContents,
 }
 
@@ -46,22 +50,39 @@ enum NonReplacedIFCKind<'a> {
 }
 
 impl IndependentFormattingContext {
-    pub fn construct<'dom, 'style>(
-        context: &SharedStyleContext<'style>,
+    pub fn construct<'dom>(
+        context: &LayoutContext,
         style: Arc<ComputedValues>,
         display_inside: DisplayInside,
         contents: Contents<impl NodeExt<'dom>>,
+        content_sizes: ContentSizesRequest,
     ) -> Self {
         use self::IndependentFormattingContextContents as Contents;
-        let contents = match contents.try_into() {
+        let (contents, content_sizes) = match contents.try_into() {
             Ok(non_replaced) => match display_inside {
-                DisplayInside::Flow | DisplayInside::FlowRoot => Contents::Flow(
-                    BlockFormattingContext::construct(context, &style, non_replaced),
-                ),
+                DisplayInside::Flow | DisplayInside::FlowRoot => {
+                    let (bfc, box_content_sizes) = BlockFormattingContext::construct(
+                        context,
+                        &style,
+                        non_replaced,
+                        content_sizes,
+                    );
+                    (Contents::Flow(bfc), box_content_sizes)
+                },
             },
-            Err(replaced) => Contents::Replaced(replaced),
+            Err(replaced) => {
+                // The `content_sizes` field is not used by layout code:
+                (
+                    Contents::Replaced(replaced),
+                    BoxContentSizes::NoneWereRequested,
+                )
+            },
         };
-        Self { style, contents }
+        Self {
+            style,
+            contents,
+            content_sizes,
+        }
     }
 
     pub fn as_replaced(&self) -> Result<&ReplacedContent, NonReplacedIFC> {
@@ -71,24 +92,6 @@ impl IndependentFormattingContext {
         match &self.contents {
             Contents::Replaced(r) => Ok(r),
             Contents::Flow(f) => Err(NR(Kind::Flow(f))),
-        }
-    }
-
-    pub fn layout<'a>(
-        &'a self,
-        layout_context: &LayoutContext,
-        containing_block: &ContainingBlock,
-        tree_rank: usize,
-        absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
-    ) -> IndependentLayout {
-        match self.as_replaced() {
-            Ok(replaced) => replaced.layout(&self.style, containing_block),
-            Err(ifc) => ifc.layout(
-                layout_context,
-                containing_block,
-                tree_rank,
-                absolutely_positioned_fragments,
-            ),
         }
     }
 }
