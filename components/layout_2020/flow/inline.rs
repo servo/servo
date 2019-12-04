@@ -120,8 +120,11 @@ impl InlineFormattingContext {
                             add!(last_fragment, inline_end);
                         },
                         InlineLevelBox::TextRun(text_run) => {
-                            let (_, _, _, runs, break_at_start) =
-                                text_run.break_and_shape(layout_context);
+                            let BreakAndShapeResult {
+                                runs,
+                                break_at_start,
+                                ..
+                            } = text_run.break_and_shape(layout_context);
                             if break_at_start {
                                 self.line_break_opportunity()
                             }
@@ -486,11 +489,16 @@ fn layout_atomic<'box_tree>(
         .push(Fragment::Box(fragment));
 }
 
+struct BreakAndShapeResult {
+    font_ascent: Au,
+    font_line_gap: Au,
+    font_key: FontInstanceKey,
+    runs: Vec<GlyphRun>,
+    break_at_start: bool,
+}
+
 impl TextRun {
-    fn break_and_shape(
-        &self,
-        layout_context: &LayoutContext,
-    ) -> (Au, Au, FontInstanceKey, Vec<GlyphRun>, bool) {
+    fn break_and_shape(&self, layout_context: &LayoutContext) -> BreakAndShapeResult {
         use gfx::font::ShapingFlags;
         use style::computed_values::text_rendering::T as TextRendering;
         use style::computed_values::word_break::T as WordBreak;
@@ -537,20 +545,26 @@ impl TextRun {
                 &mut None,
             );
 
-            (
-                font.metrics.ascent,
-                font.metrics.line_gap,
-                font.font_key,
+            BreakAndShapeResult {
+                font_ascent: font.metrics.ascent,
+                font_line_gap: font.metrics.line_gap,
+                font_key: font.font_key,
                 runs,
                 break_at_start,
-            )
+            }
         })
     }
 
     fn layout(&self, layout_context: &LayoutContext, ifc: &mut InlineFormattingContextState) {
         use style::values::generics::text::LineHeight;
 
-        let (font_ascent, font_line_gap, font_key, runs, _) = self.break_and_shape(layout_context);
+        let BreakAndShapeResult {
+            font_ascent,
+            font_line_gap,
+            font_key,
+            runs,
+            break_at_start: _,
+        } = self.break_and_shape(layout_context);
         let font_size = self.parent_style.get_font().font_size.size.0;
         let mut runs = runs.iter();
         loop {
