@@ -8,7 +8,7 @@ use crate::flow::BlockFormattingContext;
 use crate::fragments::Fragment;
 use crate::positioned::AbsolutelyPositionedFragment;
 use crate::replaced::ReplacedContent;
-use crate::sizing::ContentSizes;
+use crate::sizing::{ContentSizes, ContentSizesRequest};
 use crate::style_ext::DisplayInside;
 use crate::ContainingBlock;
 use servo_arc::Arc;
@@ -55,24 +55,24 @@ impl IndependentFormattingContext {
         style: Arc<ComputedValues>,
         display_inside: DisplayInside,
         contents: Contents<impl NodeExt<'dom>>,
-        request_content_sizes: bool,
+        content_sizes: ContentSizesRequest,
     ) -> Self {
         use self::IndependentFormattingContextContents as Contents;
         let (contents, inline_content_sizes) = match contents.try_into() {
             Ok(non_replaced) => match display_inside {
                 DisplayInside::Flow | DisplayInside::FlowRoot => {
-                    let (bfc, content_sizes) = BlockFormattingContext::construct(
+                    let (bfc, inline_content_sizes) = BlockFormattingContext::construct(
                         context,
                         &style,
                         non_replaced,
-                        request_content_sizes,
+                        content_sizes,
                     );
-                    (Contents::Flow(bfc), content_sizes)
+                    (Contents::Flow(bfc), inline_content_sizes)
                 },
             },
             Err(replaced) => {
-                let content_sizes = None; // Unused by layout code
-                (Contents::Replaced(replaced), content_sizes)
+                let inline_content_sizes = None; // Unused by layout code
+                (Contents::Replaced(replaced), inline_content_sizes)
             },
         };
         Self {

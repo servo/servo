@@ -7,7 +7,7 @@ use crate::dom_traversal::{Contents, NodeExt};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::{AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
-use crate::sizing::shrink_to_fit;
+use crate::sizing::{shrink_to_fit, ContentSizesRequest};
 use crate::style_ext::{ComputedValuesExt, Direction, DisplayInside, WritingMode};
 use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -53,21 +53,21 @@ impl AbsolutelyPositionedBox {
         contents: Contents<impl NodeExt<'dom>>,
     ) -> Self {
         // "Shrink-to-fit" in https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
-        let request_content_sizes = {
+        let content_sizes = ContentSizesRequest::inline_if(
             // If inline-size is non-auto, that value is used without shrink-to-fit
             style.inline_size_is_auto() &&
             // If it is, then the only case where shrink-to-fit is *not* used is
             // if both offsets are non-auto, leaving inline-size as the only variable
             // in the constraint equation.
-            !style.inline_box_offsets_are_both_non_auto()
-        };
+            !style.inline_box_offsets_are_both_non_auto(),
+        );
         Self {
             contents: IndependentFormattingContext::construct(
                 context,
                 style,
                 display_inside,
                 contents,
-                request_content_sizes,
+                content_sizes,
             ),
         }
     }

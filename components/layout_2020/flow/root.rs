@@ -14,6 +14,7 @@ use crate::geom;
 use crate::geom::flow_relative::Vec2;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::replaced::ReplacedContent;
+use crate::sizing::ContentSizesRequest;
 use crate::style_ext::{Direction, Display, DisplayGeneratingBox, DisplayInside, WritingMode};
 use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefIterator, ParallelExtend, ParallelIterator};
@@ -83,7 +84,7 @@ fn construct_for_root_element<'dom>(
                     style,
                     display_inside,
                     contents,
-                    /* request_content_sizes */ false,
+                    ContentSizesRequest::None,
                 ),
             ))],
         )

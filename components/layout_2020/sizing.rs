@@ -9,6 +9,37 @@ use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage, Percentage};
 use style::Zero;
 
+/// Which min/max-content values should be computed during box construction
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum ContentSizesRequest {
+    Inline,
+    None,
+}
+
+impl ContentSizesRequest {
+    pub fn inline_if(condition: bool) -> Self {
+        if condition {
+            Self::Inline
+        } else {
+            Self::None
+        }
+    }
+
+    pub fn requests_inline(self) -> bool {
+        match self {
+            Self::Inline => true,
+            Self::None => false,
+        }
+    }
+
+    pub fn if_requests_inline<T>(self, f: impl FnOnce() -> T) -> Option<T> {
+        match self {
+            Self::Inline => Some(f()),
+            Self::None => None,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct ContentSizes {
     pub min_content: Length,

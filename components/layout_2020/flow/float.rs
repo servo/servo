@@ -5,6 +5,7 @@
 use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeExt};
 use crate::formatting_contexts::IndependentFormattingContext;
+use crate::sizing::ContentSizesRequest;
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use servo_arc::Arc;
 use style::properties::ComputedValues;
@@ -32,14 +33,14 @@ impl FloatBox {
         display_inside: DisplayInside,
         contents: Contents<impl NodeExt<'dom>>,
     ) -> Self {
-        let request_content_sizes = style.inline_size_is_auto();
+        let content_sizes = ContentSizesRequest::inline_if(style.inline_size_is_auto());
         Self {
             contents: IndependentFormattingContext::construct(
                 context,
                 style,
                 display_inside,
                 contents,
-                request_content_sizes,
+                content_sizes,
             ),
         }
     }
