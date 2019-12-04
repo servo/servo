@@ -1054,3 +1054,98 @@ impl TextDecorationLength {
         matches!(*self, GenericTextDecorationLength::Auto)
     }
 }
+
+bitflags! {
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
+    #[value_info(other_values = "auto,under,left,right")]
+    #[repr(C)]
+    /// Specified keyword values for the text-underline-position property.
+    /// (Non-exclusive, but not all combinations are allowed: only `under` may occur
+    /// together with either `left` or `right`.)
+    /// https://drafts.csswg.org/css-text-decor-3/#text-underline-position-property
+    pub struct TextUnderlinePosition: u8 {
+        /// Use automatic positioning below the alphabetic baseline.
+        const AUTO = 0;
+        /// Below the glyph box.
+        const UNDER = 1 << 0;
+        /// In vertical mode, place to the left of the text.
+        const LEFT = 1 << 1;
+        /// In vertical mode, place to the right of the text.
+        const RIGHT = 1 << 2;
+    }
+}
+
+impl Parse for TextUnderlinePosition {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<TextUnderlinePosition, ParseError<'i>> {
+        let mut result = TextUnderlinePosition::empty();
+
+        loop {
+            let location = input.current_source_location();
+            let ident = match input.next() {
+                Ok(&Token::Ident(ref ident)) => ident,
+                Ok(other) => return Err(location.new_unexpected_token_error(other.clone())),
+                Err(..) => break,
+            };
+
+            match_ignore_ascii_case! { ident,
+                "auto" if result.is_empty() => {
+                    return Ok(result);
+                },
+                "under" if !result.intersects(TextUnderlinePosition::UNDER) => {
+                    result.insert(TextUnderlinePosition::UNDER);
+                },
+                "left" if !result.intersects(TextUnderlinePosition::LEFT |
+                                             TextUnderlinePosition::RIGHT) => {
+                    result.insert(TextUnderlinePosition::LEFT);
+                },
+                "right" if !result.intersects(TextUnderlinePosition::LEFT |
+                                              TextUnderlinePosition::RIGHT) => {
+                    result.insert(TextUnderlinePosition::RIGHT);
+                },
+                _ => return Err(location.new_custom_error(
+                    SelectorParseErrorKind::UnexpectedIdent(ident.clone())
+                )),
+            }
+        }
+
+        if !result.is_empty() {
+            Ok(result)
+        } else {
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
+    }
+}
+
+impl ToCss for TextUnderlinePosition {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        if self.is_empty() {
+            return dest.write_str("auto");
+        }
+
+        let mut writer = SequenceWriter::new(dest, " ");
+        let mut any = false;
+
+        macro_rules! maybe_write {
+            ($ident:ident => $str:expr) => {
+                if self.contains(TextUnderlinePosition::$ident) {
+                    any = true;
+                    writer.raw_item($str)?;
+                }
+            };
+        }
+
+        maybe_write!(UNDER => "under");
+        maybe_write!(LEFT => "left");
+        maybe_write!(RIGHT => "right");
+
+        debug_assert!(any);
+
+        Ok(())
+    }
+}

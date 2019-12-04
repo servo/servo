@@ -391,6 +391,18 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-text-decor-4/#underline-offset",
 )}
 
+// text underline position
+${helpers.predefined_type(
+    "text-underline-position",
+    "TextUnderlinePosition",
+    "computed::TextUnderlinePosition::AUTO",
+    engines="gecko",
+    animation_value_type="discrete",
+    gecko_pref="layout.css.text-underline-position.enabled",
+    has_effect_on_gecko_scrollbars=False,
+    spec="https://drafts.csswg.org/css-text-decor-3/#text-underline-position-property",
+)}
+
 // text decoration skip ink
 ${helpers.predefined_type(
     "text-decoration-skip-ink",
