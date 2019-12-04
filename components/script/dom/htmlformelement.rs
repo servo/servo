@@ -285,21 +285,21 @@ impl HTMLFormElementMethods for HTMLFormElement {
         // controls - list of form elements
         // check all listed elements first, push to sourcedNamesVec as per spec
         for child in controls.iter() {
-            if child.is_html_element() {
+            if child.downcast::<HTMLElement>().map_or(false, |c| c.is_listed_element()) {
                 // if child.is_listed()
 
                 if child.has_attribute(&local_name!("id")) {
                     // https://learning-rust.github.io/docs/b2.structs.html
                     let entry = SourcedName {
                         name: child.get_string_attribute(&local_name!("id")),
-                        element: child.root_element(),
+                        element: DomRoot::from_ref(&*child),
                         source: SourcedNameSource::Id,
                     };
                     sourcedNamesVec.push(entry);
                 } else if child.has_attribute(&local_name!("name")) {
                     let entry = SourcedName {
                         name: child.get_string_attribute(&local_name!("name")),
-                        element: child.root_element(),
+                        element: DomRoot::from_ref(&*child),
                         source: SourcedNameSource::Name,
                     };
                     sourcedNamesVec.push(entry);
@@ -318,14 +318,14 @@ impl HTMLFormElementMethods for HTMLFormElement {
                     // https://learning-rust.github.io/docs/b2.structs.html
                     let entry = SourcedName {
                         name: child.get_string_attribute(&local_name!("id")),
-                        element: child.root_element(),
+                        element: DomRoot::from_ref(&*child),
                         source: SourcedNameSource::Id,
                     };
                     sourcedNamesVec.push(entry);
                 } else if child.has_attribute(&local_name!("name")) {
                     let entry = SourcedName {
                         name: child.get_string_attribute(&local_name!("name")),
-                        element: child.root_element(),
+                        element: DomRoot::from_ref(&*child),
                         source: SourcedNameSource::Name,
                     };
                     sourcedNamesVec.push(entry);
