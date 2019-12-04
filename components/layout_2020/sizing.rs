@@ -60,9 +60,9 @@ pub(crate) fn outer_inline_content_sizes_and_percentages(
 ) -> (ContentSizes, Percentage) {
     // FIXME: account for 'min-width', 'max-width', 'box-sizing'
 
-    let specified = style.box_size().inline;
+    let inline_size = style.box_size().inline;
     // Percentages for 'width' are treated as 'auto'
-    let specified = specified.map(|lp| lp.as_length());
+    let inline_size = specified.map(|lp| lp.as_length());
     // The (inner) min/max-content are only used for 'auto'
     let mut outer = match specified.non_auto().flatten() {
         None => expect(inner_content_sizes).clone(),
