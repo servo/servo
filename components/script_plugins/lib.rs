@@ -21,9 +21,9 @@
 
 #[macro_use]
 extern crate matches;
-#[macro_use]
 extern crate rustc;
 extern crate rustc_driver;
+extern crate rustc_session;
 extern crate syntax;
 
 use rustc::hir::def_id::DefId;
@@ -32,6 +32,7 @@ use rustc::hir::{self, ExprKind, HirId};
 use rustc::lint::{LateContext, LateLintPass, LintContext, LintPass};
 use rustc::ty;
 use rustc_driver::plugin::Registry;
+use rustc_session::declare_lint;
 use syntax::ast::{AttrKind, Attribute};
 use syntax::source_map;
 use syntax::source_map::{ExpnKind, MacroKind, Span};
