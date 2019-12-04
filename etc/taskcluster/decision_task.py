@@ -579,28 +579,22 @@ def macos_nightly():
 
 
 def update_wpt():
-    build_task = macos_release_build_with_debug_assertions()
-    update_task = (
-        macos_task("WPT update")
-        .with_python2()
-        .with_treeherder("macOS x64", "WPT update")
+    build_task = linux_release_build_with_debug_assertions(layout_2020=False)
+    return (
+        linux_task("WPT update")
+        .with_treeherder("Linux x64", "WPT update")
+        .with_dockerfile(dockerfile_path("run"))
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/wpt-sync")
         .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
         .with_max_run_time_minutes(8 * 60)
         # Not using the bundle, pushing the new changes to the git remote requires a full repo.
-        .with_repo(alternate_object_dir="/var/cache/servo.git/objects")
-    )
-    return (
-        with_homebrew(update_task, [
-            "etc/taskcluster/macos/Brewfile-wpt-update",
-            "etc/taskcluster/macos/Brewfile",
-        ])
+        .with_repo()
         .with_curl_artifact_script(build_task, "target.tar.gz")
         .with_script("""
-            export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
             tar -xzf target.tar.gz
-            ./etc/ci/update-wpt-checkout fetch-and-update-expectations
+            # Use `cat` to force wptrunner’s non-interactive mode
+            ./etc/ci/update-wpt-checkout fetch-and-update-expectations | cat
             ./etc/ci/update-wpt-checkout open-pr
             ./etc/ci/update-wpt-checkout cleanup
         """)
@@ -624,6 +618,37 @@ def macos_release_build_with_debug_assertions(priority=None):
         ]))
         .with_artifacts("repo/target.tar.gz")
         .find_or_create("build.macos_x64_release_w_assertions." + CONFIG.task_id())
+    )
+
+
+def linux_release_build_with_debug_assertions(layout_2020):
+    if layout_2020:
+        name_prefix = "Layout 2020 "
+        build_args = "--with-layout-2020"
+        index_key_suffix = "_2020"
+    else:
+        name_prefix = ""
+        build_args = ""
+        index_key_suffix = ""
+    return (
+        linux_build_task(name_prefix + "Release build, with debug assertions")
+        .with_treeherder("Linux x64", "Release+A")
+        .with_script("""
+            time ./mach rustc -V
+            time ./mach fetch
+            ./mach build --release --with-debug-assertions %s -p servo
+            ./etc/ci/lockfile_changed.sh
+            tar -czf /target.tar.gz \
+                target/release/servo \
+                target/release/build/osmesa-src-*/output \
+                target/release/build/osmesa-src-*/out/lib/gallium
+            sccache --show-stats
+        """ % build_args)
+        .with_artifacts("/target.tar.gz")
+        .find_or_create("build.linux_x64%s_release_w_assertions.%s" % (
+            index_key_suffix,
+            CONFIG.task_id(),
+        ))
     )
 
 
@@ -653,34 +678,7 @@ def linux_wpt_layout_2020():
 
 
 def linux_wpt_common(total_chunks, layout_2020):
-    if layout_2020:
-        name_prefix = "Layout 2020 "
-        build_args = "--with-layout-2020"
-        index_key_suffix = "_2020"
-    else:
-        name_prefix = ""
-        build_args = ""
-        index_key_suffix = ""
-    release_build_task = (
-        linux_build_task(name_prefix + "Release build, with debug assertions")
-        .with_treeherder("Linux x64", "Release+A")
-        .with_script("""
-            time ./mach rustc -V
-            time ./mach fetch
-            ./mach build --release --with-debug-assertions %s -p servo
-            ./etc/ci/lockfile_changed.sh
-            tar -czf /target.tar.gz \
-                target/release/servo \
-                target/release/build/osmesa-src-*/output \
-                target/release/build/osmesa-src-*/out/lib/gallium
-            sccache --show-stats
-        """ % build_args)
-        .with_artifacts("/target.tar.gz")
-        .find_or_create("build.linux_x64%s_release_w_assertions.%s" % (
-            index_key_suffix,
-            CONFIG.task_id(),
-        ))
-    )
+    release_build_task = linux_release_build_with_debug_assertions(layout_2020)
     def linux_run_task(name):
         return linux_task(name).with_dockerfile(dockerfile_path("run")).with_repo_bundle()
     wpt_chunks("Linux x64", linux_run_task, release_build_task, repo_dir="/repo",
