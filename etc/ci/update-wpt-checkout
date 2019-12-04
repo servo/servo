@@ -122,7 +122,7 @@ function unsafe_open_pull_request() {
     BODY+="r? @servo-wpt-sync\n"
     cat <<EOF >prdata.json || return 4
 {
-  "title": "Sync WPT with upstream (${CURRENT_DATE})",
+  "title": "[Do not merge] Sync WPT with upstream (${CURRENT_DATE}), from Linux",
   "head": "${WPT_SYNC_USER}:${REMOTE_BRANCH_NAME}",
   "base": "master",
   "body": "${BODY}",
@@ -136,11 +136,11 @@ EOF
                             --data @prdata.json \
                             https://api.github.com/repos/servo/servo/pulls) || return 5
 
-    echo "${OPEN_PR_RESPONSE}" | \
-        jq '.review_comments_url' | \
-        sed 's/pulls/issues/' | \
-        xargs curl -H "Authorization: token ${WPT_SYNC_TOKEN}" \
-                   --data "{\"body\":\"@bors-servo r+\"}" || return 6
+#    echo "${OPEN_PR_RESPONSE}" | \
+#        jq '.review_comments_url' | \
+#        sed 's/pulls/issues/' | \
+#        xargs curl -H "Authorization: token ${WPT_SYNC_TOKEN}" \
+#                   --data "{\"body\":\"@bors-servo r+\"}" || return 6
 }
 
 function pull_from_upstream() {

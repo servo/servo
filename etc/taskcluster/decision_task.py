@@ -105,14 +105,14 @@ def tasks(task_for):
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":
         daily_tasks_setup()
-        with_rust_nightly()
-        linux_nightly()
-        android_nightly()
-        windows_nightly()
-        macos_nightly()
+#        with_rust_nightly()
+#        linux_nightly()
+#        android_nightly()
+#        windows_nightly()
+#        macos_nightly()
         update_wpt()
-        magicleap_nightly()
-        uwp_nightly()
+#        magicleap_nightly()
+#        uwp_nightly()
 
 
 # These are disabled in a "real" decision task,
@@ -579,7 +579,7 @@ def macos_nightly():
 
 
 def update_wpt():
-    build_task = linux_release_build_with_debug_assertions(layout_2020=False)
+    build_task = "Q5L9V-WHSCa8LkMqs86Sog"# linux_release_build_with_debug_assertions(layout_2020=False)
     return (
         linux_task("WPT update")
         .with_treeherder("Linux x64", "WPT update")
@@ -592,6 +592,7 @@ def update_wpt():
         .with_repo()
         .with_curl_artifact_script(build_task, "target.tar.gz")
         .with_script("""
+            apt-get install --no-install-recommends -y python3 jq
             tar -xzf target.tar.gz
             # Use `cat` to force wptrunner’s non-interactive mode
             ./etc/ci/update-wpt-checkout fetch-and-update-expectations | cat
@@ -793,16 +794,16 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
 def daily_tasks_setup():
     # ':' is not accepted in an index namepspace:
     # https://docs.taskcluster.net/docs/reference/core/taskcluster-index/references/api
-    now = SHARED.now.strftime("%Y-%m-%d_%H-%M-%S")
-    index_path = "%s.daily.%s" % (CONFIG.index_prefix, now)
-    # Index this task manually rather than with a route,
-    # so that it is indexed even if it fails.
-    SHARED.index_service.insertTask(index_path, {
-        "taskId": CONFIG.decision_task_id,
-        "rank": 0,
-        "data": {},
-        "expires": SHARED.from_now_json(log_artifacts_expire_in),
-    })
+#    now = SHARED.now.strftime("%Y-%m-%d_%H-%M-%S")
+#    index_path = "%s.daily.%s" % (CONFIG.index_prefix, now)
+#    # Index this task manually rather than with a route,
+#    # so that it is indexed even if it fails.
+#    SHARED.index_service.insertTask(index_path, {
+#        "taskId": CONFIG.decision_task_id,
+#        "rank": 0,
+#        "data": {},
+#        "expires": SHARED.from_now_json(log_artifacts_expire_in),
+#    })
 
     # Unlike when reacting to a GitHub push event,
     # the commit hash is not known until we clone the repository.
@@ -810,10 +811,10 @@ def daily_tasks_setup():
 
     # On failure, notify a few people on IRC
     # https://docs.taskcluster.net/docs/reference/core/taskcluster-notify/docs/usage
-    notify_route = "notify.irc-channel.#servo.on-failed"
-    CONFIG.routes_for_all_subtasks.append(notify_route)
-    CONFIG.scopes_for_all_subtasks.append("queue:route:" + notify_route)
-    CONFIG.task_name_template = "Servo daily: %s. On failure, ping: " + ping_on_daily_task_failure
+#    notify_route = "notify.irc-channel.#servo.on-failed"
+#    CONFIG.routes_for_all_subtasks.append(notify_route)
+#    CONFIG.scopes_for_all_subtasks.append("queue:route:" + notify_route)
+#    CONFIG.task_name_template = "Servo daily: %s. On failure, ping: " + ping_on_daily_task_failure
 
 
 def dockerfile_path(name):
