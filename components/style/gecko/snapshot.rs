@@ -71,7 +71,7 @@ impl GeckoElementSnapshot {
     }
 
     /// Returns true if the snapshot recorded an attribute change which isn't a
-    /// class or id change.
+    /// class / id
     #[inline]
     pub fn other_attr_changed(&self) -> bool {
         self.mOtherAttributeChanged()
