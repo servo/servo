@@ -15,11 +15,12 @@ use crate::geom::flow_relative::Vec2;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::replaced::ReplacedContent;
 use crate::sizing::ContentSizesRequest;
-use crate::style_ext::{Direction, Display, DisplayGeneratingBox, DisplayInside, WritingMode};
+use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside};
 use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefIterator, ParallelExtend, ParallelIterator};
 use script_layout_interface::wrapper_traits::LayoutNode;
 use servo_arc::Arc;
+use style::logical_geometry::WritingMode;
 use style::values::computed::{Length, LengthOrAuto};
 use style::Zero;
 use style_traits::CSSPixel;
@@ -107,7 +108,7 @@ impl BoxTreeRoot {
             block_size: LengthOrAuto::LengthPercentage(initial_containing_block_size.block),
             // FIXME: use the document’s mode:
             // https://drafts.csswg.org/css-writing-modes/#principal-flow
-            mode: (WritingMode::HorizontalTb, Direction::Ltr),
+            mode: WritingMode::empty(),
         };
         let dummy_tree_rank = 0;
         let mut absolutely_positioned_fragments = vec![];

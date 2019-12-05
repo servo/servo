@@ -4,7 +4,6 @@
 
 use crate::fragments::{BoxFragment, Fragment};
 use crate::geom::physical::{Rect, Vec2};
-use crate::style_ext::ComputedValuesExt;
 use euclid::{Point2D, SideOffsets2D};
 use gfx::text::glyph::GlyphStore;
 use std::sync::Arc;
@@ -55,7 +54,7 @@ impl Fragment {
                 is_contentful.0 = true;
                 let rect = t
                     .content_rect
-                    .to_physical(t.parent_style.writing_mode(), containing_block)
+                    .to_physical(t.parent_style.writing_mode, containing_block)
                     .translate(&containing_block.top_left);
                 let mut baseline_origin = rect.top_left.clone();
                 baseline_origin.y += t.ascent;
@@ -81,7 +80,7 @@ impl Fragment {
                 is_contentful.0 = true;
                 let rect = i
                     .content_rect
-                    .to_physical(i.style.writing_mode(), containing_block)
+                    .to_physical(i.style.writing_mode, containing_block)
                     .translate(&containing_block.top_left);
                 let common = CommonItemProperties {
                     clip_rect: rect.clone().into(),
@@ -117,7 +116,7 @@ impl BoxFragment {
     ) {
         let border_rect = self
             .border_rect()
-            .to_physical(self.style.writing_mode(), containing_block)
+            .to_physical(self.style.writing_mode, containing_block)
             .translate(&containing_block.top_left)
             .into();
         let common = CommonItemProperties {
@@ -133,7 +132,7 @@ impl BoxFragment {
         self.border_display_items(builder, &common, border_rect);
         let content_rect = self
             .content_rect
-            .to_physical(self.style.writing_mode(), containing_block)
+            .to_physical(self.style.writing_mode, containing_block)
             .translate(&containing_block.top_left);
         for child in &self.children {
             child.build_display_list(builder, is_contentful, &content_rect)

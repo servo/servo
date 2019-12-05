@@ -3,10 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::geom::flow_relative::{Rect, Sides};
-use crate::style_ext::{Direction, WritingMode};
 use gfx::text::glyph::GlyphStore;
 use servo_arc::Arc as ServoArc;
 use std::sync::Arc;
+use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::Zero;
@@ -51,7 +51,7 @@ pub(crate) struct CollapsedMargin {
 pub(crate) struct AnonymousFragment {
     pub rect: Rect<Length>,
     pub children: Vec<Fragment>,
-    pub mode: (WritingMode, Direction),
+    pub mode: WritingMode,
 }
 
 pub(crate) struct TextFragment {
@@ -69,7 +69,7 @@ pub(crate) struct ImageFragment {
 }
 
 impl AnonymousFragment {
-    pub fn no_op(mode: (WritingMode, Direction)) -> Self {
+    pub fn no_op(mode: WritingMode) -> Self {
         Self {
             children: vec![],
             rect: Rect::zero(),

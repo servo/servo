@@ -446,7 +446,7 @@ fn layout_atomic<'box_tree>(
             let containing_block_for_children = ContainingBlock {
                 inline_size,
                 block_size,
-                mode: atomic.style.writing_mode(),
+                mode: atomic.style.writing_mode,
             };
             assert_eq!(
                 ifc.containing_block.mode, containing_block_for_children.mode,

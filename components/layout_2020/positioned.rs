@@ -8,10 +8,11 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::{AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::sizing::ContentSizesRequest;
-use crate::style_ext::{ComputedValuesExt, Direction, DisplayInside, WritingMode};
+use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use servo_arc::Arc;
+use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
 use style::Zero;
@@ -128,7 +129,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
         fragments: &mut Vec<Fragment>,
         content_rect_size: &Vec2<Length>,
         padding: &Sides<Length>,
-        mode: (WritingMode, Direction),
+        mode: WritingMode,
     ) {
         if absolute.is_empty() {
             return;
@@ -324,7 +325,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
                 let containing_block_for_children = ContainingBlock {
                     inline_size,
                     block_size,
-                    mode: style.writing_mode(),
+                    mode: style.writing_mode,
                 };
                 // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
                 assert_eq!(
@@ -369,7 +370,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             &mut independent_layout.fragments,
             &content_rect.size,
             &padding,
-            style.writing_mode(),
+            style.writing_mode,
         );
 
         Fragment::Box(BoxFragment {

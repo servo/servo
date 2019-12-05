@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::style_ext::{Direction, WritingMode};
 use std::fmt;
 use std::ops::{Add, AddAssign, Sub};
+use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection, PhysicalCorner, WritingMode};
 use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
 use style::Zero;
 use style_traits::CSSPixel;
@@ -94,9 +94,9 @@ where
 }
 
 impl<T: Clone> physical::Vec2<T> {
-    pub fn size_to_flow_relative(&self, mode: (WritingMode, Direction)) -> flow_relative::Vec2<T> {
+    pub fn size_to_flow_relative(&self, mode: WritingMode) -> flow_relative::Vec2<T> {
         // https://drafts.csswg.org/css-writing-modes/#logical-to-physical
-        let (i, b) = if let (WritingMode::HorizontalTb, _) = mode {
+        let (i, b) = if mode.is_horizontal() {
             (&self.x, &self.y)
         } else {
             (&self.y, &self.x)
@@ -160,9 +160,9 @@ impl flow_relative::Rect<Length> {
 }
 
 impl<T: Clone> flow_relative::Vec2<T> {
-    pub fn size_to_physical(&self, mode: (WritingMode, Direction)) -> physical::Vec2<T> {
+    pub fn size_to_physical(&self, mode: WritingMode) -> physical::Vec2<T> {
         // https://drafts.csswg.org/css-writing-modes/#logical-to-physical
-        let (x, y) = if let (WritingMode::HorizontalTb, _) = mode {
+        let (x, y) = if mode.is_horizontal() {
             (&self.inline, &self.block)
         } else {
             (&self.block, &self.inline)
@@ -181,21 +181,20 @@ impl From<physical::Vec2<Length>> for Point<CSSPixel> {
 }
 
 impl<T: Clone> physical::Sides<T> {
-    pub fn to_flow_relative(&self, mode: (WritingMode, Direction)) -> flow_relative::Sides<T> {
-        use Direction::*;
-        use WritingMode::*;
-
+    pub fn to_flow_relative(&self, mode: WritingMode) -> flow_relative::Sides<T> {
         // https://drafts.csswg.org/css-writing-modes/#logical-to-physical
-        let (bs, be) = match mode.0 {
-            HorizontalTb => (&self.top, &self.bottom),
-            VerticalRl => (&self.right, &self.left),
-            VerticalLr => (&self.left, &self.right),
+        let block_flow = mode.block_flow_direction();
+        let (bs, be) = match mode.block_flow_direction() {
+            BlockFlowDirection::TopToBottom => (&self.top, &self.bottom),
+            BlockFlowDirection::RightToLeft => (&self.right, &self.left),
+            BlockFlowDirection::LeftToRight => (&self.left, &self.right),
         };
-        let (is, ie) = match mode {
-            (HorizontalTb, Ltr) => (&self.left, &self.right),
-            (HorizontalTb, Rtl) => (&self.right, &self.left),
-            (VerticalRl, Ltr) | (VerticalLr, Ltr) => (&self.top, &self.bottom),
-            (VerticalRl, Rtl) | (VerticalLr, Rtl) => (&self.bottom, &self.top),
+        use BlockFlowDirection::TopToBottom;
+        let (is, ie) = match (block_flow, mode.inline_base_direction()) {
+            (TopToBottom, InlineBaseDirection::LeftToRight) => (&self.left, &self.right),
+            (TopToBottom, InlineBaseDirection::RightToLeft) => (&self.right, &self.left),
+            (_, InlineBaseDirection::LeftToRight) => (&self.top, &self.bottom),
+            (_, InlineBaseDirection::RightToLeft) => (&self.bottom, &self.top),
         };
         flow_relative::Sides {
             inline_start: is.clone(),
@@ -298,7 +297,7 @@ impl<T> flow_relative::Rect<T> {
 
     pub fn to_physical(
         &self,
-        mode: (WritingMode, Direction),
+        mode: WritingMode,
         // Will be needed for other writing modes
         // FIXME: what if the containing block has a different mode?
         // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
@@ -308,10 +307,9 @@ impl<T> flow_relative::Rect<T> {
         T: Clone,
     {
         // Top-left corner
-        let (tl_x, tl_y) = if let (WritingMode::HorizontalTb, Direction::Ltr) = mode {
-            (&self.start_corner.inline, &self.start_corner.block)
-        } else {
-            unimplemented!()
+        let (tl_x, tl_y) = match mode.start_start_physical_corner() {
+            PhysicalCorner::TopLeft => (&self.start_corner.inline, &self.start_corner.block),
+            _ => unimplemented!(),
         };
         physical::Rect {
             top_left: physical::Vec2 {

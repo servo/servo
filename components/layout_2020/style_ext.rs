@@ -9,10 +9,6 @@ use style::values::computed::{NonNegativeLengthPercentage, Size};
 use style::values::generics::length::MaxSize;
 use style::values::specified::box_ as stylo;
 
-pub use style::computed_values::direction::T as Direction;
-pub use style::computed_values::position::T as Position;
-pub use style::computed_values::writing_mode::T as WritingMode;
-
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub(crate) enum Display {
     None,
@@ -44,8 +40,6 @@ pub(crate) enum DisplayInside {
 }
 
 pub(crate) trait ComputedValuesExt {
-    fn writing_mode(&self) -> (WritingMode, Direction);
-    fn writing_mode_is_horizontal(&self) -> bool;
     fn inline_size_is_auto(&self) -> bool;
     fn inline_box_offsets_are_both_non_auto(&self) -> bool;
     fn box_offsets(&self) -> flow_relative::Sides<LengthPercentageOrAuto>;
@@ -58,44 +52,24 @@ pub(crate) trait ComputedValuesExt {
 }
 
 impl ComputedValuesExt for ComputedValues {
-    fn writing_mode(&self) -> (WritingMode, Direction) {
-        let inherited_box = self.get_inherited_box();
-        let writing_mode = inherited_box.writing_mode;
-        let direction = inherited_box.direction;
-        (writing_mode, direction)
-    }
-
-    fn writing_mode_is_horizontal(&self) -> bool {
-        match self.get_inherited_box().writing_mode {
-            WritingMode::HorizontalTb => true,
-            WritingMode::VerticalLr | WritingMode::VerticalRl => false,
-        }
-    }
-
     fn inline_size_is_auto(&self) -> bool {
         let position = self.get_position();
-        let size = if self.writing_mode_is_horizontal() {
+        let size = if self.writing_mode.is_horizontal() {
             position.width
         } else {
             position.height
         };
-        matches!(size, Size::Auto)
+        size == Size::Auto
     }
 
     fn inline_box_offsets_are_both_non_auto(&self) -> bool {
         let position = self.get_position();
-        let offsets = if self.writing_mode_is_horizontal() {
+        let (a, b) = if self.writing_mode.is_horizontal() {
             (position.left, position.right)
         } else {
             (position.top, position.bottom)
         };
-        matches!(
-            offsets,
-            (
-                LengthPercentageOrAuto::LengthPercentage(_),
-                LengthPercentageOrAuto::LengthPercentage(_),
-            )
-        )
+        a != LengthPercentageOrAuto::Auto && b != LengthPercentageOrAuto::Auto
     }
 
     #[inline]
@@ -107,7 +81,7 @@ impl ComputedValuesExt for ComputedValues {
             bottom: position.bottom,
             right: position.right,
         }
-        .to_flow_relative(self.writing_mode())
+        .to_flow_relative(self.writing_mode)
     }
 
     #[inline]
@@ -117,7 +91,7 @@ impl ComputedValuesExt for ComputedValues {
             x: size_to_length(position.width),
             y: size_to_length(position.height),
         }
-        .size_to_flow_relative(self.writing_mode())
+        .size_to_flow_relative(self.writing_mode)
     }
 
     #[inline]
@@ -127,7 +101,7 @@ impl ComputedValuesExt for ComputedValues {
             x: size_to_length(position.min_width),
             y: size_to_length(position.min_height),
         }
-        .size_to_flow_relative(self.writing_mode())
+        .size_to_flow_relative(self.writing_mode)
     }
 
     #[inline]
@@ -141,7 +115,7 @@ impl ComputedValuesExt for ComputedValues {
             x: unwrap(position.max_width),
             y: unwrap(position.max_height),
         }
-        .size_to_flow_relative(self.writing_mode())
+        .size_to_flow_relative(self.writing_mode)
     }
 
     #[inline]
@@ -153,7 +127,7 @@ impl ComputedValuesExt for ComputedValues {
             bottom: padding.padding_bottom.0,
             right: padding.padding_right.0,
         }
-        .to_flow_relative(self.writing_mode())
+        .to_flow_relative(self.writing_mode)
     }
 
     fn border_width(&self) -> flow_relative::Sides<Length> {
@@ -164,7 +138,7 @@ impl ComputedValuesExt for ComputedValues {
             bottom: border.border_bottom_width.0,
             right: border.border_right_width.0,
         }
-        .to_flow_relative(self.writing_mode())
+        .to_flow_relative(self.writing_mode)
     }
 
     fn margin(&self) -> flow_relative::Sides<LengthPercentageOrAuto> {
@@ -175,7 +149,7 @@ impl ComputedValuesExt for ComputedValues {
             bottom: margin.margin_bottom,
             right: margin.margin_right,
         }
-        .to_flow_relative(self.writing_mode())
+        .to_flow_relative(self.writing_mode)
     }
 }
 

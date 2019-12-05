@@ -173,6 +173,11 @@ impl WritingMode {
         self.intersects(WritingMode::VERTICAL)
     }
 
+    #[inline]
+    pub fn is_horizontal(&self) -> bool {
+        !self.is_vertical()
+    }
+
     /// Assuming .is_vertical(), does the block direction go left to right?
     #[inline]
     pub fn is_vertical_lr(&self) -> bool {
