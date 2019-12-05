@@ -29,15 +29,14 @@ GST_PLUGIN_PATH=target/gstplugins \
     ! glimagesink rotate-method=vertical-flip
 ```
 
-*Note*: the following don't work, for some reason the pipeline isn't providing GLMemory.
-
 To stream over the network:
 ```
+GST_PLUGIN_PATH=target/gstplugins \
   gst-launch-1.0 servosrc \
     ! videorate \
-    ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=1920,height=1080,format=RGBA \
+    ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=512,height=256 \
+    ! glcolorconvert \
     ! gldownload \
-    ! videoconvert \
     ! videoflip video-direction=vert \
     ! theoraenc \
     ! oggmux \
@@ -47,10 +46,11 @@ To stream over the network:
 To  save to a file:
 ```
 GST_PLUGIN_PATH=target/gstplugins \
+  gst-launch-1.0 servosrc \
     ! videorate \
-    ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=1920,height=1080,format=RGBA \
+    ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=512,height=256 \
+    ! glcolorconvert \
     ! gldownload \
-    ! videoconvert \
     ! videoflip video-direction=vert \
     ! theoraenc \
     ! oggmux \
