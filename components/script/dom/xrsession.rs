@@ -8,6 +8,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateInit;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateMethods;
@@ -56,6 +57,7 @@ pub struct XRSession {
     eventtarget: EventTarget,
     base_layer: MutNullableDom<XRWebGLLayer>,
     blend_mode: XREnvironmentBlendMode,
+    mode: XRSessionMode,
     visibility_state: Cell<XRVisibilityState>,
     viewer_space: MutNullableDom<XRSpace>,
     #[ignore_malloc_size_of = "defined in webxr"]
@@ -85,11 +87,13 @@ impl XRSession {
         session: Session,
         render_state: &XRRenderState,
         input_sources: &XRInputSourceArray,
+        mode: XRSessionMode,
     ) -> XRSession {
         XRSession {
             eventtarget: EventTarget::new_inherited(),
             base_layer: Default::default(),
             blend_mode: session.environment_blend_mode().into(),
+            mode,
             visibility_state: Cell::new(XRVisibilityState::Visible),
             viewer_space: Default::default(),
             session: DomRefCell::new(session),
@@ -107,7 +111,7 @@ impl XRSession {
         }
     }
 
-    pub fn new(global: &GlobalScope, session: Session) -> DomRoot<XRSession> {
+    pub fn new(global: &GlobalScope, session: Session, mode: XRSessionMode) -> DomRoot<XRSession> {
         let render_state = XRRenderState::new(global, 0.1, 1000.0, None);
         let input_sources = XRInputSourceArray::new(global);
         let ret = reflect_dom_object(
@@ -115,6 +119,7 @@ impl XRSession {
                 session,
                 &render_state,
                 &input_sources,
+                mode,
             )),
             global,
             XRSessionBinding::Wrap,
